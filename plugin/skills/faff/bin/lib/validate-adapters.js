@@ -39,7 +39,7 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1134, "faff-beep-boop": 705, "faff-graft": 620 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows (FAFF-749: +2 for concurrency obligation 6; FAFF-758: +2 for the second monotonicity carve-out + the split labels-manifest paragraph)
+const SKILL_LINE_CAP_OVERRIDE = { faff: 1152, "faff-beep-boop": 719, "faff-graft": 620 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows (FAFF-749: +2 for concurrency obligation 6; FAFF-758: +2 for the second monotonicity carve-out + the split labels-manifest paragraph)   // FAFF-728: +1 gateway (GitHub-auth preflight bullet) + 14 beep-boop (GitHub-auth preflight surfacing section)   // FAFF-700: +7 gateway (Producer-dispatch section's dispatch-observability clause)   // FAFF-727: +10 gateway (Interactive park resolution section)
                                                   // FAFF-695 added the "Tracker availability resolution" shared rule to the gateway (+ a beep-boop pointer to it).
                                                   // structurally with each new slot/contract — FAFF-335's spec_review/grounding slot rows + the
                                                   // "Spec-review verdict (fixed)" contract section pushed it past 1100. faff-beep-boop is the L4
@@ -142,22 +142,97 @@ function readJudgementSeam(text) {
 }
 
 // FAFF-280: load eval/seam-registry.json (the seam→KIND SSOT) relative to the repo root (this CLI
-// lives at <root>/plugin/skills/faff/bin/faff). Returns { registry, error }. A plugin-only install
-// with no eval/ harness yields {registry:null, error:null} — nothing to reconcile. An eval/ dir WITH
-// a missing/malformed registry is a hard error (fail-loud, mirroring the grader consumer).
-function loadSeamRegistryForLint() {
-  const repoRoot = path.resolve(HERE, "..", "..", "..", "..");
+// lives at <root>/plugin/skills/faff/bin/faff). Returns { registry, error, root }. A plugin-only
+// install with no eval/ harness yields {registry:null, error:null} — nothing to reconcile. An eval/
+// dir WITH a missing/malformed registry is a hard error (fail-loud, mirroring the grader consumer).
+// FAFF-616: accepts an explicit `root` (the shared root every gate-block fs read resolves against —
+// `--root` if the caller supplied one, else the HERE-relative default) and returns the root it used
+// so callers (the C2 casesDir read, the C3 frontier.json read) thread the SAME value rather than each
+// re-resolving their own — a fixture pointed at by `--root` must never fall through to the real tree.
+function loadSeamRegistryForLint(root) {
+  const repoRoot = root !== undefined ? root : path.resolve(HERE, "..", "..", "..", "..");
   const evalDir = path.join(repoRoot, "eval");
   const regPath = path.join(evalDir, "seam-registry.json");
-  if (!fs.existsSync(evalDir)) return { registry: null, error: null };
-  if (!fs.existsSync(regPath)) return { registry: null, error: `eval/seam-registry.json not found (${regPath})` };
+  if (!fs.existsSync(evalDir)) return { registry: null, error: null, root: repoRoot };
+  if (!fs.existsSync(regPath)) return { registry: null, error: `eval/seam-registry.json not found (${regPath})`, root: repoRoot };
   let reg;
   try { reg = JSON.parse(fs.readFileSync(regPath, "utf8")); }
-  catch (e) { return { registry: null, error: `eval/seam-registry.json malformed JSON: ${e.message}` }; }
+  catch (e) { return { registry: null, error: `eval/seam-registry.json malformed JSON: ${e.message}`, root: repoRoot }; }
   if (!reg || typeof reg.kinds !== "object" || reg.kinds === null) {
-    return { registry: null, error: "eval/seam-registry.json missing the `kinds` map" };
+    return { registry: null, error: "eval/seam-registry.json missing the `kinds` map", root: repoRoot };
   }
-  return { registry: reg, error: null };
+  return { registry: reg, error: null, root: repoRoot };
+}
+
+// FAFF-616 C3: pure calibration-floor predicate. `baseline` is the ALREADY-PARSED frontier object
+// (checkCalibrated never reads it from disk); `floor` is the resolved numeric floor
+// (baseline.policy.calibration_floor ?? 0.85); `warnSet` is a Set of baseline.policy.warn_kinds. No
+// fs, no process.exit, no model call, no ambient state — deterministic in its args, so it is testable
+// with hand-built objects and structurally cannot invoke a model. Gates on `accuracy` only; a broken
+// kind's `stability`/`format_adherence` reading 1.00 must never affect the verdict. Kind lookup is
+// exact-string (baseline.per_kind[kind]) — the grader asserts registry keys == its KINDS, so
+// normalizing here would only mask a genuine divergence.
+function checkCalibrated(kind, entry, baseline, floor, warnSet) {
+  const row = baseline && baseline.per_kind ? baseline.per_kind[kind] : undefined;
+  if (row === undefined) {
+    return { ok: false, reason: `kind \`${kind}\` is registry-status \`calibrated\` but has no per_kind row in frontier.json — run the operator sweep (FAFF-614)` };
+  }
+  if (warnSet.has(kind)) {
+    return { ok: false, reason: `kind \`${kind}\` is \`calibrated\` but is a policy.warn_kind in frontier.json — a warn-kind is not calibration-clean` };
+  }
+  if (row.accuracy < floor) {
+    return { ok: false, reason: `kind \`${kind}\` accuracy ${row.accuracy} < calibration floor ${floor}` };
+  }
+  return { ok: true };
+}
+
+// FAFF-616 C3: the outer lint — owns the frontier.json fs-read and the fail-loud exit. Impure by
+// design (the counterpart to the pure checkCalibrated above). Only called when `seamReg !== null`;
+// `root` is the SAME shared root loadSeamRegistryForLint used, never recomputed. `casesPresent` is
+// accepted per the component interface (a calibrated-with-0-cases kind is caught by the extended C2,
+// not here — this param is not consulted by the procedure below, kept for interface parity). A
+// calibrated claim with no readable frontier baseline is a harness-can't-run condition (exit 2),
+// distinct from a claim that reads fine but misses the floor (a lint FAIL, exit 1, via `failed`).
+function c3CalibrationFloor(seamReg, root, _casesPresent) {
+  const calibratedKinds = Object.entries(seamReg.kinds)
+    .filter(([, entry]) => entry.status === "calibrated")
+    .map(([kind]) => kind);
+  if (calibratedKinds.length === 0) return { failed: false, exit2: false }; // no claim → nothing to read, nothing to fail
+
+  const frontierPath = path.join(root, "eval", "baselines", "frontier.json");
+  let baseline;
+  if (!fs.existsSync(frontierPath)) {
+    console.log(`FAIL  eval/baselines/frontier.json (calibration floor)`);
+    console.log(`        ✗ eval/baselines/frontier.json not found (${frontierPath}) — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
+    return { failed: true, exit2: true };
+  }
+  try {
+    baseline = JSON.parse(fs.readFileSync(frontierPath, "utf8"));
+  } catch (e) {
+    console.log(`FAIL  eval/baselines/frontier.json (calibration floor)`);
+    console.log(`        ✗ eval/baselines/frontier.json malformed JSON: ${e.message} — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
+    return { failed: true, exit2: true };
+  }
+  if (!baseline || typeof baseline.per_kind !== "object" || baseline.per_kind === null) {
+    console.log(`FAIL  eval/baselines/frontier.json (calibration floor)`);
+    console.log(`        ✗ eval/baselines/frontier.json missing the \`per_kind\` map — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
+    return { failed: true, exit2: true };
+  }
+
+  const policy = baseline.policy || {};
+  const floor = policy.calibration_floor !== undefined && policy.calibration_floor !== null ? policy.calibration_floor : 0.85;
+  const warnSet = new Set(policy.warn_kinds || []);
+
+  let failed = false;
+  for (const kind of calibratedKinds) {
+    const result = checkCalibrated(kind, seamReg.kinds[kind], baseline, floor, warnSet);
+    if (!result.ok) {
+      failed = true;
+      console.log(`FAIL  eval/baselines/frontier.json:${kind} (calibration floor)`);
+      console.log(`        ✗ ${result.reason}`);
+    }
+  }
+  return { failed, exit2: false };
 }
 
 // FAFF-280: reconcile a skill's `judgement_seam:` declaration against the registry. `declared`:
@@ -528,8 +603,12 @@ function cmdIsBundled(args) {
 
 function cmdValidateAdapters(args) {
   if (args.includes("--is-bundled")) return cmdIsBundled(args);
-  const { errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
+  const { values, errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
   if (errors.length) return usageError(errors, "usage: faff validate-adapters [--configured] [--skills-dir DIR] [--root DIR] | --is-bundled <occupant> --slot <slot>");
+  // FAFF-616: the shared root every seam-block fs read (registry, cases, frontier) resolves against —
+  // `--root` if supplied, else the HERE-relative default. Resolved once here, threaded through
+  // loadSeamRegistryForLint below, and reused verbatim for the C2 casesDir + C3 frontier reads.
+  const root = values["--root"] !== undefined ? values["--root"] : path.resolve(HERE, "..", "..", "..", "..");
   const skillsDir = resolveSkillsDir(args);
   if (!fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) {
     process.stderr.write(`validate-adapters: skills dir not found: ${skillsDir}\n`);
@@ -785,7 +864,7 @@ function cmdValidateAdapters(args) {
   // fails loud. FAFF-281 adds the absent-key coverage gate (C1/C2) below. Reuses allSkills above;
   // surface == skill dir name.
   {
-    const { registry: seamReg, error: seamErr } = loadSeamRegistryForLint();
+    const { registry: seamReg, error: seamErr, root: usedRoot } = loadSeamRegistryForLint(root);
     if (seamErr) {
       // FAFF-281: a missing/malformed registry (with an eval/ harness present) is a structural/harness
       // error, not a lint failure — fail loud with exit 2 (the "harness can't run" code, as for an
@@ -827,19 +906,30 @@ function cmdValidateAdapters(args) {
           console.log(`UNDECLARED  ${name} — REGISTRY slot skill, no judgement_seam key and no registry row yet (advisory; flips to FAIL when its backfill ticket registers a row)`);
         }
       }
-      const casesDir = path.join(path.resolve(HERE, "..", "..", "..", ".."), "eval", "cases");
+      const casesDir = path.join(usedRoot, "eval", "cases");
       const caseFiles = fs.existsSync(casesDir) ? fs.readdirSync(casesDir) : [];
       const casesPresent = (kind) => caseFiles.filter((f) => f.startsWith(`${kind}-`) && f.endsWith(".json")).length;
       for (const [kind, entry] of Object.entries(seamReg.kinds)) {
         if (casesPresent(kind) > 0) continue;
-        if (entry.status === "covered") {
+        // FAFF-616: a `calibrated` claim is strictly stronger than `covered` — it cannot be case-empty
+        // either, so the FAIL condition widens from {covered} to {covered, calibrated}.
+        if (entry.status === "covered" || entry.status === "calibrated") {
           failed = true;
           console.log(`FAIL  eval/cases/${kind} (eval coverage)`);
-          console.log(`        ✗ kind \`${kind}\` is registry-status \`covered\` but has 0 cases in eval/cases/ (FAFF-281 C2)`);
+          console.log(`        ✗ kind \`${kind}\` is registry-status \`${entry.status}\` but has 0 cases in eval/cases/ (FAFF-281 C2)`);
         } else if (entry.status === "designed") {
           console.log(`NEEDS-CASES  ${kind} (surface ${entry.surface}) — registry-status \`designed\`, 0 cases yet (advisory)`);
         }
       }
+
+      // FAFF-616 C3: for each `calibrated` kind, confirm the committed frontier baseline backs the
+      // claim (row exists, not a warn_kind, accuracy clears the floor). Runs after C1/C2, off the
+      // same shared root. A missing/malformed frontier.json while a calibrated claim exists is
+      // fail-loud (exit 2, harness-can't-run); a claim that reads fine but misses the floor is a
+      // lint FAIL (exit 1, folded into `failed` below).
+      const c3 = c3CalibrationFloor(seamReg, usedRoot, casesPresent);
+      if (c3.exit2) return 2;
+      if (c3.failed) failed = true;
     }
   }
 
@@ -860,4 +950,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

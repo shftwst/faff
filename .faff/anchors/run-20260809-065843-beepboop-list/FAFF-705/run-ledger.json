@@ -1,0 +1,109 @@
+{
+  "run_id": "run-20260809-065843-beepboop-list",
+  "admitted": [
+    "FAFF-752",
+    "FAFF-662",
+    "FAFF-707",
+    "FAFF-705",
+    "FAFF-700",
+    "FAFF-699",
+    "FAFF-616",
+    "FAFF-727"
+  ],
+  "outcomes": {
+    "FAFF-584": "routed-out",
+    "FAFF-581": "routed-out",
+    "FAFF-528": "routed-out",
+    "FAFF-703": "routed-out",
+    "FAFF-607": "routed-out",
+    "FAFF-597": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-734": "parked",
+    "FAFF-590": "parked",
+    "FAFF-662": "parked"
+  },
+  "outcome_details": {
+    "FAFF-584": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; FAFF-584↔607 sequencing needs a human call + architecture-class punt"
+    },
+    "FAFF-581": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; coverage-enforcement-floor Punt (decides:qa) unresolvable autonomously"
+    },
+    "FAFF-528": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; entry-point placement Punt (decides:product) open"
+    },
+    "FAFF-703": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; harness-declares-model requirement Punt (decides:architecture) open"
+    },
+    "FAFF-607": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; blocked-by FAFF-239 (open) + 2 carve-boundary punts (decides:architecture)"
+    },
+    "FAFF-597": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; 6 unvalidated Fly-platform assumptions gated behind a build-time spike"
+    },
+    "FAFF-486": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; 2 open architecture punts (further-site rollout, compaction cadence)"
+    },
+    "FAFF-734": {
+      "verdict": "needs-human",
+      "reason": "spec-review needs-human (2-iter cap exhausted; methodology+QA majors) + blocked-by FAFF-733"
+    },
+    "FAFF-590": {
+      "verdict": "parked-standing",
+      "reason": "no spec; standing human decision (harness-layer auth signal); buildable slice already carved to FAFF-728"
+    },
+    "FAFF-662": {
+      "verdict": "needs-human",
+      "reason": "Step 7.5 UNIT rung errored on the gates-runner 600s cap (full node --test cannot complete in this sandbox; single test argv.test.mjs alone ran 532s). LINT passed, diff docs-only, zero not-ok observed. Environmental, not a code defect. Branch pushed, no PR."
+    }
+  },
+  "prep_queue": [
+    "FAFF-727"
+  ],
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset"
+    },
+    "measure_root": "/home/faff/app",
+    "window": {
+      "anchor_epoch": 1786259301268,
+      "reset_epoch": 1786277301268,
+      "tokens_at_anchor": 17823350
+    },
+    "tokens_at_last_event": {
+      "input": 222,
+      "output": 307647,
+      "cache_write": 4513656,
+      "cache_read": 24877589
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 884,
+    "session_id": "run-20260809-065843-beepboop-list",
+    "started_at": "2026-08-09T07:07:35Z",
+    "last_heartbeat": "2026-08-09T07:07:35Z"
+  },
+  "level": "L3",
+  "claimed_by_peer": {
+    "FAFF-728": "Done (peer merged PR #590)",
+    "FAFF-750": "In Review (peer PR #588, CI green)",
+    "FAFF-673": "In Progress (peer)"
+  }
+}

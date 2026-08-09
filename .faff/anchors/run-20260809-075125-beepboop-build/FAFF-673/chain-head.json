@@ -1,0 +1,8 @@
+{
+  "run_id": "run-20260809-075125-beepboop-build",
+  "issue": "FAFF-673",
+  "head_seq": 2,
+  "head_sha256": "cc7696154b5f8afd39aa450b7b86647a52c4aae6f101015a920685b93c8ded86",
+  "line_count": 3,
+  "schema_floor": 1
+}

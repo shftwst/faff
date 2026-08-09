@@ -128,12 +128,32 @@ test("engine call: an Anthropic-token lane is refused (engine call serves only e
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("engine call: non-inherit effort.<lane> on an engine-valued lane is refused, named", () => {
+// FAFF-705: a graded effort on a NON-graded family (ollama) is still refused, now with a
+// capability-specific message naming the missing transport and the remedy (reasoning_off /
+// a graded-effort engine) — the reworded refusal replacing the FAFF-422 blanket "engines
+// can't carry effort" prose.
+test("engine call: graded effort on an ollama (non-graded) engine lane is refused, capability-named", () => {
   const dir = fixtureDir(ENGINES_BLOCK + "models:\n  methodology: engine:studio\neffort:\n  methodology: high\n");
   try {
     const r = runCli(["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /effort\.methodology/);
+    assert.match(r.stderr, /no graded reasoning-effort transport/);
+    assert.match(r.stderr, /reasoning_off/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// FAFF-705: a graded effort on a GRADED-effort family (openai) is NO LONGER refused at config
+// (the FAFF-422 lift) — it resolves and dispatches, failing only at the (fake) network host
+// with engine-unreachable, never the old effort×engine config refusal (exit 2).
+test("engine call: graded effort on an openai-family engine lane is not config-refused (dispatches)", () => {
+  const OPENAI_BLOCK = "engines:\n  seat:\n    provider: openai\n    model: gpt-5\n    host: http://127.0.0.1:9/v1\n";
+  const dir = fixtureDir(OPENAI_BLOCK + "models:\n  methodology: engine:seat\neffort:\n  methodology: high\n");
+  try {
+    const r = runCli(["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
+    assert.notEqual(r.code, 2, r.stderr);                       // not the config refusal
+    assert.doesNotMatch(r.stderr, /does not map onto an engine backend/); // old FAFF-422 prose is gone
+    assert.equal(r.code, ENGINE_EXIT.UNREACHABLE);              // reached dispatch, failed at the dead host
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -349,6 +369,34 @@ test("codex dispatch: happy path — exit 0, stdout is the final agent message, 
   assert.equal(exec.length, 1);
   assert.deepEqual(exec[0].args, buildCodexArgv("gpt-5-codex"));
   assert.equal(exec[0].opts.input, "SYS\n\nUSR");
+});
+
+// FAFF-705: a graded effort on a codex engine appends -c model_reasoning_effort=<mapped> to the
+// exec argv AND the resolved faff level lands on the appended engine-spend record (pre-map).
+test("codex dispatch: graded effort → -c model_reasoning_effort in argv + effort on the spend record", () => {
+  const calls = [];
+  const recorded = [];
+  const code = runCodexCall({
+    engine: { ...CODEX_ENGINE, effort: "max" }, system: "S", user: "U",
+    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+    stdoutWrite: sink, stderrWrite: sink, spendSink: (r) => recorded.push(r),
+  });
+  assert.equal(code, ENGINE_EXIT.OK);
+  const exec = calls.find((c) => c.args[0] === "exec");
+  assert.deepEqual(exec.args, buildCodexArgv("gpt-5-codex", "max"));       // xhigh/max clamp to high in argv
+  assert.ok(exec.args.join(" ").includes("-c model_reasoning_effort=high"));
+  assert.equal(recorded[0].effort, "max");                                 // record stores the faff level, pre-map
+});
+
+// FAFF-705: an inherit (no effort) codex call's spend record is byte-identical to today — no effort key.
+test("codex dispatch: inherit effort omits the effort key on the spend record (byte-identity)", () => {
+  const recorded = [];
+  runCodexCall({
+    engine: CODEX_ENGINE, system: "S", user: "U",
+    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+    stdoutWrite: sink, stderrWrite: sink, spendSink: (r) => recorded.push(r),
+  });
+  assert.ok(!("effort" in recorded[0]));
 });
 
 test("codex dispatch: seat probe exit 1 → auth-failed exit 6, codex exec never spawned", () => {

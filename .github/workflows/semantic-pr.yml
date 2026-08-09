@@ -1,0 +1,49 @@
+name: semantic-pr
+
+# Enforce Conventional Commit PR titles. The repo squash-merges with
+# `squash_merge_commit_title = PR_TITLE`, so the PR title becomes the commit
+# subject on `main` verbatim — which is exactly what release-please parses to
+# decide version bumps + changelog entries. A non-conventional title (e.g.
+# `FAFF-123: …` or `[FAFF-123] …`) is silently dropped by release-please, so
+# real features never trigger a release. Gating the title here keeps `main`'s
+# history parseable by construction.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate-title:
+    name: Validate PR title (Conventional Commits)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # The standard Conventional Commits type set. `feat` bumps minor,
+          # `fix` bumps patch; the rest appear in the changelog without a bump.
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            perf
+            test
+            build
+            ci
+            style
+            revert
+          # Scope is optional — the repo uses `feat(FAFF-123):` when a ticket
+          # applies, and bare `feat:` otherwise. Don't force it.
+          requireScope: false
+          # Only the TYPE is enforced (that is what release-please parses).
+          # Subject case/wording is left to the author — no subjectPattern.

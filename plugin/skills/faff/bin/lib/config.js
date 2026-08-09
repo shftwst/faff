@@ -227,6 +227,33 @@ const ENGINE_PROVIDER_FAMILY = {
   codex: "codex",
 };
 
+// FAFF-705: which transport FAMILIES carry a graded reasoning-effort control on the
+// wire — the openai-compatible `reasoning_effort` request field and codex exec's
+// `-c model_reasoning_effort`. `ollama` is NOT one (its transport carries only the
+// on/off `think:false`, no graded dial). Capability is a property of the family, not
+// a hand-set per-backend flag: it is DERIVED from the family string ENGINE_PROVIDER_FAMILY
+// already assigns, so a lane's effort-tunability can never drift out of sync with its
+// transport. This is the single source the `resolveEngineForLane` effort lift keys off.
+const EFFORT_GRADED_FAMILIES = new Set(["openai", "codex"]);
+
+// PURE (FAFF-705): map a faff effort level (five-level, `low|medium|high|xhigh|max`)
+// onto the three-level transport target the graded-effort backends accept
+// (`low|medium|high`). Above-ceiling levels CLAMP to `high` (the ticket sanctions
+// "map to the nearest supported") rather than fragmenting the closed lane-uniform
+// vocabulary per-engine. Never called with `inherit` — that path omits the effort arg
+// entirely (resolveEngineForLane returns effort:null). Both encode sites (buildEngineRequest
+// for the OpenAI HTTP path, buildCodexArgv for the codex spawn path) call this one helper.
+function reasoningEffortForTransport(faffLevel) {
+  switch (faffLevel) {
+    case "low": return "low";
+    case "medium": return "medium";
+    case "high": return "high";
+    case "xhigh": return "high";   // clamp to ceiling
+    case "max": return "high";     // clamp to ceiling
+    default: return "high";        // defensive: never reached (validateEffortLane gates the vocab)
+  }
+}
+
 // PURE: validate an `engine:<name>` value's reference against the shared
 // `backends:` namespace (FAFF-523 — `engines:` folds into it at load, name
 // collision is a hard error there) — the resolution-time half of the
@@ -279,11 +306,15 @@ function validateEngineRef(cfg, value) {
 
 // PURE: resolve an allowlisted lane to its configured engine for dispatch (`faff engine call`).
 // Fail-loud at every step — allowlist, engine: shape, engines.<name> reference, and the
-// effort×engine conflict (an `effort.<lane>` that isn't inherit is refused, not silently
-// dropped: Agent-tool reasoning-effort doesn't map onto an engine backend; per-engine tuning
-// belongs in the engine object). Returns { name, provider, family, model, host, binPath,
-// apiKeyEnv, reasoningOff, timeoutMs } or { error }. The codex family's record is
-// host-less and carries binPath instead (FAFF-593 — spawn transport, not HTTP).
+// effort×engine resolution (FAFF-705). Effort is no longer blanket-refused on engine lanes:
+// a graded `effort.<lane>` on a GRADED-effort family (openai | codex — EFFORT_GRADED_FAMILIES)
+// is carried on the record and mapped onto the transport at dispatch; a graded effort on a
+// non-graded family (ollama, no graded transport) OR a graded effort contradicting
+// `reasoning_off: true` is refused with a capability-specific message (never silently dropped).
+// Returns { name, provider, family, model, host, binPath, apiKeyEnv, auth, seatTokenEnv,
+// reasoningOff, timeoutMs, effort } or { error }. `effort` is the resolved faff level
+// (five-level, pre-map) or null when effort.<lane> is inherit/unset. The codex family's record
+// is host-less and carries binPath instead (FAFF-593 — spawn transport, not HTTP).
 function resolveEngineForLane(cfg, lane) {
   if (!ENGINE_CALL_LANES.includes(lane)) {
     return { error: `lane "${lane}" is not engine-dispatchable — v1 allowlist: ${ENGINE_CALL_LANES.join(" | ")} (FAFF-422)` };
@@ -298,11 +329,11 @@ function resolveEngineForLane(cfg, lane) {
   }
   const refErr = validateEngineRef(cfg, value);
   if (refErr) return { error: `${key}: ${refErr}` };
+  // FAFF-705: the effort level the operator requested for this lane (validateEffortLane
+  // already gated the token at read, so this is a legal faff level or "inherit"). Its
+  // capability check is deferred to below — it needs the resolved family + reasoning_off.
   const effortRaw = dig(cfg, `effort.${lane}`);
   const effort = (effortRaw === null || effortRaw === undefined || effortRaw === "") ? "inherit" : String(effortRaw).trim();
-  if (effort !== "inherit") {
-    return { error: `effort.${lane} is "${effort}" but ${key} is an engine value — Agent-tool reasoning-effort does not map onto an engine backend; set effort.${lane} to inherit and tune the engine in engines.<name> (reasoning_off, timeout)` };
-  }
   const name = value.slice("engine:".length).trim();
   // validateEngineRef above already proved the merged backends:+engines: namespace has
   // this entry with provider/model/host, so this re-resolve is non-null today; guard it
@@ -315,6 +346,24 @@ function resolveEngineForLane(cfg, lane) {
   if (!entry) return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
   const provider = String(entry.provider).toLowerCase();
   const family = ENGINE_PROVIDER_FAMILY[provider];
+  const reasoningOff = entry.reasoning_off === true;
+  // FAFF-705: resolve the requested effort against the family's capability (replaces the
+  // FAFF-422 blanket refusal). `inherit`/unset → effort:null, byte-for-byte the pre-existing
+  // dispatch (no transport arg). A graded level on a non-graded family (ollama) or a graded
+  // level contradicting reasoning_off is refused with a capability-specific message; a graded
+  // level on a graded-effort family is carried on the record (mapped onto the transport at the
+  // encode sites). validateEngineRef already refuses reasoning_off on codex, so the reasoning_off
+  // contradiction below bites only on the openai family (where both knobs are individually legal).
+  let resolvedEffort = null;
+  if (effort !== "inherit") {
+    if (!EFFORT_GRADED_FAMILIES.has(family)) {
+      return { error: `effort.${lane} is "${effort}" but engines.${name} (provider ${provider}, family ${family}) has no graded reasoning-effort transport — only reasoning_off (on/off). Set effort.${lane} to inherit and use engines.${name}.reasoning_off, or point the lane at a graded-effort engine (an openai-family or codex backend).` };
+    }
+    if (reasoningOff) {
+      return { error: `effort.${lane} is "${effort}" (graded) but engines.${name} sets reasoning_off: true — contradictory; a lane cannot both silence reasoning and request a graded effort. Drop one.` };
+    }
+    resolvedEffort = effort;
+  }
   return {
     name, provider, family,
     model: String(entry.model),
@@ -327,8 +376,12 @@ function resolveEngineForLane(cfg, lane) {
     // engine-call transport resolves a subscription-seat token (backends.js resolveTokenSource).
     auth: entry.auth,
     seatTokenEnv: (entry.seat_token_env === null || entry.seat_token_env === undefined || entry.seat_token_env === "") ? null : String(entry.seat_token_env),
-    reasoningOff: entry.reasoning_off === true,
+    reasoningOff,
     timeoutMs: (entry.timeout !== null && entry.timeout !== undefined && entry.timeout !== "") ? Number(entry.timeout) * 1000 : 120000,
+    // FAFF-705: the resolved faff effort level (five-level, pre-map) or null for inherit/unset.
+    // The encode sites map it onto the transport (reasoningEffortForTransport); the codex
+    // spend record stores this faff level so `economics --by effort` buckets it uniformly.
+    effort: resolvedEffort,
   };
 }
 
@@ -1835,11 +1888,11 @@ function cmdConfig(args) {
       // value is visible in the run banner, not silently coerced behind the user's back.
       const gate = dig(data, "intake_gate");
       if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
-      // FAFF-42/350/333/717: surface a non-default autonomous-entry preflight knob (require_container /
-      // require_branch_protection / engine_bounded / sentry_acting) so an opt-in `block` — or the
-      // engine_bounded attestation, or the L3 Sentry-abort opt-in — is visible in the run banner,
-      // never silent (the operator's typo-detection surface for sentry_acting).
-      for (const knob of ["require_container", "require_branch_protection", "engine_bounded", "sentry_acting"]) {
+      // FAFF-42/350/333/717/728: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection / require_github_auth / engine_bounded / sentry_acting) so an opt-in
+      // `block` — or the engine_bounded attestation, or the L3 Sentry-abort opt-in — is visible in the
+      // run banner, never silent (the operator's typo-detection surface for sentry_acting).
+      for (const knob of ["require_container", "require_branch_protection", "require_github_auth", "engine_bounded", "sentry_acting"]) {
         const v = dig(data, `autonomous.${knob}`);
         if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
       }
@@ -2002,9 +2055,13 @@ function modelsSelftest() {
   ok("validateModelLane rejects an invalid matcher leaf", validateModelLane("models.build_by_confidence.high", "gpt-5") !== null);
   ok("validateModelLane accepts the default leaf", validateModelLane("models.build_by_confidence.default", "opus") === null);
   ok("validateModelLane leaves models.build scalar unchanged", validateModelLane("models.build", "sonnet") === null && validateModelLane("models.build", "gpt-5") !== null);
+  // FAFF-705: the transport effort mapping (five-level faff → three-level transport, clamp above ceiling)
+  ok("reasoningEffortForTransport: low/medium/high pass through", reasoningEffortForTransport("low") === "low" && reasoningEffortForTransport("medium") === "medium" && reasoningEffortForTransport("high") === "high");
+  ok("reasoningEffortForTransport: xhigh/max clamp to high", reasoningEffortForTransport("xhigh") === "high" && reasoningEffortForTransport("max") === "high");
+  ok("EFFORT_GRADED_FAMILIES: openai + codex graded, ollama not", EFFORT_GRADED_FAMILIES.has("openai") && EFFORT_GRADED_FAMILIES.has("codex") && !EFFORT_GRADED_FAMILIES.has("ollama"));
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (models build-for resolver, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };

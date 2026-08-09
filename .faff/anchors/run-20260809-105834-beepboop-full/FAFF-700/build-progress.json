@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-700",
+  "build": {
+    "status": "complete",
+    "diff_hash": "631a2b0b55b931f1d69a0eb3df2fb43f0b642c1a798ed57b5d98ee13bc7b01f7",
+    "branch": "faff-700-whether-subagents-actually-ran-was-opaque-under-codex-fan",
+    "pushed_at": "2026-08-09T12:50:19.996Z"
+  },
+  "updated_at": "2026-08-09T12:50:19.996Z"
+}

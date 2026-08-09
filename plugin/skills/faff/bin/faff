@@ -56,7 +56,7 @@ const { cmdLightsOut, cmdWorktreeRoot } = require("./lib/lights-out");
 const { cmdLintCliDoc } = require("./lib/lint-cli-doc");
 const { cmdLintRefs } = require("./lib/lint-refs");
 const { cmdMergeFence } = require("./lib/merge-fence");
-const { cmdBranchProtectionCheck, cmdMergeGate } = require("./lib/merge-gate");
+const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate } = require("./lib/merge-gate");
 const { cmdNext } = require("./lib/next");
 const { cmdParkHistory } = require("./lib/park-history");
 const { cmdPostMergeCheck } = require("./lib/post-merge");
@@ -137,6 +137,7 @@ const COMMANDS = {
   "corrective": cmdCorrective,
   "merge-gate": cmdMergeGate,
   "branch-protection-check": cmdBranchProtectionCheck,
+  "github-auth-check": cmdGithubAuthCheck,
   "ci-triage": cmdCiTriage,
   "post-merge-check": cmdPostMergeCheck,
   "governance-check": cmdGovernanceCheck,

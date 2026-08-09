@@ -83,6 +83,13 @@ const DELIVERY_PROFILE = {
     // ledger's history joins the events tamper-evidence chain. Emitted by
     // atomicWriteLedger's fold (every CLI-side writer) and the prose-layer note rule.
     "ledger-write",
+    // FAFF-700: the dispatch-CLAIM event — one per subagent-cluster fan-out, emitted
+    // BEFORE the children run. Deliberately NOT in issue_scoped_types (a fan-out is
+    // run-scoped, not tied to one issue — the audit's own reader clusters span the
+    // whole run). `faff audit` recomputes it from the child agent-*.jsonl transcripts
+    // this run owns, so a "we isolated N children" claim is checkable, not taken on
+    // faith (the FAFF-694 opaque-fan-out finding this closes).
+    "agent-dispatch",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",

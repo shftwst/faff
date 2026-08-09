@@ -19,7 +19,7 @@
         "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
         "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",
         "sentry-checkpoint", "corrective-authored", "corrective-consumed", "containment-check",
-        "self-intake-check", "run-resume", "ledger-write"
+        "self-intake-check", "run-resume", "ledger-write", "agent-dispatch"
       ]
     },
     "issue": { "type": "string", "description": "required iff type is issue-scoped (issue-admitted, prep-start, prep-done, build-start, issue-outcome, park, corrective-authored, corrective-consumed, containment-check, self-intake-check)" },

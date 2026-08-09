@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-747",
+  "build": {
+    "status": "complete",
+    "diff_hash": "49e95887eb93fd7861288af6dd640ec8146e28d7c9a4ccf7da77c5abf6fa3a42",
+    "branch": "faff-747-harden-merge-gate-anchor-unreadable-detection-remedy",
+    "pushed_at": "2026-08-09T02:17:18.795Z"
+  },
+  "updated_at": "2026-08-09T02:17:18.795Z"
+}

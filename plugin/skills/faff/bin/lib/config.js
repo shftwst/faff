@@ -1370,7 +1370,9 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // classifyTracker's trim/blank normalisation so this linter and `faff tracker probe`
   // never disagree: a whitespace-only pin is unpinned, so no warn.
   const pinRaw = dig(mergedDoc, "tracking.tracker");
-  const pinned = typeof pinRaw === "string" && pinRaw.trim() !== "";
+  // Exact parity with classifyTracker (tracker.js): null/undefined/blank-after-trim ⇒ unpinned;
+  // otherwise coerce via String().trim() (a non-string pin is classified the same way there).
+  const pinned = pinRaw !== null && pinRaw !== undefined && String(pinRaw).trim() !== "";
   const autoDefault = dig(mergedDoc, "automation_default");
   if (pinned && autoDefault === "opt-out") {
     findings.push({ severity: "warn", surface: "automation_default", message: "`automation_default: opt-out` is ignored on a tracker-bound repo — it applies only in git-only mode; the two faff-* labels are the control surface here." });

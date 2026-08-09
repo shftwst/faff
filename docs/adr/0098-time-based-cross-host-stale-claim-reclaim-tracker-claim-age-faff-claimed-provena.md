@@ -1,4 +1,4 @@
-# ADR 0097 — Time-based cross-host stale-claim reclaim (tracker claim-age + faff-claimed provenance)
+# ADR 0098 — Time-based cross-host stale-claim reclaim (tracker claim-age + faff-claimed provenance)
 
 - **Status:** Proposed
 - **Provenance:** human

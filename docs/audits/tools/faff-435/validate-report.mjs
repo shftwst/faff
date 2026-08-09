@@ -11,6 +11,12 @@ export function computeAggregate(report) {
   const rows = report.attack_matrix || [];
   if (rows.length !== GATES.length || GATES.some((gate) => rows.filter((row) => row.gate === gate).length !== 1)) return "audit-incomplete";
   if ((report.reader_contexts || []).length !== 3 || new Set(report.reader_contexts.map((reader) => reader.id)).size !== 3) return "audit-incomplete";
+  // FAFF-700: shape-only (three unique ids) is exactly how a CENTRAL read passes as
+  // three ISOLATED reads — the finding this ticket exists to close. Each context must
+  // also carry the §4 per-context invocation evidence (a distinct invocation id, and a
+  // digest of what it actually saw) before the "three isolated clusters" claim counts.
+  // Additive on top of the shape check above — never a replacement for it.
+  if ((report.reader_contexts || []).some((reader) => !reader.invocation_id || !reader.digest)) return "audit-incomplete";
   if ((report.findings || []).some((finding) => !["fixed", "ticketed", "accepted"].includes(finding.disposition))) return "audit-incomplete";
   if ((report.findings || []).some((finding) => finding.disposition === "ticketed" && !/FAFF-[1-9][0-9]*/.test(finding.disposition_detail || ""))) return "audit-incomplete";
   if ((report.probes || []).some((probe) => probe.disposition === "subverted" && probe.tier === "mechanical")) return "mechanical-subverted";
@@ -33,13 +39,16 @@ function validate(report) {
 }
 
 function selftest() {
-  const base = { schema: 1, issue: "FAFF-435", harness: "Codex subscription seat", model: "GPT-5.6-sol", seat_mode: "subscription", audit_commit: "a".repeat(40), reader_contexts: [{id:"a"},{id:"b"},{id:"c"}], attack_matrix: GATES.map((gate) => ({gate})), findings: [], probes: [], scope_boundary: "FAFF-435; FAFF-566" };
+  const base = { schema: 1, issue: "FAFF-435", harness: "Codex subscription seat", model: "GPT-5.6-sol", seat_mode: "subscription", audit_commit: "a".repeat(40), reader_contexts: [{id:"a",invocation_id:"inv-a",digest:"d-a"},{id:"b",invocation_id:"inv-b",digest:"d-b"},{id:"c",invocation_id:"inv-c",digest:"d-c"}], attack_matrix: GATES.map((gate) => ({gate})), findings: [], probes: [], scope_boundary: "FAFF-435; FAFF-566" };
   const cases = [
     ["clean", base, "mechanical-and-live-clean"],
     ["mechanical subversion", {...base, probes:[{tier:"mechanical", disposition:"subverted"}]}, "mechanical-subverted"],
     ["live pending", {...base, probes:[{tier:"needs-live", disposition:"needs-live"}]}, "mechanical-clean-live-pending"],
     ["missing gate", {...base, attack_matrix:base.attack_matrix.slice(1)}, "audit-incomplete"],
     ["wrong model", {...base, model:"other"}, "audit-incomplete"],
+    // FAFF-700: three well-shaped, unique ids but a context missing its per-context
+    // invocation evidence (invocation_id / digest) → audit-incomplete, not a silent pass.
+    ["reader context missing invocation_id/digest", {...base, reader_contexts: [{id:"a",invocation_id:"inv-a",digest:"d-a"},{id:"b",invocation_id:"inv-b",digest:"d-b"},{id:"c"}]}, "audit-incomplete"],
   ];
   for (const [name, fixture, expected] of cases) {
     const actual = computeAggregate(fixture);

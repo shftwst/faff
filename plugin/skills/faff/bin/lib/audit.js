@@ -25,6 +25,11 @@ const AUDIT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }
 // directly), since governance (this file) may reference shared-infra only, never a
 // factory module like contain.js (ADR 0042; `faff regions check` enforces this).
 const { CONTAIN_ROOT, decideSelfIntake, findRoot, parseAncestry, readLedger, subtreeContains } = require("./shared-infra");
+// FAFF-700: the dispatch-observability recompute reads the SAME child-transcript
+// primitives budget.js's own attribution walk uses (transcriptBaseDir/
+// childOwningSession — the FAFF-229 ownership gate). budget.js is governance, same
+// as this file, so this is a same-region reference (never governance→factory).
+const { childOwningSession, transcriptBaseDir } = require("./budget");
 
 function readEvents(runDir) {
   const p = path.join(runDir, "events.jsonl");
@@ -93,13 +98,104 @@ function accountHumanMerge(issue, overrideRec, mergeRecord, effectsEntries) {
   return { present: true, reason: reason_present ? overrideRec.reason : null, reason_present, declare_present, landing_covered, accounted_for };
 }
 
+// FAFF-700: the ONE per-cluster stamp token this recompute matches — EXACT, never
+// substring (a cluster "R1" must never cross-count a child stamped "R12" or a UUID
+// that happens to start with "R1"). Anchored on non-whitespace id-safe characters
+// only (cluster ids are fresh-minted tokens, never containing the delimiter or
+// whitespace — the FAFF-700 spec's constraint on cluster_id), so a match's captured
+// group is always the FULL id, never a truncated prefix.
+const DISPATCH_STAMP_RE = /subagent-cluster:([A-Za-z0-9_-]+)/g;
+
+// FAFF-700: read this run's OWNED child transcripts' cluster-id stamps (I/O; kept
+// OUT of the pure classification core below, same split as readEvents/readProvenance
+// vs buildReconstruction — so the classification stays selftest-driven with fixture
+// substrates, never a live disk read). Reads via the SAME session-ownership gate
+// budget.js's own per-issue attribution uses (childOwningSession === sid, FAFF-229 —
+// never mtime). Returns { reachable, children }: reachable is false when the
+// transcript base dir / session id is unavailable (substrate absent — the recompute
+// can attribute nothing); otherwise `children` holds one array of cluster-id tokens
+// per DISTINCT owned child transcript (a child stamped with no cluster id
+// contributes an empty array — it matches nothing, never inflating a count; a
+// missing/unparseable sibling meta.json degrades the same way, undercount never
+// overcount, mirroring attributePerIssueCosts's own skip-silently posture).
+function readDispatchSubstrate(cwd, env) {
+  const sid = env && env.CLAUDE_CODE_SESSION_ID;
+  if (!sid) return { reachable: false, children: [] };
+  const base = transcriptBaseDir(cwd, env);
+  if (!fs.existsSync(base)) return { reachable: false, children: [] };
+  let entries = [];
+  try { entries = fs.readdirSync(base); } catch { return { reachable: false, children: [] }; }
+  const children = [];
+  for (const name of entries) {
+    if (!/^agent-.*\.jsonl$/.test(name)) continue;
+    const f = path.join(base, name);
+    if (childOwningSession(f) !== sid) continue; // this run's owned children only (FAFF-229)
+    let desc = "";
+    try {
+      const meta = JSON.parse(fs.readFileSync(f.replace(/\.jsonl$/, ".meta.json"), "utf8"));
+      if (meta && typeof meta.description === "string") desc = meta.description;
+    } catch { /* missing/unparseable meta — this child carries no attributable id */ }
+    const ids = [...desc.matchAll(DISPATCH_STAMP_RE)].map((m) => m[1]);
+    children.push(ids);
+  }
+  return { reachable: true, children };
+}
+
+// FAFF-700: pure per-cluster classification core — the audit "record a claim,
+// re-derive it" pattern, sibling of the containment/self-intake recomputes below.
+// `dispatchEvents` = already-filtered well-formed `type === "agent-dispatch"`
+// records (a malformed line is already diverted to malformed_event_lines by the
+// events read, same as every other type here — this never sees one).
+// `substrate` = { reachable, children } from readDispatchSubstrate — I/O the caller
+// already did, never re-read here, so this function is selftest-driven like the
+// rest of the file. See the spec's Appendix A for the full classification table.
+function computeDispatchObservability(dispatchEvents, substrate) {
+  if (!dispatchEvents.length) return { status: "absent", substrate_reachable: null, clusters: [] };
+
+  // Group by cluster_id: two dispatches sharing an id are a re-dispatch after a
+  // partial fan-out — claimed sums, never overwrites.
+  const byId = new Map();
+  for (const e of dispatchEvents) {
+    const d = e.data && typeof e.data === "object" && !Array.isArray(e.data) ? e.data : {};
+    const id = d.cluster_id;
+    if (typeof id !== "string" || !id) continue; // defensive — events.js already validates this at append time
+    const size = Number.isInteger(d.cluster_size) ? d.cluster_size : 0;
+    if (!byId.has(id)) byId.set(id, { cluster_id: id, kind: d.kind, claimed: 0 });
+    byId.get(id).claimed += size;
+  }
+  const grouped = [...byId.values()];
+
+  if (!substrate.reachable) {
+    const clusters = grouped.map((c) => ({ cluster_id: c.cluster_id, kind: c.kind, claimed: c.claimed, observed: null, status: "unverifiable-substrate" }));
+    return { status: "unverifiable-substrate", substrate_reachable: false, clusters };
+  }
+
+  const clusters = grouped.map((c) => {
+    // Distinct-by-child count of owned children whose stamped ids include this
+    // EXACT cluster_id (never a substring match — see DISPATCH_STAMP_RE above).
+    const rawObserved = substrate.children.filter((ids) => ids.includes(c.cluster_id)).length;
+    if (rawObserved === 0) return { cluster_id: c.cluster_id, kind: c.kind, claimed: c.claimed, observed: null, status: "unverifiable-substrate" };
+    const status = rawObserved >= c.claimed ? "verified" : "mismatch";
+    return { cluster_id: c.cluster_id, kind: c.kind, claimed: c.claimed, observed: rawObserved, status };
+  });
+
+  let overall;
+  if (clusters.every((c) => c.status === "verified")) overall = "verified";
+  else if (clusters.some((c) => c.status === "mismatch")) overall = "mismatch";
+  else overall = "unverifiable-substrate";
+  return { status: overall, substrate_reachable: true, clusters };
+}
+
 // Pure join: build the Reconstruction from already-loaded substrates. No filesystem —
 // the wrapper reads events/ledger/provenance and hands them in, so the selftest drives
 // this directly. `eventsResult` = {present, records, malformed}; `ledger` = parsed object
 // or null; `provenanceMap` = { issue: provenanceObject }. FAFF-673: `humanMerge` = { overrides:{issue:rec},
 // mergeRecords:{issue:rec}, effectsEntries:[…] } — the substrates for the human-merge accounting; an
 // omitted/empty object means no override read (byte-for-byte the pre-FAFF-673 reconstruction).
-function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge = {}) {
+// FAFF-700: `dispatchSubstrate` (optional — defaults to unreachable/no-children so every pre-existing
+// call site, including the selftest fixtures below, is unaffected byte-for-byte) = the
+// readDispatchSubstrate() result the wrapper already read.
+function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge = {}, dispatchSubstrate = { reachable: false, children: [] }) {
   const events = eventsResult.records;
   const missing_substrates = [];
   if (!eventsResult.present) missing_substrates.push("events");
@@ -269,6 +365,15 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap,
   const hasContainmentChecks = events.some((e) => e.type === "containment-check");
   const unrecorded_creates = discoveredScopeFiled > 0 && !hasContainmentChecks;
 
+  // FAFF-700: the dispatch-observability recompute — a claim (agent-dispatch events)
+  // re-derived against the child transcripts this run owns. Deliberately NOT folded
+  // into `coherence.clean`: `absent` (no fan-out claimed) and `unverifiable-substrate`
+  // (can't attribute — a different substrate, an unreached transcript dir) are both
+  // honest non-failures per the spec's design principle ("a can't-tell is a first-class
+  // outcome, distinct from both verified and mismatch") — coherence.clean stays reserved
+  // for an actual cross-substrate DISAGREEMENT, which this block reports but does not gate.
+  const dispatch_observability = computeDispatchObservability(events.filter((e) => e.type === "agent-dispatch"), dispatchSubstrate);
+
   const coherence = {
     clean: undispatched.length === 0 && invalid_outcomes.length === 0 && mismatches.length === 0
       && missing_substrates.length === 0 && malformed_event_lines.length === 0
@@ -277,6 +382,7 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap,
     undispatched, invalid_outcomes, mismatches, missing_substrates,
     containment_mismatches, self_intake_mismatches, unrecorded_creates,
     human_merge_unexplained,
+    dispatch_observability,
   };
   if (malformed_event_lines.length) coherence.malformed_event_lines = malformed_event_lines;
 
@@ -331,6 +437,14 @@ function renderAuditText(recon) {
   // pre-existing/legacy run is the honest reading ("no recorded supervision"), which
   // is exactly the visibility this block exists to create.
   console.log(`supervision: ${recon.supervision.checkpoints.length} checkpoint(s)  ·  last intervention: ${recon.supervision.last_intervention ?? "—"}`);
+
+  // FAFF-700: always rendered (mirrors the supervision line above) — dispatch
+  // observability is reported unconditionally, not folded into coherence findings.
+  const dobs = recon.coherence.dispatch_observability;
+  const clusterSummary = dobs.clusters.length
+    ? `  ·  ${dobs.clusters.map((cl) => `${cl.cluster_id} (${cl.kind}) claimed ${cl.claimed} observed ${cl.observed ?? "—"} → ${cl.status}`).join(", ")}`
+    : "";
+  console.log(`dispatch: ${dobs.status}${dobs.substrate_reachable === false ? "  (substrate unreachable)" : ""}${clusterSummary}`);
 
   const c = recon.coherence;
   if (c.clean) {
@@ -405,7 +519,12 @@ function cmdAudit(args) {
   }
   const humanMerge = { overrides, mergeRecords, effectsEntries };
 
-  const recon = buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge);
+  // FAFF-700: keyed on the ambient CLAUDE_CODE_SESSION_ID, same as budget.js's own
+  // attribution walk — a `verified` this produces is an observation-at-audit-time
+  // (this session, this transcript dir), not a run-dir-pure fact (see the spec's
+  // "What a verified result actually asserts" design decision).
+  const dispatchSubstrate = readDispatchSubstrate(root, process.env);
+  const recon = buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge, dispatchSubstrate);
 
   if (issue) {
     const match = recon.issues.find((r) => r.issue === issue);
@@ -761,10 +880,101 @@ function auditSelftest() {
     check("accountHumanMerge: no override → null", accountHumanMerge("FAFF-1", null, { merged: true }, []) === null);
   }
 
+  // 27. FAFF-700: dispatch_observability — a run with no agent-dispatch events at all
+  // reports "absent" (nothing claimed, nothing to verify — not a failure), and stays
+  // out of coherence.clean regardless (never gated).
+  {
+    const records = [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "run-start" }];
+    const rec = buildReconstruction("r", "/d", evs(records), { run_id: "r", admitted: [], outcomes: {} }, {});
+    check("dispatch absent: no dispatch events → status absent", rec.coherence.dispatch_observability.status === "absent");
+    check("dispatch absent: clusters empty", rec.coherence.dispatch_observability.clusters.length === 0);
+    check("dispatch absent: coherence stays clean", rec.coherence.clean === true);
+  }
+
+  // 28. FAFF-700: a reader cluster of 3, all 3 children present and stamped →
+  // verified. Direct computeDispatchObservability core check (mirrors the spec's
+  // integration smoke test).
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3 } },
+    ];
+    const substrate = { reachable: true, children: [["R1"], ["R1"], ["R1"]] };
+    const r = computeDispatchObservability(dispatchEvents, substrate);
+    check("dispatch verified: overall status", r.status === "verified");
+    check("dispatch verified: substrate_reachable", r.substrate_reachable === true);
+    check("dispatch verified: cluster shape", r.clusters.length === 1 && r.clusters[0].claimed === 3
+      && r.clusters[0].observed === 3 && r.clusters[0].status === "verified");
+  }
+
+  // 29. FAFF-700: cluster_size claims 3 but only 2 attributable children ran → mismatch.
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3 } },
+    ];
+    const substrate = { reachable: true, children: [["R1"], ["R1"]] };
+    const r = computeDispatchObservability(dispatchEvents, substrate);
+    check("dispatch mismatch: overall status", r.status === "mismatch");
+    check("dispatch mismatch: cluster shape", r.clusters[0].observed === 2 && r.clusters[0].claimed === 3 && r.clusters[0].status === "mismatch");
+  }
+
+  // 30. FAFF-700: MIXED-KIND run — a reader cluster (3 stamped, all present) AND a
+  // build cluster (claims 2, zero attributable children). The build cluster can never
+  // fold into a clean overall — the false-all-clear this ticket exists to close.
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3 } },
+      { seq: 1, type: "agent-dispatch", data: { kind: "build", dispatch_id: "d2", cluster_id: "B1", cluster_size: 2 } },
+    ];
+    const substrate = { reachable: true, children: [["R1"], ["R1"], ["R1"]] }; // B1 stamped nowhere
+    const r = computeDispatchObservability(dispatchEvents, substrate);
+    check("dispatch mixed-kind: overall NOT verified", r.status === "unverifiable-substrate");
+    const reader = r.clusters.find((c) => c.cluster_id === "R1");
+    const build = r.clusters.find((c) => c.cluster_id === "B1");
+    check("dispatch mixed-kind: reader verified", reader.status === "verified" && reader.observed === 3);
+    check("dispatch mixed-kind: build unverifiable, observed null", build.status === "unverifiable-substrate" && build.observed === null);
+  }
+
+  // 31. FAFF-700: substrate unreachable (no session id / transcript dir) → every
+  // cluster reports unverifiable-substrate, observed null — never verified, never mismatch.
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3 } },
+    ];
+    const r = computeDispatchObservability(dispatchEvents, { reachable: false, children: [] });
+    check("dispatch unreachable substrate: overall status", r.status === "unverifiable-substrate");
+    check("dispatch unreachable substrate: substrate_reachable false", r.substrate_reachable === false);
+    check("dispatch unreachable substrate: observed null", r.clusters[0].observed === null);
+  }
+
+  // 32. FAFF-700: two agent-dispatch events sharing cluster_id "R1" (2 then 1 — a
+  // re-dispatch after a partial fan-out) sum claimed to 3; 3 distinct stamped
+  // children on disk → verified.
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 2 } },
+      { seq: 1, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d2", cluster_id: "R1", cluster_size: 1 } },
+    ];
+    const substrate = { reachable: true, children: [["R1"], ["R1"], ["R1"]] };
+    const r = computeDispatchObservability(dispatchEvents, substrate);
+    check("dispatch re-dispatch: claimed summed to 3", r.clusters.length === 1 && r.clusters[0].claimed === 3);
+    check("dispatch re-dispatch: observed 3, verified", r.clusters[0].observed === 3 && r.clusters[0].status === "verified");
+  }
+
+  // 33. FAFF-700: exact-token match — a cluster "R1" must never cross-count a child
+  // stamped "R12" (substring, not exact).
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 1 } },
+    ];
+    const substrate = { reachable: true, children: [["R12"]] }; // stamped R12, not R1
+    const r = computeDispatchObservability(dispatchEvents, substrate);
+    check("dispatch exact-token: R12 does not satisfy cluster R1", r.clusters[0].status === "unverifiable-substrate" && r.clusters[0].observed === null);
+  }
+
   if (failed) { console.log(`RESULT: audit --selftest FAILED (${failed} failure(s))`); return 1; }
   console.log("RESULT: audit --selftest ok");
   return 0;
 }
 
 
-module.exports = { accountHumanMerge, auditSelftest, buildReconstruction, cmdAudit, readEvents, readProvenance, renderAuditText };
+module.exports = { accountHumanMerge, auditSelftest, buildReconstruction, cmdAudit, computeDispatchObservability, readDispatchSubstrate, readEvents, readProvenance, renderAuditText };

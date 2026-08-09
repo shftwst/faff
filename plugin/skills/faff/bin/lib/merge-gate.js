@@ -247,6 +247,21 @@ function ghRepoSlug(explicit) {
   return r.ok && r.data ? r.data.nameWithOwner : null;
 }
 
+// FAFF-747: read the REAL HTTP status of the Contents-API anchor read via a headers-only `gh api -I`
+// probe, instead of inferring the class from `gh`'s human-readable stderr (not a contract — wording
+// drifts across gh versions, locales, and GitHub Enterprise). `gh` exits non-zero on any HTTP error
+// but still writes the response status line to stdout under `-I`; capture stdout regardless of exit
+// code and parse the FIRST `HTTP/<ver> <code> <reason>` line. Called ONLY from the existing `!api.ok`
+// failure branch of resolveAnchorLevel — the mainline success read and the git-show path never call
+// this. Returns the 3-digit numeric status, or null if no status line is present (network failure,
+// `gh` missing, unexpected output) — the caller treats null as indeterminate and fails safe.
+function anchorHttpStatus(repo, anchorPath, headSha) {
+  const r = spawnSync("gh", ["api", "-I", `repos/${repo}/contents/${anchorPath}?ref=${headSha}`], { encoding: "utf8", timeout: 60000 });
+  const out = String((r && r.stdout) || "");
+  const m = out.match(/^HTTP\/[\d.]+\s+(\d{3})\b/m);
+  return m ? Number(m[1]) : null;
+}
+
 // FAFF-690 (F1): resolve the governing autonomy level from the HEAD-SHA-PINNED committed anchor
 // (`.faff/anchors/<basename(run-dir)>/<issue>/run-ledger.json`, byte-copied + committed + pushed at
 // graft Step 9b), NOT from the live-writable run-ledger.json the build lane it polices can rewrite.
@@ -276,10 +291,14 @@ function resolveAnchorLevel(cwd, repo, runDir, issue, headSha) {
     // object and extract `.content` in JS.
     const api = ghJson(["api", `repos/${repo}/contents/${anchorPath}?ref=${headSha}`]);
     if (!api.ok) {
-      // Distinguish HTTP 403 (read DENIED — a narrow token) from 404 / not-found (genuinely absent):
-      // both fail closed, but the operator remedy differs, so the status must not conflate them.
-      const s = String(api.stderr || "");
-      if (api.status === 403 || /\b403\b|forbidden|not accessible|permission|must have|not authoriz/i.test(s)) {
+      // FAFF-747: distinguish HTTP 403 (read DENIED — a narrow token) from 404 / not-found (genuinely
+      // absent) by the REAL HTTP status, read via a headers-only `gh api -I` probe — never by matching
+      // `gh`'s stderr text, which is not a contract and drifts across gh versions/locales/GHE. Both
+      // classes still fail closed (refuse, exit 2); only the reported status/remedy differs. Fail-safe:
+      // any status other than a clear 403 — including 404, any other code, or an unparseable/absent
+      // status line — maps to the generic anchor-missing; never over-claim a token-scope problem.
+      const httpStatus = anchorHttpStatus(repo, anchorPath, headSha);
+      if (httpStatus === 403) {
         return { level: null, status: "anchor-unreadable", source: "contents-api" };
       }
       return { level: null, status: "anchor-missing", source: null };
@@ -306,7 +325,7 @@ function resolveAnchorLevel(cwd, repo, runDir, issue, headSha) {
 // live-ledger fallback — that is the exact hole F1 closes.
 function anchorRefusal(runDir, issue, headSha, status) {
   const remedy = status === "anchor-unreadable"
-    ? "the forge token cannot read .faff/anchors/…/run-ledger.json (grant contents:read, or invoke from a checkout with the head-sha object)"
+    ? "the forge token cannot read .faff/anchors/…/run-ledger.json — grant classic-PAT repo (or public_repo for a public repo) or fine-grained-PAT/GitHub-App contents:read, or invoke from a checkout with the head-sha object"
     : "re-anchor (graft Step 9b) so the PR carries .faff/anchors/…/run-ledger.json, or merge at the forge";
   return `faff merge-gate: no trusted committed anchor level for run ${path.basename(runDir)} issue ${issue} at head ${headSha} (${status}) — ${remedy}\n`;
 }

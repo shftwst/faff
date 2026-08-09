@@ -2,6 +2,8 @@
 
 **codex-cli 0.145.0**, macOS 14.1.2 arm64, ChatGPT seat auth. Observed 2026-07-28 under FAFF-665.
 
+For the current product judgement, see [Harness support](../guide/harness-support.md). This page preserves the dated observation and should not be read as a current support promise.
+
 This page exists because three committed documents reasoned at length about codex's behaviour without anyone having run it — `docs/architecture/harness-coupling.md`, ADR-0090, and FAFF-593's spec, which recorded in its own assumptions that `--sandbox` was *"a shared option not directly sighted in the excerpt"*. Everything below was seen, not inferred.
 
 **Cite this page as a repo path when a document needs a Codex-side source.** It is a dated snapshot of one version, not a contract — codex will move, and a claim sourced here carries the version it was true for.
@@ -105,7 +107,7 @@ It named both skills and their trigger condition from nothing but the trigger wo
 
 **A probe that names the skill proves nothing.** An earlier attempt put the skill names in the prompt. The agent read both files with a shell command and returned a codeword, which demonstrates only that a model can `cat` a file it was told about. Any future re-probe must withhold the names.
 
-**Why this matters to faff.** `scripts/link-skills.sh --global` installs into `~/.claude/skills` alone, so a globally-installed faff is invisible to codex — every skill, including the whole delivery loop. FAFF-672 fixes the installer; FAFF-676 makes `faff doctor` able to see a half-install. Both rest on this observation.
+**Why this matters to faff.** At the time of observation, `scripts/link-skills.sh --global` installed into `~/.claude/skills` alone, so a globally installed faff was invisible to codex. FAFF-672 and FAFF-676 later updated the installer and `faff doctor`; repo-local and marketplace visibility gaps remain. Both changes rest on this observation.
 
 `docs/architecture/harness-coupling.md` classifies the skills seam `portable` on the strength of the Agent Skills open standard. That is true of the **artifact** — a `SKILL.md` needs no change to be read by another harness — and silent on the **install location**, which is per-harness and is where the work actually is.
 

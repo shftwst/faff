@@ -14,14 +14,14 @@ This page owns the runner-*host* half of the safety story. The cage (see [unatte
 
 ## Auth: a subscription seat, and no API keys
 
-The solo path is a **subscription seat with zero API-key secrets**. Local and self-hosted headless use of a subscription is sanctioned product usage on both vendors — Claude Max via `claude -p`, ChatGPT Plus/Pro via `codex exec` — so the seat you already pay for is the credential. The seat's login lives on the machine: either the `/login` credential file the harness writes, or a long-lived token in the environment (the CI path). faff consumes whichever the machine provides; it never implements login itself, and it never needs an API key on this path.
+The documented unattended path uses a **Claude subscription seat with zero API-key secrets** through `claude -p`. A ChatGPT seat can authenticate `codex exec`, but SuperDomestique does not yet offer a supported Codex unattended entry point. See [Harness support](harness-support.md) for the current boundary. The seat's login lives on the machine: either the credential file the harness writes, or a long-lived token in the environment. `faff` consumes whichever the supported path provides; it never implements login itself, and it does not need an API key on this self-hosted Claude path.
 
 Two rules make that safe:
 
 - **Secrets come from the environment, never a committed file.** A token belongs in the runner's environment or your OS keychain, never in the repository, a workflow file, or an rc checked into git.
 - **Never pool a seat across people.** A subscription seat is *one human's* entitlement — sharing one person's seat with other operators (or reselling its capacity) is neither sanctioned nor safe. That rule is about *people*, not repos: it is fine for your own seat to drive several of your own runners or repos, and you do **not** need a separate seat per repo. The only limit there is the seat's own concurrency and rate, not a one-seat-per-runner rule. (If a *team* needs many concurrent lanes, that is the metered API-key path, not seat-sharing.)
 
-**Hosted CI is a greyer story, and this rig avoids it.** On a *hosted* runner (GitHub-hosted), subscription auth is not the clean path: a Claude OAuth token works but is worth monitoring, Codex account-auth is advanced and brittle, and the supported hosted route is a metered **API key** (the "team" column in `l4-watcher.yml`). So the clean, zero-key story is exactly the self-hosted seat this page describes; reach for the hosted-runner + API-key variant only when a team genuinely needs it.
+**Hosted CI is a greyer story, and this rig avoids it.** On a *hosted* runner (GitHub-hosted), subscription auth is not the clean path: a Claude OAuth token works but is worth monitoring, while a complete Codex unattended path is not currently supported. The supported hosted route is a metered **API key** (the "team" column in `l4-watcher.yml`). So the clean, zero-key story is exactly the self-hosted Claude seat this page describes; reach for the hosted-runner + API-key variant only when a team genuinely needs it.
 
 ## Stand up the runner
 
@@ -80,7 +80,7 @@ An overnight run should stop at a ceiling, not drain until it runs out of someth
 
 ## Watching a run live
 
-The rig gives you two ways to know what a run is doing, and they are complementary. The **durable** view is the record you read afterwards — the run-ledger, the events log, and `faff disposition`'s exit code and `--json` report; that is what a morning review reads, and it is what turns a needs-attention night red. The **live** view is watching the run as it happens — the "check it from your phone while you're out" case — and that is a **harness** capability, not a faff one: `claude -p` streams the run turn-by-turn with `--output-format stream-json --verbose`, and faff runs *inside* the harness, so whatever the harness emits is what you stream. (Swap `claude -p` for your own harness — a Codex run streams its own way; faff adds nothing here beyond running inside it.)
+The rig gives you two ways to know what a run is doing. The **durable** view is the record you read afterwards: the run-ledger, the events log, and `faff disposition`'s exit code and `--json` report. That is what a morning review reads, and it is what turns a needs-attention night red. The **live** view is watching the run as it happens, such as checking it from your phone while you are out. Streaming is a harness capability, not a `faff` one. `claude -p` streams the run turn by turn with `--output-format stream-json --verbose`, and `faff` runs inside the harness, so whatever the harness emits is what you stream. Codex CLI also emits JSON events, but that observation does not supply the missing Codex unattended lifecycle.
 
 Where you watch depends on the trigger:
 

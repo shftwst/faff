@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-616",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2c74e5496166f64b89fe19a313606736d34819e227a60ab5a52f1ff4f5d1e055",
+    "branch": "faff-616-add-a-calibrated-seam-registry-tier-covered-=-calibrated",
+    "pushed_at": "2026-08-09T12:07:35.838Z"
+  },
+  "updated_at": "2026-08-09T12:07:35.838Z"
+}

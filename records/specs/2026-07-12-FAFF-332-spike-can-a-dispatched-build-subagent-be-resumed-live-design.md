@@ -177,5 +177,6 @@ spec-review: approve
 Probes ran live against this session's own harness (Agent + SendMessage), foreground-dispatcher
 structural facts were cross-checked against the shipped `faffter-noon-concurrency-sequential` /
 `faffter-dark-concurrency-parallel` SKILL.md text, and Probe A / D also draw on this run's own
-FAFF-324 incident (a real stall + cold re-dispatch, corroborated by `events.jsonl`). See
-`docs/faff-332-live-resume-finding.md` for the full finding and `Recommendation:` line.
+FAFF-324 incident (a real stall + cold re-dispatch, corroborated by `events.jsonl`). See the
+[FAFF-332 spike result](../spikes/2026-07-12-FAFF-332-live-resume.md) for the full finding and
+`Recommendation:` line.

@@ -550,9 +550,9 @@ function economicsDominantModel(records) {
 // transcript sum; effort generally does NOT cover the whole run (only tagged
 // windows), so we report coverage_pct rather than forcing a false reconciliation.
 // NON-LEAK: emits only counts, token totals, effort-labels, model-id and derived cost.
-function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malformedLines) {
+function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malformedLines, engineSpend = null) {
   const mk = () => ({ count: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 });
-  const buckets = new Map();     // effort-label (or "(none)") -> counts
+  const buckets = new Map();     // effort-label (or "(none)") -> event-lane counts (priced at dominant)
   let eventsTokenTotal = 0;
   for (const ev of events) {
     const data = ev && ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) ? ev.data : null;
@@ -576,24 +576,68 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malf
     }
   }
   const pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
-  // Fixed severity order, then "(none)" last; only buckets that actually occur.
+  // FAFF-705: the effort axis becomes two-source like the model axis — events.jsonl for
+  // Agent-lane dispatches (priced at the dominant transcript model) and engine-spend.jsonl
+  // for engine-lane calls (each cell priced at ITS OWN model, carried in the reader's joint
+  // by_model_effort key). GATED on engineSpend.records > 0 so a run with no engine spend is
+  // byte-for-byte today's output — same rows, same source:"events", same reconciliation.
+  const folding = !!(engineSpend && engineSpend.records > 0 && engineSpend.by_model_effort instanceof Map);
+  const engineByEffort = new Map();   // effort -> { classes, total, cost }
+  let engineFolded = 0;
+  if (folding) {
+    for (const [meKey, cell] of engineSpend.by_model_effort) {
+      const idx = meKey.lastIndexOf(" ");          // key is "<model> <effort>"; effort is the last token
+      const model = idx >= 0 ? meKey.slice(0, idx) : "unknown";
+      let eff = idx >= 0 ? meKey.slice(idx + 1) : EFFORT_NONE_KEY;
+      if (!EFFORT_LEVELS.has(eff)) eff = EFFORT_NONE_KEY;   // incl. the reader's literal "(none)"
+      if (!engineByEffort.has(eff)) engineByEffort.set(eff, { input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0, cost: null });
+      const g = engineByEffort.get(eff);
+      for (const cls of TOKEN_DELTA_CLASSES) {
+        const v = Number.isFinite(cell[cls]) ? cell[cls] : 0;
+        g[cls] += v; g.total += v; engineFolded += v;
+      }
+      const cc = economicsRowCost(cell, model, priceMap);   // priced at this cell's own model
+      if (cc != null) g.cost = (g.cost || 0) + cc;
+    }
+  }
+  // Fixed severity order, then "(none)" last; only buckets that actually occur (either source).
   const order = [...EFFORT_ORDER, EFFORT_NONE_KEY];
-  const rows = order.filter((k) => buckets.has(k)).map((k) => {
-    const b = buckets.get(k);
+  const rows = order.filter((k) => buckets.has(k) || engineByEffort.has(k)).map((k) => {
+    const b = buckets.get(k) || mk();
+    const g = engineByEffort.get(k) || null;
+    let cost;
+    if (folding) {
+      // events portion at dominant + engine portion at each cell's own model; null only
+      // when NEITHER portion is priceable (never a confident $0 for an unpriced run).
+      const ec = (b.count > 0 || b.total > 0) ? economicsRowCost(b, pricedAtModel, priceMap) : null;
+      const gc = g ? g.cost : null;
+      cost = (ec == null && gc == null) ? null : (ec || 0) + (gc || 0);
+    } else {
+      cost = economicsRowCost(b, pricedAtModel, priceMap);
+    }
+    const g0 = g || { input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 };
     return {
       key: k, count: b.count,
-      input: b.input, output: b.output, cache_write: b.cache_write, cache_read: b.cache_read,
-      total: b.total, cost: economicsRowCost(b, pricedAtModel, priceMap),
+      input: b.input + g0.input, output: b.output + g0.output,
+      cache_write: b.cache_write + g0.cache_write, cache_read: b.cache_read + g0.cache_read,
+      total: b.total + g0.total, cost,
     };
   });
   const topLine = (typeof topLineTotal === "number") ? topLineTotal : null;
-  return {
-    axis: "effort",
-    source: "events",
-    priced_at_model: pricedAtModel,
-    cost_basis: "estimate",     // priced at one inferred model; events carry no model
-    rows,
-    reconciliation: {
+  const reconciliation = folding
+    ? {
+      // Two-source coverage: engine tokens count toward BOTH the attributed total and the
+      // target (they are run-scoped engine spend, outside the transcript top-line — mirroring
+      // the model axis' engineFolded target adjustment, economics.js model-axis fold).
+      events_token_total: eventsTokenTotal,
+      engine_token_total: engineFolded,
+      top_line_total: topLine != null ? topLine + engineFolded : null,
+      coverage_pct: (topLine != null && (topLine + engineFolded) > 0)
+        ? Number((100 * (eventsTokenTotal + engineFolded) / (topLine + engineFolded)).toFixed(3)) : null,
+      reconciles: topLine != null ? (eventsTokenTotal + engineFolded) === (topLine + engineFolded) : null,
+      malformed_lines: malformedLines || 0,
+    }
+    : {
       events_token_total: eventsTokenTotal,
       top_line_total: topLine,
       // null (not false) when there is no top-line to check against — matching
@@ -603,7 +647,14 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malf
       coverage_pct: (topLine && topLine > 0) ? Number((100 * eventsTokenTotal / topLine).toFixed(3)) : null,
       reconciles: topLine != null ? eventsTokenTotal === topLine : null,
       malformed_lines: malformedLines || 0,
-    },
+    };
+  return {
+    axis: "effort",
+    source: folding ? "events+engine-spend" : "events",
+    priced_at_model: pricedAtModel,
+    cost_basis: "estimate",     // events priced at one inferred model; engine cells at their own
+    rows,
+    reconciliation,
   };
 }
 
@@ -925,7 +976,10 @@ function cmdEconomics(args) {
     // The dominant model + top-line come from the transcript when available (used to
     // price + report coverage), else null.
     const { events, malformed } = readRunEvents(runDir);
-    if (events.length === 0) {
+    // FAFF-705: fold engine-spend into the effort axis too. An engine-only run (no events.jsonl
+    // but codex effort-tagged spend) still folds — so keep the estimate short-circuit ONLY when
+    // there are neither events NOR engine-spend records (byte-identical to today's empty case).
+    if (events.length === 0 && !(engineSpend && engineSpend.records > 0)) {
       bd = { axis: "effort", source: "estimate", rows: [],
         reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: null, malformed_lines: malformed } };
     } else {
@@ -935,7 +989,7 @@ function cmdEconomics(args) {
         dominant = economicsDominantModel(records);
         topLine = measuredTotal;
       }
-      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed);
+      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed, engineSpend);
     }
   } else if (measuredSource !== "transcript") {
     bd = { axis: byAxis, source: "estimate", rows: [],
@@ -1089,6 +1143,35 @@ function economicsSelftest() {
     ebNull.rows[0].cost === null && ebNull.priced_at_model === null && ebNull.reconciliation.coverage_pct === null && ebNull.reconciliation.reconciles === null);
   const ebMal = economicsEffortBreakdown([{ data: { effort: "high", tokens: { input: 400, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, "claude-opus-4-8", 1000, 2);
   ok("effort axis: malformed_lines surfaced so low coverage is attributable", ebMal.reconciliation.malformed_lines === 2 && ebMal.reconciliation.coverage_pct === 40);
+
+  // --- FAFF-705: the two-source fold (events.jsonl + engine-spend.jsonl by_model_effort) ---
+  const zero = () => ({ input: 0, output: 0, cache_write: 0, cache_read: 0 });
+  const engineSpend = {
+    records: 3,
+    by_model_effort: new Map([
+      ["claude-opus-4-8 high", { ...zero(), input: 300 }],      // codex high, priced @ opus
+      ["claude-opus-4-8 medium", { ...zero(), input: 100 }],    // codex medium, a brand-new bucket
+      ["claude-opus-4-8 (none)", { ...zero(), input: 10 }],     // an inherit codex call → (none)
+    ]),
+  };
+  const evsFold = [
+    { data: { effort: "low", tokens: { input: 20, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    { data: { effort: "high", tokens: { input: 80, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+  ];
+  const ebFold = economicsEffortBreakdown(evsFold, PRICE_PER_MTOK, "claude-opus-4-8", 100, 0, engineSpend);
+  ok("fold: source names both sources when engine-spend has records", ebFold.source === "events+engine-spend");
+  ok("fold: low/high/medium/(none) buckets all populated", (() => {
+    const k = ebFold.rows.map((r) => r.key);
+    return k.includes("low") && k.includes("high") && k.includes("medium") && k.includes("(none)");
+  })());
+  ok("fold: high bucket sums event (80) + engine (300) tokens", ebFold.rows.find((r) => r.key === "high").input === 380);
+  ok("fold: medium bucket is engine-only (100 tokens, count 0)", (() => { const m = ebFold.rows.find((r) => r.key === "medium"); return m.input === 100 && m.count === 0; })());
+  ok("fold: high cost = events@dominant + engine@cell-model (both opus)", Math.abs(ebFold.rows.find((r) => r.key === "high").cost - ((80 * 5 + 300 * 5) / 1e6)) < 1e-9);
+  ok("fold: engine tokens raise coverage target too (engine_token_total surfaced)", ebFold.reconciliation.engine_token_total === 410);
+  // Byte-identity: the SAME events with NO engine spend (records 0) stay source:"events" and carry no engine field
+  const ebNoEngine = economicsEffortBreakdown(evsFold, PRICE_PER_MTOK, "claude-opus-4-8", 100, 0, { records: 0, by_model_effort: new Map() });
+  ok("fold: engineSpend with 0 records is byte-identical (source events, no engine_token_total)",
+    ebNoEngine.source === "events" && !("engine_token_total" in ebNoEngine.reconciliation));
 
   console.log(`economics --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
   return fail ? 1 : 0;

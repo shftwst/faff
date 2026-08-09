@@ -1,6 +1,6 @@
 # Linear MCP call census (FAFF-175)
 
-> Captured snapshot — regenerate with `node eval/mcp-call-census.mjs --days N`. Numbers are deterministic over a fixed window (no model call). est-tokens are a chars/4 proxy; the MCP-vs-CLI **ratio** (FAFF-176/177) is what they're for.
+> Captured snapshot — regenerate with `node scripts/mcp-call-census.mjs --days N`. Numbers are deterministic over a fixed window (no model call). est-tokens are a chars/4 proxy; the MCP-vs-CLI **ratio** (FAFF-176/177) is what they're for.
 
 > Window: 2026-06-16 → 2026-06-21 (7 days) · 320 sessions across 20 faff slug dirs
 

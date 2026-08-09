@@ -18,11 +18,11 @@ import {
   normaliseArgs,
   faffSlugDirs,
   runCensus,
-} from "../eval/mcp-call-census.mjs";
+} from "../scripts/mcp-call-census.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-const SCRIPT = join(REPO, "eval", "mcp-call-census.mjs");
+const SCRIPT = join(REPO, "scripts", "mcp-call-census.mjs");
 
 // --- helpers to synthesise a transcript line in the real shape -------------------------------------
 const toolUse = (id, name, input = {}) => JSON.stringify({ message: { content: [{ type: "tool_use", id, name, input }] } });

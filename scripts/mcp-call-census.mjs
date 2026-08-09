@@ -15,7 +15,7 @@ import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, statSy
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { estimateTokens } from "./cli-driver.mjs"; // FAFF-175: reuse, do not redefine (chars/4)
+import { estimateTokens } from "../eval/cli-driver.mjs"; // FAFF-175: reuse, do not redefine (chars/4)
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..");
@@ -182,7 +182,7 @@ export function renderMarkdown(report) {
   const lines = [];
   lines.push(`# Linear MCP call census (FAFF-175)`);
   lines.push("");
-  lines.push(`> Captured snapshot — regenerate with \`node eval/mcp-call-census.mjs --days N\`. Numbers are deterministic over a fixed window (no model call). est-tokens are a chars/4 proxy; the MCP-vs-CLI **ratio** (FAFF-176/177) is what they're for.`);
+  lines.push(`> Captured snapshot — regenerate with \`node scripts/mcp-call-census.mjs --days N\`. Numbers are deterministic over a fixed window (no model call). est-tokens are a chars/4 proxy; the MCP-vs-CLI **ratio** (FAFF-176/177) is what they're for.`);
   lines.push("");
   lines.push(`> Window: ${w.from} → ${w.to} (${w.days} days) · ${report.sessions_scanned} sessions across ${report.slug_dirs_scanned} faff slug dirs`);
   lines.push("");

@@ -83,6 +83,17 @@ The safety net isn't you staying awake — it's mechanical and always on:
 - **Park protocol.** Anything the run can't confidently call is *parked*, never quietly binned. Parked work surfaces in `/faff-wtf` the next morning.
 - **Run-ledger.** Every run writes a full audit trail under `.faff/runs/`. The ledger refuses to call a run "done" if it left admitted work dangling (`faff runcheck` audits this).
 
+### Landing a non-graft change (a human merge)
+
+Some legitimate changes never come through `/faff-graft`: a spike's findings, a documentation capture, a one-line fix found while doing something else. Those have no acceptance criteria and no review verdict, so `faff merge-gate` refuses them, and that refusal is correct. The autonomous lane never gets a way around the floor; non-graft landing is a human action.
+
+The refusal now names the remedy beside the blockers, so you are not left inferring it. To land such a change yourself, leave an explainable record so a later `faff audit` accounts for the merge instead of tripping over it:
+
+1. Declare the merge effect: `faff effects declare --run <run> --issue <issue> --step merge`.
+2. Merge through the gate with a reason: `faff merge-gate … --human-override --interactive --override-reason "<what merged + why no floor applies>"`.
+
+The declaration plus the reason are the record `faff audit` reconciles. A merge that skips the declaration, or an override with no reason, is flagged as an unexplained human-merge rather than passing silently. A bare `gh pr merge` is never the sanctioned path (it leaves no record for the audit to read).
+
 ## The tracker is the control plane
 
 In an unattended run the tracker is the human-legible record, control plane, and observability surface that makes it safe to step back. Every issue's status, spec, park reason, and delivery outcome is reflected back into the tracker — so when you wake up, the morning view is the tracker plus the run-ledger, not a wall of logs. That's what makes L3 a place you can actually leave the building from.

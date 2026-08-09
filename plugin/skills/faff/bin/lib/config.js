@@ -1835,11 +1835,11 @@ function cmdConfig(args) {
       // value is visible in the run banner, not silently coerced behind the user's back.
       const gate = dig(data, "intake_gate");
       if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
-      // FAFF-42/350/333/717: surface a non-default autonomous-entry preflight knob (require_container /
-      // require_branch_protection / engine_bounded / sentry_acting) so an opt-in `block` — or the
-      // engine_bounded attestation, or the L3 Sentry-abort opt-in — is visible in the run banner,
-      // never silent (the operator's typo-detection surface for sentry_acting).
-      for (const knob of ["require_container", "require_branch_protection", "engine_bounded", "sentry_acting"]) {
+      // FAFF-42/350/333/717/728: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection / require_github_auth / engine_bounded / sentry_acting) so an opt-in
+      // `block` — or the engine_bounded attestation, or the L3 Sentry-abort opt-in — is visible in the
+      // run banner, never silent (the operator's typo-detection surface for sentry_acting).
+      for (const knob of ["require_container", "require_branch_protection", "require_github_auth", "engine_bounded", "sentry_acting"]) {
         const v = dig(data, `autonomous.${knob}`);
         if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
       }

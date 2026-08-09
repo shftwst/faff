@@ -204,6 +204,11 @@ const REGION_MAP = {
   // FAFF-523: backends reads config via loadConfig (factory identifier, config.js) for its
   // resolve/realizable subcommands — same family as adversarial-backends/engine → factory.
   "backends": "factory",
+  // FAFF-707: spec-review-churn is a pure comparator over two round-record JSON files
+  // (no factory-identifier reference at all — closer to park-history's file-read shape
+  // than to review-iteration-cap's config-read shape) — factory, same family as the
+  // other small deterministic CLI resolvers faff-prep/faff-graft shell out to.
+  "spec-review-churn": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -303,6 +308,7 @@ const REGION_SELFTEST_ARGV = {
   "adversarial-backends": ["adversarial-backends", "--selftest"],
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
   "backends": ["backends", "--selftest"],
+  "spec-review-churn": ["spec-review-churn", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

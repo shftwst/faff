@@ -1,6 +1,6 @@
 # ADR 0100 — Graded-effort capability is derived from the transport family
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-09
 - **Issue:** FAFF-705

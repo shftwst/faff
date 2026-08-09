@@ -1,6 +1,6 @@
 # ADR 0099 — Engine-lane effort maps at dispatch, never forks the closed effort vocabulary
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-09
 - **Issue:** FAFF-705

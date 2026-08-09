@@ -37,3 +37,4 @@
 {"schema":2,"run_id":"run-20260808-235832-fly-l3","seq":36,"ts":"2026-08-09T01:08:03.885Z","prev":"7a5054ab0ec581bd77935cd1ebd78b933a9a2151ff699f573a63f1ec893d7a64","phase":"build","type":"build-start","issue":"FAFF-675"}
 {"schema":2,"run_id":"run-20260808-235832-fly-l3","seq":37,"ts":"2026-08-09T01:08:04.023Z","prev":"1f57e1a1171a8467fd00fd998df735bbe07c3c84418c4f26b539808238d27685","phase":"build","type":"build-start","issue":"FAFF-706"}
 {"schema":2,"run_id":"run-20260808-235832-fly-l3","seq":38,"ts":"2026-08-09T01:08:04.172Z","prev":"7fd1d14e1329a2d3d368b91a46bf7d074edaed4a2c5e83eb2dfce257d786e9bd","phase":"build","type":"build-start","issue":"FAFF-747"}
+{"schema":2,"run_id":"run-20260808-235832-fly-l3","seq":39,"ts":"2026-08-09T02:45:45.362Z","prev":"e50e81939d4134a027b3ab391751a9d350ee630df4e1d0dc62c0a6418d1d03f6","phase":"run","type":"ledger-write","data":{"ledger_sha256":"31b2c02dbac6a2b23f81b3b88eb1a89ae5b78b6c02487820c1d7194866fe821d"}}

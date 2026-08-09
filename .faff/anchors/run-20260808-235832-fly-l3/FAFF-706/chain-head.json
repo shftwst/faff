@@ -1,8 +1,8 @@
 {
   "run_id": "run-20260808-235832-fly-l3",
   "issue": "FAFF-706",
-  "head_seq": 38,
-  "head_sha256": "e50e81939d4134a027b3ab391751a9d350ee630df4e1d0dc62c0a6418d1d03f6",
-  "line_count": 39,
+  "head_seq": 39,
+  "head_sha256": "bb73a3f2a985dd72bea671779ebc91c401620e68de23b899ab181b8564f4a58c",
+  "line_count": 40,
   "schema_floor": 2
 }

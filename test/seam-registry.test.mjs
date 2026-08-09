@@ -99,3 +99,15 @@ test("a deterministic skill declaring `none` (owning no KIND) reconciles clean",
   const r = runOnFixtures({ "zz-seam-none": fm("none") });
   assert.doesNotMatch(r.stdout, /zz-seam-none \(judgement seam\)/);
 });
+
+// FAFF-616: `calibrated` joins the status vocabulary, but this ticket flips zero kinds — the first
+// promotion waits on FAFF-614's operator sweep landing a real above-floor baseline row.
+test("FAFF-616: no registry entry has status `calibrated` yet — this ticket ships the vocabulary, not a promotion", () => {
+  const calibrated = Object.entries(registry.kinds).filter(([, e]) => e.status === "calibrated");
+  assert.deepEqual(calibrated, []);
+});
+
+test("FAFF-616: the registry `_comment` documents the `calibrated` status value", () => {
+  assert.match(registry._comment, /calibrated/);
+  assert.match(registry._comment, /calibration_floor/);
+});

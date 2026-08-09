@@ -39,6 +39,13 @@ const GATEWAY_CLAUSE_PRE_FIX =
 // Build a throwaway {skillsDir, root} pair. `skillsDir` gets one subdir per fixtures entry (always
 // including "faff" when `gateway` is supplied). `root` optionally gets an `eval/` marker dir (to
 // flip on the source-tree leg) and any extra files (e.g. a real AGENTS.md for the "resolves" case).
+//
+// FAFF-616: `--root` now also drives `loadSeamRegistryForLint` (previously it silently fell through
+// to the real repo root regardless of `--root` — exactly the shared-root gap FAFF-616 closed), so an
+// `eval/` marker with no `seam-registry.json` inside it now correctly fails loud (FAFF-280/281) —
+// this fixture is about the UNRELATED voice-pointer lint, so it seeds a minimal well-formed empty
+// registry (`{"kinds":{}}`) alongside the `eval/` marker to keep the seam-registry block a silent
+// no-op, same as it always was for this suite's purposes.
 function runOnFixtures({ gateway, others = {}, rootHasEval = false, rootFiles = {} } = {}) {
   const skillsDir = mkdtempSync(join(tmpdir(), "faff-voice-pointer-skills-"));
   const rootDir = mkdtempSync(join(tmpdir(), "faff-voice-pointer-root-"));
@@ -50,7 +57,10 @@ function runOnFixtures({ gateway, others = {}, rootHasEval = false, rootFiles = 
     mkdirSync(join(skillsDir, name));
     writeFileSync(join(skillsDir, name, "SKILL.md"), body);
   }
-  if (rootHasEval) mkdirSync(join(rootDir, "eval"));
+  if (rootHasEval) {
+    mkdirSync(join(rootDir, "eval"));
+    writeFileSync(join(rootDir, "eval", "seam-registry.json"), JSON.stringify({ kinds: {} }));
+  }
   for (const [name, body] of Object.entries(rootFiles)) writeFileSync(join(rootDir, name), body);
 
   const r = spawnSync(

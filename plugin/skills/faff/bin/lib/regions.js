@@ -154,6 +154,11 @@ const REGION_MAP = {
   "profile": "factory",
   "fixtures": "factory",
   "env": "factory",
+  // eval — FAFF-752: the advisory touched-surface→affected-KIND-subset deriver. Reuses
+  // validate-adapters.js's readJudgementSeam/loadSeamRegistryForLint (factory identifiers) +
+  // shared-infra findRoot — a pure classifier behind a thin git/fs shell, sibling of
+  // eligible/validate-adapters → factory.
+  "eval": "factory",
   // engine — the FAFF-422 one-shot local-engine transport for engine-valued producer
   // lanes; part of the dispatch machinery, not the flight recorder → factory.
   "engine": "factory",
@@ -275,6 +280,7 @@ const REGION_SELFTEST_ARGV = {
   "profile": ["profile", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
+  "eval": ["eval", "--selftest"],
   "engine": ["engine", "--selftest"],
   "lights-out": ["lights-out", "--selftest"],
   "gates": ["gates", "--selftest"],

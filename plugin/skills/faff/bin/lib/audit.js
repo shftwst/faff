@@ -15,6 +15,9 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { auditLedger } = require("./runcheck");
+// FAFF-673: the PR-path human-merge landing check reuses the SAME escape core `faff effects check`
+// uses (governance→governance import; the require-graph invariant only forbids governance→factory).
+const { computeEscapes } = require("./effects");
 const { parseArgs, usageError } = require("./argv");
 const AUDIT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--issue": { arity: 1 } }, positionals: { min: 0, max: 1, name: "run-id" } };
 // FAFF-354: the containment recompute reads the SAME pure primitives `contain`
@@ -55,11 +58,48 @@ function readProvenance(root, issue) {
   return out;
 }
 
+// FAFF-673: account for a sanctioned human non-graft merge from its three substrates — the extended
+// merge-gate-override.json (`overrideRec`), the per-issue merge-record.json (`mergeRecord`), and the
+// run's declared-effects entries (`effectsEntries`). PURE. Returns null (no accounting) when no
+// override exists for the issue; otherwise a HumanMergeAccounting record. The landing check is
+// PATH-AWARE (spec §1 PR/local observe asymmetry): a PR-path override (pr present) requires the merge
+// observe to be COVERED (not an escaped side-effect), evidenced via the same computeEscapes core; a
+// local-path override (no pr, no observe emitted) is evidenced by merge-record.json alone. `accounted_for`
+// additionally requires a non-empty reason AND a covering merge declaration — a present-but-incomplete
+// record is the `human_merge_unexplained` finding the caller raises (fail-closed: a dangling override,
+// a missing declaration, or an empty reason all read as unexplained, never silently clean).
+function accountHumanMerge(issue, overrideRec, mergeRecord, effectsEntries) {
+  if (!overrideRec || typeof overrideRec !== "object") return null;
+  const entries = Array.isArray(effectsEntries) ? effectsEntries : [];
+  const declare_present = entries.some((e) =>
+    e && e.issue === issue && e.step === "merge" && e.kind_of_entry === "declare"
+    && e.effect && e.effect.kind === "merge");
+  const merged = !!(mergeRecord && typeof mergeRecord === "object" && mergeRecord.merged === true);
+  const prPath = overrideRec.pr !== undefined && overrideRec.pr !== null;
+  let landing_covered;
+  if (prPath) {
+    // PR path: the merge observe must be covered by a declaration — an uncovered/escaped merge observe
+    // is exactly the orphaned "escaped side-effect" this ticket forbids. Keyed on the same (issue, step
+    // "merge") escape the effects ledger computes.
+    const escapes = computeEscapes(entries, issue).escapes;
+    const mergeEscaped = escapes.some((x) => x.step === "merge" && (x.escaped || []).some((k) => k && k.kind === "merge"));
+    landing_covered = merged && !mergeEscaped;
+  } else {
+    // Local path: cmdMergeGateLocal emits NO merge observe (spec §1) — merge-record.json IS the landing.
+    landing_covered = merged;
+  }
+  const reason_present = typeof overrideRec.reason === "string" && overrideRec.reason.trim() !== "";
+  const accounted_for = reason_present && declare_present && landing_covered;
+  return { present: true, reason: reason_present ? overrideRec.reason : null, reason_present, declare_present, landing_covered, accounted_for };
+}
+
 // Pure join: build the Reconstruction from already-loaded substrates. No filesystem —
 // the wrapper reads events/ledger/provenance and hands them in, so the selftest drives
 // this directly. `eventsResult` = {present, records, malformed}; `ledger` = parsed object
-// or null; `provenanceMap` = { issue: provenanceObject }.
-function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap) {
+// or null; `provenanceMap` = { issue: provenanceObject }. FAFF-673: `humanMerge` = { overrides:{issue:rec},
+// mergeRecords:{issue:rec}, effectsEntries:[…] } — the substrates for the human-merge accounting; an
+// omitted/empty object means no override read (byte-for-byte the pre-FAFF-673 reconstruction).
+function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge = {}) {
   const events = eventsResult.records;
   const missing_substrates = [];
   if (!eventsResult.present) missing_substrates.push("events");
@@ -88,6 +128,12 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
   const outcomes = ledger && ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes)
     ? ledger.outcomes : {};
 
+  // FAFF-673: the human-merge substrates the wrapper handed in (mirrors provenanceMap).
+  const hmOverrides = (humanMerge && humanMerge.overrides) || {};
+  const hmMergeRecords = (humanMerge && humanMerge.mergeRecords) || {};
+  const hmEffects = (humanMerge && Array.isArray(humanMerge.effectsEntries)) ? humanMerge.effectsEntries : [];
+  const human_merge_unexplained = [];
+
   const bySeq = (a, b) => (a.seq ?? 0) - (b.seq ?? 0);
   const issues = issueSet.map((issue) => {
     const evs = events.filter((e) => e.issue === issue).sort(bySeq)
@@ -96,13 +142,25 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
     const lastPark = parkEvents.length ? parkEvents[parkEvents.length - 1] : null;
     const park_cause = lastPark && lastPark.data && typeof lastPark.data === "object"
       ? (lastPark.data.cause ?? lastPark.data.reason ?? null) : null;
-    return {
+    const entry = {
       issue,
       provenance: (provenanceMap && provenanceMap[issue]) || { absent: true },
       events: evs,
       outcome: issue in outcomes ? outcomes[issue] : null,
       park_cause,
     };
+    // FAFF-673: attach the human-merge accounting when this issue has an override record. An
+    // accounted-for merge is an explicit reconstruction line, not a coherence finding; a present
+    // but not-accounted-for merge (empty reason / no declaration / uncovered-or-absent landing) is
+    // the `human_merge_unexplained` finding — the orphaned-evidence the operator ruled out.
+    const hm = accountHumanMerge(issue, hmOverrides[issue] || null, hmMergeRecords[issue] || null, hmEffects);
+    if (hm) {
+      entry.human_merge = hm;
+      if (!hm.accounted_for) {
+        human_merge_unexplained.push({ issue, reason_present: hm.reason_present, declare_present: hm.declare_present, landing_covered: hm.landing_covered });
+      }
+    }
+    return entry;
   });
 
   // budget: ledger envelope + tokens_at_start + budget-checkpoint events (never recomputed).
@@ -215,9 +273,10 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
     clean: undispatched.length === 0 && invalid_outcomes.length === 0 && mismatches.length === 0
       && missing_substrates.length === 0 && malformed_event_lines.length === 0
       && containment_mismatches.length === 0 && self_intake_mismatches.length === 0
-      && !unrecorded_creates,
+      && !unrecorded_creates && human_merge_unexplained.length === 0,
     undispatched, invalid_outcomes, mismatches, missing_substrates,
     containment_mismatches, self_intake_mismatches, unrecorded_creates,
+    human_merge_unexplained,
   };
   if (malformed_event_lines.length) coherence.malformed_event_lines = malformed_event_lines;
 
@@ -255,6 +314,11 @@ function renderAuditText(recon) {
         : `${r.provenance.via ?? "?"}${r.provenance.initiated ? `/${r.provenance.initiated}` : ""}`;
       const tail = r.park_cause ? `  [park: ${r.park_cause}]` : "";
       console.log(`  ${r.issue}  ${prov}  ${r.outcome ?? "(no outcome)"}${tail}  (${r.events.length} event${r.events.length === 1 ? "" : "s"})`);
+      // FAFF-673: an accounted-for human-merge is EXPLAINED on the audit, not flagged — one line,
+      // never a coherence finding. The unexplained case surfaces below under coherence findings.
+      if (r.human_merge && r.human_merge.accounted_for) {
+        console.log(`    human-merge: accounted-for (reason: ${r.human_merge.reason})`);
+      }
     }
   }
 
@@ -286,6 +350,9 @@ function renderAuditText(recon) {
     }
     if (c.unrecorded_creates) {
       console.log(`  unrecorded creates: ledger filed ${recon.discovered_scope_filed ?? "?"} discovered-scope ticket(s), no containment-check events`);
+    }
+    if (c.human_merge_unexplained && c.human_merge_unexplained.length) {
+      console.log(`  human-merge unexplained: ${c.human_merge_unexplained.map((m) => `${m.issue} (reason ${m.reason_present ? "ok" : "missing"}, declaration ${m.declare_present ? "ok" : "missing"}, landing ${m.landing_covered ? "ok" : "missing"})`).join(", ")}`);
     }
   }
 }
@@ -319,7 +386,26 @@ function cmdAudit(args) {
   const provenanceMap = {};
   for (const i of issueSet) provenanceMap[i] = readProvenance(root, i);
 
-  const recon = buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap);
+  // FAFF-673: the human-merge substrates — per-issue merge-gate-override.json + merge-record.json,
+  // and the run's declared-effects.jsonl once. All optional; absence just means no accounting for
+  // that issue (a run with no human merge is byte-for-byte the pre-FAFF-673 reconstruction).
+  const readJsonMaybe = (p) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; } };
+  const overrides = {}, mergeRecords = {};
+  for (const i of issueSet) {
+    const o = readJsonMaybe(path.join(runDir, i, "merge-gate-override.json"));
+    if (o) overrides[i] = o;
+    const m = readJsonMaybe(path.join(runDir, i, "merge-record.json"));
+    if (m) mergeRecords[i] = m;
+  }
+  let effectsEntries = [];
+  const ledgerPath = path.join(runDir, "declared-effects.jsonl");
+  if (fs.existsSync(ledgerPath)) {
+    effectsEntries = fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  }
+  const humanMerge = { overrides, mergeRecords, effectsEntries };
+
+  const recon = buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge);
 
   if (issue) {
     const match = recon.issues.find((r) => r.issue === issue);
@@ -567,10 +653,118 @@ function auditSelftest() {
     check("self-intake unreproducible: not clean", rec.coherence.clean === false);
   }
 
+  // 19. FAFF-673: an accounted-for PR-path human-merge (override + reason + merge declaration +
+  // covered merge observe + merged record) is reported present/accounted_for and does NOT make
+  // coherence unclean.
+  {
+    const issue = "FAFF-673";
+    const overrides = { [issue]: { pr: 5, issue, head_sha: "abc", blockers: ["ACs not all verified", "review verdict is missing"], reason: "spike findings; no floor", source: "human-override" } };
+    const mergeRecords = { [issue]: { pr: 5, head_sha: "abc", merged: true } };
+    const effectsEntries = [
+      { kind_of_entry: "declare", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } },
+      { kind_of_entry: "observe", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } },
+    ];
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    const hm = rec.issues.find((x) => x.issue === issue).human_merge;
+    check("hm PR accounted-for: present + accounted_for", !!hm && hm.present === true && hm.accounted_for === true);
+    check("hm PR accounted-for: carries the reason", hm.reason === "spike findings; no floor");
+    check("hm PR accounted-for: coherence stays clean", rec.coherence.clean === true);
+    check("hm PR accounted-for: no unexplained finding", rec.coherence.human_merge_unexplained.length === 0);
+  }
+
+  // 20. FAFF-673: an accounted-for LOCAL-path human-merge (no pr, no observe — merge-record IS the
+  // landing) is accounted_for and NOT false-flagged as unexplained.
+  {
+    const issue = "FAFF-673L";
+    const overrides = { [issue]: { issue, head_sha: "abc", blockers: [], reason: "docs capture; no floor", source: "human-override" } };
+    const mergeRecords = { [issue]: { pr: 0, head_sha: "abc", merged: true } };
+    const effectsEntries = [{ kind_of_entry: "declare", issue, step: "merge", effect: { kind: "merge", target: "pr:0" } }];
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    const hm = rec.issues.find((x) => x.issue === issue).human_merge;
+    check("hm LOCAL accounted-for: accounted_for true (no observe required)", hm.accounted_for === true);
+    check("hm LOCAL accounted-for: coherence clean (no false unexplained)", rec.coherence.clean === true);
+  }
+
+  // 21. FAFF-673 unexplained trigger (i): empty reason → human_merge_unexplained, not clean.
+  {
+    const issue = "FAFF-673E";
+    const overrides = { [issue]: { pr: 5, issue, head_sha: "abc", blockers: [], reason: "", source: "human-override" } };
+    const mergeRecords = { [issue]: { pr: 5, merged: true } };
+    const effectsEntries = [
+      { kind_of_entry: "declare", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } },
+      { kind_of_entry: "observe", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } },
+    ];
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    check("hm unexplained (empty reason): one finding for the issue", rec.coherence.human_merge_unexplained.length === 1 && rec.coherence.human_merge_unexplained[0].issue === issue);
+    check("hm unexplained (empty reason): reason_present false", rec.coherence.human_merge_unexplained[0].reason_present === false);
+    check("hm unexplained (empty reason): not clean", rec.coherence.clean === false);
+  }
+
+  // 22. FAFF-673 unexplained trigger (ii): missing merge declaration (local, merged record, no declare)
+  // → declare_present false, landing covered, accounted_for false, not clean.
+  {
+    const issue = "FAFF-673D";
+    const overrides = { [issue]: { issue, head_sha: "abc", blockers: [], reason: "docs", source: "human-override" } };
+    const mergeRecords = { [issue]: { pr: 0, merged: true } };
+    const effectsEntries = []; // no declaration
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    check("hm unexplained (no declaration): declare_present false", rec.coherence.human_merge_unexplained[0].declare_present === false);
+    check("hm unexplained (no declaration): landing_covered true (local merged record present)", rec.coherence.human_merge_unexplained[0].landing_covered === true);
+    check("hm unexplained (no declaration): not clean", rec.coherence.clean === false);
+  }
+
+  // 23. FAFF-673 unexplained trigger (iii-a): no merge landing (dangling override, no merge-record)
+  // → landing_covered false, not clean.
+  {
+    const issue = "FAFF-673N";
+    const overrides = { [issue]: { pr: 5, issue, head_sha: "abc", blockers: [], reason: "spike", source: "human-override" } };
+    const mergeRecords = {}; // dangling — no merge-record
+    const effectsEntries = [
+      { kind_of_entry: "declare", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } },
+      { kind_of_entry: "observe", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } },
+    ];
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    check("hm unexplained (dangling override): landing_covered false", rec.coherence.human_merge_unexplained[0].landing_covered === false);
+    check("hm unexplained (dangling override): not clean", rec.coherence.clean === false);
+  }
+
+  // 24. FAFF-673 unexplained trigger (iii-b): uncovered/escaped PR merge observe (observe with no
+  // covering declaration, merged record present) → landing_covered false, not clean.
+  {
+    const issue = "FAFF-673U";
+    const overrides = { [issue]: { pr: 5, issue, head_sha: "abc", blockers: [], reason: "spike", source: "human-override" } };
+    const mergeRecords = { [issue]: { pr: 5, merged: true } };
+    const effectsEntries = [{ kind_of_entry: "observe", issue, step: "merge", effect: { kind: "merge", target: "pr:5" } }]; // escaped — no declare
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    check("hm unexplained (escaped PR merge): landing_covered false (uncovered observe)", rec.coherence.human_merge_unexplained[0].landing_covered === false);
+    check("hm unexplained (escaped PR merge): not clean", rec.coherence.clean === false);
+  }
+
+  // 25. FAFF-673: NO override for any issue → no human_merge attached, no finding, coherence clean.
+  // Also exercises the 5-arg call (default humanMerge) — byte-for-byte the pre-FAFF-673 shape.
+  {
+    const ledger = { run_id: "r", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {});
+    check("hm absent: no human_merge key on the issue", !("human_merge" in rec.issues[0]));
+    check("hm absent: human_merge_unexplained empty", rec.coherence.human_merge_unexplained.length === 0);
+    check("hm absent: coherence clean", rec.coherence.clean === true);
+  }
+
+  // 26. FAFF-673: accountHumanMerge returns null when there is no override for the issue.
+  {
+    check("accountHumanMerge: no override → null", accountHumanMerge("FAFF-1", null, { merged: true }, []) === null);
+  }
+
   if (failed) { console.log(`RESULT: audit --selftest FAILED (${failed} failure(s))`); return 1; }
   console.log("RESULT: audit --selftest ok");
   return 0;
 }
 
 
-module.exports = { auditSelftest, buildReconstruction, cmdAudit, readEvents, readProvenance, renderAuditText };
+module.exports = { accountHumanMerge, auditSelftest, buildReconstruction, cmdAudit, readEvents, readProvenance, renderAuditText };

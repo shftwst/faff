@@ -1042,6 +1042,20 @@ function cmdEvents(args) {
     fs.writeFileSync(path.join(destArg, "events.jsonl"), eventsBuf); // verbatim byte-copy
     const srcLedger = path.join(dirArg, "run-ledger.json");
     if (fs.existsSync(srcLedger)) fs.copyFileSync(srcLedger, path.join(destArg, "run-ledger.json"));
+    // FAFF-621: when a declared-effects.jsonl is present, byte-copy it too and write a
+    // CLI-computed effects-chain-head.json witness (computeChainHead is ledger-agnostic — it
+    // takes a buffer). Absent effects ledger → nothing copied, no effects witness (so the
+    // gate's requireWitness fail-closed never fires — witness-absent applies only when the
+    // ledger is present). The head hash is computed here, never accepted from a caller.
+    const srcEffects = path.join(dirArg, "declared-effects.jsonl");
+    let effectsAnchored = false;
+    if (fs.existsSync(srcEffects)) {
+      const effectsBuf = fs.readFileSync(srcEffects);
+      fs.writeFileSync(path.join(destArg, "declared-effects.jsonl"), effectsBuf); // verbatim byte-copy
+      const effHead = computeChainHead(effectsBuf, path.basename(dirArg), issueArg);
+      fs.writeFileSync(path.join(destArg, "effects-chain-head.json"), JSON.stringify(effHead, null, 2) + "\n");
+      effectsAnchored = true;
+    }
     // FAFF-623: also carry the merge-floor evidence `evaluateMergeFloorLeg` (governance-check.js)
     // needs — `ac-checklist.json` + `review-verdict.json` always, `holdout.json` +
     // `build-progress.json` at L4 (the latter required ALONGSIDE holdout.json, not optional to
@@ -1061,7 +1075,8 @@ function cmdEvents(args) {
     const head = computeChainHead(eventsBuf, path.basename(dirArg), issueArg);
     fs.writeFileSync(path.join(destArg, "chain-head.json"), JSON.stringify(head, null, 2) + "\n");
     const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
-    console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}`);
+    const effectsNote = effectsAnchored ? " + declared-effects.jsonl, effects-chain-head.json" : "";
+    console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}${effectsNote}`);
     return 0;
   }
 

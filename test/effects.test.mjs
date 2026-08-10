@@ -10,6 +10,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -43,16 +44,18 @@ test("effects --selftest passes", () => {
 
 // --- declare/observe: envelope + seq --------------------------------------
 
-test("declare: first entry → schema/run_id/seq 0/ts + kind_of_entry/issue/step/effect; exit 0", () => {
+test("declare: first entry → schema-2/run_id/seq 0/ts + kind_of_entry/issue/step/effect + genesis prev; exit 0", () => {
   const dir = tmp(); mkRun(dir, "run-X");
   try {
     const r = run(dir, ["effects", "declare", "--run", "run-X", "--issue", "FAFF-200", "--step", "build", "--ts", "t"], MERGE_MAIN);
     assert.equal(r.code, 0);
     const e = lines(dir, "run-X");
     assert.equal(e.length, 1);
+    // FAFF-621: records are schema-2 and carry a `prev`; record 0's prev is genesis = sha256(run_id).
+    const genesis = createHash("sha256").update(Buffer.from("run-X", "utf8")).digest("hex");
     assert.deepEqual(e[0], {
-      schema: 1, run_id: "run-X", seq: 0, ts: "t", kind_of_entry: "declare",
-      issue: "FAFF-200", step: "build", effect: { kind: "merge", target: "main", reversible: true },
+      schema: 2, run_id: "run-X", seq: 0, ts: "t", kind_of_entry: "declare",
+      issue: "FAFF-200", step: "build", effect: { kind: "merge", target: "main", reversible: true }, prev: genesis,
     });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

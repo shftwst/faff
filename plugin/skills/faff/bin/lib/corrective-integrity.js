@@ -143,18 +143,28 @@ function integrityGate(probeResult, consumer) {
 }
 
 // The forge-surface path set for a run: the corrective-artifact dir + run-ledger.json
-// (FAFF-373), PLUS — when `issue` is given — the three merge-floor artifacts F1's
-// audit fold added (FAFF-325): <run-dir>/<issue>/ac-checklist.json,
-// <run-dir>/<issue>/review-verdict.json, <run-dir>/<issue>/holdout.json. Omitting
-// `issue` (the L4 run-start preflight call site, which runs before any issue is
-// dispatched and before a run-dir even exists) yields the original 2-entry set —
-// existing callers are unaffected. Single-sourced from the SAME run-dir layout
-// readAcComplete/readReviewVerdict/readHoldout use in merge-gate.js; never a
-// second, divergent hand-written list. PURE — derives paths only.
+// (FAFF-373), PLUS — when `issue` is given — the five per-issue evidence members:
+// the three merge-floor artifacts F1's audit fold added (FAFF-325):
+// <run-dir>/<issue>/ac-checklist.json, <run-dir>/<issue>/review-verdict.json,
+// <run-dir>/<issue>/holdout.json, and (FAFF-751, ADR-0077 Decision 7 delivered) the
+// two merge-tail records now written on the trusted side after slices 1–2 relocated
+// their writers above the dispatch cut: <run-dir>/<issue>/merge-record.json and
+// <run-dir>/<issue>/post-merge-verification.json. Omitting `issue` (the L4 run-start
+// preflight call site, which runs before any issue is dispatched and before a run-dir
+// even exists) yields the original 2-entry set — existing callers are unaffected.
+// Single-sourced from the SAME run-dir layout readAcComplete/readReviewVerdict/
+// readHoldout use in merge-gate.js; never a second, divergent hand-written list.
+// PURE — derives paths only.
 // FAFF-466: an additive, opt-in third `opts.events` param appends events.jsonl to
 // the forge surface for the `detection` consumer only — the `corrective`/`merge-floor`
-// 2-/5-entry shapes those callers (`merge-gate.js`'s `resolveIntegrity`, `corrective.js`)
+// 2-/7-entry shapes those callers (`merge-gate.js`'s `resolveIntegrity`, `corrective.js`)
 // depend on stay byte-identical (opts omitted ⇒ unchanged return).
+// Member-count contract: correctiveIntegrityDirs(runDir) -> 2;
+// correctiveIntegrityDirs(runDir, issue) -> 7;
+// correctiveIntegrityDirs(runDir, null, {events:true}) -> 3;
+// correctiveIntegrityDirs(runDir, issue, {events:true}) -> 8.
+// The two merge-tail members are byte-exact (default snapshotMember branch), NOT
+// prefix-preserving; only events.jsonl keeps the append-tolerant carve-out (Decision 5).
 function correctiveIntegrityDirs(runDir, issue, opts) {
   const dirs = [
     path.join(runDir, "corrective"),
@@ -165,6 +175,8 @@ function correctiveIntegrityDirs(runDir, issue, opts) {
       path.join(runDir, issue, "ac-checklist.json"),
       path.join(runDir, issue, "review-verdict.json"),
       path.join(runDir, issue, "holdout.json"),
+      path.join(runDir, issue, "merge-record.json"),
+      path.join(runDir, issue, "post-merge-verification.json"),
     );
   }
   if (opts && opts.events === true) {
@@ -406,19 +418,21 @@ function correctiveIntegritySelftest() {
   ok(base.includes(path.join(runDir, "run-ledger.json")), "correctiveIntegrityDirs(runDir): includes the ledger path");
   ok(base.includes(path.join(runDir, "corrective")), "correctiveIntegrityDirs(runDir): includes the corrective-artifact dir");
   const withIssue = correctiveIntegrityDirs(runDir, "FAFF-1");
-  ok(withIssue.length === 5, "correctiveIntegrityDirs(runDir, issue): 5 entries (2 base + 3 merge-floor)");
+  ok(withIssue.length === 7, "correctiveIntegrityDirs(runDir, issue): 7 entries (2 base + 3 merge-floor + 2 merge-tail)");
   ok(withIssue.includes(path.join(runDir, "FAFF-1", "ac-checklist.json")), "correctiveIntegrityDirs(runDir, issue): includes ac-checklist.json");
   ok(withIssue.includes(path.join(runDir, "FAFF-1", "review-verdict.json")), "correctiveIntegrityDirs(runDir, issue): includes review-verdict.json");
   ok(withIssue.includes(path.join(runDir, "FAFF-1", "holdout.json")), "correctiveIntegrityDirs(runDir, issue): includes holdout.json");
+  ok(withIssue.includes(path.join(runDir, "FAFF-1", "merge-record.json")), "correctiveIntegrityDirs(runDir, issue): includes merge-record.json (FAFF-751)");
+  ok(withIssue.includes(path.join(runDir, "FAFF-1", "post-merge-verification.json")), "correctiveIntegrityDirs(runDir, issue): includes post-merge-verification.json (FAFF-751)");
 
   // --- correctiveIntegrityDirs: additive opts.events extension (FAFF-466) ---
   ok(correctiveIntegrityDirs(runDir).length === 2, "correctiveIntegrityDirs(runDir) with no opts stays byte-identical (2 entries)");
-  ok(correctiveIntegrityDirs(runDir, "FAFF-1").length === 5, "correctiveIntegrityDirs(runDir, issue) with no opts stays byte-identical (5 entries)");
+  ok(correctiveIntegrityDirs(runDir, "FAFF-1").length === 7, "correctiveIntegrityDirs(runDir, issue) with no opts stays byte-identical (7 entries)");
   const withEvents = correctiveIntegrityDirs(runDir, null, { events: true });
   ok(withEvents.length === 3, "correctiveIntegrityDirs(runDir, null, {events:true}): 3 entries (2 base + events.jsonl)");
   ok(withEvents.includes(path.join(runDir, "events.jsonl")), "correctiveIntegrityDirs with {events:true} includes events.jsonl");
   const withIssueAndEvents = correctiveIntegrityDirs(runDir, "FAFF-1", { events: true });
-  ok(withIssueAndEvents.length === 6, "correctiveIntegrityDirs(runDir, issue, {events:true}): 6 entries (5 + events.jsonl)");
+  ok(withIssueAndEvents.length === 8, "correctiveIntegrityDirs(runDir, issue, {events:true}): 8 entries (7 + events.jsonl)");
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} checks, ${fail} failed)`);
   return fail ? 1 : 0;

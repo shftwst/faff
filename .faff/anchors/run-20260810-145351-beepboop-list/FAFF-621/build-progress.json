@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-621",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a7d751401df4f5556c9de2ffda88330602c19303721b3198441d8d467c9fb90b",
+    "branch": "faff-621-chain-declared-effectsjsonl-with-the-same-per-line-prev-hash",
+    "pushed_at": "2026-08-10T17:29:28.798Z"
+  },
+  "updated_at": "2026-08-10T17:29:28.798Z"
+}

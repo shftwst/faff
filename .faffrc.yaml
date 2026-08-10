@@ -57,7 +57,7 @@ backends:
         provider: gemini
         model: models/gemini-3.5-flash-lite # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
         host: https://generativelanguage.googleapis.com/v1beta/openai
-        api_key_env: GEMINI_API_KEY_FAFF_PAID
+        api_key_env: GEMINI_API_KEY
         #timeout: 480
 
 faffter_dark:

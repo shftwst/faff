@@ -863,7 +863,7 @@ function renderJson(state) {
 
 function cmdDoctor(args) {
   const { values, errors } = parseArgs(args, DOCTOR_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff doctor [--target live|intoWorktree] [--root DIR] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff doctor [--target DIR] [--root DIR] [--json]");
   const targetFlag = values["--target"] === undefined ? null : values["--target"];
   let root = values["--root"] === undefined ? null : values["--root"];
   root = root || findRoot();

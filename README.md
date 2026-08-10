@@ -1,15 +1,12 @@
 # SuperDomestique (formerly known as `faff`)
 
-SuperDomestique lets software agents carry more of the delivery loop while
-keeping authority, evidence, and failure visible.
+SuperDomestique enables progressively autonymous AI software delivery by combining AI-led execution with deterministic governance, explicit engineering constraints and verifiable evidence.
 
 It works from a tracker, moves work through specification, implementation,
-review, and delivery, and returns unresolved decisions to a person. The aim is
-simple: make a workload safe to stop watching, one step at a time.
+review, testing, and delivery, and returns unresolved decisions to a person. The aim is
+simple: make an agentic workload safe to stop watching, one step at a time.
 
-The project was previously presented as faff. The plugin, CLI, repository, and
-configuration still use the `faff` name, so existing links and commands remain
-valid.
+`SuperDomestique` is the project currently implemented and distributed as `faff`. The `faff` repository, skills, plugin and CLI commands retain their existing names while the project evolves.
 
 ## Two parts, one delivery loop
 

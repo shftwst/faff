@@ -366,31 +366,72 @@ function tailReadNextSeq(eventsPath) {
 // the chain commits to raw bytes, so the repaired torn segment re-hashes to exactly
 // what this writer hashed), then appends the record as one write. Releases the lock in
 // a finally. Throws EVENTS_LOCKED (from acquire) on budget exhaustion.
-function appendRecordUnderLock(dir, mintRecord) {
-  const eventsPath = path.join(dir, "events.jsonl");
-  const lockPath = eventsPath + ".lock";
+// FAFF-621: the events lock descriptor + ledger filename, hoisted so the N=1 shim below
+// drives the same generalised core the effects ledger uses (with its own descriptor).
+const EVENTS_CFG = { ledgerFile: "events.jsonl", lock: { code: "EVENTS_LOCKED", label: "events lock" } };
+
+// FAFF-621: the BATCH-capable generalisation of the single-record mint core. Mints an
+// array of N records under ONE lock acquisition — one tail read, contiguous seqs
+// s..s+N-1, each `prev` threaded in sequence (the first from the tail's last physical
+// line, each subsequent from the exact serialised bytes of the line just minted in this
+// batch). This is what lets `appendEffectEntries` land N effect descriptors as one atomic,
+// gap-free run with no honest interleave: one batch = one lock = one contiguous seq run,
+// so ONLY tampering (never legitimate concurrent traffic) can break the chain.
+//   dir        — run dir absolute path (genesis hashes basename(dir))
+//   cfg        — { ledgerFile, lock: { code, label } }  (events or declared-effects)
+//   mintCount  — N (>= 1)
+//   mintOne(index, seq, prevRecord, prevHash) -> record | null
+//                called N times under the ONE lock; index 0..N-1, seq threaded s..s+N-1,
+//                prevHash/prevRecord threaded. Returning null from ANY call aborts the
+//                WHOLE batch, writing nothing.
+// Returns the array of N minted records, or null if aborted. The within-batch next-`prev`
+// hashes `JSON.stringify(rec)`'s UTF-8 bytes — byte-identical to the physical line appended
+// — so the verifier re-hashing physical lines re-derives exactly these values. The
+// torn-tail "\n" repair is applied ONCE at batch head only (the records inside the batch are
+// newline-joined by this same writer, so no torn tail exists between them).
+function appendRecordsUnderLock(dir, cfg, mintCount, mintOne) {
+  const ledgerPath = path.join(dir, cfg.ledgerFile);
+  const lockPath = ledgerPath + ".lock";
   return withFileLock(lockPath, () => {
-    const { seq, prevRecord, prevLineBuf } = tailReadState(eventsPath);
-    const prevHash = sha256Hex(prevLineBuf === null ? Buffer.from(path.basename(dir), "utf8") : prevLineBuf);
-    const record = mintRecord(seq, prevRecord, prevHash);
-    if (record === null || record === undefined) return null; // aborted — nothing written
-    if (record.seq !== seq || record.prev !== prevHash) {
-      throw new Error(`events append core: minted record must carry the supplied seq/prev (want seq ${seq} prev ${prevHash}, got seq ${record.seq} prev ${record.prev})`);
+    const { seq, prevRecord, prevLineBuf } = tailReadState(ledgerPath); // ONE tail read
+    let curPrevRecord = prevRecord;
+    let prevHash = sha256Hex(prevLineBuf === null ? Buffer.from(path.basename(dir), "utf8") : prevLineBuf);
+    const minted = [];
+    for (let index = 0; index < mintCount; index++) {
+      const record = mintOne(index, seq + index, curPrevRecord, prevHash);
+      if (record === null || record === undefined) return null; // abort the WHOLE batch — nothing written
+      if (record.seq !== seq + index || record.prev !== prevHash) {
+        throw new Error(`append core: minted record must carry the supplied seq/prev (want seq ${seq + index} prev ${prevHash}, got seq ${record.seq} prev ${record.prev})`);
+      }
+      minted.push(record);
+      curPrevRecord = record;
+      prevHash = sha256Hex(Buffer.from(JSON.stringify(record), "utf8")); // next link = THIS serialised line's bytes
     }
+    if (minted.length === 0) return minted; // empty batch — never append a stray newline
     let prefix = "";
     try {
-      const st = fs.statSync(eventsPath);
+      const st = fs.statSync(ledgerPath);
       if (st.size > 0) {
-        const fd = fs.openSync(eventsPath, "r");
+        const fd = fs.openSync(ledgerPath, "r");
         const last = Buffer.alloc(1);
         try { fs.readSync(fd, last, 0, 1, st.size - 1); }
         finally { fs.closeSync(fd); }
         if (last[0] !== 0x0a) prefix = "\n"; // torn write from a crashed holder — don't concatenate
       }
     } catch (e) { if (!e || e.code !== "ENOENT") throw e; }
-    fs.appendFileSync(eventsPath, prefix + JSON.stringify(record) + "\n");
-    return record;
-  }, { code: "EVENTS_LOCKED", label: "events lock" });
+    fs.appendFileSync(ledgerPath, prefix + minted.map((r) => JSON.stringify(r)).join("\n") + "\n"); // ONE atomic append
+    return minted;
+  }, cfg.lock);
+}
+
+// FAFF-574/621: the single-record shim — RETAINED byte-unchanged in signature + semantics
+// over the batch core, so `appendEventRecord`, corrective.js's mint, and both lights-out
+// mints need zero edits. A null mintRecord return aborts (batch of 1 → null) and writes
+// nothing — today's abort path, preserved. GUARD the unwrap: a batch-of-1 abort returns
+// null, never [null].
+function appendRecordUnderLock(dir, mintRecord) {
+  const r = appendRecordsUnderLock(dir, EVENTS_CFG, 1, (index, seq, prevRecord, prevHash) => mintRecord(seq, prevRecord, prevHash));
+  return r === null ? null : r[0];
 }
 
 // Classify a seq against the previous seq for `events validate` (FAFF-574). Returns a
@@ -462,170 +503,230 @@ function splitPhysicalLines(buf) {
   return { lines, lastHasNewline };
 }
 
-// PURE. Verify the chain in `dir`/events.jsonl (+ optional `dir`/run-ledger.json ledger
-// fold). Returns the VerifyResult shape; never throws on a chain problem (only genuine
-// unreadability surfaces via status "malformed"). Classification is policy-free —
-// `legacy_policy` only affects the exit-code mapping (see `verifyExitCode`).
-function verifyChain(dir, opts = {}) {
-  const eventsPath = path.join(dir, "events.jsonl");
-  const base = { schema_floor: null, line_count: 0, head_sha256: null, first_break: null, ledger_fold: "absent", torn_tail: false, witness: "absent" };
-
-  // FAFF-568 fix pass: the chain-head.json witness is CROSS-CHECKED, never decorative.
-  // Anchored at anchor time by the CLI (head hash never caller-supplied) and pinned by
-  // the PR head sha merge-gate observes, it is the independent record a post-anchor
-  // rewrite cannot retrofit: stripping `prev` fields to spoof legacy-unverifiable
-  // changes schema_floor; tampering the last record + truncating its newline (the
-  // forged-torn-tail edit) changes head_sha256/line_count. Any disagreement between
-  // the witness and the re-derived values is `witness-mismatch` — a gating FAIL that
-  // no legacy-policy softens. A run dir has no chain-head.json → witness "absent",
-  // behaviour unchanged. An unparseable witness in an anchor is a corrupt committed
-  // artifact → malformed (fail-closed).
-  let witnessHead = null;
-  const witnessPath = path.join(dir, "chain-head.json");
-  if (fs.existsSync(witnessPath)) {
-    try { witnessHead = JSON.parse(fs.readFileSync(witnessPath, "utf8")); }
-    catch (e) { return { ...base, status: "malformed", detail: `chain-head.json unreadable/invalid JSON: ${e.message}` }; }
-    if (witnessHead === null || typeof witnessHead !== "object" || Array.isArray(witnessHead)) {
-      return { ...base, status: "malformed", detail: "chain-head.json is not a JSON object" };
-    }
-  }
-  // Compare only the fields the witness actually records (older witnesses may lack one).
-  const witnessMismatches = () => {
-    if (!witnessHead) return [];
-    const out = [];
-    if (typeof witnessHead.head_sha256 === "string" && witnessHead.head_sha256 !== base.head_sha256) {
-      out.push(`head_sha256 (witness ${witnessHead.head_sha256.slice(0, 12)}… ≠ derived ${String(base.head_sha256).slice(0, 12)}…)`);
-    }
-    if (Number.isInteger(witnessHead.line_count) && witnessHead.line_count !== base.line_count) {
-      out.push(`line_count (witness ${witnessHead.line_count} ≠ derived ${base.line_count})`);
-    }
-    if (Number.isInteger(witnessHead.schema_floor) && witnessHead.schema_floor !== base.schema_floor) {
-      out.push(`schema_floor (witness ${witnessHead.schema_floor} ≠ derived ${base.schema_floor})`);
-    }
-    return out;
+// FAFF-621: the PURE physical-chain walk, extracted out of verifyChain so BOTH ledgers'
+// verifiers compose the ONE genesis/prev-hash rule — never a second home for it. Splits
+// the buffer into physical lines, runs the parse pass (record / honest torn tail / mid-file
+// malformed), and walks the genesis/prev chain, classifying the walk-only status. It knows
+// NOTHING about witnesses (chain-head.json) or the events run-ledger fold — those the caller
+// (verifyLedgerChain) layers on. Returns the primitives:
+//   { status, line_count, head_sha256, schema_floor, first_break, torn_tail,
+//     any_prev, any_prevless, records, detail }
+// status ∈ verified | broken | legacy-unverifiable | mixed | malformed (walk-only —
+// `verified`/`mixed` may still take a witness/torn-corroboration suffix the caller composes,
+// so their `detail` is left null here). `records` is the per-line parsed array (null on a
+// torn/unparseable line) the events run-ledger fold consumes.
+function walkPhysicalChain(buf) {
+  const out = {
+    status: null, line_count: 0, head_sha256: null, schema_floor: null,
+    first_break: null, torn_tail: false, any_prev: false, any_prevless: false,
+    records: [], detail: null,
   };
-  const witnessMismatchResult = (mm) => ({
-    ...base, witness: "mismatch", status: "witness-mismatch",
-    detail: `chain-head.json witness disagrees with the on-disk log: ${mm.join("; ")}`,
-  });
-
-  let buf;
-  try { buf = fs.readFileSync(eventsPath); }
-  catch (e) {
-    if (e && e.code === "ENOENT") {
-      if (witnessHead) {
-        const mm = witnessMismatches();
-        if (mm.length) return witnessMismatchResult(mm);
-      }
-      return { ...base, status: "verified", detail: "events.jsonl absent — nothing to verify" };
-    }
-    return { ...base, status: "malformed", detail: `events.jsonl unreadable: ${e.message}` };
-  }
   const { lines, lastHasNewline } = splitPhysicalLines(buf);
-  base.line_count = lines.length;
-  if (lines.length === 0) {
-    if (witnessHead) {
-      const mm = witnessMismatches();
-      if (mm.length) return witnessMismatchResult(mm);
-    }
-    return { ...base, status: "verified", detail: "empty events.jsonl — nothing to verify" };
-  }
-  base.head_sha256 = sha256Hex(lines[lines.length - 1]);
+  out.line_count = lines.length;
+  if (lines.length === 0) { out.status = "verified"; return out; } // empty — caller names the file
+  out.head_sha256 = sha256Hex(lines[lines.length - 1]);
 
   // Parse pass: record per line (or null), separating an honest torn tail (the final
   // no-newline segment) from a mid-file non-record (which is malformed, exit 2).
   const parsed = new Array(lines.length).fill(null);
+  out.records = parsed;
   let tornTail = false, schemaFloor = null, anyPrev = false, anyPrevless = false;
   for (let i = 0; i < lines.length; i++) {
     let obj;
     try { obj = JSON.parse(lines[i].toString("utf8")); }
     catch {
       if (i === lines.length - 1 && !lastHasNewline) { tornTail = true; break; } // honest crash
-      return { ...base, status: "malformed", detail: `line ${i + 1}: non-JSON where a record is required` };
+      out.status = "malformed"; out.detail = `line ${i + 1}: non-JSON where a record is required`; return out;
     }
     if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
       if (i === lines.length - 1 && !lastHasNewline) { tornTail = true; break; }
-      return { ...base, status: "malformed", detail: `line ${i + 1}: not a JSON object` };
+      out.status = "malformed"; out.detail = `line ${i + 1}: not a JSON object`; return out;
     }
     parsed[i] = obj;
     if (Number.isInteger(obj.schema)) schemaFloor = schemaFloor === null ? obj.schema : Math.min(schemaFloor, obj.schema);
     if (obj.prev !== undefined) anyPrev = true;
     else anyPrevless = true;
   }
-  base.schema_floor = schemaFloor;
-  base.torn_tail = tornTail;
-  const mm = witnessMismatches();
-  if (witnessHead && !mm.length) base.witness = "match";
+  out.schema_floor = schemaFloor;
+  out.torn_tail = tornTail;
+  out.any_prev = anyPrev;
+  out.any_prevless = anyPrevless;
 
-  // No record carries a `prev` at all → legacy schema-1 log (honest, never a broken
-  // FAIL) — UNLESS a witness recorded a chained log (schema_floor ≥ 2 / a different
-  // head): then "reads as legacy" is the downgrade spoof, a witness-mismatch FAIL,
-  // never legacy-under-policy. A torn-only file (no parseable records) is
-  // nothing-to-verify, not legacy.
+  // No record carries a `prev` at all → legacy schema-1 log (honest) or a torn-only file
+  // (nothing to verify). The witness-downgrade-spoof precedence is the caller's.
   if (!anyPrev) {
-    if (mm.length) return witnessMismatchResult(mm);
-    if (schemaFloor === null) return { ...base, status: "verified", detail: "no parseable records (torn-only) — nothing to verify" };
-    return { ...base, status: "legacy-unverifiable", detail: "legacy schema-1 log, no prev chain" };
+    if (schemaFloor === null) { out.status = "verified"; out.detail = "no parseable records (torn-only) — nothing to verify"; return out; }
+    out.status = "legacy-unverifiable"; out.detail = "legacy schema-1 log, no prev chain"; return out;
   }
 
-  // Walk: each schema-2 record's `prev` must equal genesis (line 1) / the previous
-  // physical line's hash (line >1). A schema-1 line in a MIXED log carries no `prev`
-  // — unverifiable-but-not-broken (skipped), still the prev-hash source for the next.
+  // Walk: each schema-2 record's `prev` must equal genesis (line 1) / the previous physical
+  // line's hash (line >1). A schema-1 line in a MIXED log carries no `prev` — skipped, still
+  // the prev-hash source for the next.
   for (let i = 0; i < lines.length; i++) {
     const rec = parsed[i];
     if (rec === null) continue;            // torn tail — walk already stopped (defensive)
     if (rec.prev === undefined) continue;  // schema-1 line inside a mixed log
     if (typeof rec.prev !== "string" || !HEX64_RE.test(rec.prev)) {
-      return { ...base, status: "malformed", detail: `line ${i + 1}: prev is not 64 lowercase hex` };
+      out.status = "malformed"; out.detail = `line ${i + 1}: prev is not 64 lowercase hex`; return out;
     }
     const expected = i === 0
       ? sha256Hex(Buffer.from(String(rec.run_id), "utf8"))  // genesis: the record's OWN run_id
       : sha256Hex(lines[i - 1]);                            // the previous physical line's raw bytes
     if (rec.prev !== expected) {
-      return {
-        ...base, status: "broken",
-        first_break: { seq: Number.isInteger(rec.seq) ? rec.seq : null, line: i + 1, expected, actual: rec.prev },
-        detail: `chain broken at line ${i + 1}${Number.isInteger(rec.seq) ? ` (seq ${rec.seq})` : ""}: prev ${rec.prev.slice(0, 12)}… ≠ expected ${expected.slice(0, 12)}…`,
-      };
+      out.status = "broken";
+      out.first_break = { seq: Number.isInteger(rec.seq) ? rec.seq : null, line: i + 1, expected, actual: rec.prev };
+      out.detail = `chain broken at line ${i + 1}${Number.isInteger(rec.seq) ? ` (seq ${rec.seq})` : ""}: prev ${rec.prev.slice(0, 12)}… ≠ expected ${expected.slice(0, 12)}…`;
+      return out;
     }
   }
 
-  // Ledger fold: the LAST ledger-write's recorded ledger_sha256 vs the on-disk
-  // run-ledger.json bytes. Absent (no ledger-write, or no ledger file) → not a
-  // failure; present-but-mismatch → broken (an unrecorded ledger rewrite).
+  // Walk clean — verified (all prev-carrying) or mixed (prev-carrying + prev-less coexist).
+  // The witness/torn-corroborated terminal detail is the caller's to compose.
+  out.status = anyPrevless ? "mixed" : "verified";
+  return out;
+}
+
+// FAFF-621: the events-only run-ledger fold — the LAST ledger-write's recorded ledger_sha256
+// vs the on-disk run-ledger.json bytes. Absent → not a failure; present-but-mismatch →
+// broken (an unrecorded ledger rewrite). Sets base.ledger_fold = "match" on a match. Returns
+// a result to RETURN (malformed/broken) or null to continue. The effects ledger has no
+// run-ledger, so verifyEffectsChain passes no fold.
+function eventsLedgerFold(dir, records, base) {
   let lastLw = null;
-  for (let i = 0; i < lines.length; i++) { if (parsed[i] && parsed[i].type === "ledger-write") lastLw = parsed[i]; }
+  for (let i = 0; i < records.length; i++) { if (records[i] && records[i].type === "ledger-write") lastLw = records[i]; }
   const ledgerPath = path.join(dir, "run-ledger.json");
   if (lastLw && fs.existsSync(ledgerPath)) {
     const recorded = lastLw.data && typeof lastLw.data === "object" ? lastLw.data.ledger_sha256 : undefined;
     let onDisk;
     try { onDisk = sha256Hex(fs.readFileSync(ledgerPath)); }
     catch (e) { return { ...base, status: "malformed", detail: `run-ledger.json unreadable: ${e.message}` }; }
-    if (recorded === onDisk) base.ledger_fold = "match";
-    else return { ...base, status: "broken", ledger_fold: "mismatch",
+    if (recorded === onDisk) { base.ledger_fold = "match"; return null; }
+    return { ...base, status: "broken", ledger_fold: "mismatch",
       detail: `ledger fold mismatch: run-ledger.json hashes ${onDisk.slice(0, 12)}… but the last ledger-write recorded ${String(recorded).slice(0, 12)}…` };
   }
+  return null;
+}
 
-  // Walk clean — but a witness disagreement still fails: with a witness present a torn
-  // tail is only tolerated when the verified log STILL matches the recorded
-  // head_sha256/line_count (a genuinely-torn-at-anchor-time file re-hashes identically;
-  // a post-anchor tamper-plus-newline-truncation does not).
+// FAFF-621: the shared verifier body — composes walkPhysicalChain with the witness
+// cross-check (chain-head.json / effects-chain-head.json) and, for events only, the
+// run-ledger fold. Both ledgers' verifiers are thin wrappers over this, so the genesis/prev
+// rule, the witness precedence, and the classification are single-homed. Returns the
+// VerifyResult shape; never throws on a chain problem (only genuine unreadability surfaces
+// via status "malformed"). Classification is policy-free — `legacy_policy` only affects the
+// exit-code mapping (see `verifyExitCode`).
+//
+// FAFF-568: the witness (chain-head.json / effects-chain-head.json) is CROSS-CHECKED, never
+// decorative. Anchored at anchor time by the CLI (head hash never caller-supplied) and pinned
+// by the PR head sha merge-gate observes, it is the independent record a post-anchor rewrite
+// cannot retrofit: stripping `prev` fields to spoof legacy-unverifiable changes schema_floor;
+// tampering the last record + truncating its newline changes head_sha256/line_count. Any
+// disagreement is `witness-mismatch` — a gating FAIL no legacy-policy softens. A dir with no
+// witness → witness "absent", behaviour unchanged. An unparseable witness is a corrupt
+// committed artifact → malformed (fail-closed).
+function verifyLedgerChain(dir, { ledgerFile, witnessFile, ledgerFold }) {
+  const ledgerPath = path.join(dir, ledgerFile);
+  const base = { schema_floor: null, line_count: 0, head_sha256: null, first_break: null, ledger_fold: "absent", torn_tail: false, witness: "absent" };
+
+  let witnessHead = null;
+  const witnessPath = path.join(dir, witnessFile);
+  if (fs.existsSync(witnessPath)) {
+    try { witnessHead = JSON.parse(fs.readFileSync(witnessPath, "utf8")); }
+    catch (e) { return { ...base, status: "malformed", detail: `${witnessFile} unreadable/invalid JSON: ${e.message}` }; }
+    if (witnessHead === null || typeof witnessHead !== "object" || Array.isArray(witnessHead)) {
+      return { ...base, status: "malformed", detail: `${witnessFile} is not a JSON object` };
+    }
+  }
+  // Compare only the fields the witness actually records (older witnesses may lack one).
+  const witnessMismatches = () => {
+    if (!witnessHead) return [];
+    const mmOut = [];
+    if (typeof witnessHead.head_sha256 === "string" && witnessHead.head_sha256 !== base.head_sha256) {
+      mmOut.push(`head_sha256 (witness ${witnessHead.head_sha256.slice(0, 12)}… ≠ derived ${String(base.head_sha256).slice(0, 12)}…)`);
+    }
+    if (Number.isInteger(witnessHead.line_count) && witnessHead.line_count !== base.line_count) {
+      mmOut.push(`line_count (witness ${witnessHead.line_count} ≠ derived ${base.line_count})`);
+    }
+    if (Number.isInteger(witnessHead.schema_floor) && witnessHead.schema_floor !== base.schema_floor) {
+      mmOut.push(`schema_floor (witness ${witnessHead.schema_floor} ≠ derived ${base.schema_floor})`);
+    }
+    return mmOut;
+  };
+  const witnessMismatchResult = (mm) => ({
+    ...base, witness: "mismatch", status: "witness-mismatch",
+    detail: `${witnessFile} witness disagrees with the on-disk log: ${mm.join("; ")}`,
+  });
+
+  let buf;
+  try { buf = fs.readFileSync(ledgerPath); }
+  catch (e) {
+    if (e && e.code === "ENOENT") {
+      if (witnessHead) { const mm = witnessMismatches(); if (mm.length) return witnessMismatchResult(mm); }
+      return { ...base, status: "verified", detail: `${ledgerFile} absent — nothing to verify` };
+    }
+    return { ...base, status: "malformed", detail: `${ledgerFile} unreadable: ${e.message}` };
+  }
+
+  const walk = walkPhysicalChain(buf);
+  base.line_count = walk.line_count;
+  base.head_sha256 = walk.head_sha256;
+  base.schema_floor = walk.schema_floor;
+  base.torn_tail = walk.torn_tail;
+
+  if (walk.line_count === 0) {
+    if (witnessHead) { const mm = witnessMismatches(); if (mm.length) return witnessMismatchResult(mm); }
+    return { ...base, status: "verified", detail: `empty ${ledgerFile} — nothing to verify` };
+  }
+  // malformed takes precedence over the witness cross-check (a corrupt log is not softened).
+  if (walk.status === "malformed") return { ...base, status: "malformed", detail: walk.detail };
+
+  const mm = witnessMismatches();
+  if (witnessHead && !mm.length) base.witness = "match";
+
+  // broken takes precedence over witness-mismatch (keep the more specific forensics).
+  if (walk.status === "broken") return { ...base, status: "broken", first_break: walk.first_break, detail: walk.detail };
+
+  // No `prev` at all → legacy / torn-only, unless a witness recorded a chained log (spoof).
+  if (!walk.any_prev) {
+    if (mm.length) return witnessMismatchResult(mm);
+    return { ...base, status: walk.status, detail: walk.detail };
+  }
+
+  // Clean prev-walk (verified | mixed). Events layers its run-ledger fold here; a fold
+  // mismatch is broken.
+  if (ledgerFold) {
+    const folded = ledgerFold(dir, walk.records, base);
+    if (folded) return folded;
+  }
+  // Walk clean — but a witness disagreement still fails (a post-anchor tamper-plus-newline
+  // truncation does not re-hash to the recorded head_sha256/line_count).
   if (mm.length) return witnessMismatchResult(mm);
 
-  // Both prev-carrying and prev-less records coexist → `mixed`, never a blanket
-  // "verified": the chained records verified above, but the prev-less lines' CONTENTS
-  // are unverifiable (only their raw bytes fed the next link). Gating is the caller's
-  // legacy-policy call, like legacy-unverifiable.
-  const tornDetail = tornTail
+  const tornDetail = walk.torn_tail
     ? (base.witness === "match"
       ? "chain verified up to a torn final line (witness-corroborated)"
       : "chain verified up to a torn final line — NO witness corroboration (heuristic torn-tail tolerance)")
     : null;
-  if (anyPrevless) {
+  if (walk.status === "mixed") {
     return { ...base, status: "mixed",
       detail: `mixed chain: prev-carrying records verified, but prev-less (schema-1) lines are content-unverifiable${tornDetail ? `; ${tornDetail}` : ""}` };
   }
   return { ...base, status: "verified", detail: tornDetail || "chain verified from genesis" };
+}
+
+// PURE. Verify the events.jsonl chain (+ run-ledger fold + chain-head.json witness).
+// Byte-identical to the pre-FAFF-621 inline verifier — now a thin composition of the shared
+// walkPhysicalChain + verifyLedgerChain. `opts` (legacy_policy) is accepted for signature
+// compatibility; classification is policy-free (only verifyExitCode reads the policy).
+function verifyChain(dir, opts = {}) { // eslint-disable-line no-unused-vars
+  return verifyLedgerChain(dir, { ledgerFile: "events.jsonl", witnessFile: "chain-head.json", ledgerFold: eventsLedgerFold });
+}
+
+// FAFF-621. PURE. Verify the declared-effects.jsonl chain (+ effects-chain-head.json
+// witness). Composes the SAME walkPhysicalChain — never a forked hash-walk. No run-ledger
+// fold (the effects ledger has none). Same status vocabulary + verifyExitCode mapping as
+// verifyChain. An absent declared-effects.jsonl → verified (nothing to verify), exit 0.
+function verifyEffectsChain(dir, opts = {}) { // eslint-disable-line no-unused-vars
+  return verifyLedgerChain(dir, { ledgerFile: "declared-effects.jsonl", witnessFile: "effects-chain-head.json", ledgerFold: null });
 }
 
 // Map a VerifyResult to the verb exit contract: 0 verified / legacy|mixed-under-pass|warn,
@@ -1305,4 +1406,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

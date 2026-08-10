@@ -20,7 +20,10 @@
   },
   "discovered_scope_filed": 0,
   "review_adversarial_skipped": [],
-  "review_outage_pending": ["FAFF-699", "FAFF-581"],
+  "review_outage_pending": [
+    "FAFF-699",
+    "FAFF-581"
+  ],
   "post_merge_verification_failures": [],
   "post_merge_verification_unverified": [],
   "owner": {
@@ -46,6 +49,12 @@
       "anchor_epoch": 1786374111187,
       "reset_epoch": 1786392111187,
       "tokens_at_anchor": 2585222
+    },
+    "tokens_at_last_event": {
+      "input": 3336,
+      "output": 208673,
+      "cache_write": 5951895,
+      "cache_read": 20097598
     }
   }
 }

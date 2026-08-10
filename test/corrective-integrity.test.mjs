@@ -151,24 +151,26 @@ test("correctiveIntegrityDirs(runDir): 2 base entries, all under runDir", () => 
   assert.ok(dirs.includes(path.join(runDir, "corrective")), "missing the corrective-artifact dir");
 });
 
-test("correctiveIntegrityDirs(runDir, issue): 5 entries — 2 base + the 3 merge-floor artifacts", () => {
+test("correctiveIntegrityDirs(runDir, issue): 7 entries — 2 base + 3 merge-floor + 2 merge-tail (FAFF-751)", () => {
   const dirs = correctiveIntegrityDirs(runDir, "FAFF-1");
-  assert.equal(dirs.length, 5);
+  assert.equal(dirs.length, 7);
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "ac-checklist.json")));
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "review-verdict.json")));
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "holdout.json")));
+  assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "merge-record.json")));
+  assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "post-merge-verification.json")));
 });
 
 // FAFF-466: the additive opts.events extension — detection-consumer-only, never
-// changing the corrective/merge-floor 2-/5-entry shape above.
-test("correctiveIntegrityDirs(runDir, issue, {events:true}): additive events.jsonl, existing 2-/5-entry shapes stay byte-identical", () => {
+// changing the corrective/merge-floor 2-/7-entry shape above.
+test("correctiveIntegrityDirs(runDir, issue, {events:true}): additive events.jsonl, existing 2-/7-entry shapes stay byte-identical", () => {
   assert.equal(correctiveIntegrityDirs(runDir).length, 2, "no-opts base shape unchanged");
-  assert.equal(correctiveIntegrityDirs(runDir, "FAFF-1").length, 5, "no-opts with-issue shape unchanged");
+  assert.equal(correctiveIntegrityDirs(runDir, "FAFF-1").length, 7, "no-opts with-issue shape unchanged");
   const withEvents = correctiveIntegrityDirs(runDir, null, { events: true });
   assert.equal(withEvents.length, 3);
   assert.ok(withEvents.includes(path.join(runDir, "events.jsonl")));
   const withIssueAndEvents = correctiveIntegrityDirs(runDir, "FAFF-1", { events: true });
-  assert.equal(withIssueAndEvents.length, 6);
+  assert.equal(withIssueAndEvents.length, 8);
   assert.ok(withIssueAndEvents.includes(path.join(runDir, "events.jsonl")));
 });
 

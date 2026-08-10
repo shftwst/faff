@@ -43,12 +43,12 @@ test("--json emits {version, mode, dirs, declaration} matching the plain print",
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
-test("--run-dir --issue --events prints v1: + the exact correctiveIntegrityDirs join (6 paths)", () => {
+test("--run-dir --issue --events prints v1: + the exact correctiveIntegrityDirs join (8 paths)", () => {
   const r = runCli(["integrity-boundary", "--run-dir", "/tmp/faff-run-x", "--issue", "FAFF-9", "--events"]);
   assert.equal(r.code, 0, r.stderr);
   const out = r.stdout.trim();
   assert.ok(out.startsWith("v1:/tmp/faff-run-x/corrective,/tmp/faff-run-x/run-ledger.json,"));
-  assert.equal(out.split(",").length, 6); // 2 base + 3 per-issue + events.jsonl
+  assert.equal(out.split(",").length, 8); // 2 base + 5 per-issue (incl. merge-tail, FAFF-751) + events.jsonl
   assert.ok(out.endsWith("/tmp/faff-run-x/events.jsonl"));
 });
 

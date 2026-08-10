@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-751",
+  "build": {
+    "status": "complete",
+    "diff_hash": "27f1e765afc09071a8175ca7c9641294d81c0428250d6c955c6a8059538a3cd7",
+    "branch": "faff-751-relocation-slice-3-extend-the-integrity-digest-bracket-to",
+    "pushed_at": "2026-08-10T15:53:30.246Z"
+  },
+  "updated_at": "2026-08-10T15:53:30.246Z"
+}

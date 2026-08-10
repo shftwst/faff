@@ -6,7 +6,7 @@ It works from a tracker, moves work through specification, implementation,
 review, testing, and delivery, and returns unresolved decisions to a person. The aim is
 simple: make an agentic workload safe to stop watching, one step at a time.
 
-`SuperDomestique` is the project currently implemented and distributed as `faff`. The `faff` repository, skills, plugin and CLI commands retain their existing names while the project evolves.
+> `SuperDomestique` is the project currently implemented and distributed as `faff`. The `faff` repository, skills, plugin and CLI commands retain their existing names while the project evolves.
 
 ## Two parts, one delivery loop
 

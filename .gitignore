@@ -1,14 +1,19 @@
 .DS_Store
 
+.scratch
+
 design/
 reports/
 records/rfc/
 records/superpowers/
 
+
 # Local Claude Code config (shared .claude/settings.json stays tracked)
 .claude/settings.json
 .claude/settings.local.json
 .claude/worktrees/
+
+.codex/hooks.json
 
 # Machine-local faff config overlay (FAFF-387/FAFF-587 — gitignored; holds operator-private
 # values such as the private tailnet ollama host. The committed base is .faffrc.yaml.)

@@ -56,6 +56,7 @@ const { cmdIntakeRecord, cmdIntakecheck } = require("./lib/intake-provenance");
 const { cmdLabel } = require("./lib/label");
 const { cmdLabels } = require("./lib/labels");
 const { cmdLightsOut, cmdWorktreeRoot } = require("./lib/lights-out");
+const { cmdLintCliCoverage } = require("./lib/lint-cli-coverage");
 const { cmdLintCliDoc } = require("./lib/lint-cli-doc");
 const { cmdLintRefs } = require("./lib/lint-refs");
 const { cmdMergeFence } = require("./lib/merge-fence");
@@ -183,6 +184,7 @@ const COMMANDS = {
   "worktree-root": cmdWorktreeRoot,
   "lint-refs": cmdLintRefs,
   "lint-cli-doc": (args) => cmdLintCliDoc(args, COMMANDS),
+  "lint-cli-coverage": (args) => cmdLintCliCoverage(args, COMMANDS),
   "regions": (args) => cmdRegions(args, COMMANDS),
   "cli-surface": (args) => cmdCliSurface(args, COMMANDS),
   "models": cmdModels,

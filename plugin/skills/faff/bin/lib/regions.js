@@ -186,6 +186,10 @@ const REGION_MAP = {
   "stage-guard": "factory",
   "lint-refs": "factory",
   "lint-cli-doc": "factory",
+  // lint-cli-coverage — FAFF-581: the registry-coverage gate (every COMMANDS entry is
+  // tested by a non-null selftest OR a declared test file). Sibling of lint-cli-doc,
+  // reads REGION_SELFTEST_ARGV — factory, same family.
+  "lint-cli-coverage": "factory",
   "regions": "factory",
   "cli-surface": "factory",
   // FAFF-350: merge-gate references factory identifiers (holdoutGateResult, decideFloor,
@@ -314,6 +318,7 @@ const REGION_SELFTEST_ARGV = {
   "stage-guard": ["stage-guard", "--selftest"],
   "lint-refs": ["lint-refs", "--selftest"],
   "lint-cli-doc": ["lint-cli-doc", "--selftest"],
+  "lint-cli-coverage": ["lint-cli-coverage", "--selftest"],
   "regions": ["regions", "--selftest"],
   "cli-surface": ["cli-surface", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],

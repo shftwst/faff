@@ -1,5 +1,6 @@
 {
   "run_id": "run-20260810-145351-beepboop-list",
+  "level": "L3",
   "admitted": [
     "FAFF-751",
     "FAFF-699",
@@ -7,6 +8,8 @@
     "FAFF-581"
   ],
   "outcomes": {
+    "FAFF-699": "parked",
+    "FAFF-581": "parked",
     "FAFF-703": "routed-out",
     "FAFF-607": "routed-out",
     "FAFF-584": "routed-out",
@@ -17,7 +20,7 @@
   },
   "discovered_scope_filed": 0,
   "review_adversarial_skipped": [],
-  "review_outage_pending": [],
+  "review_outage_pending": ["FAFF-699", "FAFF-581"],
   "post_merge_verification_failures": [],
   "post_merge_verification_unverified": [],
   "owner": {

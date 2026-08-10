@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-723",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8325151bdaf9d79d63f79bf250af9174c8922d2d7fe81c22d587ea17a9825f67",
+    "branch": "faff-723-faff-doctors-usage-string-names-target-liveintoworktree-but",
+    "pushed_at": "2026-08-10T23:09:57.355Z"
+  },
+  "updated_at": "2026-08-10T23:09:57.355Z"
+}

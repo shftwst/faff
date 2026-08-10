@@ -1,0 +1,60 @@
+{
+  "run_id": "run-20260810-145351-beepboop-list",
+  "level": "L3",
+  "admitted": [
+    "FAFF-751",
+    "FAFF-699",
+    "FAFF-621",
+    "FAFF-581"
+  ],
+  "outcomes": {
+    "FAFF-699": "parked",
+    "FAFF-581": "parked",
+    "FAFF-703": "routed-out",
+    "FAFF-607": "routed-out",
+    "FAFF-584": "routed-out",
+    "FAFF-528": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-483": "routed-out",
+    "FAFF-474": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [
+    "FAFF-699",
+    "FAFF-581"
+  ],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "owner": {
+    "status": "running",
+    "pid": 508,
+    "session_id": "run-20260810-145351-beepboop-list",
+    "started_at": "2026-08-10T14:53:51Z",
+    "last_heartbeat": "2026-08-10T14:53:51Z"
+  },
+  "budget": {
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "8f89ccbe-57dd-43e7-b392-afc18c9899c8",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 78,
+        "output": 143486,
+        "cache_write": 4792176,
+        "cache_read": 7147004
+      }
+    },
+    "tokens_at_start": 12082744,
+    "window": {
+      "anchor_epoch": 1786374111187,
+      "reset_epoch": 1786392111187,
+      "tokens_at_anchor": 2585222
+    },
+    "tokens_at_last_event": {
+      "input": 3336,
+      "output": 208673,
+      "cache_write": 5951895,
+      "cache_read": 20097598
+    }
+  }
+}

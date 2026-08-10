@@ -39,7 +39,7 @@ const { readAcComplete, readHoldout, readReviewVerdict } = require("./merge-gate
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
 const { findRoot, readLedger } = require("./shared-infra");
-const { computeChainHead, sha256Hex, verifyChain } = require("./events");
+const { computeChainHead, sha256Hex, verifyChain, verifyEffectsChain } = require("./events");
 
 // ---------------------------------------------------------------------------
 // Leg: budget — the ledger envelope + the LAST recorded budget-checkpoint event.
@@ -162,8 +162,12 @@ function evaluateMergeFloorLeg(runDir, issue, level) {
 // detail column — `warn` is never silently identical to `pass`.
 // ---------------------------------------------------------------------------
 
-function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
-  const r = verifyChain(dir, { legacyPolicy });
+// FAFF-621: the per-chain integrity classification, parametrised by ledger + witness file so
+// BOTH the events chain and the declared-effects chain run the identical leg logic. `r` is the
+// VerifyResult (from verifyChain / verifyEffectsChain); `ledgerFile`/`witnessFile` name the
+// substrate for the requireWitness fail-closed check and (effects only) a ledger-name detail
+// prefix. Returns the run-result shape evaluateIntegrityLeg composes.
+function integrityLegForChain(r, legacyPolicy, opts, dir, ledgerFile, witnessFile) {
   let pass, note = null;
   if (r.status === "verified") pass = true;
   else if (r.status === "legacy-unverifiable" || r.status === "mixed") {
@@ -174,19 +178,17 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
         : "legacy schema-1 log (no chain) — pass under legacy-policy warn";
     }
   } else pass = false; // broken | witness-mismatch | malformed → fail-closed
-  // FAFF-568 fix pass 2: an ANCHOR requires its witness. `faff events anchor` always
-  // writes chain-head.json, so an anchor dir carrying events.jsonl with NO witness
-  // means post-anchor deletion or a broken writer — and deleting the witness would
-  // otherwise re-open the legacy-downgrade spoof the cross-check closed. Fail-closed
-  // (`witness-absent`), but only when the leg would otherwise pass: an already-failing
-  // status (broken / witness-mismatch / malformed / policy-fail) keeps its more
-  // specific forensics. `requireWitness` is set ONLY when the dir is evaluated AS an
-  // anchor (evaluateAnchorDir) — a bare run dir has no witness by design, and the
-  // verb path (`faff events verify`) is unchanged.
-  if (opts.requireWitness && pass && r.witness === "absent" && fs.existsSync(path.join(dir, "events.jsonl"))) {
+  // FAFF-568 fix pass 2: an ANCHOR requires its witness. `faff events anchor` always writes the
+  // witness beside a present ledger, so a ledger in an anchor dir with NO witness means
+  // post-anchor deletion or a broken writer — and deleting the witness would otherwise re-open
+  // the legacy-downgrade spoof the cross-check closed. Fail-closed (`witness-absent`), but only
+  // when the leg would otherwise pass. FAFF-621: this fires per ledger — an absent
+  // declared-effects.jsonl never trips it (the `fs.existsSync(ledgerFile)` guard), so a run/PR
+  // with no effects ledger is unaffected.
+  if (opts.requireWitness && pass && r.witness === "absent" && fs.existsSync(path.join(dir, ledgerFile))) {
     return {
       pass: false, status: "witness-absent",
-      detail: "witness-absent: anchor carries events.jsonl but no chain-head.json — an anchor is CLI-written with its witness, so absence means post-anchor deletion or a broken writer (fail-closed)",
+      detail: `witness-absent: anchor carries ${ledgerFile} but no ${witnessFile} — an anchor is CLI-written with its witness, so absence means post-anchor deletion or a broken writer (fail-closed)`,
       first_break: null, note: null, torn_tail: r.torn_tail, witness: "absent",
     };
   }
@@ -196,8 +198,29 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
   } else if (r.status === "broken" && r.ledger_fold === "mismatch") {
     detail = "ledger fold mismatch (unrecorded ledger rewrite)";
   }
+  // FAFF-621: name the effects ledger in its detail so a human can tell which chain broke; the
+  // events detail stays byte-identical to today (no prefix).
+  if (ledgerFile !== "events.jsonl" && !pass) detail = `declared-effects.jsonl: ${detail}`;
   if (note) detail = `${detail} [warn]`;
   return { pass, status: r.status, detail, first_break: r.first_break, note, torn_tail: r.torn_tail, witness: r.witness };
+}
+
+// FAFF-568/621: re-hash the committed chain(s) and confirm — GATING (a broken chain must fail
+// the merge). COMPOSES the verifier cores (verifyChain + verifyEffectsChain), never a forked
+// hash-walk. Both ledgers run the identical classification (integrityLegForChain); the leg
+// passes IFF BOTH pass. An absent ledger → verified (nothing to break), so a run/PR carrying no
+// chain (or no effects ledger) is a clean no-op. When events fails, its exact result is returned
+// (byte-identical to the pre-FAFF-621 leg — existing forensics preserved); only when events
+// passes is the effects verdict surfaced.
+function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
+  const events = integrityLegForChain(verifyChain(dir, { legacyPolicy }), legacyPolicy, opts, dir, "events.jsonl", "chain-head.json");
+  if (!events.pass) return events; // events failure keeps today's exact result + forensics
+  const effects = integrityLegForChain(verifyEffectsChain(dir, { legacyPolicy }), legacyPolicy, opts, dir, "declared-effects.jsonl", "effects-chain-head.json");
+  if (!effects.pass) return effects; // events clean, effects broken → surface the effects failure
+  // Both pass — prefer whichever carries a warn note (so `warn` is never silently identical to
+  // `pass`); default to the events result (byte-identical to today when effects is absent/clean).
+  if (!events.note && effects.note) return effects;
+  return events;
 }
 
 // An ANCHOR is a per-PR snapshot, not a live run dir — completeness/budget/liveness never run

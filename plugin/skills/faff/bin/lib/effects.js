@@ -24,7 +24,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { requireFlags } = require("./argv");
-const { eventLineCount } = require("./events");
+const { appendRecordsUnderLock, sha256Hex, verifyEffectsChain, verifyExitCode } = require("./events");
 const { findRoot, resolveRunDir } = require("./shared-infra");
 
 // FAFF-628 — declared grammar for `faff cli-surface --json`. `effects` reads its own fixed
@@ -34,6 +34,10 @@ const { findRoot, resolveRunDir } = require("./shared-infra");
 const EFFECTS_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 },
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--ts": { arity: 1 },
+  // FAFF-621: `effects verify` surfaces the declared-effects.jsonl chain verifier (sibling of
+  // `events verify`). --run-dir verifies a direct dir (a run or anchor dir); --legacy-policy
+  // maps the schema-1 legacy/mixed disposition to the exit code, same vocabulary as events.
+  "--run-dir": { arity: 1 }, "--legacy-policy": { arity: 1 },
 } };
 const EFFECTS_SURFACE = {
   kind: "subcommand_dispatch",
@@ -42,6 +46,7 @@ const EFFECTS_SURFACE = {
     declare: { required_flags: ["--run", "--issue", "--step"] },
     observe: { required_flags: ["--run", "--issue", "--step"] },
     check: { required_flags: ["--run"] },
+    verify: { required_flags: [] }, // one of --run / --run-dir (checked in the handler)
   },
 };
 
@@ -346,16 +351,22 @@ function buildProgressSelftest() {
   return fail ? 1 : 0;
 }
 
-// FAFF-383: the single ledger-append core — cmdEffects (the `declare`/`observe` CLI) and
+// FAFF-383/621: the single ledger-append core — cmdEffects (the `declare`/`observe` CLI) and
 // merge-gate's mechanical observe both call this so the record shape, seq derivation, and
 // all-or-nothing validation live in exactly one place. `runDirAbsPath` is the run dir itself
 // (e.g. `<root>/.faff/runs/<run-id>`, or merge-gate's `--run-dir`, which is the same directory
 // by convention) — run_id is derived from its basename, never passed separately, so a caller
 // cannot desync the two. Validates every descriptor BEFORE writing any (all-or-nothing, same
-// as today's cmdEffects); on success appends one schema-1 record per effect and returns the
-// written records; on failure writes nothing and returns the violations instead (each entry
-// carries its original descriptor index, so a caller can reproduce cmdEffects's per-index
+// as today's cmdEffects); on failure writes nothing and returns the violations instead (each
+// entry carries its original descriptor index, so a caller can reproduce cmdEffects's per-index
 // stderr lines verbatim).
+//
+// FAFF-621: the N effect descriptors of ONE declare/observe now land as N schema-2 CHAINED
+// records under ONE lock acquisition (appendRecordsUnderLock) — one tail read, contiguous
+// seqs, each `prev` = SHA-256 of the previous physical line (genesis: SHA-256 of the run_id),
+// minted inside the lock that assigns the seq. One batch = one lock = one atomic, gap-free run,
+// so only tampering (never honest concurrent traffic) can break the chain. The batch core is
+// the SAME primitive `events append` drives at N=1 — no forked hashing rule.
 function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, ts) {
   const violations = [];
   for (let i = 0; i < effects.length; i++) {
@@ -363,20 +374,18 @@ function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, t
     if (viol.length) violations.push({ index: i, violations: viol });
   }
   if (violations.length) return { violations };
+  if (effects.length === 0) return { written: [] }; // nothing to declare — touch nothing
 
   const runId = path.basename(runDirAbsPath);
-  const ledgerPath = path.join(runDirAbsPath, "declared-effects.jsonl");
-  let seq = eventLineCount(ledgerPath); // authoritative monotonic line count
-  const written = [];
-  for (const d of effects) {
-    const record = {
-      schema: 1, run_id: runId, seq, ts: ts || new Date().toISOString(),
-      kind_of_entry: kindOfEntry, issue, step, effect: normEffect(d),
-    };
-    fs.appendFileSync(ledgerPath, JSON.stringify(record) + "\n");
-    written.push(record);
-    seq++;
-  }
+  const written = appendRecordsUnderLock(
+    runDirAbsPath,
+    { ledgerFile: "declared-effects.jsonl", lock: { code: "EFFECTS_LOCKED", label: "effects lock" } },
+    effects.length,
+    (index, seq, _prevRecord, prevHash) => ({
+      schema: 2, run_id: runId, seq, ts: ts || new Date().toISOString(),
+      kind_of_entry: kindOfEntry, issue, step, effect: normEffect(effects[index]), prev: prevHash,
+    }),
+  );
   return { written };
 }
 
@@ -460,7 +469,39 @@ function cmdEffects(args) {
     return 0;
   }
 
-  process.stderr.write("faff effects: expected one of declare | observe | check (or --selftest)\n");
+  // FAFF-621: `verify` — re-hash the declared-effects.jsonl chain (sibling of `events verify`,
+  // composing the shared walkPhysicalChain). --run resolves the run dir the same worktree-aware
+  // way as declare/observe/check; --run-dir verifies a direct dir (a run or anchor dir). Absent
+  // ledger → verified (nothing to verify), exit 0.
+  if (cmd === "verify") {
+    let runDirArg = null, legacyPolicy = "pass";
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--run-dir") runDirArg = args[i + 1];
+      else if (args[i] === "--legacy-policy") legacyPolicy = args[i + 1];
+    }
+    if (!["pass", "warn", "fail"].includes(legacyPolicy)) {
+      process.stderr.write(`faff effects verify: --legacy-policy must be pass|warn|fail (got ${JSON.stringify(legacyPolicy)})\n`); return 2;
+    }
+    const dir = runDirArg !== null ? runDirArg : (run !== null ? resolveRunDir(root, run, rootExplicit) : null);
+    if (dir === null) {
+      process.stderr.write("faff effects verify: one of --run <id> or --run-dir <dir> is required\n"); return 2;
+    }
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+      process.stderr.write(`faff effects verify: not a directory: ${dir}\n`); return 2;
+    }
+    const result = verifyEffectsChain(dir, { legacyPolicy });
+    if (asJson) console.log(JSON.stringify(result));
+    else console.log(`effects verify: ${result.status} — ${result.detail}${result.first_break ? ` [first break: line ${result.first_break.line}]` : ""}`);
+    if (result.status === "legacy-unverifiable" && legacyPolicy === "warn") {
+      process.stderr.write("faff effects verify: legacy schema-1 log (no chain) — reported under --legacy-policy warn\n");
+    }
+    if (result.status === "mixed" && legacyPolicy === "warn") {
+      process.stderr.write("faff effects verify: mixed chain (prev-less lines content-unverifiable) — reported under --legacy-policy warn\n");
+    }
+    return verifyExitCode(result, legacyPolicy);
+  }
+
+  process.stderr.write("faff effects: expected one of declare | observe | check | verify (or --selftest)\n");
   return 2;
 }
 
@@ -534,8 +575,8 @@ function effectsSelftest() {
   ], "FAFF-A");
   if (r.escapes.length !== 1 || r.escapes[0].issue !== "FAFF-A") fail("issue filter narrows scope");
 
-  // --- appendEffectEntries (FAFF-383): the shared ledger-append core cmdEffects and
-  // merge-gate's mechanical observe both call ---
+  // --- appendEffectEntries (FAFF-383/621): the shared ledger-append core cmdEffects and
+  // merge-gate's mechanical observe both call — now schema-2 CHAINED (per-line prev). ---
   {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-effects-append-"));
     try {
@@ -544,14 +585,30 @@ function effectsSelftest() {
       if (r1.written[0].run_id !== path.basename(tmp)) fail("appendEffectEntries: run_id derives from the run dir's basename");
       if (r1.written[0].seq !== 0) fail("appendEffectEntries: first entry seq is 0");
       if (r1.written[0].kind_of_entry !== "declare") fail("appendEffectEntries: kind_of_entry is the caller's kindOfEntry arg");
+      // FAFF-621: records are schema-2 and record 0's prev is the genesis sha256(run_id).
+      if (r1.written[0].schema !== 2) fail("appendEffectEntries: records are schema 2");
+      if (r1.written[0].prev !== sha256Hex(Buffer.from(path.basename(tmp), "utf8"))) fail("appendEffectEntries: genesis prev is sha256(run_id)");
 
       const r2 = appendEffectEntries(tmp, "observe", "FAFF-500", "merge", [{ kind: "merge", target: "pr:7" }], "t");
       if (!r2.written || r2.written[0].seq !== 1) fail("appendEffectEntries: seq is gap-free across calls (line-count-derived)");
+      // FAFF-621: the 2nd record's prev is sha256 of the FIRST physical line's raw bytes.
+      const line0 = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n")[0];
+      if (r2.written[0].prev !== sha256Hex(Buffer.from(line0, "utf8"))) fail("appendEffectEntries: each later prev is sha256 of the previous physical line");
+
+      // FAFF-621: a multi-descriptor batch mints N contiguous chained records under one lock.
+      const r3 = appendEffectEntries(tmp, "declare", "FAFF-500", "merge", [{ kind: "merge", target: "a" }, { kind: "deploy", target: "b" }, { kind: "email", target: "c" }], "t");
+      if (!r3.written || r3.written.length !== 3) fail("appendEffectEntries: a 3-descriptor batch mints 3 records");
+      if (r3.written[0].seq !== 2 || r3.written[1].seq !== 3 || r3.written[2].seq !== 4) fail("appendEffectEntries: batch seqs are contiguous s..s+N-1");
+      const allLines = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "");
+      if (r3.written[1].prev !== sha256Hex(Buffer.from(allLines[2], "utf8"))) fail("appendEffectEntries: within-batch prev hashes the previous physical line");
+      if (r3.written[2].prev !== sha256Hex(Buffer.from(allLines[3], "utf8"))) fail("appendEffectEntries: within-batch prev chains across the batch");
+      // and the resulting ledger verifies clean.
+      if (verifyEffectsChain(tmp, {}).status !== "verified") fail("appendEffectEntries: the resulting chained ledger verifies");
 
       const bad = appendEffectEntries(tmp, "declare", "FAFF-500", "merge", [{ kind: "merge", target: "pr:8" }, { kind: "bogus", target: "x" }]);
       if (!bad.violations || bad.violations.length !== 1 || bad.violations[0].index !== 1) fail("appendEffectEntries: violations name the offending descriptor's index");
       const linesAfterBad = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "");
-      if (linesAfterBad.length !== 2) fail("appendEffectEntries: a bad descriptor in the batch writes NOTHING (all-or-nothing)");
+      if (linesAfterBad.length !== 5) fail("appendEffectEntries: a bad descriptor in the batch writes NOTHING (all-or-nothing)");
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 

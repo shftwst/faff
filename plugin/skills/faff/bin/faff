@@ -77,6 +77,7 @@ const { cmdReconcile } = require("./lib/reconcile");
 const { cmdRegions } = require("./lib/regions");
 const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
 const { cmdRunDone } = require("./lib/run-done");
+const { cmdRunLedger } = require("./lib/run-ledger");
 const { cmdRunOutward } = require("./lib/run-outward");
 const { cmdRunStart } = require("./lib/run-start");
 const { cmdRuncheck } = require("./lib/runcheck");
@@ -120,6 +121,7 @@ const COMMANDS = {
   "quality": cmdQuality,
   "reconcile": cmdReconcile,
   "run-done": cmdRunDone,
+  "run-ledger": cmdRunLedger,
   "run-outward": cmdRunOutward,
   "run-start": cmdRunStart,
   "hooks-ensure": cmdHooksEnsure,

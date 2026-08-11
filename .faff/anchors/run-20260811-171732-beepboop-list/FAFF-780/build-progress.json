@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-780",
+  "build": {
+    "status": "complete",
+    "diff_hash": "77ddc9137d8f214096bb7db73376e5e9c4d7dd5b04b47623a423faf02644d6a9",
+    "branch": "faff-780-tidys-repeat-park-demotion-should-apply-faff-parked-not-just",
+    "pushed_at": "2026-08-11T18:26:09.144Z"
+  },
+  "updated_at": "2026-08-11T18:26:09.144Z"
+}

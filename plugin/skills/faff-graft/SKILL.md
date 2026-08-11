@@ -241,6 +241,8 @@ This commit happens once. If the user re-runs graft on the same issue (existing 
 
 No intent comment, or `adr.mode: off` → skip (no materialisation, no contradiction detection). (Append-only: `faff adr new` never clobbers an existing ADR.)
 
+**Step 4c: Materialise a decisions-register intent (FAFF-448).** If the issue carries a `## Decisions-register intent` comment (written by faff-prep on a human-confirmed capture — see the gateway's decisions-register consult), append the proposed entry as a new `##` section to `docs/decisions.md` on this feature branch (create the file if absent) — it ships in the PR and is ratified by the human's PR review, the same "travels with the code" property as Step 4b's ADR materialise. Commit message: `docs(decisions): record <topic> (<ISSUE-XX>)`. No intent comment → skip. The autonomous resolve-attempt path never writes this file — only a human-confirmed capture, materialised here, ever adds an entry.
+
 **Step 5: Claim the issue (In Progress) + status-monotonicity guard**
 
 The issue's **`In Progress` status is the claim** — the one coordination point every orchestrator shares (gateway → **Issue claim & status monotonicity**), so two independent runs don't build it at once. Re-read the issue's **live** status **and its eligibility-label set** (`faff-automate` / `faff-automation-hold`) in this one fetch — not a Step-1 snapshot — per the **Re-ground before gate** invariant's co-location rule (gateway): the same claim-time re-read that guards status also confirms the eligibility labels are live, so a hold a human applied between dispatch and claim is honoured. Then:
@@ -570,17 +572,21 @@ In autonomous mode, before parking on `needs-decision-first` / `gap-blocked` / `
 
 Behaviour per verdict (full rules in gateway):
 
-- `needs-decision-first` — re-read the Punt section, check codebase conventions, check spec-internal `Chosen:` markers, check related shipped issues. Proceed if a single clear answer falls out with high confidence; park if multiple defensible answers or the choice is architectural.
+- `needs-decision-first` — **first** consult the decisions register: `faff decisions match --punt "<Punt topic>"` against the committed `docs/decisions.md`. A single confident match is a citation, not an inference — proceed implementing its `chosen` value and write the register-hit audit-trail comment (below); this consult does not count against the Bounded read budget. No match / ambiguous → fall through: re-read the Punt section, check codebase conventions, check spec-internal `Chosen:` markers, check related shipped issues. Proceed if a single clear answer falls out with high confidence; park if multiple defensible answers or the choice is architectural.
 - `gap-blocked` — determine whether the named external dep is load-bearing or precautionary. Proceed if precautionary; park if load-bearing.
 - `circular-blocked` — determine whether one cycle edge is defensive-not-load-bearing. Proceed by serialising the remaining edges if so; park if every edge is load-bearing.
 
-`repeat-parked` gets **no** resolve-attempt — the pattern itself is the signal. Always park.
+`repeat-parked` gets **no** resolve-attempt — the pattern itself is the signal. Always park. The register consult pre-empts only the **first** park on a matched punt; it adds no resolve-attempt to `repeat-parked`.
 
-**Bounded.** Read at most 3 files outside the spec's named scope. Beyond that → park.
+**Bounded.** Read at most 3 files outside the spec's named scope at `medium` appetite, 5 at `high` — per the gateway's appetite-scaled bound. Beyond that → park.
 
 **Audit trail (always).** When a resolve-attempt proceeds, write a tracker comment on the issue using this format:
 
 > _Faff autonomous resolve-attempt:_ The spec flagged this as `[verdict + marker]` but [the reasoning from codebase / spec / context]. Proceeding with [the inferred answer]. **If this is wrong, comment on this PR before merge and faff will re-park.**
+
+A register-driven proceed writes the citation variant instead:
+
+> _Faff autonomous resolve-attempt (decisions register):_ The spec flagged this as `Punt: pino vs winston`. The committed decisions register entry `logging-library` records `Chosen: pino` (Rationale: pino is the house structured-JSON logger). Proceeding per that human-ratified precedent. **If this is wrong, comment on this PR before merge and faff will re-park.**
 
 Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original marker, files inspected, reasoning, inferred answer.
 

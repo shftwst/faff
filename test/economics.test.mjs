@@ -1145,6 +1145,70 @@ test("FAFF-640: --by day --json folds engine spend, including a day present only
   } finally { f.cleanup(); }
 });
 
+test("FAFF-640: --by day includes an \"unknown\"-day engine row (missing/malformed ts) and it still counts toward the grand total", () => {
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: baseLedger() });
+  try {
+    // ts: undefined → JSON.stringify omits the key entirely (no `ts` field at all),
+    // so readEngineSpend buckets it to day "unknown".
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ ts: undefined, input: 77 })) + "\n");
+    const cfg = withRecords(f.root, f.root, "sess-unknown-day", {
+      "sess-unknown-day.jsonl": [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-01T10:00:00Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-unknown-day" });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    const byDay = Object.fromEntries(bd.rows.map((x) => [x.key, x]));
+    assert.ok("unknown" in byDay, "a ts-less engine record lands in its own \"unknown\" day row");
+    assert.equal(byDay.unknown.total, 77);
+    assert.equal(bd.reconciliation.reconciles, true, "the unknown-day row still counts toward the grand total");
+    assert.equal(bd.reconciliation.grand_total, 177);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-640: --by class cost is null when the engine half carries tokens in an unpriced model, even though the transcript half is priced", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    // "unpriced-mystery-model" is in neither the built-in PRICE_PER_MTOK table nor
+    // any config override — the engine part of the "input" class cannot be priced.
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify({ ts: "2026-08-01T00:00:00Z", engine: "seat", model: "unpriced-mystery-model", source: "exec-json-events", input: 500, output: 0, cache_read: 0, cache_write: 0 }) + "\n");
+    const cfg = withRecords(f.root, f.root, "sess-unpriced", {
+      "sess-unpriced.jsonl": [{ message: { model: "claude-opus-4-8", usage: { input_tokens: 100, output_tokens: 10 } }, timestamp: "2026-08-01T00:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "class", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-unpriced" });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    const byKey = Object.fromEntries(bd.rows.map((x) => [x.key, x]));
+    assert.equal(byKey.input.total, 600, "the row STILL totals both halves — never silently dropped");
+    assert.equal(byKey.input.cost, null, "cost is null, never a confident understatement of only the priceable half");
+    // The output class has NO engine contribution at all, so it stays fully priceable.
+    assert.ok(byKey.output.cost > 0, "a class with no unpriced engine tokens is unaffected");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-640: the class-axis text header names per-engine pricing on a mixed-fleet run", () => {
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ input: 500 })) + "\n");
+    // withRecords (not withTranscripts) so the record carries a `model` — a known
+    // dominant model is required for priced_at_model to be non-null, which is what
+    // gates the "(priced at X ...)" header segment this note lives inside.
+    const cfg = withRecords(f.root, f.root, "sess-hdr", {
+      "sess-hdr.jsonl": [{ message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-08-01T00:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "class"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-hdr" });
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /# economics --by class {2}\(priced at claude-opus-4-8 · engine spend priced per engine model\)/);
+  } finally { f.cleanup(); }
+});
+
 test("FAFF-640 REGRESSION: --by class and --by day carry no `source` key and reconcile unchanged on a transcript-only run", () => {
   const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
   const f = fixture({ rc: null, ledger });

@@ -1,0 +1,92 @@
+{
+  "run_id": "run-20260811-023554-beepboop-list",
+  "mode": "explicit-list",
+  "admitted": [
+    "FAFF-641",
+    "FAFF-500",
+    "FAFF-561",
+    "FAFF-762",
+    "FAFF-584",
+    "FAFF-764",
+    "FAFF-767",
+    "FAFF-448",
+    "FAFF-430",
+    "FAFF-386",
+    "FAFF-32"
+  ],
+  "outcomes": {
+    "FAFF-765": "routed-out",
+    "FAFF-483": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-720": "routed-out",
+    "FAFF-721": "routed-out",
+    "FAFF-724": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "outcome_details": {
+    "FAFF-765": {
+      "verdict": "needs-decision-first",
+      "reason": "medium-confidence kill-switch posture-flip; decides:product (alias retirement) + decides:qa (threshold calibration) Punts — architectural/policy, escalate not auto-build"
+    },
+    "FAFF-483": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; open **Punt** decides:architecture — harness-interface granularity (one fat object vs narrow seams)"
+    },
+    "FAFF-486": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; two decides:architecture Punts (further-site rollout gated on re-measure; compaction cadence — can faff drive compaction at all)"
+    },
+    "FAFF-720": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; design-settle/ADR ticket, core is a decides:architecture value-call (what tamper-evidence is for) the codebase does not adjudicate"
+    },
+    "FAFF-721": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; reproduce-first investigation, exact fix is a decides:architecture Punt; spec forbids production change before a confirmed red repro"
+    },
+    "FAFF-724": {
+      "verdict": "needs-decision-first",
+      "reason": "medium; blocked on external resource — requires a live reasoning-capable codex seat in cold-cache posture (absent in this autonomous env); spec mandates stop-and-surface, never fabricate"
+    },
+    "FAFF-699": {
+      "disposition": "pr-open-prior-run",
+      "pr": 607,
+      "reason": "built in run-20260810-185342-beepboop-list; gate-clean (review pass, governance-check/macos/env-rootless green); held pr-open on the known-unrelated Linux validate flake (ENOTEMPTY teardown race, cf FAFF-770). Not re-built this run; not in admitted."
+    }
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "a49a0291-f598-4873-a3ec-791b4cbf0158",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 17955,
+        "output": 217687,
+        "cache_write": 2275578,
+        "cache_read": 17533797
+      }
+    },
+    "tokens_at_start": 20045017,
+    "window": {
+      "anchor_epoch": 1786416355547,
+      "reset_epoch": 1786434355547,
+      "tokens_at_anchor": 2701251
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260811-023554-beepboop-list",
+    "started_at": "2026-08-11T02:36:00Z",
+    "last_heartbeat": "2026-08-11T02:36:00Z"
+  }
+}

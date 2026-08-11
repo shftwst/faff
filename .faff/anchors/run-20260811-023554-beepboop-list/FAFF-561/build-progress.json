@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-561",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8bd4c86406738c5e19b823559e4e99e8de3afc755b615d34a595edc2596e7f19",
+    "branch": "faff-561-testworktree-roottestmjs-isnt-isolated-from-ambient",
+    "pushed_at": "2026-08-11T02:58:40.824Z"
+  },
+  "updated_at": "2026-08-11T02:58:40.824Z"
+}

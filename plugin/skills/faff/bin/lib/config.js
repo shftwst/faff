@@ -418,6 +418,20 @@ function validateEffortLane(key, value) {
   return null;
 }
 
+// FAFF-430: `git_host` is an ADVERTISED config knob with no behavioural consumer beyond this
+// TRACKING_KEYS entry — the merge floor (merge-gate.js) is unconditionally `gh`, so a configured
+// non-github host was silent config theater: branch/commit ops look fine, then the merge gate is
+// silently GitHub-shaped. Mirrors validateModelLane/validateEffortLane's exact-match closed-vocab
+// shape: a configured off-vocabulary value fails LOUD (config get exit 2, names value + legal
+// set), never a silent limp. Unset stays fully valid — this validator is only ever called for a
+// PRESENT tracking.git_host value (the call sites below all short-circuit on absence first).
+const GIT_HOST_ALLOWLIST = ["github"];
+function validateGitHostValue(key, value) {
+  if (key !== "tracking.git_host") return null;
+  if (GIT_HOST_ALLOWLIST.includes(value)) return null;
+  return `config get ${key}: invalid host "${value}" — faff's merge floor is GitHub-only; legal set: ${GIT_HOST_ALLOWLIST.join(" | ")} (or leave it unset)`;
+}
+
 // FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution
 // channel — under an active L4 lights-out run appetite resolves to `full` unconditionally
 // and config `appetite` is ignored; config stays authoritative for L1–L3. The pin bites
@@ -703,6 +717,17 @@ function cmdConfigInit(args, root) {
       process.stderr.write(`faff config init: unknown key '${rawKey}'. Accepted keys: ${TRACKING_KEYS.join(", ")} (bare leaf keys accepted too).\n`);
       return 2;
     }
+    // FAFF-430: reuse the same read-time host-vocab validator config-get enforces — a value
+    // that would fail loud at read is refused at write (mirrors config-set's read⇒write belt;
+    // config init has no other per-key value validation, so this seam is registered explicitly
+    // here rather than assumed-inherited). Deliberately UNGUARDED by `value !== ""` — unlike
+    // spec_docs_path (the documented empty-value stub key), git_host has no legitimate
+    // empty-string form: an empty write must be refused here exactly as `config get` would
+    // refuse reading it back (adversarial review finding, FAFF-430) — a write/read parity gap
+    // would otherwise let `--set tracking.git_host=` succeed and then immediately fail loud on
+    // the very next `config get`.
+    const hostErr = validateGitHostValue(fq, value);
+    if (hostErr) { process.stderr.write(hostErr + "\n"); return 2; }
     const leaf = fq.slice("tracking.".length);
     if (leaf in seen && seen[leaf] !== value) {
       process.stderr.write(`faff config init: key '${leaf}' set twice with different values ('${seen[leaf]}' vs '${value}') — ambiguous.\n`);
@@ -964,7 +989,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value);
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const canonicalPath = path.join(root, CANONICAL_CONFIG);
@@ -1468,6 +1493,21 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
     findings.push({ severity: "warn", surface: "automation_default", message: "`automation_default: opt-out` is ignored on a tracker-bound repo — it applies only in git-only mode; the two faff-* labels are the control surface here." });
   }
 
+  // Check 8 (FAFF-430): a present, non-github tracking.git_host is config theater — faff's
+  // merge floor is unconditionally `gh`, so a hand-edited base carrying e.g. `git_host: gitlab`
+  // would otherwise limp silently past this linter (config get / config set already fail loud
+  // on the same value; this catches a base that never went through either). Unset is fine — the
+  // finding fires only when the merged value is present and off-allowlist.
+  const gitHostRaw = dig(mergedDoc, "tracking.git_host");
+  // fmt() first — mirrors the cmdConfig read-time path (`validateGitHostValue(key, fmt(value))`)
+  // so a non-string YAML scalar (e.g. `git_host: true`) produces the identical quoted message on
+  // both surfaces, never a raw-value/fmt'd-value mismatch between `config check` and `config get`
+  // (adversarial review finding, FAFF-430).
+  const gitHost = gitHostRaw === null || gitHostRaw === undefined ? gitHostRaw : fmt(gitHostRaw);
+  if (gitHost !== null && gitHost !== undefined && validateGitHostValue("tracking.git_host", gitHost)) {
+    findings.push({ severity: "error", surface: "tracking.git_host", message: `git_host: "${gitHost}" is not supported — faff's merge floor is GitHub-only. Set git_host: github or leave it unset.` });
+  }
+
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }
 
@@ -1796,7 +1836,9 @@ function cmdConfig(args) {
       }
       // FAFF-315: Agent-token model lanes have a closed vocabulary — an invalid configured
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value));
+      // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
+      // fails loud here too, never a silently GitHub-shaped merge gate.
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
@@ -2112,4 +2154,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateModelLane };

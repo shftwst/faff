@@ -139,7 +139,7 @@ tracking:
   team_key: SHF              # tracker team/board key
   project_id: "abc-123"      # tracker project/team id
   repo: shftwst/faff         # org/repo slug
-  git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
+  git_host: github           # github — the only supported host (the merge gate is GitHub-only; may be left unset)
   spec_docs_path: docs/specs/ # where faff-graft commits specs (see Spec docs location)
   prd_docs_path: docs/prd/
   prdr_docs_path: docs/prdr/
@@ -183,7 +183,7 @@ automation_default: opt-in   # opt-in (default, fail-safe) | opt-out — eligibi
 
 **Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
 
-Faff auto-detects which issue tracker and git host MCP servers are available and adapts accordingly — `tracking.tracker` / `tracking.git_host` only pin the choice when autodetection is ambiguous. It works with Linear, GitHub Issues, Jira, or any tracker exposed via MCP. Concluding "no tracker MCP → git-only mode" is valid **only after a discovery attempt, and never when a tracker is pinned** — "not in my immediately-visible tool list" is *not* evidence of absence (it silently mis-fires under a deferred-tool harness; see **Tracker availability resolution** below). Only once discovery has genuinely found no connector, and none is pinned, does faff fall back to git-only mode (commits, branches, PRs).
+Faff auto-detects which issue tracker MCP servers are available and adapts accordingly — `tracking.tracker` only pins the choice when autodetection is ambiguous. It works with Linear, GitHub Issues, Jira, or any tracker exposed via MCP. Concluding "no tracker MCP → git-only mode" is valid **only after a discovery attempt, and never when a tracker is pinned** — "not in my immediately-visible tool list" is *not* evidence of absence (it silently mis-fires under a deferred-tool harness; see **Tracker availability resolution** below). Only once discovery has genuinely found no connector, and none is pinned, does faff fall back to git-only mode (commits, branches, PRs). `tracking.git_host` is a separate knob: GitHub is the only supported git host (the merge gate is GitHub-only), so there is no host to detect between — leave it unset, or pin it to `github` explicitly.
 
 ### Tracker availability resolution
 

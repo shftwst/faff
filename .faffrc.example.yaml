@@ -30,7 +30,7 @@ tracking:
   team_key: ABC # tracker team / board key
   project_id: "abc-123" # tracker project / team id
   repo: org/repo # org/repo slug
-  git_host: github # github | gitlab | gitea | … (autodetected if omitted)
+  git_host: github # github — the only supported host (the merge gate is GitHub-only; may be left unset)
 
   # Repository record stores. Each path is relative to the repo root. Defaults stay under
   # docs/ (or doc/ when that is the repository's established documentation directory).

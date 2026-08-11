@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-430",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3ac8dfc70b5fb138d4a7d47a1be082080fbc1b25cd01996a651f634fa1350661",
+    "branch": "faff-430-ship-a-gitlabgitea-merge-gate-shell-or-shrink-the-git_host",
+    "pushed_at": "2026-08-11T07:22:37.541Z"
+  },
+  "updated_at": "2026-08-11T07:22:37.541Z"
+}

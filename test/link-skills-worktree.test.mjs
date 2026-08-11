@@ -108,7 +108,12 @@ function mkFencedRoot() {
   return root;
 }
 
-const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true }); };
+// `maxRetries` is load-bearing, not decoration: these fixtures are real git checkouts, and a
+// recursive rmSync is not atomic — under CI parallelism git's own background writes into
+// `.git/objects` (auto-maintenance, index/fsmonitor churn) can land between rimraf's readdir and
+// its rmdir, surfacing as a flaky ENOTEMPTY teardown throw (FAFF-775). rmSync retries exactly
+// that errno class with backoff; 3 matches the repo convention in test/helpers/seed-repo.mjs.
+const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true, maxRetries: 3 }); };
 
 // ---- FAFF-675: plugin-root doctor scan fixtures ----
 //

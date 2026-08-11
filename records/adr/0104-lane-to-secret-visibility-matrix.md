@@ -1,6 +1,6 @@
 # ADR 0104 — Lane-to-secret visibility matrix
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-11
 - **Issue:** FAFF-32

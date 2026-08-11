@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-699",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a39b0789599cec9a8bc4d5dc21cb5126424f89fca6b02d69cbf714226ea24607",
+    "branch": "faff-699-under-codex-loop-next-step-recovery-offers",
+    "pushed_at": "2026-08-10T15:41:50.802Z"
+  },
+  "updated_at": "2026-08-10T15:41:50.802Z"
+}

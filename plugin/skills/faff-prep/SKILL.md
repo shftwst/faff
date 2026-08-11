@@ -278,7 +278,7 @@ This is the L3 "offer + write-on-confirm" rung (the write deferred to graft); L4
 
 The next step offered here aligns with `faff next` (gateway → **Next-step transition**) on the freshly-attached spec's state — a `high` spec on a Todo issue returns `graft` (offer build), a retained `medium` returns `needs-human` (flag, don't offer auto-build). Consult it rather than re-deriving the mapping; the gate below stays the human decision (`faff next` reports, it never gates).
 
-Then the build gate — a separate yes/no, confidence-aware:
+Then the build gate — a separate yes/no, confidence-aware. This is a surviving OFFER gate at the prep→graft boundary (gateway → **Interactive next-step offer**) — a real decision, kept as-is:
 
 > **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-graft`? (y/n)"
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
@@ -314,7 +314,7 @@ If any challenge or resolution exists, the spec is **out of date** even if the c
 
 If Step 2a surfaced challenges or resolutions, the default action is **iterate** — the user shouldn't be offered `build` until the spec absorbs the thread. Context-only threads do not force iterate; the user can still pick `build` knowing the context.
 
-Then offer a three-way choice (not passive text):
+Then offer a three-way choice (not passive text) — a surviving OFFER gate, per gateway → **Interactive next-step offer**:
 
 > "What next? (iterate / build / park)"
 

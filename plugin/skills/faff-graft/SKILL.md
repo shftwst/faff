@@ -77,7 +77,7 @@ Check the issue for an attached spec. Follow the shared **Spec discovery** rule 
 
 - **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec. (This is the same call `faff next` makes: with a spec present it returns `graft` (proceed); with no spec, `prep` — consult it per gateway → **Next-step transition** rather than re-deriving, then act as below.)
 - **Tracker configured/pinned but unreachable this session (fail loud — not "no spec").** If the tracker is pinned or configured (or the prep marker `.faff/prep/<ISSUE>.json` says `attached:true`) but tracker-based discovery (locations 1–3) returned nothing **because the connector could not be reached** — a pinned tracker whose tools discovery never surfaced, or a read that failed — do **not** treat it as unprepped and do **not** silently drop to git-only. Fail loud with a distinct **"tracker configured/pinned but connector not reachable this session"** message (gateway → Tracker availability resolution, step 4) and stop. The remedy is to make the connector reachable (or, under a deferred-tool harness, run the harness's tool-discovery), then re-invoke `/faff-graft` — not to re-prep a spec that already exists. A passing prep marker attests attach *happened*, not that the spec is *reachable this session*, so it is never on its own sufficient to proceed past an unreachable connector.
-- **No spec (none of those sources, and the tracker _was_ reachable):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**). On deny, stop.
+- **No spec (none of those sources, and the tracker _was_ reachable):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**). On deny, stop. (A surviving OFFER gate, per gateway → **Interactive next-step offer**.)
 
 The gate ensures no one starts building without a validated spec. Per the shared **Spec discovery** rule, **a description is never a spec**: if the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep`. Never build straight from a description, and never skip prep because it "reads clear".
 
@@ -256,7 +256,7 @@ Do this read-and-claim **before creating the worktree (Step 3)** where practical
 
 **Step 6: Present spec and choose path**
 
-Validate the spec's freshness against the current codebase. Then present a summary of the spec — design approach, key decisions, acceptance criteria — and offer a three-way choice (all branches invoke via the Skill tool on confirm):
+Validate the spec's freshness against the current codebase. Then present a summary of the spec — design approach, key decisions, acceptance criteria — and offer a three-way choice (all branches invoke via the Skill tool on confirm). This is a surviving OFFER gate (gateway → **Interactive next-step offer**) — a real decision, kept as-is:
 
 - **build** — proceed to Step 7 (build loop)
 - **review** — walk through the spec in detail before starting, then return here
@@ -418,7 +418,7 @@ A clean single-pass build still uses this one-comment shape (verdict + "resolved
 
 **Review-stage terminal states are pre-PR — no PR is opened for them:**
 
-- **`pass`** → proceed to **Step 9b** (open the PR), then the merge-confidence gate.
+- **`pass`** → proceed to **Step 9b** (open the PR), then the merge-confidence gate. **Interactive continuation (L1/L2, per gateway → *Interactive next-step offer*):** review-pass→open-PR needs no operator decision, so continue to 9b *in the same turn* — do **not** end the turn awaiting an "open pr" instruction (9b stays auto-open-on-pass, identical to autonomous — add no blocking open-PR confirmation gate on this non-decision). If the turn nonetheless ends here, the terminal line is an explicit next-step offer ("Review passed — opening the PR next; reply to proceed").
 - **`fail`** → iterate (fix flagged items → re-run tests → re-run review), still **pre-PR, no PR opened**. Loop until it clears or escalates.
 - **`needs-human`** → surface on the tracker issue as needs-human (the one-comment shape above) and park per the shared protocol **without opening a PR**. This is a **no-PR human handoff** — distinct from the `pr-open-for-human` return, which is reserved for the post-PR causes (CI-red / delivery `not-ready`/`failed`) that operate on an already-opened PR. See **Return values** in Autonomous Mode for the split.
 - **`unavailable`** — no review verdict could be produced (a mandatory review-chain outage, FAFF-405) — run **The `unavailable` disposition (FAFF-403)** above: autonomous + a resumable checkpoint + under the retry bound → **retry-later** (hold + release claim, **no PR**, no `review-verdict.json`); otherwise → the same **`needs-human`** park as above (surface on the tracker issue, park per the shared protocol, **without opening a PR**).
@@ -503,7 +503,7 @@ In **interactive mode**, this gate fires when the user confirms "merge now" at p
 
 After the PR is posted, wait for CI builds to complete **synchronously in the same turn**. Based on result and the gate in Step 10:
 
-- **Gate passes (auto-mergeable):** yes/no "All three gate conditions pass (ACs verified, CI green, review `pass`). Merge now? (y/n)". On confirm, hand off to the `ship` producer, pipe its `faff-contract:delivery-outcome` block to `faff contract delivery-outcome`, and route on the resulting outcome (per Step 10). On deny, leave PR open.
+- **Gate passes (auto-mergeable):** yes/no "All three gate conditions pass (ACs verified, CI green, review `pass`). Merge now? (y/n)". On confirm, hand off to the `ship` producer, pipe its `faff-contract:delivery-outcome` block to `faff contract delivery-outcome`, and route on the resulting outcome (per Step 10). On deny, leave PR open. (A surviving OFFER gate — a real merge decision — kept as-is per gateway → **Interactive next-step offer**.)
 - **Gate fails on CI:** "CI failed. Iterate on this PR? (y/n)". On confirm, keep going. On deny, yes/no "Pick next ticket via `/faff-wtf`? (y/n)".
 - **Gate fails on unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human. (Review can't fail here — it ran and passed pre-PR at Step 9; a post-PR review concern is handled as a fresh build iteration, not a Step-11 gate.)
 
@@ -514,7 +514,7 @@ All subsequent chain points are yes/no gates (never passive "run /faff-wtf").
 **Never say "I'll check CI once it reports" and end the turn** — turns don't resume on their own; the user must re-prompt, which defeats the point. Either wait synchronously in-turn, or hand back control explicitly (no promise to check later).
 
 - **Block synchronously (preferred), heartbeat-bracketed (FAFF-234/774):** loop until all checks reach a terminal state: tick `faff heartbeat "$run_dir" --unit <issue>`, then block on `gh pr checks <pr> --watch --interval 15` wrapped in `Bash` with a `timeout` **below the 900s staleness window** (e.g. 480000ms). CI routinely takes 5–15 min, so a `--watch` chunk will often time out before CI resolves; that is expected. On timeout, tick the heartbeat again and re-enter the loop; if `--watch` is unavailable, poll `gh pr checks <pr>` every 30–60s, ticking `faff heartbeat "$run_dir" --unit <issue>` between polls, until no `pending`/`in_progress` remains. The tick between chunks keeps a long CI wait from aging the heartbeat past the staleness window and false-aborting a healthy run (FAFF-774); **never** use a single blocking call whose `timeout` can exceed the staleness window.
-- **Hand back cleanly (the only acceptable no-result exit):** "CI is running. I'm stopping here — re-invoke `/faff-graft` or say 'check CI' to poll." Never pair it with "I'll check once it reports" — you won't.
+- **Hand back cleanly (the only acceptable no-result exit):** "CI is running. I'm stopping here — re-invoke `/faff-graft` or say 'check CI' to poll." Never pair it with "I'll check once it reports" — you won't. This explicit handoff **is** the canonical terminal next-step offer for the one legitimate turn-end here (gateway → **Interactive next-step offer**), not ad-hoc.
 - **Forbidden:** "I'll check once it reports" / "checking in the background" (there is none) / ending the turn with neither a CI terminal state nor an explicit handoff.
 
 If a wait is long enough that blocking feels wasteful, **prefer the explicit handoff** over a fake promise — silence surprises the user worse than "I'm stopping."
@@ -528,7 +528,7 @@ Conflating "zero checks" with "checks failed" either masks the absence (the vacu
 **Step 12: Post graft checks** — after build is complete and the PR is raised:
 
 - **Discovered scope (only if `concrete` items were recorded in Step 9 → _Discovered scope_):** list them and offer a yes/no gate — "Found N out-of-scope item(s) while building: [titles]. File as Backlog tickets? (y/n)". On confirm, file each per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_): status `Backlog`, tag `faff-chain-gap-fill` via `faff label add <issue> faff-chain-gap-fill` and its descriptor's write (gateway → **Control-label provisioning**), the recorded relationship link, and a "discovered during build of ISSUE-XX" provenance line + back-link. On deny, leave them in `discovered-scope.json` for a later pass. `vague` items are listed for awareness only — never offered for filing. (Interactive use has no orchestrator above graft, so the human confirming *is* the orchestrator authorising the file; autonomous runs file via beep-boop instead, never here.)
-- **Next ticket:** yes/no "Pick next ticket via `/faff-wtf`? (y/n)". On confirm, invoke the `faff-wtf` skill via the Skill tool. On deny, stop cleanly.
+- **Next ticket:** yes/no "Pick next ticket via `/faff-wtf`? (y/n)". On confirm, invoke the `faff-wtf` skill via the Skill tool. On deny, stop cleanly. (A surviving OFFER gate at the graft→next-ticket boundary, per gateway → **Interactive next-step offer**.)
 
 ## Autonomous Mode
 

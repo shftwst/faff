@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-500",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b46f61a794e4aa1f7cccfa9237cf39cee744f999bceddae3e95af924c4cb5a45",
+    "branch": "faff-500-per-phase-explore-vs-synthesis-token-turn-attribution",
+    "pushed_at": "2026-08-11T06:01:49.025Z"
+  },
+  "updated_at": "2026-08-11T06:01:49.025Z"
+}

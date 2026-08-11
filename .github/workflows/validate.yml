@@ -300,8 +300,10 @@ jobs:
           fi
 
           unset FAFF_REQUIRE_DOCKER
+          set +e
           node --test "${matched[@]}" | tee /tmp/impure-macos.log
-          test_status=$?
+          test_status=${PIPESTATUS[0]}
+          set -e
 
           tests_ran=$(grep -oE '^# tests [0-9]+' /tmp/impure-macos.log | tail -1 | grep -oE '[0-9]+$')
           tests_ran=${tests_ran:-0}

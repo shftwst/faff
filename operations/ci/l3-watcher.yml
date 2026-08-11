@@ -97,6 +97,22 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # 1b. DECLARE THE RUN UNATTENDED (FAFF-765). This watcher is self-directed and runs
+      #     with nobody at the keyboard, but it CANNOT be L4 (L4 refuses a self-directed
+      #     run, ADR-0069), so the Sentry ABORT kill-switch is keyed on *attendedness*, not
+      #     the L4 mint: declaring `autonomous.unattended: true` is what arms the live,
+      #     resumable abort on a derailment trip (a stale-heartbeat runaway, a budget breach)
+      #     — without it, an L3 drain only logs `advisory-trip` and the runner's
+      #     `timeout-minutes` cap hard-kills it, orphaning a stale claim (the incident this
+      #     closes). The declaration goes in the GITIGNORED local overlay, never a committed
+      #     rc (ADR-0067 — a run posture, not shared behaviour). Fail-safe off: only a literal
+      #     `true` arms it; it is echoed in the `faff config resolved` run banner to confirm.
+      #     (The legacy `autonomous.sentry_acting: true` is a still-honoured alias.)
+      - name: Declare the run unattended (arm the Sentry abort kill-switch)
+        run: |
+          set -eu
+          printf 'autonomous:\n  unattended: true\n' >> .faffrc.local.yaml
+
       # 2. THE L3 DRAIN. A plain /faff-beep-boop — no `faff lights-out`, so the run is L3.
       #
       #    AUTH: a subscription seat via a long-lived token in the environment (the CI

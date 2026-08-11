@@ -10,7 +10,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, readdirSyn
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { actsOnSentryAbort, sentryActingFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
+import { actsOnSentryAbort, sentryActingFromConfig, declaredUnattendedFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
 import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -1178,10 +1178,12 @@ test("FAFF-327/FAFF-553 integration smoke test: mint, tick one member, park the 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-// FAFF-717 — sentryActingFromConfig resolves the L3 Sentry-abort opt-in FAIL-CLOSED
-// from a REALLY-parsed config (the same parseYamlSubset the runtime uses), and
-// actsOnSentryAbort is the single abort-acting resolver: L4 always acts (LAZILY,
-// without reading config), a non-L4 run acts iff the knob is a literal `true`.
+// FAFF-717/FAFF-765 — sentryActingFromConfig resolves the legacy Sentry-abort opt-in
+// FAIL-CLOSED from a REALLY-parsed config (the same parseYamlSubset the runtime uses);
+// FAFF-765 generalises it to declaredUnattendedFromConfig (canonical autonomous.unattended
+// OR the sentry_acting alias). actsOnSentryAbort is the single abort-acting resolver:
+// L4 always acts (LAZILY, without reading config), a non-L4 run acts iff it declared
+// unattended.
 const rc = (s) => parseYamlSubset(s);
 
 test("sentryActingFromConfig: bare `true` enables (boolean, the documented form)", () => {
@@ -1218,4 +1220,48 @@ test("actsOnSentryAbort: a null/level-less ledger falls back to the config knob 
   assert.equal(actsOnSentryAbort(null, rc("autonomous:\n  sentry_acting: true\n")), true);
   assert.equal(actsOnSentryAbort(null, {}), false);
   assert.equal(actsOnSentryAbort({}, {}), false); // absent level ⇒ non-acting unless the knob is set
+});
+
+// FAFF-765 — the abort-acting axis is RE-KEYED onto declared attendedness. The
+// canonical key is autonomous.unattended; autonomous.sentry_acting is a retained
+// fail-safe-OFF alias (OR semantics). declaredUnattendedFromConfig is the generalised
+// reader; actsOnSentryAbort keeps its L4-first lazy shape, second disjunct re-pointed.
+test("declaredUnattendedFromConfig: the canonical autonomous.unattended key enables (every literal spelling)", () => {
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: true\n")), true);
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: \"true\"\n")), true); // YAML-quoting trap
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: True\n")), true);    // case variant
+});
+test("declaredUnattendedFromConfig: the legacy autonomous.sentry_acting still asserts (retained alias, OR semantics)", () => {
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  sentry_acting: true\n")), true);
+  // unattended unset + alias set ⇒ unattended (the back-compat contract).
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  sentry_acting: \"true\"\n")), true);
+});
+test("declaredUnattendedFromConfig: a `false` on one key never silently overrides a `true` on the other (both are positive OR-ed assertions)", () => {
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: false\n  sentry_acting: true\n")), true);
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: true\n  sentry_acting: false\n")), true);
+});
+test("declaredUnattendedFromConfig is FAIL-CLOSED (attended) on every non-affirmative / unset / fault", () => {
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: false\n")), false);
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: \"false\"\n")), false);
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: yes\n")), false);
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: 1\n")), false);
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous:\n  unattended: unatteded\n")), false); // typo must never enable
+  assert.equal(declaredUnattendedFromConfig(rc("autonomous: {}\n")), false); // both keys unset
+  assert.equal(declaredUnattendedFromConfig({}), false);                     // empty config (a fault fails safe)
+});
+
+test("actsOnSentryAbort: an UNATTENDED L3 run (canonical autonomous.unattended) acts", () => {
+  assert.equal(actsOnSentryAbort({ level: "L3" }, rc("autonomous:\n  unattended: true\n")), true);
+});
+test("actsOnSentryAbort: the legacy sentry_acting alias STILL acts on an L3 run (unattended unset)", () => {
+  assert.equal(actsOnSentryAbort({ level: "L3" }, rc("autonomous:\n  sentry_acting: true\n")), true);
+});
+test("actsOnSentryAbort: an ATTENDED L3 run (neither key declared) stays advisory", () => {
+  assert.equal(actsOnSentryAbort({ level: "L3" }, {}), false);
+  assert.equal(actsOnSentryAbort({ level: "L3" }, rc("autonomous:\n  unattended: false\n")), false);
+});
+test("actsOnSentryAbort: the L4 lazy short-circuit survives the re-key — a config fault never regresses the L4 kill-switch", () => {
+  // The re-keyed second disjunct (declaredUnattendedFromConfig) is NEVER reached for L4.
+  assert.equal(actsOnSentryAbort({ level: "L4" }, {}), true);
+  assert.equal(actsOnSentryAbort({ level: "L4" }, rc("autonomous:\n  unattended: false\n")), true);
 });

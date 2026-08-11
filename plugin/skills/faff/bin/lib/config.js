@@ -169,7 +169,17 @@ const DEFAULTS = {
   // hazard). Resolved fail-closed by sentry.js's sentryActingFromConfig (mirrors
   // engine_bounded above); this registry entry drives `config get`'s DISPLAY value
   // (returns "false" instead of exit-3, shows in `config defaults`), never the gate.
+  // FAFF-765: kept as a RETAINED ALIAS — superseded by autonomous.unattended below
+  // (either positive assertion asserts unattended), still honoured fail-closed.
   "autonomous.sentry_acting": "false",
+  // FAFF-765: the CANONICAL declared-attendedness posture — re-keys the Sentry ABORT
+  // kill-switch off the L4-mint proxy onto ATTENDEDNESS. Default false (attended →
+  // advisory). A literal `true` declares the run UNATTENDED, so its Sentry ABORT acts
+  // (resumable) on a trip — the self-directed CI watcher / L3-on-CI drain that cannot
+  // obtain the L4 mint. Same fail-safe-OFF direction and DISPLAY-only role as
+  // sentry_acting above (resolved by sentry.js's declaredUnattendedFromConfig, which
+  // OR-s this with the sentry_acting alias); surface/pause/correct stay L4-only-acts.
+  "autonomous.unattended": "false",
   // FAFF-624: the code-side default for the convergence brace (resolveConvergence below) —
   // matches the FAFF-534-flipped `.faffrc.example.yaml` default, so a config-less repo's
   // `faff config get convergence.enabled` answers "true"/exit 0 rather than exit 3.
@@ -1818,8 +1828,10 @@ function cmdConfig(args) {
           "graft.review_outage_retry_limit",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
-          // FAFF-717: the L3 Sentry-abort opt-in (default false).
+          // FAFF-717: the L3 Sentry-abort opt-in (default false) — retained alias.
           "autonomous.sentry_acting",
+          // FAFF-765: the canonical declared-attendedness posture (default false).
+          "autonomous.unattended",
           // FAFF-624: the convergence brace's code-side default.
           "convergence.enabled",
         ];
@@ -1923,11 +1935,12 @@ function cmdConfig(args) {
       // value is visible in the run banner, not silently coerced behind the user's back.
       const gate = dig(data, "intake_gate");
       if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
-      // FAFF-42/350/333/717/728: surface a non-default autonomous-entry preflight knob (require_container /
-      // require_branch_protection / require_github_auth / engine_bounded / sentry_acting) so an opt-in
-      // `block` — or the engine_bounded attestation, or the L3 Sentry-abort opt-in — is visible in the
-      // run banner, never silent (the operator's typo-detection surface for sentry_acting).
-      for (const knob of ["require_container", "require_branch_protection", "require_github_auth", "engine_bounded", "sentry_acting"]) {
+      // FAFF-42/350/333/717/728/765: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection / require_github_auth / engine_bounded / sentry_acting / unattended) so an opt-in
+      // `block` — or the engine_bounded attestation, or the declared-attendedness posture (unattended, and its
+      // retained sentry_acting alias) — is visible in the run banner, never silent (the operator's typo-detection
+      // surface for the abort kill-switch: a typo on either key must be seen, not silently make runs abortable).
+      for (const knob of ["require_container", "require_branch_protection", "require_github_auth", "engine_bounded", "sentry_acting", "unattended"]) {
         const v = dig(data, `autonomous.${knob}`);
         if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
       }

@@ -1,4 +1,4 @@
-# ADR 0103 — Lane-to-secret visibility matrix
+# ADR 0104 — Lane-to-secret visibility matrix
 
 - **Status:** Proposed
 - **Provenance:** loop

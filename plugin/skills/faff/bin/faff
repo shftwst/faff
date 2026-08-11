@@ -33,6 +33,7 @@ const { cmdContract } = require("./lib/contract-defs");
 const { CORRECTIVE_OPS, cmdCorrective, foldCorrectiveConstraints, validateCorrectiveInput } = require("./lib/corrective");
 const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./lib/corrective-integrity");
 const { cmdIntegrityDigest } = require("./lib/integrity-digest");
+const { cmdDecisions } = require("./lib/decisions");
 const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
 const { cmdBuildProgress, cmdEffects, cmdReviewProgress } = require("./lib/effects");
@@ -151,6 +152,7 @@ const COMMANDS = {
   "park-history": cmdParkHistory,
   "gitignore-ensure": cmdGitignoreEnsure,
   "adr": cmdAdr,
+  "decisions": cmdDecisions,
   "prd": cmdPrd,
   "prd-checklist": cmdPrdChecklist,
   "prdr": cmdPrdr,

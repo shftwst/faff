@@ -145,6 +145,10 @@ const REGION_MAP = {
   "park-history": "factory",
   "gitignore-ensure": "factory",
   "adr": "factory",
+  // decisions — FAFF-448: the ADR-lite decisions register. Requires only argv (shared-infra) +
+  // shared-infra findRoot, no tracker/config/contract dependency — a pure computation command,
+  // lighter sibling of adr → factory.
+  "decisions": "factory",
   "prd": "factory",
   // prd-checklist — FAFF-557: pure checklist-PRD parser emitting the existing prd-coverage
   // shape. Requires only contract-engine's schemaCheck (no shared-infra/governance-profile
@@ -279,6 +283,7 @@ const REGION_SELFTEST_ARGV = {
   "park-history": ["park-history", "--selftest"],
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "adr": ["adr", "--selftest"],
+  "decisions": ["decisions", "--selftest"],
   "prd": ["prd", "--selftest"],
   "prd-checklist": ["prd-checklist", "--selftest"],
   "prdr": ["prdr", "--selftest"],

@@ -767,6 +767,8 @@ The third shared-contract modulation (sibling of the table above). *Topology* is
 
 Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing verdict (fixed)**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments). `repeat-parked` does **not** get one — the pattern itself signals that a human needs to act.
 
+**Decisions-register consult (`needs-decision-first` only — first move, before the table).** Extract the Punt's topic and run `faff decisions match --punt "<topic>"` — a deterministic lookup against the committed, human-authored `docs/decisions.md` register (absent file → clean no-match, never an error). A single confident match is a **citation of an already human-ratified precedent, not an inference**: proceed implementing the matched `chosen` value, write the register-hit audit-trail comment below, and skip the table. This lookup does **not** count against the file-read budget below — one committed governance doc, not a codebase read. No match, or an ambiguous multi-match (two or more entries equal-match), falls through unchanged to the bounded inference. The autonomous path only **consumes** the register; it never writes to it (see faff-prep's capture path for how an entry gets there).
+
 **Per-verdict resolve rules:**
 
 | Verdict | Resolve-attempt | Proceed if | Park if |
@@ -781,7 +783,11 @@ Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` v
 
 > _Faff autonomous resolve-attempt:_ The spec flagged this as `Punt: cron vs queue-driven send` but the codebase uses cron in every other scheduled-job site (`src/jobs/*`). Proceeding with cron. **If this is wrong, comment on this PR before merge and faff will re-park.**
 
-The PR can be flipped back to draft if the call was wrong; the merge-confidence gate is the backstop. **Scope:** resolve-attempt bypasses no safety boundary — side-effects-outside-PR-flow and destructive operations still park unconditionally — and applies only to the three verdicts above, where over-literal marker matching is the dominant park-cause.
+A register-driven proceed writes the citation variant instead — naming the matched entry + chosen value rather than narrating an inference:
+
+> _Faff autonomous resolve-attempt (decisions register):_ The spec flagged this as `Punt: pino vs winston`. The committed decisions register entry `logging-library` records `Chosen: pino` (Rationale: pino is the house structured-JSON logger). Proceeding per that human-ratified precedent. **If this is wrong, comment on this PR before merge and faff will re-park.**
+
+The PR can be flipped back to draft if the call was wrong; the merge-confidence gate is the backstop. **Scope:** resolve-attempt bypasses no safety boundary — side-effects-outside-PR-flow and destructive operations still park unconditionally — and applies only to the three verdicts above, where over-literal marker matching is the dominant park-cause. The register consult adds no new verdict and pre-empts only the **first** park — it is not a resolve-attempt on `repeat-parked` (that verdict still gets none).
 
 ### Calibration log
 

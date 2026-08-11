@@ -10,7 +10,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { runCli } from "./helpers/run-cli.mjs";
+import { runCli } from "../helpers/run-cli.mjs";
 
 // A throwaway git repo so findRoot/mainWorktreeRoot anchor there. `home` is where the
 // default root lands (HOME/.faff/worktrees/<repo>).

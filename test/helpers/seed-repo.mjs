@@ -17,7 +17,7 @@
 // dependency — `git` is the CLI's own runtime dependency. Per ADR 0002.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir, devNull } from "node:os";
 import path from "node:path";
 
@@ -41,7 +41,11 @@ function safeSegment(name) {
 /**
  * Seed a deterministic real git repo + `.faff/` tree in a fresh temp directory.
  * @param {object} spec the SeedSpec (see the FAFF-90 design doc §3).
- * @returns {{ root: string, worktreePath: string|null, teardown: () => void }}
+ *   FAFF-762: spec.danglingWorktree?: { name: string } — `git worktree add`s a real linked
+ *   worktree, then removes its checkout dir (leaving `.git/worktrees/<id>/` dangling) so a
+ *   caller can exercise `worktree-prune` against a genuinely dangling admin dir.
+ * @returns {{ root: string, worktreePath: string|null, danglingAdminPath: string|null,
+ *   danglingWorktreePath: string|null, teardown: () => void }}
  */
 export function seedRepo(spec = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "faff-seed-"));
@@ -70,6 +74,8 @@ export function seedRepo(spec = {}) {
   const runs = spec.runs ?? [];
   const committedSpecs = specs.filter((s) => s.location === "committed");
   let worktreePath = null;
+  let danglingAdminPath = null;
+  let danglingWorktreePath = null;
 
   try {
     provision();
@@ -92,7 +98,7 @@ export function seedRepo(spec = {}) {
     rmSync(root, { recursive: true, force: true, maxRetries: 3 });
   };
 
-  return { root, worktreePath, teardown };
+  return { root, worktreePath, danglingAdminPath, danglingWorktreePath, teardown };
 
   function provision() {
     if (useGit) {
@@ -114,7 +120,8 @@ export function seedRepo(spec = {}) {
     }
 
     // A branch / worktree / committed spec needs HEAD to point at a commit.
-    const needsBase = branches.length > 0 || spec.worktree != null || committedSpecs.length > 0;
+    const needsBase =
+      branches.length > 0 || spec.worktree != null || committedSpecs.length > 0 || spec.danglingWorktree != null;
     if (commits.length === 0 && needsBase) {
       writeRel(".seed-placeholder", "seed\n");
       git("add", "-A");
@@ -137,6 +144,28 @@ export function seedRepo(spec = {}) {
     if (spec.worktree) {
       worktreePath = path.join(root, ".worktrees", safeSegment(spec.worktree.branch));
       git("worktree", "add", worktreePath, spec.worktree.branch);
+    }
+
+    // FAFF-762: a genuinely DANGLING admin dir — `git worktree add` a real linked worktree
+    // on its own branch, resolve its authoritative admin-dir id from the gitdir map (never
+    // the path basename — see worktree-prune.js's own comment on id de-duplication), then
+    // remove the checkout dir. Git's `.git/worktrees/<id>/` entry survives with no backing
+    // checkout: exactly the state `worktree-prune` targets.
+    if (spec.danglingWorktree) {
+      const name = spec.danglingWorktree.name;
+      const dwPath = path.join(root, ".worktrees-dangling", safeSegment(name));
+      git("worktree", "add", "-b", name, dwPath);
+      const adminBase = path.join(root, ".git", "worktrees");
+      let adminId = null;
+      for (const id of readdirSync(adminBase)) {
+        let gd;
+        try { gd = readFileSync(path.join(adminBase, id, "gitdir"), "utf8").trim(); } catch { continue; }
+        const wt = gd.replace(/\/\.git\/?$/, "").replace(/\/+$/, "");
+        if (wt === dwPath.replace(/\/+$/, "")) { adminId = id; break; }
+      }
+      rmSync(dwPath, { recursive: true, force: true, maxRetries: 3 });
+      danglingWorktreePath = dwPath;
+      danglingAdminPath = adminId ? path.join(adminBase, adminId) : null;
     }
   } else {
     // .faff-only tree: findRoot anchors on `.faff` (no `.git`); faff state's git half

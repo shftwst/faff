@@ -259,12 +259,25 @@ jobs:
           FAFF_REQUIRE_DOCKER: "1"
         run: node --test
 
-  # FAFF-580: a cheap macOS smoke lane. Operators run faff on macOS day to day (the Colima note in
-  # .faffrc.yaml), and CI is otherwise ubuntu-only — this catches a macOS-specific load/parse
-  # regression without paying the docker tax on a hosted macOS runner. Pure `--selftest` invocations
-  # only: no docker, no `node --test` under FAFF_REQUIRE_DOCKER. The command list is re-derived from
-  # this file's own `validate` job rather than duplicated by hand, so a selftest step added there is
-  # covered here automatically — the one drift this lane exists to avoid.
+  # FAFF-762: re-targeted at the IMPURE, OS-divergent surface — real `git worktree`
+  # provisioning, path resolution, and the bundled bash scripts calling POSIX utils, the
+  # layer that can actually behave differently on macOS vs Linux (BSD vs GNU userland).
+  # Pure `--selftest` cores are OS-invariant by construction and stay covered once, on the
+  # Linux `validate` lane above — re-running them here re-proves nothing (FAFF-580 created
+  # this lane on that pure surface; FAFF-762 is the retarget, not a duplicate).
+  #
+  # Docker-free by hard constraint (macos-latest has no daemon): FAFF_REQUIRE_DOCKER stays
+  # unset so any docker-gated `node --test` case self-skips rather than hard-failing; the
+  # env/holdout integration stays on the Linux `env-rootless` lane below, untouched.
+  #
+  # The manifest is every file under test/impure/ — real-git/real-fs/real-subprocess/bundled-
+  # bash exercises (setup-worktree.sh's worktree+config-copy lifecycle, a real `git worktree
+  # add` + `faff worktree-root --assert`, a genuinely dangling admin dir pruned via `faff
+  # worktree-prune`, `faff state`/`config spec-docs-path`/`gitignore-ensure` over seeded
+  # trees, and the 17-external-binary PATH checklist). Two sanity floors guard against silent
+  # shrinkage the same way the old `count < 40` selftest guard did: a file-count floor catches
+  # a broken glob, a test-count floor catches mass self-skip that a file-count floor alone
+  # can't see (the glob can still match a file whose tests all bail out).
   validate-macos:
     runs-on: macos-latest
     steps:
@@ -274,28 +287,31 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run every declared --selftest suite (pure, no docker)
+      - name: Run the impure macOS exercise manifest (real git/fs/subprocess/bash, no docker)
         run: |
-          set -euo pipefail
-          grep -oE 'faff [a-zA-Z0-9_.-]+( [a-zA-Z0-9_.-]+)? --selftest' .github/workflows/validate.yml \
-            | sed 's|^|node plugin/skills/faff/bin/|' \
-            | sort -u \
-            > /tmp/selftests.txt
-          echo "node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest" >> /tmp/selftests.txt
-          # Sanity floor: the grep above is only as good as this file's own text, so a
-          # reformat or regex miss could silently shrink the list to near-nothing and this
-          # lane would go green having tested almost none of it. Fail loud instead of quietly
-          # thinning out — bump the floor if the real count ever drops for a legitimate reason.
-          count=$(wc -l < /tmp/selftests.txt)
-          if [ "$count" -lt 40 ]; then
-            echo "::error::only found ${count} --selftest commands to run (expected at least 40) — the extraction regex likely missed some; check .github/workflows/validate.yml"
+          set -uo pipefail
+          shopt -s nullglob
+          matched=(test/impure/*.test.mjs)
+          count=${#matched[@]}
+          file_floor=8
+          if [ "$count" -lt "$file_floor" ]; then
+            echo "::error::impure manifest shrank to ${count} files (expected at least ${file_floor}) — glob likely broke; check .github/workflows/validate.yml / test/impure/"
             exit 1
           fi
-          while IFS= read -r cmd; do
-            echo "::group::$cmd"
-            $cmd
-            echo "::endgroup::"
-          done < /tmp/selftests.txt
+
+          unset FAFF_REQUIRE_DOCKER
+          node --test "${matched[@]}" | tee /tmp/impure-macos.log
+          test_status=$?
+
+          tests_ran=$(grep -oE '^# tests [0-9]+' /tmp/impure-macos.log | tail -1 | grep -oE '[0-9]+$')
+          tests_ran=${tests_ran:-0}
+          test_floor=50
+          if [ "$tests_ran" -lt "$test_floor" ]; then
+            echo "::error::only ${tests_ran} impure tests ran (expected at least ${test_floor}) — tests likely mass-skipped; see the log above"
+            exit 1
+          fi
+
+          exit "$test_status"
 
   # FAFF-371: the env lifecycle must also hold against a ROOTLESS daemon reached via DOCKER_HOST —
   # the host-portable stand-in for the bounded nested engine ADR-0041 decision 3 mandates in the

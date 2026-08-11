@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const HOOK = join(HERE, "..", "plugin", "skills", "faff-graft", "setup-worktree.sh");
+const HOOK = join(HERE, "..", "..", "plugin", "skills", "faff-graft", "setup-worktree.sh");
 const script = readFileSync(HOOK, "utf8");
 
 // The single `for f in <files>; do` config-copy loop.

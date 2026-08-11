@@ -512,6 +512,22 @@ if [ -f "$BIN_SRC" ]; then
 fi
 
 echo
+# Activate the DCO sign-off hook. The logic lives in its own script so the CI runner
+# can reuse it verbatim (setup-git-hooks.sh). It is idempotent and honours --dry-run,
+# so it is safe to call on every setup run. Guarded on presence: if this installer is
+# vendored on its own without its sibling, skip the activation rather than abort: a
+# missing hook is a lost convenience, not a reason to fail the skill link.
+if [ -f "$SCRIPT_DIR/setup-git-hooks.sh" ]; then
+  if [ "$DRY_RUN" -eq 1 ]; then
+    bash "$SCRIPT_DIR/setup-git-hooks.sh" --dry-run
+  else
+    bash "$SCRIPT_DIR/setup-git-hooks.sh"
+  fi
+fi
+# No else: a lone-vendored installer skips activation silently, keeping this path's
+# stderr clean (a real checkout always ships setup-git-hooks.sh, which reports on stdout).
+
+echo
 echo "Summary:"
 printf "  linked:    %d\n" "$linked"
 printf "  refreshed: %d\n" "$refreshed"

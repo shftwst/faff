@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# prepare-commit-msg: append a DCO Signed-off-by trailer when one is absent.
+#
+# The dco check (.github/workflows/dco.yml) requires a `Signed-off-by` trailer on
+# every non-merge, non-bot commit in a PR. This hook adds it so the sign-off happens
+# by construction, whether a human or an agent makes the commit. `git commit -s` still
+# works and is documented; this is the safety net for when it is forgotten.
+#
+# Idempotent: git interpret-trailers keys on the Signed-off-by token, so re-running the
+# hook and an explicit `git commit -s` both leave a single trailer. Merge commits are
+# exempt from the dco check on the server, so they need no special handling here.
+#
+# Activated per clone by `scripts/link-skills.sh`, which sets core.hooksPath to .githooks.
+
+NAME=$(git config user.name)
+EMAIL=$(git config user.email)
+if [ -z "$NAME" ] || [ -z "$EMAIL" ]; then
+	echo "prepare-commit-msg: git config user.name / user.email is unset, so no DCO Signed-off-by trailer was added." >&2
+	echo "  Set both, or commit with an explicit: git commit -s" >&2
+	exit 1
+fi
+
+git interpret-trailers --if-exists doNothing \
+	--trailer "Signed-off-by: $NAME <$EMAIL>" \
+	--in-place "$1"

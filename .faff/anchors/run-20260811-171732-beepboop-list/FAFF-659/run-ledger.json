@@ -1,0 +1,68 @@
+{
+  "run_id": "run-20260811-171732-beepboop-list",
+  "admitted": [
+    "FAFF-780",
+    "FAFF-772",
+    "FAFF-659",
+    "FAFF-642",
+    "FAFF-640",
+    "FAFF-703"
+  ],
+  "outcomes": {
+    "FAFF-779": "routed-out",
+    "FAFF-720": "routed-out",
+    "FAFF-721": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-779": {
+      "verdict": "needs-decision-first",
+      "reason": "open Punt (park-comment text, decides: product) + user-explicit do-not-ship-hot hard floor (eval sweep + human sign-off required before merge); resolve-attempt escalates"
+    },
+    "FAFF-720": {
+      "verdict": "needs-decision-first",
+      "reason": "two open architecture Punts (anchor shape; retention policy) — design-settle ADR; resolve-attempt escalates architectural call"
+    },
+    "FAFF-721": {
+      "verdict": "needs-decision-first",
+      "reason": "open architecture Punt (timeout-branch fix) + reproduce-first Assumes (flake unreproduced); not defensibly resolvable, escalate"
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "tokens": 3000000000,
+        "max_attempts": 40
+      },
+      "at_ceiling": "stop"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "ee851211-5e51-4fd5-bd7c-2fd8aff4dd8c",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 90,
+        "output": 131477,
+        "cache_write": 4723652,
+        "cache_read": 6867246
+      }
+    },
+    "tokens_at_start": 11722465,
+    "window": {
+      "anchor_epoch": 1786468915896,
+      "reset_epoch": 1786486915896,
+      "tokens_at_anchor": 956058
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 663,
+    "session_id": "run-20260811-171732-beepboop-list",
+    "started_at": "2026-08-11T17:21:39Z",
+    "last_heartbeat": "2026-08-11T17:21:39Z"
+  },
+  "level": "L3"
+}

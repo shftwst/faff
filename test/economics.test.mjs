@@ -546,6 +546,107 @@ test("FAFF-415 INTEGRATION: --by effort surfaces malformed_lines (honest coverag
   } finally { f.cleanup(); }
 });
 
+test("FAFF-500 INTEGRATION: --by phase splits explore(child)/synthesis(parent)/build, reconciles", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-by-phase";
+    // parent <sid>.jsonl: one record in the prep window, one in the build window.
+    // agent-explore.jsonl (owned child, prep window) → prep-explore; agent-build.jsonl
+    // (owned child, build window) → build. A planted SECRET in a tool_use input must
+    // never reach the breakdown JSON (non-leak).
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-09T10:00:30Z" },
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 200 } }, timestamp: "2026-07-09T10:02:30Z" },
+      ],
+      "agent-explore.jsonl": [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 50, cache_read_input_tokens: 500 }, content: [{ type: "tool_use", name: "Read", input: { path: "SECRET-PHASE-INTEG" } }] }, timestamp: "2026-07-09T10:00:45Z" },
+      ],
+      "agent-build.jsonl": [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 30 } }, timestamp: "2026-07-09T10:02:45Z" },
+      ],
+    });
+    withEvents(f.runDir, "run-test", [
+      { phase: "prep", type: "prep-start", issue: "FAFF-1", ts: "2026-07-09T10:00:00Z" },
+      { phase: "prep", type: "prep-done", issue: "FAFF-1", ts: "2026-07-09T10:01:00Z" },
+      { phase: "build", type: "build-start", issue: "FAFF-1", ts: "2026-07-09T10:02:00Z" },
+      { phase: "build", type: "issue-outcome", issue: "FAFF-1", ts: "2026-07-09T10:03:00Z" },
+    ]);
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "phase", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.axis, "phase");
+    assert.equal(bd.source, "transcript");
+    assert.equal(bd.cost_basis, "estimate");
+    assert.equal(bd.priced_at_model, "claude-opus-4-8");
+    assert.deepEqual(bd.rows.map((x) => x.key), ["prep-explore", "prep-synthesis", "build"]);
+    const explore = bd.rows.find((x) => x.key === "prep-explore");
+    assert.equal(explore.input, 50);
+    assert.equal(explore.cache_read, 500);
+    assert.equal(explore.total, 550);
+    assert.equal(explore.turns, 1);
+    assert.equal(explore.tool_calls, 1);
+    const synth = bd.rows.find((x) => x.key === "prep-synthesis");
+    assert.equal(synth.total, 100);
+    assert.equal(synth.turns, 1);
+    const build = bd.rows.find((x) => x.key === "build");
+    assert.equal(build.total, 230); // 200 parent + 30 child, both in the build window
+    assert.equal(build.turns, 2);
+    // reconcile-by-construction: all four buckets sum to the flat measureTokens top-line
+    assert.equal(bd.reconciliation.reconciles, true);
+    assert.equal(bd.reconciliation.grand_total, 880);
+    assert.equal(bd.reconciliation.top_line_total, 880);
+    assert.equal(bd.reconciliation.coverage_pct, 100);
+    assert.equal(bd.reconciliation.windows_found, 2);
+    // NON-LEAK: no transcript/event payload string in the breakdown output
+    assert.ok(!r.out.includes("SECRET-PHASE-INTEG"), "planted secret must not appear in the breakdown");
+    // rows carry only counts/labels/cost — no payload keys
+    for (const row of bd.rows) {
+      assert.deepEqual(Object.keys(row).sort(),
+        ["cache_read", "cache_write", "cost", "input", "key", "output", "tool_calls", "total", "turns"]);
+    }
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-500 INTEGRATION: --by phase with no events.jsonl → all unattributed, exit 0, reconciles", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-phase-retro";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 400, cache_read_input_tokens: 600 } }, timestamp: "2026-07-09T10:00:30Z" },
+      ],
+    });
+    // No events.jsonl written → no windows → honest empty split, not an error.
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "phase", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "transcript");
+    assert.deepEqual(bd.rows.map((x) => x.key), ["unattributed"]);
+    assert.equal(bd.rows[0].total, 1000);
+    assert.equal(bd.reconciliation.reconciles, true);
+    assert.equal(bd.reconciliation.coverage_pct, 0);
+    assert.equal(bd.reconciliation.windows_found, 0);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-500 INTEGRATION: --by phase with no resolvable transcript → source:estimate, empty rows", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    // No CLAUDE_CODE_SESSION_ID → the transcript census degrades to estimate.
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "phase", "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "estimate");
+    assert.deepEqual(bd.rows, []);
+  } finally { f.cleanup(); }
+});
+
 test("FAFF-705 INTEGRATION: --by effort folds engine-spend into the effort buckets (two-source)", () => {
   const ECON_MIXED = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\nmodels:\n  methodology: engine:seat\n";
   const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
@@ -783,6 +884,38 @@ test("Integration smoke (FAFF-488): budget check (baseline) -> events append --t
     assert.deepEqual(econJson.per_issue, [{ issue: "FAFF-90", bucket: "shipped", tokens: 320000, cost: null }],
       "per-issue attribution is populated end-to-end, not empty");
   } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
+});
+
+test("FAFF-500 REGRESSION: --by phase honours --session-id (reads effectiveEnv, not process.env)", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-phase-pinned";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-09T10:00:30Z" },
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 200 } }, timestamp: "2026-07-09T10:02:30Z" },
+      ],
+    });
+    withEvents(f.runDir, "run-test", [
+      { phase: "prep", type: "prep-start", issue: "FAFF-1", ts: "2026-07-09T10:00:00Z" },
+      { phase: "prep", type: "prep-done", issue: "FAFF-1", ts: "2026-07-09T10:01:00Z" },
+      { phase: "build", type: "build-start", issue: "FAFF-1", ts: "2026-07-09T10:02:00Z" },
+      { phase: "build", type: "issue-outcome", issue: "FAFF-1", ts: "2026-07-09T10:03:00Z" },
+    ]);
+    // --session-id supplies the session; NO ambient CLAUDE_CODE_SESSION_ID in the env. If the
+    // phase branch read process.env instead of effectiveEnv, the census would degrade to
+    // source:estimate and diverge from the top-line (which IS measured via effectiveEnv).
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "phase", "--session-id", sid, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "transcript", "--session-id must select the session for the phase census, not degrade to estimate");
+    assert.equal(bd.reconciliation.reconciles, true);
+    assert.equal(bd.reconciliation.grand_total, 300);
+    assert.equal(bd.rows.find((x) => x.key === "prep-synthesis").total, 100);
+    assert.equal(bd.rows.find((x) => x.key === "build").total, 200);
+  } finally { f.cleanup(); }
 });
 
 // ---------------------------------------------------------------------------

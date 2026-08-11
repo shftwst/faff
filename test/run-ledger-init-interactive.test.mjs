@@ -111,6 +111,14 @@ test("a non-bare-issue-id --issue → exit 2 and mints no partial dir", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a path-traversal --id → exit 2 and mints no dir (basename==run_id / no-escape guard)", () => {
+  const root = mkTmp("faff-761-root-");
+  const r = runCli(["run-ledger", "init-interactive", "--issue", ISSUE, "--id", "../evil", "--root", root], { env: cleanEnv() });
+  assert.equal(r.code, 2);
+  assert.equal(existsSync(path.join(root, ".faff", "runs")), false);
+  rmSync(root, { recursive: true, force: true });
+});
+
 // --- E2E accept: mint → anchor → resolveAnchorLevel accepts L2 (+ merge_floor readers pass) ---
 
 test("E2E: standalone mint → Step-9b anchor → resolveAnchorLevel returns {level:L2, status:ok}", () => {

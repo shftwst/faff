@@ -176,6 +176,15 @@ function initInteractive(values) {
 
   const root = values["--root"] || findRoot();
 
+  // An explicit --id (tests/determinism) becomes BOTH the run dir basename AND the ledger run_id —
+  // so it must satisfy the same bare-id shape as --issue: a "/" would break basename==run_id (the
+  // genesis-chain invariant), a ".." could walk outside .faff/runs/. Reject either (exit 2, no dir).
+  const idArg = values["--id"];
+  if (idArg !== undefined && (!ISSUE_ID_RE.test(idArg) || idArg.includes(".."))) {
+    process.stderr.write(`faff run-ledger init-interactive: --id ${JSON.stringify(idArg)} is not a valid run id\n`);
+    return 2;
+  }
+
   // CLI-LEVEL trust guard (defense-in-depth): refuse (exit 3) + observe when a LIVE L3/L4 run
   // is already resolved — never silently downgrade it to an L2 mint. Runs BEFORE any dir is
   // created, so a refusal mints no partial dir.
@@ -228,6 +237,12 @@ function initInteractive(values) {
   // Route through the SAME locked core every ledger write uses (uniformity; a just-minted
   // dir cannot contend). The trivial mutate ignores the fresh read (initial creation).
   const mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger);
+  // Fail-closed on a non-write (lock-budget exhaustion yields without throwing) — never report a
+  // successful mint over an absent ledger, which would build a level-less anchor merge-gate refuses.
+  if (!mintWriteRes.written) {
+    process.stderr.write(`faff run-ledger init-interactive: could not write ${path.join(runDir, "run-ledger.json")} (lock contention/abort) — no ledger minted\n`);
+    return 3;
+  }
 
   // Emit the genesis run-start onto the events chain — the caller supplies only the payload;
   // the seq (0) and `prev` (SHA-256(run_id), for the empty log) are minted by the locked core.

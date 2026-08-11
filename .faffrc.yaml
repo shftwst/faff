@@ -71,9 +71,9 @@ faffter_dark:
 
 models:
     build_by_confidence:
-        default: claude-opus-4-8
+        default: inherit
         high: sonnet
-        medium: claude-opus-4-8
+        medium: inherit
     prep_explore: sonnet
     eval: claude-opus-4-8
 

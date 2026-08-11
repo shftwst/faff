@@ -11,7 +11,9 @@ nothing to install (`website/` has its own `package.json` for the documentation
 site only). You need **Node 20 or later**, which is what CI uses. Link the
 skills and the `faff` CLI with [`scripts/link-skills.sh`](scripts/link-skills.sh):
 `--global` for a machine-wide link, no flag for a repository-local one;
-`--status` lists the links and `--unlink` removes them.
+`--status` lists the links and `--unlink` removes them. The same script points
+this clone's `core.hooksPath` at [`.githooks/`](.githooks), which installs a
+`prepare-commit-msg` hook that adds the DCO sign-off for you (see below).
 
 ## Tests and lints
 
@@ -29,9 +31,11 @@ node plugin/skills/faff/bin/faff lint-cli-doc        # CLI-doc coverage
 - **Conventional Commit PR title.** The repository squash-merges with the PR
   title as the `main` commit subject, and release-please parses it, so a
   non-conforming title never triggers a release.
-- **Sign off every commit** with `git commit -s`, adding a `Signed-off-by`
-  trailer that certifies the [Developer Certificate of Origin v1.1](https://developercertificate.org).
-  A CI check requires it on commits made after the check landed.
+- **Sign off every commit**, adding a `Signed-off-by` trailer that certifies the
+  [Developer Certificate of Origin v1.1](https://developercertificate.org). Once
+  you have run `scripts/link-skills.sh`, the `prepare-commit-msg` hook adds the
+  trailer automatically; `git commit -s` does the same by hand. A CI check
+  requires it on commits made after the check landed.
 - **CI must pass**, and **never hand-bump versions** (release-please owns them).
 
 ## Reports, decisions, and authoring

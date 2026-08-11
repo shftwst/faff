@@ -97,6 +97,17 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # 1a. ACTIVATE THE DCO SIGN-OFF HOOK. The drain step below runs /faff-beep-boop,
+      #     whose graft path commits and pushes a feature branch, and the `dco` check
+      #     requires a Signed-off-by trailer on every commit. This points core.hooksPath
+      #     at the tracked .githooks/ so the runner's commits are signed off exactly as a
+      #     contributor's are: the SAME activation scripts/link-skills.sh runs at dev
+      #     setup, extracted so both callers share it. Idempotent, so re-running it every
+      #     firing on the persistent workspace is safe. (L4's sibling omits this: it targets
+      #     an outward product repo that has no .githooks/ of faff's.)
+      - name: Activate the DCO sign-off hook (sign the runner's commits)
+        run: bash scripts/setup-git-hooks.sh
+
       # 1b. DECLARE THE RUN UNATTENDED (FAFF-765). This watcher is self-directed and runs
       #     with nobody at the keyboard, but it CANNOT be L4 (L4 refuses a self-directed
       #     run, ADR-0069), so the Sentry ABORT kill-switch is keyed on *attendedness*, not

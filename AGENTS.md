@@ -39,4 +39,4 @@ The lintable subset (line caps, paragraph length, stray markers, duplicated bloc
 
 ## Commit sign-off
 
-Every commit carries a `Signed-off-by` trailer with the operator's git identity, added by `git commit -s`. It certifies the [Developer Certificate of Origin](https://developercertificate.org) and is required on PRs by the `dco` check. Agent commit paths append the trailer exactly as they already append `Co-Authored-By`; a machine identity such as `faff-runner` is never used for the sign-off.
+Every commit carries a `Signed-off-by` trailer with the operator's git identity. It certifies the [Developer Certificate of Origin](https://developercertificate.org) and is required on PRs by the `dco` check. Once `scripts/link-skills.sh` has set `core.hooksPath` to `.githooks/`, the tracked `prepare-commit-msg` hook adds the trailer from `git config user.name`/`user.email` on every commit, so a forgotten `-s` no longer fails the check; `git commit -s` adds the same trailer by hand. The identity is the operator's own; a machine identity such as `faff-runner` is never used for the sign-off.

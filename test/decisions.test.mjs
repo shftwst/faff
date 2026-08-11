@@ -167,3 +167,9 @@ test("no docs/decisions.md in the real repo is not an error — CLI performs no 
   const l = run(["list", "--json"]);
   assert.equal(l.status, 0);
 });
+
+test("regression: the real repo's docs/decisions.md (if any) validates clean", () => {
+  const r = run(["validate"]);
+  assert.equal(r.status, 0, `shipped docs/decisions.md must validate:\n${r.stdout}`);
+  assert.match(r.stdout, /^OK —/m);
+});

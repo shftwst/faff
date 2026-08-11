@@ -108,7 +108,7 @@ function mkFencedRoot() {
   return root;
 }
 
-const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true }); };
+const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); };
 
 // ---- FAFF-675: plugin-root doctor scan fixtures ----
 //

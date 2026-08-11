@@ -1224,8 +1224,11 @@ function cmdEconomics(args) {
     // FAFF-500: the JOIN axis — per-file transcript census (to tell parent synthesis
     // from explore child) crossed with events.jsonl windows (to tell prep from build).
     // Reuses measuredTotal as the reconciliation top-line, so it reconciles by
-    // construction over the SAME record population the flat measure summed.
-    const { files } = readRunTranscriptRecordsByFile(root, process.env, runStartMs);
+    // construction over the SAME record population the flat measure summed. Reads
+    // `effectiveEnv` (not process.env) so a `--session-id` override selects the SAME
+    // session the top-line measured against — otherwise the census and the top-line
+    // could diverge under --session-id and break reconciliation (FAFF-488 parity).
+    const { files } = readRunTranscriptRecordsByFile(root, effectiveEnv, runStartMs);
     const { events, malformed } = readRunEvents(runDir);
     const windows = phaseWindowsFromEvents(events);
     const flat = [];

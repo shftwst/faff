@@ -886,6 +886,38 @@ test("Integration smoke (FAFF-488): budget check (baseline) -> events append --t
   } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
 });
 
+test("FAFF-500 REGRESSION: --by phase honours --session-id (reads effectiveEnv, not process.env)", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-phase-pinned";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-09T10:00:30Z" },
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 200 } }, timestamp: "2026-07-09T10:02:30Z" },
+      ],
+    });
+    withEvents(f.runDir, "run-test", [
+      { phase: "prep", type: "prep-start", issue: "FAFF-1", ts: "2026-07-09T10:00:00Z" },
+      { phase: "prep", type: "prep-done", issue: "FAFF-1", ts: "2026-07-09T10:01:00Z" },
+      { phase: "build", type: "build-start", issue: "FAFF-1", ts: "2026-07-09T10:02:00Z" },
+      { phase: "build", type: "issue-outcome", issue: "FAFF-1", ts: "2026-07-09T10:03:00Z" },
+    ]);
+    // --session-id supplies the session; NO ambient CLAUDE_CODE_SESSION_ID in the env. If the
+    // phase branch read process.env instead of effectiveEnv, the census would degrade to
+    // source:estimate and diverge from the top-line (which IS measured via effectiveEnv).
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "phase", "--session-id", sid, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "transcript", "--session-id must select the session for the phase census, not degrade to estimate");
+    assert.equal(bd.reconciliation.reconciles, true);
+    assert.equal(bd.reconciliation.grand_total, 300);
+    assert.equal(bd.rows.find((x) => x.key === "prep-synthesis").total, 100);
+    assert.equal(bd.rows.find((x) => x.key === "build").total, 200);
+  } finally { f.cleanup(); }
+});
+
 // ---------------------------------------------------------------------------
 // FAFF-604 — mixed-fleet reporting honesty: economics labels WHERE each figure
 // came from, and never reports an unobservable engine as free.

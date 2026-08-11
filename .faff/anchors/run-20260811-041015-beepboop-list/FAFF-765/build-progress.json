@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-765",
+  "build": {
+    "status": "complete",
+    "diff_hash": "cf899b5e541bdd2aaaab2342438b3a7384abcfd69c32094954e60a7a3ba1fe90",
+    "branch": "faff-765-de-level-the-abort-kill-switch-act-for-unattended-runs-not",
+    "pushed_at": "2026-08-11T07:09:22.757Z"
+  },
+  "updated_at": "2026-08-11T07:09:22.757Z"
+}

@@ -141,22 +141,12 @@ tracking:
   repo: shftwst/faff         # org/repo slug
   git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
   spec_docs_path: docs/specs/ # where faff-graft commits specs (see Spec docs location)
-  prd_docs_path: docs/prd/
-  prdr_docs_path: docs/prdr/
-  adr_docs_path: docs/adr/
-  spike_docs_path: docs/spikes/
-
+  # prd_docs_path / prdr_docs_path / adr_docs_path / spike_docs_path: docs/{prd,prdr,adr,spikes}/ — same rule, see below
 install:
   skill_targets:   # optional block-sequence (FAFF-684, see docs/guide/cli.md); unset ⇒ ~/.claude+.agents/skills
 
-slots:             # optional delegation slots; each has a faff default when unset
-  intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery
-  spec: gstack:autoplan                              # spec producer used by faff-prep (default faffter-noon-spec)
-  concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
-  review: gstack:review                              # pre-PR review inside faff-graft
-  gates: my-org:gate-runner                          # engineering-quality gate ladder at faff-graft Step 7.5 (default: built-in graft-step → faff gates run)
-  ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
-  profile: my-org:infra-acquirer                     # infra-profile acquirer (default: built-in repo-miner → faff profile mine)
+slots:             # optional delegation slots — see ### Slots below for the full list + defaults
+  spec: gstack:autoplan                              # e.g. a custom spec producer for faff-prep
 
 # mode: delivery-lead is DEPRECATED — use slots.methodology instead. gates.fallback: fail-closed | advisory — what Step 7.5 does when NO declared gates are found (default fail-closed: needs-human; advisory: surface + pass, explicit opt-out)
 
@@ -320,6 +310,16 @@ The lanes have **controlled visibility by design**, not by accident:
 | Orchestrator | Read (context) | Full | Read | No | Yes |
 | Implementor | Full read/write | No | Read | Local dev | No (via orchestrator) |
 | Evaluator | **No** | No | Read | Runtime access | No (via orchestrator) |
+
+| Secret class | Orchestrator | Implementor | Evaluator |
+|---|---|---|---|
+| Agent-engine credentials | Yes | Yes (incl. adversarial-review key, scoped to its helper process) | Yes (its runtime helper is itself an LLM process) |
+| Forge credential | Yes | Yes | No |
+| Tracker credential | Yes | No (host-session tool grant, no lane-held key) | No |
+| Project runtime secrets | No | Yes (local dev) | No (gets synthetic credentials instead) |
+| Synthetic SUT credentials | Transit only, never persisted | No | Yes (its runtime input) |
+| Engine-context vars | Yes | Yes (local dev) | No (endpoint URLs only, never the engine) |
+Secrets get the same treatment: the evaluator's complete visible set is an engine credential, the env-handle's contents, and the spec text — nothing else; a helper process never exceeds its host lane's row, narrowed to what that one call needs; today every lane still shares one container environment, so this grid is a convention review and attestation hold to, made physical once per-lane cages arrive.
 
 This isolation prevents:
 - The implementor gaming its own review (it can't see evaluator feedback until the orchestrator routes it)

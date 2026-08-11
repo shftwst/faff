@@ -9,7 +9,7 @@ judgement_seam: confidence, marker, specqual
 
 Full nlspec-format spec generation, usable as a delegated `spec` skill in faff-prep.
 
-The nlspec format draws on [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie (Apache 2.0). See the repository's `NOTICE`.
+The nlspec format is inspired by [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie. No code from that project is used.
 
 Configure in `.faffrc`:
 

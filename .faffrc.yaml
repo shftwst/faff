@@ -26,7 +26,7 @@ intake_gate: warn
 
 budget:
     max_attempts: 40 # runaway backstop ONLY (won't bind the scoped bulk slice); NOT the terminator
-    tokens: 3000000000 # 3B runaway backstop (subscription covers the week; catches a true runaway)
+    tokens: 3000000000 # 3B runaway backstop only; never binds a normal run (dryness + convergence.max_waves are the real exit)
     at_ceiling: escalate # surface a needs-human signal at the ceiling — never silently drain
     # run-done (dryness) + convergence.max_waves govern the real exit; budget is the backstop.
 

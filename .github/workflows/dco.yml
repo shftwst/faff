@@ -1,0 +1,72 @@
+name: dco
+
+# Require a Developer Certificate of Origin sign-off on every commit in a PR.
+# API-only: reads the PR's commits over the GitHub API with no checkout, so no
+# untrusted fork code runs. Merge commits (parents > 1, e.g. GitHub's "Update
+# branch") and bot-authored commits (release-please) are exempt per-commit; the
+# job still reports success/failure, never a skip, so it can be a required check.
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+  dco:
+    name: dco
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Check DCO sign-off on every commit
+        run: |
+          set -euo pipefail
+
+          # The PR object reports the true commit count; the commits endpoint
+          # truncates at 250 regardless of pagination, so reconcile the two and
+          # fail closed on any shortfall rather than pass on an unexamined tail.
+          total=$(gh api "repos/$REPO/pulls/$PR" --jq '.commits')
+          commits=$(mktemp)
+          gh api --paginate "repos/$REPO/pulls/$PR/commits" \
+            --jq '.[] | {sha, parents: (.parents | length), login: (.author.login // ""), msg: .commit.message}' \
+            > "$commits"
+          examined=$(grep -c '' "$commits" || true)
+          if [ "$examined" -ne "$total" ]; then
+            echo "::error::Examined $examined commits but the PR has $total (GitHub caps the commits API at 250). Cannot verify the full history; failing closed. Reduce the PR's commit count."
+            exit 1
+          fi
+
+          fail=0
+          while IFS= read -r line; do
+            [ -n "$line" ] || continue
+            parents=$(printf '%s' "$line" | jq -r '.parents')
+            login=$(printf '%s' "$line" | jq -r '.login')
+            # Exempt merge commits and bot authors (release-please).
+            [ "$parents" -gt 1 ] && continue
+            case "$login" in *'[bot]') continue ;; esac
+            msg=$(printf '%s' "$line" | jq -r '.msg')
+            if ! printf '%s\n' "$msg" | grep -qE '^Signed-off-by: .+ <[^>]+>$'; then
+              sha=$(printf '%s' "$line" | jq -r '.sha')
+              subject=$(printf '%s\n' "$msg" | head -1)
+              echo "::error::Missing Signed-off-by on ${sha:0:12}  \"$subject\""
+              fail=1
+            fi
+          done < "$commits"
+
+          if [ "$fail" -ne 0 ]; then
+            echo ""
+            echo "Every commit needs a DCO sign-off (https://developercertificate.org)."
+            echo "Fix the most recent commit with: git commit --amend -s"
+            echo "Fix the whole branch with:       git rebase --signoff <base>"
+            echo "Then force-push the branch."
+            exit 1
+          fi
+
+          echo "DCO: all non-exempt commits are signed off."

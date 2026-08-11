@@ -93,10 +93,26 @@ rule for contributors.
 
 ## Credits
 
-The nlspec format used by `faffter-dark-nlspec` draws on
-[NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie, licensed
-under Apache 2.0. See `NOTICE`.
+The nlspec format used by `faffter-dark-nlspec` is inspired by
+[NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie. No code
+from that project is used.
 
 ## Licence
 
-Apache 2.0
+This project is licensed under Apache-2.0 and will remain Apache-2.0. It is
+distributed as the `faff` plugin and CLI and presented as SuperDomestique; the
+same licence covers the work under every name. The code in this repository will
+not be relicensed to source-available or more-restrictive terms. Contributions
+are accepted inbound = outbound under the same licence, attested per commit by a
+[Developer Certificate of Origin](https://developercertificate.org) sign-off
+(see [CONTRIBUTING](CONTRIBUTING.md)). This commitment is recorded in
+[ADR 0105](records/adr/0105-adopt-a-dco-for-contributions-and-commit-to-remaining-apache-2-0.md).
+
+## Trademarks
+
+The names **SuperDomestique** and **Commissaire** identify this project. Both
+first appeared publicly on 2026-08-07, reached the README and the documentation
+site on 2026-08-08, and were adopted as the project's names in
+[ADR 0096](records/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md)
+on 2026-08-08. Apache-2.0 §6 grants no trademark rights, so these names remain
+the project's regardless of forks of the code. No registration is claimed.

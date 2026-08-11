@@ -130,8 +130,11 @@ function appendLog(runDir, token, detail) {
 //                                     The abort GATE keys on this, not the raw level —
 //                                     an unattended L3 run opts in via the config knob.
 //                                     Only pause/correct stay L4-only (never gated here,
-//                                     they're advisory at every level). Resolved in the
-//                                     impure gatherFacts so decideTick stays pure.
+//                                     they're advisory at every level); surface
+//                                     (FAFF-767) is likewise never gated — a run-scoped
+//                                     log+/faff-wtf write, advisory at every level.
+//                                     Resolved in the impure gatherFacts so decideTick
+//                                     stays pure.
 //   checkFault        string|null   — set iff the `sentry check` child faulted
 //                                     (exit 3 / unparseable stdout / spawn error)
 //   checkPayload      object|null   — the parsed `sentry check --json` payload
@@ -171,10 +174,11 @@ function decideTick(facts) {
     if (facts.actsOnSentryAbort) return { action: "abort", terminal: null, consecutiveFaults: 0, payload };
     return { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload };
   }
-  if (payload.tripped && (payload.intervention === "pause" || payload.intervention === "correct")) {
-    // Anti-pattern (spec HOW): the poller never acts on pause/correct at ANY level —
-    // those are orchestrator-judgment interventions (park an issue, author a
-    // corrective) that only make sense at a cooperative checkpoint. Both levels get
+  if (payload.tripped && (payload.intervention === "surface" || payload.intervention === "pause" || payload.intervention === "correct")) {
+    // Anti-pattern (spec HOW): the poller never acts on surface/pause/correct at ANY
+    // level — surface (FAFF-767) is a run-scoped log+/faff-wtf write, and pause/
+    // correct are orchestrator-judgment interventions (park an issue, author a
+    // corrective) that only make sense at a cooperative checkpoint. All three get
     // the same advisory-trip telemetry, never a dispatch action.
     return { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload };
   }
@@ -468,6 +472,8 @@ function cmdSentryPoller(args) {
 const TRIP_ABORT = { tripped: true, intervention: "abort", verdicts: [{ signal: "wall-clock-runaway", severity: "trip" }] };
 const TRIP_PAUSE = { tripped: true, intervention: "pause", verdicts: [{ signal: "fix-review-thrash", severity: "warn" }] };
 const TRIP_CORRECT = { tripped: true, intervention: "correct", verdicts: [{ signal: "fix-review-thrash", severity: "trip" }] };
+// FAFF-767: a lone budget-metering-degraded trip maps to the new run-scoped `surface`.
+const TRIP_SURFACE = { tripped: true, intervention: "surface", verdicts: [{ signal: "budget-metering-degraded", severity: "trip" }] };
 const NO_TRIP = { tripped: false, intervention: "continue", verdicts: [] };
 
 const SENTRY_POLLER_SELFTEST_CASES = [
@@ -504,6 +510,12 @@ const SENTRY_POLLER_SELFTEST_CASES = [
   ["non-acting + correct intervention -> advisory-trip",
     { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: false, checkFault: null, checkPayload: TRIP_CORRECT, consecutiveFaults: 0 },
     { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_CORRECT }],
+  ["FAFF-767: acting run + surface intervention (budget-metering-degraded) -> advisory-trip, never a dispatch",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: TRIP_SURFACE, consecutiveFaults: 0 },
+    { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_SURFACE }],
+  ["FAFF-767: non-acting run + surface intervention -> advisory-trip",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: false, checkFault: null, checkPayload: TRIP_SURFACE, consecutiveFaults: 0 },
+    { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_SURFACE }],
   ["no trip -> poll-ok, fault streak reset",
     { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: NO_TRIP, consecutiveFaults: 5 },
     { action: "poll-ok", terminal: false, consecutiveFaults: 0, payload: NO_TRIP }],

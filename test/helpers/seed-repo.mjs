@@ -17,7 +17,7 @@
 // dependency — `git` is the CLI's own runtime dependency. Per ADR 0002.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir, devNull } from "node:os";
 import path from "node:path";
 
@@ -36,6 +36,12 @@ const DETERMINISM_ENV = {
 // Make a branch name safe to use as a single path segment (for the worktree dir).
 function safeSegment(name) {
   return name.replace(/[^A-Za-z0-9._-]+/g, "-");
+}
+
+// List `.git/worktrees/<id>` entries, or [] when the dir doesn't exist yet (no worktrees
+// added so far — a fresh repo has no `.git/worktrees/` at all).
+function readIdsSafe(adminBase) {
+  try { return readdirSync(adminBase); } catch { return []; }
 }
 
 /**
@@ -147,22 +153,25 @@ export function seedRepo(spec = {}) {
     }
 
     // FAFF-762: a genuinely DANGLING admin dir — `git worktree add` a real linked worktree
-    // on its own branch, resolve its authoritative admin-dir id from the gitdir map (never
-    // the path basename — see worktree-prune.js's own comment on id de-duplication), then
-    // remove the checkout dir. Git's `.git/worktrees/<id>/` entry survives with no backing
-    // checkout: exactly the state `worktree-prune` targets.
+    // on its own branch, resolve its authoritative admin-dir id, then remove the checkout
+    // dir. Git's `.git/worktrees/<id>/` entry survives with no backing checkout: exactly
+    // the state `worktree-prune` targets. Resolve the id by DIFFING the admin-dir listing
+    // before/after the `git worktree add` — not by string-comparing the `gitdir` file's
+    // recorded path against the path we passed in: on macOS the temp root (`os.tmpdir()`)
+    // and/or git's own internal path can be a different-but-equivalent form (e.g. a
+    // symlink-resolved `/private/var/...` vs the unresolved `/var/...` this process sees),
+    // so a literal string match silently fails there while it happens to match on Linux.
+    // The before/after id-set diff sidesteps path-normalisation entirely — it only needs
+    // git to allocate exactly one new admin dir per `worktree add`, which it always does.
     if (spec.danglingWorktree) {
       const name = spec.danglingWorktree.name;
       const dwPath = path.join(root, ".worktrees-dangling", safeSegment(name));
-      git("worktree", "add", "-b", name, dwPath);
       const adminBase = path.join(root, ".git", "worktrees");
-      let adminId = null;
-      for (const id of readdirSync(adminBase)) {
-        let gd;
-        try { gd = readFileSync(path.join(adminBase, id, "gitdir"), "utf8").trim(); } catch { continue; }
-        const wt = gd.replace(/\/\.git\/?$/, "").replace(/\/+$/, "");
-        if (wt === dwPath.replace(/\/+$/, "")) { adminId = id; break; }
-      }
+      const before = new Set(readIdsSafe(adminBase));
+      git("worktree", "add", "-b", name, dwPath);
+      const after = readIdsSafe(adminBase);
+      const newIds = after.filter((id) => !before.has(id));
+      const adminId = newIds.length === 1 ? newIds[0] : null;
       rmSync(dwPath, { recursive: true, force: true, maxRetries: 3 });
       danglingWorktreePath = dwPath;
       danglingAdminPath = adminId ? path.join(adminBase, adminId) : null;

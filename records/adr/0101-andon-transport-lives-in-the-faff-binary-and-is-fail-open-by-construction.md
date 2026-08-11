@@ -1,6 +1,6 @@
 # ADR 0101 — Andon transport lives in the faff binary and is fail-open by construction
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-11
 - **Issue:** FAFF-386

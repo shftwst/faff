@@ -1,6 +1,6 @@
 # ADR 0102 — events.jsonl is the sole andon notification substrate
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-11
 - **Issue:** FAFF-386

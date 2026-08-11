@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-642",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4cb615473370997a48c5f140f1e768514c4d1e4080e912fe3b2e66c3b05c194d",
+    "branch": "faff-642-faff-engine-call-takes-the-latest-run-spend-attribution",
+    "pushed_at": "2026-08-11T18:58:16.525Z"
+  },
+  "updated_at": "2026-08-11T18:58:16.525Z"
+}

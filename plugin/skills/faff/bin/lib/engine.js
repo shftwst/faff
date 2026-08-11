@@ -19,6 +19,7 @@
 // re-dispatches on the session model (the FAFF-50 silent-downgrade failure mode).
 
 const fs = require("node:fs");
+const path = require("node:path");
 const http = require("node:http");
 const https = require("node:https");
 const { ENGINE_CALL_LANES, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
@@ -211,25 +212,47 @@ const ENGINE_SPEC = {
   positionals: { min: 0, max: 1, name: "call" },
 };
 
-// FAFF-604: bind the codex spend sink to a run. `--run-dir` is EXPLICIT for any
-// dispatcher that already knows its run — every in-run producer dispatch must
-// pass it, because "the newest run dir" is an mtime-shaped ownership signal, and
-// with concurrent runs in one repo it can attribute a call to a sibling run (the
-// attribution class FAFF-229 retired for transcripts). The latest-run fallback
-// exists only for an ad-hoc human call, where there is no dispatcher to know
-// better. No run at all → no sink: nothing is recorded, and we say so once
-// rather than silently dropping the spend.
-function resolveSpendSink(runDirFlag, root) {
-  let runDir = runDirFlag;
-  if (!runDir) {
+// FAFF-604/FAFF-642: bind the codex spend sink to a run. Resolution follows the
+// SAME stamped-signal-before-guess chain every other run-resolving site in
+// bin/lib already takes (heartbeat.js's resolveHeartbeatRunDir, quality.js,
+// economics.js, …): explicit `--run-dir` flag → the `$FAFF_RUN_DIR` pointer the
+// owning orchestrator exported → only then the newest dir under `.faff/runs`
+// (an mtime-shaped guess — the attribution class FAFF-229 retired for
+// transcripts). A stamped pointer is evidence; a newest-mtime pick is a guess,
+// so only the guess speaks on stderr — the flag/env paths are silent on the
+// happy route (warning on every compliant flagless in-run dispatch would just
+// teach readers to ignore the channel). Every spend record also carries
+// `attribution` (flag | env | latest-run) so the doubt survives past a stderr
+// line nobody reads. No run at all → no sink: nothing is recorded, and we say
+// so once rather than silently dropping the spend. Never redirects an explicit
+// signal — a flag/env dir with no run-ledger.json is used anyway (just noticed),
+// unlike the sibling READERS' downgrade-to-latest (right for a read, wrong for
+// a write: it would move a caller's spend to a run they never named).
+function resolveSpendSink(runDirFlag, root, env) {
+  const e = env || process.env;
+  let runDir, source;
+  if (runDirFlag) {
+    runDir = runDirFlag;
+    source = "flag";
+  } else if (e.FAFF_RUN_DIR) {
+    runDir = e.FAFF_RUN_DIR;
+    source = "env";
+  } else {
     try { runDir = latestRunDir(root); } catch { runDir = null; }
+    source = "latest-run";
   }
   if (!runDir) {
-    process.stderr.write("faff engine call: engine call outside a run — spend not metered (pass --run-dir to attribute it)\n");
+    process.stderr.write("faff engine call: engine call outside a run — spend not metered (pass --run-dir, set $FAFF_RUN_DIR, or run inside a run)\n");
     return null;
   }
+  if (source === "latest-run") {
+    process.stderr.write(`faff engine call: no --run-dir and no $FAFF_RUN_DIR — attributing codex spend to the newest run ${runDir} (pass --run-dir to attribute it exactly)\n`);
+  }
+  if (!fs.existsSync(path.join(runDir, "run-ledger.json"))) {
+    process.stderr.write(`faff engine call: ${runDir} has no run-ledger.json — recording spend there anyway (resolved from ${source})\n`);
+  }
   const { appendEngineSpend } = require("./budget");
-  return (record) => appendEngineSpend(runDir, record);
+  return (record) => appendEngineSpend(runDir, { ...record, attribution: source });
 }
 
 function cmdEngine(args) {
@@ -586,4 +609,4 @@ async function engineSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { ENGINE_EXIT, SPAWN_FAMILY_CONFIG_DIR_BEARING, buildEngineRequest, cmdEngine, defaultGet, defaultPost, engineSelftest, isAuthError, joinUrl, modelServedOllama, modelServedOpenAi, parseEngineResponse, preflightEngine, runEngineCall, spawnFamilyRunners };
+module.exports = { ENGINE_EXIT, SPAWN_FAMILY_CONFIG_DIR_BEARING, buildEngineRequest, cmdEngine, defaultGet, defaultPost, engineSelftest, isAuthError, joinUrl, modelServedOllama, modelServedOpenAi, parseEngineResponse, preflightEngine, resolveSpendSink, runEngineCall, spawnFamilyRunners };

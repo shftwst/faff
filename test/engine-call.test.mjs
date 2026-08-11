@@ -8,17 +8,19 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli, repoRoot } from "./helpers/run-cli.mjs";
 import engine from "../plugin/skills/faff/bin/lib/engine.js";
 import engineCodex from "../plugin/skills/faff/bin/lib/engine-codex.js";
 import config from "../plugin/skills/faff/bin/lib/config.js";
+import budget from "../plugin/skills/faff/bin/lib/budget.js";
 
-const { buildEngineRequest, parseEngineResponse, preflightEngine, runEngineCall, ENGINE_EXIT } = engine;
+const { buildEngineRequest, parseEngineResponse, preflightEngine, resolveSpendSink, runEngineCall, ENGINE_EXIT } = engine;
 const { buildCodexArgv, parseCodexEvents, runCodexCall } = engineCodex;
 const { resolveEngineForLane, validateEngineRef, ENGINE_CALL_LANES } = config;
+const { readEngineSpend } = budget;
 
 function fixtureDir(faffrcBody) {
   const dir = mkdtempSync(path.join(tmpdir(), "faff422-"));
@@ -538,7 +540,13 @@ test("FAFF-604: `engine call` outside a run says so rather than silently droppin
     // No .faff/runs at all, and no --run-dir: there is no run to attribute to.
     // The call still proceeds (it fails later on the absent codex binary) — the
     // point is the named notice, never a silent drop.
-    const r = runCli(["engine", "call", "--lane", "methodology", "--system", sys, "--user", usr, "--root", dir], { cwd: dir });
+    // FAFF-642: $FAFF_RUN_DIR is now consulted too, so this "no signal at all" case
+    // must explicitly clear it — an ambient pointer inherited from a live faff run
+    // (this test itself may run nested inside one) would otherwise resolve via env
+    // and never reach the outside-a-run branch this test targets.
+    const env = { ...process.env };
+    delete env.FAFF_RUN_DIR;
+    const r = runCli(["engine", "call", "--lane", "methodology", "--system", sys, "--user", usr, "--root", dir], { cwd: dir, env });
     assert.match(r.stderr, /outside a run — spend not metered/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -554,6 +562,154 @@ test("FAFF-604: --run-dir is accepted by `engine call` (explicit in-run attribut
     // The flag is known to the parser — an unknown flag would be a usage exit 2.
     assert.notEqual(r.code, 2, r.stderr);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- FAFF-642: run-resolution chain (flag → $FAFF_RUN_DIR → latest-run) + attribution ---
+// `resolveSpendSink` is the exact function this ticket changes. These call it directly
+// with an injected `env` object (its third arg) rather than spawning a real codex
+// binary — env injection needs no subprocess, and the resolution/notice/attribution
+// logic lives entirely inside this one function, independent of the codex dispatch
+// that calls it.
+
+function withCapturedStderr(fn) {
+  const orig = process.stderr.write;
+  let out = "";
+  process.stderr.write = (s) => { out += String(s); return true; };
+  try { fn(); } finally { process.stderr.write = orig; }
+  return out;
+}
+
+function makeRunDir(root, name, { withLedger = true } = {}) {
+  const dir = path.join(root, ".faff", "runs", name);
+  mkdirSync(dir, { recursive: true });
+  if (withLedger) writeFileSync(path.join(dir, "run-ledger.json"), "{}");
+  return dir;
+}
+
+function readSpendLines(runDir) {
+  const p = path.join(runDir, "engine-spend.jsonl");
+  if (!existsSync(p)) return [];
+  return readFileSync(p, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+}
+
+const SAMPLE_RECORD = { ts: "t", engine: "e", provider: "p", model: "m", source: "s", input: 1, output: 2, cache_write: 0, cache_read: 0 };
+
+test("FAFF-642: --run-dir flag resolves attribution \"flag\", silently, the named dir used even when a newer run exists", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const runA = makeRunDir(root, "run-A");
+    const runB = makeRunDir(root, "run-B"); // created after A — the "newest" if a guess were taken
+    let sink;
+    const stderr = withCapturedStderr(() => { sink = resolveSpendSink(runA, root, {}); });
+    assert.equal(stderr, "", "the flag path is silent on the happy route");
+    sink(SAMPLE_RECORD);
+    const linesA = readSpendLines(runA);
+    assert.equal(linesA.length, 1);
+    assert.equal(linesA[0].attribution, "flag");
+    assert.equal(readSpendLines(runB).length, 0, "spend must land on the named run, never a newer one");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: $FAFF_RUN_DIR resolves attribution \"env\" when no flag is given, silently, over a newer run", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const runA = makeRunDir(root, "run-A");
+    const runB = makeRunDir(root, "run-B"); // newest under .faff/runs — must lose to the env pointer
+    let sink;
+    const stderr = withCapturedStderr(() => { sink = resolveSpendSink(null, root, { FAFF_RUN_DIR: runA }); });
+    assert.equal(stderr, "", "the env path is silent on the happy route — it is a stamped pointer, not a guess");
+    sink(SAMPLE_RECORD);
+    const linesA = readSpendLines(runA);
+    assert.equal(linesA.length, 1);
+    assert.equal(linesA[0].attribution, "env");
+    assert.equal(readSpendLines(runB).length, 0, "spend must land on the env-pointed run, never a newer one");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: neither flag nor env — the latest-run fallback is taken and NAMES the resolved dir on stderr", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const runA = makeRunDir(root, "run-A");
+    let sink;
+    const stderr = withCapturedStderr(() => { sink = resolveSpendSink(null, root, {}); });
+    assert.match(stderr, /no --run-dir and no \$FAFF_RUN_DIR/);
+    assert.ok(stderr.includes(runA), "the fallback notice must name the resolved run dir");
+    sink(SAMPLE_RECORD);
+    assert.equal(readSpendLines(runA)[0].attribution, "latest-run");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: neither flag nor env, no run found — the widened no-run notice fires and nothing is recorded", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const stderr = withCapturedStderr(() => {
+      const sink = resolveSpendSink(null, root, {});
+      assert.equal(sink, null);
+    });
+    assert.match(stderr, /outside a run — spend not metered/);
+    // The widened remedy names all three resolution signals, not just --run-dir.
+    assert.match(stderr, /\$FAFF_RUN_DIR/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: a flag-named dir with no run-ledger.json gets the sanity notice and is still written to, never redirected", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const bareDir = path.join(root, "not-a-run");
+    mkdirSync(bareDir, { recursive: true });
+    let sink;
+    const stderr = withCapturedStderr(() => { sink = resolveSpendSink(bareDir, root, {}); });
+    assert.match(stderr, /has no run-ledger\.json — recording spend there anyway \(resolved from flag\)/);
+    sink(SAMPLE_RECORD);
+    assert.equal(readSpendLines(bareDir)[0].attribution, "flag");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: an empty-string $FAFF_RUN_DIR is treated as unset, falling through to the latest-run scan", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const runA = makeRunDir(root, "run-A");
+    let sink;
+    const stderr = withCapturedStderr(() => { sink = resolveSpendSink(null, root, { FAFF_RUN_DIR: "" }); });
+    assert.match(stderr, /no --run-dir and no \$FAFF_RUN_DIR/, "empty string must not be read as a set pointer");
+    sink(SAMPLE_RECORD);
+    assert.equal(readSpendLines(runA)[0].attribution, "latest-run");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: readEngineSpend totals are unchanged by the new attribution field", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff642-"));
+  try {
+    const runA = makeRunDir(root, "run-A");
+    const sink = resolveSpendSink(runA, root, {});
+    sink({ ts: "t", engine: "e", provider: "p", model: "gpt-5-codex", source: "s", input: 10, output: 5, cache_write: 0, cache_read: 2 });
+    const totals = readEngineSpend(runA);
+    assert.equal(totals.records, 1);
+    assert.deepEqual(totals.totals, { input: 10, output: 5, cache_write: 0, cache_read: 2 });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-642: the dispatch exit code is identical across all four resolution outcomes for an otherwise-identical call", () => {
+  const dir = fixtureDir(CODEX_FIXTURE);
+  const noRunDir = fixtureDir(CODEX_FIXTURE);
+  try {
+    const sys = path.join(dir, "s.txt"); const usr = path.join(dir, "u.txt");
+    writeFileSync(sys, "S"); writeFileSync(usr, "U");
+    const runA = makeRunDir(dir, "run-A");
+    const envWithout = { ...process.env };
+    delete envWithout.FAFF_RUN_DIR;
+    const base = ["engine", "call", "--lane", "methodology", "--system", sys, "--user", usr, "--root", dir];
+    const noRunBase = ["engine", "call", "--lane", "methodology", "--system", sys, "--user", usr, "--root", noRunDir];
+    const codes = [
+      runCli(base, { cwd: dir, env: envWithout }).code,                             // latest-run (via runA)
+      runCli([...base, "--run-dir", runA], { cwd: dir, env: envWithout }).code,      // flag
+      runCli(base, { cwd: dir, env: { ...envWithout, FAFF_RUN_DIR: runA } }).code,   // env
+      runCli(noRunBase, { cwd: noRunDir, env: envWithout }).code,                    // no run at all (fresh, run-less root)
+    ];
+    // All four fail identically later, at the same absent-codex-binary step —
+    // resolution outcome must never change the dispatch's own exit code.
+    assert.ok(codes.every((c) => c === codes[0]), `resolution outcomes must share one exit code: ${JSON.stringify(codes)}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(noRunDir, { recursive: true, force: true }); }
 });
 
 test("FAFF-604 REGRESSION: codex cached input is a SUBSET of input_tokens, never double-counted", () => {

@@ -144,6 +144,11 @@ const REGION_MAP = {
   "findings-reconcile": "factory",
   "park-history": "factory",
   "gitignore-ensure": "factory",
+  // FAFF-483: the harness-abstraction seam register + its lint. Requires only
+  // argv + shared-infra at load time (sibling modules lazily), owns CURRENT_HARNESS
+  // which backends.js now re-exports — a pure factory computation, sibling of the
+  // other deterministic CLI resolvers → factory.
+  "harness": "factory",
   "adr": "factory",
   // andon — FAFF-386: the push-alerting pump reads the full `andon.*` config block
   // via the factory `loadConfig` resolver (mirrors `adr`/`decisions`'s choice, not
@@ -287,6 +292,7 @@ const REGION_SELFTEST_ARGV = {
   "findings-reconcile": ["findings-reconcile", "--selftest"],
   "park-history": ["park-history", "--selftest"],
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
+  "harness": ["harness", "--selftest"],
   "adr": ["adr", "--selftest"],
   "andon": ["andon", "--selftest"],
   "decisions": ["decisions", "--selftest"],

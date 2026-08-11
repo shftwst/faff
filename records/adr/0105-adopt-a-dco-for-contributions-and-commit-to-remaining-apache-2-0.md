@@ -1,6 +1,6 @@
 # ADR 0105 — Adopt a DCO for contributions and commit to remaining Apache-2.0
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-11
 - **Issue:** FAFF-589

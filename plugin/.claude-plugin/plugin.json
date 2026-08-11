@@ -1,6 +1,6 @@
 {
   "name": "faff",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Takes the faff out of shipping software: the tickets, specs, test plans and review write-ups you never get around to, scaled all the way up to draining the backlog unattended while you're off thinking about the actual problem. Because, well, who codes any more anyway?!",
   "author": {
     "name": "Alec Hill"

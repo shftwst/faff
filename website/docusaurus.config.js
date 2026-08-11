@@ -18,19 +18,25 @@ const config = {
   organizationName: 'shftwst',
   projectName: 'faff',
 
-  // First slice: rewrite the two known out-of-tree links to absolute GitHub URLs
-  // (see docs/guide/governance-check.md) and warn on
-  // anything unforeseen rather than hard-failing the build (FAFF-508).
-  onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
+  // The docs build refuses on a broken internal route (FAFF-659): a link
+  // that resolves to a page the site does not serve fails the build rather
+  // than warning past it. A doc link that points outside the two routed
+  // trees (docs/guide, docs/concept) is written as an absolute GitHub URL,
+  // which Docusaurus never resolves; those URLs are kept honest instead by
+  // the out-of-tree docs-link step in .github/workflows/validate.yml.
+  onBrokenLinks: 'throw',
 
   // The guide Markdown is plain CommonMark, not MDX — it carries curly
   // braces and other MDX-expression-shaped text (CLI flag tables) that trips
   // the MDX parser. Force classic Markdown parsing site-wide so the existing
   // canonical files render unmodified (FAFF-508: read in place, no rewrite
-  // for the site's benefit).
+  // for the site's benefit). onBrokenMarkdownLinks moved under markdown.hooks
+  // here — the top-level option is deprecated in 3.10.2 (FAFF-659).
   markdown: {
     format: 'md',
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
   },
 
   i18n: {

@@ -27,6 +27,44 @@ jobs:
           node plugin/skills/faff/bin/faff lint-refs --selftest
           node plugin/skills/faff/bin/faff lint-refs
 
+      - name: Validate out-of-tree docs links (docs/guide, docs/concept paths resolve)
+        run: |
+          # Every https://github.com/shftwst/faff/blob/main/<path> URL written in
+          # a routed doc tree (docs/guide, docs/concept), outside a fenced code
+          # block, must name a path that exists in the working tree. Docusaurus
+          # never resolves absolute URLs, so this is the only coverage those
+          # out-of-tree links get (FAFF-659). Path existence, not a network
+          # fetch: no token, cannot flake on github.com. Scoped to the routed
+          # trees ONLY — a docs/** scan would trip over illustrative placeholder
+          # URLs in fenced blocks of archived specs.
+          set -euo pipefail
+          missing=0
+          while IFS="$(printf '\t')" read -r file lineno url; do
+            path=${url#https://github.com/shftwst/faff/blob/main/}
+            path=${path%%#*}
+            if [ ! -e "$path" ]; then
+              echo "BROKEN out-of-tree docs link: $file:$lineno -> $url (path '$path' not found)"
+              missing=1
+            fi
+          done < <(awk '
+            FNR==1 { infence=0 }
+            {
+              t=$0; sub(/^[ \t]*/,"",t)
+              if (t ~ /^(```|~~~)/) { infence = !infence; next }
+              if (infence) next
+              s=$0
+              while (match(s, /https:\/\/github\.com\/shftwst\/faff\/blob\/main\/[^] )>"`]+/)) {
+                print FILENAME "\t" FNR "\t" substr(s, RSTART, RLENGTH)
+                s=substr(s, RSTART+RLENGTH)
+              }
+            }
+          ' $(find docs/guide docs/concept -name '*.md' | sort))
+          if [ "$missing" -ne 0 ]; then
+            echo "One or more out-of-tree docs links point at a path that does not exist."
+            exit 1
+          fi
+          echo "All out-of-tree docs links in docs/guide and docs/concept resolve."
+
       - name: Validate CLI reference doc covers every subcommand (docs/guide/cli.md)
         run: |
           node plugin/skills/faff/bin/faff lint-cli-doc --selftest

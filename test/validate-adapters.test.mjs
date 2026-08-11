@@ -1,7 +1,9 @@
 // FAFF-120 — the skill-authoring charter's lintable subset in `faff validate-adapters`
-// (docs/reference/skill-authoring.md): per-file line cap, wall-of-text paragraph cap, stray transcript/
-// retrospective markers, and a cross-file duplicated-block detector. Thresholds are calibrated
-// against the post-FAFF-114–119 tree as lenient ceilings; the real tree must pass clean.
+// (docs/reference/skill-authoring.md): per-file line cap (a downward ratchet for the two hub files,
+// FAFF-584), wall-of-text paragraph cap (now counting bold-lead bullets, FAFF-584, as WARN), an
+// anchor heading-existence lint (FAFF-584, WARN), stray transcript/retrospective markers, and a
+// cross-file duplicated-block detector. Thresholds are calibrated against the post-FAFF-114–119 tree
+// as lenient ceilings; the real tree must pass clean.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -9,10 +11,13 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
 const BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
+const require = createRequire(import.meta.url);
+const { SKILL_LINE_BASELINE } = require(join(REPO, "plugin", "skills", "faff", "bin", "lib", "validate-adapters.js"));
 
 // Run validate-adapters over a throwaway skills dir of {dirName: SKILL.md body} fixtures.
 // Fixture dir names are NOT faffter-/faffidavit-/faff- prefixed (unless a test needs the gateway
@@ -38,11 +43,12 @@ test("flags a SKILL.md over the line cap", () => {
   assert.notEqual(r.status, 0);
 });
 
-test("the gateway hub gets the higher line-cap override", () => {
-  // a 700-line file named `faff` is the shared-prose hub — override 1000, so no line-cap failure
+test("the gateway hub gets its own downward-ratchet baseline, not the shared ceiling", () => {
+  // a 700-line file named `faff` is the shared-prose hub — SKILL_LINE_BASELINE.faff is its own
+  // committed-size ratchet (comfortably above 700 at real-repo size), so no line-cap failure here.
   const body = Array.from({ length: 700 }, (_, i) => `gateway line ${i}`).join("\n");
   const r = runOne(body, "faff");
-  assert.equal(has(r, "line cap"), false, "the gateway override (1000) must not trip at 700 lines");
+  assert.equal(has(r, "line cap"), false, "the gateway's SKILL_LINE_BASELINE ratchet must not trip at 700 lines");
 });
 
 test("flags a wall-of-text paragraph", () => {
@@ -207,10 +213,111 @@ test("FAFF-439: the turn-safe check is case-insensitive (`Never end a turn`)", (
   assert.doesNotMatch(r.stdout, POSTURE, "capitalised `Never end a turn` must still pass");
 });
 
+// --- FAFF-584: line-cap downward ratchet -----------------------------------------------------
+
+// Fixtures below use "faff-beep-boop" (a SKILL_LINE_BASELINE key with no name-specific content
+// checks) rather than "faff-graft", whose real skill carries an UNRELATED name-keyed lint (the
+// FAFF-491/530 build-phase foreground-posture anchor check) that would false-fail a minimal fixture.
+test("FAFF-584: a baselined fixture at exactly its baseline plus one line FAILs the line cap", () => {
+  const cap = SKILL_LINE_BASELINE["faff-beep-boop"];
+  const body = Array.from({ length: cap + 1 }, (_, i) => `beep-boop line ${i}`).join("\n");
+  const r = runOne(body, "faff-beep-boop");
+  assert.ok(has(r, "line cap"), "one line over a baselined file's ratchet should FAIL");
+  assert.match(r.stdout, new RegExp(`${cap + 1} lines \\(cap ${cap}\\)`));
+  assert.notEqual(r.status, 0);
+});
+
+test("FAFF-584: a baselined fixture below its baseline gets a non-failing RATCHET advisory", () => {
+  // a faff-* fixture name also pulls in the unrelated FAFF-54 rendering-pass content check; satisfy
+  // it with a harmless rendering_adaptor mention so this test isolates the RATCHET behaviour alone.
+  const r = runOne("This fixture routes through the rendering_adaptor.\n\none line only\n", "faff-beep-boop");
+  assert.match(r.stdout, /RATCHET\s+faff-beep-boop/, "a baselined file below its baseline should print a RATCHET advisory");
+  assert.equal(has(r, "line cap"), false, "shrinking below baseline must not FAIL");
+  assert.equal(r.status, 0, "a RATCHET advisory alone must not force a non-zero exit");
+});
+
+// --- FAFF-584: paragraph cap counts bold-lead bullets (WARN, house style no longer exempt) -----
+
+test("FAFF-584: a 260-word bold-lead bullet WARNs the paragraph cap without forcing a non-zero exit", () => {
+  // "- **Foo.**" itself contributes 2 whitespace-split tokens; 258 filler words brings the total to 260.
+  const words = Array.from({ length: 258 }, () => "word").join(" ");
+  const r = runOne(`- **Foo.** ${words}\n`);
+  assert.match(r.stdout, /WARN\s+.*\(paragraph\).*260-word bold-lead bullet/, "a bold-lead bullet over cap should WARN");
+  assert.equal(has(r, "paragraph") && /FAIL/.test(r.stdout), false, "the bold-lead-bullet WARN must not also FAIL");
+  assert.equal(r.status, 0, "a bold-lead-bullet WARN alone must not force a non-zero exit");
+});
+
+test("FAFF-584: a 260-word non-bullet prose line still FAILs the paragraph cap (plain-prose teeth retained)", () => {
+  const words = Array.from({ length: 260 }, () => "word").join(" ");
+  const r = runOne(`${words}\n`);
+  assert.ok(has(r, "paragraph"), "a 260-word plain-prose line should still FAIL");
+  assert.match(r.stdout, /FAIL.*\(paragraph\)/);
+  assert.notEqual(r.status, 0);
+});
+
+// --- FAFF-584: anchor heading-existence lint (WARN) ---------------------------------------------
+
+test("FAFF-584: an anchor whose target matches a real heading emits no anchor warning", () => {
+  const r = runOne("## Automation eligibility\n\nsee gateway → **Automation eligibility**\n");
+  assert.equal(/\(anchor\)/.test(r.stdout), false, "an exact-match anchor must not warn");
+});
+
+test("FAFF-584: an anchor whose leaf is a word-boundary prefix of a longer heading resolves", () => {
+  const r = runOne("## Next-step transition — consult faff next\n\nsee gateway → **Next-step transition**\n");
+  assert.equal(/\(anchor\)/.test(r.stdout), false, "a whole-word-prefix anchor must not warn");
+});
+
+test("FAFF-584: a mid-word (non-word-boundary) prefix does NOT resolve — negative lenience boundary", () => {
+  const r = runOne("## Parking lot\n\nsee gateway → **Park**\n");
+  assert.match(r.stdout, /WARN\s+.*\(anchor\)/, "\"Park\" must not spuriously resolve against \"Parking lot\"");
+});
+
+test("FAFF-584: an anchor with no matching heading anywhere WARNs, without forcing a non-zero exit", () => {
+  const r = runOne("see gateway → **Nonexistent Section**\n");
+  assert.match(r.stdout, /WARN\s+.*\(anchor\).*Nonexistent Section/);
+  assert.equal(r.status, 0, "an anchor WARN alone must not force a non-zero exit");
+});
+
+test("FAFF-584: two identical headings in one fixture file WARN as an ambiguous anchor", () => {
+  const r = runOne("## Routing\n\nsome text\n\n## Routing\n\nmore text\n");
+  assert.match(r.stdout, /WARN\s+.*\(ambiguous anchor\)/);
+});
+
+test("FAFF-584: .example lines are exempt from the anchor lint", () => {
+  const r = runOne("see gateway → **Nonexistent Section** .example\n");
+  assert.equal(/\(anchor\)/.test(r.stdout), false, ".example lines must be skipped, mirroring every other per-line lint");
+});
+
+// FAIL-only (not WARN) severity check: `has()` matches any "(category)" occurrence regardless of
+// verb, and FAFF-584's paragraph check now legitimately WARNs on 15 pre-existing bold-lead bullets
+// on the real tree (the ticket's own point — visible, non-blocking) — a blanket `has()` would
+// false-fail this regression guard on exactly the advisory it's meant to introduce.
+const hasFail = (r, category) => new RegExp(`^FAIL\\s+\\S.*\\(${category}\\)`, "m").test(r.stdout);
+
+// Adversarial-review follow-up (Phase 2, FAFF-584): the FAIL-absence check above proves the real
+// hub files aren't OVER their baseline, but says nothing about headroom creeping back in below it —
+// a baseline raised above the file's actual size would print a silent (non-failing) RATCHET advisory
+// forever, unnoticed, defeating the zero-headroom invariant without ever going red. Assert directly
+// that the two hub files sit AT their baseline (no RATCHET) on the real tree.
+test("FAFF-584: the two hub files' real committed size sits exactly at their SKILL_LINE_BASELINE (zero headroom, no RATCHET)", () => {
+  const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
+  for (const name of ["faff", "faff-beep-boop"]) {
+    assert.equal(new RegExp(`RATCHET\\s+${name}\\b`).test(r.stdout), false,
+      `${name}'s SKILL_LINE_BASELINE entry should equal its exact committed size — a RATCHET advisory means the baseline has headroom above the real file`);
+  }
+});
+
 test("regression guard: the real shipped tree passes every charter rule clean", () => {
   const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
   for (const cat of ["line cap", "paragraph", "stray marker", "duplicated block"]) {
-    assert.equal(has(r, cat), false, `shipped tree should pass the '${cat}' charter rule`);
+    assert.equal(hasFail(r, cat), false, `shipped tree should pass the '${cat}' charter rule`);
   }
   assert.equal(r.status, 0, "validate-adapters is green on the shipped tree");
+});
+
+test("FAFF-584: the real gateway's duplicate ## Routing has been deduped — no ambiguous-anchor WARN", () => {
+  const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
+  // Scoped to the "Routing" heading specifically — other pre-existing, out-of-scope ambiguous
+  // headings elsewhere in the tree are not this ticket's concern (WARN-severity, non-blocking).
+  assert.equal(/heading "Routing"/.test(r.stdout), false, "the gateway's ## Routing / ## Routing fallbacks split must not read as ambiguous");
 });

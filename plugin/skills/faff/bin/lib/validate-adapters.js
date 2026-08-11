@@ -36,21 +36,24 @@ const SKIP = new Set(["faffter-dark-authoring-adaptors"]);
 const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "promotion-readiness", "build-queue"];
 
 // FAFF-120: the machine-checkable subset of the skill-authoring charter (docs/reference/skill-authoring.md).
-// Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
-// prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
-const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1160, "faff-beep-boop": 720, "faff-graft": 628 };   // per-file SKILL.md line caps (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7), FAFF-767 +1 beep-boop (surface intervention row) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return), FAFF-448 +6 gateway (decisions-register consult in Resolve-attempt before park) + faff-graft +6 (register-consult mirror + 3/5 bound-drift fix)
-                                                  // FAFF-695 added the "Tracker availability resolution" shared rule to the gateway (+ a beep-boop pointer to it).
-                                                  // structurally with each new slot/contract — FAFF-335's spec_review/grounding slot rows + the
-                                                  // "Spec-review verdict (fixed)" contract section pushed it past 1100. faff-beep-boop is the L4
-                                                  // orchestration hub and grows the same way with each new run-start/guardrail step (the
-                                                  // PRD-admissibility pre-check pushed it past 600; FAFF-385's post-merge-verification reconciliation
-                                                  // step + ledger annotations pushed it past 650; FAFF-475's install-health preflight surfacing pushed
-                                                  // it past 660; FAFF-536's orchestrator-lane capture + self-intake chokepoint delta pushed it past 690)
-                                                  // — both caps are calibrated to the hub's real size while still forcing leanness per addition.
-                                                  // faff-graft: FAFF-708 added the three coupled remote-backed diff blocks (review / resume / build-progress),
-                                                  // already minimised — the base-resolution itself lives in the bundled remote-diff-base.sh, not the prose —
-                                                  // pushing a file already at the 595/600 ceiling to 615; capped snug at 620, same leanness-per-addition rule.
+// SKILL_LINE_CAP is a lenient CEILING for every SKILL.md not named in SKILL_LINE_BASELINE below.
+const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap (shared default ceiling)
+// FAFF-584: downward ratchet for the two hub files whose size is load-bearing enough to track by
+// their own committed line count — the gateway (`faff`) and the beep-boop orchestration hub. Scope
+// is deliberately the two hub files, not every SKILL.md (human decision, 2026-08-10): the ~28 other
+// skills stay on the shared SKILL_LINE_CAP default above. Each value here MUST equal the file's
+// current `wc -l` — zero headroom. Lower it only when the file is leaned; NEVER raise it to fit
+// growth (growth instead FAILs "(line cap)"; the per-file loop below also prints a non-failing
+// RATCHET advisory when a file has shrunk below its recorded baseline, nudging the value down).
+// Honest limit: this is a STATELESS linter — it reads the working tree, never git history — so it
+// cannot mechanically stop a contributor hand-raising a baseline to fit growth instead of leaning;
+// the real gate is that such a raise is a conspicuous, reviewable diff line, not a silent pass. A
+// git-history monotonic-nonincreasing check, and extending the ratchet to every SKILL.md, are both
+// deferred follow-ups (FAFF-584 §7) — the stateless linter can't do the former without new machinery.
+// `faff-graft` carries an unrelated, pre-existing override (FAFF-708 et al.) with headroom, not a
+// zero-headroom ratchet; it predates and is out of this ticket's two-hub-file scope, so its value is
+// carried forward unchanged rather than folded into the ratchet invariant above.
+const SKILL_LINE_BASELINE = { faff: 1158, "faff-beep-boop": 720, "faff-graft": 628 };   // renamed from SKILL_LINE_CAP_OVERRIDE (FAFF-584). faff/faff-beep-boop: ratchet baselines, set to their exact committed size. faff-graft: unchanged carry-forward, see above. (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7), FAFF-767 +1 beep-boop (surface intervention row) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return), FAFF-448 +6 gateway (decisions-register consult in Resolve-attempt before park) + faff-graft +6 (register-consult mirror + 3/5 bound-drift fix), FAFF-584 gateway ## Routing dedupe (line-neutral rename) + baseline re-pin to committed size
 const PARA_WORD_CAP = 200;                         // longest single prose line (≈ one paragraph) — nudge bullets over walls of prose
 const DUP_BLOCK_WINDOW = 6;                         // identical run of significant lines across 2+ skills = copied prose; single-source it
 const DUP_SIG_MINLEN = 25;                          // a "significant" line for dedup/paragraph purposes is non-trivial prose this long
@@ -64,6 +67,37 @@ function isProseLine(line) {
   const s = line.trim();
   if (!s) return false;
   return !/^([-*>]|\d+\.|#|\||```)/.test(s);
+}
+// A bold-lead bullet is the house mega-bullet style ("- **Foo.** …" / "* **Foo.** …") — prose in
+// disguise as a list item. isProseLine (above) deliberately excludes it and stays UNCHANGED — it also
+// gates the cross-file dedup collection below, and widening it would silently pull bold-lead bullets
+// (frequently shared/referenced prose) into dedup windows. isParagraphLine is the dedicated, surgical
+// selector for the paragraph-length cap only (FAFF-584).
+const BOLD_LEAD_BULLET = /^[-*]\s+\*\*/;
+function isParagraphLine(line) {
+  const s = line.trim();
+  if (!s) return false;
+  if (BOLD_LEAD_BULLET.test(s)) return true;
+  return isProseLine(line);
+}
+// FAFF-584: the within-prose anchor lint. ANCHOR_REF captures the bold target text of one
+// `→ **Section**` cross-reference; HEADING_LINE matches a `##`..`######` heading, capturing its text.
+const ANCHOR_REF = /→\s*\*\*([^*]+)\*\*/g;
+const HEADING_LINE = /^(#{2,6})\s+(.+?)\s*$/;
+// Normalize a heading (or an anchor leaf) for comparison: strip backticks/emphasis markers, lowercase,
+// collapse whitespace. Anchor resolution and ambiguous-heading detection both compare on this form.
+function normalizeHeading(s) {
+  return s.trim().replace(/[`*_]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+// An anchor leaf resolves if it equals a pooled heading, or is a whole-word prefix of one (refs
+// routinely use a short form of a longer heading). A bare substring prefix ("park" vs "parking lot")
+// must NOT resolve — the word-boundary space after the leaf is what makes the boundary real.
+function anchorResolves(leaf, headings) {
+  if (headings.has(leaf)) return true;
+  for (const h of headings) {
+    if (h.startsWith(leaf + " ")) return true;
+  }
+  return false;
 }
 const REFER_BACK = /Read[^\n]*\bfaff\/SKILL\.md/;
 const NON_NORMATIVE = /non-normative|gateway wins/i;
@@ -801,23 +835,33 @@ function cmdValidateAdapters(args) {
   }
 
   // FAFF-120: skill-authoring charter — the lintable subset (docs/reference/skill-authoring.md). Per-file
-  // rules (line cap, paragraph length, stray markers) run in one pass; the cross-file dedup detector
-  // collects significant-line windows here and reports after the loop. Reuses allSkills above.
+  // rules (line cap, paragraph length, stray markers, heading collection) run in one pass; the
+  // cross-file dedup detector collects significant-line windows here and reports after the loop; the
+  // FAFF-584 anchor-existence lint resolves refs after the loop too (it needs every file's headings
+  // pooled first, structurally identical to dupWindows). Reuses allSkills above.
   const dupWindows = new Map(); // block-key -> Set of skill names that contain it
+  const headings = new Set(); // pooled, normalized ## / ### ... headings across every skill
+  const linesByFile = new Map(); // name -> lines, retained for the anchor-resolution pass below
   for (const name of allSkills) {
     const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
     const lines = text.split("\n");
+    linesByFile.set(name, lines);
 
-    // line cap
-    const cap = SKILL_LINE_CAP_OVERRIDE[name] || SKILL_LINE_CAP;
+    // line cap — FAFF-584: a downward ratchet for the two SKILL_LINE_BASELINE hub files (zero
+    // headroom; growth FAILs, a shrink below baseline prints a non-failing RATCHET advisory), the
+    // shared lenient SKILL_LINE_CAP ceiling for everything else.
+    const cap = SKILL_LINE_BASELINE[name] || SKILL_LINE_CAP;
     if (lines.length > cap) {
       failed = true;
       console.log(`FAIL  ${name} (line cap)`);
       console.log(`        ✗ SKILL.md is ${lines.length} lines (cap ${cap}) — split or lean it (FAFF-120 charter)`);
+    } else if (Object.prototype.hasOwnProperty.call(SKILL_LINE_BASELINE, name) && lines.length < cap) {
+      console.log(`RATCHET  ${name} — now ${lines.length} lines, below baseline ${cap}; lower the baseline to lock the reduction (FAFF-120)`);
     }
 
-    // paragraph / wall-of-text + stray markers (per significant prose line)
+    // paragraph / wall-of-text + stray markers + heading collection (per significant prose line)
     const sigLines = [];
+    const seenHeadingsThisFile = new Set();
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (line.includes(".example")) continue;
@@ -827,14 +871,38 @@ function cmdValidateAdapters(args) {
         console.log(`FAIL  ${name} (stray marker)`);
         console.log(`        ✗ line ${i + 1}: ${stray} — state the rule forward; war-stories belong in git history / ADRs / design, not the prompt (FAFF-120 charter)`);
       }
-      if (!isProseLine(line)) continue;
-      const words = line.trim().split(/\s+/).length;
-      if (words > PARA_WORD_CAP) {
-        failed = true;
-        console.log(`FAIL  ${name} (paragraph)`);
-        console.log(`        ✗ line ${i + 1}: ${words}-word paragraph (cap ${PARA_WORD_CAP}) — break it into bullets (FAFF-120 charter)`);
+
+      // FAFF-584: heading collection — pools into `headings` for the anchor-resolution pass below,
+      // and flags a heading text repeated within this one file (an anchor to it would be ambiguous).
+      const headingMatch = line.match(HEADING_LINE);
+      if (headingMatch) {
+        const norm = normalizeHeading(headingMatch[2]);
+        if (seenHeadingsThisFile.has(norm)) {
+          console.log(`WARN  ${name} (ambiguous anchor) — heading "${headingMatch[2].trim()}" appears more than once; an anchor to it is ambiguous — rename one (FAFF-120)`);
+        }
+        seenHeadingsThisFile.add(norm);
+        headings.add(norm);
       }
-      if (line.trim().length >= DUP_SIG_MINLEN) sigLines.push(line.trim());
+
+      // FAFF-584: isParagraphLine additionally selects bold-lead bullets (the house mega-bullet
+      // style), closing the exemption that let them pass green regardless of length. isProseLine
+      // itself is unchanged and keeps gating the dedup collection below (never widen that predicate).
+      if (isParagraphLine(line)) {
+        const words = line.trim().split(/\s+/).length;
+        if (words > PARA_WORD_CAP) {
+          if (isProseLine(line)) {
+            failed = true;
+            console.log(`FAIL  ${name} (paragraph)`);
+            console.log(`        ✗ line ${i + 1}: ${words}-word paragraph (cap ${PARA_WORD_CAP}) — break it into bullets (FAFF-120 charter)`);
+          } else {
+            // selected only via the bold-lead-bullet branch of isParagraphLine — advisory, not a hard
+            // FAIL (15 pre-existing over-cap bullets would red-CI the tree on landing; FAFF-584 §3).
+            console.log(`WARN  ${name} (paragraph) — line ${i + 1}: ${words}-word bold-lead bullet (cap ${PARA_WORD_CAP}) — break it into sub-bullets (FAFF-120 charter)`);
+          }
+        }
+      }
+
+      if (isProseLine(line) && line.trim().length >= DUP_SIG_MINLEN) sigLines.push(line.trim());
     }
 
     // collect dedup windows from this skill's significant prose lines
@@ -855,6 +923,24 @@ function cmdValidateAdapters(args) {
     console.log(`FAIL  ${[...names].sort().join(", ")} (duplicated block)`);
     console.log(`        ✗ ${DUP_BLOCK_WINDOW}+ identical lines shared across skills — give shared prose one home (gateway) and reference it, never copy (FAFF-120/115)`);
     console.log(`          first line: "${key.split("\n")[0].slice(0, 70)}"`);
+  }
+  // FAFF-584: anchor-existence lint — resolve every `→ **Target**` ref against the pooled headings
+  // set collected above. WARN-severity (advisory): the ~200-occurrence anchor web has never been
+  // linted, so a hard gate on first pass would red-CI the tree; this makes breakage visible instead.
+  // Resolves heading EXISTENCE only, not the "A → B nests under A" claim (deliberately out of scope).
+  for (const name of allSkills) {
+    const lines = linesByFile.get(name);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.includes(".example")) continue;
+      for (const m of line.matchAll(ANCHOR_REF)) {
+        const target = m[1].trim();
+        const segments = target.split(" → ");
+        const leaf = normalizeHeading(segments[segments.length - 1]);
+        if (anchorResolves(leaf, headings)) continue;
+        console.log(`WARN  ${name} (anchor) — line ${i + 1}: "${target}" resolves to no heading (leaf "${leaf}") — fix the ref or the heading (FAFF-120)`);
+      }
+    }
   }
 
   // FAFF-280: judgement-seam reconciliation — each skill's `judgement_seam:` frontmatter declaration
@@ -950,4 +1036,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

@@ -294,6 +294,19 @@ test("FAFF-584: .example lines are exempt from the anchor lint", () => {
 // false-fail this regression guard on exactly the advisory it's meant to introduce.
 const hasFail = (r, category) => new RegExp(`^FAIL\\s+\\S.*\\(${category}\\)`, "m").test(r.stdout);
 
+// Adversarial-review follow-up (Phase 2, FAFF-584): the FAIL-absence check above proves the real
+// hub files aren't OVER their baseline, but says nothing about headroom creeping back in below it —
+// a baseline raised above the file's actual size would print a silent (non-failing) RATCHET advisory
+// forever, unnoticed, defeating the zero-headroom invariant without ever going red. Assert directly
+// that the two hub files sit AT their baseline (no RATCHET) on the real tree.
+test("FAFF-584: the two hub files' real committed size sits exactly at their SKILL_LINE_BASELINE (zero headroom, no RATCHET)", () => {
+  const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
+  for (const name of ["faff", "faff-beep-boop"]) {
+    assert.equal(new RegExp(`RATCHET\\s+${name}\\b`).test(r.stdout), false,
+      `${name}'s SKILL_LINE_BASELINE entry should equal its exact committed size — a RATCHET advisory means the baseline has headroom above the real file`);
+  }
+});
+
 test("regression guard: the real shipped tree passes every charter rule clean", () => {
   const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
   for (const cat of ["line cap", "paragraph", "stray marker", "duplicated block"]) {

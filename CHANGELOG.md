@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.15.0](https://github.com/shftwst/faff/compare/faff--v0.14.0...faff--v0.15.0) (2026-08-11)
+
+
+### Features
+
+* **FAFF-448:** decisions register (ADR-lite) + faff decisions CLI ([#615](https://github.com/shftwst/faff/issues/615)) ([f7ce474](https://github.com/shftwst/faff/commit/f7ce4744137ec5c6bac21d9126b69c975bc06874))
+* **FAFF-621:** chain declared-effects.jsonl with the same per-line prev-hash mechanism as events.jsonl ([#603](https://github.com/shftwst/faff/issues/603)) ([9a63acd](https://github.com/shftwst/faff/commit/9a63acd819e7f5178ff0f05b0dcd493db337850c))
+* **FAFF-751:** extend the integrity-digest bracket to per-issue evidence + merge-tail members ([#602](https://github.com/shftwst/faff/issues/602)) ([6f98259](https://github.com/shftwst/faff/commit/6f98259fddf2b16bf206ae3b6c3e90474bfce89e))
+* **FAFF-754:** Implement the cleaner repository documentation structure ([#598](https://github.com/shftwst/faff/issues/598)) ([84571b6](https://github.com/shftwst/faff/commit/84571b63b3b8df944bc6761935575918d5a39835))
+
+
+### Bug Fixes
+
+* **FAFF-561:** isolate worktree-root test from ambient git-context env ([#610](https://github.com/shftwst/faff/issues/610)) ([610f734](https://github.com/shftwst/faff/commit/610f73496a1c4c001542c7421849eba296dd3f65))
+* **FAFF-641:** economics --by model spend-source label reaches the rendered table ([#614](https://github.com/shftwst/faff/issues/614)) ([6494651](https://github.com/shftwst/faff/commit/649465134c7d99b4a80244d259b0dc934410aff0))
+* **FAFF-723:** faff doctor usage string --target placeholder to DIR ([#606](https://github.com/shftwst/faff/issues/606)) ([78bf946](https://github.com/shftwst/faff/commit/78bf946074f504f088e0ba4a96a8fcacbf8f5bd7))
+* **FAFF-767:** detect budget-metering-degraded at L3 + run-scoped surface intervention ([#616](https://github.com/shftwst/faff/issues/616)) ([93e7a15](https://github.com/shftwst/faff/commit/93e7a15d39f619a3403bd301884893912043a178))
+* **FAFF-774:** heartbeat-bracket the graft CI-wait so it can't false-abort ([#613](https://github.com/shftwst/faff/issues/613)) ([23a6ed7](https://github.com/shftwst/faff/commit/23a6ed76f72caa896cc1cfed0e1072802ad4e8ec))
+* **throughput-snapshot:** --runner reads ledgers from the docker volume ([#611](https://github.com/shftwst/faff/issues/611)) ([3a89243](https://github.com/shftwst/faff/commit/3a89243b2540acfee39d4887f36dac48fc0f9b67))
+
 ## [0.14.0](https://github.com/shftwst/faff/compare/faff--v0.13.0...faff--v0.14.0) (2026-08-09)
 
 

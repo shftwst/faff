@@ -19,18 +19,19 @@ It is faff's **contributor guidance**, not faff config. The faff CLI reads confi
 
 ## Lint rules (mechanical — enforced by `faff validate-adapters`)
 
-Run over every `SKILL.md`. A violation prints `FAIL <name> (<category>) ✗ <label>` and exits non-zero. Thresholds are calibrated against the post-FAFF-114–119 tree as **lenient ceilings** (ratchet down as prose is leaned), not tight targets — same philosophy as the advisory `eval/size-census.mjs` prompt-size gate.
+Run over every `SKILL.md`. A `FAIL <name> (<category>) ✗ <label>` line exits non-zero; a `WARN`/`RATCHET` line is advisory — it surfaces the violation without failing the build (see **Honest limits** below). The shared `line cap` (600) is a lenient ceiling, calibrated against the post-FAFF-114–119 tree. The two hub files — the gateway (`faff`) and the beep-boop orchestration hub — instead run a **downward ratchet**: each one's baseline is set to its own exact committed line count (zero headroom), so any growth FAILs and any shrink prints a non-failing `RATCHET` advisory nudging the baseline down to lock the reduction in. Those baseline numbers live only in code (`SKILL_LINE_BASELINE` in `validate-adapters.js`) and are never restated here — a volatile per-file number quoted in prose is exactly the drift vector that once let this doc and the code disagree (FAFF-584).
 
 | Category | Rule | Threshold |
 |---|---|---|
-| `line cap` | per-file `SKILL.md` line count | 600 lines; gateway (`faff`) hub override 1000 |
-| `paragraph` | longest single prose line (≈ one paragraph) | 200 words — nudge bullets over prose |
+| `line cap` | per-file `SKILL.md` line count | 600 lines (shared ceiling); the two hub files (`faff`, `faff-beep-boop`) instead ratchet downward from their own committed size — see above |
+| `paragraph` | longest single prose line (≈ one paragraph) | 200 words. Plain prose FAILs; a bold-lead bullet (`- **…`/`* **…`, the house mega-bullet style) over cap WARNs instead, so the house style is no longer exempt (FAFF-584) |
+| `anchor` / `ambiguous anchor` | a `→ **Section**` cross-reference resolves to a real heading somewhere in the corpus; a heading text is not repeated within one file | WARN on a target with no matching heading, or on a within-file duplicate heading. Resolves *existence*, not nesting (FAFF-584) |
 | `stray marker` | transcript run-ids + retrospective war-story idioms | zero tolerance (section anchors are not matched; `FAFF-NN`/`ADR` refs are banned **separately** — see below) |
 | `duplicated block` | identical run of significant lines across 2+ skills | 6 significant lines — single-source it instead |
 
 **External-artifact refs — banned, enforced by `faff lint-refs`.** Separate from the `validate-adapters` table above (which lints only the slot-skills): `faff lint-refs` scans prose the reader *executes* or *publicly consumes* — `plugin/skills/**/SKILL.md` and `docs/guide/**` — and fails CI on any `FAFF-NN` ticket tag, `ADR NNNN` citation, or numbered `records/adr/` pointer, naming `file:line ✗ match`. It does **not** touch `docs/` outside `docs/guide/` (the reasoning corpus — ADRs, specs, this charter — is ref-permitted, and `records/adr/**` *must* keep its supersession back-refs for `faff adr validate`), and it never flags within-prose anchors. (Currently enforced on `docs/guide/`; the `SKILL.md` surface is being swept ref-free, then enabled.)
 
-**Honest limits.** The `validate-adapters` rules catch the realistic drift (a skill ballooning, a wall-of-text paragraph, copied prose, a stray war-story idiom). They do **not** measure taste or skimmability — that stays human/agent review judgement. The `stray marker` rule is deliberately narrow (precise idioms, not a blanket ban); ticket/ADR refs are not its job — `faff lint-refs` owns that ban.
+**Honest limits.** The `validate-adapters` rules catch the realistic drift (a skill ballooning, a wall-of-text paragraph, copied prose, a stray war-story idiom, a broken cross-reference). They do **not** measure taste or skimmability — that stays human/agent review judgement. The `stray marker` rule is deliberately narrow (precise idioms, not a blanket ban); ticket/ADR refs are not its job — `faff lint-refs` owns that ban. The two hub files' zero-headroom ratchet has its own honest limit: `validate-adapters` is a **stateless** linter — it reads the working tree, never git history — so it cannot mechanically stop a contributor from hand-raising a `SKILL_LINE_BASELINE` value to fit growth instead of leaning the file. The real gate is that such a raise is a conspicuous, reviewable line in the diff, not a silent pass; a git-history check that asserts baselines never increase across commits is deferred (FAFF-584).
 
 ## Eval coverage — born with the ticket
 

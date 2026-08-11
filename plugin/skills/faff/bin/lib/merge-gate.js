@@ -428,11 +428,22 @@ function mergeRecordPath(runDir, issue) {
 // `integrity` (FAFF-325, optional): the corrective-integrity annotation ("asserted" |
 // "unasserted" | "violated") — ALWAYS supplied by cmdMergeGate on every call site, so the merge
 // record carries the attestation basis it was decided under, never silently omitted.
-function writeMergeRecord(runDir, issue, pr, headSha, integrity) {
+// FAFF-703: additively stamps `harness` + `model` from the single `faff harness identify`
+// resolver (harness.js) — never re-derived here. `identity` is injectable (tests only); the real
+// call path always resolves it fresh via the lazy require below (avoids a load-time cycle, same
+// convention as harness.js's own lazy `require("./config")`). A resolution fault degrades to
+// omitting both fields (mirrors the prep-marker's owner-omit-when-unset rule) rather than
+// blocking the merge-record write the rest of `faff merge-gate` depends on.
+function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity) {
   try {
     const dir = path.join(runDir, issue);
     fs.mkdirSync(dir, { recursive: true });
     const record = { pr: Number(pr), head_sha: headSha, merged: true, merged_at: new Date().toISOString(), integrity: integrity || "unasserted" };
+    let id = identity;
+    if (id === undefined) {
+      try { id = require("./harness").harnessIdentify(); } catch { id = null; }
+    }
+    if (id && id.harness) { record.harness = id.harness; record.model = id.model; }
     fs.writeFileSync(mergeRecordPath(runDir, issue), JSON.stringify(record, null, 2) + "\n");
   } catch (e) {
     process.stderr.write(`faff merge-gate: warning — could not write merge-record.json: ${e.message}\n`);
@@ -1376,6 +1387,34 @@ function mergeGateSelftest() {
       writeMergeRecord(tmp, "FAFF-1", 1, "abc", "violated");
       const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-1"), "utf8"));
       return record.integrity === "violated";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  // writeMergeRecord (FAFF-703): additive harness+model, injectable for the test — a legacy
+  // caller that never passes `identity` still resolves it fresh (see the real-resolution check
+  // below), and a resolution fault (injected identity: null) omits both fields rather than
+  // failing the write — the merge-record schema stays valid with or without them either way.
+  check("writeMergeRecord: an injected identity is persisted additively as harness+model", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-record-"));
+    try {
+      writeMergeRecord(tmp, "FAFF-1", 1, "abc", "asserted", { harness: "codex", model: "gpt-5.6-sol", source: "config" });
+      const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-1"), "utf8"));
+      return record.harness === "codex" && record.model === "gpt-5.6-sol" && record.pr === 1 && record.integrity === "asserted";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("writeMergeRecord: a null/unresolvable identity omits harness+model (record stays valid)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-record-"));
+    try {
+      writeMergeRecord(tmp, "FAFF-1", 1, "abc", "unasserted", null);
+      const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-1"), "utf8"));
+      return !("harness" in record) && !("model" in record) && record.pr === 1;
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("writeMergeRecord: an omitted identity resolves the real harness (never throws, always writes)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-record-"));
+    try {
+      writeMergeRecord(tmp, "FAFF-1", 1, "abc"); // identity omitted entirely — the true default path
+      const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-1"), "utf8"));
+      return typeof record.harness === "string" && record.harness.length > 0 && typeof record.model === "string";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
   // mergeEffectsFor / observeMergeEffects (FAFF-383): the merge chokepoint's mechanical-observe

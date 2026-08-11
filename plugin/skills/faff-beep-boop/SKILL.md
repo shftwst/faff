@@ -364,7 +364,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
   "budget": { "envelope": { "ceilings": { "max_attempts": 8 }, "at_ceiling": "stop", "price_per_mtok": 0 },
               "tokens_at_start": 12000, "measure_root": "/abs/path/to/main-checkout" },
   "owner": { "status": "running", "pid": 12345, "session_id": "<run-id>",
-             "started_at": "2026-06-22T16:00:00Z", "last_heartbeat": "2026-06-22T16:00:00Z" } }
+             "started_at": "2026-06-22T16:00:00Z", "last_heartbeat": "2026-06-22T16:00:00Z", "harness": "claude-code", "model": "unknown" } }
 ```
 
 - **`admitted`** — every issue the verdict gate admits to the build queue (`fire-and-forget` + `likely-fire`). Append at step 4 (build queue assembly) and at every wave re-entry re-assembly (step 8.4). Explicit-list mode appends each admitted issue the same way.
@@ -382,11 +382,11 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
   - `status` — `"running"` while the orchestrator holds the run; set to `"done"` at orchestrator exit (clean drain, all-parked, **or** budget-hit — every exit path).
   - `pid` — the orchestrator's process id (same-host best-effort liveness corroborator; may be omitted).
   - `session_id` — the owning-session token (use the `<run-id>`); paired with the `FAFF_RUN_DIR` export below it lets a session recognise its **own** run.
-  - `started_at` / `last_heartbeat` — ISO-8601, both written once at run start. `owner.last_heartbeat` is the run-start baseline (and the legacy/overlay fallback for a pre-FAFF-355 ledger with no sidecar); the sidecar file is what advances each tick (see _Owner stamp & heartbeat_).
+  - `started_at` / `last_heartbeat` — ISO-8601, both written once at run start. `owner.last_heartbeat` is the run-start baseline (and the legacy/overlay fallback for a pre-FAFF-355 ledger with no sidecar); the sidecar file is what advances each tick (see _Owner stamp & heartbeat_). `harness` / `model` (FAFF-703, additive) come from the same resolver every durable artifact reads; absent on a pre-FAFF-703 ledger — legacy/unowned, never depended on.
 
 ### Owner stamp & heartbeat (FAFF-205)
 
-- **At run start** (run-id minted, before step 4): write `owner` with `status:"running"`, `pid`, `session_id:<run-id>`, `started_at:now`, `last_heartbeat:now`, **and export the per-session pointer** so this session's own Stop hook recognises its own run:
+- **At run start** (run-id minted, before step 4): write `owner` with `status:"running"`, `pid`, `session_id:<run-id>`, `started_at:now`, `last_heartbeat:now`, **and `harness`/`model` from `"$faff" harness identify --json`** (FAFF-703 — the single resolver every durable artifact reads; `model` may resolve `unknown`, still written), **and export the per-session pointer** so this session's own Stop hook recognises its own run:
 
   ```bash
   export FAFF_RUN_DIR="$PWD/.faff/runs/<run-id>"

@@ -156,31 +156,57 @@ const SIGNAL_TRIP_INTERVENTION = {
 // available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
 const CORRECTABLE_SIGNAL = "fix-review-thrash";
 
-// FAFF-717 — resolve the operator's Sentry-abort opt-in from config, FAIL-CLOSED:
-// only an explicit affirmative enables the abort kill-switch on a non-L4 (L3) run;
-// every other value (false, "false", "yes", "1", a typo, unset) leaves the L3
-// advisory default in force. Mirrors lights-out.js's engineBoundedFromConfig
-// exactly, and for the same reason — the hand-rolled YAML parser returns the STRING
-// "true" for a quoted scalar, so `"true" === true` is false; accept the string
-// spelling too (trimmed, case-insensitive) while staying strict on everything
-// unrecognised. The safe direction is OFF: the un-fired state is the documented L3
-// advisory posture and an abort is a resumable ledger-mark, so a typo must never
-// silently make L3 runs abortable.
-function sentryActingFromConfig(cfg) {
-  const raw = dig(cfg, "autonomous.sentry_acting");
+// FAFF-717/FAFF-765 — the literal-true coercion the attendedness readers share,
+// FAIL-CLOSED: only an explicit affirmative reads true; every other value (false,
+// "false", "yes", "1", a typo, unset) is false. Mirrors lights-out.js's
+// engineBoundedFromConfig exactly, and for the same reason — the hand-rolled YAML
+// parser returns the STRING "true" for a quoted scalar, so `"true" === true` is
+// false; accept the string spelling too (trimmed, case-insensitive) while staying
+// strict on everything unrecognised.
+function literalTrue(raw) {
   return raw === true || String(raw).trim().toLowerCase() === "true";
 }
 
-// FAFF-717 — the SINGLE resolver for "does Sentry's ABORT act on this run?". An
-// L4-minted ledger always acts (unchanged); a non-L4 run acts iff the operator set
-// autonomous.sentry_acting. The `||` is LAZY BY DESIGN: an L4 ledger short-circuits
-// and never reads config, so a config fault can never regress the L4 kill-switch.
-// Scope is the abort row ONLY — pause/correct stay L4-only-acts (the poller only
-// ever dispatches on abort; the cooperative handling table keeps pause/correct
-// advisory for an L3+knob run). The CONSULT is never forked on level — only the
-// abort HANDLING consults this.
+// FAFF-717/FAFF-765 — the retained back-compat ALIAS reader. Reads the legacy
+// autonomous.sentry_acting knob (the FAFF-717 abort opt-in), FAIL-CLOSED. Superseded
+// by autonomous.unattended (FAFF-765) but kept as a working alias — it is shipped,
+// documented, and tested, so retiring it inside a behaviour-change slice would break
+// operators who set it for the kill-switch. OR-ed into declaredUnattendedFromConfig
+// below; its retirement is a later deprecation-window slice (Open Question).
+function sentryActingFromConfig(cfg) {
+  return literalTrue(dig(cfg, "autonomous.sentry_acting"));
+}
+
+// FAFF-765 — resolve the operator's DECLARED ATTENDEDNESS posture from config,
+// FAIL-CLOSED to attended/advisory. The canonical key is autonomous.unattended; the
+// legacy autonomous.sentry_acting is OR-ed in as the retained alias (Design Decision
+// 2 — either positive assertion asserts unattended; a `false` on one key never
+// silently overrides a `true` on the other, since both are positive assertions
+// OR-ed together). Every unrecognised / unset / faulted value resolves to attended
+// (false) — the safe direction: the un-fired state is the documented L3 advisory
+// posture and an abort is a resumable ledger-mark, so a typo must never silently
+// make L3 runs abortable. DECLARED, never env-sniffed (Design Decision 1 / ADR-0095:
+// unattended-on-CI is admission criteria the operator asserts, not ambient state
+// faff detects — the detached poller has no TTY to read regardless).
+function declaredUnattendedFromConfig(cfg) {
+  return literalTrue(dig(cfg, "autonomous.unattended")) || sentryActingFromConfig(cfg);
+}
+
+// FAFF-717/FAFF-765 — the SINGLE resolver for "does Sentry's ABORT act on this run?",
+// re-keyed from the L4-mint proxy onto the real axis: ATTENDEDNESS. An UNATTENDED run
+// acts; an attended L3 stays advisory (the human at the keyboard is the kill-switch).
+// An L4-minted ledger is one sufficient (always-unattended) case, kept as the FIRST
+// disjunct: the `||` is LAZY BY DESIGN so an L4 ledger short-circuits and NEVER reads
+// config — a config fault can never regress the L4 kill-switch (ADR-0034
+// un-subvertable-by-construction, preserved verbatim). The declared-unattended
+// disjunct (autonomous.unattended, or the sentry_acting alias) is the ONLY config
+// read, reached only for a non-L4 run. Scope is the abort row ONLY — surface/pause/
+// correct stay L4-only-acts (the poller only ever dispatches on abort; the cooperative
+// handling table keeps the softer interventions advisory for an unattended L3 run —
+// de-levelling pause is FAFF-766, correct stays authority-gated per FAFF-326). The
+// CONSULT is never forked on level/attendedness — only the abort HANDLING consults this.
 function actsOnSentryAbort(ledger, cfg) {
-  return (!!ledger && ledger.level === "L4") || sentryActingFromConfig(cfg);
+  return (!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg);
 }
 // FAFF-362: v1 default thresholds — now DERIVED from the active-by-default
 // delivery profile (governance-profile.js's DELIVERY_PROFILE.sentry.thresholds)
@@ -1363,4 +1389,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, applySentryAbort, cmdSentry, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

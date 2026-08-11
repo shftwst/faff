@@ -56,7 +56,7 @@ Gather everything that can be inferred, so the human confirms rather than types.
 - **Repo slug + git host** from `git remote -v` (prefer `origin`):
   - Parse both forms: SSH `git@host:org/repo.git` and HTTPS `https://host/org/repo.git` (and `ssh://…`). **Strip the trailing `.git`.**
   - `org/repo` → `tracking.repo`.
-  - Map the host → `tracking.git_host` token: `github.com`→`github`, `gitlab.com`→`gitlab`, `*.gitea.*`/known gitea → `gitea`, etc. An **unrecognised or self-hosted host** is surfaced as a **guess to confirm** (e.g. "host `git.acme.internal` looks self-hosted — set `git_host: github`? (it's the common GitHub-Enterprise case) / type the right token / skip"), never silently guessed wrong.
+  - Map the host → `tracking.git_host` token: `github.com`→`github` — the only supported value (the merge gate is GitHub-only). Any other host (`gitlab.com`, self-hosted, `*.gitea.*`, etc.) is **not** a legal `git_host` value — surface it as a **guess to confirm** (e.g. "host `git.acme.internal` looks self-hosted — set `git_host: github`? (it's the common GitHub-Enterprise case) / skip"), never mapped to an unsupported token.
   - No `origin` (or no remote) → skip `repo`/`git_host`; faff resolves them at use time.
 - **Record layout** → `tracking.spec_docs_path`, `tracking.adr_docs_path`, and `tracking.spike_docs_path`, **only when an established path diverges from the default rule.** Defaults are `docs/<kind>/`, or `doc/<kind>/` when only `doc/` exists (gateway → **Spec docs location**). If an existing repository clearly keeps one of these stores elsewhere, include that override; otherwise leave it unset. Do not create or relocate records during onboarding.
 

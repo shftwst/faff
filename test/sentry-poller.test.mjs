@@ -230,7 +230,7 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("non-L4 (L3) + the SAME stale heartbeat → NO abort: the ledger is byte-identical, advisory-trip logged instead (the holdout scenario's rule)", async () => {
+test("attended L3 (neither autonomous.unattended nor the sentry_acting alias) + the SAME stale heartbeat → NO abort: the ledger is byte-identical, advisory-trip logged instead (FAFF-765 — an attended run stays advisory)", async () => {
   const { root, runDir, read } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
@@ -256,12 +256,46 @@ test("non-L4 (L3) + the SAME stale heartbeat → NO abort: the ledger is byte-id
   }
 });
 
-test("L3 + autonomous.sentry_acting:true + the SAME stale heartbeat → the poller ACTS: aborted-resumable, exactly as an L4 run (FAFF-717 — the abort kill-switch decoupled from the mint)", async () => {
+test("unattended L3 (canonical autonomous.unattended:true) + the SAME stale heartbeat → the poller ACTS: aborted-resumable, exactly as an L4 run (FAFF-765 — abort keyed on attendedness)", async () => {
   const { root, runDir, read, log } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
   });
-  // The opt-in lives in the repo-root config the detached poller resolves via findRoot(runDir).
+  // The canonical declaration lives in the repo-root config the detached poller resolves via findRoot(runDir).
+  writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    const aborted = await waitUntil(() => {
+      try { return JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).owner.status === "aborted-resumable"; }
+      catch { return false; }
+    }, { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(aborted, "an unattended L3 run reached aborted-resumable — the kill-switch fired on a non-L4 run via the canonical key");
+
+    const led = read();
+    assert.equal(led.owner.status, "aborted-resumable");
+    assert.ok(led.abort, "an abort entry exists");
+
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(settled, "poller reached abort-actioned");
+    assert.doesNotMatch(log(), /advisory-trip/); // declaring unattended makes it act, not merely log
+
+    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
+    assert.ok(diedOrGone, "the poller exited after actioning the abort");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("L3 + the retained autonomous.sentry_acting:true ALIAS + the SAME stale heartbeat → the poller ACTS, identical to the canonical key (FAFF-717/FAFF-765 — the alias still asserts unattended)", async () => {
+  const { root, runDir, read, log } = rootWith({
+    run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  // The legacy alias lives in the repo-root config the detached poller resolves via findRoot(runDir).
   writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  sentry_acting: true\n");
   try {
     const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);

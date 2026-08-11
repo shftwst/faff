@@ -1,5 +1,5 @@
 // ===========================================================================
-// === region:governance — sentry-poller — FAFF-470: the detached watchdog poller (acts on abort for an L4-minted run, or an L3 that set autonomous.sentry_acting — FAFF-717) ===
+// === region:governance — sentry-poller — FAFF-470: the detached watchdog poller (acts on abort for any UNATTENDED run — an L4-minted run, or an L3 that declared autonomous.unattended / the sentry_acting alias — FAFF-717/FAFF-765) ===
 // (ADR-0065's PRIMARY invocation locus). Every sentry consult faff has today is
 // COOPERATIVE — `sentry check` only runs when the supervised orchestrator volunteers
 // control at a between-units checkpoint (FAFF-352). This module is the invocation
@@ -125,10 +125,14 @@ function appendLog(runDir, token, detail) {
 //   runDirExists      bool
 //   ledgerFault       string|null   — set iff the ledger was unreadable/malformed
 //   ownerStatus       string|null   — ledger.owner.status (absent ⇒ null)
-//   actsOnSentryAbort bool          — FAFF-717: does the ABORT kill-switch act on
-//                                     this run? level==="L4" OR autonomous.sentry_acting.
+//   actsOnSentryAbort bool          — FAFF-717/FAFF-765: does the ABORT kill-switch
+//                                     act on this run? Re-keyed onto ATTENDEDNESS:
+//                                     level==="L4" (one sufficient unattended case)
+//                                     OR the run declared unattended (autonomous.
+//                                     unattended, or the retained sentry_acting alias).
 //                                     The abort GATE keys on this, not the raw level —
-//                                     an unattended L3 run opts in via the config knob.
+//                                     an unattended L3 run acts; an attended L3 stays
+//                                     advisory (the human is the kill-switch).
 //                                     Only pause/correct stay L4-only (never gated here,
 //                                     they're advisory at every level); surface
 //                                     (FAFF-767) is likewise never gated — a run-scoped
@@ -166,10 +170,12 @@ function decideTick(facts) {
   const payload = facts.checkPayload || {};
   if (payload.tripped && payload.intervention === "abort") {
     // Acting is conditional on the abort-acting resolver (ADR-0044 / the beep-boop
-    // handling table), the CONSULT never is. An L4 ledger always acts; an unattended
-    // L3 run acts iff autonomous.sentry_acting is set (FAFF-717) — resolved in
-    // gatherFacts as facts.actsOnSentryAbort so this core stays pure. A run that does
-    // NOT act gets the same advisory telemetry every other trip gets — never a forked
+    // handling table), the CONSULT never is. Re-keyed onto ATTENDEDNESS (FAFF-765):
+    // an L4 ledger always acts (one sufficient unattended case); an UNATTENDED L3 run
+    // acts iff it declared unattended (autonomous.unattended, or the retained
+    // sentry_acting alias — FAFF-717) — resolved in gatherFacts as
+    // facts.actsOnSentryAbort so this core stays pure. An ATTENDED run does NOT act
+    // and gets the same advisory telemetry every other trip gets — never a forked
     // consult.
     if (facts.actsOnSentryAbort) return { action: "abort", terminal: null, consecutiveFaults: 0, payload };
     return { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload };
@@ -226,14 +232,14 @@ function gatherFacts(runDir, consecutiveFaults) {
   facts.ownerStatus = (ledger.owner && ledger.owner.status) ?? null;
   if (facts.ownerStatus !== "running") return facts;
 
-  // FAFF-717 — resolve the abort-acting decision on a LIVE tick only (same frequency
-  // as the `sentry check` child below). The config read is GUARDED: a malformed
-  // .faffrc must never throw mid-tick and wedge the watchdog, so any fault fails safe
-  // to cfg={} → sentryActingFromConfig false → OFF for L3 (unchanged L3 advisory
-  // default), and never a coerced abort. An L4 ledger short-circuits inside
-  // actsOnSentryAbort before the config is even consulted, so a config fault can
-  // never regress the L4 kill-switch. Root resolves from the run dir — the detached
-  // process only receives --run-dir, and findRoot walks up to the repo's .faff/.git.
+  // FAFF-717/FAFF-765 — resolve the abort-acting decision on a LIVE tick only (same
+  // frequency as the `sentry check` child below). The config read is GUARDED: a
+  // malformed .faffrc must never throw mid-tick and wedge the watchdog, so any fault
+  // fails safe to cfg={} → declaredUnattendedFromConfig false → attended/advisory for
+  // L3 (unchanged L3 advisory default), and never a coerced abort. An L4 ledger
+  // short-circuits inside actsOnSentryAbort before the config is even consulted, so a
+  // config fault can never regress the L4 kill-switch. Root resolves from the run dir
+  // — the detached process only receives --run-dir, and findRoot walks up to the repo's .faff/.git.
   let cfg = {};
   try { cfg = readGovernanceConfig(findRoot(runDir)); }
   catch { cfg = {}; /* base-parse-error / legacy-name / any fault → fail-safe OFF */ }
@@ -465,9 +471,11 @@ function cmdSentryPoller(args) {
 // -----------------------------------------------------------------------------
 // --selftest: a pure fixture table over decideTick — every dispatch row the spec's
 // DoD names (sentinel / dir-gone / ledger-fault / owner-status / L4-abort /
-// L3+knob-abort / non-acting-advisory / pause / correct / indeterminate / fault-cap),
+// unattended-L3-abort / attended-advisory / pause / correct / indeterminate / fault-cap),
 // plus parseIntervalSecs's validation table. No filesystem, no child process. The
-// abort gate keys on facts.actsOnSentryAbort (FAFF-717), not the raw level.
+// abort gate keys on facts.actsOnSentryAbort (FAFF-717/FAFF-765 — attendedness), not
+// the raw level; the re-keyed resolver derivation itself is covered end-to-end (real
+// gatherFacts + config) in sentry-poller.test.mjs.
 // -----------------------------------------------------------------------------
 const TRIP_ABORT = { tripped: true, intervention: "abort", verdicts: [{ signal: "wall-clock-runaway", severity: "trip" }] };
 const TRIP_PAUSE = { tripped: true, intervention: "pause", verdicts: [{ signal: "fix-review-thrash", severity: "warn" }] };
@@ -498,10 +506,10 @@ const SENTRY_POLLER_SELFTEST_CASES = [
   ["L4 + tripped abort -> abort, fault streak reset (actsOnSentryAbort via level)",
     { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 2 },
     { action: "abort", terminal: null, consecutiveFaults: 0, payload: TRIP_ABORT }],
-  ["L3 + autonomous.sentry_acting + tripped abort -> abort (FAFF-717: the knob acts on a non-L4 run)",
+  ["unattended L3 (autonomous.unattended, or the sentry_acting alias) + tripped abort -> abort (FAFF-765: attendedness acts on a non-L4 run)",
     { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 0 },
     { action: "abort", terminal: null, consecutiveFaults: 0, payload: TRIP_ABORT }],
-  ["non-acting (L3, no knob) + tripped abort -> advisory-trip, never touches the ledger",
+  ["attended L3 (neither key declared) + tripped abort -> advisory-trip, never touches the ledger",
     { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: false, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 0 },
     { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_ABORT }],
   ["acting run + pause intervention -> advisory-trip, never dispatches (pause stays L4-only-acts; the knob is abort-only)",

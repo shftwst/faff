@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
+const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "plugin", "skills", "faff", "bin", "faff");
 
 function run(cwd, ...args) {
   const out = execFileSync("node", [CLI, ...args], { cwd, encoding: "utf8" });

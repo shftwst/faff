@@ -32,6 +32,7 @@ const { PRDR_SURFACE } = require("./prdr");
 const { PRD_SURFACE } = require("./prd");
 const { PROFILES_SURFACE } = require("./governance-profile");
 const { PROFILE_SURFACE } = require("./profile");
+const { RUN_LEDGER_SURFACE } = require("./run-ledger");
 const { SENTRY_POLLER_SURFACE } = require("./sentry-poller");
 const { SENTRY_SURFACE } = require("./sentry");
 
@@ -53,6 +54,7 @@ const DISPATCH_SURFACES = {
   prd: PRD_SURFACE,
   profiles: PROFILES_SURFACE,
   profile: PROFILE_SURFACE,
+  "run-ledger": RUN_LEDGER_SURFACE,
   "sentry-poller": SENTRY_POLLER_SURFACE,
   sentry: SENTRY_SURFACE,
 };

@@ -788,7 +788,7 @@ const WRITABLE_NAMESPACES = new Set([
   "tracking", "slots", "models", "effort", "backends", "engines", "appetite",
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
-  "faffter_dark", "autonomous", "containment", "post_merge", "graft",
+  "faffter_dark", "autonomous", "containment", "post_merge", "graft", "andon",
 ]);
 
 // Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each

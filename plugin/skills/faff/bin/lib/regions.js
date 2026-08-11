@@ -145,6 +145,11 @@ const REGION_MAP = {
   "park-history": "factory",
   "gitignore-ensure": "factory",
   "adr": "factory",
+  // andon — FAFF-386: the push-alerting pump reads the full `andon.*` config block
+  // via the factory `loadConfig` resolver (mirrors `adr`/`decisions`'s choice, not
+  // budget.js/sentry.js's narrower governance-only `readGovernanceConfig`) — factory,
+  // not governance, for that one edge (governance must not require factory).
+  "andon": "factory",
   // decisions — FAFF-448: the ADR-lite decisions register. Requires only argv (shared-infra) +
   // shared-infra findRoot, no tracker/config/contract dependency — a pure computation command,
   // lighter sibling of adr → factory.
@@ -283,6 +288,7 @@ const REGION_SELFTEST_ARGV = {
   "park-history": ["park-history", "--selftest"],
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "adr": ["adr", "--selftest"],
+  "andon": ["andon", "--selftest"],
   "decisions": ["decisions", "--selftest"],
   "prd": ["prd", "--selftest"],
   "prd-checklist": ["prd-checklist", "--selftest"],

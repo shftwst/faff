@@ -240,6 +240,23 @@ sentry:
   stall_window_secs: 900            # heartbeat staleness / no-progress window (seconds)
   run_elapsed_ceiling_secs: 14400   # absolute wall-clock run-elapsed ceiling (seconds; default 4h)
 
+# Andon light — push alerting for run-critical events (FAFF-386). A cursor-based pump
+# (`faff andon pump`, called by /faff-beep-boop at its between-units checkpoint + run end)
+# reads NEW events.jsonl entries, classifies them against `events:` below, and POSTs one
+# notification per distinct condition to `url`. UNSET url ⇒ the andon is dark: zero network
+# calls, zero state writes — every other key below is inert until url is set. Fail-open by
+# construction: a webhook failure never affects the run (see records/adr/0101).
+#
+# `url`/`token` are secret-bearing (an auth-carrying webhook endpoint) — set them in the
+# gitignored `.faffrc.local.yaml` OVERLAY (see the two-file model note at the top of this
+# file), never committed here, mirroring how `faffter_dark.adversarial`'s `api_key_env`
+# keeps the actual key value out of the committed base.
+andon:
+  url:                                        # webhook URL — e.g. an ntfy topic, a Slack/Discord incoming webhook
+  format: generic                             # generic | ntfy | slack | discord — payload shaping preset
+  token:                                      # sent as `Authorization: Bearer <token>` when set (ntfy/self-hosted auth)
+  events: ["park", "sentry-trip", "budget-breach"]  # the run-critical set; add "run-end" to opt in — quoted flow-list (parseYamlSubset's inline-JSON path; bareword items inside [...] do not parse)
+
 # Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
 # whether it offers to promote that spec's architecturally-significant Chosen: decisions into
 # the configured append-only ADR log. The `faff adr` CLI (next-number/new/list/validate) is

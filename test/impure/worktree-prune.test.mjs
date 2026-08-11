@@ -37,6 +37,7 @@ test("worktree-prune --branch removes only the dangling own admin dir; a live wo
 test("worktree-prune --dry-run reports the dangling entry without removing it", () => {
   const { root, danglingAdminPath, teardown } = seedRepo({ danglingWorktree: { name: "gone-dry" } });
   try {
+    assert.ok(danglingAdminPath, "seedRepo must resolve the dangling admin-dir id");
     assert.ok(existsSync(danglingAdminPath));
     const { stdout, code } = runCli(["worktree-prune", "--branch", "gone-dry", "--dry-run", "--json"], { cwd: root });
     assert.equal(code, 0, stdout);
@@ -52,6 +53,7 @@ test("worktree-prune --dry-run reports the dangling entry without removing it", 
 test("worktree-prune with no ownership declared prunes nothing (fail-safe default)", () => {
   const { root, danglingAdminPath, teardown } = seedRepo({ danglingWorktree: { name: "unclaimed" } });
   try {
+    assert.ok(danglingAdminPath, "seedRepo must resolve the dangling admin-dir id");
     const { stdout, code } = runCli(["worktree-prune", "--json"], { cwd: root });
     assert.equal(code, 0, stdout);
     const result = JSON.parse(stdout);

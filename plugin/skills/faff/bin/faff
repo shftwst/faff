@@ -19,6 +19,7 @@
 const { cmdAdmissible, cmdDod, cmdHoldout, cmdSpecReviewLenses } = require("./lib/admissibility");
 const { cmdAdr } = require("./lib/adr");
 const { cmdAdversarialBackends } = require("./lib/adversarial-backends");
+const { cmdAndon } = require("./lib/andon");
 const { cmdAudit } = require("./lib/audit");
 const { cmdBackgroundFence } = require("./lib/background-fence");
 const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
@@ -153,6 +154,7 @@ const COMMANDS = {
   "gitignore-ensure": cmdGitignoreEnsure,
   "adr": cmdAdr,
   "decisions": cmdDecisions,
+  "andon": cmdAndon,
   "prd": cmdPrd,
   "prd-checklist": cmdPrdChecklist,
   "prdr": cmdPrdr,

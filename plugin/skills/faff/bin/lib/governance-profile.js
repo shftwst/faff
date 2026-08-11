@@ -90,6 +90,14 @@ const DELIVERY_PROFILE = {
     // this run owns, so a "we isolated N children" claim is checkable, not taken on
     // faith (the FAFF-694 opaque-fan-out finding this closes).
     "agent-dispatch",
+    // FAFF-386: the andon's OWN additive vocabulary member — a sentry trip, emitted
+    // by the orchestrator the checkpoint it first observes `faff sentry check`
+    // returning `tripped:true` (`data` carries the sentry `verdicts` + `intervention`,
+    // FAFF-386 spec §3). Distinct from the existing `sentry-checkpoint` (emitted on
+    // EVERY consult, tripped or not) — this one exists so `faff andon pump` can
+    // classify a trip without re-deriving it from a second source. NOT issue-scoped
+    // (a trip is run-scoped, mirroring `sentry-checkpoint`).
+    "sentry-trip",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",

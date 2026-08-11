@@ -19,6 +19,7 @@
 const { parseArgs, usageError } = require("./argv");
 
 const { ADR_SURFACE } = require("./adr");
+const { ANDON_SURFACE } = require("./andon");
 const { CONFIG_SURFACE } = require("./config");
 const { CORRECTIVE_SURFACE } = require("./corrective");
 const { DOD_SURFACE, HOLDOUT_SURFACE } = require("./admissibility");
@@ -38,6 +39,7 @@ const { SENTRY_SURFACE } = require("./sentry");
 // `profiles` COMMANDS entry maps to governance-profile.js's PROFILES_SURFACE.
 const DISPATCH_SURFACES = {
   adr: ADR_SURFACE,
+  andon: ANDON_SURFACE,
   config: CONFIG_SURFACE,
   corrective: CORRECTIVE_SURFACE,
   dod: DOD_SURFACE,

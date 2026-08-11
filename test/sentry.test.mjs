@@ -10,7 +10,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, readdirSyn
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { actsOnSentryAbort, sentryActingFromConfig, declaredUnattendedFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
+import { actsOnSentryAbort, actsOnSentryPause, sentryActingFromConfig, declaredUnattendedFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
 import { readGovernanceConfig } from "../plugin/skills/faff/bin/lib/budget.js";
 import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 
@@ -1398,4 +1398,48 @@ test("actsOnSentryAbort via readGovernanceConfig: a BASE-file autonomous.unatten
   assert.equal(actsOnSentryAbort({ level: "L3" }, readGovernanceConfig(overlayRoot)), false,
     "an OVERLAY-only declaration is NOT read by the gate — it must live in the base file");
   rmSync(overlayRoot, { recursive: true, force: true });
+});
+
+// FAFF-766 — `pause` joins `abort` in the safe-stop CLASS: actsOnSentryPause DELEGATES
+// to actsOnSentryAbort (one resolver, one L4-first lazy short-circuit), so its truth
+// table is byte-identical to abort's by construction. These mirror the actsOnSentryAbort
+// tests above, plus an explicit agreement assertion across the full table.
+test("actsOnSentryPause: an L4 ledger always acts, and does so LAZILY — a config fault can't regress it", () => {
+  assert.equal(actsOnSentryPause({ level: "L4" }, {}), true);
+  assert.equal(actsOnSentryPause({ level: "L4" }, rc("autonomous:\n  sentry_acting: false\n")), true);
+  assert.equal(actsOnSentryPause({ level: "L4" }, rc("autonomous:\n  unattended: false\n")), true);
+});
+test("actsOnSentryPause: an UNATTENDED L3 run (canonical autonomous.unattended) acts", () => {
+  assert.equal(actsOnSentryPause({ level: "L3" }, rc("autonomous:\n  unattended: true\n")), true);
+});
+test("actsOnSentryPause: the legacy sentry_acting alias STILL acts on an L3 run (unattended unset)", () => {
+  assert.equal(actsOnSentryPause({ level: "L3" }, rc("autonomous:\n  sentry_acting: true\n")), true);
+});
+test("actsOnSentryPause: an ATTENDED L3 run (neither key declared) stays advisory", () => {
+  assert.equal(actsOnSentryPause({ level: "L3" }, {}), false);
+  assert.equal(actsOnSentryPause({ level: "L3" }, rc("autonomous:\n  unattended: false\n")), false);
+});
+test("actsOnSentryPause is FAIL-CLOSED on every non-affirmative / unset / faulted config (typo, null ledger, empty ledger)", () => {
+  assert.equal(actsOnSentryPause({ level: "L3" }, rc("autonomous:\n  unattended: unatteded\n")), false); // typo
+  assert.equal(actsOnSentryPause(null, {}), false);
+  assert.equal(actsOnSentryPause({}, {}), false); // absent level ⇒ non-acting unless the knob is set
+  assert.equal(actsOnSentryPause(null, rc("autonomous:\n  unattended: true\n")), true); // null ledger still falls back to config
+});
+test("actsOnSentryPause agrees with actsOnSentryAbort across the full truth table (delegation, not a copy)", () => {
+  const cases = [
+    [{ level: "L4" }, {}],
+    [{ level: "L4" }, rc("autonomous:\n  unattended: false\n")],
+    [{ level: "L3" }, rc("autonomous:\n  unattended: true\n")],
+    [{ level: "L3" }, rc("autonomous:\n  sentry_acting: true\n")],
+    [{ level: "L3" }, {}],
+    [{ level: "L3" }, rc("autonomous:\n  unattended: false\n")],
+    [{ level: "L3" }, rc("autonomous:\n  unattended: unatteded\n")],
+    [null, {}],
+    [null, rc("autonomous:\n  unattended: true\n")],
+    [{}, {}],
+  ];
+  for (const [ledger, cfg] of cases) {
+    assert.equal(actsOnSentryPause(ledger, cfg), actsOnSentryAbort(ledger, cfg),
+      `actsOnSentryPause must equal actsOnSentryAbort for ledger=${JSON.stringify(ledger)} cfg-derived`);
+  }
 });

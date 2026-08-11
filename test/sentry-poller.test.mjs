@@ -374,3 +374,54 @@ test("a malformed run-ledger.json is an own-fault: `indeterminate` (never an abo
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// FAFF-766 — pause-acting is COOPERATIVE-CHECKPOINT-ONLY: actsOnSentryPause exists
+// so the between-units checkpoint can park an implicated issue, but the detached
+// poller never consults it and never acts on a `pause` intervention at ANY level —
+// not even a declared-unattended L3/L4 that DOES act on abort. This end-to-end test
+// drives a REAL fix-review-thrash trip (>= thrash_n=3 build-start events on one
+// issue, no shipped outcome) through the real `sentry check` child the poller
+// spawns, on a declared-unattended L3 run (the one case that, for `abort`, WOULD
+// act) — and asserts the poller only ever logs advisory-trip, never touches the
+// ledger, and keeps polling. The pure decideTick fixture table in sentry-poller.js
+// --selftest ("acting run + pause intervention -> advisory-trip") already pins this
+// at the unit level; this test pins the same guarantee end-to-end.
+test("declared-unattended L3 (autonomous.unattended:true) + a REAL fix-review-thrash trip -> advisory-trip only, never a park/dispatch (pause stays poller-inert at every level)", async () => {
+  const { root, runDir, read, log, events } = rootWith({
+    run_id: "RUN-POLL", level: "L3", admitted: ["ISSUE-THRASH"], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(5), last_heartbeat: isoAgo(1) },
+  });
+  // Declared unattended — the same declaration that makes the poller ACT on abort.
+  writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
+  // thrash_n defaults to 3 (delivery profile): 3 build-start events on ISSUE-THRASH,
+  // no shipped outcome -> evalThrash trips fix-review-thrash -> intervention "pause".
+  const thrashEvents = [0, 1, 2].map((seq) => ({ type: "build-start", issue: "ISSUE-THRASH", seq }));
+  writeFileSync(join(runDir, "events.jsonl"), thrashEvents.map((e) => JSON.stringify(e)).join("\n") + "\n");
+  const before = readFileSync(join(runDir, "run-ledger.json"), "utf8");
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    const trippedLogged = await waitUntil(() => log().includes("advisory-trip"), { timeoutMs: 5000 });
+    assert.ok(trippedLogged, "the real fix-review-thrash trip is logged as advisory-trip");
+
+    // Give it a couple more ticks — still never a park/dispatch action.
+    await waitUntil(() => false, { timeoutMs: 2000, intervalMs: 2000 });
+
+    assert.equal(readFileSync(join(runDir, "run-ledger.json"), "utf8"), before, "run-ledger.json is byte-identical — pause never mutates the ledger, unlike an acted abort");
+    assert.equal(read().owner.status, "running", "the run is never marked aborted on a pause trip, even declared-unattended");
+    assert.doesNotMatch(log(), /abort-actioned/, "no abort dispatch — fix-review-thrash maps to pause, not abort");
+    assert.ok(pidAliveProbe(started.pid), "the poller keeps polling — a pause trip never terminates it");
+
+    // The poller appends a `sentry-checkpoint` event ONLY on the abort action (D10 —
+    // never per-tick, to avoid spamming events.jsonl on every advisory trip). A pause
+    // trip never actions, so events.jsonl carries no sentry-checkpoint entry at all —
+    // the absence itself is the assertion that no abort action ever fired.
+    const evs = events().filter((e) => e.type === "sentry-checkpoint");
+    assert.equal(evs.length, 0, "no sentry-checkpoint event is ever appended for a pause trip (only the abort action appends one)");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});

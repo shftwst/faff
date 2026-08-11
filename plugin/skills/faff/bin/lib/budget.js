@@ -630,12 +630,18 @@ function readEngineSpend(runDir) {
   // existing consumer (measureRunSpend) ignores it, and by_model/totals/records/engines
   // stay byte-for-byte unchanged.
   const by_model_effort = new Map();
+  // FAFF-640: day -> model -> counts, NEW and additive — mirrors the transcript's
+  // `byDay` shape (economicsBreakdown) so the day axis' existing per-model pricing
+  // loop prices engine rows at their own model with no new pricing code. Day key is
+  // the leading YYYY-MM-DD of rec.ts (same rule as economicsDayOf), else "unknown".
+  // Every pre-existing key/value above is untouched by this addition.
+  const by_day = new Map();
   const engines = new Set();
   let records = 0, malformed = 0;
-  if (!runDir) return { totals, by_model, by_model_effort, engines: [], records, malformed };
+  if (!runDir) return { totals, by_model, by_model_effort, by_day, engines: [], records, malformed };
   let text;
   try { text = fs.readFileSync(engineSpendPath(runDir), "utf8"); }
-  catch { return { totals, by_model, by_model_effort, engines: [], records, malformed }; }
+  catch { return { totals, by_model, by_model_effort, by_day, engines: [], records, malformed }; }
   for (const line of text.split("\n")) {
     const s = line.trim();
     if (!s) continue;
@@ -649,14 +655,20 @@ function readEngineSpend(runDir) {
     const meKey = `${model} ${effort}`;
     if (!by_model_effort.has(meKey)) by_model_effort.set(meKey, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
     const meb = by_model_effort.get(meKey);
+    const tsMatch = typeof rec.ts === "string" && /^(\d{4}-\d{2}-\d{2})/.exec(rec.ts);
+    const day = tsMatch ? tsMatch[1] : "unknown";
+    if (!by_day.has(day)) by_day.set(day, new Map());
+    const dm = by_day.get(day);
+    if (!dm.has(model)) dm.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    const db = dm.get(model);
     for (const cls of TOKEN_DELTA_CLASSES) {
       const v = rec[cls];
-      if (typeof v === "number" && Number.isFinite(v)) { totals[cls] += v; mb[cls] += v; meb[cls] += v; }
+      if (typeof v === "number" && Number.isFinite(v)) { totals[cls] += v; mb[cls] += v; meb[cls] += v; db[cls] += v; }
     }
     if (typeof rec.engine === "string" && rec.engine) engines.add(rec.engine);
     records++;
   }
-  return { totals, by_model, by_model_effort, engines: [...engines], records, malformed };
+  return { totals, by_model, by_model_effort, by_day, engines: [...engines], records, malformed };
 }
 
 // FAFF-604 — the combining layer. Measures BOTH sources and reports which
@@ -1753,7 +1765,38 @@ function budgetSelftest(now = Date.now()) {
     const withBad = readEngineSpend(esd);
     ok("readEngineSpend: a malformed line is SKIPPED and counted, never fatal (partial-write safety)",
       withBad.records === 2 && withBad.malformed === 1 && withBad.totals.input === 105);
+
+    // FAFF-640: by_day — additive, day-then-model nesting. The two records above
+    // carry ts:"t" (unparseable), so both land in "unknown"; totals reconcile.
+    ok("readEngineSpend: by_day is present and reconciles to by_model/totals for a ts-less run",
+      withBad.by_day instanceof Map && withBad.by_day.has("unknown")
+      && withBad.by_day.get("unknown").get("gpt-5-codex").input === 105
+      && withBad.by_day.get("unknown").get("gpt-5-codex").output === 55);
   } finally { fs.rmSync(esd, { recursive: true, force: true }); }
+
+  // FAFF-640: readEngineSpend by_day with real timestamps — a day present only in
+  // engine spend gets its own row, and by_day totals equal by_model equals totals
+  // (the CONSTRAINT in the spec's record shape).
+  const esdDay = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-enginespend-day-"));
+  try {
+    appendEngineSpend(esdDay, { ts: "2026-08-01T10:00:00.000Z", engine: "seat", model: "gpt-5-codex", input: 30, output: 10, cache_read: 0, cache_write: 0 });
+    appendEngineSpend(esdDay, { ts: "2026-08-02T09:00:00.000Z", engine: "seat", model: "gpt-5-codex", input: 7, output: 3, cache_read: 0, cache_write: 0 });
+    appendEngineSpend(esdDay, { ts: "not-a-timestamp", engine: "seat", model: "claude-opus-4-8", input: 1, output: 1, cache_read: 0, cache_write: 0 });
+    const byDayResult = readEngineSpend(esdDay);
+    ok("readEngineSpend: distinct YYYY-MM-DD prefixes bucket into their own day rows",
+      byDayResult.by_day.get("2026-08-01").get("gpt-5-codex").input === 30
+      && byDayResult.by_day.get("2026-08-02").get("gpt-5-codex").input === 7);
+    ok("readEngineSpend: a missing/unparseable ts lands in \"unknown\", still counted",
+      byDayResult.by_day.get("unknown").get("claude-opus-4-8").input === 1);
+    const sumByDay = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+    for (const dm of byDayResult.by_day.values()) {
+      for (const counts of dm.values()) for (const cls of TOKEN_DELTA_CLASSES) sumByDay[cls] += counts[cls];
+    }
+    const sumByModel = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+    for (const counts of byDayResult.by_model.values()) for (const cls of TOKEN_DELTA_CLASSES) sumByModel[cls] += counts[cls];
+    ok("readEngineSpend: by_day totals equal by_model totals equal totals (CONSTRAINT)",
+      TOKEN_DELTA_CLASSES.every((cls) => sumByDay[cls] === sumByModel[cls] && sumByModel[cls] === byDayResult.totals[cls]));
+  } finally { fs.rmSync(esdDay, { recursive: true, force: true }); }
 
   // measureRunSpend — the combining layer itself
   {

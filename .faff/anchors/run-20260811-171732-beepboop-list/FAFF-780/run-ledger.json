@@ -1,15 +1,31 @@
 {
   "run_id": "run-20260811-171732-beepboop-list",
-  "admitted": ["FAFF-780", "FAFF-772", "FAFF-659", "FAFF-642", "FAFF-640", "FAFF-703"],
+  "admitted": [
+    "FAFF-780",
+    "FAFF-772",
+    "FAFF-659",
+    "FAFF-642",
+    "FAFF-640",
+    "FAFF-703"
+  ],
   "outcomes": {
     "FAFF-779": "routed-out",
     "FAFF-720": "routed-out",
     "FAFF-721": "routed-out"
   },
   "outcome_details": {
-    "FAFF-779": { "verdict": "needs-decision-first", "reason": "open Punt (park-comment text, decides: product) + user-explicit do-not-ship-hot hard floor (eval sweep + human sign-off required before merge); resolve-attempt escalates" },
-    "FAFF-720": { "verdict": "needs-decision-first", "reason": "two open architecture Punts (anchor shape; retention policy) — design-settle ADR; resolve-attempt escalates architectural call" },
-    "FAFF-721": { "verdict": "needs-decision-first", "reason": "open architecture Punt (timeout-branch fix) + reproduce-first Assumes (flake unreproduced); not defensibly resolvable, escalate" }
+    "FAFF-779": {
+      "verdict": "needs-decision-first",
+      "reason": "open Punt (park-comment text, decides: product) + user-explicit do-not-ship-hot hard floor (eval sweep + human sign-off required before merge); resolve-attempt escalates"
+    },
+    "FAFF-720": {
+      "verdict": "needs-decision-first",
+      "reason": "two open architecture Punts (anchor shape; retention policy) — design-settle ADR; resolve-attempt escalates architectural call"
+    },
+    "FAFF-721": {
+      "verdict": "needs-decision-first",
+      "reason": "open architecture Punt (timeout-branch fix) + reproduce-first Assumes (flake unreproduced); not defensibly resolvable, escalate"
+    }
   },
   "discovered_scope_filed": 0,
   "review_adversarial_skipped": [],
@@ -18,7 +34,10 @@
   "post_merge_verification_unverified": [],
   "budget": {
     "envelope": {
-      "ceilings": { "tokens": 3000000000, "max_attempts": 40 },
+      "ceilings": {
+        "tokens": 3000000000,
+        "max_attempts": 40
+      },
       "at_ceiling": "stop"
     },
     "measure_root": "/home/faff/app",
@@ -44,5 +63,6 @@
     "session_id": "run-20260811-171732-beepboop-list",
     "started_at": "2026-08-11T17:21:39Z",
     "last_heartbeat": "2026-08-11T17:21:39Z"
-  }
+  },
+  "level": "L3"
 }

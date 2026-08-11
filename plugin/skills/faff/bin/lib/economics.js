@@ -738,12 +738,36 @@ function renderEconomicsBreakdown(bd) {
   const rc = bd.reconciliation;
   const at = bd.axis === "class" && bd.priced_at_model ? `  (priced at ${bd.priced_at_model})` : "";
   lines.push(`# economics --by ${bd.axis}${at}`);
-  lines.push(`  ${"key".padEnd(22)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
+  // FAFF-641: the census-basis line and the source column are gated independently —
+  // the basis sentence on bd.source (the axis-level census), the column on whether
+  // any row actually carries a source (has_source) — so a mixed census that labels
+  // no rows prints an honest basis line and no orphaned legend. Data-gated, never
+  // bd.axis === "model": a class/day breakdown that starts carrying row sources
+  // (FAFF-640) renders the column too, with no further change here.
+  if (bd.source !== "transcript") {
+    lines.push(`  spend census: ${bd.source}  (source column: transcript-jsonl=transcript, exec-json-events=engine, transcript+engine-spend=mixed)`);
+  }
+  const hasSource = bd.rows.some((r) => typeof r.source === "string");
+  const srcHead = hasSource ? ` ${"source".padEnd(10)}` : "";
+  lines.push(`  ${"key".padEnd(22)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}${srcHead}`);
   for (const r of bd.rows) {
-    lines.push(`  ${String(r.key).slice(0, 22).padEnd(22)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+    const srcCell = hasSource ? ` ${abbreviateSpendSource(r.source).slice(0, 10).padEnd(10)}` : "";
+    lines.push(`  ${String(r.key).slice(0, 22).padEnd(22)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}${srcCell}`);
   }
   lines.push(`  reconciles=${rc.reconciles}  (grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total})`);
   return lines.join("\n");
+}
+
+// FAFF-641: display abbreviation for a row's spend source — a lookup with a
+// passthrough default, never a validated enum. An unrecognised source string
+// must still reach the reader (truncated to the column width by the caller),
+// never render blank or get dropped — the failure this ticket exists to fix.
+function abbreviateSpendSource(s) {
+  if (typeof s !== "string") return "—";
+  if (s === "transcript-jsonl") return "transcript";
+  if (s === "exec-json-events") return "engine";
+  if (s === "transcript+engine-spend") return "mixed";
+  return s;
 }
 
 const { parseArgs, usageError } = require("./argv");

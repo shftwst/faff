@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-767",
+  "build": {
+    "status": "complete",
+    "diff_hash": "250868e96be89f5949f35156cc4f89fb9dccc65816b00be650efc0ea3c91aba1",
+    "branch": "faff-767-budget-blindness-at-l3-detect-budget-metering-degraded-off",
+    "pushed_at": "2026-08-11T05:38:40.086Z"
+  },
+  "updated_at": "2026-08-11T05:38:40.086Z"
+}

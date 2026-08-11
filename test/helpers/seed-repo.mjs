@@ -17,7 +17,7 @@
 // dependency — `git` is the CLI's own runtime dependency. Per ADR 0002.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir, devNull } from "node:os";
 import path from "node:path";
 
@@ -38,10 +38,20 @@ function safeSegment(name) {
   return name.replace(/[^A-Za-z0-9._-]+/g, "-");
 }
 
+// List `.git/worktrees/<id>` entries, or [] when the dir doesn't exist yet (no worktrees
+// added so far — a fresh repo has no `.git/worktrees/` at all).
+function readIdsSafe(adminBase) {
+  try { return readdirSync(adminBase); } catch { return []; }
+}
+
 /**
  * Seed a deterministic real git repo + `.faff/` tree in a fresh temp directory.
  * @param {object} spec the SeedSpec (see the FAFF-90 design doc §3).
- * @returns {{ root: string, worktreePath: string|null, teardown: () => void }}
+ *   FAFF-762: spec.danglingWorktree?: { name: string } — `git worktree add`s a real linked
+ *   worktree, then removes its checkout dir (leaving `.git/worktrees/<id>/` dangling) so a
+ *   caller can exercise `worktree-prune` against a genuinely dangling admin dir.
+ * @returns {{ root: string, worktreePath: string|null, danglingAdminPath: string|null,
+ *   danglingWorktreePath: string|null, teardown: () => void }}
  */
 export function seedRepo(spec = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "faff-seed-"));
@@ -70,6 +80,8 @@ export function seedRepo(spec = {}) {
   const runs = spec.runs ?? [];
   const committedSpecs = specs.filter((s) => s.location === "committed");
   let worktreePath = null;
+  let danglingAdminPath = null;
+  let danglingWorktreePath = null;
 
   try {
     provision();
@@ -92,7 +104,7 @@ export function seedRepo(spec = {}) {
     rmSync(root, { recursive: true, force: true, maxRetries: 3 });
   };
 
-  return { root, worktreePath, teardown };
+  return { root, worktreePath, danglingAdminPath, danglingWorktreePath, teardown };
 
   function provision() {
     if (useGit) {
@@ -114,7 +126,8 @@ export function seedRepo(spec = {}) {
     }
 
     // A branch / worktree / committed spec needs HEAD to point at a commit.
-    const needsBase = branches.length > 0 || spec.worktree != null || committedSpecs.length > 0;
+    const needsBase =
+      branches.length > 0 || spec.worktree != null || committedSpecs.length > 0 || spec.danglingWorktree != null;
     if (commits.length === 0 && needsBase) {
       writeRel(".seed-placeholder", "seed\n");
       git("add", "-A");
@@ -137,6 +150,31 @@ export function seedRepo(spec = {}) {
     if (spec.worktree) {
       worktreePath = path.join(root, ".worktrees", safeSegment(spec.worktree.branch));
       git("worktree", "add", worktreePath, spec.worktree.branch);
+    }
+
+    // FAFF-762: a genuinely DANGLING admin dir — `git worktree add` a real linked worktree
+    // on its own branch, resolve its authoritative admin-dir id, then remove the checkout
+    // dir. Git's `.git/worktrees/<id>/` entry survives with no backing checkout: exactly
+    // the state `worktree-prune` targets. Resolve the id by DIFFING the admin-dir listing
+    // before/after the `git worktree add` — not by string-comparing the `gitdir` file's
+    // recorded path against the path we passed in: on macOS the temp root (`os.tmpdir()`)
+    // and/or git's own internal path can be a different-but-equivalent form (e.g. a
+    // symlink-resolved `/private/var/...` vs the unresolved `/var/...` this process sees),
+    // so a literal string match silently fails there while it happens to match on Linux.
+    // The before/after id-set diff sidesteps path-normalisation entirely — it only needs
+    // git to allocate exactly one new admin dir per `worktree add`, which it always does.
+    if (spec.danglingWorktree) {
+      const name = spec.danglingWorktree.name;
+      const dwPath = path.join(root, ".worktrees-dangling", safeSegment(name));
+      const adminBase = path.join(root, ".git", "worktrees");
+      const before = new Set(readIdsSafe(adminBase));
+      git("worktree", "add", "-b", name, dwPath);
+      const after = readIdsSafe(adminBase);
+      const newIds = after.filter((id) => !before.has(id));
+      const adminId = newIds.length === 1 ? newIds[0] : null;
+      rmSync(dwPath, { recursive: true, force: true, maxRetries: 3 });
+      danglingWorktreePath = dwPath;
+      danglingAdminPath = adminId ? path.join(adminBase, adminId) : null;
     }
   } else {
     // .faff-only tree: findRoot anchors on `.faff` (no `.git`); faff state's git half

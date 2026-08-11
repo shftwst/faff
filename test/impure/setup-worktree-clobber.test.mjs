@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.join(HERE, "..");
+const REPO_ROOT = path.join(HERE, "..", "..");
 const PLUGIN_ROOT = path.join(REPO_ROOT, "plugin");
 const HOOK = path.join(PLUGIN_ROOT, "skills", "faff-graft", "setup-worktree.sh");
 

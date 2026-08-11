@@ -97,6 +97,28 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # 1b. DECLARE THE RUN UNATTENDED (FAFF-765). This watcher is self-directed and runs
+      #     with nobody at the keyboard, but it CANNOT be L4 (L4 refuses a self-directed
+      #     run, ADR-0069), so the Sentry ABORT kill-switch is keyed on *attendedness*, not
+      #     the L4 mint: declaring `autonomous.unattended: true` is what arms the live,
+      #     resumable abort on a derailment trip (a stale-heartbeat runaway, a budget breach)
+      #     — without it, an L3 drain only logs `advisory-trip` and the runner's
+      #     `timeout-minutes` cap hard-kills it, orphaning a stale claim (the incident this
+      #     closes). It MUST go in the BASE `.faffrc.yaml`, NOT the `.faffrc.local.yaml`
+      #     overlay: the abort-acting loci resolve governance config (`budget.*`/`sentry.*`)
+      #     via `readGovernanceConfig`, which reads the base file ONLY — the overlay merges
+      #     for `faff config`'s display but NOT for the gate, so an overlay-only declaration
+      #     would echo in the run banner yet never actually arm the kill-switch. The base
+      #     `.faffrc.yaml` is recommended-committed and holds no secrets (ADR-0067 forbids a
+      #     committed *seat*, not a committed posture). Fail-safe off: only a literal `true`
+      #     arms it. (The legacy `autonomous.sentry_acting: true` is a still-honoured alias.)
+      #     If your base already declares an `autonomous:` block, add `unattended: true`
+      #     UNDER it rather than appending a second block.
+      - name: Declare the run unattended (arm the Sentry abort kill-switch)
+        run: |
+          set -eu
+          printf 'autonomous:\n  unattended: true\n' >> .faffrc.yaml
+
       # 2. THE L3 DRAIN. A plain /faff-beep-boop — no `faff lights-out`, so the run is L3.
       #
       #    AUTH: a subscription seat via a long-lived token in the environment (the CI

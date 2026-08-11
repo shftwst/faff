@@ -99,7 +99,9 @@ under Apache 2.0. See `NOTICE`.
 
 ## Licence
 
-SuperDomestique is licensed under Apache-2.0 and will remain Apache-2.0. It will
+This project is licensed under Apache-2.0 and will remain Apache-2.0. It is
+distributed as the `faff` plugin and CLI and presented as SuperDomestique; the
+same licence covers the work under every name. The code in this repository will
 not be relicensed to source-available or more-restrictive terms. Contributions
 are accepted inbound = outbound under the same licence, attested per commit by a
 [Developer Certificate of Origin](https://developercertificate.org) sign-off

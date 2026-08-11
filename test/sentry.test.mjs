@@ -319,6 +319,119 @@ test("FAFF-767: budget-metering-degraded alone never yields abort or correct at 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// ===========================================================================
+// FAFF-764 — scope-drift: a real, behaviour-derived detector on the containment
+// seam, replacing the hollow self-report. Derives drift from the recorded
+// `containment-check` event stream + ledger.prd_root_container, reusing the same
+// subtreeContains/parseAncestry comparators `faff contain`/`faff audit` share.
+// L4-only; trips severity trip -> pause (promoted from the old vestigial
+// "continue"); evidence always carries detective:true (structure, not truth).
+// ===========================================================================
+
+test("FAFF-764: L4 run, a recorded containment-check whose verdict no longer recomputes (malformed ancestry_raw) -> recompute-mismatch, pause", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", prd_root_container: "FAFF-700", admitted: [], outcomes: {} },
+      [{ type: "containment-check", seq: 1, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, ancestry_raw: "not-json", verdict: "contained" } }]);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    const v = out.verdicts.find((x) => x.signal === "scope-drift");
+    assert.ok(v, "scope-drift verdict present");
+    assert.equal(v.severity, "trip");
+    assert.equal(v.evidence.drift_kind, "recompute-mismatch");
+    assert.equal(v.evidence.recorded, "contained");
+    assert.equal(v.evidence.recomputed, "unreproducible");
+    assert.equal(v.evidence.accepted_root, "FAFF-700");
+    assert.equal(v.evidence.detective, true);
+    assert.equal(out.intervention, "pause");
+    assert.equal(out.tripped, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: L4 run, discovered_scope_filed > 0 with zero containment-check events -> unrecorded-create, pause", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", discovered_scope_filed: 2, admitted: [], outcomes: {} });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    const v = out.verdicts.find((x) => x.signal === "scope-drift");
+    assert.ok(v, "scope-drift verdict present");
+    assert.equal(v.evidence.drift_kind, "unrecorded-create");
+    assert.equal(v.evidence.discovered_scope_filed, 2);
+    assert.equal(out.intervention, "pause");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: L4 run, a NON-root containment-check verdict:outward -> outward-boundary-reach, pause, carrying seq/issue/mandate/parent", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", prd_root_container: "FAFF-700", admitted: [], outcomes: {} },
+      [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, verdict: "outward" } }]);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    const v = out.verdicts.find((x) => x.signal === "scope-drift");
+    assert.ok(v, "scope-drift verdict present");
+    assert.equal(v.evidence.drift_kind, "outward-boundary-reach");
+    assert.equal(v.evidence.seq, 5);
+    assert.equal(v.evidence.issue, "FAFF-900");
+    assert.equal(v.evidence.mandate, "FAFF-700");
+    assert.equal(v.evidence.parent, "FAFF-401");
+    assert.equal(out.intervention, "pause");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: the sanctioned root:true outward filing floor (faff contain --root), coherent and matching discovered_scope_filed -> null, never trips", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", prd_root_container: "FAFF-700", discovered_scope_filed: 1, admitted: [], outcomes: {} },
+      [{ type: "containment-check", seq: 1, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: null, root: true, verdict: "outward" } }]);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.verdicts.find((v) => v.signal === "scope-drift"), undefined, "the designed filing floor is not drift");
+    assert.equal(out.intervention, "continue");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: L4 run with all-contained, cleanly-recomputing checks and no discovered scope -> null", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", prd_root_container: "FAFF-700", admitted: [], outcomes: {} },
+      [{ type: "containment-check", seq: 1, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-700", root: false, verdict: "contained" } }]);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.verdicts.find((v) => v.signal === "scope-drift"), undefined);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: non-L4 (absent level, or L3) -> null regardless of containment-check events or discovered_scope_filed", () => {
+  const dir = tmp();
+  try {
+    const events = [{ type: "containment-check", seq: 1, issue: "X", data: { mandate: "M", parent: "P", root: false, verdict: "outward" } }];
+    const rdNoLevel = mkRun(dir, "no-level", { run_id: "no-level", discovered_scope_filed: 5, admitted: [], outcomes: {} }, events);
+    const outNoLevel = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rdNoLevel, "--json"]).out);
+    assert.equal(outNoLevel.verdicts.find((v) => v.signal === "scope-drift"), undefined, "no level field at all -> never fires");
+
+    const rdL3 = mkRun(dir, "l3", { run_id: "l3", level: "L3", discovered_scope_filed: 5, admitted: [], outcomes: {} }, events);
+    const outL3 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rdL3, "--json"]).out);
+    assert.equal(outL3.verdicts.find((v) => v.signal === "scope-drift"), undefined, "L3 -> never fires (out of scope, spec §2)");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: the removed self-report path — an event's data.scope_drift:true no longer produces any scope-drift verdict by itself", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {} },
+      [{ type: "build-start", issue: "X", data: { scope_drift: true } }]);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.verdicts.find((v) => v.signal === "scope-drift"), undefined);
+    assert.equal(out.intervention, "continue");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-764: authority:'available' never upgrades scope-drift past pause (only fix-review-thrash upgrades)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", discovered_scope_filed: 1, admitted: [], outcomes: {} });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--authority", "available"]).out);
+    assert.equal(out.intervention, "pause");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- AC4: trip→abort commits WIP, marks aborted-resumable, run is re-enterable -----
 
 test("AC4: abort commits worktree WIP to its branch, marks the ledger aborted-resumable, run re-enterable", () => {

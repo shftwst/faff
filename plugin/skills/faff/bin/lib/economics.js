@@ -167,7 +167,7 @@ function attributePerIssueCosts(base, sid, ledger, price) {
 // to measure serialized size.
 // ===========================================================================
 
-const BY_AXES = ["class", "model", "mcp", "day", "effort"];
+const BY_AXES = ["class", "model", "mcp", "day", "effort", "phase"];
 
 // FAFF-415: the effort axis is rendered in fixed severity order (with a trailing
 // "(none)" bucket for token-bearing dispatches that carried no effort tag), so the
@@ -658,6 +658,163 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malf
   };
 }
 
+// ===========================================================================
+// === FAFF-500: `--by phase` — explore(child) / synthesis(parent) / build split. ==
+// The one JOIN axis: unlike the transcript-only axes (class/model/day/mcp) and the
+// events-only axis (effort), phase needs BOTH the per-file transcript census AND the
+// events.jsonl windows. The explore-vs-synthesis boundary maps onto the parent/child
+// transcript boundary faff already tracks (FAFF-229): files[0] is the parent
+// orchestrator session (frontier SYNTHESIS), files[1:] are owned agent-*.jsonl
+// children (a prep-window child is the cheap EXPLORE lane). The phase a record belongs
+// to is inferred by which events.jsonl window its `timestamp` falls inside. Read-only
+// (FAFF-359): imports from budget.js/events.js, mutates no producer, adds no event type.
+// Reconcile-by-construction: buckets pivot the SAME record set + usage rule the flat
+// measureTokens top-line sums, so ALL four buckets (incl. `unattributed`) sum to it.
+// Undercount-not-misattribute: a record in no usable window → `unattributed`, never
+// guessed. NON-LEAK (FAFF-407 §5): emits only counts, four-class ints, turns,
+// tool_calls, phase-labels, model-id and derived cost — never transcript/event payload.
+// ===========================================================================
+
+// Fixed render order for the phase buckets; a bucket surfaces only when it occurs.
+const PHASE_BUCKET_KEYS = ["prep-explore", "prep-synthesis", "build", "unattributed"];
+
+// PURE core — pair events.jsonl start/end records into phase windows, per issue, by
+// `seq` (authoritative; `ts` is best-effort). prep = prep-start→prep-done; build =
+// build-start→issue-outcome. A start with no matching end, or a boundary lacking a
+// usable `ts`, yields a window flagged UNUSABLE (its records fall to `unattributed`) —
+// never dropped silently. Windows carry `ts` bounds because the transcript `timestamp`
+// (reliable) is bracketed against the event `ts` (best-effort) at attribution time.
+function phaseWindowsFromEvents(events) {
+  const START = { "prep-start": "prep", "build-start": "build" };
+  const END = { "prep-done": "prep", "issue-outcome": "build" };
+  const sorted = [...events].sort((a, b) => {
+    const sa = a && Number.isInteger(a.seq) ? a.seq : 0;
+    const sb = b && Number.isInteger(b.seq) ? b.seq : 0;
+    return sa - sb;
+  });
+  const windows = [];
+  const pending = new Map();   // "<phase>::<issue>" -> { start_seq, start_ts }
+  for (const ev of sorted) {
+    if (!ev || typeof ev !== "object") continue;
+    const type = ev.type;
+    const issue = typeof ev.issue === "string" && ev.issue ? ev.issue : null;
+    if (issue == null) continue;   // windows are issue-scoped by construction
+    const ts = typeof ev.ts === "string" && ev.ts ? ev.ts : null;
+    const seq = Number.isInteger(ev.seq) ? ev.seq : null;
+    if (START[type]) {
+      pending.set(`${START[type]}::${issue}`, { start_seq: seq, start_ts: ts });
+    } else if (END[type]) {
+      const phase = END[type];
+      const key = `${phase}::${issue}`;
+      const open = pending.get(key);
+      if (!open) continue;         // an end with no matching start pairs nothing
+      pending.delete(key);
+      windows.push({ phase, issue, start_seq: open.start_seq, end_seq: seq, start_ts: open.start_ts, end_ts: ts });
+    }
+  }
+  // Starts never closed → emitted UNUSABLE (end_ts null), so their records land in
+  // `unattributed` rather than being silently attributed to an unbounded window.
+  for (const [key, open] of pending) {
+    const idx = key.indexOf("::");
+    windows.push({ phase: key.slice(0, idx), issue: key.slice(idx + 2), start_seq: open.start_seq, end_seq: null, start_ts: open.start_ts, end_ts: null });
+  }
+  return windows;
+}
+
+// A window is USABLE for bracketing only when BOTH its ts bounds are present.
+function phaseWindowUsable(w) {
+  return w != null && typeof w.start_ts === "string" && typeof w.end_ts === "string";
+}
+
+// Select the window that owns a record's `timestamp` (inclusive string compare — ISO-8601
+// sorts lexically, the same rule econOrderLineage uses). Interleaved precedence: innermost
+// = latest `start_seq` still containing the ts; ties → build over prep (the terminal phase).
+function selectPhaseWindow(usableWindows, ts) {
+  if (typeof ts !== "string") return null;
+  let best = null;
+  for (const w of usableWindows) {
+    if (ts < w.start_ts || ts > w.end_ts) continue;
+    if (best == null) { best = w; continue; }
+    const ws = Number.isInteger(w.start_seq) ? w.start_seq : -Infinity;
+    const bs = Number.isInteger(best.start_seq) ? best.start_seq : -Infinity;
+    if (ws > bs) best = w;
+    else if (ws === bs && w.phase === "build" && best.phase !== "build") best = w;
+  }
+  return best;
+}
+
+// A turn is one assistant record. Assistant records carry `type:"assistant"` or
+// `message.role:"assistant"`; the common transcript shape omits both but carries
+// `message.usage` (only assistant messages do), so a usage-bearing untyped record
+// counts too. A tool_result (user) record — no usage, no assistant marker — is not a turn.
+function econIsAssistantTurn(rec) {
+  if (!rec || typeof rec !== "object" || !rec.message || typeof rec.message !== "object") return false;
+  if (rec.type === "assistant" || rec.message.role === "assistant") return true;
+  if (rec.type === undefined && rec.message.role === undefined && economicsUsageOf(rec) !== null) return true;
+  return false;
+}
+
+// PURE core — bucket each record by (window-phase × file-identity) into the four phase
+// buckets, four-class + turns + tool_calls, priced per row at the run's dominant model.
+// `topLineTotal` is the raw measureTokens sum over the SAME files, so the buckets
+// reconcile to it by construction (incl. `unattributed`). Selftest-coverable like the
+// class/effort cores.
+function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLineTotal, eventsMalformed) {
+  const mk = () => ({ input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0, turns: 0, tool_calls: 0 });
+  const buckets = new Map(PHASE_BUCKET_KEYS.map((k) => [k, mk()]));
+  const usable = (windows || []).filter(phaseWindowUsable);
+  for (const f of fileRecords) {
+    const isMain = !!f.is_main;
+    for (const r of f.records) {
+      const ts = r && typeof r.timestamp === "string" ? r.timestamp : null;
+      const w = selectPhaseWindow(usable, ts);
+      const key = w == null ? "unattributed"
+        : w.phase === "build" ? "build"
+        : isMain ? "prep-synthesis"
+        : "prep-explore";
+      const b = buckets.get(key);
+      const u = economicsUsageOf(r);
+      if (u) {
+        for (const cls of TOKEN_DELTA_CLASSES) {
+          const v = u[TOKEN_CLASS_FROM_USAGE[cls]];
+          if (typeof v === "number" && Number.isFinite(v)) { b[cls] += v; b.total += v; }
+        }
+      }
+      if (econIsAssistantTurn(r)) b.turns += 1;
+      const content = r && r.message && r.message.content;
+      if (Array.isArray(content)) for (const block of content) if (block && block.type === "tool_use") b.tool_calls += 1;
+    }
+  }
+  const pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
+  const rows = PHASE_BUCKET_KEYS
+    .filter((k) => { const b = buckets.get(k); return b.total > 0 || b.turns > 0 || b.tool_calls > 0; })
+    .map((k) => {
+      const b = buckets.get(k);
+      return { key: k, input: b.input, output: b.output, cache_write: b.cache_write, cache_read: b.cache_read,
+        total: b.total, turns: b.turns, tool_calls: b.tool_calls, cost: economicsRowCost(b, pricedAtModel, priceMap) };
+    });
+  const grandTotal = PHASE_BUCKET_KEYS.reduce((s, k) => s + buckets.get(k).total, 0);
+  const unattributedTotal = buckets.get("unattributed").total;
+  const topLine = (typeof topLineTotal === "number") ? topLineTotal : null;
+  return {
+    axis: "phase",
+    source: "transcript",
+    priced_at_model: pricedAtModel,
+    cost_basis: "estimate",     // every row priced at one inferred dominant model
+    rows,
+    reconciliation: {
+      grand_total: grandTotal,
+      top_line_total: topLine,
+      // reconciles even when windows are incomplete: the gap moves to `unattributed`,
+      // the four-bucket sum stays exact. coverage_pct is the attributed share.
+      reconciles: topLine != null ? grandTotal === topLine : false,
+      coverage_pct: (topLine && topLine > 0) ? Number((100 * (grandTotal - unattributedTotal) / topLine).toFixed(3)) : null,
+      windows_found: usable.length,
+      events_malformed: eventsMalformed || 0,
+    },
+  };
+}
+
 // I/O reader — read the run's events.jsonl (FAFF-35 lane), one record per line.
 // Returns { events, malformed }: a malformed line is skipped BUT counted, so the
 // effort axis can surface it (a silently-dropped event would make coverage_pct read
@@ -701,6 +858,34 @@ function readRunTranscriptRecords(cwd, env, runStartMs) {
   return { records, source: "transcript" };
 }
 
+// I/O reader — per-file-retaining sibling of readRunTranscriptRecords (FAFF-500). The
+// flat reader collapses all owned files into one array and loses origin; the phase axis
+// needs to know which records came from the parent session (files[0], is_main) vs an
+// owned child, so this walks the SAME sessionOwnedTranscriptFiles set but keeps each
+// file's records grouped with an is_main flag (true for index 0 only). Degrades to
+// source:"estimate" (empty list) exactly as readRunTranscriptRecords/measureTokens do.
+function readRunTranscriptRecordsByFile(cwd, env, runStartMs) {
+  const sid = env.CLAUDE_CODE_SESSION_ID;
+  const base = transcriptBaseDir(cwd, env);
+  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
+  if (!files) return { files: [], source: "estimate" };
+  const out = files.map((f, i) => {
+    const records = [];
+    let text = null;
+    try { text = fs.readFileSync(f, "utf8"); } catch { text = null; }
+    if (text != null) for (const line of text.split("\n")) {
+      const s = line.trim();
+      if (!s) continue;
+      let rec;
+      try { rec = JSON.parse(s); } catch { continue; }
+      records.push(rec);
+    }
+    // Keep the slot even if a read failed, so is_main indexing stays correct.
+    return { file: f, is_main: i === 0, records };
+  });
+  return { files: out, source: "transcript" };
+}
+
 // Render a breakdown as a skimmable text table (the human default for `--by`).
 function renderEconomicsBreakdown(bd) {
   const M = (n) => (n / 1e6).toFixed(2) + "M";
@@ -722,6 +907,21 @@ function renderEconomicsBreakdown(bd) {
     }
     const mal = rc.malformed_lines ? `  malformed_lines=${rc.malformed_lines}` : "";
     lines.push(`  events_token_total=${rc.events_token_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);
+    return lines.join("\n");
+  }
+  if (bd.axis === "phase") {
+    // FAFF-500: explore(child) / synthesis(parent) / build split via events.jsonl windows.
+    // Adds turns/tool_calls columns (the mechanism mediator) over the effort table shape.
+    const rc = bd.reconciliation;
+    const cov = rc.coverage_pct == null ? "n/a" : `${rc.coverage_pct}%`;
+    lines.push(`# economics --by phase — explore(child)/synthesis(parent)/build split via events.jsonl windows (FAFF-500)`);
+    lines.push(`  cost priced at ${bd.priced_at_model || "—"} (ESTIMATE — one dominant model)  ·  coverage of top-line: ${cov}  ·  windows_found=${rc.windows_found}`);
+    lines.push(`  ${"phase".padEnd(15)} ${"turns".padStart(7)} ${"tools".padStart(7)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
+    for (const r of bd.rows) {
+      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(7)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+    }
+    const mal = rc.events_malformed ? `  events_malformed=${rc.events_malformed}` : "";
+    lines.push(`  grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);
     return lines.join("\n");
   }
   if (bd.axis === "mcp") {
@@ -1020,6 +1220,18 @@ function cmdEconomics(args) {
   } else if (measuredSource !== "transcript") {
     bd = { axis: byAxis, source: "estimate", rows: [],
       reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
+  } else if (byAxis === "phase") {
+    // FAFF-500: the JOIN axis — per-file transcript census (to tell parent synthesis
+    // from explore child) crossed with events.jsonl windows (to tell prep from build).
+    // Reuses measuredTotal as the reconciliation top-line, so it reconciles by
+    // construction over the SAME record population the flat measure summed.
+    const { files } = readRunTranscriptRecordsByFile(root, process.env, runStartMs);
+    const { events, malformed } = readRunEvents(runDir);
+    const windows = phaseWindowsFromEvents(events);
+    const flat = [];
+    for (const f of files) for (const r of f.records) flat.push(r);
+    const dominant = economicsDominantModel(flat);
+    bd = economicsPhaseBreakdown(files, windows, priceMap, dominant, measuredTotal, malformed);
   } else {
     const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
     if (byAxis === "mcp") {
@@ -1199,9 +1411,78 @@ function economicsSelftest() {
   ok("fold: engineSpend with 0 records is byte-identical (source events, no engine_token_total)",
     ebNoEngine.source === "events" && !("engine_token_total" in ebNoEngine.reconciliation));
 
+  // --- FAFF-500: phase axis (window pairing + per-file bucketing) ---
+  const pevs = [
+    { seq: 0, ts: "2026-07-01T10:00:00Z", type: "prep-start", issue: "FAFF-1" },
+    { seq: 1, ts: "2026-07-01T10:01:00Z", type: "prep-done", issue: "FAFF-1" },
+    { seq: 2, ts: "2026-07-01T10:02:00Z", type: "build-start", issue: "FAFF-1" },
+    { seq: 3, ts: "2026-07-01T10:03:00Z", type: "issue-outcome", issue: "FAFF-1" },
+  ];
+  const pw = phaseWindowsFromEvents(pevs);
+  ok("phase windows: prep + build paired per issue", pw.length === 2 && !!pw.find((w) => w.phase === "prep") && !!pw.find((w) => w.phase === "build"));
+  ok("phase windows: prep bounds from seq + ts", (() => { const p = pw.find((w) => w.phase === "prep"); return p.start_seq === 0 && p.end_seq === 1 && p.start_ts === "2026-07-01T10:00:00Z" && p.end_ts === "2026-07-01T10:01:00Z"; })());
+  const pwUnmatched = phaseWindowsFromEvents([{ seq: 0, ts: "t", type: "prep-start", issue: "FAFF-1" }]);
+  ok("phase windows: unmatched start → unusable (end_ts null)", pwUnmatched.length === 1 && pwUnmatched[0].end_ts === null && !phaseWindowUsable(pwUnmatched[0]));
+  const pwTsless = phaseWindowsFromEvents([
+    { seq: 0, type: "prep-start", issue: "FAFF-1" },                                  // no ts on start
+    { seq: 1, ts: "2026-07-01T10:01:00Z", type: "prep-done", issue: "FAFF-1" },
+  ]);
+  ok("phase windows: ts-less boundary → window unusable", pwTsless.length === 1 && !phaseWindowUsable(pwTsless[0]));
+
+  const pfiles = [
+    { file: "main", is_main: true, records: [
+      { message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-01T10:00:30Z" },   // prep window → synthesis
+      { message: { model: "claude-opus-4-8", usage: { input_tokens: 200 } }, timestamp: "2026-07-01T10:02:30Z" },   // build window → build
+    ] },
+    { file: "agent-explore", is_main: false, records: [
+      { message: { model: "claude-opus-4-8", usage: { input_tokens: 50, cache_read_input_tokens: 500 }, content: [{ type: "tool_use", name: "Read", input: { path: "SECRET-PHASE-PAYLOAD" } }] }, timestamp: "2026-07-01T10:00:45Z" },
+    ] },
+    { file: "agent-build", is_main: false, records: [
+      { message: { model: "claude-opus-4-8", usage: { input_tokens: 30 } }, timestamp: "2026-07-01T10:02:45Z" },
+    ] },
+  ];
+  const pTop = 100 + 200 + 50 + 500 + 30; // 880
+  const pb = economicsPhaseBreakdown(pfiles, pw, PRICE_PER_MTOK, "claude-opus-4-8", pTop, 0);
+  ok("phase axis: source transcript, cost_basis estimate", pb.source === "transcript" && pb.cost_basis === "estimate" && pb.axis === "phase");
+  ok("phase axis: rows occurring only, fixed order", pb.rows.map((r) => r.key).join(",") === "prep-explore,prep-synthesis,build");
+  ok("phase axis: explore child → prep-explore (tokens + turn + tool_call)", (() => { const e = pb.rows.find((r) => r.key === "prep-explore"); return e.input === 50 && e.cache_read === 500 && e.total === 550 && e.turns === 1 && e.tool_calls === 1; })());
+  ok("phase axis: parent prep-window record → prep-synthesis", (() => { const s = pb.rows.find((r) => r.key === "prep-synthesis"); return s.input === 100 && s.total === 100 && s.turns === 1 && s.tool_calls === 0; })());
+  ok("phase axis: both build-window populations → build", (() => { const b = pb.rows.find((r) => r.key === "build"); return b.input === 230 && b.total === 230 && b.turns === 2; })());
+  ok("phase axis: reconciles four-class to top-line (incl. unattributed)", pb.reconciliation.reconciles === true && pb.reconciliation.grand_total === pTop);
+  ok("phase axis: full coverage + windows_found when every record windowed", pb.reconciliation.coverage_pct === 100 && pb.reconciliation.windows_found === 2);
+  ok("phase axis: priced at dominant model, cost non-null when priced", pb.priced_at_model === "claude-opus-4-8" && pb.rows.find((r) => r.key === "build").cost !== null);
+  ok("phase axis: NON-LEAK — no event/transcript payload in output", !JSON.stringify(pb).includes("SECRET-PHASE-PAYLOAD"));
+
+  // No usable windows (retro / no events.jsonl) → every record unattributed, exact reconcile, 0 coverage.
+  const pbNoWin = economicsPhaseBreakdown(pfiles, [], PRICE_PER_MTOK, "claude-opus-4-8", pTop, 0);
+  ok("phase axis: no windows → all unattributed, reconciles, coverage 0", pbNoWin.rows.length === 1 && pbNoWin.rows[0].key === "unattributed" && pbNoWin.rows[0].total === pTop && pbNoWin.reconciliation.reconciles === true && pbNoWin.reconciliation.coverage_pct === 0);
+
+  // A ts-less prep boundary (unusable window) → its records fall to unattributed, not guessed into prep.
+  const pwGap = [
+    { phase: "prep", issue: "FAFF-1", start_seq: 0, end_seq: 1, start_ts: "2026-07-01T10:00:00Z", end_ts: null },
+    { phase: "build", issue: "FAFF-1", start_seq: 2, end_seq: 3, start_ts: "2026-07-01T10:02:00Z", end_ts: "2026-07-01T10:03:00Z" },
+  ];
+  const pbGap = economicsPhaseBreakdown(pfiles, pwGap, PRICE_PER_MTOK, "claude-opus-4-8", pTop, 0);
+  ok("phase axis: ts-less prep boundary → prep records unattributed (not guessed)", (() => {
+    const u = pbGap.rows.find((r) => r.key === "unattributed");
+    return !pbGap.rows.some((r) => r.key === "prep-synthesis" || r.key === "prep-explore") && u.total === 650 && pbGap.reconciliation.reconciles === true;
+  })());
+
+  // Interleaved windows: innermost = latest start_seq still containing the ts; ties → build over prep.
+  const wInner = [
+    { phase: "prep", issue: "A", start_seq: 0, end_seq: 9, start_ts: "2026-07-01T10:00:00Z", end_ts: "2026-07-01T10:10:00Z" },
+    { phase: "build", issue: "B", start_seq: 2, end_seq: 8, start_ts: "2026-07-01T10:02:00Z", end_ts: "2026-07-01T10:08:00Z" },
+  ];
+  ok("phase axis: interleaved → innermost latest start_seq wins", (() => { const s = selectPhaseWindow(wInner, "2026-07-01T10:05:00Z"); return s.phase === "build" && s.start_seq === 2; })());
+  const wTie = [
+    { phase: "prep", issue: "A", start_seq: 4, end_seq: 9, start_ts: "2026-07-01T10:00:00Z", end_ts: "2026-07-01T10:10:00Z" },
+    { phase: "build", issue: "B", start_seq: 4, end_seq: 8, start_ts: "2026-07-01T10:00:00Z", end_ts: "2026-07-01T10:08:00Z" },
+  ];
+  ok("phase axis: start_seq tie → build over prep", selectPhaseWindow(wTie, "2026-07-01T10:05:00Z").phase === "build");
+
   console.log(`economics --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { BY_AXES, ECONOMICS_BUCKET_ORDER, ECON_B2T, EFFORT_NONE_KEY, EFFORT_ORDER, PRICE_PER_MTOK, attributePerIssueCosts, cmdEconomics, computeUnitEconomics, econAttributeCacheRead, econBlockSizeChars, econIsCompactBoundary, econOrderLineage, econToLightRecord, economicsAttributeIssue, economicsBreakdown, economicsDayOf, economicsDominantModel, economicsEffortBreakdown, economicsMcpBreakdown, economicsPriceForModel, economicsRowCost, economicsSelftest, economicsTokFromChars, economicsUsageOf, readRunEvents, readRunTranscriptRecords, renderEconomicsBreakdown, resolveEconomicsPriceMap };
+module.exports = { BY_AXES, ECONOMICS_BUCKET_ORDER, ECON_B2T, EFFORT_NONE_KEY, EFFORT_ORDER, PRICE_PER_MTOK, attributePerIssueCosts, cmdEconomics, computeUnitEconomics, econAttributeCacheRead, econBlockSizeChars, econIsCompactBoundary, econOrderLineage, econToLightRecord, economicsAttributeIssue, economicsBreakdown, economicsDayOf, economicsDominantModel, economicsEffortBreakdown, economicsMcpBreakdown, economicsPhaseBreakdown, economicsPriceForModel, economicsRowCost, economicsSelftest, economicsTokFromChars, economicsUsageOf, phaseWindowsFromEvents, readRunEvents, readRunTranscriptRecords, readRunTranscriptRecordsByFile, renderEconomicsBreakdown, resolveEconomicsPriceMap };

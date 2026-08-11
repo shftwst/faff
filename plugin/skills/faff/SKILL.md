@@ -1150,7 +1150,7 @@ Executes `/faff-beep-boop`'s build pass. Default `faffter-noon-concurrency-seque
 
 **Output.** Every partition issue reaches a terminal state, all recorded in the ledger; control returns to beep-boop's wave drain. **Worktree isolation** (one worktree per build, never shared) is mandatory for any occupant that runs builds concurrently — see **Worktree policy**.
 
-## Routing
+## Routing fallbacks
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 

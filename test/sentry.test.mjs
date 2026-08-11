@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { actsOnSentryAbort, sentryActingFromConfig, declaredUnattendedFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
+import { readGovernanceConfig } from "../plugin/skills/faff/bin/lib/budget.js";
 import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -1264,4 +1265,24 @@ test("actsOnSentryAbort: the L4 lazy short-circuit survives the re-key — a con
   // The re-keyed second disjunct (declaredUnattendedFromConfig) is NEVER reached for L4.
   assert.equal(actsOnSentryAbort({ level: "L4" }, {}), true);
   assert.equal(actsOnSentryAbort({ level: "L4" }, rc("autonomous:\n  unattended: false\n")), true);
+});
+
+// FAFF-765 — the abort-acting loci resolve config through readGovernanceConfig, which
+// reads the BASE .faffrc.yaml ONLY (never the .faffrc.local.yaml overlay). This pins
+// the contract the docs + the reference l3-watcher.yml depend on: the unattended
+// declaration MUST live in the base file, because an overlay-only declaration would
+// echo in the `faff config` banner yet never arm the kill-switch (the adversarial-review
+// finding on this slice). A guard against a future doc/watcher regression to the overlay.
+test("actsOnSentryAbort via readGovernanceConfig: a BASE-file autonomous.unattended arms an L3 run; an OVERLAY-only declaration does NOT (base-read contract)", () => {
+  const baseRoot = tmp();
+  writeFileSync(join(baseRoot, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
+  assert.equal(actsOnSentryAbort({ level: "L3" }, readGovernanceConfig(baseRoot)), true,
+    "a base-file declaration arms the kill-switch");
+  rmSync(baseRoot, { recursive: true, force: true });
+
+  const overlayRoot = tmp();
+  writeFileSync(join(overlayRoot, ".faffrc.local.yaml"), "autonomous:\n  unattended: true\n");
+  assert.equal(actsOnSentryAbort({ level: "L3" }, readGovernanceConfig(overlayRoot)), false,
+    "an OVERLAY-only declaration is NOT read by the gate — it must live in the base file");
+  rmSync(overlayRoot, { recursive: true, force: true });
 });

@@ -40,6 +40,19 @@ function mkMainRepo({ withSkills = true, realCli = false } = {}) {
   git(main, "init", "-q", "-b", "main");
   git(main, "config", "user.email", "t@t.t");
   git(main, "config", "user.name", "t");
+  // Teardown-race hardening (FAFF-775). These are real git checkouts that clean() removes
+  // recursively at the end of each test, and a recursive rmSync is not atomic: it walks the tree
+  // then rmdir's each now-empty directory. If a *background/detached* git process writes into
+  // `.git` between that walk and the rmdir, the rmdir sees a non-empty directory and throws
+  // `ENOTEMPTY`, which is the flake. A bounded rmSync retry (tried first) proved insufficient on
+  // CI because the writer is sustained, not a brief flush tail: on the hosted runners git's own
+  // auto-maintenance detaches a gc/commit-graph writer that outlives the test's synchronous
+  // children. So remove the writer at its source rather than race it: disable every detached
+  // maintenance path so `.git` is quiescent by teardown. Deterministic, not timing-dependent.
+  git(main, "config", "gc.auto", "0");              // no auto gc at all
+  git(main, "config", "gc.autoDetach", "false");    // and any gc that does run stays synchronous, never a detached writer
+  git(main, "config", "maintenance.auto", "false"); // no background maintenance scheduler
+  git(main, "config", "core.fsmonitor", "false");   // no fsmonitor daemon touching .git
   mkdirSync(join(main, "scripts"), { recursive: true });
   cpSync(LINK_SH, join(main, "scripts", "link-skills.sh"));
   if (withSkills) {
@@ -108,7 +121,13 @@ function mkFencedRoot() {
   return root;
 }
 
-const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true }); };
+// Backstop to the mkMainRepo maintenance-disabling above (FAFF-775): with the detached git
+// writer removed at its source, `.git` is quiescent by teardown and the first rmdir succeeds.
+// A recursive rmSync is still non-atomic, so retry the errno class (ENOTEMPTY/EBUSY/EPERM) with
+// backoff to absorb any residual filesystem lag. Retry ALONE was proven insufficient on CI (the
+// sustained writer outran it): it earns its place only as the second layer behind removing the
+// writer, never as the fix on its own.
+const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); };
 
 // ---- FAFF-675: plugin-root doctor scan fixtures ----
 //

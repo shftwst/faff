@@ -118,6 +118,30 @@ test("config init --set tracking.git_host=gitea is refused (exit 2), no file wri
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// Adversarial-review finding (FAFF-430): the writer must refuse exactly what the reader would
+// refuse — an empty-string git_host is NOT the documented spec_docs_path-style empty-value stub
+// (git_host has no legitimate empty form), so `--set tracking.git_host=` must be refused rather
+// than writing a value `config get` would immediately fail loud on.
+test("config init --set tracking.git_host= (empty string) is refused (exit 2), no file written", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff430initempty-"));
+  try {
+    const r = run(dir, "config", "init", "--set", "tracking.git_host=");
+    assert.equal(r.code, 2);
+    assert.match(r.err, /invalid host/);
+    assert.equal(run(dir, "config", "path").code, 3, "no config file should exist");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// The empty-value stub form is still fine for a key that IS meant to carry it (spec_docs_path) —
+// this is a regression guard that the git_host fix above didn't broaden past its own key.
+test("config init --set tracking.spec_docs_path= (empty string) still succeeds (the documented stub key)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff430initstub-"));
+  try {
+    const r = run(dir, "config", "init", "--set", "tracking.spec_docs_path=");
+    assert.equal(r.code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("config init --set tracking.git_host=gitlab on an existing file is refused, file byte-unchanged", () => {
   const dir = mkdtempSync(join(tmpdir(), "faff430init2-"));
   const before = "tracking:\n  team_key: X\n";
@@ -182,6 +206,26 @@ test("config check: unset git_host emits no finding for this key", () => {
     const r = run(dir, "config", "check", "--json");
     const parsed = JSON.parse(r.out);
     assert.ok(!parsed.findings.some((f) => f.surface === "tracking.git_host"), "unset must not be flagged");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Adversarial-review finding (FAFF-430): a non-string YAML scalar (e.g. a bare `true`, coerced
+// by the YAML reader to a boolean) must produce the SAME quoted value representation on both
+// `config get` (which fmt()s before validating) and `config check` (which previously passed the
+// raw dig() value straight through) — a fmt/raw mismatch would read as two different failures
+// for the same misconfiguration.
+test("config check and config get report the identical quoted value for a non-string git_host", () => {
+  const dir = fixtureDir("tracking:\n  git_host: true\n");
+  try {
+    const getR = runCli(["config", "get", "tracking.git_host"], { cwd: dir });
+    assert.equal(getR.code, 2);
+    assert.match(getR.stderr, /invalid host "true"/);
+
+    const checkR = run(dir, "config", "check", "--json");
+    const parsed = JSON.parse(checkR.out);
+    const finding = parsed.findings.find((f) => f.surface === "tracking.git_host");
+    assert.ok(finding, "expected a finding on tracking.git_host");
+    assert.match(finding.message, /git_host: "true" is not supported/, "config check must report the same fmt'd value as config get");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

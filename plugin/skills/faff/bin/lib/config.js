@@ -710,11 +710,14 @@ function cmdConfigInit(args, root) {
     // FAFF-430: reuse the same read-time host-vocab validator config-get enforces — a value
     // that would fail loud at read is refused at write (mirrors config-set's read⇒write belt;
     // config init has no other per-key value validation, so this seam is registered explicitly
-    // here rather than assumed-inherited).
-    if (value !== "") {
-      const hostErr = validateGitHostValue(fq, value);
-      if (hostErr) { process.stderr.write(hostErr + "\n"); return 2; }
-    }
+    // here rather than assumed-inherited). Deliberately UNGUARDED by `value !== ""` — unlike
+    // spec_docs_path (the documented empty-value stub key), git_host has no legitimate
+    // empty-string form: an empty write must be refused here exactly as `config get` would
+    // refuse reading it back (adversarial review finding, FAFF-430) — a write/read parity gap
+    // would otherwise let `--set tracking.git_host=` succeed and then immediately fail loud on
+    // the very next `config get`.
+    const hostErr = validateGitHostValue(fq, value);
+    if (hostErr) { process.stderr.write(hostErr + "\n"); return 2; }
     const leaf = fq.slice("tracking.".length);
     if (leaf in seen && seen[leaf] !== value) {
       process.stderr.write(`faff config init: key '${leaf}' set twice with different values ('${seen[leaf]}' vs '${value}') — ambiguous.\n`);
@@ -1485,7 +1488,12 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // would otherwise limp silently past this linter (config get / config set already fail loud
   // on the same value; this catches a base that never went through either). Unset is fine — the
   // finding fires only when the merged value is present and off-allowlist.
-  const gitHost = dig(mergedDoc, "tracking.git_host");
+  const gitHostRaw = dig(mergedDoc, "tracking.git_host");
+  // fmt() first — mirrors the cmdConfig read-time path (`validateGitHostValue(key, fmt(value))`)
+  // so a non-string YAML scalar (e.g. `git_host: true`) produces the identical quoted message on
+  // both surfaces, never a raw-value/fmt'd-value mismatch between `config check` and `config get`
+  // (adversarial review finding, FAFF-430).
+  const gitHost = gitHostRaw === null || gitHostRaw === undefined ? gitHostRaw : fmt(gitHostRaw);
   if (gitHost !== null && gitHost !== undefined && validateGitHostValue("tracking.git_host", gitHost)) {
     findings.push({ severity: "error", surface: "tracking.git_host", message: `git_host: "${gitHost}" is not supported — faff's merge floor is GitHub-only. Set git_host: github or leave it unset.` });
   }

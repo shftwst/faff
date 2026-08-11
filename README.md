@@ -93,9 +93,9 @@ rule for contributors.
 
 ## Credits
 
-The nlspec format used by `faffter-dark-nlspec` draws on
-[NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie, licensed
-under Apache 2.0. See `NOTICE`.
+The nlspec format used by `faffter-dark-nlspec` is inspired by
+[NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie. No code
+from that project is used.
 
 ## Licence
 

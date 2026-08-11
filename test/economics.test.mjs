@@ -937,6 +937,14 @@ test("FAFF-641 UNIT: a row with source:\"transcript-jsonl\" renders \"transcript
   assert.ok(out.includes("spend census: transcript+engine-spend"), "the basis sentence must name bd.source");
 });
 
+test("FAFF-641 UNIT (spec-review objection 2): a mixed census with no row-level source prints the basis sentence but no orphaned legend/column", () => {
+  const bd = syntheticBd([syntheticRow({ key: "m" })], { source: "transcript+engine-spend" });
+  const out = renderEconomicsBreakdown(bd);
+  assert.ok(out.includes("spend census: transcript+engine-spend"), "the basis sentence prints on bd.source != \"transcript\" independently");
+  assert.ok(!out.includes("source column:"), "the abbreviation legend must NOT print when no row carries a source");
+  assert.ok(!/\bsource\s{4}/.test(out), "no source column header when has_source is false");
+});
+
 test("FAFF-641 UNIT: a mixed row (source:\"transcript+engine-spend\") renders \"mixed\"", () => {
   const bd = syntheticBd([syntheticRow({ key: "class-a", source: "transcript+engine-spend" })], { axis: "class", source: "transcript+engine-spend" });
   const out = renderEconomicsBreakdown(bd);

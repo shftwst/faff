@@ -738,16 +738,18 @@ function renderEconomicsBreakdown(bd) {
   const rc = bd.reconciliation;
   const at = bd.axis === "class" && bd.priced_at_model ? `  (priced at ${bd.priced_at_model})` : "";
   lines.push(`# economics --by ${bd.axis}${at}`);
-  // FAFF-641: the census-basis line and the source column are gated independently —
-  // the basis sentence on bd.source (the axis-level census), the column on whether
-  // any row actually carries a source (has_source) — so a mixed census that labels
-  // no rows prints an honest basis line and no orphaned legend. Data-gated, never
+  // FAFF-641 (spec-review objection 2): the basis sentence and the abbreviation
+  // legend are gated INDEPENDENTLY, by their own predicates — the basis sentence
+  // on bd.source (the axis-level census), the legend on has_source (the same
+  // predicate the column uses) — so a mixed census that labels no rows prints an
+  // honest basis sentence and no orphaned legend key. Both are data-gated, never
   // bd.axis === "model": a class/day breakdown that starts carrying row sources
   // (FAFF-640) renders the column too, with no further change here.
-  if (bd.source !== "transcript") {
-    lines.push(`  spend census: ${bd.source}  (source column: transcript-jsonl=transcript, exec-json-events=engine, transcript+engine-spend=mixed)`);
-  }
   const hasSource = bd.rows.some((r) => typeof r.source === "string");
+  if (bd.source !== "transcript") {
+    const legend = hasSource ? `  (source column: transcript-jsonl=transcript, exec-json-events=engine, transcript+engine-spend=mixed)` : "";
+    lines.push(`  spend census: ${bd.source}${legend}`);
+  }
   const srcHead = hasSource ? ` ${"source".padEnd(10)}` : "";
   lines.push(`  ${"key".padEnd(22)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}${srcHead}`);
   for (const r of bd.rows) {

@@ -1,5 +1,11 @@
 // ===========================================================================
-// === region:governance — andon — FAFF-386: push alerting/escalation channel for run-critical events. ===
+// === region:factory — andon — FAFF-386: push alerting/escalation channel for run-critical events. ===
+//
+// Factory, not governance: unlike budget.js/sentry.js's narrower governance-only
+// `readGovernanceConfig`, this module reads the full `andon.*` config block via the
+// factory `loadConfig` resolver (mirrors `adr`/`decisions`'s choice) — governance may
+// not require factory, so that one dependency places this file in the factory region
+// even though it reads the same events.jsonl substrate budget/sentry/events trust.
 //
 // `faff andon pump` is a cursor-based reader over the run's `events.jsonl` — the same
 // hard-floor, append-only, single-writer log every other governance surface (budget,

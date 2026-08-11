@@ -49,6 +49,7 @@ const { cmdDoctor, cmdGates, cmdSync } = require("./lib/gates");
 const { cmdGitignoreEnsure } = require("./lib/gitignore-ensure");
 const { cmdGovernanceCheck } = require("./lib/governance-check");
 const { cmdProfiles } = require("./lib/governance-profile");
+const { cmdHarness } = require("./lib/harness");
 const { cmdHeartbeat } = require("./lib/heartbeat");
 const { cmdHooksEnsure } = require("./lib/hooks-ensure");
 const { cmdIntakeRecord, cmdIntakecheck } = require("./lib/intake-provenance");
@@ -144,6 +145,7 @@ const COMMANDS = {
   "ci-triage": cmdCiTriage,
   "post-merge-check": cmdPostMergeCheck,
   "governance-check": cmdGovernanceCheck,
+  "harness": (args) => cmdHarness(args, COMMANDS),
   "next": cmdNext,
   "project-next": cmdProjectNext,
   "state": cmdState,

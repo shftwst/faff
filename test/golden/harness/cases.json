@@ -1,0 +1,16 @@
+[
+  {
+    "name": "backends-realizable-claude-code-admits",
+    "argv": ["backends", "realizable", "--refs", "claude-sub", "--harness", "claude-code", "--json"],
+    "faffrc": "backends:\n  claude-sub:\n    provider: anthropic\n    model: claude-opus-4\n    host: https://api.anthropic.com\n    auth: subscription-seat\n",
+    "expectExit": 0,
+    "expectStdout": { "ok": true }
+  },
+  {
+    "name": "backends-realizable-other-harness-refuses",
+    "argv": ["backends", "realizable", "--refs", "claude-sub", "--harness", "some-other-harness", "--json"],
+    "faffrc": "backends:\n  claude-sub:\n    provider: anthropic\n    model: claude-opus-4\n    host: https://api.anthropic.com\n    auth: subscription-seat\n",
+    "expectExit": 1,
+    "expectStdout": { "refuse": true, "reason": "chain-unrealizable" }
+  }
+]

@@ -267,7 +267,12 @@ function resolveBackendRefs(cfg, refs) {
 // runtime.md) lands with FAFF-395's `faff run` spine; v1 only needs enough of
 // the matrix to gate `subscription-seat` to the interactive session it
 // actually exists on.
-const CURRENT_HARNESS = "claude-code";
+// FAFF-483: harness identity now LIVES in harness.js (which owns the seam
+// register). backends.js is a CONSUMER of harness identity, not its owner, so it
+// requires and re-exports CURRENT_HARNESS unchanged — a pure move, no value or
+// signature change, keeping this module's existing export name/position. harness.js
+// requires only argv + shared-infra at load, so this introduces no load-time cycle.
+const { CURRENT_HARNESS } = require("./harness");
 
 // PURE: (harness, provider, auth) admission. The Anthropic subscription-seat
 // only exists on the interactive/claude-code harness (the ambient session IS

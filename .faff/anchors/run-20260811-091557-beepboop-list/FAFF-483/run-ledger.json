@@ -1,0 +1,57 @@
+{
+  "run_id": "run-20260811-091557-beepboop-list",
+  "admitted": [
+    "FAFF-483",
+    "FAFF-775"
+  ],
+  "outcomes": {
+    "FAFF-724": "routed-out",
+    "FAFF-721": "routed-out",
+    "FAFF-720": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-483": "pr-open"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "77ef3bbd-db59-4ada-9b77-e76333b41793",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 88,
+        "output": 52652,
+        "cache_write": 648283,
+        "cache_read": 5540179
+      }
+    },
+    "tokens_at_start": 6241202,
+    "window": {
+      "anchor_epoch": 1786440008966,
+      "reset_epoch": 1786458008966,
+      "tokens_at_anchor": 542994
+    },
+    "tokens_at_last_event": {
+      "input": 132,
+      "output": 113401,
+      "cache_write": 1263235,
+      "cache_read": 9101892
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 385,
+    "session_id": "run-20260811-091557-beepboop-list",
+    "started_at": "2026-08-11T09:18:36Z",
+    "last_heartbeat": "2026-08-11T09:18:36Z"
+  },
+  "level": "L3",
+  "outcome_details": {
+    "FAFF-483": {
+      "pr": 626,
+      "note": "CI green + review pass; merge held on run-start level-stamp omission (now fixed); re-anchor+merge in flight"
+    }
+  }
+}

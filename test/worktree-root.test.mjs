@@ -24,7 +24,18 @@ function tmpRepo() {
   return dir;
 }
 const HOME = "/home/faff-test";
-const baseEnv = (repo, extra = {}) => ({ ...process.env, HOME, ...extra, FAFF_WORKTREE_ROOT: extra.FAFF_WORKTREE_ROOT ?? "" });
+// FAFF-561 — build a HERMETIC child env: only what `node`/`git` need to run (PATH) plus the
+// fixed HOME sentinel, never `...process.env`. Spreading the ambient environment leaks git-context
+// vars (GIT_DIR / GIT_COMMON_DIR / GIT_WORK_TREE / …) into the spawned resolver's default-source
+// `git rev-parse --git-common-dir` probe, redirecting it off the fixture repo — the concurrent-
+// worktree flake this file's `default`-source assertions used to hit. An allow-list closes the
+// whole ambient-leak class where a GIT_* deny-list would not. `extra` is the escape hatch the
+// env-source (FAFF_WORKTREE_ROOT) and config-source (on-disk .faffrc.yaml) tests rely on.
+const baseEnv = (repo, extra = {}) => {
+  const env = { HOME, PATH: process.env.PATH, ...extra };
+  if (!("FAFF_WORKTREE_ROOT" in extra)) env.FAFF_WORKTREE_ROOT = "";
+  return env;
+};
 
 test("worktree-root --selftest passes", () => {
   const { code } = runCli(["worktree-root", "--selftest"]);
@@ -92,4 +103,31 @@ test("single-source: from a linked worktree, the resolved root equals the main-c
   const fromWt = JSON.parse(runCli(["worktree-root", "--json"], { cwd: wt, env: baseEnv(repo) }).stdout);
   assert.equal(fromWt.root, fromMain.root, "linked worktree resolves the same root as the main checkout");
   assert.equal(fromWt.root, path.join(HOME, ".faff/worktrees", path.basename(repo)));
+});
+
+// FAFF-561 regression guard — the ambient-leak reproducer. The default-source flake tracked the
+// host's git-worktree topology because `baseEnv` spread `...process.env`, forwarding ambient
+// git-context vars (set when the suite runs inside a build worktree) into the child's git probe.
+// Here we set those vars in THIS process's environment — exactly as a live concurrent-worktree
+// host would — pointing at an UNRELATED repo, then resolve the default source. With the pre-fix
+// spread the probe would follow the ambient GIT_DIR to `bogus` and the root basename would diverge;
+// the hermetic `baseEnv` forwards none of them, so the probe stays anchored to the fixture repo.
+test("default source ignores ambient git-context env vars (FAFF-561 regression guard)", () => {
+  const repo = tmpRepo();
+  const bogus = tmpRepo(); // an unrelated, valid git dir the ambient env points at — must NOT be followed
+  const saved = { ...process.env };
+  // Simulate the leak: ambient git-context vars redirecting repo discovery off the fixture repo.
+  process.env.GIT_DIR = path.join(bogus, ".git");
+  process.env.GIT_COMMON_DIR = path.join(bogus, ".git");
+  process.env.GIT_WORK_TREE = bogus;
+  try {
+    const { stdout, code } = runCli(["worktree-root", "--json"], { cwd: repo, env: baseEnv(repo) });
+    assert.equal(code, 0);
+    const out = JSON.parse(stdout);
+    assert.equal(out.source, "default");
+    assert.equal(out.root, path.join(HOME, ".faff/worktrees", path.basename(repo)));
+  } finally {
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+    Object.assign(process.env, saved);
+  }
 });

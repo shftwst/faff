@@ -245,7 +245,7 @@ sentry:
 # reads NEW events.jsonl entries, classifies them against `events:` below, and POSTs one
 # notification per distinct condition to `url`. UNSET url ⇒ the andon is dark: zero network
 # calls, zero state writes — every other key below is inert until url is set. Fail-open by
-# construction: a webhook failure never affects the run (see docs/adr/0101).
+# construction: a webhook failure never affects the run (see records/adr/0101).
 #
 # `url`/`token` are secret-bearing (an auth-carrying webhook endpoint) — set them in the
 # gitignored `.faffrc.local.yaml` OVERLAY (see the two-file model note at the top of this

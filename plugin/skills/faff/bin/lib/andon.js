@@ -9,13 +9,13 @@
 // not once per checkpoint), and POSTs one skimmable notification per distinct
 // condition to a configured webhook.
 //
-// Fail-open by construction (docs/adr/0101 …fail-open-by-construction.md): a
+// Fail-open by construction (records/adr/0101 …fail-open-by-construction.md): a
 // transport failure is recorded in `andon-state.json` and the command still exits 0
 // — the andon is telemetry sitting beside the park protocol / ledger / runcheck /
 // Sentry correctness machinery, never inside it. `andon.url` unset ⇒ complete no-op:
 // zero network calls, zero state writes.
 //
-// `events.jsonl` is the sole substrate (docs/adr/0102 …sole-andon-notification-
+// `events.jsonl` is the sole substrate (records/adr/0102 …sole-andon-notification-
 // substrate.md) — the pump never re-derives trip/breach state by re-running
 // `faff sentry check` / `faff budget check`; if a condition isn't in the log, the
 // andon does not know about it.
@@ -180,7 +180,7 @@ function formatPayload(format, notif) {
 }
 
 // ---------------------------------------------------------------------------
-// Transport — node:http/https built-ins only (docs/adr/0101). Injectable (postFn
+// Transport — node:http/https built-ins only (records/adr/0101). Injectable (postFn
 // param on runPump/cmdAndon's send path) so tests spin a real loopback server
 // rather than mocking the network primitive.
 // ---------------------------------------------------------------------------

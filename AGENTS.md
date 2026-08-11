@@ -36,3 +36,7 @@ In short:
 - **No changelog in the prompt** — state the rule forward; war-stories and transcript breadcrumbs go in git history / ADRs / `design/`.
 
 The lintable subset (line caps, paragraph length, stray markers, duplicated blocks) is gated in CI via `faff validate-adapters`; the rest is review judgement.
+
+## Commit sign-off
+
+Every commit carries a `Signed-off-by` trailer with the operator's git identity, added by `git commit -s`. It certifies the [Developer Certificate of Origin](https://developercertificate.org) and is required on PRs by the `dco` check. Agent commit paths append the trailer exactly as they already append `Co-Authored-By`; a machine identity such as `faff-runner` is never used for the sign-off.

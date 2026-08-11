@@ -98,7 +98,7 @@ const { spawnSync } = require("node:child_process");
 const { readGovernanceConfig } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
-const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { CONTAIN_ROOT, ENTRYPOINT, dig, findRoot, latestRunDir, parseAncestry, readLedger, resolveLedgerOrFault, subtreeContains } = require("./shared-infra");
 const { parseArgs, usageError } = require("./argv");
 // Union spec over both sub-verbs (check | abort). --budget-json / --detection-json /
 // --member-beats-json / --authority / --now-ms / --now are hermetic test-only seams.
@@ -136,18 +136,23 @@ const DERAILMENT_SIGNALS = new Set([
 // below) — never via a raw-signal field.
 const SENTRY_INTERVENTIONS = ["continue", "surface", "pause", "correct", "abort"];
 // The intervention a signal routes to WHEN IT TRIPS. warn-severity verdicts never
-// escalate past `continue`; scope-drift is advisory (warn-only ⇒ never reaches here).
-// fix-review-thrash's mapped value is upgraded pause→correct in evaluateDerailment's
-// aggregation loop, IFF the explicit authority parameter is "available" — this map
-// itself is UNCHANGED (still names "pause"), so a reader of this table alone sees
-// exactly the v1 default/degraded behaviour.
+// escalate past `continue`. fix-review-thrash's mapped value is upgraded
+// pause→correct in evaluateDerailment's aggregation loop, IFF the explicit
+// authority parameter is "available" — this map itself is UNCHANGED (still names
+// "pause"), so a reader of this table alone sees exactly the v1 default/degraded
+// behaviour.
 const SIGNAL_TRIP_INTERVENTION = {
   "budget-breach": "abort",
   "wall-clock-runaway": "abort",
   "repeated-identical-failure": "abort",
   "forbidden-side-effect-attempt": "abort",
   "fix-review-thrash": "pause",
-  "scope-drift": "continue",
+  // FAFF-764: promoted from the vestigial "continue" — a confirmed scope-drift now
+  // gives real teeth via the existing pause rung, un-gated, mirroring
+  // budget-metering-degraded's "a blind spot, not a proven breach" precedent. Never
+  // added to CORRECTABLE_SIGNAL/the authority upgrade path — the FAFF-354 trust
+  // ceiling caps this at a detective pause surface, never correct/abort.
+  "scope-drift": "pause",
   // FAFF-767: a blind meter is not a proven breach and is run-scoped (names no
   // issue to park) — a run-scoped surface, never escalated to pause/correct/abort.
   "budget-metering-degraded": "surface",
@@ -251,8 +256,10 @@ function normalizeSentrySignals(raw) {
       tokens_source: typeof b.tokens_source === "string" ? b.tokens_source : null,
     },
     now_ms: Number.isFinite(r.now_ms) ? r.now_ms : Date.now(),
-    // Advisory hints the ORCHESTRATOR (never the build subagent) may set; default off.
-    scope_drift: r.scope_drift === true,
+    // Advisory hint the ORCHESTRATOR (never the build subagent) may set; default off.
+    // FAFF-764: scope_drift's self-report companion key is REMOVED — evalScopeDrift
+    // no longer reads a self-report flag at all; it derives its verdict from
+    // ledger + events (both already on this closed surface).
     forbidden_side_effect: r.forbidden_side_effect === true,
     // FAFF-355: which liveness source the caller's overlayHeartbeat call reported
     // ("heartbeat-file" | "owner.last_heartbeat" | null) — threaded through to
@@ -437,15 +444,79 @@ function evalBudgetMeteringDegraded(ledger, budget, nowMs, th) {
   };
 }
 
-// scope-drift — ADVISORY (warn only, never trips). v1 heuristic: surfaced when the
-// orchestrator flags it (signals.scope_drift) or an event carries data.scope_drift.
-function evalScopeDrift(signals) {
-  let seq = null, hit = signals.scope_drift === true;
-  for (const e of signals.events) {
-    if (e.data && e.data.scope_drift === true) { hit = true; if (Number.isInteger(e.seq)) seq = e.seq; }
+// scope-drift (FAFF-764) — a behaviour-derived DETECTIVE, not a self-report. Derives
+// "has this run drifted from its mandate?" from the recorded `containment-check`
+// event stream (`faff contain --record`) + `ledger.prd_root_container` (the L4
+// accepted-root envelope), reusing the EXACT comparators `faff contain`/`faff audit`
+// already share (subtreeContains/parseAncestry/CONTAIN_ROOT, shared-infra.js) — never
+// a second, parallel notion of scope. L4-first (mirrors evalBudgetMeteringDegraded's
+// level gate): L3/legacy runs have no accepted-root envelope to recompute against, so
+// they return null unconditionally, byte-equivalent to today. PURE — reads only
+// signals.ledger/signals.events, no filesystem/subprocess I/O of its own.
+//
+// FAFF-354 trust ceiling (inherited, not worsened): containment ancestry is
+// agent-sourced, so this binds STRUCTURE not TRUTHFULNESS — an honest-but-false
+// self-consistent fabrication recomputes clean. The verdict's evidence carries
+// `detective:true` to say so; this is a recompute-and-compare audit, never a hard
+// preventive (no abort/correct route — see SIGNAL_TRIP_INTERVENTION above).
+//
+// Mirrors audit.js's `recompute the SAME primitives that produced the record`
+// posture (audit.js buildReconstruction's containment_mismatches, ~line 332) exactly
+// — same comparator, same CONTAIN_ROOT sentinel, same fail-to-"unreproducible" on a
+// malformed ancestry_raw.
+function scopeDriftRecomputeVerdict(d) {
+  if (d.ancestry_raw === null || d.ancestry_raw === undefined) {
+    return subtreeContains(d.mandate, d.root ? CONTAIN_ROOT : d.parent, new Map());
   }
-  if (!hit) return null;
-  return { signal: "scope-drift", severity: "warn", evidence: { event_seq: seq, advisory: true } };
+  let entryOf;
+  try { entryOf = parseAncestry(d.ancestry_raw); }
+  catch { return "unreproducible"; }
+  return subtreeContains(d.mandate, d.root ? CONTAIN_ROOT : d.parent, entryOf);
+}
+
+function evalScopeDrift(signals) {
+  const ledger = signals.ledger;
+  if (!ledger || ledger.level !== "L4") return null; // out of scope (spec §2): L3/legacy
+
+  const checks = signals.events.filter((e) => e.type === "containment-check");
+  const filed = typeof ledger.discovered_scope_filed === "number" ? ledger.discovered_scope_filed : 0;
+  const accepted_root = ledger.prd_root_container ?? null;
+
+  // (a) recompute-mismatch — a recorded verdict that no longer reproduces. First
+  // offender (ascending seq — `events` is already the run's append order) is enough.
+  let mismatch = null;
+  for (const e of checks) {
+    const d = e.data && typeof e.data === "object" ? e.data : {};
+    const recomputed = scopeDriftRecomputeVerdict(d);
+    if (recomputed !== d.verdict) { mismatch = { seq: e.seq ?? null, issue: e.issue ?? null, recorded: d.verdict, recomputed }; break; }
+  }
+
+  // (b) unrecorded-create — the ledger says scope was filed but the timeline holds
+  // NO recorded containment walk at all (mirrors audit.js's unrecorded_creates).
+  const unrecorded = filed > 0 && checks.length === 0;
+
+  // (c) outward-boundary-reach — a NON-root pre-create walk that came back
+  // "outward". `root:true` is the SANCTIONED discovered-scope filing floor
+  // (faff contain --root) and never contributes here — only a walk that reached the
+  // boundary against an INTENDED existing parent counts as a drift.
+  let outward = null;
+  for (const e of checks) {
+    const d = e.data && typeof e.data === "object" ? e.data : {};
+    if (d.verdict === "outward" && d.root !== true) { outward = { seq: e.seq ?? null, issue: e.issue ?? null, mandate: d.mandate ?? null, parent: d.parent ?? null }; break; }
+  }
+
+  if (!mismatch && !unrecorded && !outward) return null;
+
+  // Precedence: an incoherent record is the strongest signal, then a missing
+  // record, then a recorded reach-past-the-boundary. Exactly one verdict — the
+  // others are not separately surfaced (matches the single-worst-verdict shape of
+  // evalThrash/evalRepeatedFailure).
+  let drift_kind, detail;
+  if (mismatch) { drift_kind = "recompute-mismatch"; detail = mismatch; }
+  else if (unrecorded) { drift_kind = "unrecorded-create"; detail = { discovered_scope_filed: filed }; }
+  else { drift_kind = "outward-boundary-reach"; detail = outward; }
+
+  return { signal: "scope-drift", severity: "trip", evidence: { drift_kind, accepted_root, detective: true, ...detail } };
 }
 
 // forbidden-side-effect-attempt — consumes the FAFF-42 boundary. DEGRADES to no-signal
@@ -1082,10 +1153,81 @@ function sentrySelftest() {
     { type: "park", issue: "C", data: { reason: "x" }, seq: 0 }, { type: "park", issue: "C", data: { reason: "y" }, seq: 1 },
   ], TH) === null);
 
-  // --- scope-drift advisory (warn, never trip); forbidden-side-effect degraded ---
-  const sd = evalScopeDrift(normalizeSentrySignals({ scope_drift: true }));
-  ok("scope-drift → warn advisory", sd && sd.severity === "warn" && sd.evidence.advisory === true);
-  ok("no scope-drift → null", evalScopeDrift(normalizeSentrySignals({})) === null);
+  // --- FAFF-764: scope-drift — behaviour-derived DETECTIVE, L4-first, over the
+  // recorded containment-check stream + ledger.prd_root_container ------------------
+  ok("scope-drift: non-L4 (absent level) → null regardless of events", evalScopeDrift(normalizeSentrySignals({
+    ledger: {}, events: [{ type: "containment-check", seq: 1, issue: "X", data: { mandate: "M", parent: null, root: false, verdict: "outward" } }],
+  })) === null);
+  ok("scope-drift: L3 → null", evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L3" }, events: [{ type: "containment-check", seq: 1, issue: "X", data: { mandate: "M", parent: null, root: false, verdict: "outward" } }],
+  })) === null);
+  ok("scope-drift: L4, no containment-check events, discovered_scope_filed 0 → null", evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", discovered_scope_filed: 0 }, events: [],
+  })) === null);
+  // Recompute-mismatch: a recorded "contained" verdict with a malformed
+  // ancestry_raw recomputes to "unreproducible" ≠ "contained" — trips, mirroring
+  // audit.js's own fail-to-"unreproducible" behaviour.
+  const sdMismatch = evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    events: [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, ancestry_raw: "not-json", verdict: "contained" } }],
+  }));
+  ok("scope-drift: recompute-mismatch trips with recorded/recomputed", sdMismatch
+    && sdMismatch.signal === "scope-drift" && sdMismatch.severity === "trip"
+    && sdMismatch.evidence.drift_kind === "recompute-mismatch"
+    && sdMismatch.evidence.accepted_root === "FAFF-700" && sdMismatch.evidence.detective === true
+    && sdMismatch.evidence.recorded === "contained" && sdMismatch.evidence.recomputed === "unreproducible"
+    && sdMismatch.evidence.seq === 5 && sdMismatch.evidence.issue === "FAFF-900");
+  // Unrecorded-create: ledger says scope was filed, timeline holds zero
+  // containment-check events at all.
+  const sdUnrecorded = evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", discovered_scope_filed: 2 }, events: [],
+  }));
+  ok("scope-drift: unrecorded-create trips with discovered_scope_filed echoed", sdUnrecorded
+    && sdUnrecorded.evidence.drift_kind === "unrecorded-create" && sdUnrecorded.evidence.discovered_scope_filed === 2);
+  // Outward-boundary-reach: a NON-root pre-create walk that came back "outward",
+  // and recomputes cleanly (no ancestry_raw → subtreeContains(mandate, parent, {})).
+  const sdOutward = evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    events: [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, verdict: "outward" } }],
+  }));
+  ok("scope-drift: outward-boundary-reach trips carrying seq/issue/mandate/parent", sdOutward
+    && sdOutward.evidence.drift_kind === "outward-boundary-reach"
+    && sdOutward.evidence.seq === 5 && sdOutward.evidence.issue === "FAFF-900"
+    && sdOutward.evidence.mandate === "FAFF-700" && sdOutward.evidence.parent === "FAFF-401");
+  // The sanctioned filing floor (root:true outward) never contributes to
+  // outward-boundary-reach — cleanly recomputing, discovered_scope_filed matching
+  // its one recorded check → null (the designed floor is not drift).
+  ok("scope-drift: root:true outward filing floor, coherent → null", evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", prd_root_container: "FAFF-700", discovered_scope_filed: 1 },
+    events: [{ type: "containment-check", seq: 1, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: null, root: true, verdict: "outward" } }],
+  })) === null);
+  ok("scope-drift: all-contained, cleanly-recomputing, nothing filed → null", evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    events: [{ type: "containment-check", seq: 1, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-700", root: false, verdict: "contained" } }],
+  })) === null);
+  // Precedence: recompute-mismatch > unrecorded-create > outward-boundary-reach —
+  // when a mismatch AND an outward reach are both present, exactly one verdict
+  // (the mismatch) is returned.
+  const sdPrecedence = evalScopeDrift(normalizeSentrySignals({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    events: [
+      { type: "containment-check", seq: 1, issue: "A", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, ancestry_raw: "not-json", verdict: "contained" } },
+      { type: "containment-check", seq: 2, issue: "B", data: { mandate: "FAFF-700", parent: "FAFF-402", root: false, verdict: "outward" } },
+    ],
+  }));
+  ok("scope-drift: precedence — mismatch beats a co-present outward reach", sdPrecedence
+    && sdPrecedence.evidence.drift_kind === "recompute-mismatch");
+  // No self-report path: setting the removed signals.scope_drift / an event's
+  // data.scope_drift key produces no verdict by itself (the self-report is gone).
+  ok("scope-drift: self-report flag alone (non-L4) → null", evalScopeDrift(normalizeSentrySignals({
+    scope_drift: true, ledger: {}, events: [{ type: "containment-check", seq: 1, data: { scope_drift: true } }],
+  })) === null);
+  ok("scope-drift: self-report flag alone (L4, no containment activity) → null", evalScopeDrift(normalizeSentrySignals({
+    scope_drift: true, ledger: { level: "L4" }, events: [{ type: "build-start", issue: "X", data: { scope_drift: true } }],
+  })) === null);
+  // normalizeSentrySignals no longer emits a scope_drift key at all.
+  ok("normalizeSentrySignals drops the removed scope_drift key", !("scope_drift" in normalizeSentrySignals({ scope_drift: true })));
+
   ok("forbidden-side-effect degraded → null", evalForbiddenSideEffect(normalizeSentrySignals({})) === null);
   ok("forbidden-side-effect flagged → trip", evalForbiddenSideEffect(normalizeSentrySignals({ forbidden_side_effect: true })).severity === "trip");
 
@@ -1094,10 +1236,26 @@ function sentrySelftest() {
   ok("escalate+thrash → abort (max of pause,abort)", aggAbort.intervention === "abort" && aggAbort.tripped === true);
   const aggPause = evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH);
   ok("thrash only → pause", aggPause.intervention === "pause" && aggPause.tripped === true);
-  const aggCont = evaluateDerailment({ scope_drift: true, ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
-  ok("warn-only (scope-drift) → continue, not tripped", aggCont.intervention === "continue" && aggCont.tripped === false && aggCont.verdicts.length === 1);
+  const aggCont = evaluateDerailment({ ledger: {}, budget: { breached: ["tokens"], outcome: "narrow" }, events: [] }, TH);
+  ok("warn-only (budget-breach narrow) → continue, not tripped", aggCont.intervention === "continue" && aggCont.tripped === false && aggCont.verdicts.length === 1);
   const aggNone = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
   ok("clean run → continue, no verdicts", aggNone.intervention === "continue" && aggNone.verdicts.length === 0);
+
+  // --- FAFF-764: scope-drift flows through evaluateDerailment with no authority
+  // parameter → aggregate intervention is at least "pause"; no CORRECTABLE_SIGNAL/
+  // authority upgrade is consulted for it (the spec §5 integration smoke test) ---
+  const aggScopeDrift = evaluateDerailment({
+    ledger: { level: "L4", prd_root_container: "FAFF-700", discovered_scope_filed: 1 },
+    events: [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, verdict: "outward" } }],
+  }, TH);
+  ok("scope-drift trip → aggregate intervention pause, no authority consulted", aggScopeDrift.tripped === true
+    && aggScopeDrift.intervention === "pause"
+    && aggScopeDrift.verdicts.some((v) => v.signal === "scope-drift" && v.evidence.drift_kind === "outward-boundary-reach"));
+  const aggScopeDriftAuth = evaluateDerailment({
+    ledger: { level: "L4", discovered_scope_filed: 3 }, events: [],
+  }, TH, "available");
+  ok("scope-drift + authority available → still pause, never correct (only fix-review-thrash upgrades)",
+    aggScopeDriftAuth.intervention === "pause");
 
   // --- FAFF-447: budget-metering-degraded through the full aggregation fold ---
   const degradedL4Ledger = { level: "L4", owner: { status: "running", started_at: ago(TH.estimate_metering_exposure_secs + 60), last_heartbeat: ago(0) } };
@@ -1144,7 +1302,7 @@ function sentrySelftest() {
   };
   const hv = evaluateDerailment(hostile, TH);
   ok("AC5 hostile injected fields ignored — still aborts", hv.intervention === "abort" && hv.tripped === true);
-  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,heartbeat_source,ledger,member_beats,now_ms,scope_drift");
+  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,heartbeat_source,ledger,member_beats,now_ms");
 
   // --- FAFF-326 AC5-shaped no-foreign-authorship: an `authority` field INSIDE the raw
   // signal bundle (as opposed to the explicit 3rd function parameter) must be inert —

@@ -1,0 +1,150 @@
+{
+  "run_id": "run-20260811-041015-beepboop-list",
+  "level": "L3",
+  "admitted": [
+    "FAFF-767",
+    "FAFF-764",
+    "FAFF-762",
+    "FAFF-641",
+    "FAFF-584",
+    "FAFF-448",
+    "FAFF-430",
+    "FAFF-386",
+    "FAFF-32",
+    "FAFF-699",
+    "FAFF-765",
+    "FAFF-500"
+  ],
+  "outcomes": {
+    "FAFF-720": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-483": "routed-out",
+    "FAFF-721": "routed-out",
+    "FAFF-724": "routed-out",
+    "FAFF-641": "shipped",
+    "FAFF-448": "shipped",
+    "FAFF-699": "pr-open",
+    "FAFF-767": "shipped",
+    "FAFF-584": "shipped",
+    "FAFF-500": "shipped",
+    "FAFF-386": "shipped",
+    "FAFF-765": "shipped",
+    "FAFF-430": "shipped",
+    "FAFF-762": "shipped"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [
+    {
+      "issue": "FAFF-641",
+      "pr": 614,
+      "merge_sha": "6494651",
+      "command": "node --test (declared UNIT rung)",
+      "note": "pre-existing env-specific failures (~20: lights-out/worktree/sentry/config-copy), verified byte-identical on unmodified main; NOT a regression from this diff"
+    },
+    {
+      "issue": "FAFF-448",
+      "pr": 615,
+      "merge_sha": "f7ce474",
+      "command": "node --test (declared UNIT rung)",
+      "note": "pre-existing env-specific failures (~20: lights-out/worktree/sentry/config-copy), verified byte-identical on unmodified main; NOT a regression from this diff"
+    },
+    {
+      "issue": "FAFF-767",
+      "pr": 616,
+      "merge_sha": "93e7a15d",
+      "command": "node --test (declared UNIT rung)",
+      "note": "pre-existing env-specific failures (~20: lights-out/worktree/sentry/config-copy), verified byte-identical on unmodified main; NOT a regression from this diff"
+    },
+    {
+      "issue": "FAFF-584",
+      "pr": 617,
+      "merge_sha": "092dbce4",
+      "command": "node --test (declared UNIT rung)",
+      "note": "pre-existing env-specific failures (~20: lights-out/worktree/sentry/config-copy), verified byte-identical on unmodified main; NOT a regression from this diff"
+    },
+    {
+      "issue": "FAFF-500",
+      "pr": 618,
+      "merge_sha": "d4990ad3",
+      "command": "node --test (declared UNIT rung)",
+      "note": "pre-existing env-specific failures (~20: lights-out/worktree/sentry/config-copy), verified byte-identical on unmodified main; NOT a regression from this diff"
+    },
+    {
+      "issue": "FAFF-386",
+      "pr": 619,
+      "merge_sha": "5d2f27b8",
+      "command": "node --test (declared UNIT rung)",
+      "note": "pre-existing env-specific failures (~20: lights-out/worktree/sentry/config-copy), verified byte-identical on unmodified main; NOT a regression from this diff"
+    },
+    {
+      "issue": "FAFF-765",
+      "pr": 621,
+      "merge_sha": "2f2437f",
+      "command": "node --test",
+      "note": "pre-existing env failures (~20), verified on main; not a regression"
+    },
+    {
+      "issue": "FAFF-762",
+      "pr": 622,
+      "merge_sha": "da34b41",
+      "command": "node --test",
+      "note": "pre-existing env failures (~20), verified on main; not a regression"
+    },
+    {
+      "issue": "FAFF-430",
+      "pr": 623,
+      "merge_sha": null,
+      "command": "node --test",
+      "note": "pre-existing env failures (~20), verified on main; not a regression"
+    }
+  ],
+  "post_merge_verification_unverified": [],
+  "owner": {
+    "status": "running",
+    "pid": 380,
+    "session_id": "run-20260811-041015-beepboop-list",
+    "started_at": "2026-08-11T04:10:30Z",
+    "last_heartbeat": "2026-08-11T04:10:30Z"
+  },
+  "budget": {
+    "measure_session_id": "2ab50f39-3523-4973-9ed4-eac28a9fe51d",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 21,
+        "output": 8328,
+        "cache_write": 520628,
+        "cache_read": 1138943
+      }
+    },
+    "tokens_at_start": 1667920,
+    "window": {
+      "anchor_epoch": 1786421439928,
+      "reset_epoch": 1786439439928,
+      "tokens_at_anchor": 1030806
+    }
+  },
+  "outcome_details": {
+    "FAFF-720": {
+      "verdict": "needs-decision-first",
+      "reason": "deliverable is an architecture decision/ADR; core Punt decides:architecture"
+    },
+    "FAFF-486": {
+      "verdict": "needs-decision-first",
+      "reason": "2 open architecture punts (isolation sites, compaction cadence); DoD TBD"
+    },
+    "FAFF-483": {
+      "verdict": "needs-decision-first",
+      "reason": "interface-granularity open API-design call; tracker-access seam punt"
+    },
+    "FAFF-721": {
+      "verdict": "needs-decision-first",
+      "reason": "fix undefined until reproduced; speculative-fix masking risk; repro not bounded-achievable"
+    },
+    "FAFF-724": {
+      "verdict": "gap-blocked",
+      "reason": "load-bearing external dep: live cold-cache codex seat absent; spec says stop/do-not-fabricate"
+    }
+  }
+}

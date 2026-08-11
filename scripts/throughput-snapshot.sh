@@ -49,40 +49,43 @@ echo "## per-drain (run-ledgers, most recent 10)${src_tag}"
 # python heredoc - that would make the heredoc python's stdin and drop the data).
 STREAM="$(mktemp)"; trap 'rm -f "$STREAM"' EXIT
 if [ "$RUNNER" -eq 1 ]; then
-  flyctl ssh console -a "$APP" -C 'sh -lc '"'"'
-    ct=$(docker ps --format "{{.Names}}" 2>/dev/null | head -1)
-    scan(){ for f in $(find "$1" -maxdepth 8 -name run-ledger.json -path "*runs*" 2>/dev/null); do printf "@@@%s@@@\n" "$(basename "$(dirname "$f")")"; cat "$f"; printf "\n"; done; }
-    if [ -n "$ct" ]; then docker exec "$ct" sh -lc "$(declare -f scan); scan /home/faff/.faff/runs"; else scan /home/faff/state/runs; fi
-  '"'"'' > "$STREAM" 2>/dev/null || true
+  # The persistent run-dirs live on the host's docker volume, not in the ephemeral cage:
+  #   /var/lib/docker/volumes/<vol>/_data/runs/<run-id>/run-ledger.json
+  # Read them there directly (no docker exec, works whether or not a drain is mid-flight).
+  flyctl ssh console -a "$APP" -C 'sh -lc '"'"'for f in $(find /var/lib/docker/volumes -maxdepth 6 -name run-ledger.json -path "*runs*" 2>/dev/null); do printf "@@@%s@@@%s@@@\n" "$(basename "$(dirname "$f")")" "$(stat -c %Y "$f" 2>/dev/null || echo 0)"; cat "$f"; printf "\n"; done'"'"'' > "$STREAM" 2>/dev/null || true
 else
   for d in $(ls -1dt .faff/runs/*beepboop* 2>/dev/null | head -20); do
     f="$d/run-ledger.json"; [ -f "$f" ] || continue
-    { printf '@@@%s@@@\n' "$(basename "$d")"; cat "$f"; printf '\n'; } >> "$STREAM"
+    { printf '@@@%s@@@%s@@@\n' "$(basename "$d")" "$(stat -c %Y "$f" 2>/dev/null || echo 0)"; cat "$f"; printf '\n'; } >> "$STREAM"
   done
 fi
 
 python3 - "$STREAM" <<'PY'
 import sys, json, re, datetime
 text = open(sys.argv[1]).read()
-blocks = re.split(r'@@@(.+?)@@@\n', text)
-pairs = list(zip(blocks[1::2], blocks[2::2]))[:10]
-def iso(s):
-    try: return datetime.datetime.fromisoformat((s or "").replace("Z","+00:00"))
+blocks = re.split(r'@@@(.+?)@@@(\d+)@@@\n', text)  # -> ['', name, mtime, body, name, mtime, body, ...]
+trips = list(zip(blocks[1::3], blocks[2::3], blocks[3::3]))[:10]
+def run_start(name):  # run-YYYYMMDD-HHMMSS-... -> epoch (UTC)
+    m = re.match(r'run-(\d{8})-(\d{6})', name)
+    if not m: return None
+    try:
+        dt = datetime.datetime.strptime(m.group(1)+m.group(2), "%Y%m%d%H%M%S")
+        return dt.replace(tzinfo=datetime.timezone.utc).timestamp()
     except Exception: return None
-print(f"  {'run':40} {'ship':>4} {'pr':>3} {'park':>4} {'err':>4} {'tix/hr':>6}")
-if not pairs:
+print(f"  {'run':40} {'ship':>4} {'pr':>3} {'park':>4} {'err':>4} {'hrs':>5} {'tix/hr':>6}")
+if not trips:
     print("  (no run-ledgers found; runner mode needs the machine up, or run drains first)")
-for name, body in pairs:
+for name, mtime, body in trips:
     try: j = json.loads(body.strip())
-    except Exception: print(f"  {name[:40]:40} {'(unreadable ledger)':>24}"); continue
+    except Exception: print(f"  {name[:40]:40} {'(unreadable ledger)':>31}"); continue
     oc = j.get("outcomes", {}) or {}
     ship = sum(1 for v in oc.values() if v == "shipped")
     prop = sum(1 for v in oc.values() if v == "pr-open")
     park = sum(1 for v in oc.values() if v in ("parked","superseded"))
     err  = sum(1 for v in oc.values() if v == "errored")
-    o = j.get("owner") or {}
-    st, end = iso(o.get("started_at","")), iso(o.get("last_heartbeat",""))
-    hrs = ((end-st).total_seconds()/3600) if (st and end and end>st) else None
-    rate = ("%.1f" % (ship/hrs)) if (hrs and hrs > 0) else "?"
-    print(f"  {name[:40]:40} {ship:4d} {prop:3d} {park:4d} {err:4d} {rate:>6}")
+    st = run_start(name); en = int(mtime) if mtime.isdigit() else 0  # ledger mtime = last write ~= run end
+    hrs = ((en - st) / 3600) if (st and en > st) else None
+    rate = ("%.1f" % (ship / hrs)) if (hrs and hrs > 0) else "?"
+    print(f"  {name[:40]:40} {ship:4d} {prop:3d} {park:4d} {err:4d} "
+          f"{('%.1f' % hrs) if hrs else '?':>5} {rate:>6}")
 PY

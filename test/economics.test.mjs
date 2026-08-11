@@ -13,8 +13,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
+const require = createRequire(import.meta.url);
+const { renderEconomicsBreakdown } = require("../plugin/skills/faff/bin/lib/economics.js");
 
 function run(args, env = {}) {
   const r = spawnSync("node", [CLI, ...args], {
@@ -894,5 +897,124 @@ test("FAFF-604 REGRESSION: a partial (engine-only) cost is NAMED as partial, nev
     assert.ok(e.cost_total > 0, "the measured engine portion still prices");
     assert.ok(e.warnings.some((w) => /MEASURED engine-spend portion only/.test(w)),
       "a partial cost must say what it excludes — budget check warns in the identical state");
+  } finally { f.cleanup(); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-641 — the `--by model` spend-source label reaches the rendered table
+// (renderEconomicsBreakdown generic branch: census-basis line + source column,
+// both gated on data — bd.source / has-a-row-with-`source` — never bd.axis).
+// ---------------------------------------------------------------------------
+
+function syntheticRow(over = {}) {
+  return { key: "m", input: 1_000_000, output: 200_000, cache_write: 0, cache_read: 0, total: 1_200_000, cost: 0.5, ...over };
+}
+function syntheticBd(rows, over = {}) {
+  return { axis: "model", source: "transcript", rows, reconciliation: { reconciles: true, grand_total: 1, top_line_total: 1 }, ...over };
+}
+
+const TRANSCRIPT_ONLY_HEADER =
+  `  ${"key".padEnd(22)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`;
+
+test("FAFF-641 UNIT: no row carries a source — output is byte-identical to the pre-change renderer (no column, no census line)", () => {
+  const bd = syntheticBd([syntheticRow()]);
+  const out = renderEconomicsBreakdown(bd);
+  const lines = out.split("\n");
+  assert.equal(lines[0], "# economics --by model");
+  assert.equal(lines[1], TRANSCRIPT_ONLY_HEADER, "column-header line must equal today's exact string");
+  assert.ok(!out.includes("spend census:"), "the census-basis line must be absent when bd.source === \"transcript\"");
+});
+
+test("FAFF-641 UNIT: a row with source:\"transcript-jsonl\" renders \"transcript\"; \"exec-json-events\" renders \"engine\"", () => {
+  const bd = syntheticBd(
+    [syntheticRow({ key: "claude", source: "transcript-jsonl" }), syntheticRow({ key: "gpt-5-codex", source: "exec-json-events" })],
+    { source: "transcript+engine-spend" },
+  );
+  const out = renderEconomicsBreakdown(bd);
+  assert.match(out, /source {4}/, "the column header must appear, left-aligned width 10");
+  assert.match(out, /claude.*transcript\s*$/m);
+  assert.match(out, /gpt-5-codex.*engine\s*$/m);
+  assert.ok(out.includes("spend census: transcript+engine-spend"), "the basis sentence must name bd.source");
+});
+
+test("FAFF-641 UNIT (spec-review objection 2): a mixed census with no row-level source prints the basis sentence but no orphaned legend/column", () => {
+  const bd = syntheticBd([syntheticRow({ key: "m" })], { source: "transcript+engine-spend" });
+  const out = renderEconomicsBreakdown(bd);
+  assert.ok(out.includes("spend census: transcript+engine-spend"), "the basis sentence prints on bd.source != \"transcript\" independently");
+  assert.ok(!out.includes("source column:"), "the abbreviation legend must NOT print when no row carries a source");
+  assert.ok(!/\bsource\s{4}/.test(out), "no source column header when has_source is false");
+});
+
+test("FAFF-641 UNIT: a mixed row (source:\"transcript+engine-spend\") renders \"mixed\"", () => {
+  const bd = syntheticBd([syntheticRow({ key: "class-a", source: "transcript+engine-spend" })], { axis: "class", source: "transcript+engine-spend" });
+  const out = renderEconomicsBreakdown(bd);
+  assert.match(out, /class-a.*mixed\s*$/m);
+});
+
+test("FAFF-641 UNIT: an unrecognised source string reaches the reader verbatim, truncated to the column width", () => {
+  const bd = syntheticBd([syntheticRow({ key: "m", source: "some-future-lane-token" })], { source: "some-future-lane-token" });
+  const out = renderEconomicsBreakdown(bd);
+  // "some-future-lane-token" truncated to 10 chars = "some-futur"
+  const dataLine = out.split("\n").find((l) => l.trim().startsWith("m "));
+  assert.match(dataLine, /some-futur\s*$/, "unknown source must render verbatim (truncated), never blank or dropped");
+});
+
+test("FAFF-641 UNIT: a row with no `source` key, inside a table that shows the column, renders \"—\"", () => {
+  const bd = syntheticBd(
+    [syntheticRow({ key: "has-src", source: "transcript-jsonl" }), syntheticRow({ key: "no-src" })],
+    { source: "transcript+engine-spend" },
+  );
+  const out = renderEconomicsBreakdown(bd);
+  assert.match(out, /no-src.*—\s*$/m, "a source-less row in a source-bearing table must render the em-dash placeholder");
+});
+
+test("FAFF-641 UNIT: the source === \"estimate\" early return is untouched (no column, no crash on rows:[])", () => {
+  const bd = { axis: "model", source: "estimate", rows: [] };
+  const out = renderEconomicsBreakdown(bd);
+  assert.match(out, /source:estimate, no breakdown/);
+});
+
+test("FAFF-641 UNIT: rendered data rows stay at or under 96 characters", () => {
+  const bd = syntheticBd([syntheticRow({ key: "a-very-long-model-name-that-truncates", source: "transcript-jsonl" })], { source: "transcript+engine-spend" });
+  const out = renderEconomicsBreakdown(bd);
+  const dataLine = out.split("\n").find((l) => l.includes("a-very-long-model-name"));
+  assert.ok(dataLine.length <= 96, `row was ${dataLine.length} chars: ${JSON.stringify(dataLine)}`);
+});
+
+test("FAFF-641 INTEGRATION: mixed-fleet --by model (no --json) shows the source column with transcript/engine labels", () => {
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ input: 500 })) + "\n");
+    const cfg = withTranscripts(f.root, f.root, "sess-1", {
+      "sess-1.jsonl": { usage: [{ input_tokens: 100, output_tokens: 20 }] },
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    assert.throws(() => JSON.parse(r.out), "table output is not JSON");
+    assert.match(r.out, /source\s+$/m, "the source column header must appear");
+    assert.match(r.out, /transcript\s*$/m, "a transcript-jsonl row must render \"transcript\"");
+    assert.match(r.out, /engine\s*$/m, "an exec-json-events row must render \"engine\"");
+    assert.ok(r.out.includes("spend census: transcript+engine-spend"), "the census-basis line must name the mixed basis");
+    // The 96-char bound applies to rendered DATA rows, not the census-basis summary line.
+    const dataLines = r.out.split("\n").filter((l) => /^  \S.*\d/.test(l) && !l.startsWith("  spend census"));
+    assert.ok(dataLines.length > 0, "expected at least one data row");
+    for (const line of dataLines) assert.ok(line.length <= 96, `row exceeded 96 chars: ${JSON.stringify(line)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-641 REGRESSION: a transcript-only --by model table renders byte-identical to the pre-change output", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100, output_tokens: 20 }] } });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const lines = r.out.split("\n");
+    assert.equal(lines[0], "# economics --by model");
+    assert.equal(lines[1], TRANSCRIPT_ONLY_HEADER);
+    assert.ok(!r.out.includes("spend census:"), "no census-basis line on a single-source run");
+    assert.ok(!/\bsource\s*$/m.test(lines[1]), "no source column header on a single-source run");
   } finally { f.cleanup(); }
 });

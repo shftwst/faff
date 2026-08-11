@@ -134,3 +134,20 @@ test("completion gate: every dispatched subcommand rejects an unknown flag (exit
   assert.deepEqual(failOpen, [], `fail-open (exit 0 on an unknown flag): ${failOpen.join(", ")}`);
   assert.deepEqual(wrongExit, [], `rejected but not via the usage exit (want 2): ${wrongExit.join(", ")}`);
 });
+
+// --- FAFF-772: guard the eval member's REGION_SELFTEST_ARGV entry ---
+// The registry selftest sweep (`faff regions selftest`) spawns each member's stored argv
+// verbatim — there is no runtime correction, so the table entry must already be the runnable
+// form. `cmdEval` (eval-affected.js) rejects any first token other than "affected" (exit 2), so
+// the only runnable invocation is ["eval", "affected", "--selftest"]; the historical entry
+// ["eval", "--selftest"] is unrunnable and made the sweep FAIL unnoticed (no test asserted it,
+// and CI runs only the governance region). Deep-equal the whole array so this fails on the
+// historical wrong form and on any other drift (reordered tokens, a different sub-verb, a
+// missing/extra flag) — not just a single-index check.
+test("REGION_SELFTEST_ARGV['eval'] is the runnable sub-verb form — FAFF-772", () => {
+  assert.deepEqual(
+    regionsMod.REGION_SELFTEST_ARGV["eval"],
+    ["eval", "affected", "--selftest"],
+    "the eval member's selftest argv must be the sub-verb form; cmdEval rejects any first token != 'affected' (exit 2)",
+  );
+});

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-581",
+  "build": {
+    "status": "complete",
+    "diff_hash": "058dbe2dbdce22826bd6aeeba3002ff982b4087eccd0791aff9a14bf8e934bac",
+    "branch": "faff-581-test-coverage-governance-worktree-prune-destructive-has-zero",
+    "pushed_at": "2026-08-10T15:49:41.436Z"
+  },
+  "updated_at": "2026-08-10T15:49:41.436Z"
+}

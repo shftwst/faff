@@ -1,7 +1,8 @@
-// FAFF-92 — CLI decision-logic coverage: config / faff next / state / validate-adapters.
-// Exercises each subcommand through the real entrypoint via FAFF-91's runCli, against
-// provisioned fixture state, asserting the deterministic seam (token/exit/parsed JSON) — never prose.
-// Per ADR 0002.
+// FAFF-92 — CLI decision-logic spot-checks: config / faff next / state / validate-adapters.
+// NOT a coverage gate — the registry-coverage gate is `faff lint-cli-coverage` (FAFF-581).
+// This file is four deterministic-seam spot-checks that exercise a handful of subcommands
+// through the real entrypoint via FAFF-91's runCli, against provisioned fixture state,
+// asserting the deterministic seam (token/exit/parsed JSON) — never prose. Per ADR 0002.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

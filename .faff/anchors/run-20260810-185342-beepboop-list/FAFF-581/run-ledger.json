@@ -1,0 +1,109 @@
+{
+  "run_id": "run-20260810-185342-beepboop-list",
+  "mode": "explicit-list",
+  "admitted": [
+    "FAFF-723",
+    "FAFF-762",
+    "FAFF-767",
+    "FAFF-761",
+    "FAFF-764",
+    "FAFF-703",
+    "FAFF-699",
+    "FAFF-581",
+    "FAFF-701",
+    "FAFF-659",
+    "FAFF-642",
+    "FAFF-584",
+    "FAFF-500",
+    "FAFF-448",
+    "FAFF-430",
+    "FAFF-386",
+    "FAFF-32"
+  ],
+  "outcomes": {
+    "FAFF-765": "routed-out",
+    "FAFF-720": "routed-out",
+    "FAFF-721": "routed-out",
+    "FAFF-724": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-483": "routed-out",
+    "FAFF-763": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "window": {
+        "hours": "5",
+        "tokens": "1000000000"
+      }
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "a2338064-edd1-4554-854b-32e4093397a5",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 75,
+        "output": 68219,
+        "cache_write": 2044885,
+        "cache_read": 4392317
+      }
+    },
+    "tokens_at_start": 6505496,
+    "window": {
+      "anchor_epoch": 1786388162424,
+      "reset_epoch": 1786406162424,
+      "tokens_at_anchor": 1041030
+    },
+    "tokens_at_last_event": {
+      "input": 174,
+      "output": 291059,
+      "cache_write": 2398651,
+      "cache_read": 15220535
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 459,
+    "session_id": "run-20260810-185342-beepboop-list",
+    "started_at": "2026-08-10T18:56:01Z",
+    "last_heartbeat": "2026-08-10T18:56:01Z"
+  },
+  "outcome_details": {
+    "FAFF-765": {
+      "verdict": "needs-decision-first",
+      "reason": "open Punts: sentry_acting alias retirement (product), threshold calibration (qa)"
+    },
+    "FAFF-720": {
+      "verdict": "needs-decision-first",
+      "reason": "anchor-shape is a human governance/architecture value-call"
+    },
+    "FAFF-721": {
+      "verdict": "needs-decision-first",
+      "reason": "flaky #1616 lead (probeServes ETIMEDOUT) unverified; needs repro"
+    },
+    "FAFF-724": {
+      "verdict": "needs-decision-first",
+      "reason": "build blocked on live codex seat + cold-cache posture; never fabricate payload"
+    },
+    "FAFF-486": {
+      "verdict": "needs-decision-first",
+      "reason": "two open architecture Punts reserved for human call (rollout order, compaction cadence)"
+    },
+    "FAFF-483": {
+      "verdict": "needs-decision-first",
+      "reason": "open tracker-access binding Punt; assigned to human; churned Todo<->InProgress"
+    },
+    "FAFF-763": {
+      "verdict": "parked",
+      "reason": "design umbrella; no parent-level buildable scope; tracked by slices 765/766/767"
+    }
+  }
+}

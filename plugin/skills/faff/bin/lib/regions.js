@@ -228,6 +228,14 @@ const REGION_MAP = {
   // than to review-iteration-cap's config-read shape) — factory, same family as the
   // other small deterministic CLI resolvers faff-prep/faff-graft shell out to.
   "spec-review-churn": "factory",
+  // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
+  // reference — same shape as spec-review-churn) — factory, same family as the other small
+  // deterministic CLI resolvers.
+  "tier": "factory",
+  // FAFF-417: effort (build-effort-by-tier resolution) references config.js's shared
+  // vocab/validation/config-load machinery (factory identifiers) — same family as
+  // models/eligible → factory. factory -> factory is a legal require edge (ADR-0042).
+  "effort": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -333,6 +341,8 @@ const REGION_SELFTEST_ARGV = {
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
   "backends": ["backends", "--selftest"],
   "spec-review-churn": ["spec-review-churn", "--selftest"],
+  "tier": ["tier", "--selftest"],
+  "effort": ["effort", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

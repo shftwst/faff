@@ -1,6 +1,6 @@
 # ADR 0108 — Deterministic prep-time build-tier layers over (never subsumes) confidence routing, tier-keyed effort matcher supersedes ADR-0050's sketch
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-12
 - **Issue:** FAFF-417

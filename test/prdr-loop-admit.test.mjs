@@ -145,7 +145,7 @@ test("the gate CLIs are unchanged — `faff prdr --selftest` still passes (FAFF-
 
 test("Step 5c prose documents the composed sequence and the park-reason vocabulary (FAFF-495 prompt-regression guard)", () => {
   const md = readFileSync(SKILL, "utf8");
-  assert.match(md, /### Step 5c — admit or park the loop-PRDR \(FAFF-495\)/, "Step 5c heading must exist");
+  assert.match(md, /### Step 5c — admit or park the loop-PRDR/, "Step 5c heading must exist");
   // Composes the existing gateway contract — no parallel admission path.
   assert.match(md, /no parallel admission path/i, "must state it introduces no parallel admission path");
   // The three gates are named and invoked in order.

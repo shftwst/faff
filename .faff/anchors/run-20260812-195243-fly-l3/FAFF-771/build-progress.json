@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-771",
+  "build": {
+    "status": "complete",
+    "diff_hash": "5d6704fe3d685de8b9d2de3f664a171741cd1079c4c7e4c590c9a652a05c1cff",
+    "branch": "faff-771-lint-cli-coverage-verify-the-declared-test-file-exercises",
+    "pushed_at": "2026-08-12T21:05:55.993Z"
+  },
+  "updated_at": "2026-08-12T21:05:55.993Z"
+}

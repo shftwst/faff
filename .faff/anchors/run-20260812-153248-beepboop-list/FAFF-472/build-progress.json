@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-472",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7172d03ea7dba6ef4ca675cad71bb6b4790bc68b83ceaa42fb8a32313b4e6eed",
+    "branch": "faff-472-wire-the-sentry-watchdogs-tripped-verdict-to-faff-386-andon",
+    "pushed_at": "2026-08-12T16:36:16.645Z"
+  },
+  "updated_at": "2026-08-12T16:36:16.645Z"
+}

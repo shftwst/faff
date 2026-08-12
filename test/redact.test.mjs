@@ -120,8 +120,18 @@ test("redactKnownSecrets: longest-first overlap — no exposed suffix of a longe
   const short = "shortsecret";
   const long = "shortsecretLONGERTAIL";
   assert.equal(redactKnownSecrets(long, [long, short]), REDACTED_PLACEHOLDER);
-  // Reversed input order still yields no leak — collectKnownSecretValues is what
-  // guarantees longest-first ordering; redactKnownSecrets just walks the given list.
+});
+
+test("redactKnownSecrets: defensive re-sort — an UNSORTED (shortest-first) secretValues array still leaves no exposed suffix (adversarial-review finding)", () => {
+  const short = "shortsecret";
+  const long = "shortsecretLONGERTAIL";
+  // Deliberately shortest-first — the opposite of collectKnownSecretValues'
+  // documented ordering — to prove redactKnownSecrets does not simply trust
+  // caller order. A naive shortest-first walk would redact "shortsecret"
+  // first and leave "LONGERTAIL" exposed after the placeholder.
+  const out = redactKnownSecrets(long, [short, long]);
+  assert.equal(out, REDACTED_PLACEHOLDER);
+  assert.equal(out.includes("LONGERTAIL"), false);
 });
 
 test("redactKnownSecrets: no targets -> value unchanged (same content)", () => {

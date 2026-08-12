@@ -49,6 +49,14 @@ const SECRET_ENV_HANDLE_KEYS = new Set(["api_key_env", "seat_token_env"]);
 // the known secret, no env-var indirection.
 const DIRECT_SECRET_FIELD_PATHS = ["andon.url", "andon.token"];
 
+// The one comparator for "descending length, then lexical" — shared by
+// collectKnownSecretValues (the normal sort site) and redactKnownSecrets'
+// defensive re-sort (below), so the two can never define overlap-ordering
+// differently.
+function byDescendingLengthThenLexical(a, b) {
+  return (b.length - a.length) || (a < b ? -1 : a > b ? 1 : 0);
+}
+
 // collectKnownSecretValues(config, env) -> String[]
 //   Read allowlisted handles (recursively, by exact key NAME — never a *_env
 //   pattern) and direct secret fields (fixed dotted paths). Resolve handles
@@ -77,30 +85,43 @@ function collectKnownSecretValues(config, env) {
     const v = dig(config, path);
     if (typeof v === "string" && v.length >= MIN_SECRET_LENGTH) values.add(v);
   }
-  return [...values].sort((a, b) => (b.length - a.length) || (a < b ? -1 : a > b ? 1 : 0));
+  return [...values].sort(byDescendingLengthThenLexical);
 }
 
 // redactKnownSecrets(value, secretValues) -> JSONValue
 //   Recursively CLONES arrays and plain objects — never mutates `value`. For
-//   every string leaf, replaces every exact occurrence of every target
-//   (longest-first, per collectKnownSecretValues's own ordering) with
+//   every string leaf, replaces every exact occurrence of every target with
 //   "[REDACTED]". Numbers, booleans, and null pass through unchanged. Pure,
 //   deterministic, idempotent — a string already containing only placeholders
 //   is unchanged on a second pass (no target value remains to match).
+//
+//   Defensive re-sort (adversarial-review finding, FAFF-107): every
+//   production caller already passes collectKnownSecretValues' longest-first
+//   output, so this re-sort is a no-op on the hot path — but this primitive
+//   is security-critical (a wrong order can leave a suffix of a longer
+//   secret exposed on overlap), so it does not trust a future caller to
+//   have gotten the ordering right. Sorted ONCE at the public entry point;
+//   the recursive walk below reuses that one ordering rather than re-sorting
+//   per nesting level.
 function redactKnownSecrets(value, secretValues) {
+  const ordered = Array.isArray(secretValues) ? [...secretValues].sort(byDescendingLengthThenLexical) : [];
+  return redactWalk(value, ordered);
+}
+
+function redactWalk(value, orderedSecretValues) {
   if (typeof value === "string") {
     let out = value;
-    for (const s of secretValues) {
+    for (const s of orderedSecretValues) {
       if (s && out.includes(s)) out = out.split(s).join(REDACTED_PLACEHOLDER);
     }
     return out;
   }
   if (Array.isArray(value)) {
-    return value.map((v) => redactKnownSecrets(v, secretValues));
+    return value.map((v) => redactWalk(v, orderedSecretValues));
   }
   if (value !== null && typeof value === "object") {
     const out = {};
-    for (const k of Object.keys(value)) out[k] = redactKnownSecrets(value[k], secretValues);
+    for (const k of Object.keys(value)) out[k] = redactWalk(value[k], orderedSecretValues);
     return out;
   }
   return value; // number, boolean, null, undefined
@@ -162,6 +183,10 @@ function redactSelftest() {
   })());
   const overlapA = "shortsecret", overlapB = "shortsecretLONGER";
   ok("redact: longest-first overlap handling leaves no exposed suffix", redactKnownSecrets(overlapB, [overlapB, overlapA]) === "[REDACTED]");
+  ok("redact: defensive re-sort — unsorted (shortest-first) input still leaves no exposed suffix", (() => {
+    const out = redactKnownSecrets(overlapB, [overlapA, overlapB]); // shortest-first — the wrong order
+    return out === "[REDACTED]" && !out.includes("LONGER");
+  })());
   ok("redact: absent handle / no targets -> unchanged", redactKnownSecrets("nothing secret here", []) === "nothing secret here");
   ok("redact: idempotent — a second pass over already-redacted text is a no-op", (() => {
     const once = redactKnownSecrets("value is abcdefgh12345", ["abcdefgh12345"]);

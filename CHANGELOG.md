@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/shftwst/faff/compare/faff--v0.16.0...faff--v0.17.0) (2026-08-12)
+
+
+### Features
+
+* **FAFF-417:** deterministic prep-time build-tier CLI + models/effort by-tier routing ([#641](https://github.com/shftwst/faff/issues/641)) ([efb87ea](https://github.com/shftwst/faff/commit/efb87ea71ad2453b837cda625c6c8270b3ed3d6d))
+* **FAFF-472:** page andon in real time on a sentry trip ([#643](https://github.com/shftwst/faff/issues/643)) ([cd062ac](https://github.com/shftwst/faff/commit/cd062ac5be5387ba073553dfccd868b3dda7554c))
+
 ## [0.16.0](https://github.com/shftwst/faff/compare/faff--v0.15.0...faff--v0.16.0) (2026-08-11)
 
 

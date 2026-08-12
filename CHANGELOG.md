@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.16.0](https://github.com/shftwst/faff/compare/faff--v0.15.0...faff--v0.16.0) (2026-08-11)
+
+
+### Features
+
+* **FAFF-386:** andon light — push alerting/escalation channel for run-critical events ([#619](https://github.com/shftwst/faff/issues/619)) ([5d2f27b](https://github.com/shftwst/faff/commit/5d2f27b8e733bb9c261113846d119598d314a29d))
+* **FAFF-483:** harness-abstraction seam register + faff harness lint ([#626](https://github.com/shftwst/faff/issues/626)) ([719233d](https://github.com/shftwst/faff/commit/719233dc1b34e10e58908a47b7e1d019bbaafd6f))
+* **FAFF-500:** faff economics --by phase — explore/synthesis/build token & turn split ([#618](https://github.com/shftwst/faff/issues/618)) ([d4990ad](https://github.com/shftwst/faff/commit/d4990ad3d8deefa1c230dd4c8f980068d9a39f03))
+* **FAFF-581:** registry-derived CLI selftest battery, coverage gate, worktree-prune in CI, publish-only coverage ([#605](https://github.com/shftwst/faff/issues/605)) ([db62cb4](https://github.com/shftwst/faff/commit/db62cb41be2de6d6ff938084678c0c217e0c5286))
+* **FAFF-699:** bake the loop next-step and recovery offers into skill prose ([#607](https://github.com/shftwst/faff/issues/607)) ([b211332](https://github.com/shftwst/faff/commit/b2113327de06cc63bc657d76ed76e9a4e112f1d3))
+* **FAFF-703:** stamp harness+model provenance across durable artifacts ([#638](https://github.com/shftwst/faff/issues/638)) ([4d78cb3](https://github.com/shftwst/faff/commit/4d78cb37f11884d81109fd0b3e4752b5fe8b1eb7))
+* **FAFF-761:** mint an honest L2 run-ledger + events chain for standalone interactive graft ([#640](https://github.com/shftwst/faff/issues/640)) ([ab724ce](https://github.com/shftwst/faff/commit/ab724ce88c3a5b4cb3b9bb92c0118dce68018705))
+* **FAFF-766:** Sentry pause-acting for unattended L3 ([#639](https://github.com/shftwst/faff/issues/639)) ([ed0d2f1](https://github.com/shftwst/faff/commit/ed0d2f1b9821d7e4fc58ca3c55db1de3bdf2f01d))
+
+
+### Bug Fixes
+
+* **FAFF-430:** constrain tracking.git_host to github at config-validation time ([#623](https://github.com/shftwst/faff/issues/623)) ([897493c](https://github.com/shftwst/faff/commit/897493c94a9aa033b2469a8b77e14d154deec2ac))
+* **FAFF-584:** make the prompt-lint prose-tier gates real ([#617](https://github.com/shftwst/faff/issues/617)) ([092dbce](https://github.com/shftwst/faff/commit/092dbce46b03ef4caa34ae881cfa76048b46a1b5))
+* **FAFF-640:** fold engine spend into economics --by class and --by day ([#637](https://github.com/shftwst/faff/issues/637)) ([1309736](https://github.com/shftwst/faff/commit/13097365dccf0f9c5c51379f900abd630a5dd004))
+* **FAFF-642:** announce and attribute the engine-call latest-run spend fallback ([#636](https://github.com/shftwst/faff/issues/636)) ([9eed3d1](https://github.com/shftwst/faff/commit/9eed3d1759dd84e59017c2523aa5d607300a39d2))
+* **FAFF-762:** re-target validate-macos at the impure git/path/bash surface ([#622](https://github.com/shftwst/faff/issues/622)) ([da34b41](https://github.com/shftwst/faff/commit/da34b4127f8c40dd2ca507851a59b535988bdc60))
+* **FAFF-764:** give scope-drift a real behaviour-derived detector ([#625](https://github.com/shftwst/faff/issues/625)) ([cc96339](https://github.com/shftwst/faff/commit/cc96339433b21b13696567ac70e8eb72d1aa375c))
+* **FAFF-765:** de-level the Sentry abort kill-switch onto declared attendedness ([#621](https://github.com/shftwst/faff/issues/621)) ([2f2437f](https://github.com/shftwst/faff/commit/2f2437f50a78b4303e29c965983e4dc0d1b1e914))
+* **FAFF-772:** correct eval selftest argv, guard it with a test ([#634](https://github.com/shftwst/faff/issues/634)) ([c36d084](https://github.com/shftwst/faff/commit/c36d0848e08aca29adca7d21bd248c7e6b7f34a0))
+* **FAFF-775:** retry recursive teardown rm to end flaky ENOTEMPTY in link-skills-worktree ([#630](https://github.com/shftwst/faff/issues/630)) ([229c427](https://github.com/shftwst/faff/commit/229c427609985bbdb3b5a557383f11c282e454e2))
+* **FAFF-780:** apply faff-parked alongside faff-repeat-parked on tidy's repeat-park demotion ([#633](https://github.com/shftwst/faff/issues/633)) ([6161fa7](https://github.com/shftwst/faff/commit/6161fa71f3875422c7fc73aef9962fcbac7b3ce0))
+
 ## [0.15.0](https://github.com/shftwst/faff/compare/faff--v0.14.0...faff--v0.15.0) (2026-08-11)
 
 

@@ -276,7 +276,7 @@ Filed tickets are **new work, not admitted issues** — they sit outside runchec
 
 #### Containment at the filing chokepoint (FAFF-221)
 
-This is one of the **two** autonomous-by-construction tracker-create paths (the other is tidy chain-gap auto-fill); both call the same `autonomous_file_check` before any create, so an agent-discovered item can only become a ticket **inside the subtree of the mandate** it was discovered under. `faff-graft` only *records* discovered scope (gateway → **Agent Lanes**) — it is **not** a create path. The mode signal is structural, not a flag (gateway → scope-containment is by-construction, FAFF-217); interactive jot/plot create freely and stamp `initiated: interactive`.
+This is one of the **two** autonomous-by-construction tracker-create paths (the other is tidy chain-gap auto-fill); both call the same `autonomous_file_check` before any create, so an agent-discovered item can only become a ticket **inside the subtree of the mandate** it was discovered under. The orchestrator lane deliberately uses the run's dispatch container as its coarser mandate rather than an implementor's per-issue mandate, so an intended parent in a sibling project under the same initiative still classifies `outward`. `faff-graft` only *records* discovered scope (gateway → **Agent Lanes**) — it is **not** a create path. The mode signal is structural, not a flag (gateway → scope-containment is by-construction, FAFF-217); interactive jot/plot create freely and stamp `initiated: interactive`.
 
 ```
 PROCEDURE autonomous_file_check(mandate, candidate, run_id, phase):

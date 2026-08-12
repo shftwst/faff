@@ -11,6 +11,14 @@
 // not .faffrc knobs. Counting only: it never reads the tracker, never mutates, never
 // classifies. faff-tidy consumes repeat_parked to demote Todo->Backlog + tag
 // repeat-parked; this seam just does the deterministic half tidy's prose relied on.
+//
+// FAFF-779: this module also owns the WRITER half of the same wire format — the shared
+// Park protocol's in-run `park_records` accumulator (`addParkRecord`, dedup-by-completed-
+// transition) and its run-end render (`renderParksBlock`, the exact fence `extractParksBlock`
+// above parses). One shared reader + writer for every park class (`punt-not-closed` / `gap`
+// / `cycle` / ...) — no verdict-specific writer, no second storage format. Both are PURE:
+// no filesystem/tracker access; the orchestrator (faff-beep-boop) holds the accumulator in
+// memory for the run and writes the rendered fence into `summary.md` itself.
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -38,6 +46,38 @@ function extractParksBlock(body, runId) {
     throw new Error(`faff-parks block in run '${runId}' must be a JSON array`);
   }
   return parsed;
+}
+
+// ---------------------------------------------------------------------------
+// FAFF-779 — the shared writer half. PURE: given the accumulator so far and one
+// completed park fact, return the (possibly unchanged) next accumulator. A "completed
+// park transition" is identified by its own record — same issue, same root-cause class,
+// same timestamp — because both the original Park-protocol return and any later backstop
+// reconciliation of that SAME transition read the same on-disk/tracker completed-transition
+// instant, never "now". A record matching an existing one byte-for-byte on those three
+// fields is a retry/rediscovery of the transition already recorded and is dropped, not
+// appended — this is what keeps `faff park-history`'s counts honest under a retried return
+// or a reconciled backstop, and what makes "exactly one record per completed transition"
+// provable rather than asserted. A genuinely later, distinct transition (a different
+// timestamp) for the same issue/class is NOT a duplicate — it is a real repeat park and is
+// appended, occurrence-ordered, same as any other class.
+// ---------------------------------------------------------------------------
+function addParkRecord(records, record) {
+  const list = Array.isArray(records) ? records : [];
+  const isDuplicate = list.some((r) => r && record
+    && r.issue_id === record.issue_id
+    && r.root_cause_class === record.root_cause_class
+    && r.timestamp === record.timestamp);
+  return isDuplicate ? list : [...list, record];
+}
+
+// Render the canonical fenced `faff-parks` block from the accumulator — the exact wire
+// format `extractParksBlock` above parses (round-trip proof lives in the test suite).
+// `[]` for an empty accumulator (never an omitted fence) so every run's summary carries
+// one stable producer shape for `faff park-history` to consume.
+function renderParksBlock(records) {
+  const list = Array.isArray(records) ? records : [];
+  return "```faff-parks\n" + JSON.stringify(list, null, 2) + "\n```";
 }
 
 // Pure core: given a flat list of park records + the now-instant, count parks per
@@ -173,4 +213,4 @@ function cmdParkHistory(args) {
 }
 
 
-module.exports = { PARK_HISTORY_SCAN, PARK_HISTORY_SELFTEST_CASES, PARK_WINDOW_DAYS, REPEAT_PARK_THRESHOLD, ROOT_CAUSE_CLASSES, cmdParkHistory, computeParkHistory, extractParksBlock, gatherParks, parkHistorySelftest };
+module.exports = { PARK_HISTORY_SCAN, PARK_HISTORY_SELFTEST_CASES, PARK_WINDOW_DAYS, REPEAT_PARK_THRESHOLD, ROOT_CAUSE_CLASSES, addParkRecord, cmdParkHistory, computeParkHistory, extractParksBlock, gatherParks, parkHistorySelftest, renderParksBlock };

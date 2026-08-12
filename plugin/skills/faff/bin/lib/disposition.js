@@ -20,9 +20,14 @@ const { extractParksBlock } = require("./park-history");
 const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
 // The per-issue terminal outcomes that mean a human must act — one issue-outcome
-// attention item each. `shipped` (done) and `routed-out` (never attempted, steady-state
-// backlog triage surfaced by /faff-wtf) are CLEAN — counting routed-out would make
-// near-every run red and train wrappers to ignore the signal. `pr-open` IS attention: a
+// attention item each. `shipped` (done) and `routed-out` are CLEAN — counting routed-out
+// would make near-every run red and train wrappers to ignore the signal. FAFF-779:
+// `routed-out` no longer means "never attempted" across the board — a `needs-decision-first`
+// verdict DOES get a bounded resolve-attempt, and a FAILED attempt now records `parked`
+// (the shared Park protocol), not `routed-out`. What stays `routed-out` and clean is a
+// verdict that never triggers a resolve-attempt at all (`gap-blocked`, `circular-blocked`,
+// `repeat-parked` — unchanged by FAFF-779): genuine steady-state backlog triage surfaced by
+// /faff-wtf, not an attempted-and-failed disposition. `pr-open` IS attention: a
 // PR left open for human review is precisely a "human must act" outcome of this run.
 // FAFF-594: "parked-window" (a global 5h budget.window breach, at_ceiling:
 // park-until-window-reset) is attention exactly like "unreached-budget" — a

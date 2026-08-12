@@ -4,6 +4,7 @@
 - **Provenance:** loop
 - **Date:** 2026-08-11
 - **Issue:** FAFF-765
+- **Amended:** 2026-08-11 by FAFF-766 — `pause` joins `abort` on the attendedness axis (see amendment note at the end of Decision and Consequences below).
 
 ## Context
 
@@ -53,6 +54,23 @@ short-circuit) exactly:
   `correct` stays authority-gated per FAFF-326. The `sentry check` consult never forks on
   level/attendedness; only the abort *handling* consults the resolver.
 
+**Amendment (FAFF-766, 2026-08-11).** `pause` joins `abort` on this same attendedness
+axis — the two now form the **safe-stop class**. `abort` stops the whole run
+(resumable); `pause` is strictly gentler: it parks one implicated issue (named by the
+verdict's evidence — `worst.issue` for `fix-review-thrash`, the drifting/stalled member
+for `scope-drift` / member-scoped `wall-clock-runaway`) and keeps draining the rest of
+the queue. The new resolver `actsOnSentryPause(ledger, cfg)` **delegates verbatim to
+`actsOnSentryAbort`** — one shared L4-first lazy short-circuit, never a second copy —
+so an operator who declared unattended (and thereby armed the whole-run abort
+kill-switch) gets the gentler per-issue park *a fortiori*; no separate knob was added
+(a documented, non-blocking Punt for a future `autonomous.pause_acting: false`
+opt-out). `surface` and `correct` are unaffected by this amendment and remain
+L4-only-acts (`correct` stays authority-gated per FAFF-326). This amendment does not
+touch `actsOnSentryAbort`'s body (byte-unchanged) or the cooperative-checkpoint-only
+scope of pause-acting — the detached `sentry-poller` still never acts on `pause` at any
+level (it has no orchestrator judgement to park an issue with), a property this
+amendment leaves untouched and unit-tested.
+
 ## Consequences
 
 - The durable acting model FAFF-766 (pause-acting) and later FAFF-763 slices build on is
@@ -71,3 +89,10 @@ short-circuit) exactly:
 - The reference self-directed watcher (`operations/ci/l3-watcher.yml`) now declares
   `autonomous.unattended: true`, so it gains the live kill-switch it could never obtain via
   the L4 mint.
+- **(FAFF-766 amendment.)** The `unattended`-derived predicate this ADR introduces is now
+  shared by two acting resolvers, `actsOnSentryAbort` and `actsOnSentryPause` (the
+  latter delegating to the former), so a single declaration arms both safe stops. An
+  unattended L3 run that trips `fix-review-thrash` no longer has to thrash until a
+  whole-run `abort` — the implicated issue is parked and the drain continues. The
+  poller's pause-never-acts property (this ADR's original text) is unchanged and
+  re-confirmed by a regression test.

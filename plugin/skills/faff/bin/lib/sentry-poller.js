@@ -298,6 +298,25 @@ async function runLoop(runDir, intervalSecs) {
           appendEventRecord(runDir, runId, { phase: "run", type: "sentry-checkpoint", data: decision.payload });
         } catch { /* best-effort */ }
         appendLog(runDir, "abort-actioned", { signals: (decision.payload.verdicts || []).map((v) => v.signal) });
+        // FAFF-472: page andon in real time on the landing tick. Best-effort, same
+        // try/catch discipline as the sentry-checkpoint append above — a fault here
+        // never blocks, reorders, or fails the abort, which has already landed.
+        // No new transport/event-type/andon-class: this reuses the shipped
+        // sentry-trip classification + the cooperative checkpoint's exact shape
+        // (beep-boop step 8.1) — append THEN pump, so the pump sees it same-tick.
+        try {
+          let ledger = null;
+          try { ledger = readLedger(runDir); } catch { /* best-effort */ }
+          const runId = (ledger && ledger.run_id) || path.basename(runDir);
+          appendEventRecord(runDir, runId, {
+            phase: "run", type: "sentry-trip",
+            data: { verdicts: decision.payload.verdicts || [], intervention: decision.payload.intervention },
+          });
+          // --root explicit (mirrors the readGovernanceConfig(findRoot(runDir)) call
+          // above): the detached poller's own cwd at spawn time is not load-bearing,
+          // so config resolution must derive from runDir, never an inherited cwd.
+          spawnSync(process.execPath, [ENTRYPOINT, "andon", "pump", "--run-dir", runDir, "--root", findRoot(runDir)], { encoding: "utf8" });
+        } catch { /* best-effort — fail-open telemetry, never in the correctness path (ADR-0101) */ }
         return;
       }
       appendLog(runDir, "abort-failed", { exit: a.status });

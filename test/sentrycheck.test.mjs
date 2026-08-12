@@ -7,14 +7,49 @@
 // visible Scenarios in the spec plus the consult-failure notice.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import http from "node:http";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
+
+// Async CLI runner (spawn, not spawnSync) — REQUIRED for the FAFF-472 andon tests
+// below, which run an in-process loopback http server in this same test process:
+// a synchronous spawnSync would block this process's event loop while the CLI
+// child's outbound POST is still in flight, deadlocking client and server against
+// each other (same reasoning as test/andon.test.mjs's own async runner).
+function runAsync(args, env) {
+  return new Promise((resolve) => {
+    const child = spawn("node", [CLI, ...args], { env: { ...process.env, ...env } });
+    let out = "", err = "";
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (err += d));
+    child.on("close", (code) => resolve({ code, out, err }));
+  });
+}
+
+// A loopback server that records every POST it receives — mirrors test/andon.test.mjs
+// and test/sentry-poller.test.mjs's identical helper.
+function loopbackServer(t, handler) {
+  return new Promise((resolve) => {
+    const posts = [];
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        posts.push({ method: req.method, path: req.url, headers: req.headers, body });
+        if (handler) handler(req, res, posts);
+        else { res.writeHead(200); res.end("ok"); }
+      });
+    });
+    t.after(() => new Promise((r) => { if (server.listening) server.close(r); else r(); }));
+    server.listen(0, "127.0.0.1", () => resolve({ server, posts, url: (p) => `http://127.0.0.1:${server.address().port}${p || "/hook"}` }));
+  });
+}
 
 // FAFF-620: the resolveSentryRunDir helper's fault path is unit-tested directly
 // (a real deleted cwd can't be staged portably) via the same createRequire
@@ -204,5 +239,90 @@ test("probeServes probe shape: --hook --root <empty tmpdir> exits 0 fast and nev
   try {
     const r = spawnSync("node", [CLI, "sentrycheck", "--hook", "--root", root], { encoding: "utf8", timeout: 5000, input: "" });
     assert.equal(r.status, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-472 — wire a genuine tripped consult to the andon push channel
+// (FAFF-386). `andon send` only — never pump/event-append, since this locus
+// fires at a FOREIGN session's turn-end and must not write the foreign run's
+// events.jsonl / andon-state.json (non-owner-never-writes, FAFF-235/ADR-0065).
+// ---------------------------------------------------------------------------
+
+test("FAFF-472 Scenario 2: tripped consult with andon.url configured -> `andon send` pages exactly once, writing NO state to the foreign run dir", async (t) => {
+  const { root, runDir, ledgerBytes } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  const before = ledgerBytes();
+  const { posts, url } = await loopbackServer(t);
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "hook mode always exits 0");
+    assert.equal(r.out.trim(), "", "no stdout decision payload, ever (FAFF-235)");
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/, "the existing advisory stderr line is unchanged");
+
+    assert.equal(posts.length, 1, "exactly one andon notification sent");
+    assert.match(posts[0].body, /sentry tripped/);
+    assert.match(posts[0].body, /RUN-LIVE/);
+    assert.match(posts[0].body, /wall-clock-runaway/, "the observed signal is carried into the notification body");
+
+    // Non-owner-never-writes (FAFF-235/ADR-0065): no events.jsonl, no andon-state.json,
+    // and the ledger's bytes are untouched — `andon send` reads no events and writes
+    // no run-dir state, unlike `andon pump`.
+    assert.equal(existsSync(join(runDir, "events.jsonl")), false, "no events.jsonl written to the foreign run");
+    assert.equal(existsSync(join(runDir, "andon-state.json")), false, "no andon-state.json written to the foreign run");
+    assert.equal(ledgerBytes(), before, "the foreign run's ledger bytes are unchanged");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-472: andon.url unset -> tripped consult still writes the existing advisory line, exits 0, and attempts no notification (byte-for-byte no-op on the andon side)", async (t) => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0);
+    assert.equal(r.out.trim(), "");
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/);
+    assert.equal(existsSync(join(runDir, "events.jsonl")), false);
+    assert.equal(existsSync(join(runDir, "andon-state.json")), false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-472: an andon webhook failure never changes the hook's exit-0 contract or the advisory stderr line", async (t) => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  const { posts, url } = await loopbackServer(t, (req, res) => { res.writeHead(500); res.end("nope"); });
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "a failed andon delivery never flips the hook's always-exit-0 contract");
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/);
+    assert.ok(posts.length >= 1, "delivery was attempted (proving the failure path, not a config miss)");
+    assert.equal(existsSync(join(runDir, "andon-state.json")), false, "send never writes state, failed or not");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-472: a non-tripped consult (ok) never calls andon send", async (t) => {
+  // A heartbeat old enough to cross OUR gate's staleness window but not sentry's
+  // own wall-clock-runaway threshold (same technique as the existing
+  // tripped:false test above) — a genuine consult fires and comes back clean.
+  const { root } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(10), last_heartbeat: isoAgo(10) },
+  });
+  const { posts, url } = await loopbackServer(t);
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root],
+      { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "", FAFF_RUN_HEARTBEAT_STALE_SECS: "5" });
+    assert.equal(r.code, 0);
+    assert.equal(r.err.trim(), "", "a consulted-but-clean verdict stays fully silent");
+    assert.equal(posts.length, 0, "andon is never paged for a clean verdict");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

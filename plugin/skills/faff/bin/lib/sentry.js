@@ -213,6 +213,19 @@ function declaredUnattendedFromConfig(cfg) {
 function actsOnSentryAbort(ledger, cfg) {
   return (!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg);
 }
+
+// FAFF-766 — the resolver for "does Sentry's PAUSE act on this run?". `pause` joins
+// `abort` in the safe-stop CLASS (FAFF-763): both are keyed on the same attendedness
+// axis, so this delegates to actsOnSentryAbort verbatim rather than re-implementing
+// the L4-first lazy short-circuit — one copy of the unattended-stop condition, shared
+// by both safe stops. `pause` is strictly gentler than `abort` (it parks one
+// implicated issue and keeps draining, never a whole-run stop), so an operator who
+// declared unattended and thereby armed abort-acting gets pause-acting a fortiori.
+// This is checkpoint-only — the detached sentry-poller never acts on pause at any
+// level (see sentry-poller.js) and is untouched by this resolver's existence.
+function actsOnSentryPause(ledger, cfg) {
+  return actsOnSentryAbort(ledger, cfg);
+}
 // FAFF-362: v1 default thresholds — now DERIVED from the active-by-default
 // delivery profile (governance-profile.js's DELIVERY_PROFILE.sentry.thresholds)
 // rather than an independent literal object; same 4 keys, same values,
@@ -1547,4 +1560,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

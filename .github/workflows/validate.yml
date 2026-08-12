@@ -23,9 +23,7 @@ jobs:
         run: node plugin/skills/faff/bin/faff validate-adapters
 
       - name: Validate self-contained prose (no external-artifact refs in docs/guide)
-        run: |
-          node plugin/skills/faff/bin/faff lint-refs --selftest
-          node plugin/skills/faff/bin/faff lint-refs
+        run: node plugin/skills/faff/bin/faff lint-refs
 
       - name: Validate out-of-tree docs links (docs/guide, docs/concept paths resolve)
         run: |
@@ -66,9 +64,7 @@ jobs:
           echo "All out-of-tree docs links in docs/guide and docs/concept resolve."
 
       - name: Validate CLI reference doc covers every subcommand (docs/guide/cli.md)
-        run: |
-          node plugin/skills/faff/bin/faff lint-cli-doc --selftest
-          node plugin/skills/faff/bin/faff lint-cli-doc
+        run: node plugin/skills/faff/bin/faff lint-cli-doc
 
       - name: Validate config template parses
         run: |
@@ -76,208 +72,40 @@ jobs:
           cp .faffrc.example.yaml "$tmp/.faffrc.yaml"   # canonical name (FAFF-50: only .faffrc.yaml is accepted)
           ( cd "$tmp" && node "$GITHUB_WORKSPACE/plugin/skills/faff/bin/faff" config dump >/dev/null )
 
-      - name: Validate orchestration transition table
-        run: node plugin/skills/faff/bin/faff next --selftest
+      - name: Validate the repo's own records/adr tree
+        run: node plugin/skills/faff/bin/faff adr validate
 
-      - name: Validate container state-coherence transition table (FAFF-248)
-        run: node plugin/skills/faff/bin/faff project-next --selftest
-
-      - name: Validate config init writer
-        run: node plugin/skills/faff/bin/faff config init --selftest
-
-      - name: Validate automation-eligibility table
-        run: node plugin/skills/faff/bin/faff eligible --selftest
-
-      - name: Validate lights-out admissibility verdict table
-        run: node plugin/skills/faff/bin/faff admissible --selftest
-
-      - name: Validate label-op descriptor table
-        run: node plugin/skills/faff/bin/faff label --selftest
-
-      - name: Validate ADR command + the repo's own records/adr tree
-        run: |
-          node plugin/skills/faff/bin/faff adr --selftest
-          node plugin/skills/faff/bin/faff adr validate
-
-      - name: Validate PRDR command + the repo's configured records/prdr tree (FAFF-463 — shape + numbering + git-landing tier)
+      - name: Validate the repo's configured records/prdr tree (FAFF-463 — shape + numbering + git-landing tier)
         run: node plugin/skills/faff/bin/faff prdr validate
 
-      - name: Validate spec-readiness contract script
-        run: node plugin/skills/faff/bin/faff contract spec-readiness --selftest
+      # FAFF-581: the CLI selftest battery is now DERIVED from the COMMANDS/REGION_MAP
+      # registry via the region sweep — no per-command `faff <cmd> --selftest` steps are
+      # hand-enumerated here any more (the ~65-step hand list, with no drift guard, was the
+      # exact `lint-cli-doc`-shaped hole this ticket closes). `regions check` asserts the
+      # REGION_MAP↔COMMANDS bijection + require-graph direction; `regions selftest` then
+      # spawns every member's own `--selftest` (map-completeness + stale-null checks built in),
+      # so a new factory/governance command with a broken or missing selftest reddens CI with
+      # NO edit to this file. The battery is two steps (interim): `--region factory` — which
+      # spawns the destructive `worktree-prune --selftest` (change 1's safety fix, green today)
+      # — plus `--region governance`. Collapse to a single `--region all` step once FAFF-561
+      # clears `budget`'s state-sensitive selftest (or it is quarantined). See FAFF-581 §4.
+      - name: Enforce the region require-graph + REGION_MAP↔COMMANDS bijection (FAFF-444)
+        run: node plugin/skills/faff/bin/faff regions check
 
-      - name: Validate review-verdict contract script
-        run: node plugin/skills/faff/bin/faff contract review-verdict --selftest
+      - name: Registry selftest battery — factory members (incl. the destructive worktree-prune, FAFF-581)
+        run: node plugin/skills/faff/bin/faff regions selftest --region factory
 
-      - name: Validate delivery-outcome contract script
-        run: node plugin/skills/faff/bin/faff contract delivery-outcome --selftest
+      - name: Registry selftest battery — governance members (FAFF-444)
+        run: node plugin/skills/faff/bin/faff regions selftest --region governance
 
-      - name: Validate automation-routing contract script
-        run: node plugin/skills/faff/bin/faff contract automation-routing --selftest
-
-      - name: Validate quality-gates contract script
-        run: node plugin/skills/faff/bin/faff contract quality-gates --selftest
-
-      - name: Validate prd-readiness contract script
-        run: node plugin/skills/faff/bin/faff contract prd-readiness --selftest
-
-      - name: Validate prdr-admission contract script
-        run: node plugin/skills/faff/bin/faff contract prdr-admission --selftest
-
-      - name: Validate adr-admission contract script (FAFF-199)
-        run: node plugin/skills/faff/bin/faff contract adr-admission --selftest
-
-      - name: Validate l4-topology-envelope contract script (FAFF-493)
-        run: node plugin/skills/faff/bin/faff contract l4-topology-envelope --selftest
-
-      - name: Validate prdr-yagni (upper/YAGNI gate) contract script
-        run: node plugin/skills/faff/bin/faff contract prdr-yagni --selftest
-
-      - name: Validate prd-coverage (lower/coverage gate + prd-satisfied roll-up) contract script
-        run: node plugin/skills/faff/bin/faff contract prd-coverage --selftest
-
-      - name: Validate prd-distance contract script (FAFF-535)
-        run: node plugin/skills/faff/bin/faff contract prd-distance --selftest
-
-      - name: Validate lane-boundary contract script (FAFF-276)
-        run: node plugin/skills/faff/bin/faff contract lane-boundary --selftest
-
-      - name: Validate prdr command + the upper-gate arbitration table
-        run: node plugin/skills/faff/bin/faff prdr --selftest
-
-      - name: Validate spec-review-verdict contract script
-        run: node plugin/skills/faff/bin/faff contract spec-review-verdict --selftest
-
-      - name: Validate architecture-proposal contract script
-        run: node plugin/skills/faff/bin/faff contract architecture-proposal --selftest
-
-      - name: Validate env-handle contract script (FAFF-30)
-        run: node plugin/skills/faff/bin/faff contract env-handle --selftest
-
-      - name: Validate holdout-verdict contract script (FAFF-34)
-        run: node plugin/skills/faff/bin/faff contract holdout-verdict --selftest
-
-      - name: Validate integrity-floor contract script (FAFF-350)
-        run: node plugin/skills/faff/bin/faff contract integrity-floor --selftest
-
-      - name: Validate integrity-boundary emitter round-trip (FAFF-514)
-        run: node plugin/skills/faff/bin/faff integrity-boundary --selftest
-
-      - name: Validate integrity-digest snapshot/verify tamper detection (FAFF-518)
-        run: node plugin/skills/faff/bin/faff integrity-digest --selftest
-
-      - name: Validate post-merge-verification contract script (FAFF-385)
-        run: node plugin/skills/faff/bin/faff contract post-merge-verification --selftest
-
-      - name: Validate ci-triage contract script (FAFF-391)
-        run: node plugin/skills/faff/bin/faff contract ci-triage --selftest
-
-      - name: Validate merge-gate pure cores (FAFF-350)
-        run: node plugin/skills/faff/bin/faff merge-gate --selftest
-
-      - name: Validate branch-protection classifier (FAFF-350)
-        run: node plugin/skills/faff/bin/faff branch-protection-check --selftest
-
-      - name: Validate run-end ground-truth reconcile (FAFF-397/680)
-        run: node plugin/skills/faff/bin/faff reconcile --selftest
-
-      - name: Validate post-merge-check (FAFF-385)
-        run: node plugin/skills/faff/bin/faff post-merge-check --selftest
-
-      - name: Validate ci-triage pure cores (FAFF-391)
-        run: node plugin/skills/faff/bin/faff ci-triage --selftest
-
-      - name: Validate governance-check leg-table + AND-aggregation + malformed-ledger table (FAFF-363)
-        run: node plugin/skills/faff/bin/faff governance-check --selftest
-
-      - name: Validate dod-classify table (FAFF-34)
-        run: node plugin/skills/faff/bin/faff dod --selftest
-
-      - name: Validate holdout verdicts → DoD-verdict map table (FAFF-277)
-        run: node plugin/skills/faff/bin/faff holdout --selftest
+      # FAFF-581 change 3: the registry-coverage gate — every COMMANDS entry must be tested by
+      # a non-null selftest OR a declared test file, fail-closed and bidirectional. Distinct
+      # from the sweep above (which makes selftests RUN): this asserts every command is COVERED.
+      - name: Assert every subcommand is tested by something (registry-coverage gate, FAFF-581)
+        run: node plugin/skills/faff/bin/faff lint-cli-coverage
 
       - name: Validate the code-blind evaluator spawner pure core (FAFF-384)
         run: node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest
-
-      - name: Validate engineering-quality gate ladder
-        run: node plugin/skills/faff/bin/faff gates --selftest
-
-      - name: Validate run-reconstruction forensics join table (FAFF-289)
-        run: node plugin/skills/faff/bin/faff audit --selftest
-
-      - name: Validate infra-profile validator table (FAFF-26)
-        run: node plugin/skills/faff/bin/faff profile --selftest
-
-      - name: Validate env compose-gen table (FAFF-270)
-        run: node plugin/skills/faff/bin/faff env --selftest
-
-      - name: Validate park-history repeat-park counting table
-        run: node plugin/skills/faff/bin/faff park-history --selftest
-
-      - name: Validate queue-state gitkey mint + differ table (FAFF-556)
-        run: node plugin/skills/faff/bin/faff queue-state --selftest
-
-      - name: Validate tracker-pin classifier table (FAFF-695)
-        run: node plugin/skills/faff/bin/faff tracker --selftest
-
-      - name: Validate prepcheck attach-state audit table
-        run: node plugin/skills/faff/bin/faff prepcheck --selftest
-
-      - name: Validate intake-provenance verdict + interactive-bypass table
-        run: node plugin/skills/faff/bin/faff intakecheck --selftest
-
-      - name: Validate intake-record via/initiated table
-        run: node plugin/skills/faff/bin/faff intake-record --selftest
-
-      - name: Validate gitignore-ensure overlay-glob pattern set + append-order + idempotency table (FAFF-548)
-        run: node plugin/skills/faff/bin/faff gitignore-ensure --selftest
-
-      - name: Validate hooks-ensure Stop-hook + PreToolUse registration table
-        run: node plugin/skills/faff/bin/faff hooks-ensure --selftest
-
-      - name: Validate merge-fence PreToolUse matcher table (FAFF-434)
-        run: node plugin/skills/faff/bin/faff merge-fence --selftest
-
-      - name: Validate contain subtree-of-mandate containment table
-        run: node plugin/skills/faff/bin/faff contain --selftest
-
-      - name: Validate budget envelope/state table (FAFF-36)
-        run: node plugin/skills/faff/bin/faff budget --selftest
-
-      - name: Validate run-done terminating-condition predicate table (FAFF-38)
-        run: node plugin/skills/faff/bin/faff run-done --selftest
-
-      - name: Validate signals.outward producer decision table (FAFF-521)
-        run: node plugin/skills/faff/bin/faff run-outward --selftest
-
-      - name: Validate run-start trigger predicate decision table (FAFF-496)
-        run: node plugin/skills/faff/bin/faff run-start --selftest
-
-      - name: Validate economics unit-economics + --by breakdown table (FAFF-357/410)
-        run: node plugin/skills/faff/bin/faff economics --selftest
-
-      - name: Validate disposition run-end verdict classifier table (FAFF-396)
-        run: node plugin/skills/faff/bin/faff disposition --selftest
-
-      - name: Validate sentry derailment-detection + kill-switch table (FAFF-49)
-        run: node plugin/skills/faff/bin/faff sentry --selftest
-
-      - name: Validate escaped-side-effect detection table (FAFF-106)
-        run: node plugin/skills/faff/bin/faff effects --selftest
-
-      - name: Validate run-termination contract script (FAFF-38)
-        run: node plugin/skills/faff/bin/faff contract run-termination --selftest
-
-      - name: Validate run-trigger contract script (FAFF-496)
-        run: node plugin/skills/faff/bin/faff contract run-trigger --selftest
-
-      - name: Validate region require-graph fixture table (FAFF-444)
-        run: node plugin/skills/faff/bin/faff regions --selftest
-
-      - name: Enforce the governance/factory require-graph direction invariant (FAFF-444)
-        run: node plugin/skills/faff/bin/faff regions check
-
-      - name: Governance region standalone selftests (FAFF-444)
-        run: node plugin/skills/faff/bin/faff regions selftest --region governance
 
       - name: Prompt-size budget gate (advisory)
         run: |
@@ -292,10 +120,24 @@ jobs:
             exit 1
           }
 
-      - name: Run skill/CLI behaviour tests (node:test)
+      # FAFF-581 change 4: coverage measurement, PUBLISH-ONLY. NODE_V8_COVERAGE is folded into
+      # this one required `node --test` run (no second full-suite pass): every spawned bin/faff
+      # child dumps V8 coverage into the shared dir via the single runCli() seam. The number is
+      # published in the next step; nothing gates on it (the enforcement-floor flip is a separate
+      # QA decision — FAFF-581 §7 Punt).
+      - name: Run skill/CLI behaviour tests (node:test) — with coverage capture (FAFF-581)
         env:
           FAFF_REQUIRE_DOCKER: "1"
-        run: node --test
+          NODE_V8_COVERAGE: ${{ runner.temp }}/v8-coverage
+        run: |
+          mkdir -p "$NODE_V8_COVERAGE"
+          node --test
+
+      - name: Publish CLI coverage number (advisory — never gates — FAFF-581)
+        if: always()
+        env:
+          NODE_V8_COVERAGE: ${{ runner.temp }}/v8-coverage
+        run: node scripts/coverage-aggregate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
   # FAFF-762: re-targeted at the IMPURE, OS-divergent surface — real `git worktree`
   # provisioning, path resolution, and the bundled bash scripts calling POSIX utils, the

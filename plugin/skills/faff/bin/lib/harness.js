@@ -27,7 +27,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
-const { findRoot } = require("./shared-infra");
+const { findRoot, dig } = require("./shared-infra");
 
 // --- Closed enums (fail loud on an unrecognised value, backends.js style) -----
 
@@ -602,12 +602,126 @@ function seamsView(register = REGISTER) {
 }
 
 // ===========================================================================
+// === region:factory — harness identify — FAFF-703: the interim harness+model
+// identity resolver ===
+//
+// One resolver, many sinks (spec §4): `faff harness identify` is the SINGLE
+// point that computes `{harness, model, source}`. Every durable-artifact
+// writer (prep marker, run-ledger owner block, merge-record, the provenance
+// stamp line) calls this — or is handed its return value — rather than
+// re-deriving identity independently; that is the whole point of the ticket
+// (a build that re-derives harness/model per artifact recreates the
+// cross-harness divergence bug this closes).
+//
+// Fail-quiet by construction: every branch below has a fallback, so identity
+// ALWAYS resolves — an unobservable model is the literal string "unknown" (a
+// value, never an error), and a config load failure degrades to "no config
+// axis available" rather than throwing. `faff harness identify` therefore
+// exits 0 unconditionally.
+//
+// Anti-pattern (spec §4, load-bearing): NEVER fall back to a `models.<lane>`
+// config value for `model` — that is the REQUESTED lane class, not the
+// resolved model that actually ran, and recording it would silently corrupt
+// model-attribution analysis. The only sources for `model` are an in-flight
+// engine-dispatch context, an explicit `provenance.model` config value / the
+// FAFF_HARNESS_MODEL declaration env var, or the literal "unknown".
+// ===========================================================================
+
+const IDENTITY_SOURCES = ["config", "declared", "engine", "env", "default"]; // closed (§3 HarnessIdentity.source)
+
+// Specificity rank used ONLY to pick the single `source` value the two
+// independently-resolved axes (harness, model) jointly report — the higher-
+// ranked axis's source wins (a deliberate assertion beats a passive env
+// sniff; a mechanically-observed engine model beats an unresolved harness
+// default). `unknown` model resolution is ranked with `default` (nothing more
+// specific was found on either axis) so a fully-unresolved pair reports
+// `source: "default"`, matching the RECORD's closed 5-value enum — there is
+// no separate "unknown" source, per §3's Enum.
+const IDENTITY_SOURCE_RANK = { default: 0, env: 1, declared: 2, engine: 2, config: 3 };
+
+// Best-effort harness detection from ambient env signals (spec §4 step 2).
+// Reuses the SAME env vars the rest of the codebase already keys harness
+// presence off (CLAUDE_CODE_SESSION_ID / CLAUDE_PLUGIN_ROOT for Claude Code,
+// CODEX_HOME for Codex — see budget.js / hooks-ensure.js / backends.js) rather
+// than inventing a new signal. Unbounded env-sniffing of every possible future
+// harness is explicitly OUT OF SCOPE (spec §2) — this is a narrow, named list.
+function detectHarnessFromEnv(env) {
+  if (env.CODEX_HOME) return "codex";
+  if (env.CLAUDE_CODE_SESSION_ID || env.CLAUDE_PLUGIN_ROOT) return "claude-code";
+  return null;
+}
+
+// PURE: the resolution order from spec §4, given already-loaded inputs.
+//   opts.env       — process.env-shaped object (default: process.env)
+//   opts.cfgData   — the merged .faffrc data (or null when unavailable — the
+//                    resolver still resolves; a config-axis outage degrades
+//                    to env/default, never a throw)
+//   opts.engineCtx — { model } when resolving INSIDE a faff-dispatched engine
+//                    call (the FAFF-604 resolved-model context), else null
+function resolveHarnessIdentity(opts = {}) {
+  const env = opts.env || process.env;
+  const cfgData = opts.cfgData || null;
+  const engineCtx = opts.engineCtx || null;
+
+  // harness axis (§4 steps 1-3)
+  let harness, harnessSource;
+  const configHarness = cfgData ? dig(cfgData, "provenance.harness") : undefined;
+  if (configHarness) {
+    harness = String(configHarness);
+    harnessSource = "config";
+  } else {
+    const envHarness = detectHarnessFromEnv(env);
+    if (envHarness) { harness = envHarness; harnessSource = "env"; }
+    else { harness = CURRENT_HARNESS; harnessSource = "default"; }
+  }
+
+  // model axis (§4 steps 4-6) — independent of the harness branch taken.
+  // NEVER falls back to models.<lane> (see the anti-pattern note above).
+  let model, modelSource;
+  if (engineCtx && engineCtx.model) {
+    model = String(engineCtx.model);
+    modelSource = "engine";
+  } else {
+    const configModel = cfgData ? dig(cfgData, "provenance.model") : undefined;
+    const declared = configModel || env.FAFF_HARNESS_MODEL;
+    if (declared) { model = String(declared); modelSource = "declared"; }
+    else { model = "unknown"; modelSource = "default"; }
+  }
+
+  const source = IDENTITY_SOURCE_RANK[modelSource] >= IDENTITY_SOURCE_RANK[harnessSource] ? modelSource : harnessSource;
+  return { harness, model, source };
+}
+
+// The CLI-facing wrapper: loads config (lazily — see the file-header note on
+// why sibling-module requires are lazy, not load-time) and never lets a
+// config-load fault (e.g. a malformed .faffrc) propagate — `faff harness
+// identify` cannot hard-fail (spec §4 Edge cases). `opts.loadConfig` is
+// injectable so the selftest can exercise the fault path with zero real I/O.
+function harnessIdentify(opts = {}) {
+  const root = opts.root || ".";
+  const env = opts.env || process.env;
+  const engineCtx = opts.engineCtx || null;
+  const loadConfigFn = opts.loadConfig || (() => {
+    const { loadConfig } = require("./config"); // lazy: avoids a load-time cycle with config.js -> backends.js -> harness.js
+    return loadConfig(root);
+  });
+  let cfgData = null;
+  try {
+    const [data] = loadConfigFn();
+    cfgData = data;
+  } catch {
+    cfgData = null; // fail-quiet: a broken config is not this resolver's problem to raise
+  }
+  return resolveHarnessIdentity({ env, cfgData, engineCtx });
+}
+
+// ===========================================================================
 // CLI
 // ===========================================================================
 const HARNESS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 },
 }, positionals: { min: 0, max: 1, name: "verb" } };
-const HARNESS_USAGE = "usage: faff harness <seams|check> [--json] [--root DIR]";
+const HARNESS_USAGE = "usage: faff harness <seams|check|identify> [--json] [--root DIR]";
 
 function cmdHarness(args, COMMANDS) {
   if (args.includes("--selftest")) return harnessSelftest();
@@ -616,6 +730,13 @@ function cmdHarness(args, COMMANDS) {
   const verb = positionals[0];
   const json = !!values["--json"];
   const root = values["--root"] || findRoot();
+
+  if (verb === "identify") {
+    const id = harnessIdentify({ root, env: process.env });
+    if (json) console.log(JSON.stringify(id));
+    else console.log(`${id.harness}/${id.model} (${id.source})`);
+    return 0; // always — identity always resolves; an unknown model is a value, not an error
+  }
 
   if (verb === "seams") {
     const view = seamsView();
@@ -905,6 +1026,104 @@ function harnessSelftest() {
   // 18. no child process spawned across the whole selftest's check runs.
   ok("harness check spawned zero child processes", spawnSpy.calls === 0);
 
+  // --- FAFF-703: resolveHarnessIdentity / harnessIdentify -------------------
+
+  // 19. bare env, no config, no engine ctx → the honest floor (spec §5 scenario 1).
+  {
+    const id = resolveHarnessIdentity({ env: {}, cfgData: null, engineCtx: null });
+    ok("identity: bare env → {claude-code, unknown, default}",
+      id.harness === CURRENT_HARNESS && id.model === "unknown" && id.source === "default");
+  }
+
+  // 20. engine-dispatch context resolves model, regardless of the harness axis
+  // (spec §5 scenario 2) — the stronger (engine) signal wins the reported source.
+  {
+    const id = resolveHarnessIdentity({ env: {}, cfgData: null, engineCtx: { model: "gpt-5.6-sol" } });
+    ok("identity: engine ctx → model resolved, source engine",
+      id.model === "gpt-5.6-sol" && id.source === "engine" && id.harness === CURRENT_HARNESS);
+  }
+
+  // 21. env signal detection: CODEX_HOME present, no config → harness codex/env.
+  {
+    const id = resolveHarnessIdentity({ env: { CODEX_HOME: "/x" }, cfgData: null, engineCtx: null });
+    ok("identity: CODEX_HOME env signal → harness codex, source env",
+      id.harness === "codex" && id.source === "env" && id.model === "unknown");
+  }
+
+  // 22. env signal detection: CLAUDE_CODE_SESSION_ID present → harness claude-code/env.
+  {
+    const id = resolveHarnessIdentity({ env: { CLAUDE_CODE_SESSION_ID: "s1" }, cfgData: null, engineCtx: null });
+    ok("identity: CLAUDE_CODE_SESSION_ID env signal → harness claude-code, source env",
+      id.harness === "claude-code" && id.source === "env");
+  }
+
+  // 23. declared model via env var FAFF_HARNESS_MODEL.
+  {
+    const id = resolveHarnessIdentity({ env: { FAFF_HARNESS_MODEL: "opus-4.8" }, cfgData: null, engineCtx: null });
+    ok("identity: FAFF_HARNESS_MODEL declaration → model resolved, source declared",
+      id.model === "opus-4.8" && id.source === "declared");
+  }
+
+  // 24. config provenance.harness / provenance.model — the strongest signal on
+  // each axis; config outranks every other source (spec §5 scenario 3 setup).
+  {
+    const id = resolveHarnessIdentity({ env: {}, cfgData: { provenance: { harness: "codex", model: "gpt-5.6-sol" } }, engineCtx: null });
+    ok("identity: config provenance.* → harness+model from config, source config",
+      id.harness === "codex" && id.model === "gpt-5.6-sol" && id.source === "config");
+  }
+
+  // 25. anti-pattern guard: a models.<lane> config value must NEVER leak into
+  // `model` — only provenance.model / FAFF_HARNESS_MODEL / an engine ctx do.
+  {
+    const id = resolveHarnessIdentity({ env: {}, cfgData: { models: { build: "opus" } }, engineCtx: null });
+    ok("identity: models.<lane> never leaks into model (stays unknown)", id.model === "unknown");
+  }
+
+  // 26. harness is never empty; model is unknown or a concrete id (the RECORD
+  // constraints from spec §3), across a spread of resolutions.
+  {
+    const cases = [
+      resolveHarnessIdentity({ env: {} }),
+      resolveHarnessIdentity({ env: { CODEX_HOME: "/x" } }),
+      resolveHarnessIdentity({ env: {}, engineCtx: { model: "m" } }),
+      resolveHarnessIdentity({ env: {}, cfgData: { provenance: { harness: "codex" } } }),
+    ];
+    ok("identity: harness never empty across resolutions", cases.every((c) => c.harness && c.harness.length > 0));
+    ok("identity: model is 'unknown' or a concrete id across resolutions", cases.every((c) => c.model === "unknown" || c.model.length > 0));
+    ok("identity: source is always one of the closed 5-value enum", cases.every((c) => IDENTITY_SOURCES.includes(c.source)));
+  }
+
+  // 27. harnessIdentify (the CLI-facing wrapper) fail-quiets a broken config
+  // loader — `faff harness identify` cannot hard-fail (spec §4 Edge cases).
+  {
+    const id = harnessIdentify({ env: {}, loadConfig: () => { throw new Error("broken .faffrc"); } });
+    ok("harnessIdentify: a throwing config loader still resolves (fail-quiet)",
+      id.harness === CURRENT_HARNESS && id.model === "unknown" && id.source === "default");
+  }
+
+  // 28. harnessIdentify with an injected clean config loader threads cfgData
+  // through to the same resolver (no divergent logic in the CLI wrapper).
+  {
+    const id = harnessIdentify({ env: {}, loadConfig: () => [{ provenance: { harness: "codex", model: "m1" } }] });
+    ok("harnessIdentify: threads loaded config through to the resolver",
+      id.harness === "codex" && id.model === "m1" && id.source === "config");
+  }
+
+  // 29. cmdHarness('identify') always exits 0 and, under --json, prints a
+  // JSON-parseable {harness, model, source} — the CLI surface from spec §3.
+  {
+    const origLog = console.log;
+    let printed = "";
+    console.log = (s) => { printed = s; };
+    let exit;
+    try { exit = cmdHarness(["identify", "--json"], {}); } finally { console.log = origLog; }
+    let parsed = null;
+    try { parsed = JSON.parse(printed); } catch { parsed = null; }
+    ok("cmdHarness identify --json: exits 0", exit === 0);
+    ok("cmdHarness identify --json: prints parseable {harness,model,source}",
+      parsed && typeof parsed.harness === "string" && typeof parsed.model === "string" && IDENTITY_SOURCES.includes(parsed.source));
+  }
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -913,4 +1132,5 @@ module.exports = {
   HARNESS_IDS, BINDING_KINDS, CURRENT_HARNESS, DISPOSITION_DOC, REGISTER, BOUNDED_CLAIM,
   validateRegister, harnessCheck, seamsView, cmdHarness, harnessSelftest,
   maskSource, spawnFamilyBindings, forwardingSpawnSites, classifyEnvValue, parseSeamTableRows,
+  IDENTITY_SOURCES, detectHarnessFromEnv, resolveHarnessIdentity, harnessIdentify,
 };

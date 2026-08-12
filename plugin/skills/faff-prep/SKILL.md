@@ -65,12 +65,23 @@ The **gateway Spec-readiness contract** defines the **provenance stamp** — its
 - `producer := faff config get slots.spec` (the CLI applies the registry default)
 - `date := today` (ISO `YYYY-MM-DD`)
 - `mode := autonomous` when running under the autonomous-mode signal (gateway → **Autonomous Mode Contract**), else `interactive`
+- `<harness>/<model> := faff harness identify --json` (FAFF-703) — the resolver's own `.harness` and `.model` fields, joined with `/`. `model` may render the literal `unknown`; the segment is written regardless (never omitted — omitting it would make the segment undetectable as positional).
 
-Resolve `producer` **via the `faff config get` CLI only** — never hand-read the rc file. Insert the blockquote line per the gateway format directly beneath the `# …` heading (no `adaptor:` field — dropped with the slot). The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date` and the currently-resolved `producer`.
+Resolve `producer` and the harness/model segment **via the `faff` CLI only** — never hand-read the rc file, never hand-derive harness/model from the environment. Insert the blockquote line per the gateway format directly beneath the `# …` heading (no `adaptor:` field — dropped with the slot). The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date`, the currently-resolved `producer`, and a freshly-resolved harness/model segment (identity can legitimately differ run to run — re-resolve it, don't carry the prior stamp's value forward).
+
+**Detection tolerance (FAFF-703).** `provenance_present` detection (below) anchors on the `> Spec:` prefix and does not require an exact trailing shape — inserting the `<harness>/<model>` segment between `<mode>` and `confidence:` must not break it. Detection fixture (illustrative — the shape any regex-detection pass must still match):
+
+```
+> Spec: faffter-noon-spec · 2026-08-11 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-703.
+```
+
+A regex/prefix check that only matched the pre-FAFF-703 shape (`<producer> · <date> · <mode> · confidence:`) would false-negative on the line above and misreport `provenance_present:false` — pushing a spurious `provenance stamp missing` violation and parking a spec that visibly carries a stamp. Anchor on `^> Spec:` and stop there; do not match the tail.
 
 **Git-only mode.** The stamp is written into `.faff/specs/<issue-id>.md` (where the spec body lives in tracker-less mode). When no tracker resolves, drop the stamp's trailing "Full spec on …" sentence per the gateway git-only rule.
 
 This runs on **all** attach paths: Scenario A fresh-spec (Step 2), Scenario B refresh/iterate, and both autonomous paths (Path 1 stale-refresh re-stamps with fresh date + current config; Path 2 fresh-spec stamps the just-produced spec).
+
+**Build-tier stamp (same attach sites, immediately after the provenance stamp above).** Run `faff tier <spec-file> [--gate-history N]` against the just-produced/refreshed spec text (`N` = the issue's prior park/needs-human count when prep already has it to hand, omitted otherwise) and write/refresh a retained `build-tier: mechanical|standard|complex` line adjacent to `confidence:`. This is a deterministic classification of the spec artifact by the CLI — never a producer self-rating. It runs **after** the confidence/spec-review gates have routed (a `low`-confidence spec parks before the tier line matters) and changes no gate outcome. On a refresh, recompute and **replace** the existing `build-tier:` line — never append a second one, exactly as the provenance stamp itself refreshes rather than duplicates.
 
 ### Attach-state marker (write at produce time — FAFF-178)
 
@@ -80,11 +91,13 @@ Same-turn attach is a **mechanical guarantee**, not prose discipline — it has 
 
   ```json
   { "issue": "FAFF-XX", "spec_produced": true, "attached": false, "mode": "tracker|git-only", "ts": "<ISO-8601>",
-    "owner": { "session_id": "<$FAFF_SESSION_ID>", "run_dir": "<$FAFF_RUN_DIR>", "pid": <process.pid> } }
+    "owner": { "session_id": "<$FAFF_SESSION_ID>", "run_dir": "<$FAFF_RUN_DIR>", "pid": <process.pid> },
+    "harness": "<id.harness>", "model": "<id.model>" }
   ```
 
   The write-before-render ordering is the pin: a render-and-pause leaves `attached:false` for the hook to catch. (Hard floor — written in **both** interactive and autonomous modes, regardless of `logging: essential`, since the hook must find it.)
   - **`owner` (FAFF-250)** lets `prepcheck --hook` tell its own markers from a parallel run's, exactly as the run-ledger owner stamp does for `runcheck`. Stamp `session_id` from `$FAFF_SESSION_ID` and `run_dir` from `$FAFF_RUN_DIR` (the autonomous path sets both; an interactive prep typically has `session_id` only and no `run_dir`), and `pid` from `process.pid` — **`pid` is recorded for forensics only, never consulted in the hook decision** (FAFF-233). Omit a field whose env var is unset rather than writing an empty string; an absent `owner` is tolerated as legacy/unowned (no migration). The `owner` is written **once** at produce time and never refreshed — liveness comes from the run ledger or the marker's file mtime, never a heartbeat field on the marker (which would re-import the FAFF-234 staleness confound).
+  - **`harness` / `model` (FAFF-703)** — the same `id := faff harness identify --json` resolution the provenance stamp reads (one resolver, not re-derived here). Additive on this schema-less marker: a marker written before FAFF-703 (or by a build with the resolver unavailable) simply lacks the fields and reads as legacy/unowned — `prepcheck` never depends on their presence.
 - **On a successful attach** — immediately after `save_comment` (tracker) or the `.faff/specs/<issue-id>.md` write (git-only) — flip the marker to `attached: true`.
 - **On a by-design park** (a `low`-confidence spec that is parked, not attached) — record `"disposition": "parked"` on the marker so `prepcheck` does not false-block a legitimate non-attach.
 
@@ -267,7 +280,7 @@ This is the L3 "offer + write-on-confirm" rung (the write deferred to graft); L4
 
 The next step offered here aligns with `faff next` (gateway → **Next-step transition**) on the freshly-attached spec's state — a `high` spec on a Todo issue returns `graft` (offer build), a retained `medium` returns `needs-human` (flag, don't offer auto-build). Consult it rather than re-deriving the mapping; the gate below stays the human decision (`faff next` reports, it never gates).
 
-Then the build gate — a separate yes/no, confidence-aware:
+Then the build gate — a separate yes/no, confidence-aware. This is a surviving OFFER gate at the prep→graft boundary (gateway → **Interactive next-step offer**) — a real decision, kept as-is:
 
 > **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-graft`? (y/n)"
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
@@ -303,7 +316,7 @@ If any challenge or resolution exists, the spec is **out of date** even if the c
 
 If Step 2a surfaced challenges or resolutions, the default action is **iterate** — the user shouldn't be offered `build` until the spec absorbs the thread. Context-only threads do not force iterate; the user can still pick `build` knowing the context.
 
-Then offer a three-way choice (not passive text):
+Then offer a three-way choice (not passive text) — a surviving OFFER gate, per gateway → **Interactive next-step offer**:
 
 > "What next? (iterate / build / park)"
 

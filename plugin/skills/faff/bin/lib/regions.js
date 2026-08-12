@@ -94,6 +94,7 @@ const REGION_MAP = {
   // into a QualityReport, touches no producer → factory (FAFF-418).
   "quality": "factory",
   "run-done": "factory",
+  "run-ledger": "factory",
   // run-outward — the signals.outward producer feeding run-start's outward floor. A
   // pure decision core over caller-supplied TargetRef/SelfRef, no extractable
   // flight-recorder layer → factory (same shape as run-start/contain).
@@ -186,6 +187,10 @@ const REGION_MAP = {
   "stage-guard": "factory",
   "lint-refs": "factory",
   "lint-cli-doc": "factory",
+  // lint-cli-coverage — FAFF-581: the registry-coverage gate (every COMMANDS entry is
+  // tested by a non-null selftest OR a declared test file). Sibling of lint-cli-doc,
+  // reads REGION_SELFTEST_ARGV — factory, same family.
+  "lint-cli-coverage": "factory",
   "regions": "factory",
   "cli-surface": "factory",
   // FAFF-350: merge-gate references factory identifiers (holdoutGateResult, decideFloor,
@@ -223,6 +228,14 @@ const REGION_MAP = {
   // than to review-iteration-cap's config-read shape) — factory, same family as the
   // other small deterministic CLI resolvers faff-prep/faff-graft shell out to.
   "spec-review-churn": "factory",
+  // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
+  // reference — same shape as spec-review-churn) — factory, same family as the other small
+  // deterministic CLI resolvers.
+  "tier": "factory",
+  // FAFF-417: effort (build-effort-by-tier resolution) references config.js's shared
+  // vocab/validation/config-load machinery (factory identifiers) — same family as
+  // models/eligible → factory. factory -> factory is a legal require edge (ADR-0042).
+  "effort": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -264,6 +277,7 @@ const REGION_SELFTEST_ARGV = {
   "disposition": ["disposition", "--selftest"],
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
+  "run-ledger": ["run-ledger", "--selftest"],
   "run-outward": ["run-outward", "--selftest"],
   "run-start": ["run-start", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
@@ -314,6 +328,7 @@ const REGION_SELFTEST_ARGV = {
   "stage-guard": ["stage-guard", "--selftest"],
   "lint-refs": ["lint-refs", "--selftest"],
   "lint-cli-doc": ["lint-cli-doc", "--selftest"],
+  "lint-cli-coverage": ["lint-cli-coverage", "--selftest"],
   "regions": ["regions", "--selftest"],
   "cli-surface": ["cli-surface", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],
@@ -326,6 +341,8 @@ const REGION_SELFTEST_ARGV = {
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
   "backends": ["backends", "--selftest"],
   "spec-review-churn": ["spec-review-churn", "--selftest"],
+  "tier": ["tier", "--selftest"],
+  "effort": ["effort", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

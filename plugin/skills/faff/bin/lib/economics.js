@@ -391,6 +391,16 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
   let rows = [];
   let pricedAtModel = null;
 
+  // FAFF-640: engineFolded is now computed for EVERY axis (the axis === "model"
+  // gate is dropped) — class and day must reconcile against the same combined
+  // population the top line and the model axis already do. `engineByModel` is
+  // shared by the class/model folds below; `engineSpend.by_day` (FAFF-640,
+  // additive on the reader) is read directly by the day fold.
+  const engineByModel = engineSpend && engineSpend.by_model instanceof Map ? engineSpend.by_model : null;
+  const engineFolded = engineByModel
+    ? [...engineByModel.values()].reduce((s, c) => s + c.input + c.output + c.cache_write + c.cache_read, 0)
+    : 0;
+
   if (axis === "class") {
     // one row per class, fixed order; priced at the run's dominant model, named.
     // "unknown" (no model field on any record) is not a pricing basis — surface it
@@ -398,9 +408,40 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
     pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
     const price = pricedAtModel ? economicsPriceForModel(pricedAtModel, priceMap) : null;
     rows = TOKEN_DELTA_CLASSES.map((cls) => {
-      const one = { input: 0, output: 0, cache_write: 0, cache_read: 0, total: byClass[cls] };
-      one[cls] = byClass[cls];
-      return { key: cls, ...one, cost: price ? (byClass[cls] / 1e6) * price[cls] : null };
+      const transcriptCount = byClass[cls];
+      const transcriptCost = price ? (transcriptCount / 1e6) * price[cls] : null;
+      let total = transcriptCount;
+      let cost = transcriptCost;
+      if (engineFolded > 0) {
+        // FAFF-640: never price one engine's tokens at another engine's (or the
+        // transcript's dominant model's) rate — sum the engine half PER ITS OWN
+        // model, priced independently, then add to the transcript half. `cost`
+        // becomes null (never a confident understatement) when either half
+        // carries tokens it cannot price.
+        let engineCount = 0, engineCost = 0, engineUnpriced = false;
+        if (engineByModel) {
+          for (const [model, counts] of engineByModel) {
+            const v = counts[cls] || 0;
+            engineCount += v;
+            if (v > 0) {
+              const enginePrice = economicsPriceForModel(model, priceMap);
+              if (enginePrice) engineCost += (v / 1e6) * enginePrice[cls];
+              else engineUnpriced = true;
+            }
+          }
+        }
+        total = transcriptCount + engineCount;
+        cost = (transcriptCost == null || engineUnpriced) ? null : transcriptCost + engineCost;
+      }
+      const one = { input: 0, output: 0, cache_write: 0, cache_read: 0, total };
+      one[cls] = total;
+      const row = { key: cls, ...one, cost };
+      // FAFF-640 (spec revision): a folded class row is genuinely an aggregate of
+      // both censuses, so it carries the same per-row vocabulary the model axis
+      // uses. A transcript-only run (engineFolded === 0) carries no `source` key
+      // at all — the byte-identical guarantee.
+      if (engineFolded > 0) row.source = "transcript+engine-spend";
+      return row;
     });
   } else if (axis === "model") {
     // FAFF-604: on a MIXED-fleet run every model row names where its tokens were
@@ -408,8 +449,8 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
     // belonged to. On a transcript-only run the field is omitted entirely — the
     // byte-identical guarantee is about exactly this: an unchanged run must emit
     // unchanged JSON, down to the absent key.
-    const engineRows = engineSpend && engineSpend.by_model instanceof Map && engineSpend.by_model.size > 0
-      ? [...engineSpend.by_model.entries()].map(([model, counts]) => {
+    const engineRows = engineByModel && engineByModel.size > 0
+      ? [...engineByModel.entries()].map(([model, counts]) => {
         const b = { ...counts, total: counts.input + counts.output + counts.cache_write + counts.cache_read };
         return { ...mkRow(model, b, model), source: "exec-json-events" };
       })
@@ -419,6 +460,28 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
       : mkRow(model, b, model)));
     rows = rows.concat(engineRows).sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
   } else if (axis === "day") {
+    // FAFF-640: merge the engine half's by_day (day -> model -> counts, additive
+    // on readEngineSpend) into the transcript-built byDay BEFORE rendering rows,
+    // so the existing per-model pricing loop below prices each engine row at its
+    // own model with no new pricing code — same anti-cross-engine-pricing
+    // guarantee as the class axis, for free. A day present only in engine spend
+    // creates its own row here. `byDay` is local to this call, so mutating it in
+    // place is contained to this axis branch.
+    if (engineFolded > 0 && engineSpend && engineSpend.by_day instanceof Map) {
+      for (const [day, dm] of engineSpend.by_day) {
+        if (!byDay.has(day)) byDay.set(day, new Map());
+        const targetDm = byDay.get(day);
+        for (const [model, counts] of dm) {
+          if (!targetDm.has(model)) targetDm.set(model, mkc());
+          const tb = targetDm.get(model);
+          for (const cls of TOKEN_DELTA_CLASSES) {
+            const v = counts[cls] || 0;
+            tb[cls] += v;
+            tb.total += v;
+          }
+        }
+      }
+    }
     rows = [...byDay.entries()].map(([day, dm]) => {
       const agg = mkc();
       let cost = 0, anyPriced = false;
@@ -428,18 +491,18 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
         const c = economicsRowCost(b, model, priceMap);
         if (c != null) { cost += c; anyPriced = true; }
       }
-      return { key: day, input: agg.input, output: agg.output, cache_write: agg.cache_write, cache_read: agg.cache_read, total: agg.total, cost: anyPriced ? cost : null };
+      const row = { key: day, input: agg.input, output: agg.output, cache_write: agg.cache_write, cache_read: agg.cache_read, total: agg.total, cost: anyPriced ? cost : null };
+      // FAFF-640 (spec revision): same per-row source stamp as the class axis —
+      // every emitted day row is an aggregate once the run has any engine spend.
+      if (engineFolded > 0) row.source = "transcript+engine-spend";
+      return row;
     }).sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   }
 
   const grand = rows.reduce((s, r) => s + r.total, 0);
-  // FAFF-604: the model axis is the one axis that folds in engine spend, so its
-  // reconciliation target must include that half too — otherwise a mixed-fleet
-  // breakdown would report `reconciles: false` for a census that is in fact
-  // complete. The class/day axes stay transcript-only and reconcile unchanged.
-  const engineFolded = axis === "model" && engineSpend && engineSpend.by_model instanceof Map
-    ? [...engineSpend.by_model.values()].reduce((s, c) => s + c.input + c.output + c.cache_write + c.cache_read, 0)
-    : 0;
+  // FAFF-604/FAFF-640: every axis' reconciliation target now includes the engine
+  // half (the axis === "model" gate is gone) — an axis that reconciles against
+  // the top line must measure the same population the top line does.
   const target = (typeof topLineTotal === "number") ? topLineTotal + engineFolded : null;
   const reconciliation = {
     grand_total: grand,
@@ -936,7 +999,13 @@ function renderEconomicsBreakdown(bd) {
     return lines.join("\n");
   }
   const rc = bd.reconciliation;
-  const at = bd.axis === "class" && bd.priced_at_model ? `  (priced at ${bd.priced_at_model})` : "";
+  // FAFF-640: on a mixed-fleet class breakdown, `priced_at_model` still names only
+  // the transcript half's dominant model (unchanged meaning) — so the header notes
+  // that the engine half is priced separately, per its own model, rather than let
+  // the single model name imply it covers the whole row.
+  const engineNote = bd.axis === "class" && bd.source === "transcript+engine-spend"
+    ? ` · engine spend priced per engine model` : "";
+  const at = bd.axis === "class" && bd.priced_at_model ? `  (priced at ${bd.priced_at_model}${engineNote})` : "";
   lines.push(`# economics --by ${bd.axis}${at}`);
   // FAFF-641 (spec-review objection 2): the basis sentence and the abbreviation
   // legend are gated INDEPENDENTLY, by their own predicates — the basis sentence

@@ -57,6 +57,10 @@ const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock } = require("./heartbeat");
 const { withFileLock } = require("./fs-lock");
+// FAFF-107: exact known-secret redaction at the durable-write boundary — governance→
+// governance edge (redact.js requires only budget.js + shared-infra), legal under
+// ADR-0042. See appendEventRecord below for the wiring.
+const { resolveKnownSecretValues, redactKnownSecrets, redactSelftest } = require("./redact");
 const { findRoot, resolveRunDir } = require("./shared-infra");
 
 // FAFF-362: EVENT_PHASES / EVENT_TYPES / EVENT_ISSUE_SCOPED / EVENT_LEDGER_OUTCOMES
@@ -458,11 +462,25 @@ function seqFinding(prevSeq, seq) {
 // they gain only the possibility of a thrown EVENTS_LOCKED under lock-budget exhaustion,
 // which each surfaces per its own loudness contract. FAFF-564: stamps the schema-2
 // chained envelope — `prev` comes from the core, never computed here.
+// FAFF-107: redact known secret values out of the caller-controlled payload
+// BEFORE the record is constructed/serialized — the by-construction guarantee
+// every event writer (this core's sole entry point) inherits without having
+// to remember it. Scoped to nested `data` string leaves only: structural
+// `phase`/`type`/`issue` (caller-supplied) and the CLI-minted envelope
+// (`schema`/`run_id`/`seq`/`ts`/`prev`) are never passed through the
+// redactor, so a known secret that happens to collide with a protocol token
+// (e.g. equal to "run-start") can never corrupt the event schema or the
+// chain hash. `resolveKnownSecretValues()` resolves fresh each call — a
+// malformed base config fails loud (never silently caught here), matching
+// the existing governance config-read contract (readGovernanceConfig).
 function appendEventRecord(dir, run, payload, ts) {
+  const redactedData = payload.data !== undefined
+    ? redactKnownSecrets(payload.data, resolveKnownSecretValues())
+    : undefined;
   return appendRecordUnderLock(dir, (seq, _prevRecord, prevHash) => {
     const record = { schema: 2, run_id: run, seq, ts: ts || new Date().toISOString(), prev: prevHash, phase: payload.phase, type: payload.type };
     if (payload.issue !== undefined) record.issue = payload.issue;
-    if (payload.data !== undefined) record.data = payload.data;
+    if (redactedData !== undefined) record.data = redactedData;
     return record;
   });
 }
@@ -1414,6 +1432,12 @@ function eventsSelftest() {
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(dest, { recursive: true, force: true }); }
     }
   }
+
+  // FAFF-107: redact.js's pure-core assertions (collectKnownSecretValues /
+  // redactKnownSecrets) — appendEventRecord above is this module's sole
+  // consumer, so its selftest rides along here rather than opening a second
+  // `--selftest` surface for a module with no CLI verb of its own.
+  if (redactSelftest() !== 0) failed++;
 
   if (failed) return 1;
   console.log("events --selftest: ok");

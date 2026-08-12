@@ -13,6 +13,16 @@ Most subcommands accept `--selftest` for their in-memory checks and `--json` for
 structured output. Pure commands make no tracker or network calls; the caller
 maps live state into their flags.
 
+**Durable-write redaction.** The two code-owned durable-write cores —
+`events append`'s record construction and every `run-ledger.json` write — replace
+exact occurrences of a narrow, allowlisted set of known secret values (configured
+`api_key_env`/`seat_token_env` handles resolved through the live environment, and
+the direct `andon.url`/`andon.token` fields; values under 8 characters are never
+targeted) with the fixed placeholder `[REDACTED]` before the bytes are serialized
+and hashed. This is exact-known-value redaction only — no token-shape regexes, no
+PII detection, no configurable pattern set, and no opt-out; it protects only the
+values SuperDomestique's own resolved config can name, not arbitrary secrets.
+
 ## Config & install health
 
 | Subcommand | What it does |

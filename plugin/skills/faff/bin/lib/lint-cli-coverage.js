@@ -61,6 +61,24 @@ function diffCoverage(commandKeys, argvMap, testFileCoverage) {
   return { uncovered, orphaned };
 }
 
+// Escape regex metacharacters. Command tokens are `[a-z-]` today, so this is
+// defensive only — but the matcher below interpolates `cmd` into a RegExp, so it
+// must never let a token metacharacter change the pattern's meaning.
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// True iff `cmd` appears in `fileText` as a quoted token in an argv/call position:
+// a quoted token exactly equal to `cmd` (same opening/closing quote, matched via a
+// backreference), immediately preceded — ignoring whitespace — by `[`, `(`, or `,`
+// (an element of a call/array argument list). STRUCTURAL, NOT a naive substring
+// (FAFF-581 §3): an incidental mention in a comment or in unrelated prose is not in
+// argv position, and a longer token merely CONTAINING `cmd` fails the closing-quote
+// backref, so neither reads as coverage. Pure, filesystem-free, deterministic — the
+// unit under selftest. Single `[a-z-]` token today; a future multi-word command
+// would need the matcher extended to the token sequence (see OUT OF SCOPE).
+function exercisesCommand(fileText, cmd) {
+  return new RegExp("[\\[(,]\\s*(['\"])" + escapeRegex(cmd) + "\\1").test(fileText);
+}
+
 function cmdLintCliCoverage(args, COMMANDS) {
   if (args.includes("--selftest")) return lintCliCoverageSelftest();
   const { values, errors } = parseArgs(args, LINT_CLI_COVERAGE_SPEC);
@@ -73,28 +91,47 @@ function cmdLintCliCoverage(args, COMMANDS) {
 
   // Belt-and-braces: a declared test file that no longer exists is a stale
   // declaration — fail closed so the list can't rot. Skipped (never a hard tooling
-  // failure) if the root/file can't be resolved.
+  // failure) if the root/file can't be resolved. And (FAFF-771) a file that exists
+  // but no longer INVOKES its command is an equally-stale, silently-passing lie —
+  // read it and assert argv-position exercise. A read error on an existing file is
+  // a hard tooling failure (exit 2), NOT a silent pass — fail-closed, mirroring the
+  // sibling lint-cli-doc (deliberately NOT the existence check's fail-open catch).
   const missingFiles = [];
+  const notExercised = [];
   for (const [cmd, rel] of Object.entries(TEST_FILE_COVERAGE)) {
+    const full = path.join(root, rel);
     let exists = true;
-    try { exists = fs.existsSync(path.join(root, rel)); } catch { exists = true; }
-    if (!exists) missingFiles.push(`${cmd} → ${rel}`);
+    try { exists = fs.existsSync(full); } catch { exists = true; }
+    if (!exists) { missingFiles.push(`${cmd} → ${rel}`); continue; }
+    let text;
+    try {
+      text = fs.readFileSync(full, "utf8");
+    } catch (readError) {
+      if (json) console.log(JSON.stringify({ ok: false, error: `cannot read ${rel}: ${readError.code || readError.message}` }));
+      else process.stderr.write(`faff lint-cli-coverage: cannot read ${full}: ${readError.message}\n`);
+      return 2;
+    }
+    if (!exercisesCommand(text, cmd)) notExercised.push(`${cmd} → ${rel}`);
   }
 
-  const ok = uncovered.length === 0 && orphaned.length === 0 && missingFiles.length === 0;
+  const ok = uncovered.length === 0 && orphaned.length === 0 && missingFiles.length === 0 && notExercised.length === 0;
 
   if (json) {
-    console.log(JSON.stringify({ ok, commands: commandKeys.length, uncovered, orphaned, missingFiles }));
+    console.log(JSON.stringify({ ok, commands: commandKeys.length, uncovered, orphaned, missingFiles, notExercised }));
     return ok ? 0 : 1;
   }
   if (ok) {
-    console.log(`PASS  lint-cli-coverage: ${commandKeys.length} subcommands, every one selftest- or test-file-covered`);
+    console.log(`PASS  lint-cli-coverage: ${commandKeys.length} subcommands, every one selftest- or exercised-test-file-covered`);
     return 0;
   }
   for (const u of uncovered) console.log(`FAIL  ✗ uncovered: ${u} (no non-null selftest and no TEST_FILE_COVERAGE declaration)`);
   for (const o of orphaned) console.log(`FAIL  ✗ orphaned: ${o} (in TEST_FILE_COVERAGE but not a COMMANDS entry)`);
   for (const m of missingFiles) console.log(`FAIL  ✗ stale test-file declaration: ${m} (file not found)`);
-  process.stderr.write(`faff lint-cli-coverage: ${uncovered.length} uncovered, ${orphaned.length} orphaned, ${missingFiles.length} stale — every COMMANDS entry needs a selftest or a declared test file\n`);
+  for (const n of notExercised) {
+    const cmd = n.split(" → ")[0];
+    console.log(`FAIL  ✗ stale coverage: ${n} (file exists but does not invoke \`${cmd}\` as a subcommand)`);
+  }
+  process.stderr.write(`faff lint-cli-coverage: ${uncovered.length} uncovered, ${orphaned.length} orphaned, ${missingFiles.length} stale, ${notExercised.length} not-exercised — every COMMANDS entry needs a selftest or a declared, exercising test file\n`);
   return 1;
 }
 
@@ -137,9 +174,23 @@ function lintCliCoverageSelftest() {
   const both = diffCoverage(["alpha", "beta"], argv, { "beta": "test/beta.test.mjs", "alpha": "test/alpha.test.mjs" });
   check("belt-and-braces declaration is not an error", both.uncovered.length + both.orphaned.length, 0);
 
+  // exercisesCommand: the five verified real call shapes all match (a quoted token
+  // in argv position — array-first, array-later, and bare call-arg forms).
+  check("exercises sync (array-first)", exercisesCommand('run(["sync", "--dry-run"])', "sync") ? 1 : 0, 1);
+  check("exercises validate-adapters (array-later)", exercisesCommand('spawnSync(p, [BIN, "validate-adapters", x])', "validate-adapters") ? 1 : 0, 1);
+  check("exercises labels (runCli array)", exercisesCommand('runCli(["labels"])', "labels") ? 1 : 0, 1);
+  check("exercises state (array element)", exercisesCommand('runCli(["state", "--json"])', "state") ? 1 : 0, 1);
+  check("exercises doctor (bare call arg)", exercisesCommand('run("doctor", "--target", t)', "doctor") ? 1 : 0, 1);
+  // FP guards (mirror lint-cli-doc's): a substring token, and prose/comment mentions,
+  // do NOT read as coverage — the anchor + closing-quote backref reject them.
+  check("substring token not exercised (closing-quote anchor)", exercisesCommand('run(["stateful"])', "state") ? 1 : 0, 0);
+  check("substring token not exercised (sync-status)", exercisesCommand('run(["sync-status"])', "sync") ? 1 : 0, 0);
+  check("comment mention not exercised", exercisesCommand("// exercises the sync command", "sync") ? 1 : 0, 0);
+  check("prose-in-string mention not exercised", exercisesCommand('const notes = "we run doctor nightly";', "doctor") ? 1 : 0, 0);
+
   if (failed) return 1;
   console.log("lint-cli-coverage --selftest: ok");
   return 0;
 }
 
-module.exports = { TEST_FILE_COVERAGE, cmdLintCliCoverage, diffCoverage, hasSelftest, lintCliCoverageSelftest };
+module.exports = { TEST_FILE_COVERAGE, cmdLintCliCoverage, diffCoverage, hasSelftest, exercisesCommand, lintCliCoverageSelftest };

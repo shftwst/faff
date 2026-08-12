@@ -219,14 +219,14 @@ The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SH
 
 ### Humanisation rule
 
-The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-0008", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
+The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-N", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
 
 **Banned in user-facing output:**
 
 | Banned form | Why | Use instead |
 |---|---|---|
 | "principle 6", "principle 4", "principle N" | Reader doesn't have the methodology spec open; the number is a private convention | Say what the principle is *about* in the sentence — "the spec references work that isn't ticketed" not "this violates principle 6" |
-| "ADR-0008", "ADR-N" | ADR ID is a stable identifier for traceability but can't replace explanation | Say what the ADR decides — "the audit pipeline ADR's wave-1 sign-off" not "ADR-0008" |
+| "ADR-N" | ADR ID is a stable identifier for traceability but can't replace explanation | Say what the ADR decides — "the audit pipeline ADR's wave-1 sign-off" not "ADR-N" |
 | "trigger 4", "criterion 3", "gate 2" | Numbered conditions inside a document the reader hasn't opened | Say what the condition tests — "a real end-to-end run on a real subject" not "trigger 4" |
 | "PRs 3-N", "PR A..E", "step 5 of M" | Schematic counting where the reader can't tell what each PR does | Name each piece by what it ships — "the consumer wire-up PR, three per-stage lift PRs, and the default-flip PR" not "PRs 3-N" |
 | "SHF-307a..e", "SHF-XX/YY/ZZ" used as live IDs | Made-up IDs that don't exist; reader can't click through | Either use real IDs once they exist, or describe the work — "five sub-tickets, one per remaining piece" not "SHF-307a..e" |

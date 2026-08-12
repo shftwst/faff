@@ -7,9 +7,9 @@ judgement_seam: adr-gloss
 
 # faffter-noon-adr
 
-The default producer for the **`adr` slot**. Given a *settled* (already-`Chosen`) decision, it authors the **Nygard ADR body** — `## Context` / `## Decision` / `## Consequences` — that faff-graft drops into the `faff adr new` scaffold and commits on the feature branch (FAFF-16's mechanics own the scaffold, numbering, and validate; this producer owns only the prose).
+The default producer for the **`adr` slot**. Given a *settled* (already-`Chosen`) decision, it authors the **Nygard ADR body** — `## Context` / `## Decision` / `## Consequences` — that faff-graft drops into the `faff adr new` scaffold and commits on the feature branch (the `faff adr new` mechanics own the scaffold, numbering, and validate; this producer owns only the prose).
 
-It is the judgement layer over FAFF-16's deterministic ADR machinery, and the **single ADR-authoring producer**: FAFF-27 (generative architecture proposal) *decides* architecture and feeds settled decisions into this same slot rather than carrying its own writer.
+It is the judgement layer over the `faff adr new` deterministic ADR machinery, and the **single ADR-authoring producer**: the generative architecture proposer *decides* architecture and feeds settled decisions into this same slot rather than carrying its own writer.
 
 This is a producer doing-skill, invoked as a configured slot — not a user `/` command. Swap it (`slots.adr`) to change how ADR bodies are authored.
 

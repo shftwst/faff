@@ -169,6 +169,26 @@ function cmdSentrycheck(args) {
   }
   if (outcome.kind === "ok") return 0; // sentry authoritative: tripped:false → silent
   process.stderr.write(trippedNotice(runId, runDir, outcome.payload)); // tripped
+  // FAFF-472: page andon for a genuine trip observed from a foreign session's
+  // turn-end. `andon send` (never pump/event-append) — this locus must NOT write
+  // the foreign run's events.jsonl or andon-state.json (non-owner-never-writes,
+  // FAFF-235/ADR-0065). Best-effort, fail-open; never affects this hook's
+  // always-exit-0 contract.
+  try {
+    const payload = outcome.payload || {};
+    const signals = Array.isArray(payload.verdicts) && payload.verdicts.length
+      ? payload.verdicts.map((v) => v.signal).join(", ")
+      : "unknown";
+    // --root explicit, derived from runDir (not the hook's inherited cwd) — the
+    // same reasoning as the poller's andon pump call (sentry-poller.js FAFF-472).
+    spawnSync(process.execPath, [ENTRYPOINT, "andon", "send",
+      "--class", "sentry-trip",
+      "--title", `faff ${runId}: sentry tripped (${payload.intervention})`,
+      "--body", `signals: ${signals} — run looks abandoned (heartbeat stale)`,
+      "--run-dir", runDir,
+      "--root", findRoot(runDir),
+    ], { encoding: "utf8" });
+  } catch { /* best-effort — fail-open telemetry, never affects the hook's exit-0 contract */ }
   return 0;
 }
 

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-417",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9316a15dba511ab37130f1bcc754451985e434cbad5cfcf9cfeb0e0eff69b85e",
+    "branch": "faff-417-prep-emits-a-generic-build-tier-bucket",
+    "pushed_at": "2026-08-12T01:40:53.917Z"
+  },
+  "updated_at": "2026-08-12T01:40:53.917Z"
+}

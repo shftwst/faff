@@ -81,6 +81,8 @@ A regex/prefix check that only matched the pre-FAFF-703 shape (`<producer> · <d
 
 This runs on **all** attach paths: Scenario A fresh-spec (Step 2), Scenario B refresh/iterate, and both autonomous paths (Path 1 stale-refresh re-stamps with fresh date + current config; Path 2 fresh-spec stamps the just-produced spec).
 
+**Build-tier stamp (same attach sites, immediately after the provenance stamp above).** Run `faff tier <spec-file> [--gate-history N]` against the just-produced/refreshed spec text (`N` = the issue's prior park/needs-human count when prep already has it to hand, omitted otherwise) and write/refresh a retained `build-tier: mechanical|standard|complex` line adjacent to `confidence:`. This is a deterministic classification of the spec artifact by the CLI — never a producer self-rating. It runs **after** the confidence/spec-review gates have routed (a `low`-confidence spec parks before the tier line matters) and changes no gate outcome. On a refresh, recompute and **replace** the existing `build-tier:` line — never append a second one, exactly as the provenance stamp itself refreshes rather than duplicates.
+
 ### Attach-state marker (write at produce time — FAFF-178)
 
 Same-turn attach is a **mechanical guarantee**, not prose discipline — it has silently failed twice (a spec rendered to the user, the turn felt done, and the ticket stayed Backlog with no spec). The guard is `faff prepcheck`, the Stop-hook sibling of `runcheck`: it reads an externalised attach-state marker prep writes and **blocks session-end on any produced-but-not-attached spec**. prep's only job is to keep that marker honest:

@@ -11,7 +11,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const MODELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 2, name: "verb confidence" } };
+// FAFF-417: --tier/--confidence are the flag-form of the (still byte-for-byte) bare
+// positional confidence — `faff models build-for <confidence>` keeps working unchanged.
+const MODELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--tier": { arity: 1 }, "--confidence": { arity: 1 } }, positionals: { min: 0, max: 2, name: "verb confidence" } };
 // Union across every `config` sub-verb (path|get|set|check|init and the docs-path resolvers). The gate
 // rejects unknown flags / missing values; each sub-verb's own body reads the validated flags below.
 const CONFIG_SPEC = { flags: {
@@ -215,7 +217,10 @@ function validateModelLane(key, value) {
   // FAFF-334: the per-issue build-model matcher leaves (`models.build_by_confidence.<leaf>`) reuse
   // the build lane's closed Agent-token set, so an invalid token in the matcher fails loud at
   // `config get` read time too — never a silent inherit at the per-issue dispatch site.
+  // FAFF-417: `models.build_by_tier.<leaf>` reuses the identical closed set — the tier matcher
+  // is the same build lane, just keyed differently.
   if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
+  if (!vocab && /^models\.build_by_tier\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
   if (!vocab || vocab.includes(value)) return null;
   return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
 }
@@ -408,7 +413,12 @@ const EFFORT_LANE_VOCAB = {
   "effort.intake": ["inherit", "low", "medium", "high", "xhigh", "max"],
 };
 function validateEffortLane(key, value) {
-  const vocab = EFFORT_LANE_VOCAB[key];
+  let vocab = EFFORT_LANE_VOCAB[key];
+  // FAFF-417: the per-issue build-effort matcher leaves (`effort.build_by_tier.<leaf>`) reuse
+  // the build lane's closed effort vocabulary, so an invalid token in the matcher fails loud
+  // at read too — never a silent inherit at the per-issue dispatch site. Mirrors
+  // validateModelLane's identical `models.build_by_confidence.` extension above.
+  if (!vocab && /^effort\.build_by_tier\./.test(key)) vocab = EFFORT_LANE_VOCAB["effort.build"];
   if (vocab) return vocab.includes(value) ? null : `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
   // FAFF-416: the prep/spec + eval EXCLUSION is enforced by FAIL-LOUD, not silent tolerance —
   // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture /
@@ -1897,6 +1907,10 @@ function cmdConfig(args) {
           // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
           validateModelLane("models.build_by_confidence.high", "sonnet") ||
           (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
+          // FAFF-417: the tier-keyed matcher leaves reuse the identical build vocab — same
+          // accept/reject smoke check as the confidence matcher leaves above.
+          validateModelLane("models.build_by_tier.mechanical", "sonnet") ||
+          (validateModelLane("models.build_by_tier.mechanical", "gpt-5") ? null : "tier matcher leaf failed to reject an invalid token") ||
           // FAFF-416: the effort-lane vocab must accept every effort lane's default (inherit) + a
           // real effort level, and reject an off-vocabulary token (the fail-loud path is load-bearing).
           validateEffortLane("effort.build", DEFAULTS["effort.build"]) ||
@@ -1904,6 +1918,10 @@ function cmdConfig(args) {
           validateEffortLane("effort.intake", "max") ||
           (validateEffortLane("effort.build", "sonnet") ? null : "effort lane vocab failed to reject a model token") ||
           (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token") ||
+          // FAFF-417: the effort tier-keyed matcher leaves reuse the effort.build vocab — same
+          // accept/reject smoke check as the scalar effort lanes above.
+          validateEffortLane("effort.build_by_tier.mechanical", "low") ||
+          (validateEffortLane("effort.build_by_tier.mechanical", "ultra") ? null : "effort tier matcher leaf failed to reject an invalid token") ||
           // FAFF-422: engine values are legal on exactly the pure-data-in allowlist — the two
           // allowlisted lanes accept the SHAPE, every other models.* key (incl. the open-vocabulary
           // eval lane and the matcher leaves) rejects it naming the allowlist.
@@ -2009,12 +2027,27 @@ function cmdConfig(args) {
         const v = byConf[conf];
         if (v !== null && v !== undefined && v !== "") console.log(`model build_by_confidence.${conf}: ${v}`);
       }
+      // FAFF-417: surface the per-issue build-model TIER matcher when set — same FAFF-50 intent
+      // as the confidence matcher above. Every tier builds (routing-only, no park/promote gate),
+      // so — unlike the confidence matcher's `low`-leaf suppression — ALL configured leaves echo.
+      const byTier = (models.build_by_tier && typeof models.build_by_tier === "object" && !Array.isArray(models.build_by_tier)) ? models.build_by_tier : {};
+      for (const t of ["default", "mechanical", "standard", "complex"]) {
+        const v = byTier[t];
+        if (v !== null && v !== undefined && v !== "") console.log(`model build_by_tier.${t}: ${v}`);
+      }
       // FAFF-416: surface non-default per-lane effort in the run banner — a pinned effort must be
       // visible, not silent (the same FAFF-50 intent as the slot + model echoes above).
       const effort = (data.effort && typeof data.effort === "object" && !Array.isArray(data.effort)) ? data.effort : {};
       for (const lane of ["build", "methodology", "intake"]) {
         const v = effort[lane];
         if (v !== null && v !== undefined && v !== "") console.log(`effort ${lane}: ${v}`);
+      }
+      // FAFF-417: surface the per-issue build-EFFORT tier matcher when set — mirrors the
+      // model tier-matcher echo above; all tiers route, so no inert-leaf suppression.
+      const effortByTier = (effort.build_by_tier && typeof effort.build_by_tier === "object" && !Array.isArray(effort.build_by_tier)) ? effort.build_by_tier : {};
+      for (const t of ["default", "mechanical", "standard", "complex"]) {
+        const v = effortByTier[t];
+        if (v !== null && v !== undefined && v !== "") console.log(`effort build_by_tier.${t}: ${v}`);
       }
       return 0;
     }
@@ -2094,21 +2127,74 @@ function resolveBuildModel(cfg, conf) {
   return { token };
 }
 
-// `faff models build-for <confidence>` — print the per-issue build model token (or "inherit", which
-// the caller maps to "omit the Agent-tool model param"). Pure; exit 0 token / 2 usage or invalid token.
+// FAFF-417: layers `models.build_by_tier` AHEAD of resolveBuildModel's FAFF-334
+// confidence/scalar chain — never subsumes it. Fallback, first hit wins:
+//   models.build_by_tier.<tier> -> .default -> null (fall through to the caller's
+//   confidence/scalar chain, NOT to "inherit" directly)
+// Tier ABSENT => skip the tier matcher entirely — never guess a tier. Matcher NOT
+// configured at all => null immediately, same fall-through. Every configured leaf
+// validates up-front (mirrors resolveBuildModel) regardless of whether `tierVal`
+// resolves — an invalid token anywhere in the matcher fails loud at first resolution.
+function resolveBuildModelForTier(cfg, tierVal) {
+  const byTier = dig(cfg, "models.build_by_tier");
+  const rawMap = (byTier && typeof byTier === "object" && !Array.isArray(byTier)) ? byTier : null;
+  if (!rawMap) return null; // not configured — caller falls through to confidence/scalar
+  const map = {};
+  for (const k of Object.keys(rawMap)) {
+    const v = rawMap[k];
+    if (v !== null && v !== undefined && v !== "") map[String(k).trim().toLowerCase()] = String(v).trim();
+  }
+  for (const k of Object.keys(map)) {
+    if (validateModelLane("models.build_by_tier." + k, map[k])) {
+      return { error: `faff models build-for: invalid model token "${map[k]}" in models.build_by_tier.${k} — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+    }
+  }
+  if (tierVal == null) return null; // tier absent — skip the tier matcher, never guess
+  const pick = (k) => (k != null && Object.prototype.hasOwnProperty.call(map, k)) ? map[k] : null;
+  const key = String(tierVal).trim().toLowerCase();
+  const token = pick(key) ?? pick("default");
+  if (token == null) return null; // no matching leaf — fall through to confidence/scalar
+  if (validateModelLane("models.build", token)) {
+    return { error: `faff models build-for: resolved token "${token}" is not a legal build model — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+  }
+  return { token };
+}
+
+// FAFF-417 spec §4 PROCEDURE resolve build model (tier?, conf?):
+//   1. IF models.build_by_tier configured AND tier present: build_by_tier.<tier> -> .default -> fall through
+//   2. IF models.build_by_confidence configured AND conf present: FAFF-334 chain verbatim (resolveBuildModel)
+//   3. models.build (scalar) -> "inherit"           [handled inside resolveBuildModel]
+// The tier matcher — the better-informed key, since it already folds confidence in as a
+// prior — outranks the confidence matcher whenever both are configured and a tier is
+// present. With no `models.build_by_tier` config (or an absent tier), this is byte-for-byte
+// resolveBuildModel(cfg, conf) — the FAFF-334 posture, unchanged.
+function resolveBuildModelForIssue(cfg, tierVal, conf) {
+  const tierRes = resolveBuildModelForTier(cfg, tierVal);
+  if (tierRes) return tierRes; // either a resolved token or a fail-loud error — tier wins
+  return resolveBuildModel(cfg, conf);
+}
+
+// `faff models build-for [<confidence>] [--tier <tier>] [--confidence <conf>]` — print the
+// per-issue build model token (or "inherit", which the caller maps to "omit the Agent-tool
+// model param"). Pure; exit 0 token / 2 usage or invalid token. The bare positional
+// `<confidence>` form is byte-for-byte unchanged (FAFF-334); `--tier` layers the FAFF-417
+// tier matcher ahead of it; `--confidence` is the flag-form alias for the same confidence
+// slot the positional fills (so `--tier`+`--confidence` can be given together).
 function cmdModels(args) {
   if (args.includes("--selftest")) return modelsSelftest();
   const { values, positionals, errors } = parseArgs(args, MODELS_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff models build-for <confidence> [--root DIR]");
+  const usage = "usage: faff models build-for [<confidence>] [--tier <tier>] [--confidence <conf>] [--root DIR]";
+  if (errors.length) return usageError(errors, usage);
   const sub = positionals[0];
   if (sub !== "build-for") {
-    process.stderr.write("usage: faff models build-for <confidence> [--root DIR]\n");
+    process.stderr.write(usage + "\n");
     return 2;
   }
   const root = values["--root"] || findRoot();
-  const confArg = positionals[1] || null;
+  const confArg = values["--confidence"] || positionals[1] || null;
+  const tierArg = values["--tier"] || null;
   const [cfg] = loadConfig(root);
-  const res = resolveBuildModel(cfg, confArg);
+  const res = resolveBuildModelForIssue(cfg, tierArg, confArg);
   if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
   console.log(res.token);
   return 0;
@@ -2145,6 +2231,22 @@ function modelsSelftest() {
   ok("validateModelLane rejects an invalid matcher leaf", validateModelLane("models.build_by_confidence.high", "gpt-5") !== null);
   ok("validateModelLane accepts the default leaf", validateModelLane("models.build_by_confidence.default", "opus") === null);
   ok("validateModelLane leaves models.build scalar unchanged", validateModelLane("models.build", "sonnet") === null && validateModelLane("models.build", "gpt-5") !== null);
+  // FAFF-417: models.build_by_tier layers ahead of models.build_by_confidence — tier wins
+  const layered = { models: { build: "opus", build_by_tier: { mechanical: "haiku", default: "fable" }, build_by_confidence: { default: "opus", high: "sonnet" } } };
+  ok("tier matcher outranks confidence matcher when both configured and tier present",
+    resolveBuildModelForIssue(layered, "mechanical", "high").token === "haiku");
+  ok("tier matcher default leaf still outranks confidence matcher",
+    resolveBuildModelForIssue(layered, "standard", "high").token === "fable");
+  ok("no tier passed → falls through to the confidence matcher (still resolves)",
+    resolveBuildModelForIssue(layered, null, "high").token === "sonnet");
+  ok("tier passed but matcher unconfigured → falls through to the confidence matcher",
+    resolveBuildModelForIssue({ models: { build: "opus", build_by_confidence: { default: "opus", high: "sonnet" } } }, "mechanical", "high").token === "sonnet");
+  ok("no tier, no confidence matcher → falls through to the scalar",
+    resolveBuildModelForIssue({ models: { build: "fable" } }, null, null).token === "fable");
+  ok("invalid tier-matcher leaf fails loud, even on a tier that never resolves",
+    !!resolveBuildModelForIssue({ models: { build_by_tier: { mechanical: "gpt-5", default: "opus" } } }, "standard", null).error);
+  ok("invalid tier-matcher leaf fails loud with NO tier passed at all (validate anywhere)",
+    !!resolveBuildModelForIssue({ models: { build_by_tier: { mechanical: "gpt-5" } } }, null, null).error);
   // FAFF-705: the transport effort mapping (five-level faff → three-level transport, clamp above ceiling)
   ok("reasoningEffortForTransport: low/medium/high pass through", reasoningEffortForTransport("low") === "low" && reasoningEffortForTransport("medium") === "medium" && reasoningEffortForTransport("high") === "high");
   ok("reasoningEffortForTransport: xhigh/max clamp to high", reasoningEffortForTransport("xhigh") === "high" && reasoningEffortForTransport("max") === "high");
@@ -2154,4 +2256,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateModelLane };

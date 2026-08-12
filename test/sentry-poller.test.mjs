@@ -10,12 +10,34 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import http from "node:http";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
+
+// A loopback server that records every POST it receives; caller controls the
+// response. Mirrors test/andon.test.mjs's helper — `t` (the running test's
+// TestContext) registers the close so a server is never left listening past its
+// test (an unclosed handle would keep `node --test`'s process alive).
+function loopbackServer(t, handler) {
+  return new Promise((resolve) => {
+    const posts = [];
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        posts.push({ method: req.method, path: req.url, headers: req.headers, body });
+        if (handler) handler(req, res, posts);
+        else { res.writeHead(200); res.end("ok"); }
+      });
+    });
+    t.after(() => new Promise((r) => { if (server.listening) server.close(r); else r(); }));
+    server.listen(0, "127.0.0.1", () => resolve({ server, posts, url: (p) => `http://127.0.0.1:${server.address().port}${p || "/hook"}` }));
+  });
+}
 
 function run(args, opts) {
   const r = spawnSync("node", [CLI, ...args], { encoding: "utf8", ...opts });
@@ -419,6 +441,146 @@ test("declared-unattended L3 (autonomous.unattended:true) + a REAL fix-review-th
     // the absence itself is the assertion that no abort action ever fired.
     const evs = events().filter((e) => e.type === "sentry-checkpoint");
     assert.equal(evs.length, 0, "no sentry-checkpoint event is ever appended for a pause trip (only the abort action appends one)");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-472 — wire the poller's actioned abort to the andon push channel
+// (FAFF-386). Consumes the shipped `appendEventRecord`/`faff andon pump`
+// unmodified: no new transport, no new event type, no new andon class.
+// ---------------------------------------------------------------------------
+
+test("FAFF-472: actioned abort with andon.url configured -> a sentry-trip event lands on events.jsonl AND andon pumps exactly one sentry-trip notification", async (t) => {
+  const { root, runDir, log, events } = rootWith({
+    run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  const { posts, url } = await loopbackServer(t);
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(settled, "poller reached abort-actioned");
+
+    const posted = await waitUntil(() => posts.length >= 1, { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(posted, "andon pump delivered the sentry-trip notification");
+    assert.equal(posts.length, 1, "exactly one notification — the pump's own dedupe collapses the single tripped signal set");
+    assert.match(posts[0].body, /sentry tripped/);
+    assert.match(posts[0].body, /RUN-POLL/);
+
+    const trips = events().filter((e) => e.type === "sentry-trip");
+    assert.equal(trips.length, 1, "exactly one sentry-trip event appended");
+    assert.equal(trips[0].phase, "run");
+    assert.deepEqual(trips[0].data.intervention, "abort");
+    assert.ok(Array.isArray(trips[0].data.verdicts) && trips[0].data.verdicts.length >= 1, "verdicts carried through from the abort decision payload");
+
+    // Ordering: the event append happens before the pump call (HOW §4), so by the
+    // time the pump has POSTed, the event is already on disk — already asserted by
+    // reading events() after observing the POST above.
+    assert.ok(existsSync(join(runDir, "andon-state.json")), "the pump's own cursor/dedupe state was written");
+
+    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
+    assert.ok(diedOrGone, "the poller still exits after actioning the abort — the andon emit doesn't change control flow");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("FAFF-472: andon.url unset -> the sentry-trip event still lands (unconditional telemetry) but no andon-state.json / no notification (byte-for-byte no-op on the andon side)", async () => {
+  const { root, runDir, log, events } = rootWith({
+    run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(settled, "poller reached abort-actioned");
+
+    const trips = events().filter((e) => e.type === "sentry-trip");
+    assert.equal(trips.length, 1, "the event append is unconditional — it does not gate on andon config");
+    assert.equal(existsSync(join(runDir, "andon-state.json")), false, "andon disabled -> the pump is a complete no-op, no state file");
+
+    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
+    assert.ok(diedOrGone, "the poller exits exactly as before andon.url existed");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("FAFF-472: an andon webhook failure never blocks/reorders/fails the abort — the ledger still lands aborted-resumable and the poller still exits", async (t) => {
+  const { root, runDir, log, read, events } = rootWith({
+    run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  // A loopback server that always 500s — the pump's retry-then-record-failure path,
+  // fail-open by construction (ADR-0101): `faff andon pump` still exits 0.
+  const { posts, url } = await loopbackServer(t, (req, res) => { res.writeHead(500); res.end("nope"); });
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    const aborted = await waitUntil(() => {
+      try { return JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).owner.status === "aborted-resumable"; }
+      catch { return false; }
+    }, { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(aborted, "the abort landed on the ledger despite the webhook failing every attempt");
+    assert.equal(read().owner.status, "aborted-resumable");
+
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(settled, "poller still reached abort-actioned — unaffected by the andon fault");
+
+    const failedDelivery = await waitUntil(() => posts.length >= 1, { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(failedDelivery, "the pump did attempt delivery (proving the failure path, not a config miss)");
+
+    assert.equal(events().filter((e) => e.type === "sentry-trip").length, 1, "the event still landed regardless of the webhook's outcome");
+
+    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
+    assert.ok(diedOrGone, "the poller still exits — an andon failure never changes control flow");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("FAFF-472: an abort-failed tick (the abort child itself fails) emits NO sentry-trip event and runs no pump -> the page fires only on the tick that actually lands", async () => {
+  const { root, runDir, log, events } = rootWith({
+    run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  // Pre-seed a live-looking ledger lock file (fresh mtime) so `faff sentry abort`'s
+  // lock acquisition deterministically exhausts its 2s retry budget and returns
+  // LEDGER_LOCKED (exit 1) on the very first tick — a non-timing-dependent way to
+  // force the abort child to fail, without touching runDir's own writability (the
+  // poller's handle/log/events files must stay writable, unlike a directory-level
+  // permission strip).
+  writeFileSync(join(runDir, "run-ledger.json.lock"), "");
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    // Bounded well under the lock's 5s staleness window (fs-lock.js STALE_LOCK_MS)
+    // so this only ever observes the deterministic LOCKED failure, never a
+    // stale-takeover success on a slow retry.
+    const failed = await waitUntil(() => log().includes("abort-failed"), { timeoutMs: 4000 });
+    assert.ok(failed, "the poller logged abort-failed — the abort child did not exit 0");
+
+    assert.doesNotMatch(log(), /abort-actioned/, "the landing-tick log line never appears while the abort keeps failing");
+    assert.equal(events().filter((e) => e.type === "sentry-trip").length, 0, "no sentry-trip event on a tick where the abort itself failed");
+    assert.ok(pidAliveProbe(started.pid), "the poller keeps retrying, unterminated by a failed abort attempt");
   } finally {
     run(["sentry-poller", "stop", "--run-dir", runDir]);
     await waitUntil(() => true, { timeoutMs: 1500 });

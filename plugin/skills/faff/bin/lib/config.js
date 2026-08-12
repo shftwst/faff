@@ -1907,6 +1907,10 @@ function cmdConfig(args) {
           // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
           validateModelLane("models.build_by_confidence.high", "sonnet") ||
           (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
+          // FAFF-417: the tier-keyed matcher leaves reuse the identical build vocab — same
+          // accept/reject smoke check as the confidence matcher leaves above.
+          validateModelLane("models.build_by_tier.mechanical", "sonnet") ||
+          (validateModelLane("models.build_by_tier.mechanical", "gpt-5") ? null : "tier matcher leaf failed to reject an invalid token") ||
           // FAFF-416: the effort-lane vocab must accept every effort lane's default (inherit) + a
           // real effort level, and reject an off-vocabulary token (the fail-loud path is load-bearing).
           validateEffortLane("effort.build", DEFAULTS["effort.build"]) ||
@@ -1914,6 +1918,10 @@ function cmdConfig(args) {
           validateEffortLane("effort.intake", "max") ||
           (validateEffortLane("effort.build", "sonnet") ? null : "effort lane vocab failed to reject a model token") ||
           (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token") ||
+          // FAFF-417: the effort tier-keyed matcher leaves reuse the effort.build vocab — same
+          // accept/reject smoke check as the scalar effort lanes above.
+          validateEffortLane("effort.build_by_tier.mechanical", "low") ||
+          (validateEffortLane("effort.build_by_tier.mechanical", "ultra") ? null : "effort tier matcher leaf failed to reject an invalid token") ||
           // FAFF-422: engine values are legal on exactly the pure-data-in allowlist — the two
           // allowlisted lanes accept the SHAPE, every other models.* key (incl. the open-vocabulary
           // eval lane and the matcher leaves) rejects it naming the allowlist.

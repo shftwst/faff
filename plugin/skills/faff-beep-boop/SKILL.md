@@ -358,7 +358,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 **Mint the run directory as `run-YYYYMMDD-HHMMSS-beepboop-<mode>`** (UTC; `beepboop` one word; `<mode>` the run mode, e.g. `full`/`list`). This is the canonical run-id — the gateway `.faff/` layout, wtf's enrichment, and the CLI's `latestRunDir`/`STRAY_TRANSCRIPT` all key off it. Legacy dirs coexist and are tolerated by mtime-ordered resolution; never rename them.
 
 ```json
-{ "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
+{ "level": "L3", "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
   "discovered_scope_filed": 0,
   "review_adversarial_skipped": [],
   "review_outage_pending": [],
@@ -369,6 +369,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
              "started_at": "2026-06-22T16:00:00Z", "last_heartbeat": "2026-06-22T16:00:00Z", "harness": "claude-code", "model": "unknown" } }
 ```
 
+- **`level`** — the run's autonomy level, a `FLOOR_LEVELS` member (`faff contract integrity-floor --describe`). Written **once at genesis**, alongside the owner stamp (see _Owner stamp & heartbeat_ → "At run start"), and read by `merge-gate`'s `resolveAnchorLevel` (and level-gated by `reconcile`) off the committed anchor — an absent `level` is what makes the anchor `anchor-malformed`.
 - **`admitted`** — every issue the verdict gate admits to the build queue (`fire-and-forget` + `likely-fire`). Append at step 4 (build queue assembly) and at every wave re-entry re-assembly (step 8.4). Explicit-list mode appends each admitted issue the same way.
 - **`outcomes`** — written the moment an issue reaches a terminal bucket: `shipped`, `pr-open`, `parked`, `errored`, `routed-out` (routed out by the verdict gate at step 4), `unreached-budget` (admitted but a budget flag fired before dispatch), or `superseded` (the issue reached Done because its deliverables were already merged to `main` by *other* tickets; this run built nothing and opened no PR for it). These are exactly the run-summary buckets — the ledger is the structured twin of the summary. **`outcomes[issue]` MUST be a bare terminal-state string** — never an object. `outcomes` is a *completeness* ledger, not a detail store: `runcheck` reads each value as a string and checks it against the terminal-state vocabulary, so a `{ state: "shipped", ... }` detail object is a genuine authoring error, not an alternate shape — it fails `runcheck` (still exit 2) with a diagnostic naming `outcome_details` (below) as the correct home for that detail, never the useless `<issue>=[object Object]`.
 
@@ -388,7 +389,7 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
 
 ### Owner stamp & heartbeat
 
-- **At run start** (run-id minted, before step 4): write `owner` with `status:"running"`, `pid`, `session_id:<run-id>`, `started_at:now`, `last_heartbeat:now`, **and `harness`/`model` from `"$faff" harness identify --json`** (the single resolver every durable artifact reads; `model` may resolve `unknown`, still written), **and export the per-session pointer** so this session's own Stop hook recognises its own run:
+- **At run start** (run-id minted, before step 4): in the same write as the `owner` stamp, write a top-level `level` — sourced from the lights-out level when one was stamped for this run, else `"L3"` for an ordinary prose-minted self-drain. **If the run was minted under an `faff lights-out` signal, the ledger already carries a CLI-minted `level:"L4"` (`mintLightsOut`) — do not overwrite it here.** Then write `owner` with `status:"running"`, `pid`, `session_id:<run-id>`, `started_at:now`, `last_heartbeat:now`, **and `harness`/`model` from `"$faff" harness identify --json`** (the single resolver every durable artifact reads; `model` may resolve `unknown`, still written), **and export the per-session pointer** so this session's own Stop hook recognises its own run:
 
   ```bash
   export FAFF_RUN_DIR="$PWD/.faff/runs/<run-id>"

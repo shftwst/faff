@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-785",
+  "build": {
+    "status": "complete",
+    "diff_hash": "cc318b85fb09676b045b7d9c68478a534f9e9943385b75427fe5d73e3d1d4cda",
+    "branch": "faff-785-node-test-suite-is-non-hermetic-in-a-self-hosting-checkout",
+    "pushed_at": "2026-08-13T18:38:29.585Z"
+  },
+  "updated_at": "2026-08-13T18:38:29.585Z"
+}

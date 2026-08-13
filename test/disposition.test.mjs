@@ -174,6 +174,105 @@ test("PURE: the verb writes nothing — the run dir is byte-identical after a ru
   } finally { f.cleanup(); }
 });
 
+// Write <runDir>/<issue>/merge-record.json (raw bytes, so a truncated/corrupt record can be forced).
+function writeMergeRecord(runDir, issue, body) {
+  mkdirSync(join(runDir, issue), { recursive: true });
+  writeFileSync(join(runDir, issue, "merge-record.json"), typeof body === "string" ? body : JSON.stringify(body));
+}
+
+test("FAFF-782: admitted-unrecorded issue with merge-record merged:true → merged-unclosed item, not incomplete-ledger", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417"], outcomes: {}, owner: { status: "running" } } });
+  writeMergeRecord(f.runDir, "FAFF-417", { pr: 641, head_sha: "abc12345def", merged: true });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.equal(rep.disposition, "needs-attention");
+    assert.ok(rep.attention.some((i) => i.kind === "merged-unclosed" && i.issue === "FAFF-417"));
+    assert.ok(!rep.attention.some((i) => i.kind === "incomplete-ledger" && String(i.cause).includes("FAFF-417")));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: no merge-record (killed before merge) → generic incomplete-ledger, never merged-unclosed", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417"], outcomes: {} } });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "incomplete-ledger" && String(i.cause).includes("FAFF-417")));
+    assert.ok(!rep.attention.some((i) => i.kind === "merged-unclosed"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: corrupt/partial merge-record (JSON.parse throws) fails safe to incomplete-ledger, no exception escapes", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417"], outcomes: {} } });
+  writeMergeRecord(f.runDir, "FAFF-417", '{ "pr": 641, "merged": tr');   // truncated mid-write
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);   // classifier did not throw (would be exit 2)
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "incomplete-ledger" && String(i.cause).includes("FAFF-417")));
+    assert.ok(!rep.attention.some((i) => i.kind === "merged-unclosed"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: merged:false record is not merged-unclosed (an unconfirmed merge is never asserted)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417"], outcomes: {} } });
+  writeMergeRecord(f.runDir, "FAFF-417", { pr: 641, head_sha: "abc123", merged: false });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "incomplete-ledger"));
+    assert.ok(!rep.attention.some((i) => i.kind === "merged-unclosed"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: mixed run — FAFF-417 merged-unclosed, FAFF-418 genuinely undispatched → both present in one report", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417", "FAFF-418"], outcomes: {} } });
+  writeMergeRecord(f.runDir, "FAFF-417", { pr: 700, head_sha: "deadbeef01", merged: true });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "merged-unclosed" && i.issue === "FAFF-417"));
+    const inc = rep.attention.find((i) => i.kind === "incomplete-ledger");
+    assert.ok(inc && String(inc.cause).includes("FAFF-418") && !String(inc.cause).includes("FAFF-417"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: a non-issue-id admitted entry is skipped by the shape guard (never path-joined, never merged-unclosed)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["../evil", "not-an-id"], outcomes: {} } });
+  writeMergeRecord(f.runDir, "not-an-id", { pr: 1, head_sha: "x", merged: true });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(!rep.attention.some((i) => i.kind === "merged-unclosed"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: render enrichment surfaces the shipped PR/sha on the merged-unclosed item (non-JSON output)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417"], outcomes: {} } });
+  writeMergeRecord(f.runDir, "FAFF-417", { pr: 641, head_sha: "abcdef1234567", merged: true });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir]);
+    assert.equal(code, 1);
+    assert.match(out, /merged-unclosed FAFF-417 \(merged-unrecorded pr#641 abcdef12\)/);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-782: PURE — reading merge-records writes nothing (run dir byte-identical)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-417"], outcomes: {} } });
+  writeMergeRecord(f.runDir, "FAFF-417", { pr: 641, head_sha: "abc123", merged: true });
+  try {
+    const before = snapshot(f.runDir);
+    run(["disposition", "--run-dir", f.runDir, "--json"]);
+    run(["disposition", "--run-dir", f.runDir]);
+    assert.deepEqual(snapshot(f.runDir), before);
+  } finally { f.cleanup(); }
+});
+
 test("--selftest runs the pure classifier fixture table and passes", () => {
   const { code, out } = run(["disposition", "--selftest"]);
   assert.equal(code, 0);

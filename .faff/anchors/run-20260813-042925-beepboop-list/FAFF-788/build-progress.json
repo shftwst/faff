@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-788",
+  "build": {
+    "status": "complete",
+    "diff_hash": "86052616ab81fe59386f3b4372c4f87eea2f6a42502d866b6be38351ba9c29fb",
+    "branch": "faff-788-l3-runner-beep-boop-ledger-mint-omits-top-level-level-field",
+    "pushed_at": "2026-08-13T05:04:45.299Z"
+  },
+  "updated_at": "2026-08-13T05:04:45.299Z"
+}

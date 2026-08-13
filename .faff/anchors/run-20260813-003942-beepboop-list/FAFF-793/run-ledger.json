@@ -1,0 +1,70 @@
+{
+  "run_id": "run-20260813-003942-beepboop-list",
+  "level": "L3",
+  "mode": "explicit-list",
+  "admitted": [
+    "FAFF-793",
+    "FAFF-781"
+  ],
+  "outcomes": {
+    "FAFF-784": "routed-out",
+    "FAFF-782": "routed-out",
+    "FAFF-788": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "owner": {
+    "status": "aborted-resumable",
+    "pid": 523,
+    "session_id": "1856ec19-68a1-4b83-a53c-11f9cf72acf1",
+    "started_at": "2026-08-13T00:39:42Z",
+    "last_heartbeat": "2026-08-13T00:39:42Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "1856ec19-68a1-4b83-a53c-11f9cf72acf1",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 5339,
+        "output": 35330,
+        "cache_write": 452491,
+        "cache_read": 4419866
+      }
+    },
+    "tokens_at_start": 4913026,
+    "window": {
+      "anchor_epoch": 1786581700402,
+      "reset_epoch": 1786599700402,
+      "tokens_at_anchor": 441468
+    }
+  },
+  "outcome_details": {
+    "FAFF-784": {
+      "state": "routed-out",
+      "verdict": "needs-decision-first",
+      "confidence": "medium",
+      "build_tier": "complex",
+      "reason": "Medium-confidence security-critical merge-gate spec held as an explicit human gate; 12 decisions all chosen+human-ratified, no open Punt for a resolve-attempt. Same disposition as prior run run-20260812-234006."
+    },
+    "FAFF-782": {
+      "state": "routed-out",
+      "verdict": "needs-decision-first",
+      "confidence": "medium",
+      "reason": "Fresh spec at medium with one deferred architectural Punt (run-ledger auto-close disposition semantics: distinguish harness-ceiling-after-merge from genuine failure). Prep declined to settle it autonomously; needs human decision."
+    },
+    "FAFF-788": {
+      "state": "routed-out",
+      "verdict": "duplicate-of-in-flight",
+      "confidence": "high",
+      "reason": "Same ledger-level-at-mint bug as FAFF-783 (Required/Phase 0), which is In Progress + faff-claimed (claim ~5.4h stale, updatedAt 2026-08-12T19:36Z). Cross-id duplicate: the In-Progress mutex only dedups same-id, so auto-building would risk a competing PR / merge race. Human dedup needed (close 788 as dup of 783, or clear 783 stale claim and redirect)."
+    }
+  },
+  "abort": {
+    "status": "aborted-resumable",
+    "at": "2026-08-13T01:37:44.612Z"
+  }
+}

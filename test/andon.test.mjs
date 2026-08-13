@@ -221,6 +221,136 @@ test("scenario 5: no andon.url configured → no network attempt, no state file 
   } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
 });
 
+// --- FAFF-781: informational lifecycle classes (admitted / prep-start / build-start) ---
+
+test("classifyEvent: informational classes, issue-less start events unclassifiable", () => {
+  assert.deepEqual(classifyEvent({ seq: 1, type: "issue-admitted", issue: "FAFF-1" }), { cls: "admitted", key: "admitted" });
+  assert.equal(classifyEvent({ seq: 1, type: "issue-admitted" }), null);
+  assert.deepEqual(classifyEvent({ seq: 2, type: "prep-start", issue: "FAFF-7" }), { cls: "prep-start", key: "prep-start:FAFF-7" });
+  assert.equal(classifyEvent({ seq: 2, type: "prep-start" }), null);
+  assert.deepEqual(classifyEvent({ seq: 3, type: "build-start", issue: "FAFF-7" }), { cls: "build-start", key: "build-start:FAFF-7" });
+  assert.equal(classifyEvent({ seq: 3, type: "build-start" }), null);
+});
+
+test("resolveAndonConfig: informational classes are opt-in, absent from ANDON_DEFAULT_EVENTS", () => {
+  const root = tmp("andon-info-cfg-");
+  try {
+    writeConfig(root, "tracking:\n  repo: x/y\n");
+    assert.deepEqual(resolveAndonConfig(root).events, ["park", "sentry-trip", "budget-breach"]);
+    writeConfig(root, "andon:\n  url: https://ex.invalid/hook\n  events:\n    - admitted\n    - prep-start\n    - build-start\n");
+    assert.deepEqual(resolveAndonConfig(root).events, ["admitted", "prep-start", "build-start"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("spec scenario: three issue-admitted events → exactly one 'admitted' summary POST, no issue field", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-admit-root-"), runDir = tmp("andon-admit-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n  events:\n    - admitted\n`);
+    writeEvents(runDir, [
+      { schema: 2, run_id: "run-x", seq: 0, type: "issue-admitted", issue: "FAFF-1", phase: "run" },
+      { schema: 2, run_id: "run-x", seq: 1, type: "issue-admitted", issue: "FAFF-2", phase: "run" },
+      { schema: 2, run_id: "run-x", seq: 2, type: "issue-admitted", issue: "FAFF-3", phase: "run" },
+    ]);
+    const r = await runPump(root, runDir);
+    assert.equal(r.sent, 1);
+    assert.equal(posts.length, 1);
+    const body = JSON.parse(posts[0].body);
+    assert.equal(body.class, "admitted");
+    assert.equal(body.issue, undefined);
+    for (const id of ["FAFF-1", "FAFF-2", "FAFF-3"]) assert.ok(body.body.includes(id), `admitted body should list ${id}`);
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+test("spec scenario: default config (no informational classes opted in) sends zero informational notifications; run-critical behaviour unchanged", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-default-root-"), runDir = tmp("andon-default-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n`); // no events: override — the byte-for-byte default
+    writeEvents(runDir, [
+      { schema: 2, run_id: "run-x", seq: 0, type: "issue-admitted", issue: "FAFF-1", phase: "run" },
+      { schema: 2, run_id: "run-x", seq: 1, type: "prep-start", issue: "FAFF-1", phase: "prep" },
+      { schema: 2, run_id: "run-x", seq: 2, type: "build-start", issue: "FAFF-1", phase: "build" },
+      { schema: 2, run_id: "run-x", seq: 3, type: "park", issue: "FAFF-1", phase: "build", data: { reason: "needs-human" } },
+    ]);
+    const r = await runPump(root, runDir);
+    assert.equal(r.sent, 1); // the park only — run-critical behaviour is byte-for-byte unchanged
+    assert.equal(posts.length, 1);
+    assert.equal(JSON.parse(posts[0].body).class, "park");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+test("spec scenario: two build-start events for the same issue (e.g. a respec re-dispatch) → exactly one notification (dedupe)", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-buildstart-root-"), runDir = tmp("andon-buildstart-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n  events:\n    - build-start\n`);
+    writeEvents(runDir, [
+      { schema: 2, run_id: "run-x", seq: 0, type: "build-start", issue: "FAFF-1", phase: "build" },
+      { schema: 2, run_id: "run-x", seq: 1, type: "build-start", issue: "FAFF-1", phase: "build" },
+    ]);
+    const r = await runPump(root, runDir);
+    assert.equal(r.sent, 1);
+    assert.equal(posts.length, 1);
+    const body = JSON.parse(posts[0].body);
+    assert.equal(body.class, "build-start");
+    assert.equal(body.issue, "FAFF-1");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+test("prep-start notification names the run, issue, and stage", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-prepstart-root-"), runDir = tmp("andon-prepstart-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n  events:\n    - prep-start\n`);
+    writeEvents(runDir, [{ schema: 2, run_id: "run-x", seq: 0, type: "prep-start", issue: "FAFF-7", phase: "prep" }]);
+    const r = await runPump(root, runDir);
+    assert.equal(r.sent, 1);
+    const body = JSON.parse(posts[0].body);
+    assert.equal(body.class, "prep-start");
+    assert.equal(body.issue, "FAFF-7");
+    assert.equal(body.run_id, "run-x");
+    assert.match(body.body, /prep/);
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+test("informational payloads stay minimal — no spec/diff/transcript content leaks", () => {
+  const admittedNotif = buildNotification("r", null, "x", "admitted", { data: { admitted: ["FAFF-1", "FAFF-2"] } });
+  assert.deepEqual(Object.keys(admittedNotif).sort(), ["body", "class", "run_id", "seq", "title", "ts"]);
+  assert.doesNotMatch(admittedNotif.body, /```|diff --git|Chosen:/);
+  const buildStartNotif = buildNotification("r", 1, "x", "build-start", { issue: "FAFF-1" });
+  assert.deepEqual(Object.keys(buildStartNotif).sort(), ["body", "class", "issue", "run_id", "seq", "title", "ts"]);
+  assert.doesNotMatch(buildStartNotif.body, /```|diff --git|Chosen:/);
+});
+
+// --- FAFF-781 spec §8 integration smoke test (CLI-level, loopback-verified) --------
+
+test("smoke: run-start + two issue-admitted + build-start, opted into admitted+build-start, via the CLI", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-smoke-root-"), runDir = tmp("andon-smoke-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n  events:\n    - admitted\n    - build-start\n`);
+    writeEvents(runDir, [
+      { schema: 2, run_id: "run-x", seq: 0, type: "run-start", phase: "run" },
+      { schema: 2, run_id: "run-x", seq: 1, type: "issue-admitted", issue: "FAFF-1", phase: "run" },
+      { schema: 2, run_id: "run-x", seq: 2, type: "issue-admitted", issue: "FAFF-2", phase: "run" },
+      { schema: 2, run_id: "run-x", seq: 3, type: "build-start", issue: "FAFF-1", phase: "build" },
+    ]);
+    const r1 = await run(["andon", "pump", "--run-dir", runDir, "--root", root, "--json"]);
+    assert.equal(r1.code, 0);
+    assert.equal(JSON.parse(r1.out).sent, 2);
+    assert.equal(posts.length, 2);
+    const admitted = posts.map((p) => JSON.parse(p.body)).find((b) => b.class === "admitted");
+    assert.ok(admitted && admitted.body.includes("FAFF-1") && admitted.body.includes("FAFF-2"));
+    const buildStart = posts.map((p) => JSON.parse(p.body)).find((b) => b.class === "build-start");
+    assert.ok(buildStart && buildStart.issue === "FAFF-1");
+
+    const r2 = await run(["andon", "pump", "--run-dir", runDir, "--root", root, "--json"]);
+    assert.equal(JSON.parse(r2.out).sent, 0, "re-pump against the same log sends zero new notifications (dedupe)");
+    assert.equal(posts.length, 2, "no additional POSTs on the second pump");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
 // --- non-functional assertions -------------------------------------------------
 
 test("flood cap: a pump over 50 critical events makes at most 11 POSTs (10 + rollup)", async (t) => {

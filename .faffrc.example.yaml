@@ -255,7 +255,13 @@ andon:
   url:                                        # webhook URL — e.g. an ntfy topic, a Slack/Discord incoming webhook
   format: generic                             # generic | ntfy | slack | discord — payload shaping preset
   token:                                      # sent as `Authorization: Bearer <token>` when set (ntfy/self-hosted auth)
-  events: ["park", "sentry-trip", "budget-breach"]  # the run-critical set; add "run-end" to opt in — quoted flow-list (parseYamlSubset's inline-JSON path; bareword items inside [...] do not parse)
+  # The run-critical set below is the default and stays unchanged if you never touch this key.
+  # Three opt-in INFORMATIONAL classes (FAFF-781) report lifecycle progress, not a run-critical
+  # condition — none are on by default; add any of them alongside the defaults to opt in:
+  #   "admitted"    — one run-level summary of every ticket this run admitted to the build queue
+  #   "prep-start"  — one notification per issue when its prep stage begins
+  #   "build-start" — one notification per issue when its build stage begins
+  events: ["park", "sentry-trip", "budget-breach"]  # add "run-end", "admitted", "prep-start", "build-start" to opt in — quoted flow-list (parseYamlSubset's inline-JSON path; bareword items inside [...] do not parse)
 
 # Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
 # whether it offers to promote that spec's architecturally-significant Chosen: decisions into

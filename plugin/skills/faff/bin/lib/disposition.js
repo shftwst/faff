@@ -88,7 +88,10 @@ function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId) {
   const audit = auditLedger(ledger, ledger.run_id);   // throws on malformed → exit 2 shell-side
   parksMap = parksMap || {};
   eventMap = eventMap || {};
-  mergedMap = mergedMap || {};   // issue → true iff merge-record.json proved merged (FAFF-782)
+  // issue → true iff merge-record.json proved merged (FAFF-782). Coerce a non-object to {} so an
+  // old 4-arg caller (…, eventMap, runId) that misbinds a string runId as mergedMap degrades LOUDLY
+  // to "no merge evidence" rather than silently relying on string-index falsiness.
+  mergedMap = (mergedMap && typeof mergedMap === "object" && !Array.isArray(mergedMap)) ? mergedMap : {};
   const outcomes = (ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes))
     ? ledger.outcomes : {};
   const items = [];
@@ -203,6 +206,7 @@ function readMergedMap(runDir, admitted) {
 // enrichment only (never fed to the pure core). Non-load-bearing: absent details leave the item's
 // cause as the plain stable token.
 function readMergedDetails(runDir, issue) {
+  if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue)) return null;   // same shape guard as readMergedMap before any path.join (belt-and-braces — callers only pass guarded mergedMap keys today)
   try {
     const parsed = JSON.parse(fs.readFileSync(path.join(runDir, issue, "merge-record.json"), "utf8"));
     if (parsed && typeof parsed === "object" && parsed.merged === true) {

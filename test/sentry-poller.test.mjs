@@ -46,6 +46,22 @@ function run(args, opts) {
 
 const isoAgo = (secs) => new Date(Date.now() - secs * 1000).toISOString();
 
+// The stale-heartbeat fixtures below must age a heartbeat PAST the effective sentry
+// stall window so `sentry check` classifies it stale (strict `age > stall_window_secs`).
+// That window is read by the `sentry check` CHILD from the repo's committed
+// `.faffrc.yaml` (sentry.stall_window_secs) — NOT from the temp fixture root — so a
+// hardcoded fixture age silently un-stales itself the moment the committed window is
+// bumped past it (FAFF-795: 1800 → 2400 did exactly this). Derive the age from the
+// LIVE configured value + a margin so a future bump can never re-break these.
+const STALL_WINDOW_SECS = (() => {
+  const r = spawnSync("node", [CLI, "config", "get", "sentry.stall_window_secs"], { encoding: "utf8" });
+  const n = Number((r.stdout ?? "").trim());
+  return Number.isFinite(n) && n > 0 ? n : 900; // 900 = RUN_HEARTBEAT_STALE_SECS_DEFAULT
+})();
+// Comfortably past the window; still well under run_elapsed_ceiling_secs (14400) so a
+// stale-heartbeat fixture never also trips the wall-clock ceiling and change what it tests.
+const STALE_AGE_SECS = STALL_WINDOW_SECS + 200;
+
 // Build a run-ledger fixture; returns { root, runDir, read(), poller helpers }.
 function rootWith(ledger) {
   const root = mkdtempSync(join(tmpdir(), "sentry-poller-"));
@@ -206,7 +222,7 @@ test("owner-status self-stop: the poller exits on its own once owner.status leav
 test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-resumable, one sentry-checkpoint event, log ends abort-actioned, poller exits (the spec's integration smoke test)", async () => {
   const { root, runDir, read, log, events, handle } = rootWith({
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   try {
     const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
@@ -255,7 +271,7 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
 test("attended L3 (neither autonomous.unattended nor the sentry_acting alias) + the SAME stale heartbeat → NO abort: the ledger is byte-identical, advisory-trip logged instead (FAFF-765 — an attended run stays advisory)", async () => {
   const { root, runDir, read } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const before = readFileSync(join(runDir, "run-ledger.json"), "utf8");
   try {
@@ -281,7 +297,7 @@ test("attended L3 (neither autonomous.unattended nor the sentry_acting alias) + 
 test("unattended L3 (canonical autonomous.unattended:true) + the SAME stale heartbeat → the poller ACTS: aborted-resumable, exactly as an L4 run (FAFF-765 — abort keyed on attendedness)", async () => {
   const { root, runDir, read, log } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   // The canonical declaration lives in the repo-root config the detached poller resolves via findRoot(runDir).
   writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
@@ -315,7 +331,7 @@ test("unattended L3 (canonical autonomous.unattended:true) + the SAME stale hear
 test("L3 + the retained autonomous.sentry_acting:true ALIAS + the SAME stale heartbeat → the poller ACTS, identical to the canonical key (FAFF-717/FAFF-765 — the alias still asserts unattended)", async () => {
   const { root, runDir, read, log } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   // The legacy alias lives in the repo-root config the detached poller resolves via findRoot(runDir).
   writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  sentry_acting: true\n");
@@ -349,7 +365,7 @@ test("L3 + the retained autonomous.sentry_acting:true ALIAS + the SAME stale hea
 test("L3 + a MALFORMED .faffrc + the SAME stale heartbeat → NO abort, advisory-trip, poller keeps polling (FAFF-717 — the guarded config read fails safe to OFF, never a coerced abort)", async () => {
   const { root, runDir, read } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   // A top-level sequence is meaningful-but-non-map content: readGovernanceConfig
   // throws base-parse-error, which gatherFacts must catch and fail safe to OFF —
@@ -457,7 +473,7 @@ test("declared-unattended L3 (autonomous.unattended:true) + a REAL fix-review-th
 test("FAFF-472: actioned abort with andon.url configured -> a sentry-trip event lands on events.jsonl AND andon pumps exactly one sentry-trip notification", async (t) => {
   const { root, runDir, log, events } = rootWith({
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const { posts, url } = await loopbackServer(t);
   writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
@@ -497,7 +513,7 @@ test("FAFF-472: actioned abort with andon.url configured -> a sentry-trip event 
 test("FAFF-472: andon.url unset -> the sentry-trip event still lands (unconditional telemetry) but no andon-state.json / no notification (byte-for-byte no-op on the andon side)", async () => {
   const { root, runDir, log, events } = rootWith({
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   try {
     const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
@@ -522,7 +538,7 @@ test("FAFF-472: andon.url unset -> the sentry-trip event still lands (unconditio
 test("FAFF-472: an andon webhook failure never blocks/reorders/fails the abort — the ledger still lands aborted-resumable and the poller still exits", async (t) => {
   const { root, runDir, log, read, events } = rootWith({
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   // A loopback server that always 500s — the pump's retry-then-record-failure path,
   // fail-open by construction (ADR-0101): `faff andon pump` still exits 0.
@@ -559,7 +575,7 @@ test("FAFF-472: an andon webhook failure never blocks/reorders/fails the abort �
 test("FAFF-472: an abort-failed tick (the abort child itself fails) emits NO sentry-trip event and runs no pump -> the page fires only on the tick that actually lands", async () => {
   const { root, runDir, log, events } = rootWith({
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   // Pre-seed a live-looking ledger lock file (fresh mtime) so `faff sentry abort`'s
   // lock acquisition deterministically exhausts its 2s retry budget and returns

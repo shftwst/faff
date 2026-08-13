@@ -323,6 +323,41 @@ test("informational payloads stay minimal — no spec/diff/transcript content le
   assert.doesNotMatch(buildStartNotif.body, /```|diff --git|Chosen:/);
 });
 
+test("an informational send failure records a failure, holds the cursor, and the pump still exits 0 (fail-open unchanged)", async (t) => {
+  const closed = await loopbackServer(t);
+  const closedUrl = closed.url();
+  await new Promise((r) => closed.server.close(r));
+
+  const root = tmp("andon-info-fail-root-"), runDir = tmp("andon-info-fail-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${closedUrl}\n  events:\n    - prep-start\n`);
+    writeEvents(runDir, [{ schema: 2, run_id: "r", seq: 0, type: "prep-start", issue: "FAFF-1", phase: "prep" }]);
+    const r1 = await runPump(root, runDir);
+    assert.equal(r1.sent, 0);
+    assert.equal(r1.failed, 1);
+    assert.equal(r1.cursor, 0, "cursor does not advance past the failed informational event");
+    const state = JSON.parse(readFileSync(andonStatePath(runDir), "utf8"));
+    assert.equal(state.failures.length, 1);
+
+    const cliResult = await run(["andon", "pump", "--run-dir", runDir, "--root", root, "--json"]);
+    assert.equal(cliResult.code, 0, "the pump command itself still exits 0 on a held informational failure");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+test("flood cap applies to informational events too: >10 pending prep-start events collapse into one rollup", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-info-flood-root-"), runDir = tmp("andon-info-flood-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n  events:\n    - prep-start\n`);
+    const lines = [];
+    for (let i = 0; i < 15; i++) lines.push({ schema: 2, run_id: "r", seq: i, type: "prep-start", issue: `FAFF-${i}`, phase: "prep" });
+    writeEvents(runDir, lines);
+    const r = await runPump(root, runDir);
+    assert.ok(posts.length <= 11, `expected <=11 POSTs, got ${posts.length}`);
+    assert.equal(r.cursor, 15, "cursor still advances past every covered informational event");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
 // --- FAFF-781 spec §8 integration smoke test (CLI-level, loopback-verified) --------
 
 test("smoke: run-start + two issue-admitted + build-start, opted into admitted+build-start, via the CLI", async (t) => {

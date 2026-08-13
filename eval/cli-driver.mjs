@@ -284,7 +284,7 @@ export function loadReviewVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 const GATEWAY_ROUTING_START = "\n### Automation-routing verdict (fixed) → `routing_adaptor`\n";
 const GATEWAY_ROUTING_END = "### Spec readiness (fixed)";
 const ADAPTOR_ROUTING_START = "\n## The six verdicts (non-normative recap for assignment)\n";
-const ADAPTOR_ROUTING_END = "## Validate — wired to the contract script (FAFF-80)";
+const ADAPTOR_ROUTING_END = "## Validate — wired to the contract script";
 
 export function loadRoutingVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const gatewayPath = join(pluginDir, "skills", "faff", "SKILL.md");
@@ -1012,7 +1012,7 @@ export function loadResolvedElsewhereProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 // it, and "## Rules" is the last section of the file, so there is no END anchor to reach for. Slicing
 // to end of file is what gets both; extractSectionToEnd gives up end-drift detection to do it, and a
 // driver test asserts the independence sentence is present to buy that back.
-const ADR_DRIFT_PROSE_START = "\n## ADR drift challenge (FAFF-199)\n";
+const ADR_DRIFT_PROSE_START = "\n## ADR drift challenge\n";
 export function loadAdrDriftProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faffter-dark-adversarial-review", "SKILL.md");
   return extractSectionToEnd(p, ADR_DRIFT_PROSE_START, "loadAdrDriftProse");

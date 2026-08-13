@@ -550,7 +550,7 @@ test("FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier 
 // file's final "## Rules" section — move, rename or delete it and this goes red.
 test("FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules", () => {
   const prose = loadAdrDriftProse(DEFAULT_PLUGIN_DIR);
-  assert.ok(prose.startsWith("## ADR drift challenge (FAFF-199)"), "starts at the START anchor");
+  assert.ok(prose.startsWith("## ADR drift challenge"), "starts at the START anchor");
   assert.ok(prose.includes("Never agree with the primary review by default"),
     "carries the independence stance the four-line pair excluded");
   assert.ok(!prose.includes("challenge_outcome"),

@@ -42,7 +42,10 @@ const { findRoot, dig } = require("./shared-infra");
 const { loadConfig } = require("./config");
 
 const ANDON_FORMATS = ["generic", "ntfy", "slack", "discord"];
-const ANDON_CLASSES = ["park", "sentry-trip", "budget-breach", "run-end"];
+// FAFF-781 — informational classes (admitted/prep-start/build-start) report lifecycle
+// progress rather than a run-critical condition; they are additive members, opt-in
+// only (never in ANDON_DEFAULT_EVENTS below), mirroring the existing run-end opt-in.
+const ANDON_CLASSES = ["park", "sentry-trip", "budget-breach", "run-end", "admitted", "prep-start", "build-start"];
 const ANDON_DEFAULT_EVENTS = ["park", "sentry-trip", "budget-breach"];
 // Built-in constants, not config keys (spec §3 — "a user has no basis to tune them").
 const ANDON_TIMEOUT_MS = 5000;
@@ -123,6 +126,21 @@ function classifyEvent(event) {
   if (type === "run-end") {
     return { cls: "run-end", key: "run-end" };
   }
+  // FAFF-781 — informational lifecycle classes. Issue-less → unclassifiable (mirrors
+  // the park rule above), except "admitted" whose KEY is run-level but which still
+  // requires a well-formed source event (the summary needs the ID to list).
+  if (type === "issue-admitted") {
+    if (!event.issue) return null;
+    return { cls: "admitted", key: "admitted" };
+  }
+  if (type === "prep-start") {
+    if (!event.issue) return null;
+    return { cls: "prep-start", key: `prep-start:${event.issue}` };
+  }
+  if (type === "build-start") {
+    if (!event.issue) return null;
+    return { cls: "build-start", key: `build-start:${event.issue}` };
+  }
   return null;
 }
 
@@ -151,6 +169,20 @@ function buildNotification(runId, seq, ts, cls, event) {
   } else if (cls === "run-end") {
     title = `faff ${runId}: run ended`;
     body = "run complete — see the run log";
+  } else if (cls === "admitted") {
+    // FAFF-781 — run-level: NO issue field. Caller passes the admitted-IDs list via
+    // event.data.admitted (never event.issue) — see runPump's aggregation.
+    const admitted = Array.isArray(data.admitted) ? data.admitted : [];
+    title = `faff ${runId}: ${admitted.length} ticket(s) admitted`;
+    body = `admitted: ${admitted.join(", ")}`;
+  } else if (cls === "prep-start") {
+    issue = event.issue;
+    title = `faff ${runId}: ${issue} prep started`;
+    body = "stage: prep";
+  } else if (cls === "build-start") {
+    issue = event.issue;
+    title = `faff ${runId}: ${issue} build started`;
+    body = "stage: build";
   } else {
     title = `faff ${runId}: ${cls}`;
     body = "";
@@ -310,7 +342,16 @@ async function runPump(root, runDir, postFn) {
       continue;
     }
 
-    const notif = buildNotification(event.run_id || path.basename(runDir), event.seq, new Date().toISOString(), cls, event);
+    // FAFF-781 — "admitted" is run-level: aggregate every issue-admitted event in THIS
+    // batch (the `events` array already read via readEventsSince — no second file read)
+    // rather than the single triggering event, so the summary lists every ticket the
+    // run admitted, not just the one that happened to be first past the notified check.
+    const runId = event.run_id || path.basename(runDir);
+    const buildSrc = cls === "admitted"
+      ? { data: { admitted: events.filter((e) => e.type === "issue-admitted" && e.issue).map((e) => e.issue) } }
+      : event;
+    const notifSeq = cls === "admitted" ? null : event.seq;
+    const notif = buildNotification(runId, notifSeq, new Date().toISOString(), cls, buildSrc);
     const { body, headers } = formatPayload(config.format, notif);
     try {
       await postWithRetry(postFn, config.url, body, { ...headers, ...authHeaders }, ANDON_TIMEOUT_MS, ANDON_RETRY_COUNT);
@@ -418,12 +459,37 @@ function andonSelftest() {
   ok("budget-checkpoint unbreached → null (not critical)",
     classifyEvent({ seq: 8, type: "budget-checkpoint", data: { breached: [] } }) === null);
   ok("run-end classifies, one dedupe key", classifyEvent({ seq: 9, type: "run-end" }).key === "run-end");
-  ok("an ordinary event type → null", classifyEvent({ seq: 10, type: "issue-admitted" }) === null);
+  ok("an ordinary event type → null", classifyEvent({ seq: 10, type: "tidy-done" }) === null);
+
+  // --- classifyEvent: FAFF-781 informational lifecycle classes ---
+  ok("issue-admitted with issue → run-level 'admitted' key",
+    JSON.stringify(classifyEvent({ seq: 11, type: "issue-admitted", issue: "FAFF-1" })) === JSON.stringify({ cls: "admitted", key: "admitted" }));
+  ok("issue-admitted with no issue → unclassifiable", classifyEvent({ seq: 11, type: "issue-admitted" }) === null);
+  ok("prep-start with issue → per-issue dedupe key",
+    JSON.stringify(classifyEvent({ seq: 12, type: "prep-start", issue: "FAFF-7" })) === JSON.stringify({ cls: "prep-start", key: "prep-start:FAFF-7" }));
+  ok("prep-start with no issue → unclassifiable", classifyEvent({ seq: 12, type: "prep-start" }) === null);
+  ok("build-start with issue → per-issue dedupe key",
+    JSON.stringify(classifyEvent({ seq: 13, type: "build-start", issue: "FAFF-7" })) === JSON.stringify({ cls: "build-start", key: "build-start:FAFF-7" }));
+  ok("build-start with no issue → unclassifiable", classifyEvent({ seq: 13, type: "build-start" }) === null);
 
   // --- buildNotification: minimal-payload assertion ---
   const parkNotif = buildNotification("run-1", 3, "2026-01-01T00:00:00Z", "park", { issue: "FAFF-1", data: { reason: "needs-human" } });
   ok("park notification names the issue + reason, nothing more", parkNotif.title.includes("FAFF-1") && parkNotif.body.includes("needs-human")
     && Object.keys(parkNotif).sort().join(",") === "body,class,issue,run_id,seq,title,ts");
+
+  // --- buildNotification: FAFF-781 informational classes ---
+  const admittedNotif = buildNotification("run-1", null, "2026-01-01T00:00:00Z", "admitted", { data: { admitted: ["FAFF-1", "FAFF-2", "FAFF-3"] } });
+  ok("admitted notification has NO issue field, lists every admitted id, seq null",
+    !("issue" in admittedNotif) && admittedNotif.body.includes("FAFF-1") && admittedNotif.body.includes("FAFF-2") && admittedNotif.body.includes("FAFF-3")
+    && admittedNotif.title.includes("3") && admittedNotif.seq === null);
+  const prepStartNotif = buildNotification("run-1", 4, "2026-01-01T00:00:00Z", "prep-start", { issue: "FAFF-7" });
+  ok("prep-start notification names the run, issue, and stage",
+    prepStartNotif.issue === "FAFF-7" && prepStartNotif.title.includes("FAFF-7") && prepStartNotif.body.includes("prep"));
+  const buildStartNotif = buildNotification("run-1", 5, "2026-01-01T00:00:00Z", "build-start", { issue: "FAFF-7" });
+  ok("build-start notification names the run, issue, and stage",
+    buildStartNotif.issue === "FAFF-7" && buildStartNotif.title.includes("FAFF-7") && buildStartNotif.body.includes("build"));
+  ok("informational classes get ntfy priority 'default', matching run-end",
+    ntfyPriority("admitted") === "default" && ntfyPriority("prep-start") === "default" && ntfyPriority("build-start") === "default");
 
   // --- formatPayload: all four presets ---
   const n = { run_id: "r", class: "park", issue: "FAFF-1", title: "T", body: "B", ts: "x", seq: 1 };
@@ -450,6 +516,12 @@ function andonSelftest() {
     ok("andon.format resolves", cfg.format === "ntfy");
     ok("andon.token resolves", cfg.token === "shh");
     ok("andon.events resolves + filters to the closed class set", JSON.stringify(cfg.events) === JSON.stringify(["park", "run-end"]));
+
+    fs.writeFileSync(path.join(tmpRoot, ".faffrc.yaml"),
+      "andon:\n  url: http://localhost:9/hook\n  events:\n    - admitted\n    - prep-start\n    - build-start\n    - bogus-class\n");
+    const cfgInfo = resolveAndonConfig(tmpRoot);
+    ok("andon.events accepts the three FAFF-781 informational classes, still drops unknown names",
+      JSON.stringify(cfgInfo.events) === JSON.stringify(["admitted", "prep-start", "build-start"]));
   } finally { fs.rmSync(tmpRoot, { recursive: true, force: true }); }
 
   // --- runPump: disabled short-circuit writes NO state file ---
@@ -505,7 +577,55 @@ function andonSelftest() {
     } finally { fs.rmSync(pumpRoot, { recursive: true, force: true }); fs.rmSync(pumpRun, { recursive: true, force: true }); }
   })();
 
-  return Promise.all([disabledDone, pumpDone]).then(() => {
+  // --- runPump: FAFF-781 informational classes — admission aggregation, per-issue
+  // start dedupe, and the "default config sees zero informational sends" floor ---
+  const infoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-andon-info-"));
+  const infoRun = fs.mkdtempSync(path.join(os.tmpdir(), "faff-andon-info-run-"));
+  const informationalDone = (async () => {
+    try {
+      // Default config (no andon.events override) sees the informational events but sends nothing.
+      fs.writeFileSync(path.join(infoRoot, ".faffrc.yaml"), "andon:\n  url: http://fixture.invalid/hook\n");
+      fs.writeFileSync(path.join(infoRun, "events.jsonl"), [
+        { schema: 2, run_id: "r", seq: 0, type: "issue-admitted", issue: "FAFF-1", phase: "run" },
+        { schema: 2, run_id: "r", seq: 1, type: "prep-start", issue: "FAFF-1", phase: "prep" },
+        { schema: 2, run_id: "r", seq: 2, type: "build-start", issue: "FAFF-1", phase: "build" },
+      ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+      let defaultCalls = 0;
+      const countOk = async () => { defaultCalls++; return { statusCode: 200, body: "" }; };
+      const rDefault = await runPump(infoRoot, infoRun, countOk);
+      ok("default andon.events (no informational classes opted in) → zero informational sends", rDefault.sent === 0 && defaultCalls === 0);
+
+      // Opt into all three; re-pump the SAME (already-cursor-advanced) run — reset state
+      // to re-classify from scratch, this time with an admission summary + two starts.
+      writeAndonState(infoRun, { cursor: 0, notified: [], failures: [] });
+      fs.writeFileSync(path.join(infoRoot, ".faffrc.yaml"),
+        "andon:\n  url: http://fixture.invalid/hook\n  events:\n    - admitted\n    - prep-start\n    - build-start\n");
+      fs.writeFileSync(path.join(infoRun, "events.jsonl"), [
+        { schema: 2, run_id: "r", seq: 0, type: "issue-admitted", issue: "FAFF-1", phase: "run" },
+        { schema: 2, run_id: "r", seq: 1, type: "issue-admitted", issue: "FAFF-2", phase: "run" },
+        { schema: 2, run_id: "r", seq: 2, type: "issue-admitted", issue: "FAFF-3", phase: "run" },
+        { schema: 2, run_id: "r", seq: 3, type: "prep-start", issue: "FAFF-1", phase: "prep" },
+        { schema: 2, run_id: "r", seq: 4, type: "build-start", issue: "FAFF-1", phase: "build" },
+        { schema: 2, run_id: "r", seq: 5, type: "build-start", issue: "FAFF-1", phase: "build" }, // re-dispatch — must dedupe
+      ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+      const posted = [];
+      const capture = async (url, body) => { posted.push(JSON.parse(body)); return { statusCode: 200, body: "" }; };
+      const rInfo = await runPump(infoRoot, infoRun, capture);
+      ok("3 issue-admitted + 1 prep-start + 2 build-start(dup) → exactly 3 sends (1 admitted summary, deduped build-start)",
+        rInfo.sent === 3 && posted.length === 3);
+      const admitted = posted.find((p) => p.class === "admitted");
+      ok("admitted summary lists FAFF-1/2/3 and carries no issue field",
+        !!admitted && !("issue" in admitted) && ["FAFF-1", "FAFF-2", "FAFF-3"].every((id) => admitted.body.includes(id)));
+      const prep = posted.find((p) => p.class === "prep-start");
+      ok("prep-start notification names the run, issue FAFF-1, and stage", !!prep && prep.issue === "FAFF-1" && prep.body.includes("prep"));
+      const build = posted.filter((p) => p.class === "build-start");
+      ok("build-start sent exactly once despite two events (dedupe key build-start:FAFF-1)", build.length === 1 && build[0].issue === "FAFF-1");
+      ok("run-critical classification/behaviour is untouched by the informational additions",
+        JSON.stringify(ANDON_DEFAULT_EVENTS) === JSON.stringify(["park", "sentry-trip", "budget-breach"]));
+    } finally { fs.rmSync(infoRoot, { recursive: true, force: true }); fs.rmSync(infoRun, { recursive: true, force: true }); }
+  })();
+
+  return Promise.all([disabledDone, pumpDone, informationalDone]).then(() => {
     console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (andon --selftest, ${fail} failed)`);
     return fail ? 1 : 0;
   });

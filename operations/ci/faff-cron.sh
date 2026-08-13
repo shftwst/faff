@@ -64,9 +64,18 @@ faff container-check --gate
 #    not skip the disposition gate: a drain that crashed BEFORE writing a ledger leaves
 #    no run-ledger.json (disposition exits 3), and one that wrote a partial ledger then
 #    died is scored incomplete (non-zero) — either way disposition catches it.
+#    CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 removes the harness's own background-task
+#    wait ceiling (unset defaults to 600000ms / 600s). Without it, a legitimately slow
+#    run-end step (post-merge verification can take minutes against GitHub CI) that
+#    outlives 600s makes the harness force-terminate the PARENT orchestrator mid-wait —
+#    leaving the run-ledger stuck `owner.status:"running"` after a real merge (FAFF-782).
+#    `=0` delegates the ceiling to the single outer `timeout 300m` above rather than
+#    layering a second, shorter, silent one; the wall-clock `timeout` stays the true
+#    bound. An operator preferring a finite value can set one comfortably above
+#    post-merge-check's worst case — see docs/guide/self-hosted-rig.md.
 FAFF_RUN_DIR=".faff/runs/run-$(date -u +%Y%m%d-%H%M%S)-l3-cron"
 export FAFF_RUN_DIR
-timeout 300m claude -p "/faff-beep-boop" || true
+CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 timeout 300m claude -p "/faff-beep-boop" || true
 
 # 3. DISPOSITION — the final, exit-propagating step: non-zero iff anything parked /
 #    errored / needs attention (parked-window included). It is the authoritative

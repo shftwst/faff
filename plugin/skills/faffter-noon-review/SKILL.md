@@ -20,9 +20,9 @@ The verdict vocabulary and its semantics (`faff contract review-verdict --descri
 
 ## Why pre-PR
 
-In human-in-the-loop development, review happens either implicitly during pair programming (pre-PR) or as a PR review (post-PR). In an automated pipeline, raising a PR has real costs — CI minutes, potential failed test runs, idle time waiting for infrastructure. Faff runs review **before** the PR is raised: cheaper, faster, catches issues before burning CI time. faff-graft opens the PR (its Step 9b) **only after this review returns `pass`** — identically in interactive and autonomous modes — so review-fix iterations never reach CI (FAFF-185).
+In human-in-the-loop development, review happens either implicitly during pair programming (pre-PR) or as a PR review (post-PR). In an automated pipeline, raising a PR has real costs — CI minutes, potential failed test runs, idle time waiting for infrastructure. Faff runs review **before** the PR is raised: cheaper, faster, catches issues before burning CI time. faff-graft opens the PR (its Step 9b) **only after this review returns `pass`** — identically in interactive and autonomous modes — so review-fix iterations never reach CI.
 
-Review findings that would have surfaced as PR comments are reported to the **tracker issue** instead (the single canonical findings surface — there is no PR at review time) — no loss of information, just earlier and cheaper feedback. faff-graft owns *how many* such comments: per its **collapse-and-log** policy (Step 9, FAFF-184) the per-pass findings accumulate in `.faff/logs` and only the final verdict lands as a **single** tracker comment — this producer returns findings, it does not itself post a comment per pass.
+Review findings that would have surfaced as PR comments are reported to the **tracker issue** instead (the single canonical findings surface — there is no PR at review time) — no loss of information, just earlier and cheaper feedback. faff-graft owns *how many* such comments: per its **collapse-and-log** policy (Step 9) the per-pass findings accumulate in `.faff/logs` and only the final verdict lands as a **single** tracker comment — this producer returns findings, it does not itself post a comment per pass.
 
 ## When it runs
 
@@ -107,7 +107,7 @@ Any finding here → `needs-human` (park, don't iterate)
 
 ## Verdict rules
 
-This maps *this reviewer's* five passes onto three of the review-verdict contract's four values. The contract's fourth value, `unavailable`, is an availability signal the orchestrator raises on a review-chain outage (FAFF-405) — never something this producer reports about its own run, since a reviewer can't declare its own review chain down. The verdicts' meaning and the revert test (`fail` vs `needs-human`) are part of the fixed review-verdict contract in the gateway, which also defines the envelope this reviewer emits them in.
+This maps *this reviewer's* five passes onto three of the review-verdict contract's four values. The contract's fourth value, `unavailable`, is an availability signal the orchestrator raises on a review-chain outage — never something this producer reports about its own run, since a reviewer can't declare its own review chain down. The verdicts' meaning and the revert test (`fail` vs `needs-human`) are part of the fixed review-verdict contract in the gateway, which also defines the envelope this reviewer emits them in.
 
 - Any finding from pass 5 (human-judgement) → the human-judgement verdict
 - Any finding from passes 1–4 → the fixable-issues verdict (iterate: fix, re-test, re-review)
@@ -117,7 +117,7 @@ This maps *this reviewer's* five passes onto three of the review-verdict contrac
 
 Returns the signal (the closed review-verdict vocabulary — `faff contract review-verdict --describe`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-graft.
 
-## Contract artifact (FAFF-108)
+## Contract artifact
 
 After the prose output above (the `signal:` line and `## Findings`), append **one** fenced code block — tagged `faff-contract:review-verdict`, as the **last** thing in the output — declaring the verdict you just reached, so faff-graft (the consumer) parses it **deterministically** (no LLM re-read of your prose) and pipes it to `faff contract review-verdict`. You authored the verdict and raised each finding, so you declare them directly; the block mirrors the prose, it is not a second source of truth. (Same pattern the `spec` producer adopted for `faff-contract:spec-readiness`.)
 
@@ -140,9 +140,9 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 | Scope strictness | Strict — any out-of-scope line is a `fail` | Strict | Allows trivial adjacent cleanups (typo fixes, import sorting in touched files) | Same as high |
 | Bug scan depth | Standard | Standard | Standard | Standard |
 | Human-judgement threshold | Conservative — lower bar for `needs-human` | Standard | Standard | Standard |
-| Review→fix→review iterations before escalation (FAFF-341: materialized by `faff review-iteration-cap`) | 1 | 3 | 5 | 10 |
+| Review→fix→review iterations before escalation (materialized by `faff review-iteration-cap`) | 1 | 3 | 5 | 10 |
 
-The defect bar (what counts as a bug / spec-fidelity / correctness finding) does not loosen at any appetite level. The scope-strictness allowance at high/full above is a separate, narrow axis — permission to let trivial adjacent cleanups (typo fixes, import sorting) pass without flagging — not a softening of the defect bar itself. Appetite governs **persistence** — how many fix→review cycles the pipeline attempts before escalating to `needs-human`. At `low`, one failed iteration and it escalates. At `full`, it keeps trying up to 10 passes. This row is the human-readable statement of the policy; `faff review-iteration-cap --appetite <appetite>` is the runtime/machine form `faff-graft`'s Step 9 loop actually consumes (single literal source — FAFF-341), so the two cannot silently drift.
+The defect bar (what counts as a bug / spec-fidelity / correctness finding) does not loosen at any appetite level. The scope-strictness allowance at high/full above is a separate, narrow axis — permission to let trivial adjacent cleanups (typo fixes, import sorting) pass without flagging — not a softening of the defect bar itself. Appetite governs **persistence** — how many fix→review cycles the pipeline attempts before escalating to `needs-human`. At `low`, one failed iteration and it escalates. At `full`, it keeps trying up to 10 passes. This row is the human-readable statement of the policy; `faff review-iteration-cap --appetite <appetite>` is the runtime/machine form `faff-graft`'s Step 9 loop actually consumes (single literal source), so the two cannot silently drift.
 
 ## Rules
 

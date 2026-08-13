@@ -89,10 +89,14 @@ function issueOutcomeEventMap(events) {
 // on run-ledger.json; the parks/events substrates only enrich `cause` and never change
 // the disposition. `auditLedger` throws on a malformed ledger (→ exit 2 in the shell).
 // ---------------------------------------------------------------------------
-function computeDisposition(ledger, parksMap, eventMap, runId) {
+function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId) {
   const audit = auditLedger(ledger, ledger.run_id);   // throws on malformed → exit 2 shell-side
   parksMap = parksMap || {};
   eventMap = eventMap || {};
+  // issue → true iff merge-record.json proved merged (FAFF-782). Coerce a non-object to {} so an
+  // old 4-arg caller (…, eventMap, runId) that misbinds a string runId as mergedMap degrades LOUDLY
+  // to "no merge evidence" rather than silently relying on string-index falsiness.
+  mergedMap = (mergedMap && typeof mergedMap === "object" && !Array.isArray(mergedMap)) ? mergedMap : {};
   const outcomes = (ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes))
     ? ledger.outcomes : {};
   const items = [];
@@ -122,10 +126,23 @@ function computeDisposition(ledger, parksMap, eventMap, runId) {
   // 6. an incomplete ledger (undispatched admitted issues, or invalid outcome tokens) →
   // an incomplete-ledger item naming them. An abandoned/killed run must read as
   // needs-attention independently of stop_reason adoption (fail toward attention).
+  // FAFF-782: partition undispatched issues by merge evidence — an admitted-but-unrecorded
+  // issue whose merge-record.json proved `merged:true` (mergedMap[issue] === true) is a
+  // merged-but-unclosed run (the harness killed the orchestrator after a durable merge, before
+  // the ledger close), a distinct, less-alarming class than a genuine build failure. It gets its
+  // own `merged-unclosed` item; the remaining undispatched issues plus invalid-outcome tokens
+  // keep the generic `incomplete-ledger` item (omitted when that remainder is empty). Still
+  // attention (exit 1) — the run is not silently green, it just needs closing, not investigating.
   if (!audit.clean) {
-    const names = [...audit.undispatched, ...audit.invalid_outcomes];
-    items.push({ kind: "incomplete-ledger", issue: null, outcome: null,
-      cause: names.length ? names.join(", ") : "incomplete" });
+    const mergedUnclosed = audit.undispatched.filter((i) => mergedMap[i] === true);
+    const remainderUndispatched = audit.undispatched.filter((i) => mergedMap[i] !== true);
+    for (const issue of mergedUnclosed) {
+      items.push({ kind: "merged-unclosed", issue, outcome: null, cause: "merged-unrecorded" });
+    }
+    const names = [...remainderUndispatched, ...audit.invalid_outcomes];
+    if (names.length) {
+      items.push({ kind: "incomplete-ledger", issue: null, outcome: null, cause: names.join(", ") });
+    }
   }
 
   const counts = {};
@@ -163,6 +180,45 @@ function readIssueOutcomeEvents(runDir) {
       .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
     return issueOutcomeEventMap(events);
   } catch { return {}; }
+}
+
+// FAFF-782: best-effort issue→true map from each admitted issue's merge-record.json. The
+// merge evidence substrate that lets the pure classifier distinguish a merged-but-unclosed run
+// (the orchestrator was killed after a durable merge) from a genuine build failure. Gathered in
+// the impure shell — never inside computeDisposition, which stays a pure filesystem-free classifier
+// (the read-substrate-in-the-shell pattern of readParksMap / readIssueOutcomeEvents). Degrades to
+// omission (never throws): an issue is included ONLY when its merge-record.json parses to an object
+// with `.merged === true`. Absent / unreadable / malformed / truncated JSON / merged!=true → the
+// issue is omitted, so an unprovable merge is never asserted as merged-unclosed (fail-safe).
+const ISSUE_ID_RE = /^[A-Z][A-Z0-9]*-\d+$/;
+function readMergedMap(runDir, admitted) {
+  const result = {};
+  if (!Array.isArray(admitted)) return result;
+  for (const issue of admitted) {
+    // Trusted-input guard: reject any non-issue-id admitted entry before the path.join. Belt-and-
+    // braces — admitted is written by the run's own agents to a controlled volume — not a security
+    // control (disposition emits only a boolean + issue-id, never file contents).
+    if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue)) continue;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(path.join(runDir, issue, "merge-record.json"), "utf8"));
+      if (parsed && typeof parsed === "object" && parsed.merged === true) result[issue] = true;
+    } catch { /* absent / unreadable / malformed / truncated → omit (degrade, never crash) */ }
+  }
+  return result;
+}
+
+// FAFF-782: best-effort issue→{pr,sha} from the same merge-records, for the shell-side render
+// enrichment only (never fed to the pure core). Non-load-bearing: absent details leave the item's
+// cause as the plain stable token.
+function readMergedDetails(runDir, issue) {
+  if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue)) return null;   // same shape guard as readMergedMap before any path.join (belt-and-braces — callers only pass guarded mergedMap keys today)
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(runDir, issue, "merge-record.json"), "utf8"));
+    if (parsed && typeof parsed === "object" && parsed.merged === true) {
+      return { pr: parsed.pr, sha: typeof parsed.head_sha === "string" ? parsed.head_sha.slice(0, 8) : null };
+    }
+  } catch { /* degrade */ }
+  return null;
 }
 
 function renderDisposition(report) {
@@ -210,12 +266,24 @@ function cmdDisposition(args) {
 
   const parksMap = readParksMap(runDir);
   const eventMap = readIssueOutcomeEvents(runDir);
+  const mergedMap = readMergedMap(runDir, Array.isArray(ledger.admitted) ? ledger.admitted : []);
 
   let report;
-  try { report = computeDisposition(ledger, parksMap, eventMap, ledger.run_id || path.basename(runDir)); }
+  try { report = computeDisposition(ledger, parksMap, eventMap, mergedMap, ledger.run_id || path.basename(runDir)); }
   catch (e) {
     process.stderr.write(`faff disposition: malformed ledger in ${path.join(runDir, "run-ledger.json")}: ${e.message}\n`);
     return 2;
+  }
+
+  // Shell-side render enrichment (non-load-bearing, FAFF-782): surface the shipped PR/sha on each
+  // merged-unclosed item so an operator scanning drain.sh output sees the merge at a glance. Only
+  // for the (rare) merged-unclosed items — the pure core already decided the classification.
+  for (const it of report.attention) {
+    if (it.kind !== "merged-unclosed" || !it.issue) continue;
+    const d = readMergedDetails(runDir, it.issue);
+    if (d && (d.pr != null || d.sha)) {
+      it.cause = `merged-unrecorded${d.pr != null ? ` pr#${d.pr}` : ""}${d.sha ? ` ${d.sha}` : ""}`;
+    }
   }
 
   if (asJson) console.log(JSON.stringify(report, null, 2));
@@ -226,89 +294,114 @@ function cmdDisposition(args) {
 // ---------------------------------------------------------------------------
 // Selftest — drives computeDisposition as a pure function over a fixture table
 // covering every Scenario in the spec plus the degrade paths.
-// [name, ledger, parksMap, eventMap, wantDisposition, attentionCheck?]
+// [name, ledger, parksMap, eventMap, mergedMap, wantDisposition, attentionCheck?]
 // ---------------------------------------------------------------------------
 const has = (attention, pred) => attention.some(pred);
 const DISPOSITION_SELFTEST_CASES = [
   ["parked issue + parks-block cause → needs-attention, issue-outcome cause from parks",
     { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "parked" } },
-    { "FAFF-X": "punt-not-closed" }, {}, "needs-attention",
+    { "FAFF-X": "punt-not-closed" }, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "issue-outcome" && i.issue === "FAFF-X" && i.outcome === "parked" && i.cause === "punt-not-closed")],
   ["all shipped/routed-out + queue-drained → clean, no attention",
     { run_id: "R", admitted: ["A", "B"], outcomes: { A: "shipped", B: "routed-out" }, stop_reason: "queue-drained" },
-    {}, {}, "clean", (a) => a.length === 0],
+    {}, {}, {}, "clean", (a) => a.length === 0],
   ["all shipped + budget-escalated(tokens) → run-escalation item",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, stop_reason: "budget-escalated(tokens)" },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "run-escalation" && i.cause === "budget-escalated(tokens)")],
   ["admitted issue absent from outcomes (killed run) → incomplete-ledger naming it",
     { run_id: "R", admitted: ["A", "B"], outcomes: { A: "shipped" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "incomplete-ledger" && String(i.cause).includes("B"))],
   ["ledger abort entry → aborted item with the abort signal as cause",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, abort: { status: "aborted-resumable", signal: "wall-clock-runaway" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "aborted" && i.cause === "wall-clock-runaway")],
   ["owner.status aborted-resumable (no abort entry) → aborted item, cause sentry-abort",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, owner: { status: "aborted-resumable" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "aborted" && i.cause === "sentry-abort")],
   ["pr-open counts as attention",
     { run_id: "R", admitted: ["A"], outcomes: { A: "pr-open" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "issue-outcome" && i.outcome === "pr-open")],
   ["routed-out alone is clean (never attention)",
     { run_id: "R", admitted: ["A"], outcomes: { A: "routed-out" }, stop_reason: "all-remaining-parked" },
-    {}, {}, "clean", (a) => a.length === 0],
+    {}, {}, {}, "clean", (a) => a.length === 0],
   ["errored + unreached-budget → two issue-outcome items",
     { run_id: "R", admitted: ["A", "B"], outcomes: { A: "errored", B: "unreached-budget" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => a.filter((i) => i.kind === "issue-outcome").length === 2],
   ["cause degrade: no parks + event data has gate → event-derived cause",
     { run_id: "R", admitted: ["A"], outcomes: { A: "errored" } },
-    {}, { A: { seq: 1, data: { gate: "ci" } } }, "needs-attention",
+    {}, { A: { seq: 1, data: { gate: "ci" } } }, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "issue-outcome" && i.cause === "ci")],
   ["cause degrade: absent parks + absent event → cause null",
     { run_id: "R", admitted: ["A"], outcomes: { A: "parked" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "issue-outcome" && i.cause === null)],
   ["parks block wins over events (precedence)",
     { run_id: "R", admitted: ["A"], outcomes: { A: "parked" } },
-    { A: "gap" }, { A: { seq: 1, data: { gate: "ci" } } }, "needs-attention",
+    { A: "gap" }, { A: { seq: 1, data: { gate: "ci" } } }, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "issue-outcome" && i.cause === "gap")],
   ["non-escalate stop_reason budget-hit(...) → no run-escalation",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, stop_reason: "budget-hit(tokens)" },
-    {}, {}, "clean", (a) => a.length === 0],
+    {}, {}, {}, "clean", (a) => a.length === 0],
   ["empty run (no admitted, no outcomes) → clean",
     { run_id: "R", admitted: [], outcomes: {} },
-    {}, {}, "clean", (a) => a.length === 0],
+    {}, {}, {}, "clean", (a) => a.length === 0],
   ["unknown/future outcome token → incomplete-ledger (fail toward attention)",
     { run_id: "R", admitted: ["A"], outcomes: { A: "weird-token" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "incomplete-ledger" && String(i.cause).includes("weird-token"))],
   ["absent stop_reason (legacy ledger) still detects the abort marker",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, abort: { status: "aborted-resumable" } },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "aborted" && i.cause === "sentry-abort")],
   ["escalate exact: non-convergence → run-escalation",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, stop_reason: "non-convergence" },
-    {}, {}, "needs-attention",
+    {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.kind === "run-escalation" && i.cause === "non-convergence")],
   ["counts histogram is emitted over outcomes",
     { run_id: "R", admitted: ["A", "B", "C"], outcomes: { A: "shipped", B: "shipped", C: "parked" } },
-    {}, {}, "needs-attention", null],
+    {}, {}, {}, "needs-attention", null],
   ["FAFF-571: superseded is clean (accepted by auditLedger AND excluded from attention)",
     { run_id: "R", admitted: ["A"], outcomes: { A: "superseded" } },
-    {}, {}, "clean", (a) => a.length === 0],
+    {}, {}, {}, "clean", (a) => a.length === 0],
+  // FAFF-782 — merged-unclosed detection (the merge evidence substrate distinguishing a
+  // truncated-post-merge run from a genuine build failure).
+  ["FAFF-782: undispatched issue WITH merge-record merged:true → merged-unclosed item, NO incomplete-ledger naming it",
+    { run_id: "R", admitted: ["FAFF-417"], outcomes: {} },
+    {}, {}, { "FAFF-417": true }, "needs-attention",
+    (a) => has(a, (i) => i.kind === "merged-unclosed" && i.issue === "FAFF-417" && i.cause === "merged-unrecorded")
+        && !has(a, (i) => i.kind === "incomplete-ledger" && String(i.cause).includes("FAFF-417"))],
+  ["FAFF-782: undispatched issue with NO merge evidence (killed before merge) → generic incomplete-ledger, never merged-unclosed",
+    { run_id: "R", admitted: ["FAFF-417"], outcomes: {} },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "incomplete-ledger" && String(i.cause).includes("FAFF-417"))
+        && !has(a, (i) => i.kind === "merged-unclosed")],
+  ["FAFF-782: corrupt/absent merge-record fails safe (omitted from mergedMap) → generic incomplete-ledger, never merged-unclosed",
+    { run_id: "R", admitted: ["FAFF-417"], outcomes: {} },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "incomplete-ledger") && !has(a, (i) => i.kind === "merged-unclosed")],
+  ["FAFF-782: mixed run — FAFF-A merged-unclosed, FAFF-B genuinely undispatched → BOTH items present in one report",
+    { run_id: "R", admitted: ["FAFF-A", "FAFF-B"], outcomes: {} },
+    {}, {}, { "FAFF-A": true }, "needs-attention",
+    (a) => has(a, (i) => i.kind === "merged-unclosed" && i.issue === "FAFF-A")
+        && has(a, (i) => i.kind === "incomplete-ledger" && String(i.cause).includes("FAFF-B") && !String(i.cause).includes("FAFF-A"))],
+  ["FAFF-782: merged-unclosed is attention (exit 1), never silently clean",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: {} },
+    {}, {}, { "FAFF-A": true }, "needs-attention",
+    (a) => a.length > 0 && has(a, (i) => i.kind === "merged-unclosed")],
 ];
 
 function dispositionSelftest() {
   let fail = 0;
-  for (const [name, ledger, parksMap, eventMap, wantDisp, attnCheck] of DISPOSITION_SELFTEST_CASES) {
+  for (const [name, ledger, parksMap, eventMap, mergedMap, wantDisp, attnCheck] of DISPOSITION_SELFTEST_CASES) {
     let ok = true;
     let detail = "";
     try {
-      const report = computeDisposition(ledger, parksMap, eventMap);
+      const report = computeDisposition(ledger, parksMap, eventMap, mergedMap);
       if (report.disposition !== wantDisp) { ok = false; detail = `disposition=${report.disposition} (want ${wantDisp})`; }
       if (ok && attnCheck && !attnCheck(report.attention)) { ok = false; detail = `attention check failed: ${JSON.stringify(report.attention)}`; }
       // counts histogram sanity on the dedicated case: shipped=2, parked=1.
@@ -327,5 +420,5 @@ module.exports = {
   ATTENTION_OUTCOMES, DISPOSITION_SELFTEST_CASES, ESCALATE_STOP_EXACT,
   cmdDisposition, computeDisposition, dispositionSelftest, eventCause,
   isEscalateStopReason, issueOutcomeEventMap, parksCauseMap,
-  readIssueOutcomeEvents, readParksMap, renderDisposition,
+  readIssueOutcomeEvents, readMergedMap, readParksMap, renderDisposition,
 };

@@ -83,9 +83,9 @@ Needs your call before automation can pick up:
 
 The synthesis gloss (gateway → **Rendering → `rendering_adaptor`**, synthesis gloss) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the rendering contract.
 
-## Validate — wired to the contract script (FAFF-80)
+## Validate — wired to the contract script
 
-Validation is **conformance by construction** (FAFF-21): this adaptor does **not** prose-check the verdict's *shape*. It **extracts** the assigned verdict into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract automation-routing` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
+Validation is **conformance by construction**: this adaptor does **not** prose-check the verdict's *shape*. It **extracts** the assigned verdict into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract automation-routing` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
 
 **The split:**
 

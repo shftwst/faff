@@ -65,6 +65,7 @@ const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate } = require("
 const { cmdNext } = require("./lib/next");
 const { cmdParkHistory } = require("./lib/park-history");
 const { cmdPostMergeCheck } = require("./lib/post-merge");
+const { cmdPrBody } = require("./lib/pr-body");
 const { cmdPrd } = require("./lib/prd");
 const { cmdPrdChecklist } = require("./lib/prd-checklist");
 const { cmdPrdr } = require("./lib/prdr");
@@ -149,6 +150,7 @@ const COMMANDS = {
   "github-auth-check": cmdGithubAuthCheck,
   "ci-triage": cmdCiTriage,
   "post-merge-check": cmdPostMergeCheck,
+  "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,
   "harness": (args) => cmdHarness(args, COMMANDS),
   "next": cmdNext,

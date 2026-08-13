@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-781",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6c10d8c960775029dda133d88a4243850e927fc52171eccb684c212579117e39",
+    "branch": "faff-781-let-operators-follow-admitted-tickets-and-ticket-starts",
+    "pushed_at": "2026-08-13T01:55:15.159Z"
+  },
+  "updated_at": "2026-08-13T01:55:15.159Z"
+}

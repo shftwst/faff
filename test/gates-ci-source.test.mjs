@@ -2,9 +2,10 @@
 // Encodes the acceptance directly. The `--selftest` table (run via runCli below) covers the
 // classifier / extractor / dedup / false-positive units against tmp fixtures; THIS file adds the
 // real-repo-root acceptance: faff's OWN `.github/workflows/validate.yml` must resolve
-// `discovery: confident` with a re-runnable UNIT rung (`node --test`), so the `gates.fallback:
-// advisory` stopgap can be removed from this repo's .faffrc.yaml with no regression, and post-merge
-// verification finds a real UNIT rung instead of "no UNIT rung discovered".
+// `discovery: confident` with a re-runnable UNIT rung (`node --import ./test/hermetic-env.mjs
+// --test`, the FAFF-785 hermetic invocation), so the `gates.fallback: advisory` stopgap can be
+// removed from this repo's .faffrc.yaml with no regression, and post-merge verification finds a
+// real UNIT rung instead of "no UNIT rung discovered".
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
@@ -27,13 +28,13 @@ test("faff's own repo root resolves discovery:confident with a UNIT rung (the st
   assert.equal(discovery, "confident", "faff's own repo must now resolve confident via its CI workflow");
   const unit = rungs.filter((r) => r.kind === "UNIT");
   assert.equal(unit.length, 1, "exactly one UNIT rung after dedup");
-  assert.equal(unit[0].command, "node --test", "the UNIT rung is the re-runnable node --test command");
+  assert.equal(unit[0].command, "node --import ./test/hermetic-env.mjs --test", "the UNIT rung is the re-runnable hermetic node --test command (FAFF-785)");
   assert.equal(unit[0].source, "ci_workflow", "sourced from the CI workflow (the only UNIT declarer)");
 });
 
 test("the detector reads validate.yml directly — >=1 UNIT (node --test) and >=1 LINT rung", () => {
   const ci = discoverCiWorkflows(repoRoot);
-  assert.ok(ci.some((r) => r.kind === "UNIT" && r.command === "node --test"), "node --test UNIT rung");
+  assert.ok(ci.some((r) => r.kind === "UNIT" && r.command === "node --import ./test/hermetic-env.mjs --test"), "hermetic node --test UNIT rung (FAFF-785)");
   assert.ok(ci.some((r) => r.kind === "LINT"), "at least one LINT rung (validate-adapters/lint-refs/lint-cli-doc)");
   assert.ok(ci.every((r) => r.source === "ci_workflow" && r.required === true), "shape: ci_workflow + required");
   assert.ok(ci.every((r) => r.cost_rank === GATE_COST[r.kind] + CI_COST_PENALTY), "cost_rank = base + penalty");

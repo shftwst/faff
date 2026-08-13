@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-438",
+  "build": {
+    "status": "complete",
+    "diff_hash": "1dab8803af753806387b85ec6cc735e9f3976dfa638360c6cf219d1927adb326",
+    "branch": "faff-438-explicit-target-on-a-container-has-one-documented-reachable",
+    "pushed_at": "2026-08-13T02:35:14.336Z"
+  },
+  "updated_at": "2026-08-13T02:35:14.336Z"
+}

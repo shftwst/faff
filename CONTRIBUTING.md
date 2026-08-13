@@ -20,11 +20,20 @@ this clone's `core.hooksPath` at [`.githooks/`](.githooks), which installs a
 CI runs these, and you can run them locally from the repository root:
 
 ```sh
-node --test test/                                    # the test suite
+node --import ./test/hermetic-env.mjs --test test/   # the test suite (canonical invocation)
 node plugin/skills/faff/bin/faff validate-adapters   # SKILL.md lint
 node plugin/skills/faff/bin/faff lint-refs           # ban tracker refs in skill prose
 node plugin/skills/faff/bin/faff lint-cli-doc        # CLI-doc coverage
 ```
+
+The `--import ./test/hermetic-env.mjs` preload is the **canonical way to run the
+suite** (FAFF-785). It scrubs faff-owned `FAFF_*`/`CLAUDE_*` variables from the
+environment before any test loads, so a checkout that is itself a live faff repo
+— an operator shell full of `FAFF_*` and a populated `.faff/runs/` history —
+produces the same green result as clean CI. A bare `node --test` still works on a
+clean checkout; the preload is what makes a *dirty* one match it. The one
+exception, `FAFF_REQUIRE_DOCKER`, survives the scrub so docker-gated cases keep
+failing loud rather than silently skipping (FAFF-274).
 
 ## Pull requests
 

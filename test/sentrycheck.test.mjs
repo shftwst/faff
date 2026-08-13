@@ -66,6 +66,20 @@ function run(args, env) {
 
 const isoAgo = (secs) => new Date(Date.now() - secs * 1000).toISOString();
 
+// The stale/abandoned fixtures below must age a heartbeat PAST the effective sentry
+// stall window so the consult classifies the run abandoned (strict `age > stall_window_secs`).
+// That window is read from the repo's committed `.faffrc.yaml` (sentry.stall_window_secs),
+// so a hardcoded fixture age silently un-stales itself the moment the committed window is
+// bumped past it (FAFF-795: 1800 → 2400 did exactly this). Derive the age from the LIVE
+// configured value + a margin so a future bump can never re-break these. Fresh fixtures
+// deliberately stay a small fixed age (isoAgo(10)) — only the stale ones derive.
+const STALL_WINDOW_SECS = (() => {
+  const r = spawnSync("node", [CLI, "config", "get", "sentry.stall_window_secs"], { encoding: "utf8" });
+  const n = Number((r.stdout ?? "").trim());
+  return Number.isFinite(n) && n > 0 ? n : 900; // 900 = RUN_HEARTBEAT_STALE_SECS_DEFAULT
+})();
+const STALE_AGE_SECS = STALL_WINDOW_SECS + 200; // comfortably past the window
+
 // Build a run-ledger fixture; returns { root, runDir, ledgerBytes() }.
 function rootWith(ledger) {
   const root = mkdtempSync(join(tmpdir(), "sentrycheck-"));
@@ -85,7 +99,7 @@ test("sentrycheck --selftest passes (the pure gate + consult-classifier table)",
 test("Scenario 1: foreign + running + stale heartbeat -> exactly one sentry check consult, one [warn] line, exit 0, ledger unchanged", () => {
   const { root, runDir, ledgerBytes } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const before = ledgerBytes();
   try {
@@ -136,7 +150,7 @@ test("tripped:false stays silent even when a genuine consult is spawned (sentry'
 test("Scenario 3: owned by this session (FAFF_RUN_DIR match) -> silent, no consult regardless of heartbeat age", () => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   try {
     const r = run(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: runDir, FAFF_SESSION_ID: "" });
@@ -149,7 +163,7 @@ test("Scenario 3: owned by this session (FAFF_RUN_DIR match) -> silent, no consu
 test("holdout scenario (done + stale) -> skip-not-running, silent, no consult", () => {
   const { root } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "done", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "done", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   try {
     const r = run(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
@@ -162,7 +176,7 @@ test("holdout scenario (done + stale) -> skip-not-running, silent, no consult", 
 test("consult-failure notice: a foreign abandoned run whose sentry consult itself faults gets a distinct non-blocking notice (never silent, never a decision payload)", () => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   try {
     // Force the CHILD `faff sentry check` to fault while the PARENT hook's own
@@ -252,7 +266,7 @@ test("probeServes probe shape: --hook --root <empty tmpdir> exits 0 fast and nev
 test("FAFF-472 Scenario 2: tripped consult with andon.url configured -> `andon send` pages exactly once, writing NO state to the foreign run dir", async (t) => {
   const { root, runDir, ledgerBytes } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const before = ledgerBytes();
   const { posts, url } = await loopbackServer(t);
@@ -280,7 +294,7 @@ test("FAFF-472 Scenario 2: tripped consult with andon.url configured -> `andon s
 test("FAFF-472: andon.url unset -> tripped consult still writes the existing advisory line, exits 0, and attempts no notification (byte-for-byte no-op on the andon side)", async (t) => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   try {
     const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
@@ -295,7 +309,7 @@ test("FAFF-472: andon.url unset -> tripped consult still writes the existing adv
 test("FAFF-472: an andon webhook failure never changes the hook's exit-0 contract or the advisory stderr line", async (t) => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},
-    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const { posts, url } = await loopbackServer(t, (req, res) => { res.writeHead(500); res.end("nope"); });
   writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);

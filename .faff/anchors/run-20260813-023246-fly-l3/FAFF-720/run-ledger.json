@@ -1,0 +1,83 @@
+{
+  "run_id": "run-20260813-023246-fly-l3",
+  "level": "L3",
+  "mode": "explicit-list",
+  "admitted": [
+    "FAFF-795",
+    "FAFF-720",
+    "FAFF-744"
+  ],
+  "outcomes": {
+    "FAFF-784": "routed-out",
+    "FAFF-782": "routed-out",
+    "FAFF-785": "routed-out",
+    "FAFF-788": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "window": {
+        "hours": 5,
+        "tokens": 1000000000
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786588729703,
+      "reset_epoch": 1786606729703,
+      "tokens_at_anchor": 0
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "24dfc117-689e-464f-9869-0896973ef8f1",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 87,
+        "output": 99053,
+        "cache_write": 817719,
+        "cache_read": 5830664
+      }
+    },
+    "tokens_at_start": 6747523,
+    "tokens_at_last_event": {
+      "input": 131,
+      "output": 153053,
+      "cache_write": 882927,
+      "cache_read": 11265893
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 588,
+    "session_id": "run-20260813-023246-fly-l3",
+    "started_at": "2026-08-13T02:38:49.702Z",
+    "last_heartbeat": "2026-08-13T02:38:49.702Z",
+    "harness": "claude-code",
+    "model": "claude-opus-4-8"
+  },
+  "outcome_details": {
+    "FAFF-784": {
+      "verdict": "needs-decision-first",
+      "reason": "medium-hold on security-critical merge-gate work; human-in-the-loop gate; no open Punt for resolve-attempt"
+    },
+    "FAFF-782": {
+      "verdict": "needs-decision-first",
+      "reason": "deferred architectural Punt: run-ledger auto-close disposition semantics"
+    },
+    "FAFF-785": {
+      "verdict": "needs-human",
+      "reason": "spec-review did not converge to approve within loop cap (parked at prep); Backlog; no human resolution of the 2 residual points"
+    },
+    "FAFF-788": {
+      "verdict": "duplicate-of-in-flight",
+      "reason": "cross-id duplicate of FAFF-783 (In Progress + faff-claimed); merge-race risk on ledger-mint code"
+    }
+  }
+}

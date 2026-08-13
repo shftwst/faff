@@ -78,4 +78,4 @@ models:
     eval: claude-opus-4-8
 
 sentry:
-  stall_window_secs: 1800
+  stall_window_secs: 2400

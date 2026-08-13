@@ -90,11 +90,16 @@ the git-only run-level anchor is an additive sibling built on FAFF-623's `derive
 - The evidence-branch shape (FAFF-596's original proposal, and this spec's shape 1) is rejected for
   now. If a future need reopens the retention/pruning question, it is a fresh Punt, not inherited
   from this record — this ADR does not need to answer it because shape 1 was not chosen.
-- **Follow-on build issue filed** (Backlog, `blockedBy` → FAFF-623): implement the git-only emitter
-  (byte-copy the evidence subset + CLI-computed `chain-head.json` witness, commit at run-close) +
-  the `governance-check` `deriveAnchorDirs` discovery extension for the git-only anchor tree. FAFF-623
-  is the blocker because the extension builds directly on its `deriveAnchorDirs`/`evaluateAnchorDir`
-  machinery.
+- **Follow-on build issue filed: FAFF-796** (Backlog, `blockedBy` → FAFF-623): implement the git-only
+  emitter (byte-copy the evidence subset + CLI-computed `chain-head.json` witness, commit at
+  run-close) + the `governance-check` `deriveAnchorDirs` discovery extension for the git-only anchor
+  tree + the gitignore carve-out. FAFF-623 is the blocker because the extension builds directly on
+  its `deriveAnchorDirs`/`evaluateAnchorDir` machinery. On the carve-out specifically: this ADR
+  already decided shape 2 reuses `.faff/anchors/`'s existing `!` negation line, so FAFF-796's
+  carve-out item is a verify-only check (confirm no new committed path escapes the existing
+  ignore/selftest), not new gitignore surface — named explicitly in scope so the spec's DONE
+  checklist item ("emitter + governance-check leg + gitignore carve-out") is traceable to a concrete
+  ticket line rather than silently dropped.
 - Tracker-backed mode's PR-only position and git-only mode's unconditional-anchor position are two
   halves of one decision — a future change to either (e.g., deciding tracker-backed runs also need
   a committed record) should re-examine both together, since the rationale ("bind evidence to merged

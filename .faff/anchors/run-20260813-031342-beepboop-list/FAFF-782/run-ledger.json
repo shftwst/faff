@@ -1,0 +1,56 @@
+{
+  "level": "L3",
+  "run_id": "run-20260813-031342-beepboop-list",
+  "mode": "explicit-list",
+  "admitted": ["FAFF-782"],
+  "outcomes": {
+    "FAFF-788": "routed-out",
+    "FAFF-785": "routed-out",
+    "FAFF-784": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-788": { "verdict": "fire-and-forget", "route_reason": "cross-id duplicate of claimed in-flight FAFF-783 (In Progress + faff-claimed since 2026-08-12T19:36Z, ~7.6h stale, no PR); building risks a merge race on the shared L3 ledger-mint prose. Human dedup: close FAFF-788 as dup of FAFF-783 and clear FAFF-783's stale claim (no auto-reclaimer ships yet)." },
+    "FAFF-785": { "verdict": "needs-decision-first", "route_reason": "spec-review returned needs-human (adversarial gate did not converge to approve within loop cap; two minor approach points unresolved: FAFF_REQUIRE_DOCKER scrub-exemption tradeoff, clean-checkout no-op scenario). High-confidence spec attached but never promoted (still Backlog). Human tiebreaker required." },
+    "FAFF-784": { "verdict": "needs-decision-first", "route_reason": "medium confidence (producer-downgrade after two blocker-level review corrections); security-critical merge-gate custody enforcement; spec itself states a human should weigh in before an unattended build. All decisions closed/ratified but the medium rating is the human-call signal; resolve-attempt parks a security choice. Consistent with runs 234006 and 003942." }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "tokens_at_start": 9496717,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "692ea62b-20ee-4a4f-b8e7-7e2d92f76873",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 92,
+        "output": 111878,
+        "cache_write": 615408,
+        "cache_read": 8769339
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786591307721,
+      "reset_epoch": 1786609307721,
+      "tokens_at_anchor": 834486
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260813-031342-beepboop-list",
+    "started_at": "2026-08-13T03:21:22Z",
+    "last_heartbeat": "2026-08-13T03:21:22Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

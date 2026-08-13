@@ -145,6 +145,14 @@ jobs:
           # would read its own var instead — rename this key to match. Held as a
           # repository/environment secret, injected here, never written to disk.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.FAFF_CI_SEAT_TOKEN }}
+          # Remove the harness's background-task wait ceiling (unset defaults to 600000ms).
+          # A legitimately slow run-end step (post-merge verification, minutes against CI)
+          # that outlives 600s otherwise force-terminates the PARENT orchestrator mid-wait,
+          # leaving the run-ledger `owner.status:"running"` after a real merge (FAFF-782).
+          # `0` delegates the ceiling to the single `timeout-minutes: 300` job cap above —
+          # the real wall-clock bound — rather than a second, shorter, silent one. See
+          # docs/guide/self-hosted-rig.md for the knob and the finite-value tradeoff.
+          CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: "0"
         run: |
           set -eu
           # Mint the run dir ourselves and export it so the final disposition step reads

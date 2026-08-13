@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-793",
+  "build": {
+    "status": "complete",
+    "diff_hash": "127e00ec9757a901459d3ae933a40f23dec9a5d644079b383cbe76f5b1c29e96",
+    "branch": "faff-793-process-group-kill-safety-net-for-the-adversarial-review",
+    "pushed_at": "2026-08-13T01:40:10.938Z"
+  },
+  "updated_at": "2026-08-13T01:40:10.938Z"
+}

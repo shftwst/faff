@@ -96,6 +96,30 @@ test("FP-guard: the letter-template canonical run-id shape (documentation, no re
   assert.equal(has(r, "stray marker"), false, "a placeholder template must not read as a pasted transcript id");
 });
 
+// FAFF-757: the beep-boop prose mint now appends an entropy suffix after <mode> — the
+// letter-template placeholder shape (still no real digits) must keep passing the FP-guard.
+test("FP-guard: the entropy-suffixed letter-template run-id shape is NOT a stray marker", () => {
+  const r = runOne("Mint the run directory as `run-YYYYMMDD-HHMMSS-beepboop-<mode>-<entropy>`.\n");
+  assert.equal(has(r, "stray marker"), false, "an entropy-suffixed placeholder template must not read as a pasted transcript id");
+});
+
+// FAFF-757: a REAL literal run-id carrying the new entropy suffix must still be flagged —
+// STRAY_TRANSCRIPT's `\b` after (?:beepboop|lights-out) is unanchored, so it already
+// tolerates a trailing `-<hex>` without a regex change; this pins that behaviour down.
+test("flags a literal canonical run-id with an entropy suffix (beepboop)", () => {
+  const r = runOne("Calibrated against .faff/runs/run-20260707-130600-beepboop-full-5c010e/summary.md.\n");
+  assert.ok(has(r, "stray marker"));
+  assert.match(r.stdout, /transcript run-id/);
+  assert.notEqual(r.status, 0);
+});
+
+test("flags a literal canonical run-id with an entropy suffix (lights-out)", () => {
+  const r = runOne("The run-20260707-130600-lights-out-5c010e ledger recorded the outcome.\n");
+  assert.ok(has(r, "stray marker"));
+  assert.match(r.stdout, /transcript run-id/);
+  assert.notEqual(r.status, 0);
+});
+
 test("FP-guard: a load-bearing FAFF-NN reference is NOT a stray marker", () => {
   const r = runOne("The producer emits its contract block (FAFF-109); see gateway → Contract loading.\n");
   assert.equal(has(r, "stray marker"), false, "issue-tag anchors are load-bearing, not war-stories");

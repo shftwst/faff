@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-757",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e856b2a17616b7b6ece751453019383a61af3b447099c2e4d03a4e0a825eb90d",
+    "branch": "faff-757-harden-run-id-minting-against-same-second-collisions",
+    "pushed_at": "2026-08-14T19:34:53.772Z"
+  },
+  "updated_at": "2026-08-14T19:34:53.772Z"
+}

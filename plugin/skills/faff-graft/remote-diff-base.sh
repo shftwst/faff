@@ -18,6 +18,13 @@
 # `gtimeout` (the coreutils name on macOS), else git's own low-speed abort as the fall-back on a
 # stock-macOS host with neither — so the bound holds everywhere, never a `timeout: command not
 # found` hard-fail. Run from within the repo/worktree whose base you want.
+#
+# SSH transport (FAFF-744): the low-speed knobs above only bound HTTP(S) transfers — an SSH origin
+# is bounded by `ssh` itself, so on a host with neither `timeout` nor `gtimeout` a black-holed SSH
+# connection had no wall-clock bound at all. GIT_SSH_COMMAND gives `ssh` its own connect/liveness
+# bound, reusing the same NET_TIMEOUT budget, composed into every net_git() invocation (both the
+# timeout-wrapped and unwrapped branches) so the bound holds independent of a `timeout` binary. An
+# operator-set GIT_SSH_COMMAND is used verbatim — never clobbered, never appended to.
 set -euo pipefail
 
 export GIT_TERMINAL_PROMPT=0
@@ -37,14 +44,30 @@ elif command -v gtimeout >/dev/null 2>&1; then
   TIMEOUT_BIN=gtimeout
 fi
 
+# SSH connect/liveness bound (FAFF-744): respect an operator-set GIT_SSH_COMMAND verbatim (they own
+# their transport — proxy, jump host, custom identity); otherwise default to a bounded, non-
+# interactive ssh command reusing NET_TIMEOUT. BatchMode=yes fails instead of prompting on a
+# host-key/passphrase prompt (the SSH-layer analogue of GIT_TERMINAL_PROMPT=0); ConnectTimeout
+# bounds the TCP/connect phase; ServerAliveInterval+ServerAliveCountMax=1 bounds an
+# established-then-stalled session (a mid-transfer black-hole is dropped after ~NET_TIMEOUT via one
+# unanswered keepalive). Computed once, scoped to net_git()'s own invocations only — never exported
+# process-wide, so it can't leak onto an unrelated later git call in the same process.
+if [ -n "${GIT_SSH_COMMAND:-}" ]; then
+  SSH_CMD="$GIT_SSH_COMMAND"
+else
+  SSH_CMD="ssh -o BatchMode=yes -o ConnectTimeout=$NET_TIMEOUT -o ServerAliveInterval=$NET_TIMEOUT -o ServerAliveCountMax=1"
+fi
+
 # Bounded, non-interactive git network command. The low-speed knobs abort a stalled HTTP(S) transfer
-# after NET_TIMEOUT seconds even when no `timeout` binary is present (they are harmless no-ops for
-# local/ssh transports); the timeout wrapper, when available, is the hard wall-clock bound on top.
+# after NET_TIMEOUT seconds even when no `timeout` binary is present; GIT_SSH_COMMAND bounds an SSH
+# transfer the same way (both are harmless no-ops for a transport they don't apply to — e.g. the
+# low-speed knobs for ssh://, GIT_SSH_COMMAND for HTTP(S)); the timeout wrapper, when available, is
+# the hard wall-clock bound on top of both.
 net_git() {
   if [ -n "$TIMEOUT_BIN" ]; then
-    "$TIMEOUT_BIN" "$NET_TIMEOUT" git -c "http.lowSpeedLimit=1" -c "http.lowSpeedTime=$NET_TIMEOUT" "$@"
+    GIT_SSH_COMMAND="$SSH_CMD" "$TIMEOUT_BIN" "$NET_TIMEOUT" git -c "http.lowSpeedLimit=1" -c "http.lowSpeedTime=$NET_TIMEOUT" "$@"
   else
-    git -c "http.lowSpeedLimit=1" -c "http.lowSpeedTime=$NET_TIMEOUT" "$@"
+    GIT_SSH_COMMAND="$SSH_CMD" git -c "http.lowSpeedLimit=1" -c "http.lowSpeedTime=$NET_TIMEOUT" "$@"
   fi
 }
 

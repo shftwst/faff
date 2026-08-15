@@ -15,7 +15,7 @@ import {
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory, budgetWarnings,
-  splitFindings, validateFindingsShape, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS,
+  splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS,
   attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
@@ -672,7 +672,7 @@ test("FAFF-232 chainTerminalExit: returns the FIRST needs-human class in chain o
   assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.NOT_SERVED]), EXIT.AUTH);
   assert.equal(chainTerminalExit([EXIT.NOT_SERVED, EXIT.AUTH]), EXIT.NOT_SERVED);
   assert.equal(chainTerminalExit([]), EXIT.UNREACHABLE);
-  assert.deepEqual([...CHAIN_NEEDS_HUMAN].sort((a, b) => a - b), [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MALFORMED].sort((a, b) => a - b));
+  assert.deepEqual([...CHAIN_NEEDS_HUMAN].sort((a, b) => a - b), [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.NO_FINDINGS_CONTENT].sort((a, b) => a - b));
 });
 
 test("FAFF-232 mapResultExit: per-backend result → exit class (host-source aware)", () => {
@@ -1244,6 +1244,25 @@ test("FAFF-398 main: --lights-out + all-unreachable chain → MANDATORY_OUTAGE (
   assert.equal(code, EXIT.MANDATORY_OUTAGE);
 });
 
+test("FAFF-465 main: --lights-out + a substantive-garble-only chain → MANDATORY_OUTAGE (9), composed via chainTerminalExit's UNREACHABLE(5) then the mandatory remap — not needs-human", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "no structured findings here" } }) },
+  );
+  assert.equal(code, EXIT.MANDATORY_OUTAGE);
+});
+
+test("FAFF-465 main: --lights-out + an empty/refusal-only chain → NO_FINDINGS_CONTENT (11, needs-human) — a structural fault stays human-actionable even at L4, never remapped to MANDATORY_OUTAGE", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "" } }) },
+  );
+  assert.equal(code, EXIT.NO_FINDINGS_CONTENT);
+  assert.notEqual(code, EXIT.MANDATORY_OUTAGE);
+});
+
 test("FAFF-398 main: NO flag + all-unreachable → UNREACHABLE (5, advisory pass+skip — no regression)", async () => {
   const { sys, dif } = specFiles398();
   const code = await main(
@@ -1454,21 +1473,83 @@ test("FAFF-194 splitFindings: empty content → empty sections, empty preamble",
 
 // ── validateFindingsShape ──
 
-test("FAFF-194 validateFindingsShape: empty/whitespace-only content is malformed", () => {
+test("FAFF-194 validateFindingsShape: empty/whitespace-only content is malformed, kind:empty", () => {
   assert.equal(validateFindingsShape("").ok, false);
+  assert.equal(validateFindingsShape("").kind, "empty");
   assert.equal(validateFindingsShape("   \n  ").ok, false);
+  assert.equal(validateFindingsShape("   \n  ").kind, "empty");
   assert.equal(validateFindingsShape(undefined).ok, false);
+  assert.equal(validateFindingsShape(undefined).kind, "empty");
 });
 
-test("FAFF-194 validateFindingsShape: prose with no ### section is malformed (a rambling/headerless essay)", () => {
+test("FAFF-194 validateFindingsShape: substantive prose with no ### section is malformed, kind:garbled (a rambling/headerless essay)", () => {
   const r = validateFindingsShape("## Adversarial findings — ollama/m\n\nI have thoughts but no structured findings.");
   assert.equal(r.ok, false);
+  assert.equal(r.kind, "garbled");
   assert.match(r.reason, /no recognised finding section/);
 });
 
-test("FAFF-194 validateFindingsShape: >=1 recognised severity section is findings-shaped, incl. the no-findings marker", () => {
+test("FAFF-465 validateFindingsShape: >=1 recognised severity section is findings-shaped, incl. the no-findings marker", () => {
   assert.equal(validateFindingsShape("### observation: no findings").ok, true);
   assert.equal(validateFindingsShape("## Adversarial findings — ollama/m\n\n### critical: x\nbody").ok, true);
+});
+
+test("FAFF-465 validateFindingsShape: a closed-grammar provider refusal is malformed, kind:refusal (not garbled)", () => {
+  const r = validateFindingsShape("I cannot assist with this request.");
+  assert.equal(r.ok, false);
+  assert.equal(r.kind, "refusal");
+  assert.equal(r.reason, "provider refusal");
+});
+
+// ── isProviderRefusal (FAFF-465) ──
+
+test("FAFF-465 isProviderRefusal: a table of closed-grammar refusal openers all match", () => {
+  const refusals = [
+    "I cannot assist with this request.",
+    "I can't help with that.",
+    "I won't provide that.",
+    "I am unable to complete this review.",
+    "As an AI, I cannot review this diff.",
+    "Sorry, I cannot help with this.",
+    "I don't have the ability to review this.",
+    "This response is blocked by our content policy.",
+  ];
+  for (const r of refusals) assert.equal(isProviderRefusal(r), true, r);
+});
+
+test("FAFF-465 isProviderRefusal: substantive non-findings prose is NOT a refusal (falls through to garbled)", () => {
+  assert.equal(isProviderRefusal("I have thoughts but no structured findings."), false);
+  assert.equal(isProviderRefusal("## Adversarial findings — ollama/m\n\njust some rambling prose"), false);
+});
+
+test("FAFF-465 isProviderRefusal: length-guarded — a long essay merely MENTIONING \"I cannot\" partway through is NOT a refusal", () => {
+  const long = "Reviewing this diff carefully. ".repeat(30) + "I cannot find any issues here, everything looks fine.";
+  assert.ok(long.length > 400, "fixture must exceed the length guard to test it");
+  assert.equal(isProviderRefusal(long), false);
+});
+
+test("FAFF-465 isProviderRefusal: empty/whitespace content is never a refusal (that's the 'empty' kind, checked separately)", () => {
+  assert.equal(isProviderRefusal(""), false);
+  assert.equal(isProviderRefusal("   "), false);
+  assert.equal(isProviderRefusal(undefined), false);
+});
+
+// Adversarial-review finding (Phase 2): the "content policy" and "cannot/won't assist ... with this
+// request" patterns had no `^` anchor at all — a bare substring match anywhere in the length-guarded
+// content. A short, legitimate finding mentioning either phrase well past its opening (still under the
+// overall 400-char length guard) would misclassify as `refusal` instead of `garbled` — the incidental-
+// vocabulary non-determinism this split exists to remove. Fixed by bounding both to a prefix window
+// (REFUSAL_PREFIX_CHARS); these pin the fix.
+test("FAFF-465 isProviderRefusal: a 'content policy' / 'cannot assist' mention PAST the prefix window is NOT a refusal (regression for the unanchored-substring finding)", () => {
+  const pastWindow = "This is a substantive review finding about an unrelated topic. ".repeat(3) + "This response is blocked by our content policy.";
+  assert.ok(pastWindow.length <= 400, "must stay under the overall length guard to isolate the prefix-window behaviour");
+  assert.ok(pastWindow.indexOf("content policy") > 100, "the phrase must land past the 100-char prefix window");
+  assert.equal(isProviderRefusal(pastWindow), false);
+});
+
+test("FAFF-465 isProviderRefusal: the same phrases still match WITHIN the prefix window", () => {
+  assert.equal(isProviderRefusal("This response is blocked by our content policy."), true);
+  assert.equal(isProviderRefusal("I cannot assist with this request."), true);
 });
 
 // ── canonical clean refutations (FAFF-746) ──
@@ -1734,11 +1815,17 @@ test("FAFF-194 refuteFindings: realCheck actually spawns node --check (integrati
   assert.equal(refs2.length, 0, "a genuinely broken file is NOT refuted — the reviewer was right");
 });
 
-// ── EXIT.MALFORMED + CHAIN_NEEDS_HUMAN + mandatoryRemap (the exit-code surface, FAFF-194) ──
+// ── EXIT.MALFORMED / EXIT.NO_FINDINGS_CONTENT + CHAIN_NEEDS_HUMAN + mandatoryRemap
+// (the exit-code surface, FAFF-194 / FAFF-465) ──
 
-test("FAFF-194 EXIT.MALFORMED === 10, member of CHAIN_NEEDS_HUMAN", () => {
+test("FAFF-465 EXIT.MALFORMED === 10, availability class — NOT a member of CHAIN_NEEDS_HUMAN", () => {
   assert.equal(EXIT.MALFORMED, 10);
-  assert.ok(CHAIN_NEEDS_HUMAN.has(EXIT.MALFORMED));
+  assert.ok(!CHAIN_NEEDS_HUMAN.has(EXIT.MALFORMED), "substantive-garble no longer dominates a chain terminal exit on its own");
+});
+
+test("FAFF-465 EXIT.NO_FINDINGS_CONTENT === 11, member of CHAIN_NEEDS_HUMAN", () => {
+  assert.equal(EXIT.NO_FINDINGS_CONTENT, 11);
+  assert.ok(CHAIN_NEEDS_HUMAN.has(EXIT.NO_FINDINGS_CONTENT));
 });
 
 test("FAFF-194 mandatoryRemap: MALFORMED(10) passes through UNCHANGED at every mandatory-ness (never touched by the 5/8 remap)", () => {
@@ -1746,9 +1833,14 @@ test("FAFF-194 mandatoryRemap: MALFORMED(10) passes through UNCHANGED at every m
   assert.equal(mandatoryRemap(EXIT.MALFORMED, false), EXIT.MALFORMED);
 });
 
-// ── runReviewChain: per-backend shape validation (FAFF-194) ──
+test("FAFF-465 mandatoryRemap: NO_FINDINGS_CONTENT(11) passes through UNCHANGED at every mandatory-ness — human-actionable even at L4, never remapped to 9", () => {
+  assert.equal(mandatoryRemap(EXIT.NO_FINDINGS_CONTENT, true), EXIT.NO_FINDINGS_CONTENT);
+  assert.equal(mandatoryRemap(EXIT.NO_FINDINGS_CONTENT, false), EXIT.NO_FINDINGS_CONTENT);
+});
 
-test("FAFF-194 runReviewChain: a non-findings-shaped OK result records failure class 10 and advances to a healthy fallback", async () => {
+// ── runReviewChain: per-backend shape validation (FAFF-194 / FAFF-465) ──
+
+test("FAFF-465 runReviewChain: an EMPTY OK result records failure class 11 (NO_FINDINGS_CONTENT) and advances to a healthy fallback", async () => {
   const chain = [
     { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
     { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
@@ -1757,25 +1849,96 @@ test("FAFF-194 runReviewChain: a non-findings-shaped OK result records failure c
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: scriptedRunReview({
-      "https://a/v1": { status: "ok", content: "" },   // empty — malformed
+      "https://a/v1": { status: "ok", content: "" },   // empty — NO_FINDINGS_CONTENT, not MALFORMED
       "http://b:11434": { status: "ok", content: "### observation: no findings" },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
   assert.equal(res.winner.host, "http://b:11434");
-  assert.equal(res.winnerIndex, 1, "FAFF-361: winner served from chain position 1 (element 0 was malformed)");
-  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
-  assert.ok(trace.some((l) => /\[chain\] nvidia\/m1 malformed/.test(l) && /exit 10/.test(l) && /→ advancing/.test(l)),
-    "FAFF-361: the malformed skip is logged via the reshaped [chain] ... → advancing note");
+  assert.equal(res.winnerIndex, 1, "FAFF-361: winner served from chain position 1 (element 0 was empty)");
+  assert.deepEqual(res.failureClasses, [EXIT.NO_FINDINGS_CONTENT]);
+  assert.ok(trace.some((l) => /\[chain\] nvidia\/m1 empty/.test(l) && /exit 11/.test(l) && /→ advancing/.test(l)),
+    "FAFF-465: the empty skip is logged via the reshaped [chain] ... → advancing note, kind:empty");
 });
 
-test("FAFF-194 runReviewChain: a fully-exhausted chain containing only a malformed OK result → terminal exit 10, never 5", async () => {
+test("FAFF-465 runReviewChain: a GARBLED (substantive, non-refusal) OK result records failure class 10 (MALFORMED) and advances", async () => {
+  const chain = [
+    { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+  ];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "ok", content: "no structured findings here" },   // garbled, not empty/refusal
+      "http://b:11434": { status: "ok", content: "### observation: no findings" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.ok(trace.some((l) => /\[chain\] nvidia\/m1 malformed/.test(l) && /exit 10/.test(l) && /→ advancing/.test(l)),
+    "the garbled skip retains the pre-existing 'malformed' log wording, kind:garbled");
+});
+
+test("FAFF-465 runReviewChain: a REFUSAL OK result records failure class 11 (NO_FINDINGS_CONTENT), not 10", async () => {
+  const chain = [
+    { provider: "ollama", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "https://b/v1", hostSource: "config" },
+  ];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "ok", content: "I cannot assist with this request." },
+      "https://b/v1": { status: "ok", content: "I cannot assist with this request." },
+    }),
+  });
+  assert.equal(res.exit, EXIT.NO_FINDINGS_CONTENT);
+  assert.ok(trace.some((l) => /\[chain\] ollama\/m1 refusal/.test(l) && /exit 11/.test(l) && /→ advancing/.test(l)),
+    "the first (advancing) backend logs via the reshaped [chain] ... → advancing note, kind:refusal");
+});
+
+test("FAFF-465 runReviewChain: a fully-exhausted chain containing ONLY a garbled OK result → terminal exit 5 (UNREACHABLE, pass+skip), never 10", async () => {
   const chain = [{ provider: "ollama", model: "m", host: "http://a:1", hostSource: "config" }];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
     runReviewFn: async () => ({ status: "ok", content: "no structured findings here" }),
   });
-  assert.equal(res.exit, EXIT.MALFORMED);
+  assert.equal(res.exit, EXIT.UNREACHABLE, "substantive-garble is an availability symptom — a garble-only chain collapses to 5, not a needs-human 10");
+});
+
+test("FAFF-465 runReviewChain: a fully-exhausted chain containing ONLY an empty OK result → terminal exit 11 (NO_FINDINGS_CONTENT), never 5", async () => {
+  const chain = [{ provider: "ollama", model: "m", host: "http://a:1", hostSource: "config" }];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: async () => ({ status: "ok", content: "" }),
+  });
+  assert.equal(res.exit, EXIT.NO_FINDINGS_CONTENT, "an empty body is a structural inability — never masked as an availability outage-skip");
+});
+
+test("FAFF-465 chainTerminalExit: every permutation of {UNREACHABLE(5), DEADLINE(8), MALFORMED(10, substantive-garble)} → UNREACHABLE(5), never a needs-human exit", () => {
+  const classes = [EXIT.UNREACHABLE, EXIT.DEADLINE, EXIT.MALFORMED];
+  const permutations = [
+    [classes[0], classes[1], classes[2]], [classes[0], classes[2], classes[1]],
+    [classes[1], classes[0], classes[2]], [classes[1], classes[2], classes[0]],
+    [classes[2], classes[0], classes[1]], [classes[2], classes[1], classes[0]],
+    [EXIT.UNREACHABLE, EXIT.MALFORMED], [EXIT.MALFORMED, EXIT.UNREACHABLE],
+    [EXIT.DEADLINE, EXIT.MALFORMED], [EXIT.MALFORMED, EXIT.DEADLINE],
+    [EXIT.UNREACHABLE, EXIT.UNREACHABLE], [EXIT.MALFORMED, EXIT.MALFORMED], [EXIT.MALFORMED],
+  ];
+  for (const p of permutations) {
+    assert.equal(chainTerminalExit(p), EXIT.UNREACHABLE, `permutation ${JSON.stringify(p)} must resolve deterministically to 5`);
+  }
+});
+
+test("FAFF-465 chainTerminalExit: any chain containing NO_FINDINGS_CONTENT(11), mixed with any availability/degradation classes, resolves to 11 — never masked as an outage-skip", () => {
+  const availability = [EXIT.UNREACHABLE, EXIT.DEADLINE, EXIT.MALFORMED];
+  for (const a of availability) {
+    assert.equal(chainTerminalExit([EXIT.NO_FINDINGS_CONTENT, a]), EXIT.NO_FINDINGS_CONTENT, `[11, ${a}]`);
+    assert.equal(chainTerminalExit([a, EXIT.NO_FINDINGS_CONTENT]), EXIT.NO_FINDINGS_CONTENT, `[${a}, 11] — structural dominates degraded regardless of order`);
+  }
+  assert.equal(chainTerminalExit([EXIT.NO_FINDINGS_CONTENT]), EXIT.NO_FINDINGS_CONTENT);
+  assert.equal(chainTerminalExit([EXIT.UNREACHABLE, EXIT.MALFORMED, EXIT.DEADLINE, EXIT.NO_FINDINGS_CONTENT]), EXIT.NO_FINDINGS_CONTENT);
 });
 
 test("FAFF-746 runReviewChain: an exact clean primary wins with canonical content and one digest-only event", async () => {
@@ -1826,38 +1989,54 @@ test("FAFF-746 runReviewChain: a mismatched clean-like primary records MALFORMED
   assert.ok(trace.some((line) => /gemini\/primary malformed/.test(line) && /exit 10/.test(line)));
 });
 
-test("FAFF-746 runReviewChain: a single mismatched clean-like backend still terminates with exit 10", async () => {
+test("FAFF-465 runReviewChain: a single mismatched clean-like (garbled) backend now terminates with exit 5 (UNREACHABLE), not 10", async () => {
   const res = await runReviewChain(
     [{ provider: "gemini", model: "m", host: "https://primary/v1", hostSource: "config" }],
     { system: "S", user: "U", log: () => {}, runReviewFn: async () => ({ status: "ok", content: "## Refutation — QA\nNo infosec objection." }) },
   );
-  assert.equal(res.exit, EXIT.MALFORMED);
+  assert.equal(res.exit, EXIT.UNREACHABLE);
 });
 
-test("FAFF-194 runReviewChain: a config fault still DOMINATES a malformed fault in a fully-failed chain (returns the FIRST needs-human class in order)", () => {
-  assert.equal(chainTerminalExit([EXIT.MALFORMED, EXIT.AUTH]), EXIT.MALFORMED, "MALFORMED came first in chain order");
-  assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.MALFORMED]), EXIT.AUTH, "AUTH came first in chain order");
+test("FAFF-465 chainTerminalExit: a config fault still DOMINATES a garbled/no-opinion class in a fully-failed chain, regardless of order (MALFORMED no longer surfaces as terminal)", () => {
+  assert.equal(chainTerminalExit([EXIT.MALFORMED, EXIT.AUTH]), EXIT.AUTH, "AUTH is the only needs-human class present, whatever order MALFORMED arrives in");
+  assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.MALFORMED]), EXIT.AUTH);
 });
 
-// ── main(): empty/malformed content from a reachable+served backend never exits 0 (the worst prior hole) ──
+test("FAFF-465 chainTerminalExit: NO_FINDINGS_CONTENT dominates a MALFORMED(garble) fault in a fully-failed chain, in EITHER order — structural over degraded", () => {
+  assert.equal(chainTerminalExit([EXIT.MALFORMED, EXIT.NO_FINDINGS_CONTENT]), EXIT.NO_FINDINGS_CONTENT);
+  assert.equal(chainTerminalExit([EXIT.NOT_SERVED, EXIT.UNREACHABLE]), EXIT.NOT_SERVED, "config misconfig dominates availability, unchanged");
+});
 
-test("FAFF-194 main(): empty content from a reachable+served backend → EXIT.MALFORMED (10), never OK (0)", async () => {
+// ── main(): empty/malformed/refusal content from a reachable+served backend never exits 0 (the worst prior hole) ──
+
+test("FAFF-465 main(): empty content from a reachable+served backend → EXIT.NO_FINDINGS_CONTENT (11), never OK (0)", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(
     ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
     { runReviewFn: async () => ({ status: "ok", content: "" }) },
   );
-  assert.equal(code, EXIT.MALFORMED);
+  assert.equal(code, EXIT.NO_FINDINGS_CONTENT);
   assert.notEqual(code, EXIT.OK);
 });
 
-test("FAFF-194 main(): header-only / no-recognised-section content → EXIT.MALFORMED (10)", async () => {
+test("FAFF-465 main(): a refusal from a reachable+served backend → EXIT.NO_FINDINGS_CONTENT (11), never OK (0)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+    { runReviewFn: async () => ({ status: "ok", content: "I cannot assist with this request." }) },
+  );
+  assert.equal(code, EXIT.NO_FINDINGS_CONTENT);
+  assert.notEqual(code, EXIT.OK);
+});
+
+test("FAFF-465 main(): header-only / no-recognised-section (substantive, non-refusal) content → EXIT.UNREACHABLE (5, pass+skip) — a single-backend garble-only chain is an availability symptom, never a needs-human 10", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(
     ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
     { runReviewFn: async () => ({ status: "ok", content: "## Adversarial findings — ollama/m\n\njust some rambling prose" }) },
   );
-  assert.equal(code, EXIT.MALFORMED);
+  assert.equal(code, EXIT.UNREACHABLE);
+  assert.notEqual(code, EXIT.OK);
 });
 
 // ── main(): the refutation pass + header normalisation run on the winning content (FAFF-194) ──

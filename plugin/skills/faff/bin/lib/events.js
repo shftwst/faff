@@ -32,7 +32,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
-const { FLOOR_LEVELS } = require("./contract-defs");
+const { spawnSync } = require("node:child_process");
 const EVENTS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--tokens": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
@@ -59,7 +59,7 @@ const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock } = require("./heartbeat");
 const { withFileLock } = require("./fs-lock");
-const { findRoot, resolveRunDir } = require("./shared-infra");
+const { ENTRYPOINT, findRoot, resolveRunDir } = require("./shared-infra");
 
 // FAFF-362: EVENT_PHASES / EVENT_TYPES / EVENT_ISSUE_SCOPED / EVENT_LEDGER_OUTCOMES
 // stay exported (contain.js — factory — reuses EVENT_PHASES directly) but are now
@@ -1130,23 +1130,28 @@ function cmdEvents(args) {
     }
 
     // Self-verify every minted subdir before returning — a broken anchor must never reach the
-    // orchestrator's commit step. Lazy require: governance-check.js requires this module at ITS
-    // own top level (for computeChainHead/verifyChain/verifyEffectsChain); requiring it back at
-    // events.js's own top level would deadlock the circular require into an empty exports object.
-    // Adversarial review (FAFF-796): evaluateAnchorDir overrides whatever level is passed here
-    // whenever the anchored run-ledger.json itself carries a `level` field (FAFF-690) — true for
-    // every ledger this codebase writes — so `selfVerifyLevel` below is a residual FALLBACK ONLY,
-    // for a level-less/legacy ledger. Resolve it from the LIVE run's OWN ledger (`ledgerObj`,
-    // already parsed above) rather than hardcoding either floor: hardcoding "L3" risks
-    // under-verifying an L4 run's holdout leg on that residual path; hardcoding "L4" risks
-    // over-verifying a legitimate L1–L3 shipped issue (requiring a holdout it was never meant to
-    // produce). The live ledger's own level is the correct answer either way.
-    const selfVerifyLevel = FLOOR_LEVELS.includes(ledgerObj.level) ? ledgerObj.level : "L3";
-    const { evaluateAnchorDir } = require("./governance-check");
+    // orchestrator's commit step. `governance-check` lives in the factory region (ADR 0042); this
+    // module is governance, and governance must never `require()` factory (`faff regions check`
+    // enforces the direction mechanically) — so self-verify goes through a SELF-SPAWN of the same
+    // CLI binary (the sentry.js precedent: a governance file reaching factory functionality via
+    // `spawnSync(process.execPath, [ENTRYPOINT, …])`, a process boundary, not a require edge, and
+    // so invisible to the lint by design) rather than an in-process require of the module.
+    //
+    // Adversarial review (FAFF-796): `governance-check`'s own `evaluateAnchorDir` overrides
+    // whatever `--level` is passed here whenever the anchored run-ledger.json itself carries a
+    // `level` field (FAFF-690) — true for every ledger this codebase writes — so `selfVerifyLevel`
+    // below is a residual FALLBACK ONLY, for a level-less/legacy ledger. Resolve it from the LIVE
+    // run's OWN ledger (`ledgerObj`, already parsed above) rather than hardcoding either floor:
+    // hardcoding "L3" risks under-verifying an L4 run's holdout leg on that residual path;
+    // hardcoding "L4" risks over-verifying a legitimate L1–L3 shipped issue (requiring a holdout it
+    // was never meant to produce). The live ledger's own level is the correct answer either way; an
+    // invalid value is rejected by `governance-check`'s own `--level` flag validation (exit 2),
+    // which this treats as a self-verify failure like any other non-zero exit.
+    const selfVerifyLevel = typeof ledgerObj.level === "string" && ledgerObj.level ? ledgerObj.level : "L3";
     for (const destSub of mintedDirs) {
-      const verdict = evaluateAnchorDir(destSub, "pass", selfVerifyLevel);
-      if (!verdict.pass) {
-        process.stderr.write(`faff events anchor-run: self-verify failed for ${destSub}: ${JSON.stringify(verdict.legs)}\n`);
+      const r = spawnSync(process.execPath, [ENTRYPOINT, "governance-check", "--anchor-dir", destSub, "--legacy-policy", "pass", "--level", selfVerifyLevel], { encoding: "utf8" });
+      if (r.status !== 0) {
+        process.stderr.write(`faff events anchor-run: self-verify failed for ${destSub} (governance-check exit ${r.status}):\n${r.stdout || ""}${r.stderr || ""}`);
         try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
         return 1;
       }

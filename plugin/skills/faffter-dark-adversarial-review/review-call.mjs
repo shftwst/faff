@@ -24,10 +24,16 @@ import { createHash } from "node:crypto";
 // 7 auth-failed (cloud creds / unset key env, → needs-human, FAFF-209) · 2 usage · 1 other ·
 // 9 mandatory-chain-outage — a MANDATORY (L4 --lights-out) review's chain exhausted with no opinion
 //   obtained (all UNREACHABLE/5 or DEADLINE/8), which fails CLOSED → needs-human (FAFF-398).
-// 10 malformed (FAFF-194) — a reachable+served backend's OK content is not findings-shaped (empty,
-//   header-only, or no recognised `### <severity>:` section) — a model-quality fault, per-backend,
-//   member of CHAIN_NEEDS_HUMAN (never masked by an otherwise-available chain).
-export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9, MALFORMED: 10 };
+// 10 malformed (FAFF-194/FAFF-465) — a reachable+served backend's OK content is SUBSTANTIVE (non-empty,
+//   not a refusal) but not findings-shaped (no recognised `### <severity>:` section) — a genuine
+//   reachable-but-degraded model-quality symptom, per-backend, an AVAILABILITY class (a garble-only
+//   exhausted chain collapses to UNREACHABLE/5 — never a needs-human terminal exit on its own).
+// 11 no-findings-content (FAFF-465) — a reachable+served backend's OK content is EMPTY/whitespace-only,
+//   or a closed-grammar provider REFUSAL — an operator-fixable structural inability (same class as a
+//   wrong/incapable model), per-backend, member of CHAIN_NEEDS_HUMAN (never masked by an otherwise-
+//   available chain — this is the split that makes a full-chain exhaustion's terminal disposition
+//   deterministic on a stable response property, not on the incidental run-to-run failure-class mix).
+export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9, MALFORMED: 10, NO_FINDINGS_CONTENT: 11 };
 // FAFF-329: DEADLINE(8) — the Phase-2 total wall-clock budget (--deadline) was hit before any backend
 // produced findings. Distinct from UNREACHABLE(5) so a deadline-skip is observable, but the caller routes
 // it IDENTICALLY: pass + skip the second opinion, logged loudly (a bounded turn beats an unbounded stall;
@@ -176,15 +182,47 @@ export function splitFindings(content) {
   return { preamble, sections };
 }
 
+// PURE (FAFF-465): a conservative, closed, anchored, case-insensitive, length-guarded refusal
+// signature — the discriminator between an OK-status, non-empty response that is a provider REFUSAL
+// (an operator-fixable structural inability, the SAME class as an empty body — EXIT.NO_FINDINGS_CONTENT)
+// and genuine substantive garble (a reachable-but-degraded backend, an availability symptom —
+// EXIT.MALFORMED). Anchored near the start of the trimmed content (a refusal typically opens with one
+// of these) and length-guarded (a response longer than REFUSAL_MAX_LENGTH_CHARS never matches, however
+// it opens), so a long rambling essay that merely mentions "I cannot" partway through is never
+// misclassified as a refusal — it falls through to "garbled" instead. A fixed, unit-testable table, not
+// an open-ended fuzzy match — mirrors the CLEAN_REFUTATIONS closed-grammar style (:196-202 below).
+const REFUSAL_MAX_LENGTH_CHARS = 400;
+const REFUSAL_PATTERNS = [
+  /^i\s*(cannot|can'?t|won'?t|am\s+unable|'m\s+unable)\b/i,
+  /^(sorry|i'?m sorry|i apologi[sz]e)[,.]?\s+(but\s+)?i\s*(cannot|can'?t|am\s+unable)\b/i,
+  /^as an ai\b/i,
+  /^i\s+(don'?t|do not)\s+(have|possess)\s+(the\s+)?(ability|capability)\s+to\b/i,
+  /content policy/i,
+  /(cannot|can'?t|won'?t)\s+(assist|help|comply)\s+with\s+(that|this)\s+request/i,
+];
+
+export function isProviderRefusal(content) {
+  const trimmed = String(content == null ? "" : content).trim();
+  if (!trimmed || trimmed.length > REFUSAL_MAX_LENGTH_CHARS) return false;
+  return REFUSAL_PATTERNS.some((re) => re.test(trimmed));
+}
+
 // PURE: is this content findings-shaped? Non-empty AND at least one `### <severity>: ...` section with a
-// severity in the closed set. Empty/whitespace-only content, or prose with no recognised finding section
-// (a refusal, rambling, or a headerless essay), is malformed — the exit-10 class (FAFF-194).
+// severity in the closed set. When it is NOT, `kind` discriminates WHY (FAFF-465): "empty" (whitespace-
+// only content), "refusal" (non-empty content matching the closed isProviderRefusal grammar — an
+// operator-fixable structural inability), or "garbled" (non-empty, non-refusal content with no
+// recognised finding section — a genuine reachable-but-degraded symptom). The caller maps empty/refusal
+// to EXIT.NO_FINDINGS_CONTENT(11, needs-human) and garbled to EXIT.MALFORMED(10, availability) — see the
+// call site in runReviewChain below.
 export function validateFindingsShape(content) {
   const trimmed = String(content == null ? "" : content).trim();
-  if (!trimmed) return { ok: false, reason: "empty content" };
+  if (!trimmed) return { ok: false, reason: "empty content", kind: "empty" };
   const { sections } = splitFindings(content);
   if (!sections.some((s) => s.severity != null)) {
-    return { ok: false, reason: "no recognised finding section (### <severity>: ...)" };
+    if (isProviderRefusal(trimmed)) {
+      return { ok: false, reason: "provider refusal", kind: "refusal" };
+    }
+    return { ok: false, reason: "no recognised finding section (### <severity>: ...)", kind: "garbled" };
   }
   return { ok: true };
 }
@@ -844,14 +882,18 @@ export function mapResultExit(result, hostSource) {
   }
 }
 
-// PURE (FAFF-232): the terminal exit of an EXHAUSTED chain (no backend produced findings). A config-fault
-// class — USAGE(2)/NOT_SERVED(4)/DEFAULT_HOST_UNREACHABLE(6)/AUTH(7)/MALFORMED(10, FAFF-194), all of which
-// the skill maps to needs-human — DOMINATES the availability class UNREACHABLE(5 → pass+skip). So a chain
-// of purely configured-host availability failures still pass+skips exactly as a lone configured backend
-// does today, but a config/model-quality fault ANYWHERE in a fully-failed chain surfaces needs-human
-// (never masked by "all down" — the FAFF-213/228 no-silent-weakening invariant). Returns the FIRST
+// PURE (FAFF-232/FAFF-465): the terminal exit of an EXHAUSTED chain (no backend produced findings). A
+// structural-inability class — USAGE(2)/NOT_SERVED(4)/DEFAULT_HOST_UNREACHABLE(6)/AUTH(7)/
+// NO_FINDINGS_CONTENT(11, FAFF-465 — an empty body or a closed-grammar provider refusal), all of which
+// the skill maps to needs-human — DOMINATES the availability/degradation class UNREACHABLE(5 → pass+skip;
+// MALFORMED/10's substantive-garble is an availability symptom too and is NOT a member — a garble-only
+// exhausted chain collapses to UNREACHABLE/5, never a needs-human terminal exit on its own). So a chain of
+// purely configured-host availability/degradation failures still pass+skips exactly as a lone configured
+// backend does today, but a structural fault ANYWHERE in a fully-failed chain surfaces needs-human (never
+// masked by "all down" — the FAFF-213/228/194 no-silent-weakening invariant, now keyed on a STABLE
+// response property rather than the incidental run-to-run failure-class mix). Returns the FIRST
 // needs-human class in chain order; else UNREACHABLE(5). Empty list → 5 (no faults to surface).
-export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MALFORMED]);
+export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.NO_FINDINGS_CONTENT]);
 export function chainTerminalExit(failureClasses = []) {
   for (const c of failureClasses) if (CHAIN_NEEDS_HUMAN.has(c)) return c;
   return EXIT.UNREACHABLE;
@@ -861,8 +903,9 @@ export function chainTerminalExit(failureClasses = []) {
 // adversarial occupant) whose chain exhausted with only a "no-opinion" class — UNREACHABLE(5, all
 // configured hosts down) or DEADLINE(8, budget hit before any findings) — must FAIL CLOSED: no second
 // opinion was obtained and no human is watching, so map to MANDATORY_OUTAGE(9), which the skill reads as
-// unavailable (FAFF-405 — park the PR). Config-fault classes (2/4/6/7) already map to needs-human and pass
-// through UNCHANGED — the remap must not upgrade or MASK a specific cause. Advisory reviews (mandatory=false,
+// unavailable (FAFF-405 — park the PR). Structural-inability classes (2/4/6/7/11 — 11 added FAFF-465)
+// already map to needs-human and pass through UNCHANGED — the remap must not upgrade or MASK a specific
+// cause; NO_FINDINGS_CONTENT(11) is human-actionable, not a fail-closed outage, even at L4. Advisory reviews (mandatory=false,
 // L1–L3) are byte-for-byte unchanged. Applied ONCE at main()'s single caller boundary on runReviewChain's
 // terminal exit, so every exhaustion path (all three deadline returns + the chain-exhausted return) is
 // covered by construction — runReviewChain itself never learns "mandatory" (stays level-agnostic).
@@ -1055,17 +1098,23 @@ export async function runReviewChain(chain = [], shared = {}) {
     }
     const exit = mapResultExit(result, b.hostSource);
     if (exit === EXIT.OK) {
-      // FAFF-194: per-backend shape validation — a malformed OK result (empty, or no recognised
-      // `### <severity>:` section) advances to the next backend rather than short-circuiting the whole
-      // chain, so a healthy fallback still gets a chance (mirrors every other per-backend fault class).
+      // FAFF-194/FAFF-465: per-backend shape validation — a non-findings-shaped OK result advances to the
+      // next backend rather than short-circuiting the whole chain, so a healthy fallback still gets a
+      // chance (mirrors every other per-backend fault class). The `kind` FAFF-465 added maps to one of two
+      // exit classes: empty/refusal (a structural inability) → NO_FINDINGS_CONTENT(11); garbled (a
+      // reachable-but-degraded symptom) → MALFORMED(10) — the split the terminal CHAIN_NEEDS_HUMAN
+      // membership above keys on. The "malformed" log label is retained for the garbled kind only (the
+      // pre-existing greppable wording); empty/refusal log their own kind.
       const originalContent = result.content || "";
       const normalisation = normaliseCleanRefutation(originalContent);
       const shape = validateFindingsShape(normalisation.content);
       if (!shape.ok) {
-        failureClasses.push(EXIT.MALFORMED);
+        const cls = (shape.kind === "empty" || shape.kind === "refusal") ? EXIT.NO_FINDINGS_CONTENT : EXIT.MALFORMED;
+        const label = shape.kind === "garbled" ? "malformed" : shape.kind;
+        failureClasses.push(cls);
         log(verb === "advancing"
-          ? `[chain] ${tag} malformed (${shape.reason}) → advancing (exit ${EXIT.MALFORMED})`
-          : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${EXIT.MALFORMED})`);
+          ? `[chain] ${tag} ${label} (${shape.reason}) → advancing (exit ${cls})`
+          : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${cls})`);
         continue;
       }
       if (normalisation.normalised) {

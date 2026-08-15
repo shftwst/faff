@@ -20,7 +20,10 @@ const fs = require("node:fs");
 // (`node --test`, the Step 7.5 ladder's `"$faff" gates run`) plus the common
 // repo-declared test runners the ladder discovers (`faff gates discover`):
 // npm test / npm run test*, npx vitest|jest|mocha|ava|tap, make test, pytest,
-// cargo test, go test. Each pattern tolerates a leading path/env/quote/variable
+// cargo test, go test — plus (FAFF-465) the adversarial-review invocation shapes
+// (`node .../review-call.mjs`, `faff adversarial-backends`): the graft Step-9
+// Phase-2 backend call is exactly the self-backgrounded stall shape this fence
+// exists for. Each pattern tolerates a leading path/env/quote/variable
 // prefix on the BINARY token (mirroring merge-fence's `(^|[^\w])` boundary —
 // any non-word character, including `/`, `"`, `$`, `=`, transparently precedes
 // the token), because the failure mode observed in practice IS the quoted-
@@ -60,6 +63,18 @@ const GATE_FAMILY_PATTERNS = [
   /(^|[^\w])cargo\s+test\b/,
   // go test
   /(^|[^\w])go\s+test\b/,
+  // node <path>/review-call.mjs — the FAFF-465 adversarial-review-invocation extension: the graft
+  // Step-9 slot's Phase-2 backend call is exactly the self-backgrounded-gate stall shape this fence
+  // exists for (the review-436-repro re-launched the same helper across a stall). Matches a literal
+  // mention of the filename anywhere after `node`, tolerating a leading path (`plugin/skills/.../
+  // review-call.mjs`, `$REVIEW_CALL` only when it LITERALLY resolves to the filename text — see the
+  // LIMITATION note below for the shell-variable form the real SKILL.md invocation actually uses).
+  /(^|[^\w])node\b[^\n]*review-call\.mjs\b/,
+  // faff adversarial-backends — the FAFF-465 backend-assembly companion invoked immediately before the
+  // review call. Requires a `faff`-referencing token immediately before "adversarial-backends" (mirrors
+  // the "faff gates run" anchor above — an un-anchored bare-word match risks colliding with an unrelated
+  // tool's own "adversarial-backends" subcommand).
+  /(^|[^\w])\S*faff\S*\s+adversarial-backends\b/i,
 ];
 
 function matchesGateFamily(command) {
@@ -188,11 +203,17 @@ const BACKGROUND_FENCE_SELFTEST_CASES = [
   ["Bash cargo test, backgrounded → deny", "Bash", "cargo test", true, true],
   ["Bash go test, backgrounded → deny", "Bash", "go test ./...", true, true],
   ["Bash path-prefixed node --test, backgrounded → deny", "Bash", "/usr/local/bin/node --test", true, true],
+  // --- deny: FAFF-465 adversarial-review-invocation shapes, backgrounded ---
+  ["Bash node review-call.mjs (literal path), backgrounded → deny", "Bash", "node plugin/skills/faffter-dark-adversarial-review/review-call.mjs --backends-json /tmp/b.json", true, true],
+  ["Bash faff adversarial-backends, backgrounded → deny", "Bash", "faff adversarial-backends > /tmp/b.json", true, true],
+  ["Bash quoted-variable faff adversarial-backends form, backgrounded → deny", "Bash", '"$faff" adversarial-backends > /tmp/b.json', true, true],
   // --- allow: foreground gate commands (the conjunction never fires on the command alone) ---
   ["Bash node --test, foreground (false) → allow", "Bash", "node --test", false, false],
   ["Bash node --test, foreground (absent) → allow", "Bash", "node --test", undefined, false],
   ["Bash faff gates run, foreground → allow", "Bash", "faff gates run --json", false, false],
   ["Bash npm test, foreground → allow", "Bash", "npm test", false, false],
+  ["Bash node review-call.mjs, foreground → allow", "Bash", "node plugin/skills/faffter-dark-adversarial-review/review-call.mjs --backends-json /tmp/b.json", false, false],
+  ["Bash faff adversarial-backends, foreground → allow", "Bash", "faff adversarial-backends > /tmp/b.json", false, false],
   // --- allow: backgrounded non-gate command ---
   ["Bash npm run dev, backgrounded → allow (not gate-family)", "Bash", "npm run dev", true, false],
   ["Bash a plain dev server, backgrounded → allow", "Bash", "python -m http.server 8000", true, false],
@@ -219,6 +240,13 @@ const BACKGROUND_FENCE_SELFTEST_CASES = [
   ["LIMITATION: quoted flag → NOT caught", "Bash", 'node --"test"', true, false],
   ["LIMITATION: quoted npm test target → NOT caught", "Bash", 'npm run "test"', true, false],
   ["LIMITATION: command-substituted subcommand → NOT caught", "Bash", "npm $(echo run) test", true, false],
+  // DOCUMENTED LIMITATION (FAFF-465, expected by design — the spec's own recorded carve-out): the real
+  // SKILL.md invocation resolves the script via a shell variable (`node "$REVIEW_SPAWN" ... -- node
+  // "$REVIEW_CALL" ...`) — the literal command text never contains the substring "review-call.mjs", only
+  // the opaque variable name, so this pattern (unlike the "faff gates run" anchor, whose `"$faff"` form
+  // DOES contain the literal substring "faff") cannot catch it. Layers 1+2 (fence-independent foreground
+  // posture prose + validate-adapters anchor-phrase lint) remain the belt for this one shape.
+  ["LIMITATION: variable-spliced node \"$REVIEW_CALL\" invocation → NOT caught", "Bash", 'node "$REVIEW_SPAWN" --deadline "$deadline" -- node "$REVIEW_CALL" --backends-json "$backends_json"', true, false],
   // DOCUMENTED LIMITATION (Phase-2 adversarial review finding, accepted — safe-direction
   // over-match, never under-catch): the node --test pattern scans the whole command line
   // for a whitespace/`=`-bounded --test token, so a node SCRIPT that happens to take its
@@ -235,6 +263,8 @@ const BACKGROUND_FENCE_SELFTEST_CASES = [
   ["Monitor quoted-variable ladder form → deny", "Monitor", '"$faff" gates run --json', undefined, true],
   ["Monitor npm test, run_in_background present-and-false → still deny (no conjunct)", "Monitor", "npm test", false, true],
   ["Monitor go test → deny", "Monitor", "go test ./...", undefined, true],
+  ["Monitor node review-call.mjs (literal path) → deny", "Monitor", "node plugin/skills/faffter-dark-adversarial-review/review-call.mjs --backends-json /tmp/b.json", undefined, true],
+  ["Monitor faff adversarial-backends → deny", "Monitor", "faff adversarial-backends > /tmp/b.json", undefined, true],
   // --- Monitor allow: a poll-loop (the parallel executor's await-all shape), a
   // log tail, and non-gate commands are never denied. ---
   ["Monitor await-all poll loop → allow (not gate-family)", "Monitor", "until test -f .faff/runs/r1/done; do :; done", undefined, false],

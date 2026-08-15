@@ -1534,6 +1534,24 @@ test("FAFF-465 isProviderRefusal: empty/whitespace content is never a refusal (t
   assert.equal(isProviderRefusal(undefined), false);
 });
 
+// Adversarial-review finding (Phase 2): the "content policy" and "cannot/won't assist ... with this
+// request" patterns had no `^` anchor at all — a bare substring match anywhere in the length-guarded
+// content. A short, legitimate finding mentioning either phrase well past its opening (still under the
+// overall 400-char length guard) would misclassify as `refusal` instead of `garbled` — the incidental-
+// vocabulary non-determinism this split exists to remove. Fixed by bounding both to a prefix window
+// (REFUSAL_PREFIX_CHARS); these pin the fix.
+test("FAFF-465 isProviderRefusal: a 'content policy' / 'cannot assist' mention PAST the prefix window is NOT a refusal (regression for the unanchored-substring finding)", () => {
+  const pastWindow = "This is a substantive review finding about an unrelated topic. ".repeat(3) + "This response is blocked by our content policy.";
+  assert.ok(pastWindow.length <= 400, "must stay under the overall length guard to isolate the prefix-window behaviour");
+  assert.ok(pastWindow.indexOf("content policy") > 100, "the phrase must land past the 100-char prefix window");
+  assert.equal(isProviderRefusal(pastWindow), false);
+});
+
+test("FAFF-465 isProviderRefusal: the same phrases still match WITHIN the prefix window", () => {
+  assert.equal(isProviderRefusal("This response is blocked by our content policy."), true);
+  assert.equal(isProviderRefusal("I cannot assist with this request."), true);
+});
+
 // ── canonical clean refutations (FAFF-746) ──
 
 test("FAFF-746 normaliseCleanRefutation: all four bare and headed prompt forms become the canonical token", () => {

@@ -192,13 +192,23 @@ export function splitFindings(content) {
 // misclassified as a refusal — it falls through to "garbled" instead. A fixed, unit-testable table, not
 // an open-ended fuzzy match — mirrors the CLEAN_REFUTATIONS closed-grammar style (:196-202 below).
 const REFUSAL_MAX_LENGTH_CHARS = 400;
+// Adversarial-review finding (Phase 2, real backend call): two of the six patterns had no `^` anchor at
+// all — a substring match anywhere in the (already length-guarded) content. A short, adjacent-but-
+// legitimate finding using an unrecognised severity word (so it reaches this check at all — see
+// validateFindingsShape below) could still contain "content policy" or the assist/help/comply phrase
+// well past its opening and get misclassified `refusal` instead of `garbled`, reintroducing exactly the
+// incidental-vocabulary non-determinism this split exists to remove. FIX: every pattern is now bounded to
+// the first REFUSAL_PREFIX_CHARS of the trimmed content (`^[\s\S]{0,N}`, `[\s\S]` so an early newline
+// doesn't defeat the bound) — a genuine refusal is a short, up-front statement, never something a model
+// buries mid-response.
+const REFUSAL_PREFIX_CHARS = 100;
 const REFUSAL_PATTERNS = [
   /^i\s*(cannot|can'?t|won'?t|am\s+unable|'m\s+unable)\b/i,
   /^(sorry|i'?m sorry|i apologi[sz]e)[,.]?\s+(but\s+)?i\s*(cannot|can'?t|am\s+unable)\b/i,
   /^as an ai\b/i,
   /^i\s+(don'?t|do not)\s+(have|possess)\s+(the\s+)?(ability|capability)\s+to\b/i,
-  /content policy/i,
-  /(cannot|can'?t|won'?t)\s+(assist|help|comply)\s+with\s+(that|this)\s+request/i,
+  new RegExp(`^[\\s\\S]{0,${REFUSAL_PREFIX_CHARS}}content policy`, "i"),
+  new RegExp(`^[\\s\\S]{0,${REFUSAL_PREFIX_CHARS}}(cannot|can'?t|won'?t)\\s+(assist|help|comply)\\s+with\\s+(that|this)\\s+request`, "i"),
 ];
 
 export function isProviderRefusal(content) {

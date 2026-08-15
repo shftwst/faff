@@ -65,10 +65,18 @@ const GATE_FAMILY_PATTERNS = [
   /(^|[^\w])go\s+test\b/,
   // node <path>/review-call.mjs — the FAFF-465 adversarial-review-invocation extension: the graft
   // Step-9 slot's Phase-2 backend call is exactly the self-backgrounded-gate stall shape this fence
-  // exists for (the review-436-repro re-launched the same helper across a stall). Matches a literal
-  // mention of the filename anywhere after `node`, tolerating a leading path (`plugin/skills/.../
-  // review-call.mjs`, `$REVIEW_CALL` only when it LITERALLY resolves to the filename text — see the
-  // LIMITATION note below for the shell-variable form the real SKILL.md invocation actually uses).
+  // exists for (a build subagent backgrounded this same helper and re-launched it across a stall).
+  // Matches a literal mention of the filename anywhere after `node`, tolerating a leading path
+  // (`plugin/skills/.../review-call.mjs`, `$REVIEW_CALL` only when it LITERALLY resolves to the
+  // filename text — see the LIMITATION note below for the shell-variable form the real SKILL.md
+  // invocation actually uses).
+  // DOCUMENTED LIMITATION (Phase-2 adversarial review finding, accepted — safe-direction over-match,
+  // never under-catch, mirrors the `node script.js --test` case above): the `[^\n]*` gap between
+  // `node` and the filename scans the WHOLE rest of the line, so a command whose arguments merely
+  // MENTION the filename as a string literal (e.g. `node -e "console.log('review-call.mjs')"`) is
+  // also denied when backgrounded, even though it never invokes the helper. Costs an unnecessary
+  // foreground run for that rare shape; never lets an actual `node .../review-call.mjs` invocation
+  // through backgrounded — the failure mode this fence exists for.
   /(^|[^\w])node\b[^\n]*review-call\.mjs\b/,
   // faff adversarial-backends — the FAFF-465 backend-assembly companion invoked immediately before the
   // review call. Requires a `faff`-referencing token immediately before "adversarial-backends" (mirrors
@@ -255,6 +263,7 @@ const BACKGROUND_FENCE_SELFTEST_CASES = [
   // actual `node --test` invocation through backgrounded — the failure mode this fence
   // exists for.
   ["LIMITATION: node script.js --test (script's own flag, not node's test runner) → also denied (safe-direction over-match)", "Bash", "node script.js --test", true, true],
+  ["LIMITATION: node -e \"...review-call.mjs...\" (filename only mentioned in a string literal, not invoked) → also denied (safe-direction over-match)", "Bash", "node -e \"console.log('review-call.mjs')\" --some-flag", true, true],
   // --- FAFF-530: Monitor arm — a gate/test command run under Monitor is denied
   // REGARDLESS of run_in_background (Monitor is background-by-construction, so
   // there is no run_in_background conjunct on this arm). ---

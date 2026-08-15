@@ -105,7 +105,7 @@ The park protocol and the tracker control plane above assume an **interactive ne
 `faff disposition` is that exit contract. Run it as your wrapper's **final, exit-propagating step**, after the agent exits:
 
 ```sh
-FAFF_RUN_DIR=$(faff lights-out | sed -n 's/^run dir: //p')   # or your own run-dir capture
+FAFF_RUN_DIR=$(faff lights-out --json | jq -r .run_dir)     # capture the minted run dir (needs jq)
 FAFF_RUN_DIR="$FAFF_RUN_DIR" claude -p "/faff-beep-boop"       # the unattended drain
 faff disposition --run-dir "$FAFF_RUN_DIR"                     # <-- final step; its exit is the run's exit
 ```

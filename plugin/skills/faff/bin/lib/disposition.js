@@ -18,6 +18,7 @@ const path = require("node:path");
 const { auditLedger } = require("./runcheck");
 const { extractParksBlock } = require("./park-history");
 const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
+const { classifyCustodyVerdictBytes } = require("./contract-defs");
 
 // The per-issue terminal outcomes that mean a human must act — one issue-outcome
 // attention item each. `shipped` (done) and `routed-out` are CLEAN — counting routed-out
@@ -89,7 +90,7 @@ function issueOutcomeEventMap(events) {
 // on run-ledger.json; the parks/events substrates only enrich `cause` and never change
 // the disposition. `auditLedger` throws on a malformed ledger (→ exit 2 in the shell).
 // ---------------------------------------------------------------------------
-function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId) {
+function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId, custodyMap) {
   const audit = auditLedger(ledger, ledger.run_id);   // throws on malformed → exit 2 shell-side
   parksMap = parksMap || {};
   eventMap = eventMap || {};
@@ -97,6 +98,10 @@ function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId) {
   // old 4-arg caller (…, eventMap, runId) that misbinds a string runId as mergedMap degrades LOUDLY
   // to "no merge evidence" rather than silently relying on string-index falsiness.
   mergedMap = (mergedMap && typeof mergedMap === "object" && !Array.isArray(mergedMap)) ? mergedMap : {};
+  // issue → custody classification (FAFF-784), PRESENT files only — readCustodyMap never includes an
+  // issue with no on-disk custody-verdict.json (missing alone never retroactively marks a legacy/
+  // interactive run; see the item below). Coerce a non-object the same defensive way as mergedMap.
+  custodyMap = (custodyMap && typeof custodyMap === "object" && !Array.isArray(custodyMap)) ? custodyMap : {};
   const outcomes = (ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes))
     ? ledger.outcomes : {};
   const items = [];
@@ -143,6 +148,18 @@ function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId) {
     if (names.length) {
       items.push({ kind: "incomplete-ledger", issue: null, outcome: null, cause: names.join(", ") });
     }
+  }
+
+  // 7. FAFF-784: a PRESENT, non-clean per-issue custody-verdict.json → a custody-non-clean item,
+  // independent of the issue's own outcome bucket — tamper / verification-unavailable / a malformed
+  // present record / a run-or-issue identity mismatch all surface needs-attention EVEN for an
+  // otherwise-clean shipped/Done outcome (a dispatched merge that DID land cannot silently stay
+  // green if its custody evidence says otherwise). A MISSING verdict file is never in custodyMap at
+  // all (readCustodyMap omits it) — absence alone never retroactively marks a legacy/interactive run;
+  // only a verdict file that actually exists and reads non-clean raises this item.
+  for (const [issue, cls] of Object.entries(custodyMap)) {
+    if (cls === "clean") continue;
+    items.push({ kind: "custody-non-clean", issue, outcome: (issue in outcomes ? outcomes[issue] : null), cause: cls });
   }
 
   const counts = {};
@@ -207,6 +224,32 @@ function readMergedMap(runDir, admitted) {
   return result;
 }
 
+// FAFF-784: best-effort issue→custody classification from each admitted issue's
+// custody-verdict.json, gathered in the impure shell (the same read-substrate-in-the-shell pattern
+// as readMergedMap) and fed to the pure core. `classifyCustodyVerdictBytes` (contract-defs.js) does
+// the actual parsing/shape/identity work — never forked here. A MISSING file is OMITTED entirely
+// (never mapped to any classification) — this is the mechanism behind "missing alone does not
+// retroactively mark legacy/interactive runs": computeDisposition only ever sees issues whose
+// custody-verdict.json genuinely exists on disk. A present-but-unreadable/malformed/identity-
+// mismatched file still yields an entry (mapped to disposition's own "malformed-present" /
+// "identity-mismatch" labels) — a BROKEN present record is exactly the case that must surface, never
+// silently omitted like a genuinely absent one.
+function readCustodyMap(runDir, admitted, expectedRunId) {
+  const result = {};
+  if (!Array.isArray(admitted)) return result;
+  const runId = expectedRunId || path.basename(runDir);
+  for (const issue of admitted) {
+    if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue)) continue;
+    let raw;
+    try { raw = fs.readFileSync(path.join(runDir, issue, "custody-verdict.json"), "utf8"); }
+    catch { continue; } // absent/unreadable-as-ENOENT → omit (missing alone is never attention)
+    const cls = classifyCustodyVerdictBytes(raw, { expectedRunId: runId, expectedIssue: issue });
+    if (cls.classification === "malformed") result[issue] = "malformed-present";
+    else result[issue] = cls.classification; // "identity-mismatch" | "clean" | "tamper" | "verification-unavailable"
+  }
+  return result;
+}
+
 // FAFF-782: best-effort issue→{pr,sha} from the same merge-records, for the shell-side render
 // enrichment only (never fed to the pure core). Non-load-bearing: absent details leave the item's
 // cause as the plain stable token.
@@ -266,10 +309,13 @@ function cmdDisposition(args) {
 
   const parksMap = readParksMap(runDir);
   const eventMap = readIssueOutcomeEvents(runDir);
-  const mergedMap = readMergedMap(runDir, Array.isArray(ledger.admitted) ? ledger.admitted : []);
+  const runId = ledger.run_id || path.basename(runDir);
+  const admitted = Array.isArray(ledger.admitted) ? ledger.admitted : [];
+  const mergedMap = readMergedMap(runDir, admitted);
+  const custodyMap = readCustodyMap(runDir, admitted, runId);
 
   let report;
-  try { report = computeDisposition(ledger, parksMap, eventMap, mergedMap, ledger.run_id || path.basename(runDir)); }
+  try { report = computeDisposition(ledger, parksMap, eventMap, mergedMap, runId, custodyMap); }
   catch (e) {
     process.stderr.write(`faff disposition: malformed ledger in ${path.join(runDir, "run-ledger.json")}: ${e.message}\n`);
     return 2;
@@ -393,15 +439,45 @@ const DISPOSITION_SELFTEST_CASES = [
     { run_id: "R", admitted: ["FAFF-A"], outcomes: {} },
     {}, {}, { "FAFF-A": true }, "needs-attention",
     (a) => a.length > 0 && has(a, (i) => i.kind === "merged-unclosed")],
+  // FAFF-784 — custody-non-clean surfaces needs-attention from a PRESENT verdict file, even for a
+  // shipped/Done outcome; a missing verdict (absent from custodyMap) never retroactively attention.
+  ["FAFF-784: tamper custody verdict on a SHIPPED issue → needs-attention (custody overrides a clean outcome)",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "custody-non-clean" && i.issue === "FAFF-A" && i.outcome === "shipped" && i.cause === "tamper"),
+    { "FAFF-A": "tamper" }],
+  ["FAFF-784: verification-unavailable custody verdict → needs-attention",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "custody-non-clean" && i.cause === "verification-unavailable"),
+    { "FAFF-A": "verification-unavailable" }],
+  ["FAFF-784: malformed-present custody verdict → needs-attention",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "custody-non-clean" && i.cause === "malformed-present"),
+    { "FAFF-A": "malformed-present" }],
+  ["FAFF-784: identity-mismatch custody verdict → needs-attention",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "custody-non-clean" && i.cause === "identity-mismatch"),
+    { "FAFF-A": "identity-mismatch" }],
+  ["FAFF-784: clean custody verdict adds nothing",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
+    {}, {}, {}, "clean", (a) => a.length === 0,
+    { "FAFF-A": "clean" }],
+  ["FAFF-784: MISSING custody verdict (absent from custodyMap) never retroactively marks a shipped/Done outcome",
+    { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
+    {}, {}, {}, "clean", (a) => a.length === 0,
+    {}],
 ];
 
 function dispositionSelftest() {
   let fail = 0;
-  for (const [name, ledger, parksMap, eventMap, mergedMap, wantDisp, attnCheck] of DISPOSITION_SELFTEST_CASES) {
+  for (const [name, ledger, parksMap, eventMap, mergedMap, wantDisp, attnCheck, custodyMap] of DISPOSITION_SELFTEST_CASES) {
     let ok = true;
     let detail = "";
     try {
-      const report = computeDisposition(ledger, parksMap, eventMap, mergedMap);
+      const report = computeDisposition(ledger, parksMap, eventMap, mergedMap, undefined, custodyMap);
       if (report.disposition !== wantDisp) { ok = false; detail = `disposition=${report.disposition} (want ${wantDisp})`; }
       if (ok && attnCheck && !attnCheck(report.attention)) { ok = false; detail = `attention check failed: ${JSON.stringify(report.attention)}`; }
       // counts histogram sanity on the dedicated case: shipped=2, parked=1.
@@ -420,5 +496,5 @@ module.exports = {
   ATTENTION_OUTCOMES, DISPOSITION_SELFTEST_CASES, ESCALATE_STOP_EXACT,
   cmdDisposition, computeDisposition, dispositionSelftest, eventCause,
   isEscalateStopReason, issueOutcomeEventMap, parksCauseMap,
-  readIssueOutcomeEvents, readMergedMap, readParksMap, renderDisposition,
+  readCustodyMap, readIssueOutcomeEvents, readMergedMap, readParksMap, renderDisposition,
 };

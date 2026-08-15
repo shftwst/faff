@@ -19,6 +19,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, chmodSync, rmSync, existsSync, readFileSync, utimesSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, basename, dirname } from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -784,4 +785,172 @@ test("FAFF-383: the already-MERGED idempotent no-op writes ZERO ledger entries (
   assert.equal(code, 0);
   assert.equal(JSON.parse(stdout).note, "already merged");
   assert.equal(ledgerLines(runDir).length, 0);
+});
+
+// --- FAFF-784: custody validation on the PR path — derived from lane-boundary.json, never a
+// caller flag. Structurally-detected dispatch is required on every path this suite already covers:
+// check-only, execute, and already-MERGED. ---
+
+function seedLaneBoundary(runDir, over = {}) {
+  const intent = {
+    version: 1, lane: "evaluator", container: "own",
+    accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false,
+    ...over,
+  };
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify(intent));
+}
+
+function sha256Hex(bytes) { return createHash("sha256").update(Buffer.from(bytes)).digest("hex"); }
+
+// Writes an exact-shaped custody-verdict.json at the canonical path and returns { file, sha256 } —
+// the sha256 an honest dispatcher would retain from `integrity-digest verify --record-result`'s
+// returned verdict_sha256 (an independent node:crypto oracle, proven byte-identical to the CLI's
+// coreutils hasher elsewhere in this suite's sibling integrity-digest.test.mjs).
+function writeCustodyVerdict(runDir, issue, over = {}) {
+  const record = {
+    schema_version: 1, run_id: basename(runDir), issue, classification: "clean",
+    paths: [], detail: "digest-verified", verified_at: "2026-08-15T00:00:00.000Z",
+    merge_state_at_verification: "pre-merge", ...over,
+  };
+  const dir = join(runDir, issue);
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "custody-verdict.json");
+  const bytes = JSON.stringify(record);
+  writeFileSync(file, bytes);
+  return { file, sha256: sha256Hex(bytes) };
+}
+
+const custodyArgs = ({ file, sha256 } = {}) => (file ? ["--custody-verdict", file, "--custody-verdict-sha256", sha256] : []);
+
+test("FAFF-784: dispatched (valid lane-boundary.json) + custody flags OMITTED on an otherwise merge-ok floor → exit 1 refuse, NO gh pr merge", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /--custody-verdict/.test(b)), "the blocker names the missing custody flags");
+  assert.equal(existsSync(sentinel), false, "a dispatched merge with no custody must never reach gh pr merge");
+});
+
+test("FAFF-784: dispatched + a VALID exact clean custody verdict → custody passes, the underlying merge-ok floor executes normally", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const cv = writeCustodyVerdict(runDir, ISSUE);
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  assert.equal(code, 0, stdout);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(existsSync(sentinel), true, "a satisfied custody gate must not block the real merge");
+});
+
+test("FAFF-784: dispatched + retained digest MISMATCH (verdict replaced after recording) → exit 1 refuse, no merge", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const original = writeCustodyVerdict(runDir, ISSUE); // sha256 the dispatcher would have retained
+  writeCustodyVerdict(runDir, ISSUE, { detail: "replaced after recording" }); // same path, DIFFERENT bytes
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(original)), { env }); // stale retained digest
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /digest mismatch/.test(b)));
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-784: dispatched + a TAMPER custody verdict → exit 1 refuse, never merge-ok", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const cv = writeCustodyVerdict(runDir, ISSUE, { classification: "tamper", paths: ["run-ledger.json"], detail: "tampered — run-ledger.json" });
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  assert.equal(code, 1);
+  assert.equal(JSON.parse(stdout).verdict, "refuse");
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-784: dispatched + a verification-unavailable custody verdict → exit 1 refuse (never reported as tamper, never merge-ok)", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const cv = writeCustodyVerdict(runDir, ISSUE, { classification: "verification-unavailable", detail: "no SHA-256 tool" });
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.doesNotMatch(out.blockers.join(" "), /\btamper\b/, "verification-unavailable must never be reported as tamper");
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-784: an INDETERMINATE (malformed) lane-boundary.json refuses UNCONDITIONALLY, even with an otherwise-valid custody verdict passed", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeFileSync(join(runDir, "lane-boundary.json"), "{not valid json");
+  const cv = writeCustodyVerdict(runDir, ISSUE);
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /indeterminate/.test(b)));
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-784: --check-only on a dispatched run with custody omitted → exit 1 refuse (never a false-green check-only)", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  assert.equal(code, 1);
+  assert.equal(JSON.parse(stdout).verdict, "refuse");
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-784: NO lane-boundary.json (interactive / no-dispatch-cut) → existing behaviour is UNCHANGED — custody flags are neither required nor consulted", () => {
+  const runDir = seedRunDir("merge-ok"); // deliberately no seedLaneBoundary — legacy/interactive posture
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir), { env }); // no custody args either
+  assert.equal(code, 0);
+  assert.equal(JSON.parse(stdout).verdict, "merge-ok");
+  assert.equal(existsSync(sentinel), true);
+});
+
+test("FAFF-784: already-MERGED + custody OMITTED on a dispatched run → merged:true but refuse (NEVER an unqualified merge-ok)", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
+  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, true, "the forge state is still surfaced accurately");
+  assert.equal(existsSync(sentinel), false, "an already-merged PR must never re-spawn gh pr merge");
+});
+
+test("FAFF-784: already-MERGED + a TAMPER custody verdict → merged:true, refuse, never an unqualified merge-ok", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const cv = writeCustodyVerdict(runDir, ISSUE, { classification: "tamper", paths: ["run-ledger.json"], detail: "tampered" });
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, true);
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-784: already-MERGED + a VALID clean custody verdict + a satisfied retrospective floor → still exit 0 merge-ok, merged:true (custody does not regress the existing already-merged success path)", () => {
+  const runDir = seedRunDir("merge-ok");
+  seedLaneBoundary(runDir);
+  const cv = writeCustodyVerdict(runDir, ISSUE);
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  assert.equal(code, 0, stdout);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(existsSync(sentinel), false, "already-merged never re-spawns gh pr merge, custody-satisfied or not");
 });

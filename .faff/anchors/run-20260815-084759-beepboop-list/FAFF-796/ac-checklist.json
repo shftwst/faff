@@ -1,0 +1,46 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A git-only run that parks/errors on every issue (no PR opened) still produces a committed run-level anchor at .faff/anchors/<run_id>/ after run-close, on every exit path.",
+      "verified": true,
+      "evidence": "events --selftest: 'anchor-run: all-parked, clean close → exit 0 (self-verify passed, merge_floor n/a)' + 'anchor-run: mints one subdir per admitted issue'; beep-boop SKILL.md's new bullet hangs the mint off the single owner.status:\"done\" choke-point every exit path already funnels through, gated on the git-only signal."
+    },
+    {
+      "ac": "governance-check's deriveAnchorDirs discovers the git-only run-level anchor tree and evaluateAnchorDir verifies it (integrity + merge_floor legs).",
+      "verified": true,
+      "evidence": "governance-check --selftest: the 'from-tree' and 'e2e' blocks (whole-tree walk, --run scoping, missing-run/absent-path tolerance, and an anchor-run-minted fixture discovered via --from-tree then passed to evaluateAnchorDir, overall pass)."
+    },
+    {
+      "ac": "The evidence subset committed is exactly ledger + events + summary + per-issue verdicts + CLI witness — never the raw run-dir.",
+      "verified": true,
+      "evidence": "mintIssueAnchor (shared by both anchor and anchor-run) copies exactly events.jsonl/run-ledger.json/optional declared-effects.jsonl+witness/optional ac-checklist.json+review-verdict.json+holdout.json+build-progress.json + writes chain-head.json; anchor-run additionally copies only summary.md at the run level. No raw-run-dir copy path exists."
+    },
+    {
+      "ac": "No change to the tracker-backed PR-only behavior or to the existing per-PR anchor.",
+      "verified": true,
+      "evidence": "All 76 pre-existing events-chain/events/faff-363-governance-check tests pass unchanged; events --selftest's anchor round-trip cases are byte-identical pre/post the mintIssueAnchor extraction; new governance-check selftest cases explicitly prove a per-PR anchor (undefined outcome, anchored before its issue's outcome is recorded) keeps today's evaluateMergeFloorLeg behaviour."
+    },
+    {
+      "ac": "faff events anchor-run --run-dir DIR exists; exits 0 on full mint+self-verify, non-zero on any mint/verify failure.",
+      "verified": true,
+      "evidence": "events --selftest anchor-run block: clean round-trip exit 0; shipped-issue-no-floor-files non-zero; no-ledger-write-event non-zero; ledger-fold-mismatch non-zero; run-ledger.json-absent non-zero; malformed-run-ledger.json non-zero; empty-run exit 0; missing --run-dir exit 2; no-events.jsonl exit 3."
+    },
+    {
+      "ac": "mintIssueAnchor is extracted and called by both faff events anchor (behaviour unchanged) and faff events anchor-run.",
+      "verified": true,
+      "evidence": "events --selftest's pre-existing anchor round-trip + merge-floor-evidence-copy cases pass unchanged after the extraction (byte-identical stdout/exit codes)."
+    },
+    {
+      "ac": "faff governance-check --derive-anchor-dirs <path> --from-tree [--run <id>] walks the anchor tree and emits the same <run>/<issue> dirs as the stdin source.",
+      "verified": true,
+      "evidence": "governance-check --selftest 'from-tree' block + direct CLI shell smoke test (governance-check --derive-anchor-dirs anchors --from-tree [--run run-1])."
+    },
+    {
+      "ac": "A test asserts .faff/anchors/<run>/<issue>/events.jsonl is not git-ignored (existing carve-out reused, verify-only).",
+      "verified": true,
+      "evidence": "test/impure/gitignore-ensure-set.test.mjs's real-git-check-ignore test extended with run-id-shaped path assertions (events.jsonl, chain-head.json, and the run-level summary.md) — no .gitignore change made, confirming the existing !.faff/anchors/ carve-out already covers the run-level shape."
+    }
+  ],
+  "notes": "All criteria auto-verified via node --test (governance-check.js and events.js selftest additions, plus the gitignore-ensure-set.test.mjs extension) and direct CLI smoke tests. No criterion required human/visual verification. The full pre-existing suite (3209 tests) passes except 6 confirmed pre-existing, unrelated failures (missing jq binary + a stale oracle-triage.json commit reference) verified to reproduce identically on main before this diff — recorded in discovered-scope.json, not fixed here."
+}

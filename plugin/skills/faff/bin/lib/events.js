@@ -32,6 +32,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
+const { FLOOR_LEVELS } = require("./contract-defs");
 const EVENTS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--tokens": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
@@ -1101,12 +1102,19 @@ function cmdEvents(args) {
     try { fs.mkdirSync(dest, { recursive: true }); }
     catch (e) { process.stderr.write(`faff events anchor-run: cannot create dest ${dest}: ${e.message}\n`); return 2; }
 
+    // Adversarial review (FAFF-796): a mint failure partway through this loop must never leave
+    // an orphaned PARTIAL set on disk — a bare `mkdirSync(dest, {recursive:true})` on the next
+    // re-run is a no-op over an existing dir, so a silent re-run would overwrite (and so mask)
+    // the prior partial failure rather than surfacing it. Wipe the whole `dest` tree before
+    // returning non-zero, so every failure path leaves either nothing or a fully self-verified
+    // set — never an ambiguous in-between the caller could mistake for complete.
     const mintedDirs = [];
     for (const issue of issues) {
       const destSub = path.join(dest, issue);
       const r = mintIssueAnchor(dirArg, issue, destSub);
       if (!r.ok) {
         process.stderr.write(`faff events anchor-run: mint failed for ${issue}: ${r.message}\n`);
+        try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup — the mint failure is the reported cause either way */ }
         return r.code === "no-events" ? 3 : 2;
       }
       mintedDirs.push(destSub);
@@ -1125,11 +1133,21 @@ function cmdEvents(args) {
     // orchestrator's commit step. Lazy require: governance-check.js requires this module at ITS
     // own top level (for computeChainHead/verifyChain/verifyEffectsChain); requiring it back at
     // events.js's own top level would deadlock the circular require into an empty exports object.
+    // Adversarial review (FAFF-796): evaluateAnchorDir overrides whatever level is passed here
+    // whenever the anchored run-ledger.json itself carries a `level` field (FAFF-690) — true for
+    // every ledger this codebase writes — so `selfVerifyLevel` below is a residual FALLBACK ONLY,
+    // for a level-less/legacy ledger. Resolve it from the LIVE run's OWN ledger (`ledgerObj`,
+    // already parsed above) rather than hardcoding either floor: hardcoding "L3" risks
+    // under-verifying an L4 run's holdout leg on that residual path; hardcoding "L4" risks
+    // over-verifying a legitimate L1–L3 shipped issue (requiring a holdout it was never meant to
+    // produce). The live ledger's own level is the correct answer either way.
+    const selfVerifyLevel = FLOOR_LEVELS.includes(ledgerObj.level) ? ledgerObj.level : "L3";
     const { evaluateAnchorDir } = require("./governance-check");
     for (const destSub of mintedDirs) {
-      const verdict = evaluateAnchorDir(destSub, "pass", "L3");
+      const verdict = evaluateAnchorDir(destSub, "pass", selfVerifyLevel);
       if (!verdict.pass) {
         process.stderr.write(`faff events anchor-run: self-verify failed for ${destSub}: ${JSON.stringify(verdict.legs)}\n`);
+        try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
         return 1;
       }
     }

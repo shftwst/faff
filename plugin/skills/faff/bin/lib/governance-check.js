@@ -375,18 +375,30 @@ function deriveAnchorDirsFromTree(anchorsPath, runId) {
     } catch { return { dirs: [], dropped: [] }; } // anchors-path absent — nothing to discover
   }
   const syntheticPaths = [];
+  // Adversarial review (FAFF-796): the stdin/PR source reports every too-shallow path it drops
+  // (with a reason); a naive walk that just filters non-directory entries would silently lose
+  // that same diagnostic for a stray file under <run>/ (e.g. a hand-created README.md beside the
+  // run-level summary.md) — a real observability asymmetry between the two discovery sources,
+  // even though both correctly EXCLUDE the file either way. Collect it here and merge below.
+  const skippedFiles = [];
   for (const run of runRoots) {
     let entries;
     try { entries = fs.readdirSync(path.join(prefix, run), { withFileTypes: true }); }
     catch { continue; } // named run missing/unreadable — nothing under it
     for (const e of entries) {
-      if (!e.isDirectory()) continue; // skip the run-level summary.md (and any other stray file)
+      if (!e.isDirectory()) {
+        // The run-level summary.md is EXPECTED here (spec: depth 1, below the 3-segment floor) —
+        // report it only as an informational skip, never framed as a traversal-style drop.
+        skippedFiles.push({ path: `${prefix}/${run}/${e.name}`, reason: e.name === "summary.md" ? "run-level summary.md (expected, not an anchor dir)" : "not a directory (not an <issue> anchor dir)" });
+        continue;
+      }
       // A synthetic file path under <prefix>/<run>/<issue>/ — deriveAnchorDirs only reads the
       // SEGMENTS below prefix to derive the dir; the literal filename is never read back.
       syntheticPaths.push(`${prefix}/${run}/${e.name}/_probe`);
     }
   }
-  return deriveAnchorDirs(syntheticPaths, prefix);
+  const { dirs, dropped } = deriveAnchorDirs(syntheticPaths, prefix);
+  return { dirs, dropped: [...dropped, ...skippedFiles] };
 }
 
 // Re-assert containment on an explicit `--anchor-dir` when `--anchors-root` is
@@ -1224,6 +1236,7 @@ function governanceCheckSelftest() {
       fs.mkdirSync(path.join(tmp, "anchors", "run-A", "FAFF-2"), { recursive: true });
       fs.mkdirSync(path.join(tmp, "anchors", "run-B", "FAFF-9"), { recursive: true });
       fs.writeFileSync(path.join(tmp, "anchors", "run-A", "summary.md"), "# a\n"); // depth-1 file, must be excluded
+      fs.writeFileSync(path.join(tmp, "anchors", "run-A", ".DS_Store"), ""); // a stray non-summary file — must ALSO be excluded + reported
 
       const whole = deriveAnchorDirsFromTree(path.join(tmp, "anchors"));
       check("from-tree: whole-tree walk discovers every <run>/<issue> dir",
@@ -1232,7 +1245,12 @@ function governanceCheckSelftest() {
           path.join(tmp, "anchors", "run-A", "FAFF-2"),
           path.join(tmp, "anchors", "run-B", "FAFF-9"),
         ].sort().join(","));
-      check("from-tree: the run-level summary.md (a file, not a dir) is excluded, no drop needed", whole.dropped.length === 0);
+      check("from-tree: the run-level summary.md is excluded from dirs[]", !whole.dirs.some((d) => d.endsWith("summary.md")));
+      check("from-tree: …but IS reported in dropped[] (diagnostic parity with the stdin source — FAFF-796 adversarial finding)",
+        whole.dropped.some((d) => d.path === path.join(tmp, "anchors", "run-A", "summary.md") && /summary\.md/.test(d.reason)));
+      check("from-tree: a stray non-summary file is also excluded from dirs[] AND reported in dropped[]",
+        !whole.dirs.some((d) => d.endsWith(".DS_Store"))
+        && whole.dropped.some((d) => d.path === path.join(tmp, "anchors", "run-A", ".DS_Store") && /not a directory/.test(d.reason)));
 
       const scoped = deriveAnchorDirsFromTree(path.join(tmp, "anchors"), "run-A");
       check("from-tree: --run scopes the walk to exactly that run",

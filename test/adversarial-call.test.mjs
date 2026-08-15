@@ -1244,6 +1244,25 @@ test("FAFF-398 main: --lights-out + all-unreachable chain → MANDATORY_OUTAGE (
   assert.equal(code, EXIT.MANDATORY_OUTAGE);
 });
 
+test("FAFF-465 main: --lights-out + a substantive-garble-only chain → MANDATORY_OUTAGE (9), composed via chainTerminalExit's UNREACHABLE(5) then the mandatory remap — not needs-human", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "no structured findings here" } }) },
+  );
+  assert.equal(code, EXIT.MANDATORY_OUTAGE);
+});
+
+test("FAFF-465 main: --lights-out + an empty/refusal-only chain → NO_FINDINGS_CONTENT (11, needs-human) — a structural fault stays human-actionable even at L4, never remapped to MANDATORY_OUTAGE", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "" } }) },
+  );
+  assert.equal(code, EXIT.NO_FINDINGS_CONTENT);
+  assert.notEqual(code, EXIT.MANDATORY_OUTAGE);
+});
+
 test("FAFF-398 main: NO flag + all-unreachable → UNREACHABLE (5, advisory pass+skip — no regression)", async () => {
   const { sys, dif } = specFiles398();
   const code = await main(

@@ -1,0 +1,97 @@
+{
+  "level": "L3",
+  "run_id": "run-20260816-182747-beepboop-list-f3d075",
+  "admitted": [
+    "FAFF-836",
+    "FAFF-797"
+  ],
+  "verdicts": {
+    "FAFF-836": "fire-and-forget",
+    "FAFF-797": "fire-and-forget"
+  },
+  "outcomes": {
+    "FAFF-381": "routed-out",
+    "FAFF-639": "routed-out",
+    "FAFF-836": "shipped"
+  },
+  "outcome_details": {
+    "FAFF-836": {
+      "disposition": "shipped",
+      "pr": 681,
+      "merge_sha": "29dd8bf156c1db8cf7f8292d46488209f4da426c",
+      "pr_head_sha": "8b30ca1855bfcc8da805aa310af6b4a1ca51c72e",
+      "review_verdict": "pass",
+      "ci": "green (GitHub Actions validate/env-rootless/validate-macos/governance-check/dco/docs-build all pass on the merge sha)",
+      "ac_verified": true,
+      "post_merge_note": "post-merge-check verified-fail (6/3268 local tests) is a PRE-EXISTING environmental sandbox gap (missing jq binary; stale/unreachable corpus commit d8edd792 in oracle-triage.test.mjs) confirmed on a pristine main clone, unrelated to FAFF-836 (env.js only). Authoritative CI green; not reverted/reopened.",
+      "note": "merge-record head_sha recorded the squash-merge commit (29dd8bf), not the PR head (8b30ca1) — merge is genuinely real (on origin/main, PR MERGED)."
+    },
+    "FAFF-381": {
+      "disposition": "routed-out",
+      "reason": "not-autonomously-buildable: human-supervised in-cage claude-box task (point-4 isolation proof is in-cage-only). Spec confidence:high/approve, but the Chosen dispatch route and the human note (2026-08-16) both bar the autonomous worktree->PR lane.",
+      "tracker_mutation": "none — human deliberately unparked + assigned it; re-parking would revert authoritative human curation",
+      "blocker": "FAFF-380 Done 2026-07-11 (satisfied) — not a blockedness route-out"
+    },
+    "FAFF-639": {
+      "disposition": "routed-out",
+      "reason": "human Resolution (2026-08-16) decided SPLIT via /faff-plot into 639a (discovery sees what CI sees) / 639b (ladder runs what discovery found). A split replaces the whole-ticket medium spec with two child specs — /faff-plot's job, not narrow-prep's — and /faff-plot has no autonomous L3 entry. Building/promoting the whole ticket would violate the human split decision (Human curation is authoritative).",
+      "tracker_mutation": "none — human already cleared faff-parked and documented the /faff-plot next step",
+      "next_step_human": "/faff-plot FAFF-639"
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [
+    {
+      "issue": "FAFF-836",
+      "pr": 681,
+      "merge_sha": "29dd8bf156c1db8cf7f8292d46488209f4da426c",
+      "command": "node --import ./test/hermetic-env.mjs --test",
+      "environmental": true,
+      "note": "pre-existing sandbox gaps (missing jq; stale corpus commit) — not a FAFF-836 regression; CI green"
+    }
+  ],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "ffce21be-a1aa-40e6-b9ac-679c1097d0e6",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 48,
+        "output": 25571,
+        "cache_write": 510775,
+        "cache_read": 3977945
+      }
+    },
+    "tokens_at_start": 4514339,
+    "window": {
+      "anchor_epoch": 1786905022127,
+      "reset_epoch": 1786923022127,
+      "tokens_at_anchor": 3674160
+    },
+    "tokens_at_last_event": {
+      "input": 322,
+      "output": 264633,
+      "cache_write": 960409,
+      "cache_read": 45070328
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 470,
+    "session_id": "run-20260816-182747-beepboop-list-f3d075",
+    "started_at": "2026-08-16T18:27:47Z",
+    "last_heartbeat": "2026-08-16T18:27:47Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

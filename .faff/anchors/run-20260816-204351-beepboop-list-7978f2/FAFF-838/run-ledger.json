@@ -1,0 +1,82 @@
+{
+  "level": "L3",
+  "run_id": "run-20260816-204351-beepboop-list-7978f2",
+  "mode": "explicit-list",
+  "admitted": [
+    "FAFF-840",
+    "FAFF-839",
+    "FAFF-838",
+    "FAFF-837",
+    "FAFF-608"
+  ],
+  "outcomes": {
+    "FAFF-817": "parked",
+    "FAFF-639": "parked",
+    "FAFF-608": "shipped",
+    "FAFF-837": "shipped"
+  },
+  "outcome_details": {
+    "FAFF-817": {
+      "state": "parked",
+      "root_cause": "punt-not-closed",
+      "reason": "transport architecture/security decision unresolved + consumer FAFF-790 not shipped; Slice 1 (FAFF-836) now Done but human gate not met"
+    },
+    "FAFF-639": {
+      "state": "parked",
+      "root_cause": "other",
+      "reason": "human split decision (2026-08-16) routes to /faff-plot re-slice into 639a/639b — human-interactive, no autonomous entry at L3"
+    }
+  },
+  "routing_verdicts": {
+    "FAFF-840": "fire-and-forget",
+    "FAFF-839": "fire-and-forget",
+    "FAFF-838": "likely-fire",
+    "FAFF-837": "fire-and-forget",
+    "FAFF-608": "fire-and-forget"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "tokens_at_start": 8858619,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "5cedc8bc-546d-44ad-afa6-e129c3ec2b5f",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 102,
+        "output": 50537,
+        "cache_write": 592745,
+        "cache_read": 8215235
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786913180654,
+      "reset_epoch": 1786931180654,
+      "tokens_at_anchor": 1812636
+    },
+    "tokens_at_last_event": {
+      "input": 14008,
+      "output": 363337,
+      "cache_write": 1916130,
+      "cache_read": 33033807
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260816-204351-beepboop-list-7978f2",
+    "started_at": "2026-08-16T20:43:51Z",
+    "last_heartbeat": "2026-08-16T20:43:51Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

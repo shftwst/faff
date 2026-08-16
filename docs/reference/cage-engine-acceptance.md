@@ -71,10 +71,22 @@ reachable from the cage's own processes (this is what rootless port-publishing c
 slirp4netns / pasta loopback binding — can silently break while in-container healthchecks stay
 green).
 
+`health_checks[].path` is a probe **descriptor**, not always a URL path: for an HTTP app service
+it's a URL path to append to `endpoint` (`expected_status: 200`); for a datastore service such as
+minio it's a full probe command with the health URL already embedded (`expected_status: 0`). The
+snippet below resolves either shape from the plan's already-resolved `endpoint` rather than
+concatenating blindly:
+
 ```bash
-endpoint=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("plan.json","utf8")).endpoint)')
-hpath=$(node -e 'const p=JSON.parse(require("fs").readFileSync("plan.json","utf8")); console.log((p.health_checks.find(h=>h.name==="app")||{path:"/health"}).path)')
-curl -fsS "$endpoint$hpath"           # expect the health route's expected status
+url=$(node -e '
+  const p = JSON.parse(require("fs").readFileSync("plan.json","utf8"));
+  const hc = (p.health_checks||[]).find(h => h.name === "app") || (p.health_checks||[])[0] || {};
+  const path = String(hc.path || "");
+  if (path.startsWith("/")) console.log(p.endpoint + path);          // HTTP app: append the URL path
+  else { const m = path.match(/https?:\/\/\S+/); console.log(m ? m[0] : p.endpoint); }  // datastore: extract the embedded URL
+')
+curl -fsS "$url"           # expect HTTP 200 from curl; the plan's own expected_status for this
+                            # health check is 0 for a datastore probe (an exit code, not this HTTP status)
 ```
 
 **Pass:** the HTTP request succeeds from inside the cage (not from the host).

@@ -46,6 +46,49 @@ function classifyCriterion(text) {
   return "prose";
 }
 
+// --- born-verifiability oracle lint (FAFF-812) ---
+// An `assertion`-class criterion reads born-verifiable on SHAPE alone (a `MUST` or a comparator),
+// but shape says nothing about what the assertion is ABOUT — a well-formed assertion whose subject
+// is internal code ("no timestamp comparison MUST happen in the api") has no external oracle the
+// code-blind holdout can exercise. hasObservableOracle is the deterministic, in-source-tuned
+// predicate that answers "does this assertion name an observable the holdout can reach?", mirroring
+// the module's existing hand-tuned rules (BANNED_VAGUE, PROSE_DONE_STOPWORDS) — never escalated to
+// an LLM; it checks form, not whether a named oracle is truly reachable.
+//
+// Presence of any OBSERVABLE_TOKENS entry → an oracle is named (an HTTP/exit-code/file/stdio
+// vocabulary). INTERNAL_SUBJECT_MARKERS are phrasings that assert over code internals — deliberately
+// PHRASE-specific ("in the api", not the bare word "api"), since the bare noun appears in plenty of
+// valid observable assertions ("the API MUST return 200").
+const OBSERVABLE_TOKENS = [
+  "http", "https", "status", "status code", "response", "header", "body",
+  "endpoint", "route", "request", "exit code", "exit status", "exits", "returns",
+  "stdout", "stderr", "output", "file", "on disk", "written", "persisted",
+  "200", "201", "400", "401", "403", "404", "409", "422", "500",
+  "get ", "post ", "put ", "patch ", "delete ", "/",
+];
+
+const INTERNAL_SUBJECT_MARKERS = [
+  "in the api", "in the code", "in the handler", "in the service",
+  "internally", "under the hood",
+];
+
+// The "no ... happens" / "never calls" families are phrasing-varied, so they are matched
+// structurally (a small regex each) rather than as a fixed phrase.
+const INTERNAL_NEGATION_RE = /\bno\b.*\b(happen|happens|occur|occurs|comparison|call|calls)\b/i;
+const INTERNAL_NEVER_RE = /\b(never|does not|doesn't|do not|don't)\b.*\b(call|calls|happen|compare|read|write)\b/i;
+
+// Pure predicate, consulted only for assertion-class criteria. true = names an observable oracle
+// the holdout can reach; false = oracle-less (an internal-code subject with no observable named).
+// Recall-biased toward NOT flagging (gateway posture: a false negative is the status quo/no
+// regression; a false positive erodes trust in an advisory) — flags only when an internal-subject
+// marker fires AND no observable token is present.
+function hasObservableOracle(text) {
+  const lc = String(text == null ? "" : text).toLowerCase();
+  const hasObservable = OBSERVABLE_TOKENS.some((t) => lc.includes(t));
+  const hasInternalMarker = INTERNAL_SUBJECT_MARKERS.some((m) => lc.includes(m)) || INTERNAL_NEGATION_RE.test(lc) || INTERNAL_NEVER_RE.test(lc);
+  return !(hasInternalMarker && !hasObservable);
+}
+
 // FAFF-275: a fence-open line whose info string is EXACTLY `holdout` (case-insensitive) — every
 // criterion unit formed inside that fence is a holdout. Both fence styles recognised, matching
 // the fence-toggle regex every other scanner in this file already shares.
@@ -162,7 +205,15 @@ function dodClassify(specText) {
   for (const c of criteria) counts[c.class]++;
   const holdout_counts = { holdout: 0, visible: 0 };
   for (const c of criteria) { if (c.holdout) holdout_counts.holdout++; else holdout_counts.visible++; }
-  return { criteria, counts, holdout_counts };
+  // FAFF-812: additive oracle_less flag — true only for an assertion-class criterion with no
+  // observable oracle (see hasObservableOracle above). A single post-pass over the already-built
+  // criteria, so the two push sites above stay untouched. Never changes class/counts/holdout.
+  let oracle_less_count = 0;
+  for (const c of criteria) {
+    c.oracle_less = c.class === "assertion" && !hasObservableOracle(c.text);
+    if (c.oracle_less) oracle_less_count++;
+  }
+  return { criteria, counts, holdout_counts, oracle_less_count };
 }
 
 // FAFF-275: within a Scenarios-section BODY (already isolated by sectionBodyRange), find the
@@ -496,6 +547,26 @@ function renderProseDoneWarning(adv) {
   return s;
 }
 
+// --- oracle-less-assertion advisory (FAFF-812) ---
+// Pure: given the spec text, return the oracle-less advisory data, or null when there are zero
+// oracle-less assertions (no warning). Reuses dodClassify's additive oracle_less flag — the single
+// source of truth, no second parser. Mirrors proseDoneAdvisory's try/catch-to-null shape.
+function oracleLessAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const oracleLess = classified.criteria.filter((c) => c.oracle_less);
+  if (oracleLess.length === 0) return null;
+  return { count: oracleLess.length, items: oracleLess };
+}
+
+// Render the single-line advisory (deterministic "oracle-less-assertion advisory:" prefix). Items
+// whitespace-collapsed + truncated ~50 chars, mirroring renderProseDoneWarning's style.
+function renderOracleLessWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  const items = adv.items.map((c) => trunc(c.text)).join(" | ");
+  return `oracle-less-assertion advisory: ${adv.count} assertion(s) name no observable oracle (a MUST/comparator over internal code the holdout cannot exercise): ${items}`;
+}
+
 // The pure verdict. Any parse exception coerces to inadmissible (fail-safe).
 function admissibleVerdict(specText, lightsOut) {
   if (!lightsOut) {
@@ -818,6 +889,35 @@ function dodSelftest() {
   const unmarkedEquivalent = holdoutSpec.replace(/```holdout/, "```").replace(/- holdout: /, "- ");
   const vMarked = admissibleVerdict(holdoutSpec, true), vUnmarked = admissibleVerdict(unmarkedEquivalent, true);
   check("FAFF-275: marked-vs-unmarked admissible parity (same admissible verdict + reasons)", vMarked.admissible === vUnmarked.admissible && JSON.stringify(vMarked.reasons) === JSON.stringify(vUnmarked.reasons));
+
+  // --- FAFF-812: born-verifiability oracle lint ---
+  // The observed miss: an internal-code prohibition with no HTTP oracle read as a clean assertion.
+  const oracleLessSpec = [
+    "## Scenarios", "",
+    "```", "Given a user is logged in", "When they click checkout", "Then the order is submitted", "```", "",
+    "- The API MUST return 200 on /healthz",
+    "- no timestamp comparison MUST happen in the api",
+    "",
+    "## 8. DONE", "",
+    "- [ ] the parser returns >=1 item",
+  ].join("\n");
+  const olc = dodClassify(oracleLessSpec);
+  const healthzCrit = olc.criteria.find((c) => /healthz/.test(c.text));
+  const timestampCrit = olc.criteria.find((c) => /timestamp comparison/.test(c.text));
+  const scenarioCrit812 = olc.criteria.find((c) => c.source === "scenarios" && c.class === "scenario");
+  check("FAFF-812: observed miss — internal-code prohibition classifies assertion + oracle_less true", timestampCrit && timestampCrit.class === "assertion" && timestampCrit.oracle_less === true);
+  check("FAFF-812: regression — observable-MUST assertion classifies assertion + oracle_less false", healthzCrit && healthzCrit.class === "assertion" && healthzCrit.oracle_less === false);
+  check("FAFF-812: regression — a GWT scenario keeps class scenario and oracle_less false", scenarioCrit812 && scenarioCrit812.oracle_less === false);
+  check("FAFF-812: oracle_less is false for every non-assertion criterion", olc.criteria.every((c) => c.class === "assertion" || c.oracle_less === false));
+  check("FAFF-812: oracle_less_count equals the number of oracle_less==true criteria", olc.oracle_less_count === olc.criteria.filter((c) => c.oracle_less).length && olc.oracle_less_count === 1);
+  check("FAFF-812: counts is UNCHANGED shape and still sums to criteria.length (no regression)", olc.counts.scenario + olc.counts.assertion + olc.counts.prose === olc.criteria.length);
+  check("FAFF-812: hasObservableOracle direct parity — internal-subject marker + no observable token → false", hasObservableOracle("no timestamp comparison MUST happen in the api") === false);
+  check("FAFF-812: hasObservableOracle direct parity — observable token present → true", hasObservableOracle("The API MUST return 200 on /healthz") === true);
+  const olAdv = oracleLessAdvisory(oracleLessSpec);
+  check("FAFF-812: oracleLessAdvisory returns the flagged criterion when >=1 oracle-less assertion exists", olAdv && olAdv.count === 1 && /timestamp comparison/.test(olAdv.items[0].text));
+  check("FAFF-812: oracleLessAdvisory returns null when there are zero oracle-less assertions", oracleLessAdvisory(ADMISSIBLE_GOOD) === null);
+  check("FAFF-812: renderOracleLessWarning renders the deterministic prefixed line", /^oracle-less-assertion advisory: 1 assertion\(s\) name no observable oracle/.test(renderOracleLessWarning(olAdv)));
+  check("FAFF-812: the lint never flips the admissible verdict (advisory only)", admissibleVerdict(oracleLessSpec, true).admissible === true);
 
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;
@@ -1144,4 +1244,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, matchesBannedVague, opensContractFence, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderOracleLessWarning, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

@@ -665,6 +665,17 @@ export const ADR_DRIFT_MODE_INSTRUCTION =
   "never emit a third value. Output NOTHING except that single block: no reasoning, no preamble, no " +
   "prose, nothing before or after it.";
 
+// FAFF-816 — prdr-yagni shares adr-drift's exact grader arm (env.challenge_outcome, same fail-open
+// default), so the instruction shape is identical; only the judgement question differs (a PRDR's
+// warrant against its PRD goals, not an ADR supersession argument).
+export const PRDR_YAGNI_MODE_INSTRUCTION =
+  "Judge whether the PRDR is warranted — serves a real PRD goal without exceeding it — challenging the " +
+  "Phase-1 yagni-judge proposal above, then OUTPUT ONLY one fenced code block tagged exactly " +
+  "`faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "challenge_outcome": "survived|overturned" } — ALWAYS emit that field and ' +
+  "ALWAYS one of those two values. Never omit it, never report it as absent, never emit a third value. " +
+  "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
 // resolved-elsewhere's fixture carries a corpus of merged-PR prose — untrusted third-party text that
 // renderFixturePrompt interpolates verbatim — so the instruction carries the same data-not-instruction
 // quarantine HOLDOUT_EXERCISE_MODE_INSTRUCTION already carries, for the same reason. buildEvalPrompt
@@ -707,6 +718,8 @@ function modeInstructionFor(kind) {
   if (kind === "grouping") return GROUPING_MODE_INSTRUCTION;
   if (kind === "adr-drift") return ADR_DRIFT_MODE_INSTRUCTION;
   if (kind === "resolved-elsewhere") return RESOLVED_ELSEWHERE_MODE_INSTRUCTION;
+  // FAFF-816
+  if (kind === "prdr-yagni") return PRDR_YAGNI_MODE_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -917,6 +930,15 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Argument for superseding:\n${c.fixture.why}`
     );
   }
+  // FAFF-816 — prdr-yagni renders the three proposal-shaped fixture fields (never a diff).
+  if (c.kind === "prdr-yagni") {
+    return (
+      `${rubric}Judge the following loop-authored PRDR against its PRD goals and answer: ${c.question}\n\n` +
+      `Authored PRDR:\n${JSON.stringify(c.fixture.authored_prdr, null, 2)}\n\n` +
+      `PRD goals:\n${JSON.stringify(c.fixture.prd_goals, null, 2)}\n\n` +
+      `Phase-1 yagni-judge proposal:\n${JSON.stringify(c.fixture.phase1_proposal, null, 2)}`
+    );
+  }
   // The corpus is rendered LAST so the instruction's data-not-instruction clause — which buildEvalPrompt
   // appends after this whole string — is the final thing the model reads before answering.
   if (c.kind === "resolved-elsewhere") {
@@ -1017,6 +1039,15 @@ export function loadAdrDriftProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faffter-dark-adversarial-review", "SKILL.md");
   return extractSectionToEnd(p, ADR_DRIFT_PROSE_START, "loadAdrDriftProse");
 }
+// FAFF-816 — the PRDR YAGNI Phase-2 challenge section sits between "## ADR drift challenge" (which
+// extractSectionToEnd above already reads to end of file) and "## Rules", so it gets a proper END
+// anchor via extractSection rather than reading to end of file a second time.
+const PRDR_YAGNI_PROSE_START = "\n## PRDR YAGNI Phase-2 challenge\n";
+const PRDR_YAGNI_PROSE_END = "\n## PRDR YAGNI Phase-2 overturn criterion\n";
+export function loadPrdrYagniProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-dark-adversarial-review", "SKILL.md");
+  return extractSection(p, PRDR_YAGNI_PROSE_START, PRDR_YAGNI_PROSE_END, "loadPrdrYagniProse");
+}
 
 // FAFF-146 — resolve the verbatim criteria for a case's kind from the plugin under test. Tidy's six
 // kinds use the combined classification + synthesis-gloss criteria (unchanged); confidence + marker
@@ -1051,6 +1082,8 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "grouping") return loadGroupingProse(pluginDir);
   if (kind === "adr-drift") return loadAdrDriftProse(pluginDir);
   if (kind === "resolved-elsewhere") return loadResolvedElsewhereProse(pluginDir);
+  // FAFF-816
+  if (kind === "prdr-yagni") return loadPrdrYagniProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

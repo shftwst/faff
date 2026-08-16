@@ -36,7 +36,11 @@ const FAFF_319_KINDS = new Set([
 const FAFF_670_KINDS = new Set([
   "adr-drift", "chain-gap", "explanatory-order", "grouping", "holdout-exercise", "prep-architecture-trigger", "resolved-elsewhere",
 ]);
-const TARGET_KINDS = new Set([...FAFF_319_KINDS, ...FAFF_670_KINDS]);
+// FAFF-816 — the upper-gate YAGNI Phase-2 challenge adds one more ungated kind (prdr-yagni, sharing
+// adr-drift's binary shape). Widened the same way FAFF-670 widened FAFF-319: triaged immediately
+// (zero model reps, static prose triage), never left as a silent staleness-check gap.
+const FAFF_816_KINDS = new Set(["prdr-yagni"]);
+const TARGET_KINDS = new Set([...FAFF_319_KINDS, ...FAFF_670_KINDS, ...FAFF_816_KINDS]);
 
 const CLASSES = new Set(["oracle-defect", "needs-evidence", "suspected-genuine-miss", "sound"]);
 // The FAFF-321 deferral signature — a rationale must never read like a generic punt.
@@ -147,7 +151,7 @@ test("FAFF-670 provenance: every entry names its triage ticket", () => {
     assert.ok(/^FAFF-\d+$/.test(e.triage_ticket || ""), `entry ${e.case_id}: triage_ticket must match /^FAFF-\\d+$/`);
   }
   const tickets = new Set(entries.map((e) => e.triage_ticket));
-  for (const t of tickets) assert.ok(t === "FAFF-319" || t === "FAFF-670", `unexpected triage_ticket ${t}`);
+  for (const t of tickets) assert.ok(t === "FAFF-319" || t === "FAFF-670" || t === "FAFF-816", `unexpected triage_ticket ${t}`);
 });
 
 test("FAFF-319/670 per-class required fields, present-iff", () => {

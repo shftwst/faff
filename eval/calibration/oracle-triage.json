@@ -19,12 +19,13 @@
       "grouping",
       "holdout-exercise",
       "prep-architecture-trigger",
-      "resolved-elsewhere"
+      "resolved-elsewhere",
+      "prdr-yagni"
     ],
-    "case_count": 41,
+    "case_count": 43,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 32,
+      "sound": 34,
       "oracle-defect": 9,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
@@ -92,6 +93,15 @@
           "specqual-003"
         ],
         "note": "Resolved the FAFF-319/FAFF-670 needs-evidence + suspected-genuine-miss entries against the operator's re-baseline sweep. The three suspected-genuine-miss cases (007/008/009) were REFUTED — the shipped infosec lens catches all three faff-specific threats; their FAILs, and 001/002/003's, were an over-narrow single-lens closed_set oracle, fixed by the new lens_bounds shape (ADR 0094). grouping-001's brittle gloss buckets were widened; specqual-003 was confirmed sound. triage_ticket stays at first-author provenance; resolved_by carries the resolution."
+      },
+      {
+        "ticket": "FAFF-816",
+        "date": "2026-08-16",
+        "kinds_added": [
+          "prdr-yagni"
+        ],
+        "origin_commit": "7ed7f9a",
+        "note": "Added the upper-gate YAGNI Phase-2 challenge kind (prdr-yagni), mirroring adr-drift's binary shape. Both new cases (survive + overturn) triaged immediately, zero model reps — the same static prose triage method as FAFF-319/670."
       }
     ],
     "assumption_checks": [
@@ -457,6 +467,22 @@
       "rationale": "The FAFF-670 discriminating_question guessed the failing bucket was must_include[2] (the 'loose' vocabulary). Sweep 20260803-012238 shows otherwise: 44/50 reps carry a 'loose' token, so [2] is sound. The 0.02 accuracy traces to two OTHER buckets being brittle to casing and paraphrase — must_include[0] (models write 'recover a locked-out account' / 'request a reset' where the rubric wanted 'account recovery' / 'password reset') and must_include[3] (models write 'blockedBy' camelCase where the rubric wanted 'blocked by'). Structurally-correct answers were marked absent.",
       "resolved_by": "FAFF-615",
       "proposed_fix": "Widen the gloss_rubric synonym sets to the phrasings real answers use — append 'reset'/'recover' to must_include[0] and 'blockedby'/'blocks' to must_include[3]. No grader change; the substring scorer already lowercases."
+    },
+    {
+      "case_id": "prdr-yagni-001",
+      "kind": "prdr-yagni",
+      "grader_shape": "closed-set: survived/overturned verdict (env.challenge_outcome, shares adr-drift's predictedSet arm)",
+      "class": "sound",
+      "triage_ticket": "FAFF-816",
+      "rationale": "predictedSet is [\"overturned\"] iff env.challenge_outcome is overturned, so the empty oracle encodes \"the PRDR survives the YAGNI Phase-2 challenge\". It should: the PRDR is a narrow, additive read-only inspection flag reusing the existing merge-gate floor-read logic verbatim, serving the first PRD goal directly (safe inspection without merge risk) and serving the second by simply not touching the floor logic at all. No capability beyond the two declared goals is introduced and neither goal is left unserved. A survived verdict is the correct call and the empty set captures it. Sound."
+    },
+    {
+      "case_id": "prdr-yagni-002",
+      "kind": "prdr-yagni",
+      "grader_shape": "closed-set: survived/overturned verdict (env.challenge_outcome, shares adr-drift's predictedSet arm)",
+      "class": "sound",
+      "triage_ticket": "FAFF-816",
+      "rationale": "The oracle [\"overturned\"] is right. The PRD goal is a single bounded capability: inspect the current merge-gate decision without risking a merge. The PRDR quietly grows this into a persistent historical audit log, a new on-disk artifact, a query subcommand with date filtering, and a second output format — none of which any declared goal asks for. That is genuine gold-plating, capability beyond the PRD's declared goals riding in on a legitimately-scoped flag, and the Phase-1 \"natural extension\" reasoning is exactly the over-scope creep a Phase-2 challenge exists to catch. A Phase-2 challenge must overturn this, so [\"overturned\"] is the correct closed set. Sound."
     }
   ]
 }

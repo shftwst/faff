@@ -656,6 +656,7 @@ const READ_FIELD = {
   "refutation-spec": "objections", "refutation-code": "findings",
   holdout: "holdout", "holdout-exercise": "holdout-exercise",
   grouping: "grouping", "adr-drift": "challenge_outcome", "resolved-elsewhere": "resolved_elsewhere",
+  "prdr-yagni": "challenge_outcome",
 };
 
 // The kinds that LEGITIMATELY ride the fall-through, because their read field genuinely appears as a
@@ -671,7 +672,7 @@ const caseBackedKinds = [...new Set(readdirSync(CASES_DIR)
   .map((f) => readCase(f).kind))].sort();
 
 test("FAFF-669 every case-backed kind's instruction declares the key eval/grader.mjs reads for it", () => {
-  assert.equal(caseBackedKinds.length, 29, "29 of the 32 registered kinds are case-backed");
+  assert.equal(caseBackedKinds.length, 30, "30 of the 33 registered kinds are case-backed");
   for (const k of caseBackedKinds) {
     // (1) No row is a hard failure, never a skip — this is what turns the suite red on the day a new
     //     kind's first case file lands, instead of it quietly scoring nothing for four tickets running.
@@ -794,6 +795,8 @@ const ANCHOR_REGISTRY = {
   // no end anchor. `end: null` is asserted-not-implicit: the null-end forcing-function below fails if
   // a future loader tries to hide a forgotten end anchor in the same gap.
   ADR_DRIFT_PROSE_START: { skill: "faffter-dark-adversarial-review", end: null },
+  // FAFF-816
+  PRDR_YAGNI_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "PRDR_YAGNI_PROSE_END" },
 };
 const anchorValue = (name) => {
   const m = DRIVER_SRC.match(new RegExp(`const ${name} = ("(?:[^"\\\\]|\\\\.)*");`));
@@ -813,7 +816,7 @@ test("FAFF-669 every registered start anchor occurs exactly once in the file its
 // A hand-maintained registry with no forcing function is a list that goes stale on the next commit.
 test("FAFF-669 the anchor registry covers every start-anchor constant declared in the driver", () => {
   const declared = [...DRIVER_SRC.matchAll(/const (\w+_START) = /g)].map((m) => m[1]);
-  assert.equal(declared.length, 28, "24 pre-existing start anchors plus this ticket's four");
+  assert.equal(declared.length, 29, "28 pre-existing start anchors plus this ticket's one");
   for (const name of declared) {
     assert.ok(name in ANCHOR_REGISTRY, `${name} is declared in the driver but missing from the anchor registry`);
   }
@@ -873,7 +876,7 @@ test("FAFF-687 a duplicate end-anchor spliced inside a section is caught (demons
 // the end-anchor mirror of the start-anchor coverage test above.
 test("FAFF-687 the anchor registry covers every end-anchor constant declared in the driver", () => {
   const declaredEnds = [...DRIVER_SRC.matchAll(/const (\w+_END) = /g)].map((m) => m[1]);
-  assert.equal(declaredEnds.length, 27, "one END const per START const, minus the sole extractSectionToEnd loader");
+  assert.equal(declaredEnds.length, 28, "one END const per START const, minus the sole extractSectionToEnd loader");
   const registered = Object.values(ANCHOR_REGISTRY).map((row) => row.end).filter((end) => end !== null);
   assert.deepEqual(new Set(registered), new Set(declaredEnds),
     "every *_END const declared in the driver must be on exactly one registry row, and vice versa");

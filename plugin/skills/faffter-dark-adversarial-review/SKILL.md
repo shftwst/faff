@@ -2,7 +2,7 @@
 name: faffter-dark-adversarial-review
 description: "Adversarial second-opinion code review for the `review` slot: a standard structural pass plus an adversarial review by a different LLM to catch correlated blind spots. Returns the fixed review-verdict (faff contract review-verdict --describe). Swappable review occupant; runs as a configured slot, not the user `/` menu."
 user-invocable: false
-judgement_seam: refutation-code, adr-drift
+judgement_seam: refutation-code, adr-drift, prdr-yagni
 ---
 
 # faffter-dark-adversarial-review
@@ -289,9 +289,36 @@ On an **interactive (L2)** run — `autonomous` false — this section is inert:
 
 This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return the closed challenge-outcome vocabulary (canonical semantics: `faff contract adr-admission --describe`). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as the absent outcome (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
 
+## PRDR YAGNI Phase-2 challenge
+
+This same adversarial engine is also called by the upper-gate YAGNI Phase-2 (gateway → **Upper-gate (YAGNI) two-phase arbitration**; faff-plot Step 5c) — a distinct, narrower question than the diff code-review above, sharing only the "different model, independent second opinion" mechanism (as `adr-drift` does).
+
+```
+BEHAVIOUR PRDR YAGNI Phase-2 challenge (the prdr-yagni seam):
+  SUMMARY: the same adversarial engine, called for the upper-gate Phase-2 — a distinct,
+           narrower question than the diff code-review, sharing only the "different model,
+           independent second opinion" mechanism (as adr-drift does).
+  1. Input  = { AuthoredPrdr, PRD goals, Phase-1 yagni-judge proposal }  # proposal-shaped, NOT a diff
+  2. Judge  whether the PRDR is warranted — serves a real PRD goal without exceeding it
+  3. Return the closed challenge vocabulary: survived | overturned, with ground
+     (over-scope | unserved | other) on an overturn
+     (canonical semantics: gateway → Upper-gate arbitration + `faff contract prdr-yagni --describe`)
+  4. Transport = invoke the `review` slot as a subagent (a different model, the Phase-2 pattern) —
+     never the diff-shaped code-review transport the `refutation-code` seam uses. It feeds
+     `faff prdr yagni --challenge <outcome> --challenge-ground <ground>` directly, never the
+     `faff-contract:review-verdict` block.
+  5. Unreachable/unanswered after the normal fallback chain → the absent outcome
+     (caller omits --challenge — a missing skeptic is a reject, never a pass, parking the
+     PRDR `phase2-inconclusive`); no separate outage-annotation shape (same as adr-drift).
+```
+
+This is the `prdr-yagni` seam (`judgement_seam` above); it feeds `faff prdr yagni --challenge <outcome> --challenge-ground <ground>` directly, never the `faff-contract:review-verdict` block above (a different contract, `prdr-yagni`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as the absent outcome (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
+
+**Anti-pattern:** routing the YAGNI Phase-2 challenge through the diff-shaped code-review transport (the `refutation-code` seam's helper above, hard-wired to a `DIFF UNDER REVIEW:` input and a severity-findings output). Why: that shape mismatch yields an improvised, untrustworthy overturn.
+
 ## PRDR YAGNI Phase-2 overturn criterion
 
-When this engine challenges a loop-authored PRDR (the upper-gate Phase 2 — gateway → **Upper-gate (YAGNI) two-phase arbitration**), the **only** over-scope ground for overturning is genuine gold-plating: the DoD covers capability **beyond the PRD's declared goals** (`V ⊄ D`), or a cited goal is unserved. Covering **more declared goals than the PRDR cites is _not_ over-scope** — that is under-citation (a citation bug), supplied to the arbitration as `--dod-covers` and admitted deterministically. Classify every overturn with a closed-vocab **ground** (`over-scope` | `unserved` | `other`, fed as `--challenge-ground`) so the arbitration overrides only a *mis-attributed over-scope* overturn; an `unserved`/`other` overturn is always respected. No new judgement-seam — the under-citation/over-scope distinction is the CLI's deterministic set-test, not a refutation seam.
+When this engine challenges a loop-authored PRDR (the upper-gate Phase 2 — gateway → **Upper-gate (YAGNI) two-phase arbitration**), the **only** over-scope ground for overturning is genuine gold-plating: the DoD covers capability **beyond the PRD's declared goals** (`V ⊄ D`), or a cited goal is unserved. Covering **more declared goals than the PRDR cites is _not_ over-scope** — that is under-citation (a citation bug), supplied to the arbitration as `--dod-covers` and admitted deterministically. Classify every overturn with a closed-vocab **ground** (`over-scope` | `unserved` | `other`, fed as `--challenge-ground`) so the arbitration overrides only a *mis-attributed over-scope* overturn; an `unserved`/`other` overturn is always respected. The under-citation/over-scope *distinction* remains the CLI's deterministic set-test, not part of any refutation seam. The Phase-2 *challenge itself*, however, is a first-class judgement seam — `prdr-yagni`, declared in the frontmatter above and transported per **PRDR YAGNI Phase-2 challenge** — not the diff-shaped `refutation-code` seam.
 
 ## Rules
 

@@ -1,0 +1,29 @@
+{
+  "id": "prdr-yagni-001",
+  "kind": "prdr-yagni",
+  "fixture": {
+    "authored_prdr": {
+      "decision": "Add a `--dry-run` flag to `faff merge-gate` that runs every merge-floor read (AC checklist, review verdict, CI observation) and prints the resulting `merge-ok`/`blocked` decision plus the reason, without ever calling `gh pr merge`.",
+      "dod": [
+        "`faff merge-gate --pr <n> --dry-run` exits 0 and prints `merge-ok` when all three floor conditions hold, without merging",
+        "`faff merge-gate --pr <n> --dry-run` exits 1 and prints the specific blocked condition(s) when any floor condition fails, without merging",
+        "No `gh pr merge` invocation occurs under `--dry-run` (asserted by a test double)"
+      ]
+    },
+    "prd_goals": [
+      "Operators can inspect why an autonomous build is/isn't merge-eligible without risking an accidental merge",
+      "The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility"
+    ],
+    "phase1_proposal": {
+      "serves_goal": true,
+      "within_scope": true,
+      "verdict": "admit",
+      "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+    }
+  },
+  "question": "Given the loop-authored PRDR, its PRD goals, and the Phase-1 yagni-judge proposal, does the PRDR over-scope the goals (or leave a cited goal unserved), warranting an overturn?",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "SHOULD SURVIVE: the PRDR is a narrow, additive read-only inspection flag that reuses the existing floor-read code path and adds no new decision logic — it serves the first goal directly (safe inspection without merge risk) and serves the second by simply not touching the floor logic at all. No capability beyond the two declared goals is introduced, and neither goal is left unserved. A Phase-2 challenge should let this stand."
+}

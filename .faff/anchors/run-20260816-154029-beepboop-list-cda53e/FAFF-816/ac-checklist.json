@@ -1,0 +1,59 @@
+{
+  "all_verified": true,
+  "acs": [
+    {
+      "id": "AC1",
+      "description": "The Phase-2 YAGNI challenge runs through the documented adversarial transport, not review-call.mjs's diff shape.",
+      "verified": true,
+      "evidence": "plugin/skills/faffter-dark-adversarial-review/SKILL.md frontmatter: judgement_seam: refutation-code, adr-drift, prdr-yagni. New 'PRDR YAGNI Phase-2 challenge' section documents agent-invoked subagent transport. Zero review-call.mjs/--diff references in the new section or the faff-plot Step 5c bullet (grep-verified)."
+    },
+    {
+      "id": "AC2",
+      "description": "The challenge's input/output is a founded yes/no YAGNI judgement (not a ### severity diff-findings shape).",
+      "verified": true,
+      "evidence": "Section documents { AuthoredPrdr, PRD goals, Phase-1 proposal } -> survived|overturned + ground (over-scope|unserved|other), feeding faff prdr yagni --challenge/--challenge-ground directly."
+    },
+    {
+      "id": "AC3",
+      "description": "A Phase-2 overturn is a real adversarial verdict, traceable to the proper transport.",
+      "verified": true,
+      "evidence": "Transport = review slot as different-model subagent (the adr-drift pattern), documented explicitly; faff-plot Step 5c cross-references the new section."
+    },
+    {
+      "id": "AC4",
+      "description": "faff validate-adapters exits 0 after all edits (3-seam frontmatter reconciles, covered KIND has cases, KINDS===registry keys).",
+      "verified": true,
+      "evidence": "node plugin/skills/faff/bin/faff validate-adapters -> RESULT: PASS (19 slot skills linted), exit 0."
+    },
+    {
+      "id": "AC5",
+      "description": "eval/grader.mjs: prdr-yagni in KINDS and CLOSED_SET_KINDS; predictedSet shares adr-drift's binary arm; FIXTURE_SHAPE entry present.",
+      "verified": true,
+      "evidence": "Verified via node -e import: KINDS.includes('prdr-yagni')===true, CLOSED_SET_KINDS.has('prdr-yagni')===true. grade(case, env) fixed-env assertion: overturned env -> PASS on the overturn case / FAIL on the survive case, and vice versa for survived env."
+    },
+    {
+      "id": "AC6",
+      "description": "eval/cases/prdr-yagni-001.json (survive) and prdr-yagni-002.json (overturn) exist with the 3 fixture fields and binary oracle.",
+      "verified": true,
+      "evidence": "Both files created; validateCase() passes on both with no throw."
+    },
+    {
+      "id": "AC7",
+      "description": "test/eval-grader.test.mjs corpus-count assertion updated 79 -> 81 with +2 prdr-yagni tally comment; node --test test/eval-grader.test.mjs passes.",
+      "verified": true,
+      "evidence": "test/eval-grader.test.mjs:775 now asserts cases.length===81 with the FAFF-816 comment. `node --test test/eval-grader.test.mjs` -> 86/86 pass."
+    },
+    {
+      "id": "AC8",
+      "description": "faff-plot Step 5c Phase-2 bullet names the transport (cross-ref to the engine section, avoids the diff-shaped transport reference); gateway and gate CLIs unchanged.",
+      "verified": true,
+      "evidence": "Step 5c bullet updated with cross-ref to 'PRDR YAGNI Phase-2 challenge'; plugin/skills/faff/SKILL.md and gate CLIs untouched (confirmed via git diff --stat)."
+    },
+    {
+      "id": "AC-full-suite",
+      "description": "Full engineering gate ladder (LINT + UNIT rungs).",
+      "verified": true,
+      "evidence": "faff gates run: LINT pass. UNIT: 3268 tests, 3255 pass, 6 fail — all 6 confirmed pre-existing/environmental on unmodified main (sandbox shallow-git/worktree-hook limitations), unrelated to this diff. One genuine regression (an inline FAFF-815 citation added while reconciling spec-proposed prose, caught by lint-refs) was found and fixed in the same pass."
+    }
+  ]
+}

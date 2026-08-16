@@ -5,13 +5,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { writeFileSync, mkdtempSync, chmodSync } from "node:fs";
+import { writeFileSync, mkdtempSync, chmodSync, symlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
 import {
-  validateRequests, fanOut, main, REVIEW_CALL_PATH,
+  validateRequests, fanOut, main, REVIEW_CALL_PATH, selftest, entrypoint_href,
 } from "../plugin/skills/faffter-dark-adversarial-review/fan-out.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const FANOUT = join(HERE, "..", "plugin", "skills", "faffter-dark-adversarial-review", "fan-out.mjs");
 
 // ── validateRequests (pure) ──
 
@@ -38,6 +42,65 @@ test("validateRequests: rejects an argv array containing a non-string element", 
   assert.equal(validateRequests([{ lens: "x", argv: ["--system", null] }]).ok, false);
   assert.equal(validateRequests([{ lens: "x", argv: ["--system", undefined] }]).ok, false);
   assert.equal(validateRequests([{ lens: "x", argv: ["--a", "--b"] }]).ok, true, "all-string argv still passes");
+});
+
+// ── selftest() — pure, side-effect-free, no spawn (FAFF-813) ──
+
+test("selftest(): pure validateRequests-based checks all pass", () => {
+  let out = "";
+  const orig = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (s) => { out += s; return true; };
+  let code;
+  try { code = selftest(); } finally { process.stdout.write = orig; }
+  assert.equal(code, 0);
+  assert.match(out, /fan-out --selftest: ok/);
+});
+
+test("fan-out.mjs --selftest (real subprocess) passes", () => {
+  const res = spawnSync(process.execPath, [FANOUT, "--selftest"], { encoding: "utf8" });
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /fan-out --selftest: ok/);
+});
+
+test("main(): --selftest runs BEFORE readRequestsInput — never blocks on stdin", async () => {
+  // If --selftest were checked after readRequestsInput, this call would hang reading fd 0 (no
+  // --requests flag and no stdin piped in this in-process call). It must resolve immediately.
+  const code = await main(["--selftest"], { spawnFn: () => fakeChild() });
+  assert.equal(code, 0);
+});
+
+// ── entrypoint_href() — the symlink-resolved comparison href (FAFF-813) ──
+
+test("entrypoint_href: falsy argv1 → null (guard false, main() does not run)", () => {
+  assert.equal(entrypoint_href(undefined), null);
+  assert.equal(entrypoint_href(""), null);
+});
+
+test("entrypoint_href: a realpathSync throw (ENOENT) falls back to the raw-path href, never throws", () => {
+  const synthetic = join(tmpdir(), "faff-813-does-not-exist", "ghost.mjs");
+  assert.doesNotThrow(() => entrypoint_href(synthetic));
+  assert.equal(entrypoint_href(synthetic), pathToFileURL(synthetic).href);
+});
+
+// ── CLI-entrypoint guard fires through a symlinked install path (FAFF-813) ──
+
+test("fan-out.mjs CLI-entrypoint guard fires through a symlinked install path (FAFF-813)", () => {
+  // Regression: faff installs each skill by symlinking `plugin/skills/<skill>/` into
+  // `~/.claude/skills/<skill>`, so production's process.argv[1] is the symlink path while
+  // import.meta.url is already the repo REALPATH. The two hrefs diverged, the guard was false, and
+  // main() silently no-op'd — exit 0, empty stdout. A file symlink reproduces the identical
+  // divergence (Node realpath-resolves import.meta.url either way).
+  const dir = mkdtempSync(join(tmpdir(), "faff-symlink-"));
+  try {
+    const link = join(dir, "fan-out.mjs");
+    symlinkSync(FANOUT, link);
+    const res = spawnSync(process.execPath, [link, "--selftest"], { encoding: "utf8" });
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /fan-out --selftest: ok/,
+      "guard must fire through a symlinked path — the selftest output, never a silent empty exit 0");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 // ── fanOut with an injected spawnFn stub (no live processes) ──

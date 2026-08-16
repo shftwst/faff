@@ -27,17 +27,44 @@ context is the single authority (a dead `DOCKER_HOST` is a loud terminal error n
 
 ## Point 1 — compose up with no host socket
 
+Acquire the point-2 subject first — it MUST publish a port, or point 2 is vacuous.
+
+Preferred (deterministic, self-contained): write the synthetic minio datastore profile — the
+same shape the `env-rootless` CI lane exercises (`test/env.test.mjs`) — straight to a file:
+
 ```bash
-cd <repo-under-test>
-faff profile mine > profile.json                      # or any acquired infra profile
+cat > profile.json <<'EOF'
+{ "schema": 1, "datastores": [{ "kind": "minio", "evidence": "synthetic — cage-engine acceptance point-2 subject" }], "deploy_targets": [] }
+EOF
+
 faff env compose-gen --profile profile.json --out .faff/env/docker-compose.yml --project cage-accept > plan.json
 faff env up --plan plan.json --project cage-accept
 ```
+
+This provisions a single `minio/minio` service publishing `http://localhost:9000` with health
+route `/minio/health/ready` — a real HTTP port for point 2 to reach.
+
+Alternative (a repo that actually has provisionable infra): `cd` into it and mine its profile
+instead —
+
+```bash
+cd <repo-with-provisionable-infra>
+faff profile mine > profile.json   # only meaningful if the repo declares datastores/runtimes
+faff env compose-gen --profile profile.json --out .faff/env/docker-compose.yml --project cage-accept > plan.json
+faff env up --plan plan.json --project cage-accept
+```
+
+A repo with no infra artifacts (faff itself is one) mines to an empty profile: zero services,
+empty endpoint, and point 2 has nothing to exercise — use the synthetic profile above for that
+repo.
 
 **Pass:** `up` exits 0 reporting all services healthy, with `/var/run/docker.sock` **not** mounted
 from the host (see point 4).
 
 ## Point 2 — the published port is reachable from inside the cage
+
+With the synthetic minio profile above, the published port is `http://localhost:9000` and the
+health route is `/minio/health/ready`.
 
 The env-handle `endpoint` the holdout evaluator is handed points at `localhost:<port>`; it must be
 reachable from the cage's own processes (this is what rootless port-publishing configuration —

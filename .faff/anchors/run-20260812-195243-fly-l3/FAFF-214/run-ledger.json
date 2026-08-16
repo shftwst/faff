@@ -1,0 +1,86 @@
+{
+  "run_id": "run-20260812-195243-fly-l3",
+  "level": "L3",
+  "admitted": [
+    "FAFF-107",
+    "FAFF-214",
+    "FAFF-779",
+    "FAFF-771"
+  ],
+  "outcomes": {
+    "FAFF-771": "shipped",
+    "FAFF-779": "pr-open"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "window": {
+        "hours": 5,
+        "tokens": 1000000000
+      }
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "618d3062-08a7-453a-a64c-06bcf8aa3e00",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 107,
+        "output": 111263,
+        "cache_write": 415492,
+        "cache_read": 8130993
+      }
+    },
+    "tokens_at_start": 8657855,
+    "window": {
+      "anchor_epoch": 1786564896117,
+      "reset_epoch": 1786582896117,
+      "tokens_at_anchor": 2915299
+    },
+    "tokens_at_last_event": {
+      "input": 238,
+      "output": 382284,
+      "cache_write": 1762090,
+      "cache_read": 23971862
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 640,
+    "session_id": "run-20260812-195243-fly-l3",
+    "started_at": "2026-08-12T20:00:04Z",
+    "last_heartbeat": "2026-08-12T21:44:18.260Z",
+    "harness": "claude-code",
+    "model": "claude-opus-4-8"
+  },
+  "abort": {
+    "status": "aborted-resumable",
+    "at": "2026-08-12T20:30:19.600Z"
+  },
+  "outcome_details": {
+    "FAFF-771": {
+      "verdict": "likely-fire",
+      "note": "resolve-attempt proceeded (appetite high) on decides:any scope Punt; audit comment 57028ac7 posted",
+      "pr": 647,
+      "merge_sha": "caace77"
+    },
+    "FAFF-779": {
+      "verdict": "fire-and-forget-on-confidence",
+      "delivery_gate": "MANDATORY never-auto-merge: frontier eval sweep + explicit human sign-off required; lands PR-open",
+      "pr": 648
+    },
+    "FAFF-107": {
+      "verdict": "fire-and-forget"
+    },
+    "FAFF-214": {
+      "verdict": "fire-and-forget"
+    }
+  }
+}

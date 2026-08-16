@@ -42,6 +42,8 @@ y → /faff-plot  recurses it level by level, confirming each:
      Audit the roadmap via /faff-map? · Prep the first slice via /faff-prep? (y/n)
 ```
 
+To steer how ambitious an initiative or project should be, add `target: thin-mvp` or `target: finished` on its own line in the container's tracker description. The key is case-insensitive, the first occurrence wins, and any other value is treated as unset. A project with no explicit target inherits its initiative's target; without either, the methodology default is `finished`.
+
 Either way you end up with tickets in Todo and a chain into prep. From here it's the same loop as below.
 
 ## A first run, start to finish

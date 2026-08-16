@@ -234,8 +234,17 @@ import { fileURLToPath } from "node:url";
 //                     should survive). predictedSet = ["overturned"] iff env.challenge_outcome ===
 //                     "overturned", else []. Surface = faffter-dark-adversarial-review (the same
 //                     adversarial engine refutation-code uses — a distinct question, same mechanism).
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift"]);
+// FAFF-816 — the upper-gate YAGNI Phase-2 challenge adds one closed-set kind:
+//   prdr-yagni      — SHIPPED. The Phase-2 adversarial challenge of a loop-authored PRDR (gateway →
+//                     Upper-gate (YAGNI) two-phase arbitration), given {authored_prdr, prd_goals,
+//                     phase1_proposal}, judging whether the PRDR is warranted. Structurally identical
+//                     to adr-drift (different-model second opinion, BINARY outcome) — shares its
+//                     predictedSet arm verbatim (survived|overturned, no ground grading — see §2/§6 of
+//                     the FAFF-816 spec). Surface = faffter-dark-adversarial-review (the same
+//                     adversarial engine adr-drift/refutation-code use — a distinct question, same
+//                     mechanism).
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni"]);
 
 // FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
 // gradeSplittable / gradeChainGap) but deliberately NOT in CLOSED_SET_KINDS above, because they grade
@@ -341,6 +350,11 @@ const FIXTURE_SHAPE = {
   // driver renders all three). validateCase asserts all three are present; the binary survived/
   // overturned verdict rides env.challenge_outcome (the closed-set arm).
   "adr-drift": ["old_decision", "new_decision", "why"],
+  // FAFF-816 — prdr-yagni: the YAGNI Phase-2 challenge fixture carries the `authored_prdr` under
+  // challenge, the `prd_goals` it's judged against, and the `phase1_proposal` (yagni-judge's verdict)
+  // being challenged. validateCase asserts all three are present; the binary survived/overturned
+  // verdict rides env.challenge_outcome (shares adr-drift's closed-set arm — see predictedSet below).
+  "prdr-yagni": ["authored_prdr", "prd_goals", "phase1_proposal"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -686,6 +700,9 @@ function predictedSet(c, env) {
     // severity threshold — the drift challenge itself is already a single verdict, unlike
     // refutation-code's per-finding severity list). A missing/garbage value → [] (the "survived"
     // default), never a crash.
+    // FAFF-816 — prdr-yagni joins adr-drift's binary arm verbatim: same shape (a single
+    // survived/overturned verdict), zero new grade math (see the FAFF-816 spec §3/§6).
+    case "prdr-yagni":
     case "adr-drift":
       return env.challenge_outcome === "overturned" ? ["overturned"] : [];
     default:

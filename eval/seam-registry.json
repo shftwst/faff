@@ -33,6 +33,7 @@
     "prep-architecture-trigger": { "surface": "faff-prep", "status": "covered" },
     "grouping": { "surface": "faffter-dark-methodology-agile-delivery", "status": "covered" },
     "adr-drift": { "surface": "faffter-dark-adversarial-review", "status": "covered" },
+    "prdr-yagni": { "surface": "faffter-dark-adversarial-review", "status": "covered" },
     "resolved-elsewhere": { "surface": "faff-tidy", "status": "covered" }
   }
 }

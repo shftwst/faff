@@ -105,12 +105,14 @@ The park protocol and the tracker control plane above assume an **interactive ne
 `faff disposition` is that exit contract. Run it as your wrapper's **final, exit-propagating step**, after the agent exits:
 
 ```sh
-FAFF_RUN_DIR=$(faff lights-out | sed -n 's/^run dir: //p')   # or your own run-dir capture
+FAFF_RUN_DIR=$(faff lights-out --json | jq -r .run_dir)     # capture the minted run dir (needs jq)
 FAFF_RUN_DIR="$FAFF_RUN_DIR" claude -p "/faff-beep-boop"       # the unattended drain
 faff disposition --run-dir "$FAFF_RUN_DIR"                     # <-- final step; its exit is the run's exit
 ```
 
 It reads that one run dir's end state and **exits non-zero when anything needs a human** — a parked / errored / `unreached-budget` issue, a PR left open for review, a run-level escalation (`budget-escalated`, `non-convergence`, `product-incomplete`, a Sentry abort), or an incomplete ledger (admitted work that never dispatched). An all-clean run — every issue `shipped` or `routed-out`, no escalation, a complete ledger — exits **0** and applies no label. It is a **pure reader**: no tracker, network, or writes; it adds no second copy of the park signal, only the process-exit verdict over the signals that already ship. Pass `--json` to capture the itemised `DispositionReport` (which issues, which cause) as a CI artifact; the exit code alone is enough for a red/green gate.
+
+**A merged-but-unclosed run reads as its own, less-alarming class.** If the orchestrator process is killed *after* a PR merged but *before* it recorded the outcome — the classic case is the harness's background-task wait ceiling firing during a slow post-merge step — the admitted issue is left with no recorded outcome even though its merge is durable. `disposition` detects this from the run's own `merge-record.json` evidence and reports a **`merged-unclosed`** attention item (still exit 1 — the ledger still needs closing) rather than folding it into a generic incomplete-ledger failure, so an operator can tell "shipped real code, just never closed the ledger" apart from "the build failed." To *close* such a run, re-run the drain (`/faff-beep-boop` re-queries the tracker fresh and skips the already-merged work), or reconcile the ledger by hand against the persisted run dir — run the pending `faff post-merge-check`, then `faff record-outcome --issue <ID> --outcome shipped`. The prevention for the truncation itself is the wait-ceiling knob — set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` on the drain's `claude -p` invocation; see [self-hosted-rig.md](self-hosted-rig.md) → "Without GitHub Actions: a cron on the machine" for the knob and its finite-value tradeoff.
 
 **Interactive runs are unchanged.** No interactive skill calls the verb; the default surfacing stays the run-ledger → `/faff-wtf` morning view. The disposition sink is purely the *headless override* — the command your CI/cron wrapper runs last so a needs-attention run turns the build red instead of passing quietly.
 

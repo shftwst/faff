@@ -235,7 +235,7 @@ This producer discharges the `spec` slot's quality bar by inheritance, not by de
 - **Rating cap.** The inherited downgrade rule binds this producer exactly as written: landing on ≥1 `blocker` finding, or ≥3 `major` findings, forecloses a `high` self-rating regardless of how settled the draft felt going in.
 - Cap the self-rating at `medium` when that threshold is hit, and read the confidence self-rating section immediately above as subject to this cap rather than as an independent judgement call.
 
-## Contract artifact (FAFF-81)
+## Contract artifact
 
 After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so faff-prep (the consumer) parses them **deterministically** (no LLM re-read of your prose) and pipes them to `faff contract spec-readiness`. You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
 

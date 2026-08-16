@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-214",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a91f8d42702363d1ed8deeaa71105487bd45d77ee0d56db11e8eb4507ce9e8dc",
+    "branch": "faff-214-linear-auto-transitions-a-cited-not-targeted-issue-to-in",
+    "pushed_at": "2026-08-12T22:14:46.631Z"
+  },
+  "updated_at": "2026-08-12T22:14:46.631Z"
+}

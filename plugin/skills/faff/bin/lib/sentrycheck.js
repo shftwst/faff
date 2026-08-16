@@ -33,6 +33,11 @@ const { spawnSync } = require("node:child_process");
 const { runIsHeld, runIsOwned } = require("./runcheck");
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { ENTRYPOINT, findRoot, latestRunDir, readLedger } = require("./shared-infra");
+// FAFF-798: gate the andon page on the SAME acting predicate the poller uses, so an
+// advisory-only (attended / non-declared) trip surfaces the stderr notice but never
+// pages. `readGovernanceConfig` loads cfg exactly as sentry-poller.js does.
+const { actsOnSentryAbort } = require("./sentry");
+const { readGovernanceConfig } = require("./budget");
 
 // Bounded timeout for the consult child (FAFF-471 D6): `sentry check` itself
 // spawns budget + corrective-integrity children and walks transcripts, so it can
@@ -168,27 +173,42 @@ function cmdSentrycheck(args) {
     return 0;
   }
   if (outcome.kind === "ok") return 0; // sentry authoritative: tripped:false → silent
-  process.stderr.write(trippedNotice(runId, runDir, outcome.payload)); // tripped
-  // FAFF-472: page andon for a genuine trip observed from a foreign session's
-  // turn-end. `andon send` (never pump/event-append) — this locus must NOT write
-  // the foreign run's events.jsonl or andon-state.json (non-owner-never-writes,
-  // FAFF-235/ADR-0065). Best-effort, fail-open; never affects this hook's
-  // always-exit-0 contract.
-  try {
-    const payload = outcome.payload || {};
-    const signals = Array.isArray(payload.verdicts) && payload.verdicts.length
-      ? payload.verdicts.map((v) => v.signal).join(", ")
-      : "unknown";
-    // --root explicit, derived from runDir (not the hook's inherited cwd) — the
-    // same reasoning as the poller's andon pump call (sentry-poller.js FAFF-472).
-    spawnSync(process.execPath, [ENTRYPOINT, "andon", "send",
-      "--class", "sentry-trip",
-      "--title", `faff ${runId}: sentry tripped (${payload.intervention})`,
-      "--body", `signals: ${signals} — run looks abandoned (heartbeat stale)`,
-      "--run-dir", runDir,
-      "--root", findRoot(runDir),
-    ], { encoding: "utf8" });
-  } catch { /* best-effort — fail-open telemetry, never affects the hook's exit-0 contract */ }
+  process.stderr.write(trippedNotice(runId, runDir, outcome.payload)); // tripped — advisory ALWAYS fires (never gated)
+  // FAFF-798: page andon ONLY when something acts on the trip, mirroring the poller
+  // (sentry-poller.js:243-246 loads cfg, and only emits sentry-trip + pumps andon
+  // inside its `action === "abort"` branch, gated on actsOnSentryAbort). An
+  // attended/advisory trip (L2/L3, no unattended declaration) surfaces the stderr
+  // notice above but must NOT page. cfg is loaded fail-safe → {} on any fault, so a
+  // config-load fault demotes a non-L4 run to no-page (the safe direction); an L4
+  // ledger short-circuits inside actsOnSentryAbort before cfg is read, so a config
+  // fault can never regress the L4 kill-switch (ADR-0034). `root` is hoisted once
+  // and reused by both the cfg load and the andon `--root` argument.
+  const root = findRoot(runDir);
+  let cfg = {};
+  try { cfg = readGovernanceConfig(root); }
+  catch { cfg = {}; /* base-parse-error / legacy-name / any fault → fail-safe OFF */ }
+  if (actsOnSentryAbort(ledger, cfg)) {
+    // FAFF-472: page andon for a genuine trip observed from a foreign session's
+    // turn-end. `andon send` (never pump/event-append) — this locus must NOT write
+    // the foreign run's events.jsonl or andon-state.json (non-owner-never-writes,
+    // FAFF-235/ADR-0065). Best-effort, fail-open; never affects this hook's
+    // always-exit-0 contract.
+    try {
+      const payload = outcome.payload || {};
+      const signals = Array.isArray(payload.verdicts) && payload.verdicts.length
+        ? payload.verdicts.map((v) => v.signal).join(", ")
+        : "unknown";
+      // --root explicit, derived from runDir (not the hook's inherited cwd) — the
+      // same reasoning as the poller's andon pump call (sentry-poller.js FAFF-472).
+      spawnSync(process.execPath, [ENTRYPOINT, "andon", "send",
+        "--class", "sentry-trip",
+        "--title", `faff ${runId}: sentry tripped (${payload.intervention})`,
+        "--body", `signals: ${signals} — run looks abandoned (heartbeat stale)`,
+        "--run-dir", runDir,
+        "--root", root,
+      ], { encoding: "utf8" });
+    } catch { /* best-effort — fail-open telemetry, never affects the hook's exit-0 contract */ }
+  }
   return 0;
 }
 

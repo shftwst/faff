@@ -257,15 +257,35 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
   // STRENGTHENS: a non-L4 / legacy / level-less / unreadable anchor keeps today's `--level`-flag
   // behaviour (fail-closed to the flag, unchanged).
   let effectiveLevel = level;
+  let anchorLedger = null;
   try {
-    const anchorLedger = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
+    anchorLedger = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
     if (anchorLedger && FLOOR_LEVELS.includes(anchorLedger.level)) effectiveLevel = anchorLedger.level;
-  } catch { /* no/unreadable/malformed anchor ledger → keep the --level flag (unchanged) */ }
+  } catch { anchorLedger = null; /* no/unreadable/malformed anchor ledger → keep the --level flag (unchanged) */ }
+  // FAFF-796: an outcome-aware merge_floor — a run-level (git-only) anchor deliberately anchors
+  // NON-shipped issues too (parked/errored/routed-out/superseded/…), which never reached review
+  // and so carry none of evaluateMergeFloorLeg's expected floor files. Reusing the leg unchanged
+  // would FAIL every non-shipped subdir and defeat the whole feature — ADR 0109's own rationale
+  // is that a non-shipping issue has no merge floor to bind, so there is nothing to assert. Keyed
+  // off the anchor's OWN committed run-ledger.json outcome for THIS issue — a POSITIVE non-shipped
+  // signal, never mere floor-file absence, so a genuinely shipped issue whose floor files failed
+  // to copy still fails (fail-closed). A per-PR anchor is minted before its issue's outcome is
+  // recorded (faff-graft Step 9b runs before the Step-10 ship handoff), so `outcome` there is
+  // `undefined` — falls straight through to "evaluated as today" — and even a LATER re-read of an
+  // eventually-shipped per-PR anchor keeps the same path (`outcome === "shipped"` is excluded
+  // below). Byte-for-byte unchanged per-PR behaviour either way.
+  const outcome = anchorLedger && anchorLedger.outcomes && typeof anchorLedger.outcomes === "object" && !Array.isArray(anchorLedger.outcomes)
+    ? anchorLedger.outcomes[issue] : undefined;
+  const isNonShipped = typeof outcome === "string" && outcome !== "shipped" && TERMINAL_STATES.has(outcome);
   // Wrapped in the same `{ pass, issues: [...] }` shape `evaluateRunDir` uses (line ~376) —
   // buildReasons/the text+markdown renderers index `legs.merge_floor.issues`, so the raw
   // per-issue evaluateMergeFloorLeg result (no `issues` array) must never be assigned directly.
-  const floorResult = { ...evaluateMergeFloorLeg(dir, ".", effectiveLevel), issue };
-  const merge_floor = { pass: floorResult.pass, issues: [floorResult] };
+  const floorResult = isNonShipped
+    ? { issue, pass: true, ac_complete: null, review_verdict: null, holdout: null, reasons: [] }
+    : { ...evaluateMergeFloorLeg(dir, ".", effectiveLevel), issue };
+  const merge_floor = isNonShipped
+    ? { pass: true, issues: [floorResult], detail: `n/a — non-shipped run-level issue (outcome: ${JSON.stringify(outcome)})` }
+    : { pass: floorResult.pass, issues: [floorResult] };
   const naDetail = (name) => `n/a — anchor snapshot (${name} runs on live run dirs only)`;
   return {
     run_id: label,
@@ -331,6 +351,54 @@ function deriveAnchorDirs(changedPaths, anchorsPath) {
     dirs.push(dir);
   }
   return { dirs: dirs.sort(), dropped };
+}
+
+// FAFF-796: `--from-tree` — the git-only discovery source. deriveAnchorDirs's stdin/PR source
+// reads CHANGED PATHS from a diff; a git-only run-close anchor has no PR diff to read from, so
+// this walks the anchors-path FILESYSTEM directly instead. Reuses deriveAnchorDirs verbatim —
+// never a forked segment-guard/containment/deletion-skip — by SYNTHESISING one changed-path-
+// shaped string per discovered <run>/<issue> pair and handing the whole list to it (ADR 0109's
+// "grow a second discovery source, both route through the same evaluateAnchorDir core"). `runId`
+// scopes the walk to exactly that run's subtree; omitted, every immediate child of anchorsPath is
+// walked. A run-level anchor's own summary.md sits at <anchorsPath>/<run>/summary.md — depth 1
+// below anchorsPath, below the existing 3-segment floor — so it is naturally excluded with no new
+// guard. Filesystem-read errors (absent anchorsPath / absent named run) degrade to an empty
+// result, never a throw — mirroring deriveAnchorDirs's own "not carried anymore" tolerance.
+function deriveAnchorDirsFromTree(anchorsPath, runId) {
+  const prefix = String(anchorsPath).replace(/\/+$/, "");
+  let runRoots;
+  if (runId) {
+    runRoots = [runId];
+  } else {
+    try {
+      runRoots = fs.readdirSync(prefix, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch { return { dirs: [], dropped: [] }; } // anchors-path absent — nothing to discover
+  }
+  const syntheticPaths = [];
+  // Adversarial review (FAFF-796): the stdin/PR source reports every too-shallow path it drops
+  // (with a reason); a naive walk that just filters non-directory entries would silently lose
+  // that same diagnostic for a stray file under <run>/ (e.g. a hand-created README.md beside the
+  // run-level summary.md) — a real observability asymmetry between the two discovery sources,
+  // even though both correctly EXCLUDE the file either way. Collect it here and merge below.
+  const skippedFiles = [];
+  for (const run of runRoots) {
+    let entries;
+    try { entries = fs.readdirSync(path.join(prefix, run), { withFileTypes: true }); }
+    catch { continue; } // named run missing/unreadable — nothing under it
+    for (const e of entries) {
+      if (!e.isDirectory()) {
+        // The run-level summary.md is EXPECTED here (spec: depth 1, below the 3-segment floor) —
+        // report it only as an informational skip, never framed as a traversal-style drop.
+        skippedFiles.push({ path: `${prefix}/${run}/${e.name}`, reason: e.name === "summary.md" ? "run-level summary.md (expected, not an anchor dir)" : "not a directory (not an <issue> anchor dir)" });
+        continue;
+      }
+      // A synthetic file path under <prefix>/<run>/<issue>/ — deriveAnchorDirs only reads the
+      // SEGMENTS below prefix to derive the dir; the literal filename is never read back.
+      syntheticPaths.push(`${prefix}/${run}/${e.name}/_probe`);
+    }
+  }
+  const { dirs, dropped } = deriveAnchorDirs(syntheticPaths, prefix);
+  return { dirs, dropped: [...dropped, ...skippedFiles] };
 }
 
 // Re-assert containment on an explicit `--anchor-dir` when `--anchors-root` is
@@ -511,13 +579,17 @@ const GOVERNANCE_CHECK_SPEC = { flags: {
   // --derive-anchor-dirs is the Action's discovery mode (changed paths on stdin).
   "--anchor-dir": { arity: 1, repeatable: true }, "--legacy-policy": { arity: 1 },
   "--anchors-root": { arity: 1 }, "--derive-anchor-dirs": { arity: 1 },
+  // FAFF-796: --from-tree switches --derive-anchor-dirs from the stdin/PR-diff source to a
+  // filesystem walk of the anchors-path (the git-only run-level discovery source); --run
+  // optionally scopes that walk to one run id.
+  "--from-tree": { arity: 0 }, "--run": { arity: 1 },
 } };
 
 function cmdGovernanceCheck(args) {
   if (args.includes("--selftest")) return governanceCheckSelftest();
 
   const { values, errors } = parseArgs(args, GOVERNANCE_CHECK_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff governance-check --run-dir DIR... [--anchor-dir DIR...] [--anchors-root DIR] [--legacy-policy pass|warn|fail] [--issue ID] [--level L1|L2|L3|L4] [--summary-md FILE] [--json] | --derive-anchor-dirs ANCHORS_PATH");
+  if (errors.length) return usageError(errors, "usage: faff governance-check --run-dir DIR... [--anchor-dir DIR...] [--anchors-root DIR] [--legacy-policy pass|warn|fail] [--issue ID] [--level L1|L2|L3|L4] [--summary-md FILE] [--json] | --derive-anchor-dirs ANCHORS_PATH [--from-tree [--run RUN_ID]]");
   const json = !!values["--json"];
 
   // FAFF-568 fix pass: `--derive-anchor-dirs <ANCHORS_PATH>` — the Action's anchor
@@ -525,15 +597,26 @@ function cmdGovernanceCheck(args) {
   // prints the derived, containment-checked anchor dirs to stdout (one per line),
   // warns on stderr for every dropped path. One home for the derivation rule — the
   // workflow shell never re-implements it with awk.
+  //
+  // FAFF-796: `--from-tree` swaps the stdin/PR-diff source for a filesystem walk of the
+  // anchors-path (git-only run-level discovery, no PR diff exists) — same containment-checked
+  // output, same dropped-path warnings, only the input source differs. `--run` scopes the walk.
   const derivePath = values["--derive-anchor-dirs"] === undefined ? null : values["--derive-anchor-dirs"];
   if (derivePath !== null) {
     if (!derivePath) {
       process.stderr.write("faff governance-check: --derive-anchor-dirs requires the anchors-path value\n");
       return 2;
     }
-    let raw = "";
-    try { raw = fs.readFileSync(0, "utf8"); } catch { raw = ""; }
-    const { dirs, dropped } = deriveAnchorDirs(raw.split("\n"), derivePath);
+    const fromTree = !!values["--from-tree"];
+    const runIdFlag = values["--run"] === undefined ? null : values["--run"];
+    let dirs, dropped;
+    if (fromTree) {
+      ({ dirs, dropped } = deriveAnchorDirsFromTree(derivePath, runIdFlag));
+    } else {
+      let raw = "";
+      try { raw = fs.readFileSync(0, "utf8"); } catch { raw = ""; }
+      ({ dirs, dropped } = deriveAnchorDirs(raw.split("\n"), derivePath));
+    }
     for (const d of dropped) process.stderr.write(`faff governance-check: anchor path dropped — ${d.reason}: ${d.path}\n`);
     for (const d of dirs) console.log(d);
     return 0;
@@ -1076,6 +1159,151 @@ function governanceCheckSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
+  // --- FAFF-796: evaluateAnchorDir's outcome-aware merge_floor — n/a for a non-shipped
+  // run-level issue (pass, keyed off the anchor's OWN committed run-ledger.json outcome), still
+  // FAILS a shipped issue lacking floor files (never n/a on mere file absence), and unchanged for
+  // a per-PR anchor (undefined outcome — anchored before its issue's outcome is recorded). ---
+  {
+    const parked = mkTmpRunDir("faff-govcheck-796-nonshipped-");
+    try {
+      buildChainFixture(parked, "run-796", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-1" },
+      ]);
+      writeWitness(parked, "run-796", "FAFF-1");
+      // No ac-checklist.json/review-verdict.json at all — a parked issue never reached review.
+      writeLedger(parked, { run_id: "run-796", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "parked" } });
+      const r = evaluateAnchorDir(parked, "pass", "L3");
+      check("FAFF-796: parked outcome + no floor files → merge_floor n/a (pass)", r.legs.merge_floor.pass === true);
+      check("FAFF-796: merge_floor.detail names n/a + the outcome", /n\/a/.test(r.legs.merge_floor.detail) && /parked/.test(r.legs.merge_floor.detail));
+      check("FAFF-796: integrity still unconditional (on, even for a non-shipped issue)", r.legs.integrity.pass === true);
+      check("FAFF-796: overall pass (integrity on, merge_floor n/a)", r.pass === true);
+
+      for (const outcome of ["errored", "routed-out", "superseded"]) {
+        writeLedger(parked, { run_id: "run-796", admitted: ["FAFF-1"], outcomes: { "FAFF-1": outcome } });
+        const rr = evaluateAnchorDir(parked, "pass", "L3");
+        check(`FAFF-796: ${outcome} outcome → merge_floor n/a (pass) too`, rr.legs.merge_floor.pass === true && rr.pass === true);
+      }
+    } finally { fs.rmSync(parked, { recursive: true, force: true }); }
+  }
+  {
+    const shipped = mkTmpRunDir("faff-govcheck-796-shipped-");
+    try {
+      buildChainFixture(shipped, "run-796s", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-2" },
+      ]);
+      writeWitness(shipped, "run-796s", "FAFF-2");
+      // A genuinely shipped issue with NO floor files must still FAIL — the n/a branch is keyed
+      // off a POSITIVE non-shipped outcome, never mere file absence.
+      writeLedger(shipped, { run_id: "run-796s", admitted: ["FAFF-2"], outcomes: { "FAFF-2": "shipped" } });
+      const noFloor = evaluateAnchorDir(shipped, "pass", "L3");
+      check("FAFF-796: shipped outcome + NO floor files → merge_floor still FAILS (never n/a on absence)", noFloor.legs.merge_floor.pass === false && noFloor.pass === false);
+
+      fs.writeFileSync(path.join(shipped, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(shipped, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+      const withFloor = evaluateAnchorDir(shipped, "pass", "L3");
+      check("FAFF-796: shipped outcome + valid floor files → merge_floor passes (evaluated as today)", withFloor.legs.merge_floor.pass === true && withFloor.pass === true);
+    } finally { fs.rmSync(shipped, { recursive: true, force: true }); }
+  }
+  {
+    // A per-PR anchor's ledger has NO outcome recorded for its own issue yet (Step 9b anchors
+    // BEFORE the Step-10 ship handoff) — the outcome-aware branch must fall through to today's
+    // evaluation unchanged, not misread the absence as non-shipped.
+    const perPr = mkTmpRunDir("faff-govcheck-796-perpr-");
+    try {
+      buildChainFixture(perPr, "run-796p", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-3" },
+      ]);
+      writeWitness(perPr, "run-796p", "FAFF-3");
+      writeLedger(perPr, { run_id: "run-796p", admitted: ["FAFF-3"], outcomes: {} }); // no outcome yet
+      const noFloor = evaluateAnchorDir(perPr, "pass", "L3");
+      check("FAFF-796: per-PR anchor, outcome not yet recorded, no floor files → merge_floor FAILS (unchanged today's behaviour)", noFloor.legs.merge_floor.pass === false);
+      fs.writeFileSync(path.join(perPr, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(perPr, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+      const withFloor = evaluateAnchorDir(perPr, "pass", "L3");
+      check("FAFF-796: per-PR anchor, outcome not yet recorded, valid floor → merge_floor passes (unchanged today's behaviour)", withFloor.legs.merge_floor.pass === true && withFloor.pass === true);
+    } finally { fs.rmSync(perPr, { recursive: true, force: true }); }
+  }
+
+  // --- FAFF-796: --from-tree discovery — the git-only filesystem-walk source, reusing
+  // deriveAnchorDirs's own containment/traversal/deletion-skip logic (never a forked walk). ---
+  {
+    const tmp = mkTmpRunDir("faff-govcheck-796-fromtree-");
+    try {
+      fs.mkdirSync(path.join(tmp, "anchors", "run-A", "FAFF-1"), { recursive: true });
+      fs.mkdirSync(path.join(tmp, "anchors", "run-A", "FAFF-2"), { recursive: true });
+      fs.mkdirSync(path.join(tmp, "anchors", "run-B", "FAFF-9"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "anchors", "run-A", "summary.md"), "# a\n"); // depth-1 file, must be excluded
+      fs.writeFileSync(path.join(tmp, "anchors", "run-A", ".DS_Store"), ""); // a stray non-summary file — must ALSO be excluded + reported
+
+      const whole = deriveAnchorDirsFromTree(path.join(tmp, "anchors"));
+      check("from-tree: whole-tree walk discovers every <run>/<issue> dir",
+        whole.dirs.sort().join(",") === [
+          path.join(tmp, "anchors", "run-A", "FAFF-1"),
+          path.join(tmp, "anchors", "run-A", "FAFF-2"),
+          path.join(tmp, "anchors", "run-B", "FAFF-9"),
+        ].sort().join(","));
+      check("from-tree: the run-level summary.md is excluded from dirs[]", !whole.dirs.some((d) => d.endsWith("summary.md")));
+      check("from-tree: …but IS reported in dropped[] (diagnostic parity with the stdin source — FAFF-796 adversarial finding)",
+        whole.dropped.some((d) => d.path === path.join(tmp, "anchors", "run-A", "summary.md") && /summary\.md/.test(d.reason)));
+      check("from-tree: a stray non-summary file is also excluded from dirs[] AND reported in dropped[]",
+        !whole.dirs.some((d) => d.endsWith(".DS_Store"))
+        && whole.dropped.some((d) => d.path === path.join(tmp, "anchors", "run-A", ".DS_Store") && /not a directory/.test(d.reason)));
+
+      const scoped = deriveAnchorDirsFromTree(path.join(tmp, "anchors"), "run-A");
+      check("from-tree: --run scopes the walk to exactly that run",
+        scoped.dirs.sort().join(",") === [
+          path.join(tmp, "anchors", "run-A", "FAFF-1"),
+          path.join(tmp, "anchors", "run-A", "FAFF-2"),
+        ].sort().join(","));
+
+      check("from-tree: a named run that doesn't exist → empty, no throw",
+        deriveAnchorDirsFromTree(path.join(tmp, "anchors"), "run-gone").dirs.length === 0);
+      check("from-tree: an absent anchors-path entirely → empty, no throw",
+        deriveAnchorDirsFromTree(path.join(tmp, "nope")).dirs.length === 0);
+
+      // End-to-end through the real CLI shell: --from-tree + --run, cwd-relative anchors-path.
+      const cwd = process.cwd();
+      process.chdir(tmp);
+      try {
+        const { result, stdout } = captureOutput(() => cmdGovernanceCheck(["--derive-anchor-dirs", "anchors", "--from-tree", "--run", "run-A"]));
+        check("from-tree: CLI shell (--derive-anchor-dirs + --from-tree + --run) exit 0", result === 0);
+        check("from-tree: CLI shell prints exactly run-A's derived dirs",
+          stdout.split("\n").filter(Boolean).sort().join(",") === ["anchors/run-A/FAFF-1", "anchors/run-A/FAFF-2"].sort().join(","));
+      } finally { process.chdir(cwd); }
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
+    // Integration: an anchor-run-minted, all-parked run-level tree discovers via --from-tree
+    // and every subdir passes evaluateAnchorDir (integrity on, merge_floor n/a) — spec §8's
+    // required end-to-end smoke test.
+    const anchorsRoot = mkTmpRunDir("faff-govcheck-796-e2e-");
+    try {
+      const runDir = path.join(anchorsRoot, "run-796e2e");
+      fs.mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
+      const ledgerObj = { run_id: "run-796e2e", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "parked" } };
+      const ledgerBytes = JSON.stringify(ledgerObj, null, 2) + "\n";
+      buildChainFixture(runDir, "run-796e2e", [
+        { phase: "run", type: "run-start" },
+        { phase: "run", type: "ledger-write", data: { ledger_sha256: sha256Hex(Buffer.from(ledgerBytes, "utf8")) } },
+      ]);
+      writeWitness(runDir, "run-796e2e", "FAFF-1");
+      fs.writeFileSync(path.join(runDir, "run-ledger.json"), ledgerBytes);
+
+      const dest = path.join(anchorsRoot, "run-796e2e", "FAFF-1");
+      fs.copyFileSync(path.join(runDir, "events.jsonl"), path.join(dest, "events.jsonl"));
+      fs.copyFileSync(path.join(runDir, "chain-head.json"), path.join(dest, "chain-head.json"));
+      fs.copyFileSync(path.join(runDir, "run-ledger.json"), path.join(dest, "run-ledger.json"));
+
+      const disc = deriveAnchorDirsFromTree(anchorsRoot, "run-796e2e");
+      check("e2e: --from-tree discovers the anchored all-parked issue subdir", disc.dirs.length === 1 && disc.dirs[0] === dest);
+      const v = evaluateAnchorDir(disc.dirs[0], "pass", "L3");
+      check("e2e: discovered subdir passes evaluateAnchorDir (integrity on, merge_floor n/a)", v.pass === true);
+    } finally { fs.rmSync(anchorsRoot, { recursive: true, force: true }); }
+  }
+
   // --- usage errors ---
   {
     const { result } = captureOutput(() => cmdGovernanceCheck([]));
@@ -1102,6 +1330,7 @@ module.exports = {
   anchorDirContainmentViolation,
   cmdGovernanceCheck,
   deriveAnchorDirs,
+  deriveAnchorDirsFromTree,
   evaluateAnchorDir,
   evaluateBudgetLeg,
   evaluateIntegrityLeg,

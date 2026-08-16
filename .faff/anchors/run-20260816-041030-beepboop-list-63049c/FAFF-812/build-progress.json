@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-812",
+  "build": {
+    "status": "complete",
+    "diff_hash": "db3226fee1148a98aa52e8b6f8ff5f891ff210c93ec62bd65407b3642fedc3a1",
+    "branch": "faff-812-dod-classify-born-verifiability-lint-flag-dod-items-with-no",
+    "pushed_at": "2026-08-16T07:22:43.486Z"
+  },
+  "updated_at": "2026-08-16T07:22:43.486Z"
+}

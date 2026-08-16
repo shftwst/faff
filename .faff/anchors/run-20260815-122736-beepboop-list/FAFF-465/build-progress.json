@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-465",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f0776a772bcee72585e3f49f1aa59ef8b78fd0b0985448b60b28cd98ddf0c652",
+    "branch": "faff-465-adversarial-review-chain-no-always-available-local-terminal",
+    "pushed_at": "2026-08-15T13:15:25.814Z"
+  },
+  "updated_at": "2026-08-15T13:15:25.814Z"
+}

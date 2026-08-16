@@ -19,7 +19,7 @@
 // to prove the prose and the behaviour agree.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, symlinkSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -230,6 +230,118 @@ test("remote-diff-base.sh fails loud in a no-origin repo whose default branch is
     assert.equal(r.stdout.trim(), "", "helper must print no base when it cannot resolve one");
   } finally {
     rmParent(parent);
+  }
+});
+
+// FAFF-744 — the SSH-transport bound. Build a stub dir containing ONLY a symlinked real `git` plus
+// a fake `ssh`, so PATH resolution never finds a real `timeout`/`gtimeout` — reproducing the
+// "stock macOS without coreutils" host the ticket targets — while `git` itself still works. The
+// fake `ssh` records its own invocation (argv) to a log file and exits 1 immediately: git's ssh
+// transport then fails fast (no real network hang needed to prove the resolver bounds it — the
+// bound is on the RECORDED command git would have run, which is what the assertions check).
+const REAL_GIT = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim() || "/usr/bin/git";
+// spawnSync resolves its own executable ("bash") through whatever `env.PATH` is passed to it (not
+// the current process's PATH), so a stub PATH containing only `git`+`ssh` would otherwise fail to
+// even find `bash` itself — resolve it to an absolute path once, up front.
+const REAL_BASH = spawnSync("sh", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim() || "/bin/bash";
+
+function makeSshStubDir() {
+  const stubDir = mkdtempSync(path.join(tmpdir(), "faff744-sshstub-"));
+  symlinkSync(REAL_GIT, path.join(stubDir, "git"));
+  const sshLog = path.join(stubDir, "ssh-invocations.log");
+  const sshStub = path.join(stubDir, "ssh");
+  writeFileSync(sshStub, `#!/bin/sh\nprintf '%s\\n' "$0 $*" >> "${sshLog}"\nexit 1\n`);
+  chmodSync(sshStub, 0o755);
+  return { stubDir, sshLog };
+}
+
+// Repo with an ssh-shaped origin (no real remote needs to exist — the stub `ssh` intercepts before
+// any real connection attempt).
+function makeSshOriginRepo() {
+  const repo = mkdtempSync(path.join(tmpdir(), "faff744-repo-"));
+  git(repo, "init", "-q", "-b", "main");
+  git(repo, "config", "user.email", "t@t.test");
+  git(repo, "config", "user.name", "t");
+  commitFile(repo, "A.txt", "A\n", "A");
+  git(repo, "remote", "add", "origin", "git@example.invalid:some-org/some-repo.git");
+  return repo;
+}
+
+test("SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)", () => {
+  const { stubDir, sshLog } = makeSshStubDir();
+  const repo = makeSshOriginRepo();
+  try {
+    // Sanity: the stub dir alone resolves neither `timeout` nor `gtimeout` — reproducing the
+    // "stock macOS without coreutils" host this test targets.
+    const hasTimeout = spawnSync("sh", ["-c", "command -v timeout"], { env: { PATH: stubDir } });
+    const hasGtimeout = spawnSync("sh", ["-c", "command -v gtimeout"], { env: { PATH: stubDir } });
+    assert.notEqual(hasTimeout.status, 0, "test fixture invariant: `timeout` must not resolve on the stub PATH");
+    assert.notEqual(hasGtimeout.status, 0, "test fixture invariant: `gtimeout` must not resolve on the stub PATH");
+
+    const start = Date.now();
+    const r = spawnSync(REAL_BASH, [HELPER], {
+      cwd: repo,
+      encoding: "utf8",
+      env: { PATH: stubDir, GIT_TERMINAL_PROMPT: "0", FAFF_GIT_NET_TIMEOUT: "5" },
+    });
+    const elapsedMs = Date.now() - start;
+
+    // (b) bounded wall-clock, non-zero, no base printed — the stub fails the connection immediately,
+    // so this also proves the resolver doesn't hang waiting on anything else in that path.
+    assert.notEqual(r.status, 0, "resolver must fail loud on a black-holed/unreachable SSH origin");
+    assert.equal(r.stdout.trim(), "", "resolver must print no base on failure (no stale fall-back)");
+    assert.ok(elapsedMs < 15000, `resolver took ${elapsedMs}ms — expected a bounded, fast failure`);
+
+    // (a) the ssh invocation net_git() ran carries the default bound.
+    assert.ok(existsSync(sshLog), "the stub ssh must have been invoked at least once");
+    const invocations = readFileSync(sshLog, "utf8");
+    assert.ok(invocations.includes("BatchMode=yes"), "ssh invocation must carry -o BatchMode=yes");
+    assert.ok(invocations.includes("ConnectTimeout=5"), "ssh invocation must carry -o ConnectTimeout=<NET_TIMEOUT>");
+    assert.ok(invocations.includes("ServerAliveInterval=5"), "ssh invocation must carry -o ServerAliveInterval=<NET_TIMEOUT>");
+    assert.ok(invocations.includes("ServerAliveCountMax=1"), "ssh invocation must carry -o ServerAliveCountMax=1");
+  } finally {
+    rmParent(stubDir);
+    rmParent(repo);
+  }
+});
+
+test("operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)", () => {
+  const { stubDir, sshLog } = makeSshStubDir();
+  const repo = makeSshOriginRepo();
+  // The operator's own transport command: an absolute path (avoids PATH lookup ambiguity) to a
+  // second recorder plus a marker flag that is unmistakably theirs, not faff's default bound.
+  const operatorLog = path.join(stubDir, "operator-ssh-invocations.log");
+  const operatorSsh = path.join(stubDir, "operator-ssh");
+  writeFileSync(operatorSsh, `#!/bin/sh\nprintf '%s\\n' "$0 $*" >> "${operatorLog}"\nexit 1\n`);
+  chmodSync(operatorSsh, 0o755);
+  const operatorCommand = `${operatorSsh} --operator-owns-this-transport`;
+  try {
+    const r = spawnSync(REAL_BASH, [HELPER], {
+      cwd: repo,
+      encoding: "utf8",
+      env: {
+        PATH: stubDir,
+        GIT_TERMINAL_PROMPT: "0",
+        FAFF_GIT_NET_TIMEOUT: "5",
+        GIT_SSH_COMMAND: operatorCommand,
+      },
+    });
+    assert.notEqual(r.status, 0, "resolver must still fail loud (the operator stub also refuses the connection)");
+    assert.equal(r.stdout.trim(), "", "resolver must print no base on failure");
+
+    // The faff-default ssh stub (plain `ssh` on PATH) must NEVER have been invoked.
+    assert.ok(!existsSync(sshLog), "faff's default ssh bound must not run when the operator set GIT_SSH_COMMAND");
+
+    // The operator's own command was invoked, byte-identically to what they set — no appended
+    // -o BatchMode / -o ConnectTimeout, no clobbering.
+    assert.ok(existsSync(operatorLog), "the operator's own GIT_SSH_COMMAND must have been invoked");
+    const invocations = readFileSync(operatorLog, "utf8");
+    assert.ok(invocations.includes("--operator-owns-this-transport"), "the operator's own flag must be present");
+    assert.ok(!invocations.includes("BatchMode=yes"), "faff must not append its own -o BatchMode to an operator-set command");
+    assert.ok(!invocations.includes("ConnectTimeout="), "faff must not append its own -o ConnectTimeout to an operator-set command");
+  } finally {
+    rmParent(stubDir);
+    rmParent(repo);
   }
 });
 

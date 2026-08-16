@@ -2,14 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "faff/contracts/prdr-yagni",
   "title": "prdr-yagni contract data",
-  "description": "Reference schema (FAFF-256). The SHAPE of the PRDR UPPER (YAGNI / value) gate verdict that `faff prdr yagni` PRODUCES and `faff contract prdr-yagni` VALIDATES (consumer-side conformance, mirroring prd-readiness / prdr-admission). It is 255's `upper: {admit, reason}` verdict, plus the two-phase audit trail (the deterministic trace-to-goal precondition, the methodology proposal, the adversarial challenge). NO safe coerce target — faff's own producer emits it, so an out-of-enum proposal.verdict is a fail-loud, never coerced toward `admit`; the gate is fail-safe toward REFUSAL. The load-bearing invariant (an `admit` implies trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns — 'no gold-plating on doubt') is enforced in code as a conformance violation; it is not expressible in this shape schema. Grounding is advisory: `grounding_present` is shape-checked but never gate-decisive.",
+  "description": "Reference schema (FAFF-256, extended FAFF-815). The SHAPE of the PRDR UPPER (YAGNI / value) gate verdict that `faff prdr yagni` PRODUCES and `faff contract prdr-yagni` VALIDATES (consumer-side conformance, mirroring prd-readiness / prdr-admission). It is 255's `upper: {admit, reason}` verdict, plus the two-phase audit trail (the deterministic trace-to-goal precondition, the methodology proposal, the adversarial challenge) and FAFF-815's three-goal-set model: `cited_goals` (C — the PRDR's cited set, widened to C∪V on an under-citation admit), `dod_covers` (V — the goals the DoD covers), and `over_scope` (V⊄D — the deterministic gold-plating signal). NO safe coerce target — faff's own producer emits it, so an out-of-enum proposal.verdict is a fail-loud, never coerced toward `admit`; the gate is fail-safe toward REFUSAL. The load-bearing invariant (an `admit` implies trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬over_scope ∧ (¬challenge.overturns ∨ (under-citation ∧ challenge.ground==over-scope)) — 'no gold-plating on doubt', admitting only a mis-attributed over-scope under-citation) is enforced in code as a conformance violation; it is not expressible in this shape schema. `challenge.ground` is the closed-vocab overturn reason (over-scope|unserved|other; absent ⇒ other, fail-safe) that gates the under-citation admit (Q7). Grounding is advisory: `grounding_present` is shape-checked but never gate-decisive.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["admit", "reason", "trace_to_goal", "proposal", "challenge", "grounding_present", "conformant", "violations"],
+  "required": ["admit", "reason", "trace_to_goal", "cited_goals", "dod_covers", "over_scope", "proposal", "challenge", "grounding_present", "conformant", "violations"],
   "properties": {
     "admit": { "type": "boolean" },
     "reason": { "type": "string" },
     "trace_to_goal": { "type": "boolean" },
+    "cited_goals": { "type": "array", "items": { "type": "string" } },
+    "dod_covers": { "type": "array", "items": { "type": "string" } },
+    "over_scope": { "type": "boolean" },
     "proposal": {
       "type": "object",
       "additionalProperties": false,
@@ -24,11 +27,12 @@
     "challenge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["ran", "overturns", "reason"],
+      "required": ["ran", "overturns", "reason", "ground"],
       "properties": {
         "ran": { "type": "boolean" },
         "overturns": { "type": "boolean" },
-        "reason": { "type": "string" }
+        "reason": { "type": "string" },
+        "ground": { "type": "string", "enum": ["over-scope", "unserved", "other"] }
       }
     },
     "grounding_present": { "type": "boolean" },

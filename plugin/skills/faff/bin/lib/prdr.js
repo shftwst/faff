@@ -22,7 +22,8 @@ const PRDR_SPEC = { flags: {
   "--live": { arity: 0 }, "--new-capability": { arity: 0 }, "--no-branch": { arity: 0 }, "--self": { arity: 0 },
   "--selftest": { arity: 0 }, "--serves-goal": { arity: 0 }, "--within-scope": { arity: 0 },
   "--actor": { arity: 1 }, "--admit-verdict": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 },
-  "--challenge-reason": { arity: 1 }, "--container": { arity: 1 }, "--date": { arity: 1 }, "--dod-verdicts": { arity: 1 },
+  "--challenge-ground": { arity: 1 }, "--challenge-reason": { arity: 1 }, "--container": { arity: 1 }, "--date": { arity: 1 },
+  "--dod-covers": { arity: 1 }, "--dod-verdicts": { arity: 1 },
   "--lineage-supersessions": { arity: 1 }, "--live-prdrs": { arity: 1 }, "--lower": { arity: 1 },
   "--prd-goal": { arity: 1 }, "--prd-goals": { arity: 1 }, "--proposal": { arity: 1 }, "--proposal-reason": { arity: 1 },
   "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 }, "--root": { arity: 1 }, "--status": { arity: 1 },
@@ -50,7 +51,7 @@ const PRDR_SURFACE = {
   },
 };
 const { DEFAULTS, loadConfig, resolvePrdrDocsPath } = require("./config");
-const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, contractPrdDistance, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
+const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, contractPrdDistance, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
 const { dig, findRoot } = require("./shared-infra");
 
@@ -69,11 +70,17 @@ function listPrdrs(dir) {
     if (!m) continue;
     const text = fs.readFileSync(path.join(dir, f), "utf8");
     const titleM = text.match(/^#\s*PRDR\s+\d+\s*[—\-]\s*(.+)$/mi);
+    // FAFF-815 — citation is a set. Parse the plural `PRD-goals:` field (colon-anchored, so it never
+    // matches a legacy `PRD-goal:` line); fall back to the legacy singular field. `prd_goal` stays as
+    // the primary (prd_goals[0]) for distance/list and any single-goal consumer.
+    const goalsRaw = adrField(text, "PRD-goals") ?? adrField(text, "PRD-goal");
+    const prd_goals = goalsRaw ? goalsRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
     out.push({
       number: parseInt(m[1], 10), num: m[1], slug: m[2], file: f,
       title: titleM ? titleM[1].trim() : null,
       container: adrField(text, "Container"),
-      prd_goal: adrField(text, "PRD-goal"),
+      prd_goals,
+      prd_goal: prd_goals[0] ?? "",
       status: adrField(text, "Status"),
       provenance: adrField(text, "Provenance"),
       date: adrField(text, "Date"),
@@ -93,7 +100,7 @@ function prdrTemplate({ num, title, date, container, prdGoal, provenance, status
     `- **Provenance:** ${provenance || "human"}`,
     `- **Date:** ${date}`,
     `- **Container:** ${container}`,
-    `- **PRD-goal:** ${prdGoal}`, "",
+    `- **PRD-goals:** ${prdGoal}`, "",
     "## Context", "", "_TODO: the product need this decision answers + the PRD goal it serves._", "",
     "## Decision", "", "_TODO: the product decision, stated forward._", "",
     "## Scope", "", "_TODO: what this decision covers (and explicitly excludes)._", "",
@@ -120,7 +127,9 @@ function prdrValidate(dir) {
     else if (!PRDR_PROVENANCES.some((p) => new RegExp(`^${p}$`, "i").test(a.provenance.trim()))) problems.push(`${a.file}: Provenance "${a.provenance.slice(0, 30)}" must be one of ${PRDR_PROVENANCES.join("|")}`);
     if (!a.date) problems.push(`${a.file}: missing Date field`);
     if (!a.container) problems.push(`${a.file}: missing Container field`);
-    if (!a.prd_goal) problems.push(`${a.file}: missing PRD-goal field`);
+    // FAFF-815 — a valid record cites a non-empty goal SET (either the plural `PRD-goals:` field or a
+    // legacy singular `PRD-goal:`, both parsed into prd_goals by listPrdrs).
+    if (!a.prd_goals || !a.prd_goals.length) problems.push(`${a.file}: missing PRD-goal(s) citation field`);
     // Presence-only body check (P2): each of the four sections must exist as a "## " heading.
     for (const s of PRDR_SECTIONS) {
       if (!new RegExp(`^##\\s+${s}\\s*$`, "mi").test(text)) problems.push(`${a.file}: missing "## ${s}" section`);
@@ -298,8 +307,8 @@ function cmdPrdr(args) {
     if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
     if (args.includes("--live")) prdrs = prdrs.filter((p) => !recordSupersededBy(p.status, "PRDR"));
     if (args.includes("--json")) {
-      console.log(JSON.stringify(prdrs.map(({ number, num, title, container, prd_goal, status, provenance, date, file }) =>
-        ({ number, id: num, title, container, prd_goal, status, provenance, date, file })), null, 2));
+      console.log(JSON.stringify(prdrs.map(({ number, num, title, container, prd_goals, prd_goal, status, provenance, date, file }) =>
+        ({ number, id: num, title, container, prd_goals, prd_goal, status, provenance, date, file })), null, 2));
     } else if (!prdrs.length) {
       console.log(`No PRDRs in ${path.relative(root, dir) || dir}.`);
     } else {
@@ -428,8 +437,20 @@ function cmdPrdr(args) {
     if (challenge != null && challenge !== "survived" && challenge !== "overturned") {
       process.stderr.write("faff prdr yagni: --challenge must be survived|overturned (omit when Phase 2 did not conclude)\n"); return 2;
     }
+    // FAFF-815 — V (the DoD-covered goal set); absent ⇒ [] ⇒ byte-identical to pre-815 (over_scope/under_cited false).
+    let dodCovers = [];
+    const dcRaw = get("--dod-covers");
+    if (dcRaw != null) {
+      try { dodCovers = JSON.parse(dcRaw); } catch (e) { process.stderr.write(`faff prdr yagni: --dod-covers is not valid JSON: ${e.message}\n`); return 2; }
+      if (!Array.isArray(dodCovers)) { process.stderr.write("faff prdr yagni: --dod-covers must be a JSON array of strings\n"); return 2; }
+    }
+    // FAFF-815 (Q7) — the closed-vocab overturn ground; absent ⇒ producer defaults to "other" (fail-safe).
+    const challengeGround = get("--challenge-ground");
+    if (challengeGround != null && !PRDR_YAGNI_CHALLENGE_GROUNDS.includes(challengeGround)) {
+      process.stderr.write(`faff prdr yagni: --challenge-ground must be one of ${PRDR_YAGNI_CHALLENGE_GROUNDS.join("|")}\n`); return 2;
+    }
     const verdict = computePrdrYagniVerdict({
-      prdGoal, prdGoals,
+      prdGoal, prdGoals, dodCovers, challengeGround,
       proposalVerdict, proposalReason: get("--proposal-reason"),
       servesGoal: args.includes("--serves-goal"), withinScope: args.includes("--within-scope"),
       challenge, challengeReason: get("--challenge-reason"),
@@ -467,7 +488,8 @@ function cmdPrdr(args) {
       let prdrs = listPrdrs(dir).filter((p) => !recordSupersededBy(p.status, "PRDR"));
       const container = get("--container");
       if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
-      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goal: p.prd_goal }));
+      // FAFF-815 — carry the plural cited set so coverage unions it (prd_goal kept for legacy readers).
+      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal }));
     }
     // --dod-verdicts: optional FAFF-34 verdict map { "<prdr-id>": "met"|... }, merged onto livePrdrs by id.
     // Absent ⇒ every DoD unverified ⇒ conservatively not-met (the unbuilt-evaluator default).
@@ -636,6 +658,73 @@ function prdrSelftest() {
     const up = yag({ challenge: "overturned" });
     const v = computePrdrAdmissionVerdict({ actor: "loop", supersedesProvenance: "loop", thrashMax: 3, upper: { admit: up.admit, reason: up.reason } });
     return v.upper.admit === false && v.disposition === "reject";
+  })());
+
+  // --- FAFF-815: the three-goal-set model (plural citation, over-scope vs under-citation, Q7 ground) ---
+  // D = declared, C = cited, V = DoD-covered. The full predicate-boundary matrix (QA/minor — Q7 risk).
+  const D5 = ["g1", "g2", "g3", "g4", "g5"];
+  const y815 = (opts) => computePrdrYagniVerdict({ prdGoals: D5, proposalVerdict: "admit", challenge: "survived", ...opts });
+  t("815 (WHY): cite-all-five + covers-all-five + survived → admit, trace, no over-scope", (() => {
+    const v = y815({ prdGoal: "g1,g2,g3,g4,g5", dodCovers: D5 });
+    return v.admit === true && v.trace_to_goal === true && v.over_scope === false;
+  })());
+  t("815 AC#1: under-citation + overturn(over-scope) → admit, cited_goals widened to C∪V", (() => {
+    const v = y815({ prdGoal: "g1", dodCovers: D5, challenge: "overturned", challengeGround: "over-scope" });
+    return v.admit === true && v.over_scope === false &&
+      JSON.stringify([...v.cited_goals].sort()) === JSON.stringify([...D5].sort());
+  })());
+  t("815 Q7: under-citation + overturn(unserved) → conservative reject (skeptic authority preserved)", (() => {
+    const v = y815({ prdGoal: "g1", dodCovers: D5, challenge: "overturned", challengeGround: "unserved" });
+    return v.admit === false && /overturned \(unserved\)/.test(v.reason);
+  })());
+  t("815 Q7: under-citation + overturn(absent ground ⇒ other) → reject", (() => {
+    const v = y815({ prdGoal: "g1", dodCovers: D5, challenge: "overturned" });
+    return v.admit === false && v.challenge.ground === "other";
+  })());
+  t("815 AC#3: genuine over-scope (V⊄D) + survived → reject, over_scope true, names the extra goal", (() => {
+    const v = y815({ prdGoal: "g1", dodCovers: ["g1", "analytics dashboard"], challenge: "survived" });
+    return v.admit === false && v.over_scope === true && /analytics dashboard/.test(v.reason);
+  })());
+  t("815: C⊇V (cites all it covers) + overturn(over-scope) → reject (nothing under-cited)", (() => {
+    const v = y815({ prdGoal: "g1,g2,g3,g4,g5", dodCovers: D5, challenge: "overturned", challengeGround: "over-scope" });
+    return v.admit === false;
+  })());
+  t("815 back-compat: V=∅ (--dod-covers omitted) + overturn(over-scope) → reject", (() => {
+    const v = y815({ prdGoal: "g1", challenge: "overturned", challengeGround: "over-scope" });
+    return v.admit === false && v.dod_covers.length === 0 && v.over_scope === false;
+  })());
+  t("815: V=C=D + survived → admit (clean fully-cited MVP)", y815({ prdGoal: "g1,g2,g3,g4,g5", dodCovers: D5 }).admit === true);
+  t("815: empty D/C/V → reject (no trace)", computePrdrYagniVerdict({ prdGoals: [], prdGoal: "", dodCovers: [], proposalVerdict: "admit", challenge: "survived" }).admit === false);
+  t("815: legacy single --prd-goal traces + admits as a 1-element set", y815({ prdGoal: "g3", dodCovers: ["g3"] }).admit === true && y815({ prdGoal: "g3" }).trace_to_goal === true);
+  t("815 consumer: the under-citation admit is conformant", (() => {
+    const v = y815({ prdGoal: "g1", dodCovers: D5, challenge: "overturned", challengeGround: "over-scope" });
+    return computePrdrYagni(v).contractData.conformant === true;
+  })());
+  t("815 consumer: a hand-forged over-scope admit is flagged non-conformant", (() => {
+    const forged = { admit: true, reason: "x", trace_to_goal: true, cited_goals: ["g1"], dod_covers: ["g1", "x"], over_scope: true,
+      proposal: { serves_goal: true, within_scope: true, verdict: "admit", reason: "" },
+      challenge: { ran: true, overturns: false, reason: "", ground: "other" }, grounding_present: false };
+    return computePrdrYagni(forged).contractData.conformant === false;
+  })());
+  t("815 coverage: union of plural prd_goals over one PRDR covers all five (AC#2)", (() => {
+    const v = computePrdCoverageVerdict({ prdGoals: D5, livePrdrs: [{ id: "0001", prd_goals: D5 }] });
+    return v.covered === true && v.uncovered_goals.length === 0;
+  })());
+  t("815 coverage: a legacy single prd_goal is still accepted (one goal covered)", (() => {
+    const v = computePrdCoverageVerdict({ prdGoals: D5, livePrdrs: [{ id: "0001", prd_goal: "g1" }] });
+    return v.covered === false && v.uncovered_goals.length === 4;
+  })());
+  t("815 parse: plural PRD-goals field + legacy PRD-goal fallback, prd_goal = prd_goals[0]", (() => {
+    const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-815-"));
+    const dd = path.join(tp, "docs", "prdr"); fs.mkdirSync(dd, { recursive: true });
+    fs.writeFileSync(path.join(dd, "0001-plural.md"), prdrTemplate({ num: "0001", title: "plural", date: "2026-08-16", container: "c", prdGoal: "g1, g2, g3", provenance: "loop" }));
+    fs.writeFileSync(path.join(dd, "0002-legacy.md"), "# PRDR 0002 — legacy\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-16\n- **Container:** c\n- **PRD-goal:** only\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
+    const ll = listPrdrs(dd);
+    const a = ll.find((p) => p.num === "0001"), b = ll.find((p) => p.num === "0002");
+    const ok = a.prd_goals.length === 3 && a.prd_goals[0] === "g1" && a.prd_goal === "g1" &&
+      b.prd_goals.length === 1 && b.prd_goals[0] === "only" && b.prd_goal === "only" && prdrValidate(dd).length === 0;
+    fs.rmSync(tp, { recursive: true, force: true });
+    return ok;
   })());
 
   // --- FAFF-257: the lower (coverage) gate + prd-satisfied roll-up producer ---

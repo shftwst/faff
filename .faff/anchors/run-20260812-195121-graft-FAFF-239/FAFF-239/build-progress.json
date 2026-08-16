@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-239",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3e0c3e50926f5e55dcf13687eb87c41ab9dfa01cc31907c42b5534dbaf770b8b",
+    "branch": "faff-239-self-contained-prose-guard-slice-2-sweep-125-external-refs",
+    "pushed_at": "2026-08-12T20:41:23.489Z"
+  },
+  "updated_at": "2026-08-12T20:41:23.489Z"
+}

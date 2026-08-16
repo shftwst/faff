@@ -45,3 +45,7 @@ eval/report/
 # Claude box env
 .env.claude-box
 .gstack/
+
+# Private idea shares (symlinks into shftwst-shared)
+docs/rfc/ideas
+docs/whitepapers/ideas

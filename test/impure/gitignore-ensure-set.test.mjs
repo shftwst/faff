@@ -83,6 +83,14 @@ test("git semantics: real `git check-ignore` honours the glob + negation on a fr
     assert.ok(ignored(".faff/runs/run1/events.jsonl"), "run artifacts under .faff stay ignored");
     assert.ok(ignored(".faff/logs/2026-07-23/x.md"), "logs under .faff stay ignored");
     assert.ok(!ignored(".faff/anchors/run1/FAFF-1/events.jsonl"), "the anchors carve-out is committable (FAFF-568)");
+    // FAFF-796: the git-only run-level anchor (`faff events anchor-run`, per ADR 0109) reuses
+    // this SAME `.faff/anchors/<run>/<issue>/` tree — verify-only, no new gitignore line, since
+    // the shape is structurally identical to the per-PR anchor above (a run id in place of a PR
+    // run dir name is not a new path shape git's glob distinguishes).
+    assert.ok(ignored(".faff/runs/run-20260815-084759-beepboop-list/events.jsonl"), "the live (ephemeral) run dir the anchor is minted FROM stays ignored");
+    assert.ok(!ignored(".faff/anchors/run-20260815-084759-beepboop-list/FAFF-796/events.jsonl"), "the git-only run-level anchor tree is committable via the SAME carve-out (FAFF-796, no new gitignore line)");
+    assert.ok(!ignored(".faff/anchors/run-20260815-084759-beepboop-list/FAFF-796/chain-head.json"), "…including its witness");
+    assert.ok(!ignored(".faff/anchors/run-20260815-084759-beepboop-list/summary.md"), "…and the run-level summary.md sitting one level up");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -34,7 +34,7 @@ It does **not** answer the optional `issue-critique` output — per-issue right-
 
 Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top. Unlock value counts live blocker edges only (gateway → **Satisfied blockers — edges to terminal work**) — a satisfied edge adds no downstream count.
 
-**Optional `prd-distance` composition (FAFF-535).** When the caller supplies the `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), compose it as a **within-band** tiebreaker on top of the core ordering rule, never a replacement:
+**Optional `prd-distance` composition.** When the caller supplies the `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), compose it as a **within-band** tiebreaker on top of the core ordering rule, never a replacement:
 
 1. Partition the ordered set into contiguous **human-priority bands** (the existing priority tier — floor rule (a): distance never crosses a band).
 2. **Within each band**, stable-sort by the issue's PRD-completion distance: `rank = min class_rank` of `prd-distance` entries whose `container` slug-matches the issue's container. **No match, or `rank == 0` (met) → neutral** — keep the issue's existing relative position (the core-rule order). Lower rank (nearer the parent PRD) orders sooner.
@@ -191,7 +191,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 **Admission:** the two build-ready verdicts enter; every other routing verdict routes out (canonical semantics: `faff contract automation-routing --describe`).
 
-**Ordering:** `pick-ordering` — including its optional **`prd-distance`** within-band composition (FAFF-535) when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
+**Ordering:** `pick-ordering` — including its optional **`prd-distance`** within-band composition when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
 
 **Conflict analysis:** partition the admitted set into independents (parallel-safe) and collision groups (serialised within the group, parallel across groups) per the canonical heuristics — see `faff-beep-boop` → **Conflict analysis**. Single home: do **not** recap the heuristics here.
 
@@ -233,18 +233,18 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 ### `prdr-author`
 
-**Optional** (gateway → **The `methodology` slot**). Given a container (initiative/project) + its `{outcome, child_specs, target}`, author one **`AuthoredPrdr`** — a loop-authored FAFF-245 PRDR record (provenance `loop`, status `Proposed`). The thematic lens authors from **graph + container facts**, never value/risk opinion: the DoD is the **graph completion bar** (every child epic delivered + the container outcome's stated criteria met), scaled by target.
+**Optional** (gateway → **The `methodology` slot**). Given a container (initiative/project) + its `{outcome, child_specs, target}`, author one **`AuthoredPrdr`** — a loop-authored PRDR record (provenance `loop`, status `Proposed`). The thematic lens authors from **graph + container facts**, never value/risk opinion: the DoD is the **graph completion bar** (every child epic delivered + the container outcome's stated criteria met), scaled by target.
 
 **Derivation (graph + container facts only):**
 
-1. **Resolve the target** — `explicit > inherited > methodology-default` (FAFF-40 order); the methodology-default is **finished** when unset. The target sets the DoD's ambition band.
+1. **Resolve the target** — `explicit > inherited > methodology-default`; the methodology-default is **finished** when unset. The target sets the DoD's ambition band.
 2. **Re-read first (manual-authoritative).** Read the container's current DoD and any human edits **before** authoring; **never clobber** a human-set DoD — fill/default only the unset parts (gateway → **Manual changes are authoritative (`prdr-author`)**).
 3. **Author the fields** from `{outcome, child_specs}`, scaled to the target:
    - `definition_of_done` — **thin-MVP** target ⇒ the first-slice children + the outcome's minimal criterion; **finished** target ⇒ all children delivered + the outcome's full stated criteria. Structural, child-derived — no value judgement about *which* children matter.
    - `decision` + `scope` — the delegated end this container commits to, named from the outcome prose; scope = the container's child set.
-   - `prd_goal` — the cited parent PRD goal the container serves (from the container's PRD link / ancestor).
+   - `prd_goals` — **cite every declared PRD goal the DoD covers** (the full comma-separated set, from the container's PRD link / ancestor), not just a single ancestor goal. Under-citing a functional MVP that discharges several declared goals is what the YAGNI gate mis-reads as over-scope.
 4. **Confidence + fail-safe.** Thin outcome prose / no child specs ⇒ low confidence ⇒ emit a **thin DoD flagged needs-human**, never a vacuous one (the L4 caller must never self-define a vacuous DoD).
-5. **Emit** the `AuthoredPrdr` and write it via `faff prdr new --provenance loop --status Proposed --container <c> --prd-goal <g>`. The methodology **authors but never admits** — it does **not** call `faff prdr admit`, and **never writes the tracker**; the caller routes per its level (gateway → **Authored-PRDR level-scaling**).
+5. **Emit** the `AuthoredPrdr` and write it via `faff prdr new --provenance loop --status Proposed --container <c> --prd-goal <g1,g2,…>` (the comma-separated cited set → the record's `PRD-goals:` field). The methodology **authors but never admits** — it does **not** call `faff prdr admit`, and **never writes the tracker**; the caller routes per its level (gateway → **Authored-PRDR level-scaling**).
 
 **Output:** `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` + a confidence note. Unanswered-equivalent (no container, or `--no-prdr`) ⇒ the caller proposes no PRDR and the human authors the DoD directly.
 
@@ -255,10 +255,10 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 **Optional** (gateway → **The `methodology` slot**; this is **Phase 1** of the upper-gate two-phase arbitration — gateway → **Upper-gate (YAGNI) two-phase arbitration**). Given an `AuthoredPrdr` + the PRD (+ optional grounding), propose whether the PRDR is **warranted** — serves a real PRD goal **without exceeding it**. The thematic lens judges from **graph + PRD facts**, never value/risk opinion:
 
 - `serves_goal` — does the PRDR's `prd_goal` name a real PRD goal *and* does its `decision`/`definition_of_done` materially advance that goal (not merely cite it)? Graph/text trace, not taste.
-- `within_scope` — is the DoD bounded by the PRD goal's stated criteria, or does it add capability the PRD never asked for (structural over-reach)? Grounding, when present, sharpens this (domain norms) but is never required.
+- `within_scope` — does the DoD cover **only declared PRD goals** (`V ⊆ D`), or does it add capability the PRD never asked for (structural over-reach)? Covering *several* declared goals in one functional MVP is in-scope, not gold-plating; only capability outside the declared goal set is over-reach. Grounding, when present, sharpens this (domain norms) but is never required.
 - `verdict` — `admit` when both hold; `reject` otherwise, with a one-line `reason`.
 
-**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` — the Phase-1 proposal the caller passes to `faff prdr yagni --proposal …`. It **proposes, never admits** (admission is FAFF-255's `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered ⇒ the upper gate has no proposal (the caller falls back to 255's fail-safe upper default).
+**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` — the Phase-1 proposal the caller passes to `faff prdr yagni --proposal …`. It **proposes, never admits** (admission is `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered ⇒ the upper gate has no proposal (the caller falls back to the `faff prdr admit` gate's fail-safe upper default — conservative reject).
 
 **Appetite** tunes only the strictness of `within_scope` (lower = permissive, higher = tighter), never whether to admit — the conservative-reject-on-doubt arbitration is the CLI's.
 

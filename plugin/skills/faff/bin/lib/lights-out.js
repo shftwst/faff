@@ -31,6 +31,7 @@
 // fail-closed via strict === true (see lightsOutEnforced) — a new entry without an
 // explicit enforced:true reads as not-enforced, never silently counted.
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
@@ -39,6 +40,7 @@ const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeF
 const { unmeteredFleetEngines } = require("./backends");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
+const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendRecordUnderLock } = require("./events");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
@@ -723,6 +725,19 @@ function cmdLightsOut(args) {
     return resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId });
   }
 
+  // FAFF-757: validate a supplied --id at the same consume site it was previously used
+  // unvalidated (path.join(root, ".faff", "runs", runId) at the eventual mkdirSync) — before
+  // any preflight probing runs, so a malformed id fails loud without wasting the (possibly
+  // slow) guardrail assembly, and mints nothing. isSafeRunId is the same exported predicate
+  // guarding `--record`'s traversal risk in contain.js.
+  const suppliedId = get("--id");
+  if (suppliedId != null && !isSafeRunId(suppliedId)) {
+    const msg = `lights-out: --id "${suppliedId}" is not a safe run-id (no path separators, no ".." segments, no control characters) — nothing minted`;
+    if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", error: msg }) + "\n");
+    else process.stderr.write(msg + "\n");
+    return 2;
+  }
+
   // FAFF-527: the preflight assembly (all 8 guardrails + the floor + dial coherence) is
   // shared verbatim between the mint path and the `--resume` re-fire, so a resumed run is
   // judged against the CURRENT config/environment exactly as a fresh mint is. One home for
@@ -893,6 +908,51 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
   return { pf, envelope, metering, correctiveAuthority, dial_profile, container, floor };
 }
 
+// FAFF-757: bounded retry count for the auto-mint re-mint loop below — small because
+// the exclusive create is already the guarantee; entropy just needs to win once. Practically
+// unreachable (would require MAX_REMINT_ATTEMPTS-in-a-row entropy collisions), so exhaustion
+// is a loud throw, not a policy decision.
+const MAX_REMINT_ATTEMPTS = 5;
+
+// FAFF-757: the exclusive-create claim — the directory create IS the uniqueness test, so no
+// separate lock artifact is needed. A non-recursive mkdirSync of the leaf is atomic: it throws
+// EEXIST iff the name is already taken, which is the collision signal itself (no check-then-create
+// TOCTOU). `runsParent` (<root>/.faff/runs) must already exist — callers ensure it first.
+//
+// supplied:false (auto-mint) — a collision re-mints with a fresh crypto.randomBytes suffix
+//   appended AFTER baseId's descriptive tail (preserves sortRunDirsByMtimeDesc's mtime-primary
+//   ordering and the STRAY_TRANSCRIPT \b match), bounded retry; exhaustion throws loud.
+// supplied:true (a caller-owned --id) — a collision NEVER re-mints (that would silently orphan
+//   the caller's handle) — throws loud, directory untouched, pointing the caller at --resume.
+//
+// Deliberately clock-free and side-effect-minimal beyond the one mkdirSync per attempt, so it is
+// testable in isolation: pre-create a directory, call this with its exact base id, and assert.
+function claimRunDir(runsParent, baseId, { supplied }) {
+  const tryCreate = (id) => {
+    try {
+      fs.mkdirSync(path.join(runsParent, id)); // non-recursive → atomic; EEXIST iff taken
+      return id;
+    } catch (e) {
+      if (e.code !== "EEXIST") throw e; // a real fs fault (EACCES/ENOSPC/...) stays loud, unchanged
+      return null;
+    }
+  };
+
+  const clean = tryCreate(baseId);
+  if (clean != null) return path.join(runsParent, clean);
+
+  // EEXIST — the name is taken.
+  if (supplied) {
+    throw new Error(`lights-out: run-id "${baseId}" already exists under ${runsParent} — use --resume ${baseId} to re-enter it (never re-minted, never shared)`);
+  }
+  for (let attempt = 0; attempt < MAX_REMINT_ATTEMPTS; attempt++) {
+    const candidate = `${baseId}-${crypto.randomBytes(3).toString("hex")}`; // entropy strictly AFTER the descriptive tail
+    const won = tryCreate(candidate);
+    if (won != null) return path.join(runsParent, won);
+  }
+  throw new Error(`lights-out: could not mint a unique run dir after ${MAX_REMINT_ATTEMPTS} attempts under ${runsParent} (base id "${baseId}")`);
+}
+
 // FAFF-527: the mint tail — extracted from cmdLightsOut so the resume path can reuse the
 // shared assembly above WITHOUT re-minting a new run. Mints the strict-defaults L4
 // run-ledger, persists the banner, emits the run-start event.
@@ -905,9 +965,31 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   envelope.at_ceiling = mintAtCeiling(cfg);
   const nowIso = new Date().toISOString();
   const stamp = nowIso.replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-"); // YYYYMMDD-HHMMSS
-  const runId = get("--id") || `run-${stamp}-lights-out`;
-  const runDir = path.join(root, ".faff", "runs", runId);
-  fs.mkdirSync(runDir, { recursive: true });
+
+  // FAFF-757: the create is now exclusive (claimRunDir), never the old silent
+  // `mkdirSync(runDir, { recursive: true })` — a same-second collision is detected and
+  // reacted to per mint path, rather than absorbed into a shared, corrupted ledger.
+  const runsParent = path.join(root, ".faff", "runs");
+  fs.mkdirSync(runsParent, { recursive: true }); // idempotent; parent only, never the leaf
+
+  // FAFF-757: a supplied --id is already validated by cmdLightsOut (isSafeRunId, before
+  // preflight) — mintLightsOut only claims it. supplied:true never re-mints on collision.
+  const suppliedId = get("--id");
+  let runId, runDir;
+  if (suppliedId != null) {
+    try {
+      runDir = claimRunDir(runsParent, suppliedId, { supplied: true });
+      runId = suppliedId;
+    } catch (e) {
+      if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", error: e.message }) + "\n");
+      else process.stderr.write(e.message + "\n");
+      return 2;
+    }
+  } else {
+    const baseId = `run-${stamp}-lights-out`; // byte-identical to today's id absent a collision
+    runDir = claimRunDir(runsParent, baseId, { supplied: false });
+    runId = path.basename(runDir);
+  }
 
   // FAFF-427: best-effort per-model baseline snapshot, additive alongside the
   // envelope — the `budget.cost` map-pricing rule subtracts THIS from later
@@ -1804,4 +1886,4 @@ function lightsOutSelftest() {
 }
 
 
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, VETTED_RECIPES, checkWorktreeIsolation, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

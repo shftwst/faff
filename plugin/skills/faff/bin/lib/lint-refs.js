@@ -1,12 +1,14 @@
 // ===========================================================================
-// === region:factory — lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations / ===
+// === region:factory — lint-refs — ban external-artifact refs (ticket tags / ADR citations / ===
 // numbered ADR-file pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
-// Slice 1 enforces docs/guide/** (the public user-guide surface); the SKILL.md
-// surface is slice 2 (FAFF-239). docs/ outside docs/guide/ is allow-by-default
-// (ADRs / specs / contributor guidance legitimately cite provenance); ADR records
-// is exempt because `faff adr validate` REQUIRES its supersession back-refs. Within-
-// prose anchors (gateway -> Section, sibling skill names like faff/SKILL.md) never
-// match the patterns. This source file is not scanned, so its own refs are exempt.
+// Two enforced surfaces: docs/guide/** (the public user-guide surface, walked
+// recursively) and plugin/skills/*/SKILL.md (runtime instruction prose, the literal
+// per-skill manifest file — non-recursive, so contracts/ and examples/ under a skill
+// dir stay exempt). docs/ outside docs/guide/ is allow-by-default (ADRs / specs /
+// contributor guidance legitimately cite provenance); ADR records are exempt because
+// `faff adr validate` REQUIRES their supersession back-refs. Within-prose anchors
+// (gateway -> Section, sibling skill names like faff/SKILL.md) never match the
+// patterns. This source file is not scanned, so its own refs are exempt.
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -48,7 +50,24 @@ function markdownFilesUnder(dir) {
   return out;
 }
 
-const LINT_REFS_SURFACES = ["docs/guide"]; // slice 1; slice 2 (FAFF-239) adds plugin/skills/*/SKILL.md
+const LINT_REFS_SURFACES = ["docs/guide"]; // recursive dir surface
+
+// The enforced skills surface: the literal plugin/skills/<dir>/SKILL.md manifest file
+// for each immediate child dir that has one — a NON-recursive enumeration, so it never
+// descends into a skill's contracts/ or examples/ (which legitimately cite refs).
+function skillManifestFiles(root) {
+  const base = path.join(root, "plugin", "skills");
+  if (!fs.existsSync(base)) return [];
+  const out = [];
+  for (const entry of fs.readdirSync(base).sort()) { // sorted → deterministic order
+    const candidate = path.join(base, entry, "SKILL.md");
+    if (fs.existsSync(candidate) && fs.lstatSync(candidate).isFile()) out.push(candidate);
+  }
+  return out;
+}
+
+// Human-readable name for the two enforced surfaces (per-violation FAIL lines are unchanged).
+const ENFORCED_SURFACES_LABEL = "docs/guide/ + plugin/skills/*/SKILL.md";
 
 function cmdLintRefs(args) {
   if (args.includes("--selftest")) return lintRefsSelftest();
@@ -56,23 +75,27 @@ function cmdLintRefs(args) {
   if (errors.length) return usageError(errors, "usage: faff lint-refs [--root DIR]");
   const root = values["--root"] || findRoot();
 
+  const scan = (file) => {
+    const lines = fs.readFileSync(file, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      for (const h of refsInLine(line)) {
+        violations.push({ file: path.relative(root, file), line: i + 1, match: h.match });
+      }
+    });
+  };
+
   const violations = [];
-  for (const surface of LINT_REFS_SURFACES) {
-    for (const file of markdownFilesUnder(path.join(root, surface))) {
-      const lines = fs.readFileSync(file, "utf8").split("\n");
-      lines.forEach((line, i) => {
-        for (const h of refsInLine(line)) {
-          violations.push({ file: path.relative(root, file), line: i + 1, match: h.match });
-        }
-      });
-    }
+  for (const surface of LINT_REFS_SURFACES) {          // recursive dir walk (docs/guide/)
+    for (const file of markdownFilesUnder(path.join(root, surface))) scan(file);
   }
+  for (const file of skillManifestFiles(root)) scan(file); // skills surface (*/SKILL.md)
+
   if (violations.length) {
     for (const v of violations) console.log(`FAIL  ${v.file}:${v.line} ✗ ${v.match}`);
-    process.stderr.write(`faff lint-refs: ${violations.length} external-artifact ref(s) in enforced prose (docs/guide/) — inline the rule, drop the ref\n`);
+    process.stderr.write(`faff lint-refs: ${violations.length} external-artifact ref(s) in enforced prose (${ENFORCED_SURFACES_LABEL}) — inline the rule, drop the ref\n`);
     return 1;
   }
-  console.log("PASS  no external-artifact refs in enforced prose (docs/guide/)");
+  console.log(`PASS  no external-artifact refs in enforced prose (${ENFORCED_SURFACES_LABEL})`);
   return 0;
 }
 
@@ -92,6 +115,7 @@ function lintRefsSelftest() {
     ["the faff adr command operates on records/adr/", 0, "bare records/adr dir mention"],
     ["delegated to faffter-dark-nlspec", 0, "slot skill name (no number)"],
     ["build the faff-238-foo branch", 0, "lowercase branch name is not a cite"],
+    ["the faffter-dark-nlspec slot still cites FAFF-123", 1, "skills-style prose: slot-skill anchor unflagged, embedded ticket flagged"],
     ["plain prose with no refs at all", 0, "clean line"],
   ];
   let failed = 0;
@@ -105,4 +129,4 @@ function lintRefsSelftest() {
 }
 
 
-module.exports = { LINT_REFS_SURFACES, REF_PATTERNS, cmdLintRefs, lintRefsSelftest, markdownFilesUnder, refsInLine };
+module.exports = { LINT_REFS_SURFACES, REF_PATTERNS, cmdLintRefs, lintRefsSelftest, markdownFilesUnder, skillManifestFiles, refsInLine };

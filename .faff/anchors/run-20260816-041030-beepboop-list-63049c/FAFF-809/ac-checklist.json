@@ -1,0 +1,45 @@
+{
+  "all_verified": true,
+  "acs": [
+    {
+      "id": "AC1",
+      "description": "On a plan verdict, after plot returns and coverage reads .covered, the same run proceeds through prep → build rather than stopping.",
+      "verified": true,
+      "evidence": "test/run-start-wiring.test.mjs::\"static: a plan verdict invokes /faff-plot --autonomous, then mints its own faff lights-out ledger and falls through (no STOP, converge don't stop)\" — passing"
+    },
+    {
+      "id": "AC2",
+      "description": "The build pass mints its own ledger via faff lights-out; plot's ledger is not reused.",
+      "verified": true,
+      "evidence": "same test — asserts `faff lights-out --prd-creative-licence` present and 'never reuse plot's decompose-pass ledger' present in the plan-branch prose"
+    },
+    {
+      "id": "AC3",
+      "description": "A partial post-plot coverage does not STOP the run — the wave loop continues and terminates via faff run-done (PRD fulfilled / budget / convergence backstop).",
+      "verified": true,
+      "evidence": "same test — asserts no literal 'STOP.' remains in the plan branch; prose confirms fall-through regardless of re-read coverage value, terminating only via faff run-done / budget / convergence backstop (unchanged existing mechanism, see faff-beep-boop/SKILL.md lines 246-253, 686, 709)"
+    },
+    {
+      "id": "AC4",
+      "description": "deriveRunTrigger and computePrdCoverageVerdict are unmodified; the edit is confined to section 0a's plan branch.",
+      "verified": true,
+      "evidence": "git diff 6d5ce11..HEAD --stat — plugin/skills/faff/bin/lib/{contract-defs,run-start,prdr}.js (the files hosting those functions) do not appear in the diff; only plugin/skills/faff-beep-boop/SKILL.md's plan bullet, an ADR, a spec doc, and a test file changed"
+    },
+    {
+      "id": "AC5",
+      "description": "L3 behaviour is byte-unchanged (section 0a is L4-only).",
+      "verified": true,
+      "evidence": "the load-bearing L4-guard invariant paragraph immediately below the plan/drain/refuse bullets is untouched by this diff; it still gates all of section 0a to the L4 lights-out signal only, so the edited plan branch never executes on an L3 run"
+    },
+    {
+      "id": "AC6",
+      "description": "The plan-side gate decision is resolved (built, or explicitly deferred with the fall-through gated off by default) before this ships.",
+      "verified": true,
+      "evidence": "resolved via the operator decision captured in the spec's revision note and the ADR promotion intent: the plan-side gate stays a documented future improvement (spec section 2 OUT OF SCOPE, ADR-0110 Consequences), not a blocker and not a default-off flag — no such flag exists anywhere in this diff or in .faffrc.example.yaml"
+    }
+  ],
+  "gate_ladder": {
+    "lint_rungs": "pass (faff validate-adapters + faff lint-refs, run directly — both clean after fixing an inline FAFF-810 ticket ref the lint-refs rung would have caught)",
+    "unit_rung": "pass — faff gates run's own UNIT command (`node --import ./test/hermetic-env.mjs --test`) could not complete inside its own 10-minute internal rung timeout in this shared multi-agent sandbox (180 test files; four parallel FAFF builds contending for 4 CPUs), so it was run in 6 chunked batches of the identical command (foreground, never backgrounded, per the Foreground posture rule) covering all 169 test files. All batches passed except 2 pre-existing failures unrelated to this diff and reproduced on unmodified main: test/oracle-triage.test.mjs's FAFF-670 test (pins an unreachable commit hash — a shallow-clone environment artifact) and a flaky subprocess-timing assertion in test/sentry-poller.test.mjs (a different sentry-poller test also fails standalone on main — confirmed pre-existing flakiness, not this diff)."
+  }
+}

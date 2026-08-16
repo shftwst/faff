@@ -19,6 +19,7 @@
 // same way seed-repo neutralises git author/committer dates.
 
 import { test } from "node:test";
+import assert from "node:assert/strict";
 
 import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
@@ -31,6 +32,7 @@ import {
   expectCliResult,
   expectSeamOrder,
 } from "./helpers/decision-assert.mjs";
+import { addParkRecord, renderParksBlock } from "../plugin/skills/faff/bin/lib/park-history.js";
 
 // The fixed window end every case drives the seam against. All park timestamps below
 // are positioned relative to this instant, never relative to wall-clock now.
@@ -179,4 +181,50 @@ test("MIXED — 3 parks across 3 different classes: the real seam does NOT flag 
 
   expectCliResult(rec, "park-history", { exit: 0, json: { repeat_parked: [] } });
   expectNoBucket(rec, "repeat-parked");
+});
+
+// FAFF-779 — the shared Park-protocol WRITER (`addParkRecord` + `renderParksBlock`,
+// park-history.js) is the same writer a failed `needs-decision-first` resolve-attempt now
+// uses for `punt-not-closed`. This case builds its three records for a "gap" park through
+// that exact writer — not the hand-authored `parkRun()` fixture helper the cases above use
+// — and drives them through the real `faff park-history` seam, proving the writer is
+// SHARED across root-cause classes rather than special-cased for Punts (spec: "include one
+// gap or cycle case proving the writer is shared rather than Punt-special-cased").
+test("SHARED WRITER — 3 shared-protocol `gap` records built via addParkRecord/renderParksBlock flag repeat_parked, not Punt-special-cased", (t) => {
+  let accumulator = [];
+  accumulator = addParkRecord(accumulator, { issue_id: "ISS-SHARED", root_cause_class: "gap", timestamp: "2026-06-01T09:00:00Z" });
+  accumulator = addParkRecord(accumulator, { issue_id: "ISS-SHARED", root_cause_class: "gap", timestamp: "2026-06-08T09:00:00Z" });
+  accumulator = addParkRecord(accumulator, { issue_id: "ISS-SHARED", root_cause_class: "gap", timestamp: "2026-06-15T09:00:00Z" });
+  // A backstop reconciling the same completed transition a second time must not inflate
+  // the count — the exact "reconciled twice" guarantee the shared writer provides.
+  accumulator = addParkRecord(accumulator, { issue_id: "ISS-SHARED", root_cause_class: "gap", timestamp: "2026-06-15T09:00:00Z" });
+  assert.equal(accumulator.length, 3, "the duplicate reconciliation did not append a 4th record");
+
+  const tracker = trackerWith("ISS-SHARED");
+  const repo = seedRepo({
+    commits: [{ message: "init", files: { "README.md": "x" } }],
+    runs: [
+      { runId: "2026-06-16-beep-boop-00-00-00", summary: `# run\n${renderParksBlock(accumulator)}\n` },
+    ],
+  });
+  t.after(() => repo.teardown());
+
+  const rec = runSkill({
+    skill: "faff-tidy",
+    tracker,
+    repo,
+    driver: scriptedDriver([
+      { cli: ["park-history", "--issue", "ISS-SHARED", "--now", FIXED_NOW] }, // REAL -> repeat_parked:["ISS-SHARED"]
+      { verdict: { issue: "ISS-SHARED", token: "repeat-parked", source: "faff park-history" } },
+      { bucket: { name: "repeat-parked", issues: ["ISS-SHARED"] } },
+      { mutate: { op: "setStatus", issue: "ISS-SHARED", args: { status: "Backlog" } } },
+      { mutate: { op: "addLabel", issue: "ISS-SHARED", args: { label: "faff-repeat-parked" } } },
+      { render: { surface: "tidy-report" } },
+    ]),
+  });
+
+  expectCliResult(rec, "park-history", { exit: 0, json: { repeat_parked: ["ISS-SHARED"] } });
+  expectBucket(rec, "repeat-parked", ["ISS-SHARED"]);
+  expectMutation(rec, { op: "setStatus", issue: "ISS-SHARED", args: { status: "Backlog" } });
+  expectMutation(rec, { op: "addLabel", issue: "ISS-SHARED", args: { label: "faff-repeat-parked" } });
 });

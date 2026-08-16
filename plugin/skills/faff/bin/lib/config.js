@@ -1488,16 +1488,21 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   const mergedDoc = overlayDoc ? deepMergeConfig(baseDoc || {}, overlayDoc) : (baseDoc || {});
   findings.push(...backendsConfigCheckFindings(mergedDoc));
 
-  // Check 7 (FAFF-753): automation_default: opt-out is INERT on a tracker-bound repo —
-  // it opens the unlabelled surface only in git-only mode. Warn when a tracker is
-  // pinned AND opt-out is set, so the ignored knob is surfaced. Read the pin inline
-  // (no require("./tracker") — config.js is on tracker.js's require path) and replicate
-  // classifyTracker's trim/blank normalisation so this linter and `faff tracker probe`
-  // never disagree: a whitespace-only pin is unpinned, so no warn.
+  // Check 7 (FAFF-753/FAFF-808): automation_default: opt-out is INERT on a tracker-bound
+  // repo — it opens the unlabelled surface only in git-only mode. Warn when a tracker is
+  // pinned (a real connector name) AND opt-out is set, so the ignored knob is surfaced.
+  // A git-only pin (the reserved `none`/`git-only` sentinel, FAFF-808) is NOT a connector
+  // pin — it's the symmetric assertion the repo has no tracker, so opt-out is legitimately
+  // honoured there and must not warn. Read the pin inline (no require("./tracker") —
+  // config.js is on tracker.js's require path) and replicate classifyTracker's
+  // trim/blank/sentinel normalisation so this linter and `faff tracker probe` never
+  // disagree: a whitespace-only pin is unpinned, and a git-only sentinel is not "pinned".
   const pinRaw = dig(mergedDoc, "tracking.tracker");
   // Exact parity with classifyTracker (tracker.js): null/undefined/blank-after-trim ⇒ unpinned;
+  // a reserved sentinel (none/git-only, case-insensitive, trimmed) ⇒ git-only, not pinned;
   // otherwise coerce via String().trim() (a non-string pin is classified the same way there).
-  const pinned = pinRaw !== null && pinRaw !== undefined && String(pinRaw).trim() !== "";
+  const pinTrimmed = pinRaw === null || pinRaw === undefined ? "" : String(pinRaw).trim();
+  const pinned = pinTrimmed !== "" && !["none", "git-only"].includes(pinTrimmed.toLowerCase());
   const autoDefault = dig(mergedDoc, "automation_default");
   if (pinned && autoDefault === "opt-out") {
     findings.push({ severity: "warn", surface: "automation_default", message: "`automation_default: opt-out` is ignored on a tracker-bound repo — it applies only in git-only mode; the two faff-* labels are the control surface here." });
@@ -1768,6 +1773,36 @@ function configCheckSelftest() {
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
     check("FAFF-753: pinned tracker + opt-in → no opt-out warn",
+      !r.findings.some((f) => f.surface === "automation_default"));
+  }
+  {
+    // FAFF-808: git-only pin (canonical `none`) + opt-out → no opt-out warn (not a connector pin).
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "none" }, automation_default: "opt-out" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-808: git-only pin (none) + opt-out → no opt-out warn",
+      !r.findings.some((f) => f.surface === "automation_default"));
+  }
+  {
+    // FAFF-808: git-only pin (alias `git-only`) + opt-out → no opt-out warn.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "git-only" }, automation_default: "opt-out" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-808: git-only pin (alias) + opt-out → no opt-out warn",
+      !r.findings.some((f) => f.surface === "automation_default"));
+  }
+  {
+    // FAFF-808: git-only pin, mixed-case + whitespace (`  None  `) + opt-out → no opt-out warn.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "  None  " }, automation_default: "opt-out" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-808: git-only pin, mixed-case + whitespace → no opt-out warn",
       !r.findings.some((f) => f.surface === "automation_default"));
   }
 

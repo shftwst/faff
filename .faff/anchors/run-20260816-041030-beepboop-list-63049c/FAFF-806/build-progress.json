@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-806",
+  "build": {
+    "status": "complete",
+    "diff_hash": "bd6697ab13f7b58fdf975e5c6c6da78e543a1ea8f69c51f8706803290054713d",
+    "branch": "faff-806-review-callmjs-validatefindingsshapes-kind-discriminator",
+    "pushed_at": "2026-08-16T05:03:54.191Z"
+  },
+  "updated_at": "2026-08-16T05:03:54.191Z"
+}

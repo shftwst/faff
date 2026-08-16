@@ -22,7 +22,7 @@ jobs:
       - name: Validate slot-skill contracts
         run: node plugin/skills/faff/bin/faff validate-adapters
 
-      - name: Validate self-contained prose (no external-artifact refs in docs/guide)
+      - name: Validate self-contained prose (no external-artifact refs in docs/guide/ + plugin/skills/*/SKILL.md)
         run: node plugin/skills/faff/bin/faff lint-refs
 
       - name: Validate out-of-tree docs links (docs/guide, docs/concept paths resolve)
@@ -131,7 +131,10 @@ jobs:
           NODE_V8_COVERAGE: ${{ runner.temp }}/v8-coverage
         run: |
           mkdir -p "$NODE_V8_COVERAGE"
-          node --test
+          # FAFF-785: --import the hermetic-env preload so the suite is invariant to any ambient
+          # FAFF_*/CLAUDE_* the runner carries (the self-hosting-checkout non-hermeticity fix). A
+          # no-op on clean CI; FAFF_REQUIRE_DOCKER is EXEMPT so the FAFF-274 fail-loud guard holds.
+          node --import ./test/hermetic-env.mjs --test
 
       - name: Publish CLI coverage number (advisory — never gates — FAFF-581)
         if: always()
@@ -181,7 +184,7 @@ jobs:
 
           unset FAFF_REQUIRE_DOCKER
           set +e
-          node --test "${matched[@]}" | tee /tmp/impure-macos.log
+          node --import ./test/hermetic-env.mjs --test "${matched[@]}" | tee /tmp/impure-macos.log
           test_status=${PIPESTATUS[0]}
           set -e
 
@@ -253,4 +256,4 @@ jobs:
       - name: Run env + holdout integration suites against the rootless engine
         env:
           FAFF_REQUIRE_DOCKER: "1"
-        run: node --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs
+        run: node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs

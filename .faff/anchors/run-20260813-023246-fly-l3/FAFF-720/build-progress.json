@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-720",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9d89239a3aef7ab95e75d8a1cb68a6bfba3ccf23ac363cc7f9f4636b413b6c23",
+    "branch": "faff-720-tamper-evident-audit-stops-at-the-pr-boundary-should-a-run",
+    "pushed_at": "2026-08-13T02:55:22.936Z"
+  },
+  "updated_at": "2026-08-13T02:55:22.936Z"
+}

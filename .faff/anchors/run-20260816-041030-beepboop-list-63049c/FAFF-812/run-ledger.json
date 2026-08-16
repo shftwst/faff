@@ -1,0 +1,71 @@
+{
+  "level": "L3",
+  "run_id": "run-20260816-041030-beepboop-list-63049c",
+  "admitted": [
+    "FAFF-809",
+    "FAFF-814",
+    "FAFF-811",
+    "FAFF-810",
+    "FAFF-812",
+    "FAFF-808",
+    "FAFF-806"
+  ],
+  "outcomes": {
+    "FAFF-809": "shipped",
+    "FAFF-808": "shipped",
+    "FAFF-806": "shipped",
+    "FAFF-814": "shipped",
+    "FAFF-811": "shipped"
+  },
+  "outcome_details": {
+    "FAFF-809": { "pr": 669, "merge_sha": "e63cd8af351f9e0f399eac629c0af943374b10ae", "review": "pass", "adr": "0110 authored+accepted", "post_merge": "verified-fail (pre-existing/flaky, not reverted)" },
+    "FAFF-808": { "pr": 670, "merge_sha": "0649bfc3de3f2241d8c0cb554d338f0afa82b8d5", "review": "pass", "post_merge": "verified-fail (pre-existing/flaky, not reverted)" },
+    "FAFF-806": { "pr": 668, "merge_sha": "0104d1500063235b2ebec71a4ae95248da052b08", "review": "pass", "post_merge": "verified-fail (pre-existing/flaky, not reverted)" },
+    "FAFF-814": { "pr": 671, "merge_sha": "2a1eaaa476030826d3ce287c62e0b44e89b29eb2", "review": "pass", "post_merge": "verified-fail (pre-existing/flaky, not reverted)" },
+    "FAFF-811": { "pr": 672, "merge_sha": "7fae14724ef69d64613b2c14ff8467684c7807f9", "review": "pass", "post_merge": "verified-fail (pre-existing/flaky, not reverted)" }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [
+    { "issue": "FAFF-809", "pr": 669, "merge_sha": "941708c89cf9da3548735ad83b020d252239df16", "command": "node --import ./test/hermetic-env.mjs --test" },
+    { "issue": "FAFF-808", "pr": 670, "merge_sha": "ffb922212d2cbad355dd3636c2aa4f4995aef78b", "command": "node --import ./test/hermetic-env.mjs --test" },
+    { "issue": "FAFF-806", "pr": 668, "merge_sha": "35c5a3850fd60b2e66da8d6dd28153196c7ac1a6", "command": "node --import ./test/hermetic-env.mjs --test" }
+  ],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "tokens_at_start": 13487376,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "842691b1-feae-42fd-9d8d-1cc250d9a3e8",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 112,
+        "output": 86800,
+        "cache_write": 907153,
+        "cache_read": 12493311
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786853645912,
+      "reset_epoch": 1786871645912,
+      "tokens_at_anchor": 1138260
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260816-041030-beepboop-list-63049c",
+    "started_at": "2026-08-16T04:10:30Z",
+    "last_heartbeat": "2026-08-16T04:10:30Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

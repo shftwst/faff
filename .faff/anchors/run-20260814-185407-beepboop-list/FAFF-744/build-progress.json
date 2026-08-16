@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-744",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e709a9262dc1ce5db16bc75fa326a07a99877fa154d526a14bc94538d06ecfe0",
+    "branch": "faff-744-bound-the-ssh-transport-network-wait-in-grafts-remote-base",
+    "pushed_at": "2026-08-14T19:22:18.928Z"
+  },
+  "updated_at": "2026-08-14T19:22:18.928Z"
+}

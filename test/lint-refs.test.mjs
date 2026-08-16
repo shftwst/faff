@@ -1,7 +1,9 @@
-// FAFF-238 — `faff lint-refs`: bans external-artifact refs (FAFF-NN ticket tags, ADR NNNN
-// citations, numbered records/adr pointers) in prose the reader executes or publicly consumes.
-// Slice 1 enforces docs/guide/**; docs/ outside docs/guide/ is allow-by-default; within-prose
-// anchors are never flagged. The real repo tree (ref-free guides) must pass clean.
+// `faff lint-refs`: bans external-artifact refs (FAFF-NN ticket tags, ADR NNNN citations,
+// numbered records/adr pointers) in prose the reader executes or publicly consumes. Two
+// enforced surfaces: docs/guide/** (recursive) and plugin/skills/*/SKILL.md (the literal
+// per-skill manifest, non-recursive — contracts/ and examples/ under a skill dir stay exempt).
+// docs/ outside docs/guide/ is allow-by-default; within-prose anchors are never flagged.
+// The real repo tree (both surfaces ref-free) must pass clean.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -86,7 +88,37 @@ test("does NOT scan docs/ outside docs/guide/ (allow-by-default)", () => {
   assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
-test("the real repo tree passes (guides are ref-free — green by construction)", () => {
+test("flags a ref in a plugin/skills/<skill>/SKILL.md, naming file:line", () => {
+  const r = runOnTree({
+    "plugin/skills/demo/SKILL.md": "# Demo\n\nsee FAFF-239 for rationale\n",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /FAIL\s+plugin\/skills\/demo\/SKILL\.md:3 ✗ FAFF-239/);
+});
+
+test("does NOT scan non-SKILL.md markdown under plugin/skills/ (the enumeration globs */SKILL.md, no recursion)", () => {
+  // A ref in a skill's contracts/README.md and examples/*.md must be ignored — only the
+  // literal per-skill SKILL.md is enforced. The clean SKILL.md keeps the surface non-empty.
+  const r = runOnTree({
+    "plugin/skills/demo/SKILL.md": "# Demo\n\nno refs here\n",
+    "plugin/skills/demo/contracts/README.md": "the contract shipped in FAFF-109\n",
+    "plugin/skills/demo/examples/spec.example.md": "per ADR 0013 and records/adr/0010-foo.md\n",
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+test("scans BOTH surfaces in one pass, accumulating into one violations list", () => {
+  const r = runOnTree({
+    "docs/guide/g.md": "see FAFF-1 here\n",
+    "plugin/skills/demo/SKILL.md": "# Demo\n\nand FAFF-2 here\n",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /docs\/guide\/g\.md:1 ✗ FAFF-1/);
+  assert.match(r.stdout, /plugin\/skills\/demo\/SKILL\.md:3 ✗ FAFF-2/);
+  assert.match(r.stderr, /plugin\/skills\/\*\/SKILL\.md/); // summary names both surfaces
+});
+
+test("the real repo tree passes (both enforced surfaces ref-free — the end-to-end sweep guard)", () => {
   const r = run(["--root", REPO]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
 });

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-796",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7c96b8c41f46fc845c58d9e09f05c570b2fbe73b072133dfc85dbab7987aee32",
+    "branch": "faff-796-build-the-git-only-run-level-tamper-evident-anchor-emitter",
+    "pushed_at": "2026-08-15T10:12:44.984Z"
+  },
+  "updated_at": "2026-08-15T10:12:44.984Z"
+}

@@ -23,6 +23,14 @@ tracking:
 
 That's the whole minimum. Everything else has a sensible default. (`/faff-onboard` writes this file for you on a first run — autodetecting what it can.) Copy `.faffrc.example.yaml` for the full list of knobs.
 
+### Linear + GitHub: PR-open automation
+
+This note is scoped to repositories using **Linear's GitHub integration**. Linear can auto-link every issue identifier it finds in a PR body and apply a team-level "PR opened → In Progress" rule to each one — including an issue the PR only *mentions* rather than targets. If you want faff's own explicit claim write (`/faff-graft` moving an issue to `In Progress`) to be the sole signal that an issue is claimed, disable that team/workspace automation rule in Linear.
+
+This is a manual, workspace-level trade-off: turning the rule off also removes the convenience for PRs opened by hand, not just faff-driven ones. Linear's merge/link behaviour (closing an issue on merge, showing linked PRs on the issue) is configured separately and does not need to change.
+
+faff renders every non-target issue citation in a PR body with a non-ASCII hyphen regardless of this setting — repository behaviour must not depend on an out-of-band workspace configuration a later operator could quietly flip back on.
+
 ## Record locations
 
 Specs, PRDs, PRDRs, ADRs, and spikes default to `docs/specs/`, `docs/prd/`, `docs/prdr/`, `docs/adr/`, and `docs/spikes/`. Repositories with another structure can override any location:

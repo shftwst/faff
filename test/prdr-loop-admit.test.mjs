@@ -145,7 +145,7 @@ test("the gate CLIs are unchanged — `faff prdr --selftest` still passes (FAFF-
 
 test("Step 5c prose documents the composed sequence and the park-reason vocabulary (FAFF-495 prompt-regression guard)", () => {
   const md = readFileSync(SKILL, "utf8");
-  assert.match(md, /### Step 5c — admit or park the loop-PRDR \(FAFF-495\)/, "Step 5c heading must exist");
+  assert.match(md, /### Step 5c — admit or park the loop-PRDR/, "Step 5c heading must exist");
   // Composes the existing gateway contract — no parallel admission path.
   assert.match(md, /no parallel admission path/i, "must state it introduces no parallel admission path");
   // The three gates are named and invoked in order.
@@ -157,4 +157,46 @@ test("Step 5c prose documents the composed sequence and the park-reason vocabula
     assert.ok(md.includes(reason), `Step 5c must document the park reason \`${reason}\``);
   }
   assert.match(md, /no PRDR is silently dropped/i, "the load-bearing no-silent-drop invariant must be stated");
+});
+
+// --- FAFF-815 e2e: a five-goal-covering P0 PRDR clears the gate, self-accepts, and coverage flips ---
+const D5J = '["g1","g2","g3","g4","g5"]';
+
+test("815 e2e: five-goal PRDR cites all five, covers all five, survived → admit → accept → coverage covered:true", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-815-it-"));
+  git(root, "init", "-q", "-b", "main");
+  git(root, "config", "user.email", "t@t.test");
+  git(root, "config", "user.name", "t");
+  mkdirSync(join(root, "docs", "prdr"), { recursive: true });
+  prdr(["new", "P0 shorten and redirect", "--container", "link-shortener", "--prd-goal", "g1,g2,g3,g4,g5",
+    "--provenance", "loop", "--status", "Proposed", "--root", root]);
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "seed five-goal loop-PRDR");
+  // yagni: Phase-1 admit, Phase-2 survived, DoD covers all five → admit, no over-scope.
+  const up = JSON.parse(prdr(["yagni", "--prd-goal", "g1,g2,g3,g4,g5", "--prd-goals", D5J, "--proposal", "admit",
+    "--serves-goal", "--within-scope", "--challenge", "survived", "--dod-covers", D5J, "--root", root], root).stdout);
+  assert.equal(up.admit, true);
+  assert.equal(up.over_scope, false);
+  const adm = JSON.parse(prdr(["admit", "--actor", "loop", "--supersedes-provenance", "none",
+    "--upper", JSON.stringify({ admit: up.admit, reason: up.reason }),
+    "--lower", JSON.stringify({ covered: true, uncovered_goals: [] }), "--root", root], root).stdout);
+  assert.equal(adm.disposition, "admit");
+  const acc = prdr(["accept", "1", "--actor", "loop", "--admit-verdict", JSON.stringify(adm), "--root", root], root);
+  assert.equal(acc.status, 0, `accept exited non-zero: ${acc.stderr}`);
+  // Coverage over the live set: the union of the accepted PRDR's five cited goals equals D → covered:true.
+  const cov = JSON.parse(prdr(["coverage", "--prd-goals", D5J, "--root", root], root).stdout);
+  assert.equal(cov.covered, true, "coverage must flip covered:true — the build stage has work, no dead-end");
+  assert.deepEqual(cov.uncovered_goals, []);
+});
+
+test("815 e2e: a residual under-citation (cites g1, covers all five) admits on a mis-attributed over-scope overturn", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-815-uc-"));
+  git(root, "init", "-q", "-b", "main");
+  git(root, "config", "user.email", "t@t.test");
+  git(root, "config", "user.name", "t");
+  mkdirSync(join(root, "docs", "prdr"), { recursive: true });
+  const up = JSON.parse(prdr(["yagni", "--prd-goal", "g1", "--prd-goals", D5J, "--proposal", "admit",
+    "--challenge", "overturned", "--challenge-ground", "over-scope", "--dod-covers", D5J, "--root", root], root).stdout);
+  assert.equal(up.admit, true, "the over-scope overturn is proven mis-attributed under-citation → admit");
+  assert.deepEqual([...up.cited_goals].sort(), ["g1", "g2", "g3", "g4", "g5"], "cited_goals echoes the widened set");
 });

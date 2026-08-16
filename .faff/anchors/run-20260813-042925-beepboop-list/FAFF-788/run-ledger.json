@@ -1,0 +1,52 @@
+{
+  "run_id": "run-20260813-042925-beepboop-list",
+  "level": "L3",
+  "mode": "explicit-list",
+  "admitted": ["FAFF-788"],
+  "outcomes": { "FAFF-784": "routed-out", "FAFF-785": "routed-out" },
+  "outcome_details": {
+    "FAFF-784": { "verdict": "needs-decision-first", "reason": "medium-confidence spec is a deliberate human-in-loop gate on security-critical merge-gate custody work; all decisions closed, no open Punt, resolve-attempt would park a security choice" },
+    "FAFF-785": { "verdict": "needs-decision-first", "reason": "adversarial spec-review non-converged (round-3 churn, loop cap) → needs-human; 2 human-tiebreaker points unresolved; status Backlog, not promoted" }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "tokens_at_start": 10737106,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "32d0d996-3177-424b-bbb1-376f32bb2e85",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 100,
+        "output": 130118,
+        "cache_write": 791700,
+        "cache_read": 9815188
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786595937537,
+      "reset_epoch": 1786613937537,
+      "tokens_at_anchor": 2801267
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 0,
+    "session_id": "run-20260813-042925-beepboop-list",
+    "started_at": "2026-08-13T04:29:25Z",
+    "last_heartbeat": "2026-08-13T04:29:25Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

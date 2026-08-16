@@ -32,6 +32,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
+const { spawnSync } = require("node:child_process");
 const EVENTS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--tokens": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
@@ -51,6 +52,7 @@ const EVENTS_SURFACE = {
     read: { required_flags: ["--run"] },
     verify: { required_flags: ["--run-dir"] },
     anchor: { required_flags: ["--run-dir", "--issue", "--dest"] },
+    "anchor-run": { required_flags: ["--run-dir"] },
   },
 };
 const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
@@ -61,7 +63,7 @@ const { withFileLock } = require("./fs-lock");
 // governance edge (redact.js requires only budget.js + shared-infra), legal under
 // ADR-0042. See appendEventRecord below for the wiring.
 const { resolveKnownSecretValues, redactKnownSecrets, redactSelftest } = require("./redact");
-const { findRoot, resolveRunDir } = require("./shared-infra");
+const { ENTRYPOINT, findRoot, resolveRunDir } = require("./shared-infra");
 
 // FAFF-362: EVENT_PHASES / EVENT_TYPES / EVENT_ISSUE_SCOPED / EVENT_LEDGER_OUTCOMES
 // stay exported (contain.js — factory — reuses EVENT_PHASES directly) but are now
@@ -785,7 +787,7 @@ function cmdEvents(args) {
   // FAFF-576: fail-closed flag gate — unknown flag / missing value exits 2 before any sub-verb work
   // (the append/read bodies below then read validated flags via the existing manual scan).
   const gate = parseArgs(args, EVENTS_SPEC);
-  if (gate.errors.length) return usageError(gate.errors, "usage: faff events <append|validate|read|verify|anchor> [--run ID] [--file F] [--ts T] [--tokens] [--session-id ID] [--type T] [--issue ID] [--run-dir DIR] [--legacy-policy pass|warn|fail] [--dest DIR] [--json] [--root DIR]");
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff events <append|validate|read|verify|anchor|anchor-run> [--run ID] [--file F] [--ts T] [--tokens] [--session-id ID] [--type T] [--issue ID] [--run-dir DIR] [--legacy-policy pass|warn|fail] [--dest DIR] [--json] [--root DIR]");
   let root = null, run = null, ts = null, file = null, tokensFlag = false, sessionIdFlag = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
@@ -1052,54 +1054,188 @@ function cmdEvents(args) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issueArg) || issueArg.includes("..")) {
       process.stderr.write(`faff events anchor: --issue ${JSON.stringify(issueArg)} is not a valid issue id\n`); return 2;
     }
-    let eventsBuf;
-    try { eventsBuf = fs.readFileSync(path.join(dirArg, "events.jsonl")); }
-    catch { process.stderr.write(`faff events anchor: no events.jsonl in ${dirArg} — nothing to anchor\n`); return 3; }
-    try { fs.mkdirSync(destArg, { recursive: true }); }
-    catch (e) { process.stderr.write(`faff events anchor: cannot create dest ${destArg}: ${e.message}\n`); return 2; }
-    fs.writeFileSync(path.join(destArg, "events.jsonl"), eventsBuf); // verbatim byte-copy
-    const srcLedger = path.join(dirArg, "run-ledger.json");
-    if (fs.existsSync(srcLedger)) fs.copyFileSync(srcLedger, path.join(destArg, "run-ledger.json"));
-    // FAFF-621: when a declared-effects.jsonl is present, byte-copy it too and write a
-    // CLI-computed effects-chain-head.json witness (computeChainHead is ledger-agnostic — it
-    // takes a buffer). Absent effects ledger → nothing copied, no effects witness (so the
-    // gate's requireWitness fail-closed never fires — witness-absent applies only when the
-    // ledger is present). The head hash is computed here, never accepted from a caller.
-    const srcEffects = path.join(dirArg, "declared-effects.jsonl");
-    let effectsAnchored = false;
-    if (fs.existsSync(srcEffects)) {
-      const effectsBuf = fs.readFileSync(srcEffects);
-      fs.writeFileSync(path.join(destArg, "declared-effects.jsonl"), effectsBuf); // verbatim byte-copy
-      const effHead = computeChainHead(effectsBuf, path.basename(dirArg), issueArg);
-      fs.writeFileSync(path.join(destArg, "effects-chain-head.json"), JSON.stringify(effHead, null, 2) + "\n");
-      effectsAnchored = true;
+    const result = mintIssueAnchor(dirArg, issueArg, destArg);
+    if (!result.ok) {
+      process.stderr.write(`faff events anchor: ${result.message}\n`);
+      return result.code === "no-events" ? 3 : 2;
     }
-    // FAFF-623: also carry the merge-floor evidence `evaluateMergeFloorLeg` (governance-check.js)
-    // needs — `ac-checklist.json` + `review-verdict.json` always, `holdout.json` +
-    // `build-progress.json` at L4 (the latter required ALONGSIDE holdout.json, not optional to
-    // it — `readHoldout` compares the holdout verdict's timestamp against build-progress.json's
-    // checkpoint to reject a stale holdout; without it the freshness check has nothing to compare
-    // against and reports "blocked" even for a genuinely valid holdout). Each file is independently
-    // best-effort-present: a run dir that hasn't reached Step 9 yet legitimately has no
-    // review-verdict.json, and that's a normal merge_floor "not yet passed" reason, not an
-    // anchor-command error — never required, unlike events.jsonl above.
-    const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "holdout.json", "build-progress.json"];
-    const issueDir = path.join(dirArg, issueArg);
-    const copiedFloorFiles = [];
-    for (const f of optionalFloorFiles) {
-      const src = path.join(issueDir, f);
-      if (fs.existsSync(src)) { fs.copyFileSync(src, path.join(destArg, f)); copiedFloorFiles.push(f); }
-    }
-    const head = computeChainHead(eventsBuf, path.basename(dirArg), issueArg);
-    fs.writeFileSync(path.join(destArg, "chain-head.json"), JSON.stringify(head, null, 2) + "\n");
+    const { head, copiedFloorFiles, effectsAnchored } = result;
     const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
     const effectsNote = effectsAnchored ? " + declared-effects.jsonl, effects-chain-head.json" : "";
     console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}${effectsNote}`);
     return 0;
   }
 
-  process.stderr.write("faff events: expected one of append | validate | read | verify | anchor (or --selftest)\n");
+  // FAFF-796: `anchor-run` — the git-only run-level sibling of `anchor` (per ADR 0109). Mints
+  // ONE per-issue anchor subdir per issue the run touched (reusing mintIssueAnchor — the SAME
+  // core `anchor` uses, never a forked byte-copy/witness), copies the run-level summary.md
+  // best-effort, then self-verifies every minted subdir via evaluateAnchorDir before returning —
+  // a broken anchor is never handed to the orchestrator to commit. Precondition: the caller
+  // (beep-boop's orchestrator-exit) has already written owner.status:"done" + stop_reason to
+  // run-ledger.json AND appended the mandatory post-edit `ledger-write` event, so the ledger
+  // close is already the chain head — asserted below, never assumed.
+  if (cmd === "anchor-run") {
+    let dirArg = null, destArg = null;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--run-dir") dirArg = args[i + 1];
+      else if (args[i] === "--dest") destArg = args[i + 1];
+    }
+    const reqErr = requireFlags({ "--run-dir": dirArg }, EVENTS_SURFACE.subcommands["anchor-run"], "events", "anchor-run");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
+    if (!fs.existsSync(dirArg) || !fs.statSync(dirArg).isDirectory()) {
+      process.stderr.write(`faff events anchor-run: --run-dir is not a directory: ${dirArg}\n`); return 2;
+    }
+    const dest = destArg || path.join(root, ".faff", "anchors", path.basename(dirArg));
+
+    let eventsBuf;
+    try { eventsBuf = fs.readFileSync(path.join(dirArg, "events.jsonl")); }
+    catch { process.stderr.write(`faff events anchor-run: no events.jsonl in ${dirArg} — nothing to anchor\n`); return 3; }
+
+    // Precondition (spec §4 step 2): the on-disk run-ledger.json must be the recorded head of
+    // the chain — i.e. a `ledger-write` event is present AND its recorded hash matches. Reuses
+    // eventsLedgerFold's hash-match core (never a forked comparison); the PRESENCE assertion on
+    // top is anchor-run's own — a run dir with no ledger-write yet has not reached the run-close
+    // choke-point at all, which eventsLedgerFold alone (used generically by `verify`, where an
+    // absent ledger-write is legitimately "not applicable yet") would silently let through.
+    const { lines: eventLines } = splitPhysicalLines(eventsBuf);
+    const records = [];
+    for (const l of eventLines) { try { records.push(JSON.parse(l.toString("utf8"))); } catch { /* malformed line — walkPhysicalChain (via verify/self-verify below) is what flags this, not this presence check */ } }
+    if (!records.some((r) => r && r.type === "ledger-write")) {
+      process.stderr.write(`faff events anchor-run: precondition failed — no ledger-write event in ${dirArg}/events.jsonl; the run-close edit must be chained before anchor-run runs\n`);
+      return 1;
+    }
+    const fold = eventsLedgerFold(dirArg, records, {});
+    if (fold) {
+      process.stderr.write(`faff events anchor-run: precondition failed — ${fold.detail}\n`);
+      return 1;
+    }
+
+    let ledgerObj;
+    try { ledgerObj = JSON.parse(fs.readFileSync(path.join(dirArg, "run-ledger.json"), "utf8")); }
+    catch (e) { process.stderr.write(`faff events anchor-run: run-ledger.json missing/unreadable in ${dirArg}: ${e.message}\n`); return 3; }
+    const admitted = Array.isArray(ledgerObj.admitted) ? ledgerObj.admitted : [];
+    const outcomeKeys = (ledgerObj.outcomes && typeof ledgerObj.outcomes === "object" && !Array.isArray(ledgerObj.outcomes)) ? Object.keys(ledgerObj.outcomes) : [];
+    const issues = Array.from(new Set([...admitted, ...outcomeKeys])).sort();
+
+    try { fs.mkdirSync(dest, { recursive: true }); }
+    catch (e) { process.stderr.write(`faff events anchor-run: cannot create dest ${dest}: ${e.message}\n`); return 2; }
+
+    // Adversarial review (FAFF-796): a mint failure partway through this loop must never leave
+    // an orphaned PARTIAL set on disk — a bare `mkdirSync(dest, {recursive:true})` on the next
+    // re-run is a no-op over an existing dir, so a silent re-run would overwrite (and so mask)
+    // the prior partial failure rather than surfacing it. Wipe the whole `dest` tree before
+    // returning non-zero, so every failure path leaves either nothing or a fully self-verified
+    // set — never an ambiguous in-between the caller could mistake for complete.
+    const mintedDirs = [];
+    for (const issue of issues) {
+      const destSub = path.join(dest, issue);
+      const r = mintIssueAnchor(dirArg, issue, destSub);
+      if (!r.ok) {
+        process.stderr.write(`faff events anchor-run: mint failed for ${issue}: ${r.message}\n`);
+        try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup — the mint failure is the reported cause either way */ }
+        return r.code === "no-events" ? 3 : 2;
+      }
+      mintedDirs.push(destSub);
+    }
+
+    // Best-effort: the run-level summary.md, if present. Not leg-verified (too shallow for
+    // deriveAnchorDirs's 3-segment floor — it lives at <dest>/summary.md, not <dest>/<issue>/…).
+    const srcSummary = path.join(dirArg, "summary.md");
+    let summaryCopied = false;
+    if (fs.existsSync(srcSummary)) {
+      try { fs.copyFileSync(srcSummary, path.join(dest, "summary.md")); summaryCopied = true; }
+      catch (e) { process.stderr.write(`faff events anchor-run: warning — could not copy summary.md: ${e.message}\n`); }
+    }
+
+    // Self-verify every minted subdir before returning — a broken anchor must never reach the
+    // orchestrator's commit step. `governance-check` lives in the factory region (ADR 0042); this
+    // module is governance, and governance must never `require()` factory (`faff regions check`
+    // enforces the direction mechanically) — so self-verify goes through a SELF-SPAWN of the same
+    // CLI binary (the sentry.js precedent: a governance file reaching factory functionality via
+    // `spawnSync(process.execPath, [ENTRYPOINT, …])`, a process boundary, not a require edge, and
+    // so invisible to the lint by design) rather than an in-process require of the module.
+    //
+    // Adversarial review (FAFF-796): `governance-check`'s own `evaluateAnchorDir` overrides
+    // whatever `--level` is passed here whenever the anchored run-ledger.json itself carries a
+    // `level` field (FAFF-690) — true for every ledger this codebase writes — so `selfVerifyLevel`
+    // below is a residual FALLBACK ONLY, for a level-less/legacy ledger. Resolve it from the LIVE
+    // run's OWN ledger (`ledgerObj`, already parsed above) rather than hardcoding either floor:
+    // hardcoding "L3" risks under-verifying an L4 run's holdout leg on that residual path;
+    // hardcoding "L4" risks over-verifying a legitimate L1–L3 shipped issue (requiring a holdout it
+    // was never meant to produce). The live ledger's own level is the correct answer either way; an
+    // invalid value is rejected by `governance-check`'s own `--level` flag validation (exit 2),
+    // which this treats as a self-verify failure like any other non-zero exit.
+    const selfVerifyLevel = typeof ledgerObj.level === "string" && ledgerObj.level ? ledgerObj.level : "L3";
+    for (const destSub of mintedDirs) {
+      const r = spawnSync(process.execPath, [ENTRYPOINT, "governance-check", "--anchor-dir", destSub, "--legacy-policy", "pass", "--level", selfVerifyLevel], { encoding: "utf8" });
+      if (r.status !== 0) {
+        process.stderr.write(`faff events anchor-run: self-verify failed for ${destSub} (governance-check exit ${r.status}):\n${r.stdout || ""}${r.stderr || ""}`);
+        try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
+        return 1;
+      }
+    }
+
+    console.log(`events anchor-run: ${dirArg} → ${dest} (${mintedDirs.length} issue(s) minted + self-verified${summaryCopied ? ", summary.md" : ""})`);
+    return 0;
+  }
+
+  process.stderr.write("faff events: expected one of append | validate | read | verify | anchor | anchor-run (or --selftest)\n");
   return 2;
+}
+
+// FAFF-796: the shared per-issue anchor mint core — byte-copy events.jsonl + run-ledger.json
+// (+ optional declared-effects.jsonl/witness and merge-floor floor files) from runDir into
+// destDir, and write the CLI-computed chain-head.json witness. Extracted from `events anchor`'s
+// inner body (FAFF-568/623) so both `anchor` (per-PR, one issue) and `anchor-run` (git-only, one
+// call per issue in the run) call the SAME core — never a forked byte-copy or witness format
+// (FAFF-621's composition rule). Pure filesystem work; callers validate --run-dir/--issue shape
+// themselves (this function trusts its arguments — each call site keeps its own error text/exit
+// codes). Returns `{ ok: true, head, copiedFloorFiles, effectsAnchored }` on success, or
+// `{ ok: false, code, message }` — `code: "no-events"` mirrors the original "nothing to anchor"
+// case (exit 3 at the `anchor` call site), `code: "dest-mkdir"` mirrors the original
+// dest-creation failure (exit 2).
+function mintIssueAnchor(runDir, issue, destDir) {
+  let eventsBuf;
+  try { eventsBuf = fs.readFileSync(path.join(runDir, "events.jsonl")); }
+  catch { return { ok: false, code: "no-events", message: `no events.jsonl in ${runDir} — nothing to anchor` }; }
+  try { fs.mkdirSync(destDir, { recursive: true }); }
+  catch (e) { return { ok: false, code: "dest-mkdir", message: `cannot create dest ${destDir}: ${e.message}` }; }
+  fs.writeFileSync(path.join(destDir, "events.jsonl"), eventsBuf); // verbatim byte-copy
+  const srcLedger = path.join(runDir, "run-ledger.json");
+  if (fs.existsSync(srcLedger)) fs.copyFileSync(srcLedger, path.join(destDir, "run-ledger.json"));
+  // FAFF-621: when a declared-effects.jsonl is present, byte-copy it too and write a
+  // CLI-computed effects-chain-head.json witness (computeChainHead is ledger-agnostic — it
+  // takes a buffer). Absent effects ledger → nothing copied, no effects witness (so the
+  // gate's requireWitness fail-closed never fires — witness-absent applies only when the
+  // ledger is present). The head hash is computed here, never accepted from a caller.
+  const srcEffects = path.join(runDir, "declared-effects.jsonl");
+  let effectsAnchored = false;
+  if (fs.existsSync(srcEffects)) {
+    const effectsBuf = fs.readFileSync(srcEffects);
+    fs.writeFileSync(path.join(destDir, "declared-effects.jsonl"), effectsBuf); // verbatim byte-copy
+    const effHead = computeChainHead(effectsBuf, path.basename(runDir), issue);
+    fs.writeFileSync(path.join(destDir, "effects-chain-head.json"), JSON.stringify(effHead, null, 2) + "\n");
+    effectsAnchored = true;
+  }
+  // FAFF-623: also carry the merge-floor evidence `evaluateMergeFloorLeg` (governance-check.js)
+  // needs — `ac-checklist.json` + `review-verdict.json` always, `holdout.json` +
+  // `build-progress.json` at L4 (the latter required ALONGSIDE holdout.json, not optional to
+  // it — `readHoldout` compares the holdout verdict's timestamp against build-progress.json's
+  // checkpoint to reject a stale holdout; without it the freshness check has nothing to compare
+  // against and reports "blocked" even for a genuinely valid holdout). Each file is independently
+  // best-effort-present: a run dir that hasn't reached Step 9 yet legitimately has no
+  // review-verdict.json, and that's a normal merge_floor "not yet passed" reason, not an
+  // anchor-command error — never required, unlike events.jsonl above.
+  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "holdout.json", "build-progress.json"];
+  const issueDir = path.join(runDir, issue);
+  const copiedFloorFiles = [];
+  for (const f of optionalFloorFiles) {
+    const src = path.join(issueDir, f);
+    if (fs.existsSync(src)) { fs.copyFileSync(src, path.join(destDir, f)); copiedFloorFiles.push(f); }
+  }
+  const head = computeChainHead(eventsBuf, path.basename(runDir), issue);
+  fs.writeFileSync(path.join(destDir, "chain-head.json"), JSON.stringify(head, null, 2) + "\n");
+  return { ok: true, head, copiedFloorFiles, effectsAnchored };
 }
 
 // In-memory self-test of the pure validator core (mirrors the `faff profile`/`fixtures` style).
@@ -1431,6 +1567,132 @@ function eventsSelftest() {
         fs.rmSync(dest3, { recursive: true, force: true });
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(dest, { recursive: true, force: true }); }
     }
+    // FAFF-796 — `anchor-run`: clean round-trip for a shipped issue, an all-parked run (no floor
+    // files → merge_floor n/a via evaluateAnchorDir → self-verify pass), broken-chain fails,
+    // un-chained close (no ledger-write) fails loud, empty-run case mints nothing but exits 0.
+    {
+      // Clean round-trip: two admitted issues, both parked, no floor files at all — the
+      // feature's primary case (a git-only run with nothing to ship still anchors cleanly).
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        const ledger = JSON.stringify({ run_id: "run-anchorrun-ok", admitted: ["FAFF-1", "FAFF-2"], outcomes: { "FAFF-1": "parked", "FAFF-2": "errored" }, owner: { status: "done" } }, null, 2) + "\n";
+        const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
+        buildChain(src, "run-anchorrun-ok", [
+          { phase: "run", type: "run-start" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
+        ], ledger);
+        fs.writeFileSync(path.join(src, "summary.md"), "# ok\n");
+        const dest = path.join(destRoot, "run-anchorrun-ok");
+        const rc = cmdEvents(["anchor-run", "--run-dir", src, "--dest", dest]);
+        vcheck("anchor-run: all-parked, clean close → exit 0 (self-verify passed, merge_floor n/a)", rc === 0);
+        vcheck("anchor-run: mints one subdir per admitted issue", fs.existsSync(path.join(dest, "FAFF-1", "chain-head.json")) && fs.existsSync(path.join(dest, "FAFF-2", "chain-head.json")));
+        vcheck("anchor-run: copies the run-level summary.md best-effort", fs.readFileSync(path.join(dest, "summary.md"), "utf8") === "# ok\n");
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // A shipped issue still requires its merge-floor evidence — the outcome-aware n/a branch
+      // never waves through a genuinely shipped issue on file absence.
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        const ledger = JSON.stringify({ run_id: "run-anchorrun-shipped", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { status: "done" } }, null, 2) + "\n";
+        const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
+        buildChain(src, "run-anchorrun-shipped", [
+          { phase: "run", type: "run-start" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
+        ], ledger);
+        const dest = path.join(destRoot, "run-anchorrun-shipped");
+        const noFloor = cmdEvents(["anchor-run", "--run-dir", src, "--dest", dest]);
+        vcheck("anchor-run: shipped issue with NO floor files → self-verify fails, non-zero exit", noFloor !== 0);
+
+        fs.mkdirSync(path.join(src, "FAFF-1"), { recursive: true });
+        fs.writeFileSync(path.join(src, "FAFF-1", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+        fs.writeFileSync(path.join(src, "FAFF-1", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+        const dest2 = path.join(destRoot, "run-anchorrun-shipped-2");
+        const withFloor = cmdEvents(["anchor-run", "--run-dir", src, "--dest", dest2]);
+        vcheck("anchor-run: shipped issue WITH floor files → exit 0", withFloor === 0);
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // Un-chained close: no ledger-write event at all → the precondition refuses (never
+      // witnesses over a close that hasn't joined the chain).
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        buildChain(src, "run-anchorrun-unchained", [{ phase: "run", type: "run-start" }],
+          JSON.stringify({ run_id: "run-anchorrun-unchained", admitted: [], outcomes: {} }, null, 2) + "\n");
+        const rc = cmdEvents(["anchor-run", "--run-dir", src, "--dest", path.join(destRoot, "x")]);
+        vcheck("anchor-run: no ledger-write event → precondition fails, non-zero exit", rc !== 0);
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // Broken chain (a post-hoc ledger rewrite the last ledger-write's recorded hash no longer
+      // matches) → the precondition's ledger-fold cross-check refuses.
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        const ledger = JSON.stringify({ run_id: "run-anchorrun-broken", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
+        buildChain(src, "run-anchorrun-broken", [
+          { phase: "run", type: "run-start" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
+        ], ledger);
+        fs.writeFileSync(path.join(src, "run-ledger.json"), ledger + " "); // silent post-hoc rewrite
+        const rc = cmdEvents(["anchor-run", "--run-dir", src, "--dest", path.join(destRoot, "x")]);
+        vcheck("anchor-run: ledger-fold mismatch (post-hoc rewrite) → precondition fails, non-zero exit", rc !== 0);
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // run-ledger.json genuinely absent (no ledger to fold against — eventsLedgerFold's own
+      // fs.existsSync(ledgerPath) guard degrades that case to "not applicable", so the explicit
+      // post-fold read is what fails this loud) → non-zero exit, never a fabricated witness.
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        buildChain(src, "run-anchorrun-noledger", [
+          { phase: "run", type: "run-start" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: "deadbeef" } },
+        ]); // no run-ledger.json written at all
+        const rc = cmdEvents(["anchor-run", "--run-dir", src, "--dest", path.join(destRoot, "x")]);
+        vcheck("anchor-run: run-ledger.json genuinely absent → non-zero exit (fail loud, never fabricated)", rc !== 0);
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // Malformed run-ledger.json (present, but not parseable JSON) → non-zero exit.
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        const badBytes = "{ not json";
+        buildChain(src, "run-anchorrun-badledger", [
+          { phase: "run", type: "run-start" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: sha256Hex(Buffer.from(badBytes, "utf8")) } },
+        ]);
+        fs.writeFileSync(path.join(src, "run-ledger.json"), badBytes);
+        const rc = cmdEvents(["anchor-run", "--run-dir", src, "--dest", path.join(destRoot, "x")]);
+        vcheck("anchor-run: malformed run-ledger.json → non-zero exit (fail loud)", rc !== 0);
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // Empty run (nothing admitted, no outcomes) → mints no issue subdirs but still exits 0.
+      const src = mkDir(), destRoot = mkDir();
+      try {
+        const ledger = JSON.stringify({ run_id: "run-anchorrun-empty", admitted: [], outcomes: {}, owner: { status: "done" } }, null, 2) + "\n";
+        const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
+        buildChain(src, "run-anchorrun-empty", [
+          { phase: "run", type: "run-start" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
+        ], ledger);
+        const dest = path.join(destRoot, "run-anchorrun-empty");
+        const rc = cmdEvents(["anchor-run", "--run-dir", src, "--dest", dest]);
+        vcheck("anchor-run: empty run (no admitted issues) → exit 0, no issue subdirs minted", rc === 0 && fs.readdirSync(dest).filter((f) => fs.statSync(path.join(dest, f)).isDirectory()).length === 0);
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    {
+      // --run-dir missing entirely → usage error (exit 2), and a directory that is not a
+      // valid --run-dir (no events.jsonl) → the "nothing to anchor" exit 3, mirroring `anchor`.
+      const missingFlag = cmdEvents(["anchor-run"]);
+      vcheck("anchor-run: missing --run-dir → exit 2 (usage)", missingFlag === 2);
+      const emptyDir = mkDir();
+      try {
+        const rc = cmdEvents(["anchor-run", "--run-dir", emptyDir, "--dest", path.join(emptyDir, "out")]);
+        vcheck("anchor-run: --run-dir with no events.jsonl → exit 3 (nothing to anchor)", rc === 3);
+      } finally { fs.rmSync(emptyDir, { recursive: true, force: true }); }
+    }
   }
 
   // FAFF-107: redact.js's pure-core assertions (collectKnownSecretValues /
@@ -1445,4 +1707,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

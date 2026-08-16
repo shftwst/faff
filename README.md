@@ -46,7 +46,14 @@ records what is enforced, what has been observed, and what remains unproven.
 ```
 
 SuperDomestique currently supports macOS and Linux with Node 20 or later.
-Native Windows is not supported; use WSL2.
+Native Windows is not supported; use WSL2. You also need `git`, which the
+marketplace install uses to clone the plugin. A tracker MCP server is optional:
+git-only mode works without one.
+
+Contributors working on faff itself use a development install instead:
+`scripts/link-skills.sh` symlinks the skills straight into `~/.claude/skills`,
+which registers them under bare names (`/faff-onboard`) rather than the
+plugin-namespaced names below. See [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Harness support
 
@@ -61,15 +68,19 @@ matrix, current limitations, and evidence behind each status.
 
 ## Start with one piece of work
 
-1. Run `/faff-onboard` to connect the repository and tracker.
-2. Run `/faff-jot` to capture new work, or start from an existing ticket.
-3. Run `/faff-wtf` to see what is ready and what is stuck.
-4. Run `/faff-prep ISSUE-XX` to prepare a specification.
-5. Run `/faff-graft ISSUE-XX` to build the change with approval gates.
+The marketplace install loads faff as a plugin, so its commands are namespaced
+under `faff:`. Type them as shown; Claude Code completes them once you type
+`/faff:`.
+
+1. Run `/faff:faff-onboard` to connect the repository and tracker.
+2. Run `/faff:faff-jot` to capture new work, or start from an existing ticket.
+3. Run `/faff:faff-wtf` to see what is ready and what is stuck.
+4. Run `/faff:faff-prep ISSUE-XX` to prepare a specification.
+5. Run `/faff:faff-graft ISSUE-XX` to build the change with approval gates.
 
 When the team is ready to try unattended work, mark a narrow, low-risk set of
-tickets as eligible and run `/faff-beep-boop`. Anything the system cannot call
-is parked for review.
+tickets as eligible and run `/faff:faff-beep-boop`. Anything the system cannot
+call is parked for review.
 
 ## Read next
 

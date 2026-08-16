@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-808",
+  "build": {
+    "status": "complete",
+    "diff_hash": "73ca79514ece542b8a92abe4b2e416ea1602005d26dbe3b05172efd5572901c1",
+    "branch": "faff-808-add-a-git-only-pin-force-git-only-regardless-of-a-discovered",
+    "pushed_at": "2026-08-16T05:07:36.697Z"
+  },
+  "updated_at": "2026-08-16T05:07:36.697Z"
+}

@@ -1,0 +1,561 @@
+version: '0.2'
+initiative:
+  id: PA2-INIT
+  title: Bank L4 and prove a runtime for safe progressive autonomy
+  outcome: Publish a defensible L4 reference release, then test whether FAFF can be decomposed into a lightweight adoption
+    layer, Software Delivery domain pack, deterministic SuperDomestique runtime, and execution-independent Commissaire governance
+    core.
+  principles:
+  - Workers reason probabilistically; SuperDomestique coordinates deterministically; Commissaire governs independently.
+  - Commissaire governs; SuperDomestique runs; domain packs define meaning; workers perform work.
+  - Own semantics; adapt infrastructure.
+  - Executor completion is not acceptance.
+  - Authorize consequential effects, then independently observe and reconcile.
+  - Bank L4 before broad generalized-runtime implementation.
+  - Proof and competitive falsification precede productisation.
+  near_term_naming:
+    project_identity: SuperDomestique
+    repo_plugin_skills_commands: FAFF
+    governance_subsystem: Commissaire
+    constraint: Do not introduce another public product name during the next 1–2 months.
+  decision_gate: PA2-GATE-HORIZONTAL
+projects:
+- id: PA2-P0
+  title: L4 reference release
+  outcome: Bank the current software-delivery thesis before broad extraction.
+  depends_on: []
+  exit_criteria:
+  - Representative unattended L4 run succeeds.
+  - Seeded governance failures block or park predictably.
+  - Independent challenge/holdout responsibilities are evidenced.
+  - Tracker/control surface supports normal supervision without transcript replay.
+  - Successful and blocked walkthroughs are published.
+  - Release is tagged with current limitations and future-architecture ADRs.
+  issues:
+  - id: PA2-001
+    title: Inventory remaining L4 correctness and hardening gaps
+    depends_on: []
+    evidence_status: PROPOSED
+    acceptance:
+    - Separate release blockers from polish.
+    - Map each blocker to evidence/test.
+    evidence:
+    - L4 release checklist
+  - id: PA2-002
+    title: Add L4 seeded failure scenarios
+    depends_on:
+    - PA2-001
+    evidence_status: PROPOSED
+    acceptance:
+    - Cover missing evidence, independence violation, stale artifact, false completion, stall/heartbeat, and effect mismatch
+      where applicable.
+    evidence:
+    - Automated fixtures
+    - Blocked-run artifacts
+  - id: PA2-003
+    title: Harden release-critical L4 control-plane ergonomics
+    depends_on:
+    - PA2-001
+    evidence_status: PROPOSED
+    acceptance:
+    - Operator can identify progress, blocks, parks, required intervention, and outcome without reading full worker transcript.
+    evidence:
+    - Usability walkthrough
+  - id: PA2-004
+    title: Publish successful and intentionally blocked L4 reference runs
+    depends_on:
+    - PA2-002
+    - PA2-003
+    evidence_status: PROPOSED
+    acceptance:
+    - Each walkthrough identifies intent, stages, workers/roles, evidence, governance decisions, corrections, and disposition.
+    evidence:
+    - Reference-run docs
+    - Run artifacts
+  - id: PA2-005
+    title: Tag L4 reference release
+    depends_on:
+    - PA2-004
+    evidence_status: PROPOSED
+    acceptance:
+    - Version/tag created.
+    - Current limitations documented.
+    - Future architecture explicitly labelled proposed.
+    evidence:
+    - Release tag
+    - Release notes
+- id: PA2-P1
+  title: Four-way current-main inventory
+  outcome: Map current code to Commissaire, SuperDomestique runtime, Software Delivery semantics, FAFF adoption, and adapters.
+  depends_on:
+  - PA2-P0
+  exit_criteria:
+  - Inventory covers current main.
+  - Dependency/data-flow map exists.
+  - Representative L2/L3/L4 behavior is characterized.
+  - First vertical slice selected.
+  issues:
+  - id: PA2-010
+    title: Classify current repository responsibilities
+    depends_on:
+    - PA2-005
+    evidence_status: PROPOSED
+    acceptance:
+    - Each relevant path has current responsibility, dependencies, tests, public impact, and candidate destination.
+    evidence:
+    - Inventory CSV/report
+  - id: PA2-011
+    title: Generate dependency and data-flow diagrams
+    depends_on:
+    - PA2-010
+    evidence_status: PROPOSED
+    acceptance:
+    - Show governance, runtime-like coordination, software semantics, skills/plugin, tracker, harness, and tools.
+    evidence:
+    - Architecture diagrams
+  - id: PA2-012
+    title: Protect representative behavior with characterization tests
+    depends_on:
+    - PA2-010
+    evidence_status: PROPOSED
+    acceptance:
+    - Fixtures cover current commands, events/artifacts, tracker state, parks, and terminal dispositions.
+    evidence:
+    - Golden fixtures
+    - Tests
+  - id: PA2-013
+    title: Select first extraction vertical slice
+    depends_on:
+    - PA2-011
+    - PA2-012
+    evidence_status: PROPOSED
+    acceptance:
+    - Slice exercises specify/challenge/execute/verify/effect/reconcile/accept or closest current equivalent.
+    evidence:
+    - Slice ADR
+- id: PA2-P2
+  title: Contracts and architecture boundaries
+  outcome: Define project-owned semantics before moving implementation.
+  depends_on:
+  - PA2-P1
+  exit_criteria:
+  - Core/runtime/pack/adoption contracts are explicit.
+  - No external backend format becomes canonical accidentally.
+  - Dependency rules are testable.
+  issues:
+  - id: PA2-020
+    title: Decide ADR-0001 through ADR-0013
+    depends_on:
+    - PA2-013
+    evidence_status: PROPOSED
+    acceptance:
+    - Each ADR accepted, rejected, or superseded with rationale.
+    evidence:
+    - ADR decision log
+  - id: PA2-021
+    title: Define Delegation Contract v0.1
+    depends_on:
+    - PA2-020
+    evidence_status: PROPOSED
+    acceptance:
+    - Covers intent, scope, authority, lifecycle, obligations, acceptance, versioning, amendments.
+    evidence:
+    - Schema
+    - Examples
+    - Tests
+  - id: PA2-022
+    title: Define lifecycle primitive and StageAttempt model
+    depends_on:
+    - PA2-021
+    evidence_status: PROPOSED
+    acceptance:
+    - Supports correction, park, dependencies, parallelism, and terminal dispositions.
+    evidence:
+    - Schema
+    - State-machine tests
+  - id: PA2-023
+    title: Define Lane Manifest and separation-of-duty semantics
+    depends_on:
+    - PA2-022
+    evidence_status: PROPOSED
+    acceptance:
+    - Lane covers identity/responsibility/context/tools/authority/budgets/worker compatibility/independence/visibility.
+    evidence:
+    - Schema
+    - Independence tests
+  - id: PA2-024
+    title: Define worker and provider adapter contracts
+    depends_on:
+    - PA2-023
+    evidence_status: PROPOSED
+    acceptance:
+    - Worker, authorization, policy, and effect-observer interfaces have conformance suites.
+    evidence:
+    - Interface specs
+    - Conformance harness
+- id: PA2-P3
+  title: Commissaire facade
+  outcome: Expose current governance through a narrow domain-neutral contract.
+  depends_on:
+  - PA2-P2
+  exit_criteria:
+  - Selected current run reconstructs through facade.
+  - Generic schemas reject domain nouns.
+  - Existing governance behavior remains green.
+  issues:
+  - id: PA2-030
+    title: Define generic governance event envelope
+    depends_on:
+    - PA2-024
+    evidence_status: PROPOSED
+    acceptance:
+    - Includes task/run/contract/actor/lane/causation/integrity fields.
+    - Domain payloads are namespaced.
+    evidence:
+    - Schema
+    - Examples
+  - id: PA2-031
+    title: Translate current governance facts into facade
+    depends_on:
+    - PA2-030
+    evidence_status: PROPOSED
+    acceptance:
+    - Preserve provenance/history.
+    - Selected reference run reconstructs.
+    evidence:
+    - Translation adapter
+    - Tests
+  - id: PA2-032
+    title: Define authority/evidence/effect/observation/reconciliation/verdict APIs
+    depends_on:
+    - PA2-030
+    evidence_status: PROPOSED
+    acceptance:
+    - No model/prompt/GitHub/supplier semantics.
+    - Missing obligations fail closed.
+    evidence:
+    - API spec
+    - Conformance tests
+  - id: PA2-033
+    title: Enforce governance dependency/vocabulary boundaries
+    depends_on:
+    - PA2-031
+    - PA2-032
+    evidence_status: PROPOSED
+    acceptance:
+    - CI catches forbidden imports and domain vocabulary leaks.
+    evidence:
+    - Architecture tests
+- id: PA2-P4
+  title: SuperDomestique runtime vertical slice
+  outcome: Operate one software task through deterministic generic runtime structures.
+  depends_on:
+  - PA2-P3
+  exit_criteria:
+  - Lifecycle transitions are deterministic.
+  - Probabilistic judgment appears as explicit lane work.
+  - Completion remains distinct from acceptance.
+  - Generic task state is inspectable without transcript.
+  issues:
+  - id: PA2-040
+    title: Implement task/contract/lifecycle runtime state
+    depends_on:
+    - PA2-033
+    evidence_status: PROPOSED
+    acceptance:
+    - Immutable contract versions and stage attempts work through selected slice.
+    evidence:
+    - Runtime state tests
+  - id: PA2-041
+    title: Implement lane occupancy and worker assignment
+    depends_on:
+    - PA2-040
+    evidence_status: PROPOSED
+    acceptance:
+    - Worker identity/authority/context are pinned.
+    - Independence violations are detectable.
+    evidence:
+    - Lane tests
+  - id: PA2-042
+    title: Implement deterministic routing/correction/park/resume
+    depends_on:
+    - PA2-041
+    evidence_status: PROPOSED
+    acceptance:
+    - Same recorded inputs produce same control decision.
+    - No hidden LLM routing.
+    evidence:
+    - Replay tests
+  - id: PA2-043
+    title: Implement generic control-plane projection/API
+    depends_on:
+    - PA2-040
+    - PA2-042
+    evidence_status: PROPOSED
+    acceptance:
+    - Shows contract, lifecycle, lanes, evidence, blocks, effects, disposition.
+    evidence:
+    - API fixture
+    - Reference view
+- id: PA2-P5
+  title: Software Delivery domain-pack slice and FAFF compatibility
+  outcome: Move concrete software semantics above the runtime while retaining harness-native adoption.
+  depends_on:
+  - PA2-P4
+  exit_criteria:
+  - Runtime has no software nouns for selected slice.
+  - Existing FAFF UX remains usable.
+  - Skills/prompts become pack/lane behavior assets rather than orchestration primitives.
+  issues:
+  - id: PA2-050
+    title: Define Software Delivery pack manifest for selected slice
+    depends_on:
+    - PA2-043
+    evidence_status: PROPOSED
+    acceptance:
+    - Defines lifecycle composition, lanes, evidence, policies, worker bindings, effects/observers.
+    evidence:
+    - Pack YAML/schema
+  - id: PA2-051
+    title: Move software-specific checks/integrations behind pack adapters
+    depends_on:
+    - PA2-050
+    evidence_status: PROPOSED
+    acceptance:
+    - PR/CI/review/holdout/tracker concepts remain outside generic runtime/core.
+    evidence:
+    - Adapters
+    - Boundary tests
+  - id: PA2-052
+    title: Preserve FAFF skills/plugin/command compatibility
+    depends_on:
+    - PA2-050
+    evidence_status: PROPOSED
+    acceptance:
+    - Current commands compile/map into pack/runtime behavior without broad user-facing breakage.
+    evidence:
+    - Compatibility tests
+    - Migration notes
+- id: PA2-P6
+  title: Second-domain proof
+  outcome: Prove the same runtime/core can govern materially unrelated evidence-heavy work.
+  depends_on:
+  - PA2-P5
+  exit_criteria:
+  - No core/runtime domain conditionals.
+  - At least one external worker/runtime.
+  - Protected effect and independent observation.
+  - Seeded failures block appropriately.
+  issues:
+  - id: PA2-060
+    title: Implement second-domain pack fixtures and lifecycle
+    depends_on:
+    - PA2-052
+    evidence_status: PROPOSED
+    acceptance:
+    - Use distinct domain nouns/workers/systems while unchanged generic contracts remain sufficient.
+    evidence:
+    - Reference pack
+    - Fixtures
+  - id: PA2-061
+    title: Bind at least one stage to external worker/runtime
+    depends_on:
+    - PA2-060
+    evidence_status: PROPOSED
+    acceptance:
+    - External worker satisfies same assignment/result protocol.
+    evidence:
+    - Adapter
+    - Run evidence
+  - id: PA2-062
+    title: Implement protected effect and independent observer
+    depends_on:
+    - PA2-060
+    evidence_status: PROPOSED
+    acceptance:
+    - Unauthorized effect blocks.
+    - False declared effect is exposed by observation/reconciliation.
+    evidence:
+    - Effect fixture
+    - Reconciliation evidence
+  - id: PA2-063
+    title: Run cross-domain conformance suite
+    depends_on:
+    - PA2-061
+    - PA2-062
+    evidence_status: PROPOSED
+    acceptance:
+    - Same runtime/core APIs serve both domains.
+    - No prohibited vocabulary leaks.
+    evidence:
+    - Conformance report
+- id: PA2-P7
+  title: Adapter proof
+  outcome: Show specialized infrastructure can replace reference implementations without changing project semantics.
+  depends_on:
+  - PA2-P6
+  exit_criteria:
+  - External authorization provider passes same conformance suite.
+  - Domain packs unchanged.
+  - Provider-specific details stay behind adapter.
+  issues:
+  - id: PA2-070
+    title: Implement external task-scoped authorization provider
+    depends_on:
+    - PA2-063
+    evidence_status: PROPOSED
+    acceptance:
+    - Matches native reference verdicts for conformance scenarios.
+    evidence:
+    - Provider adapter
+    - Comparison report
+  - id: PA2-071
+    title: Evaluate policy provider need
+    depends_on:
+    - PA2-070
+    evidence_status: PROPOSED
+    acceptance:
+    - Decision based on real domain-policy complexity, not architecture fashion.
+    evidence:
+    - Decision record
+  - id: PA2-072
+    title: Document durable-execution trigger criteria
+    depends_on:
+    - PA2-063
+    evidence_status: PROPOSED
+    acceptance:
+    - Define when local runner is insufficient and a Temporal-style backend should be introduced.
+    evidence:
+    - ADR/decision criteria
+- id: PA2-P8
+  title: Execution-independent Commissaire proof
+  outcome: Govern a workflow not primarily orchestrated by SuperDomestique.
+  depends_on:
+  - PA2-P7
+  exit_criteria:
+  - Contract/authority/evidence/effects/reconciliation/acceptance still work.
+  - No requirement to wrap every internal workflow step.
+  issues:
+  - id: PA2-080
+    title: Define external-execution governance bridge
+    depends_on:
+    - PA2-070
+    evidence_status: PROPOSED
+    acceptance:
+    - External workflow can submit/produce governed events/evidence/effects under admitted contract.
+    evidence:
+    - Bridge spec
+  - id: PA2-081
+    title: Run external-execution governed scenario
+    depends_on:
+    - PA2-080
+    evidence_status: PROPOSED
+    acceptance:
+    - Commissaire detects at least one seeded violation/false-success independent of executor.
+    evidence:
+    - Run report
+    - Audit bundle
+- id: PA2-P9
+  title: Generic control-plane UX proof
+  outcome: Prove the state of delegated work can be the interface.
+  depends_on:
+  - PA2-P8
+  exit_criteria:
+  - Operator understands both domains without transcript dependency.
+  - Can approve, block, amend, park/resume, inspect evidence/effects.
+  issues:
+  - id: PA2-090
+    title: Build minimal cross-domain control plane
+    depends_on:
+    - PA2-081
+    evidence_status: PROPOSED
+    acceptance:
+    - Task/contract/lifecycle/lane/evidence/effect/approval views work for both packs.
+    evidence:
+    - Reference UI
+  - id: PA2-091
+    title: Run operator comprehension/usability exercise
+    depends_on:
+    - PA2-090
+    evidence_status: PROPOSED
+    acceptance:
+    - Normal supervision succeeds without reading model transcripts.
+    evidence:
+    - Usability notes
+- id: PA2-P10
+  title: Competitive falsification
+  outcome: Determine whether the generalized layer is actually more valuable than simpler existing workflow/governance patterns.
+  depends_on:
+  - PA2-P9
+  exit_criteria:
+  - Baseline comparison exists.
+  - Safety/accountability gain and overhead are measured.
+  - Kill/narrow criteria are applied.
+  issues:
+  - id: PA2-100
+    title: Build/represent simpler baseline for second-domain task
+    depends_on:
+    - PA2-091
+    evidence_status: PROPOSED
+    acceptance:
+    - Comparable objective and worker capability without full governance contract.
+    evidence:
+    - Baseline implementation
+  - id: PA2-101
+    title: Run failure and overhead comparison
+    depends_on:
+    - PA2-100
+    evidence_status: PROPOSED
+    acceptance:
+    - Measure violations, false-success, evidence completeness, recovery, operator burden, config/runtime cost.
+    evidence:
+    - Evaluation matrix
+    - Results
+  - id: PA2-102
+    title: Apply horizontal/narrow/stop decision gate
+    depends_on:
+    - PA2-101
+    evidence_status: PROPOSED
+    acceptance:
+    - Decision explicitly chooses horizontal, regulated/vertical, or software-focused continuation.
+    evidence:
+    - Decision memo
+- id: PA2-P11
+  title: Optional productisation
+  outcome: Only after the proof, make durable package/repository/product decisions.
+  depends_on:
+  - PA2-P10
+  exit_criteria:
+  - Triggered only if PA2-102 supports continued generalisation.
+  issues:
+  - id: PA2-110
+    title: Decide physical FAFF/SuperDomestique/Commissaire boundaries
+    depends_on:
+    - PA2-102
+    evidence_status: PROPOSED
+    acceptance:
+    - Decision considers versioning, adoption, external use, history preservation, and release cadence.
+    evidence:
+    - Packaging ADR
+  - id: PA2-111
+    title: Prioritize design partner or next domain
+    depends_on:
+    - PA2-102
+    evidence_status: PROPOSED
+    acceptance:
+    - Choose based on observed governance pull rather than generic platform ambition.
+    evidence:
+    - Product discovery brief
+gates:
+  PA2-GATE-L4:
+    after: PA2-P0
+    question: Is L4 credible enough that there is a real high-autonomy system worth generalizing?
+  PA2-GATE-CROSS-DOMAIN:
+    after: PA2-P6
+    question: Did an unrelated domain fit without contaminating runtime/core abstractions?
+  PA2-GATE-EXTERNAL-GOVERNANCE:
+    after: PA2-P8
+    question: Can Commissaire govern execution it did not orchestrate?
+  PA2-GATE-HORIZONTAL:
+    after: PA2-P10
+    question: Does the architecture provide enough measurable value over simpler alternatives to justify horizontal productisation?

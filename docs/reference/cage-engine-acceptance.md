@@ -80,12 +80,13 @@ concatenating blindly:
 ```bash
 url=$(node -e '
   const p = JSON.parse(require("fs").readFileSync("plan.json","utf8"));
-  const hc = p.health_checks.find(h => h.name === "app") || p.health_checks[0] || {};
-  const path = hc.path || "";
+  const hc = (p.health_checks||[]).find(h => h.name === "app") || (p.health_checks||[])[0] || {};
+  const path = String(hc.path || "");
   if (path.startsWith("/")) console.log(p.endpoint + path);          // HTTP app: append the URL path
   else { const m = path.match(/https?:\/\/\S+/); console.log(m ? m[0] : p.endpoint); }  // datastore: extract the embedded URL
 ')
-curl -fsS "$url"           # expect the health route's expected status (200 for minio's ready probe)
+curl -fsS "$url"           # expect HTTP 200 from curl; the plan's own expected_status for this
+                            # health check is 0 for a datastore probe (an exit code, not this HTTP status)
 ```
 
 **Pass:** the HTTP request succeeds from inside the cage (not from the host).

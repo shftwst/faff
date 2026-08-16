@@ -108,12 +108,44 @@ Property of the cage image, not of faff:
 ```bash
 ls /var/run/docker.sock        # expect: absent, or owned by the NESTED daemon (never the host's)
 docker info --format '{{.SecurityOptions}}'   # expect: rootless (privileged dind is the named weaker posture)
-# and the cage cannot see the host filesystem (spot-check a known host path is absent)
+# --- Host-fs invisibility (replaces the vacuous spot-check) ---
+# Read on the HOST (not the cage): the engine's real data-root.
+#   docker info --format '{{.DockerRootDir}}'      # e.g. /var/lib/docker
+# Plant a live sentinel on a persistent, host-unique path (never a tmpfs), confirmed present on the host.
+#   host$ touch "$HOME/faff-cage-host-sentinel"    # example persistent host path
+
+# Inside the cage, assert both host paths are absent and a cage-local control is present:
+test -e /var/lib/docker            && echo "host data-root VISIBLE — FAIL" || echo "host data-root absent — ok"
+test -e "$HOME/faff-cage-host-sentinel" && echo "host sentinel VISIBLE — FAIL" || echo "host sentinel absent — ok"
+touch /tmp/faff-cage-local-control                 # cage-local marker
+test -e /tmp/faff-cage-local-control && echo "control PRESENT — check is live" || echo "control ABSENT — INVALID"
 ```
+
+Substitute the `test -e /var/lib/docker` path with the value actually reported by `docker info
+--format '{{.DockerRootDir}}'` on the host when it differs from the `/var/lib/docker` default
+shown above. The assertion is that the host's data-root is not traversable *as the host's* inside
+the cage — a nested engine may legitimately reuse that same path for its own, separate store,
+which is exactly why the live sentinel limb exists: it disambiguates a coincidentally-matching
+path from a genuinely bind-mounted host filesystem.
 
 **Pass:** no mounted host socket, and the engine's authority is bounded by the cage. A mounted
 host socket fails the ADR-0041 boundedness criterion by definition — any lane could start a
 privileged container and mount the host fs, so the cage would not be host-isolated at all.
+
+For the host-fs limb, the three probe results above combine into one decision — a bare ABSENT
+is never trusted as isolation signal without the positive control, because a fresh
+per-container tmpfs makes host markers absent regardless of isolation:
+
+```
+PROCEDURE decide_host_fs_limb(control_present, host_root_absent, sentinel_absent):
+  IF NOT control_present:
+     RETURN INVALID          # the test mechanism is inert; ABSENT results carry no signal
+  IF host_root_absent AND sentinel_absent:
+     RETURN PASS
+  RETURN FAIL                # a host path is visible inside the cage
+```
+
+Control PRESENT and host data-root/sentinel ABSENT → PASS; control ABSENT → INVALID, never PASS.
 
 ## Caveats the cage image owns
 

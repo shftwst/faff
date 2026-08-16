@@ -1,0 +1,1 @@
+{"schema":2,"run_id":"run-20260816-154029-beepboop-list-cda53e","seq":0,"ts":"2026-08-16T17:39:17.405Z","kind_of_entry":"observe","issue":"FAFF-816","step":"merge","effect":{"kind":"merge","target":"pr:678","reversible":true},"prev":"e98fceec1b1c264479655a7d3bef52a055bca2b032918c9ee9bdf3ee8933ab85"}

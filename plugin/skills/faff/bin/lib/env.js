@@ -343,24 +343,20 @@ function renderCompose(services) {
   return lines.join("\n") + "\n";
 }
 
-// FAFF-791: the base host is operator/transport-supplied and gets string-interpolated into
+// FAFF-791/FAFF-818: the base host is operator/transport-supplied and gets string-interpolated into
 // evaluator-reachable endpoint URLs, so it is a trust boundary — validate it before resolving any
-// surface, never pass it through. A bare host or IP only: no scheme, userinfo, path, query, fragment,
-// or embedded port; an IPv6 literal must be bracketed ([::1]); non-empty. Returns null when valid, or
-// a reason string. The default "localhost" passes trivially, so the default path is unaffected.
+// surface, never pass it through. FAFF-818 hardened this from a denylist to a positive allowlist: a
+// bare host or IP literal must fully match the authority charset [A-Za-z0-9.-], or be a bracketed
+// IPv6 literal ([::1]); non-empty. Returns null when valid, or a reason string. The default
+// "localhost" passes trivially, so the default path is unaffected.
 function envValidateBaseHost(host) {
   if (typeof host !== "string" || host.length === 0) return "must be a non-empty string";
-  if (host.includes("://")) return "must not carry a scheme";
-  if (host.includes("@")) return "must not carry userinfo";
-  if (host.includes("/")) return "must not carry a path";
-  if (host.includes("?")) return "must not carry a query";
-  if (host.includes("#")) return "must not carry a fragment";
   if (host.startsWith("[")) {
     // bracketed IPv6 literal: only hex digits and colons inside, nothing after the closing bracket
     if (!/^\[[0-9A-Fa-f:]+\]$/.test(host)) return "malformed bracketed IPv6 literal";
     return null;
   }
-  if (host.includes(":")) return "must not carry an embedded port (bracket IPv6 literals as [::1])";
+  if (!/^[A-Za-z0-9.-]+$/.test(host)) return "must be a bare hostname or IP literal — only [A-Za-z0-9.-], or a bracketed IPv6 as [::1]";
   return null;
 }
 
@@ -976,9 +972,12 @@ function envSelftest() {
   check("base791: re-base swaps only the host (endpoints == default with host replaced)",
     JSON.stringify(r791reb.plan.endpoints) === JSON.stringify(r791def.plan.endpoints).split("localhost").join("10.0.0.5"));
   check("base791: bracketed IPv6 literal re-bases app endpoint", composeGen(p1, "proj791", "/tmp/x/dc.yml", ov, { host: "[::1]" }).plan.endpoints.app === "http://[::1]:3000");
+  check("base818: dotted-hyphen host re-bases app endpoint (allowlist accept)", composeGen(p1, "proj791", "/tmp/x/dc.yml", ov, { host: "db-1.example.com" }).plan.endpoints.app === "http://db-1.example.com:3000");
 
   // (c) a malformed base fails loud (throws) before any endpoint is resolved — no half-formed URL emitted.
-  for (const bad of ["http://evil/", "1.2.3.4/admin", "user@host", "host:8080", "", "a?b", "a#b", "[:::]x"]) {
+  // FAFF-818: the bare-host branch is a positive charset allowlist ([A-Za-z0-9.-]); non-authority bytes
+  // (space, control chars, %, _) are rejected by construction, not by denylist enumeration.
+  for (const bad of ["http://evil/", "1.2.3.4/admin", "user@host", "host:8080", "", "a?b", "a#b", "[:::]x", "bad host", "a\tb", "a%b", "a_b", "1.2.3.4%eth0"]) {
     let threw = false, planLeaked = null;
     try { planLeaked = composeGen(p1, "proj791", "/tmp/x/dc.yml", ov, { host: bad }); } catch { threw = true; }
     check(`base791: malformed base.host ${JSON.stringify(bad)} fails loud`, threw && planLeaked === null);

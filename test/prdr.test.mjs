@@ -55,7 +55,7 @@ test("new: scaffolds the record (metadata + 4 sections), prints path only, refus
   assert.match(body, /\*\*Status:\*\* Proposed/);
   assert.match(body, /\*\*Provenance:\*\* loop/);
   assert.match(body, /\*\*Container:\*\* portal/);
-  assert.match(body, /\*\*PRD-goal:\*\* ship bookings/);
+  assert.match(body, /\*\*PRD-goals:\*\* ship bookings/);   // FAFF-815 — citation is a set (plural field)
   for (const s of ["## Context", "## Decision", "## Scope", "## Definition of done"]) assert.ok(body.includes(s), s);
   // append-only: a second record gets the next number, never clobbers
   const r2 = run(["new", "Booking flow", "--container", "portal", "--prd-goal", "ship bookings", "--root", root]);
@@ -371,4 +371,85 @@ test("coverage: malformed --prd-goals / --live-prdrs / --dod-verdicts are usage 
   assert.equal(coverage(["--prd-goals", "notjson"]).status, 2);
   assert.equal(coverage(["--prd-goals", '["g"]', "--live-prdrs", "notjson"]).status, 2);
   assert.equal(coverage(["--prd-goals", '["g"]', "--dod-verdicts", "[1,2]"]).status, 2);
+});
+
+// --- FAFF-815: plural citation + the three-goal-set arbitration (over-scope vs under-citation, Q7 ground) ---
+const D5 = '["g1","g2","g3","g4","g5"]';
+
+test("815 new: --prd-goal \"a,b,c\" writes all three into the plural PRD-goals field; list --json emits prd_goals", () => {
+  const root = tmpRepo();
+  const p = run(["new", "MVP", "--container", "shortener", "--prd-goal", "g1,g2,g3", "--provenance", "loop", "--date", "2026-08-16", "--root", root]).stdout.trim();
+  assert.match(readFileSync(p, "utf8"), /\*\*PRD-goals:\*\* g1,g2,g3/);
+  const listed = JSON.parse(run(["list", "--json", "--root", root]).stdout);
+  assert.deepEqual(listed[0].prd_goals, ["g1", "g2", "g3"]);
+  assert.equal(listed[0].prd_goal, "g1");   // primary retained
+  assert.equal(run(["validate", "--root", root]).status, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("815 validate: a legacy single PRD-goal record still validates; a record with neither is flagged", () => {
+  const legacy = `# PRDR 0001 — legacy\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-16\n- **Container:** c\n- **PRD-goal:** only\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n`;
+  const noGoal = `# PRDR 0001 — nogoal\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-16\n- **Container:** c\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n`;
+  const rOk = tmpRepo({ "0001-legacy.md": legacy });
+  assert.equal(run(["validate", "--root", rOk]).status, 0);
+  rmSync(rOk, { recursive: true, force: true });
+  const rBad = tmpRepo({ "0001-nogoal.md": noGoal });
+  assert.match(run(["validate", "--root", rBad]).stdout, /missing PRD-goal/);
+  rmSync(rBad, { recursive: true, force: true });
+});
+
+test("815 AC (WHY): cite all five, DoD covers all five, survived → admit, trace, over_scope false", () => {
+  const v = yagniJson(["--prd-goal", "g1,g2,g3,g4,g5", "--prd-goals", D5, "--proposal", "admit", "--challenge", "survived", "--dod-covers", D5]);
+  assert.equal(v.admit, true);
+  assert.equal(v.trace_to_goal, true);
+  assert.equal(v.over_scope, false);
+});
+
+test("815 AC#1: under-citation + overturn(over-scope) → admit; cited_goals echoes the widened set", () => {
+  const v = yagniJson(["--prd-goal", "g1", "--prd-goals", D5, "--proposal", "admit", "--challenge", "overturned", "--challenge-ground", "over-scope", "--dod-covers", D5]);
+  assert.equal(v.admit, true);
+  assert.deepEqual([...v.cited_goals].sort(), ["g1", "g2", "g3", "g4", "g5"]);
+});
+
+test("815 Q7: under-citation + overturn on a NON-scope ground (unserved) → conservative reject", () => {
+  const v = yagniJson(["--prd-goal", "g1", "--prd-goals", D5, "--proposal", "admit", "--challenge", "overturned", "--challenge-ground", "unserved", "--dod-covers", D5]);
+  assert.equal(v.admit, false);
+  assert.equal(v.challenge.ground, "unserved");
+});
+
+test("815 AC#3: genuine over-scope (V⊄D) + survived → reject, over_scope true, names the extra goal", () => {
+  const v = yagniJson(["--prd-goal", "g1", "--prd-goals", D5, "--proposal", "admit", "--challenge", "survived", "--dod-covers", '["g1","analytics dashboard"]']);
+  assert.equal(v.admit, false);
+  assert.equal(v.over_scope, true);
+  assert.match(v.reason, /analytics dashboard/);
+});
+
+test("815 back-compat: --dod-covers omitted (V=∅) + overturn → reject for any ground", () => {
+  const v = yagniJson(["--prd-goal", "g1", "--prd-goals", D5, "--proposal", "admit", "--challenge", "overturned", "--challenge-ground", "over-scope"]);
+  assert.equal(v.admit, false);
+  assert.deepEqual(v.dod_covers, []);
+});
+
+test("815: an over-scope-ground admit is contract-conformant and feeds `prdr admit --upper` → admit", () => {
+  const out = yagni(["--prd-goal", "g1", "--prd-goals", D5, "--proposal", "admit", "--challenge", "overturned", "--challenge-ground", "over-scope", "--dod-covers", D5]).stdout;
+  const c = spawnSync(process.execPath, [BIN, "contract", "prdr-yagni"], { input: out, encoding: "utf8" });
+  assert.equal(c.status, 0, `${out}\n${c.stderr}`);
+  const upper = JSON.parse(out);
+  const adm = spawnSync(process.execPath, [BIN, "prdr", "admit", "X", "--actor", "loop", "--supersedes-provenance", "loop",
+    "--upper", JSON.stringify({ admit: upper.admit, reason: upper.reason })], { encoding: "utf8" });
+  assert.equal(JSON.parse(adm.stdout).disposition, "admit");
+});
+
+test("815: bad --challenge-ground / malformed --dod-covers are usage errors (exit 2)", () => {
+  assert.equal(yagni(["--prd-goal", "g1", "--prd-goals", D5, "--challenge-ground", "sideways"]).status, 2);
+  assert.equal(yagni(["--prd-goal", "g1", "--prd-goals", D5, "--dod-covers", "notjson"]).status, 2);
+});
+
+test("815 coverage (AC#2): the union of a PRDR's plural prd_goals flips covered:true", () => {
+  const covered = coverageJson(["--prd-goals", D5, "--live-prdrs", '[{"id":"0001","prd_goals":["g1","g2","g3","g4","g5"]}]']);
+  assert.equal(covered.covered, true);
+  assert.deepEqual(covered.uncovered_goals, []);
+  const legacy = coverageJson(["--prd-goals", D5, "--live-prdrs", '[{"id":"0001","prd_goal":"g1"}]']);
+  assert.equal(legacy.covered, false);   // legacy single-goal still accepted, covers one
+  assert.equal(legacy.uncovered_goals.length, 4);
 });

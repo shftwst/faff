@@ -242,9 +242,9 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 3. **Author the fields** from `{outcome, child_specs}`, scaled to the target:
    - `definition_of_done` — **thin-MVP** target ⇒ the first-slice children + the outcome's minimal criterion; **finished** target ⇒ all children delivered + the outcome's full stated criteria. Structural, child-derived — no value judgement about *which* children matter.
    - `decision` + `scope` — the delegated end this container commits to, named from the outcome prose; scope = the container's child set.
-   - `prd_goal` — the cited parent PRD goal the container serves (from the container's PRD link / ancestor).
+   - `prd_goals` — **cite every declared PRD goal the DoD covers** (the full comma-separated set, from the container's PRD link / ancestor), not just a single ancestor goal. Under-citing a functional MVP that discharges several declared goals is what the YAGNI gate mis-reads as over-scope (FAFF-815).
 4. **Confidence + fail-safe.** Thin outcome prose / no child specs ⇒ low confidence ⇒ emit a **thin DoD flagged needs-human**, never a vacuous one (the L4 caller must never self-define a vacuous DoD).
-5. **Emit** the `AuthoredPrdr` and write it via `faff prdr new --provenance loop --status Proposed --container <c> --prd-goal <g>`. The methodology **authors but never admits** — it does **not** call `faff prdr admit`, and **never writes the tracker**; the caller routes per its level (gateway → **Authored-PRDR level-scaling**).
+5. **Emit** the `AuthoredPrdr` and write it via `faff prdr new --provenance loop --status Proposed --container <c> --prd-goal <g1,g2,…>` (the comma-separated cited set → the record's `PRD-goals:` field). The methodology **authors but never admits** — it does **not** call `faff prdr admit`, and **never writes the tracker**; the caller routes per its level (gateway → **Authored-PRDR level-scaling**).
 
 **Output:** `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` + a confidence note. Unanswered-equivalent (no container, or `--no-prdr`) ⇒ the caller proposes no PRDR and the human authors the DoD directly.
 
@@ -255,7 +255,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 **Optional** (gateway → **The `methodology` slot**; this is **Phase 1** of the upper-gate two-phase arbitration — gateway → **Upper-gate (YAGNI) two-phase arbitration**). Given an `AuthoredPrdr` + the PRD (+ optional grounding), propose whether the PRDR is **warranted** — serves a real PRD goal **without exceeding it**. The thematic lens judges from **graph + PRD facts**, never value/risk opinion:
 
 - `serves_goal` — does the PRDR's `prd_goal` name a real PRD goal *and* does its `decision`/`definition_of_done` materially advance that goal (not merely cite it)? Graph/text trace, not taste.
-- `within_scope` — is the DoD bounded by the PRD goal's stated criteria, or does it add capability the PRD never asked for (structural over-reach)? Grounding, when present, sharpens this (domain norms) but is never required.
+- `within_scope` — does the DoD cover **only declared PRD goals** (`V ⊆ D`), or does it add capability the PRD never asked for (structural over-reach)? Covering *several* declared goals in one functional MVP is in-scope, not gold-plating; only capability outside the declared goal set is over-reach (FAFF-815). Grounding, when present, sharpens this (domain norms) but is never required.
 - `verdict` — `admit` when both hold; `reject` otherwise, with a one-line `reason`.
 
 **Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` — the Phase-1 proposal the caller passes to `faff prdr yagni --proposal …`. It **proposes, never admits** (admission is `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered ⇒ the upper gate has no proposal (the caller falls back to the `faff prdr admit` gate's fail-safe upper default — conservative reject).

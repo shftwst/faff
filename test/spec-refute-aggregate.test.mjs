@@ -5,10 +5,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import {
-  aggregate, strictMajority, mapSeverity, renderBlock, SEVERITY_MAP,
+  aggregate, strictMajority, mapSeverity, renderBlock, SEVERITY_MAP, entrypoint_href,
 } from "../plugin/skills/faffter-dark-spec-review/aggregate.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -145,6 +146,36 @@ test("aggregate.mjs CLI-entrypoint guard fires from a URL-special-char path (FAF
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("aggregate.mjs CLI-entrypoint guard fires through a symlinked install path (FAFF-813)", () => {
+  // Regression: faff installs each skill by symlinking `plugin/skills/<skill>/` into
+  // `~/.claude/skills/<skill>`, so production's process.argv[1] is the symlink path while
+  // import.meta.url is already the repo REALPATH. The two hrefs diverged, the guard was false, and
+  // main() silently no-op'd — exit 0, empty stdout. A file symlink reproduces the identical
+  // divergence (Node realpath-resolves import.meta.url either way), so a lone symlinkSync suffices.
+  const dir = mkdtempSync(join(tmpdir(), "faff-symlink-"));
+  try {
+    const link = join(dir, "aggregate.mjs");
+    symlinkSync(AGG, link);
+    const res = spawnSync(process.execPath, [link, "--selftest"], { encoding: "utf8" });
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /aggregate --selftest: ok/,
+      "guard must fire through a symlinked path — the selftest output, never a silent empty exit 0");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("entrypoint_href: falsy argv1 → null (guard false, main() does not run)", () => {
+  assert.equal(entrypoint_href(undefined), null);
+  assert.equal(entrypoint_href(""), null);
+});
+
+test("entrypoint_href: a realpathSync throw (ENOENT) falls back to the raw-path href (FAFF-464 behaviour), never throws", () => {
+  const synthetic = join(tmpdir(), "faff-813-does-not-exist", "ghost.mjs");
+  assert.doesNotThrow(() => entrypoint_href(synthetic));
+  assert.equal(entrypoint_href(synthetic), pathToFileURL(synthetic).href);
 });
 
 test("aggregate.mjs CLI: stdin refutations → a contract block that validates against faff contract", () => {

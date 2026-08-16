@@ -1,6 +1,6 @@
 # ADR 0110 — L4 decomposition is emergent on the wave loop; ticket size is never a park reason
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-16
 - **Issue:** FAFF-809

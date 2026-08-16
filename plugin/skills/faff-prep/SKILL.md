@@ -139,9 +139,13 @@ The confidence gate above asks *is the spec internally well-formed?*. This gate 
 
 | Objecting lens | Routes to | Action |
 |---|---|---|
-| `architectural` / `infosec` / `QA` | **prep** | the design is flawed within the right scope → re-explore + re-spec in place (bounded loop below). |
-| `methodology` | **plot** | the scope / increment is wrong → **park** and surface the slice for human-interactive `/faff-plot` to re-slice (no autonomous plot re-entry seam exists). |
-| **multiple lenses object** | the **higher altitude — `plot` wins** | park and surface for `/faff-plot`; no point re-speccing a slice about to be re-sliced. |
+| `architectural` / `infosec` / `QA` only | **prep** | the design is flawed within the right scope → re-explore + re-spec in place (bounded loop below). |
+| `methodology` only | **plot** | the scope / increment is wrong → **park** and surface the slice for human-interactive `/faff-plot` to re-slice (no autonomous plot re-entry seam exists). |
+| `methodology` **+** one or more design lenses (`architectural`/`infosec`/`QA`) | **plot** (altitude still wins the destination) | park and surface for `/faff-plot` exactly as the methodology-only row **and** carry the design-lens objection set verbatim (`{lens, severity}` each) into the park record — never discard them onto a consumer (plot) that can't act on them. They re-fire fresh when the re-sliced work is re-prepped; see _Carried design-lens objections_ below. |
+
+This is a pure partition over the two disjoint, exhaustive lens sets — `{methodology}` vs `{architectural, infosec, QA}` — computed directly from `objections`, never a relevance re-inference.
+
+**Carried design-lens objections (multi-lens `reject-approach` only).** The park record — the same park comment the methodology-only row already writes — additionally lists the design-lens objections verbatim, one `{lens, severity}` per line, under a labelled "Carried design-lens objections" block. No second store: the round record (below) already persists the full verdict verbatim, so this is the human/plot-readable copy, not a new write path. A re-sliced epic re-enters via `faff-jot-intake` and is re-prepped from scratch — its own spec-review gate run is what re-raises a design-lens objection that still applies; the carried block is the audit trail proving it wasn't silently dropped, not a live constraint plot consumes (plot has no objection-intake seam — out of scope here).
 
 **Loop cap.** The prep↔review loop (a `revise` re-spec, or a design-lens `reject-approach` re-plan) is capped at **2 iterations**. On a third unresolved `revise`/`reject-approach`, downgrade to `needs-human` and **park** — the human is the tie-breaker against an irreconcilable producer↔reviewer disagreement. On the second round of a `revise`/design-lens `reject-approach` loop, run `faff spec-review-churn --prev <round-1 record> --curr <round-2 record>` before looping back for iteration 2 — a churn check that catches a reviewer restating a *different* objection each round rather than converging. A `churn: true` result (a lens objecting now that wasn't objecting in the prior round) downgrades to `needs-human` and parks immediately — do not spend the remaining iteration on a reviewer that is not converging. A `churn: false` result (the objecting lens-set held steady or shrank) proceeds to iteration 2 exactly as today, at which point the existing third-round cap applies unchanged. Immediately after each conformant (exit 0) `faff contract spec-review-verdict` pipe, write the round's `{verdict, objections}` verbatim to `.faff/runs/<run-id>/ISSUE-XX/spec-review/round-<n>.json` (a hard-floor write, not gated by `logging: essential`) — the input the churn check reads back.
 
@@ -151,7 +155,7 @@ The confidence gate above asks *is the spec internally well-formed?*. This gate 
 
 **Degraded methodology signal.** When no `## Methodology critique` block is attached (no methodology slot configured), the reviewer's methodology lens degrades to no-signal and emits no methodology objection — it never recomputes value/scope. prep passes whatever critique block it wrote (or none); it does not synthesise one for the reviewer.
 
-**Park causes** (folded into the standard `parked` return + park protocol): `spec-review needs-human — <lensed objections>`, `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice`, `spec-review loop cap reached — <verdict>`, `spec-review contract not satisfied (exit <n>)`, `spec-review churn detected — new objecting lens(es) since round N: <lenses>`.
+**Park causes** (folded into the standard `parked` return + park protocol): `spec-review needs-human — <lensed objections>`, `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice`, `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice; design-lens objections carried: <lenses+severities>`, `spec-review loop cap reached — <verdict>`, `spec-review contract not satisfied (exit <n>)`, `spec-review churn detected — new objecting lens(es) since round N: <lenses>`.
 
 ## Spec quality bar (owned by the producer)
 

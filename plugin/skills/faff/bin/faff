@@ -76,6 +76,7 @@ const { cmdQuality } = require("./lib/quality");
 const { cmdFindingsReconcile } = require("./lib/findings-reconcile");
 const { cmdQueueState } = require("./lib/queue-state");
 const { cmdReconcile } = require("./lib/reconcile");
+const { cmdReconcileRecover } = require("./lib/reconcile-recover");
 const { cmdRegions } = require("./lib/regions");
 const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
 const { cmdRunDone } = require("./lib/run-done");
@@ -123,6 +124,7 @@ const COMMANDS = {
   "disposition": cmdDisposition,
   "quality": cmdQuality,
   "reconcile": cmdReconcile,
+  "reconcile-recover": cmdReconcileRecover,
   "run-done": cmdRunDone,
   "run-ledger": cmdRunLedger,
   "run-outward": cmdRunOutward,

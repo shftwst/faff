@@ -207,9 +207,12 @@ function readMergedMap(runDir, admitted) {
   return result;
 }
 
-// FAFF-782: best-effort issue→{pr,sha} from the same merge-records, for the shell-side render
-// enrichment only (never fed to the pure core). Non-load-bearing: absent details leave the item's
-// cause as the plain stable token.
+// FAFF-782: best-effort issue→{pr,sha} from the same merge-records, for shell-side render
+// enrichment (never fed to the pure core). Non-load-bearing here: absent details leave the
+// item's cause as the plain stable token. FAFF-797: also reused verbatim by
+// `reconcile-recover.js`'s impure shell to supply `pr` to a re-run `post-merge-check` — the
+// same "reuse the read-only detector, never re-derive" posture, a second shell-side consumer,
+// still never fed to any pure core.
 function readMergedDetails(runDir, issue) {
   if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue)) return null;   // same shape guard as readMergedMap before any path.join (belt-and-braces — callers only pass guarded mergedMap keys today)
   try {
@@ -420,5 +423,5 @@ module.exports = {
   ATTENTION_OUTCOMES, DISPOSITION_SELFTEST_CASES, ESCALATE_STOP_EXACT,
   cmdDisposition, computeDisposition, dispositionSelftest, eventCause,
   isEscalateStopReason, issueOutcomeEventMap, parksCauseMap,
-  readIssueOutcomeEvents, readMergedMap, readParksMap, renderDisposition,
+  readIssueOutcomeEvents, readMergedDetails, readMergedMap, readParksMap, renderDisposition,
 };

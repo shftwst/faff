@@ -21,9 +21,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, requireFlags, usageError } = require("./argv");
+const { loadConfig } = require("./config");
 const ENV_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--root": { arity: 1 },
-  "--manifest": { arity: 1 }, "--out": { arity: 1 }, "--plan": { arity: 1 }, "--poll-secs": { arity: 1 },
+  "--base-host": { arity: 1 }, "--manifest": { arity: 1 }, "--out": { arity: 1 }, "--plan": { arity: 1 }, "--poll-secs": { arity: 1 },
   "--profile": { arity: 1 }, "--project": { arity: 1 }, "--sla-secs": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb" } };
 // FAFF-628 — declared grammar. `up`/`compose-gen` resolve --project from the infra profile when
@@ -369,6 +370,15 @@ function envResolveEndpoint(base, surface) {
   return `${surface.scheme}://${base.host}:${surface.port}${surface.path}`;
 }
 
+// FAFF-836: resolve the CLI-visible base by precedence explicit flag → configured `.faffrc`
+// env.base_host → the localhost default — a pure choice among candidates, no validation (that stays
+// envValidateBaseHost's, invoked once inside composeGen). `cfgEnv` is loadConfig(root)[0].env (or {}).
+function envResolveBase(flagVal, cfgEnv) {
+  if (typeof flagVal === "string") return { host: flagVal };
+  if (cfgEnv && typeof cfgEnv.base_host === "string" && cfgEnv.base_host.length > 0) return { host: cfgEnv.base_host };
+  return { host: "localhost" };
+}
+
 // PURE: (profile, projectName, outPath) → { plan, compose }. No docker, no I/O. Deterministic.
 // Maps profile.datastores via DATASTORE_TABLE; an unknown kind is REPORTED in unprovisionable[]
 // (the producer fails loud), never silently skipped. sqlite is file-based: a seed target, no service.
@@ -673,7 +683,13 @@ function cmdEnv(args) {
     const project = flag("--project") || defaultProject(r.profile);
     let out = flag("--out") || path.join(".faff", "env", "docker-compose.yml");
     if (!path.isAbsolute(out)) out = path.join(root, out);
-    const { plan, compose } = composeGen(r.profile, project, out, envResolveAppOverride(root));
+    // FAFF-836: resolve the base once (flag → .faffrc env.base_host → localhost) and thread it through
+    // as composeGen's 5th arg. composeGen (envValidateBaseHost) remains the sole validator — a malformed
+    // base throws before any compose file is written.
+    const base = envResolveBase(flag("--base-host"), (loadConfig(root)[0] || {}).env || {});
+    let plan, compose;
+    try { ({ plan, compose } = composeGen(r.profile, project, out, envResolveAppOverride(root), base)); }
+    catch (e) { process.stderr.write(`faff env compose-gen: ${e.message}\n`); return 2; }
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, compose);
     console.log(JSON.stringify(plan, null, 2));   // ProvisionPlan → stdout (producer / `env up` consume it)
@@ -691,7 +707,12 @@ function cmdEnv(args) {
       if (r.err) return r.err;
       const project = flag("--project") || defaultProject(r.profile);
       let out = path.join(root, ".faff", "env", "docker-compose.yml");
-      const g = composeGen(r.profile, project, out, envResolveAppOverride(root));
+      // FAFF-836: same base resolution + 5th-arg threading as compose-gen (envValidateBaseHost is
+      // still the sole validator, invoked inside composeGen).
+      const base = envResolveBase(flag("--base-host"), (loadConfig(root)[0] || {}).env || {});
+      let g;
+      try { g = composeGen(r.profile, project, out, envResolveAppOverride(root), base); }
+      catch (e) { process.stderr.write(`faff env up: ${e.message}\n`); return 2; }
       fs.mkdirSync(path.dirname(out), { recursive: true });
       fs.writeFileSync(out, g.compose);
       plan = g.plan;
@@ -978,10 +999,39 @@ function envSelftest() {
   check("engine context: default socket when unset", envEngineContext() === "default socket");
   if (prevDockerHost !== undefined) process.env.DOCKER_HOST = prevDockerHost;
 
+  // FAFF-836 — envResolveBase precedence (pure, no validation) + CLI-seam re-base/failure via composeGen.
+  // (j) flag wins over config, config wins over the localhost default, absent-both ⇒ localhost.
+  check("resolveBase: flag wins over config", envResolveBase("10.0.0.7", { base_host: "10.0.0.8" }).host === "10.0.0.7");
+  check("resolveBase: config wins over default", envResolveBase(null, { base_host: "10.0.0.8" }).host === "10.0.0.8");
+  check("resolveBase: default localhost when neither set", envResolveBase(null, {}).host === "localhost");
+  check("resolveBase: default localhost when cfgEnv absent", envResolveBase(null, undefined).host === "localhost");
+  check("resolveBase: empty configured base_host falls through to default", envResolveBase(null, { base_host: "" }).host === "localhost");
+  check("resolveBase: performs no validation (malformed value passed through untouched)", envResolveBase("http://evil/", {}).host === "http://evil/");
+
+  // (k) the resolved base, fed into composeGen, re-bases the endpoint (non-default host, scheme+port kept).
+  const r836base = envResolveBase("10.0.0.5", {});
+  const r836 = composeGen(p1, "proj836", "/tmp/x/dc.yml", ov, r836base);
+  check("base836: --base-host re-bases app endpoint via composeGen", r836.plan.endpoints.app === "http://10.0.0.5:3000");
+  check("base836: --base-host re-bases datastore endpoint (tcp scheme + port kept)", r836.plan.endpoints.postgres === "tcp://10.0.0.5:5432");
+
+  // (l) a malformed --base-host, resolved then fed to composeGen, fails loud — no plan, no endpoint.
+  const r836bad = envResolveBase("http://evil/", {});
+  let r836badThrew = false, r836badPlan = null;
+  try { r836badPlan = composeGen(p1, "proj836", "/tmp/x/dc.yml", ov, r836bad); } catch { r836badThrew = true; }
+  check("base836: malformed --base-host fails loud via composeGen", r836badThrew && r836badPlan === null);
+
+  // (m) with no flag and no configured base, the resolved base + composeGen output stays byte-identical
+  // to today's localhost plan/compose (the regression floor).
+  const r836def = envResolveBase(null, {});
+  const r836defPlan = composeGen(p1, "proj836b", "/tmp/x/docker-compose.yml", ov, r836def);
+  const r836noArg = composeGen(p1, "proj836b", "/tmp/x/docker-compose.yml", ov);
+  check("base836: no flag/config ⇒ byte-identical compose to the no-base-arg default", r836defPlan.compose === r836noArg.compose);
+  check("base836: no flag/config ⇒ byte-identical plan to the no-base-arg default", JSON.stringify(r836defPlan.plan) === JSON.stringify(r836noArg.plan));
+
   if (failed) return 1;
   console.log("env --selftest: ok");
   return 0;
 }
 
 
-module.exports = { DATASTORE_TABLE, ENV_APP_PORT, ENV_DEFAULT_POLL_SECS, ENV_DEFAULT_SLA_SECS, ENV_SPEC, ENV_SURFACE, cmdEnv, composeGen, envAllHealthy, envBuildSql, envDatastoreKindForImage, envDockerAvailable, envDownArgs, envEngineContext, envImageAwareProbe, envMongoImport, envObjectUpload, envParsePs, envRedisLoad, envResolveAppOverride, envSelftest, envShortHash, envSqlLoad, escapeRegExp, extractAppOverride, healthPathFromTest, normaliseEnv, normalisePorts, parseComposeSubset, parseFlowSeq, realignDbHost, renderCompose, stripYamlInlineComment };
+module.exports = { DATASTORE_TABLE, ENV_APP_PORT, ENV_DEFAULT_POLL_SECS, ENV_DEFAULT_SLA_SECS, ENV_SPEC, ENV_SURFACE, cmdEnv, composeGen, envAllHealthy, envBuildSql, envDatastoreKindForImage, envDockerAvailable, envDownArgs, envEngineContext, envImageAwareProbe, envMongoImport, envObjectUpload, envParsePs, envRedisLoad, envResolveAppOverride, envResolveBase, envSelftest, envShortHash, envSqlLoad, escapeRegExp, extractAppOverride, healthPathFromTest, normaliseEnv, normalisePorts, parseComposeSubset, parseFlowSeq, realignDbHost, renderCompose, stripYamlInlineComment };

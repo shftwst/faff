@@ -338,6 +338,9 @@
       "admit": true,
       "reason": "serves the goal, within scope",
       "trace_to_goal": true,
+      "cited_goals": [],
+      "dod_covers": [],
+      "over_scope": false,
       "proposal": {
         "serves_goal": true,
         "within_scope": true,
@@ -347,7 +350,8 @@
       "challenge": {
         "ran": true,
         "overturns": false,
-        "reason": ""
+        "reason": "",
+        "ground": "other"
       },
       "grounding_present": false,
       "conformant": true,
@@ -363,6 +367,9 @@
       "admit": false,
       "reason": "no PRD-goal trace",
       "trace_to_goal": false,
+      "cited_goals": [],
+      "dod_covers": [],
+      "over_scope": false,
       "proposal": {
         "serves_goal": false,
         "within_scope": false,
@@ -372,7 +379,8 @@
       "challenge": {
         "ran": false,
         "overturns": false,
-        "reason": ""
+        "reason": "",
+        "ground": "other"
       },
       "grounding_present": false,
       "conformant": true,
@@ -388,6 +396,9 @@
       "admit": true,
       "reason": "x",
       "trace_to_goal": true,
+      "cited_goals": [],
+      "dod_covers": [],
+      "over_scope": false,
       "proposal": {
         "serves_goal": true,
         "within_scope": true,
@@ -397,12 +408,73 @@
       "challenge": {
         "ran": true,
         "overturns": true,
-        "reason": "gold-plating"
+        "reason": "gold-plating",
+        "ground": "other"
       },
       "grounding_present": false,
       "conformant": false,
       "violations": [
-        "admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns)"
+        "admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬over_scope ∧ (¬challenge.overturns ∨ (under-citation ∧ challenge.ground==over-scope)))"
+      ]
+    }
+  },
+  {
+    "contract": "prdr-yagni",
+    "name": "conformant-under-citation-admit",
+    "input": "{\"admit\":true,\"reason\":\"admit — mis-attributed under-citation\",\"trace_to_goal\":true,\"cited_goals\":[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\"],\"dod_covers\":[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"cites g1 but covers g1-5\",\"ground\":\"over-scope\"},\"grounding_present\":false}",
+    "expectExit": 0,
+    "expectStdout": {
+      "admit": true,
+      "reason": "admit — mis-attributed under-citation",
+      "trace_to_goal": true,
+      "cited_goals": ["g1", "g2", "g3", "g4", "g5"],
+      "dod_covers": ["g1", "g2", "g3", "g4", "g5"],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": ""
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "cites g1 but covers g1-5",
+        "ground": "over-scope"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prdr-yagni",
+    "name": "over-scope-admit-flagged-non-conformant",
+    "input": "{\"admit\":true,\"reason\":\"x\",\"trace_to_goal\":true,\"cited_goals\":[\"g1\"],\"dod_covers\":[\"g1\",\"analytics\"],\"over_scope\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\",\"ground\":\"other\"},\"grounding_present\":false}",
+    "expectExit": 1,
+    "expectStdout": {
+      "admit": true,
+      "reason": "x",
+      "trace_to_goal": true,
+      "cited_goals": ["g1"],
+      "dod_covers": ["g1", "analytics"],
+      "over_scope": true,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": ""
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": false,
+        "reason": "",
+        "ground": "other"
+      },
+      "grounding_present": false,
+      "conformant": false,
+      "violations": [
+        "admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬over_scope ∧ (¬challenge.overturns ∨ (under-citation ∧ challenge.ground==over-scope)))"
       ]
     }
   },

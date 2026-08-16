@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-813",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f1e9fe2774b5673b6bb38e9ca07711dc8c1de76e63eb0e1f85105d90cd3de739",
+    "branch": "faff-813-adversarial-review-entry-guards-no-op-main-when-invoked-via",
+    "pushed_at": "2026-08-16T03:26:08.111Z"
+  },
+  "updated_at": "2026-08-16T03:26:08.111Z"
+}

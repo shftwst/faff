@@ -8,6 +8,42 @@ is prepared so a human can launch the trial by following it; the trial has **not
 
 ## 0. Preflight — run 2026-07-12, from a normal (non-cage-launched) dev worktree
 
+> **Refresh 2026-08-16 (re-validated against current `main`).** The 2026-07-12 snapshot below has
+> gone stale in two directions. Treat this block as the current launch picture; treat the dated
+> table below it as historical prep-time evidence. Re-run the live preflight from inside the cage
+> at launch time regardless.
+>
+> **Resolved since prep.** Both dial-coherence gaps the 0b detail flagged as launch blockers are
+> now fixed in the repo config, so neither refuses a launch any longer:
+>
+> | Gate | 2026-07-12 | Current `main` |
+> |---|---|---|
+> | `slots.spec_review` | `faffter-noon-spec-review` (single-pass) | `faffter-dark-spec-review` (adversarial) |
+> | `gates.fallback` | `advisory` | `fail-closed` |
+>
+> **New launch gates this runbook predated.** `faff lights-out --check --json` from a dev worktree
+> today reports `proceed:false` on a different refusal set:
+>
+> - `host-socket`: the host docker socket `/var/run/docker.sock` is present, which voids the
+>   ADR-0010 host-isolation boundary (ADR-0041 decision 3). Launch now needs a bounded nested
+>   engine (rootless dind / podman / sysbox), or `autonomous.engine_bounded:true` to attest one.
+>   This is a genuine new precondition, not a dev-worktree artefact.
+> - `guardrail:budget`: reads `absent` at the launch reachability probe even though `budget.tokens`
+>   is set (3B). Diagnose this before launch; do not assume the config value alone satisfies the
+>   guardrail.
+> - `guardrail:container`: `container-check not_confirmed`, the expected "not inside the cage yet"
+>   condition, resolved by launching from the host-isolation container.
+>
+> **Surface drift (mechanical, non-blocking).** `SENTRY_INTERVENTIONS` on `main` is now
+> `["continue", "surface", "pause", "correct", "abort"]`: a `surface` rung was added between
+> `continue` and `pause`. `correct` still sits between `pause` and `abort`, so checkpoint 1
+> ("returns `correct`, not `pause`") is unchanged. Rebind the 0c table's ladder to the five-rung
+> form; the `correct` path itself needs no rebind. `corrective.js` and the `corrective` region are
+> still present on `main`.
+>
+> **PR staleness.** This PR branch is behind `main` by a large margin; rebase it before merge so
+> the committed runbook and the launch target agree.
+
 The spec's step 0 preflight was executed here to validate the runbook against the shipped
 surface. Two of the three checks are container/launch-posture-dependent and are expected to
 read differently once the human runs them from the actual cage-launched trial container;
@@ -111,7 +147,11 @@ with cause 'trial window needs human launch' — expected and by design."
 
 When a human is ready to run the trial:
 
-1. Resolve the two dial-coherence gaps above (or make and record the deliberate call not to).
+1. Clear the current launch gates (see the 2026-08-16 refresh at the top of §0; the two
+   dial-coherence gaps this step originally named are already resolved on `main`): stand the
+   run up inside a bounded nested engine (or set `autonomous.engine_bounded:true`) so the
+   `host-socket` refusal clears, and diagnose the `guardrail:budget` `absent` reading so a
+   budget ceiling actually registers at the probe.
 2. Create the seed issue from the draft in §1 (get its identifier, e.g. `FAFF-4NN`).
 3. Launch a bounded `faff lights-out` run from a cage-launched container carrying a well-formed
    `FAFF_INTEGRITY_BOUNDARY` declaration in pid-1 environ, with:

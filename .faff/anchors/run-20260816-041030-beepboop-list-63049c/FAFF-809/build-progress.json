@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-809",
+  "build": {
+    "status": "complete",
+    "diff_hash": "73d81784249002c4ca18fd4ada7fc5c6cd10908eeb18c17f4ebe5f39496fd815",
+    "branch": "faff-809-section-0a-plan-then-build-in-one-run-fall-through-to-drain",
+    "pushed_at": "2026-08-16T05:06:08.872Z"
+  },
+  "updated_at": "2026-08-16T05:06:08.872Z"
+}

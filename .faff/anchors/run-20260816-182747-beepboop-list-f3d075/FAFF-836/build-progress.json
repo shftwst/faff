@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-836",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7f0f14b2c757eabc3c333bf867bb6f6163f611c384c7fb7933e9f6287c7dfd87",
+    "branch": "faff-836-transport-neutral-routable-base-wiring-expose-env-basehost",
+    "pushed_at": "2026-08-16T19:36:21.373Z"
+  },
+  "updated_at": "2026-08-16T19:36:21.373Z"
+}

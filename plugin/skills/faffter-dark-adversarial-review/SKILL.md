@@ -289,6 +289,10 @@ On an **interactive (L2)** run — `autonomous` false — this section is inert:
 
 This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return the closed challenge-outcome vocabulary (canonical semantics: `faff contract adr-admission --describe`). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as the absent outcome (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
 
+## PRDR YAGNI Phase-2 overturn criterion
+
+When this engine challenges a loop-authored PRDR (the upper-gate Phase 2 — gateway → **Upper-gate (YAGNI) two-phase arbitration**), the **only** over-scope ground for overturning is genuine gold-plating: the DoD covers capability **beyond the PRD's declared goals** (`V ⊄ D`), or a cited goal is unserved. Covering **more declared goals than the PRDR cites is _not_ over-scope** — that is under-citation (a citation bug), supplied to the arbitration as `--dod-covers` and admitted deterministically. Classify every overturn with a closed-vocab **ground** (`over-scope` | `unserved` | `other`, fed as `--challenge-ground`) so the arbitration overrides only a *mis-attributed over-scope* overturn; an `unserved`/`other` overturn is always respected. No new judgement-seam — the under-citation/over-scope distinction is the CLI's deterministic set-test, not a refutation seam.
+
 ## Rules
 
 - Never agree with the primary review by default. Actively look for what it missed.

@@ -1,0 +1,31 @@
+{
+  "id": "prdr-yagni-002",
+  "kind": "prdr-yagni",
+  "fixture": {
+    "authored_prdr": {
+      "decision": "Add a `--dry-run` flag to `faff merge-gate`, and while implementing it, also add a general-purpose `faff merge-gate --explain <pr>` subcommand that renders a full historical timeline of every gate evaluation ever run against that PR (every past `--dry-run` and every real merge attempt), persisted to a new `.faff/merge-gate-history/<pr>.jsonl` log, plus a `--since <date>` filter and a `--format json|table` output toggle.",
+      "dod": [
+        "`faff merge-gate --pr <n> --dry-run` exits 0/1 per the floor decision without merging",
+        "Every `--dry-run` and real merge-gate evaluation appends an entry to `.faff/merge-gate-history/<pr>.jsonl`",
+        "`faff merge-gate --explain <pr>` renders the full timeline, respecting `--since` and `--format`"
+      ]
+    },
+    "prd_goals": [
+      "Operators can inspect why an autonomous build is/isn't merge-eligible without risking an accidental merge",
+      "The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility"
+    ],
+    "phase1_proposal": {
+      "serves_goal": true,
+      "within_scope": true,
+      "verdict": "admit",
+      "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+    }
+  },
+  "question": "Given the loop-authored PRDR, its PRD goals, and the Phase-1 yagni-judge proposal, does the PRDR over-scope the goals (or leave a cited goal unserved), warranting an overturn?",
+  "oracle": {
+    "closed_set": [
+      "overturned"
+    ]
+  },
+  "_comment": "SHOULD BE OVERTURNED: the PRD goal is a single, bounded capability — inspect the CURRENT merge-gate decision without risking a merge. The PRDR quietly grows this into a persistent historical audit log, a new on-disk artifact (`.faff/merge-gate-history/<pr>.jsonl`), a query subcommand with date filtering, and a second output format — none of which any declared goal asks for. This is genuine gold-plating: capability beyond the PRD's declared goals (V ⊄ D), riding in on the coattails of a legitimately-scoped `--dry-run` flag. The Phase-1 'natural extension' reasoning is exactly the over-scope creep a Phase-2 challenge exists to catch."
+}

@@ -1,6 +1,6 @@
 # ADR 0112 — Under-citation vs over-scope is a deterministic set-test in the pure YAGNI arbitration
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-16
 - **Issue:** FAFF-815

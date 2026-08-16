@@ -1,6 +1,6 @@
 # ADR 0113 — Phase-2 YAGNI challenge carries a closed-vocab ground gating the under-citation admit
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-16
 - **Issue:** FAFF-815

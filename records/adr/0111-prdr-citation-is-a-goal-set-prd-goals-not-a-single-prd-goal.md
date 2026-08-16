@@ -1,6 +1,6 @@
 # ADR 0111 — PRDR citation is a goal set (PRD-goals), not a single PRD-goal
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-16
 - **Issue:** FAFF-815

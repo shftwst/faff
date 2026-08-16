@@ -264,8 +264,11 @@ test("probeServes probe shape: --hook --root <empty tmpdir> exits 0 fast and nev
 // ---------------------------------------------------------------------------
 
 test("FAFF-472 Scenario 2: tripped consult with andon.url configured -> `andon send` pages exactly once, writing NO state to the foreign run dir", async (t) => {
+  // FAFF-798: the andon page is now gated on actsOnSentryAbort(ledger, cfg), so this
+  // "still pages" fixture declares an ACTING run (level:"L4") — the L4 short-circuit
+  // arms acting before cfg is read, so it pages exactly as before the gate.
   const { root, runDir, ledgerBytes } = rootWith({
-    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    run_id: "RUN-LIVE", level: "L4", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const before = ledgerBytes();
@@ -307,8 +310,10 @@ test("FAFF-472: andon.url unset -> tripped consult still writes the existing adv
 });
 
 test("FAFF-472: an andon webhook failure never changes the hook's exit-0 contract or the advisory stderr line", async (t) => {
+  // FAFF-798: acting run (level:"L4") so the gated andon block is reached and the
+  // delivery-failure path is genuinely exercised under the gate.
   const { root, runDir } = rootWith({
-    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    run_id: "RUN-LIVE", level: "L4", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
   const { posts, url } = await loopbackServer(t, (req, res) => { res.writeHead(500); res.end("nope"); });
@@ -338,5 +343,73 @@ test("FAFF-472: a non-tripped consult (ok) never calls andon send", async (t) =>
     assert.equal(r.code, 0);
     assert.equal(r.err.trim(), "", "a consulted-but-clean verdict stays fully silent");
     assert.equal(posts.length, 0, "andon is never paged for a clean verdict");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-798 — gate the andon page on actsOnSentryAbort(ledger, cfg), mirroring the
+// poller (sentry-poller.js:243-246/285-318). An advisory-only (attended /
+// non-declared) trip surfaces the stderr trippedNotice but must NOT page; an L4 or
+// config-declared-unattended trip still pages. The stderr advisory (line 171) is
+// never gated. These tests read symmetrically to the poller oracle
+// (test/sentry-poller.test.mjs:271 attended → no act/no page; :297 declared → page).
+// ---------------------------------------------------------------------------
+
+test("FAFF-798: advisory trip (running + stale + tripped, no level, no acting config) writes the advisory but pages NO andon", async (t) => {
+  // The primary new coverage: actsOnSentryAbort is false (no L4 level, no
+  // autonomous.unattended / sentry_acting), so the gated andon block is skipped
+  // even though andon.url IS configured — proving the gate, not a missing url,
+  // suppresses the page. Mirrors the poller oracle at test/sentry-poller.test.mjs:271.
+  const { root } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
+  });
+  const { posts, url } = await loopbackServer(t);
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\n`);
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "hook mode always exits 0");
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/, "the advisory stderr notice fires on every trip, gated or not");
+    assert.match(r.err, /wall-clock-runaway/, "the advisory still names the tripped signal");
+    assert.equal(posts.length, 0, "an advisory-only trip pages NO andon (the FAFF-798 fix)");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-798: a declared-unattended (autonomous.unattended) trip pages exactly once even with no ledger level", async (t) => {
+  // The declaredUnattendedFromConfig(cfg) disjunct of the gate: no L4 level, but the
+  // resolved .faffrc declares autonomous.unattended → acting armed → pages. Mirrors
+  // the poller oracle at test/sentry-poller.test.mjs:297.
+  const { root } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
+  });
+  const { posts, url } = await loopbackServer(t);
+  writeFileSync(join(root, ".faffrc.yaml"), `andon:\n  url: ${url()}\nautonomous:\n  unattended: true\n`);
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0);
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/);
+    assert.equal(posts.length, 1, "a declared-unattended run still pages (config TRUE disjunct)");
+    assert.match(posts[0].body, /RUN-LIVE/, "the page carries the run id");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-798: a cfg-load fault on a non-L4 trip fails safe to no page, advisory still fires", async (t) => {
+  // readGovernanceConfig throws base-parse-error on a malformed base .faffrc.yaml
+  // (a root-level sequence is a non-map → strict parse failure). The hook's
+  // try/catch resolves cfg = {}, so actsOnSentryAbort is false for the non-L4 run
+  // → no page — the safe direction — while the unconditional advisory still fires
+  // and the hook never throws (always exit 0).
+  const { root } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
+  });
+  const { posts } = await loopbackServer(t);
+  writeFileSync(join(root, ".faffrc.yaml"), "- a\n- b\n"); // malformed base → readBaseConfigStrict throws
+  try {
+    const r = await runAsync(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "the hook never throws on a config fault — always exit 0");
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/, "the advisory still fires on a cfg fault");
+    assert.equal(posts.length, 0, "a cfg-load fault fails safe toward silence — no page");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

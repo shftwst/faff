@@ -1,0 +1,57 @@
+{
+  "level": "L3",
+  "run_id": "run-20260816-085541-beepboop-list-42bdab",
+  "admitted": [
+    "FAFF-815",
+    "FAFF-798",
+    "FAFF-791"
+  ],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "tokens_at_start": 8878956,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "77efca34-4095-46cb-91b3-79d62685b98f",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 83,
+        "output": 57672,
+        "cache_write": 684343,
+        "cache_read": 8136858
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786870644388,
+      "reset_epoch": 1786888644388,
+      "tokens_at_anchor": 2638320
+    },
+    "tokens_at_last_event": {
+      "input": 2169,
+      "output": 93803,
+      "cache_write": 717533,
+      "cache_read": 12186200
+    }
+  },
+  "owner": {
+    "status": "aborted-resumable",
+    "pid": 795,
+    "session_id": "run-20260816-085541-beepboop-list-42bdab",
+    "started_at": "2026-08-16T08:55:41Z",
+    "last_heartbeat": "2026-08-16T08:55:41Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "abort": {
+    "status": "aborted-resumable",
+    "at": "2026-08-16T09:36:49.174Z"
+  }
+}

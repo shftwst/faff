@@ -22,6 +22,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const { loadConfig } = require("./config");
+const { parseProfileInput } = require("./profile");   // FAFF-840: fence-tolerant profile-file read
 const ENV_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--root": { arity: 1 },
   "--base-host": { arity: 1 }, "--manifest": { arity: 1 }, "--out": { arity: 1 }, "--plan": { arity: 1 }, "--poll-secs": { arity: 1 },
@@ -663,7 +664,7 @@ function cmdEnv(args) {
     if (pf) {
       let raw; try { raw = fs.readFileSync(pf, "utf8"); }
       catch { process.stderr.write(`faff env ${label}: cannot read --profile ${pf}\n`); return { err: 2 }; }
-      try { return { profile: JSON.parse(raw) }; }
+      try { return { profile: parseProfileInput(raw) }; }
       catch { process.stderr.write(`faff env ${label}: malformed profile JSON in ${pf}\n`); return { err: 2 }; }
     }
     const profPath = path.join(root, ".faff", "infra-profile.json");
@@ -671,7 +672,7 @@ function cmdEnv(args) {
       process.stderr.write(`faff env ${label}: no --profile and no .faff/infra-profile.json (run \`faff profile mine --json > .faff/infra-profile.json\`)\n`);
       return { err: 3 };
     }
-    try { return { profile: JSON.parse(fs.readFileSync(profPath, "utf8")) }; }
+    try { return { profile: parseProfileInput(fs.readFileSync(profPath, "utf8")) }; }
     catch { process.stderr.write(`faff env ${label}: malformed .faff/infra-profile.json\n`); return { err: 2 }; }
   };
   const defaultProject = (profile) =>
@@ -1027,6 +1028,36 @@ function envSelftest() {
   const r836noArg = composeGen(p1, "proj836b", "/tmp/x/docker-compose.yml", ov);
   check("base836: no flag/config ⇒ byte-identical compose to the no-base-arg default", r836defPlan.compose === r836noArg.compose);
   check("base836: no flag/config ⇒ byte-identical plan to the no-base-arg default", JSON.stringify(r836defPlan.plan) === JSON.stringify(r836noArg.plan));
+
+  // FAFF-840: the --profile file read is fence-tolerant — a fenced `profile mine` output and its
+  // raw `--json` equivalent parse to the same profile object via the shared parseProfileInput.
+  const p840 = { schema: 1, acquired_at: "t", acquired_by: "x", datastores: [{ kind: "postgres", evidence: "docker-compose.yml" }], deploy_targets: [] };
+  const p840Json = JSON.stringify(p840);
+  const p840Fenced = "```faff-contract:infra-profile\n" + p840Json + "\n```\n";
+  check("FAFF-840: fenced profile parses to same object as raw", JSON.stringify(parseProfileInput(p840Fenced)) === JSON.stringify(parseProfileInput(p840Json)));
+  let p840MalformedThrew = false;
+  try { parseProfileInput("not json at all"); } catch { p840MalformedThrew = true; }
+  check("FAFF-840: malformed (non-fenced) profile input throws", p840MalformedThrew);
+
+  // FAFF-840 (end-to-end): `compose-gen --profile <fenced file>` exits 0 through the real CLI —
+  // the documented `profile mine > profile.json | compose-gen` pipe, exercised for real.
+  const p840Dir = path.join("/tmp", "faff-840-selftest");
+  // Adversarial review finding: a stale file from a prior killed-mid-write run could otherwise
+  // mask a fresh failure (the test would read old content, not what this run just wrote).
+  fs.rmSync(p840Dir, { recursive: true, force: true });
+  fs.mkdirSync(p840Dir, { recursive: true });
+  const p840FencedFile = path.join(p840Dir, "fenced-profile.json");
+  const p840RawFile = path.join(p840Dir, "raw-profile.json");
+  fs.writeFileSync(p840FencedFile, p840Fenced);
+  fs.writeFileSync(p840RawFile, p840Json);
+  const p840Out = path.join(p840Dir, "docker-compose.yml");
+  const runComposeGen = (profileFile) => spawnSync(process.execPath,
+    [ENTRYPOINT, "env", "compose-gen", "--profile", profileFile, "--project", "faff840selftest", "--out", p840Out],
+    { encoding: "utf8" });
+  const p840FencedRun = runComposeGen(p840FencedFile);
+  check("FAFF-840: compose-gen --profile <fenced> exits 0 via the real CLI", p840FencedRun.status === 0);
+  const p840RawRun = runComposeGen(p840RawFile);
+  check("FAFF-840: compose-gen --profile <raw> still exits 0 (no regression)", p840RawRun.status === 0);
 
   if (failed) return 1;
   console.log("env --selftest: ok");

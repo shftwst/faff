@@ -13,6 +13,11 @@ import { fileURLToPath } from "node:url";
 import { actsOnSentryAbort, actsOnSentryPause, sentryActingFromConfig, declaredUnattendedFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
 import { readGovernanceConfig } from "../plugin/skills/faff/bin/lib/budget.js";
 import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
+// FAFF-511: build a REAL schema-2 chained events.jsonl (+ a chained ledger-write) —
+// mirrors test/events-chain.test.mjs's helpers, so the reconcile-check tests below
+// exercise the actual verifyChain path, never a hand-rolled fake chain.
+import { appendRecordUnderLock } from "../plugin/skills/faff/bin/lib/events.js";
+import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 // FAFF-441: the sentry implementation now lives in its own module; source-structure
@@ -989,6 +994,11 @@ test("FAFF-466 Scenario 2: unasserted (the common, no-declaration case, NO overr
     // — detection_trust is annotate-only; it changes nothing about verdict evaluation.
     assert.equal(out.intervention, "pause", "thrash trip, unchanged by detection_trust — annotate-only per Scenario 2");
     assert.equal(out.authority, "channel-D-only");
+    // FAFF-511: reconcile_check now rides the same payload as a sibling of
+    // detection_trust — its presence/value must NEVER perturb the predicate verdict
+    // this test pins above (D3 surface-only floor).
+    assert.equal(out.reconcile_check.checked, true, "reconcile-only + a run dir present ⇒ the walk runs");
+    assert.equal(out.intervention, "pause", "reconcile_check's presence changes nothing about the pinned intervention");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -1012,6 +1022,205 @@ test("FAFF-466: a malformed-but-parseable --detection-json reply (trusted:'yes',
     const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
       "--detection-json", JSON.stringify({ trusted: "yes", disposition: "trusted", basis: "asserted" })]).out);
     assert.equal(out.detection_trust.trusted, false, "only a strict === true on the reply's `trusted` field ever asserts trust");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ===========================================================================
+// FAFF-511: the annotate floor for the `reconcile-only` disposition — a network-free
+// `reconcile_check` field, derived ONLY from events.js's `verifyChain`, attached to the
+// `--json` payload as a sibling of `detection_trust`. D3 (chosen): surface-only — never
+// consulted by evaluateDerailment, so predicate verdicts/intervention stay byte-identical
+// regardless of what it reports. D5 (chosen): accept-and-document the vector-4b residual
+// (FAFF-847 follow-up).
+//
+// D4 build-time wall-time measurement (recorded here per the DoD, informational — not a
+// pass/fail perf gate; wall-clock assertions in CI are flaky by nature): a synthetic
+// schema-2 chain was generated at 500 / 2,000 / 5,000 / 20,000 events (up to ~7.1MB) and
+// `sentry check --json` timed end-to-end, isolating the walk's own cost via the
+// `--detection-json {trusted:true}` hermetic seam (which skips the walk entirely) as the
+// baseline. Measured walk overhead: ~80ms at 500 events, ~270ms at 2,000, ~355ms at
+// 5,000, ~400ms at 20,000 — growing with events.jsonl's total accumulated size. Verdict:
+// WITHIN the hot-path budget — small in absolute terms against the primary caller's
+// (sentry-poller) 90-second default interval, and against this repo's own live run sizes
+// (kilobytes, not megabytes). D4 (chosen): per-checkpoint, UNCACHED — the direction ships
+// as specified with no fallback needed. A once-per-run size+mtime cache was prototyped
+// and deliberately rejected: (1) it required `sentry check` — READ-ONLY by design — to
+// write a new sidecar file into the run dir, breaking the closed-file-set invariant the
+// FAFF-327/FAFF-553 integration smoke test (below) asserts; (2) mtime granularity proved
+// too coarse to guarantee a genuine same-millisecond tamper always changes the cache key
+// — i.e. it could produce a FALSE cache hit that masks a real substrate divergence,
+// disqualifying on a check whose entire job is not missing tamper. See sentry.js's
+// sentryReconcileCheck comment for the full writeup.
+// ===========================================================================
+
+// Build a run dir with a REAL schema-2 chain (via events.js's appendRecordUnderLock,
+// never a hand-rolled fake) plus a matching ledger written through atomicWriteLedger
+// (heartbeat.js) — so the trailing ledger-write event's recorded ledger_sha256 genuinely
+// matches the on-disk run-ledger.json bytes, exactly like a real run's substrate.
+function mkChainedRun(dir, runId, { admitted = ["A"], eventTypes = ["build-start", "build-start"] } = {}) {
+  const rd = join(dir, ".faff", "runs", runId);
+  mkdirSync(rd, { recursive: true });
+  atomicWriteLedger(rd, { run_id: runId, admitted, outcomes: {}, owner: { status: "running", started_at: new Date().toISOString(), last_heartbeat: new Date().toISOString() } });
+  for (const type of eventTypes) {
+    appendRecordUnderLock(rd, (seq, _prev, prevHash) => ({ schema: 2, run_id: runId, seq, ts: new Date().toISOString(), prev: prevHash, phase: "build", type, issue: admitted[0] || "A" }));
+  }
+  // A trailing ledger-write, chained, whose data.ledger_sha256 matches the CURRENT
+  // on-disk run-ledger.json — the honest, unrewritten baseline eventsLedgerFold expects.
+  atomicWriteLedger(rd, { run_id: runId, admitted, outcomes: {}, owner: { status: "running", started_at: new Date().toISOString(), last_heartbeat: new Date().toISOString() } });
+  return rd;
+}
+
+test("FAFF-511: structural guard — the reconcile-check path (sentryReconcileCheck) spawns NO subprocess at all (the pure-evaluator invariant) — scoped to that function's own body, since sentry.js's UNRELATED `abort` sub-verb legitimately spawns git for its own WIP-commit park-protocol machinery", () => {
+  const src = readFileSync(SENTRY_SRC, "utf8");
+  const fnStart = src.indexOf("function sentryReconcileCheck(");
+  assert.ok(fnStart > 0, "sentryReconcileCheck is present");
+  const fnEnd = src.indexOf("\n}\n", fnStart);
+  const fnBody = src.slice(fnStart, fnEnd);
+  assert.ok(!/spawnSync|execFileSync|"gh"|"git"|require\("child_process"\)/.test(fnBody),
+    "sentryReconcileCheck's own body issues no subprocess spawn of any kind — its only external call is the plain, network-free verifyChain(runDir)");
+  assert.ok(/verifyChain\(runDir\)/.test(fnBody), "the reconcile-check path pulls its result from verifyChain — never a re-derived/hand-rolled reconciler");
+  assert.ok(/require\("\.\/events"\)/.test(src), "verifyChain is reached via a plain, network-free require of events.js — never a child spawn");
+});
+
+test("FAFF-511 Scenario 1 (spec §5): reconcile-only + an intact substrate (real schema-2 chain, matching ledger fold) → reconcile_check.checked=true, status='verified', ledger_fold='match'", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "R1");
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.detection_trust.disposition, "reconcile-only", "no real pid-1 declaration in this sandbox");
+    assert.deepEqual(out.reconcile_check, { checked: true, status: "verified", first_break: null, ledger_fold: "match" });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-511 Scenario 2 / D3 (spec §5): a same-uid run-ledger.json rewrite (bypassing the sanctioned atomicWriteLedger path) → reconcile_check.status='broken' with ledger_fold='mismatch', derived with NO gh/git/MCP subprocess, and predicate verdicts/intervention BYTE-IDENTICAL to the intact-substrate baseline (the D3 surface-only floor — no pause/abort at the annotate floor)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "R2");
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(before.reconcile_check.status, "verified");
+
+    // The same-uid bypass: fs.writeFileSync directly, never through atomicWriteLedger —
+    // exactly what a same-uid build lane forging ADR-0034's vectors 3/4/5/6 looks like.
+    const ledgerPath = join(rd, "run-ledger.json");
+    const ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
+    ledger.admitted = [...ledger.admitted, "INJECTED"];
+    writeFileSync(ledgerPath, JSON.stringify(ledger, null, 2) + "\n");
+
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.reconcile_check.status, "broken");
+    assert.equal(after.reconcile_check.ledger_fold, "mismatch");
+    assertSameVerdicts(before.verdicts, after.verdicts, "D3: predicate verdicts are BYTE-IDENTICAL despite the detected substrate divergence");
+    assert.equal(after.intervention, before.intervention, "D3: intervention is BYTE-IDENTICAL — no pause/abort at the annotate floor");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-511 Scenario 3 / vectors 2,7 (spec §5): a mid-log truncation/rewrite of a build-start event → reconcile_check.status='broken' with a non-null first_break pointing at the tampered line, and no network I/O occurred", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "R3", { eventTypes: ["build-start", "build-start", "build-start"] });
+    const log = join(rd, "events.jsonl");
+    const lines = readFileSync(log, "utf8").split("\n");
+    // Tamper the SECOND record's content in place (same shape, different bytes) — the
+    // record immediately AFTER it is the first whose prev no longer matches (mirrors
+    // test/events-chain.test.mjs's mid-line-tamper convention).
+    const rec = JSON.parse(lines[1]);
+    rec.issue = "TAMPERED";
+    lines[1] = JSON.stringify(rec);
+    writeFileSync(log, lines.join("\n"));
+
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.reconcile_check.status, "broken");
+    assert.ok(out.reconcile_check.first_break && Number.isInteger(out.reconcile_check.first_break.line),
+      "first_break names the line where the chain broke");
+    assert.equal(out.reconcile_check.first_break.line, 3, "the record AFTER the tampered line (line 2) is the first mismatch");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-511 Scenario 4 / D5 (spec §5): a genuinely-stalled run that only ever wrote through the SANCTIONED `faff heartbeat` CLI (FAFF-355 vector 4b — a chain-clean legitimate write) still yields reconcile_check.status='verified' — the network-free check gives this vector ZERO coverage, documented as the accepted-open residual (follow-up FAFF-847), not a bug", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "R4");
+    // The sanctioned write path — a real `faff heartbeat` invocation, chain-clean by
+    // construction (it goes through the same locked, chained append core as any other
+    // legitimate event write).
+    const hbOut = run(dir, ["heartbeat", rd, "--unit", "A"]);
+    assert.equal(hbOut.code, 0, "the sanctioned heartbeat CLI succeeds");
+
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.reconcile_check.status, "verified",
+      "D5: a legitimate sanctioned-path write while genuinely stalled is indistinguishable from an honest run — zero coverage by design, not a defect");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-511: `disposition = trusted` yields reconcile_check.checked=false with NO chain-walk performed — even over a substrate that WOULD report broken, proving the walk is genuinely skipped, not merely under-reported", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "R5");
+    // Break the substrate first...
+    const ledgerPath = join(rd, "run-ledger.json");
+    writeFileSync(ledgerPath, JSON.stringify({ run_id: "R5", admitted: ["X"], outcomes: {} }, null, 2) + "\n");
+    // ...then assert a TRUSTED disposition never even looks.
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--detection-json", JSON.stringify({ trusted: true, disposition: "trusted", basis: "asserted" })]).out);
+    assert.deepEqual(out.reconcile_check, { checked: false });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-511: an empty surface (no run dir requested, none found) yields reconcile_check.checked=false — mirrors the existing empty-surface path", () => {
+  const dir = tmp();
+  try {
+    // Explicitly clear $FAFF_RUN_DIR — an ambient run dir set in THIS process's own
+    // environment (e.g. a live orchestrator session) would otherwise leak into the
+    // spawned child via inherited env and defeat "none found" (mirrors the same
+    // precaution the pre-existing FAFF-425 "no run at all" test needs in this sandbox).
+    const out = JSON.parse(execFileSync("node", [CLI, "sentry", "check", "--json"],
+      { cwd: dir, encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "" } }).trim());
+    assert.deepEqual(out.reconcile_check, { checked: false });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-511 edge case: a malformed substrate (corrupt mid-file JSON, not an honest torn tail) degrades reconcile_check.status to 'malformed' — `sentry check` does NOT die, and continues on to predicate evaluation (verdicts still present, exit 0)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "R6", { eventTypes: ["build-start", "build-start"] });
+    const log = join(rd, "events.jsonl");
+    const lines = readFileSync(log, "utf8").split("\n").filter((l) => l.trim() !== "");
+    lines.splice(1, 0, "{ this is not valid JSON and not a torn tail either");
+    writeFileSync(log, lines.join("\n") + "\n"); // a trailing newline makes the garbage line NOT the torn tail
+
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json"]);
+    assert.equal(r.code, 0, "sentry check still exits 0 on a malformed substrate");
+    const out = JSON.parse(r.out);
+    assert.equal(out.reconcile_check.status, "malformed");
+    assert.ok(Array.isArray(out.verdicts), "predicate evaluation still ran and produced a verdicts array — the check did not die");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- Integration smoke test (spec §8 DoD) -------------------------------------------
+
+test("FAFF-511 integration smoke test (spec §8 DoD, verbatim): reconcile-only + intact chain → verified; a direct run-ledger.json rewrite → broken/mismatch; verdicts/intervention byte-identical across both; no subprocess spawned by the reconcile-check path", () => {
+  const dir = tmp();
+  try {
+    const rd = mkChainedRun(dir, "SMOKE");
+
+    const step2 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(step2.detection_trust.disposition, "reconcile-only");
+    assert.equal(step2.reconcile_check.checked, true);
+    assert.equal(step2.reconcile_check.status, "verified");
+
+    const ledgerPath = join(rd, "run-ledger.json");
+    const ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
+    writeFileSync(ledgerPath, JSON.stringify({ ...ledger, admitted: [...ledger.admitted, "BYPASS"] }, null, 2) + "\n");
+
+    const step4 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(step4.reconcile_check.status, "broken");
+    assert.equal(step4.reconcile_check.ledger_fold, "mismatch");
+    assertSameVerdicts(step2.verdicts, step4.verdicts, "verdicts/intervention byte-identical (D3 surface-only floor)");
+    assert.equal(step4.intervention, step2.intervention);
+
+    // No new file appears in the run dir as a side effect of the check (READ-ONLY, D4:
+    // uncached — see the FAFF-327/FAFF-553 closed-file-set invariant this must not break).
+    assert.deepEqual(readdirSync(rd).sort(), ["events.jsonl", "run-ledger.json"]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

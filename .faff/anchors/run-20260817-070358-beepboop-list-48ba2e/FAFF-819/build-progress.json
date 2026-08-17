@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-819",
+  "build": {
+    "status": "complete",
+    "diff_hash": "67c4a03df1f0d780565a6f47a097f78ac4b8cac3d9877f15a2c0501ea6ad9ec9",
+    "branch": "faff-819-publish-immutable-phase-0-recovery-bundles-from-current",
+    "pushed_at": "2026-08-17T09:33:59.372Z"
+  },
+  "updated_at": "2026-08-17T09:33:59.372Z"
+}

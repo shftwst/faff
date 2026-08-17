@@ -24,8 +24,10 @@ const { cmdAudit } = require("./lib/audit");
 const { cmdBackgroundFence } = require("./lib/background-fence");
 const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
 const { cmdBudget } = require("./lib/budget");
+const { cmdBundle } = require("./lib/bundle");
 const { cmdCiTriage } = require("./lib/ci-triage");
 const { cmdClaimVerdict } = require("./lib/claim-verdict");
+const { cmdParkVerdict } = require("./lib/park-verdict");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
@@ -37,7 +39,7 @@ const { cmdIntegrityDigest } = require("./lib/integrity-digest");
 const { cmdDecisions } = require("./lib/decisions");
 const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
-const { cmdBuildProgress, cmdEffects, cmdReviewProgress } = require("./lib/effects");
+const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = require("./lib/effects");
 const { cmdEffort } = require("./lib/effort");
 const { cmdEligible } = require("./lib/eligible");
 const { cmdEngine } = require("./lib/engine");
@@ -137,6 +139,7 @@ const COMMANDS = {
   "label": cmdLabel,
   "eligible": cmdEligible,
   "claim-verdict": cmdClaimVerdict,
+  "park-verdict": cmdParkVerdict,
   "admissible": cmdAdmissible,
   "dod": cmdDod,
   "holdout": cmdHoldout,
@@ -146,6 +149,7 @@ const COMMANDS = {
   "corrective-integrity": cmdCorrectiveIntegrity,
   "integrity-boundary": cmdIntegrityBoundary,
   "integrity-digest": cmdIntegrityDigest,
+  "bundle": cmdBundle,
   "corrective": cmdCorrective,
   "merge-gate": cmdMergeGate,
   "branch-protection-check": cmdBranchProtectionCheck,
@@ -179,6 +183,7 @@ const COMMANDS = {
   "effects": cmdEffects,
   "review-progress": cmdReviewProgress,
   "build-progress": cmdBuildProgress,
+  "landing-progress": cmdLandingProgress,
   "sentry": cmdSentry,
   "sentry-poller": cmdSentryPoller,
   "sentrycheck": cmdSentrycheck,

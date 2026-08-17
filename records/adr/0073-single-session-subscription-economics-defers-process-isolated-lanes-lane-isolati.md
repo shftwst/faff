@@ -1,6 +1,7 @@
 # ADR 0073 — Single-session subscription economics defers process-isolated lanes; lane isolation is a portability-era decision
 
 - **Status:** Accepted
+- **Amended:** 2026-08-17 — ADR-0114 (FAFF-833) promotes decision 5's sanctioned digest-bracketing rung to a granted basis for corrective Channel A at a narrowed detective authority. The deferral of the mount and the ban on any rung feeding `FAFF_INTEGRITY_BOUNDARY` both stay in force.
 - **Date:** 2026-07-15
 
 ## Context

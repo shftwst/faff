@@ -100,6 +100,10 @@ const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
 const { CONTAIN_ROOT, ENTRYPOINT, dig, findRoot, latestRunDir, parseAncestry, readLedger, resolveLedgerOrFault, subtreeContains } = require("./shared-infra");
 const { parseArgs, usageError } = require("./argv");
+// FAFF-511: the annotate floor's substrate-integrity cross-check. events.js requires
+// only shared-infra (no back-reference to sentry.js), so this is a plain, acyclic
+// require — never a self-spawned child (verifyChain is PURE and network-free).
+const { verifyChain } = require("./events");
 // Union spec over both sub-verbs (check | abort). --budget-json / --detection-json /
 // --member-beats-json / --authority / --now-ms / --now are hermetic test-only seams.
 const SENTRY_SPEC = { flags: {
@@ -108,8 +112,12 @@ const SENTRY_SPEC = { flags: {
   "--budget-json": { arity: 1 }, "--detection-json": { arity: 1 }, "--member-beats-json": { arity: 1 },
   "--authority": { arity: 1 }, "--now": { arity: 1 }, "--now-ms": { arity: 1 },
   "--issue": { arity: 1 }, "--signal": { arity: 1 }, "--worktree": { arity: 1 },
+  // FAFF-608: verb-owned markdown summary renderer, mirroring governance-check's
+  // --summary-md — applies to `check` only (`abort` ignores it, the flag is declared
+  // once in this union spec exactly as the other check-only flags above are).
+  "--summary-md": { arity: 1 },
 }, positionals: { min: 0, max: 1, name: "verb" } };
-const SENTRY_USAGE = "usage: faff sentry check|abort [--run-dir DIR] [--root DIR] [--json] [--forbidden-side-effect] [--issue ID] [--signal S] [--worktree DIR]";
+const SENTRY_USAGE = "usage: faff sentry check|abort [--run-dir DIR] [--root DIR] [--json] [--forbidden-side-effect] [--issue ID] [--signal S] [--worktree DIR] [--summary-md FILE]";
 // FAFF-628 — declared grammar. `--run-dir` resolves through a three-source fallback chain
 // (flag → $FAFF_RUN_DIR → latestRunDir) rather than a flat required-flag check — conditional
 // requiredness stays out of scope (spec §2) — so neither sub-verb declares a required flag.
@@ -819,6 +827,72 @@ function sentryReadDetectionIntegrity(runDir) {
   }
 }
 
+// FAFF-511 (D4): build-time wall-time measurement + the caching-fallback decision. The
+// chosen DIRECTION is per-checkpoint (every `sentry check` invocation re-walks fresh —
+// no cadence change). The measurement it depends on (recorded in full, with numbers, in
+// the FAFF-511 PR body and in the comment above the FAFF-511 test block in
+// sentry.test.mjs): a synthetic schema-2 chain at 500 / 2,000 / 5,000 / 20,000 events
+// (up to ~7.1MB) showed the walk's own cost (isolated from `sentry check`'s existing
+// per-invocation node-startup + two child-spawn overhead via the `--detection-json`
+// hermetic seam, which is unrelated pre-existing cost) growing from ~80ms to ~400ms
+// across that range — real, but SMALL in absolute terms against the primary caller's
+// (sentry-poller) 90-second default interval (FAFF-49, DEFAULT_INTERVAL_SECS), and
+// small against realistic run sizes (this repo's own live runs' events.jsonl is
+// kilobytes, not megabytes). VERDICT: measurement is WITHIN the hot-path budget — no
+// caching fallback is shipped. A once-per-run size+mtime-keyed cache was prototyped and
+// deliberately NOT shipped for two independent reasons, either alone sufficient to
+// reject it: (1) it requires `sentry check` — a READ-ONLY verb by design (see this
+// file's header: "READS ... WITHOUT mutating it") — to start writing a new sidecar file
+// into the run dir on every reconcile-only invocation, which collides with the existing
+// closed-file-set invariant test/sentry.test.mjs's FAFF-327/FAFF-553 integration smoke
+// test asserts (`readdirSync(rd)` — an exhaustive, deliberate list); (2) filesystem
+// mtime granularity is not fine enough to guarantee a genuine same-millisecond
+// substrate rewrite always produces a distinct cache key — a FALSE cache hit on a real
+// tamper is exactly the false-negative a substrate-integrity check must never produce.
+// Both are disqualifying on a Phase-0 floor: this build stays simple and correct over
+// prematurely optimizing an already-small cost. If a future run's events.jsonl genuinely
+// grows large enough to matter, the caching direction remains available as a follow-up
+// with a stronger invalidation key (e.g. content hash) — not reopened here.
+
+// FAFF-511: the annotate floor for the `reconcile-only` detection case — a network-free
+// substrate-integrity cross-check attached to the `--json` payload as a sibling of
+// `detection_trust`. D1 (chosen): approach (iii) — reuse the already-built, already-
+// CLI-tested `verifyChain` (events.js) rather than inventing a new reconciler; NO
+// gh/git/MCP subprocess anywhere in this path (the pure-evaluator invariant). D2
+// (chosen): one substrate-integrity walk covers all four Sentry-1 predicates' on-disk
+// reads — never a per-predicate semantic re-derivation. D3 (chosen): SURFACE-ONLY floor
+// — this function's result rides the payload only; it is never consulted by
+// evaluateDerailment, so predicate verdicts/intervention stay byte-identical regardless
+// of what it returns. D4 (chosen): per-checkpoint, uncached — see the measurement note
+// immediately above.
+//
+// `checked: false` (no walk performed) when:
+//   - disposition !== "reconcile-only" (a `trusted` covering declaration needs no
+//     reconcile — the declaration already vouches for the substrate), or
+//   - there is no run dir to walk (empty surface / no run requested — mirrors the
+//     existing empty-surface path).
+//
+// A `verifyChain` throw must never take `sentry check` down with it (mirrors FAFF-577's
+// config-fault degrade-loud posture and FAFF-425's indeterminate-not-silent posture):
+// degrade to `status: "malformed"` and let the check body continue to predicate
+// evaluation — never silently coerced into "verified" and never a crash.
+//
+// NEVER let a `verified` result be read as proof of an honest run — it means only
+// *internally consistent*, not *externally true* (D5: a same-uid lane calling the
+// sanctioned `faff heartbeat` write path, FAFF-355 vector 4b, produces a chain-clean
+// `verified` result while genuinely stalled — the accepted-open residual FAFF-847
+// eventually addresses; this function gives that vector ZERO coverage by design).
+function sentryReconcileCheck(detectionTrust, runDir) {
+  if (!detectionTrust || detectionTrust.disposition !== "reconcile-only") return { checked: false };
+  if (!runDir) return { checked: false };
+  try {
+    const r = verifyChain(runDir);
+    return { checked: true, status: r.status, first_break: r.first_break || null, ledger_fold: r.ledger_fold };
+  } catch {
+    return { checked: true, status: "malformed", first_break: null, ledger_fold: "absent" };
+  }
+}
+
 // Hermetic, TEST-ONLY clock seam for `sentry check` (FAFF-301). Resolves the
 // instant time-based signals (wall-clock-runaway) are computed against, so a test
 // can pin `now` across two subprocess calls and stop flaking on the time of day.
@@ -857,6 +931,37 @@ function resolveSentryNow(get) {
 // mirroring `faff budget check`'s own-fault reply and the existing `effects check`
 // exit-3 convention ("run-dir/ledger missing"). `intervention` stays "continue" and
 // `tripped` stays false — indeterminate is its OWN state, not a synthesized trip.
+// FAFF-608: renders the SAME `check` verdict as a markdown summary — the verb owns
+// rendering (mirrors governance-check.js's renderGovernanceCheckSummaryMd), so a
+// local terminal readout and a CI job summary never drift. Pure: no I/O, no process
+// access. `payload` is the exact object cmdSentry's check branch builds. Remedy
+// wording (when tripped) is reused verbatim from sentrycheck.js's trippedNotice —
+// one home for that wording, not two that can drift.
+function renderSentryCheckSummaryMd(payload) {
+  const lines = ["# faff sentry check", "", `**run:** ${payload.run_dir || "(no run resolved)"}`];
+  if (payload.tripped) lines.push(`**verdict:** ❌ TRIP — intervention: ${payload.intervention}`);
+  else if (Array.isArray(payload.verdicts) && payload.verdicts.length) {
+    lines.push(`**verdict:** ⚠️ ${payload.verdicts.length} verdict(s) — intervention: ${payload.intervention}`);
+  } else lines.push("**verdict:** ✅ no derailment — intervention: continue");
+  lines.push("");
+  if (payload.config_malformed) {
+    lines.push("> ⚠️ base config malformed — thresholds are built-in defaults (config_malformed)", "");
+  }
+  if (Array.isArray(payload.verdicts) && payload.verdicts.length) {
+    lines.push("| signal | severity |", "|---|---|");
+    for (const v of payload.verdicts) lines.push(`| ${v.signal} | ${v.severity} |`);
+    lines.push("");
+  }
+  if (payload.tripped) {
+    lines.push(
+      "**Nothing was acted on.** Inspect: `faff sentry check --run-dir " + payload.run_dir + "`; " +
+      "abort resumably: `faff sentry abort --run-dir " + payload.run_dir + " --worktree <path>`",
+      "",
+    );
+  }
+  return lines.join("\n") + "\n";
+}
+
 function sentryIndeterminate(reason, asJson, runDir = null) {
   const payload = { run_dir: runDir, verdicts: [], intervention: "continue", tripped: false, indeterminate: true, reason };
   if (asJson) console.log(JSON.stringify(payload));
@@ -973,6 +1078,10 @@ function cmdSentry(args) {
         ? { trusted: false, disposition: "reconcile-only", basis: "no-run-dir" }
         : sentryReadDetectionIntegrity(resolved.runDir);
     }
+    // FAFF-511: the annotate floor — derived immediately after detection_trust and
+    // attached to the payload as its sibling (D3: surface-only; NOT consumed by
+    // evaluateDerailment below, so predicate verdicts/intervention are unaffected).
+    const reconcileCheck = sentryReconcileCheck(detectionTrust, checkedRunDir);
     // FAFF-327: read each in-flight member's OWN heartbeat.<issue> file (the only
     // filesystem access for the fleet path — evalMemberStall itself stays pure). Uses
     // the SAME in-flight derivation evaluateDerailment applies internally, so the two
@@ -993,7 +1102,16 @@ function cmdSentry(args) {
     const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile);
     // FAFF-577: config_malformed rides every payload (false in the healthy case) so
     // a degraded-thresholds check is machine-visible, not inferred from stderr.
-    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust, config_malformed: configMalformed };
+    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust, reconcile_check: reconcileCheck, config_malformed: configMalformed };
+    // FAFF-608: verb-owned markdown summary — a pure side-artifact that must NEVER
+    // perturb the exit contract. Composes with --json (runs independently of it,
+    // mirroring governance-check); best-effort write, wrapped in try/catch, warns
+    // on stderr only and never re-throws.
+    const summaryMdPath = get("--summary-md");
+    if (summaryMdPath) {
+      try { fs.appendFileSync(summaryMdPath, renderSentryCheckSummaryMd(payload)); }
+      catch (e) { process.stderr.write(`faff sentry check: warning — could not write --summary-md: ${e.message}\n`); }
+    }
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (configMalformed) console.log("sentry: WARNING — base config malformed; thresholds are built-in defaults (config_malformed)");
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
@@ -1555,9 +1673,39 @@ function sentrySelftest() {
   ok("sentryIndeterminate: non-JSON mode writes exactly one fail-closed stderr line (no console.log), still exit 3",
     siExit2 === 3 && siLogCalls.length === 0 && siErrCalls.length === 1 && /INDETERMINATE — other-reason \(fail closed\)/.test(siErrCalls[0]));
 
+  // --- FAFF-608: renderSentryCheckSummaryMd fixture — a tripped payload renders the
+  // TRIP line + a verdicts table + the two remedy commands (matching sentrycheck.js's
+  // trippedNotice wording); a clean payload renders the ✅ line and no remedy lines. ---
+  const trippedPayload = {
+    run_dir: "/some/run/dir", verdicts: [{ signal: "wall-clock-runaway", severity: "trip" }],
+    intervention: "abort", tripped: true, config_malformed: false,
+  };
+  const trippedMd = renderSentryCheckSummaryMd(trippedPayload);
+  ok("renderSentryCheckSummaryMd: tripped payload renders the TRIP line",
+    trippedMd.includes("❌ TRIP — intervention: abort"));
+  ok("renderSentryCheckSummaryMd: tripped payload renders a verdicts table naming the signal",
+    trippedMd.includes("| signal | severity |") && trippedMd.includes("| wall-clock-runaway | trip |"));
+  ok("renderSentryCheckSummaryMd: tripped payload names the remedy commands verbatim (matching sentrycheck.js trippedNotice)",
+    trippedMd.includes("faff sentry check --run-dir /some/run/dir") &&
+    trippedMd.includes("faff sentry abort --run-dir /some/run/dir --worktree <path>"));
+  ok("renderSentryCheckSummaryMd: markdown ends in a single trailing newline (governance-check parity)",
+    trippedMd.endsWith("\n") && !trippedMd.endsWith("\n\n\n"));
+
+  const cleanPayload = { run_dir: "/some/run/dir", verdicts: [], intervention: "continue", tripped: false, config_malformed: false };
+  const cleanMd = renderSentryCheckSummaryMd(cleanPayload);
+  ok("renderSentryCheckSummaryMd: clean payload renders the ✅ no-derailment line",
+    cleanMd.includes("✅ no derailment — intervention: continue"));
+  ok("renderSentryCheckSummaryMd: clean payload names no remedy commands and no verdicts table",
+    !cleanMd.includes("faff sentry abort") && !cleanMd.includes("| signal | severity |"));
+
+  const malformedPayload = { run_dir: null, verdicts: [], intervention: "continue", tripped: false, config_malformed: true };
+  const malformedMd = renderSentryCheckSummaryMd(malformedPayload);
+  ok("renderSentryCheckSummaryMd: config_malformed payload notes the degradation and falls back the run label",
+    malformedMd.includes("config_malformed") && malformedMd.includes("(no run resolved)"));
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (sentry --selftest, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

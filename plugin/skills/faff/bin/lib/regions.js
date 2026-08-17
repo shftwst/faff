@@ -46,6 +46,7 @@ const REGION_MAP = {
   "effects": "governance",
   "review-progress": "governance",
   "build-progress": "governance",
+  "landing-progress": "governance",
   "budget": "governance",
   "sentry": "governance",
   // sentry-poller — FAFF-470: the mint-scoped detached watchdog poller (ADR-0065's
@@ -119,6 +120,10 @@ const REGION_MAP = {
   "label": "factory",
   "eligible": "factory",
   "claim-verdict": "factory",
+  // park-verdict — FAFF-835: the stale-park validity function. Pure age-less
+  // predicate (status + signals → verdict, no tracker/clock) — same shape as
+  // claim-verdict/eligible → factory.
+  "park-verdict": "factory",
   // pr-body — FAFF-214: PR-body citation-hygiene sanitizer/checker. A pure
   // string-transform core (no factory-identifier references) — same shape as
   // claim-verdict/eligible → factory.
@@ -134,6 +139,10 @@ const REGION_MAP = {
   "corrective-integrity": "factory",
   "integrity-boundary": "factory", // FAFF-514: the emitter half, lives in corrective-integrity.js (region:factory)
   "integrity-digest": "factory",   // FAFF-518: custody-based tamper detection over the evidence set (region:factory)
+  // FAFF-819: Phase-0 recovery-bundle publish + fail-closed verify. References factory identifiers
+  // (integrity-digest's buildManifest/diffAgainstManifest, contract-defs' computeBundleVerdict,
+  // config's loadConfig for the bundle_store slot) — same family as integrity-digest/merge-gate.
+  "bundle": "factory",
   // FAFF-326: corrective requires corrective-integrity (factory) directly and
   // sentry.js's sentryThresholds (governance) — factory→governance is legal (ADR
   // 0042); sentry.js itself stays governance-pure by deriving authority through a
@@ -268,6 +277,7 @@ const REGION_SELFTEST_ARGV = {
   "effects": ["effects", "--selftest"],
   "review-progress": ["review-progress", "--selftest"],
   "build-progress": ["build-progress", "--selftest"],
+  "landing-progress": ["landing-progress", "--selftest"],
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
   "sentry-poller": ["sentry-poller", "--selftest"],
@@ -299,6 +309,7 @@ const REGION_SELFTEST_ARGV = {
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
   "claim-verdict": ["claim-verdict", "--selftest"],
+  "park-verdict": ["park-verdict", "--selftest"],
   "pr-body": ["pr-body", "--selftest"],
   "admissible": ["admissible", "--selftest"],
   "dod": ["dod", "--selftest"],
@@ -309,6 +320,7 @@ const REGION_SELFTEST_ARGV = {
   "corrective-integrity": ["corrective-integrity", "--selftest"],
   "integrity-boundary": ["integrity-boundary", "--selftest"],
   "integrity-digest": ["integrity-digest", "--selftest"],
+  "bundle": ["bundle", "--selftest"],
   "corrective": ["corrective", "--selftest"],
   "next": ["next", "--selftest"],
   "project-next": ["project-next", "--selftest"],

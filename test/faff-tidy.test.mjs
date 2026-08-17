@@ -240,3 +240,144 @@ test("Scenario C — an ineligible issue is skipped by a real `skip-ineligible` 
   // --- routing (FAFF-97): the terminal tidy-report still routed through the rendering pass ---
   expectRoutedThroughRendering(rec, { surface: "tidy-report" });
 });
+
+// --- FAFF-835: the In-Progress + faff-parked narrowing, via the real `faff park-verdict` seam ---
+
+test("Scenario D — In-Progress + faff-parked + open draft PR → park-verdict `protect`, NO strip", (t) => {
+  // A faff mid-build park held in draft (the FAFF-724 / FAFF-784 class). The bare
+  // "state moved on → In Progress" rule would wrongly strip; the real park-verdict
+  // computation returns `protect`, so tidy records NO removeLabel.
+  const tracker = loadFixture({
+    version: 1,
+    labels: [{ name: "faff-parked", color: "#e8a33d" }],
+    issues: [
+      {
+        id: "ISS-MIDBUILD",
+        title: "parked mid-build, draft PR preserved",
+        state: "In Progress",
+        stateCategory: "started",
+        labels: ["faff-parked"],
+      },
+    ],
+    comments: [
+      { id: "C1", issueId: "ISS-MIDBUILD", body: "## /faff-beep-boop — parked (needs-decision-first)\nheld mid-build; draft PR preserved for resume", createdAt: "2026-01-02T00:00:00Z" },
+    ],
+  });
+  const repo = seedRepo({ commits: [{ message: "init", files: { "README.md": "x" } }] });
+  t.after(() => repo.teardown());
+
+  const rec = runSkill({
+    skill: "faff-tidy",
+    tracker,
+    repo,
+    driver: scriptedDriver([
+      { read: { method: "getIssue", args: { id: "ISS-MIDBUILD" } } },
+      // draft_pr=present resolved from the tracker; the real predicate decides.
+      { cli: ["park-verdict", "--status", "in-progress", "--draft-pr", "present", "--park-comment", "build", "--human-takeover", "false"] },
+      { bucket: { name: "park-retained", issues: ["ISS-MIDBUILD"] } },
+      { render: { surface: "tidy-report" } },
+    ]),
+  });
+
+  // --- real CLI computation: the mid-build park is protected ---
+  expectCliResult(rec, "park-verdict", { exit: 0, json: { verdict: "protect" } });
+
+  // --- proof-of-mechanism: NO removeLabel mutation was recorded ---
+  expectNoMutation(rec);
+  expectBucket(rec, "park-retained", ["ISS-MIDBUILD"]);
+
+  // --- the frozen model still carries faff-parked ---
+  assert.ok(tracker.getIssue("ISS-MIDBUILD").labels.some((l) => l.name === "faff-parked"));
+});
+
+test("Scenario E — In-Progress + faff-parked + nonbuild park + human takeover → park-verdict `strip-ok`, clear captured", (t) => {
+  // A prep-time (nonbuild) park a human has since picked up and moved to In Progress:
+  // a genuine human takeover, so the real park-verdict computation returns `strip-ok`
+  // and tidy records the mechanical removeLabel ATTEMPT.
+  const tracker = loadFixture({
+    version: 1,
+    labels: [{ name: "faff-parked", color: "#e8a33d" }],
+    issues: [
+      {
+        id: "ISS-TAKEOVER",
+        title: "prep-parked, human took it over",
+        state: "In Progress",
+        stateCategory: "started",
+        labels: ["faff-parked"],
+      },
+    ],
+    comments: [
+      { id: "C1", issueId: "ISS-TAKEOVER", body: "## faff-prep — parked (autonomous)\nlow confidence — explore could not resolve the core question", createdAt: "2026-01-01T00:00:00Z" },
+    ],
+  });
+  const repo = seedRepo({ commits: [{ message: "init", files: { "README.md": "x" } }] });
+  t.after(() => repo.teardown());
+
+  const rec = runSkill({
+    skill: "faff-tidy",
+    tracker,
+    repo,
+    driver: scriptedDriver([
+      { read: { method: "getIssue", args: { id: "ISS-TAKEOVER" } } },
+      { cli: ["park-verdict", "--status", "in-progress", "--draft-pr", "absent", "--park-comment", "nonbuild", "--human-takeover", "true"] },
+      { mutate: { op: "removeLabel", issue: "ISS-TAKEOVER", args: { label: "faff-parked" } } },
+      { bucket: { name: "park-cleared", issues: ["ISS-TAKEOVER"] } },
+      { render: { surface: "tidy-report" } },
+    ]),
+  });
+
+  // --- real CLI computation: the human takeover clears the label ---
+  expectCliResult(rec, "park-verdict", { exit: 0, json: { verdict: "strip-ok" } });
+
+  // --- proof-of-mechanism: the mechanical clear is a recorded removeLabel ATTEMPT ---
+  expectMutation(rec, { op: "removeLabel", issue: "ISS-TAKEOVER", args: { label: "faff-parked" } });
+  expectBucket(rec, "park-cleared", ["ISS-TAKEOVER"]);
+
+  // --- attempt only: the frozen model still carries faff-parked ---
+  assert.ok(tracker.getIssue("ISS-TAKEOVER").labels.some((l) => l.name === "faff-parked"));
+});
+
+test("Scenario F — In-Progress + faff-parked + build park + no PR + no human → park-verdict `protect`, NO strip", (t) => {
+  // A no-PR mid-build park (the ambiguity park fired before PR creation). No draft PR
+  // to key on; the build-class park comment with no human action since resolves to
+  // `protect`, so tidy records NO removeLabel.
+  const tracker = loadFixture({
+    version: 1,
+    labels: [{ name: "faff-parked", color: "#e8a33d" }],
+    issues: [
+      {
+        id: "ISS-NOPR",
+        title: "parked mid-build, no PR opened yet",
+        state: "In Progress",
+        stateCategory: "started",
+        labels: ["faff-parked"],
+      },
+    ],
+    comments: [
+      { id: "C1", issueId: "ISS-NOPR", body: "## /faff-graft — parked (mid-build ambiguity)\nblocked-on-external-resource; build held, no PR opened", createdAt: "2026-01-02T00:00:00Z" },
+    ],
+  });
+  const repo = seedRepo({ commits: [{ message: "init", files: { "README.md": "x" } }] });
+  t.after(() => repo.teardown());
+
+  const rec = runSkill({
+    skill: "faff-tidy",
+    tracker,
+    repo,
+    driver: scriptedDriver([
+      { read: { method: "getIssue", args: { id: "ISS-NOPR" } } },
+      { cli: ["park-verdict", "--status", "in-progress", "--draft-pr", "absent", "--park-comment", "build", "--human-takeover", "false"] },
+      { bucket: { name: "park-retained", issues: ["ISS-NOPR"] } },
+      { render: { surface: "tidy-report" } },
+    ]),
+  });
+
+  // --- real CLI computation: the no-PR mid-build park is protected ---
+  expectCliResult(rec, "park-verdict", { exit: 0, json: { verdict: "protect" } });
+
+  // --- proof-of-mechanism: NO removeLabel mutation was recorded ---
+  expectNoMutation(rec);
+  expectBucket(rec, "park-retained", ["ISS-NOPR"]);
+
+  assert.ok(tracker.getIssue("ISS-NOPR").labels.some((l) => l.name === "faff-parked"));
+});

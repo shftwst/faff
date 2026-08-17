@@ -181,9 +181,131 @@ function readManifestArg(val) {
 
 const { parseArgs, usageError } = require("./argv");
 const INTEGRITY_DIGEST_SPEC = {
-  flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--events": { arity: 0 }, "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--manifest": { arity: 1 } },
+  flags: {
+    "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--events": { arity: 0 }, "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--manifest": { arity: 1 },
+    // FAFF-784: atomic custody-verdict recording — additive to plain `verify`, never required by it.
+    "--issue-context": { arity: 1 }, "--merge-state": { arity: 1 }, "--record-result": { arity: 1 },
+  },
   positionals: { min: 0, max: 1, name: "action" },
 };
+
+// === region:factory — custody verdict recording (FAFF-784) — see contract-defs.js's custody-verdict
+// section for the RECORD shape/enums this writes and the pure admission gate merge-gate.js binds to.
+// ===========================================================================
+const CUSTODY_MERGE_STATES = ["pre-merge", "post-merge"];
+const CUSTODY_DETAIL_MAX = 4000;
+const ISSUE_CONTEXT_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+// The ONE canonical per-issue custody-verdict path — the file is deliberately OUTSIDE the manifest
+// the invocation that writes it just verified (a failed verify never has to write into the suspect
+// ledger — ADR-cited rationale in the spec's WHY).
+function custodyVerdictPath(runDir, issueContext) {
+  return path.join(runDir, issueContext, "custody-verdict.json");
+}
+
+// Atomic write: a sibling temp file in the SAME directory, written in full, then renamed onto the
+// final path. Either the final path ends up holding the COMPLETE bytes, or (any failure, including an
+// injected rename fault) neither the final path nor a lingering temp file exists — never a partial
+// target. `fsImpl` is injectable (tests only; defaults to the real fs) so the DoD's fault-injection-
+// around-rename requirement is exercisable without mocking the module loader.
+function atomicWriteVerdictBytes(finalPath, bytes, fsImpl = fs) {
+  const dir = path.dirname(finalPath);
+  fsImpl.mkdirSync(dir, { recursive: true });
+  const tmp = path.join(dir, `.custody-verdict.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+  fsImpl.writeFileSync(tmp, bytes);
+  try {
+    fsImpl.renameSync(tmp, finalPath);
+  } catch (e) {
+    try { fsImpl.unlinkSync(tmp); } catch { /* best-effort cleanup only — never mask the original error */ }
+    throw e;
+  }
+}
+
+// The verify-and-record shell: validates the canonical path (fail-loud BEFORE any verification or
+// write), verifies the held manifest, classifies (clean/tamper/verification-unavailable — any
+// exception thrown by verification itself degrades to verification-unavailable, never a thrown
+// error), atomically persists the verdict, and hashes the EXACT persisted bytes via this module's
+// own hasher (never a second implementation). No validation, interruption, or filesystem failure may
+// yield a clean result or a partial target: a write failure on an intended clean/tamper record falls
+// back to a best-effort "verification-unavailable" record (never silently claims the original
+// classification succeeded); if that fallback ALSO fails, exit 2 with no persisted record at all.
+// Exit 0 = clean, exit 1 = valid tamper (non-empty paths, durably recorded), exit 2 = verification-
+// unavailable / record failure (both fail-closed, but only exit 1 ever claims tamper).
+function verifyAndRecord({ runDir, manifest, issueContext, mergeState, recordResultPath, json, fsImpl = fs }) {
+  if (typeof issueContext !== "string" || !issueContext || !ISSUE_CONTEXT_RE.test(issueContext) || issueContext.includes("..")) {
+    process.stderr.write(`faff integrity-digest verify: --issue-context ${JSON.stringify(issueContext)} is not a valid issue id\n`);
+    return 2;
+  }
+  if (!CUSTODY_MERGE_STATES.includes(mergeState)) {
+    process.stderr.write(`faff integrity-digest verify: --merge-state ${JSON.stringify(mergeState)} not in {${CUSTODY_MERGE_STATES.join(",")}}\n`);
+    return 2;
+  }
+  // Canonical-path validation — the FIRST check, before any verification runs: a non-canonical,
+  // out-of-run, or issue-mismatched --record-result path refuses outright (never written to).
+  const canonical = custodyVerdictPath(runDir, issueContext);
+  if (typeof recordResultPath !== "string" || !recordResultPath || path.resolve(recordResultPath) !== path.resolve(canonical)) {
+    process.stderr.write(`faff integrity-digest verify: --record-result must be the canonical path ${canonical} (got ${JSON.stringify(recordResultPath)})\n`);
+    return 2;
+  }
+
+  let classification, diffPaths, detail;
+  try {
+    const diffs = diffAgainstManifest(runDir, manifest);
+    if (diffs.length === 0) {
+      classification = "clean"; diffPaths = []; detail = "digest-verified — no diffs against the held manifest";
+    } else {
+      classification = "tamper"; diffPaths = diffs; detail = `tampered — ${diffs.join(", ")}`;
+    }
+  } catch (e) {
+    classification = "verification-unavailable"; diffPaths = []; detail = `verification failed: ${e.message}`;
+  }
+  if (detail.length > CUSTODY_DETAIL_MAX) detail = detail.slice(0, CUSTODY_DETAIL_MAX);
+
+  const base = {
+    schema_version: 1,
+    run_id: path.basename(runDir),
+    issue: issueContext,
+    verified_at: new Date().toISOString(),
+    merge_state_at_verification: mergeState,
+  };
+  const attempt = (cls, paths, det) => {
+    const bytes = JSON.stringify({ ...base, classification: cls, paths, detail: det }, null, 2) + "\n";
+    atomicWriteVerdictBytes(canonical, bytes, fsImpl);
+    return bytes;
+  };
+
+  let persistedBytes;
+  let persistedClassification = classification, persistedPaths = diffPaths, persistedDetail = detail;
+  try {
+    persistedBytes = attempt(classification, diffPaths, detail);
+  } catch (e) {
+    if (classification === "verification-unavailable") {
+      // Already the maximally-honest downgrade — recording itself failed, nothing safer to fall back to.
+      process.stderr.write(`faff integrity-digest verify: could not record verdict: ${e.message}\n`);
+      return 2;
+    }
+    // A write failure on an intended clean/tamper record must NEVER stand as that classification —
+    // fall back to a best-effort "verification-unavailable" record naming the failure.
+    persistedClassification = "verification-unavailable";
+    persistedPaths = [];
+    persistedDetail = `record failure while persisting ${classification}: ${e.message}`.slice(0, CUSTODY_DETAIL_MAX);
+    try {
+      persistedBytes = attempt(persistedClassification, persistedPaths, persistedDetail);
+    } catch (e2) {
+      process.stderr.write(`faff integrity-digest verify: could not record verdict: ${e2.message}\n`);
+      return 2;
+    }
+  }
+
+  const verdictSha256 = sha256(Buffer.from(persistedBytes, "utf8"));
+  const out = { classification: persistedClassification, verdict_path: canonical, verdict_sha256: verdictSha256, detail: persistedDetail, paths: persistedPaths };
+  if (json) console.log(JSON.stringify(out));
+  else console.log(`${persistedClassification} — ${persistedDetail}`);
+
+  if (persistedClassification === "clean") return 0;
+  if (persistedClassification === "tamper") return 1;
+  return 2; // verification-unavailable
+}
 
 function cmdIntegrityDigest(args) {
   if (args.includes("--selftest")) return integrityDigestSelftest();
@@ -218,6 +340,12 @@ function cmdIntegrityDigest(args) {
     let manifest;
     try { manifest = JSON.parse(readManifestArg(manRaw)); } catch (e) { process.stderr.write(`faff integrity-digest verify: --manifest is not valid JSON (${e.message})\n`); return 2; }
     if (!manifest || typeof manifest.members !== "object") { process.stderr.write("faff integrity-digest verify: manifest has no members\n"); return 2; }
+    // FAFF-784: --record-result engages the atomic verify-and-record path; plain verify (no
+    // --record-result) is byte-for-byte unchanged below.
+    const recordResult = flag("--record-result");
+    if (recordResult !== null) {
+      return verifyAndRecord({ runDir, manifest, issueContext: flag("--issue-context"), mergeState: flag("--merge-state"), recordResultPath: recordResult, json });
+    }
     const diffs = diffAgainstManifest(runDir, manifest);
     if (diffs.length === 0) {
       if (json) console.log(JSON.stringify({ verdict: "digest-verified", tampered: [] }));
@@ -320,4 +448,8 @@ function integrityDigestSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MANIFEST_VERSION, SHA256_CANDIDATES, resolveHasher, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest };
+module.exports = {
+  MANIFEST_VERSION, SHA256_CANDIDATES, resolveHasher, sha256, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest,
+  // FAFF-784
+  atomicWriteVerdictBytes, custodyVerdictPath, verifyAndRecord, CUSTODY_MERGE_STATES,
+};

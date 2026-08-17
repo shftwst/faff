@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-838",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d129add8847590d5161ddb72d0bf34941dd09f73e6dba3a7447cddc4e7fed727",
+    "branch": "faff-838-cage-engine-acceptance-runbook-point-2-reachability-snippet",
+    "pushed_at": "2026-08-16T23:04:11.783Z"
+  },
+  "updated_at": "2026-08-16T23:04:11.783Z"
+}

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-608",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ddc786b73cd9b4a132f23a433e864914a2309fb960fc9e6d3969268b20a43ec4",
+    "branch": "faff-608-ci-watchdog-job-sentry-consult-as-a-sibling-workflow-job",
+    "pushed_at": "2026-08-16T21:37:42.098Z"
+  },
+  "updated_at": "2026-08-16T21:37:42.098Z"
+}

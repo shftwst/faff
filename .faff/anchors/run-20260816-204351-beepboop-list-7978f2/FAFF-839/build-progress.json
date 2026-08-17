@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-839",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8cf075de00439f1ceb7f3b941ba9347c41810b34b9b0c353aed158b49ab2174f",
+    "branch": "faff-839-cage-engine-acceptance-runbook-point-4-host-fs-check-is",
+    "pushed_at": "2026-08-16T23:47:11.073Z"
+  },
+  "updated_at": "2026-08-16T23:47:11.073Z"
+}

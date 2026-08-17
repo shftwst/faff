@@ -27,17 +27,22 @@ const MERGE_GATE_SPEC = { flags: {
   // FAFF-673: the justification a human non-graft merge records on merge-gate-override.json —
   // required whenever --human-override is present (fenceHumanFlags), so no override lands unexplained.
   "--override-reason": { arity: 1 },
+  // FAFF-784: the recorded custody verdict — required for a structurally-detected dispatched merge
+  // (derived from lane-boundary.json, never a caller opt-out). Carried on both the PR path and
+  // --local.
+  "--custody-verdict": { arity: 1 }, "--custody-verdict-sha256": { arity: 1 },
 } };
 const BRANCH_PROTECTION_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 },
 } };
 // FAFF-728: the GitHub-auth preflight probe — user-scoped, so it needs no repo slug.
 const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
-const { FLOOR_LEVELS, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
+const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
 const { runLadder } = require("./gates");
+const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
 
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
@@ -536,6 +541,68 @@ function laneBoundaryPromisesCage(runDir) {
   return contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent";
 }
 
+// FAFF-784: derive whether THIS merge is under a dispatch cut from the SAME canonical
+// lane-boundary.json parser as laneBoundaryPromisesCage above — never a caller flag, never a
+// possibly-suspect run-ledger.json field (a ledger flag is exactly what a compromised same-uid lane
+// could set). "dispatched" ⇔ a present, structurally-valid lane-boundary.json (any lane value —
+// its mere validated presence is the structural declaration the spec's reference table names, not
+// specifically the evaluator-cage promise laneBoundaryPromisesCage keys its OWN narrower question
+// on). Absent (ENOENT) ⇒ "absent" — no dispatch cut, existing (interactive / no-dispatch-cut)
+// behaviour is untouched. Unreadable / unparseable / structurally malformed / any declared
+// violation ⇒ "indeterminate" — a present-but-broken declaration NEVER relaxes to "no cut" (that
+// would be the exact bypass the spec closes); the caller refuses unconditionally on indeterminate,
+// regardless of what custody flags were passed. PURE beyond the single-file read; never throws.
+function laneBoundaryDispatchState(runDir) {
+  if (!runDir) return "absent";
+  let raw;
+  try { raw = fs.readFileSync(path.join(runDir, "lane-boundary.json"), "utf8"); }
+  catch (e) { return e.code === "ENOENT" ? "absent" : "indeterminate"; }
+  let intent;
+  try { intent = JSON.parse(raw); } catch { return "indeterminate"; }
+  const { contractData, failLoud } = computeLaneBoundary(intent);
+  if (failLoud || !contractData) return "indeterminate";
+  if (contractData.violations.length > 0) return "indeterminate";
+  return "dispatched";
+}
+
+// FAFF-784: the custody gate — { required, ok, reason? }. `required:false` ⇒ no dispatch cut (or no
+// runDir), existing behaviour applies untouched. `required:true` binds admission to the EXACT
+// recorded verdict: the canonical path (derived here, never trusted blindly off the caller's
+// argument — a caller cannot point custody at an arbitrary file), the retained digest (compared
+// against the on-disk bytes hashed via integrity-digest.js's ONE hasher — never a second
+// implementation), and run/issue identity. Every failure mode (indeterminate dispatch state, missing
+// flags, non-canonical path, unreadable/malformed/digest-mismatched/identity-mismatched/non-clean
+// verdict) refuses — there is no caller-controlled opt-out for a structurally-detected dispatched
+// merge. Never throws: an unreadable file or a hasher fault degrades to a refused admission, not an
+// exception (fail-closed, not fail-crashed).
+function evaluateCustody(runDir, issue, custodyPathArg, custodyShaArg) {
+  const dispatchState = laneBoundaryDispatchState(runDir);
+  if (dispatchState === "absent") return { required: false, ok: true };
+  if (dispatchState === "indeterminate") {
+    return { required: true, ok: false, reason: "lane-boundary.json is present but malformed/indeterminate — cannot establish dispatch context; refusing the custody-required merge" };
+  }
+  // dispatched: custody is mandatory, no caller opt-out.
+  if (!custodyPathArg || !custodyShaArg) {
+    return { required: true, ok: false, reason: "dispatched merge: --custody-verdict and --custody-verdict-sha256 are required (structurally detected dispatch cut — no caller opt-out)" };
+  }
+  const canonical = path.join(runDir, issue, "custody-verdict.json");
+  if (path.resolve(custodyPathArg) !== path.resolve(canonical)) {
+    return { required: true, ok: false, reason: `custody verdict path is not canonical (expected ${canonical})` };
+  }
+  let raw;
+  try { raw = fs.readFileSync(canonical, "utf8"); } catch { raw = null; }
+  let actualSha256 = null;
+  if (raw !== null) {
+    try { actualSha256 = custodyHashBytes(Buffer.from(raw, "utf8")); } catch { actualSha256 = null; }
+  }
+  const admission = computeCustodyVerdictAdmission({
+    raw, actualSha256, expectedSha256: custodyShaArg,
+    expectedRunId: path.basename(runDir), expectedIssue: issue,
+  });
+  if (!admission.admitted) return { required: true, ok: false, reason: admission.reason };
+  return { required: true, ok: true };
+}
+
 function readHoldout(runDir, issue) {
   if (!runDir) return "missing"; // no run to bind to => fail-closed, never fall back to CWD-relative
   const holdoutPath = path.join(runDir, issue, "holdout.json");
@@ -698,7 +765,7 @@ function gatesSignalToCiState(outcome) {
   return "no-ci-coverage";
 }
 
-function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, cwd }) {
+function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
     else {
@@ -740,6 +807,22 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   // no-remote path). Fail closed on a missing/malformed anchor (exit 2); the live run-ledger.json is
   // no longer a level source here either.
   const headShaBefore = gitRun(cwd, ["rev-parse", branch]).stdout;
+
+  // FAFF-784: custody validation — the SAME gate + placement rationale as the PR path (see
+  // cmdMergeGate): before the existing integrity/AC/review/CI/holdout gates, and before the
+  // idempotent already-merged short-circuit below, so a custody refusal on an already-merged branch
+  // still reports `merged:true` accurately. The local/git-only form carries the same custody
+  // arguments — no separate opt-out for git-only mode.
+  const custody = evaluateCustody(runDir, issue, custodyPathArg, custodyShaArg);
+  if (custody.required && !custody.ok) {
+    const merged = gitRun(cwd, ["merge-base", "--is-ancestor", branch, base]).ok;
+    return emit({
+      verdict: "refuse", merged, blockers: [custody.reason],
+      ci_state: "n/a", head_sha: headShaBefore, integrity: "unasserted", warnings: [],
+      note: merged ? "already merged but custody not satisfied — no success evidence written" : undefined,
+    }, 1);
+  }
+
   const anchor = resolveAnchorLevel(cwd, null, runDir, issue, headShaBefore);
   if (anchor.status !== "ok") { process.stderr.write(anchorRefusal(runDir, issue, headShaBefore, anchor.status)); return 2; }
   const ledgerLevel = anchor.level;
@@ -925,6 +1008,7 @@ function cmdMergeGate(args) {
     return cmdMergeGateLocal({
       issue, runDir, branchFlag: get("--branch"), baseFlag: get("--base"),
       flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json,
+      custodyPathArg: get("--custody-verdict"), custodyShaArg: get("--custody-verdict-sha256"),
       cwd: process.cwd(),
     });
   }
@@ -978,6 +1062,22 @@ function cmdMergeGate(args) {
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
   const headSha = hv.data.headRefOid;
   const headRefName = hv.data.headRefName || null;
+
+  // FAFF-784: custody validation runs BEFORE the existing integrity/AC/review/CI/holdout/head-sha
+  // gates (and before the already-MERGED branch below, so a custody refusal on an already-merged PR
+  // still reports `merged:true` accurately — never an unqualified merge-ok). Structurally detected
+  // from lane-boundary.json — no caller opt-out; covers check-only and execute alike (both reach
+  // this point before mode branches).
+  const custody = evaluateCustody(runDir, issue, get("--custody-verdict"), get("--custody-verdict-sha256"));
+  if (custody.required && !custody.ok) {
+    const merged = hv.data.state === "MERGED";
+    return emit({
+      verdict: "refuse", merged, blockers: [custody.reason],
+      ci_state: merged ? "not-observed-already-merged" : "not-observed",
+      head_sha: headSha, integrity: "unasserted",
+      note: merged ? "already merged but custody not satisfied — no success evidence written" : undefined,
+    }, 1);
+  }
 
   // FAFF-690 (F1): resolve the governing level from the head-sha-pinned committed anchor. A non-ok
   // status (missing / malformed / unreadable) fails closed (exit 2) — NEVER a live-ledger fallback.
@@ -1694,4 +1794,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

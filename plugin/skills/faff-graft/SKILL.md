@@ -445,9 +445,31 @@ Otherwise, compose the complete PR body — every generated section, including t
 4. When `graft.push_at_build_complete` is on the branch was already pushed at **Step 8b**, so this step runs `gh pr create --body-file safe.md` only (no push); when off, it pushes **and** opens the PR (today's compound) with the same `--body-file safe.md`. Either way it opens a **regular (non-draft) PR**, and **CI fires here for the first time** — a no-PR branch push never triggered it, so review-fix iterations (and the Step-8b push) burned no CI.
 5. Delete both temporary files after the create attempt.
 
-Use quoted paths or argument arrays for every step above; never interpolate PR-body bytes into a shell command. Proceed to Step 10.
+Use quoted paths or argument arrays for every step above; never interpolate PR-body bytes into a shell command.
+
+**In Review transition (immediately after `gh pr create` succeeds, before Step 10).** Move the ticket forward to In Review, mirroring the Step 5 In Progress claim:
+
+```
+PROCEDURE transition_to_in_review(issue):
+  1. Re-read the issue's LIVE status in one fetch (per Re-ground before gate; mirrors Step 5).
+  2. IF the configured tracker's workflow has no In Review-type state -> no-op, proceed.
+     (Only Linear + git-only are covered today; git-only has no tracker at all.)
+  3. IF live status is already In Review or Done -> no-op (forward-rank monotonicity; a peer advanced it).
+  4. ELSE (live status is In Progress) -> agent-mediated tracker write (save_issue) moving status -> In Review.
+  5. NEVER fail the build for a missing state or a failed status write; the loop proceeds regardless.
+```
+
+The write mirrors Step 5's mechanism exactly (live status re-read, agent-mediated forward-rank `save_issue`) and adds no new control label — Step 5 pairs its In Progress write with the `faff-claimed` breadcrumb, In Review needs no equivalent. It obeys the status-monotonicity guard (forward-only, never reverting a further-along issue) and runs wherever Step 9b runs, including in a dispatched build lane.
+
+**Anti-patterns:** introducing a `faff status set` CLI (status writes stay agent-mediated throughout faff — Step 5, ship, tidy; no status-set verb exists and this doesn't add one); failing the build when the tracker lacks an In Review state (it is a forward-progress nicety, not a merge precondition — a missing state degrades to a no-op).
+
+Proceed to Step 10.
 
 **Anchor the chain head first (both interactive and autonomous, any run dir):** so a broken chain fails the merge, a PR carrying a run dir commits an **immutable per-PR anchor** via `faff events anchor --run-dir "$run_dir" --issue <ISSUE-XX> --dest .faff/anchors/$(basename "$run_dir")/<ISSUE-XX>/` (CLI-computed head, never hand-written), then `git add` (the `!.faff/anchors/` carve-out makes it committable) + commit + push with the PR head. It byte-copies the run's `events.jsonl` + `run-ledger.json`, plus — best-effort, whichever exist — the per-issue merge-floor files `ac-checklist.json` / `review-verdict.json` / `holdout.json` / `build-progress.json` (never the live dir); the governance-check Action re-hashes it via the gating `integrity` leg and re-validates the merge-floor artifacts via the gating `merge_floor` leg (the same `readAcComplete`/`readReviewVerdict`/`readHoldout` `merge-gate` itself uses) — a legacy schema-1 run anchors as `legacy-unverifiable` for the integrity leg (no false FAIL under the default `legacy-policy: pass`), and an anchor predating the merge-floor copy (or taken before Step 9 completes) correctly reports `merge_floor: fail` rather than a silent `n/a`. No run dir ⇒ skip (the leg is a no-op on an anchor-less PR) — but a PR that **carries a run dir without an anchor** is flagged `anchor-missing-for-run-dir` by the Action (fails under `on-missing: fail`, loud job-summary warning under `pass`), so always anchor when a run dir ships with the PR. Runs identically whether the build was driven interactively or autonomously — there's no reason a human-triggered build's evidence is less worth anchoring.
+
+**Publish the Phase-0 recovery bundle (both interactive and autonomous, immediately after the anchor mint above).** The per-issue merge-floor anchor just minted above IS the safe boundary a recovery bundle replicates, so publish right after it, same call site: `faff bundle publish --run-dir "$run_dir" --boundary-kind issue-merge-floor --boundary-key <ISSUE-XX>`. This assembles the seven-member minimal set (ledger snapshot, admitted outcomes, the anchor just written, artifact manifest, a last-safe-boundary pointer, redaction metadata, and the top manifest digest) and writes it through the resolved `bundle_store` slot occupant — the **default local occupant** keeps it entirely on-box (`slots.bundle_store` unset ⇒ no off-box side-effect at all, so this call is a safe no-op-off-box addition for every existing repo); an operator who wants off-box durability opts in by setting `slots.bundle_store: git-remote`, which pushes a write-once orphan commit to its own `refs/faff/bundles/…` ref (no PR, no CI). A `store_unavailable` result (the distributing occupant's remote is unreachable) **never fails the build** — log it and continue; the run's local operation is unaffected either way. No run dir ⇒ skip (mirrors the anchor leg's own no-op). This publish is a straightforward CLI call, not a park-worthy decision — proceed to Step 10 either way.
+
+The run-close boundary — git-only mode only, published immediately after `faff events anchor-run` — is wired at that call site's own home, `faff-beep-boop/SKILL.md`'s run-close step, not here: a tracker-backed run never mints a run-level anchor (see that step), so its recovery points stay its per-issue bundles published above.
 
 ### Discovered scope (record, never file)
 
@@ -511,7 +533,97 @@ _**Holdout gate (condition 4 — L4 lights-out signal only).**_ Under the **L4 l
 - **Assert the verdict.** Read the per-issue block back through the deterministic gate — **`faff holdout verdict --issue ISSUE-XX`** (exit 0 = pass, 1 = block; it re-validates via the same `faff contract holdout-verdict` rule: `code_blind:true` ∧ aggregate `meets-spec` ∧ coherent). **Pass only on the meets-spec aggregate** (canonical semantics: `faff contract holdout-verdict --describe`); every other aggregate, a non-`code_blind` verdict, a malformed verdict, or a **missing** one all **block** (fail-closed — a missing or unreadable verdict never passes). The same file later feeds the unchanged `faff holdout verdicts --association` run roll-up (one artifact, two consumers — never a second store). **The mechanical merge floor enforces the spawner attestation:** `faff merge-gate` resolves the run's cage promise from `<run-dir>/lane-boundary.json` and, when present, arms `--require-spawner-attested` on its holdout re-read — so a self-attested (non-spawner) `code_blind:true` is refused at the merge chokepoint, not merely by this prose. Absent a promise, the floor is byte-for-byte today's.
 - **On pass →** proceed to the `ship` handoff. **On holdout-block →** do **not** merge: flip the PR to draft, park per the shared protocol with the verdict's `aggregate` + `violations` (or the short-circuit reason) surfaced, and return **`pr-open-for-human`** (ledger bucket `pr-open` — no new bucket; the PR was opened at 9b). Autonomous graft **never** retries a holdout-block automatically — a spec-failing feature is a human call. **Distinguish an env fault from a feature failure:** an `env-handle` `status:failed` / provisioning error is surfaced as an **env fault** (escalate to the env lane), never silently as a feature `fails`.
 
-In **interactive mode**, this gate fires when the user confirms "merge now" at post-PR time (Step 11). In **autonomous mode**, it fires automatically at the end of the build flow.
+In **interactive mode**, this gate fires when the user confirms "merge now" at post-PR time (Step 11), using **How to actually wait for CI** below, unchanged. In **autonomous mode**, it fires automatically at the end of the build flow, via **the bounded landing loop** below — this is the top-level (non-dispatched) autonomous path; under a dispatch cut, the loop runs wherever the merge locus runs (obligation 7), never inside a dispatched build lane.
+
+**The bounded landing loop (autonomous top-level graft — replaces the uncapped CI wait).** Autonomous top-level graft drives its own PR to merged with a bounded observe-then-act loop instead of an uncapped `gh pr checks --watch` wait: it observes the PR's state, acts to move it toward mergeable, and hands off to the `ship` producer (via `merge-gate --execute`) only once the observation is terminal-green. `merge-gate.js` and `faffter-noon-ship` stay unchanged mechanical primitives — the loop calls the ship handoff once, only when `READY`. Interactive Step 11 keeps its human-gated behaviour and the explicit-handoff option below, unchanged.
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Landing loop | The bounded observe-then-act loop below that replaces the uncapped CI wait and drives an open PR toward merged |
+| Landing time budget | A fixed 25-minute wall-clock deadline measured from loop entry; at the deadline the loop stops and hands off `landing-resumable` |
+| Re-run budget | The within-firing flaky re-run allowance carried as ephemeral loop state: at most one clean re-run per head sha, at most two per issue-build |
+| Leave-for-human path | The existing `pr-open-for-human` park behaviour (below); the loop routes `CONFLICTING`, `CI_RED_REGRESSION`, `CI_RED_PARK`, `NO_CI_COVERAGE`, a budget-exhausted `CI_RED_FLAKY`, and a failed `BEHIND` rebase to it, unchanged |
+
+**The oracle: `observe(pr)`.** Reads the PR head check rows and the merge fields, then applies a fixed precedence (first match wins) — the CI axis before the merge-state axis, since acting on a head whose CI is unsettled or red is premature:
+
+```
+FUNCTION observe(pr) -> ObservedLandingState:
+  checks := `gh pr checks <pr> --json ...`   # branch on OBSERVED ROW COUNT, not exit code (see "Classifying the CI result")
+  view   := `gh pr view <pr> --json mergeStateStatus,mergeable,reviewDecision`
+
+  # --- CI axis first ---
+  1. IF >=1 applicable check is pending/in_progress            -> CI_PENDING
+  2. IF the applicable-check set is empty (zero rows)          -> NO_CI_COVERAGE
+  3. IF >=1 applicable check is failing-terminal (ci-red):
+       v := faff ci-triage --pr <pr> --issue <issue> --run-dir <run_dir>   # observe-only
+       IF v.action in {park-errored, park-needs-human}         -> CI_RED_PARK   # includes main-was-red
+       ELIF v.action == proceed-to-merge-gate (transient)      -> CI_RED_FLAKY
+       ELSE (v.action == fix-attempt: persistent + code + mine) -> CI_RED_REGRESSION
+  # --- merge-state axis, ci-green from here ---
+  4. IF view.mergeStateStatus in {DIRTY, CONFLICTING}         -> CONFLICTING
+  5. IF view.mergeStateStatus == BEHIND                       -> BEHIND
+  6. IF view.mergeable AND review pass (reviewDecision APPROVED
+       or the Step 9 pass already recorded)                   -> READY
+  7. ELSE (mergeStateStatus UNKNOWN/BLOCKED, not yet settled) -> CI_PENDING   # re-poll
+```
+
+**The loop.** A fixed 25-minute whole-loop wall-clock deadline (within the 20–30 minute band; not configurable in this ticket — the `.faffrc` knob is deferred), checked at the top of every iteration, bounds every state, not only `CI_PENDING` — repeated `BEHIND` rebases and repeated flaky re-runs also count against it, so no state can spin without end:
+
+```
+PROCEDURE landing_loop(issue, pr, run_dir):
+  loop_started_at := now()
+  reruns_by_sha   := {}     # ephemeral loop state; the caller-side ci-triage reruns_used budget
+  reruns_total    := 0      # NOT a persisted artifact — within-firing state only
+
+  LOOP:
+    faff heartbeat "<run_dir>" --unit <issue>          # keep the existing heartbeat tick
+
+    IF now() - loop_started_at >= 25 minutes:
+       RETURN landing-resumable                        # PR stays open for a later firing to resume
+
+    state := observe(pr)
+    head  := current PR head sha
+
+    SWITCH state:
+      CI_PENDING:
+        block on `gh pr checks <pr> --watch --interval 15` in a chunk with a timeout
+          below the 900s staleness window (existing chunking), then CONTINUE the loop
+      NO_CI_COVERAGE:
+        take the EXISTING no-ci-coverage branch in the **Decision:** section above, unchanged; RETURN pr-open-for-human
+      CI_RED_PARK:
+        take the EXISTING ci-triage park branch in the **Decision:** section above, unchanged; RETURN pr-open-for-human
+      CI_RED_FLAKY:
+        IF reruns_by_sha[head] < 1 AND reruns_total < 2:        # budget remains
+           `gh run rerun <run-id> --failed`
+           reruns_by_sha[head] += 1; reruns_total += 1          # caller increments ci-triage's reruns_used
+           re-observe; CONTINUE
+        ELSE:                                                   # budget exhausted -> persistent by fiat
+           leave_for_human(issue, pr, reason="flaky-exhausted -> persistent"); RETURN pr-open-for-human
+      CI_RED_REGRESSION:
+        leave_for_human(issue, pr, reason="ci-regression"); RETURN pr-open-for-human   # a future fix-cycle follow-up replaces this
+      CONFLICTING:
+        leave_for_human(issue, pr, reason="conflict"); RETURN pr-open-for-human        # a future fix-cycle follow-up replaces this
+      BEHIND:
+        run `gh pr update-branch <pr>` (or rebase main onto the branch), then re-push
+        IF the update-branch / rebase / push FAILS (a conflict surfaced by the rebase,
+           or a push rejection):
+           leave_for_human(issue, pr, reason="rebase-conflict"); RETURN pr-open-for-human
+        # a SUCCESSFUL rebase mints a NEW head sha: observe() returns CI_PENDING on the new head,
+        # and the new sha gets its own fresh per-sha re-run allowance (reruns_total still caps at 2).
+        # The 25-minute whole-loop deadline (from loop entry) still bounds the total.
+        CONTINUE
+      READY:
+        hand off to the ship producer per the **Decision:** section above ("all conditions
+          hold" path); route on delivery-outcome as documented there; RETURN shipped
+```
+
+**Which states continue the loop.** `CI_PENDING` (poll), `CI_RED_FLAKY` while its re-run budget remains (one re-run, then continue), and a successful `BEHIND` rebase continue. `CONFLICTING`, `CI_RED_REGRESSION`, `CI_RED_PARK`, `NO_CI_COVERAGE`, a `CI_RED_FLAKY` whose budget is exhausted, and a failed `BEHIND` rebase leave the loop for a human (`leave_for_human` is the existing `pr-open-for-human` park behaviour below — not a new mechanism: for a CI-red regression or an exhausted-budget flaky it is the existing CI-red triage `fix-attempt`/park routing; for a conflict or an update-branch failure it is the existing `failed:<reason>` handling — autonomous does one opportunistic fix attempt if obvious from the error, else flips the PR to draft and parks). `READY` merges. **No new autonomous fixing is added here** — `CONFLICTING` and `CI_RED_REGRESSION` are observed but routed to the existing park path unchanged; the bounded autonomous fix cycles for those two states are a separate follow-up ticket, out of scope here.
+
+**Anti-patterns:** counting a `BEHIND` rebase or a within-budget flaky re-run as a reason to park (those are mechanical, recoverable states — parking on them would strand a healthy PR); re-running a flaky check every iteration with no budget (it would then only ever be bounded by the 25-minute clock and never reach a human — the re-run budget is what makes it persistent by fiat once spent); adding wait or rebase logic to `merge-gate.js` (it is the terminal-green snapshot primitive — the loop calls it only when `READY`).
+
+**The new outcome token: `landing-resumable`.** Distinct from `pr-open-for-human`. It maps to the existing runcheck ledger bucket `pr-open` (the PR is genuinely open, opened at 9b), carrying a new ledger annotation `landing_resumable` in the ledger's annotation array, mirroring how `retry-later` maps to bucket `parked` plus the `review_outage_pending` annotation. No new bucket is introduced. The bucket and annotation are written by whichever party runs the merge locus — top-level autonomous graft in-session, or the concurrency dispatcher under a dispatch cut (obligation 7) — never by a dispatched build lane, which stops at `pr-ready` and never runs the loop. See **Return values** in Autonomous Mode for the full token entry.
 
 **Record the terminal outcome on the interactive-minted ledger (standalone/top-level interactive graft only, every exit path).** When Step 3 minted this run's own L2 substrate, close it honestly at the genuine terminal — `"$faff" run-ledger record-outcome --issue <ISSUE-XX> --outcome <terminal>` (`shipped` / `parked` / `errored` — a `faff events` ledger-outcome vocabulary member), which sets `outcomes[<ISSUE-XX>]` + `owner.status:"done"` on the **live** ledger (folding a `ledger-write` event, and on `shipped` an `issue-outcome` close event). This lands **after** Step 9b's committed anchor, so the anchor stays an immutable pre-merge `outcomes:{}` snapshot and the live ledger reaches `runcheck` completeness (`admitted − outcomes.keys() == ∅`) at session end. **Never** write it at mint (fabricates an outcome into the anchored snapshot). A genuinely abandoned mid-build leaves `owner.status:"running"` — the designed owning-session backstop that surfaces "a build was left half-done". An orchestrator/dispatched run **skips this** — the orchestrator writes its own ledger outcomes.
 
@@ -573,13 +685,12 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - `needs-human` → surface on the tracker issue as needs-human and park per the shared protocol **without opening a PR**. Return `needs-human` (a **no-PR** handoff, distinct from `pr-open-for-human` — see Return values).
    - `unavailable` → run **the `unavailable` disposition** in Step 9: a resumable checkpoint + retries under `graft.review_outage_retry_limit` → **retry-later** (release the claim to Todo, tag `faff-awaiting-review`, stash `.faff/resume/<issue>/`, increment the counter, **no PR**); otherwise → the same `needs-human` park as above (checkpoint absent, or retries exhausted — escalate, `review-verdict.json` written).
 5. **Step 9b — open the PR (only reached on review `pass`).** Open a **regular (non-draft) PR** — `gh pr create --body-file` only when `graft.push_at_build_complete` is on (the branch was pushed at Step 8b), or the push+create compound when off, on the composed body draft→sanitize→check sequence canonical Step 9b defines (unchanged by mode). The single PR-creation point; **CI fires here for the first time** (a no-PR branch push never triggered it), so review-fix iterations never burned CI. A later post-PR gate decides whether to flip to draft. **Git-only mode: no-op** — no PR is opened; proceed straight to Step 10.
-6. **Under a dispatch cut: stop at PR-ready — do NOT run Step 10's merge.** Per Step 10's _Dispatch-cut split_, a dispatched build lane (it returns `EvidenceReturn`) performs no merge: it returns `pr-ready` + `EvidenceReturn` and the **dispatcher** runs the merge locus (gateway obligation 7). The rest of this step 6 is the **top-level** path (autonomous-but-top-level graft, no dispatcher above it). Run Step 10 (merge-confidence gate) automatically (**git-only mode:** no CI to wait for — per Step 10's Git-only mode note, skip the CI-wait/classify sub-steps and hand off directly to the `ship` producer with `--local`, never `--pr`; map its outcome identically):
-   - **All applicable conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), classify the result per _Classifying the CI result_; on `ci-green`, **under the L4 lights-out signal run the _Holdout gate_ (condition 4) last** — a holdout-block flips the PR to draft and returns `pr-open-for-human` (bucket `pr-open`) without merging; only on a `meets-spec` pass (or at L1–L3, where the gate does not apply), run the **_ADR-accept sub-step_ (above)**, then hand off to the `ship` producer (resolve `faff config get slots.ship`) and pipe its `faff-contract:delivery-outcome` block to `faff contract delivery-outcome` (canonical semantics: `faff contract delivery-outcome --describe`), then map the outcome to a caller-facing return:
-     - the success outcome → **run _Post-merge verification_ (below) first, then** return it (worktree eligible for cleanup, chained issues unblock).
-     - the deferral outcome → park retry-later, return `pr-open-for-human`.
-     - the failure outcome (including an unmappable result coerced to it) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
-   - **CI failed (`ci-red`):** run the same **_CI-red triage procedure_** (Step 10, above) — identical to interactive mode. `proceed-to-merge-gate` rejoins the `ci-green` branch above at the `ship` handoff (the fix attempt is not consumed); `fix-attempt` → one iteration attempt if the failure looks fixable from the logs, else flip to draft and park; `park-errored` / `park-needs-human` → flip to draft and park per the shared protocol. Any park here returns `pr-open-for-human`.
-   - **No CI coverage (`no-ci-coverage`):** the applicable-checks set is empty — **not** a green. Do **not** hand off to the `ship` producer. Flip the PR to draft and park `needs-human` per the shared protocol (cause `no-ci-coverage`, plus `: validation is post-merge-only` when the only check is push/merge-triggered); return `pr-open-for-human`. Never auto-merge an empty check set.
+6. **Under a dispatch cut: stop at PR-ready — do NOT run Step 10's merge.** Per Step 10's _Dispatch-cut split_, a dispatched build lane (it returns `EvidenceReturn`) performs no merge: it returns `pr-ready` + `EvidenceReturn` and the **dispatcher** runs the merge locus (gateway obligation 7). The rest of this step 6 is the **top-level** path (autonomous-but-top-level graft, no dispatcher above it). Drive the PR to merged with **the bounded landing loop** (`landing_loop(issue, pr, run_dir)`, defined in Step 10 above) in place of the previous uncapped `gh pr checks --watch` wait (**git-only mode:** no CI to wait for — per Step 10's Git-only mode note, skip the landing loop entirely and hand off directly to the `ship` producer with `--local`, never `--pr`; map its outcome identically). The loop internally runs the `ci-green` / `ci-red` / `no-ci-coverage` classification, the L4 holdout gate, and the ADR-accept sub-step exactly as Step 10 documents (`READY` is the only state that hands off to the `ship` producer); this step only routes on the loop's own return:
+   - **`landing_loop` returns `shipped`** (the `READY` branch's `ship` handoff, `faff contract delivery-outcome`'s success outcome) → **run _Post-merge verification_ (below) first, then** return it (worktree eligible for cleanup, chained issues unblock).
+   - **The `READY` branch's `ship` handoff returns the deferral outcome** → park retry-later, return `pr-open-for-human`.
+   - **The `READY` branch's `ship` handoff returns the failure outcome** (including an unmappable result coerced to it) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
+   - **`landing_loop` returns `pr-open-for-human`** → the loop already routed the PR through the matching leave-for-human path (the CI-red triage park branch, `no-ci-coverage`, a conflict, an exhausted-budget flaky check, an L4 holdout-block, or a failed `BEHIND` rebase — see Step 10 above) and flipped it to draft / parked per the shared protocol; return `pr-open-for-human` unchanged.
+   - **`landing_loop` returns `landing-resumable`** → the 25-minute landing time budget elapsed with the PR still open and not yet terminal-green; leave the PR open and non-draft (no park, no draft flip — this is a resumable hold, not a human escalation); return `landing-resumable` (ledger bucket `pr-open` plus the `landing_resumable` annotation).
 7. Any unrecoverable error → park and return `errored`.
 
 **Post-merge verification (autonomous only, config `post_merge.check` default `on`, after `shipped` and before cleanup).** Run `faff post-merge-check --issue <ISSUE-XX> --pr <n> --run-dir <run-dir> --json` — it re-reads the sha `faff merge-gate` pinned into `merge-record.json`, re-runs the repo's own declared `UNIT` rung (the same `discoverRungs`/`runRung`, `gates.js`, Step 7.5/8 already trust — never a second resolver) against an ephemeral detached `git worktree` at that sha, persists `<run-dir>/<ISSUE-XX>/post-merge-verification.json`, and never merges/reverts/reopens/opens-a-PR. Route on exit (canonical verdict semantics: `faff contract post-merge-verification --describe`): **0**, the clean verdict, → nothing further. **1**, the regression verdict, → post a tracker comment on the (still `Done`) issue naming the failing command + basis, and append a `source: "post-merge"` entry to `discovered-scope.json` (`{title:"Fix regression: <command> fails on merged main (<short-sha>)", description:<basis>, relationship:"none", source:"post-merge", source_ref:"post-merge-verification.json", confidence:"concrete", containment:null}`) — status stays `Done` (never reverted/reopened); continue the queue. **3**, the unprovable verdict (no `UNIT` rung, or a worktree/execution error), → loud annotation only, no comment, no discovered-scope entry (an unprovable verdict is not a defect); continue. **2** (fail-loud, unresolvable sha) → treat as the unprovable verdict. The orchestrator (never this step) later reads the artifact at reconciliation to populate the ledger's `post_merge_verification_failures`/`_unverified` arrays (`faff-beep-boop/SKILL.md` → Run ledger). **Anti-pattern:** treating `verified-fail` as grounds to revert, reopen, or flip status — auto-revert is a separate, unbuilt follow-up (seam (b)). **Discovered scope** captured during Steps 7/9 (and now also here, on a `verified-fail`) stays in `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` and is reported in the `discovered_scope` return field. graft **never files** it — beep-boop's file-discovered-scope step does, after the build pass (gateway → **Agent Lanes**). This is independent of the terminal outcome: a `shipped`, `pr-open-for-human`, or `parked` issue can all carry discovered scope.
@@ -624,6 +735,7 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 - `pr-open-for-human` — a **post-PR** human handoff with a PR open: CI failed unrecoverably, the delivery outcome (from `faff contract delivery-outcome` on the producer's block) was `not-ready` (deploy-readiness deferred, retry-later) / `failed` (merge or deploy error, or an unmappable result coerced to `failed`), **or (L4) the per-issue holdout gate blocked** (`fails`/`gaps`/`needs-human`/non-blind/missing verdict, or no born-verifiable criteria — Step 10 _Holdout gate_) — PR flipped to draft, awaiting human
 - `needs-human` — a **pre-PR, no-PR** human handoff: **review** returned `needs-human`, **or `unavailable` fell through the retry-later arm** (no build-progress checkpoint, interactive, or the outage-retry bound exhausted) before any PR was opened (Step 9, pre-9b). Surfaced on the tracker issue and parked per the shared protocol (`review-verdict.json` written); **no PR exists**. Distinct from `pr-open-for-human` (which has a PR); maps to the `parked` ledger bucket (see below).
 - `retry-later` — an autonomous **pre-PR** review returned `unavailable` (mandatory review-chain outage) with a resumable build-progress checkpoint and the outage-retry counter still under `graft.review_outage_retry_limit`: the built work is **held, not parked** — no `review-verdict.json` written, `faff-awaiting-review` applied, issue released `In Progress` → `Todo` (the scoped monotonicity carve-out, gateway → **Issue claim & status monotonicity**), the outage-retry counter incremented, both checkpoints stashed to `.faff/resume/<issue>/`. **No PR exists.** The next drain re-picks the issue (Todo + eligible + not `faff-parked`) and resumes straight at review via the Step-3 resume-store fallback — no rebuild. Maps to ledger bucket `parked` (no new bucket) **plus** the `review_outage_pending` annotation (see beep-boop's ledger + run summary).
+- `landing-resumable` — the autonomous **bounded landing loop** (Step 10 above) reached its 25-minute landing time budget with the PR still open and not yet terminal-green (still `CI_PENDING`, mid-`BEHIND`-rebase-churn, or a settling merge state): the built work is **held, not parked** — the PR stays open and non-draft, no park comment, no `faff-parked` label. Distinct from `pr-open-for-human` (which is a human handoff); this is a resumable hold a later firing can pick back up. Maps to ledger bucket `pr-open` (no new bucket) **plus** the `landing_resumable` annotation, written by whichever party ran the merge locus (top-level graft in-session, or the concurrency dispatcher under a dispatch cut — never a dispatched build lane, which never runs the loop).
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
 
@@ -635,7 +747,7 @@ Alongside the terminal token, graft reports **discovered scope** — it never fi
 
 **Returned evidence (`EvidenceReturn` — dispatched builds only).** A graft dispatched by a `concurrency` executor also returns, **alongside — never inside — the terminal token** (the token stays `{issue,outcome,pr}`; this rides as a sibling field on the same structured return, the `discovered_scope` precedent), one `EvidenceReturn { issue, ac_checklist:{present,body}, review_verdict:{present,body} }` per member — `present==false ⟺ body==null`, and each present `body` is the **raw bytes** graft wrote to `<run-dir>/<ISSUE>/ac-checklist.json` (Step 8) / `review-verdict.json` (Step 9), never a re-serialized object. Graft keeps its in-lane Step-8/9 writes unchanged (the Step-9b anchor reads those pre-return); the returned copy is what the dispatcher digest-verifies + persists as the orchestrator-authored copy per the gateway `concurrency` contract obligation 6 — **and now also the copy the dispatcher-run merge consumes** (obligation 7: a dispatched lane stops at `pr-ready` and no longer merges in-lane, so there is no in-lane Step-10 read of these files). A legitimately-absent file (a `retry-later` that wrote no `review-verdict.json`, an early park/errored before Step 8/9) returns `present:false`. **Interactive top-level graft returns no `EvidenceReturn`** — there is no dispatcher above it to consume it; it writes its floor artifacts in-lane exactly as today.
 
-**Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-ready`→ *completed by the dispatcher*** — not mapped to a bucket directly; the dispatcher runs the merge (gateway obligation 7) and records the resulting `shipped` / `pr-open` / `parked` bucket, so `pr-ready` is never itself a ledger bucket, **`superseded-done`→`superseded`** (the admitted premise-superseded close-path; the `superseded` bucket is already in runcheck's accepted vocabulary), **`pr-open-for-human`→`pr-open`**, **`needs-human`→`parked`** (the no-PR review handoff parks — there is no open PR to track), **`retry-later`→`parked`** (no new bucket; the hold is distinguished from an ordinary park by the ledger's `review_outage_pending` annotation array, mirroring `review_adversarial_skipped` — see `faff-beep-boop` → Run ledger), `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
+**Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-ready`→ *completed by the dispatcher*** — not mapped to a bucket directly; the dispatcher runs the merge (gateway obligation 7) and records the resulting `shipped` / `pr-open` / `parked` bucket, so `pr-ready` is never itself a ledger bucket, **`superseded-done`→`superseded`** (the admitted premise-superseded close-path; the `superseded` bucket is already in runcheck's accepted vocabulary), **`pr-open-for-human`→`pr-open`**, **`needs-human`→`parked`** (the no-PR review handoff parks — there is no open PR to track), **`retry-later`→`parked`** (no new bucket; the hold is distinguished from an ordinary park by the ledger's `review_outage_pending` annotation array, mirroring `review_adversarial_skipped` — see `faff-beep-boop` → Run ledger), **`landing-resumable`→`pr-open`** (no new bucket; the hold is distinguished from an ordinary `pr-open` by the ledger's `landing_resumable` annotation array, the same precedent as `retry-later`/`review_outage_pending`), `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
 
 Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX.md`). The standalone narrative `HHMMSS-graft-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/graft.md` resume artifact is hard floor and written regardless.
 ## Notes

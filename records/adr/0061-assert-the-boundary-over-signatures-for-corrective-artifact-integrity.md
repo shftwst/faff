@@ -2,6 +2,7 @@
 
 - **Status:** Proposed
 - **Amended:** 2026-07-16 — ADR-0074 (FAFF-514) adds the content-origin/boundary-origin split: faff owns the declaration's *content* (the `faff integrity-boundary` emitter) while the launcher still owns *setting* it and the cage owns the mount. Every consequence below stays in force.
+- **Amended:** 2026-08-17 — ADR-0114 (FAFF-833) adds a second, weaker corrective trust basis (digest-custody) folded on the consumer side, never through the `FAFF_INTEGRITY_BOUNDARY` channel. The two-basis non-conflation rule stays in force.
 - **Date:** 2026-07-12
 - **Issue:** FAFF-325
 

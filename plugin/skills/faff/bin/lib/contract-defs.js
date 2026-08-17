@@ -759,6 +759,178 @@ function contractLaneBoundary(extraction) {
   return { contractData };
 }
 
+// --- custody verdict (FAFF-784) ---
+// The verification result `integrity-digest verify --record-result` atomically writes OUTSIDE the
+// manifest it just verified, at the canonical per-issue path `<run-dir>/<issue>/custody-verdict.json`,
+// and the pure gate `faff merge-gate` binds a dispatched merge to. Structural trust, not authorship
+// (ADR the spec cites): the digest establishes byte continuity from verify-and-record to merge-gate,
+// never a same-uid process-identity claim — so this record NEVER carries an author/actor/signer field,
+// enforced below both by an explicit allow-list of keys and (belt-and-braces) the JSON schema's
+// additionalProperties:false. `computeCustodyVerdict` is the PURE shape/enum validator (the
+// review-verdict/lane-boundary precedent: fail-loud only on a non-object extraction; every other
+// malformation is a violation, never a thrown error) — it never touches fs or a digest. Digest/identity
+// binding (which DOES need caller-supplied bytes + an externally-held expected sha256) lives in the two
+// functions below it, still fs-free and child-process-free: the shell (merge-gate.js) reads the file
+// and hashes it via integrity-digest.js's ONE hasher, then hands the raw string + the computed digest
+// in here — this stays a pure comparison over caller-supplied values, never a second hashing seam.
+const CUSTODY_CLASSIFICATIONS = ["clean", "tamper", "verification-unavailable"];
+const CUSTODY_MERGE_STATES = ["pre-merge", "post-merge"];
+const CUSTODY_VERDICT_SCHEMA_VERSION = 1;
+const CUSTODY_DETAIL_MAX = 4000; // CONSTRAINT: detail is bounded (spec) — generous enough for a diffAgainstManifest path list, never unbounded.
+const CUSTODY_VERDICT_FIELDS = ["schema_version", "run_id", "issue", "classification", "paths", "detail", "verified_at", "merge_state_at_verification"];
+
+function computeCustodyVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  // No authorship/actor field, ever (CONSTRAINT) — an unexpected key (author, actor, signer, writer, …)
+  // is a shape violation here, defence-in-depth ahead of the JSON schema's additionalProperties:false.
+  for (const k of Object.keys(extraction)) {
+    if (!CUSTODY_VERDICT_FIELDS.includes(k)) violations.push(`unexpected field ${JSON.stringify(k)} (no authorship/actor field is ever admitted)`);
+  }
+  const schema_version = extraction.schema_version;
+  if (schema_version !== CUSTODY_VERDICT_SCHEMA_VERSION) violations.push(`schema_version ${JSON.stringify(schema_version)} !== ${CUSTODY_VERDICT_SCHEMA_VERSION}`);
+  const run_id = (typeof extraction.run_id === "string" && extraction.run_id) ? extraction.run_id : "";
+  if (!run_id) violations.push("run_id is missing or not a non-empty string");
+  const issue = (typeof extraction.issue === "string" && extraction.issue) ? extraction.issue : "";
+  if (!issue) violations.push("issue is missing or not a non-empty string");
+  const classification = extraction.classification;
+  if (!CUSTODY_CLASSIFICATIONS.includes(classification)) violations.push(`classification ${JSON.stringify(classification)} not in {${CUSTODY_CLASSIFICATIONS.join(",")}}`);
+  const rawPaths = extraction.paths;
+  const pathsShapeOk = Array.isArray(rawPaths) && rawPaths.every((p) => typeof p === "string");
+  if (!pathsShapeOk) violations.push("paths must be an array of strings");
+  const paths = pathsShapeOk ? rawPaths : [];
+  // CONSTRAINT classification == tamper IMPLIES paths is non-empty; != tamper IMPLIES paths is empty.
+  if (classification === "tamper" && paths.length === 0) violations.push("classification is tamper but paths is empty");
+  if (classification !== "tamper" && paths.length > 0) violations.push("classification is not tamper but paths is non-empty");
+  const detail = typeof extraction.detail === "string" ? extraction.detail : "";
+  if (typeof extraction.detail !== "string") violations.push("detail must be a string");
+  else if (detail.length > CUSTODY_DETAIL_MAX) violations.push(`detail exceeds the ${CUSTODY_DETAIL_MAX}-char bound`);
+  const verified_at = extraction.verified_at;
+  if (typeof verified_at !== "string" || Number.isNaN(Date.parse(verified_at))) violations.push("verified_at must be an ISO-8601 timestamp string");
+  const merge_state_at_verification = extraction.merge_state_at_verification;
+  if (!CUSTODY_MERGE_STATES.includes(merge_state_at_verification)) violations.push(`merge_state_at_verification ${JSON.stringify(merge_state_at_verification)} not in {${CUSTODY_MERGE_STATES.join(",")}}`);
+  return {
+    contractData: { schema_version, run_id, issue, classification, paths, detail, verified_at, merge_state_at_verification, violations },
+    failLoud: null,
+  };
+}
+
+// PURE classification of a custody-verdict file's raw bytes (string, or non-string when
+// absent/unreadable — the shell degrades a failed fs.readFileSync to null/undefined before calling
+// this, never throws through). `expectedRunId`/`expectedIssue` are optional (disposition.js's
+// per-run/per-issue scan always supplies them; a bare classification probe may omit them). Returns
+// one of: absent | malformed | identity-mismatch | clean | tamper | verification-unavailable — the
+// exact vocabulary `faff disposition` needs (malformed-present/identity-mismatch are disposition's own
+// labels, folded from `malformed`/`identity-mismatch` by its shell — see disposition.js).
+function classifyCustodyVerdictBytes(raw, { expectedRunId, expectedIssue } = {}) {
+  if (typeof raw !== "string") return { classification: "absent" };
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { return { classification: "malformed", violations: ["not valid JSON"] }; }
+  const { contractData, failLoud } = computeCustodyVerdict(parsed);
+  if (failLoud || !contractData) return { classification: "malformed", violations: [failLoud || "extraction must be a JSON object"] };
+  if (contractData.violations.length > 0) return { classification: "malformed", violations: contractData.violations };
+  if (expectedRunId !== undefined && contractData.run_id !== expectedRunId) return { classification: "identity-mismatch", detail: `run_id ${JSON.stringify(contractData.run_id)} !== expected ${JSON.stringify(expectedRunId)}` };
+  if (expectedIssue !== undefined && contractData.issue !== expectedIssue) return { classification: "identity-mismatch", detail: `issue ${JSON.stringify(contractData.issue)} !== expected ${JSON.stringify(expectedIssue)}` };
+  return { classification: contractData.classification, contractData };
+}
+
+// PURE admission gate: exact valid clean, and NOTHING else. `raw` is the on-disk bytes (string) or
+// non-string when absent/unreadable; `actualSha256` is the digest the shell computed over those exact
+// bytes via integrity-digest.js's ONE hasher (null when it could not be computed at all — never
+// silently treated as a match). Refuses absent, unreadable, malformed, unknown-version,
+// digest-mismatched, run/issue-identity-mismatched, tamper, and verification-unavailable — admits ONLY
+// an exact valid clean record whose digest matches the caller-retained expectedSha256 byte-for-byte.
+function computeCustodyVerdictAdmission({ raw, actualSha256, expectedSha256, expectedRunId, expectedIssue }) {
+  if (typeof raw !== "string") return { admitted: false, reason: "custody verdict is absent or unreadable" };
+  if (typeof expectedSha256 !== "string" || !/^[0-9a-f]{64}$/.test(expectedSha256)) return { admitted: false, reason: "no valid retained custody-verdict digest to check against" };
+  if (typeof actualSha256 !== "string" || actualSha256 !== expectedSha256) return { admitted: false, reason: "custody verdict digest mismatch (bytes were replaced after recording)" };
+  const cls = classifyCustodyVerdictBytes(raw, { expectedRunId, expectedIssue });
+  if (cls.classification === "malformed") return { admitted: false, reason: `custody verdict is malformed: ${(cls.violations || []).join("; ") || "invalid record"}` };
+  if (cls.classification === "identity-mismatch") return { admitted: false, reason: `custody verdict identity mismatch: ${cls.detail}` };
+  if (cls.classification !== "clean") return { admitted: false, reason: `custody verdict classification is ${cls.classification} (need clean)`, classification: cls.classification };
+  return { admitted: true, reason: "clean", classification: "clean" };
+}
+
+// --- bundle-verdict (FAFF-819) ---
+// The SHAPE of `faff bundle verify`'s fail-closed six-value verdict over a published Phase-0
+// recovery bundle. Mirrors the ci-triage/custody-verdict idiom: the CLI (bundle.js's
+// classifyBundle) already emits a well-formed structured verdict — this is the belt-and-braces
+// round-trip conformance check `bundle verify` pipes its own output through before printing, and
+// the seam FAFF-820/FAFF-823 pipe an externally-held verdict through via `faff contract
+// bundle-verdict`. Coercion target for a malformed/out-of-enum verdict is VERIFICATION_UNAVAILABLE
+// (never CLEAN) — the review-verdict/quality-gates never-guess-green precedent, extended to this
+// contract's own safe-failure value. Fail-loud only on a non-object extraction.
+const BUNDLE_VERDICTS = ["CLEAN", "STALE", "MISSING", "MALFORMED", "TAMPERED", "VERIFICATION_UNAVAILABLE"];
+const BUNDLE_BOUNDARY_KINDS = ["issue-merge-floor", "run-close"];
+const BUNDLE_IDENTITY_TOKEN_RE = /^[A-Za-z0-9._-]+$/;
+
+// A schema-conformant identity is always emitted (safe defaults on any malformed field) — the
+// RAW value is what computeBundleIdentityViolations below inspects for the reported violations,
+// so a malformed identity is always a violation (exit 1), never a fail-loud (exit 2).
+function safeBundleIdentity(raw) {
+  const obj = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  return {
+    run_id: (typeof obj.run_id === "string" && obj.run_id) ? obj.run_id : "",
+    run_segment_id: Number.isInteger(obj.run_segment_id) ? obj.run_segment_id : 0,
+    boundary_kind: BUNDLE_BOUNDARY_KINDS.includes(obj.boundary_kind) ? obj.boundary_kind : "issue-merge-floor",
+    boundary_key: (typeof obj.boundary_key === "string" && obj.boundary_key) ? obj.boundary_key : "",
+    boundary_seq: Number.isInteger(obj.boundary_seq) ? obj.boundary_seq : 0,
+  };
+}
+
+function computeBundleIdentityViolations(raw, label) {
+  const violations = [];
+  if (raw === null || raw === undefined) return violations; // absence is reported by the caller (superseded_by is legitimately null)
+  if (typeof raw !== "object" || Array.isArray(raw)) { violations.push(`${label} must be an object`); return violations; }
+  if (typeof raw.run_id !== "string" || !raw.run_id || !BUNDLE_IDENTITY_TOKEN_RE.test(raw.run_id) || raw.run_id.includes("..")) violations.push(`${label}.run_id must be a non-empty identity-charset string`);
+  if (!Number.isInteger(raw.run_segment_id) || raw.run_segment_id < 0) violations.push(`${label}.run_segment_id must be a non-negative integer`);
+  if (!BUNDLE_BOUNDARY_KINDS.includes(raw.boundary_kind)) violations.push(`${label}.boundary_kind not in {${BUNDLE_BOUNDARY_KINDS.join(",")}}`);
+  if (typeof raw.boundary_key !== "string" || !raw.boundary_key || !BUNDLE_IDENTITY_TOKEN_RE.test(raw.boundary_key) || raw.boundary_key.includes("..")) violations.push(`${label}.boundary_key must be a non-empty identity-charset string`);
+  if (!Number.isInteger(raw.boundary_seq) || raw.boundary_seq < 0) violations.push(`${label}.boundary_seq must be a non-negative integer`);
+  if (raw.boundary_kind === "run-close" && raw.boundary_key !== "run-close") violations.push(`${label}: boundary_kind "run-close" requires boundary_key === "run-close"`);
+  return violations;
+}
+
+function computeBundleVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  const verdictOk = BUNDLE_VERDICTS.includes(extraction.verdict);
+  if (!verdictOk) violations.push(`verdict ${JSON.stringify(extraction.verdict)} not in {${BUNDLE_VERDICTS.join(",")}} — coerced to VERIFICATION_UNAVAILABLE (never CLEAN)`);
+  const verdict = verdictOk ? extraction.verdict : "VERIFICATION_UNAVAILABLE";
+
+  violations.push(...computeBundleIdentityViolations(extraction.identity, "identity"));
+  const identity = safeBundleIdentity(extraction.identity);
+
+  const cause = typeof extraction.cause === "string" ? extraction.cause : "";
+  if (typeof extraction.cause !== "string") violations.push("cause must be a string");
+
+  let superseded_by = null;
+  const rawSuperseded = extraction.superseded_by;
+  if (rawSuperseded !== null && rawSuperseded !== undefined) {
+    violations.push(...computeBundleIdentityViolations(rawSuperseded, "superseded_by"));
+    superseded_by = safeBundleIdentity(rawSuperseded);
+  }
+  if (verdict === "STALE" && superseded_by === null) violations.push("verdict is STALE but superseded_by is null");
+  if (verdict !== "STALE" && superseded_by !== null) violations.push("verdict is not STALE but superseded_by is non-null");
+
+  return {
+    contractData: { verdict, identity, cause, superseded_by, conformant: violations.length === 0, violations },
+    failLoud: null,
+  };
+}
+
+function contractBundleVerdict(extraction) {
+  const { contractData, failLoud } = computeBundleVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "bundle-verdict");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- holdout verdicts → DoD-verdict map (FAFF-277) ---
 // The pure, trust-gated bridge between the evaluator's persisted holdout verdicts and the already-shipped
 // `faff prdr coverage --dod-verdicts` flag. Reuses computeHoldoutVerdict VERBATIM as the trust gate (never
@@ -1801,6 +1973,21 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "bundle-verdict": {
+    run: contractBundleVerdict,
+    fixtures: [
+      { name: "conformant-clean", in: { verdict: "CLEAN", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "clean", superseded_by: null }, wantExit: 0 },
+      { name: "conformant-tampered", in: { verdict: "TAMPERED", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "manifest-digest", superseded_by: null }, wantExit: 0 },
+      { name: "conformant-stale-with-superseded-by", in: { verdict: "STALE", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "superseded", superseded_by: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-2", boundary_seq: 1 } }, wantExit: 0 },
+      { name: "conformant-verification-unavailable", in: { verdict: "VERIFICATION_UNAVAILABLE", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 3 }, cause: "store-unreachable", superseded_by: null }, wantExit: 0 },
+      { name: "stale-missing-superseded-by-flagged", in: { verdict: "STALE", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "superseded", superseded_by: null }, wantExit: 1 },
+      { name: "non-stale-with-superseded-by-flagged", in: { verdict: "CLEAN", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "clean", superseded_by: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-2", boundary_seq: 1 } }, wantExit: 1 },
+      { name: "coerce-bad-verdict", in: { verdict: "MAYBE_CLEAN", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "x", superseded_by: null }, wantExit: 1 },
+      { name: "malformed-identity-flagged", in: { verdict: "MISSING", identity: { run_id: "../etc", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "ledger_snapshot", superseded_by: null }, wantExit: 1 },
+      { name: "run-close-boundary-key-mismatch-flagged", in: { verdict: "CLEAN", identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "run-close", boundary_key: "FAFF-1", boundary_seq: 0 }, cause: "clean", superseded_by: null }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "post-merge-verification": {
     run: contractPostMergeVerification,
     fixtures: [
@@ -2233,6 +2420,30 @@ const CONTRACT_DESCRIBES = {
     coercions: ["an out-of-enum verdict → coerced to unverified (never verified-ok — no guessing ok)", "a verified-ok/verified-fail verdict with no command named → conformant:false (a verified verdict must name the rung it ran)", "any verdict with no basis text → conformant:false"],
     producer_notes: [],
   },
+  "bundle-verdict": {
+    purpose: "The fail-closed six-value verdict `faff bundle verify` computes over a published Phase-0 recovery bundle — the independent check that a bundle is current, complete, well-formed, and untampered before FAFF-820/FAFF-823 trust it.",
+    values: [
+      { field: "verdict", enum: BUNDLE_VERDICTS, semantics: {
+        CLEAN: "positively verified and current — the digests, tamper chains, and staleness check all passed",
+        STALE: "internally valid but superseded by a later boundary in the same run segment — see superseded_by",
+        MISSING: "the bundle, or a required member of it, could not be found at the derived store handle",
+        MALFORMED: "the bundle was found but a required member could not even be parsed",
+        TAMPERED: "the bundle parsed, but its digests/chains disagree with what it claims — the byte content was altered after publish",
+        VERIFICATION_UNAVAILABLE: "no determination could be made (the store was unreachable or a read was denied) — never treated as clean",
+      } },
+      { field: "identity.boundary_kind", enum: BUNDLE_BOUNDARY_KINDS, semantics: {
+        "issue-merge-floor": "a per-issue safe boundary, minted at graft Step 9b alongside `faff events anchor`",
+        "run-close": "the run-level safe boundary, minted in git-only mode alongside `faff events anchor-run`",
+      } },
+    ],
+    coercions: [
+      "an out-of-enum verdict → coerced to VERIFICATION_UNAVAILABLE (never CLEAN — no guessing clean)",
+      "a malformed identity (bad charset, missing field, boundary_kind/boundary_key mismatch) → flagged as a violation, not fail-loud — the verdict itself is still emitted with safe defaults",
+      "verdict STALE with a null superseded_by, or a non-STALE verdict with a non-null superseded_by → flagged as a violation (the two fields must agree)",
+      "the ONLY fail-loud (exit 2) case is a non-object extraction",
+    ],
+    producer_notes: ["`faff bundle verify` (bundle.js) computes the verdict via the pure classifyBundle ladder over already-fetched store bytes, then pipes its own output through this contract as a belt-and-braces conformance check before printing — the same self-validation contractSpecReadiness/contractLaneBoundary apply to their own producers' output."],
+  },
   "ci-triage": {
     purpose: "The three-axis CI-failure classifier (`faff ci-triage`) that decides whether a red PR check is worth a re-run, whose fault it is, and what to do next.",
     values: [
@@ -2611,4 +2822,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

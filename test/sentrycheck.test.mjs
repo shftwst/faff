@@ -115,6 +115,30 @@ test("Scenario 1: foreign + running + stale heartbeat -> exactly one sentry chec
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test("FAFF-511: a malformed reconcile-only substrate rides ALONGSIDE the tripped consult without perturbing it — the hook's advisory notice, exit code, and silence-otherwise contract are all UNCHANGED by a corrupt events.jsonl (the annotate floor is surface-only; sentrycheck never reads reconcile_check at all)", () => {
+  const { root, runDir, ledgerBytes } = rootWith({
+    run_id: "RUN-LIVE", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
+  });
+  // A malformed substrate — mid-file garbage, not an honest torn tail — degrades the
+  // underlying `sentry check --json`'s reconcile_check to status:"malformed" (see
+  // test/sentry.test.mjs's FAFF-511 edge-case test) but must NOT touch this hook's
+  // trip classification, which reads only tripped/verdicts/intervention.
+  writeFileSync(join(runDir, "events.jsonl"),
+    '{"schema":1,"run_id":"RUN-LIVE","seq":0,"phase":"build","type":"build-start"}\n' +
+    "{ this is not valid JSON and not a torn tail either\n" +
+    '{"schema":1,"run_id":"RUN-LIVE","seq":1,"phase":"build","type":"build-start"}\n');
+  const before = ledgerBytes();
+  try {
+    const r = run(["sentrycheck", "--hook", "--root", root], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "hook mode still exits 0 despite the malformed substrate — the check does not die");
+    assert.equal(r.out.trim(), "", "no stdout decision payload, ever (FAFF-235)");
+    assert.match(r.err, /\[warn\] faff sentrycheck: latest run RUN-LIVE looks abandoned/, "the SAME abandoned-run notice fires, unchanged");
+    assert.match(r.err, /wall-clock-runaway/, "the SAME tripped signal, unaffected by reconcile_check's status");
+    assert.equal(ledgerBytes(), before, "the run ledger's bytes are unchanged — this hook never writes");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("Scenario 2: foreign + running + fresh heartbeat -> held, silent, no consult", () => {
   const { root } = rootWith({
     run_id: "RUN-LIVE", admitted: [], outcomes: {},

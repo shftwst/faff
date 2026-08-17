@@ -86,15 +86,21 @@ runs:
         # The CLI shells `faff merge-gate --check-only`, which observes CI on the PR
         # head via `gh` — a token-authenticated read. NEVER a merge.
         GH_TOKEN: ${{ github.token }}
+        # Externally-influenced values go through env, never inlined into the run: script
+        # (GitHub-Actions script-injection hardening) — HEAD_REF especially, a branch name.
+        HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+        FILES_FILE: ${{ steps.pr.outputs.files_file }}
+        ANCHORS_PATH: ${{ inputs.anchors-path }}
+        PR: ${{ inputs.pr }}
       run: |
         set -uo pipefail
         BIN="${{ steps.resolve-binary.outputs.bin }}"
         BODY_FILE="${RUNNER_TEMP}/faff-landing-body.md"
         node "$BIN" landing-comment \
-          --pr "${{ inputs.pr }}" \
-          --head-ref "${{ steps.pr.outputs.head_ref }}" \
-          --files-file "${{ steps.pr.outputs.files_file }}" \
-          --anchors-root "${{ inputs.anchors-path }}" \
+          --pr "$PR" \
+          --head-ref "$HEAD_REF" \
+          --files-file "$FILES_FILE" \
+          --anchors-root "$ANCHORS_PATH" \
           > "$BODY_FILE"
         CODE=$?
         if [ "$CODE" -ne 0 ]; then
@@ -118,8 +124,10 @@ runs:
         set -euo pipefail
         PR="${{ inputs.pr }}"
         BODY_FILE="${{ steps.render.outputs.body_file }}"
+        # No `|| true` on the list: a genuine API failure must ABORT (set -e), never fall
+        # through to COUNT=0 → POST, which would create a duplicate comment on an API hiccup.
         IDS="$(gh api "repos/{owner}/{repo}/issues/${PR}/comments" --paginate \
-                 --jq '.[] | select(.body | contains(env.MARKER)) | .id' || true)"
+                 --jq '.[] | select(.body | contains(env.MARKER)) | .id')"
         COUNT="$(printf '%s\n' "$IDS" | grep -c . || true)"
         if [ "$COUNT" -eq 0 ]; then
           echo "faff landing-comment: no existing marker comment — creating one on PR #${PR}"

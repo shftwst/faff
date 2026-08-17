@@ -71,7 +71,11 @@ function parseProfileInput(raw) {
   const trimmed = String(raw).replace(/^\s+/, "");
   if (trimmed.startsWith(PROFILE_FENCE_OPEN)) {
     const afterOpen = trimmed.slice(PROFILE_FENCE_OPEN.length);
-    const closeIdx = afterOpen.indexOf(PROFILE_FENCE_CLOSE);
+    // lastIndexOf, not indexOf: the miner always emits the closing fence as the trailing marker
+    // of a single block, so anchoring on the LAST occurrence tolerates a JSON value that happens
+    // to contain a literal ``` sequence (a pathological evidence/note string) without truncating
+    // the body early. Byte-identical result for the miner's own well-formed output either way.
+    const closeIdx = afterOpen.lastIndexOf(PROFILE_FENCE_CLOSE);
     const body = closeIdx === -1 ? afterOpen : afterOpen.slice(0, closeIdx);
     return JSON.parse(body);
   }
@@ -382,6 +386,14 @@ function profileSelftest() {
   let malformedFencedThrew = false;
   try { parseProfileInput("```faff-contract:infra-profile\n{ not json\n```\n"); } catch { malformedFencedThrew = true; }
   check("parseProfileInput: malformed fenced body throws", malformedFencedThrew);
+  // A JSON value containing a literal ``` must not truncate the body early — anchor on the
+  // trailing closing fence (lastIndexOf), not the first occurrence.
+  const withEmbeddedTicks = { schema: 1, acquired_at: "t", acquired_by: "x", notes: ["contains ``` inline"] };
+  const embeddedJson = JSON.stringify(withEmbeddedTicks);
+  const embeddedFenced = "```faff-contract:infra-profile\n" + embeddedJson + "\n```\n";
+  let fromEmbedded;
+  try { fromEmbedded = parseProfileInput(embeddedFenced); } catch { fromEmbedded = undefined; }
+  check("parseProfileInput: a JSON value containing ``` does not truncate the body", fromEmbedded !== undefined && JSON.stringify(fromEmbedded) === embeddedJson);
 
   if (failed) return 1;
   console.log("profile --selftest: ok");

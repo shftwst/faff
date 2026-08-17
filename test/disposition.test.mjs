@@ -278,3 +278,82 @@ test("--selftest runs the pure classifier fixture table and passes", () => {
   assert.equal(code, 0);
   assert.match(out, /RESULT: PASS/);
 });
+
+// --- FAFF-784: a PRESENT per-issue custody-verdict.json drives needs-attention, independent of the
+// outcome bucket — even a shipped/Done issue. Missing alone never retroactively marks a legacy run. ---
+
+function writeCustodyVerdict(runDir, issue, over = {}) {
+  mkdirSync(join(runDir, issue), { recursive: true });
+  const record = {
+    schema_version: 1, run_id: "run-t", issue, classification: "clean",
+    paths: [], detail: "digest-verified", verified_at: "2026-08-15T00:00:00.000Z",
+    merge_state_at_verification: "pre-merge", ...over,
+  };
+  writeFileSync(join(runDir, issue, "custody-verdict.json"), typeof record === "string" ? record : JSON.stringify(record));
+}
+
+test("FAFF-784: a TAMPER custody verdict on a SHIPPED issue → exit 1 needs-attention (custody overrides an otherwise-clean outcome)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } } });
+  writeCustodyVerdict(f.runDir, "FAFF-1", { classification: "tamper", paths: ["run-ledger.json"], detail: "tampered" });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.equal(rep.disposition, "needs-attention");
+    assert.ok(rep.attention.some((i) => i.kind === "custody-non-clean" && i.issue === "FAFF-1" && i.outcome === "shipped" && i.cause === "tamper"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-784: a verification-unavailable custody verdict → needs-attention", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } } });
+  writeCustodyVerdict(f.runDir, "FAFF-1", { classification: "verification-unavailable", detail: "no SHA-256 tool" });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "custody-non-clean" && i.issue === "FAFF-1" && i.cause === "verification-unavailable"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-784: a malformed-present custody verdict (unparseable JSON) → needs-attention, disposition never throws (exit 1, not 2)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } } });
+  mkdirSync(join(f.runDir, "FAFF-1"), { recursive: true });
+  writeFileSync(join(f.runDir, "FAFF-1", "custody-verdict.json"), "{not valid json");
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "custody-non-clean" && i.issue === "FAFF-1" && i.cause === "malformed-present"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-784: an identity-mismatched custody verdict (wrong run_id — evidence carried over from a different run) → needs-attention", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } } });
+  writeCustodyVerdict(f.runDir, "FAFF-1", { run_id: "some-other-run" });
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 1);
+    const rep = JSON.parse(out);
+    assert.ok(rep.attention.some((i) => i.kind === "custody-non-clean" && i.issue === "FAFF-1" && i.cause === "identity-mismatch"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-784: a CLEAN custody verdict on a shipped issue adds NOTHING (exit 0)", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } } });
+  writeCustodyVerdict(f.runDir, "FAFF-1");
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 0);
+    assert.deepEqual(JSON.parse(out).attention, []);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-784: a MISSING custody verdict on a shipped/Done issue never retroactively marks the run (exit 0) — legacy/interactive runs are unaffected", () => {
+  const f = fixture({ ledger: { run_id: "run-t", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } } });
+  // deliberately no custody-verdict.json at all
+  try {
+    const { code, out } = run(["disposition", "--run-dir", f.runDir, "--json"]);
+    assert.equal(code, 0);
+    assert.deepEqual(JSON.parse(out).attention, []);
+  } finally { f.cleanup(); }
+});

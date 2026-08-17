@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-820",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f8d17368172c3d286f859be70e66682ecdc80503f2bff06b7f3ee18299af59da",
+    "branch": "faff-820-recover-safely-on-a-later-executor-from-a-verified-phase-0",
+    "pushed_at": "2026-08-17T23:41:07.349Z"
+  },
+  "updated_at": "2026-08-17T23:41:07.349Z"
+}

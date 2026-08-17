@@ -1,4 +1,4 @@
-# ADR 0114 — Scoped recovery write-authority for a merged-but-unclosed run
+# ADR 0115 — Scoped recovery write-authority for a merged-but-unclosed run
 
 - **Status:** Proposed
 - **Provenance:** loop

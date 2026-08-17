@@ -8,7 +8,7 @@
 // narrowly-scoped exception to "only the run's own agents write owner.status"
 // (ADR-0008/0015 lineage) — the third such exception, sibling to ADR-0057 (graft's
 // claim-holder self-release) and ADR-0098 (stale-claim reclaim). See
-// records/adr/0114-*.md for the full scope: actor (this verb only), operation
+// records/adr/0115-*.md for the full scope: actor (this verb only), operation
 // (running->done + outcomes:absent->shipped only), precondition (verifiably-merged
 // AND verifiably-stale AND unclosed), pairing (never a bare write — always gated on
 // a fresh post-merge-check returning verified-ok; a red or absent verdict blocks).

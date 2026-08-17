@@ -205,14 +205,19 @@ test("static: the §0a heading + prose sit under the L4-lights-out-only guard, b
   assert.match(guardLine, /before .*faff lights-out.* mints the ledger/);
 });
 
-test("static: a plan verdict invokes /faff-plot --autonomous and does not call faff lights-out (no double-mint, decompose-only)", () => {
+test("static: a plan verdict invokes /faff-plot --autonomous, then mints its own faff lights-out ledger and falls through (no STOP, converge don't stop)", () => {
   const text = fs.readFileSync(skillPath, "utf8");
   const start = text.indexOf("### 0a. Run-start trigger");
   const end = text.indexOf("### 1. Tidy pass", start);
   const section = text.slice(start, end);
-  const planLine = section.match(/\*\*`plan`\*\*[\s\S]*?STOP\./)[0];
+  const planLine = section.match(/\*\*`plan`\*\*[\s\S]*?fall-through\./)[0];
   assert.match(planLine, /\/faff-plot --autonomous/);
-  assert.doesNotMatch(planLine, /faff lights-out/);
+  // it mints its OWN build-pass ledger — never reuses plot's decompose-pass ledger
+  assert.match(planLine, /faff lights-out --prd-creative-licence/);
+  assert.match(planLine, /never.*reuse plot's decompose-pass ledger/);
+  // falls through to the build pipeline instead of stopping decompose-only
+  assert.match(planLine, /fall through to step 1/);
+  assert.doesNotMatch(planLine, /\bSTOP\.(?!\S)/);
 });
 
 test("static: a drain verdict mints via faff lights-out --prd-creative-licence; a refuse verdict mints nothing", () => {

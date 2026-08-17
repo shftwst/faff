@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-791",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ec4a6b4391e857f09d5f31ded78e034d1453ebd8f5152a238474fe62ed9055e0",
+    "branch": "faff-791-routable-env-producer",
+    "pushed_at": "2026-08-16T10:31:17.410Z"
+  },
+  "updated_at": "2026-08-16T10:31:17.410Z"
+}

@@ -1,33 +1,68 @@
 {
   "meta": {
-    "captured_at": "2026-08-07",
+    "captured_at": "2026-08-16",
     "driver": "frontier",
     "model": "claude-opus-4-8",
     "base_reps": 20,
-    "source": "scoped --update-baseline --kind — refreshed grouping; 15 prior kind(s) retained"
+    "source": "scoped --update-baseline --kind — refreshed refutation-spec, resolved-elsewhere, roadmap, routing, shaping, spec-verdict, specqual, splittable, stale, superseded, vague, verdict-revert; 17 prior kind(s) retained"
   },
   "per_kind": {
+    "adr-drift": {
+      "accuracy": 0.97,
+      "stability": 0.97,
+      "format_adherence": 1
+    },
+    "adr-gloss": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "architecture": {
+      "accuracy": 0.8200000000000001,
+      "stability": 0.8200000000000001,
+      "format_adherence": 1
+    },
+    "chain-gap": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "confidence": {
+      "accuracy": 0.9733333333333333,
+      "stability": 0.9733333333333333,
+      "format_adherence": 1
+    },
+    "decomposition": {
+      "accuracy": 0.96,
+      "stability": 0.96,
+      "format_adherence": 1
+    },
     "dupe": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1
     },
-    "vague": {
+    "explanatory-order": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1
     },
-    "stale": {
+    "gloss": {
+      "accuracy": 0.9733333333333333,
+      "stability": 0.9733333333333333,
+      "format_adherence": 1
+    },
+    "grouping": {
+      "accuracy": 0.84,
+      "stability": 0.84,
+      "format_adherence": 1
+    },
+    "holdout": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1
     },
-    "superseded": {
-      "accuracy": 1,
-      "stability": 1,
-      "format_adherence": 1
-    },
-    "ordering": {
+    "holdout-exercise": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1
@@ -42,17 +77,37 @@
       "stability": 1,
       "format_adherence": 1
     },
+    "ordering": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "prep-architecture-trigger": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "refutation-code": {
+      "accuracy": 0.8,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "refutation-spec": {
+      "accuracy": 0.806,
+      "stability": 0.8140000000000001,
+      "format_adherence": 1
+    },
+    "resolved-elsewhere": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "roadmap": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
     "routing": {
-      "accuracy": 1,
-      "stability": 1,
-      "format_adherence": 1
-    },
-    "splittable": {
-      "accuracy": 1,
-      "stability": 1,
-      "format_adherence": 1
-    },
-    "verdict-revert": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1
@@ -62,29 +117,39 @@
       "stability": 1,
       "format_adherence": 1
     },
-    "decomposition": {
+    "spec-verdict": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1
     },
-    "gloss": {
-      "accuracy": 0.99,
-      "stability": 0.99,
+    "specqual": {
+      "accuracy": 0.9733333333333333,
+      "stability": 0.9733333333333333,
       "format_adherence": 1
     },
-    "confidence": {
-      "accuracy": 0.93,
-      "stability": 0.93,
+    "splittable": {
+      "accuracy": 1,
+      "stability": 1,
       "format_adherence": 1
     },
-    "grouping": {
-      "accuracy": 0.86,
-      "stability": 0.86,
+    "stale": {
+      "accuracy": 1,
+      "stability": 1,
       "format_adherence": 1
     },
-    "refutation-spec": {
-      "accuracy": 0.7339999999999999,
-      "stability": 0.748,
+    "superseded": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "vague": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "verdict-revert": {
+      "accuracy": 1,
+      "stability": 1,
       "format_adherence": 1
     }
   },

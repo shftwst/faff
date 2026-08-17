@@ -1115,10 +1115,16 @@ export async function runReviewChain(chain = [], shared = {}) {
       // reachable-but-degraded symptom) → MALFORMED(10) — the split the terminal CHAIN_NEEDS_HUMAN
       // membership above keys on. The "malformed" log label is retained for the garbled kind only (the
       // pre-existing greppable wording); empty/refusal log their own kind.
+      // FAFF-806: `shape` (hence `kind`) is derived from the RAW `originalContent`, never from
+      // `normalisation.content` — this is what makes the `kind` discriminator a pure function of the
+      // backend's returned bytes, independent of whether normalisation succeeded (the FAFF-465 invariant).
+      // The non-findings `continue` below is gated on `!shape.ok && !normalisation.normalised` so a
+      // successfully-normalised clean refutation (raw bytes fail shape, but normalisation accepts it) still
+      // takes the accepted path with the canonical token — preserving FAFF-746 acceptance.
       const originalContent = result.content || "";
+      const shape = validateFindingsShape(originalContent);
       const normalisation = normaliseCleanRefutation(originalContent);
-      const shape = validateFindingsShape(normalisation.content);
-      if (!shape.ok) {
+      if (!shape.ok && !normalisation.normalised) {
         const cls = (shape.kind === "empty" || shape.kind === "refusal") ? EXIT.NO_FINDINGS_CONTENT : EXIT.MALFORMED;
         const label = shape.kind === "garbled" ? "malformed" : shape.kind;
         failureClasses.push(cls);

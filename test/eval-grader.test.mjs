@@ -772,7 +772,8 @@ test("all eval/cases load and validate", () => {
   // rate rather than the skill's judgement; the scorer still reads them from the pilot dir. holdout-exercise
   // here is FAFF-317's two real exercises (holdout-exercise-001/002), which is why the count drops 84 -> 79
   // and the kind is unaffected.
-  assert.equal(cases.length, 79);
+  // FAFF-816: +2 prdr-yagni (one survive, one overturn).
+  assert.equal(cases.length, 81);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger", "grouping"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

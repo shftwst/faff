@@ -1,0 +1,8 @@
+{
+  "run_id": "run-20260816-041030-beepboop-list-63049c",
+  "issue": "FAFF-814",
+  "head_seq": 7,
+  "head_sha256": "fcf34fd48ef43e6cc25a779beb57ed3b2d47b0a730a1507bcfe851690d37f3df",
+  "line_count": 8,
+  "schema_floor": 2
+}

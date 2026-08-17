@@ -1,14 +1,18 @@
 // ===========================================================================
-// === region:factory — tracker — FAFF-695: classify the tracker-availability pin. ===
+// === region:factory — tracker — FAFF-695/FAFF-808: classify the tracker-availability pin. ===
 // PURE: reads `.faffrc tracking.tracker` and reports whether a tracker connector is
-// PINNED (asserted to exist) or UNPINNED. It deliberately does NOT — and cannot —
-// determine whether the connector is *reachable this session*: every bin/lib module
-// is MCP-blind by invariant, so live reachability is the model's call after a
-// harness discovery attempt. This classifier's whole job is the deterministic half:
-// a pin is an operator's assertion the connector exists, so a skill that sees `pinned`
-// MUST NOT downgrade to git-only merely because the tool isn't in its immediately-
-// visible set (the Codex deferred-tool failure the ticket fixes). `unpinned` means
-// no such assertion — the skill must attempt discovery before concluding absence.
+// PINNED (asserted to exist), UNPINNED, or GIT-ONLY (asserted to not exist). It
+// deliberately does NOT — and cannot — determine whether a pinned connector is
+// *reachable this session*: every bin/lib module is MCP-blind by invariant, so live
+// reachability is the model's call after a harness discovery attempt. This classifier's
+// whole job is the deterministic half: a connector pin is an operator's assertion the
+// connector exists, so a skill that sees `pinned` MUST NOT downgrade to git-only merely
+// because the tool isn't in its immediately-visible set (the Codex deferred-tool failure
+// FAFF-695 fixes). The git-only pin (FAFF-808) is the symmetric inverse assertion — the
+// operator states the repo has no tracker relationship, so a skill that sees `git-only`
+// MUST NOT upgrade to tracker-mode even if a tracker MCP is visible this session, and
+// resolves it before any discovery attempt. `unpinned` means neither assertion — the
+// skill must attempt discovery before concluding absence.
 // The skills carry the harness-specific discovery + the "unreachable this session"
 // fail-loud in prose (a CLI can't probe MCP); this command is the pin-read they lean on.
 // ===========================================================================
@@ -17,12 +21,24 @@ const { parseArgs, usageError } = require("./argv");
 const { findRoot, dig } = require("./shared-infra");
 const { loadConfig } = require("./config");
 
+// Reserved `tracking.tracker` values asserting git-only (case-insensitive, trimmed).
+// `none` is canonical; `git-only` is an identical alias — both resolve to "git-only".
+const GIT_ONLY_SENTINELS = new Set(["none", "git-only"]);
+
 // Pure core: resolved config map → { pin, resolution }.
-// A pin is any non-empty `tracking.tracker` string; blank/absent ⇒ unpinned.
+// - blank/absent ⇒ { pin: null, resolution: "unpinned" }
+// - a reserved sentinel (none / git-only, case-insensitive, trimmed) ⇒ { pin: null, resolution: "git-only" }
+// - any other non-empty string ⇒ { pin: <trimmed>, resolution: "pinned" }
 function classifyTracker(data) {
   const raw = dig(data, "tracking.tracker");
-  const pin = raw === null || raw === undefined || String(raw).trim() === "" ? null : String(raw).trim();
-  return { pin, resolution: pin ? "pinned" : "unpinned" };
+  if (raw === null || raw === undefined || String(raw).trim() === "") {
+    return { pin: null, resolution: "unpinned" };
+  }
+  const trimmed = String(raw).trim();
+  if (GIT_ONLY_SENTINELS.has(trimmed.toLowerCase())) {
+    return { pin: null, resolution: "git-only" };
+  }
+  return { pin: trimmed, resolution: "pinned" };
 }
 
 const TRACKER_CASES = [
@@ -33,6 +49,11 @@ const TRACKER_CASES = [
   [{ tracking: { tracker: "   " } }, { pin: null, resolution: "unpinned" }],       // whitespace ⇒ unpinned
   [{ tracking: {} }, { pin: null, resolution: "unpinned" }],                       // key absent
   [{}, { pin: null, resolution: "unpinned" }],                                     // no tracking block
+  [{ tracking: { tracker: "none" } }, { pin: null, resolution: "git-only" }],       // FAFF-808: canonical sentinel
+  [{ tracking: { tracker: "git-only" } }, { pin: null, resolution: "git-only" }],   // FAFF-808: alias sentinel
+  [{ tracking: { tracker: "NONE" } }, { pin: null, resolution: "git-only" }],       // FAFF-808: case-insensitive
+  [{ tracking: { tracker: "  none  " } }, { pin: null, resolution: "git-only" }],   // FAFF-808: trimmed
+  [{ tracking: { tracker: "Git-Only" } }, { pin: null, resolution: "git-only" }],   // FAFF-808: mixed-case alias
 ];
 
 function runTrackerCases() {

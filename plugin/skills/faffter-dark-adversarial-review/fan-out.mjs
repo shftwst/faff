@@ -18,7 +18,7 @@
 // nothing unless they opt in; the CLI defaults to the real node:child_process.spawn.
 
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { dirname, join as pathJoin } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -146,9 +146,31 @@ function readRequestsInput(argv) {
   return parsed; // let validateRequests reject a non-array/non-{requests:[]} shape uniformly
 }
 
+// FAFF-813: a pure, side-effect-free selftest over validateRequests — no spawn, no I/O — mirroring
+// aggregate.mjs's `--selftest`. Gives fan-out.mjs the same invocation affordance for the
+// symlink-invocation regression test (the alternative, exercising fanOut() with an injected spawnFn,
+// would need EventEmitter imported into this production file just to fabricate a fake child).
+export function selftest() {
+  const fails = [];
+  const check = (name, cond) => { if (!cond) fails.push(name); };
+  check("known-good request → ok", validateRequests([{ lens: "architectural", argv: [] }]).ok === true);
+  check("empty array → refused", validateRequests([]).ok === false);
+  check("non-array → refused", validateRequests(null).ok === false);
+  check("non-string argv element → refused", validateRequests([{ lens: "x", argv: [1] }]).ok === false);
+  if (fails.length) {
+    process.stderr.write("fan-out --selftest: FAIL\n" + fails.map((f) => "  ✗ " + f).join("\n") + "\n");
+    return 1;
+  }
+  process.stdout.write("fan-out --selftest: ok\n");
+  return 0;
+}
+
 // `spawnFn` is injectable exactly as review-call.mjs's getFn/streamFn are, so a caller (or test) can
 // stub the transport; it defaults to the real node:child_process.spawn for the CLI.
 export async function main(argv, { spawnFn = spawn } = {}) {
+  // Must run FIRST, before readRequestsInput — that call reads --requests FILE or stdin (fd 0), so
+  // placed later an interactive --selftest with no piped input would block on stdin.
+  if (argv.includes("--selftest")) return selftest();
   let requests;
   try {
     requests = readRequestsInput(argv);
@@ -177,7 +199,20 @@ export async function main(argv, { spawnFn = spawn } = {}) {
 // needs to run concurrently.
 
 // Run as CLI only when invoked directly (not when imported by a test). Mirrors aggregate.mjs's
-// import.meta.url / pathToFileURL(process.argv[1]) comparison (percent-encoding safe).
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url / pathToFileURL(process.argv[1]) comparison (percent-encoding safe). FAFF-813:
+// faff installs each skill by symlinking `plugin/skills/<skill>/` into `~/.claude/skills/<skill>`,
+// so a production invocation's process.argv[1] is the symlink path while import.meta.url is already
+// the repo realpath — canonicalise argv1 through realpathSync before comparing so a symlinked
+// install path still matches.
+export function entrypoint_href(argv1) {
+  if (!argv1) return null;
+  try {
+    return pathToFileURL(realpathSync(argv1)).href;
+  } catch {
+    return pathToFileURL(argv1).href;
+  }
+}
+
+if (import.meta.url === entrypoint_href(process.argv[1])) {
   main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
 }

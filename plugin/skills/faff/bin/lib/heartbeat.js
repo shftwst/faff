@@ -217,7 +217,16 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 // pair (mutateLedgerUnderLock) never re-hashes independently and can never drift from
 // the chained event's own value.
 function atomicWriteLedger(runDir, ledger) {
-  const body = JSON.stringify(ledger, null, 2) + "\n";
+  // FAFF-107: redact known secret values out of the ledger BEFORE serialize +
+  // hash, so `ledger_sha256` (below, and the chained ledger-write event's own
+  // data.ledger_sha256) describes the bytes actually persisted, never the
+  // pre-redaction ones. The require is call-time (lazy) for the identical
+  // reason the "./events" require just below it is: heartbeat.js requires
+  // ./redact would otherwise cycle back through ./budget → ./heartbeat (a
+  // top-level import here would deadlock module init).
+  const { resolveKnownSecretValues, redactKnownSecrets } = require("./redact");
+  const redactedLedger = redactKnownSecrets(ledger, resolveKnownSecretValues());
+  const body = JSON.stringify(redactedLedger, null, 2) + "\n";
   const sha = crypto.createHash("sha256").update(body).digest("hex");
   atomicWriteSingleValueFile(path.join(runDir, "run-ledger.json"), body);
   try {

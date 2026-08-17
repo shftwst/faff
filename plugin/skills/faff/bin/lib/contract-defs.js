@@ -1283,6 +1283,8 @@ function contractL4TopologyEnvelope(extraction) {
 // Grounding (PRD-domain KB via the grounding slot, FAFF-127/128) is ADVISORY — `grounding_present` is
 // shape-checked but never gate-decisive; its absence never blocks (judgment proceeds on PRD + methodology).
 const PRDR_YAGNI_PROPOSAL_VERDICTS = ["admit", "reject"];
+// FAFF-815 (Q7) — the closed-vocab reason a Phase-2 skeptic overturned; gates the under-citation admit.
+const PRDR_YAGNI_CHALLENGE_GROUNDS = ["over-scope", "unserved", "other"];
 function computePrdrYagni(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
@@ -1301,22 +1303,35 @@ function computePrdrYagni(extraction) {
   const admit = !!extraction.admit;
   const trace_to_goal = !!extraction.trace_to_goal;
   const grounding_present = !!extraction.grounding_present;
+  const over_scope = !!extraction.over_scope;                       // FAFF-815 — trusted (verdict does not carry D)
+  const dedup = (arr) => [...new Set(arr)];
+  const cited_goals = dedup(Array.isArray(extraction.cited_goals) ? extraction.cited_goals.filter((g) => typeof g === "string") : []);
+  const dod_covers = dedup(Array.isArray(extraction.dod_covers) ? extraction.dod_covers.filter((g) => typeof g === "string") : []);
   const proposal = {
     serves_goal: !!p.serves_goal, within_scope: !!p.within_scope,
     verdict: p.verdict, reason: typeof p.reason === "string" ? p.reason : "",
   };
+  // FAFF-815 (Q7) — the closed-vocab overturn ground, read straight off the verdict (absent/unknown ⇒ other).
+  const ground = PRDR_YAGNI_CHALLENGE_GROUNDS.includes(c.ground) ? c.ground : "other";
   const challenge = {
     ran: !!c.ran, overturns: !!c.overturns,
-    reason: typeof c.reason === "string" ? c.reason : "",
+    reason: typeof c.reason === "string" ? c.reason : "", ground,
   };
   const reason = typeof extraction.reason === "string" ? extraction.reason : "";
   const violations = [];
-  const earned = trace_to_goal && proposal.verdict === "admit" && challenge.ran && !challenge.overturns;
+  // Re-derive under_cited locally from the echoed cited_goals/dod_covers (both present) and the trusted
+  // over_scope — matching how this consumer already trusts the recorded trace_to_goal (Q6). On an
+  // under-citation admit the producer widens cited_goals to C∪V (⊇ V), so the tell is "the citation now
+  // covers every DoD goal and nothing over-scopes"; the overturns flag distinguishes it from a clean admit.
+  const under_cited = !over_scope && dod_covers.length > 0 && dod_covers.every((v) => cited_goals.includes(v));
+  const earned = trace_to_goal && proposal.verdict === "admit" && challenge.ran
+    && !over_scope
+    && (!challenge.overturns || (under_cited && challenge.ground === "over-scope"));
   if (admit && !earned) {
-    violations.push("admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns)");
+    violations.push("admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬over_scope ∧ (¬challenge.overturns ∨ (under-citation ∧ challenge.ground==over-scope)))");
   }
   if (!admit && reason === "") violations.push("reject carries no reason");
-  return { contractData: { admit, reason, trace_to_goal, proposal, challenge, grounding_present, conformant: violations.length === 0, violations }, failLoud: null };
+  return { contractData: { admit, reason, trace_to_goal, cited_goals, dod_covers, over_scope, proposal, challenge, grounding_present, conformant: violations.length === 0, violations }, failLoud: null };
 }
 
 function contractPrdrYagni(extraction) {
@@ -1490,7 +1505,15 @@ function contractRunTrigger(extraction) {
 function computePrdCoverageVerdict(input) {
   const goals = Array.isArray(input.prdGoals) ? input.prdGoals.filter((g) => typeof g === "string") : [];
   const live = Array.isArray(input.livePrdrs) ? input.livePrdrs.filter((p) => p && typeof p === "object" && !Array.isArray(p)) : [];
-  const citedGoals = new Set(live.map((p) => (typeof p.prd_goal === "string" ? p.prd_goal : "")));
+  // FAFF-815 — the cited set is the UNION of every live PRDR's `prd_goals` (a citation is now plural);
+  // a legacy record carrying only a single `prd_goal` string is treated as [prd_goal].
+  const citedGoals = new Set();
+  for (const p of live) {
+    const arr = Array.isArray(p.prd_goals)
+      ? p.prd_goals.filter((g) => typeof g === "string")
+      : (typeof p.prd_goal === "string" && p.prd_goal ? [p.prd_goal] : []);
+    for (const g of arr) citedGoals.add(g);
+  }
   // COVERAGE (static): a PRD goal with no live PRDR citing it is uncovered. Dedup — `uncovered_goals` is
   // consumed downstream (`prdr admit --lower`), so a duplicate-bearing caller goal list yields a clean set.
   const uncovered_goals = [...new Set(goals.filter((g) => !citedGoals.has(g)))];
@@ -1611,9 +1634,27 @@ function contractPrdDistance(extraction) {
 // belt-and-braces by the caller via schemaCheck). The conservative-reject rule (no gold-plating on
 // doubt) is the sole place `admit` can be earned: trace ∧ proposal admits ∧ skeptic ran ∧ ¬overturned.
 function computePrdrYagniVerdict(input) {
-  const goals = Array.isArray(input.prdGoals) ? input.prdGoals.filter((g) => typeof g === "string") : [];
-  const prdGoal = typeof input.prdGoal === "string" ? input.prdGoal : "";
-  const trace_to_goal = prdGoal !== "" && goals.includes(prdGoal);
+  // FAFF-815 — three goal sets kept distinct: D declared, C cited, V DoD-covered. Dedup preserves
+  // first-seen order (mirror computePrdCoverageVerdict's `[...new Set(...)]`).
+  const dedup = (arr) => [...new Set(arr)];
+  const subset = (a, b) => a.every((x) => b.includes(x));            // a ⊆ b
+  const D = dedup(Array.isArray(input.prdGoals) ? input.prdGoals.filter((g) => typeof g === "string") : []);
+  // C (cited): the array form (`--dod-covers`-style callers) or the legacy comma-tolerant `--prd-goal`
+  // string, comma-split/trimmed/empties-dropped (a single value = a 1-element set; back-compat).
+  const citedRaw = Array.isArray(input.citedGoals)
+    ? input.citedGoals
+    : (typeof input.prdGoal === "string" ? input.prdGoal.split(",") : []);
+  const C = dedup(citedRaw.map((s) => (typeof s === "string" ? s.trim() : "")).filter((s) => s !== ""));
+  // V (DoD-covered): [] when `--dod-covers` absent ⇒ over_scope=false ∧ under_cited=false, so an
+  // overturn takes the conservative-reject branch — byte-identical to pre-FAFF-815 behaviour.
+  const V = dedup(Array.isArray(input.dodCovers) ? input.dodCovers.filter((g) => typeof g === "string") : []);
+  // The closed-vocab overturn ground (Q7); absent/unknown ⇒ "other" (fail-safe — never widens admit).
+  const ground = PRDR_YAGNI_CHALLENGE_GROUNDS.includes(input.challengeGround) ? input.challengeGround : "other";
+
+  const trace_to_goal = C.length > 0 && subset(C, D);               // C ≠ ∅ ∧ C ⊆ D
+  const over_scope = V.some((v) => !D.includes(v));                 // V ⊄ D (deterministic gold-plating)
+  const under_cited = subset(V, D) && subset(C, V) && V.some((v) => !C.includes(v)); // V ⊆ D ∧ C ⊊ V
+
   // A Phase-1 proposal is "supplied" only when the methodology actually returned admit|reject.
   // Absent (or out-of-enum) ⇒ NOT an explicit reject — it gets its own honest conservative-reject
   // branch below, symmetric with the inconclusive-challenge branch. The recorded verdict is the
@@ -1627,12 +1668,12 @@ function computePrdrYagniVerdict(input) {
   // challenge: "survived" | "overturned" | null (null ⇒ Phase 2 did not conclude — conservative).
   const challengeRan = input.challenge === "survived" || input.challenge === "overturned";
   const overturns = input.challenge === "overturned";
-  const challenge = { ran: challengeRan, overturns, reason: typeof input.challengeReason === "string" ? input.challengeReason : "" };
+  const challenge = { ran: challengeRan, overturns, reason: typeof input.challengeReason === "string" ? input.challengeReason : "", ground };
 
-  let admit, reason;
+  let admit, reason, citedEcho = C;
   if (!trace_to_goal) {
     admit = false;
-    reason = `no PRD-goal trace: PRDR cites ${JSON.stringify(prdGoal || "<none>")} which is not a declared PRD goal`;
+    reason = `no PRD-goal trace: PRDR cites ${JSON.stringify(C)} which are not all declared PRD goals`;
   } else if (!proposalSupplied) {
     admit = false;
     reason = "conservative reject (no gold-plating on doubt) — no methodology (Phase-1) proposal supplied; the upper gate cannot admit without one";
@@ -1642,14 +1683,26 @@ function computePrdrYagniVerdict(input) {
   } else if (!challengeRan) {
     admit = false;
     reason = "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade";
-  } else if (overturns) {
+  } else if (over_scope) {
+    // AC#3 — deterministic gold-plating reject, fires even when the skeptic survived.
     admit = false;
-    reason = `conservative reject (no gold-plating on doubt) — adversarial challenge overturned the proposal: ${challenge.reason || "gold-plating / serves the goal but exceeds PRD scope"}`;
+    reason = `conservative reject (no gold-plating on doubt) — genuine over-scope: DoD covers ${JSON.stringify(V.filter((v) => !D.includes(v)))} beyond the PRD's declared goals`;
+  } else if (overturns) {
+    if (under_cited && ground === "over-scope") {
+      // AC#1 — the skeptic claimed over-scope, but V⊆D proves the mismatch was under-citation.
+      admit = true;
+      citedEcho = dedup([...C, ...V]);   // advisory widened set C∪V (NOT written back — see OUT OF SCOPE)
+      reason = `admit — the over-scope overturn was mis-attributed under-citation: DoD covers declared goals ${JSON.stringify(V.filter((v) => !C.includes(v)))} that were not cited; scope is within the PRD`;
+    } else {
+      // Any overturn on non-over-scope grounds (unserved/other/absent), or a fully-cited PRDR → respect the skeptic.
+      admit = false;
+      reason = `conservative reject (no gold-plating on doubt) — adversarial challenge overturned (${ground}): ${challenge.reason || "gold-plating / serves the goal but exceeds PRD scope"}`;
+    }
   } else {
     admit = true;
     reason = proposal.reason || "methodology admits (serves the goal, within scope) and the adversarial challenge did not overturn it";
   }
-  return { admit, reason, trace_to_goal, proposal, challenge, grounding_present: !!input.groundingPresent, conformant: true, violations: [] };
+  return { admit, reason, trace_to_goal, cited_goals: citedEcho, dod_covers: V, over_scope, proposal, challenge, grounding_present: !!input.groundingPresent, conformant: true, violations: [] };
 }
 
 // --- integrity-floor (FAFF-350) ---
@@ -2652,4 +2705,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

@@ -1501,6 +1501,13 @@ test("FAFF-465 validateFindingsShape: a closed-grammar provider refusal is malfo
   assert.equal(r.reason, "provider refusal");
 });
 
+test("FAFF-806 validateFindingsShape: raw clean-refutation bytes classify as kind:garbled, while the canonical token they normalise to is ok — the two inputs disagree, so which one feeds the kind discriminator is load-bearing", () => {
+  const raw = validateFindingsShape("No infosec objection.");
+  assert.equal(raw.ok, false);
+  assert.equal(raw.kind, "garbled", "raw clean-refutation prose has no recognised severity section — it is NOT findings-shaped on its own");
+  assert.equal(validateFindingsShape(CANONICAL_NO_FINDINGS).ok, true, "the token normalisation produces IS findings-shaped");
+});
+
 // ── isProviderRefusal (FAFF-465) ──
 
 test("FAFF-465 isProviderRefusal: a table of closed-grammar refusal openers all match", () => {
@@ -1995,6 +2002,47 @@ test("FAFF-465 runReviewChain: a single mismatched clean-like (garbled) backend 
     { system: "S", user: "U", log: () => {}, runReviewFn: async () => ({ status: "ok", content: "## Refutation — QA\nNo infosec objection." }) },
   );
   assert.equal(res.exit, EXIT.UNREACHABLE);
+});
+
+// ── FAFF-806: the kind discriminator is a pure function of the backend's raw returned bytes ──
+
+test("FAFF-806 runReviewChain: call-site sourcing is pinned — validateFindingsShape receives originalContent, never normalisation.content", () => {
+  const src = readFileSync(new URL("../plugin/skills/faffter-dark-adversarial-review/review-call.mjs", import.meta.url), "utf8");
+  assert.match(src, /const shape = validateFindingsShape\(originalContent\);/,
+    "validateFindingsShape must be called on the raw originalContent, not the normalised content");
+  assert.match(src, /const normalisation = normaliseCleanRefutation\(originalContent\);/,
+    "normaliseCleanRefutation also runs on the raw originalContent (both pure functions see the same raw input)");
+  assert.doesNotMatch(src, /validateFindingsShape\(normalisation\.content\)/,
+    "regression guard: the discriminator must never read post-normalisation content again");
+  assert.match(src, /if \(!shape\.ok && !normalisation\.normalised\) \{/,
+    "the non-findings continue is gated on BOTH raw-bytes shape failure AND normalisation failure, so a successfully-normalised clean refutation still takes the accepted path");
+});
+
+test("FAFF-806 runReviewChain: the kind discriminator's classification is a pure function of the raw response bytes, independent of normalisation outcome — genuine empty/refusal/garbled inputs (none of which normalise) still record their raw-bytes kind's failure class", async () => {
+  const cases = [
+    { content: "", expectClass: EXIT.NO_FINDINGS_CONTENT, label: "empty" },
+    { content: "I cannot assist with this request.", expectClass: EXIT.NO_FINDINGS_CONTENT, label: "refusal" },
+    { content: "no structured findings here", expectClass: EXIT.MALFORMED, label: "garbled" },
+  ];
+  for (const c of cases) {
+    // Sanity: validateFindingsShape on the raw bytes agrees with the failure class the chain records —
+    // proving the chain's recorded failureClass tracks the RAW-bytes kind, not some other content.
+    const shape = validateFindingsShape(c.content);
+    assert.equal(shape.ok, false, `${c.label}: raw bytes are not findings-shaped`);
+    const chain = [
+      { provider: "ollama", model: "m1", host: "http://a:1", hostSource: "config" },
+      { provider: "ollama", model: "m2", host: "http://b:2", hostSource: "config" },
+    ];
+    const res = await runReviewChain(chain, {
+      system: "S", user: "U", log: () => {},
+      runReviewFn: scriptedRunReview({
+        "http://a:1": { status: "ok", content: c.content },
+        "http://b:2": { status: "ok", content: "### observation: no findings" },
+      }),
+    });
+    assert.equal(res.exit, EXIT.OK, `${c.label}: the fallback still wins`);
+    assert.deepEqual(res.failureClasses, [c.expectClass], `${c.label}: raw-bytes kind '${shape.kind}' must drive the recorded failure class unchanged by this re-order`);
+  }
 });
 
 test("FAFF-465 chainTerminalExit: a config fault still DOMINATES a garbled/no-opinion class in a fully-failed chain, regardless of order (MALFORMED no longer surfaces as terminal)", () => {

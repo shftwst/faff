@@ -1,0 +1,51 @@
+{
+  "all_verified": true,
+  "acs": [
+    {
+      "id": "AC1",
+      "description": "At L4, a methodology-lens (or multi-lens) reject-approach invokes /faff-plot --autonomous (re-slice) rather than parking; the re-sliced epics re-enter this run's wave loop and the run converges (does not stop after the re-slice).",
+      "verified": true,
+      "evidence": "plugin/skills/faff-prep/SKILL.md:143 (table row: L4 arm invokes /faff-plot --autonomous, no park) and :150-155 (the L4 autonomous re-slice procedure — step 2 invokes /faff-plot --autonomous, step 4 states the re-sliced epics land in Backlog and re-enter this run's wave loop, converging rather than stopping)"
+    },
+    {
+      "id": "AC2",
+      "description": "Size is never an L4 park reason; the only L4 stop is a genuine risk or a churn/can't-reduce escalation.",
+      "verified": true,
+      "evidence": "plugin/skills/faff-prep/SKILL.md:150 (\"At L4, ticket size is decidable by the agents and is never a park reason on its own ... L4 parking stays reserved for a genuine risk or a genuinely-undecidable call\") and :159 (\"Can't-reduce escalation, not a size park\" paragraph, routed via the existing needs-human/churn park causes, never reframed as too big)"
+    },
+    {
+      "id": "AC3",
+      "description": "L1-L3 (and interactive) behaviour is unchanged: park for a human, human-interactive /faff-plot.",
+      "verified": true,
+      "evidence": "plugin/skills/faff-prep/SKILL.md:143 retains the L1-L3 park action verbatim in substance (\"park and surface the slice for human-interactive /faff-plot to re-slice, unchanged\") and the Modes paragraph (line ~163) still states a methodology-lens reject-approach is human-interactive at L1-L3 in both modes, surfacing for /faff-plot, never auto-re-slicing at that tier"
+    },
+    {
+      "id": "AC4",
+      "description": "faff-prep mints no ledger and writes no tracker structure itself (lane preserved); it reuses /faff-plot --autonomous ignition.",
+      "verified": true,
+      "evidence": "plugin/skills/faff-prep/SKILL.md:153 (\"prep mints no ledger and writes no tracker structure itself (lane preserved)\"); step 2 invokes /faff-plot --autonomous via the Skill tool per the gateway's Sibling-skill invocation rule rather than faff-prep performing any tracker write itself"
+    },
+    {
+      "id": "AC5",
+      "description": "The level signal is read from the run-ledger at $FAFF_RUN_DIR; absent/not-L4 fails safe to park.",
+      "verified": true,
+      "evidence": "plugin/skills/faff-prep/SKILL.md:150 (\"Read level from the run-ledger at $FAFF_RUN_DIR ... absent, unreadable, or anything other than \\\"L4\\\" fails safe to the L1-L3 park row above -- a whitelist, not a blacklist\")"
+    },
+    {
+      "id": "AC6",
+      "description": "Design-lens reject routes are unchanged (FAFF-811 owns the multi-lens split).",
+      "verified": true,
+      "evidence": "git diff 7fae147..HEAD -- plugin/skills/faff-prep/SKILL.md shows the `architectural`/`infosec`/`QA`-only row (line 142) is untouched context, not part of the diff; only the methodology-only and multi-lens rows changed"
+    },
+    {
+      "id": "AC7",
+      "description": "A plot ignition refuse parks the parent (scope not lost), no retry.",
+      "verified": true,
+      "evidence": "plugin/skills/faff-prep/SKILL.md:157 (\"Plot refuse\" paragraph: a self-directed/no-target/inadmissible refuse verdict parks the parent slice per the shared protocol instead of returning re-slice-handoff -- scope is never lost, and there is no retry)"
+    }
+  ],
+  "gate_ladder": {
+    "lint_rungs": "pass -- faff validate-adapters (RESULT: PASS, 19 slot skills linted, 0 FAIL) and faff lint-refs --root . (PASS, no external-artifact refs in enforced prose) both clean, run directly. lint-refs caught two inline FAFF-499/ADR-0110 citations in an earlier draft of the SKILL.md edit; fixed by inlining the two rules instead of naming the deciding ticket/ADR (fix commit 07efa0d). validate-adapters separately caught the faff-beep-boop SKILL_LINE_BASELINE ratchet needing a +1 bump after the Phase-1-review-driven Step-3 wiring fix (commit 1f75dce); both clean after.",
+    "unit_rung": "pass (with 6 stable pre-existing sandbox-local failures unrelated to this diff, plus one confirmed one-off contention flake) -- faff gates run's UNIT command (node --import ./test/hermetic-env.mjs --test, full 3251-test suite) run three times in full as one foreground blocking call each time (no backgrounding, no Monitor). All three runs: the same 6 stable failures -- test/impure/setup-worktree-base.test.mjs hook-mode cases (setup-worktree.sh calls jq, not installed in this sandbox: which jq exits 1; direct-mode counterparts pass) and test/oracle-triage.test.mjs (asserts commit d8edd792df0f86f24ae5a6966268e8ae1ba0a967 is reachable via git cat-file -e; absent from this sandbox's git history: confirmed git cat-file -e exits 1). One of the three runs additionally showed a single test/sentry-poller.test.mjs FAFF-472 case fail; re-run of that file alone passed 19/19, and the other two full runs did not reproduce it -- a contention flake, matching the identical FAFF-765/717/472 sentry-poller timing cluster sibling FAFF-811 independently diagnosed as concurrent-build contention in this same run. Confirmed pre-existing and unrelated: reproduces the exact same stable failure set independently diagnosed by sibling FAFF-811 in this same run (.faff/runs/run-20260816-041030-beepboop-list-63049c/FAFF-811/graft.md), which touches different files. This ticket's diff touches only SKILL.md prose plus a one-line validate-adapters.js baseline bump -- no plausible effect on worktree-provisioning script exit codes, a hardcoded commit-reachability fixture, or sentry-poller timing. Recorded as discovered scope rather than absorbed into this PR or used as a park reason (none of the four valid autonomous-park categories apply). A targeted subset (test/lint-refs.test.mjs, test/validate-adapters*.test.mjs, test/prepcheck.test.mjs, test/spec-review-*.test.mjs, test/config-defaults.test.mjs, test/park-records.test.mjs, test/run-start-wiring.test.mjs -- 174 tests covering every surface this diff touches) passes 174/174 clean."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-815",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d27eb4d3102ade42c4104e3e754dc9801aff0ca1792431a146b3d606d6b99867",
+    "branch": "faff-815-adversarial-yagni-conservative-rejects-an-admissible-prdr",
+    "pushed_at": "2026-08-16T10:44:21.317Z"
+  },
+  "updated_at": "2026-08-16T10:44:21.317Z"
+}

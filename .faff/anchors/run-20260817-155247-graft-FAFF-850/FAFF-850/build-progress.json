@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-850",
+  "build": {
+    "status": "complete",
+    "diff_hash": "82b98f66b9f0749dee1ed2d6e85cd1f939d10742312c8899b9b646dae7e58c79",
+    "branch": "faff-850-adrfield-steals-the-next-sections-content-when-a-metadata",
+    "pushed_at": "2026-08-17T16:16:03.728Z"
+  },
+  "updated_at": "2026-08-17T16:16:03.728Z"
+}

@@ -31,8 +31,13 @@ const REQUIRED_MEMBERS = ["ledger_snapshot", "admitted_outcomes", "anchors", "ar
 const BUNDLE_BOUNDARY_KINDS = ["issue-merge-floor", "run-close"];
 // Identity-component charset (spec §4 "Identity-component validation") — applied by the
 // store-agnostic layer BEFORE any component is interpolated into a ref name / filesystem path /
-// object-store key, so every occupant inherits the guard. run_id and boundary_key: no ".." segment.
-const IDENTITY_TOKEN_RE = /^[A-Za-z0-9._-]+$/;
+// object-store key, so every occupant inherits the guard. run_id and boundary_key: no ".."
+// segment, and — defence in depth for the git-remote occupant's argv construction — the first
+// character is never `-` (a token that could otherwise be read as a flag if a future call site
+// ever passed one as a bare, unprefixed git argv element; every current call site embeds the
+// token inside a longer `refs/faff/bundles/...`-prefixed string, but the charset itself should
+// not rely on that).
+const IDENTITY_TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 // ---------------------------------------------------------------------------
 // canonical(members) — pinned deterministic serialisation (spec §3): object keys sorted
@@ -299,24 +304,41 @@ function localBundleDir(root, identity) {
   return path.join(localBundleSegDir(root, identity.run_id, identity.run_segment_id), identity.boundary_key);
 }
 
+// Read an already-materialised bundle dir's manifest.json and classify it against the digest
+// this `put` was about to write — shared by the pre-write check and the race-recovery path
+// below, so both apply the identical idempotent/conflict rule.
+function localExistingBundleResult(dir, wantDigest) {
+  let existing;
+  try { existing = JSON.parse(fs.readFileSync(path.join(dir, "manifest.json"), "utf8")); }
+  catch (e) { return { ok: false, reason: "identity-conflict", detail: `existing bundle at ${dir} is unreadable: ${e.message}` }; }
+  if (existing && existing.bundle_manifest_digest === wantDigest) return { ok: true, idempotent: true };
+  return { ok: false, reason: "identity-conflict", detail: `a different bundle already exists at ${dir} (write-once — never overwritten)` };
+}
+
 function localBundleStore(root) {
   return {
     name: "local",
     put(identity, memberBytesMap, manifest) {
       const dir = localBundleDir(root, identity);
-      if (fs.existsSync(dir)) {
-        let existing;
-        try { existing = JSON.parse(fs.readFileSync(path.join(dir, "manifest.json"), "utf8")); }
-        catch (e) { return { ok: false, reason: "identity-conflict", detail: `existing bundle at ${dir} is unreadable: ${e.message}` }; }
-        if (existing && existing.bundle_manifest_digest === manifest.bundle_manifest_digest) return { ok: true, idempotent: true };
-        return { ok: false, reason: "identity-conflict", detail: `a different bundle already exists at ${dir} (write-once — never overwritten)` };
-      }
+      if (fs.existsSync(dir)) return localExistingBundleResult(dir, manifest.bundle_manifest_digest);
       const tmp = `${dir}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       fs.mkdirSync(tmp, { recursive: true });
       for (const [name, bytes] of Object.entries(memberBytesMap)) fs.writeFileSync(path.join(tmp, `${name}.bin`), bytes);
       fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
       fs.mkdirSync(path.dirname(dir), { recursive: true });
-      fs.renameSync(tmp, dir); // atomic on the same filesystem — the whole bundle appears at once
+      // Atomic on the same filesystem — the whole bundle appears at once. A genuine concurrent
+      // publish of the SAME identity can lose the existsSync-vs-rename race (both racers pass the
+      // check above before either renames): the loser's target now exists (non-empty), so
+      // renameSync throws ENOTEMPTY/EEXIST rather than silently overwriting. Recover exactly like
+      // the pre-check above — idempotent on a matching digest, identity-conflict otherwise — never
+      // let a race surface as an uncaught fs exception or a silent overwrite.
+      try {
+        fs.renameSync(tmp, dir);
+      } catch (e) {
+        try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best-effort cleanup of the losing racer's own tmp dir */ }
+        if ((e.code === "ENOTEMPTY" || e.code === "EEXIST") && fs.existsSync(dir)) return localExistingBundleResult(dir, manifest.bundle_manifest_digest);
+        throw e;
+      }
       return { ok: true, idempotent: false };
     },
     headDigest(identity) {

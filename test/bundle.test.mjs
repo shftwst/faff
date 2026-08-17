@@ -15,6 +15,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 const require = createRequire(import.meta.url);
 const {
   canonicalJSON, classifyBundle, deriveSupersededBy, validateIdentityForHandle, bundleExitCode,
+  localBundleStore, publishBundle,
 } = require("../plugin/skills/faff/bin/lib/bundle.js");
 const { mintIssueAnchor } = require("../plugin/skills/faff/bin/lib/events.js");
 
@@ -168,6 +169,66 @@ test("bundle publish: boundary_seq auto-increments across issues in the same run
     const ver2 = runCli(["bundle", "verify", "--run-id", run_id, "--run-segment-id", "0", "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-2", "--root", root, "--json"], { cwd: root });
     assert.equal(ver2.code, 0, ver2.stderr);
     assert.equal(JSON.parse(ver2.stdout).verdict, "CLEAN");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("validateIdentityForHandle: a leading '-' in run_id or boundary_key is refused (git-argv defence in depth)", () => {
+  const base = { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+  assert.ok(validateIdentityForHandle({ ...base, run_id: "-run-1" }).length > 0);
+  assert.ok(validateIdentityForHandle({ ...base, boundary_key: "--boundary" }).length > 0);
+  assert.equal(validateIdentityForHandle(base).length, 0, "an ordinary token is unaffected");
+});
+
+test("localBundleStore.put: a losing racer on the same identity never throws or silently overwrites — it resolves via the same idempotent/conflict rule as a sequential re-publish", () => {
+  const { root, runDir } = fixtureRoot();
+  try {
+    const store = localBundleStore(root);
+    // Publish once for real, to get a genuine manifest+digest.
+    const first = publishBundle(runDir, "issue-merge-floor", "FAFF-1", { root, store });
+    assert.equal(first.ok, true);
+
+    // Simulate the losing side of a put/put race directly at the store seam: the target dir
+    // already exists (as `first` just created it above) by the time this call's own would-be
+    // rename would run. `put`'s pre-check (fs.existsSync) already routes this through the same
+    // `localExistingBundleResult` classification the post-rename-failure recovery path also
+    // uses — so this exercises the identical decision a genuine racer resolves through.
+    const raceMatching = store.put(first.identity, {}, { bundle_manifest_digest: first.manifest.bundle_manifest_digest });
+    assert.equal(raceMatching.ok, true);
+    assert.equal(raceMatching.idempotent, true, "a matching-digest racer resolves idempotent, never throws");
+
+    const raceConflict = store.put(first.identity, {}, { bundle_manifest_digest: "0".repeat(64) });
+    assert.equal(raceConflict.ok, false);
+    assert.equal(raceConflict.reason, "identity-conflict", "a mismatched-digest racer resolves identity-conflict, never throws or overwrites");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("bundle publish (git-remote occupant configured against an unreachable remote): store_unavailable via the real CLI, exit 0, run continues", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff-bundle-gitcli-t-"));
+  try {
+    const run_id = "run-fixture-gitcli-000000";
+    const runDir = path.join(root, ".faff", "runs", run_id);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: {}, owner: { epoch: 0, status: "running" } }));
+    writeFileSync(path.join(runDir, "events.jsonl"), "");
+    mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
+    const anchorDest = path.join(root, ".faff", "anchors", run_id, "FAFF-1");
+    mintIssueAnchor(runDir, "FAFF-1", anchorDest);
+
+    // A real git repo whose only remote is unreachable — the CLI resolves slots.bundle_store via
+    // `.faffrc.yaml`, so write one selecting git-remote, and init git with a bogus origin.
+    writeFileSync(path.join(root, ".faffrc.yaml"), "slots:\n  bundle_store: git-remote\n");
+    const { spawnSync } = require("node:child_process");
+    spawnSync("git", ["-C", root, "init", "-q"]);
+    spawnSync("git", ["-C", root, "remote", "add", "origin", path.join(root, "nonexistent-remote.git")]);
+
+    const pub = runCli(["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1", "--root", root, "--json"], { cwd: root });
+    assert.equal(pub.code, 0, `store_unavailable must never fail the run (got exit ${pub.code}, stderr: ${pub.stderr})`);
+    const body = JSON.parse(pub.stdout);
+    assert.equal(body.published, false);
+    assert.equal(body.reason, "store_unavailable");
+
+    const events = require("node:fs").readFileSync(path.join(runDir, "events.jsonl"), "utf8");
+    assert.match(events, /"bundle-store-unavailable"/, "the store_unavailable run event was recorded");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

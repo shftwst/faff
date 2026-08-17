@@ -91,6 +91,12 @@ const REGION_MAP = {
   // ledger + faff-parks + events into a DispositionReport, reuses governance's
   // auditLedger/TERMINAL_STATES (factory→governance is legal), writes nothing → factory.
   "disposition": "factory",
+  // reconcile-recover — FAFF-797: the auto-close half of the merged-but-unclosed seam.
+  // References factory identifiers throughout (disposition.js's readMergedMap/readMergedDetails,
+  // post-merge.js's verifyPostMerge, a run-ledger record-outcome subprocess) — the same
+  // "reuses factory identifiers → factory, not governance" reasoning as merge-gate/
+  // post-merge-check/ci-triage above.
+  "reconcile-recover": "factory",
   // quality — the reporting mirror of economics: reads the run ledger + events.jsonl
   // into a QualityReport, touches no producer → factory (FAFF-418).
   "quality": "factory",
@@ -289,6 +295,7 @@ const REGION_SELFTEST_ARGV = {
   "self-intake": ["self-intake", "--selftest"],
   "economics": ["economics", "--selftest"],
   "disposition": ["disposition", "--selftest"],
+  "reconcile-recover": ["reconcile-recover", "--selftest"],
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
   "run-ledger": ["run-ledger", "--selftest"],

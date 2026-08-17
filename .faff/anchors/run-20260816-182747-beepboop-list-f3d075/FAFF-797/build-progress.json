@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-797",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9312f51396664aba8ff7a325e552d6b9f8f5e3c42bfd39a7742d5e74280ac610",
+    "branch": "faff-797-decide-implement-ledger-auto-close-for-a-merged-but-unclosed",
+    "pushed_at": "2026-08-16T20:31:53.419Z"
+  },
+  "updated_at": "2026-08-16T20:31:53.419Z"
+}

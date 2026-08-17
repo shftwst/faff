@@ -77,9 +77,44 @@ FAFF_RUN_DIR=".faff/runs/run-$(date -u +%Y%m%d-%H%M%S)-l3-cron"
 export FAFF_RUN_DIR
 CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 timeout 300m claude -p "/faff-beep-boop" || true
 
+# 2.5. AUTO-RECOVER MERGED-UNCLOSED (FAFF-797) — before the final, exit-propagating
+#    disposition below, close any run whose disposition surfaces a `merged-unclosed`
+#    item: a durable merge landed but the ledger close never happened (e.g. THIS SAME
+#    drain's background-task ceiling killing the orchestrator right after the merge,
+#    the FAFF-782 incident). `faff reconcile-recover` re-verifies the merge via a
+#    fresh post-merge-check before writing `shipped` — a red/absent re-verification
+#    BLOCKS the close and leaves the attention item standing for the morning
+#    park-review; it is never masked. Read via `faff disposition --json` (a pure,
+#    read-only call) rather than a second/divergent detector; parsed with `node`
+#    (no `jq` dependency assumed on the host). `[ -n "$FAFF_RUN_DIR" ]` guards the
+#    defensive-hygiene case below.
+if [ -n "${FAFF_RUN_DIR:-}" ]; then
+  disp_json=$(faff disposition --run-dir "$FAFF_RUN_DIR" --json || true)
+  merged_unclosed=$(printf '%s' "$disp_json" | node -e '
+    let s = "";
+    process.stdin.on("data", (d) => { s += d; });
+    process.stdin.on("end", () => {
+      let report;
+      try { report = JSON.parse(s || "{}"); } catch { process.exit(0); }
+      for (const item of (report.attention || [])) {
+        if (item.kind === "merged-unclosed" && item.issue) console.log(item.issue);
+      }
+    });
+  ' 2>/dev/null || true)
+  if [ -n "$merged_unclosed" ]; then
+    while IFS= read -r issue; do
+      [ -n "$issue" ] || continue
+      echo "faff-cron: merged-unclosed $issue — attempting faff reconcile-recover"
+      faff reconcile-recover --run-dir "$FAFF_RUN_DIR" --issue "$issue" --level L3 || true
+    done <<< "$merged_unclosed"
+  fi
+fi
+
 # 3. DISPOSITION — the final, exit-propagating step: non-zero iff anything parked /
 #    errored / needs attention (parked-window included). It is the authoritative
-#    red/green exit. The guard below is defensive hygiene (FAFF_RUN_DIR is set just
+#    red/green exit. A successful reconcile-recover above closes its issue's ledger
+#    entry, so a re-verified merged-unclosed run reads clean here; a blocked one
+#    still surfaces. The guard below is defensive hygiene (FAFF_RUN_DIR is set just
 #    above, so it never fires here) — it exists so this stays correct if someone
 #    reorders the steps; a genuinely wiped workspace is caught by disposition itself,
 #    which exits 3 on a missing run-ledger.json (an explicit --run-dir is never

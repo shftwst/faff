@@ -164,6 +164,43 @@ jobs:
           export FAFF_RUN_DIR
           claude -p "/faff-beep-boop"
 
+      # 2.5. AUTO-RECOVER MERGED-UNCLOSED (FAFF-797) — before the final, exit-propagating
+      #    disposition step, close any run whose disposition surfaces a `merged-unclosed`
+      #    item: a durable merge landed but the ledger close never happened (e.g. THIS SAME
+      #    firing's background-task wait ceiling killing the orchestrator right after the
+      #    merge — the FAFF-782 incident). `faff reconcile-recover` re-verifies the merge via
+      #    a fresh post-merge-check before writing `shipped`; a red/absent re-verification
+      #    BLOCKS the close and leaves the attention item standing for the morning
+      #    park-review — never masked. Read via `faff disposition --json` (a pure, read-only
+      #    call, never a second/divergent detector) and parsed with `node` (no `jq`
+      #    dependency assumed on the runner). `if: always()` so a drain step that itself
+      #    failed doesn't skip this — a merge can be durable even if the orchestrator's own
+      #    exit was non-zero.
+      - name: Auto-recover any merged-but-unclosed run (FAFF-797)
+        if: always()
+        run: |
+          set -u
+          [ -n "${FAFF_RUN_DIR:-}" ] || { echo "no run dir for this firing — nothing to recover"; exit 0; }
+          disp_json=$(faff disposition --run-dir "$FAFF_RUN_DIR" --json || true)
+          merged_unclosed=$(printf '%s' "$disp_json" | node -e '
+            let s = "";
+            process.stdin.on("data", (d) => { s += d; });
+            process.stdin.on("end", () => {
+              let report;
+              try { report = JSON.parse(s || "{}"); } catch { process.exit(0); }
+              for (const item of (report.attention || [])) {
+                if (item.kind === "merged-unclosed" && item.issue) console.log(item.issue);
+              }
+            });
+          ' 2>/dev/null || true)
+          if [ -n "$merged_unclosed" ]; then
+            while IFS= read -r issue; do
+              [ -n "$issue" ] || continue
+              echo "l3-watcher: merged-unclosed $issue — attempting faff reconcile-recover"
+              faff reconcile-recover --run-dir "$FAFF_RUN_DIR" --issue "$issue" --level L3 || true
+            done <<< "$merged_unclosed"
+          fi
+
       # 3. DISPOSITION — the final, EXIT-PROPAGATING step. It reads the run's end state
       #    and exits non-zero when anything needs a human: a parked / errored issue, a
       #    budget or window ceiling (`parked-window`), a PR left open for review, a run

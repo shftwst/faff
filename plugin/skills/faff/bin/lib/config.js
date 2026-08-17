@@ -74,6 +74,11 @@ const DEFAULTS = {
   // FAFF-191: the L4 PRD-admissibility slot — gap-filled (was documented in the gateway Slots
   // table and relied on by faff-beep-boop's prose parenthetical, but absent from the registry).
   "slots.prd": "faffter-noon-prd",
+  // FAFF-819: the Phase-0 recovery-bundle store slot. Unlike the other slots (each a delegated
+  // Skill), this one names a BUILT-IN occupant (bundle.js dispatches on the string) — "local"
+  // (default: nothing leaves the box) or "git-remote" (opt-in off-box publish to a write-once
+  // orphan ref). No publish on/off flag exists — the occupant IS the control surface.
+  "slots.bundle_store": "local",
   "logging": "full",
   "concurrency_max": "4",
   "automation_default": "opt-in",

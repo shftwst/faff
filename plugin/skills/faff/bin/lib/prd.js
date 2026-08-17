@@ -141,7 +141,7 @@ function prdValidate(dir, opts) {
     else if (!PRD_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(p.status))) problems.push(`${p.file}: Status "${p.status.slice(0, 30)}" must start with one of ${PRD_STATUSES.join("|")}`);
     if (!p.date) problems.push(`${p.file}: missing Date field`);
     const sections = (text.match(/^##\s+\S/gmi) || []).length;
-    const hasLink = /^[\s>*-]*\*{0,2}PRD[\s*]*:/mi.test(prdHeader(text));
+    const hasLink = /^[\s>*-]*\*{0,2}PRD[ \t*]*:/mi.test(prdHeader(text));
     if (!hasLink && sections === 0) problems.push(`${p.file}: no body — needs >=1 "## " section or a **PRD:** link line`);
     if (hasLink && sections > 0) problems.push(`${p.file}: both a **PRD:** link line and "## " body sections — linked and authored are mutually exclusive`);
     // Born-verifiable form-check: every PRD under --strict; always for Frozen (the freeze precondition).
@@ -259,6 +259,15 @@ function prdSelftest() {
   t("linked file valid", !prdValidate(dir).some((p) => /^epsilon/.test(p)));
   t("linked url parsed", listPrds(dir).find((p) => p.slug === "epsilon").url === "https://x/y");
   fs.unlinkSync(path.join(dir, "epsilon.md"));
+
+  // FAFF-850: a PRESENT-BUT-BLANK metadata field reads back null, never the following line's text.
+  fs.writeFileSync(path.join(dir, "zeta.md"), "# PRD — Zeta\n\n- **Container:** Zeta\n- **Status:** \n\n## Problem\nx\n");
+  {
+    const z = listPrds(dir).find((p) => p.slug === "zeta");
+    t("FAFF-850: blank Status reads back null, not the following heading", z.status === null);
+    t("FAFF-850: blank Status is not captured as '## Problem'", z.status !== "## Problem");
+  }
+  fs.unlinkSync(path.join(dir, "zeta.md"));
 
   // --- FAFF-254: born-verifiable form-check -------------------------------
   // Classifier (pure): scenario by Then, assertion by MUST/comparator, else prose.

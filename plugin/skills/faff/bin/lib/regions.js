@@ -46,6 +46,7 @@ const REGION_MAP = {
   "effects": "governance",
   "review-progress": "governance",
   "build-progress": "governance",
+  "landing-progress": "governance",
   "budget": "governance",
   "sentry": "governance",
   // sentry-poller — FAFF-470: the mint-scoped detached watchdog poller (ADR-0065's
@@ -266,6 +267,7 @@ const REGION_SELFTEST_ARGV = {
   "effects": ["effects", "--selftest"],
   "review-progress": ["review-progress", "--selftest"],
   "build-progress": ["build-progress", "--selftest"],
+  "landing-progress": ["landing-progress", "--selftest"],
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
   "sentry-poller": ["sentry-poller", "--selftest"],

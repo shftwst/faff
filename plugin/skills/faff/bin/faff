@@ -38,7 +38,7 @@ const { cmdIntegrityDigest } = require("./lib/integrity-digest");
 const { cmdDecisions } = require("./lib/decisions");
 const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
-const { cmdBuildProgress, cmdEffects, cmdReviewProgress } = require("./lib/effects");
+const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = require("./lib/effects");
 const { cmdEffort } = require("./lib/effort");
 const { cmdEligible } = require("./lib/eligible");
 const { cmdEngine } = require("./lib/engine");
@@ -179,6 +179,7 @@ const COMMANDS = {
   "effects": cmdEffects,
   "review-progress": cmdReviewProgress,
   "build-progress": cmdBuildProgress,
+  "landing-progress": cmdLandingProgress,
   "sentry": cmdSentry,
   "sentry-poller": cmdSentryPoller,
   "sentrycheck": cmdSentrycheck,

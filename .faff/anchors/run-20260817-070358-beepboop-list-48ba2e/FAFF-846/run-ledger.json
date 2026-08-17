@@ -1,0 +1,54 @@
+{
+  "level": "L3",
+  "run_id": "run-20260817-070358-beepboop-list-48ba2e",
+  "admitted": ["FAFF-846", "FAFF-819", "FAFF-511"],
+  "outcomes": { "FAFF-639": "routed-out" },
+  "outcome_details": {
+    "FAFF-639": { "state": "routed-out", "reason": "re-sliced umbrella — human split into FAFF-848/FAFF-849 (2026-08-17); buildable children not in this run's explicit list; own medium spec superseded by the split" }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "dec5ddc5-d73a-476c-a611-61428b4f3dc9",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 19225,
+        "output": 80485,
+        "cache_write": 969384,
+        "cache_read": 10563716
+      }
+    },
+    "tokens_at_start": 11632810,
+    "window": {
+      "anchor_epoch": 1786950271879,
+      "reset_epoch": 1786968271879,
+      "tokens_at_anchor": 821745
+    },
+    "tokens_at_last_event": {
+      "input": 25355,
+      "output": 149099,
+      "cache_write": 1088976,
+      "cache_read": 17831221
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 0,
+    "session_id": "run-20260817-070358-beepboop-list-48ba2e",
+    "started_at": "2026-08-17T07:03:58Z",
+    "last_heartbeat": "2026-08-17T07:03:58Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

@@ -351,6 +351,142 @@ function buildProgressSelftest() {
   return fail ? 1 : 0;
 }
 
+// === FAFF-846: landing-progress checkpoint =================================
+// A per-issue on-disk record of how many conflict/regression fix cycles the (future)
+// landing loop has spent, written so the count survives a firing boundary — a beep-boop
+// run ending and a later run resuming the same issue. Lives beside review-progress.json /
+// build-progress.json at `<run-dir>/<issue>/landing-progress.json`. PURE JSON read/write —
+// no tracker, no network, no git (the CLI determinism invariant); the fold is total, the
+// `<= 3` cap is enforced by the CLI wrapper (never the fold) so a caller bug that tries a
+// 4th record fails loud instead of being silently clamped to 3. No loop integration in
+// this ticket — only the record, the pure fold, the CLI verb, and the selftest.
+const LANDING_FIX_KINDS = new Set(["conflict", "regression"]);
+
+function landingProgressPath(runDir, issue) {
+  return path.join(runDir, issue, "landing-progress.json");
+}
+
+// Pure: fold one fix cycle into the record. Total over its inputs (null / {} / a valid record
+// all fold cleanly). fix_cycles is DERIVED from history.length (never a separately-incremented
+// integer), so the fix_cycles == length(history) invariant holds by construction and cannot
+// drift. Appends exactly one history entry with cycle == history.length (1-based ordinal).
+function landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, nowIso) {
+  const base = (existing && typeof existing === "object") ? existing : {};
+  const history = Array.isArray(base.history) ? base.history.slice() : [];
+  const cycle = history.length + 1;
+  const entry = { cycle, kind, failing_checks: failingChecks ?? [], tried: tried ?? [], at: nowIso };
+  history.push(entry);
+  return {
+    issue: base.issue ?? issue,
+    fix_cycles: history.length,
+    last_head_sha: headSha ?? base.last_head_sha ?? null,
+    history,
+    updated_at: nowIso,
+  };
+}
+
+function cmdLandingProgress(args) {
+  if (args.includes("--selftest")) return landingProgressSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const positional = args.filter((a) => !a.startsWith("-"));
+  const sub = positional[0];
+  const runDir = positional[1];
+  const issue = positional[2];
+  if ((sub !== "read" && sub !== "record-fix-cycle" && sub !== "clear") || !runDir || !issue) {
+    process.stderr.write("usage: faff landing-progress <read|record-fix-cycle|clear> <run-dir> <issue> [--kind conflict|regression --head-sha SHA [--failing-checks a,b] [--tried x,y]]\n");
+    return 2;
+  }
+  const file = landingProgressPath(runDir, issue);
+  // a malformed on-disk file reads as null (schema-tolerant, mirroring review-progress/build-progress)
+  const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+
+  if (sub === "read") {
+    const rec = readExisting();
+    if (!rec) return 3;   // no checkpoint yet — NOT an error ("no cycles yet")
+    console.log(JSON.stringify(rec));
+    return 0;
+  }
+
+  if (sub === "clear") {
+    // idempotent — absent file is a no-op success
+    if (fs.existsSync(file)) fs.rmSync(file);
+    return 0;
+  }
+
+  // record-fix-cycle
+  const kind = get("--kind");
+  if (!LANDING_FIX_KINDS.has(kind)) {
+    process.stderr.write(`faff landing-progress: invalid --kind ${JSON.stringify(kind)} — one of: ${[...LANDING_FIX_KINDS].join(" | ")}\n`);
+    return 2;
+  }
+  const headSha = get("--head-sha");
+  if (!headSha) {
+    process.stderr.write("faff landing-progress record-fix-cycle requires --head-sha <sha>\n");
+    return 2;
+  }
+  const existing = readExisting();
+  // the caller (the future landing loop) is responsible for hard-parking at 3; this record
+  // must not paper over a caller bug by clamping a 4th write to 3 — loud exit 2, no write.
+  if (existing && existing.fix_cycles >= 3) {
+    process.stderr.write("landing-progress: fix_cycles already at 3 — caller must hard-park, never record a 4th\n");
+    return 2;
+  }
+  const splitCsv = (v) => (v ? v.split(",").map((s) => s.trim()).filter((s) => s !== "") : []);
+  const failingChecks = splitCsv(get("--failing-checks"));
+  const tried = splitCsv(get("--tried"));
+  const nowIso = new Date().toISOString();
+  const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, nowIso);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
+  fs.renameSync(tmp, file);
+  console.log(JSON.stringify(rec));
+  return 0;
+}
+
+function landingProgressSelftest() {
+  let fail = 0;
+  const ok = (n, c) => { if (!c) { console.log(`FAIL ${n}`); fail++; } else console.log(`ok   ${n}`); };
+  const NOW = "2026-08-17T00:00:00.000Z";
+  const NOW2 = "2026-08-17T00:05:00.000Z";
+
+  const c1 = landingProgressApplyFixCycle(null, "FAFF-846", "conflict", ["ci/x"], ["rebase"], "aaa", NOW);
+  ok("first cycle: fix_cycles=1, one history entry", c1.fix_cycles === 1 && c1.history.length === 1);
+  ok("first cycle: issue stamped from the arg (no prior record)", c1.issue === "FAFF-846");
+  ok("first cycle: history entry has cycle=1 + kind + failing_checks + tried + at",
+    c1.history[0].cycle === 1 && c1.history[0].kind === "conflict" &&
+    c1.history[0].failing_checks[0] === "ci/x" && c1.history[0].tried[0] === "rebase" && c1.history[0].at === NOW);
+  ok("first cycle: last_head_sha stamped", c1.last_head_sha === "aaa");
+  ok("first cycle: updated_at stamped", c1.updated_at === NOW);
+
+  const c2 = landingProgressApplyFixCycle(c1, "FAFF-846", "regression", [], [], "bbb", NOW2);
+  ok("second cycle: fix_cycles=2, two history entries", c2.fix_cycles === 2 && c2.history.length === 2);
+  ok("second cycle: cycle ordinal is 2 (== its index+1 in history)", c2.history[1].cycle === 2);
+  ok("second cycle: last_head_sha updates to the most recent", c2.last_head_sha === "bbb");
+  ok("second cycle: first entry preserved verbatim", c2.history[0].kind === "conflict" && c2.history[0].at === NOW);
+  ok("invariant: fix_cycles == length(history) holds by construction", c2.fix_cycles === c2.history.length);
+
+  // total over an empty-object existing, not just null
+  const c3 = landingProgressApplyFixCycle({}, "FAFF-846", "conflict", null, null, "ccc", NOW);
+  ok("an empty-object existing is treated as no history (total over {})", c3.fix_cycles === 1 && c3.history.length === 1);
+  ok("null failingChecks/tried default to []",
+    Array.isArray(c3.history[0].failing_checks) && c3.history[0].failing_checks.length === 0 &&
+    Array.isArray(c3.history[0].tried) && c3.history[0].tried.length === 0);
+
+  // an omitted headSha falls back to the prior last_head_sha (never drops it)
+  const c4 = landingProgressApplyFixCycle(c2, "FAFF-846", "conflict", [], [], undefined, NOW2);
+  ok("an omitted headSha falls back to the prior last_head_sha", c4.last_head_sha === "bbb");
+
+  ok("checkpoint path is <run-dir>/<issue>/landing-progress.json",
+    landingProgressPath("/r/run-1", "FAFF-846") === path.join("/r/run-1", "FAFF-846", "landing-progress.json"));
+  ok("LANDING_FIX_KINDS is exactly {conflict, regression}",
+    LANDING_FIX_KINDS.has("conflict") && LANDING_FIX_KINDS.has("regression") && LANDING_FIX_KINDS.size === 2);
+  ok("an unknown kind is rejected by the vocab", !LANDING_FIX_KINDS.has("bogus"));
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (landing-progress checkpoint, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 // FAFF-383/621: the single ledger-append core — cmdEffects (the `declare`/`observe` CLI) and
 // merge-gate's mechanical observe both call this so the record shape, seq derivation, and
 // all-or-nothing validation live in exactly one place. `runDirAbsPath` is the run dir itself
@@ -618,4 +754,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, cmdBuildProgress, cmdEffects, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest };
+module.exports = { EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest };

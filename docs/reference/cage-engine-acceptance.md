@@ -49,7 +49,9 @@ instead —
 
 ```bash
 cd <repo-with-provisionable-infra>
-faff profile mine > profile.json   # only meaningful if the repo declares datastores/runtimes
+faff profile mine > profile.json   # only meaningful if the repo declares datastores/runtimes.
+                                    # compose-gen accepts this contract-fenced output directly —
+                                    # no manual fence-strip needed (FAFF-840).
 faff env compose-gen --profile profile.json --out .faff/env/docker-compose.yml --project cage-accept > plan.json
 faff env up --plan plan.json --project cage-accept
 ```

@@ -54,6 +54,30 @@ const PROFILE_DATASTORE_PATTERNS = [
 function profileRel(root, p) { return path.relative(root, p).split(path.sep).join("/"); }
 function profileSafeRead(p) { try { return fs.readFileSync(p, "utf8"); } catch { return null; } }
 
+// FAFF-840: the exact fence `mine` emits (see cmdProfile → mine below) — single source so a future
+// change to the miner's fence shape only moves this constant, never a duplicated strip regex.
+const PROFILE_FENCE_OPEN = "```faff-contract:infra-profile";
+const PROFILE_FENCE_CLOSE = "```";
+
+// FAFF-840: fence-tolerant profile-input parser. `profile mine` emits the contract-fenced form by
+// default (`--json` gives raw JSON); every site that reads a stored/handed profile file — env.js
+// resolveProfile's `--profile` read and its `.faff/infra-profile.json` default read, and
+// cmdProfile's own `validate` below — routes through this so the documented `profile mine |
+// compose-gen` / `profile mine | profile validate` pipes work regardless of which form was
+// emitted. Strips at most one leading infra-profile fence; anything else (including input that
+// merely contains backticks elsewhere) is left untouched. Throws on unparseable input exactly as
+// `JSON.parse` does today, so every caller keeps its existing try/catch and error message.
+function parseProfileInput(raw) {
+  const trimmed = String(raw).replace(/^\s+/, "");
+  if (trimmed.startsWith(PROFILE_FENCE_OPEN)) {
+    const afterOpen = trimmed.slice(PROFILE_FENCE_OPEN.length);
+    const closeIdx = afterOpen.indexOf(PROFILE_FENCE_CLOSE);
+    const body = closeIdx === -1 ? afterOpen : afterOpen.slice(0, closeIdx);
+    return JSON.parse(body);
+  }
+  return JSON.parse(raw);
+}
+
 // Bounded, read-only recursive walk. Skips heavy/irrelevant dirs so a mine stays cheap + deterministic.
 function profileWalk(root) {
   const SKIP = new Set([".git", "node_modules", ".faff", ".claude", "dist", "build", "coverage", ".next", "vendor", "tmp"]);
@@ -257,9 +281,9 @@ function cmdProfile(args) {
     const profile = mineRepo(root);
     const json = JSON.stringify(profile, null, 2);
     if (rest.includes("--json")) { console.log(json); return 0; }   // raw JSON, e.g. to pipe into `profile validate`
-    console.log("```faff-contract:infra-profile");
+    console.log(PROFILE_FENCE_OPEN);
     console.log(json);
-    console.log("```");
+    console.log(PROFILE_FENCE_CLOSE);
     return 0;
   }
 
@@ -273,7 +297,7 @@ function cmdProfile(args) {
       return 2;
     }
     let obj;
-    try { obj = JSON.parse(raw); }
+    try { obj = parseProfileInput(raw); }
     catch { process.stderr.write("faff profile validate: malformed profile input (invalid JSON)\n"); return 2; }
     const violations = validateProfile(obj);
     if (violations.length) {
@@ -342,10 +366,27 @@ function profileSelftest() {
     const got = validateProfile(obj).length > 0 ? 1 : 0;
     if (got !== wantViol) { process.stderr.write(`profile --selftest FAIL: ${label} (want ${wantViol}, got ${got})\n`); failed++; }
   }
+
+  // FAFF-840: parseProfileInput — fenced input parses identically to raw, malformed still throws.
+  const check = (label, cond) => { if (!cond) { process.stderr.write(`profile --selftest FAIL: ${label}\n`); failed++; } };
+  const rawJson = JSON.stringify(valid);
+  const fenced = "```faff-contract:infra-profile\n" + rawJson + "\n```\n";
+  let fromRaw, fromFenced;
+  try { fromRaw = parseProfileInput(rawJson); } catch { fromRaw = undefined; }
+  try { fromFenced = parseProfileInput(fenced); } catch { fromFenced = undefined; }
+  check("parseProfileInput: raw form parses", fromRaw !== undefined && JSON.stringify(fromRaw) === rawJson);
+  check("parseProfileInput: fenced form parses to the same object as raw", fromFenced !== undefined && JSON.stringify(fromFenced) === rawJson);
+  let malformedThrew = false;
+  try { parseProfileInput("{ not json"); } catch { malformedThrew = true; }
+  check("parseProfileInput: malformed (non-fenced) input throws", malformedThrew);
+  let malformedFencedThrew = false;
+  try { parseProfileInput("```faff-contract:infra-profile\n{ not json\n```\n"); } catch { malformedFencedThrew = true; }
+  check("parseProfileInput: malformed fenced body throws", malformedFencedThrew);
+
   if (failed) return 1;
   console.log("profile --selftest: ok");
   return 0;
 }
 
 
-module.exports = { PROFILE_DATASTORE_PATTERNS, PROFILE_LIST_FIELDS, PROFILE_MINER_NAME, PROFILE_SPEC, PROFILE_SURFACE, cmdProfile, mineRepo, profileDedupe, profileRel, profileRepoSlug, profileSafeRead, profileSelftest, profileWalk, validateProfile };
+module.exports = { PROFILE_DATASTORE_PATTERNS, PROFILE_FENCE_CLOSE, PROFILE_FENCE_OPEN, PROFILE_LIST_FIELDS, PROFILE_MINER_NAME, PROFILE_SPEC, PROFILE_SURFACE, cmdProfile, mineRepo, parseProfileInput, profileDedupe, profileRel, profileRepoSlug, profileSafeRead, profileSelftest, profileWalk, validateProfile };

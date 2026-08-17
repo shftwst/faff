@@ -587,9 +587,9 @@ PROCEDURE landing_loop(issue, pr, run_dir):
         block on `gh pr checks <pr> --watch --interval 15` in a chunk with a timeout
           below the 900s staleness window (existing chunking), then CONTINUE the loop
       NO_CI_COVERAGE:
-        take the EXISTING no-ci-coverage branch below, unchanged; RETURN pr-open-for-human
+        take the EXISTING no-ci-coverage branch in the **Decision:** section above, unchanged; RETURN pr-open-for-human
       CI_RED_PARK:
-        take the EXISTING ci-triage park branch below, unchanged; RETURN pr-open-for-human
+        take the EXISTING ci-triage park branch in the **Decision:** section above, unchanged; RETURN pr-open-for-human
       CI_RED_FLAKY:
         IF reruns_by_sha[head] < 1 AND reruns_total < 2:        # budget remains
            `gh run rerun <run-id> --failed`
@@ -598,9 +598,9 @@ PROCEDURE landing_loop(issue, pr, run_dir):
         ELSE:                                                   # budget exhausted -> persistent by fiat
            leave_for_human(issue, pr, reason="flaky-exhausted -> persistent"); RETURN pr-open-for-human
       CI_RED_REGRESSION:
-        leave_for_human(issue, pr, reason="ci-regression"); RETURN pr-open-for-human   # FAFF-844 replaces this
+        leave_for_human(issue, pr, reason="ci-regression"); RETURN pr-open-for-human   # a future fix-cycle follow-up replaces this
       CONFLICTING:
-        leave_for_human(issue, pr, reason="conflict"); RETURN pr-open-for-human        # FAFF-844 replaces this
+        leave_for_human(issue, pr, reason="conflict"); RETURN pr-open-for-human        # a future fix-cycle follow-up replaces this
       BEHIND:
         run `gh pr update-branch <pr>` (or rebase main onto the branch), then re-push
         IF the update-branch / rebase / push FAILS (a conflict surfaced by the rebase,
@@ -611,8 +611,8 @@ PROCEDURE landing_loop(issue, pr, run_dir):
         # The 25-minute whole-loop deadline (from loop entry) still bounds the total.
         CONTINUE
       READY:
-        hand off to the ship producer as below ("all conditions hold" path); route on
-          delivery-outcome as below; RETURN shipped
+        hand off to the ship producer per the **Decision:** section above ("all conditions
+          hold" path); route on delivery-outcome as documented there; RETURN shipped
 ```
 
 **Which states continue the loop.** `CI_PENDING` (poll), `CI_RED_FLAKY` while its re-run budget remains (one re-run, then continue), and a successful `BEHIND` rebase continue. `CONFLICTING`, `CI_RED_REGRESSION`, `CI_RED_PARK`, `NO_CI_COVERAGE`, a `CI_RED_FLAKY` whose budget is exhausted, and a failed `BEHIND` rebase leave the loop for a human (`leave_for_human` is the existing `pr-open-for-human` park behaviour below — not a new mechanism: for a CI-red regression or an exhausted-budget flaky it is the existing CI-red triage `fix-attempt`/park routing; for a conflict or an update-branch failure it is the existing `failed:<reason>` handling — autonomous does one opportunistic fix attempt if obvious from the error, else flips the PR to draft and parks). `READY` merges. **No new autonomous fixing is added here** — `CONFLICTING` and `CI_RED_REGRESSION` are observed but routed to the existing park path unchanged; the bounded autonomous fix cycles for those two states are a separate follow-up ticket, out of scope here.

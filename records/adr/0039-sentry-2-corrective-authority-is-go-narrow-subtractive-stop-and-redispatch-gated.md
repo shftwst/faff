@@ -1,6 +1,7 @@
 # ADR 0039 — Sentry-2 corrective authority is GO-narrow: subtractive stop-and-redispatch, gated on artifact integrity
 
 - **Status:** Accepted
+- **Amended:** 2026-08-17 — ADR-0114 (FAFF-833) admits the digest-custody detective basis as a valid live-discharge path for this provisional GO, alongside the mount basis, discharged in-session via the FAFF-328 trial. The subtractive width and the artifact-integrity gate stay in force.
 - **Date:** 2026-07-03
 - **Issue:** FAFF-278
 

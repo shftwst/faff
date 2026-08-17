@@ -1,7 +1,7 @@
 // ===========================================================================
-// === region:factory — fields — the single shared metadata-field reader for ADR / PRD / PRDR /
-// decision-register records (FAFF-850). One regex, one home: adr.js and decisions.js both
-// delegate here, so the reader can never exist in more than one place and drift apart.
+// === region:factory — fields — the single shared metadata-field reader (FAFF-850) ===
+// One regex, one home: adr.js / prd.js / prdr.js / decisions.js all read record metadata fields
+// through this module, so the reader can never exist in more than one place and drift apart.
 // ===========================================================================
 
 // Read a header field "- **Status:** value" / "- Status: value" (bold optional) from a record's

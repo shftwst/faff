@@ -233,6 +233,10 @@ const REGION_MAP = {
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
   // sits in factory, not governance, despite the name.
   "governance-check": "factory",
+  // FAFF-860: landing-comment renders the ready-to-land PR comment by shelling merge-gate
+  // (a factory verb) and reading FLOOR_LEVELS from contract-defs — same family as
+  // governance-check/merge-gate, factory for the identical reason.
+  "landing-comment": "factory",
   // FAFF-261: mechanical adversarial-backends assembly reads config via loadConfig/dig
   // (factory identifiers, config.js) — same family as config/eligible/models → factory.
   "adversarial-backends": "factory",
@@ -361,6 +365,7 @@ const REGION_SELFTEST_ARGV = {
   "post-merge-check": ["post-merge-check", "--selftest"],
   "ci-triage": ["ci-triage", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],
+  "landing-comment": ["landing-comment", "--selftest"],
   "adversarial-backends": ["adversarial-backends", "--selftest"],
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
   "backends": ["backends", "--selftest"],

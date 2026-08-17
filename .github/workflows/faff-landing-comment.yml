@@ -1,0 +1,63 @@
+name: faff landing-comment
+
+# FAFF-860: when a faff PR goes green, post the pre-filled, copy-pasteable
+# `faff merge-gate` landing command as a PR comment (or the blocking reasons, or the
+# non-graft human-override variant). This workflow NEVER merges — it only writes a
+# comment. `workflow_run` is chosen over `pull_request` so the comment reflects a
+# settled CI outcome and the token carries base-repo write scope.
+
+on:
+  workflow_run:
+    workflows: ["validate", "governance-check"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  landing-comment:
+    runs-on: ubuntu-latest
+    # Only comment on a settled-green same-repo PR run (fork PRs are out of scope).
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    steps:
+      # Resolve the PR number from the workflow_run payload. Empty (fork / no PR
+      # association) → nothing to do, exit cleanly without commenting.
+      - name: Resolve PR number
+        id: pr
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PR_NUMBER:-}" ]; then
+            echo "faff landing-comment: no PR associated with this workflow_run (fork or non-PR) — nothing to do"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "faff landing-comment: PR #${PR_NUMBER}"
+            echo "pr=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Check out at the PR head sha with full history so the committed anchor and the
+      # CLI's `git show <head>:…/run-ledger.json` level read are present.
+      - uses: actions/checkout@v4
+        if: steps.pr.outputs.found == 'true'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v4
+        if: steps.pr.outputs.found == 'true'
+        with:
+          node-version: 20
+
+      - name: faff landing-comment
+        if: steps.pr.outputs.found == 'true'
+        uses: ./.github/actions/faff-landing-comment
+        with:
+          pr: ${{ steps.pr.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -98,6 +98,12 @@ const DELIVERY_PROFILE = {
     // classify a trip without re-deriving it from a second source. NOT issue-scoped
     // (a trip is run-scoped, mirroring `sentry-checkpoint`).
     "sentry-trip",
+    // FAFF-819: emitted by `faff bundle publish` when a DISTRIBUTING bundle_store occupant's
+    // backing store is unreachable — advisory only (the run continues locally; see
+    // publishBundle's own doc comment). Never emitted by the default local occupant, which
+    // never returns store_unavailable. Not issue-scoped: a run-close boundary publish has no
+    // single issue; the boundary identity travels in `data` instead.
+    "bundle-store-unavailable",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",

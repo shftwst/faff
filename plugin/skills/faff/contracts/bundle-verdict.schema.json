@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/bundle-verdict",
+  "title": "bundle-verdict contract data",
+  "description": "Reference schema (FAFF-819). The SHAPE of the six-value fail-closed verdict `faff bundle verify` computes over a published Phase-0 recovery bundle (CLEAN/STALE/MISSING/MALFORMED/TAMPERED/VERIFICATION_UNAVAILABLE). Shape is normative here; the verdict ladder + exit-code mapping (CLEAN=0, STALE/MISSING/MALFORMED/TAMPERED=1, VERIFICATION_UNAVAILABLE=2) live in bundle.js's classifyBundle. Coercion target for a malformed verdict is VERIFICATION_UNAVAILABLE (never CLEAN) — the review-verdict/quality-gates never-guess-green precedent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "identity", "cause", "superseded_by", "conformant", "violations"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["CLEAN", "STALE", "MISSING", "MALFORMED", "TAMPERED", "VERIFICATION_UNAVAILABLE"] },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "run_segment_id", "boundary_kind", "boundary_key", "boundary_seq"],
+      "properties": {
+        "run_id": { "type": "string" },
+        "run_segment_id": { "type": "integer" },
+        "boundary_kind": { "type": "string", "enum": ["issue-merge-floor", "run-close"] },
+        "boundary_key": { "type": "string" },
+        "boundary_seq": { "type": "integer" }
+      }
+    },
+    "cause": { "type": "string", "description": "A member NAME or status token from a fixed vocabulary — NEVER raw member bytes, a filesystem path, or config content." },
+    "superseded_by": { "description": "BundleIdentity | null — populated only when verdict is STALE." },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

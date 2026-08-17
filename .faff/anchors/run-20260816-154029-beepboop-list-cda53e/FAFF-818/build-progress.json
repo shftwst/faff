@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-818",
+  "build": {
+    "status": "complete",
+    "diff_hash": "146a03aa231996627dd6b2c18a1f8594f1f0f05cce5d2e54e77c32685778b2a1",
+    "branch": "faff-818-harden-env-basehost-validation-to-a-positive-hostnameip",
+    "pushed_at": "2026-08-16T17:47:04.481Z"
+  },
+  "updated_at": "2026-08-16T17:47:04.481Z"
+}

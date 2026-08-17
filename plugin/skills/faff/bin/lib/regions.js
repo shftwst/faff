@@ -113,6 +113,10 @@ const REGION_MAP = {
   "label": "factory",
   "eligible": "factory",
   "claim-verdict": "factory",
+  // park-verdict — FAFF-835: the stale-park validity function. Pure age-less
+  // predicate (status + signals → verdict, no tracker/clock) — same shape as
+  // claim-verdict/eligible → factory.
+  "park-verdict": "factory",
   // pr-body — FAFF-214: PR-body citation-hygiene sanitizer/checker. A pure
   // string-transform core (no factory-identifier references) — same shape as
   // claim-verdict/eligible → factory.
@@ -292,6 +296,7 @@ const REGION_SELFTEST_ARGV = {
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
   "claim-verdict": ["claim-verdict", "--selftest"],
+  "park-verdict": ["park-verdict", "--selftest"],
   "pr-body": ["pr-body", "--selftest"],
   "admissible": ["admissible", "--selftest"],
   "dod": ["dod", "--selftest"],

@@ -26,6 +26,7 @@ const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
 const { cmdBudget } = require("./lib/budget");
 const { cmdCiTriage } = require("./lib/ci-triage");
 const { cmdClaimVerdict } = require("./lib/claim-verdict");
+const { cmdParkVerdict } = require("./lib/park-verdict");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
@@ -135,6 +136,7 @@ const COMMANDS = {
   "label": cmdLabel,
   "eligible": cmdEligible,
   "claim-verdict": cmdClaimVerdict,
+  "park-verdict": cmdParkVerdict,
   "admissible": cmdAdmissible,
   "dod": cmdDod,
   "holdout": cmdHoldout,

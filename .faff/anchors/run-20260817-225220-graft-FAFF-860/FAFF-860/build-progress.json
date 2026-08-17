@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-860",
+  "build": {
+    "status": "complete",
+    "diff_hash": "fafe085b2abf3948f5fc69dd6fa1b60e1807fd3013a6ea9eefdc54215cf03418",
+    "branch": "faff-860-landing-command-comment",
+    "pushed_at": "2026-08-17T23:14:36.495Z"
+  },
+  "updated_at": "2026-08-17T23:14:36.495Z"
+}

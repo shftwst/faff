@@ -52,6 +52,7 @@ const { cmdFixtures } = require("./lib/fixtures");
 const { cmdDoctor, cmdGates, cmdSync } = require("./lib/gates");
 const { cmdGitignoreEnsure } = require("./lib/gitignore-ensure");
 const { cmdGovernanceCheck } = require("./lib/governance-check");
+const { cmdLandingComment } = require("./lib/landing-comment");
 const { cmdProfiles } = require("./lib/governance-profile");
 const { cmdHarness } = require("./lib/harness");
 const { cmdHeartbeat } = require("./lib/heartbeat");
@@ -160,6 +161,7 @@ const COMMANDS = {
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,
+  "landing-comment": cmdLandingComment,
   "harness": (args) => cmdHarness(args, COMMANDS),
   "next": cmdNext,
   "project-next": cmdProjectNext,

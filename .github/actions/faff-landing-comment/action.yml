@@ -1,0 +1,139 @@
+name: "faff landing-comment"
+description: >-
+  Upserts one PR comment carrying the pre-filled, copy-pasteable `faff merge-gate`
+  landing command for a build-complete faff PR (FAFF-860). Thin wrapper over the
+  `faff landing-comment` CLI verb, which re-reads the committed anchor floor via
+  `faff merge-gate --check-only` and renders the body. NEVER merges: it writes a
+  PR comment and nothing else, and runs no merge of any kind.
+author: "faff"
+
+inputs:
+  pr:
+    description: "The pull-request number to comment on."
+    required: true
+  faff-binary:
+    description: >-
+      Path to an in-checkout faff binary, relative to the consuming repo's checkout root.
+      Used as-is when present (checkout-first resolution).
+    required: false
+    default: "plugin/skills/faff/bin/faff"
+  faff-version:
+    description: >-
+      Release ref (commit sha or tag) to fetch the binary from raw.githubusercontent.com
+      when no in-checkout binary is found. Pin a COMMIT SHA for external consumers — a
+      moved tag would silently swap the binary.
+    required: false
+    default: ""
+  anchors-path:
+    description: "Where committed per-PR anchors live in the checkout."
+    required: false
+    default: ".faff/anchors"
+
+runs:
+  using: "composite"
+  steps:
+    # 1. Resolve the faff binary: in-checkout path first, else fetch-by-pinned-ref
+    #    (byte-identical to governance-check's own resolve step).
+    - name: Resolve faff binary
+      id: resolve-binary
+      shell: bash
+      run: |
+        set -euo pipefail
+        BIN="${{ inputs.faff-binary }}"
+        if [ -f "$BIN" ]; then
+          echo "faff landing-comment: using in-checkout binary: $BIN"
+          chmod +x "$BIN" 2>/dev/null || true
+        else
+          if [ -z "${{ inputs.faff-version }}" ]; then
+            echo "::error::faff landing-comment: setup fault — no in-checkout binary at $BIN and no faff-version pinned to fetch one (pin a commit sha, preferably, or a tag)"
+            exit 1
+          fi
+          BIN="${RUNNER_TEMP}/faff-landing-comment-bin"
+          URL="https://raw.githubusercontent.com/shftwst/faff/${{ inputs.faff-version }}/plugin/skills/faff/bin/faff"
+          echo "faff landing-comment: no in-checkout binary at ${{ inputs.faff-binary }} — fetching pinned ref from $URL"
+          if ! curl -fsSL "$URL" -o "$BIN"; then
+            echo "::error::faff landing-comment: setup fault — failed to fetch the faff binary from $URL (faff-version=${{ inputs.faff-version }})"
+            exit 1
+          fi
+          chmod +x "$BIN"
+        fi
+        echo "bin=$BIN" >> "$GITHUB_OUTPUT"
+
+    # 2. Read the PR's changed files + head ref. `gh pr view` is a token-authenticated
+    #    read — the files array feeds the CLI's anchor mapping, one path per line.
+    - name: Read PR files + head ref
+      id: pr
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        PR="${{ inputs.pr }}"
+        FILES_FILE="${RUNNER_TEMP}/faff-landing-files.txt"
+        gh pr view "$PR" --json files --jq '.files[].path' > "$FILES_FILE"
+        HEAD_REF="$(gh pr view "$PR" --json headRefName --jq '.headRefName')"
+        echo "files_file=$FILES_FILE" >> "$GITHUB_OUTPUT"
+        echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+    # 3. Render the comment body. The CLI maps the diff to its anchor and shells
+    #    `faff merge-gate --check-only` for the verdict — it never merges. A fail-loud
+    #    anchor resolution (exit 1) means we cannot determine the floor: skip the
+    #    upsert rather than post a body computed against an unrelated run.
+    - name: Render landing-comment body
+      id: render
+      shell: bash
+      env:
+        # The CLI shells `faff merge-gate --check-only`, which observes CI on the PR
+        # head via `gh` — a token-authenticated read. NEVER a merge.
+        GH_TOKEN: ${{ github.token }}
+        # Externally-influenced values go through env, never inlined into the run: script
+        # (GitHub-Actions script-injection hardening) — HEAD_REF especially, a branch name.
+        HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+        FILES_FILE: ${{ steps.pr.outputs.files_file }}
+        ANCHORS_PATH: ${{ inputs.anchors-path }}
+        PR: ${{ inputs.pr }}
+      run: |
+        set -uo pipefail
+        BIN="${{ steps.resolve-binary.outputs.bin }}"
+        BODY_FILE="${RUNNER_TEMP}/faff-landing-body.md"
+        node "$BIN" landing-comment \
+          --pr "$PR" \
+          --head-ref "$HEAD_REF" \
+          --files-file "$FILES_FILE" \
+          --anchors-root "$ANCHORS_PATH" \
+          > "$BODY_FILE"
+        CODE=$?
+        if [ "$CODE" -ne 0 ]; then
+          echo "::warning::faff landing-comment: could not render a comment body (CLI exit $CODE) — skipping upsert"
+          echo "render_ok=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        echo "body_file=$BODY_FILE" >> "$GITHUB_OUTPUT"
+        echo "render_ok=true" >> "$GITHUB_OUTPUT"
+
+    # 4. Upsert the comment by its hidden marker (locate → create-or-update). 0 matches
+    #    → POST; 1 → PATCH that id; >1 → PATCH the oldest (smallest id), leaving the
+    #    rest (oldest-wins reconcile — never delete a human's comment). NEVER merges.
+    - name: Upsert landing comment
+      if: steps.render.outputs.render_ok == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        MARKER: "<!-- faff-landing:${{ inputs.pr }} -->"
+      run: |
+        set -euo pipefail
+        PR="${{ inputs.pr }}"
+        BODY_FILE="${{ steps.render.outputs.body_file }}"
+        # No `|| true` on the list: a genuine API failure must ABORT (set -e), never fall
+        # through to COUNT=0 → POST, which would create a duplicate comment on an API hiccup.
+        IDS="$(gh api "repos/{owner}/{repo}/issues/${PR}/comments" --paginate \
+                 --jq '.[] | select(.body | contains(env.MARKER)) | .id')"
+        COUNT="$(printf '%s\n' "$IDS" | grep -c . || true)"
+        if [ "$COUNT" -eq 0 ]; then
+          echo "faff landing-comment: no existing marker comment — creating one on PR #${PR}"
+          gh api --method POST "repos/{owner}/{repo}/issues/${PR}/comments" -F body=@"$BODY_FILE" >/dev/null
+        else
+          ID="$(printf '%s\n' "$IDS" | grep . | sort -n | head -n1)"
+          echo "faff landing-comment: updating existing marker comment ${ID} on PR #${PR} (${COUNT} match(es), oldest wins)"
+          gh api --method PATCH "repos/{owner}/{repo}/issues/comments/${ID}" -F body=@"$BODY_FILE" >/dev/null
+        fi

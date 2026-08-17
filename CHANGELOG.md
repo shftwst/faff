@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.18.0](https://github.com/shftwst/faff/compare/faff--v0.17.0...faff--v0.18.0) (2026-08-17)
+
+
+### Features
+
+* **FAFF-107:** sensitive-data redaction at durable-write boundaries ([#682](https://github.com/shftwst/faff/issues/682)) ([0c2613b](https://github.com/shftwst/faff/commit/0c2613bc04563e60144fa7c76ec7dc6bc6f387e2))
+* **FAFF-214:** prevent cited sibling issues from being claimed by PR automation ([#650](https://github.com/shftwst/faff/issues/650)) ([ce8ed32](https://github.com/shftwst/faff/commit/ce8ed32d9e7a2cee854bef716910f99ae88bc090))
+* **FAFF-239:** sweep external refs from SKILL.md + enforce self-contained prose ([#646](https://github.com/shftwst/faff/issues/646)) ([8bb25e7](https://github.com/shftwst/faff/commit/8bb25e70f701387226639530db45b36d8afc2748))
+* **FAFF-511:** add the annotate floor for sentry check's reconcile-only case ([#695](https://github.com/shftwst/faff/issues/695)) ([de71e9a](https://github.com/shftwst/faff/commit/de71e9a4b346f9fc34a3b7d24b26f1120e559a10))
+* **FAFF-608:** add faff sentry check --summary-md FILE renderer flag + adopter CI note ([#684](https://github.com/shftwst/faff/issues/684)) ([e3f0f42](https://github.com/shftwst/faff/commit/e3f0f42673af606a250d155b58f767fe0e5b4e69))
+* **FAFF-771:** lint-cli-coverage asserts the declared test exercises the command ([#647](https://github.com/shftwst/faff/issues/647)) ([caace77](https://github.com/shftwst/faff/commit/caace77f687c8103bf741b173170edcc5758b3a0))
+* **FAFF-781:** configurable informational andon messages for run lifecycle events ([#652](https://github.com/shftwst/faff/issues/652)) ([f1189f3](https://github.com/shftwst/faff/commit/f1189f3ef92e1ab7ee5c7c2ede9bcb68f3c70d69))
+* **FAFF-784:** require recorded custody at the dispatcher merge gate ([#662](https://github.com/shftwst/faff/issues/662)) ([741639e](https://github.com/shftwst/faff/commit/741639e8a2a075b6cf2cd5d40b48954fd07d2d7a))
+* **FAFF-791:** location-independent endpoint surface in env compose-gen ([#675](https://github.com/shftwst/faff/issues/675)) ([3d413af](https://github.com/shftwst/faff/commit/3d413af3c0d6b7b453f6d1d9c48f91dbb6eb1534))
+* **FAFF-793:** bounded, killable process-group spawner for adversarial review ([#651](https://github.com/shftwst/faff/issues/651)) ([cd7b6ba](https://github.com/shftwst/faff/commit/cd7b6bacb524cb88d92c7629c2f48495fdaa4382))
+* **FAFF-796:** mint a git-only run-level tamper-evident anchor ([#663](https://github.com/shftwst/faff/issues/663)) ([13a558e](https://github.com/shftwst/faff/commit/13a558e33ca25ff7e85e50e93111db3ec11e43e1))
+* **FAFF-797:** auto-close a merged-but-unclosed L3 run ledger (faff reconcile-recover) ([#683](https://github.com/shftwst/faff/issues/683)) ([5fda433](https://github.com/shftwst/faff/commit/5fda4334743df482f99b92ef82f0243e8a90e3d6))
+* **FAFF-814:** eager, containment-gated discovered-scope jotting at L4 ([#671](https://github.com/shftwst/faff/issues/671)) ([2a1eaaa](https://github.com/shftwst/faff/commit/2a1eaaa476030826d3ce287c62e0b44e89b29eb2))
+* **FAFF-819:** publish immutable Phase 0 recovery bundles with a fail-closed verifier ([#696](https://github.com/shftwst/faff/issues/696)) ([674aa0d](https://github.com/shftwst/faff/commit/674aa0dfa6f9673174ac594542193ee60db28d1a))
+* **FAFF-841:** graft drives its PR to merged via a bounded landing loop (poll, rebase, re-run, merge) ([#693](https://github.com/shftwst/faff/issues/693)) ([dcee888](https://github.com/shftwst/faff/commit/dcee888d943392959438d36fd132de078ef1055a))
+* **FAFF-846:** faff landing-progress — persisted fix-cycle counter ([#694](https://github.com/shftwst/faff/issues/694)) ([8e9065b](https://github.com/shftwst/faff/commit/8e9065b96e343df4d8bab6f6d2ade7e538a4ea4e))
+
+
+### Bug Fixes
+
+* **FAFF-465:** deterministic single-shot terminal disposition on adversarial-chain exhaustion ([#664](https://github.com/shftwst/faff/issues/664)) ([da984e2](https://github.com/shftwst/faff/commit/da984e2a39662d9565dac8bdbf74503ff5c8bf37))
+* **FAFF-586:** correct README to the namespaced marketplace command spellings ([#686](https://github.com/shftwst/faff/issues/686)) ([f980f17](https://github.com/shftwst/faff/commit/f980f17dbad94de28b79da4cd8ac316be5c04311))
+* **FAFF-744:** bound the SSH-transport network wait in graft's remote base resolver ([#660](https://github.com/shftwst/faff/issues/660)) ([d6a1a7c](https://github.com/shftwst/faff/commit/d6a1a7c8a66db9e83fd19a96ec796c5d30e517e2))
+* **FAFF-757:** harden run-id minting against same-second collisions ([#661](https://github.com/shftwst/faff/issues/661)) ([4441d67](https://github.com/shftwst/faff/commit/4441d679ccfbc9b1117478006b743d521556c714))
+* **FAFF-779:** park needs-decision-first on a failed resolve-attempt, instead of routing out ([#648](https://github.com/shftwst/faff/issues/648)) ([904face](https://github.com/shftwst/faff/commit/904facec6b0bd0949ef622aec40f34d8f5f48627))
+* **FAFF-782:** detect merged-but-unclosed L3 drains + remove the 600s bg-wait ceiling ([#654](https://github.com/shftwst/faff/issues/654)) ([16e4ce4](https://github.com/shftwst/faff/commit/16e4ce468b7529cb4db71d63af4b2cbbfdfbcf96))
+* **FAFF-785:** make node --test suite hermetic against ambient faff env ([#658](https://github.com/shftwst/faff/issues/658)) ([d944c58](https://github.com/shftwst/faff/commit/d944c588339b00d027e0069224fa8226011e7163))
+* **FAFF-788:** stamp top-level level on the L3/beep-boop run-ledger at genesis ([#655](https://github.com/shftwst/faff/issues/655)) ([dab2ee9](https://github.com/shftwst/faff/commit/dab2ee9b63a23e73e2c08ea4aaf6b244ed925802))
+* **FAFF-798:** gate sentrycheck andon page on actsOnSentryAbort ([#677](https://github.com/shftwst/faff/issues/677)) ([b493379](https://github.com/shftwst/faff/commit/b49337909ef6e91df04557b87d7d5f0943421c6b))
+* **FAFF-806:** classify review-chain kind discriminator on raw returned bytes ([#668](https://github.com/shftwst/faff/issues/668)) ([0104d15](https://github.com/shftwst/faff/commit/0104d1500063235b2ebec71a4ae95248da052b08))
+* **FAFF-808:** add a git-only pin to force git-only regardless of a discovered tracker MCP ([#670](https://github.com/shftwst/faff/issues/670)) ([0649bfc](https://github.com/shftwst/faff/commit/0649bfc3de3f2241d8c0cb554d338f0afa82b8d5))
+* **FAFF-809:** converge instead of stopping after L4 section 0a planning ([#669](https://github.com/shftwst/faff/issues/669)) ([e63cd8a](https://github.com/shftwst/faff/commit/e63cd8af351f9e0f399eac629c0af943374b10ae))
+* **FAFF-810:** autonomous /faff-plot re-entry on a mid-prep methodology reject-approach (L4) ([#674](https://github.com/shftwst/faff/issues/674)) ([33bcb07](https://github.com/shftwst/faff/commit/33bcb078dd25312897c437798fdcbac8569011ec))
+* **FAFF-811:** split multi-lens reject-approach routing so design-lens objections survive a plot re-slice ([#672](https://github.com/shftwst/faff/issues/672)) ([7fae147](https://github.com/shftwst/faff/commit/7fae14724ef69d64613b2c14ff8467684c7807f9))
+* **FAFF-812:** dod classify born-verifiability lint — flag DoD items with no observable oracle ([#673](https://github.com/shftwst/faff/issues/673)) ([5bea49b](https://github.com/shftwst/faff/commit/5bea49b075d047c83419d37e57eb27a86ca88dfb))
+* **FAFF-813:** canonicalise entrypoint guards through realpathSync for symlinked installs ([#667](https://github.com/shftwst/faff/issues/667)) ([85ab7fa](https://github.com/shftwst/faff/commit/85ab7fac955a3e82cbec093e500f905535a7e649))
+* **FAFF-815:** distinguish PRDR under-citation from over-scope in the YAGNI arbitration ([#676](https://github.com/shftwst/faff/issues/676)) ([034cbcb](https://github.com/shftwst/faff/commit/034cbcb4c9700a5e6b4e3912301165a561bab019))
+* **FAFF-816:** wire yagni-judge Phase-2 to a fit adversarial transport ([#678](https://github.com/shftwst/faff/issues/678)) ([b5a7eb5](https://github.com/shftwst/faff/commit/b5a7eb5afa7b2ff2d0d14c8784ecb4bba89487b2))
+* **FAFF-818:** harden env base.host validation to a positive hostname/IP allowlist ([#679](https://github.com/shftwst/faff/issues/679)) ([ecd10cc](https://github.com/shftwst/faff/commit/ecd10ccef94182951ae3f31b4fe309f4362f2f8e))
+* **FAFF-835:** narrow tidy stale-park case-1 so a mid-build park is not stripped ([#691](https://github.com/shftwst/faff/issues/691)) ([7911982](https://github.com/shftwst/faff/commit/79119825972873ec6fe13736bc9feead19a780da))
+* **FAFF-836:** expose env base.host to the CLI (--base-host + config fallback) ([#681](https://github.com/shftwst/faff/issues/681)) ([29dd8bf](https://github.com/shftwst/faff/commit/29dd8bf156c1db8cf7f8292d46488209f4da426c))
+* **FAFF-840:** accept contract-fenced infra-profile input at all profile-read sites ([#689](https://github.com/shftwst/faff/issues/689)) ([f4d3bab](https://github.com/shftwst/faff/commit/f4d3bab1c63f90744c7bfd3f1ae65c27f881f320))
+* **FAFF-850:** bound the metadata field-reader so a blank field reads blank ([#697](https://github.com/shftwst/faff/issues/697)) ([be6ce22](https://github.com/shftwst/faff/commit/be6ce2278ce54009542a7cc9056f0cfa7f08c79f))
+
 ## [0.17.0](https://github.com/shftwst/faff/compare/faff--v0.16.0...faff--v0.17.0) (2026-08-12)
 
 

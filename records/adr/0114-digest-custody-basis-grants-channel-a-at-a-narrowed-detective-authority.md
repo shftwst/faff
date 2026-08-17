@@ -1,6 +1,6 @@
 # ADR 0114 — Digest-custody basis grants Channel A at a narrowed detective authority
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-17
 - **Issue:** FAFF-833

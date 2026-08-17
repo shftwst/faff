@@ -10,6 +10,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, basename, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -420,4 +421,139 @@ test("CLI: merge-fence --hook is a no-op on a repo WITH a remote (matcher dorman
   git(repo, "checkout", "-q", "main");
   const { code } = runCli(["merge-fence", "--hook"], { input: fenceEvent("git merge feature", repo) });
   assert.equal(code, 0);
+});
+
+// --- FAFF-784: custody validation on the --local (git-only) path — the SAME gate, the SAME
+// lane-boundary-derived requirement, "no caller opt-out" carried onto the git-only form too. ---
+
+function sha256Hex(bytes) { return createHash("sha256").update(Buffer.from(bytes)).digest("hex"); }
+
+function writeCustodyVerdict(runDir, issue, over = {}) {
+  const record = {
+    schema_version: 1, run_id: basename(runDir), issue, classification: "clean",
+    paths: [], detail: "digest-verified", verified_at: "2026-08-15T00:00:00.000Z",
+    merge_state_at_verification: "pre-merge", ...over,
+  };
+  const dir = join(runDir, issue);
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "custody-verdict.json");
+  const bytes = JSON.stringify(record);
+  writeFileSync(file, bytes);
+  return { file, sha256: sha256Hex(bytes) };
+}
+
+const custodyArgs = ({ file, sha256 } = {}) => (file ? ["--custody-verdict", file, "--custody-verdict-sha256", sha256] : []);
+
+test("CLI: --local, dispatched (lane-boundary.json under the run-dir) + custody OMITTED → exit 1 refuse, base ref unchanged, no merge-record.json", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  commitAnchor(repo, runDir);
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /--custody-verdict/.test(b)));
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore, "no merge without custody");
+  assert.equal(existsSync(join(runDir, ISSUE, "merge-record.json")), false);
+});
+
+test("CLI: --local, dispatched + a VALID exact clean custody verdict → custody passes, lands exactly as the non-dispatched case", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  const featureSha = commitAnchor(repo, runDir);
+  const cv = writeCustodyVerdict(runDir, ISSUE);
+
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { cwd: repo });
+  assert.equal(code, 0, stdout);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha, "custody-satisfied dispatched merge still lands");
+});
+
+test("CLI: --local, dispatched + retained digest MISMATCH (verdict replaced after recording) → exit 1 refuse, base ref unchanged", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  commitAnchor(repo, runDir);
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  const original = writeCustodyVerdict(runDir, ISSUE);
+  writeCustodyVerdict(runDir, ISSUE, { detail: "replaced after recording" }); // on-disk bytes now differ
+
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(original)), { cwd: repo });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /digest mismatch/.test(b)));
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore);
+});
+
+test("CLI: --local, an INDETERMINATE (malformed) lane-boundary.json refuses unconditionally, even with a valid custody verdict passed", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  writeFileSync(join(runDir, "lane-boundary.json"), "{not valid json");
+  commitAnchor(repo, runDir);
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  const cv = writeCustodyVerdict(runDir, ISSUE);
+
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { cwd: repo });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /indeterminate/.test(b)));
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore);
+});
+
+test("CLI: --local, NO lane-boundary.json (interactive / no-dispatch-cut) → existing behaviour unchanged, custody never consulted", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE); // deliberately no lane-boundary.json
+  const featureSha = commitAnchor(repo, runDir);
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo }); // no custody args either
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha);
+});
+
+test("CLI: --local, an already-merged branch + custody OMITTED on a dispatched run → merged:true, refuse (never an unqualified merge-ok)", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  commitAnchor(repo, runDir);
+  // Land the branch first WITH valid custody (a legitimate prior merge)...
+  const cv = writeCustodyVerdict(runDir, ISSUE);
+  const first = runCli(baseArgs(runDir, custodyArgs(cv)), { cwd: repo });
+  assert.equal(first.code, 0);
+  // ...then re-invoke with custody OMITTED on the now-already-merged branch.
+  const second = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(second.code, 1);
+  const out = JSON.parse(second.stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, true, "the branch IS merged — custody is simply not re-provable on this call");
+});
+
+// --- FAFF-784 regression: merge-fence continues to deny a raw local merge attempt on a dispatched
+// run whose custody would otherwise refuse — the sanctioned `faff merge-gate --local` path is not
+// the only enforcement; a same-uid actor cannot route around custody by shelling raw `git merge`. ---
+
+test("FAFF-784: raw `git merge` is still denied by merge-fence on a repo carrying a dispatched (lane-boundary.json) run whose custody has not been recorded", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  git(repo, "checkout", "-q", "main"); // sitting ON the base branch
+  const { code, stderr } = runCli(["merge-fence", "--hook"], { input: fenceEvent("git merge feature", repo) });
+  assert.equal(code, 2, "merge-fence denies the raw merge regardless of custody state — it never even reads lane-boundary.json");
+  assert.match(stderr, /faff merge-gate --local/);
 });

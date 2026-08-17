@@ -9,6 +9,8 @@
 > Revised 2026-08-17 (round 3) — the store is now a **`bundle_store` slot** over a fixed contract, not a hardcoded git remote. The default occupant is a **local store** (zero off-box side-effect, today's posture), and the **git-remote occupant extends it** with the off-box push — the same default-occupant / heavier-occupant shape faff uses for `spec_review` (noon → dark) and `concurrency` (sequential → parallel). Off-box publishing is opt-in by filling the slot, not on-by-default. There is no publish on/off flag; the occupant is the control surface.
 >
 > Revised 2026-08-17 (round 4) — the git-remote occupant writes each bundle to its own **dedicated write-once ref** `refs/faff/bundles/…` (an orphan commit), not the feature-branch code commit: this decouples publishing from graft, survives PR-merge/branch-deletion, and triggers no PR and no CI (custom refs are invisible to GitHub Actions). Added the explicit **recovery model** (same-run resume via `listBoundaries(run_id)`; fresh-run cross-run discovery by issue is FAFF-820's, built on this ref layout) and a **consistency** note (local synchronous; git-remote push synchronous, checkout-free read eventually-consistent but fail-closed-safe).
+>
+> **Superseded 2026-08-17 by FAFF-861 — the store is NOT a slot.** The rounds-3/4 "`bundle_store` slot" framing below is a category error and is reversed: `slots:` is the user-swappable **skill** delegation surface (each occupant a `SKILL.md` a user replaces), whereas the `local` / `git-remote` occupants are built-in implementations of the fixed `BundleStore` JS contract that `bundle.js` dispatches on — a **mode enum**, not a skill. FAFF-861 moves it from `slots.bundle_store` to a **top-level `bundle_store` config key** (values `local` | `git-remote`, default `local`), alongside `logging` / `automation_default`. The occupant model, the fixed contract, the default-vs-distributing shape, and the fail-closed publish/verify are all unchanged — only the config location and the "slot" label. Read every "slot" in the design below as "the `bundle_store` config key + its built-in occupants".
 
 This spec is the build brief for FAFF-819. It defines how an unattended run publishes a verifiable recovery bundle at each safe boundary, what the minimal bundle contains, and how an independent party verifies a published bundle so that a missing, stale, malformed, or tampered bundle fails closed rather than being trusted. The audience is the build agent implementing the feature and the human reviewers gating it. The bundle is written by the run; it is read and acted on by FAFF-820 (recover/consume) and accepted as evidence by FAFF-823; neither read side is built here.
 
@@ -190,13 +192,13 @@ RECORD BundleVerdict:
 | I-O `publishBundle` | Resolves the `bundle_store` slot occupant, resolves identity from the boundary, calls `buildBundle`, writes via `occupant.put`, returns `store_unavailable` without failing the run when a distributing occupant's backing store is absent. |
 | I-O `bundle verify` | Resolves the `bundle_store` slot occupant, reads members via `occupant.{headDigest,member,listBoundaries}`, hands bytes to `classifyBundle`, records the verdict via `--record-result`, sets the exit code. |
 
-**Region.** All new code lives in the **factory** region (it touches redaction, effects governance, and git-style integrity operations), alongside `merge-gate.js`, `run-ledger.js`, and `integrity-digest.js`; `faff regions check` must pass. The slot-occupant resolution reuses the standard slot-resolution path (`faff config get slots.bundle_store`, built-in default when unset).
+**Region.** All new code lives in the **factory** region (it touches redaction, effects governance, and git-style integrity operations), alongside `merge-gate.js`, `run-ledger.js`, and `integrity-digest.js`; `faff regions check` must pass. The occupant resolution reads the top-level `bundle_store` config key (`faff config get bundle_store`, built-in `local` default when unset — FAFF-861; not a slot).
 
 **Publish, wired at the two anchor mints.**
 
 ```
 PROCEDURE publish_bundle(runDir, boundary_kind, boundary_key):
-  0. store := resolve occupant of slots.bundle_store (built-in local store when unset)
+  0. store := resolve occupant of the bundle_store config key (built-in local store when unset)
   1. Resolve identity:
      a. run_id        := basename(runDir)
      b. run_segment_id := ledger.owner.epoch            # lights-out.js:1146
@@ -355,13 +357,13 @@ Then the verdict is VERIFICATION_UNAVAILABLE and the process exits 2, never CLEA
 - [ ] A bundle stored at a safe boundary is a replica: `bundle verify` re-derives its integrity with no dependency on the producing machine, and no code prefers a bundle over the ledger/anchors/manifest on disagreement.
 - [ ] Every non-clean condition (unreachable, missing, malformed, digest mismatch, broken chain, superseded) returns a non-clean verdict; no path degrades to CLEAN.
 - [ ] A re-publish at an already-published identity with a matching digest is a no-op, never a rewrite.
-- [ ] Off-box publishing is opt-in: with `slots.bundle_store` unset, the default local occupant is resolved and nothing leaves the box; no publish on/off flag exists.
+- [ ] Off-box publishing is opt-in: with `bundle_store` unset, the default local occupant is resolved and nothing leaves the box; no publish on/off flag exists.
 
 ### From WHAT (types, slot, and contract)
 - [ ] `BundleIdentity` matches the schema, and the store handle derives deterministically (git-remote ref `refs/faff/bundles/<run_id>/seg-<segment>/<boundary_key>`; local path mirror).
 - [ ] The minimal member set is exactly `ledger_snapshot`, `admitted_outcomes`, `anchors`, `artifact_manifest`, `last_safe_boundary`, `redaction`, and the top-level `bundle_manifest_digest`; no fingerprint, restart-descriptor, or unresolved-effect member is present.
 - [ ] `bundle_manifest_digest` is `sha256` over `canonical(members)` and is recomputed on read rather than trusted as read; `canonical` is the pinned deterministic serialisation (sorted keys, UTF-8, no insignificant whitespace), reusing the existing manifest/chain-head canonicalisation, so a second machine recomputes a byte-identical digest.
-- [ ] `slots.bundle_store` resolves via the standard slot path with the built-in **local store** as the default occupant; the **git-remote** occupant is the built-here distributing swap-in; both satisfy the one `BundleStore` contract (`put` / `headDigest` / `member` / `listBoundaries`).
+- [ ] the top-level `bundle_store` config key resolves via the standard config path with the built-in **local store** as the default occupant; the **git-remote** occupant is the built-here distributing swap-in; both satisfy the one `BundleStore` contract (`put` / `headDigest` / `member` / `listBoundaries`).
 - [ ] `put` makes members visible atomically for every occupant; only a distributing occupant returns `store_unavailable` (the local default never does).
 - [ ] The publisher and verifier hold no store-specific logic; they resolve the occupant once and speak only to the contract.
 - [ ] `bundle-verdict` schema exists at `plugin/skills/faff/contracts/bundle-verdict.schema.json` and is surfaced by `faff contract bundle-verdict`, following the `review-verdict` idiom.
@@ -395,7 +397,7 @@ Then the verdict is VERIFICATION_UNAVAILABLE and the process exits 2, never CLEA
 ```
 PROCEDURE smoke:
   1. Run a fixture run to a per-issue merge-floor boundary; mint the anchor.
-  2. With slots.bundle_store unset (default local occupant), call publishBundle; assert a local bundle
+  2. With bundle_store unset (default local occupant), call publishBundle; assert a local bundle
      appears at the derived handle with the seven members and nothing is pushed off-box.
   3. Call `faff bundle verify`; assert verdict CLEAN, exit 0.
   4. Corrupt one byte of the ledger_snapshot member in the store.

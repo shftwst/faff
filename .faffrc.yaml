@@ -21,6 +21,7 @@ slots:
     # evaluator (faffter-noon-evaluate) is invoked via the holdout → prdr-coverage path, not an rc slot.
 
 appetite: high
+bundle_store: git-remote # top-level mode enum (local | git-remote), not a slot — push each Phase-0 recovery bundle to a write-once refs/faff/bundles/… orphan ref (FAFF-861)
 automation_default: opt-in # fail-safe: a ticket is automatable ONLY when a human adds `faff-automate` in the tracker (the control-plane gesture, FAFF-19/125/218). On this tracker-bound repo opt-out would be inert anyway (FAFF-753 — opt-out is git-only-only).
 intake_gate: warn
 

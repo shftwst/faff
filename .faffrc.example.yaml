@@ -180,6 +180,13 @@ appetite: high
 # faff-automation-hold to hard-exclude; faff-automation-hold always wins regardless.
 automation_default: opt-in   # opt-in | opt-out (opt-out is git-only-only — inert under a tracker)
 
+# Phase-0 recovery-bundle store (FAFF-819/861). A top-level MODE ENUM, not a slot — slots delegate
+# to user-swappable Skills, whereas these occupants are built-in implementations of a fixed
+# BundleStore contract. `local` (default) keeps every bundle on-box; `git-remote` pushes each one
+# to a write-once orphan ref (refs/faff/bundles/<run>/seg-<n>/<key>) on origin — no PR, no CI, and a
+# store-unavailable push never fails the run. The occupant is the whole on/off + local-vs-distributed control.
+bundle_store: local          # local | git-remote
+
 # Intake-provenance guard (FAFF-212). faff-graft's pre-worktree precondition checks that a
 # ticket entered through the front door (/faff-jot writes a CLI-owned .faff/provenance/<ISSUE>.json
 # marker) rather than being retrofitted to satisfy the commit convention. A mechanism value (like

@@ -214,9 +214,9 @@ test("bundle publish (git-remote occupant configured against an unreachable remo
     const anchorDest = path.join(root, ".faff", "anchors", run_id, "FAFF-1");
     mintIssueAnchor(runDir, "FAFF-1", anchorDest);
 
-    // A real git repo whose only remote is unreachable — the CLI resolves slots.bundle_store via
-    // `.faffrc.yaml`, so write one selecting git-remote, and init git with a bogus origin.
-    writeFileSync(path.join(root, ".faffrc.yaml"), "slots:\n  bundle_store: git-remote\n");
+    // A real git repo whose only remote is unreachable — the CLI resolves the top-level
+    // bundle_store key via `.faffrc.yaml`, so write one selecting git-remote, and init git with a bogus origin.
+    writeFileSync(path.join(root, ".faffrc.yaml"), "bundle_store: git-remote\n");
     const { spawnSync } = require("node:child_process");
     spawnSync("git", ["-C", root, "init", "-q"]);
     spawnSync("git", ["-C", root, "remote", "add", "origin", path.join(root, "nonexistent-remote.git")]);

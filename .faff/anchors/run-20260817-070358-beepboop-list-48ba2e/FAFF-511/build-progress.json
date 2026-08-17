@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-511",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c0235673fac1bb982742b21e1db1cb74d2260640909247b5cb76eef5e15f5e73",
+    "branch": "faff-511-spike-what-should-sentry-check-do-on-the-reconcile-only",
+    "pushed_at": "2026-08-17T08:16:02.885Z"
+  },
+  "updated_at": "2026-08-17T08:16:02.885Z"
+}

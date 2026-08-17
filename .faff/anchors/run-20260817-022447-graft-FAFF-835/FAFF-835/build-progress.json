@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-835",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3b8a12951eddfb0bb486968c8d2ad5da0bf6c4048871318f9a20e04cb478f9f8",
+    "branch": "faff-835-stale-park-auto-remove-state-moved-on-in-progress-false",
+    "pushed_at": "2026-08-17T02:41:27.041Z"
+  },
+  "updated_at": "2026-08-17T02:41:27.041Z"
+}

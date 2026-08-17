@@ -23,6 +23,7 @@
       "description": "ResumePlan | null — reconstructResumePlan's own shape {skip, continue_review, continue_from_push, redispatch, park, terminal, drain_remainder}, unchanged. Null only on a refused disposition."
     },
     "candidates_considered": { "type": "integer" },
+    "dry_run": { "type": "boolean", "description": "Optional (default false when absent). True when this disposition was computed against a scratch --dry-run materialisation rather than the real root — the real root was left untouched even though disposition may read reconstructed." },
     "conformant": { "type": "boolean" },
     "violations": { "type": "array", "items": { "type": "string" } }
   }

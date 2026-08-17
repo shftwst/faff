@@ -134,6 +134,7 @@ test("bundle-recover (local store, same box): reconstructs a run directory that 
     assert.equal(body.disposition, "reconstructed");
     assert.equal(body.bundle_verdict, "CLEAN");
     assert.equal(body.run_id, run_id);
+    assert.equal(body.dry_run, false, "a real (non-dry-run) reconstruction reads dry_run:false at the contract layer, distinguishable from a --dry-run preview");
     assert.ok(existsSync(path.join(freshRoot, ".faff", "runs", run_id, "run-ledger.json")));
     assert.ok(existsSync(path.join(freshRoot, ".faff", "anchors", run_id, "FAFF-1", "events.jsonl")));
 

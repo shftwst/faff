@@ -1013,6 +1013,16 @@ function computeRecoveryDispositionVerdict(extraction) {
   if (!candidatesOk) violations.push("candidates_considered must be a non-negative integer");
   const candidates_considered = candidatesOk ? extraction.candidates_considered : 0;
 
+  // dry_run — optional (absent -> false): whether this disposition was computed against a
+  // scratch materialisation rather than the real root (spec §3 --dry-run). Carried at the
+  // contract layer so an automated consumer can tell a preview apart from a real reconstruct
+  // without re-parsing CLI wrapper output.
+  let dry_run = false;
+  if (extraction.dry_run !== null && extraction.dry_run !== undefined) {
+    if (typeof extraction.dry_run !== "boolean") violations.push("dry_run must be a boolean");
+    else dry_run = extraction.dry_run;
+  }
+
   // The load-bearing safety property (spec §3 CONSTRAINT, the forward direction): a non-CLEAN
   // bundle verdict may never resolve to anything but refused — never guess reconstructed/noop
   // off an unproven bundle, even from a hand-altered extraction.
@@ -1032,7 +1042,7 @@ function computeRecoveryDispositionVerdict(extraction) {
   return {
     contractData: {
       verb: "bundle-recover", disposition, bundle_verdict, bundle_identity, run_id, run_dir, boundary_kind,
-      reason, resume_preview, candidates_considered, conformant: violations.length === 0, violations,
+      reason, resume_preview, candidates_considered, dry_run, conformant: violations.length === 0, violations,
     },
     failLoud: null,
   };
@@ -2107,6 +2117,9 @@ const CONTRACTS = {
     run: contractRecoveryDispositionVerdict,
     fixtures: [
       { name: "conformant-reconstructed", in: { verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "reconstructed from a CLEAN Phase 0 recovery bundle", resume_preview: { skip: ["FAFF-1"], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1 }, wantExit: 0 },
+      { name: "conformant-reconstructed-dry-run", in: { verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "dry-run — would reconstruct and preview the resume plan; the real root was left untouched", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1, dry_run: true }, wantExit: 0 },
+      { name: "dry-run-defaults-false-when-absent", in: { verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: null, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "x", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 0 }, wantExit: 0 },
+      { name: "fail-loud-bad-dry-run-type", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "MISSING", bundle_identity: null, run_id: "", run_dir: null, boundary_kind: "issue-merge-floor", reason: "x", resume_preview: null, candidates_considered: 0, dry_run: "yes" }, wantExit: 1 },
       { name: "conformant-noop-already-present", in: { verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "already reconstructed, byte-identical", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1 }, wantExit: 0 },
       { name: "conformant-refused-missing", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "MISSING", bundle_identity: null, run_id: "", run_dir: null, boundary_kind: "issue-merge-floor", reason: "no bundle for FAFF-1 in the local store", resume_preview: null, candidates_considered: 0 }, wantExit: 0 },
       { name: "conformant-refused-stale", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "STALE", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: null, boundary_kind: "issue-merge-floor", reason: "superseded_by FAFF-2", resume_preview: null, candidates_considered: 2 }, wantExit: 0 },
@@ -2588,6 +2601,7 @@ const CONTRACT_DESCRIBES = {
       "a non-object extraction → fail-loud (exit 2) — nothing to re-derive from",
       "an out-of-enum disposition → coerced to refused (never guess reconstructed — no reconstruction is ever assumed on doubt)",
       "an out-of-enum bundle_verdict → coerced to VERIFICATION_UNAVAILABLE (never CLEAN)",
+      "dry_run is optional and defaults to false when absent — a non-boolean dry_run is flagged as a violation. When true, this disposition was computed against a scratch --dry-run materialisation; the real root was left untouched even when disposition reads reconstructed",
       "bundle_verdict ≠ CLEAN paired with any disposition other than refused → flagged as a violation — this is the one directional safety property this contract enforces even against a hand-altered extraction: a non-CLEAN bundle can never read as reconstructed or noop-already-present",
       "disposition: reconstructed with a null run_dir or a null resume_preview → flagged as a violation (a claimed reconstruction must carry what it reconstructed)",
       "disposition: refused with a non-null run_dir → flagged as a violation (a refusal writes nothing, so it names no run directory)",

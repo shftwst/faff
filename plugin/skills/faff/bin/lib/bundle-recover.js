@@ -270,6 +270,17 @@ function fetchCleanMemberBytes(store, identity, names) {
 // CLEAN bundle's own bytes — nothing else is claimed as recovered (no shell, container,
 // worktree, or per-issue build checkpoint outside the anchor's own files map).
 // ---------------------------------------------------------------------------
+// A CLEAN verdict proves the anchors member's BYTES match the bundle's own recorded digest —
+// it proves nothing about the rel-paths encoded inside those bytes being safe to join onto a
+// real directory. Reject absolute paths and any ".."-segment before ever touching disk: this
+// write is a NEW persistent-write surface (bundle.js's own tamper check only ever materialises
+// into a throwaway temp dir), so the containment guard is defence-in-depth within FAFF-819's
+// CLEAN trust model, not a redundant check.
+function isSafeAnchorRelPath(rel) {
+  if (typeof rel !== "string" || rel === "" || path.isAbsolute(rel)) return false;
+  return !rel.split("/").some((seg) => seg === "..");
+}
+
 function reconstructProjection(targetRoot, identity, memberBytes) {
   const runId = identity.run_id;
   const boundaryKey = identity.boundary_key;
@@ -286,6 +297,13 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
     // REQUIRED_MEMBERS + mintIssueAnchor guarantee a CLEAN bundle's anchor always carries
     // events.jsonl — reaching here is an internal fault, not a normal branch.
     throw new Error("a CLEAN bundle's anchor carries no events.jsonl — internal fault");
+  }
+  // Validate EVERY rel-path before writing ANY file — a bad key partway through the map must
+  // never leave a half-written anchor dir alongside an already-escaped write.
+  for (const rel of Object.keys(files)) {
+    if (!isSafeAnchorRelPath(rel)) {
+      throw new Error(`anchors member carries an unsafe path "${rel}" (absolute or '..'-escaping) — refusing to write outside the anchor directory`);
+    }
   }
 
   fs.mkdirSync(runDir, { recursive: true });
@@ -314,12 +332,26 @@ function readDeclaredEffectsEntries(anchorDir) {
     .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 }
 
+// PURE — the canonical "nothing to resume" plan: every bucket empty, drain_remainder false
+// (there is no admitted-set settlement left to drain — the run itself is not re-enterable).
+function emptyResumePlan() {
+  return { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: false };
+}
+
 function previewResume(runDir, root, boundaryKey) {
   const ledger = readLedger(runDir);
   // No live heartbeat is possible on a reconstructed directory (spec "Cross-box liveness"):
   // this verb never writes a heartbeat file for a run it did not itself continue, and a
   // fresh box cannot observe the original box's process — held is always false here.
   const cls = classifyReEnterable(ledger, { held: false });
+  if (!cls.reEnterable) {
+    // done-clean (or any other refusal state, e.g. a run-close ledger with every outcome
+    // already settled) has nothing left to resume — running reconstructResumePlan here would
+    // wrongly park a settled, unprovable-merge issue on a run nobody will ever continue. The
+    // `state` field already carries WHY (done-clean, live-running, ...); the plan itself stays
+    // the canonical empty shape.
+    return { reEnterable: false, state: cls.state, plan: emptyResumePlan() };
+  }
   const evidence = gatherResumeEvidence(runDir, root, ledger, null);
   let plan = reconstructResumePlan(ledger, evidence);
 
@@ -329,7 +361,7 @@ function previewResume(runDir, root, boundaryKey) {
   const { escapes } = computeEscapes(entries, null);
   plan = foldEscapesIntoPlan(plan, escapes);
 
-  return { reEnterable: cls.reEnterable, state: cls.state, plan };
+  return { reEnterable: true, state: cls.state, plan };
 }
 
 // ---------------------------------------------------------------------------
@@ -365,6 +397,7 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
   const verified = rawCandidates.map((identity) => verifyBundleIdentity(identity, { root: resolvedRoot, store: resolvedStore }));
 
   const clean = [];
+  const cleanDroppedForTs = []; // CLEAN candidates whose own last_safe_boundary.ts was missing/unreadable/malformed — kept separate so a refusal never claims "no CLEAN bundle" when one genuinely was CLEAN
   for (const v of verified) {
     if (v.verdict !== "CLEAN") continue;
     let ts = null;
@@ -376,6 +409,23 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
       }
     } catch { ts = null; }
     if (ts) clean.push({ identity: v.identity, ts });
+    else cleanDroppedForTs.push(v);
+  }
+
+  if (clean.length === 0 && cleanDroppedForTs.length > 0) {
+    // A defensive-only path: classifyBundle already proved CLEAN, so the digest chain is
+    // intact — this only fires if last_safe_boundary itself is unreadable/malformed at read
+    // time (a store hiccup between verify and this second member fetch, or a genuinely
+    // malformed member classifyBundle's own MALFORMED leg somehow missed). Never report "no
+    // CLEAN bundle" here — one WAS CLEAN; name the real, specific reason instead.
+    const cause = cleanDroppedForTs[0];
+    return refusedDisposition({
+      bundle_verdict: "CLEAN", bundle_identity: cause.identity,
+      run_id: (cause.identity && cause.identity.run_id) || runId || "",
+      boundary_kind: (cause.identity && cause.identity.boundary_kind) || "issue-merge-floor",
+      reason: `a CLEAN bundle for ${issue} carried no usable last_safe_boundary.ts (the member was missing, unreadable, or malformed at read time) — refusing rather than guessing a recency order`,
+      candidates_considered: rawCandidates.length,
+    });
   }
 
   if (clean.length === 0) {
@@ -431,13 +481,25 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
   if (dryRun) {
     const scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-bundle-recover-dry-"));
     try {
-      const { runDir: scratchRunDir } = reconstructProjection(scratchRoot, identity, memberBytes);
+      let scratchRunDir;
+      try {
+        ({ runDir: scratchRunDir } = reconstructProjection(scratchRoot, identity, memberBytes));
+      } catch (e) {
+        // Same "refuse rather than half-write" posture as the real path below — the scratch
+        // dir is discarded either way (the finally), so there is nothing to clean up on disk;
+        // the failure still needs to surface as a founded refusal, not an uncaught throw.
+        return refusedDisposition({
+          bundle_verdict: "CLEAN", bundle_identity: identity, run_id: identity.run_id, boundary_kind: identity.boundary_kind,
+          reason: `reconstruction failed: ${e.message}`,
+          candidates_considered: rawCandidates.length,
+        });
+      }
       const preview = previewResume(scratchRunDir, scratchRoot, identity.boundary_key);
       return {
         verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: identity,
         run_id: identity.run_id, run_dir: realRunDir, boundary_kind: identity.boundary_kind,
         reason: "dry-run — would reconstruct and preview the resume plan; the real root was left untouched",
-        resume_preview: preview.plan, candidates_considered: rawCandidates.length,
+        resume_preview: preview.plan, candidates_considered: rawCandidates.length, dry_run: true,
       };
     } finally {
       fs.rmSync(scratchRoot, { recursive: true, force: true });
@@ -481,10 +543,9 @@ function bundleRecoverExitCode(disposition) {
   return (disposition === "reconstructed" || disposition === "noop-already-present") ? 0 : 1;
 }
 
-function emit(contractData, dryRun, asJson) {
-  const payload = dryRun ? { ...contractData, dry_run: true } : contractData;
-  if (asJson) { console.log(JSON.stringify(payload)); return; }
-  const lines = [`bundle-recover: ${contractData.disposition} — ${contractData.reason}`];
+function emit(contractData, asJson) {
+  if (asJson) { console.log(JSON.stringify(contractData)); return; }
+  const lines = [`bundle-recover: ${contractData.disposition}${contractData.dry_run ? " (dry-run)" : ""} — ${contractData.reason}`];
   if (contractData.bundle_identity) {
     const id = contractData.bundle_identity;
     lines.push(`  identity: ${id.run_id}/seg-${id.run_segment_id}/${id.boundary_key} (${contractData.bundle_verdict})`);
@@ -529,7 +590,7 @@ function cmdBundleRecover(args) {
     return 2;
   }
 
-  emit(contractData, dryRun, asJson);
+  emit(contractData, asJson);
   return bundleRecoverExitCode(contractData.disposition);
 }
 
@@ -704,7 +765,11 @@ function bundleRecoverSelftest() {
       const shipRunId = "run-20260101-100000-sh";
       const shipRunDir = path.join(shipRoot, ".faff", "runs", shipRunId);
       fs.mkdirSync(shipRunDir, { recursive: true });
-      fs.writeFileSync(path.join(shipRunDir, "run-ledger.json"), JSON.stringify({ run_id: shipRunId, admitted: ["FAFF-9"], outcomes: { "FAFF-9": "shipped" }, owner: { epoch: 0, status: "done" } }));
+      // owner.status "running" + a stale heartbeat -> dead-running (re-enterable): this fixture
+      // is specifically testing the unproven-merge park, which only fires along the reEnterable
+      // branch of previewResume — a "done" owner would (correctly, post-fix-1) preview nothing
+      // to resume instead, which is a different fixture (see the run-close one below).
+      fs.writeFileSync(path.join(shipRunDir, "run-ledger.json"), JSON.stringify({ run_id: shipRunId, admitted: ["FAFF-9"], outcomes: { "FAFF-9": "shipped" }, owner: { epoch: 0, status: "running", last_heartbeat: "2020-01-01T00:00:00.000Z" } }));
       fs.writeFileSync(path.join(shipRunDir, "events.jsonl"), `{"schema":1,"run_id":"${shipRunId}","seq":0,"ts":"2026-01-01T10:00:00.000Z","phase":"run","type":"run-start"}\n`);
       // Deliberately NO merge-record.json under shipRunDir/FAFF-9/ — the bundle never carries one.
       const shipAnchorDest = path.join(shipRoot, ".faff", "anchors", shipRunId, "FAFF-9");
@@ -746,7 +811,11 @@ function bundleRecoverSelftest() {
       fs.cpSync(path.join(closeRoot, ".faff", "bundles"), path.join(closeFreshRoot, ".faff", "bundles"), { recursive: true });
       const dispClose = bundleRecover({ issue: "FAFF-1", runId: closeRunId, root: closeFreshRoot, dryRun: false, storeName: "local", store: localBundleStore(closeFreshRoot) });
       ok(dispClose.disposition === "reconstructed" && dispClose.boundary_kind === "run-close", `bundleRecover: --run-id reaches the run-close boundary (got ${dispClose.disposition}/${dispClose.boundary_kind})`);
-      ok(dispClose.resume_preview && dispClose.resume_preview.state !== undefined ? true : true, "bundleRecover: a run-close reconstruction previews (nothing further to resume, all outcomes settled)");
+      const closeRp = dispClose.resume_preview;
+      const closeRpEmpty = !!closeRp && closeRp.skip.length === 0 && closeRp.continue_review.length === 0
+        && closeRp.continue_from_push.length === 0 && closeRp.redispatch.length === 0
+        && closeRp.park.length === 0 && closeRp.terminal.length === 0 && closeRp.drain_remainder === false;
+      ok(closeRpEmpty, `bundleRecover: a run-close (done-clean) reconstruction previews nothing to resume — every bucket empty (got ${JSON.stringify(closeRp)})`);
     } finally {
       fs.rmSync(closeRoot, { recursive: true, force: true });
       fs.rmSync(closeFreshRoot, { recursive: true, force: true });
@@ -755,6 +824,44 @@ function bundleRecoverSelftest() {
     fs.rmSync(srcRoot, { recursive: true, force: true });
     fs.rmSync(freshRoot, { recursive: true, force: true });
   }
+
+  // --- reconstructProjection: a path-containment guard on the anchors member (defence in
+  // depth — a CLEAN verdict proves byte fidelity against the bundle's own recorded digest,
+  // never rel-path safety; a malicious/malformed anchors map must never escape anchorDir) ---
+  const escapeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-bundle-recover-escape-"));
+  try {
+    const evilFiles = {
+      "events.jsonl": Buffer.from("").toString("base64"),
+      "../../escape.txt": Buffer.from("pwned").toString("base64"),
+    };
+    const evilAnchorsBytes = Buffer.from(JSON.stringify({ dir: "x", files: evilFiles }), "utf8");
+    const evilMemberBytes = {
+      ledger_snapshot: Buffer.from(JSON.stringify({ run_id: "run-escape", admitted: [], outcomes: {}, owner: { epoch: 0, status: "done" } })),
+      anchors: evilAnchorsBytes,
+    };
+    let threw = null;
+    try {
+      reconstructProjection(escapeRoot, { run_id: "run-escape", boundary_key: "FAFF-1" }, evilMemberBytes);
+    } catch (e) { threw = e; }
+    ok(threw !== null && /unsafe path/.test(threw.message), `reconstructProjection: a '..'-escaping anchors rel path refuses (got ${threw && threw.message})`);
+    ok(!fs.existsSync(path.join(escapeRoot, ".faff")), "reconstructProjection: the escape refusal happens before any write — nothing lands under the target root at all");
+    ok(!fs.existsSync(path.join(os.tmpdir(), "escape.txt")), "reconstructProjection: the '..'-escaping file was never written anywhere");
+  } finally { fs.rmSync(escapeRoot, { recursive: true, force: true }); }
+
+  const escapeAbsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-bundle-recover-escape-abs-"));
+  try {
+    const evilAbsFiles = { "events.jsonl": Buffer.from("").toString("base64"), "/etc/escape.txt": Buffer.from("pwned").toString("base64") };
+    const evilAbsAnchorsBytes = Buffer.from(JSON.stringify({ dir: "x", files: evilAbsFiles }), "utf8");
+    const evilAbsMemberBytes = {
+      ledger_snapshot: Buffer.from(JSON.stringify({ run_id: "run-escape-abs", admitted: [], outcomes: {}, owner: { epoch: 0, status: "done" } })),
+      anchors: evilAbsAnchorsBytes,
+    };
+    let threwAbs = null;
+    try {
+      reconstructProjection(escapeAbsRoot, { run_id: "run-escape-abs", boundary_key: "FAFF-1" }, evilAbsMemberBytes);
+    } catch (e) { threwAbs = e; }
+    ok(threwAbs !== null && /unsafe path/.test(threwAbs.message), `reconstructProjection: an absolute anchors rel path refuses (got ${threwAbs && threwAbs.message})`);
+  } finally { fs.rmSync(escapeAbsRoot, { recursive: true, force: true }); }
 
   // --- contract round trip: computeRecoveryDispositionVerdict coercion ---
   const { contractData: coerced } = computeRecoveryDispositionVerdict({
@@ -776,6 +883,6 @@ function bundleRecoverSelftest() {
 module.exports = {
   selectMostRecent, runIdSortPrefix, idempotencyDecision, foldEscapesIntoPlan, refusedDisposition,
   discoverLocalCandidates, discoverLocalRunCloseCandidate, discoverGitRemoteCandidates, discoverGitRemoteRunCloseCandidate,
-  discoverCandidates, fetchCleanMemberBytes, reconstructProjection, previewResume, bundleRecover,
+  discoverCandidates, fetchCleanMemberBytes, isSafeAnchorRelPath, emptyResumePlan, reconstructProjection, previewResume, bundleRecover,
   cmdBundleRecover, bundleRecoverExitCode, bundleRecoverSelftest,
 };

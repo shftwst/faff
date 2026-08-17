@@ -142,6 +142,35 @@ test("bundle verify: a bundle whose manifest.json is corrupted on disk -> MALFOR
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test("bundle publish: boundary_seq auto-increments across issues in the same run/segment via the real CLI (no --boundary-seq flag exists), and staleness fires correctly", () => {
+  const { root, run_id, runDir } = fixtureRoot();
+  try {
+    const pub1 = runCli(["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1", "--root", root, "--json"], { cwd: root });
+    assert.equal(pub1.code, 0, pub1.stderr);
+    assert.equal(JSON.parse(pub1.stdout).identity.boundary_seq, 0, "the first bundle in a fresh segment gets boundary_seq 0");
+
+    // A second issue, same run/segment: mint its own anchor, then publish.
+    mkdirSync(path.join(runDir, "FAFF-2"), { recursive: true });
+    const anchorDest2 = path.join(root, ".faff", "anchors", run_id, "FAFF-2");
+    mintIssueAnchor(runDir, "FAFF-2", anchorDest2);
+    const pub2 = runCli(["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-2", "--root", root, "--json"], { cwd: root });
+    assert.equal(pub2.code, 0, pub2.stderr);
+    assert.equal(JSON.parse(pub2.stdout).identity.boundary_seq, 1, "the second bundle in the same segment auto-increments to boundary_seq 1 (the bug this regression-tests: it must NOT default to 0 again)");
+
+    // The earlier (FAFF-1) boundary must now read STALE, superseded by FAFF-2.
+    const ver1 = runCli(["bundle", "verify", "--run-id", run_id, "--run-segment-id", "0", "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1", "--root", root, "--json"], { cwd: root });
+    assert.equal(ver1.code, 1);
+    const ver1Body = JSON.parse(ver1.stdout);
+    assert.equal(ver1Body.verdict, "STALE");
+    assert.equal(ver1Body.superseded_by.boundary_key, "FAFF-2");
+
+    // FAFF-2 itself is the latest boundary and stays CLEAN.
+    const ver2 = runCli(["bundle", "verify", "--run-id", run_id, "--run-segment-id", "0", "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-2", "--root", root, "--json"], { cwd: root });
+    assert.equal(ver2.code, 0, ver2.stderr);
+    assert.equal(JSON.parse(ver2.stdout).verdict, "CLEAN");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("classifyBundle: a required member reported missing by the store -> MISSING, naming the member", () => {
   const identity = { run_id: "r", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
   const result = classifyBundle({ identity, headStatus: "ok", headDigest: "x", members: { ledger_snapshot: { status: "missing" } } });

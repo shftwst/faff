@@ -496,7 +496,6 @@ function publishBundle(runDir, boundaryKind, boundaryKey, opts = {}) {
   const root = opts.root || findRoot();
   const store = opts.store || resolveBundleStore(root);
   const run_id = path.basename(runDir);
-  const boundary_seq = Number.isInteger(opts.boundarySeq) ? opts.boundarySeq : nextBoundarySeq(store, run_id, opts.runSegmentIdHint);
 
   const idErrsPre = validateIdentityForHandle({ run_id, run_segment_id: 0, boundary_kind: boundaryKind, boundary_key: boundaryKey });
   // run_segment_id is resolved inside buildBundle (from the ledger) — validate only the
@@ -504,7 +503,25 @@ function publishBundle(runDir, boundaryKind, boundaryKey, opts = {}) {
   const idErrsPreFiltered = idErrsPre.filter((v) => !v.startsWith("run_segment_id"));
   if (idErrsPreFiltered.length) throw new Error(`publishBundle: invalid identity component(s): ${idErrsPreFiltered.join("; ")}`);
 
-  const { manifest, memberBytes } = buildBundle(runDir, { run_id, boundary_kind: boundaryKind, boundary_key: boundaryKey, boundary_seq }, root);
+  // Resolve boundary_seq — the monotonic sequence scoped to (run_id, run_segment_id), which
+  // requires knowing run_segment_id first (it comes from the ledger, via buildBundle). An
+  // explicit opts.boundarySeq (tests, or a caller that already knows it) is honoured directly.
+  // Otherwise: build ONCE with a placeholder boundary_seq purely to learn run_segment_id from
+  // buildBundle's own single ledger read, discard THAT result, then build again with the real
+  // boundary_seq for the actual publish — each call independently satisfies "run_segment_id from
+  // the same read as ledger_snapshot" for its own output, and only the second call is ever used
+  // or written. (A prior cut skipped this probe and defaulted every CLI-driven publish to
+  // boundary_seq 0, silently defeating the per-issue-supersedes-per-issue staleness precedence —
+  // fixed here.)
+  let built;
+  if (Number.isInteger(opts.boundarySeq)) {
+    built = buildBundle(runDir, { run_id, boundary_kind: boundaryKind, boundary_key: boundaryKey, boundary_seq: opts.boundarySeq }, root);
+  } else {
+    const probe = buildBundle(runDir, { run_id, boundary_kind: boundaryKind, boundary_key: boundaryKey, boundary_seq: 0 }, root);
+    const boundary_seq = nextBoundarySeq(store, run_id, probe.manifest.identity.run_segment_id, boundaryKey);
+    built = boundary_seq === 0 ? probe : buildBundle(runDir, { run_id, boundary_kind: boundaryKind, boundary_key: boundaryKey, boundary_seq }, root);
+  }
+  const { manifest, memberBytes } = built;
   const idErrs = validateIdentityForHandle(manifest.identity);
   if (idErrs.length) throw new Error(`publishBundle: invalid identity component(s): ${idErrs.join("; ")}`);
 
@@ -526,15 +543,18 @@ function publishBundle(runDir, boundaryKind, boundaryKey, opts = {}) {
   return { ...result, identity: manifest.identity, manifest };
 }
 
-// A monotonic boundary_seq scoped to (run_id, run_segment_id) — resolved from the CURRENT max
-// among the store's own listing (best-effort: the occupant's own listBoundaries; a store that
-// cannot list yet — e.g. a fresh segment — starts at 0). `runSegmentIdHint` is optional (the
-// common case resolves it AFTER buildBundle reads the ledger, so this pre-pass conservatively
-// scopes by run_id alone when no hint is given — acceptable because seq collisions across
-// segments never matter: staleness comparisons are always scoped to one segment).
-function nextBoundarySeq(store, run_id, runSegmentIdHint) {
-  if (!Number.isInteger(runSegmentIdHint)) return 0;
-  const existing = store.listBoundaries(run_id, runSegmentIdHint) || [];
+// A monotonic boundary_seq scoped to (run_id, run_segment_id) — resolved from the store's own
+// listing (best-effort: the occupant's own listBoundaries; a store that cannot list yet — e.g. a
+// fresh segment — starts at 0). `run_segment_id` is always a real integer here — the caller
+// (publishBundle) resolves it from the ledger first. CRITICAL: a re-publish of the SAME
+// boundary_key must get back its OWN existing seq, never a freshly incremented one — otherwise a
+// re-publish (matching digest, meant to be an idempotent no-op) would carry a different
+// last_safe_boundary.boundary_seq and so a different digest, tripping the store's own
+// write-once/identity-conflict guard instead of resolving to idempotent.
+function nextBoundarySeq(store, run_id, run_segment_id, boundary_key) {
+  const existing = store.listBoundaries(run_id, run_segment_id) || [];
+  const mine = existing.find((b) => b.boundary_key === boundary_key);
+  if (mine && Number.isInteger(mine.boundary_seq)) return mine.boundary_seq;
   return existing.reduce((max, b) => Math.max(max, Number.isInteger(b.boundary_seq) ? b.boundary_seq : -1), -1) + 1;
 }
 
@@ -718,13 +738,13 @@ function bundleSelftest() {
     ok(mint.ok, "selftest fixture: anchor minted cleanly");
 
     const store = localBundleStore(tmp);
-    const pub = publishBundle(runDir, "issue-merge-floor", "FAFF-1", { root: tmp, store, runSegmentIdHint: 0, boundarySeq: 0 });
+    const pub = publishBundle(runDir, "issue-merge-floor", "FAFF-1", { root: tmp, store, boundarySeq: 0 });
     ok(pub.ok === true && !pub.idempotent, "publishBundle: first publish succeeds, not idempotent");
     const verdict1 = verifyBundleIdentity(pub.identity, { root: tmp, store });
     ok(verdict1.verdict === "CLEAN", `publish -> verify round trip is CLEAN (got ${verdict1.verdict}/${verdict1.cause})`);
 
     // Idempotent re-publish: same digest -> no-op, never a rewrite.
-    const pub2 = publishBundle(runDir, "issue-merge-floor", "FAFF-1", { root: tmp, store, runSegmentIdHint: 0, boundarySeq: 0 });
+    const pub2 = publishBundle(runDir, "issue-merge-floor", "FAFF-1", { root: tmp, store, boundarySeq: 0 });
     ok(pub2.ok === true && pub2.idempotent === true, "publishBundle: re-publish at the same identity is an idempotent no-op");
 
     // Tamper: edit the CONTENT of the stored ledger_snapshot member (still valid JSON, so this
@@ -753,7 +773,7 @@ function bundleSelftest() {
     fs.mkdirSync(path.join(runDir, "FAFF-2"), { recursive: true });
     const anchorDest2 = path.join(tmp, ".faff", "anchors", run_id, "FAFF-2");
     mintIssueAnchor(runDir, "FAFF-2", anchorDest2);
-    const pub3 = publishBundle(runDir, "issue-merge-floor", "FAFF-2", { root: tmp, store, runSegmentIdHint: 0, boundarySeq: 1 });
+    const pub3 = publishBundle(runDir, "issue-merge-floor", "FAFF-2", { root: tmp, store, boundarySeq: 1 });
     ok(pub3.ok === true, "selftest fixture: second boundary published");
     const verdictStale = verifyBundleIdentity(pub.identity, { root: tmp, store });
     ok(verdictStale.verdict === "STALE" && verdictStale.superseded_by && verdictStale.superseded_by.boundary_key === "FAFF-2", "an earlier per-issue boundary reads STALE once a later one is published");
@@ -786,11 +806,11 @@ function bundleSelftest() {
       mintFn(runDir2, "FAFF-9", anchorDest3);
 
       const gstore = gitRemoteBundleStore(workRoot, "origin");
-      const gpub = publishBundle(runDir2, "issue-merge-floor", "FAFF-9", { root: workRoot, store: gstore, runSegmentIdHint: 0, boundarySeq: 0 });
+      const gpub = publishBundle(runDir2, "issue-merge-floor", "FAFF-9", { root: workRoot, store: gstore, boundarySeq: 0 });
       ok(gpub.ok === true, `git-remote publish succeeds against a scratch bare repo (got ${JSON.stringify(gpub)})`);
       const gverdict = verifyBundleIdentity(gpub.identity, { root: workRoot, store: gstore });
       ok(gverdict.verdict === "CLEAN", `git-remote publish -> verify round trip is CLEAN (got ${gverdict.verdict}/${gverdict.cause})`);
-      const gpub2 = publishBundle(runDir2, "issue-merge-floor", "FAFF-9", { root: workRoot, store: gstore, runSegmentIdHint: 0, boundarySeq: 0 });
+      const gpub2 = publishBundle(runDir2, "issue-merge-floor", "FAFF-9", { root: workRoot, store: gstore, boundarySeq: 0 });
       ok(gpub2.ok === true && gpub2.idempotent === true, "git-remote re-publish at the same identity is an idempotent no-op (no new push)");
 
       // No PR / no CI surface: the pushed ref is a custom ref, never refs/heads/* or refs/tags/*.
@@ -821,7 +841,7 @@ function bundleSelftest() {
       const anchorDestBad = path.join(badWorkRoot, ".faff", "anchors", "run-bad", "FAFF-1");
       require("./events").mintIssueAnchor(runDirBad, "FAFF-1", anchorDestBad);
       const badStore = gitRemoteBundleStore(badWorkRoot, "origin");
-      const badPub = publishBundle(runDirBad, "issue-merge-floor", "FAFF-1", { root: badWorkRoot, store: badStore, runSegmentIdHint: 0, boundarySeq: 0 });
+      const badPub = publishBundle(runDirBad, "issue-merge-floor", "FAFF-1", { root: badWorkRoot, store: badStore, boundarySeq: 0 });
       ok(badPub.ok === false && badPub.reason === "store_unavailable", `an unreachable remote reports store_unavailable, never throws (got ${JSON.stringify(badPub)})`);
       const badEvents = fs.readFileSync(path.join(runDirBad, "events.jsonl"), "utf8");
       ok(badEvents.includes('"bundle-store-unavailable"') && badEvents.includes("FAFF-1"), "store_unavailable records a run event noting it (spec: never fails the run)");

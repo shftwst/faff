@@ -74,14 +74,14 @@ const DEFAULTS = {
   // FAFF-191: the L4 PRD-admissibility slot — gap-filled (was documented in the gateway Slots
   // table and relied on by faff-beep-boop's prose parenthetical, but absent from the registry).
   "slots.prd": "faffter-noon-prd",
-  // FAFF-819: the Phase-0 recovery-bundle store slot. Unlike the other slots (each a delegated
-  // Skill), this one names a BUILT-IN occupant (bundle.js dispatches on the string) — "local"
-  // (default: nothing leaves the box) or "git-remote" (opt-in off-box publish to a write-once
-  // orphan ref). No publish on/off flag exists — the occupant IS the control surface.
-  "slots.bundle_store": "local",
   "logging": "full",
   "concurrency_max": "4",
   "automation_default": "opt-in",
+  // FAFF-819 / FAFF-861: the Phase-0 recovery-bundle store. A top-level MODE ENUM, not a slot —
+  // slots delegate to user-swappable Skills, whereas this names a BUILT-IN occupant bundle.js
+  // dispatches on the string: "local" (default: nothing leaves the box) or "git-remote" (opt-in
+  // off-box publish to a write-once orphan ref). No publish on/off flag — the occupant IS the control surface.
+  "bundle_store": "local",
   // FAFF-758: the stale-claim TTL (hours). A claim (issue at `In Progress`) older than this
   // that faff can PROVE it set (the `faff-claimed` label) is auto-reclaimed to Todo by tidy;
   // anything else is surfaced, never touched. The default MUST exceed the longest legitimate
@@ -839,6 +839,7 @@ const WRITABLE_NAMESPACES = new Set([
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "faffter_dark", "autonomous", "containment", "post_merge", "graft", "andon",
+  "bundle_store",
 ]);
 
 // Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each

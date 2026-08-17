@@ -4,8 +4,8 @@
 // (the per-issue merge-floor anchor, and — git-only mode only — the run-close anchor) and
 // verifies one through a fail-closed verdict ladder (CLEAN/STALE/MISSING/MALFORMED/TAMPERED/
 // VERIFICATION_UNAVAILABLE). Two pure cores (buildBundle / classifyBundle) sit behind a
-// `bundle_store` slot resolved to one of two occupants satisfying the same fixed BundleStore
-// contract (put/headDigest/member/listBoundaries): the default LOCAL occupant (nothing leaves
+// top-level `bundle_store` config key resolved to one of two occupants satisfying the same fixed
+// BundleStore contract (put/headDigest/member/listBoundaries): the default LOCAL occupant (nothing leaves
 // the box) and the GIT-REMOTE occupant (each bundle a write-once orphan commit pushed to its
 // own `refs/faff/bundles/<run_id>/seg-<segment>/<boundary_key>` ref — no PR, no CI). Tamper
 // detection REUSES buildManifest/diffAgainstManifest (integrity-digest.js) and verifyChain/
@@ -494,15 +494,17 @@ function gitRemoteBundleStore(root, remoteName = "origin") {
 }
 
 // ---------------------------------------------------------------------------
-// Slot resolution — `slots.bundle_store` via the standard config path (spec §4). The default
-// occupant is "local" (nothing off-box); "git-remote" is the built-here distributing swap-in.
+// Store resolution — the top-level `bundle_store` config key (a MODE ENUM, not a slot: slots
+// delegate to user-swappable Skills, whereas these occupants are BUILT-IN implementations of the
+// fixed BundleStore contract — FAFF-861). The default occupant is "local" (nothing off-box);
+// "git-remote" is the built-here distributing swap-in.
 // ---------------------------------------------------------------------------
 const BUNDLE_STORE_OCCUPANTS = ["local", "git-remote"];
 
 function resolveBundleStoreName(root) {
   const [cfg] = loadConfig(root);
-  const raw = dig(cfg, "slots.bundle_store");
-  const value = (raw === null || raw === undefined || raw === "") ? (DEFAULTS["slots.bundle_store"] || "local") : String(raw).trim();
+  const raw = dig(cfg, "bundle_store");
+  const value = (raw === null || raw === undefined || raw === "") ? (DEFAULTS["bundle_store"] || "local") : String(raw).trim();
   return BUNDLE_STORE_OCCUPANTS.includes(value) ? value : "local"; // unrecognised occupant name -> fail-safe to the local default, never a distributing guess
 }
 

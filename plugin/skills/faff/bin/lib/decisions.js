@@ -13,6 +13,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const { findRoot } = require("./shared-infra");
+const { readField } = require("./fields");
 
 const DECISIONS_SPEC = { flags: {
   "--json": { arity: 0 }, "--punt": { arity: 1 }, "--root": { arity: 1 }, "--selftest": { arity: 0 },
@@ -54,13 +55,11 @@ function splitSections(text) {
   return sections.map((s) => ({ topic: s.topic, text: s.body.join("\n") }));
 }
 
-// Match a header field "- Chosen: value" / "- **Chosen:** value" (bold optional, colon
-// mandatory — a prose line merely starting with the field word is never mis-read as the
-// field). Mirrors adr.js's adrField verbatim (same tolerant shape, different field set).
-function decisionField(text, name) {
-  const m = text.match(new RegExp(`^[\\s>*-]*${name}[\\s*]*:[\\s*]*([^\\s*].*)$`, "mi"));
-  return m ? m[1].trim() : null;
-}
+// The metadata-field reader is the shared one home (./fields readField, FAFF-850) — the same
+// reader adr.js / prd.js / prdr.js use. `decisionField` was a byte-identical fork; it is now a
+// thin alias so the register's Chosen/Rationale/Scope/Date/ADR/Matches reads share the one regex
+// (and its blank-field fix) instead of drifting from a second copy.
+const decisionField = readField;
 
 // Matches: is semicolon-separated (a comma may legitimately appear inside one key's prose).
 function parseMatches(raw) {
@@ -255,6 +254,16 @@ function decisionsSelftest() {
     writeRegister(root, loggingEntry);
     const entries = listEntries(root);
     t("list: parses 1 entry with expected fields", entries.length === 1 && entries[0].id === "logging-library" && entries[0].date === "2026-07-11");
+  }
+
+  // FAFF-850: a PRESENT-BUT-BLANK field must read back null, never steal the next field's line.
+  {
+    const root = path.join(tmp, "blank");
+    writeRegister(root,
+      "## Blank chosen\n- Chosen: \n- Rationale: pino is the house logger\n- Scope: s\n- Matches: blank chosen\n- Date: 2026-07-11\n");
+    const e = listEntries(root)[0];
+    t("FAFF-850: blank Chosen reads back null, not the Rationale line", e.chosen === null);
+    t("FAFF-850: blank Chosen did not steal the next field", e.rationale === "pino is the house logger");
   }
 
   // validate: clean tree

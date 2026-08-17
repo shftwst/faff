@@ -48,6 +48,7 @@ const { PRDR_ACTORS: ADR_ACTORS, PRDR_SUPERSEDES: ADR_SUPERSEDES, computeAdrAdmi
 const { schemaCheck } = require("./contract-engine");
 const { DEFAULTS, loadConfig, resolveAdrDocsPath } = require("./config");
 const { dig, findRoot } = require("./shared-infra");
+const { readField } = require("./fields");
 
 const ADR_STATUSES = ["Proposed", "Accepted", "Superseded", "Deprecated", "Rejected"];
 const ADR_PROVENANCES = ["human", "loop"];
@@ -59,17 +60,10 @@ function adrSlug(title) {
   return String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "adr";
 }
 
-// Match a header field "- **Status:** value" / "- Status: value" (bold optional). Existing
-// ADRs carry freeform trailing text (e.g. "Accepted (spike outcome …)"), so the value is the
-// whole remainder; callers interpret only its leading token.
-function adrField(text, name) {
-  // Tolerate every bold/colon arrangement: "- **Status:** v", "- **Status**: v", "- Status: v".
-  // Leading "[\s>*-]*" eats list/bold markers; a colon is MANDATORY (so a prose line merely
-  // starting with the field word — "Status quo …" — is not mis-read as the field); the value
-  // begins at the first non-space/non-asterisk char and runs to end of line.
-  const m = text.match(new RegExp(`^[\\s>*-]*${name}[\\s*]*:[\\s*]*([^\\s*].*)$`, "mi"));
-  return m ? m[1].trim() : null;
-}
+// The metadata-field reader is shared with prd.js / prdr.js / decisions.js and lives in one home
+// (./fields readField, FAFF-850). `adrField` stays a thin, still-exported alias so importers
+// (prd.js, prdr.js) are untouched; the regex — and the blank-field fix — live in that one place.
+const adrField = readField;
 
 function listAdrs(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -114,7 +108,7 @@ function recordSupersededBy(status, prefix) {
 // several predecessors (multiple Supersedes lines) — returning only the first would false-fail validate.
 function recordSupersedesSet(text, prefix) {
   const out = new Set();
-  for (const m of text.matchAll(/^[\s>*-]*Supersedes[\s*]*:[\s*]*([^\n]+)$/gim)) {
+  for (const m of text.matchAll(/^[\s>*-]*Supersedes[ \t*]*:[ \t*]*([^\n]+)$/gim)) {
     const r = m[1].match(new RegExp(`\\b${prefix}[-\\s]?(\\d{1,4})\\b`, "i"));
     if (r) out.add(r[1].padStart(4, "0"));
   }
@@ -164,7 +158,7 @@ function recordSupersede(dir, root, records, oldTok, newTok, prefix) {
   // OLD: replace the Status VALUE only (preserve the "- **Status:** " prefix); body untouched.
   const oldPath = path.join(dir, oldA.file);
   const oldText = fs.readFileSync(oldPath, "utf8")
-    .replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, `$1Superseded by ${prefix}-${newA.num}`);
+    .replace(/^([\s>*-]*\*{0,2}Status[ \t*]*:[ \t*]*).*$/mi, `$1Superseded by ${prefix}-${newA.num}`);
   fs.writeFileSync(oldPath, oldText);
 
   // NEW: add "- **Supersedes:** <prefix>-<old>" once (idempotent), after the Status line.
@@ -266,7 +260,7 @@ function renumberRefsTo(text, oldNum, newNum, prefix) {
   const repl = (pre, n, whole) => (parseInt(n, 10) === target ? pre + newNum : whole);
   return text
     .replace(new RegExp(`(\\bSuperseded\\s+by\\s+${prefix}[-\\s]?)(\\d{1,4})\\b`, "gi"), (m, pre, n) => repl(pre, n, m))
-    .replace(new RegExp(`(^[\\s>*-]*Supersedes[\\s*]*:[\\s*]*.*?\\b${prefix}[-\\s]?)(\\d{1,4})\\b`, "gim"), (m, pre, n) => repl(pre, n, m));
+    .replace(new RegExp(`(^[\\s>*-]*Supersedes[ \\t*]*:[ \\t*]*.*?\\b${prefix}[-\\s]?)(\\d{1,4})\\b`, "gim"), (m, pre, n) => repl(pre, n, m));
 }
 
 // FAFF-368: the merge-time collision-repair primitive. Move ONE ADR file to a free number,
@@ -410,7 +404,7 @@ function adrAccept(dir, selector) {
     return { code: 2, out: "", err: `faff adr accept: ADR-${rec.num} Status is "${(status.split(/[ (.]/)[0] || status || "?")}" — accept only flips Proposed to Accepted, never overwrites a supersession or other terminal marker\n` };
   }
   const text = fs.readFileSync(filePath, "utf8")
-    .replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, "$1Accepted");
+    .replace(/^([\s>*-]*\*{0,2}Status[ \t*]*:[ \t*]*).*$/mi, "$1Accepted");
   fs.writeFileSync(filePath, text);
   return { code: 0, out: `${filePath}\n`, err: "" };
 }
@@ -657,6 +651,16 @@ function adrSelftest() {
   t("template carries an explicit loop Provenance", /\*\*Provenance:\*\* loop/.test(adrTemplate({ num: "0008", title: "T", date: "2026-06-21", provenance: "loop" })));
   t("validate: legacy ADR with NO Provenance field is never flagged", adrValidate(dir).every((p) => !/Provenance/.test(p)));   // `dir` above carries zero Provenance lines
   t("listAdrs: absent Provenance read-time-defaults to human", listAdrs(dir).every((a) => a.provenance === "human"));
+
+  // FAFF-850 — a PRESENT-BUT-BLANK metadata field must read back null, never the next line's text.
+  {
+    const bdir = path.join(tmp, "blank", "docs", "adr");
+    fs.mkdirSync(bdir, { recursive: true });
+    fs.writeFileSync(path.join(bdir, "0001-blank.md"), `# ADR 0001 — blank\n\n- **Status:** \n\n## Context\nx\n`);
+    const brec = listAdrs(bdir)[0];
+    t("FAFF-850: blank Status reads back null, not the following heading", brec.status === null);
+    t("FAFF-850: blank Status is not captured as '## Context'", brec.status !== "## Context");
+  }
   {
     const pdir = path.join(tmp, "prov", "docs", "adr");
     fs.mkdirSync(pdir, { recursive: true });

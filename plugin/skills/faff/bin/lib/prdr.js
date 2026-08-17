@@ -224,7 +224,7 @@ function prdrAccept(dir, root, number, { actor, admitVerdictJson, noBranch, cfg 
     if (!noBranch) { git(root, ["switch", curBranch]); git(root, ["branch", "-D", landing]); }
     return extra;
   };
-  fs.writeFileSync(filePath, orig.replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, "$1Accepted"));
+  fs.writeFileSync(filePath, orig.replace(/^([\s>*-]*\*{0,2}Status[ \t*]*:[ \t*]*).*$/mi, "$1Accepted"));
   const relPath = path.relative(root, filePath) || rec.file;
   const add = git(root, ["add", "--", relPath]);
   if (add.status !== 0) return { code: 1, ...restore({ err: `faff prdr accept: git add failed (rolled back — Status still Proposed): ${(add.stderr || "").trim()}\n` }) };
@@ -582,6 +582,18 @@ function prdrSelftest() {
 
   // presence-only: a _TODO_ DoD (template default) passes (P2)
   t("a vacuous _TODO_ DoD still validates (presence-only)", prdrValidate(dir).length === 0);
+
+  // FAFF-850: a PRESENT-BUT-BLANK PRD-goals field reads back empty (not the following heading),
+  // which re-activates the missing-goal guard the phantom next-line value used to defeat.
+  fs.writeFileSync(path.join(dir, "0003-blankgoal.md"),
+    "# PRDR 0003 — blankgoal\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-06-27\n- **Container:** portal\n- **PRD-goals:** \n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
+  {
+    const bg = listPrdrs(dir).find((p) => p.num === "0003");
+    t("FAFF-850: blank PRD-goals yields prd_goals [] and prd_goal ''", bg.prd_goals.length === 0 && bg.prd_goal === "");
+    t("FAFF-850: blank PRD-goals is not captured as '## Context'", bg.prd_goal !== "## Context");
+    t("FAFF-850: re-activated goal guard flags the blank-goal PRDR", prdrValidate(dir).some((p) => /0003-blankgoal\.md: missing PRD-goal\(s\) citation field/.test(p)));
+  }
+  fs.unlinkSync(path.join(dir, "0003-blankgoal.md"));
 
   // missing-section flagged
   fs.writeFileSync(path.join(dir, "0002-nodod.md"), "# PRDR 0002 — nodod\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-06-27\n- **Container:** portal\n- **PRD-goal:** g\n\n## Context\nx\n## Decision\ny\n## Scope\nz\n");

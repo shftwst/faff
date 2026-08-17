@@ -1042,6 +1042,9 @@ function envSelftest() {
   // FAFF-840 (end-to-end): `compose-gen --profile <fenced file>` exits 0 through the real CLI —
   // the documented `profile mine > profile.json | compose-gen` pipe, exercised for real.
   const p840Dir = path.join("/tmp", "faff-840-selftest");
+  // Adversarial review finding: a stale file from a prior killed-mid-write run could otherwise
+  // mask a fresh failure (the test would read old content, not what this run just wrote).
+  fs.rmSync(p840Dir, { recursive: true, force: true });
   fs.mkdirSync(p840Dir, { recursive: true });
   const p840FencedFile = path.join(p840Dir, "fenced-profile.json");
   const p840RawFile = path.join(p840Dir, "raw-profile.json");

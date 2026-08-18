@@ -9,13 +9,20 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
 import faff from "../plugin/skills/faff/bin/faff";
 
-const { CORRECTIVE_OPS, foldCorrectiveConstraints, validateCorrectiveInput } = faff;
+const { CORRECTIVE_OPS, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput } = faff;
+
+// FAFF-843: buildManifest — only needed to CONSTRUCT held-baseline fixtures for the
+// --manifest wiring tests below; integrity-digest.js itself stays unmodified (the
+// module under test here is corrective.js, which imports only diffAgainstManifest).
+const require = createRequire(import.meta.url);
+const { buildManifest } = require("../plugin/skills/faff/bin/lib/integrity-digest.js");
 
 function tmp() { return mkdtempSync(join(tmpdir(), "faff326-")); }
 function mkRun(dir, id) {
@@ -248,4 +255,213 @@ test("pure: multiple corrective inputs on one issue accumulate reviewably (steer
   const { applied, constraints } = foldCorrectiveConstraints(inputs);
   assert.equal(applied.length, 2);
   assert.deepEqual(constraints.forbid_surfaces.sort(), ["a", "b"]);
+});
+
+// ===========================================================================
+// FAFF-843 (ADR-0114) — foldCorrectiveAuthority: the digest-custody composition
+// fold that admits the detective basis into the corrective authority decision as a
+// distinct, weaker basis than mount-asserted. Five-branch table, precedence-ordered.
+// ===========================================================================
+
+// --- pure: the five branches, exactly as the ADR-0114 contract fixes them ----------
+
+test("foldCorrectiveAuthority branch 3: held+clean digest verify → custody-trusted/digest-verified", () => {
+  const r = foldCorrectiveAuthority({ trusted: false }, { held: true, diffs: [] });
+  assert.deepEqual(r, { trusted: true, disposition: "custody-trusted", basis: "digest-verified" });
+});
+
+test("foldCorrectiveAuthority branch 4: held+tampered digest verify → refuse/tampered (proven forge, never surfaced)", () => {
+  const r = foldCorrectiveAuthority({ trusted: false }, { held: true, diffs: ["corrective/0001-X.json"] });
+  assert.deepEqual(r, { trusted: false, disposition: "refuse", basis: "tampered" });
+});
+
+test("foldCorrectiveAuthority branch 2: held+error (uncomputable verify) → refuse/unverifiable — never trust an uncomputable verify", () => {
+  const r = foldCorrectiveAuthority({ trusted: false }, { held: true, error: "no SHA-256 tool found" });
+  assert.deepEqual(r, { trusted: false, disposition: "refuse", basis: "unverifiable" });
+});
+
+test("foldCorrectiveAuthority branch 5: not held → channel-D/none, byte-identical to today's unasserted behaviour", () => {
+  const r = foldCorrectiveAuthority({ trusted: false }, { held: false });
+  assert.deepEqual(r, { trusted: false, disposition: "channel-D", basis: "none" });
+});
+
+test("foldCorrectiveAuthority branch 1: mount-trusted → trusted/asserted regardless of digest state — the strongest basis wins over ANY digest state, including tampered", () => {
+  const r1 = foldCorrectiveAuthority({ trusted: true }, { held: false });
+  assert.deepEqual(r1, { trusted: true, disposition: "trusted", basis: "asserted" });
+  const r2 = foldCorrectiveAuthority({ trusted: true }, { held: true, diffs: ["corrective/x.json (added)"] });
+  assert.deepEqual(r2, { trusted: true, disposition: "trusted", basis: "asserted" }, "digest state neither alters nor dilutes a genuine mount grant");
+  const r3 = foldCorrectiveAuthority({ trusted: true }, { held: true, error: "boom" });
+  assert.deepEqual(r3, { trusted: true, disposition: "trusted", basis: "asserted" });
+});
+
+// --- precedence: branch 2 sits ABOVE branches 3/4 — an indeterminate verify can NEVER fall through to a grant ---
+
+test("foldCorrectiveAuthority precedence: held+error takes priority even when diffs would otherwise read clean (defensive — a caller must never construct both, but precedence must hold if it happens)", () => {
+  const r = foldCorrectiveAuthority({ trusted: false }, { held: true, error: "unresolvable", diffs: [] });
+  assert.equal(r.disposition, "refuse");
+  assert.equal(r.basis, "unverifiable", "the error branch wins over the clean-diffs branch — never falls through to a grant");
+});
+
+test("foldCorrectiveAuthority: no held baseline never trusts even with a stray error/diffs field present (held:false is dispositive)", () => {
+  const r = foldCorrectiveAuthority({ trusted: false }, { held: false, diffs: [] });
+  assert.deepEqual(r, { trusted: false, disposition: "channel-D", basis: "none" });
+});
+
+// --- integration: the --manifest wiring on cmdCorrectiveCheck ----------------------
+
+test("check --manifest: absent → byte-identical to today (digestVerify held:false; disposition channel-D, basis none; no basis-related change to the no-manifest path)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.disposition, "channel-D");
+    assert.equal(out.basis, "none");
+    assert.equal(out.consumed, false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest -: the happy-path re-baseline scenario — a manifest snapshotted AFTER the trusted `corrective author` write verifies clean → custody-trusted/digest-verified, consumed:true, event records basis (the trusted-authored artifact is NOT flagged as tamper)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const authored = JSON.parse(runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash", "--json"]).stdout);
+    assert.equal(authored.written, true);
+    // The re-baselined baseline M': snapshotted AFTER corrective author's write, so its
+    // lineage already contains the trusted artifact — exactly obligation-5's Class-A
+    // re-baseline sequence this ticket's HOW section describes.
+    const manifest = JSON.stringify(buildManifest(rd));
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest });
+    assert.equal(r.code, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.disposition, "custody-trusted");
+    assert.equal(out.basis, "digest-verified");
+    assert.equal(out.consumed, true);
+    const events = readFileSync(join(rd, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    const consumed = events.find((e) => e.type === "corrective-consumed");
+    assert.ok(consumed, "corrective-consumed WAS appended on a custody-trusted consumption");
+    assert.equal(consumed.data.basis, "digest-verified");
+    assert.equal(consumed.data.disposition, "custody-trusted");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest -: the anti-scenario — a manifest snapshotted BEFORE the trusted `corrective author` write reads the new artifact as (added) → refuse/tampered, consumed:false (the mis-plumbing the executor MUST avoid; fails safe, but would kill the happy path)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    // The PRE-authoring manifest — snapshotted before any corrective/ artifact exists.
+    const preManifest = JSON.stringify(buildManifest(rd));
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: preManifest });
+    assert.equal(r.code, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.disposition, "refuse");
+    assert.equal(out.basis, "tampered");
+    assert.equal(out.consumed, false);
+    // no corrective-consumed on a refused consumption — a proven/uncomputable failure is never surfaced as authentic
+    const events = readFileSync(join(rd, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.ok(!events.some((e) => e.type === "corrective-consumed"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest -: an unreadable evidence member (the verify cannot be computed) → refuse/unverifiable, never caught-and-defaulted to a clean/custody-trusted grant", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const manifest = JSON.stringify(buildManifest(rd));
+    // Make the artifact unreadable AFTER the manifest was snapshotted (simulating a
+    // verify that cannot be computed at consumption time) — diffAgainstManifest's
+    // underlying fs.readFileSync throws; cmdCorrectiveCheck must catch it and
+    // construct {held:true,error}, never default to clean diffs.
+    const artifactPath = join(rd, "corrective", "0000-FAFF-1.json");
+    chmodSync(artifactPath, 0o000);
+    try {
+      const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest });
+      assert.equal(r.code, 0, r.stderr);
+      const out = JSON.parse(r.stdout);
+      assert.equal(out.disposition, "refuse");
+      assert.equal(out.basis, "unverifiable");
+      assert.equal(out.consumed, false);
+    } finally { chmodSync(artifactPath, 0o644); } // restore so rmSync can clean up
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest: malformed JSON → exit 2 (usage error), distinct from the held:false (channel-D) path", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: "{not valid json" });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /not valid JSON/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest: valid JSON with no `members` → exit 2 (usage error), distinct from the held:false (channel-D) path", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: JSON.stringify({ version: 1 }) });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /no members/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- idempotency: basis is part of foldFingerprint — a basis transition re-records ---
+
+test("check --manifest -: re-running the SAME custody-trusted check with the SAME manifest is idempotent-skipped (basis unchanged, no phantom duplicate event)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const manifest = JSON.stringify(buildManifest(rd));
+    const first = JSON.parse(runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest }).stdout);
+    assert.equal(first.event_appended, true);
+    const second = JSON.parse(runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest }).stdout);
+    assert.equal(second.event_appended, false);
+    assert.equal(second.event_skipped, "idempotent-duplicate");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest -: a BASIS TRANSITION re-records even when mandate/constraints/applied/rejected are unchanged — a legacy pre-FAFF-843 event (no `basis` field, defaults to \"asserted\") never falsely idempotent-skips a matching digest-verified check", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const manifest = JSON.stringify(buildManifest(rd));
+    const first = JSON.parse(runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest }).stdout);
+    assert.equal(first.event_appended, true);
+    assert.equal(first.basis, "digest-verified");
+
+    // Simulate migration: rewrite the just-recorded corrective-consumed event to strip
+    // its `basis` field entirely, as a genuine pre-FAFF-843 event would have no basis
+    // key at all (foldFingerprint's documented legacy default is "asserted").
+    const eventsPath = join(rd, "events.jsonl");
+    const lines = readFileSync(eventsPath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    const idx = lines.findIndex((e) => e.type === "corrective-consumed");
+    assert.ok(idx >= 0);
+    delete lines[idx].data.basis;
+    writeFileSync(eventsPath, lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
+
+    // Re-run the identical custody-trusted check (same manifest, same artifacts —
+    // mandate/constraints/applied/rejected all unchanged). Because the prior event's
+    // basis now defaults to "asserted" while THIS check's basis is "digest-verified",
+    // the fingerprints differ and a fresh corrective-consumed IS appended — never a
+    // false idempotent-skip driven by a basis the fold silently ignored.
+    const second = JSON.parse(runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest }).stdout);
+    assert.equal(second.event_appended, true, "a basis transition must re-record, not idempotent-skip");
+    assert.equal(second.basis, "digest-verified");
+
+    const finalEvents = readFileSync(eventsPath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    const consumedCount = finalEvents.filter((e) => e.type === "corrective-consumed").length;
+    assert.equal(consumedCount, 2, "two distinct corrective-consumed events: the original custody-trusted record, and the re-recorded one after the simulated basis transition");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

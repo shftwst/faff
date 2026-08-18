@@ -793,7 +793,7 @@ test("FAFF-383: the already-MERGED idempotent no-op writes ZERO ledger entries (
 
 function seedLaneBoundary(runDir, over = {}) {
   const intent = {
-    version: 1, lane: "evaluator", container: "own",
+    version: 1, lane: "evaluator", container: "own", host: "local",
     accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false,
     ...over,
   };

@@ -136,6 +136,9 @@ const REGION_MAP = {
   // evaluator-preflight — FAFF-276: the ADR-0041 rung-2 assert-in probe; reuses
   // containerCheck/realFsq (factory) → factory, like its container-check sibling.
   "evaluator-preflight": "factory",
+  // lane-boundary — FAFF-859: the emit half of the same ADR-0041 seam; a pure
+  // assemble-validate-write over computeLaneBoundary (factory) → factory.
+  "lane-boundary": "factory",
   "corrective-integrity": "factory",
   "integrity-boundary": "factory", // FAFF-514: the emitter half, lives in corrective-integrity.js (region:factory)
   "integrity-digest": "factory",   // FAFF-518: custody-based tamper detection over the evidence set (region:factory)
@@ -326,6 +329,7 @@ const REGION_SELFTEST_ARGV = {
   "spec-review-lenses": ["spec-review-lenses", "--selftest"],
   "container-check": ["container-check", "--selftest"],
   "evaluator-preflight": ["evaluator-preflight", "--selftest"],
+  "lane-boundary": ["lane-boundary", "--selftest"],
   "corrective-integrity": ["corrective-integrity", "--selftest"],
   "integrity-boundary": ["integrity-boundary", "--selftest"],
   "integrity-digest": ["integrity-digest", "--selftest"],

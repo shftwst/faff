@@ -32,6 +32,12 @@
 // Wiring rides with the cage+spawner sibling (FAFF-384). The host-socket-absent
 // (FAFF-333) and integrity-signal (FAFF-325) refuse-legs are deferred; the
 // lane-boundary schema carries their fields as declaration-only until then.
+//
+// FAFF-859 — the ISOLATION-MISMATCH leg: an OPTIONAL, caller-passed declared
+// boundary is cross-checked against the physical observation, additively (it can
+// raise a refusal on divergence, never relax one). Also SHIP-NOT-WIRE — no live
+// call site passes declaredBoundary this slice, so absent it the two legs above
+// are byte-for-byte unchanged; live wiring rides with FAFF-384 too.
 // ===========================================================================
 
 const { containerCheck, realFsq } = require("./container-check");
@@ -40,10 +46,13 @@ const { findRoot } = require("./shared-infra");
 // Pure core. `env` is a KEY→VALUE map; `fsq` is the injectable reader
 //   { exists, readEnviron, isDirectory } (container-check's realFsq shape).
 // `repoPath` is the codebase working tree the evaluator must NOT be able to read.
+// `declaredBoundary` (FAFF-859, OPTIONAL) is the resolved lane-boundary intent the
+// CALLER passes in — the pure function does NO I/O (the requireSpawnerAttested
+// precedent), so it never reads config or lane-boundary.json itself.
 // Returns { holds, refusals: [{leg, detail}, ...] }; holds ⟺ every leg passed.
 // Never throws — an fsq error is caught inside the adapter (fail-closed → the
 // probe returns false), so a leg never blows up the preflight.
-function evaluatorPreflight(env, fsq, repoPath) {
+function evaluatorPreflight(env, fsq, repoPath, declaredBoundary) {
   const refusals = [];
   // Leg 1 — in-container: the evaluator cage must exist (reuses containerCheck verbatim).
   const cc = containerCheck(env, fsq);
@@ -54,6 +63,30 @@ function evaluatorPreflight(env, fsq, repoPath) {
   // decision rests on this PHYSICAL probe, never on any declared intent.
   if (fsq.isDirectory(repoPath) === true) {
     refusals.push({ leg: "repo-absent", detail: `repo path '${repoPath}' is a readable directory — evaluator is not code-blind` });
+  }
+  // FAFF-859 — the isolation-mismatch leg: compare the caller-passed DECLARATION against
+  // the PHYSICAL observation and refuse on divergence. STRICTLY ADDITIVE — it only ever
+  // pushes refusals, NEVER removes one the physical legs above raised; a declaration can
+  // raise a refusal on divergence, it can never relax one (a build-lane-writable claim
+  // must never be a trust source — the correctiveIntegrityProbe lesson). It compares two
+  // INDEPENDENTLY-probed facts: the declaration and containerCheck's physical probe (the
+  // same probe Leg 1 uses), so the physical probe stays the refuse basis. SHIP-NOT-WIRE:
+  // no live call site passes declaredBoundary this slice (absent ⇒ the leg is skipped and
+  // the two legs above behave byte-for-byte as before), so live runs are unaffected.
+  if (declaredBoundary) {
+    // Observation: containment maps `contained` → own, otherwise shared (the two-value axis).
+    const observedContainer = cc.result === "contained" ? "own" : "shared";
+    if (declaredBoundary.container !== observedContainer) {
+      refusals.push({ leg: "isolation-mismatch", detail: `declared container ${JSON.stringify(declaredBoundary.container)} != observed ${observedContainer}` });
+    }
+    // Locality: this slice has no remote-observation seam (FAFF-817), so observation is
+    // always local. A declared `host: local` is asserted against it; a declared
+    // `host: remote` is NOT evaluated (neither a hold nor a refuse on the host axis) —
+    // physical remote-observation is deferred, so refusing on it would contradict scope.
+    const observedHost = "local";
+    if (declaredBoundary.host === "local" && observedHost !== "local") {
+      refusals.push({ leg: "isolation-mismatch", detail: `declared host local != observed ${observedHost}` });
+    }
   }
   // Legs 3 (host-socket-absent, FAFF-333) and 4 (integrity-signal-present, FAFF-325) are DEFERRED.
   return { holds: refusals.length === 0, refusals };
@@ -123,7 +156,33 @@ function evaluatorPreflightSelftest() {
     if (r.refusals.some((x) => x.leg === "repo-absent")) { console.log("FAIL real adapter flagged repo-absent for an absent path"); fail++; }
   } catch { console.log("FAIL evaluatorPreflight threw on an absent repo path"); fail++; }
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length} cases + never-throws, ${fail} failed)`);
+  // FAFF-859 — the isolation-mismatch leg (declaredBoundary passed by the caller). Additive:
+  // it raises a refusal on declared-vs-observed divergence, never suppresses a physical refusal.
+  // [container-present, dirs, repoPath, declaredBoundary, want-holds, want-legs (sorted), label]
+  const ISO_CASES = [
+    // no declared boundary → byte-for-byte the two-leg behaviour (guards the SHIP-NOT-WIRE default).
+    [CONTAINED, new Set(), "/gone", undefined, true, [], "no declared boundary → skipped, holds"],
+    // declared own + physically contained (own) → match, no isolation refusal.
+    [CONTAINED, new Set(), "/gone", { container: "own", host: "local" }, true, [], "declared own + observed own → holds (match)"],
+    // declared own but physically NOT contained (observed shared) → isolation-mismatch refusal (additive to in-container).
+    [NOSIGNAL, new Set(), "/gone", { container: "own", host: "local" }, false, ["in-container", "isolation-mismatch"], "declared own + observed shared → isolation-mismatch + in-container (both, none suppressed)"],
+    // declared shared but physically contained (observed own) → over-provisioned isolation is still a mismatch.
+    [CONTAINED, new Set(), "/gone", { container: "shared", host: "local" }, false, ["isolation-mismatch"], "declared shared + observed own → isolation-mismatch (over-provisioned still refuses)"],
+    // declared host: remote → NOT evaluated on the host axis (no refusal, no hold change) — container still matches.
+    [CONTAINED, new Set(), "/gone", { container: "own", host: "remote" }, true, [], "declared host remote → host axis not evaluated (deferred), container matches → holds"],
+    // additivity: a declared boundary NEVER suppresses the physical repo-absent refusal.
+    [CONTAINED, new Set(["/repo"]), "/repo", { container: "own", host: "local" }, false, ["repo-absent"], "declared own matches, but repo readable → repo-absent still refuses (declaration never relaxes)"],
+  ];
+  for (const [present, dirs, repoPath, declared, wantHolds, wantLegs, label] of ISO_CASES) {
+    const { holds, refusals } = evaluatorPreflight({}, mkFsq(present, dirs), repoPath, declared);
+    const legs = refusals.map((r) => r.leg).sort();
+    const want = [...wantLegs].sort();
+    const ok = holds === wantHolds && JSON.stringify(legs) === JSON.stringify(want);
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${label} → holds=${holds}/legs=[${legs}] (want holds=${wantHolds}/legs=[${want}])`);
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length} cases + never-throws + ${ISO_CASES.length} isolation-leg cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 

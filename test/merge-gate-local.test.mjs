@@ -448,7 +448,7 @@ test("CLI: --local, dispatched (lane-boundary.json under the run-dir) + custody 
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
   commitAnchor(repo, runDir);
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
 
@@ -465,7 +465,7 @@ test("CLI: --local, dispatched + a VALID exact clean custody verdict → custody
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
   const featureSha = commitAnchor(repo, runDir);
   const cv = writeCustodyVerdict(runDir, ISSUE);
 
@@ -481,7 +481,7 @@ test("CLI: --local, dispatched + retained digest MISMATCH (verdict replaced afte
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
   commitAnchor(repo, runDir);
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
   const original = writeCustodyVerdict(runDir, ISSUE);
@@ -529,7 +529,7 @@ test("CLI: --local, an already-merged branch + custody OMITTED on a dispatched r
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
   commitAnchor(repo, runDir);
   // Land the branch first WITH valid custody (a legitimate prior merge)...
   const cv = writeCustodyVerdict(runDir, ISSUE);
@@ -551,7 +551,7 @@ test("FAFF-784: raw `git merge` is still denied by merge-fence on a repo carryin
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  writeFileSync(join(runDir, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
   git(repo, "checkout", "-q", "main"); // sitting ON the base branch
   const { code, stderr } = runCli(["merge-fence", "--hook"], { input: fenceEvent("git merge feature", repo) });
   assert.equal(code, 2, "merge-fence denies the raw merge regardless of custody state — it never even reads lane-boundary.json");

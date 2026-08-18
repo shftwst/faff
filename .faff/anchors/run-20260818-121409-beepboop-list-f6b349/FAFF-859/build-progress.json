@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-859",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f38c31c72dff92911056c7d9f3009aa3af153e992f4190367e0d94d312060fca",
+    "branch": "faff-859-lane-isolation-declared-field-two-axis-vocabulary-config",
+    "pushed_at": "2026-08-18T13:01:15.635Z"
+  },
+  "updated_at": "2026-08-18T13:01:15.635Z"
+}

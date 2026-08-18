@@ -97,27 +97,84 @@ test("evaluator-preflight --repo-path '' → fail-closed usage exit 2 (empty pat
 
 // --- the lane-boundary contract (intent-out half) ---
 
-test("contract lane-boundary: conformant evaluator intent → exit 0", () => {
-  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
+test("contract lane-boundary: conformant evaluator intent → exit 0, host between container and accesses", () => {
+  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
   const { stdout, code } = runCli(["contract", "lane-boundary"], { input });
   assert.equal(code, 0, stdout);
   const out = JSON.parse(stdout);
   assert.equal(out.violations.length, 0);
   assert.equal(out.lane, "evaluator");
+  assert.equal(out.host, "local");
   assert.deepEqual(out.accesses, { repo: "absent", host_socket: "absent" });
+  // FAFF-859: host is a top-level sibling of container, ordered between it and accesses.
+  assert.deepEqual(Object.keys(out), ["version", "lane", "container", "host", "accesses", "integrity_signal", "violations"]);
+});
+
+test("contract lane-boundary: conformant host: remote → exit 0 (locality axis is orthogonal to containment)", () => {
+  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "remote", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
+  const { stdout, code } = runCli(["contract", "lane-boundary"], { input });
+  assert.equal(code, 0, stdout);
+  assert.equal(JSON.parse(stdout).host, "remote");
 });
 
 test("contract lane-boundary: out-of-enum container → violations, exit 1 (not fail-loud)", () => {
-  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "vm", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
+  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "vm", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
   const { stdout, code } = runCli(["contract", "lane-boundary"], { input });
   assert.equal(code, 1, stdout);
   const out = JSON.parse(stdout);
   assert.ok(out.violations.some((v) => /container/.test(v)));
 });
 
+test("contract lane-boundary: out-of-enum host (banana) → violations, exit 1 (NOT fail-loud — arms the merge-gate, never throws)", () => {
+  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "banana", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
+  const { stdout, code } = runCli(["contract", "lane-boundary"], { input });
+  assert.equal(code, 1, stdout);
+  const out = JSON.parse(stdout);
+  assert.ok(out.violations.some((v) => /host .*banana.* not in \{local,remote\}/.test(v)), stdout);
+});
+
+test("contract lane-boundary: missing host → violations, exit 1 (host is required)", () => {
+  const input = JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
+  const { stdout, code } = runCli(["contract", "lane-boundary"], { input });
+  assert.equal(code, 1, stdout);
+  assert.ok(JSON.parse(stdout).violations.some((v) => /host/.test(v)));
+});
+
 test("contract lane-boundary: non-object → fail-loud, exit 2", () => {
   const { code } = runCli(["contract", "lane-boundary"], { input: '"not an object"' });
   assert.equal(code, 2);
+});
+
+// --- FAFF-859: the assert-in isolation-mismatch leg (pure core, additive) ---
+
+test("evaluatorPreflight: no declared boundary → isolation leg skipped, byte-for-byte two-leg behaviour", () => {
+  const r = evaluatorPreflight({}, mkFsq(CONTAINED, new Set()), "/gone");
+  assert.equal(r.holds, true);
+  assert.deepEqual(r.refusals, []);
+});
+
+test("evaluatorPreflight: declared container own but observed shared → isolation-mismatch refusal (additive to in-container)", () => {
+  const r = evaluatorPreflight({}, mkFsq(NOSIGNAL, new Set()), "/gone", { container: "own", host: "local" });
+  assert.equal(r.holds, false);
+  assert.deepEqual(r.refusals.map((x) => x.leg).sort(), ["in-container", "isolation-mismatch"]);
+});
+
+test("evaluatorPreflight: declared container matches observed (own) → no isolation refusal", () => {
+  const r = evaluatorPreflight({}, mkFsq(CONTAINED, new Set()), "/gone", { container: "own", host: "local" });
+  assert.equal(r.holds, true);
+  assert.deepEqual(r.refusals, []);
+});
+
+test("evaluatorPreflight: declared host: remote is NOT evaluated (deferred) — no host-axis refusal, no hold change", () => {
+  const r = evaluatorPreflight({}, mkFsq(CONTAINED, new Set()), "/gone", { container: "own", host: "remote" });
+  assert.equal(r.holds, true);
+  assert.equal(r.refusals.some((x) => x.leg === "isolation-mismatch"), false);
+});
+
+test("evaluatorPreflight: the isolation leg is strictly ADDITIVE — a matching declaration never suppresses the physical repo-absent refusal", () => {
+  const r = evaluatorPreflight({}, mkFsq(CONTAINED, new Set(["/repo"])), "/repo", { container: "own", host: "local" });
+  assert.equal(r.holds, false);
+  assert.deepEqual(r.refusals.map((x) => x.leg), ["repo-absent"]);
 });
 
 test("contract lane-boundary --selftest: the fixture table passes (exit 0)", () => {

@@ -194,13 +194,13 @@ test("cage promise: absent lane-boundary.json → NOT armed (byte-for-byte legac
 });
 
 test("cage promise: valid cage-shaped intent (evaluator/own/repo:absent) → ARMED", () => {
-  const dir = runDirWith(JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: true }));
+  const dir = runDirWith(JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: true }));
   assert.equal(laneBoundaryPromisesCage(dir), true);
   rmSync(dir, { recursive: true, force: true });
 });
 
 test("cage promise: valid NON-cage rung-0 declaration (container shared / repo present) → NOT armed", () => {
-  const dir = runDirWith(JSON.stringify({ version: 1, lane: "evaluator", container: "shared", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false }));
+  const dir = runDirWith(JSON.stringify({ version: 1, lane: "evaluator", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false }));
   assert.equal(laneBoundaryPromisesCage(dir), false);
   rmSync(dir, { recursive: true, force: true });
 });
@@ -212,7 +212,7 @@ test("cage promise: present-but-malformed intent → ARMED (a broken promise nev
 });
 
 test("cage promise: present but out-of-enum (violations) → ARMED (never relax on an invalid promise)", () => {
-  const dir = runDirWith(JSON.stringify({ version: 1, lane: "builder", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  const dir = runDirWith(JSON.stringify({ version: 1, lane: "builder", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
   assert.equal(laneBoundaryPromisesCage(dir), true);
   rmSync(dir, { recursive: true, force: true });
 });

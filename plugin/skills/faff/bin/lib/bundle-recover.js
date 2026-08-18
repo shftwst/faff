@@ -35,7 +35,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { findRoot, readLedger } = require("./shared-infra");
+const { findRoot, readLedger, isSafeAnchorRelPath } = require("./shared-infra");
 const { isValidIssueId } = require("./heartbeat");
 const { verifyBundleIdentity, resolveBundleStore, resolveBundleStoreName } = require("./bundle");
 const { classifyReEnterable, reconstructResumePlan } = require("./resume");
@@ -279,10 +279,9 @@ function fetchCleanMemberBytes(store, identity, names) {
 // write is a NEW persistent-write surface (bundle.js's own tamper check only ever materialises
 // into a throwaway temp dir), so the containment guard is defence-in-depth within FAFF-819's
 // CLEAN trust model, not a redundant check.
-function isSafeAnchorRelPath(rel) {
-  if (typeof rel !== "string" || rel === "" || path.isAbsolute(rel)) return false;
-  return !rel.split("/").some((seg) => seg === "..");
-}
+// FAFF-865: isSafeAnchorRelPath now lives in shared-infra.js (a leaf module both this file and
+// bundle.js already import), reused here via the destructure above — its public export from
+// THIS module's own module.exports is unchanged (see the re-export below).
 
 function reconstructProjection(targetRoot, identity, memberBytes) {
   const runId = identity.run_id;

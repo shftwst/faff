@@ -279,6 +279,13 @@ test("classifyBundle: an anchors.files key that escapes via '..' -> MALFORMED, c
   // The guard must reject before withTempDir ever runs — assert no scratch dir is even
   // created, the strongest form of "nothing was written outside the intended dir".
   fsMod.mkdtempSync = function (...args) { tempDirCreated = true; return originalMkdtempSync.apply(fsMod, args); };
+  // Behaviour-level backstop, independent of the mkdtempSync interception above (which only
+  // proves the guard fired IF bundle.js's fs binding is the one patched): list the OS tmp root
+  // before and after for any "faff-bundle-verify-*" entry (withTempDir's own dir prefix,
+  // bundle.js:247) — a real scratch dir surviving cleanup would show up here even if the spy
+  // silently stopped intercepting.
+  const tmpRoot = tmpdir();
+  const before = new Set(fsMod.readdirSync(tmpRoot));
   try {
     const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
     const read = bundleWithExtraAnchorKey(runDir, root, identity, "../escape");
@@ -286,6 +293,8 @@ test("classifyBundle: an anchors.files key that escapes via '..' -> MALFORMED, c
     assert.equal(verdict.verdict, "MALFORMED");
     assert.equal(verdict.cause, "anchors-unsafe-path");
     assert.equal(tempDirCreated, false, "the materialisation temp dir must never be created once an unsafe key is found");
+    const after = fsMod.readdirSync(tmpRoot).filter((name) => name.startsWith("faff-bundle-verify-") && !before.has(name));
+    assert.deepEqual(after, [], "no faff-bundle-verify-* scratch dir may exist on disk after an unsafe key is rejected");
   } finally {
     fsMod.mkdtempSync = originalMkdtempSync;
     rmSync(root, { recursive: true, force: true });

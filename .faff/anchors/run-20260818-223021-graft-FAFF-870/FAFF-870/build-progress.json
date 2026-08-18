@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-870",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c0a3846499235bb19be8dc29e4791b25e8648c6999f5bfb1e45f57af76e515aa",
+    "branch": "faff-870-configure-adversarial-review-backends-per-consumer",
+    "pushed_at": "2026-08-18T23:01:19.966Z"
+  },
+  "updated_at": "2026-08-18T23:01:19.966Z"
+}

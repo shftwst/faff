@@ -404,26 +404,47 @@ function backendsConfigCheckFindings(cfg) {
     }
   }
   const adv = dig(cfg, "adversarial");
-  if (adv && typeof adv === "object" && !Array.isArray(adv) && present(adv.requires) && Array.isArray(adv.refs)) {
-    if (!RESIDENCY_REQUIRED_VALUES.includes(adv.requires)) {
-      // Same fail-closed enum as checkRealizable: an unrecognized requires:
-      // value must surface loudly here too — this is the config-check path a
-      // human actually reads, and a silently-skipped residency gate is
-      // exactly the failure a typo like "locla"/"Local" would otherwise hide.
-      findings.push({
-        severity: "error",
-        surface: "adversarial.requires",
-        message: `adversarial.requires: unrecognized value "${adv.requires}" — legal set: ${RESIDENCY_REQUIRED_VALUES.join(" | ")}. Not silently skipped: fix the typo, or the residency gate never engages for this consumer.`,
-      });
-    } else {
-      for (const name of adv.refs) {
-        const b = merged.backends[name];
-        if (b && b.egress === "local" && !b._egress_explicit) {
-          findings.push({
-            severity: "warn",
-            surface: `adversarial.refs[${name}]`,
-            message: `backend "${name}" is admitted into a requires: local chain on a DERIVED (not explicit) egress: local classification — set egress: local explicitly on backends.${name} so the residency guarantee is asserted against an explicit value, not a convenience default.`,
-          });
+  if (adv && typeof adv === "object" && !Array.isArray(adv) && present(adv.requires)) {
+    // FAFF-870: the residency gate is a SINGLE global `adversarial.requires`, but
+    // refs lists can now live per-consumer (`adversarial.<consumer>.refs`) as well
+    // as in the shared `adversarial.refs`. Collect every refs list under the block
+    // — the shared one plus each per-consumer sub-block (a plain object carrying a
+    // `refs` array; this naturally skips the reserved scalar/array fields host /
+    // timeout / refs / backends / fallbacks) — and check each name against the one
+    // global `requires`. Without this, a per-consumer chain leaning on a derived
+    // egress: local would be invisible to the config-check residency guard.
+    const refsLists = [];
+    if (Array.isArray(adv.refs)) refsLists.push({ surface: "adversarial.refs", names: adv.refs });
+    for (const k of Object.keys(adv)) {
+      const sub = adv[k];
+      if (sub && typeof sub === "object" && !Array.isArray(sub) && Array.isArray(sub.refs)) {
+        refsLists.push({ surface: `adversarial.${k}.refs`, names: sub.refs });
+      }
+    }
+    if (refsLists.length > 0) {
+      if (!RESIDENCY_REQUIRED_VALUES.includes(adv.requires)) {
+        // Same fail-closed enum as checkRealizable: an unrecognized requires:
+        // value must surface loudly here too — this is the config-check path a
+        // human actually reads, and a silently-skipped residency gate is
+        // exactly the failure a typo like "locla"/"Local" would otherwise hide.
+        // Surfaced once, globally (the requires: value is global).
+        findings.push({
+          severity: "error",
+          surface: "adversarial.requires",
+          message: `adversarial.requires: unrecognized value "${adv.requires}" — legal set: ${RESIDENCY_REQUIRED_VALUES.join(" | ")}. Not silently skipped: fix the typo, or the residency gate never engages for this consumer.`,
+        });
+      } else {
+        for (const list of refsLists) {
+          for (const name of list.names) {
+            const b = merged.backends[name];
+            if (b && b.egress === "local" && !b._egress_explicit) {
+              findings.push({
+                severity: "warn",
+                surface: `${list.surface}[${name}]`,
+                message: `backend "${name}" is admitted into a requires: local chain on a DERIVED (not explicit) egress: local classification — set egress: local explicitly on backends.${name} so the residency guarantee is asserted against an explicit value, not a convenience default.`,
+              });
+            }
+          }
         }
       }
     }

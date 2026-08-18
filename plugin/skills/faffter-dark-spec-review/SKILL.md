@@ -58,8 +58,12 @@ Each refuter pass is made by the bundled adversarial-review transport, **`review
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 FANOUT=<.../skills/faffter-dark-adversarial-review/fan-out.mjs>
 backends_json=$(mktemp)
-"$faff" adversarial-backends > "$backends_json"; backends_exit=$?
-timeout=$("$faff" config get adversarial.timeout -d 120)
+# Per-consumer: this is the spec_review consumer — select its own per-consumer
+# chain and timeout. An unset adversarial.spec_review.* falls through byte-identically
+# to the shared adversarial.* chain / timeout (zero change for existing configs).
+"$faff" adversarial-backends --consumer spec_review > "$backends_json"; backends_exit=$?
+timeout=$("$faff" config get adversarial.spec_review.timeout)
+[ -z "$timeout" ] && timeout=$("$faff" config get adversarial.timeout -d 120)
 
 case "$backends_exit" in
   0)

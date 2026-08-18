@@ -123,6 +123,26 @@ test("holdout: refuses the documented JSON-string fallbacks form, even with --fo
   assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before, "the fallback chain must NOT be flattened to a scalar");
 });
 
+// FAFF-870: per-consumer refs (adversarial.<consumer>.refs) are the same list-valued
+// shape, refused by the open-ended regex predicate (not the exact set).
+test("holdout: refuses a PER-CONSUMER refs write (adversarial.spec_review.refs), file byte-unchanged", () => {
+  const dir = tmpDir();
+  const before = "adversarial:\n  spec_review:\n    refs:\n      - nvidia-glm\n";
+  writeFileSync(join(dir, ".faffrc.yaml"), before);
+  const r = run(dir, "config", "set", "adversarial.spec_review.refs", "foo", "--force");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /list-valued key/);
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);
+});
+
+test("per-consumer timeout IS a writable scalar leaf (not caught by the refs carve-out)", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "adversarial:\n  timeout: 120\n");
+  const r = run(dir, "config", "set", "adversarial.spec_review.timeout", "240");
+  assert.equal(r.code, 0, r.err);
+  assert.match(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), /spec_review:/);
+});
+
 test("holdout: refuses the inline-flow refs form, even with --force, file byte-unchanged", () => {
   const dir = tmpDir();
   const before = "adversarial:\n  refs: [nvidia-glm, studio-ollama]\n";

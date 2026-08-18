@@ -37,6 +37,17 @@ function findRoot(start = process.cwd()) {
   }
 }
 
+// FAFF-865 — relocated from bundle-recover.js (re-exported there for surface stability).
+// A CLEAN/verified bundle's anchors member proves nothing about the rel-paths encoded
+// inside its bytes being safe to join onto a real directory. Reject absolute paths and
+// any ".."-segment before ever touching disk. Lives here (a true leaf module: no
+// internal `require("./…")`) so both bundle.js and bundle-recover.js can import it
+// without either introducing a circular require.
+function isSafeAnchorRelPath(rel) {
+  if (typeof rel !== "string" || rel === "" || path.isAbsolute(rel)) return false;
+  return !rel.split("/").some((seg) => seg === "..");
+}
+
 // ---------------------------------------------------------------------------
 // shared: the subtree-of-mandate containment walk (FAFF-219/222) — pure, no I/O.
 // Lives here (not in contain.js's factory region) because BOTH `contain` (factory,
@@ -658,4 +669,4 @@ function readBaseConfigStrict(filePath, env = process.env) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, resolveRunDir, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, resolveRunDir, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

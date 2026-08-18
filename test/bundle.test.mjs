@@ -255,6 +255,76 @@ test("classifyBundle: a b1 bundle (6 members, no contract_fingerprint) still ver
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// --- FAFF-865: classifyBundle's verify-path anchor-file materialisation guards every
+// anchors.files key against path escape (".."-segment or absolute) BEFORE any file is
+// written, mirroring bundle-recover.js's reconstructProjection containment posture. ---
+
+// Doctors a freshly-built bundle's anchors member by adding one extra `files` key, then
+// remints the manifest tail over the mutated memberBytes so digests stay self-consistent —
+// the "only the path is hostile" fixture the ticket's smoke test describes.
+function bundleWithExtraAnchorKey(runDir, root, identity, extraKey) {
+  const built = buildBundle(runDir, identity, root);
+  const anchorsObj = JSON.parse(built.memberBytes.anchors.toString("utf8"));
+  anchorsObj.files[extraKey] = Buffer.from("x").toString("base64");
+  const memberBytes = { ...built.memberBytes, anchors: Buffer.from(JSON.stringify(anchorsObj), "utf8") };
+  const manifest = remintManifest(memberBytes, built.manifest.identity, built.manifest.version);
+  return readFromBuilt(memberBytes, manifest);
+}
+
+test("classifyBundle: an anchors.files key that escapes via '..' -> MALFORMED, cause anchors-unsafe-path, no file written outside the intended temp dir", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  const fsMod = require("node:fs");
+  const originalMkdtempSync = fsMod.mkdtempSync;
+  let tempDirCreated = false;
+  // The guard must reject before withTempDir ever runs — assert no scratch dir is even
+  // created, the strongest form of "nothing was written outside the intended dir".
+  fsMod.mkdtempSync = function (...args) { tempDirCreated = true; return originalMkdtempSync.apply(fsMod, args); };
+  // Behaviour-level backstop, independent of the mkdtempSync interception above (which only
+  // proves the guard fired IF bundle.js's fs binding is the one patched): list the OS tmp root
+  // before and after for any "faff-bundle-verify-*" entry (withTempDir's own dir prefix,
+  // bundle.js:247) — a real scratch dir surviving cleanup would show up here even if the spy
+  // silently stopped intercepting.
+  const tmpRoot = tmpdir();
+  const before = new Set(fsMod.readdirSync(tmpRoot));
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const read = bundleWithExtraAnchorKey(runDir, root, identity, "../escape");
+    const verdict = classifyBundle(read);
+    assert.equal(verdict.verdict, "MALFORMED");
+    assert.equal(verdict.cause, "anchors-unsafe-path");
+    assert.equal(tempDirCreated, false, "the materialisation temp dir must never be created once an unsafe key is found");
+    const after = fsMod.readdirSync(tmpRoot).filter((name) => name.startsWith("faff-bundle-verify-") && !before.has(name));
+    assert.deepEqual(after, [], "no faff-bundle-verify-* scratch dir may exist on disk after an unsafe key is rejected");
+  } finally {
+    fsMod.mkdtempSync = originalMkdtempSync;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("classifyBundle: an anchors.files absolute key -> MALFORMED, cause anchors-unsafe-path, no file written at the absolute path", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  const absTarget = path.join(tmpdir(), "faff-865-pwned-" + process.pid);
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const read = bundleWithExtraAnchorKey(runDir, root, identity, absTarget);
+    const verdict = classifyBundle(read);
+    assert.equal(verdict.verdict, "MALFORMED");
+    assert.equal(verdict.cause, "anchors-unsafe-path");
+    assert.equal(require("node:fs").existsSync(absTarget), false, "nothing may be written at the absolute path");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("classifyBundle: a well-formed bundle with only flat known anchor filenames stays CLEAN — no regression", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const read = readFromBuilt(built.memberBytes, built.manifest);
+    const verdict = classifyBundle(read);
+    assert.equal(verdict.verdict, "CLEAN", `an untampered fixture bundle must still verify CLEAN (got ${verdict.verdict}/${verdict.cause})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("bundle publish + verify (b2, real CLI): a bundle missing contract_fingerprint -> MISSING naming it, exit 1", () => {
   const { root, run_id, runDir } = fixtureRoot();
   try {

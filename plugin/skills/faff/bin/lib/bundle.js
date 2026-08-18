@@ -21,7 +21,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { dig, findRoot, HERE } = require("./shared-infra");
+const { dig, findRoot, HERE, isSafeAnchorRelPath } = require("./shared-infra");
 const { loadConfig, DEFAULTS } = require("./config");
 const { buildManifest, diffAgainstManifest, sha256 } = require("./integrity-digest");
 const { verifyChain, verifyEffectsChain, appendEventRecord } = require("./events");
@@ -286,6 +286,15 @@ function classifyBundle(read) {
       const claimed = read.manifestMemberRefs[name];
       if (claimed && claimed.sha256 !== recomputedRefs[name].sha256) return bundleVerdict("TAMPERED", identity, name);
     }
+  }
+
+  // FAFF-865 — validate EVERY anchor key before materialising ANY file below. A CLEAN/verified
+  // manifest digest proves the anchors member's bytes are unmodified; it proves nothing about
+  // the rel-paths encoded inside those bytes being safe to join onto a real directory. Reject
+  // before withTempDir ever runs, so a hostile key never reaches disk even transiently — the
+  // same containment posture bundle-recover.js's reconstructProjection already enforces.
+  for (const rel of Object.keys(parsed.anchors.files)) {
+    if (!isSafeAnchorRelPath(rel)) return bundleVerdict("MALFORMED", identity, "anchors-unsafe-path");
   }
 
   // Reused tamper primitives — materialise the overlap + the anchor tree into a scratch dir.

@@ -52,14 +52,14 @@ Each refuter pass is made by the bundled adversarial-review transport, **`review
 
 **Dispatch the lenses CONCURRENTLY, via `fan-out.mjs` — never a per-lens loop.** Under Claude Code, issuing N Bash calls in one message happens to run them concurrently — a harness feature, not something faff asked for by name. A non-Claude harness has no such free batching, so a per-lens bash loop would run the N `review-call.mjs` subprocesses one after another, each a full adversarial-review call — a four-lens pass can stall over an hour. `fan-out.mjs` (bundled beside `review-call.mjs` in the sibling `faffter-dark-adversarial-review` skill) spawns every enabled lens's `review-call.mjs` invocation itself and awaits them together, so any harness capable of running one shell command gets the same speed-up. It is reused verbatim, the same discipline as `review-call.mjs` itself.
 
-**Assemble the chain mechanically — never `JSON.parse` `faffter_dark.adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff adversarial-backends` subcommand **once** (it is the single mechanical path for both a one-backend config and a multi-backend fallback chain — no per-flag `faff config get provider/host/model/api_key_env/reasoning_off` assembly left to retype), branch on its exit code, then build one `LensRequest` per enabled lens and fan them all out in a single `fan-out.mjs` call:
+**Assemble the chain mechanically — never `JSON.parse` `adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff adversarial-backends` subcommand **once** (it is the single mechanical path for both a one-backend config and a multi-backend fallback chain — no per-flag `faff config get provider/host/model/api_key_env/reasoning_off` assembly left to retype), branch on its exit code, then build one `LensRequest` per enabled lens and fan them all out in a single `fan-out.mjs` call:
 
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 FANOUT=<.../skills/faffter-dark-adversarial-review/fan-out.mjs>
 backends_json=$(mktemp)
 "$faff" adversarial-backends > "$backends_json"; backends_exit=$?
-timeout=$("$faff" config get faffter_dark.adversarial.timeout -d 120)
+timeout=$("$faff" config get adversarial.timeout -d 120)
 
 case "$backends_exit" in
   0)
@@ -73,7 +73,7 @@ case "$backends_exit" in
     node "$FANOUT" --requests "$requests_json"   # ONE call — spawns every lens concurrently, waits for all
     ;;
   3) : ;; # unconfigured — every lens's outcome is unavailable/config-fault, below; no chain to call
-  2) : ;; # malformed faffter_dark.adversarial.fallbacks JSON — every lens's outcome is unavailable/config-fault
+  2) : ;; # malformed adversarial.fallbacks JSON — every lens's outcome is unavailable/config-fault
 esac
 ```
 
@@ -109,7 +109,7 @@ Collect the per-lens refutations into one JSON array and pipe it to the bundled 
   "model": "provider/model" }
 ```
 
-**`model` may be sourced from the transport-prepended header, not reconstructed from config.** On an exit-0 pass, `review-call.mjs`'s stdout already starts with `## Adversarial findings — <provider>/<model> (chain[<i>], host: <source>)` — a harness-authored, unconditional guarantee (see the sibling `faffter-dark-adversarial-review/SKILL.md` → "The header is harness-authored"), not something this occupant must assemble from `faffter_dark.adversarial` config itself. Read `provider`/`model` off that first line when populating this field; it is exact for whichever backend in the fallback chain actually served the refutation, which a config-only reconstruction cannot guarantee once a fallback has won.
+**`model` may be sourced from the transport-prepended header, not reconstructed from config.** On an exit-0 pass, `review-call.mjs`'s stdout already starts with `## Adversarial findings — <provider>/<model> (chain[<i>], host: <source>)` — a harness-authored, unconditional guarantee (see the sibling `faffter-dark-adversarial-review/SKILL.md` → "The header is harness-authored"), not something this occupant must assemble from `adversarial` config itself. Read `provider`/`model` off that first line when populating this field; it is exact for whichever backend in the fallback chain actually served the refutation, which a config-only reconstruction cannot guarantee once a fallback has won.
 
 ```bash
 printf '%s' "$REFUTATIONS_JSON" | node plugin/skills/faffter-dark-spec-review/aggregate.mjs --n <count of enabled lenses>

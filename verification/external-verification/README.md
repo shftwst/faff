@@ -43,7 +43,7 @@ P2's lands at `docs/prd/task-api.md` so `faff prd list` can discover it, P4's st
 `PRD.md`; + a seeded legacy app for P5), auto-gitignore `.faff/` via `faff gitignore-ensure` and
 wire faff's Stop hooks via `faff hooks-ensure` (never a hand-edited `settings.json`), and make the
 initial commit. P1/P2/P3 (the lights-out-eligible SUTs) also copy `.env.claude-box` from the faff
-root (gitignored first, so it's never staged) and emit a `faffter_dark.adversarial` backend block,
+root (gitignored first, so it's never staged) and emit an `adversarial` backend block,
 so their adversarial-review gate can actually resolve. It **refuses** to scaffold into a non-empty
 dir unless you pass `FORCE=1`.
 

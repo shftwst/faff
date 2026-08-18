@@ -373,7 +373,7 @@ function resolveTokenSource(b) {
 
 // PURE: `faff config check`'s derived-egress residency-soundness guard (spec
 // DONE list). Scans the one reference-list consumer the spec names today
-// (faffter_dark.adversarial's refs:+requires:) for a requires:local chain
+// (adversarial's refs:+requires:) for a requires:local chain
 // that leans on a DERIVED (not explicit) egress:local classification — a
 // convenience default is not the residency guarantee's asserted basis.
 // Also surfaces a namespace-level merge error (e.g. a name collision) as a
@@ -403,7 +403,7 @@ function backendsConfigCheckFindings(cfg) {
       });
     }
   }
-  const adv = dig(cfg, "faffter_dark.adversarial");
+  const adv = dig(cfg, "adversarial");
   if (adv && typeof adv === "object" && !Array.isArray(adv) && present(adv.requires) && Array.isArray(adv.refs)) {
     if (!RESIDENCY_REQUIRED_VALUES.includes(adv.requires)) {
       // Same fail-closed enum as checkRealizable: an unrecognized requires:
@@ -412,8 +412,8 @@ function backendsConfigCheckFindings(cfg) {
       // exactly the failure a typo like "locla"/"Local" would otherwise hide.
       findings.push({
         severity: "error",
-        surface: "faffter_dark.adversarial.requires",
-        message: `faffter_dark.adversarial.requires: unrecognized value "${adv.requires}" — legal set: ${RESIDENCY_REQUIRED_VALUES.join(" | ")}. Not silently skipped: fix the typo, or the residency gate never engages for this consumer.`,
+        surface: "adversarial.requires",
+        message: `adversarial.requires: unrecognized value "${adv.requires}" — legal set: ${RESIDENCY_REQUIRED_VALUES.join(" | ")}. Not silently skipped: fix the typo, or the residency gate never engages for this consumer.`,
       });
     } else {
       for (const name of adv.refs) {
@@ -421,7 +421,7 @@ function backendsConfigCheckFindings(cfg) {
         if (b && b.egress === "local" && !b._egress_explicit) {
           findings.push({
             severity: "warn",
-            surface: `faffter_dark.adversarial.refs[${name}]`,
+            surface: `adversarial.refs[${name}]`,
             message: `backend "${name}" is admitted into a requires: local chain on a DERIVED (not explicit) egress: local classification — set egress: local explicitly on backends.${name} so the residency guarantee is asserted against an explicit value, not a convenience default.`,
           });
         }
@@ -683,7 +683,7 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
-      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "local" } },
+       adversarial: { refs: ["studio-ollama"], requires: "local" } ,
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: requires:local chain on a DERIVED-local backend -> warns", findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
@@ -691,7 +691,7 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } }, // EXPLICIT local
-      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "local" } },
+       adversarial: { refs: ["studio-ollama"], requires: "local" } ,
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: requires:local chain on an EXPLICIT-local backend -> silent", !findings.some((f) => /DERIVED/.test(f.message)));
@@ -707,7 +707,7 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
-      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "no-egress" } }, // documented alias
+       adversarial: { refs: ["studio-ollama"], requires: "no-egress" } , // documented alias
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: requires: no-egress (alias) processes the chain same as requires: local", !findings.some((f) => f.severity === "error"));
@@ -715,7 +715,7 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
-      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "Local" } }, // typo/case mismatch
+       adversarial: { refs: ["studio-ollama"], requires: "Local" } , // typo/case mismatch
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: unrecognized requires value -> fail-loud error finding, not a silent skip", findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message)));

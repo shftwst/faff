@@ -241,7 +241,7 @@ test("config check: overlay present but NOT git-ignored → hygiene finding, exi
 test("config check: a secret in the BASE file → exit 1, REDACTED (raw value NEVER in output)", () => {
   const RAW = "sk-abcdefghijklmnopqrstuvwxyz0123456789ABCD";
   const dir = gitDir({
-    base: "faffter_dark:\n  adversarial:\n    api_key: " + RAW + "\n",
+    base: "adversarial:\n  api_key: " + RAW + "\n",
     gitignore: ".faffrc.local.yaml\n",
     commitBase: true,
   });
@@ -249,7 +249,7 @@ test("config check: a secret in the BASE file → exit 1, REDACTED (raw value NE
     const r = run(dir, "config", "check");
     assert.equal(r.code, 1);
     // the finding names the key path + length + 4-char prefix only.
-    assert.match(r.out, /faffter_dark\.adversarial\.api_key/);
+    assert.match(r.out, /adversarial\.api_key/);
     assert.match(r.out, /len=\d+/);
     // THE LOAD-BEARING ASSERTION: the raw value appears NOWHERE in stdout OR stderr.
     assert.ok(!r.out.includes(RAW), "raw secret must not appear in stdout");
@@ -300,7 +300,7 @@ test("config check: no config at all → exit 0 (defaults)", () => {
 
 test("config check: a *_env value is NOT flagged (name-indirection is exempt by design)", () => {
   const dir = gitDir({
-    base: "faffter_dark:\n  adversarial:\n    api_key_env: NVIDIA_API_KEY\n    host: https://integrate.api.nvidia.com/v1\n",
+    base: "adversarial:\n  api_key_env: NVIDIA_API_KEY\n  host: https://integrate.api.nvidia.com/v1\n",
     gitignore: ".faffrc.local.yaml\n",
     commitBase: true,
   });
@@ -338,13 +338,13 @@ test("scenario: a committed base survives a wholesale rewrite — diff visible, 
 
 test("integration smoke: merge → check exit 1 (untracked) → commit → check exit 0 → secret → check exit 1 redacted", () => {
   const dir = gitDir({
-    base: "faffter_dark:\n  adversarial:\n    host: http://base.test\n",
-    overlay: "faffter_dark:\n  adversarial:\n    host: http://overlay.test\n",
+    base: "adversarial:\n  host: http://base.test\n",
+    overlay: "adversarial:\n  host: http://overlay.test\n",
     gitignore: ".faffrc.local.yaml\n",
   });
   try {
     // merge plumbing connected: overlay wins the nested leaf.
-    assert.equal(run(dir, "config", "get", "faffter_dark.adversarial.host").out, "http://overlay.test");
+    assert.equal(run(dir, "config", "get", "adversarial.host").out, "http://overlay.test");
     // posture check connected: base is untracked → exit 1.
     assert.equal(run(dir, "config", "check").code, 1);
     // commit the base → clean posture.

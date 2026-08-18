@@ -61,14 +61,13 @@ backends:
         api_key_env: GEMINI_API_KEY
         #timeout: 480
 
-faffter_dark:
-    adversarial: # ordered refs: list — index 0 first-served, no "primary" (FAFF-261/523)
-        deadline: 1920
-        refs:
-            - nvidia-glm
-            # - openrouter
-            - gemini-gemma
-            - gemini-paid
+adversarial: # ordered refs: list — index 0 first-served, no "primary" (FAFF-261/523)
+    deadline: 1920
+    refs:
+        - nvidia-glm
+        # - openrouter
+        - gemini-gemma
+        - gemini-paid
 
 models:
     build_by_confidence:

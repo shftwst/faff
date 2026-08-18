@@ -1,0 +1,53 @@
+{
+  "level": "L3",
+  "run_id": "run-20260818-195900-beepboop-list-dac127",
+  "admitted": ["FAFF-871", "FAFF-865"],
+  "outcomes": { "FAFF-821": "parked" },
+  "outcome_details": {
+    "FAFF-821": { "verdict": "needs-decision-first", "root_cause": "punt-not-closed", "confidence": "medium", "prep_disposition": "promoted-needs-review", "resolve_attempt": "failed-architectural", "park_comment": "3aa93fcc-efe2-46f1-b1b7-ef676f09de8d" }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "tokens": 3000000000,
+        "max_attempts": 40
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "measure_session_id": "97cda514-455f-45a6-b39e-39921d0f54f0",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 77,
+        "output": 62177,
+        "cache_write": 844729,
+        "cache_read": 7564983
+      }
+    },
+    "tokens_at_start": 8471966,
+    "window": {
+      "anchor_epoch": 1787083185007,
+      "reset_epoch": 1787101185007,
+      "tokens_at_anchor": 915060
+    },
+    "tokens_at_last_event": {
+      "input": 139,
+      "output": 118539,
+      "cache_write": 948698,
+      "cache_read": 14867445
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260818-195900-beepboop-list-dac127",
+    "started_at": "2026-08-18T19:59:23Z",
+    "last_heartbeat": "2026-08-18T19:59:23Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

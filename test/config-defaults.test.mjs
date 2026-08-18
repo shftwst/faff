@@ -129,10 +129,10 @@ test("config defaults prints the registry as JSON", () => {
 // FAFF-262 — native YAML block sequences parse to real arrays; `config get --json` returns them.
 test("config get --json returns a real array for a block sequence of maps", () => {
   const dir = withConfig(
-    "faffter_dark:\n  adversarial:\n    backends:\n      - provider: nvidia\n        model: nemotron\n      - provider: ollama\n        model: qwen3\n",
+    "adversarial:\n  backends:\n    - provider: nvidia\n      model: nemotron\n    - provider: ollama\n      model: qwen3\n",
   );
   try {
-    const r = run(dir, "config", "get", "--json", "faffter_dark.adversarial.backends");
+    const r = run(dir, "config", "get", "--json", "adversarial.backends");
     assert.equal(r.code, 0);
     assert.deepEqual(JSON.parse(r.out), [
       { provider: "nvidia", model: "nemotron" },

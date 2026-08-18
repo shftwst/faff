@@ -77,7 +77,7 @@ test("collectKnownSecretValues: seat_token_env resolved the same as api_key_env"
 });
 
 test("collectKnownSecretValues: recurses into nested backend maps (allowlisted key NAME, any depth)", () => {
-  const config = { faffter_dark: { adversarial: { backends: { inline: { api_key_env: "NESTED_KEY" } } } } };
+  const config = { adversarial: { backends: { inline: { api_key_env: "NESTED_KEY" } } }  };
   const values = collectKnownSecretValues(config, { NESTED_KEY: "aNestedSecretValue12" });
   assert.ok(values.includes("aNestedSecretValue12"));
 });

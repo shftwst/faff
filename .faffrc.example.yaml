@@ -86,9 +86,9 @@ models:
 # Shared model/provider/auth backend namespace (FAFF-523). A top-level, NAMED map — the
 # generalization of the legacy top-level engines: map below (engines: folds into this
 # namespace at load; a name declared in BOTH is a hard error, never last-wins) and of the
-# faffter_dark.adversarial block further down. Referenced BY NAME from anywhere that needs
+# adversarial block further down. Referenced BY NAME from anywhere that needs
 # a model/backend: an engine:<name> lane value above, or an ordered `refs:` list (e.g. the
-# faffter_dark.adversarial block's own refs: form — see below). auth (subscription-seat |
+# adversarial block's own refs: form — see below). auth (subscription-seat |
 # api-key | none) and egress (local | external) are explicit-preferred, else DERIVED:
 # api_key_env present → api-key; keyless provider: anthropic → subscription-seat (binds to
 # the AMBIENT interactive session — there is no seat_ref handle field); loopback/RFC1918/
@@ -113,7 +113,7 @@ models:
 #     host: https://api.anthropic.com   # no api_key_env → auth: subscription-seat (derived; binds to the ambient session)
 #
 # A residency-sensitive consumer asserts `requires: local` on its OWN refs: list (see the
-# faffter_dark.adversarial example below) — any resolved egress: external ref in that
+# adversarial example below) — any resolved egress: external ref in that
 # chain refuses at run start (fail closed, never a silent leak); `faff backends realizable
 # --refs a,b,c [--requires local]` runs this check standalone. `faff backends resolve
 # --refs a,b,c` prints the resolved chain as JSON.
@@ -256,7 +256,7 @@ sentry:
 #
 # `url`/`token` are secret-bearing (an auth-carrying webhook endpoint) — set them in the
 # gitignored `.faffrc.local.yaml` OVERLAY (see the two-file model note at the top of this
-# file), never committed here, mirroring how `faffter_dark.adversarial`'s `api_key_env`
+# file), never committed here, mirroring how `adversarial`'s `api_key_env`
 # keeps the actual key value out of the committed base.
 andon:
   url:                                        # webhook URL — e.g. an ntfy topic, a Slack/Discord incoming webhook
@@ -304,63 +304,61 @@ prdr:
 # FAFF-523: the form below (provider/model/host + fallbacks, inline) is the LEGACY shape —
 # still fully supported, unchanged. The preferred shape for a config that already declares a
 # backends: namespace (above) is a named refs: list instead, e.g.:
-#   faffter_dark:
-#     adversarial:
-#       refs: [nvidia-glm, studio-ollama]   # ordered — index 0 first-served, no "primary"
-#       requires: local                     # OPTIONAL: refuse at run start if any ref resolves egress: external
-#       deadline: 480
+#   adversarial:
+#     refs: [nvidia-glm, studio-ollama]   # ordered — index 0 first-served, no "primary"
+#     requires: local                     # OPTIONAL: refuse at run start if any ref resolves egress: external
+#     deadline: 480
 # Named backends: entries do NOT inherit omitted optional fields from one another (unlike
 # the legacy fallbacks form below) — each backend stands alone.
-faffter_dark:
-  adversarial:
-    provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic
-    model: llama3.1:70b # provider-specific model identifier
-    host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
-    api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
-    reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
-    timeout: 120 # seconds — bounds ONE stream attempt
-    deadline: 480 # FAFF-329: TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends, so the
-                  # slow Phase-2 fits one subagent turn (default 480, under the 900s staleness window). Deadline-
-                  # exceeded → the second opinion is skipped (pass+skip, logged loudly), never a mid-turn stall.
-                  # Tune up if `phase2: skipped-deadline` shows in run logs while backends were healthy.
-    # FAFF-232 — OPTIONAL ordered fallback chain. The block above is the PRIMARY backend; `fallbacks`
-    # adds further backends, each tried in order when the one before fails to produce findings
-    # (rate-limit / unreachable / persistent transport failure / auth / not-served). First findings win;
-    # the gate keeps firing through one provider's outage instead of silently pass+skipping.
-    # Each entry needs its own provider/model/host; omitted api_key_env/reasoning_off/timeout inherit
-    # the primary's. Omit `fallbacks` entirely for single-backend behaviour (unchanged).
-    #
-    # Two equivalent forms (FAFF-262 added the native list; the JSON-string still works for back-compat):
-    #
-    #   native YAML block sequence (preferred — commentable, diffable):
-    # fallbacks:
-    #   - provider: ollama
-    #     model: qwen3-next:80b
-    #     host: http://studio:11434
-    #   - provider: openai
-    #     model: gpt-4o
-    #     host: https://api.openai.com/v1
-    #     api_key_env: OPENAI_API_KEY
-    #
-    #   JSON-string scalar (legacy, still parsed):
-    # fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"},{"provider":"openai","model":"gpt-4o","host":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY"}]'
-    # NVIDIA free testbed example:
-    #   provider: nvidia
-    #   model: deepseek-ai/deepseek-v4-pro
-    #   host: https://integrate.api.nvidia.com/v1
-    #   api_key_env: NVIDIA_API_KEY   # export NVIDIA_API_KEY=nvapi-...
-    #   reasoning_off: true
-    # Gemini example (rides the openai transport via Google's OpenAI-compat base URL — no adaptor):
-    #   provider: gemini
-    #   model: gemini-2.5-pro
-    #   host: https://generativelanguage.googleapis.com/v1beta/openai   # base URL, no trailing /models
-    #   api_key_env: GEMINI_API_KEY   # sent as Bearer
-    # Anthropic example (native /v1/messages — x-api-key + anthropic-version; NO preflight, no reasoning_off):
-    #   provider: anthropic
-    #   model: claude-opus-4-8
-    #   host: https://api.anthropic.com
-    #   api_key_env: ANTHROPIC_API_KEY
-    #   # ⚠ independence: do NOT use anthropic if Claude wrote/reviewed the code under review.
+adversarial:
+  provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic
+  model: llama3.1:70b # provider-specific model identifier
+  host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
+  api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
+  reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
+  timeout: 120 # seconds — bounds ONE stream attempt
+  deadline: 480 # FAFF-329: TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends, so the
+                # slow Phase-2 fits one subagent turn (default 480, under the 900s staleness window). Deadline-
+                # exceeded → the second opinion is skipped (pass+skip, logged loudly), never a mid-turn stall.
+                # Tune up if `phase2: skipped-deadline` shows in run logs while backends were healthy.
+  # FAFF-232 — OPTIONAL ordered fallback chain. The block above is the PRIMARY backend; `fallbacks`
+  # adds further backends, each tried in order when the one before fails to produce findings
+  # (rate-limit / unreachable / persistent transport failure / auth / not-served). First findings win;
+  # the gate keeps firing through one provider's outage instead of silently pass+skipping.
+  # Each entry needs its own provider/model/host; omitted api_key_env/reasoning_off/timeout inherit
+  # the primary's. Omit `fallbacks` entirely for single-backend behaviour (unchanged).
+  #
+  # Two equivalent forms (FAFF-262 added the native list; the JSON-string still works for back-compat):
+  #
+  #   native YAML block sequence (preferred — commentable, diffable):
+  # fallbacks:
+  #   - provider: ollama
+  #     model: qwen3-next:80b
+  #     host: http://studio:11434
+  #   - provider: openai
+  #     model: gpt-4o
+  #     host: https://api.openai.com/v1
+  #     api_key_env: OPENAI_API_KEY
+  #
+  #   JSON-string scalar (legacy, still parsed):
+  # fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"},{"provider":"openai","model":"gpt-4o","host":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY"}]'
+  # NVIDIA free testbed example:
+  #   provider: nvidia
+  #   model: deepseek-ai/deepseek-v4-pro
+  #   host: https://integrate.api.nvidia.com/v1
+  #   api_key_env: NVIDIA_API_KEY   # export NVIDIA_API_KEY=nvapi-...
+  #   reasoning_off: true
+  # Gemini example (rides the openai transport via Google's OpenAI-compat base URL — no adaptor):
+  #   provider: gemini
+  #   model: gemini-2.5-pro
+  #   host: https://generativelanguage.googleapis.com/v1beta/openai   # base URL, no trailing /models
+  #   api_key_env: GEMINI_API_KEY   # sent as Bearer
+  # Anthropic example (native /v1/messages — x-api-key + anthropic-version; NO preflight, no reasoning_off):
+  #   provider: anthropic
+  #   model: claude-opus-4-8
+  #   host: https://api.anthropic.com
+  #   api_key_env: ANTHROPIC_API_KEY
+  #   # ⚠ independence: do NOT use anthropic if Claude wrote/reviewed the code under review.
 
 # (Calibration runs automatically — faff logs autonomous-call outcomes under
 # .faff/calibration/ and surfaces advisory signals when a pattern crosses a

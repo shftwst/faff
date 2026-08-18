@@ -150,13 +150,13 @@ const DEFAULTS = {
   // = omit the effort arg = today's dispatch, byte-for-byte. HARD EXCLUSION: prep/spec lanes
   // (spec / spec_review / prep_explore / architecture) and eval get NO effort lane — prep runs
   // once and gates the whole pipeline, so it stays pinned; the adversarial judge's effort tuning
-  // lives in its own faffter_dark.adversarial engine block (compose-not-subsume). See ADR.
+  // lives in its own adversarial engine block (compose-not-subsume). See ADR.
   "effort.build": "inherit",
   "effort.methodology": "inherit",
   "effort.intake": "inherit",
   // FAFF-403: bounded retry count for graft's retry-later/awaiting-review hold on a mandatory-review
   // `unavailable` (provider-outage) verdict — graft's own namespace (it owns the disposition loop;
-  // faffter_dark.adversarial.* configures the engine call, not loop policy). After this many held
+  // adversarial.* configures the engine call, not loop policy). After this many held
   // drains still unavailable, the arm escalates to the standard needs-human park (never silent-forever).
   "graft.review_outage_retry_limit": "3",
   // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
@@ -858,9 +858,9 @@ function cmdConfigInit(args, root) {
 // string — a `--force` write would silently flatten the whole fallback chain. Bound to the
 // schema by configSetSelftest's drift check (mirrors the WRITABLE_NAMESPACES drift check below).
 const SEQUENCE_VALUED_KEYS = new Set([
-  "faffter_dark.adversarial.refs",
-  "faffter_dark.adversarial.fallbacks",
-  "faffter_dark.adversarial.backends",
+  "adversarial.refs",
+  "adversarial.fallbacks",
+  "adversarial.backends",
 ]);
 
 // Recognised top-level config namespaces `config set` may write into — a cheap typo guard at
@@ -871,7 +871,7 @@ const WRITABLE_NAMESPACES = new Set([
   "tracking", "slots", "models", "effort", "backends", "engines", "appetite",
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
-  "faffter_dark", "autonomous", "containment", "post_merge", "graft", "andon",
+  "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
   "bundle_store", "install", "lanes",
 ]);
 
@@ -1151,8 +1151,8 @@ function configSetSelftest() {
 
   // Carve-out representation 1: block-sequence — refused, file byte-unchanged.
   {
-    const orig = "faffter_dark:\n  adversarial:\n    refs:\n      - nvidia-glm\n      - studio-ollama\n";
-    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "refs"], "foo", true);
+    const orig = "adversarial:\n  refs:\n    - nvidia-glm\n    - studio-ollama\n";
+    const r = mergeConfigPath(orig, ["adversarial", "refs"], "foo", true);
     check("carve-out/block-sequence: value-shape belt refuses", r.typeError !== null && r.text === orig);
   }
 
@@ -1163,18 +1163,18 @@ function configSetSelftest() {
   // (cmdConfigSet step 2b, asserted below) closes it — same corruption risk class as
   // representation 3.
   {
-    const orig = "faffter_dark:\n  adversarial:\n    refs: [nvidia-glm, studio-ollama]\n";
-    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "refs"], "foo", true);
+    const orig = "adversarial:\n  refs: [nvidia-glm, studio-ollama]\n";
+    const r = mergeConfigPath(orig, ["adversarial", "refs"], "foo", true);
     check("carve-out/inline-flow-bare: mergeConfigPath alone would NOT catch this (documents the risk)",
       r.typeError === null && r.changed === true);
-    check("carve-out/inline-flow-bare: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("faffter_dark.adversarial.refs"));
+    check("carve-out/inline-flow-bare: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("adversarial.refs"));
   }
   // A QUOTED inline-flow (`["a", "b"]`) IS valid JSON, so scalar() does return an Array here —
   // the value-shape belt catches this representation even without the denylist. Documents the
   // one shape the belt alone protects.
   {
-    const orig = 'faffter_dark:\n  adversarial:\n    refs: ["nvidia-glm", "studio-ollama"]\n';
-    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "refs"], "foo", true);
+    const orig = 'adversarial:\n  refs: ["nvidia-glm", "studio-ollama"]\n';
+    const r = mergeConfigPath(orig, ["adversarial", "refs"], "foo", true);
     check("carve-out/inline-flow-quoted: value-shape belt refuses", r.typeError !== null && r.text === orig);
   }
 
@@ -1183,11 +1183,11 @@ function configSetSelftest() {
   // no JSON parse). Only the key-identity denylist (cmdConfigSet step 2b, exercised via
   // SEQUENCE_VALUED_KEYS membership here) closes it — asserted at the set() level below.
   {
-    const orig = 'faffter_dark:\n  adversarial:\n    fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b"}]\'\n';
-    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "fallbacks"], "foo", true);
+    const orig = 'adversarial:\n  fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b"}]\'\n';
+    const r = mergeConfigPath(orig, ["adversarial", "fallbacks"], "foo", true);
     check("carve-out/json-string: mergeConfigPath alone would NOT catch this (documents the risk)",
       r.typeError === null && r.changed === true);
-    check("carve-out/json-string: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("faffter_dark.adversarial.fallbacks"));
+    check("carve-out/json-string: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("adversarial.fallbacks"));
   }
 
   // WRITABLE_NAMESPACES drift check: every top-level key documented in .faffrc.example.yaml
@@ -1359,8 +1359,8 @@ function configInitSelftest() {
 
   // FAFF-262: block-sequence parsing (arrays of maps + arrays of scalars).
   {
-    const text = "faffter_dark:\n  adversarial:\n    backends:\n      - provider: nvidia\n        model: nemotron\n      - provider: ollama\n        model: qwen3\n";
-    const arr = dig(parseYamlSubset(text), "faffter_dark.adversarial.backends");
+    const text = "adversarial:\n  backends:\n    - provider: nvidia\n      model: nemotron\n    - provider: ollama\n      model: qwen3\n";
+    const arr = dig(parseYamlSubset(text), "adversarial.backends");
     check("seq: array of maps is an Array of length 2", Array.isArray(arr) && arr.length === 2);
     check("seq: map item 1 multi-key intact", arr && arr[0] && arr[0].provider === "nvidia" && arr[0].model === "nemotron");
     check("seq: map item 2 multi-key intact", arr && arr[1] && arr[1].provider === "ollama" && arr[1].model === "qwen3");
@@ -1697,16 +1697,16 @@ function configCheckSelftest() {
   // redaction NEVER emits the raw value.
   {
     const raw = "sk-SUPERSECRETVALUE1234567890abcdef";
-    const red = redactSecret("faffter_dark.adversarial.api_key", raw);
+    const red = redactSecret("adversarial.api_key", raw);
     check("redact: raw value absent from redacted output", !red.includes("SECRETVALUE") && !red.includes(raw));
     check("redact: shows len + 4-char prefix", red.includes("len=") && red.includes(`"sk-S"`));
   }
   {
     // scanDocForSecrets full-path: the raw value must not appear in ANY finding message.
     const raw = "ghp_ZZZZZZZZZZ0123456789abcdefghij";
-    const doc = { faffter_dark: { adversarial: { api_key: raw } } };
+    const doc = { adversarial: { api_key: raw } };
     const fs2 = scanDocForSecrets(doc, ".faffrc.yaml");
-    check("scan: nested leaf flagged by dotted path", fs2.length === 1 && fs2[0].surface === ".faffrc.yaml:faffter_dark.adversarial.api_key");
+    check("scan: nested leaf flagged by dotted path", fs2.length === 1 && fs2[0].surface === ".faffrc.yaml:adversarial.api_key");
     check("scan: raw value NEVER in finding message", !fs2[0].message.includes(raw) && !fs2[0].message.includes("ZZZZZZZZZZ"));
     // sequence-item leaf scanning.
     const doc2 = { fallbacks: [{ api_key: raw }] };

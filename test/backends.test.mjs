@@ -237,7 +237,7 @@ test("resolveTokenSource: subscription-seat -> the ambient interactive session, 
 test("configCheck guard: requires:local chain on a DERIVED (not explicit) egress:local backend -> warns", () => {
   const cfg = {
     backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
-    faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "local" } },
+     adversarial: { refs: ["studio-ollama"], requires: "local" } ,
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
@@ -246,7 +246,7 @@ test("configCheck guard: requires:local chain on a DERIVED (not explicit) egress
 test("configCheck guard: requires:local chain on an EXPLICIT egress:local backend -> silent", () => {
   const cfg = {
     backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
-    faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "local" } },
+     adversarial: { refs: ["studio-ollama"], requires: "local" } ,
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(!findings.some((f) => /DERIVED/.test(f.message)));
@@ -255,7 +255,7 @@ test("configCheck guard: requires:local chain on an EXPLICIT egress:local backen
 test("configCheck guard: requires: no-egress (documented alias) processes the chain same as requires: local", () => {
   const cfg = {
     backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
-    faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "no-egress" } },
+     adversarial: { refs: ["studio-ollama"], requires: "no-egress" } ,
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
@@ -264,7 +264,7 @@ test("configCheck guard: requires: no-egress (documented alias) processes the ch
 test("configCheck guard: an unrecognized requires value -> fail-loud error finding, never a silent skip", () => {
   const cfg = {
     backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
-    faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "Local" } }, // case-typo
+     adversarial: { refs: ["studio-ollama"], requires: "Local" } , // case-typo
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message) && /Local/.test(f.message)));
@@ -336,11 +336,11 @@ test("CLI: backends --selftest passes", () => {
 // an equivalent legacy primary+fallbacks block (the DONE-listed migration proof).
 // ===========================================================================
 
-test("integration: faffter_dark.adversarial refs: resolves against backends:, byte-equivalent to the legacy chain (optionals restated — named backends: never inherit)", () => {
-  const legacyCfg = { faffter_dark: { adversarial: {
+test("integration: adversarial refs: resolves against backends:, byte-equivalent to the legacy chain (optionals restated — named backends: never inherit)", () => {
+  const legacyCfg = { adversarial: {
     provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
     fallbacks: [{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" }],
-  } } };
+  }  };
   const legacy = assembleAdversarialBackends(legacyCfg);
   // The legacy fallback carries no api_key_env/timeout of its own, so it INHERITS both from
   // the primary (inheritOptionalFromPrimary) — spec-documented legacy behaviour.
@@ -353,7 +353,7 @@ test("integration: faffter_dark.adversarial refs: resolves against backends:, by
       "nvidia-glm": { provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480 },
       "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480 },
     },
-    faffter_dark: { adversarial: { refs: ["nvidia-glm", "studio-ollama"] } },
+     adversarial: { refs: ["nvidia-glm", "studio-ollama"] } ,
   };
   const migrated = assembleAdversarialBackends(migratedCfg);
 
@@ -369,7 +369,7 @@ test("integration: migration MAY instead consciously drop a spurious inherited o
   // than being forced to carry it forward just to stay byte-identical to a legacy artifact.
   const migratedCfg = {
     backends: { "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" } },
-    faffter_dark: { adversarial: { refs: ["studio-ollama"] } },
+     adversarial: { refs: ["studio-ollama"] } ,
   };
   const migrated = assembleAdversarialBackends(migratedCfg);
   assert.deepEqual(migrated.chain, [{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" }]);
@@ -377,7 +377,7 @@ test("integration: migration MAY instead consciously drop a spurious inherited o
 });
 
 test("integration: an unresolvable refs: name is malformed (exit 2 class), never a silent partial chain", () => {
-  const cfg = { faffter_dark: { adversarial: { refs: ["nope"] } } };
+  const cfg = { adversarial: { refs: ["nope"] }  };
   const res = assembleAdversarialBackends(cfg);
   assert.equal(res.error, "malformed");
   assert.match(res.detail, /unknown backend/);
@@ -387,7 +387,7 @@ test("CLI: adversarial-backends with a refs: config resolves cleanly", () => {
   const dir = fixtureDir(
     "backends:\n" +
     "  nvidia-glm:\n    provider: nvidia\n    model: nvidia/nemotron\n    host: https://integrate.api.nvidia.com/v1\n    api_key_env: NVIDIA_API_KEY\n" +
-    "faffter_dark:\n  adversarial:\n    refs:\n      - nvidia-glm\n",
+    "adversarial:\n  refs:\n    - nvidia-glm\n",
   );
   try {
     const r = runCli(["adversarial-backends"], { cwd: dir });

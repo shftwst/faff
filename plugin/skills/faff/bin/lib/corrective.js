@@ -225,11 +225,20 @@ function foldCorrectiveConstraints(inputs) {
 // state — the strongest basis always wins.
 //
 // mountGate    = integrityGate(correctiveIntegrityProbe(env, fsq, dirs), "corrective")
-// digestVerify = a discriminated union the CALLER constructs (never computed here):
+// digestVerify = a discriminated union the CALLER constructs (never computed here) —
+// `error` and `diffs` are MUTUALLY EXCLUSIVE (the caller sets exactly one, never both;
+// cmdCorrectiveCheck's single try/catch below makes this true by construction: the try
+// arm sets `diffs`, the catch arm sets `error`, never in the same digestVerify object):
 //   { held: false }                         no baseline held
 //   { held: true, diffs: [] }               verify clean
 //   { held: true, diffs: [<paths>, ...] }   verify reports tampered paths
 //   { held: true, error: <reason> }         verify could not be computed (a throw)
+// adversarial-review follow-up: this fold does not itself ENFORCE that exclusivity —
+// a caller that (incorrectly) constructs both fields still resolves safely, because
+// branch 2 is checked before branch 3/4 regardless of whatever `diffs` holds, so a
+// stray `diffs` alongside `error` can only ever route to refuse/unverifiable, never a
+// spurious grant. Precedence is the enforcement mechanism; a future caller need not
+// re-derive that safety, but must still never intentionally rely on setting both.
 //
 // Anti-pattern (the caller's obligation, asserted by this fold's precedence, not by
 // this function itself): `try { diffs = diffAgainstManifest(...) } catch { diffs = [] }`

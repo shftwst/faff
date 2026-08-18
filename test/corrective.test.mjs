@@ -349,6 +349,34 @@ test("check --manifest -: the happy-path re-baseline scenario — a manifest sna
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("check --manifest -: the happy-path re-baseline scenario holds under the REAL obligation-5 baseline shape too — a manifest built WITH --events (the 3-entry corrective/+run-ledger.json+events.jsonl set the real orchestrator holds, per correctiveIntegrityDirs(runDir,null,{events:true})) still verifies clean after a corrective author write, because events.jsonl's legitimate append is tolerated by the prefix-preserving rule (adversarial-review follow-up: the other manifest tests here use the narrower 2-entry buildManifest(rd) set, which never exercises this interaction)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    // Snapshot the FULL obligation-5 baseline (including events.jsonl) BEFORE the
+    // trusted corrective author write appends to events.jsonl (corrective-authored)
+    // and later corrective-consumed events.
+    const preManifest = buildManifest(rd, null, true);
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    // Re-baseline AFTER the trusted write, exactly as obligation-5's Class-A sequence
+    // does — the manifest now contains both the new corrective/ artifact and the
+    // events.jsonl tail the author write appended.
+    const manifest = JSON.stringify(buildManifest(rd, null, true));
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest });
+    assert.equal(r.code, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.disposition, "custody-trusted", "the events.jsonl append (a legitimate prefix-preserving extend) never false-flags as tamper under the full obligation-5 baseline shape");
+    assert.equal(out.basis, "digest-verified");
+    assert.equal(out.consumed, true);
+    // Sanity: the pre-authoring full-baseline manifest, by contrast, DOES reads the new
+    // corrective/ artifact as tamper — mirroring the anti-scenario below, now under the
+    // real (events-inclusive) shape too.
+    const preCheck = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: JSON.stringify(preManifest) });
+    assert.equal(JSON.parse(preCheck.stdout).disposition, "refuse");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("check --manifest -: the anti-scenario — a manifest snapshotted BEFORE the trusted `corrective author` write reads the new artifact as (added) → refuse/tampered, consumed:false (the mis-plumbing the executor MUST avoid; fails safe, but would kill the happy path)", () => {
   const dir = tmp();
   try {

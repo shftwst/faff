@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-682",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8b5ec94add4cce417fe701c5d53d3e5403cabc8839a5f95fbc1cce3b5924d625",
+    "branch": "faff-682-unowned-sibling-mutation-fires-when-a-peer-run-or-a-human",
+    "pushed_at": "2026-08-18T15:58:21.662Z"
+  },
+  "updated_at": "2026-08-18T15:58:21.662Z"
+}

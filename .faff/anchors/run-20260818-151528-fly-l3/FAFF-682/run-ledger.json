@@ -1,0 +1,64 @@
+{
+  "level": "L3",
+  "run_id": "run-20260818-151528-fly-l3",
+  "admitted": [
+    "FAFF-857",
+    "FAFF-856",
+    "FAFF-682"
+  ],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "bcc9b502-389c-48f9-be0d-7c22958c1ae3",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 49,
+        "output": 19399,
+        "cache_write": 96767,
+        "cache_read": 2597633
+      }
+    },
+    "tokens_at_start": 2713848,
+    "window": {
+      "anchor_epoch": 1787066312152,
+      "reset_epoch": 1787084312152,
+      "tokens_at_anchor": 2470127
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 487,
+    "session_id": "run-20260818-151528-fly-l3",
+    "started_at": "2026-08-18T15:16:46Z",
+    "last_heartbeat": "2026-08-18T15:16:46Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-857": {
+      "verdict": "fire-and-forget",
+      "note": "reclaim of stale In-Progress from dead run 891280; spec high/approve; docs-only"
+    },
+    "FAFF-856": {
+      "verdict": "fire-and-forget",
+      "note": "reclaim; spec high/approve (human tie-break folded); prdr.js parser fix"
+    },
+    "FAFF-682": {
+      "verdict": "fire-and-forget",
+      "note": "reclaim; spec high/approve; Chosen Reword (human); Punt is deliberate out-of-scope"
+    }
+  }
+}

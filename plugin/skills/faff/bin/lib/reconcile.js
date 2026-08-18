@@ -91,15 +91,18 @@ function reconcileSuperseded(s) {
 }
 
 // PURE: a non-admitted, spec-referenced sibling that flipped INTO a terminal state during the
-// run is out-of-mandate mutation — the run never claimed ownership of it, so nothing it did to
-// that issue is accountable. A sibling admitted later in the same run (chain-unlock) is excluded
-// by construction (admitted:true is never passed for it).
+// run's window. The run never admitted it, and no actor field exists on a tracker state
+// transition to say who moved it — a parallel run's claimed-by-peer close and a human editing
+// the board mid-run both look identical to this check. So this reports the fact of an
+// unattributable terminal move, not a claim that the run caused it. A sibling admitted later in
+// the same run (chain-unlock) is excluded by construction (admitted:true is never passed for it).
 function reconcileSibling(sib) {
   if (sib && sib.end_state_terminal && !sib.start_state_terminal && !sib.admitted) {
     return {
       class: "unowned-sibling-mutation",
       issue: sib.issue,
-      detail: "non-admitted spec-referenced sibling moved to a terminal state during the run",
+      detail:
+        "a spec-referenced non-admitted sibling moved terminal within the run's window; this run cannot attribute it to any actor",
       rollback_proposal: null,
     };
   }

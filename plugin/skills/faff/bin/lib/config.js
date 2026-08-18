@@ -74,6 +74,9 @@ const DEFAULTS = {
   // FAFF-191: the L4 PRD-admissibility slot — gap-filled (was documented in the gateway Slots
   // table and relied on by faff-beep-boop's prose parenthetical, but absent from the registry).
   "slots.prd": "faffter-noon-prd",
+  // FAFF-817: evaluator→SUT reachability across the lane boundary, composed under `env`. Default
+  // occupant covers the private-network reachability class (local docker-in-docker first slice).
+  "slots.transport": "faffter-noon-transport-private-network",
   "logging": "full",
   "concurrency_max": "4",
   "automation_default": "opt-in",
@@ -2064,7 +2067,7 @@ function cmdConfig(args) {
         const expected = [
           "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
-          "slots.env", "slots.prd",
+          "slots.env", "slots.prd", "slots.transport",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "containment.self_hosting_intake",
           "gates.fallback", "post_merge.check", "budget.at_ceiling",

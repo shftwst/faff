@@ -55,7 +55,7 @@ test("new: scaffolds the record (metadata + 4 sections), prints path only, refus
   assert.match(body, /\*\*Status:\*\* Proposed/);
   assert.match(body, /\*\*Provenance:\*\* loop/);
   assert.match(body, /\*\*Container:\*\* portal/);
-  assert.match(body, /\*\*PRD-goals:\*\* ship bookings/);   // FAFF-815 — citation is a set (plural field)
+  assert.match(body, /\*\*PRD-goals:\*\* \["ship bookings"\]/);   // FAFF-856 — canonical JSON-array citation format
   for (const s of ["## Context", "## Decision", "## Scope", "## Definition of done"]) assert.ok(body.includes(s), s);
   // append-only: a second record gets the next number, never clobbers
   const r2 = run(["new", "Booking flow", "--container", "portal", "--prd-goal", "ship bookings", "--root", root]);
@@ -376,14 +376,47 @@ test("coverage: malformed --prd-goals / --live-prdrs / --dod-verdicts are usage 
 // --- FAFF-815: plural citation + the three-goal-set arbitration (over-scope vs under-citation, Q7 ground) ---
 const D5 = '["g1","g2","g3","g4","g5"]';
 
-test("815 new: --prd-goal \"a,b,c\" writes all three into the plural PRD-goals field; list --json emits prd_goals", () => {
+test("856 new: --prd-goals '[\"g1\",\"g2\",\"g3\"]' writes all three into the plural PRD-goals field; list --json emits prd_goals", () => {
   const root = tmpRepo();
-  const p = run(["new", "MVP", "--container", "shortener", "--prd-goal", "g1,g2,g3", "--provenance", "loop", "--date", "2026-08-16", "--root", root]).stdout.trim();
-  assert.match(readFileSync(p, "utf8"), /\*\*PRD-goals:\*\* g1,g2,g3/);
+  const p = run(["new", "MVP", "--container", "shortener", "--prd-goals", '["g1","g2","g3"]', "--provenance", "loop", "--date", "2026-08-16", "--root", root]).stdout.trim();
+  assert.match(readFileSync(p, "utf8"), /\*\*PRD-goals:\*\* \["g1","g2","g3"\]/);
   const listed = JSON.parse(run(["list", "--json", "--root", root]).stdout);
   assert.deepEqual(listed[0].prd_goals, ["g1", "g2", "g3"]);
   assert.equal(listed[0].prd_goal, "g1");   // primary retained
   assert.equal(run(["validate", "--root", root]).status, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-856 — the fix itself: a single --prd-goal whose own text contains a comma is no longer
+// fragmented on write (the OLD bare comma-join bug this ticket closes). It stores/round-trips
+// as exactly ONE goal, comma included.
+test("856 new: --prd-goal with an internal comma writes ONE goal, not fragmented (the bug fix)", () => {
+  const root = tmpRepo();
+  const goal = "Codes survive an api container restart, proving the datastore is real.";
+  const p = run(["new", "Persistence", "--container", "api", "--prd-goal", goal, "--provenance", "loop", "--date", "2026-08-18", "--root", root]).stdout.trim();
+  assert.match(readFileSync(p, "utf8"), /\*\*PRD-goals:\*\* \["Codes survive an api container restart, proving the datastore is real\."\]/);
+  const listed = JSON.parse(run(["list", "--json", "--root", root]).stdout);
+  assert.deepEqual(listed[0].prd_goals, [goal]);
+  assert.equal(listed[0].prd_goal, goal);
+  const cov = JSON.parse(run(["coverage", "--prd-goals", JSON.stringify([goal]), "--root", root]).stdout);
+  assert.equal(cov.covered, true, "the comma-bearing goal must be citable/coverable, not permanently uncovered");
+  rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-856 — the `new --prd-goals` guard: malformed values exit 2, mirroring coverage/yagni/distance.
+test("856 new --prd-goals guard: malformed JSON / non-array exits 2 with the pinned stderr, writes no record", () => {
+  const root = tmpRepo();
+  const r1 = run(["new", "T", "--container", "c", "--prd-goals", "not json", "--root", root]);
+  assert.equal(r1.status, 2);
+  assert.match(r1.stderr, /faff prdr new: --prd-goals is not valid JSON:/);
+  const r2 = run(["new", "T", "--container", "c", "--prd-goals", '{"a":1}', "--root", root]);
+  assert.equal(r2.status, 2);
+  assert.match(r2.stderr, /faff prdr new: --prd-goals must be a JSON array of strings/);
+  const r3 = run(["new", "T", "--container", "c", "--root", root]); // neither --prd-goal nor --prd-goals
+  assert.equal(r3.status, 2);
+  assert.match(r3.stderr, /--prd-goal or --prd-goals is required/);
+  const listed = JSON.parse(run(["list", "--json", "--root", root]).stdout);
+  assert.deepEqual(listed, []); // no record written on any of the three refusals
   rmSync(root, { recursive: true, force: true });
 });
 

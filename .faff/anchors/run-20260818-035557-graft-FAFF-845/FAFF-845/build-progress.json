@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-845",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0f207c4e83d504a8814163768b1636e1661f200d56885eda3267e425e044ff16",
+    "branch": "faff-845-enrich-phase-0-recovery-bundles-with-recovery-semantics",
+    "pushed_at": "2026-08-18T04:24:03.122Z"
+  },
+  "updated_at": "2026-08-18T04:24:03.122Z"
+}

@@ -268,7 +268,10 @@ function fetchCleanMemberBytes(store, identity, names) {
 // ---------------------------------------------------------------------------
 // IMPURE — reconstruct_projection (spec §3/§4): write EXACTLY three targets from the
 // CLEAN bundle's own bytes — nothing else is claimed as recovered (no shell, container,
-// worktree, or per-issue build checkpoint outside the anchor's own files map).
+// worktree, or per-issue build checkpoint outside the anchor's own files map). FAFF-845 adds one
+// ADDITIVE fourth write, strictly guarded on presence: a restored landing-progress.json is also
+// copied to <run-dir>/<issue>/ (Option A) so it stays readable via the existing reader; a bundle
+// with no landing-progress.json still writes only the original three targets.
 // ---------------------------------------------------------------------------
 // A CLEAN verdict proves the anchors member's BYTES match the bundle's own recorded digest —
 // it proves nothing about the rel-paths encoded inside those bytes being safe to join onto a
@@ -314,6 +317,20 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
     fs.writeFileSync(dest, Buffer.from(b64, "base64"));
   }
   fs.copyFileSync(path.join(anchorDir, "events.jsonl"), path.join(runDir, "events.jsonl"));
+
+  // FAFF-845 (Option A, owned here) — additive: when the restored anchor carries a
+  // landing-progress.json (rides in via events.js's optionalFloorFiles, FAFF-846), copy it up
+  // into <run-dir>/<issue>/ too, matching where `faff landing-progress read <run-dir> <issue>`
+  // looks. Guarded strictly on presence — a bundle with no landing-progress.json writes nothing
+  // extra here, so this projection stays byte-identical to today's for every such bundle.
+  // identity.boundary_key is already charset-validated upstream (validateIdentityForHandle) —
+  // reused here, no new untrusted path surface.
+  const landingSrc = path.join(anchorDir, "landing-progress.json");
+  if (fs.existsSync(landingSrc)) {
+    const issueDir = path.join(runDir, boundaryKey);
+    fs.mkdirSync(issueDir, { recursive: true });
+    fs.copyFileSync(landingSrc, path.join(issueDir, "landing-progress.json"));
+  }
 
   return { runDir, anchorDir };
 }

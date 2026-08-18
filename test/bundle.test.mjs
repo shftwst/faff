@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -15,9 +15,12 @@ import { runCli } from "./helpers/run-cli.mjs";
 const require = createRequire(import.meta.url);
 const {
   canonicalJSON, classifyBundle, deriveSupersededBy, validateIdentityForHandle, bundleExitCode,
-  localBundleStore, publishBundle,
+  localBundleStore, publishBundle, buildBundle, requiredMembersFor, REQUIRED_MEMBERS_B1,
 } = require("../plugin/skills/faff/bin/lib/bundle.js");
 const { mintIssueAnchor } = require("../plugin/skills/faff/bin/lib/events.js");
+const { sha256 } = require("../plugin/skills/faff/bin/lib/integrity-digest.js");
+const { CONTRACTS } = require("../plugin/skills/faff/bin/lib/contract-defs.js");
+const { HERE } = require("../plugin/skills/faff/bin/lib/shared-infra.js");
 
 // --- --selftest tables (no network beyond a local scratch bare repo) ---
 test("bundle --selftest: pure cores + local-store round trip + scratch-bare-repo git-remote round trip pass", () => {
@@ -90,6 +93,246 @@ function fixtureRoot() {
   assert.equal(mint.ok, true, "fixture: anchor mint must succeed");
   return { root, run_id, runDir };
 }
+
+// --- FAFF-845: contract_fingerprint + the b1/b2 version gate -------------------------------
+// A fixture root whose ledger carries caller-supplied posture fields (dial_profile/floor/
+// corrective_authority/prd_creative_licence), with a minted FAFF-1 anchor — buildBundle refuses
+// to run before an anchor exists, so every buildBundle-level test needs one.
+function fixtureRootWithLedger(ledgerOverrides) {
+  const root = mkdtempSync(path.join(tmpdir(), "faff-bundle-fp-t-"));
+  const run_id = "run-fixture-000000-fp";
+  const runDir = path.join(root, ".faff", "runs", run_id);
+  mkdirSync(runDir, { recursive: true });
+  const ledger = { admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" }, ...ledgerOverrides };
+  writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify(ledger));
+  writeFileSync(path.join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${run_id}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+  mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
+  writeFileSync(path.join(runDir, "FAFF-1", "ac-checklist.json"), '{"all_verified":true}');
+  const anchorDest = path.join(root, ".faff", "anchors", run_id, "FAFF-1");
+  const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDest);
+  assert.equal(mint.ok, true, "fixture: anchor mint must succeed");
+  return { root, run_id, runDir };
+}
+
+// Remints the outer manifest tail (memberRefs + bundle_manifest_digest) over a caller-supplied
+// memberBytes map, exactly like buildBundle's own tail — used to construct a self-consistent
+// synthetic bundle (b1, or a deliberately doctored b2) for classifyBundle's pure-core tests.
+function remintManifest(memberBytes, identity, version) {
+  const members = {};
+  for (const [name, bytes] of Object.entries(memberBytes)) members[name] = { sha256: sha256(bytes), bytes_len: bytes.length };
+  const bundle_manifest_digest = sha256(Buffer.from(canonicalJSON(members), "utf8"));
+  return { version, identity, members, bundle_manifest_digest };
+}
+
+// Builds the `read` shape classifyBundle expects, straight from a memberBytes map + its remint
+// manifest — no store, no I/O. Mirrors what verifyBundleIdentity assembles from a real store read.
+function readFromBuilt(memberBytes, manifest) {
+  const members = {};
+  for (const [name, bytes] of Object.entries(memberBytes)) members[name] = { status: "ok", bytes };
+  return {
+    identity: manifest.identity, headStatus: "ok", headDigest: manifest.bundle_manifest_digest,
+    manifestMemberRefs: manifest.members, version: manifest.version, members, laterBoundaries: [],
+  };
+}
+
+test("contract_fingerprint: shape matches the record and digest === sha256(canonicalJSON(inputs))", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    assert.equal(fp.inputs.version, "cf1");
+    assert.ok("posture" in fp.inputs);
+    assert.ok("contract_schema_versions" in fp.inputs);
+    assert.equal(fp.digest, sha256(Buffer.from(canonicalJSON(fp.inputs), "utf8")));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("contract_fingerprint: the digest changes when a single posture field flips", () => {
+  const base = {
+    dial_profile: { appetite: "full", convergence: "forced", slots: { review: "noon" }, gates: "default" },
+    floor: { no_execute: true, worktree_isolation: true, autonomous_contract: true },
+    corrective_authority: "available", prd_creative_licence: "broad",
+  };
+  const f1 = fixtureRootWithLedger(base);
+  const f2 = fixtureRootWithLedger({ ...base, corrective_authority: "channel-D-only" });
+  try {
+    const id1 = { run_id: f1.run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const id2 = { run_id: f2.run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const fp1 = JSON.parse(buildBundle(f1.runDir, id1, f1.root).memberBytes.contract_fingerprint.toString("utf8"));
+    const fp2 = JSON.parse(buildBundle(f2.runDir, id2, f2.root).memberBytes.contract_fingerprint.toString("utf8"));
+    assert.notEqual(fp1.digest, fp2.digest);
+  } finally {
+    rmSync(f1.root, { recursive: true, force: true });
+    rmSync(f2.root, { recursive: true, force: true });
+  }
+});
+
+test("contract_fingerprint: byte-identical across a re-publish of the same already-minted anchor (determinism)", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({
+    dial_profile: { appetite: "full" }, floor: { no_execute: true }, corrective_authority: "available", prd_creative_licence: "tight",
+  });
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built1 = buildBundle(runDir, identity, root);
+    const built2 = buildBundle(runDir, identity, root);
+    assert.ok(built1.memberBytes.contract_fingerprint.equals(built2.memberBytes.contract_fingerprint), "contract_fingerprint bytes are byte-identical across two builds of the same anchor");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("contract_fingerprint: inputs.posture equals the posture read off the bundle's own ledger_snapshot member (never a second run-ledger.json read)", () => {
+  const posture = { dial_profile: { a: 1 }, floor: { b: 2 }, corrective_authority: "available", prd_creative_licence: "tight" };
+  const { root, run_id, runDir } = fixtureRootWithLedger(posture);
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    const ledgerObj = JSON.parse(built.memberBytes.ledger_snapshot.toString("utf8"));
+    const wantPosture = {
+      dial_profile: ledgerObj.dial_profile ?? null, floor: ledgerObj.floor ?? null,
+      corrective_authority: ledgerObj.corrective_authority ?? null, prd_creative_licence: ledgerObj.prd_creative_licence ?? null,
+    };
+    assert.equal(canonicalJSON(fp.inputs.posture), canonicalJSON(wantPosture));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("contract_fingerprint: a ledger missing every posture field folds each to null and never throws", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({}); // no dial_profile/floor/corrective_authority/prd_creative_licence
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    let built;
+    assert.doesNotThrow(() => { built = buildBundle(runDir, identity, root); });
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    assert.deepEqual(fp.inputs.posture, { dial_profile: null, floor: null, corrective_authority: null, prd_creative_licence: null });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("contract_schema_versions: one entry per CONTRACTS name in sorted order; a missing schema file stores null, never throws", () => {
+  const names = Object.keys(CONTRACTS).sort();
+  const missingName = names[0];
+  const missingPath = path.resolve(HERE, "..", "contracts", `${missingName}.schema.json`);
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  const fsMod = require("node:fs");
+  const original = fsMod.readFileSync;
+  // Simulate ONE missing/unreadable schema file without touching real files on disk — patches
+  // the shared "node:fs" module object bundle.js's own `const fs = require("node:fs")` resolves
+  // to, intercepting only the one targeted schema path and delegating everything else verbatim.
+  fsMod.readFileSync = function (p, ...args) {
+    if (p === missingPath) { const e = new Error("ENOENT (simulated missing schema)"); e.code = "ENOENT"; throw e; }
+    return original.call(fsMod, p, ...args);
+  };
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    const gotNames = Object.keys(fp.inputs.contract_schema_versions);
+    assert.deepEqual(gotNames, names, "one entry per CONTRACTS name, sorted");
+    assert.equal(fp.inputs.contract_schema_versions[missingName], null, "the missing schema file stores null, not a throw");
+    for (const n of names) {
+      if (n === missingName) continue;
+      assert.match(fp.inputs.contract_schema_versions[n], /^[0-9a-f]{64}$/, `${n} is a sha256 hex digest`);
+    }
+  } finally {
+    fsMod.readFileSync = original;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("classifyBundle: a b1 bundle (6 members, no contract_fingerprint) still verifies CLEAN under the b2-aware ladder", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const b1MemberBytes = {};
+    for (const name of REQUIRED_MEMBERS_B1) b1MemberBytes[name] = built.memberBytes[name];
+    const b1Manifest = remintManifest(b1MemberBytes, built.manifest.identity, "b1");
+    const store = localBundleStore(root);
+    const put = store.put(b1Manifest.identity, b1MemberBytes, b1Manifest);
+    assert.equal(put.ok, true);
+    const { verifyBundleIdentity } = require("../plugin/skills/faff/bin/lib/bundle.js");
+    const verdict = verifyBundleIdentity(b1Manifest.identity, { root, store });
+    assert.equal(verdict.verdict, "CLEAN", `a b1 bundle must still verify CLEAN (got ${verdict.verdict}/${verdict.cause})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("bundle publish + verify (b2, real CLI): a bundle missing contract_fingerprint -> MISSING naming it, exit 1", () => {
+  const { root, run_id, runDir } = fixtureRoot();
+  try {
+    const pub = runCli(["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1", "--root", root, "--json"], { cwd: root });
+    assert.equal(pub.code, 0, pub.stderr);
+    const manifestPath = path.join(root, ".faff", "bundles", run_id, "seg-0", "FAFF-1", "manifest.json");
+    const onDiskManifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    assert.equal(onDiskManifest.version, "b2", "a new publish stamps b2");
+    const memberPath = path.join(root, ".faff", "bundles", run_id, "seg-0", "FAFF-1", "contract_fingerprint.bin");
+    rmSync(memberPath);
+    const ver = runCli(["bundle", "verify", "--run-id", run_id, "--run-segment-id", "0", "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1", "--root", root, "--json"], { cwd: root });
+    assert.equal(ver.code, 1);
+    const body = JSON.parse(ver.stdout);
+    assert.equal(body.verdict, "MISSING");
+    assert.equal(body.cause, "contract_fingerprint");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("classifyBundle: a contract_fingerprint whose digest disagrees with sha256(canonicalJSON(inputs)) -> TAMPERED naming it", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({ corrective_authority: "available" });
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    fp.digest = "0".repeat(64); // self-inconsistent: no longer sha256(canonicalJSON(fp.inputs))
+    const doctoredBytes = Buffer.from(canonicalJSON(fp), "utf8");
+    const memberBytes = { ...built.memberBytes, contract_fingerprint: doctoredBytes };
+    // Remint the OUTER manifest fresh over the doctored bytes, so the outer digest/per-member sha256
+    // checks all pass — isolating the additive INNER self-consistency check as the only thing that fires.
+    const manifest = remintManifest(memberBytes, built.manifest.identity, "b2");
+    const verdict = classifyBundle(readFromBuilt(memberBytes, manifest));
+    assert.equal(verdict.verdict, "TAMPERED");
+    assert.equal(verdict.cause, "contract_fingerprint");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("classifyBundle: a contract_fingerprint whose posture disagrees with the bundle's own ledger_snapshot -> TAMPERED naming it", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({ corrective_authority: "available" });
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    // Self-consistent lie: the doctored posture disagrees with ledger_snapshot, but fp.digest is
+    // recomputed to match the doctored inputs, so the self-digest check alone cannot catch this —
+    // only the cross-check against the independently-verified ledger_snapshot member can.
+    fp.inputs.posture = { ...fp.inputs.posture, corrective_authority: "channel-D-only" };
+    fp.digest = sha256(Buffer.from(canonicalJSON(fp.inputs), "utf8"));
+    const doctoredBytes = Buffer.from(canonicalJSON(fp), "utf8");
+    const memberBytes = { ...built.memberBytes, contract_fingerprint: doctoredBytes };
+    const manifest = remintManifest(memberBytes, built.manifest.identity, "b2");
+    const verdict = classifyBundle(readFromBuilt(memberBytes, manifest));
+    assert.equal(verdict.verdict, "TAMPERED");
+    assert.equal(verdict.cause, "contract_fingerprint");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("classifyBundle: a CLEAN b2 bundle stays CLEAN even when contract_schema_versions differs from the verifying box's local contracts/ files (never re-derived)", () => {
+  const { root, run_id, runDir } = fixtureRootWithLedger({});
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const fp = JSON.parse(built.memberBytes.contract_fingerprint.toString("utf8"));
+    fp.inputs.contract_schema_versions = { ...fp.inputs.contract_schema_versions, "totally-fake-contract-name": "0".repeat(64) };
+    fp.digest = sha256(Buffer.from(canonicalJSON(fp.inputs), "utf8"));
+    const doctoredBytes = Buffer.from(canonicalJSON(fp), "utf8");
+    const memberBytes = { ...built.memberBytes, contract_fingerprint: doctoredBytes };
+    const manifest = remintManifest(memberBytes, built.manifest.identity, "b2");
+    const verdict = classifyBundle(readFromBuilt(memberBytes, manifest));
+    assert.equal(verdict.verdict, "CLEAN", `a divergent-but-self-consistent schema map must never be re-derived locally (got ${verdict.verdict}/${verdict.cause})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("requiredMembersFor: b1 -> the shipped 6, b2 -> those 6 plus contract_fingerprint, absent/unknown -> the b1 set", () => {
+  assert.deepEqual(requiredMembersFor("b1"), REQUIRED_MEMBERS_B1);
+  assert.deepEqual(requiredMembersFor("b2"), [...REQUIRED_MEMBERS_B1, "contract_fingerprint"]);
+  assert.deepEqual(requiredMembersFor(undefined), REQUIRED_MEMBERS_B1);
+  assert.deepEqual(requiredMembersFor("bogus"), REQUIRED_MEMBERS_B1);
+});
 
 test("bundle publish (local occupant, default) then bundle verify -> CLEAN, exit 0", () => {
   const { root, run_id, runDir } = fixtureRoot();

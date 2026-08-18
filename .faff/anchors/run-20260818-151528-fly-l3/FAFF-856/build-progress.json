@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-856",
+  "build": {
+    "status": "complete",
+    "diff_hash": "5e47fe9799eaad3da76347279c2276bfcfd4f9d6265d88351291d239549306d1",
+    "branch": "faff-856-a-prd-goal-containing-a-comma-can-never-be-cited-split-in",
+    "pushed_at": "2026-08-18T16:01:19.352Z"
+  },
+  "updated_at": "2026-08-18T16:01:19.352Z"
+}

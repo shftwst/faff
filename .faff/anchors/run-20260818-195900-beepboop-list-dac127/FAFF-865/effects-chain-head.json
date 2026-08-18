@@ -1,0 +1,8 @@
+{
+  "run_id": "run-20260818-195900-beepboop-list-dac127",
+  "issue": "FAFF-865",
+  "head_seq": 2,
+  "head_sha256": "f952f8e976d9064ec2d2f8da89639bd62574338cbfd4a6ce1bae627f02b73ee1",
+  "line_count": 3,
+  "schema_floor": 2
+}

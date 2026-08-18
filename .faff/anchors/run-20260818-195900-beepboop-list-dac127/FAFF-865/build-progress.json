@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-865",
+  "build": {
+    "status": "complete",
+    "diff_hash": "71ea0d1e5614418db7f6ba4815d1c95b47cb4d49dfb4bedd0661b7495a8fdc71",
+    "branch": "faff-865-harden-bundlejs-verify-anchor-file-materialisation-against",
+    "pushed_at": "2026-08-18T21:52:17.501Z"
+  },
+  "updated_at": "2026-08-18T21:52:17.501Z"
+}

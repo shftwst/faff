@@ -43,9 +43,12 @@ const EFFECTS_SURFACE = {
   kind: "subcommand_dispatch",
   spec: EFFECTS_SPEC,
   subcommands: {
-    declare: { required_flags: ["--run", "--issue", "--step"] },
-    observe: { required_flags: ["--run", "--issue", "--step"] },
-    check: { required_flags: ["--run"] },
+    // FAFF-864: --run dropped from required_flags — declare/observe/check now take
+    // exactly one of --run / --run-dir, enforced in the handler (mirrors verify). Leaving
+    // --run here would make a --run-dir-only call fail requireFlags before the handler runs.
+    declare: { required_flags: ["--issue", "--step"] },
+    observe: { required_flags: ["--issue", "--step"] },
+    check: { required_flags: [] },
     verify: { required_flags: [] }, // one of --run / --run-dir (checked in the handler)
   },
 };
@@ -526,11 +529,12 @@ function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, t
 }
 
 function cmdEffects(args) {
-  let root = null, run = null, issue = null, step = null, ts = null;
+  let root = null, run = null, runDir = null, issue = null, step = null, ts = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--root") root = args[++i];
     else if (args[i] === "--run") run = args[++i];
+    else if (args[i] === "--run-dir") runDir = args[++i];
     else if (args[i] === "--issue") issue = args[++i];
     else if (args[i] === "--step") step = args[++i];
     else if (args[i] === "--ts") ts = args[++i];
@@ -544,17 +548,40 @@ function cmdEffects(args) {
   const cmd = rest[0];
   const asJson = rest.includes("--json");
 
+  // FAFF-864: declare/observe/check resolve their ledger dir from EITHER --run (via
+  // resolveRunDir → .faff/runs/<run>) OR --run-dir <dir> (verbatim — e.g. a committed
+  // .faff/anchors/<run> the landing comment's merge-gate also reads, so declare and
+  // observe share one ledger). Exactly one is required: both, or neither, is a caller
+  // error (exit 2). This is a stricter XOR than verify's precedence, deliberately — a
+  // write path that records a merge for the audit trail must never silently pick one of
+  // two conflicting directories the caller named. Returns { err } or { dir }.
+  const resolveLedgerDir = (subcmd) => {
+    if (runDir !== null && run !== null) {
+      process.stderr.write(`faff effects ${subcmd}: one of --run or --run-dir, not both\n`);
+      return { err: 2 };
+    }
+    if (runDir === null && run === null) {
+      process.stderr.write(`faff effects ${subcmd}: one of --run <id> or --run-dir <dir> is required\n`);
+      return { err: 2 };
+    }
+    // FAFF-591: from a linked build worktree, the --run dir lives in the MAIN checkout's
+    // .faff/runs/, not this cwd's — resolveRunDir falls back there. A --run-dir is used
+    // verbatim (no fallback — the caller named the exact directory).
+    return { dir: runDir !== null ? runDir : resolveRunDir(root, run, rootExplicit) };
+  };
+
   if (cmd === "declare" || cmd === "observe") {
-    const reqErr = requireFlags({ "--run": run, "--issue": issue, "--step": step }, EFFECTS_SURFACE.subcommands[cmd], "effects", cmd);
+    const reqErr = requireFlags({ "--issue": issue, "--step": step }, EFFECTS_SURFACE.subcommands[cmd], "effects", cmd);
     if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
-    // FAFF-591: from a linked build worktree, the run dir lives in the MAIN checkout's
-    // .faff/runs/, not this cwd's — resolveRunDir falls back there (root-explicit only
-    // ever uses the cwd-root path, unchanged).
-    const dir = resolveRunDir(root, run, rootExplicit);
+    const resolved = resolveLedgerDir(cmd);
+    if (resolved.err) return resolved.err;
+    const dir = resolved.dir;
     // A missing path OR a non-directory there is "no valid run dir" → exit 3 (parity with
-    // `events append`), never an uncaught ENOTDIR when appendFileSync hits a file.
+    // `events append`), never an uncaught ENOTDIR when appendFileSync hits a file. No
+    // create-if-missing: a mistyped --run-dir (or an anchor that never got committed) must
+    // fail loud here, never silently mint an orphan ledger nobody reads.
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
-      process.stderr.write(`faff effects ${cmd}: run dir missing (${path.join(".faff", "runs", run)}) — initialise the run first\n`);
+      process.stderr.write(`faff effects ${cmd}: run dir missing (${dir}) — initialise the run first\n`);
       return 3;
     }
     let raw;
@@ -565,11 +592,10 @@ function cmdEffects(args) {
     catch { process.stderr.write(`faff effects ${cmd}: malformed payload (invalid JSON)\n`); return 2; }
     const descriptors = Array.isArray(payload) ? payload : [payload];
     if (descriptors.length === 0) { process.stderr.write(`faff effects ${cmd}: no effect descriptors in payload\n`); return 1; }
-    // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2). run_id
-    // is `run` verbatim here (dir's basename === run by construction — dir was just resolved
-    // via resolveRunDir above, cwd-root or main-checkout, either way basename === run), so
-    // appendEffectEntries's basename-derived run_id is byte-identical to what this CLI wrote
-    // before the extraction.
+    // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2).
+    // appendEffectEntries derives run_id from path.basename(dir); since .faff/anchors/<run>
+    // and .faff/runs/<run> share the basename <run>, a --run-dir-resolved ledger carries the
+    // same run_id + chain genesis as a --run-resolved one (FAFF-864 — indistinguishable in shape).
     const result = appendEffectEntries(dir, cmd, issue, step, descriptors, ts);
     if (result.violations) {
       // Validate ALL before writing ANY (all-or-nothing; a bad descriptor writes nothing) —
@@ -582,14 +608,18 @@ function cmdEffects(args) {
   }
 
   if (cmd === "check") {
-    const reqErr = requireFlags({ "--run": run }, EFFECTS_SURFACE.subcommands.check, "effects", "check");
-    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
+    // FAFF-864: check takes --run XOR --run-dir like declare/observe, so a human on a fresh
+    // checkout can self-verify coverage against the committed anchor
+    // (`faff effects check --run-dir .faff/anchors/<run> --issue <ISSUE>`) rather than a
+    // false "clean" from an absent .faff/runs/<run> ledger.
+    const resolved = resolveLedgerDir("check");
+    if (resolved.err) return resolved.err;
     // Absence of the ledger is a CLEAN state (no declared-effects activity), NOT exit 3 —
     // parity with `events read` tolerance, and the spec's explicit edge case. FAFF-591: resolve
     // the run dir the same worktree-aware way as declare/observe, so `check` from a build
     // worktree reads the main checkout's ledger instead of false-reporting clean against an
     // empty worktree root.
-    const ledgerPath = path.join(resolveRunDir(root, run, rootExplicit), "declared-effects.jsonl");
+    const ledgerPath = path.join(resolved.dir, "declared-effects.jsonl");
     let entries = [];
     if (fs.existsSync(ledgerPath)) {
       entries = fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")

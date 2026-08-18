@@ -100,7 +100,7 @@ function renderBody(opts) {
     inner = [
       "Ready to land. Run this locally in a real terminal:",
       "",
-      `    faff effects declare --run ${run} --issue ${issue} --step merge <<'EOF'`,
+      `    faff effects declare --run-dir .faff/anchors/${run} --issue ${issue} --step merge <<'EOF'`,
       `    [{"kind":"merge","target":"pr:${pr}","reversible":true}]`,
       "    EOF",
       `    faff merge-gate --pr ${pr} --issue ${issue} --run-dir .faff/anchors/${run} --level ${level} \\`,
@@ -254,6 +254,9 @@ function landingCommentSelftest() {
     t("renderBody merge-ok contains --execute", body.includes("--execute"));
     t("renderBody merge-ok contains faff effects declare", body.includes("faff effects declare"));
     t("renderBody merge-ok contains --run-dir .faff/anchors/run-abc", body.includes("--run-dir .faff/anchors/run-abc"));
+    // FAFF-864: the declare line must point at the anchor dir merge-gate reads (--run-dir),
+    // never `--run run-abc` (the live run dir), so declare + merge-gate share one ledger.
+    t("renderBody merge-ok declare uses --run-dir, not bare --run", !body.includes("--run run-abc"));
     t("renderBody merge-ok wraps in the open+close markers",
       body.startsWith("<!-- faff-landing:12 -->") && body.trimEnd().endsWith("<!-- /faff-landing:12 -->"));
   }

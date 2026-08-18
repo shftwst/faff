@@ -170,7 +170,7 @@ function runbookFindings(body, source) {
 
 // Extract dotted keys + scalar values from an embedded `.faffrc.yaml` body. A minimal indent-stack
 // walk of the documented YAML subset — enough to key `slots.*`, `appetite`, `models.*`, `effort.*`;
-// deeper namespaced blocks (backends.*, budget.*, faffter_dark.*, tracking.*) round-trip as tolerated
+// deeper namespaced blocks (backends.*, budget.*, adversarial.*, tracking.*) round-trip as tolerated
 // keys their own validators own (see OUT OF SCOPE — deep grammar).
 function extractFaffrcKeys(body) {
   const out = [];

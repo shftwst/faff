@@ -105,9 +105,9 @@ test("schema coverage: every .faffrc.example.yaml top-level key is a writable na
 
 test("holdout: refuses a block-sequence carve-out key, file byte-unchanged", () => {
   const dir = tmpDir();
-  const before = "faffter_dark:\n  adversarial:\n    refs:\n      - nvidia-glm\n      - studio-ollama\n";
+  const before = "adversarial:\n  refs:\n    - nvidia-glm\n    - studio-ollama\n";
   writeFileSync(join(dir, ".faffrc.yaml"), before);
-  const r = run(dir, "config", "set", "faffter_dark.adversarial.refs", "foo");
+  const r = run(dir, "config", "set", "adversarial.refs", "foo");
   assert.equal(r.code, 2);
   assert.match(r.err, /list-valued key/);
   assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);
@@ -115,9 +115,9 @@ test("holdout: refuses a block-sequence carve-out key, file byte-unchanged", () 
 
 test("holdout: refuses the documented JSON-string fallbacks form, even with --force, file byte-unchanged", () => {
   const dir = tmpDir();
-  const before = 'faffter_dark:\n  adversarial:\n    fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]\'\n';
+  const before = 'adversarial:\n  fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]\'\n';
   writeFileSync(join(dir, ".faffrc.yaml"), before);
-  const r = run(dir, "config", "set", "faffter_dark.adversarial.fallbacks", "foo", "--force");
+  const r = run(dir, "config", "set", "adversarial.fallbacks", "foo", "--force");
   assert.equal(r.code, 2);
   assert.match(r.err, /list-valued key/);
   assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before, "the fallback chain must NOT be flattened to a scalar");
@@ -125,9 +125,9 @@ test("holdout: refuses the documented JSON-string fallbacks form, even with --fo
 
 test("holdout: refuses the inline-flow refs form, even with --force, file byte-unchanged", () => {
   const dir = tmpDir();
-  const before = "faffter_dark:\n  adversarial:\n    refs: [nvidia-glm, studio-ollama]\n";
+  const before = "adversarial:\n  refs: [nvidia-glm, studio-ollama]\n";
   writeFileSync(join(dir, ".faffrc.yaml"), before);
-  const r = run(dir, "config", "set", "faffter_dark.adversarial.refs", "foo", "--force");
+  const r = run(dir, "config", "set", "adversarial.refs", "foo", "--force");
   assert.equal(r.code, 2);
   assert.match(r.err, /list-valued key/);
   assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);

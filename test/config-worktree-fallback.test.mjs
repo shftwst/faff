@@ -38,12 +38,12 @@ function setup(faffrcBody, overlayBody) {
   return { parent, root, wt };
 }
 
-const FAFFRC = "faffter_dark:\n  adversarial:\n    host: http://example.test:11434\n";
+const FAFFRC = "adversarial:\n  host: http://example.test:11434\n";
 
 test("config get from a linked worktree without .faffrc.yaml falls back to the main checkout's config (FAFF-208)", () => {
   const { parent, wt } = setup(FAFFRC);
   try {
-    const { stdout, code } = runCli(["config", "get", "faffter_dark.adversarial.host"], { cwd: wt });
+    const { stdout, code } = runCli(["config", "get", "adversarial.host"], { cwd: wt });
     assert.equal(code, 0, "exit 0 — resolved via the main-worktree fallback");
     assert.equal(stdout.trim(), "http://example.test:11434");
   } finally {
@@ -54,7 +54,7 @@ test("config get from a linked worktree without .faffrc.yaml falls back to the m
 test("config get from the main checkout itself is unchanged (no regression)", () => {
   const { parent, root } = setup(FAFFRC);
   try {
-    const { stdout, code } = runCli(["config", "get", "faffter_dark.adversarial.host"], { cwd: root });
+    const { stdout, code } = runCli(["config", "get", "adversarial.host"], { cwd: root });
     assert.equal(code, 0);
     assert.equal(stdout.trim(), "http://example.test:11434");
   } finally {
@@ -65,7 +65,7 @@ test("config get from the main checkout itself is unchanged (no regression)", ()
 test("no false resolution: a worktree returns the -d default (exit 3) when the main checkout also has no config (FAFF-208)", () => {
   const { parent, wt } = setup(undefined); // no .faffrc.yaml anywhere
   try {
-    const { stdout, code } = runCli(["config", "get", "faffter_dark.adversarial.host", "-d", "DEFAULT"], { cwd: wt });
+    const { stdout, code } = runCli(["config", "get", "adversarial.host", "-d", "DEFAULT"], { cwd: wt });
     assert.equal(code, 3, "absent everywhere → -d default path");
     assert.equal(stdout.trim(), "DEFAULT");
   } finally {

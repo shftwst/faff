@@ -63,7 +63,7 @@ budget:
   # cost: 15   # optional: budget.cost — the recommended L4 governor (FAFF-427)
   at_ceiling: stop
 # backends: namespace (FAFF-523/529) — named entries the adversarial `review`/`spec_review` slots'
-# refs below point at; replaces the legacy faffter_dark.adversarial primary+fallbacks scalar block.
+# refs below point at; replaces the legacy adversarial primary+fallbacks scalar block.
 # api_key_env names resolve from .env.claude-box at call time (name only, never the key itself —
 # the box-env copy step below supplies the actual values, gitignored, never committed). Mirrors
 # faff-root's own currently-served model ids. ollama-local is keyless (no .env.claude-box key
@@ -93,11 +93,10 @@ backends:
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
-faffter_dark:
-  adversarial:
-    refs:
-      - nvidia-glm
-      - gemini-gemma
+adversarial:
+  refs:
+    - nvidia-glm
+    - gemini-gemma
 EOF
 
 # Local ollama overlay (FAFF-618): written from FAFF_EVAL_LOCAL_BASE_URL so the operator's
@@ -113,12 +112,11 @@ backends:
     host: ${FAFF_EVAL_LOCAL_BASE_URL}
     auth: none
     egress: local
-faffter_dark:
-  adversarial:
-    refs:                      # sequence — replaces the base two-item list wholesale
-      - nvidia-glm
-      - gemini-gemma
-      - ollama-local
+adversarial:
+  refs:                      # sequence — replaces the base two-item list wholesale
+    - nvidia-glm
+    - gemini-gemma
+    - ollama-local
 EOF
   echo "wrote .faffrc.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
 else

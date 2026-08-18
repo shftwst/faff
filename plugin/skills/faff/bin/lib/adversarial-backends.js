@@ -70,14 +70,14 @@ function inheritOptionalFromPrimary(fallback, primary) {
 }
 
 // PURE core (FAFF-261): assemble the primary-first backend chain from the
-// `faffter_dark.adversarial` config block. Returns { chain } on success, or
+// `adversarial` config block. Returns { chain } on success, or
 // { error: "unset" } — no provider configured, or its host is unset (the
 // FAFF-213 signal; the caller maps this to exit 3, never a localhost-defaulted
 // chain) — or { error: "malformed", detail } — unparseable/non-array
 // `fallbacks` JSON (the caller maps this to exit 2, fail-loud, never a
 // silently-emitted [primary]-only chain on a broken config).
 function assembleAdversarialBackends(cfg) {
-  const adv = dig(cfg, "faffter_dark.adversarial");
+  const adv = dig(cfg, "adversarial");
   if (!adv || typeof adv !== "object" || Array.isArray(adv)) return { error: "unset" };
 
   // FAFF-523: named `refs:` block sequence — an ordered reference into the
@@ -116,9 +116,9 @@ function assembleAdversarialBackends(cfg) {
     // The documented canonical shape: a quoted JSON-string array.
     let parsed;
     try { parsed = JSON.parse(adv.fallbacks); }
-    catch (e) { return { error: "malformed", detail: `faffter_dark.adversarial.fallbacks is not valid JSON: ${e.message}` }; }
+    catch (e) { return { error: "malformed", detail: `adversarial.fallbacks is not valid JSON: ${e.message}` }; }
     if (!Array.isArray(parsed)) {
-      return { error: "malformed", detail: "faffter_dark.adversarial.fallbacks must be a JSON array of backend objects" };
+      return { error: "malformed", detail: "adversarial.fallbacks must be a JSON array of backend objects" };
     }
     fallbacks = parsed.map((fb) => inheritOptionalFromPrimary(fb, primary));
   }
@@ -141,7 +141,7 @@ function cmdAdversarialBackends(args) {
   const res = assembleAdversarialBackends(cfg);
   if (res.error === "unset") {
     process.stderr.write(
-      "faff adversarial-backends: faffter_dark.adversarial is unset (or its host is unset) — " +
+      "faff adversarial-backends: adversarial is unset (or its host is unset) — " +
       "no adversarial provider configured; the calling skill's --host-source default → needs-human path applies\n");
     return 3;
   }
@@ -164,10 +164,10 @@ function adversarialBackendsSelftest() {
 
   // legacy, primary-only (no fallbacks key at all) — one-element chain.
   {
-    const cfg = { faffter_dark: { adversarial: {
+    const cfg = { adversarial: {
       provider: "nvidia", model: "nvidia/nemotron-3-super-120b-a12b",
       host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
-    } } };
+    }  };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy primary-only: one-element chain", !!res.chain && res.chain.length === 1);
     ok("legacy primary-only: nvidia/ prefix intact", res.chain[0].model === "nvidia/nemotron-3-super-120b-a12b");
@@ -176,11 +176,11 @@ function adversarialBackendsSelftest() {
 
   // legacy, primary + fallbacks — inheritance of omitted optional keys + nvidia/ prefix preserved.
   {
-    const cfg = { faffter_dark: { adversarial: {
+    const cfg = { adversarial: {
       provider: "nvidia", model: "nvidia/nemotron-3-super-120b-a12b",
       host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
       fallbacks: JSON.stringify([{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio:11434" }]),
-    } } };
+    }  };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy+fallbacks: two-element primary-first chain", !!res.chain && res.chain.length === 2);
     ok("legacy+fallbacks: primary nvidia/ prefix intact", res.chain[0].model === "nvidia/nemotron-3-super-120b-a12b");
@@ -192,10 +192,10 @@ function adversarialBackendsSelftest() {
 
   // legacy, fallback with its OWN api_key_env — inheritance never overwrites an explicit value.
   {
-    const cfg = { faffter_dark: { adversarial: {
+    const cfg = { adversarial: {
       provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "PRIMARY_KEY",
       fallbacks: JSON.stringify([{ provider: "openai", model: "m2", host: "https://b/v1", api_key_env: "FALLBACK_KEY" }]),
-    } } };
+    }  };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy+fallbacks: an explicit fallback api_key_env is never overwritten by inheritance", res.chain[1].api_key_env === "FALLBACK_KEY");
   }
@@ -205,10 +205,10 @@ function adversarialBackendsSelftest() {
   // .faffrc.yaml may already hand this a JS array; it must be used as-is, never JSON.parse'd
   // (which would misreport a valid native list as malformed via toString() coercion).
   {
-    const cfg = { faffter_dark: { adversarial: {
+    const cfg = { adversarial: {
       provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "NVIDIA_API_KEY",
       fallbacks: [{ provider: "gemini", model: "models/gemma-4-31b-it", host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY" }],
-    } } };
+    }  };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy, native-array fallbacks: not misreported as malformed", res.error === undefined);
     ok("legacy, native-array fallbacks: two-element primary-first chain", !!res.chain && res.chain.length === 2);
@@ -218,10 +218,10 @@ function adversarialBackendsSelftest() {
 
   // native backends: array — each element used as-is, no inheritance applied.
   {
-    const cfg = { faffter_dark: { adversarial: { backends: [
+    const cfg = { adversarial: { backends: [
       { provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "K1" },
       { provider: "ollama", model: "m2", host: "http://b:11434" },
-    ] } } };
+    ] }  };
     const res = assembleAdversarialBackends(cfg);
     ok("native backends: two-element chain, primary-first order preserved",
       !!res.chain && res.chain.length === 2 && res.chain[0].model === "nvidia/m1" && res.chain[1].model === "m2");
@@ -230,30 +230,30 @@ function adversarialBackendsSelftest() {
 
   // native backends: empty array falls through to legacy — unset host here → exit-3 class.
   {
-    const cfg = { faffter_dark: { adversarial: { backends: [] } } };
+    const cfg = { adversarial: { backends: [] }  };
     ok("native empty backends[] + no legacy host → unset (exit-3 class)", assembleAdversarialBackends(cfg).error === "unset");
   }
 
-  // unset: no faffter_dark.adversarial block at all.
+  // unset: no adversarial block at all.
   ok("absent adversarial block → unset (exit-3 class)", assembleAdversarialBackends({}).error === "unset");
 
   // unset: legacy scalars present but host is unset (the FAFF-213 signal) — must
   // NEVER fall back to a localhost-defaulted chain.
   {
-    const cfg = { faffter_dark: { adversarial: { provider: "nvidia", model: "m1" } } };
+    const cfg = { adversarial: { provider: "nvidia", model: "m1" }  };
     ok("legacy with unset host → unset (exit-3 class), never a localhost default", assembleAdversarialBackends(cfg).error === "unset");
   }
 
   // malformed: fallbacks is not valid JSON.
   {
-    const cfg = { faffter_dark: { adversarial: { provider: "nvidia", model: "m1", host: "https://a/v1", fallbacks: "{not json" } } };
+    const cfg = { adversarial: { provider: "nvidia", model: "m1", host: "https://a/v1", fallbacks: "{not json" } } ;
     ok("malformed fallbacks JSON → malformed (exit-2 class), never a silent [primary]-only chain",
       assembleAdversarialBackends(cfg).error === "malformed");
   }
 
   // malformed: fallbacks parses but is not an array.
   {
-    const cfg = { faffter_dark: { adversarial: { provider: "nvidia", model: "m1", host: "https://a/v1", fallbacks: '{"a":1}' } } };
+    const cfg = { adversarial: { provider: "nvidia", model: "m1", host: "https://a/v1", fallbacks: '{"a":1}' }  };
     ok("non-array fallbacks JSON → malformed (exit-2 class)", assembleAdversarialBackends(cfg).error === "malformed");
   }
 
@@ -261,10 +261,10 @@ function adversarialBackendsSelftest() {
   // --backends-json mapper reads (provider/model/host/api_key_env/reasoning_off/timeout) —
   // no camelCase, no stray keys leaked from the config object.
   {
-    const cfg = { faffter_dark: { adversarial: {
+    const cfg = { adversarial: {
       provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K", reasoning_off: true, timeout: 30,
       some_other_key: "must-not-leak",
-    } } };
+    }  };
     const res = assembleAdversarialBackends(cfg);
     const keys = Object.keys(res.chain[0]);
     const allowed = new Set(BACKEND_KEYS);
@@ -278,7 +278,7 @@ function adversarialBackendsSelftest() {
   {
     const cfg = {
       backends: { seat: { provider: "anthropic", model: "claude-opus-4-8", auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" } },
-      faffter_dark: { adversarial: { refs: ["seat"] } },
+       adversarial: { refs: ["seat"] } ,
     };
     const res = assembleAdversarialBackends(cfg);
     ok("refs→seat: chain assembled", !!res.chain && res.chain.length === 1);
@@ -290,9 +290,9 @@ function adversarialBackendsSelftest() {
   // FAFF-696: a legacy metered backend (no auth/seat handle) emits byte-identically —
   // the two new keys are simply absent (present() gates the copy).
   {
-    const cfg = { faffter_dark: { adversarial: {
+    const cfg = { adversarial: {
       provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K", timeout: 480,
-    } } };
+    }  };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy metered: no auth key leaked", !("auth" in res.chain[0]));
     ok("legacy metered: no seat_token_env key leaked", !("seat_token_env" in res.chain[0]));

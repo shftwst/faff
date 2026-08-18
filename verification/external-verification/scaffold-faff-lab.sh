@@ -116,11 +116,10 @@ backends:
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
-faffter_dark:
-  adversarial:
-    refs:
-      - nvidia-glm
-      - gemini-gemma
+adversarial:
+  refs:
+    - nvidia-glm
+    - gemini-gemma
 EOF
 
 # Local ollama overlay (FAFF-618): written from FAFF_EVAL_LOCAL_BASE_URL so the operator's
@@ -136,12 +135,11 @@ backends:
     host: ${FAFF_EVAL_LOCAL_BASE_URL}
     auth: none
     egress: local
-faffter_dark:
-  adversarial:
-    refs:                      # sequence — replaces the base two-item list wholesale
-      - nvidia-glm
-      - gemini-gemma
-      - ollama-local
+adversarial:
+  refs:                      # sequence — replaces the base two-item list wholesale
+    - nvidia-glm
+    - gemini-gemma
+    - ollama-local
 EOF
   echo "wrote .faffrc.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
 else

@@ -51,13 +51,12 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc.yaml`. Transport families supported: `ollama`, any OpenAI-compatible `/v1` endpoint (`openai`, `vllm`, `openrouter`, `nvidia`, `deepseek`, and `gemini` via Google's OpenAI-compat base URL), and `anthropic` (native `/v1/messages`):
 
 ```yaml
-faffter_dark:
-  adversarial:
-    provider: nvidia
-    model: deepseek-ai/deepseek-v4-pro
-    host: https://integrate.api.nvidia.com/v1   # base URL incl. /v1
-    api_key_env: NVIDIA_API_KEY                 # env var NAME, not the key
-    reasoning_off: true                         # reasoning models: disable the hidden think-block
+adversarial:
+  provider: nvidia
+  model: deepseek-ai/deepseek-v4-pro
+  host: https://integrate.api.nvidia.com/v1   # base URL incl. /v1
+  api_key_env: NVIDIA_API_KEY                 # env var NAME, not the key
+  reasoning_off: true                         # reasoning models: disable the hidden think-block
 ```
 
 `gemini` rides the OpenAI-compat family (set `host` to Google's compat base URL — no adaptor needed); `anthropic` has a native `/v1/messages` transport. The core principle is **independence** — use a different model family from whatever wrote the code, so **don't set `provider: anthropic` when Claude authored/reviewed the diff**. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.

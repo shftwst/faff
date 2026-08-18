@@ -10,7 +10,7 @@
 // dial-coherence now checks only the two remaining explicit dials (`slots.review`,
 // `slots.spec_review`) here; the third leg is asserted default-covered, not heredoc-present.
 // FAFF-524 also added three new runtime-hole invariants: the `.env.claude-box` box-env secret
-// must be gitignored in every L4-eligible scaffolder, a `faffter_dark.adversarial` legacy-shape
+// must be gitignored in every L4-eligible scaffolder, an `adversarial` legacy-shape
 // backend block must be emitted, and (P2 only) the PRD moves under `docs/prd/` with a matching
 // `tracking.container`.
 //
@@ -87,7 +87,7 @@ function hasEnvClaudeBoxGitignored(gitignoreBody) {
 }
 
 function hasAdversarialBackendBlock(faffrcBody) {
-  return /faffter_dark:\s*\n\s*adversarial:/.test(faffrcBody || "");
+  return /^adversarial:\s*\n\s+\S/m.test(faffrcBody || "");
 }
 
 test("P1/P2/P3 heredocs carry both explicit L4 lights-out dials (review + spec_review)", () => {
@@ -217,10 +217,10 @@ for (const name of ELIGIBLE) {
   });
 }
 
-test("P1/P2/P3 heredocs emit a faffter_dark.adversarial backend block, keyed via .env.claude-box", () => {
+test("P1/P2/P3 heredocs emit an adversarial backend block, keyed via .env.claude-box", () => {
   for (const name of ELIGIBLE) {
     const body = extractFaffrcHeredoc(readScript(name));
-    assert.ok(hasAdversarialBackendBlock(body), `${name}: no faffter_dark.adversarial block found`);
+    assert.ok(hasAdversarialBackendBlock(body), `${name}: no adversarial block found`);
     assert.match(body, /provider:\s*nvidia/, `${name}: adversarial block missing an nvidia provider`);
     assert.match(body, /api_key_env:\s*NVIDIA_API_KEY/, `${name}: adversarial block missing NVIDIA_API_KEY`);
     assert.match(body, /provider:\s*gemini/, `${name}: adversarial block missing a gemini fallback`);
@@ -268,12 +268,12 @@ test("P4/P5 heredocs do NOT claim either explicit L4 dial, nor an explicit gates
   }
 });
 
-test("P4/P5 have no .env.claude-box copy step and no faffter_dark.adversarial block", () => {
+test("P4/P5 have no .env.claude-box copy step and no adversarial block", () => {
   for (const name of GATED) {
     const text = readScript(name);
     assert.ok(!text.includes(".env.claude-box"), `${name}: unexpectedly references .env.claude-box`);
     const body = extractFaffrcHeredoc(text);
-    assert.ok(!hasAdversarialBackendBlock(body), `${name}: unexpectedly carries a faffter_dark.adversarial block`);
+    assert.ok(!hasAdversarialBackendBlock(body), `${name}: unexpectedly carries an adversarial block`);
   }
 });
 

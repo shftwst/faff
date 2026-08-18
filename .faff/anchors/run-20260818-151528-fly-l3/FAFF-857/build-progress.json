@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-857",
+  "build": {
+    "status": "complete",
+    "diff_hash": "37bb3b9b414f29a0d87d7d924ee33c503bb775d772dc6084715ac002f1b1524f",
+    "branch": "faff-857-l4-drain-hand-rolls-a-raw-external-api-call-the-cage-blocks",
+    "pushed_at": "2026-08-18T16:01:55.522Z"
+  },
+  "updated_at": "2026-08-18T16:01:55.522Z"
+}

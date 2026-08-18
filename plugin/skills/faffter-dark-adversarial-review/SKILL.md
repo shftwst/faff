@@ -111,7 +111,9 @@ This is NOT a repeat of the primary review. The adversarial reviewer looks for t
 
 ## LLM provider integration
 
-The skill supports any LLM backend. Provider and model are configured in `.faffrc`:
+**The network call is made only by the bundled `review-call.mjs` helper** (via `review-spawn.mjs`) — never a hand-rolled request. The cage sandbox blocks a raw call straight to a backend host (recorded under `permission_denials`), so hand-rolling one costs a wasted turn recovering to the sanctioned path; see **Backend call** below for the actual invocation. Everything between here and **Backend call** is backend **configuration** the helper consumes internally on your behalf — not a request shape to construct yourself.
+
+The skill supports any LLM backend. Configure which one it should use in `.faffrc`:
 
 ```yaml
 faffter_dark:
@@ -137,7 +139,7 @@ faffter_dark:
 - **Each fallback is self-contained** (its own `provider`/`model`/`host` required); omitted optional keys (`api_key_env`, `reasoning_off`, `timeout`) inherit the primary's — assembled **mechanically** by `faff adversarial-backends`, never hand-`JSON.parse`d by the model (see **Backend call** below).
 - **No silent weakening** — an all-failed chain is never more pass-like than today's single backend: a config fault (auth / not-served / unsupported / unconfigured-default-host) anywhere in a fully-failed chain surfaces `needs-human`; only a chain of purely configured-host availability failures `pass+skip`s. The chain loop + terminal precedence live deterministically in `review-call.mjs` (`runReviewChain` / `chainTerminalExit`), not in this prose.
 
-**Transport families** — `review-call.mjs` dispatches on `provider`:
+**Transport families (helper-internal — how `review-call.mjs` dispatches on `provider`; not a recipe to call yourself):**
 
 | Provider | Transport | Host | Auth | Notes |
 |---|---|---|---|---|
@@ -146,6 +148,8 @@ faffter_dark:
 | `anthropic` | native (`/v1/messages`, named-event SSE) | `host` = `https://api.anthropic.com` | `x-api-key` + `anthropic-version` from `api_key_env` | No preflight (no model-list endpoint — a bad model id surfaces as a 404 → `needs-human`); no `reasoning_off` |
 
 An unknown provider exits `2` (loud), never a silent pass. (A malformed `gemini` key returns HTTP 400 `API_KEY_INVALID`, which the helper classifies as auth → `needs-human`, never a silent `pass+skip`.)
+
+**Anti-pattern: hand-rolling the backend request.** Reconstructing the endpoint path, host, and auth header above into a `python3`/`curl`/raw-HTTP call outside `review-call.mjs` — even though the table gives enough detail to do it. Why: the cage sandbox blocks raw backend egress (`permission_denials`), and recovering from the block to the sanctioned helper wastes a turn. `review-call.mjs` (via `review-spawn.mjs`) is the only network path this skill uses; see **Backend call** below.
 
 **`reasoning_off`** — set `true` for a reasoning model that streams empty `content` unless its hidden think-block is disabled (e.g. NVIDIA `deepseek-*`). It adds `chat_template_kwargs:{thinking:false}` to the OpenAI-compatible payload (the analogue of ollama's always-on `think:false`). It is **opt-in** because vanilla OpenAI rejects the unknown field — leave it `false` for GPT-4o/o-series.
 

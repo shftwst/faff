@@ -365,7 +365,7 @@ test("FAFF-764: L4 run, discovered_scope_filed > 0 with zero containment-check e
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("FAFF-764: L4 run, a NON-root containment-check verdict:outward -> outward-boundary-reach, pause, carrying seq/issue/mandate/parent", () => {
+test("FAFF-777: L4 run, a NON-root containment-check verdict:outward ALONE -> outward-boundary-reach, surface (gated, non-parking), carrying seq/issue/mandate/parent", () => {
   const dir = tmp();
   try {
     const rd = mkRun(dir, "r", { run_id: "r", level: "L4", prd_root_container: "FAFF-700", admitted: [], outcomes: {} },
@@ -378,6 +378,23 @@ test("FAFF-764: L4 run, a NON-root containment-check verdict:outward -> outward-
     assert.equal(v.evidence.issue, "FAFF-900");
     assert.equal(v.evidence.mandate, "FAFF-700");
     assert.equal(v.evidence.parent, "FAFF-401");
+    // FAFF-777: outward-boundary-reach is UNCORROBORATED (a bare recorded walk, not
+    // a re-derived inconsistency) — it is gated to the non-parking soft rung
+    // (OUTWARD_ALONE_RUNG = "surface"), never "pause".
+    assert.equal(out.intervention, "surface");
+    assert.ok(out.tripped, "still trips — the verdict is visible, only the intervention softens");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-777: L4 run, recompute-mismatch (corroborated) still trips pause, unchanged", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", prd_root_container: "FAFF-700", admitted: [], outcomes: {} },
+      [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, ancestry_raw: "not-json", verdict: "contained" } }]);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    const v = out.verdicts.find((x) => x.signal === "scope-drift");
+    assert.ok(v, "scope-drift verdict present");
+    assert.equal(v.evidence.drift_kind, "recompute-mismatch");
     assert.equal(out.intervention, "pause");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

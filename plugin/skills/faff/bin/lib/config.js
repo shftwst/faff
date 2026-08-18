@@ -839,7 +839,7 @@ const WRITABLE_NAMESPACES = new Set([
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "faffter_dark", "autonomous", "containment", "post_merge", "graft", "andon",
-  "bundle_store",
+  "bundle_store", "install",
 ]);
 
 // Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each
@@ -1444,6 +1444,33 @@ const MIGRATION_STEPS = [
   "3. Run `faff config check`, then commit .faffrc.yaml",
 ];
 
+// PURE: known-key (schema) lint over a document's TOP-LEVEL key NAMES only — values are
+// never inspected (value-shape validation is out of scope, FAFF-794 §2). Classifies each
+// top-level key as flat-dotted (name contains ".", the unreachable-literal-key mistake
+// `dig`'s split-on-"." can't reach), unknown (no "." but absent from `knownSet`), or known
+// (silent). Mirrors scanDocForSecrets' per-file attribution — `fileLabel` prefixes the
+// finding surface so a base vs overlay hit is distinguishable. Every finding is `severity:
+// "warn"` (forward-compat: a not-yet-allowlisted key must never hard-fail `config check`).
+function knownKeyLint(doc, fileLabel, knownSet) {
+  const findings = [];
+  if (!isPlainConfigMap(doc)) return findings;
+  const known = [...knownSet].sort().join(", ");
+  for (const topKey of Object.keys(doc)) {
+    const dotIdx = topKey.indexOf(".");
+    if (dotIdx !== -1) {
+      const prefix = topKey.slice(0, dotIdx);
+      if (knownSet.has(prefix)) {
+        findings.push({ severity: "warn", surface: `${fileLabel}:${topKey}`, message: `\`${topKey}\` is a flat dotted key — you likely meant a nested map (the segments under \`${prefix}:\`). As written it is a single unreachable literal key and resolves to the default.` });
+      } else {
+        findings.push({ severity: "warn", surface: `${fileLabel}:${topKey}`, message: `\`${topKey}\` is a flat dotted key with unrecognised namespace \`${prefix}\` (probable typo and flat form); nest it under a known namespace. Resolves to the default as written.` });
+      }
+    } else if (!knownSet.has(topKey)) {
+      findings.push({ severity: "warn", surface: `${fileLabel}:${topKey}`, message: `\`${topKey}\` is an unrecognised top-level key (probable typo); silently ignored, resolves to the default. Known namespaces: ${known}.` });
+    }
+  }
+  return findings;
+}
+
 // PURE core of `config check` — takes the already-resolved inputs and returns
 // { findings, skipped, exit }. Split from cmdConfigCheck's I/O so --selftest can
 // drive the secret scan + posture logic in-memory without a real git repo.
@@ -1528,6 +1555,15 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   if (gitHost !== null && gitHost !== undefined && validateGitHostValue("tracking.git_host", gitHost)) {
     findings.push({ severity: "error", surface: "tracking.git_host", message: `git_host: "${gitHost}" is not supported — faff's merge floor is GitHub-only. Set git_host: github or leave it unset.` });
   }
+
+  // Check 9 (FAFF-794): known-key (schema) lint — flags an unrecognised or flat-dotted
+  // top-level key as a warn finding, so a typo (e.g. `autonymous.sentry_acting`, meant as
+  // `autonomous: { sentry_acting: true }`) stops silently resolving to its fail-safe
+  // default with no signal. Walks baseDoc and overlayDoc INDEPENDENTLY (never the merged
+  // doc) — a mistake in either file is its own distinct silent no-op and must be attributed
+  // to the file it lives in, exactly as the secret scan (Check 4) attributes per-file.
+  if (baseDoc) findings.push(...knownKeyLint(baseDoc, rel(basePath) || ".faffrc.yaml", WRITABLE_NAMESPACES));
+  if (overlayDoc) findings.push(...knownKeyLint(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml", WRITABLE_NAMESPACES));
 
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }
@@ -1810,6 +1846,97 @@ function configCheckSelftest() {
     });
     check("FAFF-808: git-only pin, mixed-case + whitespace → no opt-out warn",
       !r.findings.some((f) => f.surface === "automation_default"));
+  }
+
+  // --- known-key (schema) lint (FAFF-794) ----------------------------------
+  {
+    // flat-dotted key with an UNKNOWN prefix (the live repro: typo'd "autonymous" +
+    // flat form) → exactly one finding, never two, exit 1.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { "autonymous.sentry_acting": true },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: flat-dotted unknown-prefix key → exactly 1 warn finding, exit 1",
+      r.exit === 1 && r.findings.length === 1 && r.findings[0].severity === "warn"
+      && r.findings[0].surface === ".faffrc.yaml:autonymous.sentry_acting"
+      && /flat dotted key with unrecognised namespace `autonymous`/.test(r.findings[0].message));
+  }
+  {
+    // flat-dotted key with a KNOWN prefix (correctly-spelled but flat) → nested-map hint.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { "gates.fallback": "advisory" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: flat-dotted known-prefix key → nested-map-hint warn finding",
+      r.findings.length === 1 && /flat dotted key — you likely meant a nested map \(the segments under `gates:`\)/.test(r.findings[0].message));
+  }
+  {
+    // multi-dot flat key → exactly ONE finding naming the FULL key.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { "autonomous.guardrails.require_container": true },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: multi-dot flat key → exactly 1 finding naming the full key",
+      r.findings.length === 1 && r.findings[0].surface === ".faffrc.yaml:autonomous.guardrails.require_container");
+  }
+  {
+    // plain unknown top-level key (no dot) → warn naming it + the known namespaces.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { appetitte: "high" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: plain unknown key → warn finding naming key + known namespaces",
+      r.findings.length === 1 && r.findings[0].surface === ".faffrc.yaml:appetitte"
+      && /unrecognised top-level key/.test(r.findings[0].message) && /Known namespaces:/.test(r.findings[0].message));
+  }
+  {
+    // overlay-only unknown key → surface names the OVERLAY file, not the base.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: {},
+      overlayPath: "/r/.faffrc.local.yaml", overlayDoc: { bogus_key: 1 },
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => true, isTracked: () => true },
+    });
+    check("known-key: overlay-only unknown key → surface names the overlay file",
+      r.findings.some((f) => f.surface === ".faffrc.local.yaml:bogus_key"));
+  }
+  {
+    // known top-level key with a scalar value (not a map) → key-name-only, no finding.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { slots: "not-a-map" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: known top-level key with scalar value → no known-key finding (key-name-only), exit 0",
+      !r.findings.some((f) => f.surface.endsWith(":slots")) && r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    // fully valid config (only known namespaces, properly nested) → no known-key findings.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml",
+      baseDoc: { tracking: { tracker: "linear" }, slots: { spec: "x" }, appetite: "high" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: fully valid config → no known-key findings, exit 0",
+      r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    // absent base and overlay → the lint contributes nothing (all-defaults stays clean).
+    const r = computeConfigCheck({
+      basePath: null, baseDoc: null, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("known-key: absent base/overlay → no findings, exit 0", r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    // WRITABLE_NAMESPACES must include "install" (gates.js's install.skill_targets is live).
+    check("known-key: WRITABLE_NAMESPACES includes 'install'", WRITABLE_NAMESPACES.has("install"));
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config check, ${fail} failed)`);

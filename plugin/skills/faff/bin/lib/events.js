@@ -1225,8 +1225,11 @@ function mintIssueAnchor(runDir, issue, destDir) {
   // against and reports "blocked" even for a genuinely valid holdout). Each file is independently
   // best-effort-present: a run dir that hasn't reached Step 9 yet legitimately has no
   // review-verdict.json, and that's a normal merge_floor "not yet passed" reason, not an
-  // anchor-command error — never required, unlike events.jsonl above.
-  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "holdout.json", "build-progress.json"];
+  // anchor-command error — never required, unlike events.jsonl above. FAFF-845: also
+  // landing-progress.json (FAFF-846's per-issue fix-cycle counter), so it rides the anchor's
+  // existing generic byte-copy into the `anchors` bundle member and is restorable after a
+  // Phase-0 recovery (bundle-recover.js's reconstructProjection copies it back out).
+  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "holdout.json", "build-progress.json", "landing-progress.json"];
   const issueDir = path.join(runDir, issue);
   const copiedFloorFiles = [];
   for (const f of optionalFloorFiles) {

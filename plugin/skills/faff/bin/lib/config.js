@@ -1911,8 +1911,8 @@ function configCheckSelftest() {
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
-    check("known-key: known top-level key with scalar value → no known-key finding (key-name-only)",
-      !r.findings.some((f) => f.surface.endsWith(":slots")));
+    check("known-key: known top-level key with scalar value → no known-key finding (key-name-only), exit 0",
+      !r.findings.some((f) => f.surface.endsWith(":slots")) && r.findings.length === 0 && r.exit === 0);
   }
   {
     // fully valid config (only known namespaces, properly nested) → no known-key findings.

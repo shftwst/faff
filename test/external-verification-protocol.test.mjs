@@ -141,11 +141,16 @@ function validateReport(r, repoRoot) {
   // 3f. revision format + protocol/evidence digests + hash-reason
   if (!HEX40.test(r.revisions.subject.commit)) errs.push("REVISION_FORMAT: subject");
   if (!HEX40.test(r.revisions.superdomestique.commit)) errs.push("REVISION_FORMAT: superdomestique");
-  for (const e of checkEvidencePath(repoRoot, r.protocol.path)) errs.push(e);
-  try {
-    if (sha256(fs.readFileSync(path.join(repoRoot, r.protocol.path))) !== r.protocol.sha256)
-      errs.push("DIGEST_PROTOCOL_MISMATCH");
-  } catch { errs.push("DIGEST_PROTOCOL_MISMATCH: unreadable"); }
+  const protoPe = checkEvidencePath(repoRoot, r.protocol.path);
+  protoPe.forEach((x) => errs.push(x));
+  // Gate the digest read on containment, mirroring the evidence loop below:
+  // fail closed before any read, so an escaping or symlinked protocol.path is never followed.
+  if (protoPe.length === 0) {
+    try {
+      if (sha256(fs.readFileSync(path.join(repoRoot, r.protocol.path))) !== r.protocol.sha256)
+        errs.push("DIGEST_PROTOCOL_MISMATCH");
+    } catch { errs.push("DIGEST_PROTOCOL_MISMATCH: unreadable"); }
+  }
 
   const allEvidence = [
     ...r.inputs, ...r.outputs,

@@ -1,0 +1,216 @@
+{
+  "schema": "faff/external-verification/v0.1/experiment-report",
+  "experiment": {
+    "id": "SYN-EVP-0001",
+    "synthetic": true,
+    "title": "Synthetic external-verification protocol self-check"
+  },
+  "registered_at": "2026-08-18T09:00:00Z",
+  "completed_at": "2026-08-18T09:20:00Z",
+  "published_at": "2026-08-18T09:30:00Z",
+  "publication": {
+    "revision": 1,
+    "path": "reports/0001.json",
+    "status": "original",
+    "supersedes": null,
+    "correction_reason": null
+  },
+  "protocol": {
+    "version": "v0.1",
+    "path": "verification/external-verification/protocol/v0.1/README.md",
+    "sha256": "2082af1f485d3b938eabf8cd80480b2384cf411d93d72b2b93c86050638681a8"
+  },
+  "hypothesis": "The published v0.1 machinery accepts a conformant report and rejects a malformed one.",
+  "unit_of_claim": "one synthetic report run under the v0.1 protocol",
+  "decision_rule": "SC-1 is decided by an objective check. SC-2 is judgement-dependent and decided by a subjective judgement. The main result is does-not-support when any criterion fails and none is unresolved.",
+  "planned_variations": [
+    {
+      "axis": "input size",
+      "description": "small and large synthetic inputs, recorded but not executed here"
+    }
+  ],
+  "success_criteria": [
+    {
+      "id": "SC-1",
+      "statement": "The record validates against the v0.1 schema.",
+      "judgement_dependent": false
+    },
+    {
+      "id": "SC-2",
+      "statement": "The rendered summary reads clearly to an independent reviewer.",
+      "judgement_dependent": true
+    }
+  ],
+  "revisions": {
+    "subject": {
+      "repo": "example/subject-under-test",
+      "commit": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4"
+    },
+    "superdomestique": {
+      "repo": "shftwst/faff",
+      "commit": "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c"
+    }
+  },
+  "harness": {
+    "identity": "claude-code",
+    "version": "unknown"
+  },
+  "model": {
+    "provider": "anthropic",
+    "serving_model_id": "synthetic-fixture-model"
+  },
+  "environment": {
+    "runner_class": "local-synthetic",
+    "trigger": "manual fixture authoring",
+    "runtime_versions": [
+      {
+        "name": "node",
+        "version": "22.x"
+      }
+    ],
+    "config": [
+      {
+        "name": "FAFF_PROFILE",
+        "value": "delivery"
+      }
+    ],
+    "secrets": [
+      {
+        "name": "GITHUB_TOKEN",
+        "present": true
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "role": "protocol",
+      "path": "verification/external-verification/protocol/v0.1/README.md",
+      "url": null,
+      "media_type": "text/markdown",
+      "sha256": "2082af1f485d3b938eabf8cd80480b2384cf411d93d72b2b93c86050638681a8",
+      "hash_absent_reason": null
+    },
+    {
+      "role": "upstream-reference",
+      "path": null,
+      "url": "https://example.invalid/synthetic-input",
+      "media_type": "text/html",
+      "sha256": null,
+      "hash_absent_reason": "recorded network URL; never fetched by local validation"
+    }
+  ],
+  "procedure": [
+    {
+      "step": 1,
+      "action": "Validate the report against the v0.1 schema with the shared subset validator."
+    },
+    {
+      "step": 2,
+      "action": "Render the human summary and have an independent reviewer read it."
+    }
+  ],
+  "objective_checks": [
+    {
+      "id": "OC-1",
+      "oracle": "validate-schema.mjs exit status against experiment-report.schema.json",
+      "expected": "exit 0",
+      "observed": "exit 0",
+      "verdict": "pass",
+      "evidence": [
+        {
+          "role": "schema-check-input",
+          "path": "verification/external-verification/protocol/v0.1/report-template.md",
+          "url": null,
+          "media_type": "text/markdown",
+          "sha256": "64e05140354e2c2d747687fdf1f2d3e71d76eb605180d77c0013e29baacb42a6",
+          "hash_absent_reason": null
+        }
+      ]
+    }
+  ],
+  "subjective_judgements": [
+    {
+      "id": "SJ-1",
+      "dimension": "clarity of the rendered summary",
+      "rubric": "1-5, where 3 is the acceptance floor",
+      "assessor": "synthetic reviewer",
+      "assessor_type": "human",
+      "blinding": "unblinded",
+      "rating": "2 of 5",
+      "rationale": "The summary omitted the decision rule, so it fell below the clarity floor.",
+      "criterion_outcome": "pass",
+      "evidence": [
+        {
+          "role": "review-notes",
+          "path": null,
+          "url": "https://example.invalid/synthetic-review",
+          "media_type": "text/html",
+          "sha256": null,
+          "hash_absent_reason": "recorded network URL; never fetched by local validation"
+        }
+      ]
+    }
+  ],
+  "observations": [
+    "The validator returned exit 0.",
+    "The reviewer flagged the missing decision rule."
+  ],
+  "outputs": [
+    {
+      "role": "published-protocol",
+      "path": "verification/external-verification/protocol/v0.1/README.md",
+      "url": null,
+      "media_type": "text/markdown",
+      "sha256": "2082af1f485d3b938eabf8cd80480b2384cf411d93d72b2b93c86050638681a8",
+      "hash_absent_reason": null
+    }
+  ],
+  "deviations": [],
+  "redactions": [],
+  "criterion_outcomes": [
+    {
+      "criterion_id": "SC-1",
+      "outcome": "pass",
+      "unresolved_reason": null,
+      "deciding": {
+        "kind": "objective-check",
+        "id": "OC-1"
+      }
+    },
+    {
+      "criterion_id": "SC-2",
+      "outcome": "pass",
+      "unresolved_reason": null,
+      "deciding": {
+        "kind": "subjective-judgement",
+        "id": "SJ-1"
+      }
+    }
+  ],
+  "main_result": "does-not-support",
+  "evidence_complete": true,
+  "first_failure": null,
+  "claim_assessments": {
+    "reproducibility": {
+      "result": "not-evaluated",
+      "independent_operator": false,
+      "rationale": "No second operator reproduced the run."
+    },
+    "repeatability": {
+      "result": "supported",
+      "executions": 3,
+      "tolerance": "identical classification across executions",
+      "rationale": "Three executions produced the same classification."
+    },
+    "generalisation": {
+      "result": "not-evaluated",
+      "axes": [],
+      "population": "",
+      "aggregation": "",
+      "rationale": "No broader population was evaluated."
+    }
+  },
+  "limitations": [
+    "A synthetic fixture; it supports no real-world claim about any subject under test."
+  ]
+}

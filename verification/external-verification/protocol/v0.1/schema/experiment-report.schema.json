@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/external-verification/v0.1/experiment-report",
+  "title": "verification/external-verification/results/<case>/reports/<NNNN>.json",
+  "description": "The closed v0.1 external-verification experiment report. Shape, object closure, types and closed enums are normative here; every richer rule (ID patterns, exactly-once criterion resolution, deciding-record agreement, classification derivation, claim support-floors, digest matching, path containment, append-only publication) lives in test/external-verification-protocol.test.mjs. Nullable fields carry no `type` because the shared subset validator (plugin/skills/faff/contracts/validate-schema.mjs) cannot express a union; they are still required-present and checked semantically in the test. Every object and array node declares an explicit `type` so the validator's type-gated closure and recursion fire.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "experiment",
+    "registered_at",
+    "completed_at",
+    "published_at",
+    "publication",
+    "protocol",
+    "hypothesis",
+    "unit_of_claim",
+    "decision_rule",
+    "planned_variations",
+    "success_criteria",
+    "revisions",
+    "harness",
+    "model",
+    "environment",
+    "inputs",
+    "procedure",
+    "objective_checks",
+    "subjective_judgements",
+    "observations",
+    "outputs",
+    "deviations",
+    "redactions",
+    "criterion_outcomes",
+    "main_result",
+    "evidence_complete",
+    "first_failure",
+    "claim_assessments",
+    "limitations"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "enum": ["faff/external-verification/v0.1/experiment-report"]
+    },
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "synthetic", "title"],
+      "properties": {
+        "id": { "type": "string" },
+        "synthetic": { "type": "boolean" },
+        "title": { "type": "string" }
+      }
+    },
+    "registered_at": { "type": "string" },
+    "completed_at": { "type": "string" },
+    "published_at": { "type": "string" },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "path", "status", "supersedes", "correction_reason"],
+      "properties": {
+        "revision": { "type": "integer" },
+        "path": { "type": "string" },
+        "status": { "type": "string", "enum": ["original", "correction"] },
+        "supersedes": {},
+        "correction_reason": {}
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "path", "sha256"],
+      "properties": {
+        "version": { "type": "string" },
+        "path": { "type": "string" },
+        "sha256": { "type": "string" }
+      }
+    },
+    "hypothesis": { "type": "string" },
+    "unit_of_claim": { "type": "string" },
+    "decision_rule": { "type": "string" },
+    "planned_variations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["axis", "description"],
+        "properties": {
+          "axis": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "success_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "judgement_dependent"],
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string" },
+          "judgement_dependent": { "type": "boolean" }
+        }
+      }
+    },
+    "revisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "superdomestique"],
+      "properties": {
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repo", "commit"],
+          "properties": {
+            "repo": { "type": "string" },
+            "commit": { "type": "string" }
+          }
+        },
+        "superdomestique": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repo", "commit"],
+          "properties": {
+            "repo": { "type": "string" },
+            "commit": { "type": "string" }
+          }
+        }
+      }
+    },
+    "harness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "version"],
+      "properties": {
+        "identity": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "serving_model_id"],
+      "properties": {
+        "provider": { "type": "string" },
+        "serving_model_id": {}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner_class", "trigger", "runtime_versions", "config", "secrets"],
+      "properties": {
+        "runner_class": { "type": "string" },
+        "trigger": { "type": "string" },
+        "runtime_versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version"],
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": "string" }
+            }
+          }
+        },
+        "config": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "value"],
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "present"],
+            "properties": {
+              "name": { "type": "string" },
+              "present": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "path", "url", "media_type", "sha256", "hash_absent_reason"],
+        "properties": {
+          "role": { "type": "string" },
+          "path": {},
+          "url": {},
+          "media_type": { "type": "string" },
+          "sha256": {},
+          "hash_absent_reason": {}
+        }
+      }
+    },
+    "procedure": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step", "action"],
+        "properties": {
+          "step": { "type": "integer" },
+          "action": { "type": "string" }
+        }
+      }
+    },
+    "objective_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "oracle", "expected", "observed", "verdict", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "oracle": { "type": "string" },
+          "expected": { "type": "string" },
+          "observed": { "type": "string" },
+          "verdict": { "type": "string", "enum": ["pass", "fail", "not-run"] },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["role", "path", "url", "media_type", "sha256", "hash_absent_reason"],
+              "properties": {
+                "role": { "type": "string" },
+                "path": {},
+                "url": {},
+                "media_type": { "type": "string" },
+                "sha256": {},
+                "hash_absent_reason": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "subjective_judgements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "dimension",
+          "rubric",
+          "assessor",
+          "assessor_type",
+          "blinding",
+          "rating",
+          "rationale",
+          "criterion_outcome",
+          "evidence"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "dimension": { "type": "string" },
+          "rubric": { "type": "string" },
+          "assessor": { "type": "string" },
+          "assessor_type": { "type": "string" },
+          "blinding": { "type": "string" },
+          "rating": { "type": "string" },
+          "rationale": { "type": "string" },
+          "criterion_outcome": { "type": "string", "enum": ["pass", "fail", "unresolved"] },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["role", "path", "url", "media_type", "sha256", "hash_absent_reason"],
+              "properties": {
+                "role": { "type": "string" },
+                "path": {},
+                "url": {},
+                "media_type": { "type": "string" },
+                "sha256": {},
+                "hash_absent_reason": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "path", "url", "media_type", "sha256", "hash_absent_reason"],
+        "properties": {
+          "role": { "type": "string" },
+          "path": {},
+          "url": {},
+          "media_type": { "type": "string" },
+          "sha256": {},
+          "hash_absent_reason": {}
+        }
+      }
+    },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "description"],
+        "properties": {
+          "field": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "redactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "reason"],
+        "properties": {
+          "target": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "criterion_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion_id", "outcome", "unresolved_reason", "deciding"],
+        "properties": {
+          "criterion_id": { "type": "string" },
+          "outcome": { "type": "string", "enum": ["pass", "fail", "unresolved"] },
+          "unresolved_reason": {},
+          "deciding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "id"],
+            "properties": {
+              "kind": { "type": "string", "enum": ["objective-check", "subjective-judgement"] },
+              "id": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "main_result": {
+      "type": "string",
+      "enum": ["supports-hypothesis", "does-not-support", "inconclusive", "protocol-failure"]
+    },
+    "evidence_complete": { "type": "boolean" },
+    "first_failure": {},
+    "claim_assessments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reproducibility", "repeatability", "generalisation"],
+      "properties": {
+        "reproducibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["result", "independent_operator", "rationale"],
+          "properties": {
+            "result": {
+              "type": "string",
+              "enum": ["supported", "not-supported", "inconclusive", "not-evaluated"]
+            },
+            "independent_operator": { "type": "boolean" },
+            "rationale": { "type": "string" }
+          }
+        },
+        "repeatability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["result", "executions", "tolerance", "rationale"],
+          "properties": {
+            "result": {
+              "type": "string",
+              "enum": ["supported", "not-supported", "inconclusive", "not-evaluated"]
+            },
+            "executions": { "type": "integer" },
+            "tolerance": { "type": "string" },
+            "rationale": { "type": "string" }
+          }
+        },
+        "generalisation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["result", "axes", "population", "aggregation", "rationale"],
+          "properties": {
+            "result": {
+              "type": "string",
+              "enum": ["supported", "not-supported", "inconclusive", "not-evaluated"]
+            },
+            "axes": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "population": { "type": "string" },
+            "aggregation": { "type": "string" },
+            "rationale": { "type": "string" }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

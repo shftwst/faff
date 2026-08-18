@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-843",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e96d62d897174bd6fc3b95e321105631ce450f766e26a7d179fd6424d1077471",
+    "branch": "faff-843-implement-foldcorrectiveauthority-digest-custody-basis",
+    "pushed_at": "2026-08-18T06:03:38.371Z"
+  },
+  "updated_at": "2026-08-18T06:03:38.371Z"
+}

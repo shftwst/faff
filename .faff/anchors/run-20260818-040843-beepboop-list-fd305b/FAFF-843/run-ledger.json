@@ -1,0 +1,103 @@
+{
+  "level": "L3",
+  "run_id": "run-20260818-040843-beepboop-list-fd305b",
+  "admitted": [
+    "FAFF-843",
+    "FAFF-794",
+    "FAFF-777",
+    "FAFF-817",
+    "FAFF-721"
+  ],
+  "outcomes": {
+    "FAFF-794": "shipped",
+    "FAFF-777": "shipped",
+    "FAFF-817": "pr-open",
+    "FAFF-721": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [
+    {
+      "issue": "FAFF-794",
+      "pr": 707,
+      "merge_sha": "e1822576cfbd598205ffee7bb50130cdf23eddad",
+      "command": "node --import ./test/hermetic-env.mjs --test"
+    },
+    {
+      "issue": "FAFF-777",
+      "pr": 706,
+      "merge_sha": "77d2e1760414411ef701fa8fee78bee65d0a39f9",
+      "command": "node --import ./test/hermetic-env.mjs --test"
+    }
+  ],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "73748a3d-4e8e-4290-ac44-380db1307f27",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 78,
+        "output": 77745,
+        "cache_write": 863509,
+        "cache_read": 8753324
+      }
+    },
+    "tokens_at_start": 9694656,
+    "tokens_at_last_event": {
+      "input": 160,
+      "output": 198532,
+      "cache_write": 1848330,
+      "cache_read": 20131474
+    },
+    "window": {
+      "anchor_epoch": 1787026405094,
+      "reset_epoch": 1787044405094,
+      "tokens_at_anchor": 849654
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 536,
+    "session_id": "run-20260818-040843-beepboop-list-fd305b",
+    "started_at": "2026-08-18T04:12:21Z",
+    "last_heartbeat": "2026-08-18T04:12:21Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-794": {
+      "pr": 707,
+      "merged": true,
+      "note": "post-merge verified-fail = 9 pre-existing non-hermetic failures (FAFF-785), not a regression from this diff"
+    },
+    "FAFF-777": {
+      "pr": 706,
+      "merged": true,
+      "note": "post-merge verified-fail = 9 pre-existing non-hermetic failures (FAFF-785), not a regression from this diff"
+    },
+    "FAFF-817": {
+      "pr": 705,
+      "merged": false,
+      "note": "merge floor refused: ac-checklist all_verified:false (3 DONE items need a live docker engine unavailable in sandbox); PR drafted + faff-parked"
+    },
+    "FAFF-721": {
+      "pr": null,
+      "parked": true,
+      "root_cause": "premise-superseded",
+      "note": "reproduce-first gate found zero reds; mechanism structurally closed by already-merged FAFF-785 (park category d); resumable via /faff-graft or human close"
+    }
+  },
+  "park_records": [
+    {
+      "issue_id": "FAFF-721",
+      "root_cause_class": "premise-superseded",
+      "timestamp": "2026-08-18T05:57:52Z"
+    }
+  ]
+}

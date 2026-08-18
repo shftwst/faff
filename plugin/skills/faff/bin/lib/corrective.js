@@ -35,6 +35,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
+// FAFF-843: the digest-custody basis — factory→factory, legal per ADR-0042, exactly
+// like the corrective-integrity require above. integrity-digest.js is NEVER modified
+// to reference this module or FAFF_INTEGRITY_BOUNDARY (ADR-0061/ADR-0073 conflation
+// anti-pattern); only its already-exported diffAgainstManifest is consumed here.
+const { diffAgainstManifest } = require("./integrity-digest");
 const { appendRecordUnderLock, eventViolations } = require("./events");
 const { readGovernanceConfig } = require("./budget");
 const { DERAILMENT_SIGNALS, sentryThresholds } = require("./sentry");
@@ -210,6 +215,70 @@ function foldCorrectiveConstraints(inputs) {
   };
 }
 
+// FAFF-843 (ADR-0114): the composition fold that admits the digest-custody basis into
+// the corrective authority decision as a distinct, weaker basis than mount-asserted.
+// Pure — no I/O, no imports beyond the two already-required primitives above. The
+// five-branch table is FIXED by the ADR-0114 contract; do not reorder, rename, or add
+// branches without a superseding ADR. Precedence is load-bearing: branch 2 (the
+// uncomputable-verify branch) sits ABOVE branches 3/4 so an indeterminate verify can
+// NEVER fall through to a grant, and branch 1 (mount-trusted) wins over any digest
+// state — the strongest basis always wins.
+//
+// mountGate    = integrityGate(correctiveIntegrityProbe(env, fsq, dirs), "corrective")
+// digestVerify = a discriminated union the CALLER constructs (never computed here) —
+// `error` and `diffs` are MUTUALLY EXCLUSIVE (the caller sets exactly one, never both;
+// cmdCorrectiveCheck's single try/catch below makes this true by construction: the try
+// arm sets `diffs`, the catch arm sets `error`, never in the same digestVerify object):
+//   { held: false }                         no baseline held
+//   { held: true, diffs: [] }               verify clean
+//   { held: true, diffs: [<paths>, ...] }   verify reports tampered paths
+//   { held: true, error: <reason> }         verify could not be computed (a throw)
+// adversarial-review follow-up: this fold does not itself ENFORCE that exclusivity —
+// a caller that (incorrectly) constructs both fields still resolves safely, because
+// branch 2 is checked before branch 3/4 regardless of whatever `diffs` holds, so a
+// stray `diffs` alongside `error` can only ever route to refuse/unverifiable, never a
+// spurious grant. Precedence is the enforcement mechanism; a future caller need not
+// re-derive that safety, but must still never intentionally rely on setting both.
+//
+// Anti-pattern (the caller's obligation, asserted by this fold's precedence, not by
+// this function itself): `try { diffs = diffAgainstManifest(...) } catch { diffs = [] }`
+// — defaulting a throw to empty diffs flips a sabotaged verify (branch 2) into
+// custody-trusted (branch 3). The caller MUST construct { held: true, error } on a
+// throw; this fold's branch-2-before-3/4 ordering is what makes that construction
+// load-bearing rather than cosmetic.
+function foldCorrectiveAuthority(mountGate, digestVerify) {
+  if (mountGate && mountGate.trusted === true) {
+    return { trusted: true, disposition: "trusted", basis: "asserted" }; // branch 1: strongest wins
+  }
+  const dv = digestVerify || { held: false };
+  if (dv.held === true && dv.error != null) {
+    return { trusted: false, disposition: "refuse", basis: "unverifiable" }; // branch 2: never trust an uncomputable verify
+  }
+  if (dv.held === true && Array.isArray(dv.diffs) && dv.diffs.length === 0) {
+    return { trusted: true, disposition: "custody-trusted", basis: "digest-verified" }; // branch 3
+  }
+  if (dv.held === true && Array.isArray(dv.diffs) && dv.diffs.length > 0) {
+    return { trusted: false, disposition: "refuse", basis: "tampered" }; // branch 4: proven forge, never surfaced
+  }
+  return { trusted: false, disposition: "channel-D", basis: "none" }; // branch 5: fail-safe, not-held
+}
+
+// FAFF-843: local `--manifest <json|file|->` parser. Deliberately NOT imported from
+// integrity-digest.js's own readManifestArg — that helper is internal, not exported
+// (verified: only diffAgainstManifest is exported from that module), and exporting it
+// would mean modifying integrity-digest.js, contradicting this ticket's DoD that the
+// module stays untouched. Mirrors readManifestArg's <json|file|-> shape exactly.
+//
+// Anti-pattern: passing --manifest <path> pointing at an on-disk file the build lane
+// can write — a same-uid lane could rewrite that file to match its forgery, hollowing
+// the basis. Callers must pass the context-held baseline via --manifest - (stdin) or
+// inline JSON, never a writable path.
+function parseManifestArg(val) {
+  if (val === "-") return fs.readFileSync(0, "utf8"); // stdin — the context-held value
+  if (fs.existsSync(val)) return fs.readFileSync(val, "utf8"); // file (discouraged; see anti-pattern above)
+  return val; // inline JSON string
+}
+
 // --- I/O: the forge-surface corrective dir + artifact naming ----------------------
 
 function correctiveDir(runDir) {
@@ -259,11 +328,18 @@ function lastCorrectiveConsumed(runDir, issue) {
 // changes payload content now changes the fingerprint too, so it is never mistaken
 // for an idempotent re-check. Two `check` calls that recompute the SAME fold produce
 // the same fingerprint; a genuinely new/changed corrective input changes it.
-function foldFingerprint(mandate, constraints, applied, rejected) {
+//
+// FAFF-843: `basis` is included so a basis TRANSITION (e.g. digest-verified ->
+// asserted, the mount becoming available mid-run) records a fresh corrective-consumed
+// rather than being falsely idempotent-skipped — the authorizing basis is part of what
+// "the same fold" means now. `basis` defaults to "asserted" when omitted (legacy
+// pre-FAFF-843 event records, which only ever appended on the mount-trusted path), so
+// the migration never produces a spurious re-append on the first check after upgrade.
+function foldFingerprint(mandate, constraints, applied, rejected, basis) {
   const a = applied.map((x) => `${x.op}:${x.authored_at}`).sort();
   const r = rejected.map((x) => x.file).sort();
   return JSON.stringify({
-    mandate, a, r,
+    mandate, a, r, basis: basis || "asserted",
     forbid: [...constraints.forbid_surfaces].sort(),
     thresholds: constraints.thresholds,
     descope: constraints.descope === null ? null : [...constraints.descope].sort(),
@@ -313,6 +389,10 @@ const CORRECTIVE_SPEC = { flags: {
   "--cites-signal": { arity: 1 }, "--cites-seq": { arity: 1 }, "--cites-evidence": { arity: 1 },
   "--cause": { arity: 1 }, "--threshold-key": { arity: 1 }, "--threshold-value": { arity: 1 },
   "--surface": { arity: 1, repeatable: true }, "--subset": { arity: 1, repeatable: true },
+  // FAFF-843: the context-held custody-baseline manifest — <json|file|-> — routed
+  // through foldCorrectiveAuthority when supplied; digestVerify={held:false} (today's
+  // byte-identical behaviour) when absent.
+  "--manifest": { arity: 1 },
 }, positionals: { min: 0, max: 1, name: "verb" } };
 // FAFF-628 — declared grammar. Both sub-verbs stage their requiredness checks (a run dir is
 // asserted to exist before the remaining flags are demanded) — the full unconditional set each
@@ -459,10 +539,44 @@ function cmdCorrectiveCheck(args) {
   const probe = correctiveIntegrityProbe(process.env, realFsq(), dirs);
   const gate = integrityGate(probe, "corrective");
 
-  if (!gate.trusted) {
-    const out = { run_dir: runDir, issue, disposition: gate.disposition, consumed: false, inputs: mine.map((a) => a.record).filter(Boolean), rejected };
+  // FAFF-843 (ADR-0114): admit the digest-custody basis into the authority decision.
+  // digestVerify stays { held: false } — byte-identical to pre-FAFF-843 behaviour —
+  // when --manifest is absent; the fold then only ever reaches branch 1 or branch 5.
+  let digestVerify = { held: false };
+  const manRaw = get("--manifest");
+  if (manRaw != null && manRaw !== "") {
+    let manifest;
+    try {
+      manifest = JSON.parse(parseManifestArg(manRaw));
+    } catch (e) {
+      process.stderr.write(`faff corrective check: --manifest is not valid JSON — ${e.message}\n`);
+      return 2;
+    }
+    if (!manifest || typeof manifest !== "object" || typeof manifest.members !== "object" || manifest.members === null) {
+      process.stderr.write("faff corrective check: --manifest has no members\n");
+      return 2;
+    }
+    try {
+      const diffs = diffAgainstManifest(runDir, manifest);
+      digestVerify = { held: true, diffs };
+    } catch (e) {
+      // diffAgainstManifest THROWS when the hasher is unresolvable or a member is
+      // unreadable — that throw becomes { held:true, error }, never a caught-and-
+      // defaulted empty diffs array (the fold's branch-2 anti-pattern this guards).
+      digestVerify = { held: true, error: e.message };
+    }
+  }
+
+  const authority = foldCorrectiveAuthority(gate, digestVerify);
+
+  if (!authority.trusted) {
+    // channel-D (honest absence, surfaced for human relay) and refuse (proven or
+    // uncomputable failure, never surfaced as authentic) both report-and-degrade here
+    // — distinguished by `disposition` in the output, exit 0 either way (only a
+    // malformed --manifest above is a caller usage error, exit 2).
+    const out = { run_dir: runDir, issue, disposition: authority.disposition, basis: authority.basis, consumed: false, inputs: mine.map((a) => a.record).filter(Boolean), rejected };
     if (asJson) console.log(JSON.stringify(out));
-    else console.log(`corrective: check ${issue} → disposition=${out.disposition} consumed=false (${mine.length} artifact(s) surfaced for human relay, never acted on as authentic)`);
+    else console.log(`corrective: check ${issue} → disposition=${out.disposition} basis=${out.basis} consumed=false (${mine.length} artifact(s) surfaced for human relay, never acted on as authentic)`);
     return 0;
   }
 
@@ -477,35 +591,41 @@ function cmdCorrectiveCheck(args) {
   // not per read — never a phantom duplicate on a wave re-entry that re-checks an
   // unchanged constraint set. Compare against the LAST recorded consumption for this
   // issue; only append when the fold's fingerprint actually changed (a new corrective
-  // input arrived, or the rejected set changed).
-  const fp = foldFingerprint(mandate, constraints, applied, rejected);
+  // input arrived, the rejected set changed, or — FAFF-843 — the authorizing basis
+  // transitioned).
+  const fp = foldFingerprint(mandate, constraints, applied, rejected, authority.basis);
   const priorData = lastCorrectiveConsumed(runDir, issue);
   const priorConstraints = priorData && priorData.constraints
     ? priorData.constraints
     : { forbid_surfaces: [], thresholds: {}, descope: null }; // pre-fingerprint-fix event records (belt-and-braces; never a false idempotent match)
-  const priorFp = priorData ? foldFingerprint(priorData.mandate, priorConstraints, priorData.applied || [], priorData.rejected || []) : null;
+  // priorData.basis defaults to "asserted": pre-FAFF-843 events were only ever
+  // appended on the mount-trusted path, so this default never produces a spurious
+  // re-append on the first check after upgrade.
+  const priorFp = priorData ? foldFingerprint(priorData.mandate, priorConstraints, priorData.applied || [], priorData.rejected || [], priorData.basis || "asserted") : null;
   let eventResult;
   if (priorFp !== null && priorFp === fp) {
     eventResult = { appended: false, skipped: "idempotent-duplicate" };
   } else {
-    // data = {disposition,mandate,constraints,applied,rejected} (events.js's
+    // data = {disposition,basis,mandate,constraints,applied,rejected} (events.js's
     // documenting comment for this type) — the full applied/rejected arrays AND the
     // resolved constraints, not just counts, so the trail is actually reviewable
     // (>=2 corrective inputs on one issue must be inspectable here) and the next
-    // idempotency check has real content to compare against.
+    // idempotency check has real content to compare against. `basis` is additive to
+    // `data`, which eventViolations leaves unconstrained for this event type — no
+    // schema bump.
     eventResult = appendCorrectiveEvent(runDir, "corrective-consumed", issue, {
-      disposition: "trusted", mandate, constraints, applied, rejected, parks: parkInputs.length,
+      disposition: authority.disposition, basis: authority.basis, mandate, constraints, applied, rejected, parks: parkInputs.length,
     });
   }
 
   const out = {
-    run_dir: runDir, issue, disposition: "trusted", consumed: true,
+    run_dir: runDir, issue, disposition: authority.disposition, basis: authority.basis, consumed: true,
     mandate, constraints, applied, parks: parkInputs.map((i) => ({ cause: i.payload.cause, cites: i.cites })),
     rejected, event_appended: eventResult.appended, event_skipped: eventResult.skipped || null,
   };
   if (asJson) console.log(JSON.stringify(out));
   else {
-    console.log(`corrective: check ${issue} → trusted, mandate=${mandate}, applied=${applied.length}, rejected=${rejected.length}, parks=${parkInputs.length}`);
+    console.log(`corrective: check ${issue} → ${authority.disposition} (basis=${authority.basis}), mandate=${mandate}, applied=${applied.length}, rejected=${rejected.length}, parks=${parkInputs.length}`);
   }
   return 0;
 }
@@ -634,6 +754,6 @@ function correctiveSelftest() {
 module.exports = {
   CORRECTIVE_OPS, CORRECTIVE_SCHEMA, CORRECTIVE_SPEC, CORRECTIVE_SURFACE, TIGHTENABLE_KEYS,
   cmdCorrective, cmdCorrectiveAuthor, cmdCorrectiveCheck,
-  correctiveDir, correctiveSelftest, foldCorrectiveConstraints,
+  correctiveDir, correctiveSelftest, foldCorrectiveAuthority, foldCorrectiveConstraints,
   payloadViolations, readCorrectiveArtifacts, validateCorrectiveInput,
 };

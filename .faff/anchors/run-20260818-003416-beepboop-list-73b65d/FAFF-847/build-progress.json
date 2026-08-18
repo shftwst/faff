@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-847",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8d58545341bb0d1d88522e2a06869fd0644e19519aebb2330c5d8fdbcd90ef1c",
+    "branch": "faff-847-heartbeat-freshness-vs-logged-progress-correlation-signal",
+    "pushed_at": "2026-08-18T01:08:29.845Z"
+  },
+  "updated_at": "2026-08-18T01:08:29.845Z"
+}

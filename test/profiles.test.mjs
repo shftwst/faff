@@ -77,6 +77,7 @@ test("profiles validate --file: a well-formed second-dialect profile is shape-va
       thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
       thrash: { start_type: "job-start", ship_type: "job-end", ship_outcome: "done" },
       failure: { park_type: "job-end", outcome_type: "job-end", errored_outcome: "open" },
+      progress: { forward_types: ["job-start"] },
     },
   };
   writeFileSync(f, JSON.stringify(second));
@@ -151,6 +152,7 @@ test("override: a well-formed second-dialect profile activates cleanly (list ref
       thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
       thrash: { start_type: "job-start", ship_type: "job-end", ship_outcome: "done" },
       failure: { park_type: "job-end", outcome_type: "job-end", errored_outcome: "open" },
+      progress: { forward_types: ["job-start"] },
     },
   };
   writeFileSync(f, JSON.stringify(second));
@@ -192,6 +194,7 @@ test("override: applies uniformly to a DIFFERENT governance command (events vali
       thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
       thrash: { start_type: "job-start", ship_type: "job-start", ship_outcome: "done" },
       failure: { park_type: "job-start", outcome_type: "job-start", errored_outcome: "done" },
+      progress: { forward_types: ["job-start"] },
     },
   };
   writeFileSync(f, JSON.stringify(second));

@@ -889,6 +889,50 @@ test("FAFF-324 vector 4b: ticking the SANCTIONED `faff heartbeat` command (no ra
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-847: the integration smoke test named in the spec's DoD §8 — drives the actual
+// `sentry check --json --now-ms` CLI end to end (not the in-process --selftest) to prove
+// the heartbeat-progress-mismatch signal reaches the real payload, and clears once
+// progress becomes fresh again. This is the vector-4b residual's live counterpart: vector
+// 4b (above) shows the sanctioned heartbeat tick suppresses wall-clock-runaway; this shows
+// the NEW signal is exactly what catches that same gamed-liveness case instead.
+test("FAFF-847 integration smoke test: heartbeat-progress-mismatch fires via the real CLI on a fresh-heartbeat/stale-progress run, clears once progress moves", () => {
+  const dir = tmp();
+  try {
+    const nowMs = Date.parse("2026-06-29T12:00:00Z");
+    const ago = (s) => new Date(nowMs - s * 1000).toISOString();
+    // Step 1: owner.status="running", started_at = now-2000s, last_heartbeat = now-60s.
+    const ledger = { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: ago(2000), last_heartbeat: ago(60) } };
+    // Step 2: one build-start at now-1500s, no `issue` field — isolates this predicate
+    // from the FAFF-327 in-flight member-stall cap (which keys strictly off an
+    // issue-scoped build-start), so the assertion below is heartbeat-progress-mismatch's
+    // OWN contribution to the aggregate intervention, not a co-tripping member verdict.
+    const rd = mkRun(dir, "r", ledger, [
+      { schema: 1, run_id: "r", seq: 0, ts: ago(1500), phase: "build", type: "build-start" },
+    ]);
+
+    // Step 3-4: run the CLI, assert the signal + surface intervention + tripped.
+    const r1 = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(nowMs)]);
+    assert.equal(r1.code, 0, r1.err);
+    const payload1 = JSON.parse(r1.out);
+    assert.ok(payload1.verdicts.some((v) => v.signal === "heartbeat-progress-mismatch"),
+      "payload.verdicts contains heartbeat-progress-mismatch");
+    assert.equal(payload1.intervention, "surface");
+    assert.equal(payload1.tripped, true);
+
+    // Step 5: append a corrective-consumed event at now-60s (fresh progress).
+    const eventsPath = join(rd, "events.jsonl");
+    const line2 = JSON.stringify({ schema: 1, run_id: "r", seq: 1, ts: ago(60), phase: "build", type: "corrective-consumed" });
+    writeFileSync(eventsPath, readFileSync(eventsPath, "utf8") + line2 + "\n");
+
+    // Step 6: re-run — no heartbeat-progress-mismatch verdict once progress is fresh.
+    const r2 = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(nowMs)]);
+    assert.equal(r2.code, 0, r2.err);
+    const payload2 = JSON.parse(r2.out);
+    assert.equal(payload2.verdicts.find((v) => v.signal === "heartbeat-progress-mismatch"), undefined,
+      "progress moved -> no heartbeat-progress-mismatch verdict");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("FAFF-324 vector 5: rewriting owner.started_at to 'now' suppresses wall-clock-runaway (run-elapsed) — no git-truth counterpart", () => {
   const dir = tmp();
   try {

@@ -9,6 +9,18 @@ structurally un-dogfoodable (faff has no runtime to stand up or judge), so they 
 zero real-world miles. Each SUT exercises a specific slice, and **the rung at which faff first
 fails is the binding constraint** — the next roadmap priority.
 
+## Protocol and results
+
+The suite above scaffolds subjects and scores them. Publishing a verification of a SuperDomestique claim follows a separate, versioned method: the external-verification protocol.
+
+| Artifact | Path |
+|---|---|
+| Protocol (normative) | [`protocol/v0.1/README.md`](protocol/v0.1/README.md) |
+| Report template | [`protocol/v0.1/report-template.md`](protocol/v0.1/report-template.md) |
+| Synthetic example | [`protocol/v0.1/schema/examples/experiment-report.example.json`](protocol/v0.1/schema/examples/experiment-report.example.json) and its [Markdown companion](protocol/v0.1/schema/examples/experiment-report.example.md) |
+
+Real cases are published as v0.1 reports under `results/<case>/`, owned by the case ticket that produces them. The example under `schema/examples/` is a synthetic fixture that proves the machinery; it is never a citable result.
+
 ## The six rungs
 
 | Script | SUT | Behaviours | Autonomy | Tracker |

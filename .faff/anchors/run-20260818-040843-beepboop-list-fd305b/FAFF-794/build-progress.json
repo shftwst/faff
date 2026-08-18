@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-794",
+  "build": {
+    "status": "complete",
+    "diff_hash": "bed3ef71adc75126e990475540347a13e0a3ee04ebafbf7c0086f310ef0c27d2",
+    "branch": "faff-794-faff-config-check-doesnt-catch-unknownmisspelled-config-keys",
+    "pushed_at": "2026-08-18T04:53:43.636Z"
+  },
+  "updated_at": "2026-08-18T04:53:43.636Z"
+}

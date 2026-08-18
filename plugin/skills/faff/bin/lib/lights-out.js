@@ -1886,4 +1886,9 @@ function lightsOutSelftest() {
 }
 
 
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };
+// FAFF-820: gatherResumeEvidence is exported (read-only — no ledger/owner-state write)
+// so bundle-recover.js's preview_resume can reuse the SAME evidence gatherer
+// resumeLightsOut uses, rather than fork a second read of build-progress.json/
+// merge-record.json/the forge. observeForgeMerge/branchExistsOnForge stay private —
+// gatherResumeEvidence is the one call-site that needs them.
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

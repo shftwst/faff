@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/recovery-disposition",
+  "title": "recovery-disposition contract data",
+  "description": "Reference schema (FAFF-820). The SHAPE of `faff bundle-recover`'s read-only recovery disposition over a discovered-and-verified Phase 0 recovery bundle: reconstructed / noop-already-present / refused, with the source bundle's own verdict/identity and a resume-or-park preview. The verb writes no owner state and makes no forge call — recovery-disposition documents ONLY what was discovered/reconstructed and previewed, never a continuation decision (that stays `faff lights-out --resume`). Coercion target for a malformed/out-of-enum disposition is `refused` (never `reconstructed`) — the bundle-verdict never-guess-green precedent, extended to this contract's own safe-failure value.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verb", "disposition", "bundle_verdict", "bundle_identity", "run_id", "run_dir", "boundary_kind", "reason", "resume_preview", "candidates_considered", "conformant", "violations"],
+  "properties": {
+    "verb": { "type": "string", "enum": ["bundle-recover"] },
+    "disposition": { "type": "string", "enum": ["reconstructed", "noop-already-present", "refused"] },
+    "bundle_verdict": { "type": "string", "enum": ["CLEAN", "STALE", "MISSING", "MALFORMED", "TAMPERED", "VERIFICATION_UNAVAILABLE"] },
+    "bundle_identity": {
+      "description": "BundleIdentity | null — the source bundle's identity, populated whenever discovery found and verified one (even a non-CLEAN candidate); null only when nothing was found at all."
+    },
+    "run_id": { "type": "string", "description": "The recovered run's id, or the empty string when discovery never resolved one (e.g. no candidate found at all)." },
+    "run_dir": {
+      "description": "String | null — the reconstructed (or already-present) run directory path. Always null on a refused disposition; always non-null on reconstructed/noop-already-present."
+    },
+    "boundary_kind": { "type": "string", "enum": ["issue-merge-floor", "run-close"] },
+    "reason": { "type": "string" },
+    "resume_preview": {
+      "description": "ResumePlan | null — reconstructResumePlan's own shape {skip, continue_review, continue_from_push, redispatch, park, terminal, drain_remainder}, unchanged. Null only on a refused disposition."
+    },
+    "candidates_considered": { "type": "integer" },
+    "dry_run": { "type": "boolean", "description": "Optional (default false when absent). True when this disposition was computed against a scratch --dry-run materialisation rather than the real root — the real root was left untouched even though disposition may read reconstructed." },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

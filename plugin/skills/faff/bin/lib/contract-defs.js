@@ -931,6 +931,131 @@ function contractBundleVerdict(extraction) {
   return { contractData };
 }
 
+// --- recovery-disposition (FAFF-820) ---
+// The SHAPE of `faff bundle-recover`'s read-only recovery disposition: reconstructed /
+// noop-already-present / refused, over a discovered-and-verified Phase 0 recovery bundle,
+// mirroring the bundle-verdict idiom exactly. Coercion target for a malformed/out-of-enum
+// disposition is `refused` (never `reconstructed`) — the SAME never-guess-green posture
+// extended to this contract's own safe-failure value. The one hard safety property this
+// contract checks directionally: a non-CLEAN bundle_verdict can never pair with anything
+// but `refused` (a CLEAN-only admission gate that must hold even under a hand-altered
+// extraction). Fail-loud only on a non-object extraction.
+const RECOVERY_DISPOSITIONS = ["reconstructed", "noop-already-present", "refused"];
+const RESUME_PLAN_ARRAY_BUCKETS = ["skip", "continue_review", "continue_from_push", "redispatch", "terminal"];
+
+function safeResumePlan(raw) {
+  const obj = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  return {
+    skip: arr(obj.skip), continue_review: arr(obj.continue_review), continue_from_push: arr(obj.continue_from_push),
+    redispatch: arr(obj.redispatch), park: arr(obj.park), terminal: arr(obj.terminal),
+    drain_remainder: typeof obj.drain_remainder === "boolean" ? obj.drain_remainder : true,
+  };
+}
+
+function computeResumePlanViolations(raw, label) {
+  const violations = [];
+  if (raw === null || raw === undefined) return violations; // absence is reported by the caller
+  if (typeof raw !== "object" || Array.isArray(raw)) { violations.push(`${label} must be an object`); return violations; }
+  for (const bucket of RESUME_PLAN_ARRAY_BUCKETS) {
+    if (raw[bucket] !== undefined && !Array.isArray(raw[bucket])) violations.push(`${label}.${bucket} must be an array`);
+  }
+  if (raw.park !== undefined && !Array.isArray(raw.park)) violations.push(`${label}.park must be an array`);
+  if (raw.drain_remainder !== undefined && typeof raw.drain_remainder !== "boolean") violations.push(`${label}.drain_remainder must be a boolean`);
+  return violations;
+}
+
+function computeRecoveryDispositionVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+
+  const dispositionOk = RECOVERY_DISPOSITIONS.includes(extraction.disposition);
+  if (!dispositionOk) violations.push(`disposition ${JSON.stringify(extraction.disposition)} not in {${RECOVERY_DISPOSITIONS.join(",")}} — coerced to refused (never guess reconstructed)`);
+  const disposition = dispositionOk ? extraction.disposition : "refused";
+
+  const verdictOk = BUNDLE_VERDICTS.includes(extraction.bundle_verdict);
+  if (!verdictOk) violations.push(`bundle_verdict ${JSON.stringify(extraction.bundle_verdict)} not in {${BUNDLE_VERDICTS.join(",")}} — coerced to VERIFICATION_UNAVAILABLE (never CLEAN)`);
+  const bundle_verdict = verdictOk ? extraction.bundle_verdict : "VERIFICATION_UNAVAILABLE";
+
+  let bundle_identity = null;
+  const rawIdentity = extraction.bundle_identity;
+  if (rawIdentity !== null && rawIdentity !== undefined) {
+    violations.push(...computeBundleIdentityViolations(rawIdentity, "bundle_identity"));
+    bundle_identity = safeBundleIdentity(rawIdentity);
+  }
+
+  const run_id = typeof extraction.run_id === "string" ? extraction.run_id : "";
+  if (typeof extraction.run_id !== "string") violations.push("run_id must be a string");
+
+  let run_dir = null;
+  if (extraction.run_dir !== null && extraction.run_dir !== undefined) {
+    if (typeof extraction.run_dir !== "string" || !extraction.run_dir) violations.push("run_dir must be a non-empty string or null");
+    else run_dir = extraction.run_dir;
+  }
+
+  const boundaryKindOk = BUNDLE_BOUNDARY_KINDS.includes(extraction.boundary_kind);
+  if (!boundaryKindOk) violations.push(`boundary_kind ${JSON.stringify(extraction.boundary_kind)} not in {${BUNDLE_BOUNDARY_KINDS.join(",")}}`);
+  const boundary_kind = boundaryKindOk ? extraction.boundary_kind : "issue-merge-floor";
+
+  const reason = typeof extraction.reason === "string" ? extraction.reason : "";
+  if (typeof extraction.reason !== "string") violations.push("reason must be a string");
+
+  let resume_preview = null;
+  const rawPlan = extraction.resume_preview;
+  if (rawPlan !== null && rawPlan !== undefined) {
+    violations.push(...computeResumePlanViolations(rawPlan, "resume_preview"));
+    resume_preview = safeResumePlan(rawPlan);
+  }
+
+  const candidatesOk = Number.isInteger(extraction.candidates_considered) && extraction.candidates_considered >= 0;
+  if (!candidatesOk) violations.push("candidates_considered must be a non-negative integer");
+  const candidates_considered = candidatesOk ? extraction.candidates_considered : 0;
+
+  // dry_run — optional (absent -> false): whether this disposition was computed against a
+  // scratch materialisation rather than the real root (spec §3 --dry-run). Carried at the
+  // contract layer so an automated consumer can tell a preview apart from a real reconstruct
+  // without re-parsing CLI wrapper output.
+  let dry_run = false;
+  if (extraction.dry_run !== null && extraction.dry_run !== undefined) {
+    if (typeof extraction.dry_run !== "boolean") violations.push("dry_run must be a boolean");
+    else dry_run = extraction.dry_run;
+  }
+
+  // The load-bearing safety property (spec §3 CONSTRAINT, the forward direction): a non-CLEAN
+  // bundle verdict may never resolve to anything but refused — never guess reconstructed/noop
+  // off an unproven bundle, even from a hand-altered extraction.
+  if (bundle_verdict !== "CLEAN" && disposition !== "refused") {
+    violations.push(`bundle_verdict is ${bundle_verdict} (not CLEAN) but disposition is ${disposition} — a non-CLEAN bundle must always refuse`);
+  }
+  // A claimed reconstruction must carry what it claims to have reconstructed.
+  if (disposition === "reconstructed" && (run_dir === null || resume_preview === null)) {
+    violations.push("disposition is reconstructed but run_dir and/or resume_preview is null");
+  }
+  // A refusal writes nothing — a non-null run_dir on a refusal would claim a reconstruction
+  // that never happened.
+  if (disposition === "refused" && run_dir !== null) {
+    violations.push("disposition is refused but run_dir is non-null");
+  }
+
+  return {
+    contractData: {
+      verb: "bundle-recover", disposition, bundle_verdict, bundle_identity, run_id, run_dir, boundary_kind,
+      reason, resume_preview, candidates_considered, dry_run, conformant: violations.length === 0, violations,
+    },
+    failLoud: null,
+  };
+}
+
+function contractRecoveryDispositionVerdict(extraction) {
+  const { contractData, failLoud } = computeRecoveryDispositionVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "recovery-disposition");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- holdout verdicts → DoD-verdict map (FAFF-277) ---
 // The pure, trust-gated bridge between the evaluator's persisted holdout verdicts and the already-shipped
 // `faff prdr coverage --dod-verdicts` flag. Reuses computeHoldoutVerdict VERBATIM as the trust gate (never
@@ -1988,6 +2113,25 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "recovery-disposition": {
+    run: contractRecoveryDispositionVerdict,
+    fixtures: [
+      { name: "conformant-reconstructed", in: { verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "reconstructed from a CLEAN Phase 0 recovery bundle", resume_preview: { skip: ["FAFF-1"], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1 }, wantExit: 0 },
+      { name: "conformant-reconstructed-dry-run", in: { verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "dry-run — would reconstruct and preview the resume plan; the real root was left untouched", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1, dry_run: true }, wantExit: 0 },
+      { name: "dry-run-defaults-false-when-absent", in: { verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: null, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "x", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 0 }, wantExit: 0 },
+      { name: "fail-loud-bad-dry-run-type", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "MISSING", bundle_identity: null, run_id: "", run_dir: null, boundary_kind: "issue-merge-floor", reason: "x", resume_preview: null, candidates_considered: 0, dry_run: "yes" }, wantExit: 1 },
+      { name: "conformant-noop-already-present", in: { verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "already reconstructed, byte-identical", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1 }, wantExit: 0 },
+      { name: "conformant-refused-missing", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "MISSING", bundle_identity: null, run_id: "", run_dir: null, boundary_kind: "issue-merge-floor", reason: "no bundle for FAFF-1 in the local store", resume_preview: null, candidates_considered: 0 }, wantExit: 0 },
+      { name: "conformant-refused-stale", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "STALE", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: null, boundary_kind: "issue-merge-floor", reason: "superseded_by FAFF-2", resume_preview: null, candidates_considered: 2 }, wantExit: 0 },
+      { name: "conformant-refused-verification-unavailable", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "VERIFICATION_UNAVAILABLE", bundle_identity: null, run_id: "", run_dir: null, boundary_kind: "issue-merge-floor", reason: "store unreachable", resume_preview: null, candidates_considered: 0 }, wantExit: 0 },
+      { name: "non-clean-verdict-with-reconstructed-flagged", in: { verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "STALE", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "x", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1 }, wantExit: 1 },
+      { name: "coerce-bad-disposition", in: { verb: "bundle-recover", disposition: "maybe", bundle_verdict: "CLEAN", bundle_identity: null, run_id: "run-1", run_dir: null, boundary_kind: "issue-merge-floor", reason: "x", resume_preview: null, candidates_considered: 0 }, wantExit: 1 },
+      { name: "coerce-bad-bundle-verdict", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "SORT_OF_CLEAN", bundle_identity: null, run_id: "", run_dir: null, boundary_kind: "issue-merge-floor", reason: "x", resume_preview: null, candidates_considered: 0 }, wantExit: 1 },
+      { name: "reconstructed-missing-run-dir-flagged", in: { verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: { run_id: "run-1", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 }, run_id: "run-1", run_dir: null, boundary_kind: "issue-merge-floor", reason: "x", resume_preview: { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true }, candidates_considered: 1 }, wantExit: 1 },
+      { name: "refused-with-non-null-run-dir-flagged", in: { verb: "bundle-recover", disposition: "refused", bundle_verdict: "STALE", bundle_identity: null, run_id: "run-1", run_dir: "/root/.faff/runs/run-1", boundary_kind: "issue-merge-floor", reason: "x", resume_preview: null, candidates_considered: 1 }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "post-merge-verification": {
     run: contractPostMergeVerification,
     fixtures: [
@@ -2444,6 +2588,27 @@ const CONTRACT_DESCRIBES = {
     ],
     producer_notes: ["`faff bundle verify` (bundle.js) computes the verdict via the pure classifyBundle ladder over already-fetched store bytes, then pipes its own output through this contract as a belt-and-braces conformance check before printing — the same self-validation contractSpecReadiness/contractLaneBoundary apply to their own producers' output."],
   },
+  "recovery-disposition": {
+    purpose: "The read-only recovery disposition `faff bundle-recover` computes for a fresh executor: reconstructed / noop-already-present / refused, over the most recent CLEAN Phase 0 recovery bundle discovered for an issue, with a resume-or-park preview.",
+    values: [
+      { field: "disposition", enum: RECOVERY_DISPOSITIONS, semantics: {
+        reconstructed: "a CLEAN bundle was discovered, selected, and written to a fresh run directory — the resume_preview reports what a subsequent `faff lights-out --resume` would do",
+        "noop-already-present": "the reconstruction target already exists with a byte-identical ledger — nothing new was written, the preview is still computed against what is already there",
+        refused: "no reconstruction happened — a non-CLEAN bundle verdict, an unresolved discovery ambiguity, an identity conflict with an existing diverging ledger, or a store/discovery fault",
+      } },
+    ],
+    coercions: [
+      "a non-object extraction → fail-loud (exit 2) — nothing to re-derive from",
+      "an out-of-enum disposition → coerced to refused (never guess reconstructed — no reconstruction is ever assumed on doubt)",
+      "an out-of-enum bundle_verdict → coerced to VERIFICATION_UNAVAILABLE (never CLEAN)",
+      "dry_run is optional and defaults to false when absent — a non-boolean dry_run is flagged as a violation. When true, this disposition was computed against a scratch --dry-run materialisation; the real root was left untouched even when disposition reads reconstructed",
+      "bundle_verdict ≠ CLEAN paired with any disposition other than refused → flagged as a violation — this is the one directional safety property this contract enforces even against a hand-altered extraction: a non-CLEAN bundle can never read as reconstructed or noop-already-present",
+      "disposition: reconstructed with a null run_dir or a null resume_preview → flagged as a violation (a claimed reconstruction must carry what it reconstructed)",
+      "disposition: refused with a non-null run_dir → flagged as a violation (a refusal writes nothing, so it names no run directory)",
+      "a malformed bundle_identity/resume_preview shape → flagged as a violation, not fail-loud — the disposition itself is still emitted with safe defaults",
+    ],
+    producer_notes: ["`faff bundle-recover` computes the disposition via its own pure cores (selectMostRecent, idempotencyDecision, reconstructResumePlan reused unforked from resume.js) over already-verified bundle bytes, then pipes its own output through this contract as a belt-and-braces conformance check before printing — never a live liveness check, never a forge call (see the verb's own no-gh-call invariant)."],
+  },
   "ci-triage": {
     purpose: "The three-axis CI-failure classifier (`faff ci-triage`) that decides whether a red PR check is worth a re-run, whose fault it is, and what to do next.",
     values: [
@@ -2822,4 +2987,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

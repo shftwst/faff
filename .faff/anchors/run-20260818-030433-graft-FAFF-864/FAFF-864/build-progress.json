@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-864",
+  "build": {
+    "status": "complete",
+    "diff_hash": "56025d07c75c17fd7997b0876f1feb96edde5ff9d08428e2895ef102932f91bb",
+    "branch": "faff-864-effects-run-dir-shared-ledger",
+    "pushed_at": "2026-08-18T03:09:51.822Z"
+  },
+  "updated_at": "2026-08-18T03:09:51.822Z"
+}

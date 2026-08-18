@@ -270,6 +270,50 @@ test("configCheck guard: an unrecognized requires value -> fail-loud error findi
   assert.ok(findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message) && /Local/.test(f.message)));
 });
 
+// FAFF-870: the residency gate is global (adversarial.requires), but refs lists can
+// now live per-consumer — the guard must iterate each adversarial.<consumer>.refs
+// against that one global requires, or a per-consumer chain leaning on a derived
+// egress: local is invisible.
+test("configCheck guard: a PER-CONSUMER refs chain on a derived egress:local backend warns, surfacing the consumer", () => {
+  const cfg = {
+    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
+    adversarial: { requires: "local", prdr_review: { refs: ["studio-ollama"] } },
+  };
+  const findings = backendsConfigCheckFindings(cfg);
+  assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message) && f.surface === "adversarial.prdr_review.refs[studio-ollama]"),
+    `expected a per-consumer derived-egress warn; got ${JSON.stringify(findings)}`);
+});
+
+test("configCheck guard: an EXPLICIT egress:local per-consumer backend is silent (parity with the shared refs path)", () => {
+  const cfg = {
+    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
+    adversarial: { requires: "local", spec_review: { refs: ["studio-ollama"] } },
+  };
+  assert.ok(!backendsConfigCheckFindings(cfg).some((f) => /DERIVED/.test(f.message)));
+});
+
+test("configCheck guard: the global requires covers BOTH the shared and per-consumer refs in one pass", () => {
+  const cfg = {
+    backends: {
+      "shared-b": { provider: "ollama", model: "m1", host: "http://shared.x.ts.net:11434" }, // derived local
+      "consumer-b": { provider: "ollama", model: "m2", host: "http://cons.x.ts.net:11434" }, // derived local
+    },
+    adversarial: { requires: "local", refs: ["shared-b"], code_review: { refs: ["consumer-b"] } },
+  };
+  const surfaces = backendsConfigCheckFindings(cfg).filter((f) => /DERIVED/.test(f.message)).map((f) => f.surface);
+  assert.ok(surfaces.includes("adversarial.refs[shared-b]"), "shared chain still checked");
+  assert.ok(surfaces.includes("adversarial.code_review.refs[consumer-b]"), "per-consumer chain also checked");
+});
+
+test("configCheck guard: an unrecognized global requires surfaces ONCE even with per-consumer refs present", () => {
+  const cfg = {
+    backends: { b: { provider: "ollama", model: "m1", host: "http://b.x.ts.net:11434" } },
+    adversarial: { requires: "Local", spec_review: { refs: ["b"] }, code_review: { refs: ["b"] } }, // case-typo, no shared refs
+  };
+  const errs = backendsConfigCheckFindings(cfg).filter((f) => f.severity === "error" && /unrecognized value/.test(f.message));
+  assert.equal(errs.length, 1, "the global requires enum error surfaces once, not per consumer");
+});
+
 // ===========================================================================
 // CLI — faff backends resolve|realizable
 // ===========================================================================

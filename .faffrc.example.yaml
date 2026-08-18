@@ -310,6 +310,25 @@ prdr:
 #     deadline: 480
 # Named backends: entries do NOT inherit omitted optional fields from one another (unlike
 # the legacy fallbacks form below) — each backend stands alone.
+#
+# FAFF-870: PER-CONSUMER chains. Each adversarial-review consumer (spec_review, code_review,
+# prdr_review — or any future name; the seam is open-ended) may pin its OWN ordered refs: list
+# and its own timeout, so a prose-challenge altitude and a diff-challenge altitude can run
+# structurally different (or cheaper) models. UNSET per-consumer keys resolve BYTE-IDENTICALLY
+# to the shared adversarial.* chain / timeout — zero change for existing configs. Only the chain
+# (refs) and timeout split per-consumer; deadline and requires stay GLOBAL. e.g.:
+#   adversarial:
+#     refs: [nvidia-glm, studio-ollama]   # the shared default chain (any unset consumer falls back here)
+#     requires: local                     # GLOBAL residency gate — applies to every consumer's refs
+#     spec_review:
+#       refs: [gemini-gemma]              # spec-altitude prose challenge — its own chain
+#       timeout: 240                      # OPTIONAL — overrides adversarial.timeout for this consumer only
+#     code_review:
+#       refs: [nvidia-glm, studio-ollama] # diff-altitude challenge — its own chain
+#     # prdr_review: { refs: [...] }      # any consumer name; unset => shared chain, byte-identical
+#   # NB a consumer name must NOT reuse a reserved adversarial field name (refs / backends /
+#   #    fallbacks / host / provider / model / api_key_env / reasoning_off / timeout / deadline /
+#   #    requires) — those are the shared block's own fields, not a per-consumer sub-block.
 adversarial:
   provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic
   model: llama3.1:70b # provider-specific model identifier

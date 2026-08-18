@@ -863,6 +863,19 @@ const SEQUENCE_VALUED_KEYS = new Set([
   "adversarial.backends",
 ]);
 
+// FAFF-870: per-consumer adversarial refs (`adversarial.<consumer>.refs`) are the
+// same list-valued shape as `adversarial.refs`, refused for the same reason — but
+// the consumer name is open-ended (spec_review / code_review / prdr_review, and
+// any future adversarial consumer inherits the seam for free), so an exact key
+// set cannot enumerate them. The regex closes the whole three-segment
+// `adversarial.<name>.refs` shape; it never matches the two-segment
+// `adversarial.refs` (already in the set above) nor `adversarial.<consumer>.timeout`
+// (a legitimate writable scalar leaf). Bound to the schema by configSetSelftest.
+const PER_CONSUMER_REFS_KEY = /^adversarial\.[A-Za-z0-9_]+\.refs$/;
+function isSequenceValuedKey(key) {
+  return SEQUENCE_VALUED_KEYS.has(key) || PER_CONSUMER_REFS_KEY.test(key);
+}
+
 // Recognised top-level config namespaces `config set` may write into — a cheap typo guard at
 // the root. Low-churn: a new LEAF under an existing namespace needs no edit here; only a
 // brand-new top-level namespace does (a deliberate schema addition). Every top-level key
@@ -1030,7 +1043,7 @@ function cmdConfigSet(args, root) {
   }
   // By NAME, before touching the file: the JSON-string form of these keys reads back as a
   // plain scalar, so a value-shape guard alone cannot catch it (see SEQUENCE_VALUED_KEYS above).
-  if (SEQUENCE_VALUED_KEYS.has(key)) {
+  if (isSequenceValuedKey(key)) {
     process.stderr.write(`faff config set: '${key}' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)\n`);
     return 2;
   }
@@ -1188,6 +1201,21 @@ function configSetSelftest() {
     check("carve-out/json-string: mergeConfigPath alone would NOT catch this (documents the risk)",
       r.typeError === null && r.changed === true);
     check("carve-out/json-string: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("adversarial.fallbacks"));
+  }
+
+  // FAFF-870: per-consumer refs (`adversarial.<consumer>.refs`) are the same
+  // list-valued shape, but open-ended in the consumer name, so the regex predicate
+  // (not the exact set) is what refuses them. Pin the predicate to the schema:
+  // it refuses every per-consumer refs key, and refuses nothing it must not.
+  {
+    check("per-consumer/refs: adversarial.spec_review.refs is sequence-valued (refused)", isSequenceValuedKey("adversarial.spec_review.refs"));
+    check("per-consumer/refs: adversarial.code_review.refs is sequence-valued (refused)", isSequenceValuedKey("adversarial.code_review.refs"));
+    check("per-consumer/refs: adversarial.prdr_review.refs is sequence-valued (refused)", isSequenceValuedKey("adversarial.prdr_review.refs"));
+    check("per-consumer/refs: a future consumer name is refused too (open-ended seam)", isSequenceValuedKey("adversarial.some_future_consumer.refs"));
+    check("per-consumer/refs: the shared adversarial.refs is still refused (exact set)", isSequenceValuedKey("adversarial.refs"));
+    check("per-consumer/timeout: adversarial.spec_review.timeout is a writable SCALAR (not refused)", !isSequenceValuedKey("adversarial.spec_review.timeout"));
+    check("per-consumer/refs: the predicate does not over-match adversarial.timeout", !isSequenceValuedKey("adversarial.timeout"));
+    check("per-consumer/refs: the predicate does not match a deeper nested refs leaf", !isSequenceValuedKey("adversarial.spec_review.sub.refs"));
   }
 
   // WRITABLE_NAMESPACES drift check: every top-level key documented in .faffrc.example.yaml

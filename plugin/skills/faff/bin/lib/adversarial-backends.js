@@ -76,9 +76,29 @@ function inheritOptionalFromPrimary(fallback, primary) {
 // chain) — or { error: "malformed", detail } — unparseable/non-array
 // `fallbacks` JSON (the caller maps this to exit 2, fail-loud, never a
 // silently-emitted [primary]-only chain on a broken config).
-function assembleAdversarialBackends(cfg) {
+function assembleAdversarialBackends(cfg, consumer) {
   const adv = dig(cfg, "adversarial");
   if (!adv || typeof adv !== "object" || Array.isArray(adv)) return { error: "unset" };
+
+  // FAFF-870: per-consumer chain selection. A named consumer (spec_review /
+  // code_review / prdr_review, or any future name — the seam is open-ended) may
+  // pin its OWN ordered `refs:` list under `adversarial.<consumer>.refs`,
+  // resolved by the same shared-`backends:`-namespace mechanism as
+  // `adversarial.refs` below. Checked FIRST, but ONLY when a usable per-consumer
+  // refs list is present: anything short — an absent consumer arg, an absent or
+  // non-object sub-block, an empty or non-string `refs` — falls through to the
+  // shared assembly below, byte-identical to a no-consumer call (the
+  // zero-behaviour-change-when-unset guarantee). A named consumer resolves refs
+  // only; timeout is a separate per-consumer scalar read at the call site.
+  if (consumer) {
+    const sub = adv[consumer];
+    if (sub && typeof sub === "object" && !Array.isArray(sub)
+        && Array.isArray(sub.refs) && sub.refs.length > 0 && sub.refs.every((r) => typeof r === "string")) {
+      const res = resolveBackendRefs(cfg, sub.refs);
+      if (res.error) return { error: "malformed", detail: res.error };
+      return { chain: res.chain.map(pickBackendKeys) };
+    }
+  }
 
   // FAFF-523: named `refs:` block sequence — an ordered reference into the
   // shared top-level `backends:` namespace (checked first; a list of STRINGS
@@ -130,15 +150,19 @@ function assembleAdversarialBackends(cfg) {
 const { parseArgs, usageError } = require("./argv");
 // --json is accepted-and-ignored: the default output is already the JSON array
 // `review-call.mjs`'s --backends-json wants, so the flag exists for CLI-convention parity.
-const ADVERSARIAL_BACKENDS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 } } };
+// FAFF-870: --consumer <name> selects a per-consumer chain (see
+// assembleAdversarialBackends). Open-ended — any name is accepted; an
+// unrecognised/unconfigured name is NOT an error, it falls through to the
+// shared chain (byte-identical to omitting the flag).
+const ADVERSARIAL_BACKENDS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 }, "--consumer": { arity: 1 } } };
 
 function cmdAdversarialBackends(args) {
   if (args.includes("--selftest")) return adversarialBackendsSelftest();
   const { values, errors } = parseArgs(args, ADVERSARIAL_BACKENDS_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff adversarial-backends [--root DIR] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff adversarial-backends [--consumer NAME] [--root DIR] [--json]");
   const root = values["--root"] || findRoot();
   const [cfg] = loadConfig(root);
-  const res = assembleAdversarialBackends(cfg);
+  const res = assembleAdversarialBackends(cfg, values["--consumer"]);
   if (res.error === "unset") {
     process.stderr.write(
       "faff adversarial-backends: adversarial is unset (or its host is unset) — " +
@@ -297,6 +321,70 @@ function adversarialBackendsSelftest() {
     ok("legacy metered: no auth key leaked", !("auth" in res.chain[0]));
     ok("legacy metered: no seat_token_env key leaked", !("seat_token_env" in res.chain[0]));
     ok("legacy metered: api_key_env still carried", res.chain[0].api_key_env === "K");
+  }
+
+  // FAFF-870: per-consumer chain selection. A named consumer's own `refs:` list
+  // resolves that consumer's chain; an unset/absent/non-usable sub-block falls
+  // through to the shared assembly byte-identically (the zero-change guarantee).
+  {
+    const cfg = {
+      backends: {
+        A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" },
+        B: { provider: "ollama", model: "mB", host: "http://b:11434" },
+      },
+      adversarial: {
+        host: "http://base:11434", model: "base", provider: "ollama",
+        spec_review: { refs: ["B", "A"] },
+      },
+    };
+    const specR = assembleAdversarialBackends(cfg, "spec_review");
+    ok("per-consumer refs: resolves that consumer's chain in order from backends:",
+      !!specR.chain && specR.chain.length === 2 && specR.chain[0].model === "mB" && specR.chain[1].model === "mA");
+    // A consumer with no sub-block falls through to the shared legacy chain.
+    const codeR = assembleAdversarialBackends(cfg, "code_review");
+    const shared = assembleAdversarialBackends(cfg);
+    ok("per-consumer: an unconfigured consumer == the no-consumer shared chain (byte-identical)",
+      JSON.stringify(codeR) === JSON.stringify(shared));
+    ok("per-consumer: shared chain is the legacy primary (unaffected by the spec_review sub-block)",
+      !!shared.chain && shared.chain.length === 1 && shared.chain[0].model === "base");
+  }
+
+  // FAFF-870: a named consumer whose sub-block has an empty or non-string `refs`
+  // is NOT a usable per-consumer list — it falls through to the shared assembly,
+  // never an error, never an empty chain.
+  {
+    const cfg = {
+      backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
+      adversarial: {
+        refs: ["A"],
+        spec_review: { refs: [] },
+        code_review: { refs: [{ provider: "x" }] },
+      },
+    };
+    const emptyRefs = assembleAdversarialBackends(cfg, "spec_review");
+    const nonString = assembleAdversarialBackends(cfg, "code_review");
+    const shared = assembleAdversarialBackends(cfg);
+    ok("per-consumer: empty refs falls through to shared", JSON.stringify(emptyRefs) === JSON.stringify(shared));
+    ok("per-consumer: non-string refs falls through to shared", JSON.stringify(nonString) === JSON.stringify(shared));
+    ok("per-consumer fallthrough uses the shared refs chain", !!shared.chain && shared.chain[0].model === "mA");
+  }
+
+  // FAFF-870: omitting the consumer arg entirely is byte-identical to today —
+  // no config with per-consumer sub-blocks changes the no-consumer output.
+  {
+    const cfg = {
+      backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
+      adversarial: {
+        host: "http://base:11434", model: "base", provider: "ollama",
+        spec_review: { refs: ["A"] }, code_review: { refs: ["A"] },
+      },
+    };
+    const noArg = assembleAdversarialBackends(cfg);
+    const noArgExplicitUndefined = assembleAdversarialBackends(cfg, undefined);
+    ok("per-consumer: no consumer arg ignores sub-blocks, emits the shared legacy chain",
+      !!noArg.chain && noArg.chain.length === 1 && noArg.chain[0].model === "base");
+    ok("per-consumer: consumer=undefined == no arg (byte-identical)",
+      JSON.stringify(noArg) === JSON.stringify(noArgExplicitUndefined));
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (adversarial-backends, ${fail} failed)`);

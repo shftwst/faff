@@ -161,9 +161,16 @@ The key principle is **independence from the primary model**. If Claude wrote th
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 backends_json=$(mktemp)
-"$faff" adversarial-backends > "$backends_json"; backends_exit=$?
-timeout=$("$faff" config get adversarial.timeout -d 120)
-deadline=$("$faff" config get adversarial.deadline -d 480)
+# Per-consumer: which per-consumer chain this call selects. Set by the CALLING
+# seam, never baked into the shared block: the refutation-code (code review) seam
+# sets code_review; the prdr-yagni seam sets prdr_review; the adr-drift seam leaves
+# it UNSET so it falls through to the shared adversarial.* chain. An unset
+# per-consumer key resolves byte-identically to today's shared chain / timeout.
+consumer=code_review
+"$faff" adversarial-backends ${consumer:+--consumer "$consumer"} > "$backends_json"; backends_exit=$?
+if [ -n "$consumer" ]; then timeout=$("$faff" config get "adversarial.$consumer.timeout"); fi
+[ -z "$timeout" ] && timeout=$("$faff" config get adversarial.timeout -d 120)
+deadline=$("$faff" config get adversarial.deadline -d 480)   # global — not split per-consumer
 
 case "$backends_exit" in
   0)
@@ -290,7 +297,7 @@ On an **interactive (L2)** run — `autonomous` false — this section is inert:
 
 ## ADR drift challenge
 
-This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return the closed challenge-outcome vocabulary (canonical semantics: `faff contract adr-admission --describe`). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as the absent outcome (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
+This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return the closed challenge-outcome vocabulary (canonical semantics: `faff contract adr-admission --describe`). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as the absent outcome (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case. **Per-consumer backend:** the `adr-drift` seam is **not** a named per-consumer adversarial consumer — when it reaches the **Backend call** mechanism above it leaves `consumer` UNSET, so it resolves the shared `adversarial.*` chain (byte-identical to today). A future dedicated chain for it is a one-line change (set `consumer=adr_drift`) that inherits the generic seam for free.
 
 ## PRDR YAGNI Phase-2 challenge
 
@@ -310,6 +317,12 @@ BEHAVIOUR PRDR YAGNI Phase-2 challenge (the prdr-yagni seam):
      never the diff-shaped code-review transport the `refutation-code` seam uses. It feeds
      `faff prdr yagni --challenge <outcome> --challenge-ground <ground>` directly, never the
      `faff-contract:review-verdict` block.
+     PER-CONSUMER BACKEND: this is the `prdr_review` consumer. Where this seam
+     resolves its adversarial backend chain via `faff adversarial-backends`, thread
+     `--consumer prdr_review` (and read `adversarial.prdr_review.timeout`, falling back to
+     `adversarial.timeout`) — i.e. set `consumer=prdr_review` in the Backend call mechanism,
+     overriding the `code_review` default the refutation-code seam sets. Unset ⇒ byte-identical
+     to the shared chain, so a distinct prdr_review chain is opt-in only.
   5. Unreachable/unanswered after the normal fallback chain → the absent outcome
      (caller omits --challenge — a missing skeptic is a reject, never a pass, parking the
      PRDR `phase2-inconclusive`); no separate outage-annotation shape (same as adr-drift).

@@ -298,3 +298,93 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ===========================================================================
+// FAFF-870 — per-consumer chain selection (--consumer <name>)
+// ===========================================================================
+
+test("per-consumer refs: a named consumer resolves its OWN refs chain from the shared backends namespace", () => {
+  const cfg = {
+    backends: {
+      A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" },
+      B: { provider: "ollama", model: "mB", host: "http://b:11434" },
+    },
+    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_review: { refs: ["B", "A"] } },
+  };
+  const res = assembleAdversarialBackends(cfg, "spec_review");
+  assert.equal(res.chain.length, 2);
+  assert.equal(res.chain[0].model, "mB", "refs order preserved: index 0 first-served");
+  assert.equal(res.chain[1].model, "mA");
+});
+
+test("per-consumer: an unconfigured consumer is BYTE-IDENTICAL to the no-consumer shared chain (the zero-change guarantee)", () => {
+  const cfg = {
+    backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
+    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_review: { refs: ["A"] } },
+  };
+  const shared = assembleAdversarialBackends(cfg);
+  const codeReview = assembleAdversarialBackends(cfg, "code_review"); // no code_review sub-block
+  assert.deepEqual(codeReview, shared);
+  assert.equal(shared.chain.length, 1);
+  assert.equal(shared.chain[0].model, "base", "the shared chain is the legacy primary, unaffected by the spec_review sub-block");
+});
+
+test("per-consumer: omitting the consumer arg entirely ignores every sub-block (byte-for-byte today)", () => {
+  const cfg = {
+    backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
+    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_review: { refs: ["A"] }, code_review: { refs: ["A"] } },
+  };
+  assert.deepEqual(assembleAdversarialBackends(cfg), assembleAdversarialBackends(cfg, undefined));
+  assert.equal(assembleAdversarialBackends(cfg).chain[0].model, "base");
+});
+
+test("per-consumer: an empty or non-string refs sub-block falls through to the shared assembly, never an error", () => {
+  const cfg = {
+    backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
+    adversarial: { refs: ["A"], spec_review: { refs: [] }, code_review: { refs: [{ provider: "x" }] } },
+  };
+  const shared = assembleAdversarialBackends(cfg);
+  assert.deepEqual(assembleAdversarialBackends(cfg, "spec_review"), shared, "empty refs → shared");
+  assert.deepEqual(assembleAdversarialBackends(cfg, "code_review"), shared, "non-string refs → shared");
+  assert.equal(shared.chain[0].model, "mA");
+});
+
+test("per-consumer: an unknown ref NAME in a consumer chain is fail-loud malformed (same as the shared refs path)", () => {
+  const cfg = { backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1" } }, adversarial: { spec_review: { refs: ["nope"] } } };
+  assert.equal(assembleAdversarialBackends(cfg, "spec_review").error, "malformed");
+});
+
+test("CLI: --consumer X with no sub-block emits stdout BYTE-IDENTICAL to the no-flag call", () => {
+  const dir = fixtureDir("adversarial:\n  provider: nvidia\n  model: m1\n  host: https://a/v1\n");
+  try {
+    const plain = runCli(["adversarial-backends"], { cwd: dir });
+    const withConsumer = runCli(["adversarial-backends", "--consumer", "spec_review"], { cwd: dir });
+    assert.equal(plain.code, 0);
+    assert.equal(withConsumer.code, 0);
+    assert.equal(withConsumer.stdout, plain.stdout);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI: --consumer selects the per-consumer chain when its sub-block is set; a different consumer falls through", () => {
+  const dir = fixtureDir(
+    "backends:\n" +
+    "  A:\n    provider: nvidia\n    model: mA\n    host: https://a/v1\n    api_key_env: KA\n" +
+    "  B:\n    provider: ollama\n    model: mB\n    host: http://b:11434\n" +
+    "adversarial:\n" +
+    "  provider: ollama\n  model: base\n  host: http://base:11434\n" +
+    "  spec_review:\n    refs:\n      - B\n      - A\n",
+  );
+  try {
+    const spec = runCli(["adversarial-backends", "--consumer", "spec_review"], { cwd: dir });
+    assert.equal(spec.code, 0, spec.stderr);
+    const specChain = JSON.parse(spec.stdout);
+    assert.equal(specChain.length, 2);
+    assert.equal(specChain[0].model, "mB");
+    assert.equal(specChain[1].model, "mA");
+    // code_review has no sub-block → the shared legacy primary chain, unchanged.
+    const code = runCli(["adversarial-backends", "--consumer", "code_review"], { cwd: dir });
+    const shared = runCli(["adversarial-backends"], { cwd: dir });
+    assert.equal(code.stdout, shared.stdout);
+    assert.equal(JSON.parse(shared.stdout)[0].model, "base");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

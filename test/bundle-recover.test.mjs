@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync, existsSync, cpSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync, existsSync, cpSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -290,5 +290,86 @@ test("killed-executor fixture: local discoverLocalCandidates finds nothing for a
     assert.equal(found.length, 0);
   } finally {
     rmSync(gitTmp, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-845 (Option A) — landing-progress.json rides the anchor (events.js's optionalFloorFiles)
+// and is copied back up into <run-dir>/<issue>/ by reconstructProjection, so the existing
+// `faff landing-progress read` reader works unchanged after a Phase-0 recovery.
+// ---------------------------------------------------------------------------
+test("bundle-recover: landing-progress.json rides the anchor and is copied up into <run-dir>/<issue>/ after recovery; faff landing-progress read returns it", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff-bundle-recover-landing-t-"));
+  const freshRoot = mkdtempSync(path.join(tmpdir(), "faff-bundle-recover-landing-fresh-t-"));
+  try {
+    const run_id = "run-fixture-000000-landing";
+    const runDir = path.join(root, ".faff", "runs", run_id);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ run_id, admitted: ["FAFF-1"], outcomes: {}, owner: { epoch: 0, status: "running", last_heartbeat: "2020-01-01T00:00:00.000Z" } }));
+    writeFileSync(path.join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${run_id}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+    mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
+    writeFileSync(path.join(runDir, "FAFF-1", "ac-checklist.json"), '{"all_verified":true}');
+    // A landing-progress checkpoint recorded during the original run's landing loop (FAFF-846).
+    const landingRecord = {
+      issue: "FAFF-1", fix_cycles: 1, last_head_sha: "abc123",
+      history: [{ cycle: 1, kind: "conflict", failing_checks: [], tried: ["rebase"], at: "2026-01-01T00:00:00.000Z" }],
+      updated_at: "2026-01-01T00:00:00.000Z",
+    };
+    writeFileSync(path.join(runDir, "FAFF-1", "landing-progress.json"), JSON.stringify(landingRecord));
+
+    const anchorDest = path.join(root, ".faff", "anchors", run_id, "FAFF-1");
+    const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDest);
+    assert.equal(mint.ok, true);
+    assert.ok(existsSync(path.join(anchorDest, "landing-progress.json")), "the anchor carries landing-progress.json (events.js optionalFloorFiles)");
+
+    const store = localBundleStore(root);
+    const pub = publishBundle(runDir, "issue-merge-floor", "FAFF-1", { root, store, boundarySeq: 0 });
+    assert.equal(pub.ok, true);
+
+    mkdirSync(path.join(freshRoot, ".faff", "bundles"), { recursive: true });
+    cpSync(path.join(root, ".faff", "bundles"), path.join(freshRoot, ".faff", "bundles"), { recursive: true });
+
+    const r = runCli(["bundle-recover", "--issue", "FAFF-1", "--root", freshRoot, "--json"], { cwd: freshRoot });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).disposition, "reconstructed");
+
+    // Restored into the anchor dir...
+    assert.ok(existsSync(path.join(freshRoot, ".faff", "anchors", run_id, "FAFF-1", "landing-progress.json")));
+    // ...AND copied up into <run-dir>/<issue>/ (Option A, owned by FAFF-845).
+    const landedPath = path.join(freshRoot, ".faff", "runs", run_id, "FAFF-1", "landing-progress.json");
+    assert.ok(existsSync(landedPath));
+    assert.deepEqual(JSON.parse(readFileSync(landedPath, "utf8")), landingRecord);
+
+    // `faff landing-progress read <run-dir> <issue>` returns the record unchanged.
+    const read = runCli(["landing-progress", "read", path.join(freshRoot, ".faff", "runs", run_id), "FAFF-1"], { cwd: freshRoot });
+    assert.equal(read.code, 0, read.stderr);
+    assert.deepEqual(JSON.parse(read.stdout), landingRecord);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(freshRoot, { recursive: true, force: true });
+  }
+});
+
+test("bundle-recover: reconstructProjection stays additive when the bundle carries no landing-progress.json — no <run-dir>/<issue>/ directory is created", () => {
+  const { root, run_id } = fixtureRoot(); // the shared fixture never writes a landing-progress.json
+  const freshRoot = mkdtempSync(path.join(tmpdir(), "faff-bundle-recover-noland-fresh-t-"));
+  try {
+    mkdirSync(path.join(freshRoot, ".faff", "bundles"), { recursive: true });
+    cpSync(path.join(root, ".faff", "bundles"), path.join(freshRoot, ".faff", "bundles"), { recursive: true });
+
+    const r = runCli(["bundle-recover", "--issue", "FAFF-1", "--root", freshRoot, "--json"], { cwd: freshRoot });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).disposition, "reconstructed");
+
+    // The original three targets are present, exactly as before FAFF-845...
+    assert.ok(existsSync(path.join(freshRoot, ".faff", "runs", run_id, "run-ledger.json")));
+    assert.ok(existsSync(path.join(freshRoot, ".faff", "anchors", run_id, "FAFF-1", "events.jsonl")));
+    assert.ok(existsSync(path.join(freshRoot, ".faff", "runs", run_id, "events.jsonl")));
+    // ...and nothing extra: no <run-dir>/<issue>/ directory at all, since there was no
+    // landing-progress.json in the anchor to copy up (the additive guard never fires).
+    assert.ok(!existsSync(path.join(freshRoot, ".faff", "runs", run_id, "FAFF-1")), "no <run-dir>/<issue>/ directory is created when the bundle carries no landing-progress.json");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(freshRoot, { recursive: true, force: true });
   }
 });

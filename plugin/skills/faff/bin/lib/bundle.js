@@ -9,25 +9,40 @@
 // the box) and the GIT-REMOTE occupant (each bundle a write-once orphan commit pushed to its
 // own `refs/faff/bundles/<run_id>/seg-<segment>/<boundary_key>` ref — no PR, no CI). Tamper
 // detection REUSES buildManifest/diffAgainstManifest (integrity-digest.js) and verifyChain/
-// verifyEffectsChain (events.js) verbatim — never forked. Out of scope (FAFF-819 spec §2):
-// recovery-semantics members (FAFF-845), bundle consumption/recover (FAFF-820), merge-evidence
-// acceptance (FAFF-823), a third-party object-store occupant.
+// verifyEffectsChain (events.js) verbatim — never forked. FAFF-845 adds the b2 manifest version
+// and its `contract_fingerprint` member (mint-time governance posture + local contract-schema
+// hashes); requiredMembersFor(version) gates the required-member set so an already-published b1
+// bundle still verifies CLEAN. Still out of scope: bundle consumption/recover (FAFF-820), merge-
+// evidence acceptance (FAFF-823), a third-party object-store occupant, unresolved_effects/
+// restart_descriptor members, and a posture-aware recovery gate (all deferred past FAFF-845 too).
 // ===========================================================================
 
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { dig, findRoot } = require("./shared-infra");
+const { dig, findRoot, HERE } = require("./shared-infra");
 const { loadConfig, DEFAULTS } = require("./config");
 const { buildManifest, diffAgainstManifest, sha256 } = require("./integrity-digest");
 const { verifyChain, verifyEffectsChain, appendEventRecord } = require("./events");
 const { resolveKnownSecretValues } = require("./redact");
-const { computeBundleVerdict } = require("./contract-defs");
+const { computeBundleVerdict, CONTRACTS } = require("./contract-defs");
 
 const REDACTED_PLACEHOLDER = "[REDACTED]";
-const BUNDLE_MANIFEST_VERSION = "b1";
-const REQUIRED_MEMBERS = ["ledger_snapshot", "admitted_outcomes", "anchors", "artifact_manifest", "last_safe_boundary", "redaction"];
+const BUNDLE_MANIFEST_VERSION = "b2"; // was "b1" — FAFF-845 adds the contract_fingerprint member
+// REQUIRED_MEMBERS_B1 — FAFF-819's shipped 6. REQUIRED_MEMBERS_B2 — FAFF-845 adds
+// contract_fingerprint. requiredMembersFor(version) is the version gate: an already-published b1
+// bundle still verifies against the b1 set, and only a new b2-stamped bundle requires the 7th
+// member. REQUIRED_MEMBERS stays exported as a back-compat alias for the b1 set (some call sites
+// may still import the flat list); all classify/fetch loops below use requiredMembersFor().
+const REQUIRED_MEMBERS_B1 = ["ledger_snapshot", "admitted_outcomes", "anchors", "artifact_manifest", "last_safe_boundary", "redaction"];
+const REQUIRED_MEMBERS_B2 = [...REQUIRED_MEMBERS_B1, "contract_fingerprint"];
+const REQUIRED_MEMBERS = REQUIRED_MEMBERS_B1;
+function requiredMembersFor(version) {
+  // An absent/unknown version reads as the original b1 contract, never as "b2 minus
+  // contract_fingerprint" — that would false-flag every already-published b1 bundle MISSING.
+  return version === "b2" ? REQUIRED_MEMBERS_B2 : REQUIRED_MEMBERS_B1;
+}
 const BUNDLE_BOUNDARY_KINDS = ["issue-merge-floor", "run-close"];
 // Identity-component charset (spec §4 "Identity-component validation") — applied by the
 // store-agnostic layer BEFORE any component is interpolated into a ref name / filesystem path /
@@ -163,6 +178,30 @@ function buildBundle(runDir, identityInput, root = findRoot()) {
   const secretValues = resolveKnownSecretValues(root);
   const redactionBytes = Buffer.from(JSON.stringify({ ran: true, placeholder: REDACTED_PLACEHOLDER, applied_count: secretValues.length }), "utf8");
 
+  // contract_fingerprint — FAFF-845: the mint-time governance posture plus the publisher's local
+  // contract-schema hashes, capture-now-or-never facts a drifted recovering box cannot
+  // reconstruct after the fact. Posture is read off the SAME already-parsed ledgerObj — never a
+  // second run-ledger.json read (mirrors run_segment_id's own rule above). Every posture field is
+  // null-tolerant (?? null): a missing field folds to null and the mint never throws.
+  const posture = {
+    dial_profile: ledgerObj.dial_profile ?? null,
+    floor: ledgerObj.floor ?? null,
+    corrective_authority: ledgerObj.corrective_authority ?? null,
+    prd_creative_licence: ledgerObj.prd_creative_licence ?? null,
+  };
+  // contract_schema_versions — one sha256 per CONTRACTS name, sorted, resolved via the SAME
+  // path.resolve(HERE, "..", "contracts", "<name>.schema.json") form contract-defs.js uses, so
+  // the two can never drift. A missing/unreadable schema file stores null, never throws.
+  const schemaMap = {};
+  for (const name of Object.keys(CONTRACTS).sort()) {
+    const schemaPath = path.resolve(HERE, "..", "contracts", `${name}.schema.json`);
+    try { schemaMap[name] = sha256(fs.readFileSync(schemaPath)); }
+    catch { schemaMap[name] = null; }
+  }
+  const fingerprintInputs = { version: "cf1", posture, contract_schema_versions: schemaMap };
+  const fingerprint = { digest: sha256(Buffer.from(canonicalJSON(fingerprintInputs), "utf8")), inputs: fingerprintInputs };
+  const contractFingerprintBytes = Buffer.from(canonicalJSON(fingerprint), "utf8");
+
   const memberBytes = {
     ledger_snapshot: ledgerBytes,
     admitted_outcomes: admittedOutcomesBytes,
@@ -170,6 +209,7 @@ function buildBundle(runDir, identityInput, root = findRoot()) {
     artifact_manifest: artifactManifestBytes,
     last_safe_boundary: lastSafeBoundaryBytes,
     redaction: redactionBytes,
+    contract_fingerprint: contractFingerprintBytes,
   };
   const memberRefs = {};
   for (const [name, bytes] of Object.entries(memberBytes)) memberRefs[name] = { sha256: sha256(bytes), bytes_len: bytes.length };
@@ -217,15 +257,18 @@ function classifyBundle(read) {
   if (read.headStatus === "bundle-missing") return bundleVerdict("MISSING", identity, "bundle-missing");
   if (read.headStatus === "bundle-malformed") return bundleVerdict("MALFORMED", identity, "manifest-malformed");
 
+  // FAFF-845 — the version gate: b1 -> the shipped 6, b2 -> those 6 plus contract_fingerprint,
+  // absent/unknown -> b1 (never a false MISSING on an already-published b1 bundle).
+  const required = requiredMembersFor(read.version);
   const members = read.members || {};
-  for (const name of REQUIRED_MEMBERS) {
+  for (const name of required) {
     if (!members[name] || members[name].status === "missing") return bundleVerdict("MISSING", identity, name);
   }
-  for (const name of REQUIRED_MEMBERS) {
+  for (const name of required) {
     if (members[name].status !== "ok") return bundleVerdict("MALFORMED", identity, name);
   }
   const parsed = {};
-  for (const name of REQUIRED_MEMBERS) {
+  for (const name of required) {
     try { parsed[name] = JSON.parse(members[name].bytes.toString("utf8")); }
     catch { return bundleVerdict("MALFORMED", identity, name); }
   }
@@ -235,11 +278,11 @@ function classifyBundle(read) {
 
   // Recompute per-member digests + the top manifest digest — never trust the store's own claim.
   const recomputedRefs = {};
-  for (const name of REQUIRED_MEMBERS) recomputedRefs[name] = { sha256: sha256(members[name].bytes), bytes_len: members[name].bytes.length };
+  for (const name of required) recomputedRefs[name] = { sha256: sha256(members[name].bytes), bytes_len: members[name].bytes.length };
   const recomputedDigest = sha256(Buffer.from(canonicalJSON(recomputedRefs), "utf8"));
   if (recomputedDigest !== read.headDigest) return bundleVerdict("TAMPERED", identity, "manifest-digest");
   if (read.manifestMemberRefs) {
-    for (const name of REQUIRED_MEMBERS) {
+    for (const name of required) {
       const claimed = read.manifestMemberRefs[name];
       if (claimed && claimed.sha256 !== recomputedRefs[name].sha256) return bundleVerdict("TAMPERED", identity, name);
     }
@@ -269,6 +312,32 @@ function classifyBundle(read) {
     return { tampered: false };
   });
   if (tamperResult.tampered) return bundleVerdict("TAMPERED", identity, tamperResult.cause);
+
+  // FAFF-845 — additive deep cross-check for contract_fingerprint (b2 only), over BUNDLE-CARRIED
+  // bytes only: recompute the digest from the member's own inputs, and compare inputs.posture
+  // against the posture read off the ALREADY-VERIFIED ledger_snapshot member. Never recomputes
+  // contract_schema_versions from the verifying box's local contracts/ — publisher-vs-recoverer
+  // schema drift is exactly what this member records, so a local re-derivation would false-flag
+  // TAMPERED on a box whose shipped schemas simply differ.
+  if (required.includes("contract_fingerprint")) {
+    const fp = parsed.contract_fingerprint;
+    if (!fp || typeof fp !== "object" || !fp.inputs || typeof fp.inputs !== "object" || typeof fp.digest !== "string") {
+      return bundleVerdict("TAMPERED", identity, "contract_fingerprint");
+    }
+    if (sha256(Buffer.from(canonicalJSON(fp.inputs), "utf8")) !== fp.digest) {
+      return bundleVerdict("TAMPERED", identity, "contract_fingerprint");
+    }
+    const ledgerSnapshot = (parsed.ledger_snapshot && typeof parsed.ledger_snapshot === "object") ? parsed.ledger_snapshot : {};
+    const posture = {
+      dial_profile: ledgerSnapshot.dial_profile ?? null,
+      floor: ledgerSnapshot.floor ?? null,
+      corrective_authority: ledgerSnapshot.corrective_authority ?? null,
+      prd_creative_licence: ledgerSnapshot.prd_creative_licence ?? null,
+    };
+    if (canonicalJSON(fp.inputs.posture ?? null) !== canonicalJSON(posture)) {
+      return bundleVerdict("TAMPERED", identity, "contract_fingerprint");
+    }
+  }
 
   const superseded_by = deriveSupersededBy(identity, read.laterBoundaries || []);
   if (superseded_by) return bundleVerdict("STALE", identity, "superseded", superseded_by);
@@ -349,7 +418,7 @@ function localBundleStore(root) {
       let parsed;
       try { parsed = JSON.parse(raw); } catch { return { status: "bundle-malformed" }; }
       if (!parsed || typeof parsed.bundle_manifest_digest !== "string" || typeof parsed.members !== "object") return { status: "bundle-malformed" };
-      return { status: "ok", digest: parsed.bundle_manifest_digest, memberRefs: parsed.members, identity: parsed.identity };
+      return { status: "ok", digest: parsed.bundle_manifest_digest, memberRefs: parsed.members, identity: parsed.identity, version: parsed.version };
     },
     member(identity, name) {
       const dir = localBundleDir(root, identity);
@@ -402,7 +471,7 @@ function gitReadRefManifest(root, remoteName, ref) {
   let parsed;
   try { parsed = JSON.parse(show.stdout.toString("utf8")); } catch { return { status: "bundle-malformed" }; }
   if (!parsed || typeof parsed.bundle_manifest_digest !== "string" || typeof parsed.members !== "object") return { status: "bundle-malformed" };
-  return { status: "ok", digest: parsed.bundle_manifest_digest, memberRefs: parsed.members, identity: parsed.identity, commitSha: sha };
+  return { status: "ok", digest: parsed.bundle_manifest_digest, memberRefs: parsed.members, identity: parsed.identity, version: parsed.version, commitSha: sha };
 }
 
 function gitRemoteBundleStore(root, remoteName = "origin") {
@@ -600,9 +669,9 @@ function verifyBundleIdentity(identity, opts = {}) {
 
   const head = store.headDigest(queryIdentity);
   const resolvedIdentity = (head.status === "ok" && head.identity) ? head.identity : queryIdentity;
-  const read = { identity: resolvedIdentity, headStatus: head.status, headDigest: head.digest || null, manifestMemberRefs: head.memberRefs || null, members: {} };
+  const read = { identity: resolvedIdentity, headStatus: head.status, headDigest: head.digest || null, manifestMemberRefs: head.memberRefs || null, version: head.version, members: {} };
   if (head.status === "ok") {
-    for (const name of REQUIRED_MEMBERS) read.members[name] = store.member(queryIdentity, name);
+    for (const name of requiredMembersFor(head.version)) read.members[name] = store.member(queryIdentity, name);
     read.laterBoundaries = store.listBoundaries(queryIdentity.run_id, queryIdentity.run_segment_id) || [];
   }
   return classifyBundle(read);
@@ -887,6 +956,7 @@ function bundleSelftest() {
 
 module.exports = {
   BUNDLE_MANIFEST_VERSION, BUNDLE_BOUNDARY_KINDS, BUNDLE_STORE_OCCUPANTS, REQUIRED_MEMBERS,
+  REQUIRED_MEMBERS_B1, REQUIRED_MEMBERS_B2, requiredMembersFor,
   canonicalJSON, validateIdentityForHandle, buildBundle, classifyBundle, deriveSupersededBy,
   localBundleStore, gitRemoteBundleStore, bundleRefName, resolveBundleStoreName, resolveBundleStore,
   publishBundle, verifyBundleIdentity, bundleExitCode, cmdBundle, bundleSelftest,

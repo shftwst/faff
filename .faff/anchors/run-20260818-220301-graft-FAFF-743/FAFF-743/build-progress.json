@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-743",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a6b08f9d48756c7b111141edb65536cbfadc16a96c332dd39e64c5318d151df3",
+    "branch": "faff-743-publish-the-external-verification-protocol",
+    "pushed_at": "2026-08-18T22:49:35.317Z"
+  },
+  "updated_at": "2026-08-18T22:49:35.317Z"
+}

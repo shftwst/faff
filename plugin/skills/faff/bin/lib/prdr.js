@@ -42,7 +42,7 @@ const PRDR_SURFACE = {
     validate: { required_flags: [] },
     accept: { required_flags: [] },
     renumber: { required_flags: [] },
-    new: { required_flags: ["--container", "--prd-goal"] },
+    new: { required_flags: ["--container"] }, // --prd-goal / --prd-goals: one-of, checked in the handler (FAFF-856)
     supersede: { required_flags: ["--by"] },
     admit: { required_flags: [] },
     yagni: { required_flags: [] },
@@ -62,6 +62,25 @@ const PRDR_FILE_RE = /^(\d{4})-(.+)\.md$/;
 
 function prdrDir(root) { return path.join(root, resolvePrdrDocsPath(root, loadConfig(root)[0], false)); }
 
+// FAFF-856 — the bare comma was doing two jobs at once (the between-goals separator on write,
+// the split(",") token on read), so a goal whose OWN text contains a comma fragmented on
+// read and could never be cited/covered. The canonical write (prdrTemplate) now emits a JSON
+// array on the single citation-field line — a structure a goal string can never collide with.
+// The reader stays lenient and migration-free (ADR 0111): try the JSON-array parse first, and
+// fall back to the legacy bare comma-split (bare comma-joined string, or the legacy singular
+// `PRD-goal:` field) on anything that isn't a JSON array — never throwing, never rejecting.
+function parsePrdGoalsField(raw) {
+  if (raw == null || !raw.trim()) return []; // preserves FAFF-850 blank-field behaviour
+  try {
+    const parsed = JSON.parse(raw);
+    // nullish elements are dropped BEFORE coercion (String(null) would otherwise stringify to
+    // the literal "null", a non-empty string the trailing filter(Boolean) would not catch).
+    if (Array.isArray(parsed)) return parsed.filter((el) => el != null).map((el) => String(el).trim()).filter(Boolean);
+    // valid JSON but not an array (string/number/object) — fall through to the legacy split
+  } catch { /* malformed/pathological JSON — never propagate the throw; fall through */ }
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 function listPrdrs(dir) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
@@ -74,7 +93,7 @@ function listPrdrs(dir) {
     // matches a legacy `PRD-goal:` line); fall back to the legacy singular field. `prd_goal` stays as
     // the primary (prd_goals[0]) for distance/list and any single-goal consumer.
     const goalsRaw = adrField(text, "PRD-goals") ?? adrField(text, "PRD-goal");
-    const prd_goals = goalsRaw ? goalsRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const prd_goals = parsePrdGoalsField(goalsRaw);
     out.push({
       number: parseInt(m[1], 10), num: m[1], slug: m[2], file: f,
       title: titleM ? titleM[1].trim() : null,
@@ -95,12 +114,16 @@ function prdrNextNumber(dir) {
 }
 
 function prdrTemplate({ num, title, date, container, prdGoal, provenance, status }) {
+  // FAFF-856 — canonical write: always emit the PRD-goals field as a JSON array, so any goal's own
+  // comma is safely contained inside its array element. `prdGoal` accepts either an array directly
+  // (the `new --prd-goals` path) or a single string, normalized to a one-element array (`--prd-goal`).
+  const goals = Array.isArray(prdGoal) ? prdGoal : (prdGoal ? [prdGoal] : []);
   const lines = [`# PRDR ${num} — ${title}`, "",
     `- **Status:** ${status || "Proposed"}`,
     `- **Provenance:** ${provenance || "human"}`,
     `- **Date:** ${date}`,
     `- **Container:** ${container}`,
-    `- **PRD-goals:** ${prdGoal}`, "",
+    `- **PRD-goals:** ${JSON.stringify(goals)}`, "",
     "## Context", "", "_TODO: the product need this decision answers + the PRD goal it serves._", "",
     "## Decision", "", "_TODO: the product decision, stated forward._", "",
     "## Scope", "", "_TODO: what this decision covers (and explicitly excludes)._", "",
@@ -354,8 +377,20 @@ function cmdPrdr(args) {
     const container = get("--container");
     const prdGoal = get("--prd-goal");
     if (!title) { process.stderr.write("faff prdr new: <title> is required\n"); return 2; }
+    // FAFF-856 — --prd-goals is an explicit JSON-array set (parity with the coverage/yagni/distance
+    // guards: same parse-then-array-shape check, same exit 2, only the verb name differs in stderr).
+    // The comma can no longer double as the author's separator, so this is the multi-goal input path.
+    let prdGoals = null;
+    const goalsRaw = get("--prd-goals");
+    if (goalsRaw != null) {
+      try { prdGoals = JSON.parse(goalsRaw); } catch (e) { process.stderr.write(`faff prdr new: --prd-goals is not valid JSON: ${e.message}\n`); return 2; }
+      if (!Array.isArray(prdGoals)) { process.stderr.write("faff prdr new: --prd-goals must be a JSON array of strings\n"); return 2; }
+    }
     const reqErr = requireFlags(parsed.values, PRDR_SURFACE.subcommands.new, "prdr", "new");
     if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
+    // --prd-goal / --prd-goals: one-of (mechanical required_flags only covers --container now — a
+    // record needs SOME goal citation, from either input, but not necessarily both).
+    if (prdGoals == null && !prdGoal) { process.stderr.write("faff prdr new: --prd-goal or --prd-goals is required\n"); return 2; }
     const provenance = get("--provenance");
     if (provenance && !PRDR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff prdr new: --provenance must be one of ${PRDR_PROVENANCES.join("|")}\n`); return 2; }
     const date = get("--date") || new Date().toISOString().slice(0, 10);
@@ -365,7 +400,9 @@ function cmdPrdr(args) {
     if (fs.existsSync(full)) { process.stderr.write(`faff prdr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
     // provenance default = human (fail-safe: the harder-to-supersede tier; the loop passes --provenance loop).
-    fs.writeFileSync(full, prdrTemplate({ num, title, date, container, prdGoal, provenance: provenance || "human", status: get("--status") }));
+    // --prd-goals (an explicit set) takes precedence when both are given; prdrTemplate JSON-stringifies
+    // an array directly and normalizes a single --prd-goal string to a one-element array.
+    fs.writeFileSync(full, prdrTemplate({ num, title, date, container, prdGoal: prdGoals != null ? prdGoals : prdGoal, provenance: provenance || "human", status: get("--status") }));
     process.stdout.write(full + "\n");   // stdout = path ONLY (parity with `adr new`/`prd new`)
     return 0;
   }
@@ -729,7 +766,10 @@ function prdrSelftest() {
   t("815 parse: plural PRD-goals field + legacy PRD-goal fallback, prd_goal = prd_goals[0]", (() => {
     const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-815-"));
     const dd = path.join(tp, "docs", "prdr"); fs.mkdirSync(dd, { recursive: true });
-    fs.writeFileSync(path.join(dd, "0001-plural.md"), prdrTemplate({ num: "0001", title: "plural", date: "2026-08-16", container: "c", prdGoal: "g1, g2, g3", provenance: "loop" }));
+    // FAFF-856: prdrTemplate now always emits the canonical JSON-array citation format, so a
+    // legacy bare-comma multi-goal fixture is hand-written directly (bypassing the writer) to
+    // exercise the reader's legacy-fallback path — same as the sibling 0002-legacy.md fixture.
+    fs.writeFileSync(path.join(dd, "0001-plural.md"), "# PRDR 0001 — plural\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-16\n- **Container:** c\n- **PRD-goals:** g1, g2, g3\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
     fs.writeFileSync(path.join(dd, "0002-legacy.md"), "# PRDR 0002 — legacy\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-16\n- **Container:** c\n- **PRD-goal:** only\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
     const ll = listPrdrs(dd);
     const a = ll.find((p) => p.num === "0001"), b = ll.find((p) => p.num === "0002");
@@ -738,6 +778,93 @@ function prdrSelftest() {
     fs.rmSync(tp, { recursive: true, force: true });
     return ok;
   })());
+
+  // === FAFF-856: PRD-goals JSON-array storage — comma-in-goal round-trip + new selftest cases ===
+  {
+    const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-856-"));
+    const dd = path.join(tp, "docs", "prdr"); fs.mkdirSync(dd, { recursive: true });
+
+    // Comma-in-goal round-trip: the canonical writer emits a JSON array, so a goal whose own
+    // text contains a comma survives write→read as exactly one element (not fragmented).
+    const commaGoal = "Codes survive an api container restart, proving the datastore is real.";
+    fs.writeFileSync(path.join(dd, "0001-commagoal.md"), prdrTemplate({ num: "0001", title: "commagoal", date: "2026-08-18", container: "c", prdGoal: commaGoal, provenance: "loop" }));
+    t("856: a goal with an internal comma round-trips as ONE goal, not fragments", (() => {
+      const p = listPrdrs(dd).find((x) => x.num === "0001");
+      return p.prd_goals.length === 1 && p.prd_goals[0] === commaGoal && p.prd_goal === commaGoal;
+    })());
+    t("856: prdrTemplate emits the PRD-goals field as a JSON array", /^\s*-\s*\*\*PRD-goals:\*\*\s*\[/m.test(fs.readFileSync(path.join(dd, "0001-commagoal.md"), "utf8")));
+
+    // Legacy bare comma-joined field still parses (no migration, ADR 0111 preserved).
+    fs.writeFileSync(path.join(dd, "0002-legacybare.md"), "# PRDR 0002 — legacybare\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-18\n- **Container:** c\n- **PRD-goals:** g1, g2, g3\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
+    t("856: legacy bare comma-joined PRD-goals still parses (no migration)", (() => {
+      const p = listPrdrs(dd).find((x) => x.num === "0002");
+      return p.prd_goals.length === 3 && p.prd_goals[1] === "g2";
+    })());
+
+    // Non-string element coercion: each JSON-array element is String()-coerced + trimmed; empty/nullish dropped.
+    fs.writeFileSync(path.join(dd, "0003-coerce.md"), `# PRDR 0003 — coerce\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-18\n- **Container:** c\n- **PRD-goals:** ${JSON.stringify(["ok", 42, null, " padded "])}\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n`);
+    t("856: non-string JSON-array elements are String()-coerced + trimmed, empty/nullish dropped", (() => {
+      const p = listPrdrs(dd).find((x) => x.num === "0003");
+      return JSON.stringify(p.prd_goals) === JSON.stringify(["ok", "42", "padded"]);
+    })());
+
+    // A malformed/pathological JSON-looking value never throws — falls back to the legacy split.
+    fs.writeFileSync(path.join(dd, "0004-pathological.md"), "# PRDR 0004 — pathological\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-08-18\n- **Container:** c\n- **PRD-goals:** [\"unterminated, oops\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
+    t("856: a pathological JSON-looking PRD-goals value does not throw — falls back to legacy split", (() => {
+      let p;
+      try { p = listPrdrs(dd).find((x) => x.num === "0004"); } catch { return false; }
+      return p != null && p.prd_goals.length > 0;
+    })());
+
+    // `prdrValidate` stays presence-only — a malformed-format citation is NOT flagged (human tie-break).
+    t("856: prdrValidate does not newly flag a malformed-format citation (presence-only, unchanged)", !prdrValidate(dd).some((p) => /0004-pathological\.md/.test(p)));
+
+    fs.rmSync(tp, { recursive: true, force: true });
+  }
+
+  // `new --prd-goals` guard — pinned to the exact coverage/yagni/distance stderr shape, verb name only differs.
+  {
+    const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-856-new-"));
+    const dd = path.join(tp, "docs", "prdr");
+    const origErr = process.stderr.write, origOut = process.stdout.write;
+    // capture BOTH streams — a successful `new` prints the created path to real stdout, which
+    // would otherwise leak into the selftest's own console output.
+    const capture = () => {
+      let buf = "";
+      process.stderr.write = (s) => { buf += s; return true; };
+      process.stdout.write = () => true;
+      return () => { process.stderr.write = origErr; process.stdout.write = origOut; return buf; };
+    };
+
+    { const stop = capture();
+      const code = cmdPrdr(["new", "T", "--container", "c", "--prd-goals", "not json", "--root", tp]);
+      const err = stop();
+      t("856: new --prd-goals invalid JSON → exit 2, no record, pinned stderr", code === 2 && /faff prdr new: --prd-goals is not valid JSON:/.test(err) && !fs.existsSync(dd)); }
+
+    { const stop = capture();
+      const code = cmdPrdr(["new", "T", "--container", "c", "--prd-goals", "123", "--root", tp]);
+      const err = stop();
+      t("856: new --prd-goals valid JSON but not an array (number) → exit 2, pinned stderr", code === 2 && /faff prdr new: --prd-goals must be a JSON array of strings/.test(err) && !fs.existsSync(dd)); }
+
+    { const stop = capture();
+      const code = cmdPrdr(["new", "T", "--container", "c", "--prd-goals", '{"a":1}', "--root", tp]);
+      const err = stop();
+      t("856: new --prd-goals valid JSON but not an array (object) → exit 2, pinned stderr", code === 2 && /faff prdr new: --prd-goals must be a JSON array of strings/.test(err) && !fs.existsSync(dd)); }
+
+    { const stop = capture();
+      const code = cmdPrdr(["new", "T", "--container", "c", "--root", tp]); // neither --prd-goal nor --prd-goals
+      const err = stop();
+      t("856: new with neither --prd-goal nor --prd-goals → exit 2", code === 2 && /--prd-goal or --prd-goals is required/.test(err) && !fs.existsSync(dd)); }
+
+    { const stop = capture();
+      const code = cmdPrdr(["new", "T", "--container", "c", "--prd-goals", '["g1, has a comma", "g2"]', "--root", tp]);
+      stop();
+      const file = fs.existsSync(dd) ? fs.readdirSync(dd).find((f) => /^0001-/.test(f)) : null;
+      const rec = file ? listPrdrs(dd).find((p) => p.num === "0001") : null;
+      t("856: new --prd-goals with a valid JSON array writes a record whose goals round-trip exactly", code === 0 && rec != null && rec.prd_goals.length === 2 && rec.prd_goals[0] === "g1, has a comma"); }
+
+    fs.rmSync(tp, { recursive: true, force: true });
+  }
 
   // --- FAFF-257: the lower (coverage) gate + prd-satisfied roll-up producer ---
   const cov = (opts) => computePrdCoverageVerdict({ prdGoals: ["ship booking", "reduce no-shows"], livePrdrs: [{ id: "0001", prd_goal: "ship booking" }, { id: "0002", prd_goal: "reduce no-shows" }], ...opts });

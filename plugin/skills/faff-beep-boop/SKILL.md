@@ -637,7 +637,7 @@ repeat-parked ⚠ (N)
 ## Ground-truth divergences: N (rendered only when step 11.5 found ≥1): warn (≤L3) / ESCALATED (L4)
 - [phantom-merge] ISSUE-XX: shipped on abc123 but forge merged def456 (rollback: `git revert def456`)
 - [claimed-shipped-unmerged] ISSUE-YY: shipped claim with no merge on record/forge
-- [unowned-sibling-mutation] ISSUE-ZZ: non-admitted spec-referenced sibling moved to a terminal state during the run (classes also include `superseded-unproven` and the run-level `sibling-check-unproven` — e.g. `[sibling-check-unproven] run: no sibling baseline attested — the unowned-sibling-mutation check did not run`, usually meaning step 4's write was skipped)
+- [unowned-sibling-mutation] ISSUE-ZZ: a spec-referenced non-admitted sibling moved terminal within the run's window; this run cannot attribute it to any actor (classes also include `superseded-unproven` and the run-level `sibling-check-unproven` — e.g. `[sibling-check-unproven] run: no sibling baseline attested — the unowned-sibling-mutation check did not run`, usually meaning step 4's write was skipped)
 
 ## Inferred build-order deps: N (run-local — no tracker write)
 - ISSUE-E ← ISSUE-D (consumer ← producer; firm, paraphrase): serialised D-before-E — E **Assumes:** a rate limiter; D produces module `rate_limiter`

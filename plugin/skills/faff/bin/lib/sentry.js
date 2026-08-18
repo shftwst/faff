@@ -174,6 +174,44 @@ const SIGNAL_TRIP_INTERVENTION = {
   // warn-only signal into an acting one.
   "heartbeat-progress-mismatch": "surface",
 };
+
+// FAFF-777 — the outward-alone soft rung. `outward-boundary-reach` is the ONE
+// scope-drift drift_kind that is UNCORROBORATED (a bare recorded pre-create walk,
+// not a re-derived inconsistency): under the FAFF-354 trust ceiling it binds
+// structure, not truthfulness, so it is structurally indistinguishable from a
+// false positive. Settled by human decision A (2026-08-16): `surface` (FAFF-767's
+// run-scoped, non-parking breadcrumb), not `continue` — MUST stay a non-parking
+// rung (index < "pause"; asserted in the selftest block below).
+const OUTWARD_ALONE_RUNG = "surface";
+
+// FAFF-777 — per-drift-kind intervention map, consulted by evaluateDerailment's
+// aggregation loop for a "scope-drift" verdict BEFORE the signal-level
+// SIGNAL_TRIP_INTERVENTION map. The two corroborated kinds (a recomputed
+// inconsistency, or a ledger claim with no matching walk) keep their unchanged
+// "pause" teeth; only the uncorroborated outward-boundary-reach is gated to the
+// soft rung. An absent/unrecognised drift_kind is NOT a key here by design — the
+// aggregation loop falls back to SIGNAL_TRIP_INTERVENTION["scope-drift"] ("pause"),
+// failing toward the stronger response rather than silently weakening an unknown
+// kind (spec §3/§4).
+const SCOPE_DRIFT_KIND_INTERVENTION = {
+  "recompute-mismatch": "pause",
+  "unrecorded-create": "pause",
+  "outward-boundary-reach": OUTWARD_ALONE_RUNG,
+};
+
+// FAFF-777 — pure per-drift-kind resolver, pulled out of evaluateDerailment's
+// aggregation loop so the absent/unrecognised-kind fallback is directly
+// unit-testable (evalScopeDrift's own drift_kind vocabulary is fixed to the three
+// real kinds, so an unrecognised string like "foo" can only be exercised by
+// calling this resolver directly, not by round-tripping through evalScopeDrift).
+// `fallback` is always the caller's already-resolved SIGNAL_TRIP_INTERVENTION[
+// "scope-drift"] ("pause") — never re-derived here, so a future re-grade of the
+// signal-level default still flows through unchanged.
+function scopeDriftIntervention(driftKind, fallback) {
+  const kindMapped = SCOPE_DRIFT_KIND_INTERVENTION[driftKind];
+  return kindMapped !== undefined ? kindMapped : fallback;
+}
+
 // The one signal Channel A may upgrade to `correct`, and only when authority is
 // available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
 const CORRECTABLE_SIGNAL = "fix-review-thrash";
@@ -732,6 +770,16 @@ function evaluateDerailment(rawSignals, thresholds, authority, profile = activeP
     if (v.severity !== "trip") continue;
     tripped = true;
     let mapped = SIGNAL_TRIP_INTERVENTION[v.signal] || "pause";
+    // FAFF-777: a "scope-drift" verdict resolves its intervention PER DRIFT KIND
+    // first — the corroborated kinds keep "pause", the uncorroborated
+    // outward-boundary-reach gates to OUTWARD_ALONE_RUNG ("surface"). An
+    // absent/unrecognised drift_kind falls back to the signal-level mapping above
+    // ("pause") rather than silently weakening — SCOPE_DRIFT_KIND_INTERVENTION
+    // deliberately carries no fallback key of its own. Every other signal is
+    // completely unaffected by this branch.
+    if (v.signal === "scope-drift") {
+      mapped = scopeDriftIntervention(v.evidence && v.evidence.drift_kind, mapped);
+    }
     // The ONLY upgrade path: fix-review-thrash's pause -> correct, gated on the
     // explicit authority parameter. Every other mapping (incl. every abort route) is
     // untouched — never a weakening, never a widening to another signal.
@@ -1481,21 +1529,69 @@ function sentrySelftest() {
   const aggNone = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
   ok("clean run → continue, no verdicts", aggNone.intervention === "continue" && aggNone.verdicts.length === 0);
 
-  // --- FAFF-764: scope-drift flows through evaluateDerailment with no authority
-  // parameter → aggregate intervention is at least "pause"; no CORRECTABLE_SIGNAL/
-  // authority upgrade is consulted for it (the spec §5 integration smoke test) ---
+  // --- FAFF-764/FAFF-777: scope-drift flows through evaluateDerailment with no
+  // authority upgrade path for it (CORRECTABLE_SIGNAL is fix-review-thrash only) —
+  // and, per FAFF-777, its aggregate intervention is now resolved PER DRIFT KIND
+  // rather than uniformly "pause" (the spec §5 integration smoke test) ---
+  // Base case (reused from the FAFF-764 fixture): a single non-root outward reach,
+  // alone, is UNCORROBORATED — gates to OUTWARD_ALONE_RUNG ("surface"), never pause.
   const aggScopeDrift = evaluateDerailment({
     ledger: { level: "L4", prd_root_container: "FAFF-700", discovered_scope_filed: 1 },
     events: [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, verdict: "outward" } }],
   }, TH);
-  ok("scope-drift trip → aggregate intervention pause, no authority consulted", aggScopeDrift.tripped === true
-    && aggScopeDrift.intervention === "pause"
+  ok("scope-drift: outward-boundary-reach ALONE → aggregate intervention OUTWARD_ALONE_RUNG (surface), not pause", aggScopeDrift.tripped === true
+    && aggScopeDrift.intervention === OUTWARD_ALONE_RUNG
+    && SENTRY_INTERVENTIONS.indexOf(aggScopeDrift.intervention) < SENTRY_INTERVENTIONS.indexOf("pause")
     && aggScopeDrift.verdicts.some((v) => v.signal === "scope-drift" && v.evidence.drift_kind === "outward-boundary-reach"));
   const aggScopeDriftAuth = evaluateDerailment({
     ledger: { level: "L4", discovered_scope_filed: 3 }, events: [],
   }, TH, "available");
-  ok("scope-drift + authority available → still pause, never correct (only fix-review-thrash upgrades)",
+  ok("scope-drift: unrecorded-create (corroborated) + authority available → still pause, never correct (only fix-review-thrash upgrades)",
     aggScopeDriftAuth.intervention === "pause");
+  // Corroborated kind, resolved through the full aggregation pipeline — keeps its
+  // unchanged "pause" teeth.
+  const aggScopeDriftMismatch = evaluateDerailment({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    events: [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, ancestry_raw: "not-json", verdict: "contained" } }],
+  }, TH);
+  ok("scope-drift: recompute-mismatch (corroborated) → aggregate intervention still pause", aggScopeDriftMismatch.tripped === true
+    && aggScopeDriftMismatch.intervention === "pause"
+    && aggScopeDriftMismatch.verdicts.some((v) => v.signal === "scope-drift" && v.evidence.drift_kind === "recompute-mismatch"));
+  // Mismatch co-present with a separate outward reach — evalScopeDrift's own
+  // precedence already picks the mismatch (drift_kind), so the co-present outward
+  // reach never lowers the aggregate below pause.
+  const aggScopeDriftBoth = evaluateDerailment({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    events: [
+      { type: "containment-check", seq: 1, issue: "A", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, ancestry_raw: "not-json", verdict: "contained" } },
+      { type: "containment-check", seq: 2, issue: "B", data: { mandate: "FAFF-700", parent: "FAFF-402", root: false, verdict: "outward" } },
+    ],
+  }, TH);
+  ok("scope-drift: mismatch + co-present outward → aggregate intervention still pause (co-present outward never lowers it)",
+    aggScopeDriftBoth.tripped === true && aggScopeDriftBoth.intervention === "pause"
+    && aggScopeDriftBoth.verdicts.some((v) => v.signal === "scope-drift" && v.evidence.drift_kind === "recompute-mismatch"));
+  // FAFF-777: the absent/unrecognised-drift_kind fallback. evalScopeDrift's own
+  // vocabulary is fixed to the three real kinds, so an unrecognised string like
+  // "foo" is exercised directly against the pure resolver rather than round-
+  // tripped through evalScopeDrift (see scopeDriftIntervention's own comment).
+  ok("scope-drift: unrecognised drift_kind (\"foo\") falls back to the signal-level default (pause), never weakened",
+    scopeDriftIntervention("foo", "pause") === "pause" && SCOPE_DRIFT_KIND_INTERVENTION.foo === undefined);
+  ok("scope-drift: absent drift_kind (undefined) falls back to the signal-level default (pause)",
+    scopeDriftIntervention(undefined, "pause") === "pause");
+  ok("scope-drift: OUTWARD_ALONE_RUNG is a non-parking rung (index < pause)",
+    SENTRY_INTERVENTIONS.indexOf(OUTWARD_ALONE_RUNG) < SENTRY_INTERVENTIONS.indexOf("pause"));
+  // FAFF-777: ladder interaction — a run tripping a higher-rung signal (budget-breach
+  // -> abort) alongside an outward-alone scope-drift still yields the higher rung;
+  // gating scope-drift only lowers ITS OWN contribution, never the ladder-max.
+  const aggScopeDriftPlusAbort = evaluateDerailment({
+    ledger: { level: "L4", prd_root_container: "FAFF-700" },
+    budget: { breached: ["max_attempts"], outcome: "escalate" },
+    events: [{ type: "containment-check", seq: 5, issue: "FAFF-900", data: { mandate: "FAFF-700", parent: "FAFF-401", root: false, verdict: "outward" } }],
+  }, TH);
+  ok("scope-drift: outward-alone (surface) alongside a co-tripping abort-rung signal -> ladder-max still abort",
+    aggScopeDriftPlusAbort.tripped === true && aggScopeDriftPlusAbort.intervention === "abort"
+    && aggScopeDriftPlusAbort.verdicts.some((v) => v.signal === "scope-drift" && v.evidence.drift_kind === "outward-boundary-reach")
+    && aggScopeDriftPlusAbort.verdicts.some((v) => v.signal === "budget-breach"));
 
   // --- FAFF-447: budget-metering-degraded through the full aggregation fold ---
   const degradedL4Ledger = { level: "L4", owner: { status: "running", started_at: ago(TH.estimate_metering_exposure_secs + 60), last_heartbeat: ago(0) } };

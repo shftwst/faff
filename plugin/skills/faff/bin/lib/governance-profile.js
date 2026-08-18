@@ -126,6 +126,17 @@ const DELIVERY_PROFILE = {
     },
     thrash: { start_type: "build-start", ship_type: "issue-outcome", ship_outcome: "shipped" },
     failure: { park_type: "park", outcome_type: "issue-outcome", errored_outcome: "errored" },
+    // FAFF-847: the forward-progress-bearing event types `evalHeartbeatProgressMismatch`
+    // (sentry.js) treats as genuine run movement — distinct from supervision-cadence
+    // types ("sentry-checkpoint", "sentry-trip") that fire on every consult regardless
+    // of progress and would defeat the signal if counted. Profile-driven, mirroring
+    // sentry.thrash / sentry.failure, so the predicate embeds no literal event-type string.
+    progress: {
+      forward_types: [
+        "build-start", "issue-outcome", "corrective-authored", "corrective-consumed",
+        "ledger-write", "park", "issue-admitted",
+      ],
+    },
   },
 };
 
@@ -145,6 +156,10 @@ const SECOND_PROFILE = {
     thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
     thrash: { start_type: "job-start", ship_type: "job-outcome", ship_outcome: "done" },
     failure: { park_type: "job-outcome", outcome_type: "job-outcome", errored_outcome: "aborted" },
+    // FAFF-847: SECOND_PROFILE's own disjoint forward-progress set — the
+    // dialect-independence proof extends to sentry.progress the same way it already
+    // does for thrash/failure.
+    progress: { forward_types: ["job-start", "job-outcome"] },
   },
 };
 
@@ -164,6 +179,10 @@ const PROFILE_TOP_ARRAY_KEYS = [
 const PROFILE_SENTRY_THRESHOLD_KEYS = ["thrash_n", "failure_k", "stall_window_secs", "run_elapsed_ceiling_secs", "estimate_metering_exposure_secs"];
 const PROFILE_SENTRY_THRASH_KEYS = ["start_type", "ship_type", "ship_outcome"];
 const PROFILE_SENTRY_FAILURE_KEYS = ["park_type", "outcome_type", "errored_outcome"];
+// FAFF-847: sentry.progress's one key — the forward-progress-bearing event-type list
+// evalHeartbeatProgressMismatch reads (array-of-strings, mirroring the other
+// PROFILE_TOP_ARRAY_KEYS shape, not the string-leaf shape of thrash/failure).
+const PROFILE_SENTRY_PROGRESS_KEYS = ["forward_types"];
 
 function validateProfileShape(p) {
   if (p === null || typeof p !== "object" || Array.isArray(p)) return ["profile must be a JSON object"];
@@ -179,7 +198,7 @@ function validateProfileShape(p) {
   if (!("sentry" in p)) { v.push("missing required key: sentry"); return v; }
   const s = p.sentry;
   if (s === null || typeof s !== "object" || Array.isArray(s)) { v.push("sentry: must be a flat object"); return v; }
-  const allowedSentry = new Set(["thresholds", "thrash", "failure"]);
+  const allowedSentry = new Set(["thresholds", "thrash", "failure", "progress"]);
   for (const k of Object.keys(s)) if (!allowedSentry.has(k)) v.push(`unknown key: sentry.${k}`);
 
   const thresholds = s.thresholds;
@@ -212,6 +231,19 @@ function validateProfileShape(p) {
     for (const k of PROFILE_SENTRY_FAILURE_KEYS) {
       if (!(k in failure)) v.push(`missing required key: sentry.failure.${k}`);
       else if (typeof failure[k] !== "string") v.push(`sentry.failure.${k}: must be a string`);
+    }
+  }
+
+  // FAFF-847: sentry.progress — an array-of-strings leaf (forward_types), unlike
+  // thrash/failure's string leaves, mirroring PROFILE_TOP_ARRAY_KEYS' shape check.
+  const progress = s.progress;
+  if (!("progress" in s)) v.push("missing required key: sentry.progress");
+  else if (progress === null || typeof progress !== "object" || Array.isArray(progress)) v.push("sentry.progress: must be a flat object");
+  else {
+    for (const k of Object.keys(progress)) if (!PROFILE_SENTRY_PROGRESS_KEYS.includes(k)) v.push(`unknown key: sentry.progress.${k}`);
+    for (const k of PROFILE_SENTRY_PROGRESS_KEYS) {
+      if (!(k in progress)) v.push(`missing required key: sentry.progress.${k}`);
+      else if (!isArrOfStrings(progress[k])) v.push(`sentry.progress.${k}: must be an array of strings`);
     }
   }
   return v;
@@ -342,6 +374,22 @@ function profilesSelftest() {
     bad.terminal_states = [{ not: "a string" }];
     return validateProfileShape(bad).some((x) => x.includes("terminal_states"));
   })());
+  // FAFF-847: sentry.progress shape coverage — missing key, and a non-string-array
+  // forward_types, are both rejected naming the leaf; the shipped default excludes
+  // the two supervision-cadence types the spec says would defeat the signal.
+  ok("sentry.progress missing key rejected", (() => {
+    const bad = JSON.parse(JSON.stringify(DELIVERY_PROFILE));
+    delete bad.sentry.progress;
+    return validateProfileShape(bad).some((x) => x.includes("missing required key: sentry.progress"));
+  })());
+  ok("sentry.progress.forward_types non-string-array rejected", (() => {
+    const bad = JSON.parse(JSON.stringify(DELIVERY_PROFILE));
+    bad.sentry.progress.forward_types = [{ not: "a string" }];
+    return validateProfileShape(bad).some((x) => x.includes("sentry.progress.forward_types"));
+  })());
+  ok("DELIVERY_PROFILE.sentry.progress.forward_types excludes supervision-cadence types",
+    !DELIVERY_PROFILE.sentry.progress.forward_types.includes("sentry-checkpoint") &&
+    !DELIVERY_PROFILE.sentry.progress.forward_types.includes("sentry-trip"));
 
   const { auditLedger } = require("./runcheck");
   const { eventViolations } = require("./events");
@@ -392,6 +440,6 @@ function profilesSelftest() {
 
 module.exports = {
   DELIVERY_PROFILE, GovernanceProfileError, PROFILES_SPEC, PROFILES_SURFACE, PROFILE_SENTRY_FAILURE_KEYS, PROFILE_SENTRY_THRASH_KEYS,
-  PROFILE_SENTRY_THRESHOLD_KEYS, PROFILE_TOP_ARRAY_KEYS, SECOND_PROFILE,
+  PROFILE_SENTRY_THRESHOLD_KEYS, PROFILE_SENTRY_PROGRESS_KEYS, PROFILE_TOP_ARRAY_KEYS, SECOND_PROFILE,
   activeProfile, cmdProfiles, isArrOfStrings, isFiniteNum, profilesSelftest, validateProfileShape,
 };

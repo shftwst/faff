@@ -134,6 +134,8 @@ const DERAILMENT_SIGNALS = new Set([
   "fix-review-thrash", "budget-breach", "repeated-identical-failure",
   "wall-clock-runaway", "scope-drift", "forbidden-side-effect-attempt",
   "budget-metering-degraded",
+  // FAFF-847: ADR-0034 vector 4b's correlation signal — see evalHeartbeatProgressMismatch.
+  "heartbeat-progress-mismatch",
 ]);
 // The v1+Sentry-2 intervention ladder, ASCENDING severity (index = rank). `surface`
 // (FAFF-767) sits BETWEEN `continue` and `pause` — the softest trip-response, a
@@ -164,6 +166,13 @@ const SIGNAL_TRIP_INTERVENTION = {
   // FAFF-767: a blind meter is not a proven breach and is run-scoped (names no
   // issue to park) — a run-scoped surface, never escalated to pause/correct/abort.
   "budget-metering-degraded": "surface",
+  // FAFF-847: day-one warn-only by design (spec §4, "Day-one must not act") — the
+  // false-positive rate on a legitimately slow/quiet build is real and unquantified,
+  // so this maps to "surface" exactly like budget-metering-degraded, never
+  // pause/abort. SAFETY-CRITICAL: an unmapped signal silently defaults to "pause" in
+  // the aggregation loop below (`|| "pause"`) — removing this entry would turn a
+  // warn-only signal into an acting one.
+  "heartbeat-progress-mismatch": "surface",
 };
 // The one signal Channel A may upgrade to `correct`, and only when authority is
 // available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
@@ -348,6 +357,62 @@ function evalWallClock(ledger, nowMs, th, heartbeatSource) {
       heartbeat_age_secs: age != null ? Math.round(age) : null,
       run_elapsed_secs: elapsed != null ? Math.round(elapsed) : null,
       tripped_on: staleTrip ? "heartbeat-staleness" : "run-elapsed",
+    },
+  };
+}
+
+// heartbeat-progress-mismatch (FAFF-847; ADR-0034 vector 4b) — a RUNNING owner whose
+// heartbeat is FRESH (age <= stall_window_secs) but whose logged forward-progress is
+// STALE (progress-age > stall_window_secs): the "gamed liveness" gap evalWallClock
+// cannot see by construction (that predicate only ever fires on a STALE heartbeat).
+// PURE — reads only `ledger` + `events`, both already on the normalized closed AC5
+// surface (normalizeSentrySignals); no new input key. Day-one warn-only: mapped to
+// "surface" in SIGNAL_TRIP_INTERVENTION, never pause/abort — the false-positive risk
+// from a legitimately slow/quiet build (long compile/test emitting heartbeats but no
+// progress events) is real and unquantified (spec §4). `profile` is a trailing
+// defaulted parameter (FAFF-362 discipline) — the forward-progress vocabulary comes
+// from profile.sentry.progress.forward_types, never an embedded literal.
+function evalHeartbeatProgressMismatch(ledger, events, nowMs, th, profile = activeProfile()) {
+  const owner = ledger && ledger.owner;
+  if (!owner || owner.status !== "running") return null; // only a running owner can game liveness
+  const hbAge = sentryHeartbeatAgeSecs(ledger, nowMs);
+  if (hbAge == null) return null; // no heartbeat -> wall-clock owns this, not us
+  if (hbAge > th.stall_window_secs) return null; // heartbeat STALE -> evalWallClock already trips; suppress (no redundant noise)
+
+  const forwardTypes = new Set(profile.sentry.progress.forward_types);
+  let lastProgressMs = null, lastProgressType = null, lastProgressSeq = null;
+  for (const e of (Array.isArray(events) ? events : [])) {
+    if (!e || !forwardTypes.has(e.type)) continue;
+    const t = Date.parse(e.ts);
+    if (!Number.isFinite(t)) continue; // unparseable/absent ts -> skipped (mirrors sentryInflightMembers)
+    if (lastProgressMs === null || t > lastProgressMs) {
+      lastProgressMs = t;
+      lastProgressType = e.type;
+      lastProgressSeq = Number.isInteger(e.seq) ? e.seq : null;
+    }
+  }
+  const startedMs = Date.parse(owner.started_at);
+  const startedOk = Number.isFinite(startedMs);
+  // started_at floors the baseline (young-run guard, mirrors evalMemberStall's use of
+  // a build-start ts as a baseline); neither side parseable -> insufficient evidence.
+  const baselineMs =
+    lastProgressMs !== null && startedOk ? Math.max(lastProgressMs, startedMs)
+    : lastProgressMs !== null ? lastProgressMs
+    : startedOk ? startedMs
+    : null;
+  if (baselineMs === null) return null; // fail toward silence — the safe direction for a warn-only day-one signal
+
+  const progressAge = (nowMs - baselineMs) / 1000;
+  if (progressAge <= th.stall_window_secs) return null; // progress is fresh enough -> no mismatch
+
+  return {
+    signal: "heartbeat-progress-mismatch", severity: "trip",
+    evidence: {
+      heartbeat_age_secs: Math.round(hbAge),
+      progress_age_secs: Math.round(progressAge),
+      window_secs: th.stall_window_secs,
+      last_progress_event_type: lastProgressMs !== null ? lastProgressType : null,
+      last_progress_event_seq: lastProgressMs !== null ? lastProgressSeq : null,
     },
   };
 }
@@ -648,6 +713,9 @@ function evaluateDerailment(rawSignals, thresholds, authority, profile = activeP
   // budget object, no new I/O.
   push(evalBudgetMeteringDegraded(s.ledger, s.budget, s.now_ms, th));
   push(evalWallClock(s.ledger, s.now_ms, th, s.heartbeat_source));
+  // FAFF-847: alongside evalWallClock — the fresh-heartbeat/stale-progress axis that
+  // predicate cannot see (it only ever fires on a STALE heartbeat).
+  push(evalHeartbeatProgressMismatch(s.ledger, s.events, s.now_ms, th, profile));
   push(evalThrash(s.events, th, profile));
   push(evalRepeatedFailure(s.events, th, profile));
   push(evalScopeDrift(s));
@@ -1268,6 +1336,47 @@ function sentrySelftest() {
   ok("done owner never runs away", evalWallClock({ owner: { status: "done", last_heartbeat: ago(99999), started_at: ago(99999) } }, NOW, TH) === null);
   ok("ownerless ledger → null", evalWallClock({}, NOW, TH) === null);
 
+  // --- FAFF-847: heartbeat-progress-mismatch (ADR-0034 vector 4b) ---
+  const hpmRunning = (hbAgoSecs, startedAgoSecs) => ({ owner: { status: "running", last_heartbeat: ago(hbAgoSecs), started_at: ago(startedAgoSecs) } });
+  const hpmStaleWindow = TH.stall_window_secs + 300;
+  // Scenario 1 (spec §5): fresh heartbeat, stale progress -> trips, surface-mapped.
+  // Uses "ledger-write" (run-scoped, not the thrash start_type) so this fixture
+  // doesn't ALSO register as an in-flight fleet member (sentryInflightMembers keys
+  // strictly off build-start) — the point here is isolating this ONE predicate's
+  // own intervention, not exercising the FAFF-327 member-stall cap.
+  const hpm1Events = [{ type: "ledger-write", ts: ago(hpmStaleWindow), seq: 0 }];
+  const hpm1 = evalHeartbeatProgressMismatch(hpmRunning(60, hpmStaleWindow + 100), hpm1Events, NOW, TH);
+  ok("fresh heartbeat + stale progress → trip (4b signature)",
+    hpm1 && hpm1.signal === "heartbeat-progress-mismatch" && hpm1.severity === "trip" &&
+    hpm1.evidence.heartbeat_age_secs === 60 && hpm1.evidence.progress_age_secs === hpmStaleWindow &&
+    hpm1.evidence.window_secs === TH.stall_window_secs &&
+    hpm1.evidence.last_progress_event_type === "ledger-write" && hpm1.evidence.last_progress_event_seq === 0);
+  ok("heartbeat-progress-mismatch never escalates past surface",
+    evaluateDerailment({ ledger: hpmRunning(60, hpmStaleWindow + 100), events: hpm1Events, now_ms: NOW }, TH).intervention === "surface");
+  // Scenario 2 (spec §5): fresh heartbeat AND fresh progress -> no fire.
+  const hpm2Events = [{ type: "corrective-consumed", issue: "X", ts: ago(120), seq: 1 }];
+  ok("fresh heartbeat + fresh progress → null", evalHeartbeatProgressMismatch(hpmRunning(30, 2000), hpm2Events, NOW, TH) === null);
+  // Scenario 3 / holdout (spec §5): stale heartbeat suppresses the signal — wall-clock
+  // owns that case instead; the two axes never double-count.
+  ok("stale heartbeat suppresses the signal (wall-clock owns it instead)",
+    evalHeartbeatProgressMismatch(hpmRunning(TH.stall_window_secs + 600, TH.stall_window_secs + 600), hpm1Events, NOW, TH) === null);
+  // Edge cases (spec §4).
+  ok("no owner → null", evalHeartbeatProgressMismatch({}, [], NOW, TH) === null);
+  ok("non-running owner → null", evalHeartbeatProgressMismatch({ owner: { status: "done", last_heartbeat: ago(10), started_at: ago(10) } }, [], NOW, TH) === null);
+  ok("heartbeat absent/unparseable → null", evalHeartbeatProgressMismatch({ owner: { status: "running", started_at: ago(10) } }, [], NOW, TH) === null);
+  ok("young run, no progress events yet → null (started_at floors the baseline)",
+    evalHeartbeatProgressMismatch(hpmRunning(30, 60), [], NOW, TH) === null);
+  ok("unparseable event ts is skipped (falls back to started_at baseline)",
+    evalHeartbeatProgressMismatch(hpmRunning(30, 60), [{ type: "build-start", issue: "X", ts: "not-a-date", seq: 0 }], NOW, TH) === null);
+  ok("neither started_at nor any parseable forward event → null (insufficient evidence)",
+    evalHeartbeatProgressMismatch({ owner: { status: "running", last_heartbeat: ago(30) } }, [{ type: "build-start", issue: "X", ts: "not-a-date" }], NOW, TH) === null);
+  ok("sentry-checkpoint / sentry-trip never count as forward progress",
+    (() => {
+      const noise = [{ type: "sentry-checkpoint", ts: ago(60), seq: 5 }, { type: "sentry-trip", ts: ago(30), seq: 6 }];
+      const v = evalHeartbeatProgressMismatch(hpmRunning(60, hpmStaleWindow + 100), noise, NOW, TH);
+      return v && v.evidence.last_progress_event_type === null && v.evidence.last_progress_event_seq === null;
+    })());
+
   // --- fix-review-thrash ---
   const thr = [{ type: "build-start", issue: "A", seq: 0 }, { type: "build-start", issue: "A", seq: 1 }, { type: "build-start", issue: "A", seq: 2 }];
   const t1 = evalThrash(thr, TH);
@@ -1708,4 +1817,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

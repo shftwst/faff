@@ -168,7 +168,9 @@ test("815 e2e: five-goal PRDR cites all five, covers all five, survived → admi
   git(root, "config", "user.email", "t@t.test");
   git(root, "config", "user.name", "t");
   mkdirSync(join(root, "docs", "prdr"), { recursive: true });
-  prdr(["new", "P0 shorten and redirect", "--container", "link-shortener", "--prd-goal", "g1,g2,g3,g4,g5",
+  // FAFF-856 — citing a five-goal set now goes through --prd-goals (a JSON array); a single
+  // --prd-goal no longer splits on commas (that was the bug this ticket fixed).
+  prdr(["new", "P0 shorten and redirect", "--container", "link-shortener", "--prd-goals", D5J,
     "--provenance", "loop", "--status", "Proposed", "--root", root]);
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", "seed five-goal loop-PRDR");

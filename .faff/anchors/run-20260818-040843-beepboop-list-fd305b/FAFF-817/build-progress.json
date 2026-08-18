@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-817",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2ac47dbfb17f3969c54be93d9288c03339febb3dbd6793c3a2f1018ce7a02cbc",
+    "branch": "faff-817-a-first-class-transport-slot-for-evaluatorsut-reachability",
+    "pushed_at": "2026-08-18T04:32:05.993Z"
+  },
+  "updated_at": "2026-08-18T04:32:05.993Z"
+}

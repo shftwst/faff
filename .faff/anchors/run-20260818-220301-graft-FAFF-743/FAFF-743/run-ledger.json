@@ -1,0 +1,21 @@
+{
+  "run_id": "run-20260818-220301-graft-FAFF-743",
+  "level": "L2",
+  "admitted": [
+    "FAFF-743"
+  ],
+  "outcomes": {},
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop"
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260818-220301-graft-FAFF-743",
+    "pid": 12573,
+    "started_at": "2026-08-18T22:03:01.111Z",
+    "last_heartbeat": "2026-08-18T22:03:01.111Z"
+  }
+}

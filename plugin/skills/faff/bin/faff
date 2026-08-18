@@ -47,6 +47,7 @@ const { cmdEngine } = require("./lib/engine");
 const { cmdEnv } = require("./lib/env");
 const { cmdEval } = require("./lib/eval-affected");
 const { cmdEvaluatorPreflight } = require("./lib/evaluator-preflight");
+const { cmdLaneBoundary } = require("./lib/lane-boundary");
 const { cmdEvents } = require("./lib/events");
 const { cmdFixtures } = require("./lib/fixtures");
 const { cmdDoctor, cmdGates, cmdSync } = require("./lib/gates");
@@ -148,6 +149,7 @@ const COMMANDS = {
   "spec-review-lenses": cmdSpecReviewLenses,
   "container-check": cmdContainerCheck,
   "evaluator-preflight": cmdEvaluatorPreflight,
+  "lane-boundary": cmdLaneBoundary,
   "corrective-integrity": cmdCorrectiveIntegrity,
   "integrity-boundary": cmdIntegrityBoundary,
   "integrity-digest": cmdIntegrityDigest,

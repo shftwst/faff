@@ -191,6 +191,18 @@ const DEFAULTS = {
   // matches the FAFF-534-flipped `.faffrc.example.yaml` default, so a config-less repo's
   // `faff config get convergence.enabled` answers "true"/exit 0 rather than exit 3.
   "convergence.enabled": "true",
+  // FAFF-859: the lane-isolation DECLARED field — an operator declares a lane's intended physical
+  // boundary in `.faffrc`; faff resolves it, emits it as lane-boundary.json (the intent-out half of
+  // the ADR-0041 seam), and the assert-in preflight compares the physical boundary against it.
+  // TWO orthogonal flat scalars (the models.<lane> / effort.<lane> precedent, NOT the co-constrained
+  // backends.<name> nested-record): `container` (containment) and `host` (locality) are independent,
+  // so a co-validated record would be unjustified. Concrete physical defaults (no `inherit` sentinel —
+  // isolation has no account-level "inherit" concept): the defaults reflect today's uncaged reality
+  // (evaluator runs inline, sharing the run cwd) and keep the future-wired ratchet OFF unless an
+  // operator explicitly declares `container: own`. Off-vocabulary values fail loud at read AND write
+  // (validateIsolationLane below), never a silent fallback (the models/effort discipline).
+  "lanes.evaluator.isolation.container": "shared",
+  "lanes.evaluator.isolation.host": "local",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -445,6 +457,24 @@ function validateGitHostValue(key, value) {
   if (key !== "tracking.git_host") return null;
   if (GIT_HOST_ALLOWLIST.includes(value)) return null;
   return `config get ${key}: invalid host "${value}" — faff's merge floor is GitHub-only; legal set: ${GIT_HOST_ALLOWLIST.join(" | ")} (or leave it unset)`;
+}
+
+// FAFF-859: closed value vocabulary for the two lane-isolation DECLARED-field axes. The two axes
+// are ORTHOGONAL (container = containment, host = locality); each is its own closed-vocab scalar,
+// keyed on the full dotted path — the models.<lane> / effort.<lane> shape, not a co-constrained
+// record. A configured off-vocabulary value fails LOUD at read (config get exit 2) AND at write
+// (config set exit 2), naming the value + legal set — never a silent fallback (the FAFF-315
+// models/effort discipline). Chained into the same validator chain (config get ~2019, config set
+// ~1008) validateModelLane/validateEffortLane run through.
+const ISOLATION_LANE_VOCAB = {
+  "lanes.evaluator.isolation.container": ["shared", "own"],
+  "lanes.evaluator.isolation.host": ["local", "remote"],
+};
+function validateIsolationLane(key, value) {
+  const vocab = ISOLATION_LANE_VOCAB[key];
+  if (!vocab) return null; // not this validator's key
+  if (vocab.includes(value)) return null;
+  return `config get ${key}: "${value}" not legal — legal set: ${vocab.join(" | ")} (fail-loud, no silent fallback)`;
 }
 
 // FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution
@@ -839,7 +869,7 @@ const WRITABLE_NAMESPACES = new Set([
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "faffter_dark", "autonomous", "containment", "post_merge", "graft", "andon",
-  "bundle_store", "install",
+  "bundle_store", "install", "lanes",
 ]);
 
 // Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each
@@ -1005,7 +1035,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value);
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const canonicalPath = path.join(root, CANONICAL_CONFIG);
@@ -2016,7 +2046,7 @@ function cmdConfig(args) {
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
       // fails loud here too, never a silently GitHub-shaped merge gate.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value));
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateIsolationLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
@@ -2054,6 +2084,8 @@ function cmdConfig(args) {
           "autonomous.unattended",
           // FAFF-624: the convergence brace's code-side default.
           "convergence.enabled",
+          // FAFF-859: the two lane-isolation declared-field axes (concrete physical defaults).
+          "lanes.evaluator.isolation.container", "lanes.evaluator.isolation.host",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -2098,7 +2130,13 @@ function cmdConfig(args) {
           (validateModelLane("models.build", "engine:studio") ? null : "build lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.spec", "engine:studio") ? null : "spec lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.eval", "engine:studio") ? null : "eval lane failed to reject an engine value (FAFF-422 allowlist)") ||
-          (validateModelLane("models.build_by_confidence.high", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)");
+          (validateModelLane("models.build_by_confidence.high", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)") ||
+          // FAFF-859: the isolation-lane vocab must accept both axes' baked defaults and reject an
+          // off-vocabulary value on each axis (the fail-loud path is load-bearing for the declared field).
+          validateIsolationLane("lanes.evaluator.isolation.container", DEFAULTS["lanes.evaluator.isolation.container"]) ||
+          validateIsolationLane("lanes.evaluator.isolation.host", DEFAULTS["lanes.evaluator.isolation.host"]) ||
+          (validateIsolationLane("lanes.evaluator.isolation.container", "vm") ? null : "isolation container axis failed to reject an off-vocabulary value") ||
+          (validateIsolationLane("lanes.evaluator.isolation.host", "moon") ? null : "isolation host axis failed to reject an off-vocabulary value");
         if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
         console.log("config defaults --selftest: ok");
         return 0;
@@ -2216,6 +2254,15 @@ function cmdConfig(args) {
       for (const t of ["default", "mechanical", "standard", "complex"]) {
         const v = effortByTier[t];
         if (v !== null && v !== undefined && v !== "") console.log(`effort build_by_tier.${t}: ${v}`);
+      }
+      // FAFF-859: surface a non-default lane-isolation declaration in the run banner — an operator
+      // who armed (or will arm) the cage/locality must see it, never silent (the FAFF-50 intent as
+      // the slot/model/effort echoes above). Echoed only when the resolved value DIFFERS from the
+      // baked default, so an unset repo's banner is byte-for-byte the pre-FAFF-859 form.
+      for (const axis of ["container", "host"]) {
+        const key = `lanes.evaluator.isolation.${axis}`;
+        const v = dig(data, key);
+        if (v !== null && v !== undefined && v !== "" && fmt(v) !== DEFAULTS[key]) console.log(`isolation evaluator.${axis}: ${fmt(v)}`);
       }
       return 0;
     }
@@ -2424,4 +2471,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateModelLane };

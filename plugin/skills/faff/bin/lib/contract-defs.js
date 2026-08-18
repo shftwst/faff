@@ -709,8 +709,17 @@ function contractHoldoutVerdict(extraction, opts = {}) {
 // violations like env-handle/holdout-verdict, reserving fail-loud for structural malformation).
 // host_socket + integrity_signal are carried from v1 but NOT asserted by this slice's preflight
 // (declaration-only until FAFF-333 / FAFF-325 wire their assertions).
+// FAFF-859: a second, ORTHOGONAL axis — `host: local | remote` — the LOCALITY of the lane
+// (where it runs), a top-level sibling of `container` (containment), never nested under accesses.
+// The two axes are independent: a lane can be own-container-local or own-container-remote.
+// `host` obeys the SAME routing as every other enum — an out-of-enum value lands in `violations`
+// (exit 1), NEVER fail-loud (which stays reserved for a non-object extraction); routing it to
+// fail-loud would make a present-but-invalid promise THROW instead of ARM, breaking the
+// merge-gate fail-safe (laneBoundaryPromisesCage). `host: remote` is declaration-only this slice
+// (no physical remote-observation seam yet — FAFF-817's transport slot supplies it later).
 const LANE_BOUNDARY_LANES = ["evaluator"];
 const LANE_BOUNDARY_CONTAINERS = ["shared", "own"];
+const LANE_BOUNDARY_HOST = ["local", "remote"];
 const LANE_BOUNDARY_ACCESS = ["absent", "present"];
 function computeLaneBoundary(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
@@ -730,6 +739,12 @@ function computeLaneBoundary(extraction) {
   if (!LANE_BOUNDARY_CONTAINERS.includes(extraction.container)) {
     violations.push(`container ${JSON.stringify(extraction.container)} not in {${LANE_BOUNDARY_CONTAINERS.join(",")}}`);
   }
+  // FAFF-859: the locality axis, a top-level sibling of container. Same violations routing as
+  // container (never fail-loud) — an echoed out-of-enum host is exit 1, not a spurious exit 2.
+  const host = typeof extraction.host === "string" ? extraction.host : "";
+  if (!LANE_BOUNDARY_HOST.includes(extraction.host)) {
+    violations.push(`host ${JSON.stringify(extraction.host)} not in {${LANE_BOUNDARY_HOST.join(",")}}`);
+  }
   const acc = (extraction.accesses && typeof extraction.accesses === "object" && !Array.isArray(extraction.accesses)) ? extraction.accesses : null;
   if (!acc) violations.push("accesses is missing or not an object");
   const repo = acc && typeof acc.repo === "string" ? acc.repo : "";
@@ -748,7 +763,7 @@ function computeLaneBoundary(extraction) {
   if (Array.isArray(extraction.violations)) {
     for (const v of extraction.violations) if (typeof v === "string" && v.trim()) violations.push(v);
   }
-  return { contractData: { version, lane, container, accesses: { repo, host_socket }, integrity_signal, violations }, failLoud: null };
+  return { contractData: { version, lane, container, host, accesses: { repo, host_socket }, integrity_signal, violations }, failLoud: null };
 }
 
 function contractLaneBoundary(extraction) {
@@ -2359,15 +2374,18 @@ const CONTRACTS = {
   "lane-boundary": {
     run: contractLaneBoundary,
     fixtures: [
-      { name: "conformant-evaluator-own", in: { version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 0 },
-      { name: "conformant-shared-present", in: { version: 2, lane: "evaluator", container: "shared", accesses: { repo: "present", host_socket: "present" }, integrity_signal: true }, wantExit: 0 },
-      { name: "out-of-enum-lane", in: { version: 1, lane: "builder", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
-      { name: "out-of-enum-container", in: { version: 1, lane: "evaluator", container: "vm", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
-      { name: "out-of-enum-repo-access", in: { version: 1, lane: "evaluator", container: "own", accesses: { repo: "readable", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
-      { name: "version-below-one", in: { version: 0, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
-      { name: "version-not-integer", in: { version: "1", lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
-      { name: "accesses-missing", in: { version: 1, lane: "evaluator", container: "own", integrity_signal: false }, wantExit: 1 },
-      { name: "integrity-signal-not-bool", in: { version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: "yes" }, wantExit: 1 },
+      { name: "conformant-evaluator-own", in: { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 0 },
+      { name: "conformant-shared-present", in: { version: 2, lane: "evaluator", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: true }, wantExit: 0 },
+      { name: "conformant-own-remote", in: { version: 1, lane: "evaluator", container: "own", host: "remote", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 0 },
+      { name: "out-of-enum-lane", in: { version: 1, lane: "builder", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "out-of-enum-container", in: { version: 1, lane: "evaluator", container: "vm", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "out-of-enum-host", in: { version: 1, lane: "evaluator", container: "own", host: "banana", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "missing-host", in: { version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "out-of-enum-repo-access", in: { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "readable", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "version-below-one", in: { version: 0, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "version-not-integer", in: { version: "1", lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
+      { name: "accesses-missing", in: { version: 1, lane: "evaluator", container: "own", host: "local", integrity_signal: false }, wantExit: 1 },
+      { name: "integrity-signal-not-bool", in: { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: "yes" }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -2773,10 +2791,11 @@ const CONTRACT_DESCRIBES = {
     values: [
       { field: "lane", enum: LANE_BOUNDARY_LANES, semantics: { evaluator: "the code-blind holdout evaluator lane — the only lane this contract covers today" } },
       { field: "container", enum: LANE_BOUNDARY_CONTAINERS, semantics: { shared: "runs inside the same container as the builder", own: "runs in its own separate container" } },
+      { field: "host", enum: LANE_BOUNDARY_HOST, semantics: { local: "the lane runs on the same host as the orchestrator", remote: "the lane runs on a separate host (declaration-only until FAFF-817's transport slot supplies the remote-observation seam)" } },
       { field: "accesses.repo", enum: LANE_BOUNDARY_ACCESS, semantics: { absent: "the repo is provably withheld from this lane", present: "the repo is accessible to this lane" } },
       { field: "accesses.host_socket", enum: LANE_BOUNDARY_ACCESS, semantics: { absent: "the host socket is provably withheld from this lane", present: "the host socket is accessible to this lane" } },
     ],
-    coercions: ["version < 1 or non-integer, an out-of-enum lane/container/accesses.*, a missing accesses object, or a non-boolean integrity_signal → conformant:false (never fail-loud — the only fail-loud case is a non-object extraction)"],
+    coercions: ["version < 1 or non-integer, an out-of-enum lane/container/host/accesses.*, a missing accesses object, or a non-boolean integrity_signal → conformant:false (never fail-loud — the only fail-loud case is a non-object extraction)"],
     producer_notes: ["this contract validates the DECLARATION's shape only — it never asserts the boundary is physically true; that assertion is `faff evaluator-preflight`'s job at the in-cage entry point"],
   },
   "run-termination": {
@@ -2987,4 +3006,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

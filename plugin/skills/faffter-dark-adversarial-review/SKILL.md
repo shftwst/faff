@@ -123,6 +123,11 @@ adversarial:
   api_key_env: NVIDIA_API_KEY      # env var NAME holding the API key (not the key itself)
   reasoning_off: false             # true → send chat_template_kwargs:{thinking:false} (reasoning models)
   timeout: 120                     # seconds — bounds ONE stream attempt
+  first_byte_timeout: 60           # seconds — per-attempt first-byte (TTFT) window, DEFAULT-ON (60s).
+                                   #   A backend that CONNECTS but streams no first byte within this window
+                                   #   fast-fails and the chain advances — a buffering server (LM Studio / MLX)
+                                   #   no longer idle-hangs the full `timeout`. Per-backend (inherits like timeout);
+                                   #   set 0 to disable. Distinct from `timeout` (gaps between LATER bytes).
   deadline: 480                    # TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends;
                                    #   default 480 (8 min, under the 900s runcheck staleness window) — a human-tunable
                                    #   turn-fit budget so the slow Phase-2 fits one subagent turn (too tight ⇒ more
@@ -135,7 +140,7 @@ adversarial:
 **Fallback chain.** The scalar block above is the **primary** backend. An optional `fallbacks` key adds an **ordered list of further backends**, each tried — in order — only when the one before it fails to produce findings (rate-limit, unreachable, persistent transport failure, auth, not-served). The first backend that returns findings wins; the chain reaches a terminal outcome only when **every** backend has failed. This keeps the L4 second-opinion gate firing through a single provider's outage instead of silently `pass+skip`ping.
 
 - **Value is a JSON-string** — a quoted JSON array of backend objects `{provider, model, host, api_key_env?, reasoning_off?, timeout?}`. (The config parser also handles native YAML lists — `faff adversarial-backends` accepts both forms — but the JSON-string form remains the canonical shape for this key; existing configs keep working unchanged.) Omit it for the single-backend behaviour (a one-element chain — unchanged).
-- **Each fallback is self-contained** (its own `provider`/`model`/`host` required); omitted optional keys (`api_key_env`, `reasoning_off`, `timeout`) inherit the primary's — assembled **mechanically** by `faff adversarial-backends`, never hand-`JSON.parse`d by the model (see **Backend call** below).
+- **Each fallback is self-contained** (its own `provider`/`model`/`host` required); omitted optional keys (`api_key_env`, `reasoning_off`, `timeout`, `first_byte_timeout`) inherit the primary's — assembled **mechanically** by `faff adversarial-backends`, never hand-`JSON.parse`d by the model (see **Backend call** below).
 - **No silent weakening** — an all-failed chain is never more pass-like than today's single backend: a config fault (auth / not-served / unsupported / unconfigured-default-host) anywhere in a fully-failed chain surfaces `needs-human`; only a chain of purely configured-host availability failures `pass+skip`s. The chain loop + terminal precedence live deterministically in `review-call.mjs` (`runReviewChain` / `chainTerminalExit`), not in this prose.
 
 **Transport families (helper-internal — how `review-call.mjs` dispatches on `provider`; not a recipe to call yourself):**

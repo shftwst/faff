@@ -19,6 +19,7 @@ import {
   attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
+  streamWithFirstByte, FirstByteBreachError, isFirstByteBreach, DEFAULT_FIRST_BYTE_MS,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -2658,4 +2659,175 @@ test("FAFF-617 main: writes the advisory budget warning to stderr before dispatc
   }
   assert.equal(code, EXIT.OK, "the warning is advisory — the exit is unchanged");
   assert.match(errOut, /budget: backend .* timeout 480s/, "the budget warning was written to stderr");
+});
+
+
+// ============================================================================
+// FAFF-885 — first-byte (time-to-first-token) deadline: a buffering backend
+// (connects, never streams a byte) fast-fails and the chain advances, instead
+// of idle-hanging the full --timeout and being retried as transient.
+// ============================================================================
+
+test("FAFF-885 DEFAULT_FIRST_BYTE_MS is 60000 (default-on window)", () => {
+  assert.equal(DEFAULT_FIRST_BYTE_MS, 60000);
+});
+
+test("FAFF-885 FirstByteBreachError carries the marker, excludes 'timed out', and is NOT transient", () => {
+  const e = new FirstByteBreachError("no first byte within 60000ms");
+  assert.equal(e.firstByteBreach, true);
+  assert.equal(isFirstByteBreach(e), true);
+  assert.ok(!/timed out/.test(e.message), "message must not contain 'timed out'");
+  // keyed on the marker, never the message — a real stream-timeout is NOT a first-byte breach
+  assert.equal(isFirstByteBreach(new Error("stream timed out after 60000ms")), false);
+  // and a breach must never be classified transient (else it would re-enter the ~3x retry loop)
+  assert.equal(isTransientTransport(e), false);
+});
+
+test("FAFF-885 parseArgs: --first-byte-timeout seconds -> ms; absent -> undefined", () => {
+  const a = parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d", "--first-byte-timeout", "30"]);
+  assert.equal(a.firstByteMs, 30000);
+  const b = parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d"]);
+  assert.equal(b.firstByteMs, undefined);
+});
+
+test("FAFF-885 streamWithFirstByte: no window -> PASS-THROUGH (streamFn gets 4 args, no opts, no timer)", async () => {
+  let seen;
+  const streamFn = async (...args) => { seen = args; return "BODY"; };
+  const out = await streamWithFirstByte(streamFn, "http://h/x", "b", 1000, { z: 1 }, undefined);
+  assert.equal(out, "BODY");
+  assert.equal(seen.length, 4, "pass-through passes exactly (url, body, timeout, headers)");
+  assert.deepEqual(seen[3], { z: 1 }, "headers slot intact");
+  assert.equal(seen[4], undefined, "no opts appended -> no first-byte enforcement");
+});
+
+test("FAFF-885 streamWithFirstByte: a non-positive / non-finite window (0, NaN) disables the timer (pass-through)", async () => {
+  for (const fbt of [0, -5, NaN]) {
+    let seen;
+    const streamFn = async (...args) => { seen = args; return "OK"; };
+    const out = await streamWithFirstByte(streamFn, "http://h/x", "b", 1000, {}, fbt);
+    assert.equal(out, "OK");
+    assert.equal(seen.length, 4, `firstByteMs=${fbt} must pass through with no opts`);
+    assert.equal(seen[4], undefined);
+  }
+});
+
+test("FAFF-885 streamWithFirstByte: no first byte within the window -> FirstByteBreachError + signal aborted", async () => {
+  let captured;
+  const streamFn = (url, body, t, headers, opts) => new Promise((resolve) => {
+    captured = opts;            // buffering: never calls opts.onFirstByte
+    setTimeout(() => resolve("late"), 120);
+  });
+  await assert.rejects(
+    streamWithFirstByte(streamFn, "http://h/x", "b", 1000, {}, 20),
+    (e) => isFirstByteBreach(e) && !/timed out/.test(e.message),
+  );
+  assert.ok(captured && captured.signal, "opts carried an AbortSignal");
+  assert.equal(captured.signal.aborted, true, "the wrapper aborted the transport on breach (socket teardown channel)");
+});
+
+test("FAFF-885 streamWithFirstByte: first byte before the window -> no breach, late body returned", async () => {
+  const streamFn = (url, body, t, headers, opts) => new Promise((resolve) => {
+    setTimeout(() => opts.onFirstByte(), 5);        // first byte arrives inside the 20ms window
+    setTimeout(() => resolve("done-late"), 60);     // resolves AFTER the window, but the timer was disarmed
+  });
+  const out = await streamWithFirstByte(streamFn, "http://h/x", "b", 1000, {}, 20);
+  assert.equal(out, "done-late");
+});
+
+test("FAFF-885 runReview ollama: a buffering backend -> transport-failed, invoked ONCE (fast-fail, no retry)", async () => {
+  let calls = 0;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", firstByteMs: 20,
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: (url, body, t, headers, opts) => new Promise((resolve) => {
+      calls += 1;                                    // never signals first byte
+      setTimeout(() => resolve(JSON.stringify({ message: { content: "x" }, done: true })), 120);
+    }),
+  });
+  assert.equal(r.status, "transport-failed", "surfaces transport-failed, never request-failed / ok");
+  assert.equal(calls, 1, "the breach broke the retry loop — not the 3x transient composition");
+});
+
+test("FAFF-885 ollama arity: opts lands FIFTH (headers slot is {} not the opts object); breach fires on the ollama path", async () => {
+  let seen;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", firstByteMs: 20,
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: (url, body, t, headers, opts) => new Promise((resolve) => {
+      seen = { headers, opts };
+      setTimeout(() => resolve("late"), 120);
+    }),
+  });
+  assert.equal(r.status, "transport-failed", "a first-byte breach genuinely fires on the ollama family");
+  assert.deepEqual(seen.headers, {}, "ollama headers slot is the explicit {} (no header pollution)");
+  assert.equal(typeof seen.opts, "object");
+  assert.equal(typeof seen.opts.onFirstByte, "function", "opts landed in the fifth slot");
+  assert.notStrictEqual(seen.headers, seen.opts, "the arity-trap guard: headers slot is NOT the opts object");
+});
+
+test("FAFF-885 no window: runReview ollama with no firstByteMs -> streamFn gets NO opts (byte-for-byte)", async () => {
+  let seen;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U",   // no firstByteMs
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async (...args) => { seen = args; return JSON.stringify({ message: { content: "### observation: no findings" }, done: true, done_reason: "stop" }); },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(seen.length, 4, "ollama normalised to pass explicit {} headers; still no opts (5th) in pass-through");
+  assert.deepEqual(seen[3], {}, "headers slot is the explicit {}");
+  assert.equal(seen[4], undefined, "no opts -> no timer armed");
+});
+
+test("FAFF-885 family-agnostic: an openai-family buffering backend also fast-fails (invoked once)", async () => {
+  let calls = 0;
+  const r = await runReview({
+    provider: "nvidia", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "k", firstByteMs: 20,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: (url, body, t, headers, opts) => new Promise((resolve) => {
+      calls += 1;                                    // never signals first byte
+      setTimeout(() => resolve("data: [DONE]\n\n"), 120);
+    }),
+  });
+  assert.equal(r.status, "transport-failed");
+  assert.equal(calls, 1);
+});
+
+test("FAFF-885 runReviewChain: a buffering primary fast-fails and a healthy fallback wins (exit 0, winnerIndex 1)", async () => {
+  const chain = [
+    { provider: "ollama", model: "m1", host: "http://buf:1", hostSource: "config", firstByteMs: 20 },
+    { provider: "ollama", model: "m2", host: "http://good:1", hostSource: "config", firstByteMs: 20 },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: (opts) => runReview({
+      ...opts,
+      getFn: async () => JSON.stringify({ models: [{ name: opts.model }] }),
+      streamFn: (url, body, t, headers, o) => new Promise((resolve) => {
+        if (opts.host === "http://buf:1") { setTimeout(() => resolve("late"), 120); return; }   // buffering: never onFirstByte
+        if (o && o.onFirstByte) o.onFirstByte();
+        resolve(JSON.stringify({ message: { content: "### observation: no findings" }, done: true, done_reason: "stop" }));
+      }),
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1);
+  assert.equal(res.winner.host, "http://good:1");
+});
+
+test("FAFF-885 runReviewChain: an ALL-buffering chain terminates at EXIT.UNREACHABLE (5), not a needs-human exit", async () => {
+  const chain = [
+    { provider: "ollama", model: "m1", host: "http://buf1:1", hostSource: "config", firstByteMs: 20 },
+    { provider: "ollama", model: "m2", host: "http://buf2:1", hostSource: "config", firstByteMs: 20 },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: (opts) => runReview({
+      ...opts,
+      getFn: async () => JSON.stringify({ models: [{ name: opts.model }] }),
+      // every backend buffers: never signals first byte, resolves after the window
+      streamFn: () => new Promise((resolve) => { setTimeout(() => resolve("late"), 120); }),
+    }),
+  });
+  assert.equal(res.exit, EXIT.UNREACHABLE, "an all-buffering (all fast-failed) chain is an availability exhaustion");
+  assert.notEqual(res.exit, EXIT.USAGE, "never a needs-human request-failed exit");
 });

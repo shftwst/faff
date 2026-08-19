@@ -41,6 +41,14 @@ export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, 
 // an earlier backend still DOMINATES (surfaced instead of 8) — the no-silent-weakening invariant.
 export const DEFAULT_NUM_PREDICT = 2000;
 
+// FAFF-885: the DEFAULT per-attempt first-byte (time-to-first-token) window, in ms. Applied at the CLI
+// boundary (main) as the DEFAULT-ON value when neither a per-backend `first_byte_timeout` nor the
+// `--first-byte-timeout` flag is set. 60s is generous relative to the 120s inactivity timeout — a healthy
+// streaming backend delivers its first token well inside it — while cutting a buffering backend's idle
+// hang from ~3x timeout to ~60s. runReview* default firstByteMs to undefined (pass-through), so a direct
+// programmatic/test call is byte-for-byte unchanged; only main() opts in the default.
+export const DEFAULT_FIRST_BYTE_MS = 60000;
+
 // PURE (FAFF-213): map an unreachable result to its exit code by host provenance. An explicitly-
 // configured host that's down → EXIT.UNREACHABLE (5 → pass+skip, the human's call). A host that's
 // only the documented localhost default because nothing was configured → EXIT.DEFAULT_HOST_UNREACHABLE
@@ -601,6 +609,46 @@ export function isTransientTransport(err) {
     || /HTTP 429/.test(msg);                            // FAFF-228: rate-limit is transient infra, retry it
 }
 
+// FAFF-885: a first-byte (time-to-first-token) breach. Distinct from a transient stream timeout: it is
+// keyed by the `firstByteBreach` MARKER PROPERTY (never message text), and its message deliberately
+// EXCLUDES "timed out" so it can never be misread by isTransientTransport's /timed out/ arm.
+export class FirstByteBreachError extends Error {
+  constructor(message) { super(message); this.name = "FirstByteBreachError"; this.firstByteBreach = true; }
+}
+
+// PURE (FAFF-885): is this error a first-byte breach? Keys on the marker property, never the message —
+// checked BEFORE isTransientTransport in streamWithTransportRetry so a breach fast-fails (no retry).
+export function isFirstByteBreach(err) { return Boolean(err && err.firstByteBreach === true); }
+
+// FAFF-885: wrap the injected streamFn in a first-byte deadline. When firstByteMs is not a number the
+// wrapper is a PASS-THROUGH (no timer, opts absent) — byte-for-byte the pre-FAFF-885 call. Otherwise it
+// arms a real timer and hands streamFn an { onFirstByte, signal } fifth argument: the first response byte
+// disarms the timer (the stream then proceeds under the existing inactivity timeoutMs, unchanged); if the
+// timer fires first it aborts the signal (tearing the real socket down) and rejects a FirstByteBreachError.
+// opts is ALWAYS passed at the FIFTH positional slot — the caller normalises ollama's headers arg so opts
+// never collides with it (see streamOnce). The timer is unref'd so it never keeps the process alive.
+export function streamWithFirstByte(streamFn, url, body, timeoutMs, headers, firstByteMs) {
+  // Pass-through unless a POSITIVE finite window is set (mirrors resolveFirstByteMs's <=0-disables
+  // guard, and rejects a NaN a direct caller might pass — typeof NaN === "number" would else arm
+  // setTimeout(NaN), an immediate breach).
+  if (!Number.isFinite(firstByteMs) || firstByteMs <= 0) return streamFn(url, body, timeoutMs, headers);
+  let firstByteSeen = false;
+  let timer;
+  const controller = new AbortController();
+  const onFirstByte = () => { firstByteSeen = true; if (timer) { clearTimeout(timer); timer = undefined; } };
+  const breach = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => {
+      if (!firstByteSeen) { controller.abort(); reject(new FirstByteBreachError(`no first byte within ${firstByteMs}ms`)); }
+    }, firstByteMs);
+    if (timer && typeof timer.unref === "function") timer.unref();
+  });
+  const streamP = streamFn(url, body, timeoutMs, headers, { onFirstByte, signal: controller.signal });
+  // The losing branch of the race can settle after the winner: swallow a post-breach streamFn rejection
+  // (an aborted socket) so it never surfaces as an unhandledRejection, and always clear the timer.
+  streamP.then(() => { if (timer) { clearTimeout(timer); timer = undefined; } }, () => { if (timer) { clearTimeout(timer); timer = undefined; } });
+  return Promise.race([streamP, breach]);
+}
+
 // Bounded transport-retry policy (FAFF-227): named constants, not magic numbers. attempts counts the
 // first try too (3 ⇒ 2 retries). Backoff before retry k (1-indexed) is base_ms * 2^(k-1), each *sleep*
 // capped by the time remaining against the caller's --timeout deadline so a backoff never overruns budget.
@@ -623,6 +671,7 @@ async function streamWithTransportRetry(streamCall, { policy = TRANSPORT_RETRY, 
     try {
       return { ok: true, out: await streamCall() };
     } catch (e) {
+      if (isFirstByteBreach(e)) { lastErr = e; break; }  // FAFF-885: fast-fail — no retry, surface transport-failed
       if (!isTransientTransport(e)) throw e;            // terminal → out immediately (auth handled by caller's catch)
       lastErr = e;
       if (attempt === policy.attempts) break;           // exhausted
@@ -660,21 +709,33 @@ function realGet(url, timeoutMs = 5000, headers = {}) {
 
 // POST the payload and consume the streamed response, concatenating chunks as they arrive (the act of
 // reading keeps the connection alive on a long generation). Returns the raw NDJSON text.
-function realStream(url, body, timeoutMs = 580000, extraHeaders = {}) {
+function realStream(url, body, timeoutMs = 580000, extraHeaders = {}, opts = {}) {
   return new Promise((resolve, reject) => {
+    let firstByte = true;                               // FAFF-885: fire opts.onFirstByte once, on the first body byte
     const u = new URL(url);
     const lib = u.protocol === "https:" ? https : http;
     const headers = { "content-type": "application/json", "content-length": Buffer.byteLength(body), ...extraHeaders };
     const r = lib.request(u, { method: "POST", headers }, (res) => {
       let data = "";
       res.setEncoding("utf8");
-      res.on("data", (c) => (data += c));
+      res.on("data", (c) => {
+        // FAFF-885: the FIRST body byte disarms the first-byte window. A buffering server that flushes
+        // nothing until done never reaches here, so its window breaches and the chain fails over fast.
+        if (firstByte) { firstByte = false; if (typeof opts.onFirstByte === "function") opts.onFirstByte(); }
+        data += c;
+      });
       res.on("end", () => (res.statusCode >= 200 && res.statusCode < 300
         ? resolve(data)
         : reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 200)}`))));
     });
     r.on("error", reject);
     r.setTimeout(timeoutMs, () => r.destroy(new Error(`stream timed out after ${timeoutMs}ms`)));
+    // FAFF-885: on a first-byte breach the wrapper aborts this signal → tear the socket down promptly
+    // rather than leaving it to linger until the inactivity timeout above.
+    if (opts.signal) {
+      if (opts.signal.aborted) r.destroy(new Error("first-byte breach: aborted before send"));
+      else opts.signal.addEventListener("abort", () => r.destroy(new Error("first-byte breach: socket torn down")), { once: true });
+    }
     r.write(body);
     r.end();
   });
@@ -689,9 +750,11 @@ export async function preflight({ host, model, getFn = realGet, timeoutMs = 5000
   return { unreachable: false, served, names };
 }
 
-async function streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs }) {
+async function streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs, firstByteMs }) {
   const body = JSON.stringify(buildChatPayload({ model, system, user, numPredict }));
-  const raw = await streamFn(new URL("/api/chat", host).toString(), body, timeoutMs);
+  // FAFF-885: ollama's transport call carries NO headers arg (openai/anthropic pass 4) — pass an explicit
+  // {} so the first-byte opts always land in the FIFTH positional slot, never ollama's headers slot.
+  const raw = await streamWithFirstByte(streamFn, new URL("/api/chat", host).toString(), body, timeoutMs, {}, firstByteMs);
   return accumulateNdjson(raw);
 }
 
@@ -701,7 +764,7 @@ async function streamOnce({ host, model, system, user, numPredict, streamFn, tim
 // documented exit, never the unmapped EXIT.OTHER.
 async function runReviewOllama({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT,
-  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
 }) {
   const pf = await preflight({ host, model, getFn });
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
@@ -714,9 +777,9 @@ async function runReviewOllama({
     ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
     : timeoutMs);
   const streamCall = async () => {
-    let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs: perAttempt() });
+    let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs: perAttempt(), firstByteMs });
     if (out.truncated) {
-      out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs: perAttempt() });
+      out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs: perAttempt(), firstByteMs });
     }
     return out;
   };
@@ -741,10 +804,10 @@ export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, ti
   return { unreachable: false, served, names };
 }
 
-async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs }) {
+async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs, firstByteMs }) {
   const headers = apiKey ? { authorization: `Bearer ${apiKey}` } : {};
   const body = JSON.stringify(buildOpenAiPayload({ model, system, user, maxTokens: numPredict, reasoningOff, reasoningEffort }));
-  const raw = await streamFn(joinUrl(host, "/chat/completions"), body, timeoutMs, headers);
+  const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/chat/completions"), body, timeoutMs, headers, firstByteMs);  // FAFF-885
   return accumulateSse(raw);
 }
 
@@ -755,7 +818,7 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
 // an exhausted transport fault surfaces status "transport-failed" → a documented exit, never EXIT.OTHER.
 async function runReviewOpenAi({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, apiKey,
-  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
 }) {
   const pf = await preflightOpenAi({ host, model, apiKey, getFn });
   if (pf.authFailed) return { status: "auth-failed", note: pf.error };
@@ -768,9 +831,9 @@ async function runReviewOpenAi({
     : timeoutMs);
   try {
     const streamCall = async () => {
-      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs: perAttempt() });
+      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
       if (out.truncated) {
-        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs: perAttempt() });
+        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
       }
       return out;
     };
@@ -785,11 +848,11 @@ async function runReviewOpenAi({
   }
 }
 
-async function streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs }) {
+async function streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs, firstByteMs }) {
   const headers = { "anthropic-version": ANTHROPIC_VERSION };
   if (apiKey) headers["x-api-key"] = apiKey;   // absent key ⇒ the API 401s → auth-failed (mirrors openai's Bearer)
   const body = JSON.stringify(buildAnthropicPayload({ model, system, user, maxTokens: numPredict }));
-  const raw = await streamFn(joinUrl(host, "/v1/messages"), body, timeoutMs, headers);
+  const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/v1/messages"), body, timeoutMs, headers, firstByteMs);  // FAFF-885
   return accumulateAnthropic(raw);
 }
 
@@ -802,7 +865,7 @@ async function streamOnceAnthropic({ host, model, system, user, numPredict, apiK
 // into this catch); an exhausted transient fault surfaces transport-failed → a documented exit, never EXIT.OTHER.
 async function runReviewAnthropic({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, apiKey,
-  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
 }) {
   // FAFF-329: re-clamp every attempt to the remaining total budget when hardDeadlineMs is set (see runReviewOllama).
   const perAttempt = () => (typeof hardDeadlineMs === "number"
@@ -810,9 +873,9 @@ async function runReviewAnthropic({
     : timeoutMs);
   try {
     const streamCall = async () => {
-      let out = await streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs: perAttempt() });
+      let out = await streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
       if (out.truncated) {
-        out = await streamOnceAnthropic({ host, model, system, user, numPredict: numPredict * 2, apiKey, streamFn, timeoutMs: perAttempt() });
+        out = await streamOnceAnthropic({ host, model, system, user, numPredict: numPredict * 2, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
       }
       return out;
     };
@@ -864,6 +927,7 @@ export function parseArgs(argv) {
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
+    else if (k === "--first-byte-timeout") a.firstByteMs = Number(argv[++i]) * 1000;   // FAFF-885: per-attempt first-byte (TTFT) window override; 0 disables (pass-through)
   }
   return a;
 }
@@ -1098,6 +1162,7 @@ export async function runReviewChain(chain = [], shared = {}) {
       system: shared.system, user: shared.user, numPredict: shared.numPredict,
       reasoningOff: b.reasoningOff, reasoningEffort: b.reasoningEffort, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
       hardDeadlineMs: backendDeadline,   // FAFF-617: the per-backend SLICE, not the shared start+total deadline
+      firstByteMs: b.firstByteMs,        // FAFF-885: per-attempt first-byte window (per-backend; undefined ⇒ pass-through)
       getFn: shared.getFn, streamFn: shared.streamFn,
     });
     let result;
@@ -1177,6 +1242,18 @@ export async function runReviewChain(chain = [], shared = {}) {
 // is unit-testable with a stubbed orchestration result; it defaults to the real runReview for the CLI.
 // `checkFn` (FAFF-194) is injectable exactly the same way for the refutation pass's node --check calls,
 // so CI spawns nothing unless a test opts in; it defaults to the real realCheck for the CLI.
+// FAFF-885: resolve the per-attempt first-byte (TTFT) window (ms) at the CLI boundary. Precedence:
+// per-backend first_byte_timeout (seconds) > the --first-byte-timeout flag > DEFAULT_FIRST_BYTE_MS
+// (DEFAULT-ON). A resolved value <= 0 disables the window (pass-through) — the explicit opt-out. Applied
+// only here, so a direct runReview*/runReviewChain call with no firstByteMs stays byte-for-byte today.
+function resolveFirstByteMs(perBackendSeconds, flagMs) {
+  let ms;
+  if (perBackendSeconds != null) ms = Number(perBackendSeconds) * 1000;
+  else if (typeof flagMs === "number") ms = flagMs;
+  else ms = DEFAULT_FIRST_BYTE_MS;
+  return (Number.isFinite(ms) && ms > 0) ? ms : undefined;
+}
+
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
@@ -1209,6 +1286,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       reasoningOff: b.reasoning_off ?? b.reasoningOff ?? false,
       reasoningEffort: b.reasoning_effort ?? b.reasoningEffort,   // FAFF-873: snake_case (config) tolerated alongside camelCase, matching reasoning_off
       timeoutMs: (b.timeout != null) ? Number(b.timeout) * 1000 : a.timeoutMs,
+      firstByteMs: resolveFirstByteMs(b.first_byte_timeout ?? b.firstByteTimeout, a.firstByteMs),   // FAFF-885
     }));
   } else {
     if (!a.host || !a.model) {
@@ -1218,6 +1296,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     chain = [{
       provider: a.provider, model: a.model, host: a.host, hostSource: a.hostSource,
       apiKeyEnv: a.apiKeyEnv, reasoningOff: a.reasoningOff, reasoningEffort: a.reasoningEffort, timeoutMs: a.timeoutMs,
+      firstByteMs: resolveFirstByteMs(undefined, a.firstByteMs),   // FAFF-885
     }];
   }
 

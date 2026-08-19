@@ -170,6 +170,32 @@ test("buildOpenAiPayload: stream + max_tokens, reasoning-off OPT-IN (vanilla Ope
   assert.equal(buildOpenAiPayload({ model: "m", system: "", user: "", maxTokens: 9000 }).max_tokens, 9000);
 });
 
+test("buildOpenAiPayload: reasoning_effort unset -> payload byte-identical to today (field omitted)", () => {
+  const withoutEffort = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U" });
+  assert.equal("reasoning_effort" in withoutEffort, false, "omitted when reasoningEffort is unset");
+});
+
+test("buildOpenAiPayload: reasoning_effort emitted verbatim for low/medium/high", () => {
+  for (const level of ["low", "medium", "high"]) {
+    const body = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U", reasoningEffort: level });
+    assert.equal(body.reasoning_effort, level, `${level} passes through unchanged`);
+    assert.equal("chat_template_kwargs" in body, false);
+  }
+});
+
+test("buildOpenAiPayload: xhigh and max clamp to wire high", () => {
+  for (const level of ["xhigh", "max"]) {
+    const body = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U", reasoningEffort: level });
+    assert.equal(body.reasoning_effort, "high", `${level} clamps to high`);
+  }
+});
+
+test("buildOpenAiPayload: reasoning_off wins over reasoning_effort (precedence, not conflict)", () => {
+  const body = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U", reasoningOff: true, reasoningEffort: "medium" });
+  assert.deepEqual(body.chat_template_kwargs, { thinking: false });
+  assert.equal("reasoning_effort" in body, false, "reasoning_effort NOT emitted when reasoning_off wins");
+});
+
 test("modelServedOpenAi reads the {data:[{id}]} shape and matches exactly", () => {
   const models = { data: [{ id: "deepseek-ai/deepseek-v4-pro" }, { id: "meta/llama-3.1-70b" }] };
   assert.equal(modelServedOpenAi(models, "deepseek-ai/deepseek-v4-pro").served, true);
@@ -248,6 +274,22 @@ test("runReview dispatch → openai: happy path streams SSE findings + sends Bea
   assert.equal(r.status, "ok");
   assert.equal(r.content, "### finding");
   assert.equal(streamHeaders.authorization, "Bearer nv-KEY");
+});
+
+test("runReview dispatch → openai: reasoningEffort threads end-to-end and clamps at the wire (xhigh→high)", async () => {
+  let sentBody;
+  const r = await runReview({
+    provider: "nvidia", host: "https://integrate.api.nvidia.com/v1", model: "deepseek-ai/deepseek-v4-pro",
+    system: "S", user: "U", apiKey: "nv-KEY", reasoningEffort: "xhigh",
+    getFn: async () => JSON.stringify({ data: [{ id: "deepseek-ai/deepseek-v4-pro" }] }),
+    streamFn: async (_url, body) => {
+      sentBody = JSON.parse(body);
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(sentBody.reasoning_effort, "high", "xhigh clamped to high on the wire, threaded end-to-end from runReview");
+  assert.equal("chat_template_kwargs" in sentBody, false);
 });
 
 test("runReview dispatch → openai: SSE truncation triggers exactly one retry at 2× max_tokens", async () => {
@@ -404,6 +446,17 @@ test("parseArgs collects the new --provider / --api-key-env / --reasoning-off fl
   assert.equal(a.provider, "nvidia");
   assert.equal(a.apiKeyEnv, "NVIDIA_API_KEY");
   assert.equal(a.reasoningOff, true);
+});
+
+test("parseArgs collects --reasoning-effort", () => {
+  const a = parseArgs(["--host", "https://h/v1", "--model", "m", "--system", "s", "--diff", "d",
+    "--reasoning-effort", "xhigh"]);
+  assert.equal(a.reasoningEffort, "xhigh");
+});
+
+test("parseArgs: --reasoning-effort absent -> undefined (byte-identical when unset)", () => {
+  const a = parseArgs(["--host", "https://h/v1", "--model", "m", "--system", "s", "--diff", "d"]);
+  assert.equal(a.reasoningEffort, undefined);
 });
 
 // --- FAFF-213: fail loud when the host is the unconfigured localhost default ---

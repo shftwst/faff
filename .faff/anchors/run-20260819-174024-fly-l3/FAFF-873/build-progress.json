@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-873",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e99d701152d5cbce5ae648827e62cdda77cb5db1966bf8bc93a6811578af168d",
+    "branch": "faff-873-add-a-configurable-reasoning_effort-to-the-openai-compatible",
+    "pushed_at": "2026-08-19T18:47:45.887Z"
+  },
+  "updated_at": "2026-08-19T18:47:45.887Z"
+}

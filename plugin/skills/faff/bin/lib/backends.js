@@ -26,12 +26,18 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
-  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "timeout",
+  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "timeout",
   "telemetry",
 ];
 
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
 const EGRESS_VALUES = ["local", "external"];
+// FAFF-873: the config-vocabulary set a per-backend reasoning_effort value must
+// belong to — faff's own five-tier effort vocabulary (EFFORT_LANE_VOCAB minus the
+// lane-only `inherit` sentinel, which is never a per-backend value). This is
+// CONFIG-VOCABULARY validation only — never a model-capability check; a wire-legal
+// token sent to a model that ignores it is a no-op, not an error.
+const REASONING_EFFORT_VALUES = ["low", "medium", "high", "xhigh", "max"];
 // FAFF-604: where this backend's SPEND can be read. `transcript-jsonl` is the
 // Claude Code transcript path budget/economics have always walked;
 // `exec-json-events` is the usage carried on a spawned child's own JSONL event
@@ -137,6 +143,14 @@ function validateBackendConstraints(name, b) {
   if (b.telemetry === "exec-json-events" && provider !== "codex") {
     return `backends.${name}: telemetry: exec-json-events requires provider codex (only a codex exec child emits that event stream); provider is "${b.provider}"`;
   }
+  // FAFF-873: reasoning_effort is an OPTIONAL closed-enum scalar (sibling of the
+  // auth/egress/telemetry checks above) — config-vocabulary validation only, never
+  // a model-capability check. Absent is legal (the field is fully optional); a
+  // config that also sets reasoning_off:true is legal too (precedence, not a
+  // conflict — resolved at emit time in review-call.mjs, not validated here).
+  if (present(b.reasoning_effort) && !REASONING_EFFORT_VALUES.includes(b.reasoning_effort)) {
+    return `backends.${name}: invalid reasoning_effort "${b.reasoning_effort}" — legal set: ${REASONING_EFFORT_VALUES.join(" | ")}`;
+  }
   return null;
 }
 
@@ -158,6 +172,7 @@ function normalizeBackend(name, raw) {
   b.api_key_env = present(raw.api_key_env) ? String(raw.api_key_env) : undefined;
   b.seat_token_env = present(raw.seat_token_env) ? String(raw.seat_token_env) : undefined;
   b.reasoning_off = raw.reasoning_off === true ? true : undefined;
+  b.reasoning_effort = present(raw.reasoning_effort) ? String(raw.reasoning_effort) : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.auth = present(raw.auth) ? String(raw.auth) : deriveAuth(b);
   b.telemetry = present(raw.telemetry) ? String(raw.telemetry) : deriveTelemetry(b);
@@ -572,6 +587,26 @@ function backendsSelftest() {
   ok("constraints: invalid egress value -> error",
     !!validateBackendConstraints("x", { auth: "none", egress: "bogus", telemetry: "none" }));
 
+  // --- reasoning_effort (FAFF-873) ------------------------------------------------------------
+  ok("BACKEND_RECORD_KEYS carries reasoning_effort (so `faff backends resolve` prints it)",
+    BACKEND_RECORD_KEYS.includes("reasoning_effort"));
+  ok("normalizeBackend: reasoning_effort absent -> undefined (byte-identical when unset)",
+    normalizeBackend("x", { provider: "nvidia", model: "m" }).backend.reasoning_effort === undefined);
+  ok("normalizeBackend: reasoning_effort carried onto the record",
+    normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_effort: "xhigh" }).backend.reasoning_effort === "xhigh");
+  ok("normalizeBackend: reasoning_effort accepts every faff tier",
+    ["low", "medium", "high", "xhigh", "max"].every((v) =>
+      normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_effort: v }).backend.reasoning_effort === v));
+  ok("normalizeBackend: off-vocabulary reasoning_effort -> named error, legal set listed",
+    /invalid reasoning_effort "ultra" — legal set: low \| medium \| high \| xhigh \| max/.test(
+      normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_effort: "ultra" }).error || ""));
+  ok("normalizeBackend: reasoning_effort + reasoning_off:true both legal (precedence, not a config error)",
+    normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_off: true, reasoning_effort: "high" }).error === undefined);
+  ok("constraints: reasoning_effort absent -> ok (fully optional)",
+    validateBackendConstraints("x", { auth: "none", egress: "local", telemetry: "none" }) === null);
+  ok("constraints: invalid reasoning_effort value -> error",
+    !!validateBackendConstraints("x", { auth: "none", egress: "local", telemetry: "none", reasoning_effort: "bogus" }));
+
   // --- mergeBackendsNamespace ------------------------------------------------------------
   {
     const cfg = {
@@ -747,7 +782,7 @@ function backendsSelftest() {
 }
 
 module.exports = {
-  AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES, RESIDENCY_REQUIRED_VALUES,
+  AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES, REASONING_EFFORT_VALUES, RESIDENCY_REQUIRED_VALUES,
   TELEMETRY_VALUES,
   backendsConfigCheckFindings, backendsSelftest, checkRealizable, cmdBackends,
   deriveAuth, deriveEgress, deriveTelemetry, fleetEngineBackends, mergeBackendsNamespace, normalizeBackend,

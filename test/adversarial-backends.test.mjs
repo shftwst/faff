@@ -226,19 +226,21 @@ test("CLI: --selftest passes", () => {
 
 test("round-trip: emitted keys are a subset of the fields review-call.mjs's mapper reads", () => {
   // The mapper (review-call.mjs, --backends-json handling) reads exactly:
-  //   b.provider, b.model, b.host, b.api_key_env (|| b.apiKeyEnv), b.reasoning_off (?? b.reasoningOff ?? false), b.timeout
+  //   b.provider, b.model, b.host, b.api_key_env (|| b.apiKeyEnv), b.reasoning_off (?? b.reasoningOff ?? false),
+  //   b.reasoning_effort (?? b.reasoningEffort), b.timeout
   //   plus (FAFF-481) b.auth + b.seat_token_env — the subscription-seat identity it resolves the seat token from.
-  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "timeout"]);
+  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "timeout"]);
   assert.deepEqual(new Set(BACKEND_KEYS), MAPPER_ACCEPTED_KEYS);
 
   const cfg = { adversarial: {
     provider: "nvidia", model: "nvidia/nemotron", host: "https://a/v1",
-    api_key_env: "K", reasoning_off: true, timeout: 30,
+    api_key_env: "K", reasoning_off: true, reasoning_effort: "xhigh", timeout: 30,
   }  };
   const { chain } = assembleAdversarialBackends(cfg);
   for (const backend of chain) {
     for (const key of Object.keys(backend)) assert.ok(MAPPER_ACCEPTED_KEYS.has(key), `emitted key '${key}' must be mapper-accepted`);
   }
+  assert.equal(chain[0].reasoning_effort, "xhigh", "reasoning_effort MUST be among the emitted keys when set");
 });
 
 // The spec's own integration smoke test: a real .faffrc (nvidia primary + ollama fallback),
@@ -253,6 +255,7 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     "  host: https://integrate.api.nvidia.com/v1\n" +
     "  api_key_env: NVIDIA_API_KEY\n" +
     "  reasoning_off: true\n" +
+    "  reasoning_effort: xhigh\n" +
     "  timeout: 30\n" +
     '  fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]\'\n',
   );
@@ -288,10 +291,12 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     assert.equal(captured[0].model, "nvidia/nemotron-3-super-120b-a12b");
     assert.equal(captured[0].host, "https://integrate.api.nvidia.com/v1");
     assert.equal(captured[0].reasoningOff, true, "reasoning_off (snake_case, config) correctly read as reasoningOff (camelCase, transport)");
+    assert.equal(captured[0].reasoningEffort, "xhigh", "reasoning_effort (snake_case, config) correctly read as reasoningEffort (camelCase, transport)");
     assert.equal(captured[0].timeoutMs, 30000, "timeout (seconds, config) correctly converted to timeoutMs (ms, transport)");
     assert.equal(captured[1].provider, "ollama");
     assert.equal(captured[1].model, "qwen3-next:80b");
     assert.equal(captured[1].host, "http://studio:11434");
+    assert.equal(captured[1].reasoningEffort, "xhigh", "the fallback inherited the primary's reasoning_effort, matching reasoning_off inheritance");
     assert.equal(captured[1].timeoutMs, 30000, "the fallback inherited the primary's timeout, and the transport read it correctly");
   } finally {
     if (hadKey) process.env.NVIDIA_API_KEY = savedKey; else delete process.env.NVIDIA_API_KEY;

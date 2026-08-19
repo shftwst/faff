@@ -29,7 +29,7 @@ The consumer passes:
 - The **spec body** (the freshly-produced, confidence-rated spec) — the artifact under scrutiny.
 - The **enabled-lens set** — the subset of `architectural | infosec | methodology | QA` that fires for this issue. Defaults to all four when not supplied; *which* lenses fire by change-surface is resolved upstream and is not this occupant's decision.
 - The attached **`## Methodology critique`** block, when prep wrote one (the methodology slot's already-computed value/scope signal), for the methodology lens to consume.
-- **Repo architecture context** — the gateway plus the files the spec names — so a refuter can verify existence/structure claims instead of hallucinating them.
+- **Repo architecture context** — the files the spec names — so a refuter can verify existence/structure claims instead of hallucinating them.
 
 ## The lenses as independent refuters
 
@@ -81,9 +81,9 @@ case "$backends_exit" in
 esac
 ```
 
-Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received: `--backends-json "$backends_json" --timeout "$timeout" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context plugin/skills/faff/SKILL.md --context <each file the spec names> --diff <spec-file>`.
+Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received: `--backends-json "$backends_json" --timeout "$timeout" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file>`.
 
-- The **spec** is supplied as `--diff` (the thing under scrutiny); repo files as `--context`; the lens refutation prompt as `--system`.
+- The **spec** is supplied as `--diff` (the thing under scrutiny); the files the spec names as `--context`; the lens refutation prompt as `--system`.
 - `$backends_json` holds the primary-first JSON array (`{provider, model, host, api_key_env?, reasoning_off?, timeout?}`) `review-call.mjs`'s `--backends-json` mapper consumes verbatim, whether the config is a single backend or a fallback chain — assembled **once**, not per lens, since it is identical across every lens in a given spec-review pass.
 - `fan-out.mjs` returns a JSON array of `LensResult` (`{lens, exit, stdout, stderr}`) in the same order as the input requests; apply the existing per-lens outcome table (unchanged, below) to each entry exactly as it was applied to one `review-call.mjs` invocation's exit code.
 - A `faff adversarial-backends` exit `3` (unconfigured/unset host) or `2` (malformed `fallbacks` JSON) means there is no chain to call the helper with; treat either as every lens's **`unavailable`**, kind `config-fault` (the same per-lens outcome the table below assigns a `review-call.mjs` config-fault exit) — never a silent `clear`.

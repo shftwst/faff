@@ -307,7 +307,7 @@ function discoverRungsReporting(root) {
   const { rungs: ciReportRungs, eligibleSteps, recognisedSteps } = discoverCiWorkflowsReporting(root);
   const ciByKindCommand = new Map();
   for (const r of ciReportRungs) {
-    const key = `${r.kind} ${r.command}`;
+    const key = `${r.kind} ${r.command}`;
     if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r); // first occurrence wins (stable)
   }
   const dedupedCi = [...ciByKindCommand.values()].filter((r) => !localKinds.has(r.kind));

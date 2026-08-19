@@ -106,6 +106,12 @@ const REGION_MAP = {
   // pure decision core over caller-supplied TargetRef/SelfRef, no extractable
   // flight-recorder layer → factory (same shape as run-start/contain).
   "run-outward": "factory",
+  // run-record-prd — FAFF-858: the narrow PRD-record verb over the one inherited L4
+  // ledger, reusing lights-out.js's mint-side PRD-flag validators (factory identifiers)
+  // + heartbeat.js's mutateLedgerUnderLock (governance→factory is a legal require edge
+  // the other direction only; this module is itself factory, same family as run-ledger
+  // which it mirrors) → factory.
+  "run-record-prd": "factory",
   // run-start — FAFF-496: the run-START trigger predicate (mirror of run-done). A pure
   // signal-composing verb + belt-and-braces schemaCheck, no extractable flight-recorder
   // layer → factory.
@@ -322,6 +328,7 @@ const REGION_SELFTEST_ARGV = {
   "run-done": ["run-done", "--selftest"],
   "run-ledger": ["run-ledger", "--selftest"],
   "run-outward": ["run-outward", "--selftest"],
+  "run-record-prd": ["run-record-prd", "--selftest"],
   "run-start": ["run-start", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
   "merge-fence": ["merge-fence", "--selftest"],

@@ -164,7 +164,7 @@ test("end-to-end: the no-PRD case still drains (no-prd-nothing-to-plan) when the
 
 // --- Static checks over the §0a prose itself (spec §5's two static-check DoD lines) ---
 
-test("static: the §0a call-site carries no ad-hoc --autonomous/--plan flag or env sniff gating the run-start call — the only guard is the L4-lights-out heading", () => {
+test("static: the §0a call-site carries no ad-hoc --autonomous/--plan flag or env sniff gating the run-start call — the only guard is the inherited ledger's own classified level", () => {
   const text = fs.readFileSync(skillPath, "utf8");
   const start = text.indexOf("### 0a. Run-start trigger");
   assert.notEqual(start, -1, "§0a heading not found");
@@ -180,7 +180,11 @@ test("static: the §0a call-site carries no ad-hoc --autonomous/--plan flag or e
   assert.doesNotMatch(stripped, /--autonomous\b/);
   assert.doesNotMatch(stripped, /--plan\b/);
   assert.doesNotMatch(section, /process\.env|\$[A-Z_]+_AUTONOMOUS/);
-  assert.match(section, /L4 lights-out signal only/);
+  assert.match(section, /L4 lights-out only/);
+  // FAFF-858: the guard is now the classify_inherited_run_dir ladder over the operator's
+  // handed-off FAFF_RUN_DIR — reading the INHERITED ledger's own level, not a fresh mint.
+  assert.match(section, /classify the inherited handoff/);
+  assert.match(section, /run-record-prd --classify/);
 });
 
 test("static: the §0a coverage read consumes boolean .covered and computes no fraction/ratio at the call-site", () => {
@@ -196,37 +200,43 @@ test("static: the §0a coverage read consumes boolean .covered and computes no f
   assert.doesNotMatch(assign, /[0-9]|\/|%|>=|<=/);
 });
 
-test("static: the §0a heading + prose sit under the L4-lights-out-only guard, before faff lights-out mints", () => {
+test("static: the §0a heading + prose sit under the L4-lights-out-only guard, and §0a itself never mints (FAFF-858: it classifies + reuses the operator's cage-1 mint)", () => {
   const text = fs.readFileSync(skillPath, "utf8");
   const start = text.indexOf("### 0a. Run-start trigger");
   assert.notEqual(start, -1);
-  const guardLine = text.slice(start, start + 700);
-  assert.match(guardLine, /L4 lights-out signal only/);
-  assert.match(guardLine, /before .*faff lights-out.* mints the ledger/);
+  const end = text.indexOf("### 1. Tidy pass", start);
+  const section = text.slice(start, end);
+  const guardLine = text.slice(start, start + 900);
+  assert.match(guardLine, /L4 lights-out only/);
+  assert.match(guardLine, /§0a never mints/);
+  // No `faff lights-out` (mint) call anywhere in §0a — only the classify + reuse verbs.
+  assert.doesNotMatch(section, /faff lights-out --prd-creative-licence/);
+  assert.doesNotMatch(section, /mint the build run's own ledger/);
 });
 
-test("static: a plan verdict invokes /faff-plot --autonomous, then mints its own faff lights-out ledger and falls through (no STOP, converge don't stop)", () => {
+test("static: a plan verdict invokes /faff-plot --autonomous (nested reuse, no mint), records the licence via run-record-prd, and falls through on the inherited runDir (no STOP, converge don't stop)", () => {
   const text = fs.readFileSync(skillPath, "utf8");
   const start = text.indexOf("### 0a. Run-start trigger");
   const end = text.indexOf("### 1. Tidy pass", start);
   const section = text.slice(start, end);
-  const planLine = section.match(/\*\*`plan`\*\*[\s\S]*?fall-through\./)[0];
+  const planLine = section.match(/-\s+\*\*`plan`\*\*[\s\S]*?no config flag gates this fall-through\./)[0];
   assert.match(planLine, /\/faff-plot --autonomous/);
-  // it mints its OWN build-pass ledger — never reuses plot's decompose-pass ledger
-  assert.match(planLine, /faff lights-out --prd-creative-licence/);
-  assert.match(planLine, /never.*reuse plot's decompose-pass ledger/);
+  // FAFF-858: no mint anywhere in the plan branch — it records onto the inherited runDir instead.
+  assert.doesNotMatch(planLine, /faff lights-out/);
+  assert.match(planLine, /faff run-record-prd --run-dir "\$runDir"/);
   // falls through to the build pipeline instead of stopping decompose-only
   assert.match(planLine, /fall through to step 1/);
   assert.doesNotMatch(planLine, /\bSTOP\.(?!\S)/);
 });
 
-test("static: a drain verdict mints via faff lights-out --prd-creative-licence; a refuse verdict mints nothing", () => {
+test("static: a drain verdict records the licence via run-record-prd (no mint); a refuse verdict leaves the inherited runDir untouched (no mint, nothing to close)", () => {
   const text = fs.readFileSync(skillPath, "utf8");
   const start = text.indexOf("### 0a. Run-start trigger");
   const end = text.indexOf("### 1. Tidy pass", start);
   const section = text.slice(start, end);
-  const drainLine = section.match(/\*\*`drain`\*\*[\s\S]*?ordinary pipeline\./)[0];
-  assert.match(drainLine, /faff lights-out --prd-creative-licence/);
-  const refuseLine = section.match(/\*\*`refuse`\*\*[\s\S]*?any tracker write\./)[0];
-  assert.match(refuseLine, /mint \*\*nothing\*\*/);
+  const drainLine = section.match(/-\s+\*\*`drain`\*\*[\s\S]*?on `runDir`\./)[0];
+  assert.match(drainLine, /faff run-record-prd --run-dir "\$runDir"/);
+  assert.doesNotMatch(drainLine, /faff lights-out/);
+  const refuseLine = section.match(/-\s+\*\*`refuse`\*\*[\s\S]*?operator chose to mint\./)[0];
+  assert.match(refuseLine, /left \*\*untouched\*\*/);
 });

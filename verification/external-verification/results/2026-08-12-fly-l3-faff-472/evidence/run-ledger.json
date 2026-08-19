@@ -1,0 +1,11 @@
+{
+  "admitted": [
+    "FAFF-472"
+  ],
+  "level": "L3",
+  "outcomes": {
+    "FAFF-472": "shipped"
+  },
+  "run_id": "run-20260812-153248-beepboop-list",
+  "stop_reason": "queue-drained"
+}

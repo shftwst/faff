@@ -1,0 +1,72 @@
+{
+  "level": "L3",
+  "run_id": "run-20260819-193702-beepboop-list-2d5322",
+  "admitted": [
+    "FAFF-848",
+    "FAFF-844",
+    "FAFF-887"
+  ],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "5946dd81-afd1-411b-acc9-a1c9a7b9bf9a",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 54,
+        "output": 25606,
+        "cache_write": 532741,
+        "cache_read": 4597712
+      }
+    },
+    "tokens_at_start": 5156113,
+    "window": {
+      "anchor_epoch": 1787168257745,
+      "reset_epoch": 1787186257745,
+      "tokens_at_anchor": 589359
+    },
+    "tokens_at_last_event": {
+      "input": 164,
+      "output": 118846,
+      "cache_write": 817630,
+      "cache_read": 19357264
+    }
+  },
+  "owner": {
+    "status": "aborted-resumable",
+    "pid": 630,
+    "session_id": "run-20260819-193702-beepboop-list-2d5322",
+    "started_at": "2026-08-19T19:37:23Z",
+    "last_heartbeat": "2026-08-19T19:37:23Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-848": {
+      "note": "In Progress = stranded dead claim (fa1e06 owner done, no live peer verified; prior branch/commits never pushed, lost). Human explicitly listed. Verdict fire-and-forget on current high-confidence spec. This run is legitimate owner; build fresh from spec."
+    },
+    "FAFF-844": {
+      "note": "Verdict likely-fire; high-confidence spec, spec-review approve; blockers FAFF-846+FAFF-841 both Done (satisfied edges); lone Punt non-blocking (default off ships)."
+    },
+    "FAFF-887": {
+      "note": "Promoted by prep this run (high confidence, spec-review approve). Verdict fire-and-forget; lone Punt (lane unification, decides:architecture) explicitly out-of-scope/non-blocking."
+    }
+  },
+  "abort": {
+    "status": "aborted-resumable",
+    "at": "2026-08-19T20:21:34.106Z"
+  }
+}

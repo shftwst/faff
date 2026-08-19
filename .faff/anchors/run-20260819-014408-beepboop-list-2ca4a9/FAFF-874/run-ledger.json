@@ -1,0 +1,54 @@
+{
+  "level": "L3",
+  "run_id": "run-20260819-014408-beepboop-list-2ca4a9",
+  "admitted": [
+    "FAFF-874"
+  ],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "price_per_mtok": 0,
+      "pricing": "map"
+    },
+    "tokens_at_start": 5222187,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "46111405-267c-4970-b712-42aea4dffb62",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 76,
+        "output": 47239,
+        "cache_write": 205398,
+        "cache_read": 4969474
+      }
+    }
+  },
+  "outcome_details": {
+    "FAFF-874": {
+      "reclaimed_from": "run-20260819-001255-beepboop-list-5dc109",
+      "reclaim_reason": "crashed peer: owner.status=running, heartbeat 2026-08-19T00:52:02Z stale >900s, pid 697 dead, no branch/worktree/PR, no outcome recorded",
+      "verdict": "fire-and-forget",
+      "confidence": "high",
+      "build_tier": "complex",
+      "spec_review": "approve"
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 0,
+    "session_id": "run-20260819-014408-beepboop-list-2ca4a9",
+    "started_at": "2026-08-19T01:44:08Z",
+    "last_heartbeat": "2026-08-19T01:44:08Z",
+    "harness": "claude-code",
+    "model": "claude-opus-4-8"
+  }
+}

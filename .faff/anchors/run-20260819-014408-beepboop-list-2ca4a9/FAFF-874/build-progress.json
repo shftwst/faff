@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-874",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4ce197e1550e41c0208f555b2401f8dbe2b83fcb1da9dfa809eae632f2eef0b8",
+    "branch": "faff-874-spec-review-loop-cap-fires-on-a-converging-reviewer-cap",
+    "pushed_at": "2026-08-19T02:10:30.495Z"
+  },
+  "updated_at": "2026-08-19T02:10:30.495Z"
+}

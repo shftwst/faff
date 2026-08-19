@@ -94,6 +94,7 @@ const { cmdSentry } = require("./lib/sentry");
 const { cmdSentryPoller } = require("./lib/sentry-poller");
 const { cmdSentrycheck } = require("./lib/sentrycheck");
 const { cmdSpecReviewChurn } = require("./lib/spec-review-churn");
+const { cmdSpecReviewConvergence } = require("./lib/spec-review-convergence");
 const { cmdStageGuard } = require("./lib/stage");
 const { cmdState } = require("./lib/state");
 const { cmdTier } = require("./lib/tier");
@@ -210,6 +211,7 @@ const COMMANDS = {
   "adversarial-backends": cmdAdversarialBackends,
   "review-iteration-cap": cmdReviewIterationCap,
   "spec-review-churn": cmdSpecReviewChurn,
+  "spec-review-convergence": cmdSpecReviewConvergence,
   "backends": cmdBackends,
   "tier": cmdTier,
   "effort": cmdEffort,

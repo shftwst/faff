@@ -259,6 +259,11 @@ const REGION_MAP = {
   // than to review-iteration-cap's config-read shape) — factory, same family as the
   // other small deterministic CLI resolvers faff-prep/faff-graft shell out to.
   "spec-review-churn": "factory",
+  // FAFF-874: spec-review-convergence is a pure comparator over the ordered round-record JSON
+  // files (reuses spec-review-churn's lensSet/readRoundRecord — factory→factory is a legal
+  // require edge, ADR-0042) — factory, same family as the other small deterministic CLI
+  // resolvers faff-prep shells out to.
+  "spec-review-convergence": "factory",
   // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
   // reference — same shape as spec-review-churn) — factory, same family as the other small
   // deterministic CLI resolvers.
@@ -380,6 +385,7 @@ const REGION_SELFTEST_ARGV = {
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
   "backends": ["backends", "--selftest"],
   "spec-review-churn": ["spec-review-churn", "--selftest"],
+  "spec-review-convergence": ["spec-review-convergence", "--selftest"],
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
 };

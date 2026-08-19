@@ -1,0 +1,7 @@
+{
+  "command_class": "node-test",
+  "issue": "FAFF-472",
+  "merge_sha": "fb5e4327b34aaed81b9c3775e41289c41544dab2",
+  "pr": 643,
+  "verdict": "verified-fail"
+}

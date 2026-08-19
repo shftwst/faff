@@ -1,0 +1,3 @@
+{"effect":{"kind":"merge","reversible":true},"kind_of_entry":"declare","seq":0,"step":"merge"}
+{"effect":{"kind":"branch-delete","reversible":true},"kind_of_entry":"declare","seq":1,"step":"merge"}
+{"effect":{"kind":"merge","reversible":true},"kind_of_entry":"observe","seq":2,"step":"merge"}

@@ -1,0 +1,8 @@
+{
+  "harness": "claude-code",
+  "head_sha": "fb5e4327b34aaed81b9c3775e41289c41544dab2",
+  "integrity": "unasserted",
+  "merged": true,
+  "model_observed": false,
+  "pr": 643
+}

@@ -49,3 +49,11 @@ eval/report/
 # Private idea shares (symlinks into shftwst-shared)
 docs/rfc/ideas
 docs/whitepapers/ideas
+
+# Published external-verification cases (FAFF-743 protocol convention) live under
+# verification/external-verification/results/<case>/ and are committed evidence. Re-include
+# their evidence/ and reports/ subtrees past the bare reports/ and evidence/ ignores above.
+!verification/external-verification/results/**/evidence/
+!verification/external-verification/results/**/evidence/**
+!verification/external-verification/results/**/reports/
+!verification/external-verification/results/**/reports/**

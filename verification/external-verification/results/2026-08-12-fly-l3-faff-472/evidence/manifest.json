@@ -1,0 +1,172 @@
+{
+  "case": "verification/external-verification/results/2026-08-12-fly-l3-faff-472",
+  "member_count": 9,
+  "members": [
+    {
+      "media_type": "application/jsonl",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/declared-effects.jsonl",
+      "published_sha256": "02903c1e408af21fcb2aae60d05626d3dcd655f1e72f98338e3fe137a041dc69",
+      "source_path": "evidence/tampered-faff-runner-evidence/declared-effects.jsonl",
+      "source_sha256": "22ae7ab536c290c376abacdce77d9f1904ce8bdd6efc8c557b7d3a57031f8f2a"
+    },
+    {
+      "media_type": "application/jsonl",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/events.jsonl",
+      "published_sha256": "c6ff5bb4bc8e3e32ec53256d04c92ada290beef4ec91e75ef645db22bf10ca80",
+      "source_path": "evidence/tampered-faff-runner-evidence/events.jsonl",
+      "source_sha256": "adf81f1fa2e23b9729a3e0855565894a126fa17a42d227746b666a7810265710"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/FAFF-472/ac-checklist.json",
+      "published_sha256": "4c0388a1760c605b90173df3c980e33b2903a695509a141f8165859806a39be5",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/ac-checklist.json",
+      "source_sha256": "17d1199030cb432b5e79351a3e3f675e6faada3ab6ab63e8843413e5d720abba"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/FAFF-472/build-progress.json",
+      "published_sha256": "5ce7821e25efe30b0681adb99f516b139bb57b899df4a7d2f149d05af80b0eea",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/build-progress.json",
+      "source_sha256": "d0073b2b39b3b475c365afc02b02be3d5fecbe3c78e5f2b2fac25bc8b4df392c"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/FAFF-472/discovered-scope.json",
+      "published_sha256": "d341bff8985e9ce7a2770fa2452a191e12bc0e003d827cec3a9cfb489bac2b96",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/discovered-scope.json",
+      "source_sha256": "d9e01cfa773011b3a028f8c5d0d0bf3739ba337512189f0801c7096909e3fe98"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/FAFF-472/merge-record.json",
+      "published_sha256": "0125944366eedc7555ddc52022a4e58e2ff24f8878e6abf0c37bfd2d8d3d5c3f",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/merge-record.json",
+      "source_sha256": "428ac9e10fac33aaf63854e7cf2dcc8efc26af9bb1240e0af6d6bb201751c89d"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/FAFF-472/post-merge-verification.json",
+      "published_sha256": "5880e1098331950fffd96e0bb0a5e6cd3d5dfffba02f2ae521829d53c6bfd069",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/post-merge-verification.json",
+      "source_sha256": "008373521378bb8da4a85d0c42fd4200484146dba7f9d352d712db1785446bd4"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/FAFF-472/review-verdict.json",
+      "published_sha256": "86add8c0734027475a54828b96ecec9ba664fee21971db9c8731250b00df4ad6",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/review-verdict.json",
+      "source_sha256": "5f0bf055f4354c178547160fdb9cb1839c63cad40cdd04a6b3d9fa40ee24f7ff"
+    },
+    {
+      "media_type": "application/json",
+      "published_path": "verification/external-verification/results/2026-08-12-fly-l3-faff-472/evidence/run-ledger.json",
+      "published_sha256": "2003510d374308f34d1f68fa741ca8bb61eb3cc8529a89de5017935f52335736",
+      "source_path": "evidence/tampered-faff-runner-evidence/run-ledger.json",
+      "source_sha256": "f9328ab487bcd39c274c1bf7ec9f6a0848eaa69b87e52bdc34c485485e18f04c"
+    }
+  ],
+  "omission_count": 24,
+  "omissions": [
+    {
+      "reason": "duplicate",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/ac-checklist.json"
+    },
+    {
+      "reason": "duplicate",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/build-progress.json"
+    },
+    {
+      "reason": "not-needed-for-bounded-claim",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/chain-head.json"
+    },
+    {
+      "reason": "duplicate",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/declared-effects.jsonl"
+    },
+    {
+      "reason": "not-needed-for-bounded-claim",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/effects-chain-head.json"
+    },
+    {
+      "reason": "duplicate",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/events.jsonl"
+    },
+    {
+      "reason": "duplicate",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/review-verdict.json"
+    },
+    {
+      "reason": "duplicate",
+      "source_path": "evidence/tampered-faff-runner-evidence/.faff/anchors/run-20260812-153248-beepboop-list/FAFF-472/run-ledger.json"
+    },
+    {
+      "reason": "private-risk",
+      "redacted": true,
+      "source_path": "evidence/tampered-faff-runner-evidence/<run transcript, gzip - filename redacted>"
+    },
+    {
+      "reason": "private-risk",
+      "redacted": true,
+      "source_path": "evidence/tampered-faff-runner-evidence/<run transcript, raw jsonl - filename redacted>"
+    },
+    {
+      "reason": "ephemeral",
+      "source_path": "evidence/tampered-faff-runner-evidence/andon-state.json"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/automation-verdicts.md"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/conflict-analysis.md"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/adversarial-findings.txt"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/graft.md"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/prep.md"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/review-progress.json"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/FAFF-472/spec-review/round-1.json"
+    },
+    {
+      "reason": "ephemeral",
+      "source_path": "evidence/tampered-faff-runner-evidence/heartbeat"
+    },
+    {
+      "reason": "ephemeral",
+      "source_path": "evidence/tampered-faff-runner-evidence/heartbeat.FAFF-472"
+    },
+    {
+      "reason": "ephemeral",
+      "source_path": "evidence/tampered-faff-runner-evidence/sentry-poller.json"
+    },
+    {
+      "reason": "ephemeral",
+      "source_path": "evidence/tampered-faff-runner-evidence/sentry-poller.log"
+    },
+    {
+      "reason": "ephemeral",
+      "source_path": "evidence/tampered-faff-runner-evidence/sentry-poller.stop"
+    },
+    {
+      "reason": "private-risk",
+      "source_path": "evidence/tampered-faff-runner-evidence/summary.md"
+    }
+  ],
+  "source_file_count": 33,
+  "source_root": "evidence/tampered-faff-runner-evidence"
+}

@@ -21,6 +21,14 @@ The suite above scaffolds subjects and scores them. Publishing a verification of
 
 Real cases are published as v0.1 reports under `results/<case>/`, owned by the case ticket that produces them. The example under `schema/examples/` is a synthetic fixture that proves the machinery; it is never a citable result.
 
+### Published cases
+
+| Case | What it verifies | Main result |
+|---|---|---|
+| [`results/2026-08-12-fly-l3-faff-472/`](results/2026-08-12-fly-l3-faff-472/README.md) | One autonomous Level 3 Fly.io beep-boop run delivering FAFF-472 to `shftwst/faff` main (PR 643), against a clean-governed-delivery hypothesis | **does-not-support** |
+
+FAFF-472 shipped and was git-verified merged, yet the same run recorded two failing governance controls: a run-ledger custody tamper (caught by `integrity-digest verify`: the build lane hand-wrote the ledger, adding `level: "L3"`) and a post-merge full-suite verified-fail. Because the frozen hypothesis is a clean governed delivery, those two negatives make the result **does-not-support**. The case bounds its claim to that single run and evaluates reproducibility, repeatability, and generalisation as `not-evaluated`.
+
 ## The six rungs
 
 | Script | SUT | Behaviours | Autonomy | Tracker |

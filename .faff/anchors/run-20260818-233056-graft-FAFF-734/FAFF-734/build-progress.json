@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-734",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d2d4e0255c5b95708ba8a559e36c9ac18d30c4c64635d5bfac84dc521b35195c",
+    "branch": "faff-734-publish-an-inspectable-flyio-l3-production-run",
+    "pushed_at": "2026-08-19T00:05:30.939Z"
+  },
+  "updated_at": "2026-08-19T00:05:30.939Z"
+}

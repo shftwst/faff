@@ -1,0 +1,125 @@
+{
+  "note": "Curation-time observations of faff events validate / runcheck / governance-check / integrity-digest verify over the gitignored source capture. Recorded from pinned executions at tool_commit; excluded from the byte-identical reproducibility comparison. Stdout and stderr are recorded by SHA-256 only, never inlined.",
+  "observations": [
+    {
+      "args": [
+        "events",
+        "validate",
+        "--file",
+        "evidence/tampered-faff-runner-evidence/events.jsonl"
+      ],
+      "command": "faff events validate --file evidence/tampered-faff-runner-evidence/events.jsonl",
+      "exit_code": 0,
+      "input_members": [
+        {
+          "path": "evidence/tampered-faff-runner-evidence/events.jsonl",
+          "sha256": "adf81f1fa2e23b9729a3e0855565894a126fa17a42d227746b666a7810265710"
+        }
+      ],
+      "name": "events-validate",
+      "result": {
+        "errors": [],
+        "valid": true
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "bd2a0abebb6e141bf0dac89918f85596b987f40a5f8a9ad4149f6f3fa15b0d02",
+      "tool_commit": "7b8d23161b2f2ce3f97e0a68f026228c1d7c1934"
+    },
+    {
+      "args": [
+        "runcheck",
+        "evidence/tampered-faff-runner-evidence",
+        "--json"
+      ],
+      "command": "faff runcheck evidence/tampered-faff-runner-evidence --json",
+      "exit_code": 0,
+      "input_members": [
+        {
+          "path": "evidence/tampered-faff-runner-evidence/run-ledger.json",
+          "sha256": "f9328ab487bcd39c274c1bf7ec9f6a0848eaa69b87e52bdc34c485485e18f04c"
+        },
+        {
+          "path": "evidence/tampered-faff-runner-evidence/events.jsonl",
+          "sha256": "adf81f1fa2e23b9729a3e0855565894a126fa17a42d227746b666a7810265710"
+        }
+      ],
+      "name": "runcheck",
+      "result": {
+        "clean": true,
+        "dangling": [],
+        "invalid": []
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "010cbc1b25ffe5630fee5c5cdf2d748098ce92cca59fd155cb62c38179b5b452",
+      "tool_commit": "7b8d23161b2f2ce3f97e0a68f026228c1d7c1934"
+    },
+    {
+      "args": [
+        "governance-check",
+        "--run-dir",
+        "evidence/tampered-faff-runner-evidence",
+        "--issue",
+        "FAFF-472",
+        "--level",
+        "L3",
+        "--json"
+      ],
+      "command": "faff governance-check --run-dir evidence/tampered-faff-runner-evidence --issue FAFF-472 --level L3 --json",
+      "exit_code": 0,
+      "input_members": [
+        {
+          "path": "evidence/tampered-faff-runner-evidence/run-ledger.json",
+          "sha256": "f9328ab487bcd39c274c1bf7ec9f6a0848eaa69b87e52bdc34c485485e18f04c"
+        },
+        {
+          "path": "evidence/tampered-faff-runner-evidence/events.jsonl",
+          "sha256": "adf81f1fa2e23b9729a3e0855565894a126fa17a42d227746b666a7810265710"
+        }
+      ],
+      "name": "governance-check",
+      "result": {
+        "pass": true,
+        "reasons": []
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5c098a83192e2be0abb9e539b0099d8d27fa0828b9207c10bcc8959acee8194d",
+      "tool_commit": "7b8d23161b2f2ce3f97e0a68f026228c1d7c1934"
+    },
+    {
+      "args": [
+        "integrity-digest",
+        "verify",
+        "--run-dir",
+        "evidence/tampered-faff-runner-evidence"
+      ],
+      "basis": "Cited from the run's own recorded custody finding: run-ledger.json outcome_details custody_note records integrity-digest verdict=tampered on run-ledger.json with events.jsonl clean. The pre-tamper snapshot digest manifest is not present in the source capture, so this negative verdict is attested from the recorded observation rather than re-derived at curation time.",
+      "command": "faff integrity-digest verify --run-dir evidence/tampered-faff-runner-evidence",
+      "exit_code": null,
+      "expected_negative": true,
+      "input_members": [
+        {
+          "path": "evidence/tampered-faff-runner-evidence/run-ledger.json",
+          "sha256": "f9328ab487bcd39c274c1bf7ec9f6a0848eaa69b87e52bdc34c485485e18f04c"
+        },
+        {
+          "path": "evidence/tampered-faff-runner-evidence/events.jsonl",
+          "sha256": "adf81f1fa2e23b9729a3e0855565894a126fa17a42d227746b666a7810265710"
+        }
+      ],
+      "name": "integrity-digest-verify",
+      "result": {
+        "clean_members": [
+          "events.jsonl"
+        ],
+        "mismatches": [
+          "run-ledger.json"
+        ],
+        "verdict": "tampered"
+      },
+      "stderr_sha256": null,
+      "stdout_sha256": null,
+      "tool_commit": "7b8d23161b2f2ce3f97e0a68f026228c1d7c1934"
+    }
+  ],
+  "source_root": "evidence/tampered-faff-runner-evidence"
+}

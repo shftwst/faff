@@ -43,6 +43,7 @@ const { containerCheck, hostSocketProbe, realFsq } = require("./container-check"
 const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendRecordUnderLock } = require("./events");
+const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
 const { dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
@@ -1157,7 +1158,54 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // STEP 3: budget close-out + re-baseline (shape (a)) — close the prior open span into a
   // measured delta, open a new span baselined at the resume instant. Never closes at zero.
   const nowIso = new Date().toISOString();
+  const sessionId = process.env.FAFF_SESSION_ID || null;
   const budgetSessions = closeAndOpenBudgetSessions(ledger, runDir, root, nowIso);
+
+  // STEP 4b: recovery-claim acquisition (FAFF-863) — a write-once ref on the git-remote bundle
+  // store gating THIS continuation boundary against a cross-box double-continue. `claims` stays
+  // null under the default `local` bundle store, and every claim call below is then skipped
+  // outright — a success no-op, since single-box resume is already serialised by the run-dir
+  // exclusive-create and there is no cross-box surface to gate. The claim keys on
+  // { run_id, run_segment_id: priorEpoch + 1 } — the segment STEP 5 is about to install, and the
+  // SAME id every racing executor computes from the (still-unmutated) pre-read ledger.
+  const claimSegmentId = priorEpoch + 1;
+  const claimIdentity = { run_id: resumeId, run_segment_id: claimSegmentId };
+  const claims = resolveBundleStoreName(root) === "git-remote" ? recoveryClaimStore(root) : null;
+  let claimSha = null;
+  if (claims) {
+    const ownerSnapshot = { status: "running", epoch: claimSegmentId, session_id: sessionId, pid: process.pid, started_at: nowIso, last_heartbeat: nowIso };
+    let claimResult = claims.acquire(claimIdentity, ownerSnapshot);
+    if (!claimResult.acquired && claimResult.reason === "exists") {
+      // A claim already exists — reclaimIfStale judges it via the run-ledger's own runIsHeld
+      // predicate (reused, not reimplemented) and only lands a lease-matched CAS if it is
+      // genuinely stale; a live claim refuses here (reason "held"), never overwritten.
+      const reclaim = claims.reclaimIfStale(claimIdentity, ownerSnapshot, process.env);
+      claimResult = reclaim.reclaimed
+        ? { acquired: true, sha: reclaim.sha }
+        : { acquired: false, reason: reclaim.reason, holder: reclaim.holder, detail: reclaim.detail };
+    }
+    if (!claimResult.acquired) {
+      const holderOwner = claimResult.holder && claimResult.holder.owner;
+      const livenessNote = claimResult.reason === "held" ? "held (fresh heartbeat)"
+        : claimResult.reason === "lease-lost" ? "lease lost to a concurrent reclaimer"
+        : claimResult.reason === "store_unavailable" ? "the claim store is unreachable — refusing rather than continuing unguarded"
+        : (claimResult.reason || "refused");
+      return emitRefuse(2, `lights-out --resume: recovery claim ${claimIdentity.run_id}/seg-${claimSegmentId} refused (${livenessNote})${holderOwner ? ` — held by session ${holderOwner.session_id}, epoch ${holderOwner.epoch}` : ""}${claimResult.detail ? `: ${claimResult.detail}` : ""} — refusing to continue (cross-box double-continue guard, FAFF-863)`, { state: priorState });
+    }
+    claimSha = claimResult.sha;
+  }
+
+  // Read-after-write head-confirm (FAFF-863 "the safety pin"), run immediately before STEP 5's
+  // owner-state write: re-read the claim ref head and proceed only if it still points at OUR
+  // claim commit. This — never the staleness verdict above — is the actual mutex: it closes the
+  // one race a mistimed reclaim could otherwise open (a still-live executor discovers here that a
+  // reclaimer superseded it and refuses, so exactly one of the two ever reaches the epoch bump).
+  if (claims) {
+    const confirm = claims.confirmHead(claimIdentity, claimSha);
+    if (!confirm.confirmed) {
+      return emitRefuse(2, `lights-out --resume: recovery claim ${claimIdentity.run_id}/seg-${claimSegmentId} head-confirm failed (${confirm.reason || "mismatch"}) — a concurrent executor superseded the claim; refusing to continue (cross-box double-continue guard, FAFF-863)`, { state: priorState });
+    }
+  }
 
   // STEP 5: WRITE the re-entry (first side effect) — owner history + new epoch owner +
   // abort→history + cleared stop_reason + resume[] + budget.sessions. FAFF-575: the
@@ -1166,7 +1214,6 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // early read and this write is preserved), and the epoch fence is checked in that
   // same section against the pre-read owner block, so a concurrent resume that took
   // over first makes this one yield instead of clobbering.
-  const sessionId = process.env.FAFF_SESSION_ID || null;
   let epoch = null;
   let writeRes;
   try {

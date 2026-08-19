@@ -157,9 +157,12 @@ function buildBundle(runDir, identityInput, root = findRoot()) {
     outcomes: (ledgerObj.outcomes && typeof ledgerObj.outcomes === "object" && !Array.isArray(ledgerObj.outcomes)) ? ledgerObj.outcomes : {},
   }), "utf8");
 
-  // anchors — verbatim bytes from .faff/anchors/<run_id>/<boundary_key>/ (mintIssueAnchor's own
-  // output: events.jsonl, run-ledger.json, chain-head.json, +declared-effects.jsonl/witness and
-  // the copied merge-floor files when present) — a directory snapshot, one blob member.
+  // anchors — verbatim bytes from .faff/anchors/<run_id>/<boundary_key>/ for issue-merge-floor,
+  // or the run-anchor ROOT .faff/anchors/<run_id>/ for run-close (FAFF-876 — see readAnchorDir):
+  // mintIssueAnchor's own output (events.jsonl, run-ledger.json, chain-head.json,
+  // +declared-effects.jsonl/witness and the copied merge-floor files when present), plus —
+  // run-close only — the run-level summary.md and every admitted issue's own subdir. A directory
+  // snapshot, one blob member.
   const anchor = readAnchorDir(root, identity.run_id, identity.boundary_kind, identity.boundary_key);
   if (Object.keys(anchor.files).length === 0) {
     throw new Error(`buildBundle: no anchor found at ${anchor.dir} — publish must run AFTER the anchor mint, never before`);

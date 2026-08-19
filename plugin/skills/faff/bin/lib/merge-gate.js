@@ -765,6 +765,71 @@ function gatesSignalToCiState(outcome) {
   return "no-ci-coverage";
 }
 
+// FAFF-875 — the shared ff-only base-advance primitive, extracted from `cmdMergeGateLocal`'s
+// former inline land step (verbatim Cases A/B) so `faff prdr land --local` can reuse the exact
+// same atomicity/safety machinery instead of forking it. Pure orchestration over `gitRun` —
+// still impure (spawns git), but the ONE place either caller lands a ref onto `base`.
+//
+// Cases A/B are BYTE-FOR-BYTE the original inline logic (same order, same blocker strings via
+// the default `retryHint`) — merge-gate --local's behaviour is unchanged (FAFF-875 AC #9).
+// Case C is net-new: `merge-gate --local` deliberately never lands INTO its own invoking
+// worktree (a feature branch is landed FROM a peer/bare ref, never by checking out `base`
+// yourself mid-command) — `allowInPlace` stays false there, so Case C is dead code for that
+// caller by construction, preserving the exact Case A resolution FAFF-545's regression test
+// pins (`--local` invoked from the base worktree via a `--branch` override still lands via
+// update-ref, never a self-merge). `faff prdr land --local` is the opposite shape — its normal
+// git-only single-worktree flow always sits ON base (`faff prdr accept` switches back to it) —
+// so it passes `allowInPlace: true` to land via an in-place `git merge --ff-only`, refreshing
+// the invoking worktree's own index/working tree (a bare `update-ref` here would desync it —
+// the exact phantom-staged-deletes bug Case B's peer-worktree guard exists to avoid, self-applied).
+//
+// Returns { ok: true, case: "A"|"B"|"C" } on a successful advance, or { ok: false, blocker }
+// (a single human-readable reason) on any refusal — the caller folds `blocker` into its own
+// `blockers` array and exits however it exits; this helper never writes to stdout/stderr itself.
+function landBaseFfOnly({ cwd, base, tipSha, baseShaBefore, allowInPlace = false, retryHint = "faff merge-gate --local" }) {
+  if (allowInPlace) {
+    const selfBranch = gitRun(cwd, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+    if (selfBranch.ok && selfBranch.stdout === base) {
+      // Case C — base is checked out in the INVOKING worktree itself.
+      const dirty = gitRun(cwd, ["status", "--porcelain"]);
+      if (!dirty.ok) return { ok: false, blocker: `cannot check the invoking worktree for local changes — re-run ${retryHint}` };
+      if (dirty.stdout !== "") return { ok: false, blocker: `base '${base}' has uncommitted changes in the invoking worktree — commit or stash them, then re-run ${retryHint} (refusing rather than overwrite)` };
+      const mrg = gitRun(cwd, ["merge", "--ff-only", tipSha]);
+      if (!mrg.ok) return { ok: false, blocker: `fast-forward of '${base}' in the invoking worktree failed: ${mrg.stderr || "git merge --ff-only rejected the fast-forward"}` };
+      return { ok: true, case: "C" };
+    }
+  }
+
+  // Cases A/B — verbatim FAFF-545 logic: enumerate worktrees, exclude the invoking cwd's own
+  // entry BEFORE matching (the defensive filter the FAFF-545 review finding added), land via a
+  // peer's `merge --ff-only` when base is checked out there, else a bare compare-and-swap
+  // `update-ref` (Case A, the overwhelmingly common single-worktree layout).
+  const entries = parseWorktreeEntries(cwd);
+  if (entries === null) return { ok: false, blocker: `cannot enumerate git worktrees to land safely — re-run ${retryHint}` };
+  const selfRoot = gitRun(cwd, ["rev-parse", "--show-toplevel"]);
+  if (!selfRoot.ok) return { ok: false, blocker: `cannot resolve the invoking worktree's own root to land safely — re-run ${retryHint}` };
+  const peerCandidates = entries.filter((e) => e && path.resolve(e.path || "") !== path.resolve(selfRoot.stdout));
+  const peer = baseCheckedOutWorktree(peerCandidates, base);
+
+  if (peer && peer.anomaly) return { ok: false, blocker: `base '${base}' is checked out in multiple worktrees — cannot land safely; reconcile the worktrees first` };
+
+  if (peer) {
+    // Case B — base checked out in exactly one CLEAN peer worktree.
+    const dirty = gitRun(cwd, ["-C", peer.path, "status", "--porcelain"]);
+    if (!dirty.ok) return { ok: false, blocker: `cannot check the peer worktree '${peer.path}' for local changes — re-run ${retryHint}` };
+    if (dirty.stdout !== "") return { ok: false, blocker: `base '${base}' is checked out with uncommitted changes in ${peer.path} — commit or stash them, then re-run ${retryHint} (refusing rather than overwrite)` };
+    const mrg = gitRun(cwd, ["-C", peer.path, "merge", "--ff-only", tipSha]);
+    if (!mrg.ok) return { ok: false, blocker: `fast-forward of '${base}' in peer worktree ${peer.path} failed: ${mrg.stderr || "git merge --ff-only rejected the fast-forward"}` };
+    return { ok: true, case: "B" };
+  }
+
+  // Case A — base checked out nowhere else. `--old-value` makes this a compare-and-swap — it
+  // fails rather than clobbering a base that moved since baseShaBefore was read.
+  const upd = gitRun(cwd, ["update-ref", `refs/heads/${base}`, tipSha, baseShaBefore]);
+  if (!upd.ok) return { ok: false, blocker: `local base-branch update failed: ${upd.stderr || "git update-ref rejected the fast-forward"}` };
+  return { ok: true, case: "A" };
+}
+
 function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
@@ -896,75 +961,17 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   // Land it: move the base ref to the (fast-forwardable) branch tip. This is the ONE sanctioned
   // path onto the base branch on a no-remote repo (merge-fence's matchesRawLocalBaseMerge denies
   // every raw equivalent); as a spawnSync child process it is structurally invisible to that
-  // PreToolUse hook, exactly like the PR path's `gh pr merge`.
-  //
-  // FAFF-545: a raw `git update-ref` moves the ref directly and never touches a working tree —
-  // critically, it BYPASSES git's own "branch is checked out in another worktree" guard. When
-  // `base` is checked out in a peer worktree, that leaves the peer's HEAD pointing at the new
-  // commit while its index still reflects the old tree (phantom staged-deletes). So branch on
-  // worktree topology: Case A (base checked out nowhere else) keeps the exact `update-ref`
-  // compare-and-swap byte-for-byte; Case B (base checked out in exactly one CLEAN peer worktree)
-  // lands via `git -C <peer> merge --ff-only <branch>` instead, so git's own merge machinery
-  // refreshes that worktree's index/working tree; anything unsafe (dirty peer, >1 checkout,
-  // enumeration failure) refuses fail-closed rather than desyncing or clobbering.
-  const entries = parseWorktreeEntries(cwd);
-  if (entries === null) {
+  // PreToolUse hook, exactly like the PR path's `gh pr merge`. FAFF-875: the actual Cases A/B
+  // land logic now lives in the shared `landBaseFfOnly` helper (verbatim extraction — `faff prdr
+  // land --local` reuses it for its own doc-only landing) — `allowInPlace` stays at its default
+  // false here, so this call resolves identically to the pre-extraction inline code, including
+  // the FAFF-545 self-merge regression case (sitting on `base` via a `--branch` override still
+  // lands via update-ref, never a self-merge — see landBaseFfOnly's own header comment).
+  const land = landBaseFfOnly({ cwd, base, tipSha: headShaNow, baseShaBefore });
+  if (!land.ok) {
     result.verdict = "refuse";
-    result.blockers = [...blockers, "cannot enumerate git worktrees to land safely — re-run faff merge-gate --local"];
+    result.blockers = [...blockers, land.blocker];
     return emit(result, 1);
-  }
-  // Defensively exclude the invoking cwd's OWN worktree entry before matching (FAFF-545 review
-  // finding): the `base == branch` refusal upstream is what normally guarantees cwd never holds
-  // `base`, but that guarantee lives in a different code path — a future caller change (e.g. an
-  // untrusted --branch override that doesn't match cwd's real checkout) shouldn't be able to
-  // reintroduce a self-merge. Filter here so the invariant is enforced at the point of use, not
-  // only assumed from upstream.
-  const selfRoot = gitRun(cwd, ["rev-parse", "--show-toplevel"]);
-  if (!selfRoot.ok) {
-    result.verdict = "refuse";
-    result.blockers = [...blockers, "cannot resolve the invoking worktree's own root to land safely — re-run faff merge-gate --local"];
-    return emit(result, 1);
-  }
-  const peerCandidates = entries.filter((e) => e && path.resolve(e.path || "") !== path.resolve(selfRoot.stdout));
-  const peer = baseCheckedOutWorktree(peerCandidates, base);
-
-  if (peer && peer.anomaly) {
-    result.verdict = "refuse";
-    result.blockers = [...blockers, `base '${base}' is checked out in multiple worktrees — cannot land safely; reconcile the worktrees first`];
-    return emit(result, 1);
-  }
-
-  if (peer) {
-    // Case B — base checked out in exactly one peer worktree. Refuse rather than clobber if it's
-    // dirty; `merge --ff-only` is itself compare-and-swap-safe (reads the base ref live at merge
-    // time, refuses any non-fast-forward), so no separate --old-value guard is needed here.
-    const dirty = gitRun(cwd, ["-C", peer.path, "status", "--porcelain"]);
-    if (!dirty.ok) {
-      result.verdict = "refuse";
-      result.blockers = [...blockers, `cannot check the peer worktree '${peer.path}' for local changes — re-run faff merge-gate --local`];
-      return emit(result, 1);
-    }
-    if (dirty.stdout !== "") {
-      result.verdict = "refuse";
-      result.blockers = [...blockers, `base '${base}' is checked out with uncommitted changes in ${peer.path} — commit or stash them, then re-run faff merge-gate --local (refusing rather than overwrite)`];
-      return emit(result, 1);
-    }
-    const mrg = gitRun(cwd, ["-C", peer.path, "merge", "--ff-only", branch]);
-    if (!mrg.ok) {
-      result.verdict = "refuse";
-      result.blockers = [...blockers, `fast-forward of '${base}' in peer worktree ${peer.path} failed: ${mrg.stderr || "git merge --ff-only rejected the fast-forward"}`];
-      return emit(result, 1);
-    }
-  } else {
-    // Case A — base checked out nowhere else (the overwhelmingly common single-worktree layout).
-    // Unchanged: `--old-value` makes this a compare-and-swap — it fails rather than clobbering a
-    // base that moved since baseShaBefore was read.
-    const upd = gitRun(cwd, ["update-ref", `refs/heads/${base}`, headShaNow, baseShaBefore]);
-    if (!upd.ok) {
-      result.verdict = "refuse";
-      result.blockers = [...blockers, `local base-branch update failed: ${upd.stderr || "git update-ref rejected the fast-forward"}`];
-      return emit(result, 1);
-    }
   }
   result.merged = true;
   result.verdict = "merge-ok";
@@ -1794,4 +1801,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

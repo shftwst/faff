@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-875",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a1c82cdda05c7a597d4f70c6b108358604dce862146580e0cfe0c63a54dc69e1",
+    "branch": "faff-875-git-only-l4-an-accepted-prdr-cant-land-on-main-no-forge-pr",
+    "pushed_at": "2026-08-19T08:47:19.987Z"
+  },
+  "updated_at": "2026-08-19T08:47:19.987Z"
+}

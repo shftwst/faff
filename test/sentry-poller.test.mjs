@@ -116,6 +116,45 @@ test("start: exit 3 with no run dir resolvable", () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// FAFF-887 — arm-time wrong-lane warning: when the operator arms the poller with
+// FAFF_RUN_HEARTBEAT_STALE_SECS set but sentry.stall_window_secs unset, cmdStart names
+// the correct lever pre-detach (cmdStart's stderr IS seen, unlike the poller's own
+// stdio:"ignore"). Asserted via an invalid --interval-secs so cmdStart returns before
+// spawning any real detached poller — the warning precedes the interval parse.
+test("FAFF-887: sentry-poller start warns pre-detach naming sentry.stall_window_secs in the wrong-lane condition", () => {
+  const { root, runDir } = rootWith({ run_id: "RUN-POLL", admitted: [], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(1) } });
+  try {
+    const r = run(["sentry-poller", "start", "--run-dir", runDir, "--root", root, "--interval-secs", "abc"], { env: { ...process.env, FAFF_RUN_HEARTBEAT_STALE_SECS: "7200" } });
+    assert.notEqual(r.code, 0, "invalid interval returns before spawning (no detached poller left running)");
+    assert.match(r.err, /sentry\.stall_window_secs/);
+    assert.match(r.err, /does not reach the poller/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-887: sentry-poller start does NOT warn when sentry.stall_window_secs is set", () => {
+  const { root, runDir } = rootWith({ run_id: "RUN-POLL", admitted: [], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(1) } });
+  try {
+    writeFileSync(join(root, ".faffrc.yaml"), "sentry:\n  stall_window_secs: 1200\n");
+    const r = run(["sentry-poller", "start", "--run-dir", runDir, "--root", root, "--interval-secs", "abc"], { env: { ...process.env, FAFF_RUN_HEARTBEAT_STALE_SECS: "7200" } });
+    assert.doesNotMatch(r.err, /does not reach the poller/, "config lever set — no wrong-lane warning");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// FAFF-887 — the arm-time wrong-lane warn wraps its config read in try/catch so a
+// config-load fault never blocks arming (the poller must run even when config is
+// degraded). A top-level sequence makes readGovernanceConfig throw base-parse-error
+// (same fixture as the FAFF-717 fail-safe test). With the guard, the fault is swallowed
+// and arming proceeds to the interval parse (clean exit 2 on the invalid interval);
+// without it, the uncaught throw would crash start (exit 1) before the interval check.
+test("FAFF-887: a malformed .faffrc at arm time does not block arming (config-fault-tolerant warn)", () => {
+  const { root, runDir } = rootWith({ run_id: "RUN-POLL", admitted: [], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(1) } });
+  try {
+    writeFileSync(join(root, ".faffrc.yaml"), "- not\n- a\n- map\n");
+    const r = run(["sentry-poller", "start", "--run-dir", runDir, "--root", root, "--interval-secs", "abc"], { env: { ...process.env, FAFF_RUN_HEARTBEAT_STALE_SECS: "7200" } });
+    assert.equal(r.code, 2, "reached the interval-parse (config fault swallowed) — arming not blocked, not an exit-1 crash");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("start: exit 2 on an invalid --interval-secs", () => {
   const { root, runDir } = rootWith({ run_id: "RUN-POLL", admitted: [], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(1) } });
   try {

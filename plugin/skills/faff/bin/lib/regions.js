@@ -61,6 +61,12 @@ const REGION_MAP = {
   // governance family (a pure gate core behind a thin I/O shell), no
   // factory-identifier references.
   "sentrycheck": "governance",
+  // inflightcheck — FAFF-884: the mechanical turn-end floor over the orchestrator's
+  // Agent-dispatch arm, a Stop-hook sibling of runcheck/prepcheck/sentrycheck. Reuses
+  // runcheck's runIsHeld + reads the run ledger for foreign-marker liveness — a pure
+  // gate core behind a thin I/O shell, no factory-identifier references (same governance
+  // family as sentrycheck; imports only governance/shared modules).
+  "inflightcheck": "governance",
   "audit": "governance",
   // reconcile — FAFF-397: the run-end GROUND-TRUTH gate, part of the same flight-recorder
   // family as runcheck (completeness) / effects (declared-vs-observed) / audit (forensics) —
@@ -310,6 +316,7 @@ const REGION_SELFTEST_ARGV = {
   "sentry": ["sentry", "--selftest"],
   "sentry-poller": ["sentry-poller", "--selftest"],
   "sentrycheck": ["sentrycheck", "--selftest"],
+  "inflightcheck": ["inflightcheck", "--selftest"],
   "audit": ["audit", "--selftest"],
   "reconcile": ["reconcile", "--selftest"],
   "profiles": ["profiles", "--selftest"],

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-869",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6001f8148916293f7e89b21395bbb6627face70781eb87227db719f394fd2aaa",
+    "branch": "faff-869-transport-dind-branch-prefer-the-shared-user-defined-network",
+    "pushed_at": "2026-08-19T03:18:34.150Z"
+  },
+  "updated_at": "2026-08-19T03:18:34.150Z"
+}

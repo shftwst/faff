@@ -136,6 +136,7 @@ models:
 #     host: http://studio.example.ts.net:11434   # ollama: base host; openai-compatible: base URL incl. /v1
 #     api_key_env:              # env var NAME holding the API key; optional (LAN ollama needs none)
 #     reasoning_off: false      # true → disable reasoning-model think blocks (ollama think:false / openai chat_template_kwargs)
+#     reasoning_effort:         # optional low|medium|high|xhigh|max — OpenAI-compat only; emits wire reasoning_effort (xhigh/max clamp to high); reasoning_off wins when both set
 #     timeout: 120              # seconds — bounds the ONE completion attempt (default 120)
 
 # Max concurrent builds for faffter-dark-concurrency-parallel. Ignored by the
@@ -327,14 +328,16 @@ prdr:
 #       refs: [nvidia-glm, studio-ollama] # diff-altitude challenge — its own chain
 #     # prdr_review: { refs: [...] }      # any consumer name; unset => shared chain, byte-identical
 #   # NB a consumer name must NOT reuse a reserved adversarial field name (refs / backends /
-#   #    fallbacks / host / provider / model / api_key_env / reasoning_off / timeout / deadline /
-#   #    requires) — those are the shared block's own fields, not a per-consumer sub-block.
+#   #    fallbacks / host / provider / model / api_key_env / reasoning_off / reasoning_effort /
+#   #    timeout / deadline / requires) — those are the shared block's own fields, not a
+#   #    per-consumer sub-block.
 adversarial:
   provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic
   model: llama3.1:70b # provider-specific model identifier
   host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
   api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
   reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
+  reasoning_effort: # optional low|medium|high|xhigh|max — OpenAI-compat wire reasoning_effort (xhigh/max clamp to high); reasoning_off wins when both set; unset omits the field entirely
   timeout: 120 # seconds — bounds ONE stream attempt
   deadline: 480 # FAFF-329: TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends, so the
                 # slow Phase-2 fits one subagent turn (default 480, under the 900s staleness window). Deadline-
@@ -344,8 +347,9 @@ adversarial:
   # adds further backends, each tried in order when the one before fails to produce findings
   # (rate-limit / unreachable / persistent transport failure / auth / not-served). First findings win;
   # the gate keeps firing through one provider's outage instead of silently pass+skipping.
-  # Each entry needs its own provider/model/host; omitted api_key_env/reasoning_off/timeout inherit
-  # the primary's. Omit `fallbacks` entirely for single-backend behaviour (unchanged).
+  # Each entry needs its own provider/model/host; omitted api_key_env/reasoning_off/
+  # reasoning_effort/timeout inherit the primary's. Omit `fallbacks` entirely for
+  # single-backend behaviour (unchanged).
   #
   # Two equivalent forms (FAFF-262 added the native list; the JSON-string still works for back-compat):
   #

@@ -32,7 +32,7 @@ const { resolveBackendRefs } = require("./backends");
 // Without them a seat backend referenced via `refs:` (FAFF-523) arrives stripped of its
 // seat identity and falls back to the absent api_key_env path. Absent on every metered
 // backend, so those emit byte-identically (present() gates the copy).
-const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "timeout"];
+const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "timeout"];
 
 function present(v) { return v !== null && v !== undefined && v !== ""; }
 
@@ -63,7 +63,7 @@ function pickBackendKeys(obj) {
 // to inherit there). An explicit value on the fallback is never overwritten.
 function inheritOptionalFromPrimary(fallback, primary) {
   const out = pickBackendKeys(fallback);
-  for (const k of ["api_key_env", "reasoning_off", "timeout"]) {
+  for (const k of ["api_key_env", "reasoning_off", "reasoning_effort", "timeout"]) {
     if (!(k in out) && present(primary[k])) out[k] = primary[k];
   }
   return out;
@@ -321,6 +321,34 @@ function adversarialBackendsSelftest() {
     ok("legacy metered: no auth key leaked", !("auth" in res.chain[0]));
     ok("legacy metered: no seat_token_env key leaked", !("seat_token_env" in res.chain[0]));
     ok("legacy metered: api_key_env still carried", res.chain[0].api_key_env === "K");
+  }
+
+  // FAFF-873: reasoning_effort round-trips through the emit allowlist and
+  // inherits onto a legacy fallback that omits it, exactly like reasoning_off.
+  {
+    const cfg = { adversarial: {
+      provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K", reasoning_effort: "xhigh",
+      fallbacks: JSON.stringify([{ provider: "ollama", model: "m2", host: "http://b:11434" }]),
+    }  };
+    const res = assembleAdversarialBackends(cfg);
+    ok("reasoning_effort: emitted on the primary when set", res.chain[0].reasoning_effort === "xhigh");
+    ok("reasoning_effort: inherited onto a fallback that omits it", res.chain[1].reasoning_effort === "xhigh");
+  }
+  {
+    const cfg = { adversarial: {
+      provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K",
+    }  };
+    const res = assembleAdversarialBackends(cfg);
+    ok("reasoning_effort: unset -> omitted from the emitted chain (byte-identical)", !("reasoning_effort" in res.chain[0]));
+  }
+  {
+    // refs: path — reasoning_effort round-trips through the shared backends: namespace too.
+    const cfg = {
+      backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA", reasoning_effort: "high" } },
+      adversarial: { refs: ["A"] },
+    };
+    const res = assembleAdversarialBackends(cfg);
+    ok("reasoning_effort: carried through the refs: path", res.chain[0].reasoning_effort === "high");
   }
 
   // FAFF-870: per-consumer chain selection. A named consumer's own `refs:` list

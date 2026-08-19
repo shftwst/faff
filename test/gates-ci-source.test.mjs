@@ -15,7 +15,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
-const { discoverRungs, discoverCiWorkflows, ciRunnerKind, extractRunCommands, GATE_COST, CI_COST_PENALTY } =
+const { discoverRungs, discoverCiWorkflows, ciRunnerKind, extractRunCommands, GATE_COST, CI_COST_PENALTY, discoverRungsReporting } =
   require("../plugin/skills/faff/bin/lib/gates.js");
 
 test("gates --selftest passes (the CI-source unit table)", () => {
@@ -51,4 +51,32 @@ test("extractRunCommands handles block-scalar bodies and does not swallow the ne
   const cmds = extractRunCommands("      - name: t\n        run: |\n          echo setup\n\n          node --test\n      - name: n\n        run: echo done\n");
   assert.ok(cmds.includes("node --test"));
   assert.ok(cmds.includes("echo done"));
+});
+
+// FAFF-848 (639a) — real-repo acceptance for the REPORTING path. `faff gates discover` must see
+// what `.github/workflows/validate.yml` actually enforces (the FAFF-604 class of surprise: `faff
+// regions check` runs in CI but was invisible to discovery); `faff gates run` must stay untouched.
+test("discovery reports a STATIC_ANALYSIS `regions check` rung and discovery:partial on faff's own repo, while `faff gates run` executes its today-identical rung set", () => {
+  const reporting = discoverRungsReporting(repoRoot);
+  assert.ok(
+    reporting.rungs.some((r) => r.kind === "STATIC_ANALYSIS" && r.command === "node plugin/skills/faff/bin/faff regions check"),
+    "the reporting resolver recognises faff's own `regions check` invariant lint",
+  );
+  assert.ok(
+    reporting.rungs.some((r) => r.kind === "STATIC_ANALYSIS" && r.command.includes("regions selftest")),
+    "regions selftest is recognised report-only (human-ratified 2026-08-19)",
+  );
+  // Three distinct faff LINT lints stay distinct (not collapsed to one, per the FAFF-604 harm).
+  const lintCommands = new Set(reporting.rungs.filter((r) => r.kind === "LINT").map((r) => r.command));
+  assert.ok(lintCommands.size >= 3, `expected >=3 distinct LINT commands, got ${lintCommands.size}`);
+  assert.equal(reporting.discovery, "partial", "faff's own workflow covers well under half its eligible steps");
+  assert.ok(reporting.coverage.ratio < 0.5, "coverage ratio must back the partial classification");
+  assert.ok(reporting.coverage.eligible_steps > reporting.coverage.recognised_steps, "the report is honest about what it does not see");
+
+  // `faff gates run` (the EXECUTION resolver, untouched) sees NEITHER `regions check` nor the wider
+  // LINT set — today's exact 2-rung (LINT + UNIT) kind-deduped selection, unchanged by this ticket.
+  const execution = discoverRungs(repoRoot);
+  assert.equal(execution.discovery, "confident");
+  assert.ok(execution.rungs.every((r) => r.kind !== "STATIC_ANALYSIS"), "execution never gains a STATIC_ANALYSIS rung from this reporting change");
+  assert.equal(execution.rungs.filter((r) => r.kind === "LINT").length, 1, "execution still collapses LINT to exactly one rung (today's behaviour)");
 });

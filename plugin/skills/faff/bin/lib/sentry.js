@@ -306,6 +306,25 @@ function sentryThresholds(cfg, profile = activeProfile()) {
   };
 }
 
+// FAFF-887: the "wrong-lane" predicate. faff resolves the heartbeat-staleness window in
+// two lanes: the runcheck lane (runcheck/sentrycheck Stop hooks) honours the env override
+// FAFF_RUN_HEARTBEAT_STALE_SECS, while the poller lane (this file + the detached
+// sentry-poller) reads sentry.stall_window_secs from config (sentryThresholds above, no
+// process.env). Both default to 900, so the split is invisible until an operator forwards
+// the env var into the cage to widen the POLLER window — a silent no-op, since the poller
+// never reads it. This is true exactly when the env var is set and the config lever is
+// unset — the case every warn locus names. The poller stays config-native; the fix is a
+// warning, not a new input (never wire this env var into sentryThresholds).
+// configSet is presence-not-validity: an invalid-but-present value (0/-5, which
+// sentryThresholds coerces back to the default) still means the operator is using the
+// config lever, so it is not the silent no-op this warns about (a documented narrow seam).
+function stallWindowEnvIgnored(env, cfg) {
+  const raw = env == null ? undefined : env.FAFF_RUN_HEARTBEAT_STALE_SECS;
+  const envSet = raw != null && String(raw).trim() !== "";
+  const configSet = dig(cfg, "sentry.stall_window_secs") != null;
+  return envSet && !configSet;
+}
+
 // Coerce a raw signal bundle onto the CLOSED orchestrator-surface input set. This is
 // the structural heart of the un-subvertable property (AC5): only these keys are ever
 // read, so any foreign key a supervised subagent might inject is dropped here and never
@@ -1216,9 +1235,14 @@ function cmdSentry(args) {
       }
     }
     const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile);
+    // FAFF-887: the wrong-lane flag rides every payload (false in the healthy case),
+    // mirroring config_malformed, so the poller writes it verbatim into the
+    // sentry-checkpoint event in events.jsonl — the one channel that survives the
+    // detached poller's stdio:"ignore" and reaches the operator after a false abort.
+    const stallWindowEnvIgnoredFlag = stallWindowEnvIgnored(process.env, cfg);
     // FAFF-577: config_malformed rides every payload (false in the healthy case) so
     // a degraded-thresholds check is machine-visible, not inferred from stderr.
-    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust, reconcile_check: reconcileCheck, config_malformed: configMalformed };
+    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust, reconcile_check: reconcileCheck, config_malformed: configMalformed, stall_window_env_ignored: stallWindowEnvIgnoredFlag };
     // FAFF-608: verb-owned markdown summary — a pure side-artifact that must NEVER
     // perturb the exit contract. Composes with --json (runs independently of it,
     // mirroring governance-check); best-effort write, wrapped in try/catch, warns
@@ -1230,6 +1254,10 @@ function cmdSentry(args) {
     }
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (configMalformed) console.log("sentry: WARNING — base config malformed; thresholds are built-in defaults (config_malformed)");
+    // FAFF-887: name the wrong lane loudly on the human path (the operator running
+    // `faff sentry check` by hand) — the poller's own console is stdio:"ignore", so
+    // it relies on the payload field instead.
+    if (stallWindowEnvIgnoredFlag) console.log("sentry: WARNING — FAFF_RUN_HEARTBEAT_STALE_SECS is set but the detached poller / `sentry check` staleness window is `sentry.stall_window_secs` (unset → default 900s). The env var does not reach the poller; set `sentry.stall_window_secs` in .faffrc to widen the poller window. (stall_window_env_ignored)");
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
     else {
       console.log(`sentry: ${result.verdicts.length} verdict(s) — intervention: ${result.intervention}${result.tripped ? " (TRIP)" : ""}`);
@@ -1913,4 +1941,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds, stallWindowEnvIgnored };

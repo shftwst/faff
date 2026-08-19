@@ -36,6 +36,19 @@ function run(cwd, args, input) {
 function git(cwd, args) { return execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" }).trim(); }
 function tmp() { return mkdtempSync(join(tmpdir(), "faff49-")); }
 
+// FAFF-887: like run() but injects extra env vars into the child — the wrong-lane
+// tests must set FAFF_RUN_HEARTBEAT_STALE_SECS in the `sentry check` child process
+// specifically (not the test runner), the same real-child-env seam the runcheck
+// selftest already relies on.
+function runEnv(cwd, args, extraEnv) {
+  try {
+    const out = execFileSync("node", [CLI, ...args], { cwd, encoding: "utf8", input: "", env: { ...process.env, ...extraEnv } });
+    return { code: 0, out: out.trim(), err: "" };
+  } catch (e) {
+    return { code: e.status ?? 1, out: (e.stdout ?? "").toString().trim(), err: (e.stderr ?? "").toString().trim() };
+  }
+}
+
 // Provision a run dir with a ledger + optional events under <dir>/.faff/runs/<id>.
 function mkRun(dir, id, ledger, eventLines) {
   const rd = join(dir, ".faff", "runs", id);
@@ -190,6 +203,74 @@ test("AC3: the stall window is a config value (sentry.stall_window_secs tightens
     const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
     assert.equal(out.thresholds.stall_window_secs, 5, "config value resolved");
     assert.ok(out.verdicts.some((v) => v.signal === "wall-clock-runaway"), "10s-old heartbeat trips a 5s window");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// FAFF-887 — the poller lane's staleness window is config-native (sentry.stall_window_secs);
+// FAFF_RUN_HEARTBEAT_STALE_SECS is the RUNCHECK lane's knob and never reaches the poller.
+// Forwarding it with the config lever unset is a silent no-op — made loud by the
+// `stall_window_env_ignored` payload flag + a warning naming the correct key.
+
+test("FAFF-887: env FAFF_RUN_HEARTBEAT_STALE_SECS with sentry.stall_window_secs unset flags stall_window_env_ignored and does NOT change the window (regression pin)", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, ".faffrc.yaml"), "tracking:\n  spec_docs_path: docs/specs/\n"); // no sentry.stall_window_secs
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const out = JSON.parse(runEnv(dir, ["sentry", "check", "--run-dir", rd, "--json"], { FAFF_RUN_HEARTBEAT_STALE_SECS: "7200" }).out);
+    assert.equal(out.stall_window_env_ignored, true, "wrong-lane flag set when env set + config unset");
+    // The pin: the env value is NOT honoured by the poller lane — the window stays the default.
+    assert.equal(out.thresholds.stall_window_secs, 900, "FAFF_RUN_HEARTBEAT_STALE_SECS does not change the poller window");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-887: with sentry.stall_window_secs set, the env var is not a wrong-lane no-op — flag false, config wins", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, ".faffrc.yaml"), "sentry:\n  stall_window_secs: 1200\n");
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const out = JSON.parse(runEnv(dir, ["sentry", "check", "--run-dir", rd, "--json"], { FAFF_RUN_HEARTBEAT_STALE_SECS: "7200" }).out);
+    assert.equal(out.stall_window_env_ignored, false, "config lever is set — not a silent no-op");
+    assert.equal(out.thresholds.stall_window_secs, 1200, "config value is authoritative for the poller");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-887: stall_window_env_ignored is present (false) on every payload when the env var is unset", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, ".faffrc.yaml"), "tracking:\n  spec_docs_path: docs/specs/\n");
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.stall_window_env_ignored, false, "always present, false in the healthy case (mirrors config_malformed)");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-887: the human path (no --json) warns and names sentry.stall_window_secs in the wrong-lane condition", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, ".faffrc.yaml"), "tracking:\n  spec_docs_path: docs/specs/\n");
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const out = runEnv(dir, ["sentry", "check", "--run-dir", rd], { FAFF_RUN_HEARTBEAT_STALE_SECS: "7200" }).out;
+    assert.ok(/sentry\.stall_window_secs/.test(out), "names the correct config key");
+    assert.ok(/does not reach the poller/.test(out), "states the env var does not reach the poller");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-887: an empty/whitespace FAFF_RUN_HEARTBEAT_STALE_SECS is treated as unset — no flag, no warning (the .trim() guard)", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, ".faffrc.yaml"), "tracking:\n  spec_docs_path: docs/specs/\n"); // config lever unset
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    for (const val of ["", "   "]) {
+      const j = JSON.parse(runEnv(dir, ["sentry", "check", "--run-dir", rd, "--json"], { FAFF_RUN_HEARTBEAT_STALE_SECS: val }).out);
+      assert.equal(j.stall_window_env_ignored, false, `empty/whitespace env (${JSON.stringify(val)}) is not a pulled lever`);
+      const human = runEnv(dir, ["sentry", "check", "--run-dir", rd], { FAFF_RUN_HEARTBEAT_STALE_SECS: val }).out;
+      assert.doesNotMatch(human, /does not reach the poller/, "no wrong-lane warning for an empty/whitespace env var");
+    }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -692,3 +692,169 @@ test("buildBundle (run-close): a '..'-traversal-crafted rel-path entry under the
     assert.throws(() => buildBundle(runDir, identity, root), /unsafe anchor entry: \.\./, "readAnchorDir throws, naming the unsafe '..' entry");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// ---------------------------------------------------------------------------
+// recoveryClaimStore (FAFF-863) — the write-once recovery-claim ref gating the `lights-out
+// --resume` continuation boundary against a cross-box double-continue. Module-seam repeat of the
+// `bundle --selftest` in-process table above (ADR 0002: assert at the CLI/module seam too, never
+// narrative text alone) against a real scratch bare remote with two independent work roots
+// standing in for two racing executors.
+// ---------------------------------------------------------------------------
+const { recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, gitReadClaimManifest } = require("../plugin/skills/faff/bin/lib/bundle.js");
+
+function setupClaimFixture(label) {
+  const { spawnSync } = require("node:child_process");
+  const dir = mkdtempSync(path.join(tmpdir(), `faff-recovery-claim-${label}-`));
+  const bareRemote = path.join(dir, "remote.git");
+  const rootA = path.join(dir, "executor-a");
+  const rootB = path.join(dir, "executor-b");
+  mkdirSync(rootA, { recursive: true });
+  mkdirSync(rootB, { recursive: true });
+  const initBare = spawnSync("git", ["init", "--bare", "-q", bareRemote]);
+  assert.equal(initBare.status, 0, "git init --bare must succeed for the recoveryClaimStore fixture");
+  for (const r of [rootA, rootB]) {
+    spawnSync("git", ["-C", r, "init", "-q"]);
+    spawnSync("git", ["-C", r, "config", "user.email", "faff-test@example.com"]);
+    spawnSync("git", ["-C", r, "config", "user.name", "faff-test"]);
+    spawnSync("git", ["-C", r, "remote", "add", "origin", bareRemote]);
+  }
+  return {
+    dir, rootA, rootB,
+    storeA: recoveryClaimStore(rootA, "origin"),
+    storeB: recoveryClaimStore(rootB, "origin"),
+    cleanup: () => rmSync(dir, { recursive: true, force: true }),
+  };
+}
+
+const freshClaimOwner = (sid) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date().toISOString() });
+const staleClaimOwner = (sid) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date(Date.now() - 2000000).toISOString(), last_heartbeat: new Date(Date.now() - 2000000).toISOString() });
+
+test("recoveryClaimRefName: refs/faff/recovery-claims/<run_id>/seg-<run_segment_id> — mirrors the bundleRefName shape", () => {
+  assert.equal(recoveryClaimRefName({ run_id: "run-x", run_segment_id: 3 }), "refs/faff/recovery-claims/run-x/seg-3");
+});
+
+test("recoveryClaimStore: two executors racing to acquire the SAME identity — exactly one wins, the loser's refusal names the winning holder (DoD: race -> exactly one continues)", () => {
+  const { storeA, storeB, cleanup } = setupClaimFixture("race");
+  try {
+    const identity = { run_id: "run-claim-race", run_segment_id: 1 };
+    const a = storeA.acquire(identity, freshClaimOwner("session-a"));
+    const b = storeB.acquire(identity, freshClaimOwner("session-b"));
+    const winners = [a, b].filter((r) => r.acquired === true);
+    const losers = [a, b].filter((r) => r.acquired === false);
+    assert.equal(winners.length, 1, `exactly one racer acquires (got ${JSON.stringify([a.acquired, b.acquired])})`);
+    assert.equal(losers.length, 1);
+    assert.equal(losers[0].reason, "exists");
+    assert.ok(losers[0].holder && losers[0].holder.owner.session_id, "the loser's refusal names the winning holder's session");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: a live (fresh) claim refuses reclaim, naming the holder (DoD: live-claim-blocks)", () => {
+  const { storeA, storeB, cleanup } = setupClaimFixture("live-block");
+  try {
+    const identity = { run_id: "run-claim-live", run_segment_id: 1 };
+    storeA.acquire(identity, freshClaimOwner("session-a"));
+    const reclaim = storeB.reclaimIfStale(identity, freshClaimOwner("session-b"), process.env);
+    assert.equal(reclaim.reclaimed, false);
+    assert.equal(reclaim.reason, "held");
+    assert.equal(reclaim.holder.owner.session_id, "session-a");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: a claim whose frozen heartbeat predates heartbeatStaleSecs IS reclaimable, so recovery is never permanently blocked (DoD: stale-reclaim)", () => {
+  const { storeA, storeB, cleanup } = setupClaimFixture("stale-reclaim");
+  try {
+    const identity = { run_id: "run-claim-stale", run_segment_id: 1 };
+    storeA.acquire(identity, staleClaimOwner("dead-session"));
+    const reclaim = storeB.reclaimIfStale(identity, freshClaimOwner("session-b"), process.env);
+    assert.equal(reclaim.reclaimed, true, `a stale claim must be reclaimable (got ${JSON.stringify(reclaim)})`);
+    const holder = storeA.readHolder(identity);
+    assert.equal(holder.claim.owner.session_id, "session-b", "the reclaimed ref now carries the reclaimer's owner snapshot");
+    assert.equal(holder.claim.claim_epoch, 1, "reclaim increments claim_epoch for provenance");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: two reclaimers of the SAME stale claim, both racing the identical lease-matched CAS — exactly one wins, never a double reclaim (DoD: no double reclaim)", () => {
+  const { storeA, rootA, rootB, cleanup } = setupClaimFixture("lease-race");
+  try {
+    const identity = { run_id: "run-claim-lease-race", run_segment_id: 1 };
+    storeA.acquire(identity, staleClaimOwner("dead-session"));
+    const ref = recoveryClaimRefName(identity);
+    // Both reclaimers read the SAME stale head sha (a genuine pre-read, before either writes) —
+    // reclaimIfStale's own read-then-write would have the second call observe the first's
+    // already-landed fresh claim (reason "held"), so the race is exercised directly at the
+    // lease-matched push primitive instead, mirroring what reclaimIfStale does internally.
+    const preRead = gitReadClaimManifest(rootA, "origin", ref);
+    assert.equal(preRead.status, "ok");
+    const claimX = { run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner: freshClaimOwner("reclaimer-x"), claim_epoch: 1, claimed_at: new Date().toISOString() };
+    const claimY = { run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner: freshClaimOwner("reclaimer-y"), claim_epoch: 1, claimed_at: new Date().toISOString() };
+    const pushX = pushClaimCommit(rootA, "origin", ref, claimX, (sha) => [`--force-with-lease=${ref}:${preRead.sha}`, `${sha}:${ref}`]);
+    const pushY = pushClaimCommit(rootB, "origin", ref, claimY, (sha) => [`--force-with-lease=${ref}:${preRead.sha}`, `${sha}:${ref}`]);
+    assert.notEqual(pushX.push.status === 0, pushY.push.status === 0, `exactly one lease-matched CAS against the same stale sha succeeds (got X=${pushX.push.status}, Y=${pushY.push.status})`);
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: head-confirm defeats a mistimed reclaim — a still-live claimant's pre-write confirm fails once superseded, so exactly one of the two racers ever wins (DoD: head-confirm-defeats-mistimed-reclaim)", () => {
+  const { storeA, storeB, cleanup } = setupClaimFixture("head-confirm");
+  try {
+    const identity = { run_id: "run-claim-headconfirm", run_segment_id: 1 };
+    // A's claim is genuinely LIVE under the default 900s window (heartbeat baked 2s in the past)
+    // but B judges staleness through an injected 1s window, under which that same claim reads stale.
+    const recentOwner = (sid) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date(Date.now() - 2000).toISOString(), last_heartbeat: new Date(Date.now() - 2000).toISOString() });
+    const a = storeA.acquire(identity, recentOwner("session-a"));
+    assert.equal(a.acquired, true);
+    const wrongEnv = { ...process.env, FAFF_RUN_HEARTBEAT_STALE_SECS: "1" };
+    const b = storeB.reclaimIfStale(identity, freshClaimOwner("session-b"), wrongEnv);
+    assert.equal(b.reclaimed, true, "B's mistimed reclaim (injected 1s window) lands at the git level");
+    const confirmA = storeA.confirmHead(identity, a.sha);
+    assert.equal(confirmA.confirmed, false, "A's head-confirm against its own now-superseded sha fails");
+    assert.equal(confirmA.reason, "superseded");
+    const confirmB = storeB.confirmHead(identity, b.sha);
+    assert.equal(confirmB.confirmed, true, "B's head-confirm against its own (winning) sha succeeds");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: a refused reclaim never moves a live claim's ref head (DoD: no force-overwrite of a live claim)", () => {
+  const { storeA, storeB, cleanup } = setupClaimFixture("no-overwrite");
+  try {
+    const identity = { run_id: "run-claim-no-overwrite", run_segment_id: 1 };
+    const a = storeA.acquire(identity, freshClaimOwner("session-a"));
+    const attacker = storeB.reclaimIfStale(identity, freshClaimOwner("attacker"), process.env);
+    assert.equal(attacker.reclaimed, false);
+    const holder = storeA.readHolder(identity);
+    assert.equal(holder.sha, a.sha, "the ref head is byte-identical to the original claim — never force-overwritten");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: a same-session re-acquire (e.g. a retry after a transient owner-write failure) is an idempotent no-op, never a self-refusal", () => {
+  const { storeA, cleanup } = setupClaimFixture("self-reacquire");
+  try {
+    const identity = { run_id: "run-claim-self-reacquire", run_segment_id: 1 };
+    const first = storeA.acquire(identity, freshClaimOwner("session-same"));
+    assert.equal(first.acquired, true);
+    // The SAME session retries immediately (well within the default 900s staleness window) —
+    // must succeed idempotently, never read its own fresh claim as a contested "exists".
+    const retry = storeA.acquire(identity, freshClaimOwner("session-same"));
+    assert.equal(retry.acquired, true, `a same-session immediate retry must self-recognise, not refuse (got ${JSON.stringify(retry)})`);
+    assert.equal(retry.idempotent, true);
+    assert.equal(retry.sha, first.sha, "the idempotent re-acquire returns the ORIGINAL claim sha, never a new push");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: a DIFFERENT session still refuses outright — self-recognition never widens to any live claim", () => {
+  const { storeA, storeB, cleanup } = setupClaimFixture("self-reacquire-negative");
+  try {
+    const identity = { run_id: "run-claim-self-reacquire-neg", run_segment_id: 1 };
+    storeA.acquire(identity, freshClaimOwner("session-a"));
+    const other = storeB.acquire(identity, freshClaimOwner("session-b"));
+    assert.equal(other.acquired, false);
+    assert.equal(other.reason, "exists");
+  } finally { cleanup(); }
+});
+
+test("recoveryClaimStore: local bundle store — resolveBundleStoreName defaults to 'local' with no config, so the lights-out.js call site never constructs a claim store (DoD: local-store no-op)", () => {
+  const { resolveBundleStoreName: resolveName } = require("../plugin/skills/faff/bin/lib/bundle.js");
+  const dir = mkdtempSync(path.join(tmpdir(), "faff-recovery-claim-localnoop-"));
+  try {
+    assert.equal(resolveName(dir), "local", "no bundle_store config -> 'local', the guard lights-out.js keys `claims = null` off");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

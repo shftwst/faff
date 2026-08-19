@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-882",
+  "build": {
+    "status": "complete",
+    "diff_hash": "953998c1a98f1dede6cffa059387ad6702f70e3aaa66aad0237590006f4ca920",
+    "branch": "faff-882-review-calls-are-handed-the-262-kb-faff-gateway-as-context",
+    "pushed_at": "2026-08-19T23:20:38.168Z"
+  },
+  "updated_at": "2026-08-19T23:20:38.168Z"
+}

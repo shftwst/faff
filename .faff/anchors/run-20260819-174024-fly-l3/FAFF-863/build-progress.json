@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-863",
+  "build": {
+    "status": "complete",
+    "diff_hash": "61871a7930b4d0d2aa9f5d5f547b290d3216ca298d86f9daf1f843ba10e0fb38",
+    "branch": "faff-863-write-once-recovery-claim-ref-on-the-git-remote-store-gate",
+    "pushed_at": "2026-08-19T18:52:06.320Z"
+  },
+  "updated_at": "2026-08-19T18:52:06.320Z"
+}

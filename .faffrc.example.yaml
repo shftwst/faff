@@ -245,7 +245,13 @@ budget:
 sentry:
   thrash_n: 3                       # fix↔review thrash: >=N build-starts on one issue with no ship → trip
   failure_k: 3                      # repeated-identical-failure: same failure fingerprint >=K times → trip
-  stall_window_secs: 900            # heartbeat staleness / no-progress window (seconds)
+  stall_window_secs: 900            # heartbeat staleness / no-progress window (seconds).
+                                    # This is the ONLY lever for the detached sentry-poller
+                                    # and `faff sentry check`. The env var
+                                    # FAFF_RUN_HEARTBEAT_STALE_SECS is the runcheck/sentrycheck
+                                    # Stop-hook knob and does NOT reach the poller — forwarding
+                                    # it into the cage to widen the poller window is a no-op
+                                    # (faff warns when you do). Set this key to widen it. (FAFF-887)
   run_elapsed_ceiling_secs: 14400   # absolute wall-clock run-elapsed ceiling (seconds; default 4h)
 
 # Andon light — push alerting for run-critical events (FAFF-386). A cursor-based pump

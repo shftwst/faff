@@ -150,6 +150,16 @@ test("$FAFF_RUN_DIR resolution when no --run-dir is passed", () => {
   } finally { f.cleanup(); }
 });
 
+test("FAFF-858: neither --run-dir nor $FAFF_RUN_DIR supplied -> exit 3, never guesses the newest ledger", () => {
+  // Regression: the old `latestRunDir(root)` fallback silently resolved SOME run dir
+  // under .faff/runs even with neither --run-dir nor $FAFF_RUN_DIR supplied — unsafe
+  // once the L4 drain reuses its inherited ledger end to end (several unclosed
+  // `*-lights-out` ledgers can legitimately coexist; "newest" is not a safe guess).
+  const { code, err } = run(["disposition"]);
+  assert.equal(code, 3);
+  assert.match(err, /no run dir \/ no run-ledger\.json/);
+});
+
 test("default (non-JSON) output is skimmable and ends with the disposition line", () => {
   const f = fixture({ ledger: { run_id: "run-t", admitted: ["A"], outcomes: { A: "parked" } } });
   try {

@@ -17,7 +17,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { auditLedger } = require("./runcheck");
 const { extractParksBlock } = require("./park-history");
-const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
+const { readLedger } = require("./shared-infra");
 const { classifyCustodyVerdictBytes } = require("./contract-defs");
 
 // The per-issue terminal outcomes that mean a human must act — one issue-outcome
@@ -282,22 +282,24 @@ function renderDisposition(report) {
 }
 
 const { parseArgs, usageError } = require("./argv");
-const DISPOSITION_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } } };
+const DISPOSITION_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--run-dir": { arity: 1 } } };
 
 function cmdDisposition(args) {
   if (args.includes("--selftest")) return dispositionSelftest();
   const { values, errors } = parseArgs(args, DISPOSITION_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff disposition [--run-dir DIR] [--root DIR] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff disposition [--run-dir DIR] [--json]");
   const get = (f) => (values[f] === undefined ? null : values[f]);
   const asJson = !!values["--json"];
-  const root = get("--root") || findRoot();
 
-  // Run-dir resolution: explicit --run-dir → $FAFF_RUN_DIR → latest under .faff/runs.
-  // An EXPLICIT --run-dir is honoured as-is (never silently redirected to `latest` when
-  // its ledger is missing — a wrapper naming a dir with no ledger must see exit 3, not a
-  // verdict about a different run).
+  // Run-dir resolution: explicit --run-dir → $FAFF_RUN_DIR → none. FAFF-858: the
+  // newest-ledger guess is removed outright — with the L4 drain now reusing its
+  // inherited FAFF_RUN_DIR end to end (no second mint), "read the newest" is not a
+  // safe operator fallback (several unclosed `*-lights-out` ledgers can legitimately
+  // coexist). An EXPLICIT --run-dir is still honoured as-is (never silently redirected
+  // when its ledger is missing — a wrapper naming a dir with no ledger must see exit 3,
+  // not a verdict about a different run); with neither supplied, fail explicitly.
   const explicit = get("--run-dir");
-  const runDir = explicit || process.env.FAFF_RUN_DIR || latestRunDir(root);
+  const runDir = explicit || process.env.FAFF_RUN_DIR || null;
   if (!runDir || !fs.existsSync(path.join(runDir, "run-ledger.json"))) {
     process.stderr.write("faff disposition: no run dir / no run-ledger.json (pass --run-dir DIR)\n");
     return 3;

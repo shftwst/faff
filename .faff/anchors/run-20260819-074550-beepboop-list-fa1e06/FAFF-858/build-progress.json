@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-858",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9ad8f1e73f8a3ae26573d40a4ee53776b09aed2a3879d785b8efdb7881c5dda3",
+    "branch": "faff-858-l4-plan-branch-mints-a-fresh-ledger-instead-of-adopting-the",
+    "pushed_at": "2026-08-19T08:35:30.179Z"
+  },
+  "updated_at": "2026-08-19T08:35:30.179Z"
+}

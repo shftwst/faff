@@ -88,6 +88,7 @@ const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
 const { cmdRunDone } = require("./lib/run-done");
 const { cmdRunLedger } = require("./lib/run-ledger");
 const { cmdRunOutward } = require("./lib/run-outward");
+const { cmdRunRecordPrd } = require("./lib/run-record-prd");
 const { cmdRunStart } = require("./lib/run-start");
 const { cmdRuncheck } = require("./lib/runcheck");
 const { cmdSelfIntake } = require("./lib/self-intake");
@@ -135,6 +136,7 @@ const COMMANDS = {
   "run-done": cmdRunDone,
   "run-ledger": cmdRunLedger,
   "run-outward": cmdRunOutward,
+  "run-record-prd": cmdRunRecordPrd,
   "run-start": cmdRunStart,
   "hooks-ensure": cmdHooksEnsure,
   "merge-fence": cmdMergeFence,

@@ -157,6 +157,171 @@ function ciRunnerKind(command) {
   return null;
 }
 
+// ===========================================================================
+// FAFF-848 (639a) — the REPORTING path. `faff gates discover` only; `faff gates run` (runLadder,
+// discoverRungs, ciRunnerKind, CI_RUNNERS above) is NEVER touched by anything below this line.
+// Recognises faff's own invariant lints (regions check/selftest, adr validate, prdr validate) into
+// a REPORT, so `faff gates discover` stops under-reporting what CI actually enforces (the FAFF-604
+// class of surprise) — without changing what `faff gates run` executes. See records/specs/
+// 2026-08-19-FAFF-848-639a-gate-discovery-sees-what-ci-sees-design.md.
+// ===========================================================================
+
+// The four invariant-lint patterns, reporting-only. Additive to CI_RUNNERS — never consulted by
+// ciRunnerKind/runLadder. `regions selftest` matches BOTH CI variants (--region factory/governance)
+// as two distinct commands; report-only recognition of the destructive factory variant is safe
+// because 848 executes nothing it reports (human-ratified 2026-08-19 — see the spec §7).
+const INVARIANT_LINT_PATTERNS = [
+  { pattern: /(^|[^a-z])regions\s+selftest([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
+  { pattern: /(^|[^a-z])regions\s+check([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
+  { pattern: /(^|[^a-z])adr\s+validate([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
+  { pattern: /(^|[^a-z])prdr\s+validate([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
+];
+
+// The reporting recogniser = CI_RUNNERS ∪ INVARIANT_LINT_PATTERNS. Reporting-only: never seen by
+// ciRunnerKind/runLadder (the execution path keeps consuming ciRunnerKind exactly as before).
+const REPORT_RUNNERS = [...CI_RUNNERS, ...INVARIANT_LINT_PATTERNS];
+
+function reportKind(command) {
+  const n = String(command).toLowerCase();
+  for (const { pattern, kind } of REPORT_RUNNERS) {
+    if (pattern.test(n)) return kind;
+  }
+  return null;
+}
+
+// Reporting variant of extractRunCommands: same line-scan posture, but additionally tracks the
+// enclosing `jobs.<key>`, the most recent `- name:` at step indentation, and a `step_index`
+// incremented ONCE per `run:` key (not once per emitted body line — a block scalar is one step
+// however many command lines it holds, the counting unit the spec's Coverage record needs).
+// Returns `{command, step_index, step_name, job}` records. The execution-path extractRunCommands
+// above is untouched and keeps returning bare command strings.
+function extractRunCommandsWithContext(text) {
+  const out = [];
+  const lines = String(text).split(/\r?\n/);
+  const indentOf = (s) => (s.match(/^[ \t]*/) || [""])[0].length;
+  let inJobsBlock = false;
+  let currentJob = null;
+  let currentStepName = null;
+  let stepIndex = 0;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!inJobsBlock && /^jobs:\s*$/.test(trimmed) && indentOf(line) === 0) {
+      inJobsBlock = true;
+      i += 1; continue;
+    }
+    if (inJobsBlock) {
+      const jobMatch = /^([A-Za-z0-9_.-]+):\s*$/.exec(trimmed);
+      if (jobMatch && indentOf(line) === 2) {
+        currentJob = jobMatch[1];
+        currentStepName = null;
+        i += 1; continue;
+      }
+    }
+
+    const stepNameMatch = /^\s*-\s*name:\s*(.+)$/.exec(line);
+    if (stepNameMatch) {
+      currentStepName = stepNameMatch[1].trim().replace(/^["']|["']$/g, "");
+      i += 1; continue;
+    }
+
+    const m = /^(\s*)-?\s*run:\s*(.*)$/.exec(line);
+    if (!m) { i += 1; continue; }
+    const keyIndent = indentOf(line);
+    const inline = m[2].trim();
+    stepIndex += 1;                     // one increment per `run:` key, regardless of body length
+    const thisStepIndex = stepIndex;
+    if (/^[|>][+-]?\s*$/.test(inline)) {
+      i += 1;
+      while (i < lines.length && (lines[i].trim() === "" || indentOf(lines[i]) > keyIndent)) {
+        const body = lines[i].trim();
+        if (body !== "") out.push({ command: body, step_index: thisStepIndex, step_name: currentStepName, job: currentJob });
+        i += 1;
+      }
+      continue;
+    } else if (inline !== "") {
+      out.push({ command: inline.replace(/^["']|["']$/g, ""), step_index: thisStepIndex, step_name: currentStepName, job: currentJob });
+    }
+    i += 1;
+  }
+  return out;
+}
+
+// Reporting variant of discoverCiWorkflows: emits a rung per REPORT-recognised command (using
+// reportKind, not ciRunnerKind) and returns the step-granularity Coverage inputs alongside. A
+// missing dir / unreadable file / zero recognised commands → empty rungs + zero coverage (never
+// throws — same posture as discoverCiWorkflows).
+function discoverCiWorkflowsReporting(root) {
+  const rungs = [];
+  let eligibleSteps = 0;
+  const recognisedStepKeys = new Set();
+  const dir = path.join(root, ".github", "workflows");
+  let stat;
+  try { stat = fs.statSync(dir); } catch { return { rungs, eligibleSteps, recognisedSteps: 0 }; }
+  if (!stat.isDirectory()) return { rungs, eligibleSteps, recognisedSteps: 0 };
+  let entries;
+  try { entries = fs.readdirSync(dir); } catch { return { rungs, eligibleSteps, recognisedSteps: 0 }; }
+  const files = entries.filter((f) => /\.ya?ml$/i.test(f)).sort();
+  for (const f of files) {
+    let text;
+    try { text = fs.readFileSync(path.join(dir, f), "utf8"); } catch { continue; }
+    const records = extractRunCommandsWithContext(text);
+    const stepIndices = new Set(records.map((r) => r.step_index));
+    eligibleSteps += stepIndices.size;
+    for (const rec of records) {
+      const kind = reportKind(rec.command);
+      if (!kind) continue;
+      recognisedStepKeys.add(`${f}:${rec.step_index}`);
+      rungs.push({ kind, name: `${kind.toLowerCase()} (ci-workflow: ${rec.command})`, command: rec.command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true });
+    }
+  }
+  return { rungs, eligibleSteps, recognisedSteps: recognisedStepKeys.size };
+}
+
+// The reporting resolver `faff gates discover` consumes. DISTINCT from discoverRungs (the
+// execution resolver above, untouched): local sources are reused as-is (discoverPreCommit/
+// discoverPkgScripts/discoverMakefile — the same functions the execution path calls), but CI
+// rungs come from the WIDER reporting recogniser and a TWO-TIER dedup — by kind within local
+// (collapse: usually the same check declared three ways), by (kind, command) within ci (keep:
+// distinct CI lints like validate-adapters/lint-refs/lint-cli-doc are different checks). A local
+// rung of a kind still suppresses ALL ci rungs of that kind (FAFF-533 preserved). Also computes
+// the Coverage record and the discovery classification (confident/partial/none) — `partial` is
+// new here (empty → none; ratio < 0.5 → partial; else confident); `runLadder` never sees this.
+const PARTIAL_COVERAGE_THRESHOLD = 0.5; // hardcoded constant — a configurable gates.* threshold is 639b.
+
+function discoverRungsReporting(root) {
+  const localRungs = [
+    ...discoverPreCommit(root),
+    ...discoverPkgScripts(root),
+    ...discoverMakefile(root),
+  ];
+  const localByKind = new Map();
+  for (const r of localRungs.slice().sort((a, b) => a.cost_rank - b.cost_rank)) {
+    if (!localByKind.has(r.kind)) localByKind.set(r.kind, r);
+  }
+  const dedupedLocal = [...localByKind.values()];
+  const localKinds = new Set(dedupedLocal.map((r) => r.kind));
+
+  const { rungs: ciReportRungs, eligibleSteps, recognisedSteps } = discoverCiWorkflowsReporting(root);
+  const ciByKindCommand = new Map();
+  for (const r of ciReportRungs) {
+    const key = `${r.kind} ${r.command}`;
+    if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r); // first occurrence wins (stable)
+  }
+  const dedupedCi = [...ciByKindCommand.values()].filter((r) => !localKinds.has(r.kind));
+
+  const rungs = [...dedupedLocal, ...dedupedCi].sort((a, b) => a.cost_rank - b.cost_rank);
+  const ratio = eligibleSteps === 0 ? 1.0 : recognisedSteps / eligibleSteps;
+  const coverage = { eligible_steps: eligibleSteps, recognised_steps: recognisedSteps, ratio };
+  let discovery;
+  if (rungs.length === 0) discovery = "none";
+  else if (ratio < PARTIAL_COVERAGE_THRESHOLD) discovery = "partial";
+  else discovery = "confident";
+  return { rungs, discovery, coverage };
+}
+
 // FAFF-533: pull the command text out of every `run:` step of a workflow file. A purpose-built
 // line scan (NOT a full YAML parse) — the same posture as discoverMakefile (scan `target:` lines)
 // and discoverPreCommit (scan `- id:` lines). Handles both the inline form (`run: cmd`) and the
@@ -302,10 +467,16 @@ function cmdGates(args) {
   const root = values["--root"] || findRoot();
 
   if (action === "discover") {
-    const { rungs, discovery } = discoverRungs(root);
-    if (json) { console.log(JSON.stringify({ discovery, rungs }, null, 2)); return 0; }
+    // FAFF-848 (639a): `discover` renders the REPORTING resolver (discoverRungsReporting) — the
+    // wider recognition (invariant lints) + two-tier dedup + Coverage/partial classification.
+    // `faff gates run` below keeps calling runLadder → discoverRungs (the execution resolver,
+    // untouched) — discover and run can now report different rung sets by design (see the spec's
+    // recorded interim discover>run gap, closed by FAFF-849).
+    const { rungs, discovery, coverage } = discoverRungsReporting(root);
+    if (json) { console.log(JSON.stringify({ discovery, coverage, rungs }, null, 2)); return 0; }
     console.log(`gate ladder discovery: ${discovery} (${rungs.length} rung${rungs.length === 1 ? "" : "s"})`);
     for (const r of rungs) console.log(`  ${String(r.cost_rank).padStart(3)}  ${r.kind.padEnd(16)} ${r.command}   [${r.source}]`);
+    console.log(`coverage: recognised ${coverage.recognised_steps} / eligible ${coverage.eligible_steps} steps (${coverage.ratio.toFixed(2)})`);
     return 0;
   }
 
@@ -454,6 +625,113 @@ function gatesSelftest() {
 
   // 17. missing .github/workflows dir → [] (the common local-only repo case).
   cases.push(["ci: missing workflows dir → []", discoverCiWorkflows(dPkg).length === 0]);
+
+  // --- FAFF-848 (639a): the REPORTING path (discover only — runLadder/discoverRungs/ciRunnerKind
+  // untouched, asserted explicitly in case 24 below). ---
+
+  // 18. reportKind recognises the four invariant-lint patterns → STATIC_ANALYSIS; ciRunnerKind
+  //     (the EXECUTION recogniser) stays null for all of them — proves the widened recognition
+  //     never reaches the execution path.
+  cases.push(["report: regions check → STATIC_ANALYSIS", reportKind("node bin/faff regions check") === "STATIC_ANALYSIS"]);
+  cases.push(["report: regions selftest --region factory → STATIC_ANALYSIS", reportKind("node bin/faff regions selftest --region factory") === "STATIC_ANALYSIS"]);
+  cases.push(["report: adr validate → STATIC_ANALYSIS", reportKind("node bin/faff adr validate") === "STATIC_ANALYSIS"]);
+  cases.push(["report: prdr validate → STATIC_ANALYSIS", reportKind("node bin/faff prdr validate") === "STATIC_ANALYSIS"]);
+  cases.push(["report: still rejects shell noise", reportKind("git checkout main") === null]);
+  cases.push(["execution: ciRunnerKind never recognises regions check", ciRunnerKind("node bin/faff regions check") === null]);
+  cases.push(["execution: ciRunnerKind never recognises adr validate", ciRunnerKind("node bin/faff adr validate") === null]);
+  cases.push(["execution: ciRunnerKind never recognises prdr validate", ciRunnerKind("node bin/faff prdr validate") === null]);
+
+  // A CI workflow carrying the three distinct faff LINT lints, all five invariant-lint STATIC_ANALYSIS
+  // commands, one UNIT command, and ten unrecognised noise steps (19 candidate steps, 9 recognised —
+  // ratio 9/19 ≈ 0.47, deliberately < 0.5 so the SAME fixture also exercises `partial`).
+  const wideWorkflow = "jobs:\n  v:\n    steps:\n"
+    + "      - name: adapters\n        run: node bin/faff validate-adapters\n"
+    + "      - name: refs\n        run: node bin/faff lint-refs\n"
+    + "      - name: clidoc\n        run: node bin/faff lint-cli-doc\n"
+    + "      - name: regions\n        run: node bin/faff regions check\n"
+    + "      - name: selftest-factory\n        run: node bin/faff regions selftest --region factory\n"
+    + "      - name: selftest-governance\n        run: node bin/faff regions selftest --region governance\n"
+    + "      - name: adr\n        run: node bin/faff adr validate\n"
+    + "      - name: prdr\n        run: node bin/faff prdr validate\n"
+    + "      - name: tests\n        run: node --test\n"
+    + "      - name: noise1\n        run: echo noise-1\n"
+    + "      - name: noise2\n        run: echo noise-2\n"
+    + "      - name: noise3\n        run: echo noise-3\n"
+    + "      - name: noise4\n        run: echo noise-4\n"
+    + "      - name: noise5\n        run: echo noise-5\n"
+    + "      - name: noise6\n        run: echo noise-6\n"
+    + "      - name: noise7\n        run: echo noise-7\n"
+    + "      - name: noise8\n        run: echo noise-8\n"
+    + "      - name: noise9\n        run: echo noise-9\n"
+    + "      - name: noise10 (block scalar — still ONE step)\n        run: |\n          echo multi-line\n          echo noise\n          echo block\n";
+  const dWide = mk("wide", { ".github/workflows/wide.yml": wideWorkflow });
+  const disWide = discoverRungsReporting(dWide);
+
+  // 19. two-tier dedup — CI: the three distinct LINT commands stay distinct (not collapsed to
+  //     one), and all five distinct STATIC_ANALYSIS invariant-lint commands are all reported.
+  const wideLint = disWide.rungs.filter((r) => r.kind === "LINT");
+  const wideStatic = disWide.rungs.filter((r) => r.kind === "STATIC_ANALYSIS");
+  cases.push(["report dedup: 3 distinct LINT rungs (not collapsed)", wideLint.length === 3]);
+  cases.push(["report dedup: LINT commands are validate-adapters/lint-refs/lint-cli-doc, each once",
+    new Set(wideLint.map((r) => r.command)).size === 3]);
+  cases.push(["report dedup: 5 distinct STATIC_ANALYSIS rungs (regions check + 2 selftest + adr + prdr)", wideStatic.length === 5]);
+  cases.push(["report dedup: STATIC_ANALYSIS commands all distinct", new Set(wideStatic.map((r) => r.command)).size === 5]);
+  cases.push(["report: regions selftest --region factory/governance both present as distinct commands",
+    wideStatic.some((r) => r.command.includes("--region factory")) && wideStatic.some((r) => r.command.includes("--region governance"))]);
+
+  // 20. partial classification — this fixture's coverage ratio is deliberately < 0.5.
+  cases.push(["report: coverage eligible_steps counts all 19 run: steps", disWide.coverage.eligible_steps === 19]);
+  cases.push(["report: coverage recognised_steps counts the 9 recognised steps", disWide.coverage.recognised_steps === 9]);
+  cases.push(["report: discovery partial when ratio < 0.5", disWide.discovery === "partial" && disWide.coverage.ratio < 0.5]);
+
+  // 21. discovery confident/none semantics unchanged in the reporting path (mirrors discoverRungs).
+  const disNoneReporting = discoverRungsReporting(dNone);
+  cases.push(["report: discovery none when nothing recognised (empty rungs)", disNoneReporting.discovery === "none" && disNoneReporting.rungs.length === 0]);
+  const dFullCi = mk("fullci", { ".github/workflows/full.yml": "jobs:\n  v:\n    steps:\n      - name: adapters\n        run: node bin/faff validate-adapters\n" });
+  const disFullReporting = discoverRungsReporting(dFullCi);
+  cases.push(["report: discovery confident when ratio == 1.0", disFullReporting.discovery === "confident" && disFullReporting.coverage.ratio === 1.0]);
+
+  // 22. step-granularity coverage counting — a block scalar with N command lines is ONE
+  //     candidate step, not N. (wide's noise10 block-scalar step holds 3 lines but contributed 1
+  //     to eligible_steps, already asserted via the eligible_steps===19 total above; assert it
+  //     directly here too via extractRunCommandsWithContext.)
+  const stepCtxRecords = extractRunCommandsWithContext(wideWorkflow);
+  const blockScalarIndices = stepCtxRecords.filter((r) => r.command.startsWith("echo") && ["multi-line", "noise", "block"].includes(r.command.replace(/^echo /, ""))).map((r) => r.step_index);
+  cases.push(["report: block-scalar body lines share ONE step_index", new Set(blockScalarIndices).size === 1 && blockScalarIndices.length === 3]);
+  cases.push(["report: step_index increments once per run: key (19 distinct indices)", new Set(stepCtxRecords.map((r) => r.step_index)).size === 19]);
+
+  // 23. a STATIC_ANALYSIS reported rung sorts ahead of every UNIT reported rung (cost_rank:
+  //     STATIC_ANALYSIS=40 < UNIT=50, unmodified — GATE_COST itself is untouched by 848).
+  const staticIdx = disWide.rungs.findIndex((r) => r.kind === "STATIC_ANALYSIS");
+  const lastUnitIdx = disWide.rungs.map((r) => r.kind).lastIndexOf("UNIT");
+  cases.push(["report: STATIC_ANALYSIS sorts ahead of UNIT", staticIdx !== -1 && lastUnitIdx !== -1 && staticIdx < lastUnitIdx]);
+
+  // 24. local rung of a kind still suppresses ALL ci rungs of that kind in the REPORTING path too
+  //     (FAFF-533 preserved) — a local pkg lint script means the reporting resolver shows ZERO
+  //     ci-sourced LINT rungs even though the CI workflow declares three.
+  const dSuppress = mk("suppress", {
+    "package.json": JSON.stringify({ scripts: { lint: "true" } }),
+    ".github/workflows/wide.yml": wideWorkflow,
+  });
+  const disSuppress = discoverRungsReporting(dSuppress);
+  const suppressLint = disSuppress.rungs.filter((r) => r.kind === "LINT");
+  cases.push(["report: local lint suppresses all 3 ci LINT rungs", suppressLint.length === 1 && suppressLint[0].source === "pkg_script"]);
+  cases.push(["report: ci STATIC_ANALYSIS/UNIT rungs still reported (local only covers LINT)",
+    disSuppress.rungs.some((r) => r.kind === "STATIC_ANALYSIS") && disSuppress.rungs.some((r) => r.kind === "UNIT")]);
+
+  // 25. THE anti-pattern guard — the reporting additions never reach the execution path.
+  //     discoverRungs/runLadder on the SAME wide-workflow root see NONE of the new STATIC_ANALYSIS
+  //     recognition or the two-tier LINT dedup: still today's kind-deduped, ciRunnerKind-only set.
+  const disWideExecution = discoverRungs(dWide);
+  cases.push(["execution isolation: discoverRungs sees no STATIC_ANALYSIS rung on the wide fixture",
+    disWideExecution.rungs.every((r) => r.kind !== "STATIC_ANALYSIS")]);
+  cases.push(["execution isolation: discoverRungs still collapses LINT to exactly one rung",
+    disWideExecution.rungs.filter((r) => r.kind === "LINT").length === 1]);
+  const runLadderWide = runLadder(dWide);
+  cases.push(["execution isolation: runLadder executes no STATIC_ANALYSIS rung on the wide fixture",
+    runLadderWide.rungs.every((r) => r.kind !== "STATIC_ANALYSIS")]);
+  cases.push(["execution isolation: runLadder's discovery field is discoverRungs's (confident), not the reporting partial",
+    runLadderWide.discovery === "confident"]);
 
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
 
@@ -950,4 +1228,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, assertScanSetExpectCopiesInvariant, buildDoctorJson, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, extractRunCommands, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, PARTIAL_COVERAGE_THRESHOLD, assertScanSetExpectCopiesInvariant, buildDoctorJson, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, mergeFencePresentAt, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory };

@@ -32,13 +32,24 @@ PROCEDURE resolve(provision_context):
      RETURN { base_host: "localhost", credentials: none, teardown: none }   # the byte-identical path
 
   IF provision_context.evaluator_topology == "dind-in-cage":                # local-dind — this slice
-     # The system under build runs on the orchestrator host (`faff env up`). The evaluator runs in a
-     # docker-in-docker container inside the cage and reaches the host over the docker bridge.
-     base_host = the docker bridge host-gateway address reachable from inside the evaluator container
-                 # host.docker.internal (mapped via --add-host host-gateway on engines that need it),
-                 # or a shared user-defined docker network alias this occupant attaches both sides to
-     credentials = none                       # network-layer segmentation only
-     teardown = { ref, cmd } removing any user-defined network this occupant created, else none
+     # The system under build runs on the orchestrator host (`faff env up`); the evaluator runs in a
+     # docker-in-docker container inside the cage. TWO substrate mechanisms, NOT interchangeable:
+     #   - host-gateway (host.docker.internal / bridge 172.17.0.1) — routes only under a ROOTFUL engine
+     #   - a shared user-defined docker network (both sides join; evaluator reaches the SUT by alias) —
+     #     routes under BOTH rootful and rootless
+     IF the docker engine is rootless (detected from `docker info`: the rootless security option or a
+        rootless context):
+        base_host = the SUT's alias on a shared user-defined docker network this occupant attaches
+                    both sides to
+        teardown  = { ref, cmd } removing that user-defined network
+        # host-gateway does NOT route under rootless: rootlesskit publishes host ports inside its own
+        # network namespace, so the bridge gateway is unreachable from a sibling container.
+     ELSE:                                                                  # rootful engine
+        base_host = the docker bridge host-gateway address reachable from inside the evaluator
+                    container (host.docker.internal, mapped via --add-host host-gateway on engines
+                    that need it)
+        teardown  = none                                # host-gateway is ambient; nothing created
+     credentials = none                                  # network-layer segmentation only
      RETURN { base_host, credentials, teardown }
 
   IF provision_context.evaluator_topology == "cross-machine":               # Fly 6PN — a follow-on, not built here
@@ -47,6 +58,8 @@ PROCEDURE resolve(provision_context):
      teardown = { ref, cmd } removing any transient WireGuard peer this occupant created, else none
      RETURN { base_host, credentials, teardown }
 ```
+
+**Downstream note.** The future automated reachability test matrix that exercises this branch end-to-end must pin the shared-network mechanism under rootless — a naive host-gateway assertion would fail the `env-rootless` CI job on a rootless engine, exactly the failure this branch now avoids at resolve time.
 
 Both `dind-in-cage` and `cross-machine` are **base-known-ahead**: the base host is knowable before `env up`, so no second resolution point is needed. A base-known-after substrate (a dynamically published host/port) is out of scope for this occupant today.
 

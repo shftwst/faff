@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -112,6 +112,29 @@ function fixtureRootWithLedger(ledgerOverrides) {
   const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDest);
   assert.equal(mint.ok, true, "fixture: anchor mint must succeed");
   return { root, run_id, runDir };
+}
+
+// FAFF-876 — a run-anchor tree shaped exactly like `anchor-run`'s own output: `summary.md` plus
+// one subdir per admitted issue, directly under `.faff/anchors/<run_id>/` (no `run-close/`
+// wrapper — that's the bug this fix removes). Two admitted issues, so the round-trip test can
+// assert the WHOLE run-anchor tree rides into the `anchors` member, not just one issue's slice.
+function fixtureRunCloseRoot() {
+  const root = mkdtempSync(path.join(tmpdir(), "faff-bundle-runclose-t-"));
+  const run_id = "run-fixture-000000-runclose";
+  const runDir = path.join(root, ".faff", "runs", run_id);
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1", "FAFF-2"], outcomes: { "FAFF-1": "shipped", "FAFF-2": "shipped" }, owner: { epoch: 0, status: "done" } }));
+  writeFileSync(path.join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${run_id}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+  const anchorRoot = path.join(root, ".faff", "anchors", run_id);
+  for (const issue of ["FAFF-1", "FAFF-2"]) {
+    mkdirSync(path.join(runDir, issue), { recursive: true });
+    const mint = mintIssueAnchor(runDir, issue, path.join(anchorRoot, issue));
+    assert.equal(mint.ok, true, `fixture: anchor mint must succeed for ${issue}`);
+  }
+  // mirrors anchor-run's own best-effort summary.md copy (events.js cmdEvents "anchor-run")
+  mkdirSync(anchorRoot, { recursive: true });
+  writeFileSync(path.join(anchorRoot, "summary.md"), "# run summary\n");
+  return { root, run_id, runDir, anchorRoot };
 }
 
 // Remints the outer manifest tail (memberRefs + bundle_manifest_digest) over a caller-supplied
@@ -550,4 +573,122 @@ test("classifyBundle: a required member reported missing by the store -> MISSING
   const result = classifyBundle({ identity, headStatus: "ok", headDigest: "x", members: { ledger_snapshot: { status: "missing" } } });
   assert.equal(result.verdict, "MISSING");
   assert.equal(result.cause, "ledger_snapshot");
+});
+
+// --- FAFF-876: run-close reads the run-anchor ROOT directly (readAnchorDir gains boundary_kind) ---
+// Regression coverage for the bug: `anchor-run` mints `.faff/anchors/<rid>/` (summary.md + one
+// subdir per admitted issue); `bundle publish --boundary-kind run-close` used to look for a
+// `<rid>/run-close/` subdirectory that is never created, so it always found an empty anchor and
+// threw "no anchor found". readAnchorDir now special-cases boundary_kind === "run-close" to
+// resolve the run-anchor root itself — no anchor-run change, no wrapper directory (Option B).
+
+test("bundle publish (real CLI): boundary_kind run-close succeeds against the anchor anchor-run actually writes — the bug this regression-tests (FAFF-876)", () => {
+  // The spec's §2 OUT OF SCOPE excludes "the bundle-verify / classify path" on the premise that
+  // verify is unaffected by where readAnchorDir looks — that premise turned out to be wrong:
+  // classifyBundle's tamper check (and bundle-recover.js's reconstructProjection) both assumed a
+  // flat root-level events.jsonl under the anchor dir, true for issue-merge-floor's <rid>/<issue>/
+  // but not for the run-anchor root's per-issue subdirs. Left alone this would have TAMPERED every
+  // run-close verify AND broken an EXISTING bundle-recover.test.mjs case (--run-id reaching a
+  // run-close boundary) — a genuine regression, not new scope, so both call sites were repaired
+  // to locate the first per-issue events.jsonl copy instead of assuming a flat one. Covered here
+  // end to end: publish, then verify CLEAN.
+  const { root, run_id, runDir } = fixtureRunCloseRoot();
+  try {
+    const pub = runCli(["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "run-close", "--boundary-key", "run-close", "--root", root, "--json"], { cwd: root });
+    assert.equal(pub.code, 0, pub.stderr);
+    const pubBody = JSON.parse(pub.stdout);
+    assert.equal(pubBody.published, true);
+    assert.equal(pubBody.identity.run_id, run_id);
+    assert.equal(pubBody.identity.boundary_kind, "run-close");
+    assert.equal(pubBody.identity.boundary_key, "run-close");
+
+    const ver = runCli(["bundle", "verify", "--run-id", run_id, "--run-segment-id", "0", "--boundary-kind", "run-close", "--boundary-key", "run-close", "--root", root, "--json"], { cwd: root });
+    assert.equal(ver.code, 0, ver.stderr);
+    const verBody = JSON.parse(ver.stdout);
+    assert.equal(verBody.verdict, "CLEAN");
+    assert.equal(verBody.conformant, true);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("buildBundle: boundary_kind run-close resolves the run-anchor ROOT directly — anchors.files includes summary.md + every admitted issue's anchor files, no run-close/ wrapper (FAFF-876)", () => {
+  const { root, run_id, runDir } = fixtureRunCloseRoot();
+  try {
+    const identity = { run_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 };
+    let built;
+    assert.doesNotThrow(() => { built = buildBundle(runDir, identity, root); });
+    const anchors = JSON.parse(built.memberBytes.anchors.toString("utf8"));
+    assert.ok("summary.md" in anchors.files, "the run-level summary.md rides into the anchors member");
+    assert.ok("FAFF-1/events.jsonl" in anchors.files, "FAFF-1's anchor files are included");
+    assert.ok("FAFF-1/chain-head.json" in anchors.files);
+    assert.ok("FAFF-2/events.jsonl" in anchors.files, "FAFF-2's anchor files are included — the WHOLE run-anchor tree, not one issue's slice");
+    assert.equal(anchors.dir.split(path.sep).join("/"), `.faff/anchors/${run_id}`, "resolves the run-anchor root directly — no run-close/ wrapper subdirectory");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("buildBundle: boundary_kind run-close with no run-level chain-head.json falls back to the anchor dir's own mtime for last_safe_boundary.ts — the accepted fallback, never a throw (FAFF-876)", () => {
+  const { root, run_id, runDir, anchorRoot } = fixtureRunCloseRoot();
+  try {
+    assert.equal(require("node:fs").existsSync(path.join(anchorRoot, "chain-head.json")), false, "fixture sanity: no run-level chain-head.json exists (those are per-issue only)");
+    const identity = { run_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 };
+    let built;
+    assert.doesNotThrow(() => { built = buildBundle(runDir, identity, root); });
+    const lastSafeBoundary = JSON.parse(built.memberBytes.last_safe_boundary.toString("utf8"));
+    assert.ok(lastSafeBoundary.ts, "ts is populated from the anchor dir's own mtime fallback, not a swallowed throw");
+    assert.equal(lastSafeBoundary.boundary_kind, "run-close");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("buildBundle: boundary_kind run-close before anchor-run has minted anything still throws the existing 'no anchor found' error (FAFF-876 — the real pre-mint case stays fail-loud)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff-bundle-runclose-premint-t-"));
+  try {
+    const run_id = "run-fixture-000000-premint";
+    const runDir = path.join(root, ".faff", "runs", run_id);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: {}, owner: { epoch: 0, status: "running" } }));
+    writeFileSync(path.join(runDir, "events.jsonl"), "");
+    // No .faff/anchors/<run_id>/ tree at all — anchor-run never ran.
+    const identity = { run_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 };
+    assert.throws(() => buildBundle(runDir, identity, root), /no anchor found/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("buildBundle: issue-merge-floor resolution is byte-identical to before this fix — regression guard (FAFF-876)", () => {
+  const { root, run_id, runDir } = fixtureRoot();
+  try {
+    const identity = { run_id, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1", boundary_seq: 0 };
+    const built = buildBundle(runDir, identity, root);
+    const anchors = JSON.parse(built.memberBytes.anchors.toString("utf8"));
+    assert.equal(anchors.dir.split(path.sep).join("/"), `.faff/anchors/${run_id}/FAFF-1`, "issue-merge-floor still resolves <rid>/<issue>/, unchanged by the run-close branch");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("buildBundle (run-close): a symlink planted under the run-anchor root makes readAnchorDir throw loud, naming the entry — never silently skipped, never in the anchors files map (FAFF-876)", () => {
+  const { root, run_id, runDir, anchorRoot } = fixtureRunCloseRoot();
+  try {
+    const outsideTarget = path.join(root, "outside-secret.txt");
+    writeFileSync(outsideTarget, "top secret\n");
+    symlinkSync(outsideTarget, path.join(anchorRoot, "evil-link"));
+    const identity = { run_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 };
+    assert.throws(() => buildBundle(runDir, identity, root), /unsafe anchor entry: evil-link/, "readAnchorDir throws, naming the symlink entry");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("buildBundle (run-close): a '..'-traversal-crafted rel-path entry under the run-anchor root makes readAnchorDir throw loud, naming the entry — a SEPARATE negative case from the symlink one (FAFF-876)", (t) => {
+  // A real filesystem never returns a dirent literally named ".." from readdirSync (the OS
+  // reserves it as the parent-directory reference — mkdir(".. ") is impossible), so this
+  // exercises the isSafeAnchorRelPath guard the same way the untrusted verify-side path already
+  // does: inject the unsafe name at the exact seam readAnchorDir's walk() consumes. `fs` is the
+  // same "node:fs" singleton bundle.js itself requires, so mocking it here reaches the walk.
+  const { root, run_id, runDir, anchorRoot } = fixtureRunCloseRoot();
+  const fs = require("node:fs");
+  try {
+    const realReaddirSync = fs.readdirSync;
+    t.mock.method(fs, "readdirSync", (d, ...rest) => {
+      const names = realReaddirSync.call(fs, d, ...rest);
+      if (path.resolve(String(d)) === path.resolve(anchorRoot)) return [...names, ".."];
+      return names;
+    });
+    const identity = { run_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 };
+    assert.throws(() => buildBundle(runDir, identity, root), /unsafe anchor entry: \.\./, "readAnchorDir throws, naming the unsafe '..' entry");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

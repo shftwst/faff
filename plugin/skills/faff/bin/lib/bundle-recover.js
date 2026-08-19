@@ -283,11 +283,26 @@ function fetchCleanMemberBytes(store, identity, names) {
 // bundle.js already import), reused here via the destructure above — its public export from
 // THIS module's own module.exports is unchanged (see the re-export below).
 
+// FAFF-876 — a run-close anchor's `files` map has no flat top-level "events.jsonl" key (the
+// run-anchor root nests one verbatim copy per admitted-issue subdir instead — see bundle.js's
+// readAnchorDir, which this mirrors). Every per-issue copy is byte-identical (mintIssueAnchor
+// always copies the SAME run-level events.jsonl), so the first one found (sorted) suffices as
+// the reconstructed run-dir's own copy. Returns null when none exists (e.g. an all-parked run).
+function firstNestedEventsKey(files) {
+  const keys = Object.keys(files).filter((k) => k.endsWith("/events.jsonl")).sort();
+  return keys.length ? keys[0] : null;
+}
+
 function reconstructProjection(targetRoot, identity, memberBytes) {
   const runId = identity.run_id;
   const boundaryKey = identity.boundary_key;
   const runDir = path.join(targetRoot, ".faff", "runs", runId);
-  const anchorDir = path.join(targetRoot, ".faff", "anchors", runId, boundaryKey);
+  // FAFF-876 — run-close resolves the run-anchor ROOT directly (no boundaryKey subdir),
+  // mirroring bundle.js's readAnchorDir; every other boundary_kind keeps today's
+  // <runId>/<boundaryKey>/ resolution, unchanged.
+  const anchorDir = identity.boundary_kind === "run-close"
+    ? path.join(targetRoot, ".faff", "anchors", runId)
+    : path.join(targetRoot, ".faff", "anchors", runId, boundaryKey);
 
   let anchors;
   try { anchors = JSON.parse(memberBytes.anchors.toString("utf8")); }
@@ -295,7 +310,8 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
   const files = (anchors && typeof anchors.files === "object" && anchors.files) ? anchors.files : {};
   // hasOwnProperty, never a truthiness check — an empty (but PRESENT) events.jsonl
   // base64-decodes to "", which is falsy and would wrongly read as absent.
-  if (!Object.prototype.hasOwnProperty.call(files, "events.jsonl")) {
+  const eventsKey = identity.boundary_kind === "run-close" ? firstNestedEventsKey(files) : "events.jsonl";
+  if (!eventsKey || !Object.prototype.hasOwnProperty.call(files, eventsKey)) {
     // REQUIRED_MEMBERS + mintIssueAnchor guarantee a CLEAN bundle's anchor always carries
     // events.jsonl — reaching here is an internal fault, not a normal branch.
     throw new Error("a CLEAN bundle's anchor carries no events.jsonl — internal fault");
@@ -315,7 +331,7 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, Buffer.from(b64, "base64"));
   }
-  fs.copyFileSync(path.join(anchorDir, "events.jsonl"), path.join(runDir, "events.jsonl"));
+  fs.copyFileSync(path.join(anchorDir, eventsKey), path.join(runDir, "events.jsonl"));
 
   // FAFF-845 (Option A, owned here) — additive: when the restored anchor carries a
   // landing-progress.json (rides in via events.js's optionalFloorFiles, FAFF-846), copy it up

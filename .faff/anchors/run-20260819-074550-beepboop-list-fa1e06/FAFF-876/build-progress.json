@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-876",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9493dc7fdec8e2279f0e4af7c2bb82e169b839400ffd8d7c01e8879465e467de",
+    "branch": "faff-876-run-close-bundle-never-publishes-anchor-run-mints-the-anchor",
+    "pushed_at": "2026-08-19T09:13:58.730Z"
+  },
+  "updated_at": "2026-08-19T09:13:58.730Z"
+}

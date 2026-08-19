@@ -777,14 +777,16 @@ test("FAFF-666: the committed real observed payload (codex-cli-observed.md) tota
   assert.deepEqual(u, { input: 2743, output: 6, cache_write: 0, cache_read: 12032 });
 });
 
-test("FAFF-666: a synthetic non-zero cache_write_input_tokens/reasoning_output_tokens payload proves the wiring", () => {
+test("FAFF-724: the Codex 0.147.0 source fixture confirms cache-write and reasoning subsets", () => {
   const u = sumCodexUsage([
-    { type: "turn.completed", usage: { input_tokens: 1000, cached_input_tokens: 200, cache_write_input_tokens: 150, output_tokens: 40, reasoning_output_tokens: 9 } },
+    { type: "turn.completed", usage: { input_tokens: 100, cached_input_tokens: 40, cache_write_input_tokens: 60, output_tokens: 10, reasoning_output_tokens: 5, total_tokens: 110 } },
   ]);
-  // cache_write_input_tokens now reaches totals.cache_write (structural deadness gone);
-  // input subtracts BOTH cached and cache_write (1000 - 200 - 150 = 650, subset handling);
-  // reasoning_output_tokens is NOT added to output (9 excluded, already-inside handling).
-  assert.deepEqual(u, { input: 650, output: 40, cache_write: 150, cache_read: 200 });
+  // OpenAI Codex's tagged parser test uses these exact values. Its input details
+  // partition 100 into 40 cached + 60 cache-write tokens, while 5 reasoning
+  // tokens remain inside the 10 output tokens and total_tokens stays 100 + 10.
+  assert.deepEqual(u, { input: 0, output: 10, cache_write: 60, cache_read: 40 });
+  assert.equal(u.input + u.cache_read + u.cache_write, 100);
+  assert.equal(u.output, 10, "reasoning tokens must not be added to output twice");
 });
 
 test("FAFF-666: an incoherent stream where cache_write_input_tokens alone exceeds input_tokens clamps at 0", () => {

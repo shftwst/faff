@@ -122,15 +122,25 @@ function recordPrdOnLedger(runDir, { licence, rootContainer }) {
     session_id: pre.ledger.owner && pre.ledger.owner.session_id,
   };
 
-  const res = mutateLedgerUnderLock(runDir, (fresh) => {
-    // Belt-and-braces: the classifier already asserted level:"L4" on the
-    // pre-lock read; re-assert on the UNDER-LOCK fresh read so a write never
-    // lands on a ledger that stopped being L4 between validation and lock.
-    if (!fresh || fresh.level !== "L4") throw new Error(`run-record-prd: resolved ledger in ${runDir} is not level "L4"`);
-    if (licence != null) fresh.prd_creative_licence = licence;
-    if (rootContainer != null) fresh.prd_root_container = rootContainer;
-    return fresh;
-  }, expectedOwner);
+  // Belt-and-braces re-assert lives INSIDE the mutate callback (the under-lock fresh
+  // read) so a write never lands on a ledger that stopped being L4 between the
+  // pre-lock classify above and lock acquisition. A throw from inside the callback
+  // propagates OUT of mutateLedgerUnderLock uncaught (withFileLock's `finally` only
+  // releases the lock, per heartbeat.js — it never swallows the callback's own
+  // exception, the same contract budget.js's baseline writer relies on) — so this
+  // call is wrapped in try/catch, never left to crash the CLI on the narrow,
+  // practically-unreachable race this guards against.
+  let res;
+  try {
+    res = mutateLedgerUnderLock(runDir, (fresh) => {
+      if (!fresh || fresh.level !== "L4") throw new Error(`resolved ledger in ${runDir} is not level "L4"`);
+      if (licence != null) fresh.prd_creative_licence = licence;
+      if (rootContainer != null) fresh.prd_root_container = rootContainer;
+      return fresh;
+    }, expectedOwner);
+  } catch (e) {
+    return { code: 2, written: false, yielded: false, reason: (e && e.message) || "ledger mutation failed" };
+  }
 
   if (res.yielded) {
     return { code: 4, written: false, yielded: true, reason: "owner epoch/session moved on — a newer owner owns this run" };
@@ -168,7 +178,12 @@ function cmdRunRecordPrd(args) {
   // regardless of verdict — the caller branches on the payload, mirrors
   // run-outward's "does not decide, only reports" stance.
   if (values["--classify"]) {
-    const v = classifyInheritedRunDir({ FAFF_RUN_DIR: runDir }, get("--root") || findRoot());
+    // `root` is accepted by the classifier for signature parity only (it never reads
+    // it — see classifyInheritedRunDir above) — no `--root` flag exists on this verb
+    // (unlike run-ledger/lint-cli-doc): there is nothing here to search FROM, only a
+    // FAFF_RUN_DIR to validate. findRoot() is resolved anyway so the param is never
+    // literally undefined, but it is genuinely inert.
+    const v = classifyInheritedRunDir({ FAFF_RUN_DIR: runDir }, findRoot());
     const payload = { verdict: v.verdict, run_dir: v.runDir || runDir || null, reason: v.reason || null };
     if (json) process.stdout.write(JSON.stringify(payload) + "\n");
     else process.stdout.write(`verdict: ${payload.verdict}${payload.reason ? ` (${payload.reason})` : ""}\n`);

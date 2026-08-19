@@ -91,19 +91,35 @@ function validateIdentityForHandle(identity) {
 // ledger read that produces ledger_snapshot (spec DONE: "never a second read"), so identityInput
 // carries only { run_id, boundary_kind, boundary_key, boundary_seq }.
 // ---------------------------------------------------------------------------
-function readAnchorDir(root, run_id, boundary_key) {
-  const dir = path.join(root, ".faff", "anchors", run_id, boundary_key);
+// FAFF-876 — boundary_kind selects the anchor dir: "run-close" reads the run-anchor ROOT
+// directly (anchor-run mints summary.md + one subdir per admitted issue there, per ADR 0109 —
+// there is no separate "run-close" subdirectory; boundary_key === "run-close" is an identity
+// constant, never a path segment). Every other boundary_kind (issue-merge-floor) keeps today's
+// <root>/.faff/anchors/<run_id>/<boundary_key>/ resolution, byte-identical.
+function readAnchorDir(root, run_id, boundary_kind, boundary_key) {
+  const dir = boundary_kind === "run-close"
+    ? path.join(root, ".faff", "anchors", run_id)
+    : path.join(root, ".faff", "anchors", run_id, boundary_key);
   const files = {};
+  // FAFF-876 — creation-side walk hardened to parity with the verify-side guard (bundle.js
+  // isSafeAnchorRelPath check above, FAFF-865): lstat (never follow a symlink) + reject any
+  // unsafe rel-path. Fails LOUD (throws, naming the entry) rather than silently skipping — a
+  // planted symlink/traversal entry under .faff/anchors/ is a fault the operator must see, not
+  // a subset the bundle quietly omits.
   const walk = (d, rel) => {
     let names;
     try { names = fs.readdirSync(d).sort(); } catch { return; }
     for (const name of names) {
       const abs = path.join(d, name);
       const relPath = rel ? path.join(rel, name) : name;
+      const relPosix = relPath.split(path.sep).join("/");
       let st;
-      try { st = fs.statSync(abs); } catch { continue; }
+      try { st = fs.lstatSync(abs); } catch { continue; }
+      if (st.isSymbolicLink() || !isSafeAnchorRelPath(relPosix)) {
+        throw new Error(`readAnchorDir: unsafe anchor entry: ${relPosix}`);
+      }
       if (st.isDirectory()) walk(abs, relPath);
-      else files[relPath.split(path.sep).join("/")] = fs.readFileSync(abs).toString("base64");
+      else files[relPosix] = fs.readFileSync(abs).toString("base64");
     }
   };
   walk(dir, "");
@@ -144,7 +160,7 @@ function buildBundle(runDir, identityInput, root = findRoot()) {
   // anchors — verbatim bytes from .faff/anchors/<run_id>/<boundary_key>/ (mintIssueAnchor's own
   // output: events.jsonl, run-ledger.json, chain-head.json, +declared-effects.jsonl/witness and
   // the copied merge-floor files when present) — a directory snapshot, one blob member.
-  const anchor = readAnchorDir(root, identity.run_id, identity.boundary_key);
+  const anchor = readAnchorDir(root, identity.run_id, identity.boundary_kind, identity.boundary_key);
   if (Object.keys(anchor.files).length === 0) {
     throw new Error(`buildBundle: no anchor found at ${anchor.dir} — publish must run AFTER the anchor mint, never before`);
   }
@@ -249,6 +265,20 @@ function withTempDir(fn) {
   finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ } }
 }
 
+// FAFF-876 — deterministic (sorted) search for the first events.jsonl nested one level under
+// `root` (a materialised run-close anchor tree's per-issue subdirs: <root>/<issue>/events.jsonl).
+// Returns null when none exists (e.g. an all-parked run with zero admitted issues) — the caller
+// then leaves the cross-check's tmp/events.jsonl unwritten, same as any other absent member.
+function firstNestedEventsPath(root) {
+  let names;
+  try { names = fs.readdirSync(root).sort(); } catch { return null; }
+  for (const name of names) {
+    const candidate = path.join(root, name, "events.jsonl");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 function classifyBundle(read) {
   const identity = read && read.identity;
   if (!read || read.headStatus === "bundle-unreadable" || read.headStatus === "store-unreachable") {
@@ -309,8 +339,15 @@ function classifyBundle(read) {
     }
     // hasOwnProperty, never a truthiness check — an empty (but PRESENT) events.jsonl base64-
     // decodes to "", which is falsy and would wrongly read as absent.
-    const anchorEventsPath = path.join(anchorTmp, "events.jsonl");
-    if (fs.existsSync(anchorEventsPath)) fs.copyFileSync(anchorEventsPath, path.join(tmp, "events.jsonl"));
+    // FAFF-876 — a run-close anchor tree has no flat root-level events.jsonl (the run-anchor
+    // root nests one verbatim copy per admitted issue subdir, never a copy at its own root —
+    // see readAnchorDir). Every per-issue copy is byte-identical (mintIssueAnchor always
+    // copies the SAME run-level events.jsonl), so the first one found (deterministic, sorted)
+    // suffices for this cross-check; issue-merge-floor keeps its unchanged flat-root lookup.
+    const anchorEventsPath = identity.boundary_kind === "run-close"
+      ? firstNestedEventsPath(anchorTmp)
+      : path.join(anchorTmp, "events.jsonl");
+    if (anchorEventsPath && fs.existsSync(anchorEventsPath)) fs.copyFileSync(anchorEventsPath, path.join(tmp, "events.jsonl"));
     const diffs = diffAgainstManifest(tmp, overlapManifest(parsed.artifact_manifest));
     if (diffs.length > 0) return { tampered: true, cause: diffs[0] };
 

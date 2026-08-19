@@ -1,0 +1,81 @@
+{
+  "level": "L3",
+  "run_id": "run-20260819-074550-beepboop-list-fa1e06",
+  "admitted": [
+    "FAFF-876",
+    "FAFF-875",
+    "FAFF-858",
+    "FAFF-848",
+    "FAFF-821"
+  ],
+  "outcomes": {
+    "FAFF-876": "shipped",
+    "FAFF-875": "shipped",
+    "FAFF-848": "parked",
+    "FAFF-858": "pr-open"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "tokens_at_start": 8168460,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "8f5b6f8e-9332-43f0-aee6-0f7dba52fe9c",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 72,
+        "output": 78198,
+        "cache_write": 494366,
+        "cache_read": 7595824
+      }
+    },
+    "window": {
+      "anchor_epoch": 1787125673437,
+      "reset_epoch": 1787143673437,
+      "tokens_at_anchor": 985508
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 785,
+    "session_id": "run-20260819-074550-beepboop-list-fa1e06",
+    "started_at": "2026-08-19T07:45:50Z",
+    "last_heartbeat": "2026-08-19T07:45:50Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-876": {
+      "pr": 722,
+      "merge_sha": "9706363f66fac0ba732c68267c228775bd2761e8",
+      "review": "pass"
+    },
+    "FAFF-875": {
+      "pr": 721,
+      "merge_sha": "ea6d4464800978f44d5f45d7215021095a114362",
+      "review": "pass"
+    },
+    "FAFF-848": {
+      "root_cause": "wall-clock-runaway",
+      "branch": "faff-848-639a-gate-discovery-sees-what-ci-sees-recognise-invariant",
+      "head": "bfdce90",
+      "pr": 0,
+      "resumable": true
+    },
+    "FAFF-858": {
+      "pr": 720,
+      "review": "pass",
+      "note": "BEHIND + env-rootless pending at build budget; merge deferred"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-821",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2ac158fd7d7e5572b32abb59ed8cd0cdce65fd352450a57b7178a46fa4749cfe",
+    "branch": "faff-821-capture-current-decision-kernel-inputs-and-chosen-actions",
+    "pushed_at": "2026-08-19T10:25:54.622Z"
+  },
+  "updated_at": "2026-08-19T10:25:54.622Z"
+}

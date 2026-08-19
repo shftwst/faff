@@ -54,7 +54,20 @@ const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap 
 // `faff-graft` carries an unrelated, pre-existing override (FAFF-708 et al.) with headroom, not a
 // zero-headroom ratchet; it predates and is out of this ticket's two-hub-file scope, so its value is
 // carried forward unchanged rather than folded into the ratchet invariant above.
-const SKILL_LINE_BASELINE = { faff: 1177, "faff-beep-boop": 739, "faff-graft": 758 };   // renamed from SKILL_LINE_CAP_OVERRIDE (FAFF-584). faff/faff-beep-boop: ratchet baselines, set to their exact committed size. faff-graft: unchanged carry-forward, see above. (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7), FAFF-767 +1 beep-boop (surface intervention row) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return), FAFF-448 +6 gateway (decisions-register consult in Resolve-attempt before park) + faff-graft +6 (register-consult mirror + 3/5 bound-drift fix), FAFF-584 gateway ## Routing dedupe (line-neutral rename) + baseline re-pin to committed size, FAFF-699 +11 gateway (Interactive next-step offer subsection + Park-protocol recovery addendum), FAFF-761 +6 faff-graft (Step 3 standalone-interactive L2 mint block + Step 10 terminal outcome-write block), FAFF-214 +11 faff-graft (Step 9b draft→sanitize→check→gh pr create --body-file sequence + Step 8 pointer + autonomous-summary mirror), FAFF-782 +2 beep-boop (step 11.6 run-end synchronicity invariant — the whole reconcile→post-merge→owner-close tail runs in-turn, never a fire-and-forget background wait), FAFF-788 +1 beep-boop (Run ledger top-level level field-bullet), FAFF-779 +1 gateway (Park protocol (shared): conditional WIP/draft-PR steps + park-record accumulator + short-comment-rule) +1 beep-boop (park backstop's park_records accumulator write + summary faff-parks fence), FAFF-796 +1 beep-boop (git-only run-level anchor mint + commit bullet at orchestrator exit, per ADR 0109), FAFF-808 +5 gateway (Tracker availability resolution step 1: three-way probe branch for the git-only pin), FAFF-814 +12 beep-boop (step 7 eager containment-gated discovered-scope filing at L4 + step 8.0 reconcile/backstop + filed_this_wave accounting), FAFF-810 +1 beep-boop (step 3 re-slice-handoff prep-return bullet + reconciliation non-attach-expecting wiring), FAFF-841 +107 faff-graft (Step 9b In Review transition + Step 10 bounded landing loop: observe(pr) oracle, landing_loop procedure, landing-resumable outcome token + ledger-bucket mapping), FAFF-819 +4 faff-graft (Step 9b bundle-publish paragraph, after the anchor mint) +1 beep-boop (run-close bundle-publish bullet, after anchor-run), FAFF-817 +1 gateway (Slots table: transport row)
+const SKILL_LINE_BASELINE = { faff: 1177, "faff-beep-boop": 739, "faff-graft": 758 };   // renamed from SKILL_LINE_CAP_OVERRIDE (FAFF-584). faff/faff-beep-boop: ratchet baselines, set to their exact committed size. faff-graft: unchanged carry-forward, see above. (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7), FAFF-767 +1 beep-boop (surface intervention row) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return), FAFF-448 +6 gateway (decisions-register consult in Resolve-attempt before park) + faff-graft +6 (register-consult mirror + 3/5 bound-drift fix), FAFF-584 gateway ## Routing dedupe (line-neutral rename) + baseline re-pin to committed size, FAFF-699 +11 gateway (Interactive next-step offer subsection + Park-protocol recovery addendum), FAFF-761 +6 faff-graft (Step 3 standalone-interactive L2 mint block + Step 10 terminal outcome-write block), FAFF-214 +11 faff-graft (Step 9b draft→sanitize→check→gh pr create --body-file sequence + Step 8 pointer + autonomous-summary mirror), FAFF-782 +2 beep-boop (step 11.6 run-end synchronicity invariant — the whole reconcile→post-merge→owner-close tail runs in-turn, never a fire-and-forget background wait), FAFF-788 +1 beep-boop (Run ledger top-level level field-bullet), FAFF-779 +1 gateway (Park protocol (shared): conditional WIP/draft-PR steps + park-record accumulator + short-comment-rule) +1 beep-boop (park backstop's park_records accumulator write + summary faff-parks fence), FAFF-796 +1 beep-boop (git-only run-level anchor mint + commit bullet at orchestrator exit, per ADR 0109), FAFF-808 +5 gateway (Tracker availability resolution step 1: three-way probe branch for the git-only pin), FAFF-814 +12 beep-boop (step 7 eager containment-gated discovered-scope filing at L4 + step 8.0 reconcile/backstop + filed_this_wave accounting), FAFF-810 +1 beep-boop (step 3 re-slice-handoff prep-return bullet + reconciliation non-attach-expecting wiring), FAFF-841 +107 faff-graft (Step 9b In Review transition + Step 10 bounded landing loop: observe(pr) oracle, landing_loop procedure, landing-resumable outcome token + ledger-bucket mapping), FAFF-819 +4 faff-graft (Step 9b bundle-publish paragraph, after the anchor mint) +1 beep-boop (run-close bundle-publish bullet, after anchor-run), FAFF-817 +1 gateway (Slots table: transport row), FAFF-884 beep-boop line-neutral (Turn-survival invariant in-flight-marker sentence appended in-line; baseline unchanged at 739) + faff-prep +2 (spec-review-gate in-flight-marker turn-survival prose, under the uncapped 600 default, no baseline entry)
+// FAFF-884: the turn-survival anchor-phrase lint, generalised from the hard-coded
+// `name === "faff-graft"` branch to a data-driven PER-SKILL map. Each skill anchors
+// on the literal phrases its OWN prose genuinely carries (the three faff-graft phrases
+// do not all appear in faff-beep-boop / faff-prep, so a shared phrase set would force
+// contrived wording) — case-insensitive substring, PRESENCE-only (the mechanical floor
+// is the runtime background-fence + inflightcheck Stop hook, not this static check).
+// faff-graft keeps its three unchanged; faff-beep-boop / faff-prep each assert the
+// in-flight-marker turn-survival prose the FAFF-884 fix adds at their dispatch sites.
+const ANCHOR_PHRASES = {
+  "faff-graft": ["run_in_background: true", "never end a turn", "foreground-to-terminal"],
+  "faff-beep-boop": ["never end a turn", "in-flight marker"],
+  "faff-prep": ["never end a turn", "in-flight marker"],
+};
 const PARA_WORD_CAP = 200;                         // longest single prose line (≈ one paragraph) — nudge bullets over walls of prose
 const DUP_BLOCK_WINDOW = 6;                         // identical run of significant lines across 2+ skills = copied prose; single-source it
 const DUP_SIG_MINLEN = 25;                          // a "significant" line for dedup/paragraph purposes is non-trivial prose this long
@@ -721,22 +734,24 @@ function cmdValidateAdapters(args) {
       console.log(`FAIL  ${name} (rendering pass)`);
       console.log(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
     }
-    // FAFF-491/530: faff-graft's build phase (Steps 7–9b) must carry the foreground-posture
-    // rule — a build subagent that self-backgrounds its own gate/test/review step and ends
-    // its turn strands the build (live occurrences, FAFF-466/FAFF-446/FAFF-530). Substring-only
-    // (case-insensitive), same honesty caveat as FAFF-439: this asserts the instruction is
-    // PRESENT, not runtime-obeyed — the FAFF-491/530 background-fence hook is the mechanical floor.
-    // FAFF-530 adds the third anchor `foreground-to-terminal` — the dispatched build's turn
-    // contract (terminal token or sanctioned hold, never a progress report).
-    if (name === "faff-graft") {
+    // FAFF-491/530/884: the turn-survival posture must be PRESENT in the skills that
+    // carry it — faff-graft's build phase (Steps 7–9b) and, per FAFF-884, faff-beep-boop's
+    // orchestrator dispatch + faff-prep's spec-review dispatch, the arms the inflightcheck
+    // Stop hook now backstops. A subagent/orchestrator that self-backgrounds a dispatch and
+    // ends its turn strands the run (live occurrences, FAFF-466/446/530 at the build altitude,
+    // FAFF-884 at the orchestrator/prep altitude). Substring-only (case-insensitive), same
+    // honesty caveat as FAFF-439: this asserts the instruction is PRESENT, not runtime-obeyed
+    // — the background-fence + inflightcheck hooks are the mechanical floor. The anchor set is
+    // per-skill (ANCHOR_PHRASES, module scope), each skill keyed on the literal phrases its own
+    // prose carries.
+    const anchors = ANCHOR_PHRASES[name];
+    if (anchors) {
       const lower = text.toLowerCase();
-      const hasRunInBackground = lower.includes("run_in_background: true");
-      const hasNeverEndATurn = lower.includes("never end a turn");
-      const hasForegroundToTerminal = lower.includes("foreground-to-terminal");
-      if (!hasRunInBackground || !hasNeverEndATurn || !hasForegroundToTerminal) {
+      const missing = anchors.filter((p) => !lower.includes(p));
+      if (missing.length) {
         failed = true;
-        console.log(`FAIL  ${name} (build-phase posture)`);
-        console.log(`        ✗ missing the FAFF-491/530 foreground-posture declaration — must carry all three of "run_in_background: true", "never end a turn", and "foreground-to-terminal" (case-insensitive)`);
+        console.log(`FAIL  ${name} (turn-survival posture)`);
+        console.log(`        ✗ missing turn-survival anchor phrase(s): ${missing.map((p) => JSON.stringify(p)).join(", ")} (case-insensitive; ANCHOR_PHRASES[${name}])`);
       }
     }
   }

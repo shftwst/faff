@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-885",
+  "build": {
+    "status": "complete",
+    "diff_hash": "66c6f7f714c48a38e5da8a6bd9b690eed226e53607cade3b8f6f19ff86d7e944",
+    "branch": "faff-885-review-callmjs-first-byte-deadline",
+    "pushed_at": "2026-08-19T20:16:18.291Z"
+  },
+  "updated_at": "2026-08-19T20:16:18.291Z"
+}

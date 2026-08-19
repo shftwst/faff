@@ -19,14 +19,14 @@ const { adrField, adrSlug, recordSupersede, recordSupersededBy, recordSupersessi
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const PRDR_SPEC = { flags: {
   "--drops-last-goal": { arity: 0 }, "--grounding-present": { arity: 0 }, "--json": { arity: 0 },
-  "--live": { arity: 0 }, "--new-capability": { arity: 0 }, "--no-branch": { arity: 0 }, "--self": { arity: 0 },
+  "--live": { arity: 0 }, "--local": { arity: 0 }, "--new-capability": { arity: 0 }, "--no-branch": { arity: 0 }, "--self": { arity: 0 },
   "--selftest": { arity: 0 }, "--serves-goal": { arity: 0 }, "--within-scope": { arity: 0 },
-  "--actor": { arity: 1 }, "--admit-verdict": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 },
+  "--actor": { arity: 1 }, "--admit-verdict": { arity: 1 }, "--base": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 },
   "--challenge-ground": { arity: 1 }, "--challenge-reason": { arity: 1 }, "--container": { arity: 1 }, "--date": { arity: 1 },
-  "--dod-covers": { arity: 1 }, "--dod-verdicts": { arity: 1 },
+  "--dod-covers": { arity: 1 }, "--dod-verdicts": { arity: 1 }, "--issue": { arity: 1 },
   "--lineage-supersessions": { arity: 1 }, "--live-prdrs": { arity: 1 }, "--lower": { arity: 1 },
   "--prd-goal": { arity: 1 }, "--prd-goals": { arity: 1 }, "--proposal": { arity: 1 }, "--proposal-reason": { arity: 1 },
-  "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 }, "--root": { arity: 1 }, "--status": { arity: 1 },
+  "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--status": { arity: 1 },
   "--supersedes-provenance": { arity: 1 }, "--thrash-max": { arity: 1 }, "--to": { arity: 1 }, "--upper": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb selector" } };
 // FAFF-628 — declared grammar for `faff cli-surface --json` + the drift-guard's flag-layer
@@ -48,12 +48,17 @@ const PRDR_SURFACE = {
     yagni: { required_flags: [] },
     coverage: { required_flags: [] },
     distance: { required_flags: [] },
+    land: { required_flags: ["--local"] }, // FAFF-875 — --local is the only supported mode in v1
   },
 };
 const { DEFAULTS, loadConfig, resolvePrdrDocsPath } = require("./config");
 const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, contractPrdDistance, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
 const { dig, findRoot } = require("./shared-infra");
+// FAFF-875 — `prdr land --local` reuses merge-gate's git-only primitives verbatim: the
+// no-remote bypass-guard predicate, the local-base resolver, and the shared ff-only
+// base-advance helper (Case A/B/C — see landBaseFfOnly's own header comment in merge-gate.js).
+const { gitRemoteEmpty, landBaseFfOnly, resolveLocalBase } = require("./merge-gate");
 
 const PRDR_STATUSES = ["Proposed", "Accepted", "Rejected", "Superseded"];
 const PRDR_PROVENANCES = ["human", "loop"];
@@ -81,29 +86,60 @@ function parsePrdGoalsField(raw) {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+// Pure per-file parse — the SHARED core `listPrdrs` (fs-backed) and `listPrdrsAtRef` (git-show-backed,
+// FAFF-875) both reduce to, so a ref-pinned read is never a forked/divergent parser.
+function parsePrdrRecord(file, text) {
+  const m = file.match(PRDR_FILE_RE);
+  if (!m) return null;
+  const titleM = text.match(/^#\s*PRDR\s+\d+\s*[—\-]\s*(.+)$/mi);
+  // FAFF-815 — citation is a set. Parse the plural `PRD-goals:` field (colon-anchored, so it never
+  // matches a legacy `PRD-goal:` line); fall back to the legacy singular field. `prd_goal` stays as
+  // the primary (prd_goals[0]) for distance/list and any single-goal consumer.
+  const goalsRaw = adrField(text, "PRD-goals") ?? adrField(text, "PRD-goal");
+  const prd_goals = parsePrdGoalsField(goalsRaw);
+  return {
+    number: parseInt(m[1], 10), num: m[1], slug: m[2], file,
+    title: titleM ? titleM[1].trim() : null,
+    container: adrField(text, "Container"),
+    prd_goals,
+    prd_goal: prd_goals[0] ?? "",
+    status: adrField(text, "Status"),
+    provenance: adrField(text, "Provenance"),
+    date: adrField(text, "Date"),
+  };
+}
+
 function listPrdrs(dir) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
   for (const f of fs.readdirSync(dir).sort()) {
-    const m = f.match(PRDR_FILE_RE);
-    if (!m) continue;
-    const text = fs.readFileSync(path.join(dir, f), "utf8");
-    const titleM = text.match(/^#\s*PRDR\s+\d+\s*[—\-]\s*(.+)$/mi);
-    // FAFF-815 — citation is a set. Parse the plural `PRD-goals:` field (colon-anchored, so it never
-    // matches a legacy `PRD-goal:` line); fall back to the legacy singular field. `prd_goal` stays as
-    // the primary (prd_goals[0]) for distance/list and any single-goal consumer.
-    const goalsRaw = adrField(text, "PRD-goals") ?? adrField(text, "PRD-goal");
-    const prd_goals = parsePrdGoalsField(goalsRaw);
-    out.push({
-      number: parseInt(m[1], 10), num: m[1], slug: m[2], file: f,
-      title: titleM ? titleM[1].trim() : null,
-      container: adrField(text, "Container"),
-      prd_goals,
-      prd_goal: prd_goals[0] ?? "",
-      status: adrField(text, "Status"),
-      provenance: adrField(text, "Provenance"),
-      date: adrField(text, "Date"),
-    });
+    if (!PRDR_FILE_RE.test(f)) continue;
+    const rec = parsePrdrRecord(f, fs.readFileSync(path.join(dir, f), "utf8"));
+    if (rec) out.push(rec);
+  }
+  return out.sort((a, b) => a.number - b.number);
+}
+
+// FAFF-875 (D6 reader) — the REF-PINNED sibling of `listPrdrs`: reads the PRDR directory as it
+// exists at `ref` (a branch/sha) via `git ls-tree` + `git show`, never the filesystem. Needed
+// because a Case-A `land` (bare `update-ref`) advances `base` WITHOUT touching the invoking
+// worktree's own checkout — the working tree stays stale, so a coverage recompute that read the
+// filesystem would silently reflect the OLD base. `dir` is the absolute PRDR directory (as
+// `prdrDir(root)` returns); `root` is the repo root the ref lives in. Best-effort: any git
+// failure (ls-tree/show) degrades to treating that path/file as absent, never throws.
+function listPrdrsAtRef(root, dir, ref) {
+  const rel = path.relative(root, dir);
+  const lsOut = gitOut(root, ["ls-tree", "-r", "--name-only", ref, "--", rel]);
+  if (lsOut == null) return [];
+  const files = lsOut.split("\n").map((s) => s.trim()).filter(Boolean);
+  const out = [];
+  for (const f of files) {
+    const base = path.basename(f);
+    if (!PRDR_FILE_RE.test(base)) continue;
+    const text = gitOut(root, ["show", `${ref}:${f}`]);
+    if (text == null) continue;
+    const rec = parsePrdrRecord(base, text);
+    if (rec) out.push(rec);
   }
   return out.sort((a, b) => a.number - b.number);
 }
@@ -258,6 +294,172 @@ function prdrAccept(dir, root, number, { actor, admitVerdictJson, noBranch, cfg 
   let warn = "";
   if (!noBranch) { const back = git(root, ["switch", curBranch]); if (back.status !== 0) warn = `warning: commit landed on "${landing}" but could not switch back to "${curBranch}" — run: git switch ${curBranch}\n`; }
   return { code: 0, out: JSON.stringify({ file: filePath, branch: noBranch ? curBranch : landing, base }) + "\n", err: warn };
+}
+
+// === FAFF-875: `faff prdr land --local` — land an Accepted doc-only PRDR onto `main` in a
+// no-remote repo. A sibling landing gate to `merge-gate --local` (D1: never an overload of it) —
+// narrower (doc-only, PRDR-shaped preconditions), reusing the same ff-only base-advance
+// primitive (`landBaseFfOnly`, extracted out of merge-gate.js) rather than forking it. ===
+
+// D3.3 — segment-anchored containment: every path the land would introduce must stay wholly
+// under the configured PRDR directory. `prefix` is ALREADY trailing-slash-stripped
+// (resolvePrdrDocsPath's own contract). Deliberately NOT a bare `startsWith(prefix)` — that
+// would admit a sibling-prefix escape like `records/prdr-notes/evil.js` (the round-1 review's
+// infosec finding); a segment boundary (`prefix + "/"`) plus a traversal-segment guard is the
+// precedent `deriveAnchorDirs` (governance-check.js) already established for the same shape of
+// problem. `f === prefix` (a path equal to the directory itself, no separator) also passes, per
+// the spec's own predicate — an edge case no real `git diff --name-only` row produces (that
+// command never emits a bare directory path) but harmless to admit.
+function landPathAllowed(f, prefix) {
+  if (typeof f !== "string" || !f) return false;
+  if (f !== prefix && !f.startsWith(prefix + "/")) return false;
+  return f.split("/").every((seg) => seg !== "." && seg !== ".." && seg !== "");
+}
+
+// D3.4 — candidate validation runs against the LANDING TREE (the state `main` would have once
+// landed), never the current filesystem (which, in the common single-worktree flow, still shows
+// the base copy — still Proposed, since `accept` only ever touches the landing branch). Follows
+// the post-merge.js `git worktree add --detach` precedent: materialise `ref` into a throwaway
+// detached worktree, run the existing FAFF-463 validators (`prdrValidate` + `prdrGitTier`)
+// against THAT tree, then always clean up (a stray worktree entry is the one failure mode the
+// `finally` exists to prevent). Returns a flat problems[] (empty ⟹ clean).
+function landCandidateProblems(root, ref) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-land-"));
+  try {
+    const added = spawnSync("git", ["worktree", "add", "--detach", tmp, ref], { cwd: root, encoding: "utf8" });
+    if (added.status !== 0) return [`could not materialise the candidate tree at ${ref}: ${((added.stderr || "") + (added.stdout || "")).trim().slice(-300)}`];
+    const candidateCfg = loadConfig(tmp)[0];
+    const candidateDir = prdrDir(tmp);
+    const problems = prdrValidate(candidateDir);
+    const { fails } = prdrGitTier(candidateDir, tmp, candidateCfg);
+    return problems.concat(fails);
+  } finally {
+    spawnSync("git", ["worktree", "remove", "--force", tmp], { cwd: root, encoding: "utf8" });
+    try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
+  }
+}
+
+// The full `land` procedure (D2–D6), kept as its own function (mirrors `prdrAccept`'s shape) so
+// `cmdPrdr`'s `land` branch stays a thin flag-parse + dispatch, and so the selftest can drive it
+// directly without shelling the CLI. Returns { code, out?, err? } — `out` is the D5 JSON record
+// on success (always emitted, `--json` or not — the auditable landing record, per spec D5).
+function prdrLand(dir, root, number, { baseFlag, prdGoalsRaw, runDir, issue, cfg } = {}) {
+  // D2.1 — no-remote gate (indeterminate fails toward "has a remote", fail-closed).
+  const remoteEmpty = gitRemoteEmpty(root);
+  if (remoteEmpty !== true) {
+    return { code: 2, err: "faff prdr land --local: repo has a remote (or its remote-state is indeterminate) — land an Accepted PRDR via the forge PR path\n" };
+  }
+
+  const d = String(number || "").match(/^(\d{1,4})/);
+  const num = d ? d[1].padStart(4, "0") : null;
+  if (!num) return { code: 2, err: `faff prdr land: invalid PRDR number "${number}"\n` };
+
+  // D2.3 — the landing branch must exist and be one `faff prdr accept` produced. Discovered by
+  // NUMBER-PREFIXED GLOB on refs/heads (`git for-each-ref`), never by recomputing the expected
+  // branch name from a title read out of the WORKING TREE: `accept`'s landing branch is created
+  // off `base` at accept-time and can carry the PRDR record as its OWN first-ever commit — when
+  // the record was authored but never committed to base (the exact "stranded, coverage reads
+  // 0/5" repro this ticket exists to fix), `accept`'s closing `git switch <curBranch>` makes git
+  // remove that now-tracked-only-on-landing file from the base worktree entirely, so a
+  // filesystem read here would find nothing to land. The glob needs no title at all.
+  const branchPrefix = (cfg && cfg["prdr.accept_branch_prefix"]) || DEFAULTS["prdr.accept_branch_prefix"];
+  const refOut = gitOut(root, ["for-each-ref", "--format=%(refname:short)", `refs/heads/${branchPrefix}${num}-*`]);
+  const landingCandidates = (refOut || "").split("\n").map((s) => s.trim()).filter(Boolean);
+  if (landingCandidates.length === 0) {
+    return { code: 1, err: `faff prdr land: no landing branch matching "${branchPrefix}${num}-*" — land only advances a branch created by \`faff prdr accept\`\n` };
+  }
+  if (landingCandidates.length > 1) {
+    return { code: 1, err: `faff prdr land: ambiguous — multiple landing branches match "${branchPrefix}${num}-*": ${landingCandidates.join(", ")}\n` };
+  }
+  const landing = landingCandidates[0];
+
+  // D2.2 — the record + its Status are read from the LANDING BRANCH TIP's own tree (`git
+  // ls-tree` + `git show`), never the base/working-tree copy — again so an absent-from-base
+  // record still lands correctly.
+  const prdrPrefix = resolvePrdrDocsPath(root, cfg, false); // trailing slash already stripped
+  const lsOut = gitOut(root, ["ls-tree", "-r", "--name-only", landing, "--", prdrPrefix]);
+  const landingFiles = (lsOut || "").split("\n").map((s) => s.trim()).filter(Boolean);
+  const matchPath = landingFiles.find((f) => PRDR_FILE_RE.test(path.basename(f)) && path.basename(f).startsWith(`${num}-`));
+  if (!matchPath) {
+    return { code: 1, err: `faff prdr land: landing branch "${landing}" carries no PRDR-${num} record under ${prdrPrefix}\n` };
+  }
+  const tipText = gitOut(root, ["show", `${landing}:${matchPath}`]);
+  if (tipText == null) return { code: 1, err: `faff prdr land: cannot read ${matchPath} at ${landing}\n` };
+  const rec = parsePrdrRecord(path.basename(matchPath), tipText);
+  if (!rec) return { code: 1, err: `faff prdr land: ${matchPath} at ${landing} does not parse as a PRDR record\n` };
+  const tipStatus = rec.status || "";
+  if (!/^Accepted/i.test(tipStatus)) {
+    return { code: 1, err: `faff prdr land: PRDR-${num} Status at ${landing} is "${tipStatus.split(/[ (.]/)[0] || "?"}", not Accepted — land only ratifies an Accepted record\n` };
+  }
+
+  // Resolve the LOCAL base branch — the git-only resolver merge-gate --local itself uses (parity).
+  const base = resolveLocalBase(root, baseFlag);
+  if (!base) return { code: 2, err: "faff prdr land --local: cannot resolve a local base branch (no --base, and neither main nor master exists locally)\n" };
+  if (base === landing) return { code: 2, err: `faff prdr land: base and landing branch are the same ref (${base}) — nothing to land\n` };
+
+  const baseShaBefore = gitOut(root, ["rev-parse", base]);
+  const tipSha = gitOut(root, ["rev-parse", landing]);
+  if (!baseShaBefore || !tipSha) return { code: 1, err: "faff prdr land: cannot resolve base/landing branch tips\n" };
+
+  // D3.2 — fast-forward descendant (rebase-first if base moved; non-ff is out of scope).
+  if (!gitOk(root, ["merge-base", "--is-ancestor", base, landing])) {
+    return { code: 1, err: `faff prdr land: "${landing}" is not a fast-forward descendant of "${base}" — rebase the accept branch onto ${base} first (ff-only)\n` };
+  }
+
+  // D3.3 — every changed path stays wholly under the configured PRDR directory (segment-anchored).
+  // (`prdrPrefix` was already resolved above for the D2.2 ls-tree scope — reused verbatim.)
+  const changedRaw = gitOut(root, ["diff", "--name-only", base, landing]);
+  const changed = (changedRaw || "").split("\n").map((s) => s.trim()).filter(Boolean);
+  for (const f of changed) {
+    if (!landPathAllowed(f, prdrPrefix)) {
+      return { code: 1, err: `faff prdr land refuses: ${f} is outside the PRDR directory ${prdrPrefix} (doc-only landing only)\n` };
+    }
+  }
+
+  // D3.4 — candidate validation against the landing tree (never the stale working copy).
+  const candidateProblems = landCandidateProblems(root, landing);
+  if (candidateProblems.length) {
+    return { code: 1, err: candidateProblems.map((p) => `FAIL  ${p}`).join("\n") + "\n" };
+  }
+
+  // D4 — atomic ff-only advance, shared with `merge-gate --local`. `allowInPlace: true` arms
+  // Case C (the ordinary git-only single-worktree PRDR flow: `accept` switched back to base, so
+  // the invoking worktree normally sits ON base already) — see landBaseFfOnly's header comment
+  // for why merge-gate --local itself never sets this.
+  const adv = landBaseFfOnly({ cwd: root, base, tipSha, baseShaBefore, allowInPlace: true, retryHint: `faff prdr land --local ${rec.num}` });
+  if (!adv.ok) return { code: 1, err: `faff prdr land: ${adv.blocker}\n` };
+
+  // D6 — recompute coverage from the UPDATED base. The ff-only advance means the new base tip IS
+  // the landing tip; read live PRDRs from the filesystem when the invoking worktree itself now
+  // reflects that tip (Case C — the common flow), else ref-pinned (Case A/B, where the invoking
+  // worktree's own checkout was never touched — see listPrdrsAtRef's header comment).
+  const newBaseSha = tipSha;
+  const selfNowBranch = gitOut(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  const rawLive = selfNowBranch === base ? listPrdrs(dir) : listPrdrsAtRef(root, dir, newBaseSha);
+  const livePrdrs = rawLive.filter((p) => !recordSupersededBy(p.status, "PRDR"))
+    .map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal }));
+
+  let prdGoals = [];
+  if (prdGoalsRaw != null) {
+    try { prdGoals = JSON.parse(prdGoalsRaw); } catch (e) { return { code: 2, err: `faff prdr land: --prd-goals is not valid JSON: ${e.message}\n` }; }
+    if (!Array.isArray(prdGoals)) return { code: 2, err: "faff prdr land: --prd-goals must be a JSON array of strings\n" };
+  }
+  const coverage = computePrdCoverageVerdict({ prdGoals, livePrdrs });
+
+  const result = { prdr: rec.num, file: rec.file, base, old_base_sha: baseShaBefore, new_base_sha: newBaseSha, landed: true, coverage };
+
+  // D5 — persist the landing record when a run dir is supplied; the stdout JSON is always the
+  // load-bearing record either way (the spec's own punt on the exact persisted-record path).
+  let warn = "";
+  if (runDir && issue) {
+    try {
+      const outDir = path.join(runDir, issue);
+      fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(path.join(outDir, `prdr-landing-${rec.num}.json`), JSON.stringify(result, null, 2) + "\n");
+    } catch (e) { warn = `warning: could not persist landing record: ${e.message}\n`; }
+  }
+
+  return { code: 0, out: JSON.stringify(result) + "\n", err: warn };
 }
 
 // Merge-time collision repair — port of adrRenumber for PRDR (uses the shared renumberRefsTo).
@@ -587,7 +789,25 @@ function cmdPrdr(args) {
     return 0;   // report-only (parity with `coverage`): the verdict is in the payload, never the exit code
   }
 
-  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit | yagni | coverage | distance (or --selftest)\n");
+  if (action === "land") {
+    // FAFF-875 — land an Accepted, doc-only PRDR from its `prdr/NNNN-slug` branch onto the local
+    // base branch. `--local` is the only supported mode in v1 (D1's punt); required here so the
+    // surface reads as deliberately git-only.
+    const reqErr = requireFlags(parsed.values, PRDR_SURFACE.subcommands.land, "prdr", "land");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
+    const number = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
+    if (!number) { process.stderr.write("faff prdr land: <number> is required\n"); return 2; }
+    const cfg = loadConfig(root)[0];
+    const r = prdrLand(dir, root, number, {
+      baseFlag: get("--base"), prdGoalsRaw: get("--prd-goals"),
+      runDir: get("--run-dir"), issue: get("--issue"), cfg,
+    });
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
+  }
+
+  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit | yagni | coverage | distance | land (or --selftest)\n");
   return 2;
 }
 
@@ -1063,6 +1283,146 @@ function prdrSelftest() {
       t("renumber: to the same number is a no-op exit 0", res.code === 0 && /no-op/.test(res.out)); fs.rmSync(r, { recursive: true, force: true }); }
   }
 
+  // === FAFF-875: `faff prdr land --local` — land an Accepted doc-only PRDR onto `main` ===
+  {
+    const mkRepo = () => {
+      const r = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-land-"));
+      git(r, ["init", "-q", "-b", "main"]); git(r, ["config", "user.email", "t@t"]); git(r, ["config", "user.name", "t"]);
+      fs.writeFileSync(path.join(r, "README.md"), "seed\n");
+      const d = path.join(r, "docs", "prdr"); fs.mkdirSync(d, { recursive: true });
+      git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "init"]);
+      return { r, d };
+    };
+    // Author the PRDR WITHOUT committing it to base, then accept — this is the exact "authored
+    // but stranded, coverage reads 0/5" repro shape (the record's only-ever appearance in git
+    // history is the accept commit ON the landing branch): the tougher, load-bearing case for
+    // AC #8's uncovered→covered transition (a record already committed to base as Proposed
+    // already trivially "covers" its goal — citation is status-blind — so ONLY the never-on-base
+    // case actually exercises the transition this ticket exists to fix).
+    // `cmdPrdr(["new", ...])` prints the created path to real stdout on success — suppress it here
+    // (mirrors the FAFF-856 `new --prd-goals` guard block's own capture() above) so this block's
+    // fixture setup doesn't flood the selftest's console output.
+    const silently = (fn) => { const orig = process.stdout.write; process.stdout.write = () => true; try { return fn(); } finally { process.stdout.write = orig; } };
+    const authorAndAccept = (r, d, opts = {}) => {
+      const newRes = silently(() => cmdPrdr(["new", opts.title || "Widget", "--container", "c", "--prd-goal", opts.goal || "ship it", "--root", r]));
+      const acceptRes = prdrAccept(d, r, "1", {});
+      return { newRes, acceptRes };
+    };
+
+    // AC #2 — remote present (or indeterminate) → refuse exit 2, base never advanced.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d);
+      const bare = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-land-bare-")); git(bare, ["init", "-q", "--bare"]);
+      git(r, ["remote", "add", "origin", bare]);
+      const before = gitOut(r, ["rev-parse", "main"]);
+      const res = prdrLand(d, r, "1", {});
+      t("land: repo WITH a remote → refuse exit 2, base unchanged", res.code === 2 && /repo has a remote/.test(res.err) && gitOut(r, ["rev-parse", "main"]) === before);
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #3 — non-Accepted (Proposed) landing branch → refuse.
+    { const { r, d } = mkRepo(); silently(() => cmdPrdr(["new", "Widget", "--container", "c", "--prd-goal", "g", "--root", r]));
+      git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "add widget"]);
+      git(r, ["branch", "prdr/0001-widget"]); // a landing-shaped branch, but never actually accepted (still Proposed)
+      const res = prdrLand(d, r, "1", {});
+      t("land: a non-Accepted (Proposed) landing branch → refuse", res.code === 1 && /not Accepted/.test(res.err));
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #3 — landing branch absent → refuse.
+    { const { r, d } = mkRepo(); silently(() => cmdPrdr(["new", "Widget", "--container", "c", "--prd-goal", "g", "--root", r]));
+      const res = prdrLand(d, r, "1", {});
+      t("land: no matching landing branch → refuse", res.code === 1 && /no landing branch matching/.test(res.err));
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #4 — non-ff-descendant (base moved independently since accept) → refuse.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d);
+      fs.appendFileSync(path.join(r, "README.md"), "more\n"); git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "base moves"]);
+      const res = prdrLand(d, r, "1", {});
+      t("land: base moved (non-ff) → refuse, names rebase remedy", res.code === 1 && /not a fast-forward descendant/.test(res.err) && /rebase/.test(res.err));
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #4 — the base is DIRTY in the invoking worktree (Case C) → refuse, nothing landed.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d);
+      fs.writeFileSync(path.join(r, "README.md"), "uncommitted local edit\n"); // dirty, never staged/committed
+      const beforeSha = gitOut(r, ["rev-parse", "main"]);
+      const res = prdrLand(d, r, "1", {});
+      t("land: a dirty invoking worktree (base checked out there) → refuse, base unchanged", res.code === 1 && /uncommitted changes/.test(res.err) && gitOut(r, ["rev-parse", "main"]) === beforeSha);
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #4 — path-segment safety, unit-level: `landPathAllowed` rejects traversal segments
+    // (`.`/`..`) and any path not segment-anchored under the prefix, admits a genuine record path.
+    { const prefix = "docs/prdr";
+      t("landPathAllowed: rejects a `..` traversal segment", landPathAllowed(`${prefix}/../secrets.md`, prefix) === false);
+      t("landPathAllowed: rejects a `.` segment", landPathAllowed(`${prefix}/./x.md`, prefix) === false);
+      t("landPathAllowed: rejects a sibling-prefix escape (bare startsWith would wrongly admit this)", landPathAllowed("docs/prdr-notes/evil.js", prefix) === false);
+      t("landPathAllowed: rejects an empty segment (doubled slash)", landPathAllowed(`${prefix}//x.md`, prefix) === false);
+      t("landPathAllowed: admits a genuine record path under the prefix", landPathAllowed(`${prefix}/0001-x.md`, prefix) === true);
+      t("landPathAllowed: admits the prefix itself (the spec's own f===prefix clause)", landPathAllowed(prefix, prefix) === true); }
+
+    // AC #4 — a changed path OUTSIDE the PRDR directory (sibling-prefix escape) → refuse.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d);
+      git(r, ["checkout", "-q", "prdr/0001-widget"]);
+      fs.mkdirSync(path.join(r, "docs", "prdr-notes"), { recursive: true });
+      fs.writeFileSync(path.join(r, "docs", "prdr-notes", "evil.js"), "x\n");
+      git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "sibling-prefix escape"]);
+      git(r, ["checkout", "-q", "main"]);
+      const res = prdrLand(d, r, "1", {});
+      t("land: a changed path outside the PRDR dir (sibling-prefix escape) → refuse", res.code === 1 && /is outside the PRDR directory/.test(res.err) && /prdr-notes\/evil\.js/.test(res.err));
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #5 — candidate validation FAIL (a missing body section on the landing tree) blocks the land.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d);
+      git(r, ["checkout", "-q", "prdr/0001-widget"]);
+      const p = path.join(d, "0001-widget.md");
+      fs.writeFileSync(p, fs.readFileSync(p, "utf8").replace(/## Definition of done[\s\S]*$/, ""));
+      git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "drop a required section"]);
+      git(r, ["checkout", "-q", "main"]);
+      const res = prdrLand(d, r, "1", {});
+      t("land: candidate validation FAIL (missing section) blocks the land", res.code === 1 && /missing "## Definition of done"/.test(res.err));
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // AC #6 + #8 — happy path (single-worktree, invoking worktree ON base): ff-advance via
+    // in-place merge, working tree reflects the landed record, JSON result shape, persisted
+    // landing record under --run-dir/--issue, and coverage moves uncovered→covered.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d, { goal: "ship booking" });
+      const beforeCov = computePrdCoverageVerdict({ prdGoals: ["ship booking"], livePrdrs: listPrdrs(d).map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal })) });
+      const runDir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-land-rundir-"));
+      const beforeSha = gitOut(r, ["rev-parse", "main"]);
+      const res = prdrLand(d, r, "1", { runDir, issue: "FAFF-TEST", prdGoalsRaw: JSON.stringify(["ship booking"]) });
+      let out = {}; try { out = JSON.parse(res.out || "{}"); } catch { /* fall through to failing assertions */ }
+      t("land: happy path exits 0", res.code === 0);
+      t("land: BEFORE land, coverage does not yet count the Accepted-but-unmerged record", beforeCov.covered === false);
+      t("land: result carries {landed:true, old_base_sha, new_base_sha, coverage}", out.landed === true && out.old_base_sha === beforeSha && typeof out.new_base_sha === "string" && out.coverage && typeof out.coverage === "object");
+      t("land: AFTER land, coverage counts the now-landed record (uncovered → covered)", out.coverage.covered === true);
+      t("land: base ref advanced to the landing tip", gitOut(r, ["rev-parse", "main"]) === out.new_base_sha);
+      t("land: invoking worktree's own index/working tree reflect the landed record (in-place ff)", fs.readFileSync(path.join(d, "0001-widget.md"), "utf8").includes("Accepted"));
+      t("land: a landing record is persisted under --run-dir/--issue", fs.existsSync(path.join(runDir, "FAFF-TEST", "prdr-landing-0001.json")));
+      t("land: the persisted record matches the stdout JSON", (() => {
+        try { return JSON.parse(fs.readFileSync(path.join(runDir, "FAFF-TEST", "prdr-landing-0001.json"), "utf8")).new_base_sha === out.new_base_sha; } catch { return false; }
+      })());
+      fs.rmSync(r, { recursive: true, force: true }); fs.rmSync(runDir, { recursive: true, force: true }); }
+
+    // AC #7 — a concurrent base move during the Case-A `update-ref` compare-and-swap aborts the
+    // land (no partial advance). Exercised directly against the shared `landBaseFfOnly` (the same
+    // helper `land` calls) with a deliberately STALE `baseShaBefore` — the mechanical shape of
+    // "base moved between read and advance", independent of any real timing race.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d);
+      const staleBaseSha = gitOut(r, ["rev-parse", "main"]);
+      // Move `main` for real (simulating a peer's concurrent advance) before our own land call.
+      git(r, ["checkout", "-q", "main"]); fs.appendFileSync(path.join(r, "README.md"), "peer advanced\n");
+      git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "a peer's concurrent advance"]);
+      const tipSha = gitOut(r, ["rev-parse", "prdr/0001-widget"]);
+      const beforeSha = gitOut(r, ["rev-parse", "main"]);
+      const adv = landBaseFfOnly({ cwd: r, base: "main", tipSha, baseShaBefore: staleBaseSha, allowInPlace: true });
+      t("land (CAS): a concurrent base move aborts the update-ref CAS — refused, not ok", adv.ok === false);
+      t("land (CAS): base ref is UNCHANGED by the aborted attempt (no partial advance)", gitOut(r, ["rev-parse", "main"]) === beforeSha);
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // D6 — `accept` alone (no `land`) never moves coverage: the goal stays uncovered until landed.
+    { const { r, d } = mkRepo(); authorAndAccept(r, d, { goal: "reduce no-shows" });
+      const cov = computePrdCoverageVerdict({ prdGoals: ["reduce no-shows"], livePrdrs: listPrdrs(d).map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal })) });
+      t("land: accept alone (base copy absent) never moves coverage — still uncovered", cov.covered === false);
+      fs.rmSync(r, { recursive: true, force: true }); }
+  }
+
   let failed = 0;
   for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prdr --selftest FAIL: ${name}\n`); failed++; } }
   if (failed) { process.stderr.write(`prdr --selftest: ${failed}/${cases.length} failed\n`); return 1; }
@@ -1071,4 +1431,4 @@ function prdrSelftest() {
 }
 
 
-module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, PRDR_SPEC, PRDR_SURFACE, cmdPrdr, listPrdrs, prdrAccept, prdrDir, prdrGitTier, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate };
+module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, PRDR_SPEC, PRDR_SURFACE, cmdPrdr, landCandidateProblems, landPathAllowed, listPrdrs, listPrdrsAtRef, prdrAccept, prdrDir, prdrGitTier, prdrLand, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate };

@@ -187,6 +187,11 @@ const REGION_MAP = {
   // shared-infra findRoot, no tracker/config/contract dependency — a pure computation command,
   // lighter sibling of adr → factory.
   "decisions": "factory",
+  // decision-capture — FAFF-821: read-only decision-kernel instrumentation. Requires
+  // events.js (appendEventRecord/tailReadState/sha256Hex/HEX64_RE — governance) and
+  // redact.js (governance) — factory→governance is legal (ADR-0042), same family as
+  // decisions/andon above.
+  "decision-capture": "factory",
   "prd": "factory",
   // prd-checklist — FAFF-557: pure checklist-PRD parser emitting the existing prd-coverage
   // shape. Requires only contract-engine's schemaCheck (no shared-infra/governance-profile
@@ -353,6 +358,7 @@ const REGION_SELFTEST_ARGV = {
   "adr": ["adr", "--selftest"],
   "andon": ["andon", "--selftest"],
   "decisions": ["decisions", "--selftest"],
+  "decision-capture": ["decision-capture", "--selftest"],
   "prd": ["prd", "--selftest"],
   "prd-checklist": ["prd-checklist", "--selftest"],
   "prdr": ["prdr", "--selftest"],

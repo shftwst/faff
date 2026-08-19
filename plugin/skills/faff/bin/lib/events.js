@@ -117,8 +117,13 @@ const DISPATCH_ALLOWED_DATA_KEYS = new Set([
 ]);
 
 // FAFF-564: the chain-hash shape — 64 lowercase hex chars (SHA-256). Shared by the
-// `prev` envelope check and the `ledger-write` data.ledger_sha256 check.
+// `prev` envelope check, the `ledger-write` data.ledger_sha256 check, and (FAFF-821)
+// decision-capture's `causation.sha256` check — exported so decision-capture.js's own
+// delegating validator reuses this exact regex rather than a second copy.
 const HEX64_RE = /^[0-9a-f]{64}$/;
+
+// FAFF-821: the DecisionCapture record's closed coverage-class vocabulary (spec §3).
+const DECISION_CAPTURE_COVERAGE_VALUES = new Set(["replayable", "non-replayable", "uncovered"]);
 
 // FAFF-564: one SHA-256 helper for the chain — raw bytes in, lowercase hex out.
 function sha256Hex(buf) {
@@ -256,6 +261,48 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
     const rt = obj.data.rework_turns;
     if (!Number.isInteger(rt) || rt < 0) {
       v.push(`data.rework_turns must be a non-negative integer (got ${JSON.stringify(rt)})`);
+    }
+  }
+  // FAFF-821: decision-capture — the DecisionCapture record shape (spec §3). Mirrors the
+  // agent-dispatch block above: a structured, closed-vocab `data.*` payload, checked at
+  // the same point. Deliberately DUPLICATED (not required) from decision-capture.js's own
+  // `decisionCaptureViolations` — decision-capture.js already requires this module for
+  // appendEventRecord (factory→governance is a legal require edge, ADR-0042), and
+  // governance must never require factory back, so a require edge the other way is not
+  // available. The two copies share the same RULES, kept in sync by hand; see the mirror
+  // comment on decisionCaptureViolations in decision-capture.js.
+  if (obj.type === "decision-capture") {
+    const d = obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) ? obj.data : {};
+    if (typeof d.kernel !== "string" || d.kernel === "") {
+      v.push("data.kernel must be a non-empty string");
+    }
+    if (typeof d.kernel_version !== "string") {
+      v.push("data.kernel_version must be a string");
+    }
+    if (!DECISION_CAPTURE_COVERAGE_VALUES.has(d.coverage)) {
+      v.push(`data.coverage ${JSON.stringify(d.coverage)} not in {${[...DECISION_CAPTURE_COVERAGE_VALUES].join(", ")}}`);
+    }
+    if (d.normalised_inputs === null || typeof d.normalised_inputs !== "object" || Array.isArray(d.normalised_inputs)) {
+      v.push("data.normalised_inputs must be a plain object");
+    }
+    const actionOk = typeof d.selected_action === "string"
+      || (d.selected_action !== null && typeof d.selected_action === "object" && !Array.isArray(d.selected_action));
+    if (!actionOk) {
+      v.push("data.selected_action must be an object or a string");
+    }
+    if (!Array.isArray(d.missing_inputs) || !d.missing_inputs.every((x) => typeof x === "string")) {
+      v.push("data.missing_inputs must be an array of strings");
+    } else if (d.coverage === "non-replayable" && d.missing_inputs.length === 0) {
+      v.push("data.missing_inputs must be non-empty when coverage is non-replayable");
+    } else if (d.coverage !== "non-replayable" && d.missing_inputs.length > 0) {
+      v.push(`data.missing_inputs must be empty when coverage is ${JSON.stringify(d.coverage)}`);
+    }
+    const c = d.causation;
+    if (c === null || typeof c !== "object" || Array.isArray(c)) {
+      v.push("data.causation must be an object {seq, sha256}");
+    } else {
+      if (!Number.isInteger(c.seq)) v.push("data.causation.seq must be an integer");
+      if (typeof c.sha256 !== "string" || !HEX64_RE.test(c.sha256)) v.push("data.causation.sha256 must be 64 lowercase hex chars (SHA-256)");
     }
   }
   return v;
@@ -1710,4 +1757,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

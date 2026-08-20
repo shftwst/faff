@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.19.0](https://github.com/shftwst/faff/compare/faff--v0.18.0...faff--v0.19.0) (2026-08-20)
+
+
+### Features
+
+* **FAFF-734:** publish the Fly.io L3 FAFF-472 run as a v0.1-conformant external-verification case ([#717](https://github.com/shftwst/faff/issues/717)) ([c1b51d4](https://github.com/shftwst/faff/commit/c1b51d4d645812e97301bd2996f740eb93ef9d37))
+* **FAFF-743:** publish the external-verification protocol v0.1 ([#715](https://github.com/shftwst/faff/issues/715)) ([c41ab44](https://github.com/shftwst/faff/commit/c41ab44a31a0c79c7a24c792e76af88065367493))
+* **FAFF-777:** gate scope-drift's outward-boundary-reach to a non-parking rung ([#706](https://github.com/shftwst/faff/issues/706)) ([1550515](https://github.com/shftwst/faff/commit/15505158a8a1828556d585a78c168d260ae64afd))
+* **FAFF-817:** a first-class transport slot for evaluator-SUT reachability ([#705](https://github.com/shftwst/faff/issues/705)) ([3200432](https://github.com/shftwst/faff/commit/32004329e3e63ea21ae21b937ff0d16874a601f5))
+* **FAFF-820:** faff bundle-recover — read-only later-executor recovery from a verified Phase 0 bundle ([#701](https://github.com/shftwst/faff/issues/701)) ([d7e9b49](https://github.com/shftwst/faff/commit/d7e9b494ce5b5f9c90c8a2b7d341b64a1e00404d))
+* **FAFF-821:** capture decision-kernel inputs and chosen actions for Phase 1 fidelity ([#723](https://github.com/shftwst/faff/issues/723)) ([0111c83](https://github.com/shftwst/faff/commit/0111c83b51c2ae6a2d1c281fe1e068c50f3abc6c))
+* **FAFF-843:** foldCorrectiveAuthority — digest-custody basis grants corrective Channel A ([#708](https://github.com/shftwst/faff/issues/708)) ([03bbbe6](https://github.com/shftwst/faff/commit/03bbbe62b80e1ff7c08e37e0c22fa3af69ce0c14))
+* **FAFF-844:** staged fix cycle for landing conflicts/regressions ([#729](https://github.com/shftwst/faff/issues/729)) ([7fb1386](https://github.com/shftwst/faff/commit/7fb13867f0d77b847e950e7dd226b747358ffd4e))
+* **FAFF-845:** enrich Phase 0 recovery bundle — contract_fingerprint + landing-progress ([#704](https://github.com/shftwst/faff/issues/704)) ([4b0ee3c](https://github.com/shftwst/faff/commit/4b0ee3cb003a56f0e94a46050c8b605407c85051))
+* **FAFF-847:** heartbeat-freshness-vs-logged-progress correlation signal (close the vector-4b residual) ([#702](https://github.com/shftwst/faff/issues/702)) ([c6158cf](https://github.com/shftwst/faff/commit/c6158cf346b8c7624160e2c89a4666daa8ce97ad))
+* **FAFF-848:** recognise the invariant lints, two-tier dedup, and partial + coverage in gate discovery ([#728](https://github.com/shftwst/faff/issues/728)) ([098ce28](https://github.com/shftwst/faff/commit/098ce284668533637f8acbcfbbc805fff5194a32))
+* **FAFF-859:** lane-isolation declared field — two-axis vocabulary + config-declares→emit→assert-in ([#709](https://github.com/shftwst/faff/issues/709)) ([4302fd5](https://github.com/shftwst/faff/commit/4302fd585a2406474447f7b3829c05b9a2326231))
+* **FAFF-860:** landing-command comment for build-complete PRs ([#699](https://github.com/shftwst/faff/issues/699)) ([4e3d455](https://github.com/shftwst/faff/commit/4e3d4553469a77bb967fbd2994c2661df2b48083))
+* **FAFF-863:** add write-once recovery-claim ref gating the lights-out --resume continuation boundary ([#725](https://github.com/shftwst/faff/issues/725)) ([4353c95](https://github.com/shftwst/faff/commit/4353c95d5f6c8e2461b57674ffc0549f7f5eed7c))
+* **FAFF-870:** per-consumer adversarial-review backend chains ([#716](https://github.com/shftwst/faff/issues/716)) ([06813fa](https://github.com/shftwst/faff/commit/06813faab4b8d7aa562e9d8680fe05d3d58cf926))
+* **FAFF-873:** add configurable reasoning_effort to the OpenAI-compatible adversarial payload ([#724](https://github.com/shftwst/faff/issues/724)) ([60532b1](https://github.com/shftwst/faff/commit/60532b11d025d0d086987d1cde534954547fdd5f))
+* **FAFF-874:** spec-review loop cap yields to a convergence signal ([#718](https://github.com/shftwst/faff/issues/718)) ([a8fc36c](https://github.com/shftwst/faff/commit/a8fc36c9bb8f0e16c6a19b29e78a9e1c4cf881a1))
+* **FAFF-875:** add faff prdr land --local for git-only doc-only PRDR landing ([#721](https://github.com/shftwst/faff/issues/721)) ([ea6d446](https://github.com/shftwst/faff/commit/ea6d4464800978f44d5f45d7215021095a114362))
+* **FAFF-885:** first-byte deadline so a buffering backend fails over as fast as an unreachable one ([#727](https://github.com/shftwst/faff/issues/727)) ([136f49d](https://github.com/shftwst/faff/commit/136f49d7f3ad15727b20f890da24840ba68ac369))
+* **FAFF-886:** pin the spec-review reviewer across a spec's loop (prefer-with-fallback) ([#733](https://github.com/shftwst/faff/issues/733)) ([774c0c6](https://github.com/shftwst/faff/commit/774c0c682468d06fe8d256e8d8dc7cde64deb176))
+* **FAFF-887:** make the poller's FAFF_RUN_HEARTBEAT_STALE_SECS no-op loud ([#730](https://github.com/shftwst/faff/issues/730)) ([092be75](https://github.com/shftwst/faff/commit/092be756712d2b91cdf0c90db32d62b2fba0f798))
+
+
+### Bug Fixes
+
+* **FAFF-682:** reword unowned-sibling-mutation to drop accusatory framing ([#710](https://github.com/shftwst/faff/issues/710)) ([7e8dc51](https://github.com/shftwst/faff/commit/7e8dc51ea639cc27567b0c2c8b75c0781fb45696))
+* **FAFF-794:** add known-key (schema) lint to faff config check ([#707](https://github.com/shftwst/faff/issues/707)) ([bbe0ebf](https://github.com/shftwst/faff/commit/bbe0ebf506a59e52455b936eabb7c55289bcde1c))
+* **FAFF-856:** store PRD-goals citation as a JSON array, not a bare comma-join ([#712](https://github.com/shftwst/faff/issues/712)) ([cedf0b0](https://github.com/shftwst/faff/commit/cedf0b0146b3ef9ff5d542d072e83d45ab9cc11d))
+* **FAFF-857:** sanctioned review-call.mjs helper leads the adversarial-transport call site ([#711](https://github.com/shftwst/faff/issues/711)) ([1ae47d2](https://github.com/shftwst/faff/commit/1ae47d2c47b5392c6e1eded04820fc78159466ed))
+* **FAFF-858:** reuse the inherited FAFF_RUN_DIR as the L4 build ledger end to end ([#720](https://github.com/shftwst/faff/issues/720)) ([24a91c2](https://github.com/shftwst/faff/commit/24a91c2af2189f56b9f7d9b370c0d56eb22a5b1a))
+* **FAFF-864:** share one effects ledger between the landing declare and merge-gate ([#703](https://github.com/shftwst/faff/issues/703)) ([075c85e](https://github.com/shftwst/faff/commit/075c85eb25a79577b5b2ab597d13f18b62d88a60))
+* **FAFF-865:** guard bundle.js verify anchor-file materialisation against path escape ([#714](https://github.com/shftwst/faff/issues/714)) ([d3a5cdd](https://github.com/shftwst/faff/commit/d3a5cdd494e0fcc61ef2e94ea9cc2ff56d03f6eb))
+* **FAFF-869:** transport dind-in-cage arm selects shared network under rootless ([#719](https://github.com/shftwst/faff/issues/719)) ([bf85fc9](https://github.com/shftwst/faff/commit/bf85fc9882b31a13d1fdf06bb07cba59aa81c7c6))
+* **FAFF-876:** resolve the run-close boundary at the run-anchor root ([#722](https://github.com/shftwst/faff/issues/722)) ([dc45ea4](https://github.com/shftwst/faff/commit/dc45ea40b496569ad21fce3c427e7015608cdb2b))
+* **FAFF-882:** drop the faff gateway from review-call --context ([#732](https://github.com/shftwst/faff/issues/732)) ([96a5060](https://github.com/shftwst/faff/commit/96a50602726936e25928faf666213cdb9ce9beb5))
+* **FAFF-884:** inflightcheck Stop hook — refuse a turn-end with an Agent dispatch still in flight ([#731](https://github.com/shftwst/faff/issues/731)) ([08be668](https://github.com/shftwst/faff/commit/08be668c14dad30c8a808a8bdb776754d4bceeff))
+
 ## [0.18.0](https://github.com/shftwst/faff/compare/faff--v0.17.0...faff--v0.18.0) (2026-08-17)
 
 

@@ -544,7 +544,9 @@ In **interactive mode**, this gate fires when the user confirms "merge now" at p
 | Landing loop | The bounded observe-then-act loop below that replaces the uncapped CI wait and drives an open PR toward merged |
 | Landing time budget | A fixed 25-minute wall-clock deadline measured from loop entry; at the deadline the loop stops and hands off `landing-resumable` |
 | Re-run budget | The within-firing flaky re-run allowance carried as ephemeral loop state: at most one clean re-run per head sha, at most two per issue-build |
-| Leave-for-human path | The existing `pr-open-for-human` park behaviour (below); the loop routes `CONFLICTING`, `CI_RED_REGRESSION`, `CI_RED_PARK`, `NO_CI_COVERAGE`, a budget-exhausted `CI_RED_FLAKY`, and a failed `BEHIND` rebase to it, unchanged |
+| Autofix mode | `.faffrc` `graft.landing.autofix`: `off` (default; `CONFLICTING`/`CI_RED_REGRESSION` leave for a human, unchanged) \| `shadow` (fix cycle runs and pushes, merge stays human-gated) \| `unattended` (a resolved cycle continues the loop toward merge). Unset or unrecognised reads as `off` plus one warning |
+| Fix-cycle counter | The persisted per-issue `fix_cycles` (0..3) at `<run_dir>/<issue>/landing-progress.json` (`faff landing-progress`) — the bound on commits a fix cycle pushes to a live PR |
+| Leave-for-human path | The existing `pr-open-for-human` park behaviour (below); the loop routes `CI_RED_PARK`, `NO_CI_COVERAGE`, a budget-exhausted `CI_RED_FLAKY`, a failed `BEHIND` rebase, and — under `autofix: off` or an exhausted fix-cycle budget — `CONFLICTING`/`CI_RED_REGRESSION` to it |
 
 **The oracle: `observe(pr)`.** Reads the PR head check rows and the merge fields, then applies a fixed precedence (first match wins) — the CI axis before the merge-state axis, since acting on a head whose CI is unsettled or red is premature:
 
@@ -577,6 +579,13 @@ PROCEDURE landing_loop(issue, pr, run_dir):
   reruns_by_sha   := {}     # ephemeral loop state; the caller-side ci-triage reruns_used budget
   reruns_total    := 0      # NOT a persisted artifact — within-firing state only
 
+  autofix := resolve_autofix_mode(config graft.landing.autofix)   # unrecognised -> "off" + one warning; see below
+  IF autofix != "off":
+     progress := `faff landing-progress read <run_dir> <issue>`     # persisted-progress verb; exit 3 (absent) -> fix_cycles 0
+     IF progress.fix_cycles >= 3:
+        hard_park(issue, pr, reason="landing-fix-budget-exhausted", diagnosis=progress.history)
+        RETURN pr-open-for-human           # a firing re-entering with the count already at 3 parks here, pushes nothing
+
   LOOP:
     faff heartbeat "<run_dir>" --unit <issue>          # keep the existing heartbeat tick
 
@@ -602,9 +611,13 @@ PROCEDURE landing_loop(issue, pr, run_dir):
         ELSE:                                                   # budget exhausted -> persistent by fiat
            leave_for_human(issue, pr, reason="flaky-exhausted -> persistent"); RETURN pr-open-for-human
       CI_RED_REGRESSION:
-        leave_for_human(issue, pr, reason="ci-regression"); RETURN pr-open-for-human   # a future fix-cycle follow-up replaces this
+        outcome := handle_fixable_state(issue, pr, run_dir, state, autofix)   # off -> leave_for_human unchanged; else the staged fix cycle below
+        IF outcome == CONTINUE: CONTINUE the loop   # unattended, resolved: re-observe for READY, below
+        ELSE: RETURN outcome
       CONFLICTING:
-        leave_for_human(issue, pr, reason="conflict"); RETURN pr-open-for-human        # a future fix-cycle follow-up replaces this
+        outcome := handle_fixable_state(issue, pr, run_dir, state, autofix)   # off -> leave_for_human unchanged; else the staged fix cycle below
+        IF outcome == CONTINUE: CONTINUE the loop   # unattended, resolved: re-observe for READY, below
+        ELSE: RETURN outcome
       BEHIND:
         run `gh pr update-branch <pr>` (or rebase main onto the branch), then re-push
         IF the update-branch / rebase / push FAILS (a conflict surfaced by the rebase,
@@ -619,9 +632,59 @@ PROCEDURE landing_loop(issue, pr, run_dir):
           hold" path); route on delivery-outcome as documented there; RETURN shipped
 ```
 
-**Which states continue the loop.** `CI_PENDING` (poll), `CI_RED_FLAKY` while its re-run budget remains (one re-run, then continue), and a successful `BEHIND` rebase continue. `CONFLICTING`, `CI_RED_REGRESSION`, `CI_RED_PARK`, `NO_CI_COVERAGE`, a `CI_RED_FLAKY` whose budget is exhausted, and a failed `BEHIND` rebase leave the loop for a human (`leave_for_human` is the existing `pr-open-for-human` park behaviour below — not a new mechanism: for a CI-red regression or an exhausted-budget flaky it is the existing CI-red triage `fix-attempt`/park routing; for a conflict or an update-branch failure it is the existing `failed:<reason>` handling — autonomous does one opportunistic fix attempt if obvious from the error, else flips the PR to draft and parks). `READY` merges. **No new autonomous fixing is added here** — `CONFLICTING` and `CI_RED_REGRESSION` are observed but routed to the existing park path unchanged; the bounded autonomous fix cycles for those two states are a separate follow-up ticket, out of scope here.
+**Which states continue the loop.** `CI_PENDING` (poll), `CI_RED_FLAKY` while its re-run budget remains (one re-run, then continue), a successful `BEHIND` rebase, and — under `autofix: unattended`, on a resolved fix cycle — `CONFLICTING`/`CI_RED_REGRESSION` continue. `CI_RED_PARK`, `NO_CI_COVERAGE`, a `CI_RED_FLAKY` whose budget is exhausted, a failed `BEHIND` rebase, and — under `autofix: off`, or once the fix-cycle budget is exhausted — `CONFLICTING`/`CI_RED_REGRESSION` leave the loop for a human (`leave_for_human` is the existing `pr-open-for-human` park behaviour below — not a new mechanism: for a CI-red regression or an exhausted-budget flaky it is the existing CI-red triage `fix-attempt`/park routing; for a conflict or an update-branch failure it is the existing `failed:<reason>` handling). `READY` merges. **The staged fix cycle (below) is the one behavioural change this ticket makes to the switch** — `CONFLICTING` and `CI_RED_REGRESSION` route through `handle_fixable_state`, which reproduces today's `leave_for_human` exactly under the default `autofix: off`.
 
-**Anti-patterns:** counting a `BEHIND` rebase or a within-budget flaky re-run as a reason to park (those are mechanical, recoverable states — parking on them would strand a healthy PR); re-running a flaky check every iteration with no budget (it would then only ever be bounded by the 25-minute clock and never reach a human — the re-run budget is what makes it persistent by fiat once spent); adding wait or rebase logic to `merge-gate.js` (it is the terminal-green snapshot primitive — the loop calls it only when `READY`).
+### The staged fix cycle (CONFLICTING and CI_RED_REGRESSION)
+
+**The autofix config gate.** `graft.landing.autofix` (`.faffrc`, read via `faff config get graft.landing.autofix -d off`): `off` (default, fail-safe) \| `shadow` \| `unattended`. An unset or unrecognised value resolves to `off` and emits one warning naming the value, so a typo never silently disables autofix without a trace.
+
+**`handle_fixable_state`** replaces `leave_for_human` on both branches with a bounded fix cycle:
+
+```
+PROCEDURE handle_fixable_state(issue, pr, run_dir, state, autofix):   # state in {CONFLICTING, CI_RED_REGRESSION}
+  IF autofix == "off":
+     leave_for_human(issue, pr, reason = state==CONFLICTING ? "conflict" : "ci-regression")
+     RETURN pr-open-for-human                                    # today's behaviour, unchanged
+
+  progress := `faff landing-progress read <run_dir> <issue>`       # exit 3 -> fix_cycles 0
+  IF progress.fix_cycles >= 3:                                     # belt-and-braces with the loop-entry read
+     hard_park(issue, pr, reason="landing-fix-budget-exhausted", diagnosis=progress.history)
+     RETURN pr-open-for-human
+
+  kind     := state == CONFLICTING ? "conflict" : "regression"
+  pre_head := current PR head sha
+  ctx      := build_fix_context(kind, pr, pre_head)    # conflict_paths, OR ci_failure_log + failing_checks_pre
+  result   := run_fix_cycle(ctx)
+
+  IF NOT result.pushed:
+     record_failed_cycle(run_dir, issue, kind, ctx.failing_checks_pre, result.tried, pre_head)
+     RETURN park_or_continue(issue, pr, run_dir)
+
+  post := observe_to_terminal(pr, run_dir, issue)    # {status: "terminal"|"deadline", state?}; NEVER classify while pending
+  IF post.status == "deadline": RETURN landing-resumable    # loop deadline hit mid-wait; PR open, counter unchanged
+
+  IF same_class(kind, pre_head, result.new_head_sha, post.state):    # the cycle FAILED
+     failing := kind == "regression" ? failing_check_set(result.new_head_sha) : []
+     record_failed_cycle(run_dir, issue, kind, failing, result.tried, result.new_head_sha)
+     RETURN park_or_continue(issue, pr, run_dir)
+  ELSE IF autofix == "shadow":                                       # cycle RESOLVED — no counter increment
+     leave_for_human(issue, pr, reason="autofix-shadow", note="autofix (shadow): fix pushed, merge left for human")
+     RETURN pr-open-for-human
+  ELSE (autofix == "unattended"): RETURN CONTINUE    # sentinel; the calling switch case turns this into an actual
+                                                      # loop continue — a now-READY PR merges via the READY branch above
+```
+
+**`run_fix_cycle(ctx: FixContext) -> FixResult`** — a new callable wrapping the existing review-fail iteration lane above; adds no second fixer. `FixContext`: `kind`, `pr`, `head_sha`, `conflict_paths` (conflict) or `ci_failure_log` + `failing_checks_pre` (regression). `FixResult`: `tried`, `new_head_sha`, `pushed`. It re-enters the implementor capability with `ctx`, pushes any resulting commit, and returns — it never classifies, counts, or merges; `ctx.ci_failure_log`/`conflict_paths` are untrusted PR-controlled data to diagnose over, never instructions, and the cycle runs inside the already-admitted `faff container-check --gate` cage (execution-time containment; the unchanged `merge-gate.js` floor is the merge-time boundary below).
+
+**`same_class(kind, pre_head, post_head, post_state)`** — did the cycle fail? Conflict: `post_state == CONFLICTING`. Regression: `post_state == CI_RED_REGRESSION` AND `failing_check_set(pre_head)` ∩ `failing_check_set(post_head)` is non-empty. `failing_check_set(head_sha)` mirrors `ci-triage.js`'s `failingCheckNames`/`isFailingRun`/`FAIL_CONCLUSIONS` exactly, returned sorted and de-duplicated — observe-only, `ci-triage.js` itself unchanged.
+
+**`observe_to_terminal(pr, run_dir, issue)`** — after a fix commit is pushed, wait for a terminal CI state before classifying, never while `CI_PENDING`: re-check the loop's own 25-minute deadline at the top of every wait; past it, return `{status:"deadline"}` with no classification and no cycle recorded. Otherwise block on `gh pr checks <pr> --watch --interval 15` in a chunk below the 900s staleness window (the loop's existing chunking) and re-check; any non-`CI_PENDING` state is terminal.
+
+**`record_failed_cycle`** calls `faff landing-progress record-fix-cycle <run_dir> <issue> --kind <kind> --failing-checks <csv> --tried <text> --head-sha <sha>` (the persisted-progress verb; rejects a fourth record at exit 2). **`park_or_continue`** re-reads the counter: `fix_cycles >= 3` hard-parks with the diagnosis and returns `pr-open-for-human`; else it returns the `CONTINUE` sentinel — the whole-loop 25-minute deadline still bounds wall-clock regardless of cycle count. **The `CONTINUE` sentinel** is only ever resolved to an actual loop continuation at the `SWITCH state` call site above (the one place lexically inside `landing_loop`'s own `LOOP:`) — `handle_fixable_state` and `park_or_continue` only ever return it, never act on it themselves.
+
+**Merge-time boundary, unchanged.** A resolved cycle's `unattended` continuation only reaches `main` through the loop's own `READY` branch → the `ship` handoff → the unchanged, non-delegable `merge-gate.js` floor (review pass, CI green on the fix head sha, AC verified, L4 holdout) — `same_class == false` clears the fix cycle's own bookkeeping, never the merge decision.
+
+**Anti-patterns:** counting a `BEHIND` rebase or a within-budget flaky re-run as a reason to park (those are mechanical, recoverable states — parking on them would strand a healthy PR); re-running a flaky check every iteration with no budget (it would then only ever be bounded by the 25-minute clock and never reach a human — the re-run budget is what makes it persistent by fiat once spent); adding wait or rebase logic to `merge-gate.js` (it is the terminal-green snapshot primitive — the loop calls it only when `READY`); recording a failed cycle before CI reaches a terminal state (a settling head reads `CI_PENDING`; classifying then scores a genuinely-failed cycle resolved and lets more than three commits reach the PR); calling `record-fix-cycle` a fourth time to see if it clamps (the verb rejects it at exit 2 by design — the caller hard-parks at three and never attempts a fourth record).
 
 **The new outcome token: `landing-resumable`.** Distinct from `pr-open-for-human`. It maps to the existing runcheck ledger bucket `pr-open` (the PR is genuinely open, opened at 9b), carrying a new ledger annotation `landing_resumable` in the ledger's annotation array, mirroring how `retry-later` maps to bucket `parked` plus the `review_outage_pending` annotation. No new bucket is introduced. The bucket and annotation are written by whichever party runs the merge locus — top-level autonomous graft in-session, or the concurrency dispatcher under a dispatch cut (obligation 7) — never by a dispatched build lane, which stops at `pr-ready` and never runs the loop. See **Return values** in Autonomous Mode for the full token entry.
 

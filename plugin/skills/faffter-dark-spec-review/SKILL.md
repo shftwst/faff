@@ -29,7 +29,7 @@ The consumer passes:
 - The **spec body** (the freshly-produced, confidence-rated spec) — the artifact under scrutiny.
 - The **enabled-lens set** — the subset of `architectural | infosec | methodology | QA` that fires for this issue. Defaults to all four when not supplied; *which* lenses fire by change-surface is resolved upstream and is not this occupant's decision.
 - The attached **`## Methodology critique`** block, when prep wrote one (the methodology slot's already-computed value/scope signal), for the methodology lens to consume.
-- **Repo architecture context** — the gateway plus the files the spec names — so a refuter can verify existence/structure claims instead of hallucinating them.
+- **Repo architecture context** — the files the spec names — so a refuter can verify existence/structure claims instead of hallucinating them.
 
 ## The lenses as independent refuters
 
@@ -85,9 +85,9 @@ esac
 
 **Pin capture (after aggregation, round 1 only in effect).** Once the round's lens results are in hand, capture the round-1 serving backend as the pin so rounds ≥ 2 hold this reviewer. From each **exit-0** lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`) parse the `chain[<i>]` index; take `winner_index = min(i)` across the served lenses (the lowest chain index that served any lens — the strongest reachable reviewer). Then `"$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index <winner_index>` — idempotent, so it writes the pin only on round 1 and is a no-op on rounds ≥ 2. If **no** lens served (empty exit-0 set) skip capture (nothing to pin; the round is `needs-human` via the transport floor anyway, and no stale pin is left behind). prep reads the served header vs the pin to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
 
-Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received: `--backends-json "$backends_json" --timeout "$timeout" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context plugin/skills/faff/SKILL.md --context <each file the spec names> --diff <spec-file>`.
+Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received: `--backends-json "$backends_json" --timeout "$timeout" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file>`.
 
-- The **spec** is supplied as `--diff` (the thing under scrutiny); repo files as `--context`; the lens refutation prompt as `--system`.
+- The **spec** is supplied as `--diff` (the thing under scrutiny); the files the spec names as `--context`; the lens refutation prompt as `--system`.
 - `$backends_json` holds the primary-first JSON array (`{provider, model, host, api_key_env?, reasoning_off?, timeout?}`) `review-call.mjs`'s `--backends-json` mapper consumes verbatim, whether the config is a single backend or a fallback chain — assembled **once**, not per lens, since it is identical across every lens in a given spec-review pass.
 - `fan-out.mjs` returns a JSON array of `LensResult` (`{lens, exit, stdout, stderr}`) in the same order as the input requests; apply the existing per-lens outcome table (unchanged, below) to each entry exactly as it was applied to one `review-call.mjs` invocation's exit code.
 - A `faff spec-review-pin --resolve` exit `3` (unconfigured/unset host — passed through from the wrapped `faff adversarial-backends`) or `2` (malformed chain config, or a corrupt pin file) means there is no chain to call the helper with; treat either as every lens's **`unavailable`**, kind `config-fault` (the same per-lens outcome the table below assigns a `review-call.mjs` config-fault exit) — never a silent `clear`.

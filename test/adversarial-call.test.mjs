@@ -1680,9 +1680,30 @@ test("FAFF-746/706 spec-review command contract supplies non-empty system, diff,
   const section = skill.match(/## Backend call[\s\S]*?\n## Aggregation/)?.[0] || "";
   assert.match(section, /--system\s+plugin\/skills\/faffter-dark-spec-review\/refute-<lens>\.md/);
   assert.match(section, /--diff\s+<spec-file>/);
-  assert.match(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
+  assert.match(section, /--context\s+<each file the spec names>/);
+  // FAFF-882: the gateway is no longer review context. Assert its ABSENCE from the argv, so
+  // reinstating it fails CI rather than passing quietly. The positive above keeps this honest:
+  // on an empty section match a bare negative would pass vacuously.
+  assert.doesNotMatch(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
   // FAFF-706: the dispatch mechanism itself must be the concurrent fan-out, never a per-lens loop.
   assert.match(section, /fan-out\.mjs/);
+});
+
+test("FAFF-882 code-review command contract: --context is the touched files, never the gateway", () => {
+  // The code-review call site had no test at all before FAFF-882, so the same edit was guarded on the
+  // spec-review side and unguarded here. Mirror the spec-review contract test.
+  const skill = readFileSync(
+    new URL("../plugin/skills/faffter-dark-adversarial-review/SKILL.md", import.meta.url),
+    "utf8",
+  );
+  const section = skill.match(/## LLM provider integration[\s\S]*?\n## Output to faff-graft/)?.[0] || "";
+  // Non-empty guard: both the --context positive and the negative below pass vacuously on "", so a
+  // renamed heading would turn this test green for the wrong reason without this assertion.
+  assert.ok(section.length > 0, "LLM provider integration section not found — heading renamed?");
+  assert.match(section, /--system\s+<review-lens-file>/);
+  assert.match(section, /--diff\s+<git-diff-file>/);
+  assert.match(section, /--context\s+<each file the diff touches>/);
+  assert.doesNotMatch(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
 });
 
 // ── attributionHeader / ensureHeader (FAFF-361: chain[index] + host provenance) ──

@@ -281,6 +281,12 @@ const REGION_MAP = {
   // require edge, ADR-0042) — factory, same family as the other small deterministic CLI
   // resolvers faff-prep shells out to.
   "spec-review-convergence": "factory",
+  // FAFF-886: spec-review-pin wraps assembleAdversarialBackends (adversarial-backends.js) with
+  // the reviewer-pin, and spec-review-dir is a pure path resolver — both small deterministic CLI
+  // resolvers the faffter-dark-spec-review occupant + faff-prep shell out to. factory→factory is
+  // a legal require edge (ADR-0042).
+  "spec-review-pin": "factory",
+  "spec-review-dir": "factory",
   // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
   // reference — same shape as spec-review-churn) — factory, same family as the other small
   // deterministic CLI resolvers.
@@ -406,6 +412,8 @@ const REGION_SELFTEST_ARGV = {
   "backends": ["backends", "--selftest"],
   "spec-review-churn": ["spec-review-churn", "--selftest"],
   "spec-review-convergence": ["spec-review-convergence", "--selftest"],
+  "spec-review-pin": ["spec-review-pin", "--selftest"],
+  "spec-review-dir": ["spec-review-dir", "--selftest"],
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
 };

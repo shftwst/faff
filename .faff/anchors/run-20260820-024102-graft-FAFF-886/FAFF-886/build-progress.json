@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-886",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d5856444ad6d494cba00699e500adca6a308841cb6e5ae00a7bac8a15b578f1a",
+    "branch": "faff-886-pin-spec-review-reviewer",
+    "pushed_at": "2026-08-20T02:41:54.000Z"
+  },
+  "updated_at": "2026-08-20T02:41:54.000Z"
+}

@@ -1,0 +1,21 @@
+{
+  "run_id": "run-20260820-024102-graft-FAFF-886",
+  "level": "L2",
+  "admitted": [
+    "FAFF-886"
+  ],
+  "outcomes": {},
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop"
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260820-024102-graft-FAFF-886",
+    "pid": 14499,
+    "started_at": "2026-08-20T02:41:02.568Z",
+    "last_heartbeat": "2026-08-20T02:41:02.568Z"
+  }
+}

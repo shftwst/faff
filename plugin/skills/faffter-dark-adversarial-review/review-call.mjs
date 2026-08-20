@@ -120,7 +120,7 @@ export function accumulateNdjson(text) {
   return { content, truncated, done };
 }
 
-// PURE: the user message — context files (the gateway + touched files, so the reviewer can verify
+// PURE: the user message — context files (every file the diff touches, so the reviewer can verify
 // existence/structure claims) fenced ahead of the diff. This is the fix for diff-only hallucination.
 export function assembleUserMessage({ contextFiles = [], diff = "" }) {
   let s = "";

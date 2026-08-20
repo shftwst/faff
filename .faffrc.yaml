@@ -118,21 +118,24 @@ adversarial:
   #     deadline is a total wall-clock budget, GLOBAL (not per-consumer) and SLICED per backend
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
-  timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. 6x-retry worst case (5400s) stays under the 7200s heartbeat window.
-  deadline: 3600   # code_review total wall-clock (s), sliced per backend (3600/3 = 1200s > timeout, so no clamp); default 480. IGNORED by spec_review.
+  timeout: 600     # per-attempt stream deadline (s); default 120. spec_review's only clock. 6x-retry worst case (3600s) stays under the 7200s heartbeat window.
+  deadline: 1800   # code_review total wall-clock (s), sliced per backend (1800/3 = 600s = timeout, so no clamp); default 480. IGNORED by spec_review.
+  first_byte_timeout: 300
   refs:
-    - openrouter-glm-free
+    # - openrouter-glm-free
     - nvidia-glm-free
-    - openrouter-glm-paid
+    #- openrouter-glm-paid
+    - gemini-gemma-free
+    - gemini-paid
     #- studio-qwen
     #- studio-north-code-mini
-  code_review:
-    refs:
-      - openrouter-north-code-mini-free
-      - gemini-gemma-free
-      - studio-qwen-coder
-      #- studio-north-code-mini
-      #- studio-qwen
+  # code_review:
+  #   refs:
+  #     - openrouter-north-code-mini-free
+  #     - gemini-gemma-free
+  #     - studio-qwen-coder
+  #     #- studio-north-code-mini
+  #     #- studio-qwen
 
 models:
     build_by_confidence:

@@ -76,6 +76,7 @@ const { cmdPrd } = require("./lib/prd");
 const { cmdPrdChecklist } = require("./lib/prd-checklist");
 const { cmdPrdr } = require("./lib/prdr");
 const { cmdPrepcheck } = require("./lib/prepcheck");
+const { cmdInflightcheck } = require("./lib/inflightcheck");
 const { cmdProfile } = require("./lib/profile");
 const { cmdProjectNext } = require("./lib/project-next");
 const { cmdQuality } = require("./lib/quality");
@@ -97,6 +98,7 @@ const { cmdSentryPoller } = require("./lib/sentry-poller");
 const { cmdSentrycheck } = require("./lib/sentrycheck");
 const { cmdSpecReviewChurn } = require("./lib/spec-review-churn");
 const { cmdSpecReviewConvergence } = require("./lib/spec-review-convergence");
+const { cmdSpecReviewPin, cmdSpecReviewDir } = require("./lib/spec-review-pin");
 const { cmdStageGuard } = require("./lib/stage");
 const { cmdState } = require("./lib/state");
 const { cmdTier } = require("./lib/tier");
@@ -119,6 +121,7 @@ const COMMANDS = {
   "runcheck": cmdRuncheck,
   "heartbeat": cmdHeartbeat,
   "prepcheck": cmdPrepcheck,
+  "inflightcheck": cmdInflightcheck,
   "intakecheck": cmdIntakecheck,
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,
@@ -216,6 +219,8 @@ const COMMANDS = {
   "review-iteration-cap": cmdReviewIterationCap,
   "spec-review-churn": cmdSpecReviewChurn,
   "spec-review-convergence": cmdSpecReviewConvergence,
+  "spec-review-pin": cmdSpecReviewPin,
+  "spec-review-dir": cmdSpecReviewDir,
   "backends": cmdBackends,
   "tier": cmdTier,
   "effort": cmdEffort,

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-887",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2a87d0fa86dfe578e47e90235c3d5750caac843f8da3017d26db8df6d34bf4ef",
+    "branch": "faff-887-poller-stall-window-env-ignored-warn",
+    "pushed_at": "2026-08-19T21:16:25.298Z"
+  },
+  "updated_at": "2026-08-19T21:16:25.298Z"
+}

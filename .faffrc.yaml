@@ -36,38 +36,103 @@ convergence:
     max_waves: 8 # reported runaway backstop only (dryness is the normal exit, never this)
 
 backends:
-    nvidia-glm:
-        provider: nvidia
-        model: z-ai/glm-5.2
-        host: https://integrate.api.nvidia.com/v1
-        api_key_env: NVIDIA_API_KEY # confirmed set in env (name only; never the key itself)
-        #timeout: 480
-    gemini-gemma:
-        provider: gemini
-        model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
-        host: https://generativelanguage.googleapis.com/v1beta/openai
-        api_key_env: GEMINI_API_KEY
-        #timeout: 480
-    openrouter:
-        provider: openai                       # OpenRouter is OpenAI-compatible
-        model: nvidia/nemotron-3-ultra-550b-a55b:free
-        host: https://openrouter.ai/api/v1
-        api_key_env: OPENROUTER_API_KEY
-        #timeout: 480
-    gemini-paid:
-        provider: gemini
-        model: models/gemini-3.5-flash-lite # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
-        host: https://generativelanguage.googleapis.com/v1beta/openai
-        api_key_env: GEMINI_API_KEY
-        #timeout: 480
+  nvidia-glm-free:
+      provider: nvidia
+      model: z-ai/glm-5.2
+      host: https://integrate.api.nvidia.com/v1
+      api_key_env: NVIDIA_API_KEY # confirmed set in env (name only; never the key itself)
+      #timeout: 480
+  gemini-gemma-free:
+      provider: gemini
+      model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
+      host: https://generativelanguage.googleapis.com/v1beta/openai
+      api_key_env: GEMINI_API_KEY
+      #timeout: 480
+  openrouter-nemotron:
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: nvidia/nemotron-3-ultra-550b-a55b:free
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      #timeout: 480
+  gemini-paid:
+      provider: gemini
+      model: models/gemini-3.5-flash-lite # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
+      host: https://generativelanguage.googleapis.com/v1beta/openai
+      api_key_env: GEMINI_API_KEY
+      #timeout: 480
+  studio-north-code-mini:
+      provider: ollama
+      model: north-mini-code-1.0:mlx-mxfp8
+      host: http://studio.longhair-escalator.ts.net:11434
+      #timeout: 480
+  studio-qwen:
+      provider: ollama
+      model: qwen3.8:27b-mlx
+      host: http://studio.longhair-escalator.ts.net:11434
+      #timeout: 480
+  openrouter-glm-free:
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: z-ai/glm-5.2:free
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      #timeout: 480
+  openrouter-glm-paid:
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: z-ai/glm-5.2
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      #timeout: 480
+  openrouter-nemotron-free:
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: nvidia/nemotron-3-ultra-550b-a55b:free
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      #timeout: 480
+  openrouter-north-code-mini-free:
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: cohere/north-mini-code:free
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      #timeout: 480
+  studio-qwen-coder:
+      provider: ollama
+      model: qwen3-coder:30b-a3b-q4_K_M
+      host: http://studio.longhair-escalator.ts.net:11434
+      #timeout: 480
 
-adversarial: # ordered refs: list — index 0 first-served, no "primary" (FAFF-261/523)
-    deadline: 1920
+# faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
+# backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
+# Flattened to the top-level `adversarial:` key per the schema change on faff main (the older
+# `faffter_dark.adversarial.refs` nesting is retired; a stale local `faff config check` still warns
+# on the flat form).
+adversarial:
+  # Larger deadline for the adversarial reviews. The local studio-qwen primary is slower than a
+  # hosted API, and the default 120s per-attempt clock abandons a slow-but-working generation to a
+  # weaker fallback (the round-3 degrade that helped park the last drain).
+  #
+  # The two review slots treat these knobs DIFFERENTLY (traced from their SKILL.md call sites):
+  #   - spec_review (faffter-dark-spec-review) passes ONLY `--timeout`. It sends no `--deadline`, so
+  #     `adversarial.deadline` below has NO effect on the spec review. `timeout` is its only clock,
+  #     and there is no total wall-clock cap: its worst case is per-attempt x retries x lenses.
+  #   - code_review (faffter-dark-adversarial-review) passes BOTH `--timeout` and `--deadline`. The
+  #     deadline is a total wall-clock budget, GLOBAL (not per-consumer) and SLICED per backend
+  #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
+  # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
+  timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. 6x-retry worst case (5400s) stays under the 7200s heartbeat window.
+  deadline: 3600   # code_review total wall-clock (s), sliced per backend (3600/3 = 1200s > timeout, so no clamp); default 480. IGNORED by spec_review.
+  refs:
+    - openrouter-glm-free
+    - nvidia-glm-free
+    - openrouter-glm-paid
+    #- studio-qwen
+    #- studio-north-code-mini
+  code_review:
     refs:
-        - nvidia-glm
-        # - openrouter
-        - gemini-gemma
-        - gemini-paid
+      - openrouter-north-code-mini-free
+      - gemini-gemma-free
+      - studio-qwen-coder
+      #- studio-north-code-mini
+      #- studio-qwen
 
 models:
     build_by_confidence:
@@ -78,4 +143,4 @@ models:
     eval: claude-opus-4-8
 
 sentry:
-  stall_window_secs: 2400
+  stall_window_seconds: 7200

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-848",
+  "build": {
+    "status": "complete",
+    "diff_hash": "78f4b9eadea7e4bd3e296b24e4f233428f07e4e422e02fd85230f72d89aa6f8d",
+    "branch": "faff-848-639a-gate-discovery-sees-what-ci-sees-recognise-invariant",
+    "pushed_at": "2026-08-19T20:42:58.648Z"
+  },
+  "updated_at": "2026-08-19T20:42:58.648Z"
+}

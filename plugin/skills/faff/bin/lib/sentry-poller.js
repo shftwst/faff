@@ -48,7 +48,7 @@ const { appendEventRecord } = require("./events");
 // FAFF-717: the single abort-acting resolver + the same guarded governance-config
 // loader `sentry check` uses. No import cycle — sentry.js/budget.js never require
 // this poller (only cli-surface does).
-const { actsOnSentryAbort } = require("./sentry");
+const { actsOnSentryAbort, stallWindowEnvIgnored } = require("./sentry");
 const { readGovernanceConfig } = require("./budget");
 
 // Default poll interval (seconds) — inside ADR-0065's proposed 60-120s band; ~1/10
@@ -349,11 +349,23 @@ function resolveRunDir(get, root) {
   return runDir;
 }
 
-function cmdStart(runDir, get, asJson) {
+function cmdStart(runDir, get, asJson, root) {
   if (!runDir) {
     process.stderr.write("faff sentry-poller start: no run dir (pass --run-dir, set $FAFF_RUN_DIR, or run inside a run)\n");
     return 3;
   }
+
+  // FAFF-887: at the moment the operator arms the poller, name the wrong lane pre-detach
+  // (cmdStart is NOT detached — this stderr IS seen, unlike the poller's own stdio:"ignore").
+  // Advisory only: a config-load fault must never block arming (the poller's whole point is
+  // to run even when config is degraded), so the warn is wrapped and defaults to no-warn.
+  try {
+    const cfg = readGovernanceConfig(root);
+    if (stallWindowEnvIgnored(process.env, cfg)) {
+      process.stderr.write("faff sentry-poller: WARNING — FAFF_RUN_HEARTBEAT_STALE_SECS is set but the detached poller's staleness window is `sentry.stall_window_secs` (unset → default 900s). The env var does not reach the poller; set `sentry.stall_window_secs` in .faffrc to widen the poller window. (stall_window_env_ignored)\n");
+    }
+  } catch { /* advisory warn only — never block arming on a config-load fault */ }
+
   const intervalRes = parseIntervalSecs(get("--interval-secs"));
   if (intervalRes.error) {
     process.stderr.write(`faff sentry-poller start: ${intervalRes.error}\n`);
@@ -479,7 +491,7 @@ function cmdSentryPoller(args) {
   if (sub === "run") return cmdRun(get);
 
   const runDir = resolveRunDir(get, root);
-  if (sub === "start") return cmdStart(runDir, get, asJson);
+  if (sub === "start") return cmdStart(runDir, get, asJson, root);
   if (sub === "stop") return cmdStop(runDir, asJson);
   if (sub === "status") return cmdStatus(runDir, asJson);
 

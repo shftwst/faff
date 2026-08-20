@@ -27,11 +27,13 @@ export function classifyDoD(faffBin, specText) {
 
 // Exercise one born-verifiable criterion against the running env: GET the endpoint and assert the expected
 // substring appears in the body. Deterministic, code-blind (it only ever sees the env's HTTP responses).
-export async function exercise(endpoint, expectSubstring) {
+// `headers` is optional (FAFF-852) — forwarded to fetch as-is, so a docker-gated integration test can
+// drive an authenticated endpoint (e.g. { Authorization: "Bearer <token>" }) to prove the auth plumbing.
+export async function exercise(endpoint, expectSubstring, headers) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
-    const res = await fetch(endpoint, { signal: ctrl.signal });
+    const res = await fetch(endpoint, { signal: ctrl.signal, ...(headers ? { headers } : {}) });
     const body = await res.text();
     const met = res.ok && body.includes(expectSubstring);
     return { verdict: met ? "met" : "unmet", evidence: `GET ${endpoint} → ${res.status} "${body.trim().slice(0, 80)}"` };

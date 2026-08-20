@@ -35,7 +35,7 @@ const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
 const { cmdContract } = require("./lib/contract-defs");
 const { CORRECTIVE_OPS, cmdCorrective, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput } = require("./lib/corrective");
-const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./lib/corrective-integrity");
+const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./lib/corrective-integrity");
 const { cmdIntegrityDigest } = require("./lib/integrity-digest");
 const { cmdDecisionCapture } = require("./lib/decision-capture");
 const { cmdDecisions } = require("./lib/decisions");
@@ -315,7 +315,7 @@ if (require.main === module) {
 // Exported pure functions (FAFF-373). Extensionless CJS imported from ESM exposes
 // only the default export, so tests destructure this object.
 module.exports = {
-  correctiveIntegrityProbe, integrityGate, correctiveIntegrityDirs,
+  correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority, correctiveIntegrityDirs,
   // FAFF-326: the corrective pure cores — exercised directly here (the asserted:true
   // "trusted" fold/validate path is unfakeable via a CLI child process, same reason
   // correctiveIntegrityProbe is exported above).

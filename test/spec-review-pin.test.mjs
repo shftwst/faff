@@ -19,6 +19,7 @@ import {
   specReviewPinSelftest,
   specReviewDirSelftest,
 } from "../plugin/skills/faff/bin/lib/spec-review-pin.js";
+import { detectSpecReviewConvergence } from "../plugin/skills/faff/bin/lib/spec-review-convergence.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -105,6 +106,37 @@ test("capture out-of-range / non-array is fail-loud and writes no pin", () => {
     assert.equal(capturePin(d, "nope", 0).error, "bad-capture");
     assert.equal(existsSync(join(d, "pinned-reviewer.json")), false, "no pin left behind");
   } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("config edited mid-loop: a pin whose backend is no longer in config is emitted verbatim as the head", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
+  try {
+    // the pinned backend (mZ) is NOT in CFG's assembled chain — the pin is self-contained, so it is
+    // still emitted as the head and the whole current chain is the fallback tail (nothing de-duped out).
+    writeFileSync(join(d, "pinned-reviewer.json"), JSON.stringify({ provider: "openai", model: "mZ", host: "https://z/v1", api_key_env: "KZ" }));
+    const res = resolvePinChain(CFG, d, undefined);
+    assert.equal(res.pinned, true);
+    assert.equal(res.chain[0].model, "mZ", "self-contained pin emitted verbatim as head");
+    assert.deepEqual(res.chain.map((b) => b.model), ["mZ", "mA", "mB", "mC"], "full current chain is the fallback tail");
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("end-to-end oracle: single-reviewer round records converge; the pre-fix reviewer-swap would park", () => {
+  // The pin makes every round a single reviewer, so the (unchanged) convergence detector yields.
+  const mk = (total, lens, blockers = 0) => Array.from({ length: total }, (_, i) => ({ lens, severity: i < blockers ? "blocker" : "major" }));
+  const converging = detectSpecReviewConvergence([
+    { verdict: "reject-approach", objections: mk(6, "architectural", 0) },
+    { verdict: "reject-approach", objections: mk(3, "architectural", 0) },
+  ]);
+  assert.equal(converging.converging, true, "one reviewer, strictly decreasing → the loop yields");
+
+  // The pre-fix drift: a mid-loop reviewer swap raises a fresh lens ⇒ churn ⇒ the detector does NOT
+  // converge (it would have force-parked). The pin (holding the reviewer) is what removes this.
+  const swapped = detectSpecReviewConvergence([
+    { verdict: "reject-approach", objections: mk(6, "architectural", 0) },
+    { verdict: "reject-approach", objections: mk(3, "architectural", 0).concat(mk(1, "infosec", 0)) },
+  ]);
+  assert.equal(swapped.converging, false, "a swapped reviewer's fresh lens reads as churn → would park");
 });
 
 test("nothing served in round 1 → no pin file (capture never called with a winner)", () => {

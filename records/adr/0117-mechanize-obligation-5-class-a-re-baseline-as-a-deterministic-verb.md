@@ -1,6 +1,6 @@
 # ADR 0117 — Mechanize obligation-5 Class-A re-baseline as a deterministic verb
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-08-20
 - **Issue:** FAFF-853

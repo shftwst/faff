@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-852",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ebf2c537ea1052cfceacc054f23eb7cdda37a26a65ae0f2a2f4de39772624e73",
+    "branch": "faff-852-evaluator-per-request-auth-plumbing-for-tokenpreview",
+    "pushed_at": "2026-08-20T11:29:17.211Z"
+  },
+  "updated_at": "2026-08-20T11:29:17.211Z"
+}

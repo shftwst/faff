@@ -106,6 +106,44 @@ export function mapSpawnStatusExit(status) {
   }
 }
 
+// PURE (FAFF-852): the scheme→request-header mapping. {} for absent/malformed/unknown-scheme
+// credentials — never a partial or guessed header. Header SHAPE only; the fail-posture for a
+// credentials-present-but-no-header-derivable case is inner-evaluator prose (SKILL.md §exercise).
+export function deriveAuthHeaders(credentials) {
+  if (!credentials || typeof credentials !== "object") return {};
+  switch (credentials.scheme) {
+    case "bearer": {
+      const token = credentials.token;
+      if (typeof token !== "string" || token.length === 0) return {};   // malformed ⇒ no header
+      return { Authorization: `Bearer ${token}` };
+    }
+    default:
+      return {};   // unknown scheme ⇒ no header (inner evaluator flags it needs-human)
+  }
+}
+
+// PURE (FAFF-852): the persistence scrub. The allow-list in assembleEnvelope blocks a new named
+// `credentials` field, but `aggregate`/`violations` are inner-authored free text copied verbatim —
+// so a live token echoed into either would otherwise persist through free text. This is the
+// structural, spawner-side enforcement of "never persisted": it holds the token value, so it is
+// the trusted boundary that can guarantee the secret never reaches disk regardless of whether the
+// inner evaluator's prose compliance held. No-op when credentials is absent or carries no secret.
+// Idempotent — once scrubbed, the secret substring is gone, so a second pass changes nothing.
+// Scrubs ONLY the secret value; every structural field is left untouched.
+export function redactCredential(envelope, credentials) {
+  const secret =
+    credentials && typeof credentials === "object" && credentials.scheme === "bearer" &&
+    typeof credentials.token === "string" && credentials.token.length > 0
+      ? credentials.token
+      : null;
+  if (!secret) return envelope;
+  const scrub = (s) => (typeof s === "string" && s.includes(secret) ? s.split(secret).join("<redacted-credential>") : s);
+  const out = { ...envelope };
+  if (typeof out.aggregate === "string") out.aggregate = scrub(out.aggregate);
+  if (Array.isArray(out.violations)) out.violations = out.violations.map(scrub);
+  return out;
+}
+
 // --- CLI ---
 
 export function parseArgs(argv) {
@@ -118,6 +156,7 @@ export function parseArgs(argv) {
     else if (k === "--key") a.key = argv[++i];
     else if (k === "--out") a.out = argv[++i];
     else if (k === "--intent") a.intent = argv[++i];             // lane-boundary intent artifact (the cage promise)
+    else if (k === "--credentials") a.credentials = argv[++i];   // path to a JSON credentials file — never the secret on argv (FAFF-852)
     else if (k === "--deadline") a.deadlineMs = Number(argv[++i]) * 1000;
     else if (k === "--json") a.json = true;
     else if (k === "--selftest") a.selftest = true;
@@ -159,6 +198,23 @@ export async function main(argv, { preflightFn, spawnFn, writeFn = (p, c) => wri
     try { intentText = readFileSync(a.intent, "utf8"); }
     catch (e) { process.stderr.write(`evaluate-call: cannot read --intent ${a.intent}: ${e.message}\n`); return EXIT.USAGE; }
   }
+  // --credentials mirrors --intent exactly: optional, path-based, fail-to-USAGE on read/parse error,
+  // plus one structural check. Never echo the path's contents into a diagnostic — name the path and
+  // the failure class only (FAFF-852).
+  let credentials;
+  if (a.credentials) {
+    let credText;
+    try { credText = readFileSync(a.credentials, "utf8"); }
+    catch (e) { process.stderr.write(`evaluate-call: cannot read --credentials ${a.credentials}: ${e.message}\n`); return EXIT.USAGE; }
+    let credObj;
+    try { credObj = JSON.parse(credText); }
+    catch (e) { process.stderr.write(`evaluate-call: --credentials is not valid JSON: ${e.message}\n`); return EXIT.USAGE; }
+    if (credObj === null || typeof credObj !== "object" || Array.isArray(credObj)) {
+      process.stderr.write("evaluate-call: --credentials must be a JSON object\n");
+      return EXIT.USAGE;
+    }
+    credentials = credObj;
+  }
   let endpoints = a.endpoints;
   if (a.endpointsJson) {
     try { const parsed = JSON.parse(a.endpointsJson); if (Array.isArray(parsed)) endpoints = endpoints.concat(parsed); }
@@ -184,8 +240,12 @@ export async function main(argv, { preflightFn, spawnFn, writeFn = (p, c) => wri
 
   // Step 3b — the inner evaluator (the configured `evaluator` slot's judging arc) runs in the caged agentic
   // engine, handed ONLY spec text + endpoint(s) + intent — never a repo path/cwd/diff (the withheld-set).
+  // credentials is included only when --credentials was supplied, so an absent flag yields a spawn
+  // payload with no "credentials" key at all — byte-identical to pre-FAFF-852 behaviour.
+  const spawnPayload = { specText, endpoints, intentText, deadlineMs: a.deadlineMs };
+  if (credentials !== undefined) spawnPayload.credentials = credentials;
   let res;
-  try { res = await spawn({ specText, endpoints, intentText, deadlineMs: a.deadlineMs }); }
+  try { res = await spawn(spawnPayload); }
   catch (e) { process.stderr.write(`evaluate-call: engine spawn threw: ${e.message}; exit ${EXIT.OTHER}\n`); return EXIT.OTHER; }
   const exit = mapSpawnStatusExit(res && res.status);
   if (exit !== EXIT.OK) {
@@ -197,7 +257,10 @@ export async function main(argv, { preflightFn, spawnFn, writeFn = (p, c) => wri
   // process NEVER wrote the verdict file — this is the whole ticket.
   const withheld = buildWithheldSet();
   const att = deriveAttestation(pf.holds, res.verdict, withheld);
-  const envelope = assembleEnvelope(res.verdict, att);
+  // redactCredential runs unconditionally on the write path, before writeFn — the structural
+  // enforcement of "never persisted": a token echoed into the inner evaluator's aggregate/violations
+  // free text is scrubbed here regardless of inner-evaluator prose compliance (FAFF-852).
+  const envelope = redactCredential(assembleEnvelope(res.verdict, att), credentials);
   try { writeFn(a.out, JSON.stringify(envelope, null, 2) + "\n"); }
   catch (e) { process.stderr.write(`evaluate-call: cannot write --out ${a.out}: ${e.message}; exit ${EXIT.OTHER}\n`); return EXIT.OTHER; }
   if (a.json) process.stdout.write(JSON.stringify(envelope) + "\n");
@@ -252,6 +315,27 @@ export function selftest() {
   // parseArgs
   const p = parseArgs(["--spec", "s.md", "--endpoint", "http://localhost:8080", "--key", "FAFF-384", "--out", "o.json", "--intent", "lb.json", "--deadline", "60"]);
   check("parseArgs", p.spec === "s.md" && p.endpoints[0] === "http://localhost:8080" && p.key === "FAFF-384" && p.out === "o.json" && p.intent === "lb.json" && p.deadlineMs === 60000);
+  const pCred = parseArgs(["--spec", "s.md", "--endpoint", "http://x", "--credentials", "creds.json"]);
+  check("parseArgs: --credentials stores the PATH, never a secret value", pCred.credentials === "creds.json");
+
+  // deriveAuthHeaders (FAFF-852) — pure scheme→header mapping
+  check("deriveAuthHeaders: bearer + token → Authorization header", JSON.stringify(deriveAuthHeaders({ scheme: "bearer", token: "abc123" })) === JSON.stringify({ Authorization: "Bearer abc123" }));
+  check("deriveAuthHeaders: absent credentials → {}", JSON.stringify(deriveAuthHeaders(undefined)) === "{}");
+  check("deriveAuthHeaders: null credentials → {}", JSON.stringify(deriveAuthHeaders(null)) === "{}");
+  check("deriveAuthHeaders: unknown scheme → {} (never a partial/guessed header)", JSON.stringify(deriveAuthHeaders({ scheme: "sigv4", token: "x" })) === "{}");
+  check("deriveAuthHeaders: bearer + missing token → {}", JSON.stringify(deriveAuthHeaders({ scheme: "bearer" })) === "{}");
+  check("deriveAuthHeaders: bearer + empty token → {}", JSON.stringify(deriveAuthHeaders({ scheme: "bearer", token: "" })) === "{}");
+
+  // redactCredential (FAFF-852) — the structural persistence scrub
+  const credsForRedact = { scheme: "bearer", token: "sekret" };
+  const dirtyEnvelope = { aggregate: "401 for Authorization: Bearer sekret", code_blind: true, criteria: [], violations: ["saw Authorization: Bearer sekret", "unrelated finding"], spawner_attested: true };
+  const cleaned = redactCredential(dirtyEnvelope, credsForRedact);
+  check("redactCredential: scrubs the secret out of aggregate", cleaned.aggregate === "401 for Authorization: Bearer <redacted-credential>");
+  check("redactCredential: scrubs the secret out of every violations entry", cleaned.violations[0] === "saw Authorization: Bearer <redacted-credential>" && cleaned.violations[1] === "unrelated finding");
+  check("redactCredential: never touches structural fields", cleaned.code_blind === true && cleaned.spawner_attested === true);
+  check("redactCredential: idempotent (a second pass changes nothing further)", JSON.stringify(redactCredential(cleaned, credsForRedact)) === JSON.stringify(cleaned));
+  check("redactCredential: no-op when credentials absent", redactCredential(dirtyEnvelope, undefined) === dirtyEnvelope);
+  check("redactCredential: no-op when credentials carries no secret (unknown scheme)", redactCredential(dirtyEnvelope, { scheme: "sigv4", token: "x" }) === dirtyEnvelope);
 
   if (fail) { console.log(`\nevaluate-call --selftest: FAIL (${fail} failed)`); return EXIT.OTHER; }
   console.log("evaluate-call --selftest: ok"); return EXIT.OK;

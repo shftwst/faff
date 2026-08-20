@@ -1942,7 +1942,11 @@ const NO_CI_POLICIES = ["needs-human", "allow"];
 // verification) blocks at EVERY level; "unasserted-refuse" (no declaration on an L4-resolved run)
 // blocks (defence-in-depth); "asserted" and "unasserted-ok" never block. Absent from an extraction,
 // computeIntegrityFloor defaults it level-awarely (fail-closed at L4) rather than dropping the leg.
-const FLOOR_INTEGRITY = ["asserted", "unasserted-ok", "unasserted-refuse", "violated"];
+// FAFF-892 (merge-floor sibling to ADR-0114): `custody-trusted` is the digest-verified
+// custody GRANT — a distinct, weaker trust class than `asserted` (mount-asserted), surfaced
+// as its own value (ADR-0073 decision 5 distinctness) so the merge-record shows the truthful
+// basis rather than collapsing it into `unasserted`. Non-blocking, like `asserted`/`unasserted-ok`.
+const FLOOR_INTEGRITY = ["asserted", "custody-trusted", "unasserted-ok", "unasserted-refuse", "violated"];
 
 // PURE: FloorInputs -> { verdict, blockers }. Same inputs, same verdict — the whole point of the
 // ticket. Every failing leg is reported (never just the first) so a refuse names all its causes.
@@ -2043,6 +2047,10 @@ const CONTRACTS = {
       { name: "integrity-violated-refuses-at-L3", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", integrity: "violated" }, wantExit: 1 },
       { name: "l4-integrity-unasserted-refuse", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "meets-spec", integrity: "unasserted-refuse" }, wantExit: 1 },
       { name: "l4-integrity-asserted-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "meets-spec", integrity: "asserted" }, wantExit: 0 },
+      // FAFF-892: the digest-verified custody GRANT is non-blocking at L4 (the fix that lets a
+      // runbook-correct honest-absence L4 run merge on the digest basis) and below L4.
+      { name: "l4-integrity-custody-trusted-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "meets-spec", integrity: "custody-trusted" }, wantExit: 0 },
+      { name: "integrity-custody-trusted-ok-at-L3", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", integrity: "custody-trusted" }, wantExit: 0 },
       { name: "fail-loud-bad-integrity", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", integrity: "maybe" }, wantExit: 2 },
       { name: "fail-loud-bad-ci-state", in: { ac_complete: true, review_verdict: "pass", ci_state: "greenish", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 2 },
       { name: "fail-loud-bad-level", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L9", holdout: "not-applicable" }, wantExit: 2 },

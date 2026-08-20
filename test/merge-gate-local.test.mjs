@@ -557,3 +557,76 @@ test("FAFF-784: raw `git merge` is still denied by merge-fence on a repo carryin
   assert.equal(code, 2, "merge-fence denies the raw merge regardless of custody state — it never even reads lane-boundary.json");
   assert.match(stderr, /faff merge-gate --local/);
 });
+
+// --- FAFF-892: the merge-floor corrective-integrity leg admits the digest-verified custody basis ---
+// Joint acceptance gate with FAFF-893 (the producer): at L4 with honest-absence (no
+// FAFF_INTEGRITY_BOUNDARY in this env), a clean per-issue custody verdict GRANTS the integrity leg
+// (custody-trusted), so a runbook-correct L4 --local run merges; absent/tampered custody still refuses.
+
+// Stage an L4 run with every non-integrity floor leg green (AC, review, and a fresh meets-spec holdout),
+// so the corrective-integrity leg is the sole variable the custody flags move.
+function seedL4RunGreen(runDir, issue) {
+  seedRunDir(runDir, issue); // ac-checklist verified + review-verdict pass
+  const issueDir = join(runDir, issue);
+  // build-progress checkpoint with an OLD updated_at so the holdout (written now) reads fresh.
+  writeFileSync(join(issueDir, "build-progress.json"), JSON.stringify({ updated_at: "2020-01-01T00:00:00.000Z", build: { pushed_at: "2020-01-01T00:00:00.000Z" } }));
+  // conformant code-blind meets-spec holdout (written last ⇒ mtime > the checkpoint timestamp)
+  writeFileSync(join(issueDir, "holdout.json"), JSON.stringify({
+    aggregate: "meets-spec", code_blind: true,
+    criteria: [{ class: "assertion", verdict: "met", evidence_present: true }],
+    violations: [],
+  }));
+}
+
+// A schema-clean custody-verdict.json at the canonical per-issue path + its sha256 (matching custodyHashBytes).
+function writeCleanCustodyVerdict(runDir, issue) {
+  const record = JSON.stringify({
+    schema_version: 1, run_id: basename(runDir), issue,
+    verified_at: "2026-08-20T00:00:00.000Z", merge_state_at_verification: "pre-merge",
+    classification: "clean", paths: [], detail: "digest-verified — no diffs against the held manifest",
+  });
+  const p = join(runDir, issue, "custody-verdict.json");
+  writeFileSync(p, record);
+  return { path: p, sha: createHash("sha256").update(record, "utf8").digest("hex") };
+}
+
+const l4Args = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--json", ...extra];
+
+test("FAFF-892: L4 --local, honest-absence + clean per-issue custody verdict → integrity GRANTS (custody-trusted), merge-ok", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedL4RunGreen(runDir, ISSUE);
+  const { path: vp, sha } = writeCleanCustodyVerdict(runDir, ISSUE);
+  commitAnchor(repo, runDir, { level: "L4" });
+  const { code, stdout } = runCli(l4Args(runDir, ["--custody-verdict", vp, "--custody-verdict-sha256", sha]), { cwd: repo });
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok", `expected merge-ok, got ${stdout}`);
+  assert.equal(out.integrity, "custody-trusted", "the merge record annotates the truthful digest basis, not asserted/unasserted");
+  assert.equal(code, 0);
+});
+
+test("FAFF-892: L4 --local, honest-absence + NO custody verdict → integrity refuses (unasserted-refuse), unchanged", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedL4RunGreen(runDir, ISSUE);
+  commitAnchor(repo, runDir, { level: "L4" });
+  const { code, stdout } = runCli(l4Args(runDir), { cwd: repo });
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /corrective-artifact integrity unasserted at L4/.test(b)), `expected the integrity blocker, got ${JSON.stringify(out.blockers)}`);
+  assert.equal(code, 1);
+});
+
+test("FAFF-892: L4 --local, custody verdict bytes altered after recording (sha mismatch) → integrity refuses, never grants", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedL4RunGreen(runDir, ISSUE);
+  const { path: vp } = writeCleanCustodyVerdict(runDir, ISSUE);
+  commitAnchor(repo, runDir, { level: "L4" });
+  // pass a stale/wrong retained sha ⇒ computeCustodyVerdictAdmission digest-mismatch ⇒ error arm ⇒ refuse
+  const { code, stdout } = runCli(l4Args(runDir, ["--custody-verdict", vp, "--custody-verdict-sha256", "0".repeat(64)]), { cwd: repo });
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.notEqual(out.integrity, "custody-trusted");
+  assert.equal(code, 1);
+});

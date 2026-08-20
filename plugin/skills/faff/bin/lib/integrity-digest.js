@@ -260,13 +260,36 @@ function rebaselineFold(runDir, manifest, writtenRel, reportedSha, issue, events
     return { ok: false, code: 2, reason: `verification unavailable — ${e.message}` };
   }
 
-  const diffPaths = diffs.map(diffPathOf);
+  // The candidate baseline — computed once, ahead of the touched-member match, because a
+  // dir-type member that did not exist AT ALL in M (the very first corrective/ write in a
+  // run) diffs as a single coarse "<dir> (appeared)" entry rather than a per-sub-file add
+  // (diffAgainstManifest's was.present branch short-circuits before the was.dir sub-file
+  // walk). Expand that one case into per-sub-file "(added)" entries — one per CURRENT file
+  // under the now-appeared dir — so a same-window co-write into the same brand-new
+  // directory is still named as tamper, never swallowed by the coarser summary.
+  let mPrime;
+  try {
+    mPrime = buildManifest(runDir, issue, events);
+  } catch (e) {
+    return { ok: false, code: 2, reason: `verification unavailable — ${e.message}` };
+  }
+  const expandedDiffs = [];
+  for (const d of diffs) {
+    const p = diffPathOf(d);
+    const nowMember = mPrime.members[p];
+    if (d.slice(p.length) === " (appeared)" && nowMember && nowMember.dir && nowMember.files) {
+      for (const sub of Object.keys(nowMember.files)) expandedDiffs.push(path.join(p, sub) + " (added)");
+    } else {
+      expandedDiffs.push(d);
+    }
+  }
+
+  const diffPaths = expandedDiffs.map(diffPathOf);
   const touchedIdx = diffPaths.indexOf(writtenRel);
   if (touchedIdx === -1) return { ok: false, code: 1, reason: `written member ${writtenRel} not observed on disk` };
-  const otherTampered = diffs.filter((_, i) => diffPaths[i] !== writtenRel);
+  const otherTampered = expandedDiffs.filter((_, i) => diffPaths[i] !== writtenRel);
   if (otherTampered.length > 0) return { ok: false, code: 1, reason: `tampered — ${otherTampered.join(", ")}` }; // never laundered into M'
 
-  const mPrime = buildManifest(runDir, issue, events);
   const recorded = manifestLeafSha256(mPrime, writtenRel);
   if (recorded === null || recorded !== reportedSha) {
     return { ok: false, code: 1, reason: `intended-content mismatch — recorded ${recorded === null ? "<none>" : recorded} != reported ${reportedSha}` };

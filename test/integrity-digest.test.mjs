@@ -448,6 +448,42 @@ test("rebaseline: reported sha256 mismatching the on-disk write → exit 1 inten
   } finally { rmSync(rd, { recursive: true, force: true }); }
 });
 
+test("rebaseline: the FIRST-EVER write into a member dir that did not exist at M (a bare directory, not just an empty files map) still folds clean — the coarse '<dir> (appeared)' diff is expanded to the touched sub-file", () => {
+  const rd = mkdtempSync(path.join(tmpdir(), "faff-idig-t-"));
+  try {
+    writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"x"}');
+    writeFileSync(path.join(rd, "events.jsonl"), '{"seq":0}\n');
+    // deliberately NO corrective/ dir yet — the roster member exists but is entirely absent on disk
+    const held = runSnap(rd).stdout;
+    assert.equal(JSON.parse(held).members["corrective"].present, false);
+    mkdirSync(path.join(rd, "corrective"), { recursive: true });
+    const body = '{"op":"forbid-surface"}';
+    writeFileSync(path.join(rd, "corrective", "0000-FAFF-1.json"), body);
+    const reportedSha = createHash("sha256").update(body).digest("hex");
+    const r = rebaseline(rd, held, path.join("corrective", "0000-FAFF-1.json"), reportedSha);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).members["corrective"].files["0000-FAFF-1.json"].sha256, reportedSha);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a second, undeclared file also lands in the SAME brand-new directory → refused as tamper, never laundered by the appeared-dir expansion", () => {
+  const rd = mkdtempSync(path.join(tmpdir(), "faff-idig-t-"));
+  try {
+    writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"x"}');
+    writeFileSync(path.join(rd, "events.jsonl"), '{"seq":0}\n');
+    const held = runSnap(rd).stdout;
+    mkdirSync(path.join(rd, "corrective"), { recursive: true });
+    const body = '{"op":"forbid-surface"}';
+    writeFileSync(path.join(rd, "corrective", "0000-FAFF-1.json"), body);
+    writeFileSync(path.join(rd, "corrective", "sneaky.json"), '{"op":"tighten-threshold"}'); // undeclared co-write
+    const reportedSha = createHash("sha256").update(body).digest("hex");
+    const r = rebaseline(rd, held, path.join("corrective", "0000-FAFF-1.json"), reportedSha);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /sneaky\.json/);
+    assert.equal(r.stdout, "");
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
 test("rebaseline: a claimed --written-path with no on-disk change → exit 1 (not observed on disk)", () => {
   const rd = evidenceDir();
   try {

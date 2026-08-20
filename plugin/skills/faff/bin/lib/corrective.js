@@ -52,6 +52,10 @@ const CORRECTIVE_OPS = ["park-with-cause", "forbid-surface", "tighten-threshold"
 // tighten-threshold's `key` must name one of Sentry's own decidable numeric knobs —
 // a closed set, so "strictly tighter" is mechanically checkable (never a free-text key).
 const TIGHTENABLE_KEYS = ["thrash_n", "failure_k", "stall_window_secs", "run_elapsed_ceiling_secs"];
+// FAFF-853: the two manifest member keys correctiveIntegrityDirs ALWAYS returns —
+// grain-invariant (run grain or per-issue, --events or not), so a legitimate baseline
+// never omits them. The negligent-hollow guard below demands both are present.
+const CORRECTIVE_CORE_ROSTER = ["corrective", "run-ledger.json"];
 
 // --- pure: per-op payload shape ---------------------------------------------------
 
@@ -554,6 +558,18 @@ function cmdCorrectiveCheck(args) {
     }
     if (!manifest || typeof manifest !== "object" || typeof manifest.members !== "object" || manifest.members === null) {
       process.stderr.write("faff corrective check: --manifest has no members\n");
+      return 2;
+    }
+    // FAFF-853: negligent-hollow guard — an empty/near-empty --manifest today passes the
+    // shape check above and, if the mount is untrusted, reaches branch 3 custody-trusted
+    // having verified nothing (diffAgainstManifest over zero members trivially reports no
+    // diffs). Demand the two members correctiveIntegrityDirs ALWAYS returns, grain-invariant
+    // — no legitimate baseline omits them, so this is default-on and costs no real caller.
+    // This catches a NEGLIGENT hollow verify only; an adversarial full-roster hollow snapshot
+    // taken at consumption is bit-for-bit indistinguishable from an honest one (see the
+    // FAFF-853 spec's WHY) and is out of reach for any on-disk check.
+    if (!CORRECTIVE_CORE_ROSTER.every((m) => Object.prototype.hasOwnProperty.call(manifest.members, m))) {
+      process.stderr.write("faff corrective check: --manifest is hollow — missing core roster member(s)\n");
       return 2;
     }
     try {

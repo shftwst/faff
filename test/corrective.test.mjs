@@ -441,6 +441,44 @@ test("check --manifest: valid JSON with no `members` → exit 2 (usage error), d
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// --- FAFF-853: negligent-hollow guard — an empty/wrong-roster --manifest is refused
+// before it can trivially reach custody-trusted having verified nothing ---
+
+test("check --manifest: an empty-members manifest ({version,grain,members:{}}) → exit 2 hollow refusal, NEVER reaches custody-trusted", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const hollow = JSON.stringify({ version: "d1", grain: "run", members: {} });
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: hollow });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /hollow — missing core roster member/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest: a manifest missing ONLY run-ledger.json (corrective present) → exit 2 hollow refusal", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const partial = JSON.stringify({ version: "d1", grain: "run", members: { corrective: { present: true, dir: true, files: {} } } });
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: partial });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /hollow — missing core roster member/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest: a real, full-roster baseline (built with buildManifest) still reaches custody-trusted — the guard is default-on but never affects a legitimate baseline", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const manifest = JSON.stringify(buildManifest(rd));
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).disposition, "custody-trusted");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- idempotency: basis is part of foldFingerprint — a basis transition re-records ---
 
 test("check --manifest -: re-running the SAME custody-trusted check with the SAME manifest is idempotent-skipped (basis unchanged, no phantom duplicate event)", () => {

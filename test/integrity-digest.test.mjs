@@ -396,6 +396,147 @@ test("fault injection: a rename fault on a TAMPER classification also downgrades
   } finally { rmSync(rd, { recursive: true, force: true }); }
 });
 
+// --- FAFF-853: `rebaseline` — mechanizes obligation 5's Class-A re-baseline fold as one
+// atomic op (verify-old + post-write check, snapshot candidate, intended-content check) ---
+
+const rebaseline = (rd, manifest, writtenPath, reportedSha256, extra = []) => runCli([
+  "integrity-digest", "rebaseline", "--run-dir", rd, "--events", "--manifest", "-",
+  "--written-path", writtenPath, "--reported-sha256", reportedSha256, "--json", ...extra,
+], { input: manifest });
+
+test("rebaseline: a clean fold — a new corrective/ member folds into M', exit 0, and M' verifies clean", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const body = '{"op":"forbid-surface"}';
+    writeFileSync(path.join(rd, "corrective", "c2.json"), body);
+    const reportedSha = createHash("sha256").update(body).digest("hex");
+    const r = rebaseline(rd, held, path.join("corrective", "c2.json"), reportedSha);
+    assert.equal(r.code, 0, r.stderr);
+    const mPrime = JSON.parse(r.stdout);
+    assert.equal(mPrime.members["corrective"].files["c2.json"].sha256, reportedSha);
+    assert.equal(mPrime.members["run-ledger.json"].sha256, JSON.parse(held).members["run-ledger.json"].sha256);
+    // M' is consumed by an ordinary verify exactly like any hand-built baseline.
+    assert.equal(runVerify(rd, JSON.stringify(mPrime)).code, 0);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a pre-existing tamper on a NON-written member → exit 1, that member named, NO manifest on stdout (never laundered)", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const body = '{"op":"forbid-surface"}';
+    writeFileSync(path.join(rd, "corrective", "c2.json"), body);
+    const reportedSha = createHash("sha256").update(body).digest("hex");
+    writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"TAMPERED"}');
+    const r = rebaseline(rd, held, path.join("corrective", "c2.json"), reportedSha);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /run-ledger\.json/);
+    assert.equal(r.stdout, "", "no M' on stdout on a non-clean fold");
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: reported sha256 mismatching the on-disk write → exit 1 intended-content mismatch, no M' on stdout", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    writeFileSync(path.join(rd, "corrective", "c2.json"), '{"op":"forbid-surface"}');
+    const r = rebaseline(rd, held, path.join("corrective", "c2.json"), "0".repeat(64));
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /intended-content mismatch/);
+    assert.equal(r.stdout, "");
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a claimed --written-path with no on-disk change → exit 1 (not observed on disk)", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const r = rebaseline(rd, held, path.join("corrective", "never-written.json"), "1".repeat(64));
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /not observed on disk/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a hollow (empty-members) --manifest → exit 2, roster mismatch, before any diff runs", () => {
+  const rd = evidenceDir();
+  try {
+    const hollow = JSON.stringify({ version: "d1", grain: "run", members: {} });
+    const r = rebaseline(rd, hollow, "corrective/c1.json", "1".repeat(64));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /roster mismatch/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a malformed --reported-sha256 (not 64 lowercase hex) → exit 2", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const r = rebaseline(rd, held, "corrective/c1.json", "not-a-hash");
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /64 lowercase hex/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: an ABSOLUTE --written-path under runDir is normalized to its runDir-relative rel before the escape guard runs", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const body = '{"op":"forbid-surface"}';
+    const absPath = path.join(rd, "corrective", "c2.json");
+    writeFileSync(absPath, body);
+    const reportedSha = createHash("sha256").update(body).digest("hex");
+    const r = rebaseline(rd, held, absPath, reportedSha);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).members["corrective"].files["c2.json"].sha256, reportedSha);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a --written-path escaping --run-dir → exit 2, never read", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const r = rebaseline(rd, held, "../../etc/passwd", "1".repeat(64));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /escapes --run-dir/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: a diffAgainstManifest throw (unresolvable hasher / unreadable member) → exit 2, never a clean fold", { skip: process.getuid && process.getuid() === 0 ? "root ignores chmod 000" : false }, () => {
+  const rd = evidenceDir();
+  const ledger = path.join(rd, "run-ledger.json");
+  try {
+    const held = runSnap(rd).stdout;
+    writeFileSync(path.join(rd, "corrective", "c2.json"), '{"op":"forbid-surface"}');
+    chmodSync(ledger, 0o000);
+    const r = rebaseline(rd, held, path.join("corrective", "c2.json"), "1".repeat(64));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /verification unavailable/);
+  } finally { chmodSync(ledger, 0o644); rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: MANIFEST_VERSION is unchanged — M' is still \"d1\" (the members shape gained no field)", () => {
+  const rd = evidenceDir();
+  try {
+    const held = runSnap(rd).stdout;
+    const body = '{"op":"forbid-surface"}';
+    writeFileSync(path.join(rd, "corrective", "c2.json"), body);
+    const reportedSha = createHash("sha256").update(body).digest("hex");
+    const r = rebaseline(rd, held, path.join("corrective", "c2.json"), reportedSha);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).version, "d1");
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("rebaseline: input validation — missing --written-path / --reported-sha256 / --manifest all exit 2", () => {
+  const rd = evidenceDir();
+  try {
+    assert.equal(runCli(["integrity-digest", "rebaseline", "--run-dir", rd, "--reported-sha256", "1".repeat(64)]).code, 2); // no --written-path, no --manifest
+    assert.equal(runCli(["integrity-digest", "rebaseline", "--run-dir", rd, "--written-path", "x"]).code, 2); // no --reported-sha256, no --manifest
+    assert.equal(runCli(["integrity-digest", "rebaseline"]).code, 2); // no --run-dir
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
 test("atomicWriteVerdictBytes: on a rename failure, the temp file is unlinked and the error is rethrown (never swallowed)", () => {
   const rd = mkdtempSync(path.join(tmpdir(), "faff-idig-awv-"));
   try {

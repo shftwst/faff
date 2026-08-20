@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-853",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0d28645ba1b59bd7ddcabe7524358eca09821452d45eaadc039119a7042642e8",
+    "branch": "faff-853-mechanize-obligation-5-class-a-re-baseline-as-a-faff",
+    "pushed_at": "2026-08-20T11:11:56.465Z"
+  },
+  "updated_at": "2026-08-20T11:11:56.465Z"
+}

@@ -1,6 +1,6 @@
 # ADR 0078 — Digest-custody bracket as concurrency-contract obligation 5
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-07-17
 - **Issue:** FAFF-520
@@ -95,3 +95,14 @@ pointed at the re-baselining-vs-journalled-ledger punt this ticket left for a hu
   note and re-snapshots rather than parking the world. The finer graft-internal bracket grain is
   a deliberate follow-up that shrinks the window; merge-gate consumption of the digest verdict as
   an `integrityGate` basis is a separate authority this decision does not touch.
+
+**Amendment (FAFF-853, 2026-08-20): Status promoted Proposed → Accepted.** The Class-A arm of
+the re-baseline sequence recorded above — verify-old, post-write check, snapshot-candidate,
+intended-content check — was prose the executor hand-chained, and the FAFF-843 spec-review
+caught a timing hole in exactly that hand-chaining. ADR-0117 mechanizes those four steps as one
+deterministic, unit-tested CLI call (`faff integrity-digest rebaseline`), closing the finding and
+making this decision's sequence trustworthy enough to accept rather than merely propose. The
+decision itself — one continuous run-grain chain, the fixed step order, the Class A/B split by
+whether a CLI-reported hash exists — is unchanged; Class B (the orchestrator's own direct session
+edit, composed from the held baseline-verified copy) still stays hand-chained exactly as written
+above. See ADR-0117 for the mechanization's own decision record.

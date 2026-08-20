@@ -185,9 +185,141 @@ const INTEGRITY_DIGEST_SPEC = {
     "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--events": { arity: 0 }, "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--manifest": { arity: 1 },
     // FAFF-784: atomic custody-verdict recording — additive to plain `verify`, never required by it.
     "--issue-context": { arity: 1 }, "--merge-state": { arity: 1 }, "--record-result": { arity: 1 },
+    // FAFF-853: `rebaseline` — the just-written file (path + the writer's reported sha256).
+    "--written-path": { arity: 1 }, "--reported-sha256": { arity: 1 },
   },
   positionals: { min: 0, max: 1, name: "action" },
 };
+
+// === region:factory — rebaseline (FAFF-853) — mechanizes obligation 5's Class-A
+// re-baseline fold as one atomic op: verify-old + post-write check (one diffAgainstManifest
+// call over the held baseline M), snapshot candidate M', intended-content check. Never-
+// silently-clean, mirroring verifyAndRecord's posture: M' is returned ONLY on a fully clean
+// fold; every other path returns a reason and no manifest. The verb mechanizes the INPUTS to
+// verify (this module's own primitives), never foldCorrectiveAuthority's branch table
+// (corrective.js) — a re-baselined M' is consumed by an ordinary verify exactly like any
+// hand-built baseline. See records/specs/…-faff-853-…-design.md for the full HOW.
+// ===========================================================================
+const REPORTED_SHA256_RE = /^[0-9a-f]{64}$/;
+
+// Normalize --written-path to a runDir-relative rel FIRST, then guard. Ordering is
+// load-bearing: relWithinRunDir rejects ANY absolute path, so an absolute --written-path
+// must become a rel via path.relative (never path.join, which silently ignores an absolute
+// second arg — the footgun this spec calls out). Returns null when the rel escapes runDir.
+function normalizeWrittenRel(runDir, writtenPath) {
+  const rel = path.isAbsolute(writtenPath) ? path.relative(runDir, path.resolve(writtenPath)) : writtenPath;
+  return relWithinRunDir(rel) ? rel : null;
+}
+
+// A diffAgainstManifest entry is `rel` or `rel (suffix)` (added/removed/appeared/disappeared/
+// symlink swapped/re-pointed/truncated/prefix rewritten) — never nested parens — so stripping
+// from the first " (" recovers the bare path the verb matches the touched member against.
+function diffPathOf(entry) {
+  const i = entry.indexOf(" (");
+  return i === -1 ? entry : entry.slice(0, i);
+}
+
+// Look up the leaf sha256 for `writtenRel` inside a manifest's members — either a top-level
+// hashed-file member, or a sub-file inside a `dir` member's `files` map (the `corrective/`
+// case). Returns null when absent or not a hashed leaf (symlink/dir/absent) — the caller
+// reads null as "no sha256 to compare", i.e. tamper via a file->symlink/dir swap.
+function manifestLeafSha256(manifest, writtenRel) {
+  const members = manifest.members || {};
+  if (Object.prototype.hasOwnProperty.call(members, writtenRel)) {
+    const m = members[writtenRel];
+    return m && typeof m.sha256 === "string" ? m.sha256 : null;
+  }
+  const dirRel = path.dirname(writtenRel);
+  const sub = path.basename(writtenRel);
+  const dirMember = members[dirRel];
+  if (dirMember && dirMember.dir && dirMember.files && Object.prototype.hasOwnProperty.call(dirMember.files, sub)) {
+    const leaf = dirMember.files[sub];
+    return leaf && typeof leaf.sha256 === "string" ? leaf.sha256 : null;
+  }
+  return null;
+}
+
+// Pure fold core — no I/O beyond diffAgainstManifest/buildManifest, never writes to
+// stdout/stderr, never exits. Returns { ok:true, manifest: M' } on a clean fold, or
+// { ok:false, code, reason } naming the exact refusal — the CLI wrapper below owns the
+// process-facing effects, and the selftest exercises this core directly.
+function rebaselineFold(runDir, manifest, writtenRel, reportedSha, issue, events) {
+  const expectedRoster = memberRels(runDir, issue, events);
+  const heldRoster = Object.keys(manifest.members || {});
+  const rosterMatches = heldRoster.length === expectedRoster.length && expectedRoster.every((r) => heldRoster.includes(r));
+  if (!rosterMatches) return { ok: false, code: 2, reason: "roster mismatch — hollow or wrong-grain baseline" };
+
+  if (!REPORTED_SHA256_RE.test(reportedSha || "")) return { ok: false, code: 2, reason: "--reported-sha256 must be 64 lowercase hex characters" };
+
+  let diffs;
+  try {
+    diffs = diffAgainstManifest(runDir, manifest);
+  } catch (e) {
+    // A throw (unresolvable hasher / unreadable member) must NEVER default to a clean fold —
+    // the same anti-pattern foldCorrectiveAuthority's branch-2 precedence guards against.
+    return { ok: false, code: 2, reason: `verification unavailable — ${e.message}` };
+  }
+
+  // The candidate baseline — computed once, ahead of the touched-member match, because a
+  // dir-type member that did not exist AT ALL in M (the very first corrective/ write in a
+  // run) diffs as a single coarse "<dir> (appeared)" entry rather than a per-sub-file add
+  // (diffAgainstManifest's was.present branch short-circuits before the was.dir sub-file
+  // walk). Expand that one case into per-sub-file "(added)" entries — one per CURRENT file
+  // under the now-appeared dir — so a same-window co-write into the same brand-new
+  // directory is still named as tamper, never swallowed by the coarser summary.
+  let mPrime;
+  try {
+    mPrime = buildManifest(runDir, issue, events);
+  } catch (e) {
+    return { ok: false, code: 2, reason: `verification unavailable — ${e.message}` };
+  }
+  const expandedDiffs = [];
+  for (const d of diffs) {
+    const p = diffPathOf(d);
+    const nowMember = mPrime.members[p];
+    if (d.slice(p.length) === " (appeared)" && nowMember && nowMember.dir && nowMember.files) {
+      for (const sub of Object.keys(nowMember.files)) expandedDiffs.push(path.join(p, sub) + " (added)");
+    } else {
+      expandedDiffs.push(d);
+    }
+  }
+
+  const diffPaths = expandedDiffs.map(diffPathOf);
+  const touchedIdx = diffPaths.indexOf(writtenRel);
+  if (touchedIdx === -1) return { ok: false, code: 1, reason: `written member ${writtenRel} not observed on disk` };
+  const otherTampered = expandedDiffs.filter((_, i) => diffPaths[i] !== writtenRel);
+  if (otherTampered.length > 0) return { ok: false, code: 1, reason: `tampered — ${otherTampered.join(", ")}` }; // never laundered into M'
+
+  const recorded = manifestLeafSha256(mPrime, writtenRel);
+  if (recorded === null || recorded !== reportedSha) {
+    return { ok: false, code: 1, reason: `intended-content mismatch — recorded ${recorded === null ? "<none>" : recorded} != reported ${reportedSha}` };
+  }
+  return { ok: true, manifest: mPrime };
+}
+
+// CLI wrapper: validates the usage-level preconditions, runs the fold, and formats the
+// never-silently-clean exit — M' reaches stdout ONLY on exit 0; exit 1/2 emit no manifest.
+function cmdRebaseline({ runDir, manRaw, writtenPathRaw, reportedShaRaw, issue, events }) {
+  if (!runDir) { process.stderr.write("faff integrity-digest rebaseline: --run-dir requires a directory argument\n"); return 2; }
+  if (manRaw === null || manRaw === "") { process.stderr.write("faff integrity-digest rebaseline: --manifest <json|file|-> is required\n"); return 2; }
+  if (!writtenPathRaw) { process.stderr.write("faff integrity-digest rebaseline: --written-path is required\n"); return 2; }
+  if (!reportedShaRaw) { process.stderr.write("faff integrity-digest rebaseline: --reported-sha256 is required\n"); return 2; }
+
+  let manifest;
+  try { manifest = JSON.parse(readManifestArg(manRaw)); } catch (e) { process.stderr.write(`faff integrity-digest rebaseline: --manifest is not valid JSON (${e.message})\n`); return 2; }
+  if (!manifest || typeof manifest.members !== "object" || manifest.members === null) { process.stderr.write("faff integrity-digest rebaseline: manifest has no members\n"); return 2; }
+
+  const writtenRel = normalizeWrittenRel(runDir, writtenPathRaw);
+  if (writtenRel === null) { process.stderr.write(`faff integrity-digest rebaseline: --written-path ${JSON.stringify(writtenPathRaw)} escapes --run-dir\n`); return 2; }
+
+  const result = rebaselineFold(runDir, manifest, writtenRel, reportedShaRaw, issue, events);
+  if (!result.ok) {
+    process.stderr.write(`faff integrity-digest rebaseline: ${result.reason}\n`);
+    return result.code;
+  }
+  process.stdout.write(JSON.stringify(result.manifest) + "\n");
+  return 0;
+}
 
 // === region:factory — custody verdict recording (FAFF-784) — see contract-defs.js's custody-verdict
 // section for the RECORD shape/enums this writes and the pure admission gate merge-gate.js binds to.
@@ -310,7 +442,7 @@ function verifyAndRecord({ runDir, manifest, issueContext, mergeState, recordRes
 function cmdIntegrityDigest(args) {
   if (args.includes("--selftest")) return integrityDigestSelftest();
   const { values, positionals, errors } = parseArgs(args, INTEGRITY_DIGEST_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff integrity-digest <snapshot|verify|hash> --run-dir DIR [--issue ID] [--events] [--manifest json|file|-] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff integrity-digest <snapshot|verify|hash|rebaseline> --run-dir DIR [--issue ID] [--events] [--manifest json|file|-] [--json]");
   const action = positionals[0];
   const json = !!values["--json"];
   const flag = (name) => (values[name] === undefined ? null : values[name]);
@@ -318,7 +450,7 @@ function cmdIntegrityDigest(args) {
   const issue = flag("--issue");
   const events = !!values["--events"];
 
-  if (action !== "snapshot" && action !== "verify" && action !== "hash") { process.stderr.write("faff integrity-digest: <snapshot|verify|hash> is required\n"); return 2; }
+  if (action !== "snapshot" && action !== "verify" && action !== "hash" && action !== "rebaseline") { process.stderr.write("faff integrity-digest: <snapshot|verify|hash|rebaseline> is required\n"); return 2; }
 
   try {
     if (action === "hash") {
@@ -333,6 +465,12 @@ function cmdIntegrityDigest(args) {
       const manifest = buildManifest(runDir, issue, events);
       process.stdout.write(JSON.stringify(manifest) + "\n");
       return 0;
+    }
+    if (action === "rebaseline") {
+      return cmdRebaseline({
+        runDir, manRaw: flag("--manifest"), writtenPathRaw: flag("--written-path"),
+        reportedShaRaw: flag("--reported-sha256"), issue, events,
+      });
     }
     // verify
     const manRaw = flag("--manifest");
@@ -363,6 +501,7 @@ function cmdIntegrityDigest(args) {
 
 function integrityDigestSelftest() {
   const os = require("node:os");
+  const crypto = require("node:crypto");
   let total = 0, fail = 0;
   const ok = (cond, label) => { total++; if (!cond) fail++; console.log(`${cond ? "ok  " : "FAIL"} ${label}`); };
 
@@ -425,6 +564,69 @@ function integrityDigestSelftest() {
   fs.rmSync(path.join(rd, "run-ledger.json")); fs.writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"x"}'); fs.rmSync(ext); // restore
   ok(diffAgainstManifest(rd, man).length === 0, "verify: restored → clean again");
 
+  // --- rebaseline (FAFF-853): mechanizes obligation 5's Class-A re-baseline fold ---
+  // clean round-trip: a NEW corrective member is written, then folded into M' — the
+  // touched member records the reported sha256, every other member equals M's.
+  {
+    const newBody = '{"op":"forbid-surface"}';
+    fs.writeFileSync(path.join(rd, "corrective", "c3.json"), newBody);
+    const reportedSha = crypto.createHash("sha256").update(newBody).digest("hex");
+    const result = rebaselineFold(rd, man, path.join("corrective", "c3.json"), reportedSha, iss, true);
+    ok(result.ok && result.manifest.members["corrective"].files["c3.json"] && result.manifest.members["corrective"].files["c3.json"].sha256 === reportedSha, "rebaseline: clean fold emits M' with the new member's reported sha256");
+    ok(result.ok && result.manifest.members["run-ledger.json"].sha256 === man.members["run-ledger.json"].sha256, "rebaseline: clean fold leaves other members equal to M");
+    fs.rmSync(path.join(rd, "corrective", "c3.json"));
+  }
+
+  // tamper-elsewhere: a second, undeclared member also moved between M and the fold call —
+  // refuse (exit 1), never launder the other change into M'.
+  {
+    const newBody = '{"op":"forbid-surface"}';
+    fs.writeFileSync(path.join(rd, "corrective", "c3.json"), newBody);
+    const reportedSha = crypto.createHash("sha256").update(newBody).digest("hex");
+    fs.writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"TAMPERED-DURING-REBASELINE"}');
+    const result = rebaselineFold(rd, man, path.join("corrective", "c3.json"), reportedSha, iss, true);
+    ok(!result.ok && result.code === 1 && result.reason.includes("run-ledger.json"), "rebaseline: an undeclared moved member is refused as tamper, never laundered");
+    fs.writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"x"}'); // restore
+    fs.rmSync(path.join(rd, "corrective", "c3.json"));
+  }
+
+  // intended-content mismatch: the reported sha256 doesn't match what's actually on disk.
+  {
+    const newBody = '{"op":"forbid-surface"}';
+    fs.writeFileSync(path.join(rd, "corrective", "c3.json"), newBody);
+    const wrongSha = "0".repeat(64);
+    const result = rebaselineFold(rd, man, path.join("corrective", "c3.json"), wrongSha, iss, true);
+    ok(!result.ok && result.code === 1 && result.reason.includes("intended-content mismatch"), "rebaseline: reported sha256 mismatching on-disk content is refused");
+    fs.rmSync(path.join(rd, "corrective", "c3.json"));
+  }
+
+  // written member not observed: nothing changed on disk for the claimed path.
+  {
+    const result = rebaselineFold(rd, man, path.join("corrective", "c4-never-written.json"), "1".repeat(64), iss, true);
+    ok(!result.ok && result.code === 1 && result.reason.includes("not observed on disk"), "rebaseline: a claimed write with no on-disk change is refused");
+  }
+
+  // roster-mismatch / hollow: an empty-members manifest is refused before any diff runs.
+  {
+    const hollow = { version: "d1", grain: "per-issue", members: {} };
+    const result = rebaselineFold(rd, hollow, "corrective/c1.json", "1".repeat(64), iss, true);
+    ok(!result.ok && result.code === 2 && result.reason.includes("roster mismatch"), "rebaseline: a hollow/wrong-grain baseline is refused (exit 2), never diffed");
+  }
+
+  // malformed --reported-sha256 is refused before any diff runs.
+  {
+    const result = rebaselineFold(rd, man, "corrective/c1.json", "not-hex", iss, true);
+    ok(!result.ok && result.code === 2 && result.reason.includes("64 lowercase hex"), "rebaseline: a malformed --reported-sha256 is refused (exit 2)");
+  }
+
+  // --written-path normalization: an absolute path under runDir normalizes to the same rel
+  // as its runDir-relative form (abs -> rel BEFORE the escape guard); an escaping path is rejected.
+  {
+    const absWritten = path.join(rd, "corrective", "c1.json");
+    ok(normalizeWrittenRel(rd, absWritten) === path.join("corrective", "c1.json"), "rebaseline: an absolute --written-path under runDir normalizes to its runDir-relative rel");
+    ok(normalizeWrittenRel(rd, "../../etc/passwd") === null, "rebaseline: a --written-path escaping runDir is rejected");
+  }
+
   // rel-traversal: a crafted manifest member escaping runDir is rejected, never read
   const evil = { version: "d1", grain: "run", members: { "../../../etc/passwd": { present: true, sha256: "0".repeat(64) } } };
   ok(diffAgainstManifest(rd, evil).some((d) => d.includes("invalid member path")), "verify: a manifest member escaping runDir (..) is rejected, never read");
@@ -452,4 +654,6 @@ module.exports = {
   MANIFEST_VERSION, SHA256_CANDIDATES, resolveHasher, sha256, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest,
   // FAFF-784
   atomicWriteVerdictBytes, custodyVerdictPath, verifyAndRecord, CUSTODY_MERGE_STATES,
+  // FAFF-853
+  rebaselineFold, normalizeWrittenRel, cmdRebaseline,
 };

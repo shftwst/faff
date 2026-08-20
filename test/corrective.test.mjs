@@ -441,6 +441,78 @@ test("check --manifest: valid JSON with no `members` → exit 2 (usage error), d
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// --- FAFF-853: negligent-hollow guard — an empty/wrong-roster --manifest is refused
+// before it can trivially reach custody-trusted having verified nothing ---
+
+test("check --manifest: an empty-members manifest ({version,grain,members:{}}) → exit 2 hollow refusal, NEVER reaches custody-trusted", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const hollow = JSON.stringify({ version: "d1", grain: "run", members: {} });
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: hollow });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /hollow — missing core roster member/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest: a manifest missing ONLY run-ledger.json (corrective present) → exit 2 hollow refusal", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const partial = JSON.stringify({ version: "d1", grain: "run", members: { corrective: { present: true, dir: true, files: {} } } });
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: partial });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /hollow — missing core roster member/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- FAFF-853: the spec's own end-to-end smoke procedure — snapshot, corrective author,
+// rebaseline, verify — wired through the real CLI at every step, no shortcuts ---
+
+test("integration smoke: snapshot -> corrective author -> integrity-digest rebaseline -> verify round-trips clean, and check --manifest then reaches custody-trusted off the SAME M'", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    // Real obligation-5 usage always opens the custody chain against an already-genesis'd run
+    // dir — events.jsonl exists from run start, before any snapshot is taken. Match that here
+    // (rather than exercising events.jsonl's own from-nothing-to-present edge, which is a
+    // pre-existing diffAgainstManifest property this ticket's spec explicitly leaves untouched
+    // — see the OUT OF SCOPE "events.jsonl re-baselining" note).
+    writeFileSync(join(rd, "events.jsonl"), "");
+    const heldM = runCli(["integrity-digest", "snapshot", "--run-dir", rd, "--events"]).stdout; // held baseline
+    const authored = JSON.parse(runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash", "--json"]).stdout);
+    assert.equal(authored.written, true);
+    const writtenRel = authored.path.slice(rd.length + 1); // runDir-relative, matches the verb's own normalization
+    const rb = runCli([
+      "integrity-digest", "rebaseline", "--run-dir", rd, "--events", "--manifest", "-",
+      "--written-path", writtenRel, "--reported-sha256", authored.sha256,
+    ], { input: heldM });
+    assert.equal(rb.code, 0, rb.stderr); // step 4: expect exit 0, M' on stdout
+    const mPrime = rb.stdout;
+    const v = runCli(["integrity-digest", "verify", "--run-dir", rd, "--events", "--manifest", "-"], { input: mPrime });
+    assert.equal(v.code, 0, v.stderr); // step 5: M' verifies clean against the branch that produced it
+    // the fold is wired end-to-end: the same M' also grants custody-trusted at `corrective check`
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: mPrime });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).disposition, "custody-trusted");
+    assert.equal(JSON.parse(r.stdout).basis, "digest-verified");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("check --manifest: a real, full-roster baseline (built with buildManifest) still reaches custody-trusted — the guard is default-on but never affects a legitimate baseline", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "fix-review-thrash"]);
+    const manifest = JSON.stringify(buildManifest(rd));
+    const r = runCli(["corrective", "check", "--run-dir", rd, "--issue", "FAFF-1", "--manifest", "-", "--json"], { input: manifest });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(JSON.parse(r.stdout).disposition, "custody-trusted");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- idempotency: basis is part of foldFingerprint — a basis transition re-records ---
 
 test("check --manifest -: re-running the SAME custody-trusted check with the SAME manifest is idempotent-skipped (basis unchanged, no phantom duplicate event)", () => {

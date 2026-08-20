@@ -103,6 +103,8 @@ const REGION_MAP = {
   // "reuses factory identifiers → factory, not governance" reasoning as merge-gate/
   // post-merge-check/ci-triage above.
   "reconcile-recover": "factory",
+  // machine-id — FAFF-891: collision-resistant per-host id for FAFF-889's same-box gate.
+  "machine-id": "factory",
   // quality — the reporting mirror of economics: reads the run ledger + events.jsonl
   // into a QualityReport, touches no producer → factory (FAFF-418).
   "quality": "factory",
@@ -337,6 +339,7 @@ const REGION_SELFTEST_ARGV = {
   "economics": ["economics", "--selftest"],
   "disposition": ["disposition", "--selftest"],
   "reconcile-recover": ["reconcile-recover", "--selftest"],
+  "machine-id": ["machine-id", "--selftest"],
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
   "run-ledger": ["run-ledger", "--selftest"],

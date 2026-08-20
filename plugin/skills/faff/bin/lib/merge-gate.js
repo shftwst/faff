@@ -39,7 +39,7 @@ const BRANCH_PROTECTION_SPEC = { flags: {
 const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
 const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
-const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
+const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
@@ -467,17 +467,57 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity) {
 // run whose caller (legitimately) leans on the ledger-resolved level without repeating --level —
 // so this leg rides the same reconciled `level`, exactly like holdout.
 // Returns { state, display } — `state` (4-valued) is what decideFloor's blocker logic keys on;
-// `display` (3-valued: asserted|unasserted|violated) is what the merge record / banner annotate.
-function resolveIntegrity(runDir, issue, level) {
+// `display` (asserted|custody-trusted|unasserted|violated — FAFF-892 added custody-trusted) is what the merge record / banner annotate.
+// FAFF-892: `digestVerify` (optional) is the merge-floor digest verify union the caller
+// constructs via buildMergeFloorDigestVerify (below). Absent (no --custody-verdict flags) ⇒
+// the fold reaches branch 6 (unasserted) ⇒ the level-branch yields today's L4 unasserted-refuse
+// exactly — byte-for-byte no regression for runs where no digest bracket ran.
+function resolveIntegrity(runDir, issue, level, digestVerify) {
   const dirs = correctiveIntegrityDirs(runDir, issue);
   const probe = correctiveIntegrityProbe(process.env, realFsq(), dirs);
-  const gate = integrityGate(probe, "merge-floor");
+  const mountGate = integrityGate(probe, "merge-floor"); // UNCHANGED — classifies the mount probe
+  // Compose the mount gate with the caller-constructed digest verify at a NEW fold, never
+  // inline in integrityGate (ADR-0114). A genuine mount violation refuses ABOVE the digest
+  // consult, so a clean digest can never rescue a forged/malformed/dir-mismatched declaration.
+  const fold = foldMergeFloorAuthority(mountGate, digestVerify);
   let state;
-  if (gate.disposition === "trusted") state = "asserted";
-  else if (gate.disposition === "refuse") state = "violated";
-  else state = level === "L4" ? "unasserted-refuse" : "unasserted-ok";
-  const display = state === "asserted" ? "asserted" : state === "violated" ? "violated" : "unasserted";
-  return { state, display, basis: probe.basis };
+  if (fold.disposition === "trusted") state = "asserted";
+  else if (fold.disposition === "refuse") state = "violated";
+  else if (fold.disposition === "custody-trusted") state = "custody-trusted"; // the digest-verified grant (non-blocking)
+  else state = level === "L4" ? "unasserted-refuse" : "unasserted-ok"; // fold.disposition === "unasserted"
+  const display =
+    state === "asserted" ? "asserted"
+    : state === "violated" ? "violated"
+    : state === "custody-trusted" ? "custody-trusted"
+    : "unasserted";
+  return { state, display, basis: fold.basis };
+}
+
+// FAFF-892: construct the merge-floor digest verify union the integrity leg reads, reusing the
+// EXISTING admission gate (computeCustodyVerdictAdmission + custodyHashBytes) — never a second
+// implementation, never a bare writable-path read. Distinct from evaluateCustody (which gates on
+// a structural dispatch cut); this leg admits the per-issue custody verdict FAFF-893 produces on
+// the interactive/local path. Uncertainty fails toward refuse: any non-clean/non-tamper admission
+// failure routes to the `error` arm, which the fold refuses on (branch 3).
+function buildMergeFloorDigestVerify(runDir, issue, custodyPathArg, custodyShaArg) {
+  if (!custodyPathArg || !custodyShaArg) return { held: false }; // no bracket ran ⇒ fold branch 6 ⇒ today's behaviour
+  const canonical = path.join(runDir, issue, "custody-verdict.json");
+  if (path.resolve(custodyPathArg) !== path.resolve(canonical)) {
+    return { held: true, error: `custody verdict path is not canonical (expected ${canonical})` };
+  }
+  let raw;
+  try { raw = fs.readFileSync(canonical, "utf8"); } catch { raw = null; }
+  let actualSha256 = null;
+  if (raw !== null) {
+    try { actualSha256 = custodyHashBytes(Buffer.from(raw, "utf8")); } catch { actualSha256 = null; }
+  }
+  const admission = computeCustodyVerdictAdmission({
+    raw, actualSha256, expectedSha256: custodyShaArg,
+    expectedRunId: path.basename(runDir), expectedIssue: issue,
+  });
+  if (admission.admitted) return { held: true, diffs: [] }; // clean ⇒ fold branch 4 grant
+  if (admission.classification === "tamper") return { held: true, diffs: ["corrective-integrity forge surface"] }; // proven forge ⇒ branch 5
+  return { held: true, error: admission.reason }; // uncomputable / mismatch / malformed / absent ⇒ branch 3 refuse
 }
 
 // Read the AC-checklist artifact graft persists at <run-dir>/<ISSUE>/ac-checklist.json.
@@ -897,7 +937,8 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
     return 2;
   }
 
-  const integrity = resolveIntegrity(runDir, issue, level);
+  const mfDigestVerify = buildMergeFloorDigestVerify(runDir, issue, custodyPathArg, custodyShaArg);
+  const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify);
 
   // Idempotent: a peer/earlier invocation that already landed this branch is a no-op, never a
   // double-merge (gateway → status monotonicity; mirrors the PR path's already-MERGED short-circuit).
@@ -1104,7 +1145,8 @@ function cmdMergeGate(args) {
   // FAFF-325 / FAFF-690: resolveIntegrity is keyed on `level`, so it resolves AFTER the anchor level.
   // Computed once, reused on EVERY path below (already-merged reconcile, refuse, merge-ok) — the merge
   // record + ledger banner ALWAYS annotate the integrity basis, on every decision path.
-  const integrity = resolveIntegrity(runDir, issue, level);
+  const mfDigestVerify = buildMergeFloorDigestVerify(runDir, issue, get("--custody-verdict"), get("--custody-verdict-sha256"));
+  const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify);
 
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status
   // monotonicity). FAFF-690 (F3): but success evidence is now conditional on the RETROSPECTIVE floor
@@ -1377,6 +1419,22 @@ function mergeGateSelftest() {
     try {
       const r = resolveIntegrity(tmp, "FAFF-1", "L4");
       return r.state === "unasserted-refuse" && r.display === "unasserted";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  // FAFF-892: a clean digest verify union at L4 no-declaration GRANTS (custody-trusted), not refuse.
+  check("resolveIntegrity: no-declaration + L4 + clean digest → custody-trusted (grant)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L4", { held: true, diffs: [] });
+      return r.state === "custody-trusted" && r.display === "custody-trusted" && r.basis === "digest-verified";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  // FAFF-892: an uncomputable/tampered digest union at L4 no-declaration still REFUSES (violated).
+  check("resolveIntegrity: no-declaration + L4 + tampered digest → violated (refuse)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L4", { held: true, diffs: ["x"] });
+      return r.state === "violated";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
   // resolveGateLevel (FAFF-424): ledger governs when present; flag/default path unchanged when absent

@@ -142,6 +142,49 @@ function integrityGate(probeResult, consumer) {
   return { trusted: false, disposition: "channel-D" };
 }
 
+// FAFF-892 (merge-floor sibling to ADR-0114): the composition fold that admits the
+// digest-custody basis into the MERGE-FLOOR decision as a distinct, weaker basis than
+// mount-asserted. Pure — no I/O. Mirrors corrective.js's `foldCorrectiveAuthority`, but
+// adds branch 2 (the mount-violation branch): `integrityGate(_, "merge-floor")` DOES
+// return disposition "refuse" on a VIOLATION_BASES probe (the corrective consumer never
+// does), so a proven-invalid declaration must refuse ABOVE the digest consult — a clean
+// digest can NEVER rescue a forged/malformed/dir-mismatched declaration. Precedence is
+// load-bearing: branch 1 (mount-trusted) wins over any digest state; branch 2 (mount
+// violation) sits above the digest branches; branch 3 (uncomputable verify) sits above
+// the grant so an indeterminate verify never falls through to trust. `integrityGate`
+// itself is UNCHANGED — composition lives here, never inline in the gate (ADR-0114).
+//
+// mountGate    = integrityGate(correctiveIntegrityProbe(env, fsq, dirs), "merge-floor")
+// digestVerify = a discriminated union the CALLER constructs (never computed here) —
+// `error` and `diffs` are MUTUALLY EXCLUSIVE (the caller sets exactly one):
+//   { held: false }                         no per-issue custody verdict admitted
+//   { held: true, diffs: [] }               verify clean over the forge surface
+//   { held: true, diffs: [<paths>, ...] }   verify reports tampered members
+//   { held: true, error: <reason> }         verify could not be computed / untrustworthy
+// Anti-pattern (the caller's obligation): `try { diffs = verify(...) } catch { diffs = [] }`
+// — defaulting a throw to empty diffs flips an uncomputable verify (branch 3) into
+// custody-trusted (branch 4). The caller MUST construct { held: true, error } on a throw;
+// this fold's branch-3-before-4 ordering is what makes that construction load-bearing.
+function foldMergeFloorAuthority(mountGate, digestVerify) {
+  if (mountGate && mountGate.trusted === true) {
+    return { trusted: true, disposition: "trusted", basis: "asserted" }; // branch 1: strongest wins
+  }
+  if (mountGate && mountGate.disposition === "refuse") {
+    return { trusted: false, disposition: "refuse", basis: "violated-mount" }; // branch 2: a genuine violation refuses, ABOVE the digest consult
+  }
+  const dv = digestVerify || { held: false };
+  if (dv.held === true && dv.error != null) {
+    return { trusted: false, disposition: "refuse", basis: "unverifiable" }; // branch 3: never trust an uncomputable verify
+  }
+  if (dv.held === true && Array.isArray(dv.diffs) && dv.diffs.length === 0) {
+    return { trusted: true, disposition: "custody-trusted", basis: "digest-verified" }; // branch 4: the grant
+  }
+  if (dv.held === true && Array.isArray(dv.diffs) && dv.diffs.length > 0) {
+    return { trusted: false, disposition: "refuse", basis: "tampered" }; // branch 5: proven forge
+  }
+  return { trusted: false, disposition: "unasserted", basis: "none" }; // branch 6: no bracket ran — caller applies today's level-branch
+}
+
 // The forge-surface path set for a run: the corrective-artifact dir + run-ledger.json
 // (FAFF-373), PLUS — when `issue` is given — the five per-issue evidence members:
 // the three merge-floor artifacts F1's audit fold added (FAFF-325):
@@ -441,7 +484,7 @@ function correctiveIntegritySelftest() {
 
 module.exports = {
   cmdCorrectiveIntegrity, correctiveIntegrityDirs, correctiveIntegrityProbe,
-  correctiveIntegritySelftest, integrityGate, parseIntegrityDeclaration, VIOLATION_BASES,
+  correctiveIntegritySelftest, integrityGate, foldMergeFloorAuthority, parseIntegrityDeclaration, VIOLATION_BASES,
   INTEGRITY_BOUNDARY_VERSION, cmdIntegrityBoundary, integrityBoundaryDeclaration,
   integrityBoundaryResolveRoot, integrityBoundarySelftest,
 };

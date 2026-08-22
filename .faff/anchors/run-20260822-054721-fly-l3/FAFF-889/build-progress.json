@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-889",
+  "build": {
+    "status": "complete",
+    "diff_hash": "87db31968c23c1def1d43b3c3a9538dd8634c85c7bafdf1121b271a5d341e3d8",
+    "branch": "faff-889-reuse-the-faff-863-write-once-claim-primitive-as-the-build",
+    "pushed_at": "2026-08-22T06:54:35.520Z"
+  },
+  "updated_at": "2026-08-22T06:54:35.520Z"
+}

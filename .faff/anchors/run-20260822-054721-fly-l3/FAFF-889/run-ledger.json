@@ -1,0 +1,61 @@
+{
+  "level": "L3",
+  "run_id": "run-20260822-054721-fly-l3",
+  "admitted": ["FAFF-898", "FAFF-897", "FAFF-889"],
+  "outcomes": {
+    "FAFF-639": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-639": {
+      "reason": "superseded umbrella — human /faff-plot re-slice (2026-08-17) into FAFF-848 (Done, PR #728) + FAFF-849 (Backlog); whole-ticket medium/revise spec superseded; faff next -> needs-human; shaping call closed by human, not an open Punt (no resolve-attempt); no faff-parked label (routed out, not parked). Consistent with 5 prior runs.",
+      "root_cause": "needs-human"
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "4f15750e-0ca1-4e06-b297-828faccc922b",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 61,
+        "output": 50729,
+        "cache_write": 373921,
+        "cache_read": 5938827
+      }
+    },
+    "tokens_at_start": 6363538,
+    "tokens_at_last_event": {
+      "input": 67,
+      "output": 52979,
+      "cache_write": 378844,
+      "cache_read": 6575577
+    },
+    "window": {
+      "anchor_epoch": 1787377904312,
+      "reset_epoch": 1787395904312,
+      "tokens_at_anchor": 643929
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 710,
+    "session_id": "run-20260822-054721-fly-l3",
+    "started_at": "2026-08-22T05:51:16Z",
+    "last_heartbeat": "2026-08-22T05:51:16Z",
+    "harness": "claude-code",
+    "model": "claude-opus-4-8"
+  }
+}

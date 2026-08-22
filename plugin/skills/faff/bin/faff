@@ -24,7 +24,7 @@ const { cmdAudit } = require("./lib/audit");
 const { cmdBackgroundFence } = require("./lib/background-fence");
 const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
 const { cmdBudget } = require("./lib/budget");
-const { cmdBundle } = require("./lib/bundle");
+const { cmdBundle, cmdBuildClaim } = require("./lib/bundle");
 const { cmdBundleRecover } = require("./lib/bundle-recover");
 const { cmdCiTriage } = require("./lib/ci-triage");
 const { cmdClaimVerdict } = require("./lib/claim-verdict");
@@ -163,6 +163,7 @@ const COMMANDS = {
   "integrity-boundary": cmdIntegrityBoundary,
   "integrity-digest": cmdIntegrityDigest,
   "bundle": cmdBundle,
+  "build-claim": cmdBuildClaim,
   "bundle-recover": cmdBundleRecover,
   "corrective": cmdCorrective,
   "merge-gate": cmdMergeGate,

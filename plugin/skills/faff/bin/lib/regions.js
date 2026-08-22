@@ -160,6 +160,8 @@ const REGION_MAP = {
   // (integrity-digest's buildManifest/diffAgainstManifest, contract-defs' computeBundleVerdict,
   // config's loadConfig for the bundle_store slot) — same family as integrity-digest/merge-gate.
   "bundle": "factory",
+  // FAFF-889: the build-queue mutex verb — buildClaimStore (a claimStoreCore binding) in bundle.js.
+  "build-claim": "factory",
   // FAFF-820: the read-only recovery verb. References factory identifiers throughout
   // (bundle.js's verifyBundleIdentity/resolveBundleStore, resume.js's pure resume cores,
   // lights-out.js's gatherResumeEvidence, effects.js's computeEscapes, contract-defs'
@@ -367,6 +369,7 @@ const REGION_SELFTEST_ARGV = {
   "integrity-boundary": ["integrity-boundary", "--selftest"],
   "integrity-digest": ["integrity-digest", "--selftest"],
   "bundle": ["bundle", "--selftest"],
+  "build-claim": ["build-claim", "--selftest"],
   "bundle-recover": ["bundle-recover", "--selftest"],
   "corrective": ["corrective", "--selftest"],
   "next": ["next", "--selftest"],

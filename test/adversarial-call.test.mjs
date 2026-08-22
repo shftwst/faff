@@ -163,7 +163,7 @@ test("buildOpenAiPayload: stream + max_tokens, reasoning-off OPT-IN (vanilla Ope
   const off = buildOpenAiPayload({ model: "deepseek-ai/deepseek-v4-pro", system: "S", user: "U", reasoningOff: true });
   assert.equal(off.stream, true);
   assert.equal(off.max_tokens, DEFAULT_NUM_PREDICT);
-  assert.deepEqual(off.chat_template_kwargs, { thinking: false }, "thinking disabled for reasoning models");
+  assert.deepEqual(off.chat_template_kwargs, { thinking: false, enable_thinking: false }, "thinking disabled for reasoning models (enable_thinking is the key Qwen3/vLLM/SGLang/HF/MLX templates read)");
   assert.deepEqual(off.messages.map((m) => m.role), ["system", "user"]);
 
   const on = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U" });
@@ -193,7 +193,7 @@ test("buildOpenAiPayload: xhigh and max clamp to wire high", () => {
 
 test("buildOpenAiPayload: reasoning_off wins over reasoning_effort (precedence, not conflict)", () => {
   const body = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U", reasoningOff: true, reasoningEffort: "medium" });
-  assert.deepEqual(body.chat_template_kwargs, { thinking: false });
+  assert.deepEqual(body.chat_template_kwargs, { thinking: false, enable_thinking: false });
   assert.equal("reasoning_effort" in body, false, "reasoning_effort NOT emitted when reasoning_off wins");
 });
 
@@ -268,7 +268,7 @@ test("runReview dispatch → openai: happy path streams SSE findings + sends Bea
     getFn: async () => JSON.stringify({ data: [{ id: "deepseek-ai/deepseek-v4-pro" }] }),
     streamFn: async (_url, body, _t, headers) => {
       streamHeaders = headers;
-      assert.deepEqual(JSON.parse(body).chat_template_kwargs, { thinking: false }, "reasoning-off carried into the body");
+      assert.deepEqual(JSON.parse(body).chat_template_kwargs, { thinking: false, enable_thinking: false }, "reasoning-off carried into the body");
       return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
     },
   });

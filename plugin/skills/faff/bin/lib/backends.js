@@ -26,7 +26,7 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
-  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "timeout",
+  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "timeout", "first_byte_timeout",
   "telemetry",
 ];
 
@@ -174,6 +174,7 @@ function normalizeBackend(name, raw) {
   b.reasoning_off = raw.reasoning_off === true ? true : undefined;
   b.reasoning_effort = present(raw.reasoning_effort) ? String(raw.reasoning_effort) : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
+  b.first_byte_timeout = present(raw.first_byte_timeout) ? Number(raw.first_byte_timeout) : undefined;
   b.auth = present(raw.auth) ? String(raw.auth) : deriveAuth(b);
   b.telemetry = present(raw.telemetry) ? String(raw.telemetry) : deriveTelemetry(b);
   const egressExplicit = present(raw.egress);

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-898",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a52aef80e7b33ca77becdaeea224e5d1b4d9478d0aeae1a575b7c945be7b5719",
+    "branch": "faff-898-reasoning_off-is-inert-against-an-openai-compatible-mlxqwen3",
+    "pushed_at": "2026-08-22T06:29:31.919Z"
+  },
+  "updated_at": "2026-08-22T06:29:31.919Z"
+}

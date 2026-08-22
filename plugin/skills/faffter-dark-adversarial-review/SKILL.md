@@ -121,7 +121,7 @@ adversarial:
   model: llama3.1:70b              # provider-specific model identifier
   host: http://localhost:11434     # ollama/vllm: base host. openai-compatible: base URL incl. /v1
   api_key_env: NVIDIA_API_KEY      # env var NAME holding the API key (not the key itself)
-  reasoning_off: false             # true → send chat_template_kwargs:{thinking:false} (reasoning models)
+  reasoning_off: false             # true → send chat_template_kwargs:{thinking:false, enable_thinking:false} (reasoning models)
   timeout: 120                     # seconds — bounds ONE stream attempt
   first_byte_timeout: 60           # seconds — per-attempt first-byte (TTFT) window, DEFAULT-ON (60s).
                                    #   A backend that CONNECTS but streams no first byte within this window
@@ -155,7 +155,7 @@ An unknown provider exits `2` (loud), never a silent pass. (A malformed `gemini`
 
 **Anti-pattern: hand-rolling the backend request.** Reconstructing the endpoint path, host, and auth header above into a `python3`/`curl`/raw-HTTP call outside `review-call.mjs` — even though the table gives enough detail to do it. Why: the cage sandbox blocks raw backend egress (`permission_denials`), and recovering from the block to the sanctioned helper wastes a turn. `review-call.mjs` (via `review-spawn.mjs`) is the only network path this skill uses; see **Backend call** below.
 
-**`reasoning_off`** — set `true` for a reasoning model that streams empty `content` unless its hidden think-block is disabled (e.g. NVIDIA `deepseek-*`). It adds `chat_template_kwargs:{thinking:false}` to the OpenAI-compatible payload (the analogue of ollama's always-on `think:false`). It is **opt-in** because vanilla OpenAI rejects the unknown field — leave it `false` for GPT-4o/o-series.
+**`reasoning_off`** — set `true` for a reasoning model that streams empty `content` unless its hidden think-block is disabled (e.g. NVIDIA `deepseek-*`, Qwen3/MLX-family servers). It adds `chat_template_kwargs:{thinking:false, enable_thinking:false}` to the OpenAI-compatible payload (the analogue of ollama's always-on `think:false`). `enable_thinking` is the key Qwen3/vLLM/SGLang/HF/MLX chat templates actually read to gate the think phase; `thinking` is retained alongside it for compatibility with any server that reads the older key, at zero cost since unrecognised kwargs are ignored. It is **opt-in** because vanilla OpenAI rejects the unknown field — leave it `false` for GPT-4o/o-series.
 
 The key principle is **independence from the primary model**. If Claude wrote the code and ran the primary review, **don't set `provider: anthropic` here** — a same-family reviewer shares the blind spots the second opinion exists to catch. Use a structurally different model family (a local ollama model, a `gemini`, an `openai`/`nvidia`/`deepseek` backend) to maximise the chance of catching correlated blind spots.
 

@@ -305,6 +305,24 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
 });
 
 // ===========================================================================
+// FAFF-897 — first_byte_timeout survives the refs: namespace-normalisation
+// path (normalizeBackend), not just the legacy/inline forms that call
+// pickBackendKeys directly.
+// ===========================================================================
+
+test("refs: a backends: entry's first_byte_timeout survives normalizeBackend and reaches the emitted chain", () => {
+  const cfg = {
+    backends: {
+      "slow-local": { provider: "ollama", model: "q", host: "http://studio.x.ts.net:11434", first_byte_timeout: 300 },
+    },
+    adversarial: { refs: ["slow-local"] },
+  };
+  const res = assembleAdversarialBackends(cfg);
+  assert.equal(res.error, undefined);
+  assert.equal(res.chain[0].first_byte_timeout, 300, "the refs:-resolved backend must carry first_byte_timeout — it must not be dropped at namespace-normalisation");
+});
+
+// ===========================================================================
 // FAFF-870 — per-consumer chain selection (--consumer <name>)
 // ===========================================================================
 

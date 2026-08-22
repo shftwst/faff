@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-897",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8a2c7a0d4e0be00a2e8c6be70eded7c8c365c9bf09f513d47c6cfb92569f7c6f",
+    "branch": "faff-897-per-backend-first_byte_timeout-faff-885-is-silently-dropped",
+    "pushed_at": "2026-08-22T06:33:45.842Z"
+  },
+  "updated_at": "2026-08-22T06:33:45.842Z"
+}

@@ -382,20 +382,21 @@ test("CLI: backends --selftest passes", () => {
 
 test("integration: adversarial refs: resolves against backends:, byte-equivalent to the legacy chain (optionals restated — named backends: never inherit)", () => {
   const legacyCfg = { adversarial: {
-    provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
+    provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300,
     fallbacks: [{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" }],
   }  };
   const legacy = assembleAdversarialBackends(legacyCfg);
-  // The legacy fallback carries no api_key_env/timeout of its own, so it INHERITS both from
-  // the primary (inheritOptionalFromPrimary) — spec-documented legacy behaviour.
-  assert.deepEqual(legacy.chain[1], { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480 });
+  // The legacy fallback carries no api_key_env/timeout/first_byte_timeout of its own, so it
+  // INHERITS all three from the primary (inheritOptionalFromPrimary) — spec-documented legacy
+  // behaviour; FAFF-897: first_byte_timeout inherits identically to timeout.
+  assert.deepEqual(legacy.chain[1], { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 });
 
   // Named backends: entries do NOT inherit (spec §4 edge cases) — byte-equivalence for THIS
   // scenario requires restating both previously-inherited optionals explicitly.
   const migratedCfg = {
     backends: {
-      "nvidia-glm": { provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480 },
-      "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480 },
+      "nvidia-glm": { provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 },
+      "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 },
     },
      adversarial: { refs: ["nvidia-glm", "studio-ollama"] } ,
   };
@@ -474,6 +475,17 @@ test("integration: engines:/backends: name collision surfaces at the engine-lane
   };
   const res = resolveEngineForLane(cfg, "intake");
   assert.match(res.error, /name collision/);
+});
+
+// --- FAFF-897: first_byte_timeout rides the normalizeBackend field rebuild,
+// mirroring the existing timeout field ---------------------------------------
+
+test("first_byte_timeout is carried on the normalized record, mirroring timeout", () => {
+  const r = normalizeBackend("slow-local", {
+    provider: "ollama", model: "q", host: "http://studio.x.ts.net:11434", first_byte_timeout: 300,
+  });
+  assert.equal(r.error, undefined);
+  assert.equal(r.backend.first_byte_timeout, 300);
 });
 
 // --- FAFF-604: the telemetry field -----------------------------------------

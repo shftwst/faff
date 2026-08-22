@@ -39,8 +39,12 @@ function joinUrl(base, path_) {
 
 // PURE: the one-shot request spec. ollama: /api/chat with stream:false (the FAFF-136
 // precedent; reasoning_off → think:false per FAFF-137). openai-compatible:
-// /v1/chat/completions with stream:false (reasoning_off → chat_template_kwargs, the
-// adversarial-block idiom). No localhost default — host comes from config or not at all.
+// /v1/chat/completions with stream:false (reasoning_off → chat_template_kwargs:
+// {thinking:false, enable_thinking:false} — enable_thinking is the key Qwen3/vLLM/
+// SGLang/HF/MLX chat templates actually read to gate the think phase, FAFF-898;
+// thinking is kept alongside for compatibility, at zero cost since unrecognised
+// kwargs are ignored — the adversarial-block idiom). No localhost default — host
+// comes from config or not at all.
 function buildEngineRequest({ family, host, model, system, user, reasoningOff = false, effort = null, apiKey = null } = {}) {
   if (!host) throw new Error("buildEngineRequest requires a host (no localhost default)");
   if (!model) throw new Error("buildEngineRequest requires a model");
@@ -57,7 +61,7 @@ function buildEngineRequest({ family, host, model, system, user, reasoningOff = 
     // FAFF-705: emit reasoning_effort only when a graded effort is present AND reasoning is not
     // being silenced (the two knobs are mutually exclusive — resolve refuses the pair). The faff
     // level is mapped onto the three-level transport target (xhigh/max clamp to high).
-    if (reasoningOff) payload.chat_template_kwargs = { thinking: false };
+    if (reasoningOff) payload.chat_template_kwargs = { thinking: false, enable_thinking: false };
     else if (effort) payload.reasoning_effort = reasoningEffortForTransport(effort);
   } else {
     throw new Error(`buildEngineRequest: unknown engine family "${family}"`);
@@ -366,7 +370,7 @@ async function engineSelftest() {
     const r2 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "" });
     ok("openai: no auth header without key", !("authorization" in r2.headers));
     const r3 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", reasoningOff: true });
-    ok("openai: reasoning_off → chat_template_kwargs", JSON.parse(r3.body).chat_template_kwargs.thinking === false);
+    ok("openai: reasoning_off → chat_template_kwargs", JSON.parse(r3.body).chat_template_kwargs.enable_thinking === false && JSON.parse(r3.body).chat_template_kwargs.thinking === false);
     // FAFF-705: a graded effort emits reasoning_effort (mapped onto the transport target).
     const r4 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", effort: "high" });
     ok("openai: effort high → reasoning_effort:high", JSON.parse(r4.body).reasoning_effort === "high");
@@ -375,7 +379,7 @@ async function engineSelftest() {
     const r6 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "" });
     ok("openai: no effort → no reasoning_effort key (byte-identity)", !("reasoning_effort" in JSON.parse(r6.body)));
     const r7 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", reasoningOff: true, effort: "high" });
-    ok("openai: reasoning_off wins over effort (mutually exclusive)", JSON.parse(r7.body).chat_template_kwargs.thinking === false && !("reasoning_effort" in JSON.parse(r7.body)));
+    ok("openai: reasoning_off wins over effort (mutually exclusive)", JSON.parse(r7.body).chat_template_kwargs.enable_thinking === false && JSON.parse(r7.body).chat_template_kwargs.thinking === false && !("reasoning_effort" in JSON.parse(r7.body)));
     // FAFF-705: a stray effort on ollama is ignored, never thrown, never emitted.
     const r8 = buildEngineRequest({ family: "ollama", host: "http://h", model: "m", system: "", user: "", effort: "high" });
     ok("ollama: stray effort ignored, no reasoning_effort key", !("reasoning_effort" in JSON.parse(r8.body)));

@@ -447,11 +447,16 @@ function clampEffortToWire(effort) {
   }
 }
 
-// PURE: the /v1/chat/completions payload. reasoningOff adds chat_template_kwargs:{thinking:false}
-// — the OpenAI-compatible analogue of ollama's think:false, needed by reasoning models (e.g. NVIDIA
-// deepseek) that else stream empty content. It is OPT-IN: vanilla OpenAI rejects the unknown field,
-// so it is sent only when the provider/model needs it. maxTokens caps output (OpenAI's max_tokens,
-// the analogue of ollama's num_predict). stream:true keeps a long response's connection alive.
+// PURE: the /v1/chat/completions payload. reasoningOff adds
+// chat_template_kwargs:{thinking:false, enable_thinking:false} — the OpenAI-compatible
+// analogue of ollama's think:false, needed by reasoning models that else stream empty
+// content. `enable_thinking` is the key Qwen3/vLLM/SGLang/HF/MLX chat templates actually
+// read to gate the think phase (FAFF-898); `thinking` is retained alongside it for
+// compatibility with any server that reads the older key — unrecognised kwargs are
+// ignored, so sending both is free. It is OPT-IN: vanilla OpenAI rejects the unknown
+// field, so it is sent only when the provider/model needs it. maxTokens caps output
+// (OpenAI's max_tokens, the analogue of ollama's num_predict). stream:true keeps a long
+// response's connection alive.
 // FAFF-873: reasoningEffort emits the wire reasoning_effort field, clamped through
 // clampEffortToWire — but ONLY when reasoningOff is false (reasoning_off wins on the
 // wire, mirroring engine.js's buildEngineRequest `if/else if` precedent). Unset
@@ -468,7 +473,7 @@ export function buildOpenAiPayload({ model, system, user, maxTokens = DEFAULT_NU
     temperature,
     max_tokens: maxTokens,
   };
-  if (reasoningOff) body.chat_template_kwargs = { thinking: false };
+  if (reasoningOff) body.chat_template_kwargs = { thinking: false, enable_thinking: false };
   else if (reasoningEffort) body.reasoning_effort = clampEffortToWire(reasoningEffort);
   return body;
 }

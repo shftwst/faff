@@ -652,7 +652,12 @@ function gitReadClaimManifest(root, remoteName, ref) {
 // (`["--force-with-lease=<ref>:<staleSha>", "<sha>:<ref>"]`). The exact write-once idiom
 // gitRemoteBundleStore.put uses (hash-object / mktree / commit-tree / push), reused rather than
 // forked; only the push's own argv differs per caller.
-function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec) {
+//
+// FAFF-889: `commitMsg` is an OPTIONAL parameter — omitted (the recovery-claim binding and the
+// bundle selftest's direct lease-race call) it defaults to the byte-identical FAFF-863 message, so
+// the recovery path is unchanged; the build-claim binding passes its own `build-claim <issue>
+// epoch=<n>` message. The claim object's own shape/order is the caller's concern (spec.buildClaim).
+function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec, commitMsg) {
   const bytes = Buffer.from(JSON.stringify(claimObj, null, 2) + "\n", "utf8");
   const h = gitRunText(root, ["hash-object", "-w", "--stdin"], bytes);
   if (h.status !== 0) throw new Error(`git hash-object failed for claim.json: ${h.stderr}`);
@@ -661,24 +666,36 @@ function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec) {
   const mktree = gitRunText(root, ["mktree"], treeInput);
   if (mktree.status !== 0) throw new Error(`git mktree failed: ${mktree.stderr}`);
   const treeSha = mktree.stdout.trim();
-  const commitMsg = `recovery-claim ${claimObj.run_id}/seg-${claimObj.run_segment_id} epoch=${claimObj.claim_epoch}`;
-  const commitTree = gitRunText(root, ["commit-tree", treeSha, "-m", commitMsg]);
+  const msg = commitMsg != null ? commitMsg : `recovery-claim ${claimObj.run_id}/seg-${claimObj.run_segment_id} epoch=${claimObj.claim_epoch}`;
+  const commitTree = gitRunText(root, ["commit-tree", treeSha, "-m", msg]);
   if (commitTree.status !== 0) throw new Error(`git commit-tree failed: ${commitTree.stderr}`);
   const commitSha = commitTree.stdout.trim();
   const push = gitRunText(root, ["push", remoteName, ...pushArgSpec(commitSha)]);
   return { commitSha, push };
 }
 
-// The cross-box mutex: acquire / readHolder / confirmHead / reclaimIfStale, all built from
-// gitRunText / hash-object / mktree / commit-tree / ls-remote (never a second git-plumbing path).
-// identity here is the narrower { run_id, run_segment_id } pair (no boundary_kind/boundary_key —
-// the claim ref keys on run segment alone, not a bundle boundary).
-function recoveryClaimStore(root, remoteName = "origin") {
+// ---------------------------------------------------------------------------
+// claimStoreCore — FAFF-889: the generalised write-once-ref claim mutex, extracted from the
+// FAFF-863 recoveryClaimStore so a SECOND boundary (the build-queue claim) reuses the exact
+// acquire / readHolder / confirmHead / reclaimIfStale git plumbing rather than a forked copy.
+// The `spec` parametrises ONLY what differs between the two callers:
+//   refName(identity)          -> the ref path                       (recovery: recovery-claims; build: build-claims)
+//   buildClaim(identity, arg, epoch) -> the full claim.json object   (its shape/key-order is the caller's — recovery stays byte-identical)
+//   commitMessage(claim)       -> the orphan commit message          (recovery: "recovery-claim …"; build: "build-claim …")
+//   stalePredicate(claim, nowMs, env) -> Bool "is the holder alive?" (recovery: runIsHeld on the frozen snapshot; build: buildClaimStaleAware)
+//   name                       -> the returned store's name
+// Everything else — the server-side-CAS acquire, the self-session idempotent re-acquire, the
+// head-confirm safety pin, the lease-matched reclaim, STORE_UNAVAILABLE_RE handling — is shared.
+// `release` (a lease-matched delete) is exposed on the core; the recovery binding OMITS it from its
+// returned object (a run segment is monotonic and never released — FAFF-863), the build binding
+// keeps it (an issue legitimately returns to Todo and is rebuilt — FAFF-889 §4.2).
+// ---------------------------------------------------------------------------
+function claimStoreCore(root, remoteName, spec) {
   // Write-once acquire: a non-force `git push <sha>:<ref>`. Git's server-side ref-update
   // atomicity is the compare-and-swap — creating a ref that already exists is rejected as
   // non-fast-forward, so of two racing pushes to the SAME ref exactly one wins.
   function acquire(identity, ownerSnapshot) {
-    const ref = recoveryClaimRefName(identity);
+    const ref = spec.refName(identity);
     const existing = gitReadClaimManifest(root, remoteName, ref);
     if (existing.status === "store-unreachable") return { acquired: false, reason: "store_unavailable", detail: "cannot reach the configured remote to check the claim ref" };
     if (existing.status === "ok") {
@@ -686,11 +703,12 @@ function recoveryClaimStore(root, remoteName = "origin") {
       // session_id — the same identity proof runIsOwned uses elsewhere) already holds this exact
       // claim, most likely because it acquired successfully on a prior attempt but the owner-state
       // write that followed then failed transiently (e.g. LEDGER_LOCKED) and the operator re-ran
-      // --resume. Without this, a same-session retry would see its own fresh claim as "exists" and
-      // refuse for up to heartbeatStaleSecs — a needless self-lockout, since there is no genuine
-      // cross-box race here at all. Never fires for a DIFFERENT session (the ordinary contested
-      // path below still applies), so it adds no new trust assumption beyond the one runIsOwned's
-      // session_id match already relies on.
+      // --resume (or, for a build claim, re-ran `/faff-graft ISSUE-XX`). Without this, a
+      // same-session retry would see its own fresh claim as "exists" and refuse for up to
+      // heartbeatStaleSecs — a needless self-lockout, since there is no genuine cross-box race
+      // here at all. Never fires for a DIFFERENT session (the ordinary contested path below still
+      // applies), so it adds no new trust assumption beyond the one runIsOwned's session_id match
+      // already relies on.
       const holderSid = existing.claim.owner && existing.claim.owner.session_id;
       if (holderSid && ownerSnapshot.session_id && holderSid === ownerSnapshot.session_id) {
         return { acquired: true, sha: existing.sha, claim: existing.claim, idempotent: true };
@@ -699,9 +717,9 @@ function recoveryClaimStore(root, remoteName = "origin") {
     }
     if (existing.status !== "claim-missing") return { acquired: false, reason: "store_unavailable", detail: `${ref} exists but its claim could not be read cleanly (${existing.status})` };
 
-    const claimObj = { run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner: ownerSnapshot, claim_epoch: 0, claimed_at: new Date().toISOString() };
+    const claimObj = spec.buildClaim(identity, ownerSnapshot, 0);
     let built;
-    try { built = pushClaimCommit(root, remoteName, ref, claimObj, (sha) => [`${sha}:${ref}`]); }
+    try { built = pushClaimCommit(root, remoteName, ref, claimObj, (sha) => [`${sha}:${ref}`], spec.commitMessage(claimObj)); }
     catch (e) { return { acquired: false, reason: "error", detail: e.message }; }
     if (built.push.status !== 0) {
       const stderr = built.push.stderr || "";
@@ -716,7 +734,7 @@ function recoveryClaimStore(root, remoteName = "origin") {
   }
 
   function readHolder(identity) {
-    const r = gitReadClaimManifest(root, remoteName, recoveryClaimRefName(identity));
+    const r = gitReadClaimManifest(root, remoteName, spec.refName(identity));
     if (r.status === "store-unreachable") return { status: "store_unavailable" };
     if (r.status === "claim-missing") return { status: "missing" };
     if (r.status !== "ok") return { status: "unreadable" };
@@ -725,9 +743,10 @@ function recoveryClaimStore(root, remoteName = "origin") {
 
   // Read-after-write head-confirm (spec: "the safety pin"). The ref head — not any staleness
   // timer — is the single source of truth for who continues. Called immediately before the
-  // owner-state write; a mismatch means a reclaimer superseded the claim after acquisition.
+  // owner-state write (recovery) / the first irreversible build side effect (build); a mismatch
+  // means a reclaimer superseded the claim after acquisition.
   function confirmHead(identity, mySha) {
-    const ref = recoveryClaimRefName(identity);
+    const ref = spec.refName(identity);
     const ls = gitRunText(root, ["ls-remote", remoteName, ref]);
     if (ls.status !== 0 || ls.error) return { confirmed: false, reason: "store_unavailable" };
     const line = ls.stdout.trim();
@@ -736,14 +755,14 @@ function recoveryClaimStore(root, remoteName = "origin") {
     return sha === mySha ? { confirmed: true, sha } : { confirmed: false, reason: "superseded", sha };
   }
 
-  // Staleness judged by the run-ledger's OWN predicate (runIsHeld / heartbeatStaleSecs from
-  // runcheck.js — imported, not reimplemented) applied to the claim's frozen owner snapshot.
-  // Reclaim lands only via a lease-matched `--force-with-lease` CAS against the exact stale sha
-  // read here — a live claim is never overwritten (reclaim is only attempted after the staleness
-  // verdict below), and two racing reclaimers of the SAME stale sha cannot both win: the first CAS
-  // moves the head, the second's lease no longer matches.
+  // Staleness judged by the spec's OWN predicate (recovery: runIsHeld / heartbeatStaleSecs from
+  // runcheck.js on the frozen owner snapshot; build: buildClaimStaleAware — machine-aware,
+  // heartbeat-only). Reclaim lands only via a lease-matched `--force-with-lease` CAS against the
+  // exact stale sha read here — a live claim is never overwritten (reclaim is only attempted after
+  // the staleness verdict below), and two racing reclaimers of the SAME stale sha cannot both win:
+  // the first CAS moves the head, the second's lease no longer matches.
   function reclaimIfStale(identity, ownerSnapshot, env) {
-    const ref = recoveryClaimRefName(identity);
+    const ref = spec.refName(identity);
     const existing = gitReadClaimManifest(root, remoteName, ref);
     if (existing.status === "store-unreachable") return { reclaimed: false, reason: "store_unavailable" };
     if (existing.status === "claim-missing") {
@@ -754,14 +773,13 @@ function recoveryClaimStore(root, remoteName = "origin") {
     }
     if (existing.status !== "ok") return { reclaimed: false, reason: "store_unavailable", detail: `claim ref unreadable (${existing.status})` };
 
-    const { runIsHeld } = require("./runcheck");
-    const held = runIsHeld({ owner: existing.claim.owner }, Date.now(), env);
+    const held = spec.stalePredicate(existing.claim, Date.now(), env);
     if (held) return { reclaimed: false, reason: "held", holder: existing.claim, sha: existing.sha };
 
     const priorClaimEpoch = Number(existing.claim.claim_epoch) || 0;
-    const newClaim = { run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner: ownerSnapshot, claim_epoch: priorClaimEpoch + 1, claimed_at: new Date().toISOString() };
+    const newClaim = spec.buildClaim(identity, ownerSnapshot, priorClaimEpoch + 1);
     let built;
-    try { built = pushClaimCommit(root, remoteName, ref, newClaim, (sha) => [`--force-with-lease=${ref}:${existing.sha}`, `${sha}:${ref}`]); }
+    try { built = pushClaimCommit(root, remoteName, ref, newClaim, (sha) => [`--force-with-lease=${ref}:${existing.sha}`, `${sha}:${ref}`], spec.commitMessage(newClaim)); }
     catch (e) { return { reclaimed: false, reason: "error", detail: e.message }; }
     if (built.push.status !== 0) {
       const stderr = built.push.stderr || "";
@@ -775,7 +793,151 @@ function recoveryClaimStore(root, remoteName = "origin") {
     return { reclaimed: true, sha: built.commitSha, claim: newClaim };
   }
 
-  return { name: "git-remote-recovery-claim", acquire, readHolder, confirmHead, reclaimIfStale };
+  // FAFF-889: the release verb the recovery claim never had. A lease-matched DELETE
+  // (`git push --force-with-lease=<ref>:<mySha> <remote> :<ref>`) — the ref is deleted ONLY if it
+  // still points at the releaser's own claim sha, so a claim a reclaimer already superseded is
+  // never deleted (that would re-open the double-build the mutex exists to prevent). No bare
+  // `--force` anywhere. A `superseded` no-op is correct behaviour (the reclaimer is the legitimate
+  // current holder), a `missing` no-op means the ref is already gone; the next drain's
+  // reclaimIfStale backstops a missed release either way.
+  function release(identity, mySha) {
+    const ref = spec.refName(identity);
+    const push = gitRunText(root, ["push", remoteName, `--force-with-lease=${ref}:${mySha}`, `:${ref}`]);
+    if (push.status === 0) return { released: true };
+    const stderr = push.stderr || "";
+    if (STORE_UNAVAILABLE_RE.test(stderr) || push.error) return { released: false, reason: "store_unavailable", detail: stderr.trim() || String(push.error) };
+    // Delete rejected: either the lease no longer matches (a reclaimer moved the ref) or the ref
+    // is already gone. Re-read to distinguish — never a bare --force retry.
+    const reread = gitReadClaimManifest(root, remoteName, ref);
+    if (reread.status === "ok") return { released: false, reason: "superseded", holder: reread.claim, sha: reread.sha };
+    if (reread.status === "claim-missing") return { released: false, reason: "missing" };
+    return { released: false, reason: "store_unavailable", detail: stderr.trim() || "delete rejected and the ref could not be re-read" };
+  }
+
+  return { name: spec.name, acquire, readHolder, confirmHead, reclaimIfStale, release };
+}
+
+// FAFF-863 binding — a THIN binding over claimStoreCore, byte-identical to today for its caller
+// (resumeLightsOut STEP 4b) and the bundle recovery-claim selftest: same `refs/faff/recovery-
+// claims/<run_id>/seg-<n>` ref, same `{ run_id, run_segment_id, owner, claim_epoch, claimed_at }`
+// claim.json shape and key order, same `recovery-claim …` commit message, same heartbeat-only
+// staleness (runIsHeld on the frozen snapshot). `release` is deliberately NOT exposed — a run
+// segment is monotonic and claimed once.
+function recoveryClaimStore(root, remoteName = "origin") {
+  const core = claimStoreCore(root, remoteName, {
+    name: "git-remote-recovery-claim",
+    refName: (identity) => recoveryClaimRefName(identity),
+    buildClaim: (identity, owner, epoch) => ({ run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner, claim_epoch: epoch, claimed_at: new Date().toISOString() }),
+    commitMessage: (claim) => `recovery-claim ${claim.run_id}/seg-${claim.run_segment_id} epoch=${claim.claim_epoch}`,
+    stalePredicate: (claim, nowMs, env) => require("./runcheck").runIsHeld({ owner: claim.owner }, nowMs, env),
+  });
+  // Return WITHOUT `release` — the recovery claim has no release lifecycle.
+  return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale: core.reclaimIfStale };
+}
+
+// FAFF-889: resolve claim_ttl_hours from config (the same key claim-verdict.js consumes), used as
+// the staleness fallback for a NON-heartbeating (bare human `/faff-graft`) claim.
+function resolveClaimTtlHours(root, env) {
+  const envRaw = env && env.FAFF_CLAIM_TTL_HOURS; // test/override seam, mirrors FAFF_RUN_HEARTBEAT_STALE_SECS
+  if (envRaw != null && String(envRaw).trim() !== "") {
+    const n = Number(envRaw);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  let raw;
+  try { const [cfg] = loadConfig(root); raw = dig(cfg, "claim_ttl_hours"); }
+  catch { raw = undefined; }
+  const val = (raw === null || raw === undefined || raw === "") ? DEFAULTS["claim_ttl_hours"] : raw;
+  const n = Number(val);
+  return Number.isFinite(n) && n >= 0 ? n : 6; // config.js CANONICAL_CONFIG default
+}
+
+// FAFF-889: given a build claim's frozen owner snapshot, resolve its run-dir on THIS filesystem
+// (`<root>/.faff/runs/<session_id>`) — the same-box fast path reads that live heartbeat file. Null
+// when the owner has no session_id or the run-dir is not present locally (a cross-box owner, or a
+// reconstructed-elsewhere run-dir) → the caller falls back to the frozen-snapshot cross-box row.
+function defaultResolveClaimRunDir(root, owner) {
+  const sid = owner && owner.session_id;
+  if (!sid || typeof sid !== "string") return null;
+  const cand = path.join(root, ".faff", "runs", sid);
+  try { return fs.existsSync(path.join(cand, "run-ledger.json")) ? cand : null; }
+  catch { return null; }
+}
+
+// FAFF-889 §4.3 — the three-row, heartbeat-only, machine-aware staleness predicate for a BUILD
+// claim. Returns true = HELD (alive — do NOT reclaim), false = stale (reclaimable). NEVER probes
+// owner.pid (FAFF-233): the recorded pid rolls and a dead recorded pid is no evidence of death.
+//   Row 1 — heartbeating:false (a bare human graft, no heartbeating owner) → judge by the
+//           claim_ttl_hours AGE, not the 900s heartbeat window (a human build legitimately
+//           outlasts the seconds window). Reuses claim-verdict.js's pure age→verdict.
+//   Row 2 — SAME BOX (machine_id matches thisMachineId() AND the owner's run-dir resolves
+//           locally) → read the LIVE FAFF-355 heartbeat file (fresh), overlay it over the frozen
+//           snapshot, and apply runIsHeld — a same-box crashed claim reclaims immediately off the
+//           stale live heartbeat, no conservative wait.
+//   Row 3 — CROSS BOX (or same-box run-dir gone) → only the FROZEN snapshot is available; apply
+//           runIsHeld, which waits out heartbeatStaleSecs.
+// `deps` injects thisMachineId / readHeartbeatFile / runIsHeld / resolveClaimRunDir / claimTtlHours
+// / myMachineId so the selftest drives every row without a real filesystem, machine id, or config.
+function buildClaimStaleAware(root, claim, nowMs, env, deps = {}) {
+  const runIsHeld = deps.runIsHeld || require("./runcheck").runIsHeld;
+
+  // Row 1 — non-heartbeating: TTL age.
+  if (claim.heartbeating === false) {
+    const { claimVerdict } = require("./claim-verdict");
+    const ttlHours = deps.claimTtlHours != null ? deps.claimTtlHours : resolveClaimTtlHours(root, env);
+    try {
+      return claimVerdict(claim.claimed_at, new Date(nowMs).toISOString(), ttlHours).verdict === "live";
+    } catch {
+      // A malformed claimed_at cannot be judged live → fail-safe toward reclaimable (matches
+      // runIsHeld's own "unparseable → not held" direction). The CAS + head-confirm still arbitrate.
+      return false;
+    }
+  }
+
+  // Row 2 — same box: live heartbeat-file read, gated by an explicit machine-id match.
+  const myId = deps.myMachineId != null ? deps.myMachineId : (deps.thisMachineId || require("./machine-id").thisMachineId)(env);
+  if (claim.machine_id && myId && claim.machine_id === myId) {
+    const resolveRunDir = deps.resolveClaimRunDir || defaultResolveClaimRunDir;
+    const runDir = resolveRunDir(root, claim.owner);
+    if (runDir) {
+      const readHb = deps.readHeartbeatFile || require("./heartbeat").readHeartbeatFile;
+      const liveHb = readHb(runDir);
+      const overlaidOwner = { ...claim.owner, last_heartbeat: liveHb != null ? liveHb : (claim.owner && claim.owner.last_heartbeat) };
+      return runIsHeld({ owner: overlaidOwner }, nowMs, env);
+    }
+    // machine_id matched but the run-dir is gone → fall through to the frozen-snapshot row.
+  }
+
+  // Row 3 — cross box (or same-box run-dir gone): frozen snapshot only.
+  return runIsHeld({ owner: claim.owner }, nowMs, env);
+}
+
+// FAFF-889 build-queue binding — a THIN binding over claimStoreCore. The claim ref lives on
+// `origin` (which graft always has), independent of `bundle_store`, so it works under
+// `bundle_store: local` and git-only mode alike (§4.1). claim.json adds `machine_id` (collision-
+// resistant, from FAFF-891 thisMachineId — gates only the same-box fast path) and `heartbeating`
+// (selects the staleness branch). `release` IS exposed — an issue returns to Todo and is rebuilt.
+// The second acquire arg is `{ ...ownerSnapshot, machine_id?, heartbeating }` (graft merges them
+// in per §4.4); buildClaim destructures the two extras out so `owner` stays the clean snapshot and
+// machine_id/heartbeating are its siblings.
+function buildClaimStore(root, remoteName = "origin") {
+  return claimStoreCore(root, remoteName, {
+    name: "git-remote-build-claim",
+    refName: (identity) => `refs/faff/build-claims/${identity.issue}`,
+    buildClaim: (identity, arg, epoch) => {
+      const a = arg || {};
+      const { machine_id, heartbeating, ...owner } = a;
+      return {
+        issue: identity.issue,
+        owner,
+        machine_id: machine_id != null ? machine_id : require("./machine-id").thisMachineId(),
+        heartbeating: heartbeating === true,
+        claim_epoch: epoch,
+        claimed_at: new Date().toISOString(),
+      };
+    },
+    commitMessage: (claim) => `build-claim ${claim.issue} epoch=${claim.claim_epoch}`,
+    stalePredicate: (claim, nowMs, env) => buildClaimStaleAware(root, claim, nowMs, env),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1268,6 +1430,296 @@ function bundleSelftest() {
   return fail ? 1 : 0;
 }
 
+// ---------------------------------------------------------------------------
+// FAFF-889 — `faff build-claim <acquire|confirm|reclaim|release|read>`: the CLI surface graft's
+// Step-5 claim (and tidy's stale-reclaim) drive the buildClaimStore primitive through, the same way
+// graft prose already calls `faff eligible` / `faff heartbeat`. The claim ref lives on `origin`
+// (default remote), so this works under every bundle_store and in git-only mode.
+//   acquire  — acquire the build claim; on `exists`, transparently reclaimIfStale (the §4.4 compose
+//              — one prose call, matching resumeLightsOut STEP 4b). exit 0 = won (build), 1 = refuse.
+//   confirm  — head-confirm before the first irreversible build side effect. exit 0/1.
+//   reclaim  — tidy's stale-reclaim (release+re-acquire is graft's; reclaim is tidy's grooming). exit 0/1.
+//   release  — lease-matched delete on a terminal disposition / retry-later. Best-effort: exit 0 always
+//              (a superseded/missing no-op is benign; the next drain's reclaim backstops a miss).
+//   read     — read the current holder (diagnostic). exit 0.
+// Owner snapshot is derived from the run env (FAFF_SESSION_ID / FAFF_RUN_DIR); machine_id from
+// thisMachineId(); heartbeating from --heartbeating/--no-heartbeating or, absent a flag, whether
+// FAFF_RUN_DIR resolves to a running-owner ledger (a lights-out build) vs a bare human graft.
+// ---------------------------------------------------------------------------
+// FAFF-889 — the buildClaimStore + buildClaimStaleAware selftest (the build-queue mutex's own
+// negative-test harness, the sibling of bundleSelftest's recovery-claim block). Run by
+// `faff build-claim --selftest` and the `regions selftest --region factory` sweep. A scratch bare
+// remote + two work roots stand in for two racing grafts; the staleness rows are pure/injected.
+function buildClaimSelftest() {
+  const os = require("node:os");
+  let total = 0, fail = 0;
+  const ok = (cond, label) => { total++; if (!cond) fail++; console.log(`${cond ? "ok  " : "FAIL"} ${label}`); };
+
+  // --- buildClaimStore: the build-queue mutex (on origin, release lifecycle, machine-aware
+  // staleness) against a scratch bare remote. Covers §5 scenarios + §8 DONE / smoke: race→one-
+  // winner, claim.json shape, confirmHead, release→re-acquire, release-superseded no-op, crash-
+  // after-build missed-release recovery, live-claim refuse, same-session idempotent, store_unavailable. ---
+  const buildClaimTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-build-claim-"));
+  try {
+    const bareRemote = path.join(buildClaimTmp, "remote.git");
+    const rootA = path.join(buildClaimTmp, "graft-a");
+    const rootB = path.join(buildClaimTmp, "graft-b");
+    fs.mkdirSync(rootA, { recursive: true });
+    fs.mkdirSync(rootB, { recursive: true });
+    const initBare = spawnSync("git", ["init", "--bare", "-q", bareRemote]);
+    for (const r of [rootA, rootB]) {
+      spawnSync("git", ["-C", r, "init", "-q"]);
+      spawnSync("git", ["-C", r, "config", "user.email", "faff-selftest@example.com"]);
+      spawnSync("git", ["-C", r, "config", "user.name", "faff-selftest"]);
+      spawnSync("git", ["-C", r, "remote", "add", "origin", bareRemote]);
+    }
+    if (initBare.status === 0) {
+      const storeA = buildClaimStore(rootA, "origin");
+      const storeB = buildClaimStore(rootB, "origin");
+      // The graft Step-5 second arg: the clean owner snapshot MERGED with machine_id + heartbeating.
+      const arg = (sid, machineId, heartbeating, hbAgeMs = 0) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date(Date.now() - hbAgeMs).toISOString(), machine_id: machineId, heartbeating });
+
+      // Race → exactly one graft builds (§5 scenario 1 / §8 smoke).
+      const idX = { issue: "FAFF-X" };
+      const acqA = storeA.acquire(idX, arg("sess-a", "machine-A", true));
+      const acqB = storeB.acquire(idX, arg("sess-b", "machine-B", true));
+      ok(acqA.acquired === true && acqB.acquired === false && acqB.reason === "exists",
+        `buildClaimStore: exactly one of two racing grafts wins the build claim (got A=${acqA.acquired}, B=${JSON.stringify([acqB.acquired, acqB.reason])})`);
+      ok(acqB.holder && acqB.holder.issue === "FAFF-X" && acqB.holder.machine_id === "machine-A" && acqB.holder.heartbeating === true,
+        "buildClaimStore: claim.json carries issue + machine_id + heartbeating (the loser sees the winner's claim)");
+      // owner snapshot stays clean — machine_id/heartbeating are its SIBLINGS, not merged into owner.
+      ok(acqA.claim.owner && acqA.claim.owner.machine_id === undefined && acqA.claim.owner.heartbeating === undefined && acqA.claim.owner.session_id === "sess-a",
+        "buildClaimStore: owner snapshot stays clean; machine_id/heartbeating are its siblings");
+      ok(acqA.claim.claim_epoch === 0 && typeof acqA.claim.claimed_at === "string",
+        "buildClaimStore: a fresh acquire is claim_epoch 0 with a claimed_at");
+
+      // confirmHead — the safety pin: A's own sha confirms; a wrong sha refuses.
+      ok(storeA.confirmHead(idX, acqA.sha).confirmed === true, "buildClaimStore: confirmHead against the winner's own sha succeeds");
+      const badConfirm = storeB.confirmHead(idX, "0".repeat(40));
+      ok(badConfirm.confirmed === false && badConfirm.reason === "superseded", "buildClaimStore: confirmHead against a wrong sha refuses (superseded)");
+
+      // Release then re-acquire: a re-queued issue is re-claimable (§5 scenario 2 / §8 smoke).
+      const rel = storeA.release(idX, acqA.sha);
+      ok(rel.released === true, `buildClaimStore: lease-matched release deletes the ref against its own sha (got ${JSON.stringify(rel)})`);
+      const reAcq = storeB.acquire(idX, arg("sess-b2", "machine-B", true));
+      ok(reAcq.acquired === true, "buildClaimStore: a released issue is re-acquirable on the next drain (no permanent refuse)");
+
+      // release-superseded is a safe no-op: A holds a stale claim, B reclaims, A's release no-ops
+      // and B's claim survives (§5 oracle "release superseded is a safe no-op").
+      const idS = { issue: "FAFF-S" };
+      const sAcq = storeA.acquire(idS, arg("sess-s-a", "machine-A", true, 2000000)); // stale frozen hb
+      const sReclaim = storeB.reclaimIfStale(idS, arg("sess-s-b", "machine-B", true), process.env);
+      ok(sReclaim.reclaimed === true, "buildClaimStore: a cross-box stale claim is reclaimable via lease-matched CAS");
+      const sRel = storeA.release(idS, sAcq.sha);
+      ok(sRel.released === false && sRel.reason === "superseded", `buildClaimStore: release against a superseded sha is a safe no-op (got ${JSON.stringify(sRel)})`);
+      const stillHeld = storeB.readHolder(idS);
+      ok(stillHeld.status === "ok" && stillHeld.sha === sReclaim.sha, "buildClaimStore: the superseding reclaimer's claim is NOT deleted by the loser's release");
+
+      // Crash-after-build missed-release recovery: a stale claim never released self-heals via the
+      // next drain's reclaim, epoch++ — the issue is not stranded (§8 crash fixture).
+      const idC = { issue: "FAFF-C" };
+      const cAcq = storeA.acquire(idC, arg("sess-c-a", "machine-A", true, 2000000));
+      ok(cAcq.acquired === true && cAcq.claim.claim_epoch === 0, "buildClaimStore: crash fixture — initial claim epoch 0");
+      const cReclaim = storeB.reclaimIfStale(idC, arg("sess-c-b", "machine-B", true), process.env);
+      ok(cReclaim.reclaimed === true && cReclaim.claim.claim_epoch === 1,
+        `buildClaimStore: a missed release self-heals via the next drain's reclaim, epoch++ (got ${JSON.stringify(cReclaim && cReclaim.claim && cReclaim.claim.claim_epoch)})`);
+
+      // A live (fresh frozen heartbeat) cross-box claim refuses reclaim (§5 scenario 5).
+      const idL = { issue: "FAFF-L" };
+      storeA.acquire(idL, arg("sess-l-a", "machine-A", true, 0));
+      const lReclaim = storeB.reclaimIfStale(idL, arg("sess-l-b", "machine-B", true), process.env);
+      ok(lReclaim.reclaimed === false && lReclaim.reason === "held", `buildClaimStore: a live cross-box claim refuses reclaim (got ${JSON.stringify(lReclaim)})`);
+
+      // Same-session idempotent re-acquire (no self-lockout — §8 DONE).
+      const idI = { issue: "FAFF-I" };
+      const iAcq1 = storeA.acquire(idI, arg("sess-i", "machine-A", true));
+      const iAcq2 = storeA.acquire(idI, arg("sess-i", "machine-A", true));
+      ok(iAcq1.acquired === true && iAcq2.acquired === true && iAcq2.idempotent === true,
+        "buildClaimStore: a same-session re-acquire is idempotent (no self-lockout)");
+
+      // store_unavailable refuses, never builds unguarded (§5 oracle) — an unreachable remote.
+      const storeBad = buildClaimStore(rootA, "no-such-remote");
+      const badAcq = storeBad.acquire({ issue: "FAFF-U" }, arg("sess-u", "machine-A", true));
+      ok(badAcq.acquired === false && badAcq.reason === "store_unavailable",
+        `buildClaimStore: an unreachable remote refuses with store_unavailable, never builds unguarded (got ${JSON.stringify(badAcq)})`);
+
+      // git-only parity: the build claim lives on origin regardless of bundle_store.
+      ok(storeA.name === "git-remote-build-claim", "buildClaimStore: named store, origin-keyed (bundle_store-independent)");
+
+      // release-if-stale gate (tidy's groom): a FRESH holder reads NOT-stale under the ref's own
+      // buildClaimStaleAware (cross-machine_id here → frozen snapshot, fresh hb → held), so tidy
+      // would leave it — a live build is never yanked. (The stale→release path is the crash fixture above.)
+      const idT = { issue: "FAFF-T" };
+      storeA.acquire(idT, arg("sess-t", "machine-A", true, 0));
+      const tHolder = storeB.readHolder(idT);
+      ok(tHolder.status === "ok" && buildClaimStaleAware(rootB, tHolder.claim, Date.now(), process.env) === true,
+        "buildClaimStore: release-if-stale gate leaves a fresh holder (buildClaimStaleAware reads held)");
+    } else {
+      console.log("skip  buildClaimStore checks (git init unavailable in this environment)");
+    }
+  } finally {
+    fs.rmSync(buildClaimTmp, { recursive: true, force: true });
+  }
+
+  // --- buildClaimStaleAware: the three-row, heartbeat-only, machine-aware staleness predicate.
+  // PURE (injected deps — no real fs / machine id / config). true = held (alive). ---
+  {
+    const now = Date.parse("2026-06-22T16:00:00Z");
+    const iso = (agoS) => new Date(now - agoS * 1000).toISOString();
+    const owner = (sid, hbAgoS) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: iso(10000), last_heartbeat: iso(hbAgoS) });
+    const base = (over) => ({ issue: "FAFF-1", machine_id: "M1", heartbeating: true, claim_epoch: 0, claimed_at: iso(3600), owner: owner("s1", 3600), ...over });
+    const WINDOW = 900; // heartbeatStaleSecs default (shared-infra RUN_HEARTBEAT_STALE_SECS_DEFAULT)
+
+    // Row 1 — heartbeating:false → judged by claim_ttl_hours AGE (injected 6h), not the window.
+    ok(buildClaimStaleAware("/root", base({ heartbeating: false, claimed_at: iso(5 * 3600) }), now, {}, { claimTtlHours: 6 }) === true,
+      "buildClaimStaleAware: heartbeating:false within claim_ttl_hours reads held (TTL age)");
+    ok(buildClaimStaleAware("/root", base({ heartbeating: false, claimed_at: iso(7 * 3600) }), now, {}, { claimTtlHours: 6 }) === false,
+      "buildClaimStaleAware: heartbeating:false past claim_ttl_hours reads stale");
+
+    // Row 2 — same box (machine_id match + run-dir resolves) → the LIVE heartbeat file, NOT the
+    // frozen snapshot: fresh live file ⇒ held; stale live file ⇒ stale NOW (no window wait).
+    const sbDeps = (liveHbAgoS) => ({ myMachineId: "M1", resolveClaimRunDir: () => "/fake/run", readHeartbeatFile: () => iso(liveHbAgoS) });
+    ok(buildClaimStaleAware("/root", base({ owner: owner("s1", 5000) }), now, {}, sbDeps(10)) === true,
+      "buildClaimStaleAware: same-box claim with a FRESH live heartbeat file reads held (frozen snapshot ignored)");
+    ok(buildClaimStaleAware("/root", base({ owner: owner("s1", 5) }), now, {}, sbDeps(5000)) === false,
+      "buildClaimStaleAware: same-box crashed claim (live heartbeat file stale) reads stale immediately — no window wait");
+
+    // Row 2 fall-through — machine_id matches but the run-dir does NOT resolve locally → frozen row.
+    ok(buildClaimStaleAware("/root", base({ owner: owner("s1", 5000) }), now, {}, { myMachineId: "M1", resolveClaimRunDir: () => null }) === false,
+      "buildClaimStaleAware: same-box machine-id match but no local run-dir falls back to the frozen snapshot");
+
+    // Row 3 — cross box (machine_id mismatch) → frozen snapshot, waits heartbeatStaleSecs.
+    ok(buildClaimStaleAware("/root", base({ owner: owner("s1", 10) }), now, {}, { myMachineId: "M2", resolveClaimRunDir: () => "/should/not/read" }) === true,
+      "buildClaimStaleAware: cross-box claim with a fresh frozen heartbeat reads held");
+    ok(buildClaimStaleAware("/root", base({ owner: owner("s1", 5000) }), now, {}, { myMachineId: "M2" }) === false,
+      "buildClaimStaleAware: cross-box claim past heartbeatStaleSecs reads stale");
+
+    // §5 oracle — the heartbeating flag SELECTS the branch: the SAME wall-clock age between the
+    // window and the TTL yields OPPOSITE verdicts (false → held by TTL; true → stale by window).
+    const ageBetween = 3600; // 1h: > 900s window, < 6h TTL
+    const flagFalse = buildClaimStaleAware("/root", base({ heartbeating: false, claimed_at: iso(ageBetween) }), now, {}, { claimTtlHours: 6, myMachineId: "M2" });
+    const flagTrue = buildClaimStaleAware("/root", base({ heartbeating: true, owner: owner("s1", ageBetween) }), now, {}, { claimTtlHours: 6, myMachineId: "M2" });
+    ok(flagFalse === true && flagTrue === false && WINDOW < 6 * 3600,
+      `buildClaimStaleAware: the heartbeating flag selects the staleness branch (window≠TTL ⇒ opposite verdicts; got false-flag=${flagFalse}, true-flag=${flagTrue})`);
+
+    // No pid probe: a stale heartbeat is stale even with a live-looking recorded pid (FAFF-233).
+    ok(buildClaimStaleAware("/root", base({ owner: { ...owner("s1", 5000), pid: process.pid } }), now, {}, { myMachineId: "M2" }) === false,
+      "buildClaimStaleAware: a stale heartbeat is stale even with a live-looking recorded pid (no pid probe)");
+  }
+
+  // --- no claim path issues a bare `git push --force` — every ref move is a non-force create, a
+  // --force-with-lease reclaim, or a --force-with-lease delete. ---
+  {
+    const selfSrc = fs.readFileSync(__filename, "utf8");
+    ok(!/["']--force["']/.test(selfSrc), "bundle.js: no bare --force token in any claim path (every force is --force-with-lease)");
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} checks, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+const BUILD_CLAIM_USAGE = "usage: faff build-claim <acquire|confirm|reclaim|release|release-if-stale|read> --issue <ID> [--sha <SHA>] [--session-id <S>] [--heartbeating|--no-heartbeating] [--remote <NAME>] [--root <DIR>] [--json]";
+const BUILD_CLAIM_SPEC = {
+  flags: {
+    "--issue": { arity: 1 }, "--sha": { arity: 1 }, "--session-id": { arity: 1 },
+    "--heartbeating": { arity: 0 }, "--no-heartbeating": { arity: 0 },
+    "--remote": { arity: 1 }, "--root": { arity: 1 }, "--json": { arity: 0 },
+  },
+};
+
+function resolveBuildClaimHeartbeating(values, env) {
+  if (values["--heartbeating"]) return true;
+  if (values["--no-heartbeating"]) return false;
+  const rd = env.FAFF_RUN_DIR;
+  if (!rd) return false; // a bare human graft — no heartbeating owner
+  try {
+    const led = JSON.parse(fs.readFileSync(path.join(rd, "run-ledger.json"), "utf8"));
+    return !!(led && led.owner && led.owner.status === "running");
+  } catch { return false; }
+}
+
+function buildClaimOwnerSnapshot(env, values) {
+  const nowIso = new Date().toISOString();
+  const sid = values["--session-id"] || env.FAFF_SESSION_ID || (env.FAFF_RUN_DIR ? path.basename(env.FAFF_RUN_DIR) : null);
+  return { status: "running", epoch: Number(env.FAFF_OWNER_EPOCH) || 1, session_id: sid, pid: process.pid, started_at: nowIso, last_heartbeat: nowIso };
+}
+
+function cmdBuildClaim(args) {
+  if (args.includes("--selftest")) return buildClaimSelftest();
+  const sub = args[0];
+  const { values, errors } = parseArgs(args.slice(1), BUILD_CLAIM_SPEC);
+  if (errors.length) return usageError(errors, BUILD_CLAIM_USAGE);
+  const json = !!values["--json"];
+  const issue = values["--issue"];
+  const { isValidIssueId } = require("./heartbeat");
+  if (!["acquire", "confirm", "reclaim", "release", "release-if-stale", "read"].includes(sub)) {
+    process.stderr.write(`build-claim: unknown subcommand ${JSON.stringify(sub)}\n${BUILD_CLAIM_USAGE}\n`);
+    return 2;
+  }
+  if (!issue || !isValidIssueId(issue)) { process.stderr.write(`build-claim ${sub}: --issue <ID> is required and must be a valid issue id\n`); return 2; }
+
+  const root = values["--root"] || findRoot();
+  const remote = values["--remote"] || "origin";
+  const store = buildClaimStore(root, remote);
+  const identity = { issue };
+  const out = (obj, code) => { if (json) console.log(JSON.stringify(obj)); else console.log(obj.summary || JSON.stringify(obj)); return code; };
+
+  if (sub === "acquire") {
+    const owner = buildClaimOwnerSnapshot(process.env, values);
+    const arg = { ...owner, machine_id: require("./machine-id").thisMachineId(process.env), heartbeating: resolveBuildClaimHeartbeating(values, process.env) };
+    let r = store.acquire(identity, arg);
+    if (!r.acquired && r.reason === "exists") {
+      const rc = store.reclaimIfStale(identity, arg, process.env);
+      r = rc.reclaimed
+        ? { acquired: true, sha: rc.sha, claim: rc.claim, reclaimed: true }
+        : { acquired: false, reason: rc.reason, holder: rc.holder, sha: rc.sha, detail: rc.detail };
+    }
+    const obj = { action: "acquire", issue, acquired: !!r.acquired, reason: r.reason || null, sha: r.sha || null, reclaimed: !!r.reclaimed, epoch: r.claim ? r.claim.claim_epoch : null, holder: r.holder || null, detail: r.detail || null, summary: r.acquired ? `build-claim acquired ${issue} (sha ${String(r.sha).slice(0, 12)}, epoch ${r.claim ? r.claim.claim_epoch : "?"}${r.reclaimed ? ", reclaimed" : ""})` : `build-claim REFUSED ${issue}: ${r.reason}${r.detail ? " — " + r.detail : ""}` };
+    return out(obj, r.acquired ? 0 : 1);
+  }
+
+  if (sub === "confirm") {
+    const sha = values["--sha"];
+    if (!sha) { process.stderr.write("build-claim confirm: --sha <SHA> is required\n"); return 2; }
+    const r = store.confirmHead(identity, sha);
+    return out({ action: "confirm", issue, confirmed: !!r.confirmed, reason: r.reason || null, sha: r.sha || null, summary: r.confirmed ? `build-claim head-confirmed ${issue}` : `build-claim head-confirm FAILED ${issue}: ${r.reason}` }, r.confirmed ? 0 : 1);
+  }
+
+  if (sub === "reclaim") {
+    const owner = buildClaimOwnerSnapshot(process.env, values);
+    const arg = { ...owner, machine_id: require("./machine-id").thisMachineId(process.env), heartbeating: resolveBuildClaimHeartbeating(values, process.env) };
+    const r = store.reclaimIfStale(identity, arg, process.env);
+    return out({ action: "reclaim", issue, reclaimed: !!r.reclaimed, reason: r.reason || null, sha: r.sha || null, holder: r.holder || null, detail: r.detail || null, summary: r.reclaimed ? `build-claim reclaimed ${issue} (sha ${String(r.sha).slice(0, 12)})` : `build-claim reclaim declined ${issue}: ${r.reason}` }, r.reclaimed ? 0 : 1);
+  }
+
+  if (sub === "release") {
+    const sha = values["--sha"];
+    if (!sha) { process.stderr.write("build-claim release: --sha <SHA> is required\n"); return 2; }
+    const r = store.release(identity, sha);
+    // Best-effort housekeeping: a superseded/missing no-op is benign, a store_unavailable is
+    // transient — either way the next drain's reclaim backstops it, so NEVER halt the pipeline.
+    return out({ action: "release", issue, released: !!r.released, reason: r.reason || null, summary: r.released ? `build-claim released ${issue}` : `build-claim release no-op ${issue}: ${r.reason}` }, 0);
+  }
+
+  if (sub === "release-if-stale") {
+    // tidy's grooming path: release the ref ONLY if the holder is stale under the ref's OWN
+    // machine-aware, heartbeat-only buildClaimStaleAware — NEVER on a tracker age alone, so a live
+    // heartbeating build (whose tracker claim-age can look hours-stale) is not wrongly yanked.
+    // Tidy grooms; it never acquires/takes over the claim to build. Best-effort: exit 0 always.
+    const h = store.readHolder(identity);
+    if (h.status === "missing") return out({ action: "release-if-stale", issue, released: false, reason: "missing", stale: null, summary: `build-claim release-if-stale ${issue}: no ref` }, 0);
+    if (h.status !== "ok") return out({ action: "release-if-stale", issue, released: false, reason: h.status, stale: null, summary: `build-claim release-if-stale ${issue}: ${h.status}` }, 0);
+    const held = buildClaimStaleAware(root, h.claim, Date.now(), process.env);
+    if (held) return out({ action: "release-if-stale", issue, released: false, reason: "held", stale: false, sha: h.sha, summary: `build-claim release-if-stale ${issue}: holder still live (not released)` }, 0);
+    const r = store.release(identity, h.sha);
+    return out({ action: "release-if-stale", issue, released: !!r.released, reason: r.reason || null, stale: true, sha: h.sha, summary: r.released ? `build-claim release-if-stale ${issue}: stale claim released` : `build-claim release-if-stale ${issue}: stale, release no-op (${r.reason})` }, 0);
+  }
+
+  // read
+  const r = store.readHolder(identity);
+  return out({ action: "read", issue, status: r.status, sha: r.sha || null, claim: r.claim || null, summary: `build-claim ${issue}: ${r.status}${r.sha ? " (sha " + String(r.sha).slice(0, 12) + ")" : ""}` }, 0);
+}
+
 module.exports = {
   BUNDLE_MANIFEST_VERSION, BUNDLE_BOUNDARY_KINDS, BUNDLE_STORE_OCCUPANTS, REQUIRED_MEMBERS,
   REQUIRED_MEMBERS_B1, REQUIRED_MEMBERS_B2, requiredMembersFor,
@@ -1275,4 +1727,6 @@ module.exports = {
   localBundleStore, gitRemoteBundleStore, bundleRefName, resolveBundleStoreName, resolveBundleStore,
   publishBundle, verifyBundleIdentity, bundleExitCode, cmdBundle, bundleSelftest,
   recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, gitReadClaimManifest,
+  claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, defaultResolveClaimRunDir,
+  cmdBuildClaim, buildClaimSelftest,
 };

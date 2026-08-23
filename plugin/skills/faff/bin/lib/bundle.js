@@ -956,9 +956,27 @@ function landingClaimStore(root, remoteName = "origin") {
       return require("./runcheck").runIsHeld({ owner: { status: "running", last_heartbeat: claim.last_heartbeat } }, nowMs, env);
     },
   });
+
+  // The spec's THIRD fence (edge case: "fencing-token mismatch") — wraps core.reclaimIfStale rather
+  // than folding into stalePredicate, because it compares the STALE CLAIM's pr_head_sha against the
+  // RECLAIMER's own freshly-observed one (`arg.pr_head_sha`), a two-sided comparison stalePredicate's
+  // `(claim, nowMs, env)` signature has no slot for. If the existing claim's fencing token no longer
+  // matches what the caller just observed as the open PR's head, the PR moved on since that claim was
+  // minted — this is not "the same landing pass to resume", so refuse WITHOUT even evaluating
+  // heartbeat staleness (a moved-on PR is never a live-vs-crashed judgement call). `acquire`'s
+  // exists->reclaim fallback (cmdLandingClaim below) calls this wrapped version, so the fence applies
+  // on every reclaim path uniformly, not just a standalone `reclaim` invocation.
+  function reclaimIfStale(identity, arg, env) {
+    const existing = core.readHolder(identity);
+    if (existing.status === "ok" && arg && arg.pr_head_sha != null && existing.claim.pr_head_sha !== arg.pr_head_sha) {
+      return { reclaimed: false, reason: "fencing-mismatch", holder: existing.claim, sha: existing.sha };
+    }
+    return core.reclaimIfStale(identity, arg, env);
+  }
+
   // release + tickHeartbeat ARE exposed (unlike recoveryClaimStore) — a landing claim is released on
   // terminal disposition and its holder must tick a fresh last_heartbeat while landing_loop runs.
-  return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale: core.reclaimIfStale, release: core.release, tickHeartbeat: core.tickHeartbeat };
+  return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale, release: core.release, tickHeartbeat: core.tickHeartbeat };
 }
 
 // FAFF-889: resolve claim_ttl_hours from config (the same key claim-verdict.js consumes), used as
@@ -2097,6 +2115,23 @@ function landingClaimSelftest() {
       const foreignReclaim = storeB.reclaimIfStale(idP, { claimer_id: "run-f@host-f", pr_head_sha: "ddd444" }, process.env);
       ok(foreignReclaim.reclaimed === false && foreignReclaim.reason === "held",
         `landingClaimStore: a stale claim WITHOUT faff-claimed provenance is never seized (got ${JSON.stringify(foreignReclaim)})`);
+
+      // Fencing-token mismatch: a stale, faff-claimed claim whose recorded pr_head_sha no longer
+      // matches what the caller just observed as the PR's open head — the PR moved on since that
+      // claim was minted, so this refuses WITHOUT ever evaluating heartbeat staleness (never a
+      // reclaim against a stale revision).
+      const idF = { issue: "FAFF-846" };
+      const movedOnClaimObj = { issue: "FAFF-846", claimer_id: "run-dead@host-y", pr_head_sha: "old-head-sha", claimed_at: new Date(Date.now() - 2000000).toISOString(), last_heartbeat: new Date(Date.now() - 2000000).toISOString(), provenance: "faff-claimed", claim_epoch: 0 };
+      const movedOnMint = pushClaimCommit(rootA, "origin", landingClaimRefName(idF), movedOnClaimObj, (sha) => [`${sha}:${landingClaimRefName(idF)}`], `landing-claim ${idF.issue} epoch=0`);
+      ok(movedOnMint.push.status === 0, "landingClaimStore selftest fixture: stale claim recording an OLD pr_head_sha minted directly");
+      const fencingReclaim = storeB.reclaimIfStale(idF, { claimer_id: "run-i@host-i", pr_head_sha: "new-head-sha-the-pr-moved-to" }, process.env);
+      ok(fencingReclaim.reclaimed === false && fencingReclaim.reason === "fencing-mismatch",
+        `landingClaimStore: a stale claim whose pr_head_sha no longer matches the observed PR head refuses as fencing-mismatch, never reclaimed (got ${JSON.stringify(fencingReclaim)})`);
+      // The SAME stale claim IS reclaimable once the caller's observed head matches its own —
+      // proves the refusal above is specifically the fencing check, not a heartbeat/provenance miss.
+      const fencingMatchReclaim = storeB.reclaimIfStale(idF, { claimer_id: "run-j@host-j", pr_head_sha: "old-head-sha" }, process.env);
+      ok(fencingMatchReclaim.reclaimed === true,
+        `landingClaimStore: the identical stale claim IS reclaimable once pr_head_sha matches (got ${JSON.stringify(fencingMatchReclaim)})`);
 
       // tick refuses once superseded (a reclaimer moved the ref out from under the old holder).
       const idT = { issue: "FAFF-845" };

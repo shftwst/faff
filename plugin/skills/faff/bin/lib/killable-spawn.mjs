@@ -8,6 +8,13 @@
 // consumer (fan-out.mjs's `runOne`, per the spec's OUT OF SCOPE extension point) without
 // duplicating it.
 //
+// FAFF-877: relocated here (was plugin/skills/faffter-dark-adversarial-review/
+// killable-spawn.mjs) so it is importable OUTSIDE the adversarial-review skill under
+// link-skills.sh's whole-skill-dir symlink model. The shared operation supervisor
+// (./supervisor.js) imports `killGroup` from this module for its subprocess arm
+// (engine-codex.js's async codex spawn); review-spawn.mjs keeps consuming the full
+// `runKillable` export unchanged, just from its new relative path.
+//
 // THE LOAD-BEARING MODEL: a child launched `detached:true` (Node calls `setsid`) becomes
 // its own process-group LEADER — pgid === pid. Reparenting-to-init on parent death changes
 // the child's PPID, never its PGID, so `process.kill(-pgid, "SIGKILL")` still reaches a

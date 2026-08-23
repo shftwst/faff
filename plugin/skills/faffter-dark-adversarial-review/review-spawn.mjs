@@ -25,10 +25,12 @@
 // child that deliberately `setsid`s into its own session escapes any process-group
 // signal — that class stays the fence's remit (see killable-spawn.mjs's header).
 //
-// Zero-dependency beyond the sibling killable-spawn.mjs module (node stdlib only).
+// Zero-dependency beyond the shared killable-spawn.mjs module (node stdlib only).
+// FAFF-877: killable-spawn.mjs relocated to plugin/skills/faff/bin/lib/ so it is
+// importable outside this skill too (the shared operation supervisor's subprocess arm).
 
 import { spawn } from "node:child_process";
-import { parseArgs, runKillable, mapOutcomeExit, WRAPPER_EXIT, selftest as killableSelftest } from "./killable-spawn.mjs";
+import { parseArgs, runKillable, mapOutcomeExit, WRAPPER_EXIT, selftest as killableSelftest } from "../faff/bin/lib/killable-spawn.mjs";
 
 function usage() {
   process.stderr.write(

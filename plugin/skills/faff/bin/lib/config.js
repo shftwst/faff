@@ -93,6 +93,13 @@ const DEFAULTS = {
   // claim within a working session. Operators raise it above their longest observed build.
   "claim_ttl_hours": "6",
   "appetite": "high",
+  // FAFF-877: the bounded milestone-tick cadence a dispatched producer subagent (plot
+  // decompose, a prep spec producer) MUST honour when ticking `faff heartbeat <run_dir>`
+  // — strictly below sentry.stall_window_secs (default 900s; this default sits well
+  // under half of that). See gateway → Sibling-skill invocation → Producer dispatch —
+  // the LOAD-BEARING liveness defence for a nested producer whose own sub-calls fall
+  // back in-context (never fork to a supervised `faff engine call`).
+  "producer_tick_max_secs": "600",
   "adr.mode": "offer",
   "intake_gate": "warn",
   // FAFF-536: the self-hosting core-defect intake lane. Default false ⇒ the lane is off and the
@@ -416,6 +423,12 @@ function resolveEngineForLane(cfg, lane) {
     seatTokenEnv: (entry.seat_token_env === null || entry.seat_token_env === undefined || entry.seat_token_env === "") ? null : String(entry.seat_token_env),
     reasoningOff,
     timeoutMs: (entry.timeout !== null && entry.timeout !== undefined && entry.timeout !== "") ? Number(entry.timeout) * 1000 : 120000,
+    // FAFF-877: the TOTAL operation budget the shared supervisor's lease uses — distinct
+    // from `timeoutMs` above (the connection/request timeout, unchanged). Policy, per
+    // consumer: `backends.<name>.operation_deadline_secs` overrides the human-decided
+    // default (3600s, alec, 2026-08-22 — generous enough not to trip a legitimately long
+    // local-model dispatch, well below the 14400s run_elapsed_ceiling_secs backstop).
+    operationDeadlineSecs: (entry.operation_deadline_secs !== null && entry.operation_deadline_secs !== undefined && entry.operation_deadline_secs !== "") ? Number(entry.operation_deadline_secs) : 3600,
     // FAFF-705: the resolved faff effort level (five-level, pre-map) or null for inherit/unset.
     // The encode sites map it onto the transport (reasoningEffortForTransport); the codex
     // spend record stores this faff level so `economics --by effort` buckets it uniformly.
@@ -885,7 +898,7 @@ const WRITABLE_NAMESPACES = new Set([
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
-  "bundle_store", "install", "lanes",
+  "bundle_store", "install", "lanes", "producer_tick_max_secs",
 ]);
 
 // Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each

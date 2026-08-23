@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { EventEmitter } from "node:events";
 import { runCli, repoRoot } from "./helpers/run-cli.mjs";
 import engine from "../plugin/skills/faff/bin/lib/engine.js";
 import engineCodex from "../plugin/skills/faff/bin/lib/engine-codex.js";
@@ -343,130 +344,167 @@ test("codex: resolveEngineForLane returns the codex-shaped record (binPath, no h
 });
 
 // --- FAFF-593: codex dispatch table (injected spawn — zero real spawns) ---
+// FAFF-877: runCodexCall is now async; the exec spawn is a SEPARATE async child
+// (spawnAsyncFn, node:child_process.spawn-shaped) run under the shared operation
+// supervisor, distinct from the seat probe's sync spawnFn (unchanged). A fake async
+// child is built on a real node:events EventEmitter so this file's own listeners
+// (stdin capture) and killable-spawn.mjs's own "error"/"exit" listeners coexist.
 
-const CODEX_ENGINE = { name: "codex-seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+const CODEX_ENGINE = { name: "codex-seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000, operationDeadlineSecs: 3600 };
 const AGENT_LINE = JSON.stringify({ type: "item.completed", item: { id: "item_0", item_type: "agent_message", text: "the producer block" } });
 const TURN_LINE = JSON.stringify({ type: "turn.completed", usage: { input_tokens: 10, output_tokens: 5 } });
 const PROBE_OK = { status: 0, stdout: "Logged in using ChatGPT", stderr: "", error: null, signal: null };
 const sink = () => {};
-// Injected spawn dispatcher: probe calls (login status) vs exec calls, with capture.
-function spawnSeq(probeRes, execRes, calls = []) {
+// The seat probe's injected sync spawn — unchanged shape/contract.
+function probeSpawn(probeRes, calls) {
   return (cmd, args, opts) => {
-    calls.push({ cmd, args, opts });
-    return args[0] === "login" ? probeRes : execRes;
+    if (calls) calls.push({ cmd, args, opts });
+    return probeRes;
+  };
+}
+// The exec child's injected async spawn — one fake EventEmitter-based child per call,
+// firing its data/exit (or error) events on a microtask (after capturingSpawnFn's own
+// synchronous listener registration completes, mirroring real async spawn timing).
+function execSpawnAsync({ stdout = "", stderr = "", exitCode = 0, signal = null, errorCode = null } = {}, calls) {
+  return (cmd, args, opts) => {
+    let stdinWritten = "";
+    const child = new EventEmitter();
+    child.pid = 8181;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.stdin = { write: (s) => { stdinWritten += s; }, end: () => {} };
+    if (calls) calls.push({ cmd, args, opts, stdin: () => stdinWritten });
+    queueMicrotask(() => {
+      if (errorCode) {
+        const e = new Error(`spawn codex ${errorCode}`);
+        e.code = errorCode;
+        child.emit("error", e);
+        return;
+      }
+      if (stdout) child.stdout.emit("data", stdout);
+      if (stderr) child.stderr.emit("data", stderr);
+      child.emit("exit", exitCode, signal);
+    });
+    return child;
   };
 }
 
-test("codex dispatch: happy path — exit 0, stdout is the final agent message, one exec spawn", () => {
+test("codex dispatch: happy path — exit 0, stdout is the final agent message, one exec spawn", async () => {
   const calls = [];
   let stdout = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: CODEX_ENGINE, system: "SYS", user: "USR",
-    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }, calls),
     stdoutWrite: (s) => (stdout += s), stderrWrite: sink,
   });
   assert.equal(code, ENGINE_EXIT.OK);
   assert.equal(stdout, "the producer block\n");
-  const exec = calls.filter((c) => c.args[0] === "exec");
-  assert.equal(exec.length, 1);
-  assert.deepEqual(exec[0].args, buildCodexArgv("gpt-5-codex"));
-  assert.equal(exec[0].opts.input, "SYS\n\nUSR");
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].args, buildCodexArgv("gpt-5-codex"));
+  assert.equal(calls[0].stdin(), "SYS\n\nUSR");
 });
 
 // FAFF-705: a graded effort on a codex engine appends -c model_reasoning_effort=<mapped> to the
 // exec argv AND the resolved faff level lands on the appended engine-spend record (pre-map).
-test("codex dispatch: graded effort → -c model_reasoning_effort in argv + effort on the spend record", () => {
+test("codex dispatch: graded effort → -c model_reasoning_effort in argv + effort on the spend record", async () => {
   const calls = [];
   const recorded = [];
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: { ...CODEX_ENGINE, effort: "max" }, system: "S", user: "U",
-    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }, calls),
     stdoutWrite: sink, stderrWrite: sink, spendSink: (r) => recorded.push(r),
   });
   assert.equal(code, ENGINE_EXIT.OK);
-  const exec = calls.find((c) => c.args[0] === "exec");
+  const exec = calls[0];
   assert.deepEqual(exec.args, buildCodexArgv("gpt-5-codex", "max"));       // xhigh/max clamp to high in argv
   assert.ok(exec.args.join(" ").includes("-c model_reasoning_effort=high"));
   assert.equal(recorded[0].effort, "max");                                 // record stores the faff level, pre-map
 });
 
 // FAFF-705: an inherit (no effort) codex call's spend record is byte-identical to today — no effort key.
-test("codex dispatch: inherit effort omits the effort key on the spend record (byte-identity)", () => {
+test("codex dispatch: inherit effort omits the effort key on the spend record (byte-identity)", async () => {
   const recorded = [];
-  runCodexCall({
+  await runCodexCall({
     engine: CODEX_ENGINE, system: "S", user: "U",
-    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }),
     stdoutWrite: sink, stderrWrite: sink, spendSink: (r) => recorded.push(r),
   });
   assert.ok(!("effort" in recorded[0]));
 });
 
-test("codex dispatch: seat probe exit 1 → auth-failed exit 6, codex exec never spawned", () => {
-  const calls = [];
+test("codex dispatch: seat probe exit 1 → auth-failed exit 6, codex exec never spawned", async () => {
+  const execCalls = [];
   let stderr = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: CODEX_ENGINE, system: "S", user: "U",
-    spawnFn: spawnSeq({ status: 1, stdout: "", stderr: "Not logged in", error: null, signal: null }, null, calls),
+    spawnFn: probeSpawn({ status: 1, stdout: "", stderr: "Not logged in", error: null, signal: null }),
+    spawnAsyncFn: execSpawnAsync({}, execCalls),
     stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
   });
   assert.equal(code, ENGINE_EXIT.AUTH);
   assert.match(stderr, /codex login/);
-  assert.equal(calls.filter((c) => c.args[0] === "exec").length, 0);
+  assert.equal(execCalls.length, 0);
 });
 
-test("codex dispatch: ENOENT → engine-unreachable exit 5 naming install/bin_path", () => {
+test("codex dispatch: ENOENT → engine-unreachable exit 5 naming install/bin_path", async () => {
   let stderr = "";
   const enoent = { status: null, stdout: null, stderr: null, error: Object.assign(new Error("spawnSync codex ENOENT"), { code: "ENOENT" }), signal: null };
-  const code = runCodexCall({ engine: CODEX_ENGINE, system: "S", user: "U", spawnFn: () => enoent, stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
+  const code = await runCodexCall({ engine: CODEX_ENGINE, system: "S", user: "U", spawnFn: () => enoent, stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
   assert.equal(code, ENGINE_EXIT.UNREACHABLE);
   assert.match(stderr, /codex binary not found/);
   assert.match(stderr, /bin_path/);
 });
 
-test("codex dispatch: non-JSON stdout line → malformed-response exit 7 with excerpt", () => {
+test("codex dispatch: non-JSON stdout line → malformed-response exit 7 with excerpt", async () => {
   let stderr = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: CODEX_ENGINE, system: "S", user: "U",
-    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${AGENT_LINE}\nplain chatter\n`, stderr: "", error: null, signal: null }),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: `${AGENT_LINE}\nplain chatter\n` }),
     stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
   });
   assert.equal(code, ENGINE_EXIT.MALFORMED);
   assert.match(stderr, /plain chatter/);
 });
 
-test("codex dispatch: clean exit with no agent message → malformed-response exit 7", () => {
+test("codex dispatch: clean exit with no agent message → malformed-response exit 7", async () => {
   let stderr = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: CODEX_ENGINE, system: "S", user: "U",
-    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n`, stderr: "", error: null, signal: null }),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: `${TURN_LINE}\n` }),
     stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
   });
   assert.equal(code, ENGINE_EXIT.MALFORMED);
   assert.match(stderr, /no agent message/);
 });
 
-test("codex dispatch: auth-shaped child failure → auth-failed exit 6", () => {
+test("codex dispatch: auth-shaped child failure → auth-failed exit 6", async () => {
   let stderr = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: CODEX_ENGINE, system: "S", user: "U",
-    spawnFn: spawnSeq(PROBE_OK, { status: 1, stdout: "", stderr: "HTTP 401 unauthorized", error: null, signal: null }),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: "", stderr: "HTTP 401 unauthorized", exitCode: 1 }),
     stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
   });
   assert.equal(code, ENGINE_EXIT.AUTH);
   assert.match(stderr, /remedy: codex login/);
 });
 
-test("codex dispatch: declared api_key_env unset → exit 6 before ANY spawn (probe included)", () => {
-  const calls = [];
+test("codex dispatch: declared api_key_env unset → exit 6 before ANY spawn (probe included)", async () => {
+  const probeCalls = [];
   let stderr = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: { ...CODEX_ENGINE, apiKeyEnv: "FAFF593_TEST_UNSET_KEY" }, system: "S", user: "U",
-    spawnFn: spawnSeq(PROBE_OK, null, calls), env: {},
+    spawnFn: probeSpawn(PROBE_OK, probeCalls), env: {},
     stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
   });
   assert.equal(code, ENGINE_EXIT.AUTH);
   assert.match(stderr, /FAFF593_TEST_UNSET_KEY/);
-  assert.equal(calls.length, 0);
+  assert.equal(probeCalls.length, 0);
 });
 
 test("codex parse: events (usage fields included) survive in the parse result — the FAFF-604 seam", () => {
@@ -494,18 +532,17 @@ test("FAFF-604: sumCodexUsage totals turn.completed usage into the four token cl
   assert.deepEqual(u, { input: 34, output: 12, cache_write: 0, cache_read: 8 });
 });
 
-test("FAFF-604: a successful codex call hands the sink one record with class-mapped usage", () => {
-  const engineRef = { name: "seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+test("FAFF-604: a successful codex call hands the sink one record with class-mapped usage", async () => {
+  const engineRef = { name: "seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000, operationDeadlineSecs: 3600 };
   const stream = [
     JSON.stringify({ type: "turn.completed", usage: { input_tokens: 30, output_tokens: 9, cached_input_tokens: 4 } }),
     JSON.stringify({ type: "item.completed", item: { item_type: "agent_message", text: "block" } }),
   ].join("\n") + "\n";
   const recorded = [];
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: engineRef, system: "S", user: "U",
-    spawnFn: (cmd, args) => (args[0] === "login"
-      ? { status: 0, stdout: "ok", stderr: "", error: null, signal: null }
-      : { status: 0, stdout: stream, stderr: "", error: null, signal: null }),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: stream }),
     stdoutWrite: () => {}, stderrWrite: () => {},
     spendSink: (r) => recorded.push(r), nowFn: () => "2026-07-25T00:00:00Z",
   });
@@ -516,15 +553,14 @@ test("FAFF-604: a successful codex call hands the sink one record with class-map
   }]);
 });
 
-test("FAFF-604: a spend-sink write fault never changes the dispatch's exit code", () => {
-  const engineRef = { name: "seat", provider: "codex", family: "codex", model: "m", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+test("FAFF-604: a spend-sink write fault never changes the dispatch's exit code", async () => {
+  const engineRef = { name: "seat", provider: "codex", family: "codex", model: "m", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000, operationDeadlineSecs: 3600 };
   const stream = JSON.stringify({ type: "item.completed", item: { item_type: "agent_message", text: "block" } }) + "\n";
   let stderr = "";
-  const code = runCodexCall({
+  const code = await runCodexCall({
     engine: engineRef, system: "S", user: "U",
-    spawnFn: (cmd, args) => (args[0] === "login"
-      ? { status: 0, stdout: "ok", stderr: "", error: null, signal: null }
-      : { status: 0, stdout: stream, stderr: "", error: null, signal: null }),
+    spawnFn: probeSpawn(PROBE_OK),
+    spawnAsyncFn: execSpawnAsync({ stdout: stream }),
     stdoutWrite: () => {}, stderrWrite: (s) => (stderr += s),
     spendSink: () => { throw new Error("EACCES"); },
   });

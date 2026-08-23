@@ -11,10 +11,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   parseArgs, mapOutcomeExit, killGroup, runKillable, WRAPPER_EXIT, DEFAULT_GRACE_SECONDS,
-} from "../plugin/skills/faffter-dark-adversarial-review/killable-spawn.mjs";
+} from "../plugin/skills/faff/bin/lib/killable-spawn.mjs";
 
+// FAFF-877: relocated from plugin/skills/faffter-dark-adversarial-review/ to
+// plugin/skills/faff/bin/lib/ so it is importable outside the adversarial-review skill
+// (the shared operation supervisor's subprocess arm).
 const HERE = dirname(fileURLToPath(import.meta.url));
-const MODULE_PATH = join(HERE, "..", "plugin", "skills", "faffter-dark-adversarial-review", "killable-spawn.mjs");
+const MODULE_PATH = join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "killable-spawn.mjs");
 
 test("killable-spawn --selftest passes (in-process pure-core + injected-runKillable exercise)", () => {
   const r = spawnSync(process.execPath, [MODULE_PATH, "--selftest"], { encoding: "utf8" });

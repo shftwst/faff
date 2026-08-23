@@ -28,12 +28,14 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const { ENGINE_EXIT } = require("./engine");
 const { reasoningEffortForTransport } = require("./config");
+// FAFF-877: the shared bounded-operation supervisor — the codex exec spawn now runs
+// under it (async + detached + heartbeat-renewed) instead of a blocking spawnSync.
+const { DEFAULT_OPERATION_DEADLINE_SECS, SUPERVISED_OUTCOME, makeLease, mapKillableOutcome, superviseSubprocess } = require("./supervisor");
 
 const SEAT_PROBE_TIMEOUT_MS = 5000;
-const DEFAULT_CODEX_TIMEOUT_MS = 120000;
 
 function excerpt(s, n = 200) { return String(s || "").trim().slice(0, n); }
 
@@ -153,14 +155,30 @@ function classifyCodexFailure(stderr, events) {
 }
 
 // The one-shot spawn orchestration (spec §4 PROCEDURE dispatch_codex): api-key
-// guard → seat probe → ONE exec spawn → fail-loud parse → classify. Returns an
-// ENGINE_EXIT int synchronously (bin/faff's dispatcher accepts int-or-Promise).
-// spawnFn/env/writers injectable — the selftest and CI make zero real spawns.
-function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process.env, stdoutWrite, stderrWrite, mkdtempFn = fs.mkdtempSync, spendSink = null, nowFn = () => new Date().toISOString() } = {}) {
+// guard → seat probe → ONE exec spawn → fail-loud parse → classify. Returns
+// Promise<ENGINE_EXIT> (FAFF-877: was a synchronous int — the exec spawn is now
+// ASYNC + DETACHED and runs under the shared operation supervisor, so the parent
+// heartbeat renews for the call's full duration instead of a blocked spawnSync
+// starving it; bin/faff's dispatcher already accepts int-or-Promise, unchanged).
+// spawnFn (the seat probe only, still spawnSync-shaped) / spawnAsyncFn (the ONE exec
+// child, node:child_process.spawn-shaped) / env / writers injectable — the selftest
+// and CI make zero real spawns.
+async function runCodexCall({
+  engine, system, user,
+  spawnFn = spawnSync, spawnAsyncFn = spawn,
+  env = process.env, stdoutWrite, stderrWrite, mkdtempFn = fs.mkdtempSync,
+  spendSink = null, nowFn = () => new Date().toISOString(),
+  // FAFF-877: the EXACT parent run_dir the supervisor's heartbeat lease renews —
+  // absent outside a run (an ad-hoc call), which still runs the same bounded,
+  // killable spawn, it just has nothing to renew. `superviseFn`/`importKillableSpawn`
+  // injectable so the selftest drives every branch with zero real timers/processes.
+  runDir = null, graceSec = undefined,
+  superviseFn = superviseSubprocess,
+  importKillableSpawn = () => import("./killable-spawn.mjs"),
+} = {}) {
   const out = stdoutWrite || ((s) => process.stdout.write(s));
   const err = stderrWrite || ((s) => process.stderr.write(s));
   const binPath = engine.binPath || "codex";
-  const timeoutMs = engine.timeoutMs || DEFAULT_CODEX_TIMEOUT_MS;
 
   // 1. api-key mode pre-spawn guard — a declared env var name whose env is unset
   // is auth-failed BEFORE any spawn (probe included), byte-consistent with the
@@ -178,7 +196,8 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
   // login.rs: 0 logged in, 1 not). The served-model preflight's substitute: it
   // upgrades error QUALITY (a named auth failure before the expensive spawn),
   // never outcome. Probe stderr text is informational only, never parsed for
-  // control flow (version-brittle).
+  // control flow (version-brittle). UNCHANGED — a short, bounded synchronous
+  // call (5s ceiling); only the exec child below is long-running.
   const probe = spawnFn(binPath, ["login", "status"], { encoding: "utf8", timeout: SEAT_PROBE_TIMEOUT_MS, env });
   if (probe.error && probe.error.code === "ENOENT") {
     err(`faff engine call: engine-unreachable — codex binary not found at ${binPath}; install codex or set backends.${engine.name}.bin_path\n`);
@@ -190,17 +209,13 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
     return ENGINE_EXIT.AUTH;
   }
 
-  // 3. The ONE exec spawn: prompt (system + blank line + user — codex exec has
-  // no system/user channel split, concatenation order is the contract) on stdin,
-  // cwd a fresh temp dir (removed after — a producer dispatch leaves nothing
-  // behind). Full env inheritance is DELIBERATE, not a leak: codex needs HOME
-  // (auth store discovery), CODEX_HOME (auth store override), and PATH; api-key
-  // mode additionally injects the named env var's VALUE as OPENAI_API_KEY.
+  // 3. Fresh temp cwd (removed after — a producer dispatch leaves nothing behind).
+  // Full env inheritance is DELIBERATE, not a leak: codex needs HOME (auth store
+  // discovery), CODEX_HOME (auth store override), and PATH; api-key mode additionally
+  // injects the named env var's VALUE as OPENAI_API_KEY. mkdtemp failure (tmpdir
+  // unwritable/full) must land on a NAMED exit, never an escaped throw — mkdtempFn
+  // injectable so the selftest can drive this row without touching the real tmpdir.
   const childEnv = apiKey ? { ...env, OPENAI_API_KEY: apiKey } : env;
-  // mkdtemp failure (tmpdir unwritable/full) must land on a NAMED exit, never an
-  // escaped throw — runCodexCall's contract is a synchronous ENGINE_EXIT int on
-  // every path (adversarial-review finding, 2026-07-25). mkdtempFn injectable so
-  // the selftest can drive this row without touching the real tmpdir.
   let tmp;
   try {
     tmp = mkdtempFn(path.join(os.tmpdir(), "faff-codex-"));
@@ -208,57 +223,111 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
     err(`faff engine call: engine-unreachable — could not create temp working dir for codex exec: ${excerpt(e && e.message)}\n`);
     return ENGINE_EXIT.UNREACHABLE;
   }
-  let r;
+
+  // 4. FAFF-877: the ONE exec spawn — prompt (system + blank line + user — codex exec
+  // has no system/user channel split, concatenation order is the contract) written to
+  // stdin, now via an ASYNC DETACHED child (its own process group) run under the shared
+  // supervisor, instead of a blocking spawnSync. Total budget is the LEASE's operation
+  // deadline (engine.operationDeadlineSecs, default 3600s, per-consumer overridable —
+  // section 6's human decision) — the old DEFAULT_CODEX_TIMEOUT_MS/spawnSync-`timeout`
+  // role is retired for this spawn family; a connection-style timeout stays meaningful
+  // only where an actual HTTP connection applies (engine.js's runEngineCall).
+  //
+  // `capturingSpawnFn` is what makes the RELOCATED killable-spawn.mjs's runKillable —
+  // built for review-spawn.mjs's inherit-stdio, pass-the-exit-code-through use — work
+  // for this module's need to CAPTURE stdout/stderr for JSONL parsing instead: it wraps
+  // the injected `spawnAsyncFn`, pipes stdio, writes the prompt to stdin, and buffers
+  // output into this closure's `stdout`/`stderr` — runKillable never inspects the opts
+  // object it builds itself beyond handing it to the injected spawnFn (its own documented
+  // contract), so overriding stdio here changes nothing about its kill discipline.
+  const prompt = `${String(system ?? "")}\n\n${String(user ?? "")}`;
+  const argv = buildCodexArgv(engine.model, engine.effort);
+  const deadlineSecs = engine.operationDeadlineSecs || DEFAULT_OPERATION_DEADLINE_SECS;
+  let stdout = "";
+  let stderr = "";
+  let spawnErr = null;
+  const capturingSpawnFn = (cmd, args) => {
+    let child;
+    try {
+      child = spawnAsyncFn(cmd, args, { cwd: tmp, env: childEnv, detached: true, stdio: ["pipe", "pipe", "pipe"] });
+    } catch (e) {
+      spawnErr = e;
+      throw e; // killable-spawn.mjs's runKillable catches a throwing spawnFn -> spawn-failed
+    }
+    if (child.stdin) { try { child.stdin.write(prompt); child.stdin.end(); } catch { /* a real fault surfaces on the 'error' event below */ } }
+    if (child.stdout) child.stdout.on("data", (c) => { stdout += c; });
+    if (child.stderr) child.stderr.on("data", (c) => { stderr += c; });
+    child.on("error", (e) => { if (!spawnErr) spawnErr = e; }); // captured for classification; runKillable's OWN "error" listener (registered after this returns) still drives its outcome
+    return child;
+  };
+
+  let killed;
   try {
-    r = spawnFn(binPath, buildCodexArgv(engine.model, engine.effort), {
-      encoding: "utf8",
-      input: `${String(system ?? "")}\n\n${String(user ?? "")}`,
-      cwd: tmp,
-      timeout: timeoutMs,
-      env: childEnv,
-    });
+    if (runDir) {
+      const lease = makeLease({ name: "engine:codex", run_dir: runDir, deadline_secs: deadlineSecs });
+      killed = await superviseFn({ lease, target: [binPath, ...argv], spawnFn: capturingSpawnFn, graceSec });
+    } else {
+      // No run to attribute a heartbeat lease to (an ad-hoc call outside a run) — the
+      // spawn is still bounded and killable via the SAME relocated killGroup discipline,
+      // it just has nothing to renew (no lease, no supervisor wrapper needed).
+      const { runKillable, DEFAULT_GRACE_SECONDS } = await importKillableSpawn();
+      const raw = await runKillable(
+        { deadlineSec: deadlineSecs, graceSec: graceSec != null ? graceSec : DEFAULT_GRACE_SECONDS, target: [binPath, ...argv] },
+        { spawnFn: capturingSpawnFn },
+      );
+      killed = mapKillableOutcome(raw);
+    }
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
-  if (r.error && r.error.code === "ENOENT") {
-    err(`faff engine call: engine-unreachable — codex binary not found at ${binPath}; install codex or set backends.${engine.name}.bin_path\n`);
+
+  if (killed.outcome === SUPERVISED_OUTCOME.DEADLINE_KILLED) {
+    err(`faff engine call: engine-unreachable — codex exec exceeded its operation deadline of ${deadlineSecs}s\n`);
     return ENGINE_EXIT.UNREACHABLE;
   }
-  if ((r.error && r.error.code === "ETIMEDOUT") || r.signal === "SIGTERM") {
-    err(`faff engine call: engine-unreachable — codex exec timed out after ${timeoutMs}ms\n`);
+  if (killed.outcome === SUPERVISED_OUTCOME.CANCELLED) {
+    err(`faff engine call: engine-unreachable — codex exec aborted (${(killed.result && killed.result.signal) || killed.signal || "signal"})\n`);
     return ENGINE_EXIT.UNREACHABLE;
   }
-  if (r.error) {
-    err(`faff engine call: engine-unreachable — codex exec failed to spawn: ${excerpt(r.error.message)}\n`);
+  if (killed.outcome === SUPERVISED_OUTCOME.FAILED) {
+    if (spawnErr && spawnErr.code === "ENOENT") {
+      err(`faff engine call: engine-unreachable — codex binary not found at ${binPath}; install codex or set backends.${engine.name}.bin_path\n`);
+      return ENGINE_EXIT.UNREACHABLE;
+    }
+    err(`faff engine call: engine-unreachable — codex exec failed to spawn: ${excerpt((killed.error && killed.error.message) || (spawnErr && spawnErr.message))}\n`);
     return ENGINE_EXIT.UNREACHABLE;
   }
 
-  // 4. Fail-loud parse of the complete stream (parse BEFORE the exit-code check —
+  // killed.outcome === COMPLETED — killed.result is killable-spawn's own
+  // {status:"exited", innerExit, signal} outcome shape.
+  const exitCode = killed.result && killed.result.innerExit;
+
+  // 5. Fail-loud parse of the complete stream (parse BEFORE the exit-code check —
   // a failed run's error events feed classification).
   let parsed;
-  try { parsed = parseCodexEvents(r.stdout); }
+  try { parsed = parseCodexEvents(stdout); }
   catch (e) {
     err(`faff engine call: malformed-response — ${e.message}\n`);
     return ENGINE_EXIT.MALFORMED;
   }
 
-  // 5. Non-zero child exit → auth-failed or engine-unreachable, never a retry.
-  if (r.status !== 0) {
-    if (classifyCodexFailure(r.stderr, parsed.events) === "auth") {
-      err(`faff engine call: auth-failed — ${excerpt(r.stderr) || "codex exec auth failure"}; remedy: codex login\n`);
+  // 6. Non-zero child exit → auth-failed or engine-unreachable, never a retry.
+  if (exitCode !== 0) {
+    if (classifyCodexFailure(stderr, parsed.events) === "auth") {
+      err(`faff engine call: auth-failed — ${excerpt(stderr) || "codex exec auth failure"}; remedy: codex login\n`);
       return ENGINE_EXIT.AUTH;
     }
-    err(`faff engine call: engine-unreachable — codex exec exited ${r.status}: ${excerpt(r.stderr)}\n`);
+    err(`faff engine call: engine-unreachable — codex exec exited ${exitCode}: ${excerpt(stderr)}\n`);
     return ENGINE_EXIT.UNREACHABLE;
   }
 
-  // 6. A clean exit with no agent message is malformed, not empty-pass.
+  // 7. A clean exit with no agent message is malformed, not empty-pass.
   if (parsed.finalMessage === null) {
     err("faff engine call: malformed-response — codex stream completed with no agent message\n");
     return ENGINE_EXIT.MALFORMED;
   }
 
-  // 7. FAFF-604 — record this call's spend. codex exec is `--ephemeral`: no
+  // 8. FAFF-604 — record this call's spend. codex exec is `--ephemeral`: no
   // session file, temp cwd already gone, so nothing codex-side survives to be
   // attributed later. The call boundary is the ONLY place that knows both the
   // usage and the run, so attribution happens here, via an injected sink (the
@@ -286,7 +355,7 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
     }
   }
 
-  // 8. stdout is the producer block, handed verbatim to the caller (trim only).
+  // 9. stdout is the producer block, handed verbatim to the caller (trim only).
   out(parsed.finalMessage.trim() + "\n");
   return ENGINE_EXIT.OK;
 }
@@ -294,21 +363,57 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
 // Selftest — the spec's dispatch table via injected spawnFn (zero real spawns)
 // plus the config-guard rows. Returns the failure COUNT; engineSelftest folds it
 // so `faff engine --selftest` stays the single entry point.
-function codexSelftest() {
+async function codexSelftest() {
   let fail = 0;
   const ok = (name, cond) => { if (!cond) { console.log(`FAIL codex: ${name}`); fail++; } else console.log(`ok   codex: ${name}`); };
   const { resolveEngineForLane, validateEngineRef } = require("./config");
   const { checkRealizable, deriveAuth, deriveEgress, mergeBackendsNamespace, portableMatrixAdmits } = require("./backends");
+  const { EventEmitter } = require("node:events");
 
   const sink = () => {};
-  const engine = { name: "seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+  const engine = { name: "seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000, operationDeadlineSecs: 3600 };
   const AGENT_LINE = JSON.stringify({ type: "item.completed", item: { id: "item_0", item_type: "agent_message", text: "the block" } });
   const TURN_LINE = JSON.stringify({ type: "turn.completed", usage: { input_tokens: 10, output_tokens: 5 } });
   const probeOk = { status: 0, stdout: "Logged in using ChatGPT", stderr: "", error: null, signal: null };
-  // Injected spawn: first call is the probe, rest are exec — mirror getFn/postFn.
-  const seq = (probeRes, execRes, calls) => (cmd, args, opts) => {
+  // Injected sync spawn — the SEAT PROBE ONLY (unchanged spawnSync-shaped contract).
+  const seq = (probeRes, calls) => (cmd, args, opts) => {
     if (calls) calls.push({ cmd, args, opts });
-    return args[0] === "login" ? probeRes : execRes;
+    return probeRes;
+  };
+
+  // FAFF-877: a fake ASYNC exec child (node:child_process.spawn's return shape — pid,
+  // stdin.write/end, stdout/stderr as event emitters, on(event,cb)) built on a real
+  // node:events EventEmitter so BOTH this test's own listeners (stdin capture) and
+  // runKillable's own "error"/"exit" listeners (registered after spawnFn returns)
+  // coexist correctly. Events fire on a microtask — after capturingSpawnFn's own
+  // synchronous listener registration completes, mirroring real async spawn timing.
+  // Zero real processes, zero real timers.
+  function fakeExecChild({ stdout = "", stderr = "", exitCode = 0, signal = null, errorCode = null, onStdin = null } = {}) {
+    const child = new EventEmitter();
+    child.pid = 4242;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.stdin = { write: (s) => { if (onStdin) onStdin(s); }, end: () => {} };
+    queueMicrotask(() => {
+      if (errorCode) {
+        const e = new Error(`spawn codex ${errorCode}`);
+        e.code = errorCode;
+        child.emit("error", e);
+        return;
+      }
+      if (stdout) child.stdout.emit("data", stdout);
+      if (stderr) child.stderr.emit("data", stderr);
+      child.emit("exit", exitCode, signal);
+    });
+    return child;
+  }
+  // seqAsync: the exec spawn fake — one call per invocation, each entry exposing the
+  // stdin text actually written (`entry.stdin()`) alongside cmd/args/opts (no `input`
+  // option any more — FAFF-877 writes the prompt to the child's stdin stream instead).
+  const seqAsync = (execSpec, calls) => (cmd, args, opts) => {
+    let written = "";
+    if (calls) calls.push({ cmd, args, opts, stdin: () => written });
+    return fakeExecChild({ ...execSpec, onStdin: (s) => { written += s; } });
   };
 
   // argv shape — pure, stable order
@@ -353,9 +458,10 @@ function codexSelftest() {
   // spend sink (FAFF-604) — the call-boundary attribution, zero real I/O
   {
     const recorded = [];
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }),
       stdoutWrite: sink, stderrWrite: sink,
       spendSink: (r) => recorded.push(r), nowFn: () => "2026-07-25T00:00:00Z",
     });
@@ -376,13 +482,14 @@ function codexSelftest() {
     const recorded = [];
     const calls = [];
     const effEngine = { ...engine, effort: "high" };
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine: effEngine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }, calls),
       stdoutWrite: sink, stderrWrite: sink,
       spendSink: (r) => recorded.push(r), nowFn: () => "2026-08-09T00:00:00Z",
     });
-    const exec = calls.find((c) => c.args[0] === "exec");
+    const exec = calls[0];
     ok("sink: graded effort argv carries -c model_reasoning_effort=high",
       code === ENGINE_EXIT.OK && exec && exec.args.join(" ").includes("-c model_reasoning_effort=high"));
     ok("sink: graded effort record carries the faff level (pre-map)",
@@ -392,9 +499,10 @@ function codexSelftest() {
     // A failed call records nothing — attributing partial usage from a failure is
     // an over-count risk; leaving it uncounted errs the way the transcript already does.
     const recorded = [];
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 1, stdout: "", stderr: "boom", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: "", stderr: "boom", exitCode: 1 }),
       stdoutWrite: sink, stderrWrite: sink, spendSink: (r) => recorded.push(r),
     });
     ok("sink: a FAILED call records no spend", code !== ENGINE_EXIT.OK && recorded.length === 0);
@@ -403,9 +511,10 @@ function codexSelftest() {
     // A sink fault must never change the dispatch's exit code — metering is
     // observability, not a precondition of the producer call succeeding.
     let stderr = "", stdout = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }),
       stdoutWrite: (s) => (stdout += s), stderrWrite: (s) => (stderr += s),
       spendSink: () => { throw new Error("ENOSPC writing engine-spend.jsonl"); },
     });
@@ -415,9 +524,10 @@ function codexSelftest() {
   }
   {
     // No sink (an ad-hoc call outside a run) is a clean no-op, never a throw.
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }),
       stdoutWrite: sink, stderrWrite: sink, spendSink: null,
     });
     ok("sink: absent sink is a clean no-op", code === ENGINE_EXIT.OK);
@@ -432,107 +542,195 @@ function codexSelftest() {
   {
     const calls = [];
     let stdout = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }, calls),
       stdoutWrite: (s) => (stdout += s), stderrWrite: sink,
     });
-    const exec = calls.filter((c) => c.args[0] === "exec");
     ok("happy path: exit 0, stdout is the message text", code === ENGINE_EXIT.OK && stdout === "the block\n");
-    ok("happy path: exactly one exec spawn", exec.length === 1);
-    ok("happy path: prompt is system + blank line + user on stdin", exec[0].opts.input === "S\n\nU");
-    ok("happy path: temp cwd created fresh and removed after", /faff-codex-/.test(exec[0].opts.cwd) && !fs.existsSync(exec[0].opts.cwd));
+    ok("happy path: exactly one exec spawn", calls.length === 1);
+    // FAFF-877: the prompt now travels via the child's stdin STREAM, not a spawnSync
+    // `input` option — the ONE exec spawn's args[0] is "exec" (buildCodexArgv's own
+    // stable first token), and the child's captured stdin equals the same concatenation.
+    ok("happy path: exactly one exec spawn is the codex exec command", calls[0].args[0] === "exec");
+    ok("happy path: prompt is system + blank line + user, written to the child's stdin", calls[0].stdin() === "S\n\nU");
+    ok("happy path: temp cwd created fresh and removed after", /faff-codex-/.test(calls[0].opts.cwd) && !fs.existsSync(calls[0].opts.cwd));
+    ok("happy path: the exec child is spawned detached with piped stdio (FAFF-877 — never inherit, never a blocking sync spawn)",
+      calls[0].opts.detached === true && Array.isArray(calls[0].opts.stdio) && calls[0].opts.stdio.every((s) => s === "pipe"));
   }
   {
-    const calls = [];
+    const probeCalls = [];
+    const execCalls = [];
     let stderr = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq({ status: 1, stdout: "", stderr: "Not logged in", error: null, signal: null }, null, calls),
+      spawnFn: seq({ status: 1, stdout: "", stderr: "Not logged in", error: null, signal: null }, probeCalls),
+      spawnAsyncFn: seqAsync({}, execCalls),
       stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
     });
     ok("seat probe fail: exit 6 naming codex login, exec never spawned",
-      code === ENGINE_EXIT.AUTH && /codex login/.test(stderr) && calls.every((c) => c.args[0] === "login"));
+      code === ENGINE_EXIT.AUTH && /codex login/.test(stderr) && probeCalls.length === 1 && execCalls.length === 0);
   }
   {
+    // The PROBE's own ENOENT branch (step 2) — the exec spawn is never reached.
     let stderr = "";
+    const execCalls = [];
     const enoent = { status: null, stdout: null, stderr: null, error: Object.assign(new Error("spawnSync codex ENOENT"), { code: "ENOENT" }), signal: null };
-    const code = runCodexCall({ engine, system: "S", user: "U", spawnFn: () => enoent, stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
-    ok("binary missing: exit 5 naming install/bin_path", code === ENGINE_EXIT.UNREACHABLE && /install codex|bin_path/.test(stderr));
+    const code = await runCodexCall({ engine, system: "S", user: "U", spawnFn: () => enoent, spawnAsyncFn: seqAsync({}, execCalls), stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
+    ok("binary missing (probe): exit 5 naming install/bin_path, exec never spawned",
+      code === ENGINE_EXIT.UNREACHABLE && /install codex|bin_path/.test(stderr) && execCalls.length === 0);
   }
   {
-    const calls = [];
+    // FAFF-877: the EXEC's own ENOENT branch — a distinct code path from the probe's
+    // (the FAILED outcome's spawnErr.code check), so it needs its own coverage.
+    let stderr = "";
+    const code = await runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ errorCode: "ENOENT" }),
+      stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+    });
+    ok("binary missing (exec): exit 5 naming install/bin_path", code === ENGINE_EXIT.UNREACHABLE && /install codex|bin_path/.test(stderr));
+  }
+  {
+    const probeCalls = [];
     let stderr = "";
     const keyed = { ...engine, apiKeyEnv: "FAFF593_SELFTEST_UNSET" };
-    const code = runCodexCall({ engine: keyed, system: "S", user: "U", spawnFn: seq(probeOk, null, calls), env: {}, stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
+    const code = await runCodexCall({ engine: keyed, system: "S", user: "U", spawnFn: seq(probeOk, probeCalls), env: {}, stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
     ok("api_key_env unset: exit 6 before ANY spawn (probe included)",
-      code === ENGINE_EXIT.AUTH && /FAFF593_SELFTEST_UNSET/.test(stderr) && calls.length === 0);
+      code === ENGINE_EXIT.AUTH && /FAFF593_SELFTEST_UNSET/.test(stderr) && probeCalls.length === 0);
   }
   {
     const calls = [];
     const keyed = { ...engine, apiKeyEnv: "FAFF593_SELFTEST_SET" };
-    runCodexCall({
+    await runCodexCall({
       engine: keyed, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${AGENT_LINE}\n` }, calls),
       env: { FAFF593_SELFTEST_SET: "sk-test" }, stdoutWrite: sink, stderrWrite: sink,
     });
-    const exec = calls.find((c) => c.args[0] === "exec");
-    ok("api-key mode: named env var's value injected as OPENAI_API_KEY", exec && exec.opts.env.OPENAI_API_KEY === "sk-test");
+    ok("api-key mode: named env var's value injected as OPENAI_API_KEY", calls[0] && calls[0].opts.env.OPENAI_API_KEY === "sk-test");
   }
   {
     let stderr = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: "chatter, not JSON\n", stderr: "", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: "chatter, not JSON\n" }),
       stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
     });
     ok("malformed JSONL: exit 7 with excerpt", code === ENGINE_EXIT.MALFORMED && /chatter, not JSON/.test(stderr));
   }
   {
-    const calls = [];
+    const probeCalls = [];
+    const execCalls = [];
     let stderr = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, null, calls),
+      spawnFn: seq(probeOk, probeCalls),
+      spawnAsyncFn: seqAsync({}, execCalls),
       mkdtempFn: () => { throw new Error("ENOSPC: no space left on device"); },
       stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
     });
     ok("mkdtemp failure: named exit 5, no exec spawn, never an escaped throw",
-      code === ENGINE_EXIT.UNREACHABLE && /temp working dir/.test(stderr) && /ENOSPC/.test(stderr) && calls.every((c) => c.args[0] === "login"));
+      code === ENGINE_EXIT.UNREACHABLE && /temp working dir/.test(stderr) && /ENOSPC/.test(stderr) && probeCalls.length === 1 && execCalls.length === 0);
   }
   {
     let stderr = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 1, stdout: "", stderr: "model not found: gpt-nope", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: "", stderr: "model not found: gpt-nope", exitCode: 1 }),
       stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
     });
     ok("non-auth child failure: exit 5 with stderr excerpt", code === ENGINE_EXIT.UNREACHABLE && /model not found/.test(stderr));
   }
   {
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 1, stdout: "", stderr: "HTTP 401 unauthorized", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: "", stderr: "HTTP 401 unauthorized", exitCode: 1 }),
       stdoutWrite: sink, stderrWrite: sink,
     });
     ok("auth-shaped child failure: exit 6", code === ENGINE_EXIT.AUTH);
   }
   {
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n`, stderr: "", error: null, signal: null }),
+      spawnFn: seq(probeOk),
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n` }),
       stdoutWrite: sink, stderrWrite: sink,
     });
     ok("no agent message: exit 7", code === ENGINE_EXIT.MALFORMED);
   }
   {
+    // FAFF-877: the old spawnSync-`timeout`/ETIMEDOUT path is retired for this spawn
+    // family — a slow/hung exec is now bounded by the LEASE's operation deadline,
+    // enforced by the relocated killable-spawn.mjs's own deadline+grace kill. Drive it
+    // via an injected `importKillableSpawn` returning killed-deadline directly (no real
+    // timers) and assert the resulting message names the operation deadline.
     let stderr = "";
-    const code = runCodexCall({
+    const code = await runCodexCall({
       engine, system: "S", user: "U",
-      spawnFn: seq(probeOk, { status: null, stdout: "", stderr: "", error: Object.assign(new Error("spawnSync codex ETIMEDOUT"), { code: "ETIMEDOUT" }), signal: "SIGTERM" }),
+      spawnFn: seq(probeOk),
+      importKillableSpawn: async () => ({ DEFAULT_GRACE_SECONDS: 30, runKillable: async () => ({ status: "killed-deadline", innerExit: null, signal: "SIGKILL" }) }),
       stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
     });
-    ok("timeout: exit 5 naming the timeout", code === ENGINE_EXIT.UNREACHABLE && /timed out after 1000ms/.test(stderr));
+    ok("operation deadline exceeded: exit 5 naming the configured deadline (3600s)",
+      code === ENGINE_EXIT.UNREACHABLE && /operation deadline of 3600s/.test(stderr));
+  }
+  {
+    // The same deadline path, with a per-consumer override on the engine record —
+    // confirms the message names the ACTUAL configured value, not a hardcoded one.
+    let stderr = "";
+    const shortDeadline = { ...engine, operationDeadlineSecs: 60 };
+    const code = await runCodexCall({
+      engine: shortDeadline, system: "S", user: "U",
+      spawnFn: seq(probeOk),
+      importKillableSpawn: async () => ({ DEFAULT_GRACE_SECONDS: 30, runKillable: async () => ({ status: "killed-deadline", innerExit: null, signal: "SIGKILL" }) }),
+      stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+    });
+    ok("operation deadline exceeded: names a per-consumer override, not the default", code === ENGINE_EXIT.UNREACHABLE && /operation deadline of 60s/.test(stderr));
+  }
+  {
+    // CANCELLED (SIGINT/SIGTERM during the exec) -> engine-unreachable, signal named.
+    let stderr = "";
+    const code = await runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk),
+      importKillableSpawn: async () => ({ DEFAULT_GRACE_SECONDS: 30, runKillable: async () => ({ status: "killed-abort", innerExit: null, signal: "SIGTERM" }) }),
+      stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+    });
+    ok("exec aborted (SIGTERM): exit 5, signal named", code === ENGINE_EXIT.UNREACHABLE && /aborted \(SIGTERM\)/.test(stderr));
+  }
+  {
+    // FAFF-877: runDir wiring — a real run_dir threads through to a LEASE the injected
+    // superviseFn receives, carrying the exact run_dir and the resolved operation
+    // deadline; a null run_dir (an ad-hoc call outside a run) never builds a lease at
+    // all and takes the importKillableSpawn branch instead (already exercised above).
+    // The stub superviseFn also invokes the passed-through spawnFn (mirroring
+    // superviseSubprocess's own real contract of calling into killable-spawn's
+    // runKillable, which calls spawnFn) so the exec's captured stdout still flows.
+    let seenLease = null;
+    let seenTarget = null;
+    const code = await runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk),
+      runDir: "/some/run/dir",
+      superviseFn: async ({ lease, target, spawnFn: execSpawnFn }) => {
+        seenLease = lease;
+        seenTarget = target;
+        const child = execSpawnFn(target[0], target.slice(1));
+        const exitCode = await new Promise((resolve) => child.on("exit", (code_) => resolve(code_)));
+        return { outcome: SUPERVISED_OUTCOME.COMPLETED, result: { status: "exited", innerExit: exitCode, signal: null } };
+      },
+      spawnAsyncFn: seqAsync({ stdout: `${TURN_LINE}\n${AGENT_LINE}\n` }),
+      stdoutWrite: sink, stderrWrite: sink,
+    });
+    ok("runDir present: builds a lease with the EXACT run_dir and the resolved operation deadline",
+      code === ENGINE_EXIT.OK && seenLease && seenLease.run_dir === "/some/run/dir" && seenLease.deadline_secs === 3600 && seenLease.name === "engine:codex");
+    ok("runDir present: the target argv is [binPath, ...codex exec argv]", seenTarget && seenTarget[0] === "codex" && seenTarget[1] === "exec");
   }
 
   // config guards (fixture cfg objects — the read-time half)

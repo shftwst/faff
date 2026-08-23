@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-877",
+  "build": {
+    "status": "complete",
+    "diff_hash": "344d069332f0a7ba2188d29bdde1333d75d24141c6af75ba111a275a697861a9",
+    "branch": "faff-877-detached-sentry-poller-false-positive-abort-parent-heartbeat",
+    "pushed_at": "2026-08-23T16:13:41.837Z"
+  },
+  "updated_at": "2026-08-23T16:13:41.837Z"
+}

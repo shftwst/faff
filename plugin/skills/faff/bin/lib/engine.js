@@ -24,6 +24,9 @@ const http = require("node:http");
 const https = require("node:https");
 const { ENGINE_CALL_LANES, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
 const { CANONICAL_CONFIG, findRoot, latestRunDir } = require("./shared-infra");
+// FAFF-877: the shared bounded-operation supervisor — the HTTP transport arm the
+// non-spawn engine families (ollama, openai-compatible) run their call under.
+const { DEFAULT_OPERATION_DEADLINE_SECS, SUPERVISED_OUTCOME, makeLease, superviseOperation } = require("./supervisor");
 
 // engine-call's own small exit taxonomy (distinct named codes; NOT review-call's EXIT
 // table — that one routes review verdicts). 2 = usage/config fault, per house convention.
@@ -161,20 +164,40 @@ async function preflightEngine({ family, host, model, apiKey = null, getFn = def
 // The one-shot orchestration: preflight → ONE non-streaming completion → fail-loud parse.
 // No retry, no fallback, no second backend (a silent chain is a silent downgrade wearing
 // resilience clothes). Transport injectable (getFn/postFn) so CI makes zero real calls.
-async function runEngineCall({ engine, apiKey = null, system, user, getFn = defaultGet, postFn = defaultPost } = {}) {
-  const pf = await preflightEngine({ family: engine.family, host: engine.host, model: engine.model, apiKey, getFn });
-  if (pf.authFailed) return { status: "auth-failed", note: pf.error };
-  if (pf.unreachable) return { status: "engine-unreachable", note: pf.error };
-  if (!pf.served) return { status: "model-not-served", names: pf.names };
-  const req = buildEngineRequest({ family: engine.family, host: engine.host, model: engine.model, system, user, reasoningOff: engine.reasoningOff, effort: engine.effort, apiKey });
-  let raw;
-  try { raw = await postFn(req, { timeoutMs: engine.timeoutMs }); }
-  catch (e) {
-    if (isAuthError(e)) return { status: "auth-failed", note: e.message };
-    return { status: "engine-unreachable", note: e.message };
-  }
-  try { return { status: "ok", content: parseEngineResponse(engine.family, raw) }; }
-  catch (e) { return { status: "malformed-response", note: e.message }; }
+//
+// FAFF-877: `runDir` (the EXACT parent run_dir; absent outside a run) additionally routes
+// the WHOLE call through the shared operation supervisor's TRANSPORT arm — no process to
+// kill here (unlike engine-codex.js's spawn family), so the supervisor owns both the
+// heartbeat-renewal timer AND the total operation deadline (`engine.operationDeadlineSecs`,
+// distinct from `engine.timeoutMs`, the per-request connection timeout passed to `postFn`
+// below, unchanged). Absent `runDir` is byte-identical to today — no supervisor wrapping,
+// no new dependency on that module for the many existing direct/ad-hoc callers.
+async function runEngineCall({ engine, apiKey = null, system, user, getFn = defaultGet, postFn = defaultPost, runDir = null, superviseFn = superviseOperation } = {}) {
+  const doCall = async () => {
+    const pf = await preflightEngine({ family: engine.family, host: engine.host, model: engine.model, apiKey, getFn });
+    if (pf.authFailed) return { status: "auth-failed", note: pf.error };
+    if (pf.unreachable) return { status: "engine-unreachable", note: pf.error };
+    if (!pf.served) return { status: "model-not-served", names: pf.names };
+    const req = buildEngineRequest({ family: engine.family, host: engine.host, model: engine.model, system, user, reasoningOff: engine.reasoningOff, effort: engine.effort, apiKey });
+    let raw;
+    try { raw = await postFn(req, { timeoutMs: engine.timeoutMs }); }
+    catch (e) {
+      if (isAuthError(e)) return { status: "auth-failed", note: e.message };
+      return { status: "engine-unreachable", note: e.message };
+    }
+    try { return { status: "ok", content: parseEngineResponse(engine.family, raw) }; }
+    catch (e) { return { status: "malformed-response", note: e.message }; }
+  };
+
+  if (!runDir) return doCall(); // outside a run — nothing to renew, byte-identical to today
+
+  const deadlineSecs = engine.operationDeadlineSecs || DEFAULT_OPERATION_DEADLINE_SECS;
+  const lease = makeLease({ name: `engine:${engine.name || engine.family}`, run_dir: runDir, deadline_secs: deadlineSecs });
+  const sup = await superviseFn({ lease, work: doCall });
+  if (sup.outcome === SUPERVISED_OUTCOME.COMPLETED) return sup.result;
+  if (sup.outcome === SUPERVISED_OUTCOME.DEADLINE_KILLED) return { status: "engine-unreachable", note: `operation deadline of ${deadlineSecs}s exceeded` };
+  if (sup.outcome === SUPERVISED_OUTCOME.CANCELLED) return { status: "engine-unreachable", note: `aborted (${sup.signal || "signal"})` };
+  return { status: "engine-unreachable", note: (sup.error && sup.error.message) || "supervised engine call failed" };
 }
 
 // FAFF-647: the spawn-family runner registry — the ONE source of truth both
@@ -306,12 +329,19 @@ function cmdEngine(args) {
   // hardcoded per-family `if` — this IS the registry lookup the conformance
   // selftest also drives, from the same map. Synchronous int (or Promise) return
   // — bin/faff's dispatcher accepts either.
+  // FAFF-877: the EXACT parent run_dir for the shared supervisor's heartbeat lease —
+  // flag → $FAFF_RUN_DIR only (NEVER a latest-run fallback: ticking the wrong run's
+  // heartbeat is worse than ticking none). Distinct from resolveSpendSink's own
+  // resolution below, which DOES fall back to the newest run for spend attribution —
+  // a looser, best-effort read, not a liveness-renewal target. Shared by both the
+  // spawn-family (codex) and the HTTP dispatch below.
+  const runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
   const spawnRunner = spawnFamilyRunners()[res.family];
   if (spawnRunner) {
     let system, user;
     try { system = fs.readFileSync(systemFile, "utf8"); user = fs.readFileSync(userFile, "utf8"); }
     catch (e) { process.stderr.write(`faff engine call: cannot read prompt file — ${e.message}\n`); return ENGINE_EXIT.CONFIG; }
-    return spawnRunner({ engine: res, system, user, spendSink: resolveSpendSink(get("--run-dir"), root) });
+    return spawnRunner({ engine: res, system, user, spendSink: resolveSpendSink(get("--run-dir"), root), runDir });
   }
   // Token indirection: config carries the env var NAME, never the key. A declared
   // handle whose env is unset is auth-failed BEFORE any network call — named, never a 401 later.
@@ -332,7 +362,7 @@ function cmdEngine(args) {
   let system, user;
   try { system = fs.readFileSync(systemFile, "utf8"); user = fs.readFileSync(userFile, "utf8"); }
   catch (e) { process.stderr.write(`faff engine call: cannot read prompt file — ${e.message}\n`); return ENGINE_EXIT.CONFIG; }
-  return runEngineCall({ engine: res, apiKey, system, user }).then((r) => {
+  return runEngineCall({ engine: res, apiKey, system, user, runDir }).then((r) => {
     if (r.status === "ok") { process.stdout.write(r.content.trim() + "\n"); return ENGINE_EXIT.OK; }
     const tag = `engines.${res.name} (${res.provider} ${res.model} @ ${res.host})`;
     if (r.status === "engine-unreachable") { process.stderr.write(`faff engine call: engine-unreachable — ${tag}: ${r.note}\n`); return ENGINE_EXIT.UNREACHABLE; }
@@ -449,6 +479,51 @@ async function engineSelftest() {
     });
     ok("403 on completion → auth-failed", r.status === "auth-failed");
   }
+  // FAFF-877: the shared supervisor's TRANSPORT arm — absent runDir is byte-identical
+  // to today (no supervisor dependency at all); a present runDir wraps the whole call
+  // in a lease and routes DEADLINE_KILLED/CANCELLED/FAILED through named statuses.
+  {
+    let posts = 0;
+    const r = await runEngineCall({
+      engine, system: "S", user: "U", runDir: null,
+      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
+      postFn: async () => { posts++; return JSON.stringify({ message: { content: "out" } }); },
+      superviseFn: async () => { throw new Error("must not be called without a runDir"); },
+    });
+    ok("no runDir: supervisor never invoked, byte-identical happy path", r.status === "ok" && r.content === "out" && posts === 1);
+  }
+  {
+    let seenLease = null;
+    const r = await runEngineCall({
+      engine: { ...engine, operationDeadlineSecs: 900 }, system: "S", user: "U", runDir: "/some/run/dir",
+      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
+      postFn: async () => JSON.stringify({ message: { content: "out" } }),
+      superviseFn: async ({ lease, work }) => { seenLease = lease; const result = await work(); return { outcome: SUPERVISED_OUTCOME.COMPLETED, result }; },
+    });
+    ok("runDir present: builds a lease with the exact run_dir + resolved operation deadline",
+      r.status === "ok" && seenLease && seenLease.run_dir === "/some/run/dir" && seenLease.deadline_secs === 900);
+  }
+  {
+    const r = await runEngineCall({
+      engine, system: "S", user: "U", runDir: "/some/run/dir",
+      superviseFn: async () => ({ outcome: SUPERVISED_OUTCOME.DEADLINE_KILLED }),
+    });
+    ok("DEADLINE_KILLED → engine-unreachable naming the operation deadline", r.status === "engine-unreachable" && /operation deadline of 3600s/.test(r.note));
+  }
+  {
+    const r = await runEngineCall({
+      engine, system: "S", user: "U", runDir: "/some/run/dir",
+      superviseFn: async () => ({ outcome: SUPERVISED_OUTCOME.CANCELLED, signal: "SIGTERM" }),
+    });
+    ok("CANCELLED → engine-unreachable naming the signal", r.status === "engine-unreachable" && /aborted \(SIGTERM\)/.test(r.note));
+  }
+  {
+    const r = await runEngineCall({
+      engine, system: "S", user: "U", runDir: "/some/run/dir",
+      superviseFn: async () => ({ outcome: SUPERVISED_OUTCOME.FAILED, error: new Error("boom") }),
+    });
+    ok("FAILED → engine-unreachable, error message carried", r.status === "engine-unreachable" && /boom/.test(r.note));
+  }
 
   // dispatch-side resolution (the config.js seam) — fixture cfg objects, no disk
   const cfgOk = { engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1" } }, models: { methodology: "engine:studio", intake: "sonnet" } };
@@ -457,6 +532,13 @@ async function engineSelftest() {
     ok("resolve: happy path", !r.error && r.name === "studio" && r.family === "ollama" && r.model === "m1");
     ok("resolve: default timeout 120s", r.timeoutMs === 120000);
     ok("resolve: absent api_key_env → null", r.apiKeyEnv === null);
+    // FAFF-877: the shared supervisor's operation-deadline default (distinct from the
+    // connection timeout above) — 3600s unless a backend overrides it.
+    ok("resolve: default operationDeadlineSecs 3600 (FAFF-877 human decision, alec 2026-08-22)", r.operationDeadlineSecs === 3600);
+  }
+  {
+    const r = resolveEngineForLane({ engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1", operation_deadline_secs: 900 } }, models: { methodology: "engine:studio" } }, "methodology");
+    ok("resolve: operation_deadline_secs overridable per consumer", !r.error && r.operationDeadlineSecs === 900);
   }
   ok("resolve: non-allowlisted lane refused", !!resolveEngineForLane(cfgOk, "build").error);
   ok("resolve: Anthropic-token lane refused (not an engine value)", !!resolveEngineForLane(cfgOk, "intake").error);
@@ -509,7 +591,7 @@ async function engineSelftest() {
   // FAFF-593: fold the codex spawn family's table in — `faff engine --selftest`
   // stays the single entry point for the whole engine-call transport.
   const { codexSelftest } = require("./engine-codex");
-  fail += codexSelftest();
+  fail += await codexSelftest(); // FAFF-877: codexSelftest is now async (runCodexCall's own async rewrite)
 
   // FAFF-647: fold in the CLAUDE_CONFIG_DIR isolation helper's own selftest
   // (withIsolatedClaudeConfig end-to-end, real fs seams) — same "one entry
@@ -549,15 +631,27 @@ async function engineSelftest() {
       // the shared spawn-runner calling convention every registered runner uses).
       {
         let captured = "";
-        const failEngine = { name: `selftest-${family}`, provider: family, family, model: "m", binPath: "codex", apiKeyEnv: "FAFF647_SELFTEST_SENTINEL_ENV", timeoutMs: 1000 };
-        const failSpawn = (cmd, args) => (args && args[0] === "login"
-          ? { status: 0, stdout: "Logged in", stderr: "", error: null, signal: null }
-          : { status: 1, stdout: "", stderr: "boom", error: null, signal: null });
+        const failEngine = { name: `selftest-${family}`, provider: family, family, model: "m", binPath: "codex", apiKeyEnv: "FAFF647_SELFTEST_SENTINEL_ENV", timeoutMs: 1000, operationDeadlineSecs: 3600 };
+        // The seat probe stays sync/spawnSync-shaped (spawnFn) — unchanged. FAFF-877:
+        // the exec spawn is a SEPARATE async child (spawnAsyncFn), so the failure this
+        // row exercises (a "boom" stderr, exit 1) now has to fire on a fake async child
+        // rather than a synchronous spawnSync-shaped return.
+        const failSpawn = () => ({ status: 0, stdout: "Logged in", stderr: "", error: null, signal: null });
+        const { EventEmitter } = require("node:events");
+        const failSpawnAsync = () => {
+          const child = new EventEmitter();
+          child.pid = 4747;
+          child.stdout = new EventEmitter();
+          child.stderr = new EventEmitter();
+          child.stdin = { write: () => {}, end: () => {} };
+          queueMicrotask(() => { child.stderr.emit("data", "boom"); child.emit("exit", 1, null); });
+          return child;
+        };
         let runnerResult;
         try {
           runnerResult = runnerFn({
             engine: failEngine, system: "S", user: "U",
-            spawnFn: failSpawn,
+            spawnFn: failSpawn, spawnAsyncFn: failSpawnAsync,
             env: { FAFF647_SELFTEST_SENTINEL_ENV: SENTINEL },
             stdoutWrite: () => {}, stderrWrite: (s) => { captured += s; },
           });

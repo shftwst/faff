@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { main } from "../plugin/skills/faffter-dark-adversarial-review/review-spawn.mjs";
-import { WRAPPER_EXIT } from "../plugin/skills/faffter-dark-adversarial-review/killable-spawn.mjs";
+import { WRAPPER_EXIT } from "../plugin/skills/faff/bin/lib/killable-spawn.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(HERE, "..", "plugin", "skills", "faffter-dark-adversarial-review", "review-spawn.mjs");

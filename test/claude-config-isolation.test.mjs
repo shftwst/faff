@@ -37,19 +37,29 @@ test("SPAWN_FAMILY_CONFIG_DIR_BEARING: codex declares itself config-dir-free", (
   assert.equal(SPAWN_FAMILY_CONFIG_DIR_BEARING.codex, false);
 });
 
-test("registry lookup dispatches codex byte-equivalently to the pre-refactor hardcoded fork", () => {
+test("registry lookup dispatches codex byte-equivalently to the pre-refactor hardcoded fork", async () => {
   // Same call shape runCodexCall's own selftest drives — the point is that
   // engine.js's dispatch now reaches it via SPAWN_FAMILY_RUNNERS[family], not a
-  // hardcoded `if`, with no behavioural change.
+  // hardcoded `if`, with no behavioural change. FAFF-877: runCodexCall is now
+  // async and the exec spawn is a separate async child (spawnAsyncFn) — the seat
+  // probe stays sync/spawnFn-shaped, unchanged.
+  const { EventEmitter } = await import("node:events");
   const runner = spawnFamilyRunners().codex;
   let stdout = "";
   const AGENT_LINE = JSON.stringify({ type: "item.completed", item: { item_type: "agent_message", text: "hi" } });
-  const code = runner({
-    engine: { name: "seat", provider: "codex", family: "codex", model: "m", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 },
+  const code = await runner({
+    engine: { name: "seat", provider: "codex", family: "codex", model: "m", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000, operationDeadlineSecs: 3600 },
     system: "S", user: "U",
-    spawnFn: (cmd, args) => (args[0] === "login"
-      ? { status: 0, stdout: "ok", stderr: "", error: null, signal: null }
-      : { status: 0, stdout: `${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+    spawnFn: () => ({ status: 0, stdout: "ok", stderr: "", error: null, signal: null }),
+    spawnAsyncFn: () => {
+      const child = new EventEmitter();
+      child.pid = 9191;
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.stdin = { write: () => {}, end: () => {} };
+      queueMicrotask(() => { child.stdout.emit("data", `${AGENT_LINE}\n`); child.emit("exit", 0, null); });
+      return child;
+    },
     stdoutWrite: (s) => (stdout += s), stderrWrite: () => {},
   });
   assert.equal(code, 0);

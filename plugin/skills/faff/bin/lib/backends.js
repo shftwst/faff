@@ -27,7 +27,7 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
   "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "timeout", "first_byte_timeout",
-  "telemetry",
+  "telemetry", "operation_deadline_secs",
 ];
 
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
@@ -175,6 +175,10 @@ function normalizeBackend(name, raw) {
   b.reasoning_effort = present(raw.reasoning_effort) ? String(raw.reasoning_effort) : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.first_byte_timeout = present(raw.first_byte_timeout) ? Number(raw.first_byte_timeout) : undefined;
+  // FAFF-877: the shared supervisor's TOTAL operation-budget override (seconds) — distinct
+  // from `timeout` above (connection/request only). Resolved to a 3600s default downstream
+  // in config.js's resolveEngineForLane, not here (normalize only carries the raw override).
+  b.operation_deadline_secs = present(raw.operation_deadline_secs) ? Number(raw.operation_deadline_secs) : undefined;
   b.auth = present(raw.auth) ? String(raw.auth) : deriveAuth(b);
   b.telemetry = present(raw.telemetry) ? String(raw.telemetry) : deriveTelemetry(b);
   const egressExplicit = present(raw.egress);

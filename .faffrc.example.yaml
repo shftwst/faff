@@ -170,6 +170,17 @@ logging: full # full | essential
 # or irreversible. The hard floor (irreversible side-effects, review gate) still holds.
 appetite: high
 
+# FAFF-877: the bounded milestone-tick cadence a dispatched producer subagent (plot
+# decompose, a prep spec producer) MUST honour — it ticks `faff heartbeat <run_dir>`
+# at internal milestones no wider than this, strictly below sentry.stall_window_secs
+# (see gateway → Sibling-skill invocation → Producer dispatch). This is the
+# LOAD-BEARING liveness defence for a producer nested one level deep (its own
+# methodology sub-calls fall back in-context and never fork to a supervised `faff
+# engine call`), so a too-wide value re-opens the detached-sentry-poller
+# false-positive-abort class this ticket fixes. Default (600s) sits well under half
+# the default stall_window_secs (900s) / this repo's configured 2400s.
+producer_tick_max_secs: 600
+
 # Automation eligibility default for an UNLABELLED ticket (see gateway → Automation
 # eligibility). opt-in (default, fail-safe): nothing is touched by the autonomous
 # pipeline unless a human adds the faff-automate label — a forgotten label means

@@ -11,6 +11,15 @@
 // instead of hand-rolling a read-modify-write of the ledger JSON (governing
 // principle: deterministic tools over prose for a signal that gates a safety hook).
 //
+// FAFF-877: two more callers now refresh through this SAME write path (never a
+// bespoke one) — the shared operation supervisor (bin/lib/supervisor.js), which
+// renews the parent heartbeat via `defaultHeartbeatTick` (an in-process call into
+// cmdHeartbeat, argv-shaped `[runDir]`) while a long producer/engine dispatch is
+// alive; and an Agent-tool producer subagent's own bounded milestone ticks (gateway
+// → Sibling-skill invocation → Producer dispatch), which a producer can't be wrapped
+// by the Node supervisor for — it ticks this exact CLI directly instead, at an
+// interval strictly below `sentry.stall_window_secs`.
+//
 // Dedicated single-value file (FAFF-355 — supersedes the FAFF-234 ledger field-merge):
 // a tick's ONLY write is `.faff/runs/<run-id>/heartbeat` (tmp + rename) — the run
 // ledger is never touched by a tick, structurally closing the N-writer race a

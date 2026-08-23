@@ -1,0 +1,50 @@
+{
+  "level": "L3",
+  "run_id": "run-20260823-145959-beepboop-list-a0f98f",
+  "admitted": [
+    "FAFF-842",
+    "FAFF-877"
+  ],
+  "outcomes": {
+    "FAFF-842": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "tokens_at_start": 42438094,
+    "measure_session_id": "3552c100-1f2e-4d76-9661-800b3278c248",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 334,
+        "output": 449815,
+        "cache_write": 1449071,
+        "cache_read": 40538874
+      }
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 475563,
+    "session_id": "run-20260823-145959-beepboop-list-a0f98f",
+    "started_at": "2026-08-23T14:59:59Z",
+    "last_heartbeat": "2026-08-23T14:59:59Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-842": {
+      "state": "parked",
+      "reason": "needs-human: Phase-2 adversarial review (degraded to gemini-3.5-flash-lite; nvidia not-served + Gemini 429, FAFF-855) returned 1 critical finding; mandatory autonomous escalation stops merge. Build sound, all gates green, branch pushed, resumable at review via /faff-graft FAFF-842. Finding dispositions in tracker comment."
+    }
+  }
+}

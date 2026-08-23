@@ -256,7 +256,7 @@ test("FAFF-584: a baselined fixture below its baseline gets a non-failing RATCHE
   // FAFF-884 turn-survival anchor check (faff-beep-boop is an ANCHOR_PHRASES skill); satisfy both with
   // a harmless rendering_adaptor mention + the turn-survival anchors so this test isolates the RATCHET
   // behaviour alone.
-  const r = runOne("This fixture routes through the rendering_adaptor. never end a turn with an in-flight marker open.\n\none line only\n", "faff-beep-boop");
+  const r = runOne("This fixture routes through the rendering_adaptor. never end a turn with an in-flight marker open; turncheck refuses a non-terminal turn-end.\n\none line only\n", "faff-beep-boop");
   assert.match(r.stdout, /RATCHET\s+faff-beep-boop/, "a baselined file below its baseline should print a RATCHET advisory");
   assert.equal(has(r, "line cap"), false, "shrinking below baseline must not FAIL");
   assert.equal(r.status, 0, "a RATCHET advisory alone must not force a non-zero exit");

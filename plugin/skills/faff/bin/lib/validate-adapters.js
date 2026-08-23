@@ -65,7 +65,7 @@ const SKILL_LINE_BASELINE = { faff: 1177, "faff-beep-boop": 739, "faff-graft": 8
 // in-flight-marker turn-survival prose the FAFF-884 fix adds at their dispatch sites.
 const ANCHOR_PHRASES = {
   "faff-graft": ["run_in_background: true", "never end a turn", "foreground-to-terminal"],
-  "faff-beep-boop": ["never end a turn", "in-flight marker"],
+  "faff-beep-boop": ["never end a turn", "in-flight marker", "non-terminal turn-end"],
   "faff-prep": ["never end a turn", "in-flight marker"],
 };
 const PARA_WORD_CAP = 200;                         // longest single prose line (≈ one paragraph) — nudge bullets over walls of prose

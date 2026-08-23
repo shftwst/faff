@@ -104,6 +104,7 @@ const { cmdStageGuard } = require("./lib/stage");
 const { cmdState } = require("./lib/state");
 const { cmdTier } = require("./lib/tier");
 const { cmdTracker } = require("./lib/tracker");
+const { cmdTurncheck } = require("./lib/turncheck");
 const { cmdValidateAdapters } = require("./lib/validate-adapters");
 const { cmdWorktreePrune } = require("./lib/worktree-prune");
 
@@ -123,6 +124,7 @@ const COMMANDS = {
   "heartbeat": cmdHeartbeat,
   "prepcheck": cmdPrepcheck,
   "inflightcheck": cmdInflightcheck,
+  "turncheck": cmdTurncheck,
   "intakecheck": cmdIntakecheck,
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,

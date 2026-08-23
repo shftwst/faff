@@ -107,8 +107,18 @@ function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId, custod
   const items = [];
 
   // 3. per-issue terminal outcomes in the attention set → one issue-outcome item each.
+  // FAFF-842: `pr-open` is written to the SAME outcome bucket by two graft return tokens — the
+  // resumable `landing-resumable` (a 25-minute landing-time-budget hold; a later L3 executor can
+  // pick it back up via the endgame-only recovery-claim resume) and the hard-parked 3-cycle
+  // `pr-open-for-human` (a genuine human handoff). The raw outcome string can't tell them apart —
+  // `ledger.landing_resumable` is the additive disambiguator beep-boop writes ONLY on the resumable
+  // token, mirroring the shipped `review_outage_pending` array's own Array.isArray coercion
+  // (mergedMap/custodyMap above). A resumable pr-open is skipped here (not attention, the next drain
+  // may land it); pr-open-for-human is NEVER added to the array, so it always falls through and reds.
+  const landingResumable = Array.isArray(ledger.landing_resumable) ? new Set(ledger.landing_resumable) : new Set();
   for (const [issue, outcome] of Object.entries(outcomes)) {
     if (!ATTENTION_OUTCOMES.has(outcome)) continue;
+    if (outcome === "pr-open" && landingResumable.has(issue)) continue;
     const cause = (issue in parksMap ? parksMap[issue] : null)
       ?? (eventMap[issue] ? eventCause(eventMap[issue].data) : null)
       ?? null;
@@ -500,6 +510,31 @@ const DISPOSITION_SELFTEST_CASES = [
   ["FAFF-854: legacy ledger (no owner) → no owner-still-running item (no false fire)",
     { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" } },
     {}, {}, {}, "clean", (a) => !has(a, (i) => i.kind === "owner-still-running")],
+  // FAFF-842 — landing_resumable: a pr-open recorded as a resumable landing is not itself
+  // attention; a pr-open NOT in the array (incl. the hard-parked pr-open-for-human) still reds.
+  ["FAFF-842 Scenario 4: pr-open IN landing_resumable → clean (a resumable landing is not attention)",
+    { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "pr-open" }, landing_resumable: ["FAFF-X"] },
+    {}, {}, {}, "clean", (a) => a.length === 0],
+  ["FAFF-842 Scenario 4: pr-open NOT in landing_resumable → needs-attention (unchanged default)",
+    { run_id: "R", admitted: ["FAFF-Y"], outcomes: { "FAFF-Y": "pr-open" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "issue-outcome" && i.issue === "FAFF-Y" && i.outcome === "pr-open")],
+  ["FAFF-842 Scenario 4: pr-open-for-human (hard-park) is never in landing_resumable → still reds even with an unrelated entry present",
+    { run_id: "R", admitted: ["FAFF-Z"], outcomes: { "FAFF-Z": "pr-open" }, landing_resumable: ["FAFF-OTHER"] },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "issue-outcome" && i.issue === "FAFF-Z" && i.outcome === "pr-open")],
+  ["FAFF-842: a mixed run — one resumable pr-open skipped, one non-resumable pr-open reds — both present/absent correctly",
+    { run_id: "R", admitted: ["FAFF-A", "FAFF-B"], outcomes: { "FAFF-A": "pr-open", "FAFF-B": "pr-open" }, landing_resumable: ["FAFF-A"] },
+    {}, {}, {}, "needs-attention",
+    (a) => !has(a, (i) => i.issue === "FAFF-A") && has(a, (i) => i.issue === "FAFF-B" && i.kind === "issue-outcome")],
+  ["FAFF-842: landing_resumable non-array (malformed) degrades to no resumable issues, never throws",
+    { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "pr-open" }, landing_resumable: "FAFF-X" },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.issue === "FAFF-X" && i.kind === "issue-outcome")],
+  ["FAFF-842: landing_resumable is inert for a non-pr-open outcome (e.g. parked) even if the issue id is listed",
+    { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "parked" }, landing_resumable: ["FAFF-X"] },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.issue === "FAFF-X" && i.outcome === "parked")],
 ];
 
 function dispositionSelftest() {

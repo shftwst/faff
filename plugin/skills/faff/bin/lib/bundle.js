@@ -643,7 +643,12 @@ function gitReadClaimManifest(root, remoteName, ref) {
   let parsed;
   try { parsed = JSON.parse(show.stdout.toString("utf8")); }
   catch { return { status: "claim-malformed" }; }
-  if (!parsed || typeof parsed !== "object" || !parsed.owner || typeof parsed.owner !== "object") return { status: "claim-malformed" };
+  // Shape-agnostic on purpose: claimStoreCore now backs THREE bindings with different claim shapes
+  // (recoveryClaimStore / buildClaimStore both nest an `owner` object; landingClaimStore, FAFF-842,
+  // carries a flat `{issue, claimer_id, pr_head_sha, last_heartbeat, provenance, ...}` per its spec's
+  // literal type definition) — this reader's job is "is this valid JSON naming a plausible claim
+  // object", not validating any one binding's field set. A non-object / array / null still malforms.
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { status: "claim-malformed" };
   return { status: "ok", sha, claim: parsed };
 }
 
@@ -834,7 +839,37 @@ function claimStoreCore(root, remoteName, spec) {
     return { released: false, reason: "store_unavailable", detail: stderr.trim() || "delete rejected and the ref could not be re-read" };
   }
 
-  return { name: spec.name, acquire, readHolder, confirmHead, reclaimIfStale, release };
+  // FAFF-842: the HOLDER's own heartbeat tick — a lease-matched force-update of ITS OWN claim
+  // (mySha, from acquire/reclaimIfStale) that refreshes only what `patch` supplies (last_heartbeat
+  // always, by the caller) and otherwise carries every existing field forward unchanged. Distinct
+  // from reclaimIfStale (peer-driven, fenced to the OTHER holder's staleness): this is holder-driven
+  // and unconditional on staleness — the caller already proved it holds mySha, so the only failure
+  // mode is a lease mismatch (a reclaimer superseded it since), surfaced as `superseded`, never a
+  // silent overwrite. No bare `--force` — same lease-matched CAS idiom as reclaimIfStale/release.
+  function tickHeartbeat(identity, mySha, extraPatch) {
+    const ref = spec.refName(identity);
+    const existing = gitReadClaimManifest(root, remoteName, ref);
+    if (existing.status === "store-unreachable") return { ticked: false, reason: "store_unavailable" };
+    if (existing.status !== "ok") return { ticked: false, reason: existing.status };
+    if (existing.sha !== mySha) return { ticked: false, reason: "superseded", holder: existing.claim, sha: existing.sha };
+    // last_heartbeat is ALWAYS freshly stamped here (never caller-supplied) — that is the one field
+    // this verb exists to refresh; extraPatch is a narrow escape hatch for any other field a future
+    // caller needs to carry forward changed (unused by every binding today).
+    const newClaim = { ...existing.claim, ...(extraPatch || {}), last_heartbeat: new Date().toISOString() };
+    let built;
+    try { built = pushClaimCommit(root, remoteName, ref, newClaim, (sha) => [`--force-with-lease=${ref}:${mySha}`, `${sha}:${ref}`], spec.commitMessage(newClaim)); }
+    catch (e) { return { ticked: false, reason: "error", detail: e.message }; }
+    if (built.push.status !== 0) {
+      const stderr = built.push.stderr || "";
+      if (STORE_UNAVAILABLE_RE.test(stderr) || built.push.error) return { ticked: false, reason: "store_unavailable", detail: stderr.trim() || String(built.push.error) };
+      const reread = gitReadClaimManifest(root, remoteName, ref);
+      if (reread.status === "ok") return { ticked: false, reason: "superseded", holder: reread.claim, sha: reread.sha };
+      return { ticked: false, reason: "store_unavailable", detail: stderr.trim() || "heartbeat tick rejected and the ref could not be re-read" };
+    }
+    return { ticked: true, sha: built.commitSha, claim: newClaim };
+  }
+
+  return { name: spec.name, acquire, readHolder, confirmHead, reclaimIfStale, release, tickHeartbeat };
 }
 
 // FAFF-863 binding — a THIN binding over claimStoreCore, byte-identical to today for its caller
@@ -861,6 +896,69 @@ function recoveryClaimStore(root, remoteName = "origin") {
   });
   // Return WITHOUT `release` — the recovery claim has no release lifecycle.
   return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale: core.reclaimIfStale };
+}
+
+// ---------------------------------------------------------------------------
+// landingClaimStore — FAFF-842: the cross-executor concurrency floor for the L3 endgame-only
+// landing resume of a stranded `In Review` + open-PR issue. A THIRD claimStoreCore binding
+// (recoveryClaimStore above gates lights-out --resume by run/segment; buildClaimStore gates the
+// build queue by issue) — same primitives, a third ref namespace, keyed on `issue` alone:
+// `refs/faff/recovery-claims/<issue>` (a sibling path to recoveryClaimStore's own
+// `refs/faff/recovery-claims/<run_id>/seg-<n>` — run ids always start "run-", issue ids never do,
+// so the two never collide as git ref leaves under the shared `recovery-claims/` parent).
+//
+// Deliberately simpler than buildClaimStore's machine-aware three-row staleness: the spec's
+// human-ratified decision (2026-08-22) is a SINGLE heartbeat-only stale test — reclaim iff
+// `now - last_heartbeat > heartbeatStaleSecs` (runIsHeld's own threshold), never claim AGE. There
+// is no same-box fast path and no TTL row here (both are buildClaimStore-specific machinery this
+// binding does not need) — the holder instead TICKS its own `last_heartbeat` into the ref on each
+// landing cycle boundary via the shared `tickHeartbeat` (claimStoreCore, above), which is the
+// liveness signal a cross-box peer reads. `release` IS exposed (terminal disposition frees a future
+// recovery, mirroring buildClaimStore); `tickHeartbeat` IS exposed (buildClaimStore/recoveryClaimStore
+// do not need it — this is the one binding whose holder must actively prove liveness across boxes).
+// ---------------------------------------------------------------------------
+function landingClaimRefName(identity) {
+  return `refs/faff/recovery-claims/${identity.issue}`;
+}
+
+function landingClaimStore(root, remoteName = "origin") {
+  const core = claimStoreCore(root, remoteName, {
+    name: "git-remote-landing-claim",
+    refName: (identity) => landingClaimRefName(identity),
+    // `arg` carries { claimer_id, pr_head_sha } — the spec's RecoveryClaim payload minus the
+    // claimStoreCore-plumbing `claim_epoch` (added here, mirroring the other two bindings).
+    buildClaim: (identity, arg, epoch) => {
+      const a = arg || {};
+      const nowIso = new Date().toISOString();
+      return {
+        issue: identity.issue,
+        claimer_id: a.claimer_id,
+        pr_head_sha: a.pr_head_sha,
+        claimed_at: nowIso,
+        last_heartbeat: nowIso,
+        provenance: "faff-claimed",
+        claim_epoch: epoch,
+      };
+    },
+    commitMessage: (claim) => `landing-claim ${claim.issue} epoch=${claim.claim_epoch}`,
+    // Heartbeat-only staleness (the human decision of 2026-08-22) — reuse runIsHeld's own threshold
+    // against a synthetic single-field "owner" wrapping the claim's OWN top-level last_heartbeat
+    // (this claim shape carries it flat, not nested under `owner` — unlike recoveryClaimStore /
+    // buildClaimStore, which reuse the ledger owner-snapshot shape verbatim). `status: "running"` is
+    // a constant here (this binding has no non-running state), never read off the claim itself.
+    // The spec's SECOND fence (Scenario 6): a claim whose provenance is not "faff-claimed" — a
+    // human/unprovable claim somehow occupying this ref — reads as unconditionally HELD (never
+    // reclaimable) regardless of heartbeat age, folded in here since claimStoreCore's reclaimIfStale
+    // has exactly one staleness predicate slot. Every claim THIS store mints always carries
+    // "faff-claimed" (buildClaim above), so the fence only ever bites a foreign/malformed occupant.
+    stalePredicate: (claim, nowMs, env) => {
+      if (!claim || claim.provenance !== "faff-claimed") return true; // unprovable/foreign provenance -> treat as HELD, never seize
+      return require("./runcheck").runIsHeld({ owner: { status: "running", last_heartbeat: claim.last_heartbeat } }, nowMs, env);
+    },
+  });
+  // release + tickHeartbeat ARE exposed (unlike recoveryClaimStore) — a landing claim is released on
+  // terminal disposition and its holder must tick a fresh last_heartbeat while landing_loop runs.
+  return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale: core.reclaimIfStale, release: core.release, tickHeartbeat: core.tickHeartbeat };
 }
 
 // FAFF-889: resolve claim_ttl_hours from config (the same key claim-verdict.js consumes), used as
@@ -1846,6 +1944,182 @@ function cmdBuildClaim(args) {
   return out({ action: "read", issue, status: r.status, sha: r.sha || null, claim: r.claim || null, summary: `build-claim ${issue}: ${r.status}${r.sha ? " (sha " + String(r.sha).slice(0, 12) + ")" : ""}` }, 0);
 }
 
+// ---------------------------------------------------------------------------
+// cmdLandingClaim — FAFF-842: the CLI verb over landingClaimStore, mirroring cmdBuildClaim's shape
+// (acquire/confirm/reclaim/release/read) plus `tick` — the holder-driven heartbeat refresh this
+// binding alone needs. beep-boop's endgame-admission branch and the endgame-only landing loop shell
+// this verb rather than touching landingClaimStore/claimStoreCore directly, the same arm's-length
+// pattern every other prose-driven SKILL.md step keeps with its backing CLI.
+// ---------------------------------------------------------------------------
+const LANDING_CLAIM_USAGE = "usage: faff landing-claim <acquire|tick|confirm|reclaim|release|read> --issue <ID> [--sha <SHA>] [--claimer-id <ID>] [--pr-head-sha <SHA>] [--remote <NAME>] [--root <DIR>] [--json]";
+const LANDING_CLAIM_SPEC = {
+  flags: {
+    "--issue": { arity: 1 }, "--sha": { arity: 1 }, "--claimer-id": { arity: 1 }, "--pr-head-sha": { arity: 1 },
+    "--remote": { arity: 1 }, "--root": { arity: 1 }, "--json": { arity: 0 },
+  },
+};
+
+function cmdLandingClaim(args) {
+  if (args.includes("--selftest")) return landingClaimSelftest();
+  const sub = args[0];
+  const { values, errors } = parseArgs(args.slice(1), LANDING_CLAIM_SPEC);
+  if (errors.length) return usageError(errors, LANDING_CLAIM_USAGE);
+  const json = !!values["--json"];
+  const issue = values["--issue"];
+  const { isValidIssueId } = require("./heartbeat");
+  if (!["acquire", "tick", "confirm", "reclaim", "release", "read"].includes(sub)) {
+    process.stderr.write(`landing-claim: unknown subcommand ${JSON.stringify(sub)}\n${LANDING_CLAIM_USAGE}\n`);
+    return 2;
+  }
+  if (!issue || !isValidIssueId(issue)) { process.stderr.write(`landing-claim ${sub}: --issue <ID> is required and must be a valid issue id\n`); return 2; }
+
+  const root = values["--root"] || findRoot();
+  const remote = values["--remote"] || "origin";
+  const store = landingClaimStore(root, remote);
+  const identity = { issue };
+  const out = (obj, code) => { if (json) console.log(JSON.stringify(obj)); else console.log(obj.summary || JSON.stringify(obj)); return code; };
+
+  if (sub === "acquire") {
+    const arg = { claimer_id: values["--claimer-id"], pr_head_sha: values["--pr-head-sha"] };
+    if (!arg.claimer_id) { process.stderr.write("landing-claim acquire: --claimer-id <ID> is required\n"); return 2; }
+    if (!arg.pr_head_sha) { process.stderr.write("landing-claim acquire: --pr-head-sha <SHA> is required\n"); return 2; }
+    let r = store.acquire(identity, arg);
+    if (!r.acquired && r.reason === "exists") {
+      const rc = store.reclaimIfStale(identity, arg, process.env);
+      r = rc.reclaimed
+        ? { acquired: true, sha: rc.sha, claim: rc.claim, reclaimed: true }
+        : { acquired: false, reason: rc.reason, holder: rc.holder, sha: rc.sha, detail: rc.detail };
+    }
+    const obj = { action: "acquire", issue, acquired: !!r.acquired, reason: r.reason || null, sha: r.sha || null, reclaimed: !!r.reclaimed, epoch: r.claim ? r.claim.claim_epoch : null, holder: r.holder || null, detail: r.detail || null, summary: r.acquired ? `landing-claim acquired ${issue} (sha ${String(r.sha).slice(0, 12)}, epoch ${r.claim ? r.claim.claim_epoch : "?"}${r.reclaimed ? ", reclaimed" : ""})` : `landing-claim REFUSED ${issue}: ${r.reason}${r.detail ? " — " + r.detail : ""}` };
+    return out(obj, r.acquired ? 0 : 1);
+  }
+
+  if (sub === "tick") {
+    const sha = values["--sha"];
+    if (!sha) { process.stderr.write("landing-claim tick: --sha <SHA> is required\n"); return 2; }
+    const r = store.tickHeartbeat(identity, sha);
+    return out({ action: "tick", issue, ticked: !!r.ticked, reason: r.reason || null, sha: r.sha || null, summary: r.ticked ? `landing-claim heartbeat ticked ${issue} (sha ${String(r.sha).slice(0, 12)})` : `landing-claim tick FAILED ${issue}: ${r.reason}` }, r.ticked ? 0 : 1);
+  }
+
+  if (sub === "confirm") {
+    const sha = values["--sha"];
+    if (!sha) { process.stderr.write("landing-claim confirm: --sha <SHA> is required\n"); return 2; }
+    const r = store.confirmHead(identity, sha);
+    return out({ action: "confirm", issue, confirmed: !!r.confirmed, reason: r.reason || null, sha: r.sha || null, summary: r.confirmed ? `landing-claim head-confirmed ${issue}` : `landing-claim head-confirm FAILED ${issue}: ${r.reason}` }, r.confirmed ? 0 : 1);
+  }
+
+  if (sub === "reclaim") {
+    const arg = { claimer_id: values["--claimer-id"], pr_head_sha: values["--pr-head-sha"] };
+    if (!arg.claimer_id) { process.stderr.write("landing-claim reclaim: --claimer-id <ID> is required\n"); return 2; }
+    if (!arg.pr_head_sha) { process.stderr.write("landing-claim reclaim: --pr-head-sha <SHA> is required\n"); return 2; }
+    const r = store.reclaimIfStale(identity, arg, process.env);
+    return out({ action: "reclaim", issue, reclaimed: !!r.reclaimed, reason: r.reason || null, sha: r.sha || null, holder: r.holder || null, detail: r.detail || null, summary: r.reclaimed ? `landing-claim reclaimed ${issue} (sha ${String(r.sha).slice(0, 12)})` : `landing-claim reclaim declined ${issue}: ${r.reason}` }, r.reclaimed ? 0 : 1);
+  }
+
+  if (sub === "release") {
+    const sha = values["--sha"];
+    if (!sha) { process.stderr.write("landing-claim release: --sha <SHA> is required\n"); return 2; }
+    const r = store.release(identity, sha);
+    // Best-effort housekeeping (spec: release_claim step 2) — a superseded/missing no-op is benign,
+    // a store_unavailable is transient; either way a leaked ref self-heals via the next stale
+    // reclaim, so this NEVER halts the queue.
+    return out({ action: "release", issue, released: !!r.released, reason: r.reason || null, summary: r.released ? `landing-claim released ${issue}` : `landing-claim release no-op ${issue}: ${r.reason}` }, 0);
+  }
+
+  // read
+  const r = store.readHolder(identity);
+  return out({ action: "read", issue, status: r.status, sha: r.sha || null, claim: r.claim || null, summary: `landing-claim ${issue}: ${r.status}${r.sha ? " (sha " + String(r.sha).slice(0, 12) + ")" : ""}` }, 0);
+}
+
+// FAFF-842 — landingClaimStore selftest: the module-seam fixture table for the endgame-only landing
+// resume's concurrency floor. Mirrors buildClaimSelftest's shape (scratch bare remote, two work
+// roots) but exercises the heartbeat-only stale test + the faff-claimed provenance fence (Scenario 6)
+// + tickHeartbeat (both binding-level scenarios recoveryClaimStore/buildClaimStore don't need).
+function landingClaimSelftest() {
+  const os = require("node:os");
+  let total = 0, fail = 0;
+  const ok = (cond, label) => { total++; if (!cond) fail++; console.log(`${cond ? "ok  " : "FAIL"} ${label}`); };
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-landing-claim-"));
+  try {
+    const bareRemote = path.join(tmp, "remote.git");
+    const rootA = path.join(tmp, "executor-a");
+    const rootB = path.join(tmp, "executor-b");
+    fs.mkdirSync(rootA, { recursive: true });
+    fs.mkdirSync(rootB, { recursive: true });
+    const initBare = spawnSync("git", ["init", "--bare", "-q", bareRemote]);
+    for (const r of [rootA, rootB]) {
+      spawnSync("git", ["-C", r, "init", "-q"]);
+      spawnSync("git", ["-C", r, "config", "user.email", "faff-selftest@example.com"]);
+      spawnSync("git", ["-C", r, "config", "user.name", "faff-selftest"]);
+      spawnSync("git", ["-C", r, "remote", "add", "origin", bareRemote]);
+    }
+    if (initBare.status === 0) {
+      const storeA = landingClaimStore(rootA, "origin");
+      const storeB = landingClaimStore(rootB, "origin");
+
+      // Scenario 1 — race: exactly one non-force push wins.
+      const idX = { issue: "FAFF-842" };
+      const acqA = storeA.acquire(idX, { claimer_id: "run-a@host-a", pr_head_sha: "aaa111" });
+      const acqB = storeB.acquire(idX, { claimer_id: "run-b@host-b", pr_head_sha: "aaa111" });
+      ok(acqA.acquired === true && acqB.acquired === false && acqB.reason === "exists",
+        `landingClaimStore: exactly one racer wins the mint (got A=${acqA.acquired}, B=${JSON.stringify([acqB.acquired, acqB.reason])})`);
+      ok(acqA.claim.provenance === "faff-claimed" && acqA.claim.issue === "FAFF-842" && acqA.claim.pr_head_sha === "aaa111",
+        "landingClaimStore: a fresh claim carries issue + pr_head_sha (fencing token) + faff-claimed provenance");
+
+      // Scenario 7 — a live-but-slow holder that ticks its heartbeat is never seized.
+      const tick = storeA.tickHeartbeat(idX, acqA.sha);
+      ok(tick.ticked === true, `landingClaimStore: the holder ticks its OWN claim heartbeat (got ${JSON.stringify(tick)})`);
+      const liveReclaim = storeB.reclaimIfStale(idX, { claimer_id: "run-c@host-c", pr_head_sha: "aaa111" }, process.env);
+      ok(liveReclaim.reclaimed === false && liveReclaim.reason === "held",
+        `landingClaimStore: a ticked (fresh) heartbeat refuses reclaim — no double-drain of a live-but-slow holder (got ${JSON.stringify(liveReclaim)})`);
+
+      // Scenario 3 — release then a fresh mint succeeds (a future recovery is not permanently blocked).
+      const rel = storeA.release(idX, tick.sha);
+      ok(rel.released === true, `landingClaimStore: lease-matched release deletes the ref against its own sha (got ${JSON.stringify(rel)})`);
+      const reAcq = storeB.acquire(idX, { claimer_id: "run-d@host-d", pr_head_sha: "bbb222" });
+      ok(reAcq.acquired === true, "landingClaimStore: a released claim is re-mintable (no permanent refuse)");
+
+      // Scenario 6 (positive arm) — a crashed holder's STALE, faff-claimed heartbeat IS reclaimable.
+      const idS = { issue: "FAFF-843" };
+      const staleClaimObj = { issue: "FAFF-843", claimer_id: "run-dead@host-x", pr_head_sha: "ccc333", claimed_at: new Date(Date.now() - 2000000).toISOString(), last_heartbeat: new Date(Date.now() - 2000000).toISOString(), provenance: "faff-claimed", claim_epoch: 0 };
+      const staleMint = pushClaimCommit(rootA, "origin", landingClaimRefName(idS), staleClaimObj, (sha) => [`${sha}:${landingClaimRefName(idS)}`], `landing-claim ${idS.issue} epoch=0`);
+      ok(staleMint.push.status === 0, "landingClaimStore selftest fixture: stale-heartbeat claim minted directly");
+      const staleReclaim = storeB.reclaimIfStale(idS, { claimer_id: "run-e@host-e", pr_head_sha: "ccc333" }, process.env);
+      ok(staleReclaim.reclaimed === true, `landingClaimStore: a stale heartbeat + faff-claimed provenance IS reclaimable (got ${JSON.stringify(staleReclaim)})`);
+
+      // Scenario 6 (negative arm) — a STALE heartbeat WITHOUT faff-claimed provenance is NEVER seized
+      // (surfaces as claimed-by-peer, not a speculative reclaim of an unprovable/human claim).
+      const idP = { issue: "FAFF-844" };
+      const foreignClaimObj = { issue: "FAFF-844", claimer_id: "some-human", pr_head_sha: "ddd444", claimed_at: new Date(Date.now() - 2000000).toISOString(), last_heartbeat: new Date(Date.now() - 2000000).toISOString(), provenance: "human", claim_epoch: 0 };
+      const foreignMint = pushClaimCommit(rootA, "origin", landingClaimRefName(idP), foreignClaimObj, (sha) => [`${sha}:${landingClaimRefName(idP)}`], `landing-claim ${idP.issue} epoch=0`);
+      ok(foreignMint.push.status === 0, "landingClaimStore selftest fixture: non-faff-claimed stale claim minted directly");
+      const foreignReclaim = storeB.reclaimIfStale(idP, { claimer_id: "run-f@host-f", pr_head_sha: "ddd444" }, process.env);
+      ok(foreignReclaim.reclaimed === false && foreignReclaim.reason === "held",
+        `landingClaimStore: a stale claim WITHOUT faff-claimed provenance is never seized (got ${JSON.stringify(foreignReclaim)})`);
+
+      // tick refuses once superseded (a reclaimer moved the ref out from under the old holder).
+      const idT = { issue: "FAFF-845" };
+      const tAcq = storeA.acquire(idT, { claimer_id: "run-g@host-g", pr_head_sha: "eee555" });
+      const tStale = { ...tAcq.claim, claimed_at: new Date(Date.now() - 2000000).toISOString(), last_heartbeat: new Date(Date.now() - 2000000).toISOString() };
+      pushClaimCommit(rootA, "origin", landingClaimRefName(idT), tStale, (sha) => [`--force-with-lease=${landingClaimRefName(idT)}:${tAcq.sha}`, `${sha}:${landingClaimRefName(idT)}`], `landing-claim ${idT.issue} epoch=0`);
+      storeB.reclaimIfStale(idT, { claimer_id: "run-h@host-h", pr_head_sha: "eee555" }, process.env);
+      const supersededTick = storeA.tickHeartbeat(idT, tAcq.sha);
+      ok(supersededTick.ticked === false && supersededTick.reason === "superseded",
+        `landingClaimStore: a tick against a superseded sha refuses (surfaced, never a silent overwrite) (got ${JSON.stringify(supersededTick)})`);
+
+      ok(storeA.name === "git-remote-landing-claim", "landingClaimStore: named store, origin-keyed");
+    } else {
+      console.log("skip  landingClaimStore checks (git init unavailable in this environment)");
+    }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} checks, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 module.exports = {
   BUNDLE_MANIFEST_VERSION, BUNDLE_BOUNDARY_KINDS, BUNDLE_STORE_OCCUPANTS, REQUIRED_MEMBERS,
   REQUIRED_MEMBERS_B1, REQUIRED_MEMBERS_B2, requiredMembersFor,
@@ -1855,4 +2129,5 @@ module.exports = {
   recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, gitReadClaimManifest,
   claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, resolveClaimClockSkewToleranceSecs, defaultResolveClaimRunDir,
   cmdBuildClaim, buildClaimSelftest,
+  landingClaimRefName, landingClaimStore, cmdLandingClaim, landingClaimSelftest,
 };

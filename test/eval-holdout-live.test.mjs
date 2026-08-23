@@ -193,6 +193,38 @@ test("hostMediatedDrive runs a host-executed command then returns the model's cl
   assert.ok(tokens > 0, "tokens accrue over the loop's turns");
 });
 
+// --- host-side allowlist: a derived URL outside the case's declared endpoints is REJECTED, never fetched ---
+test("hostMediatedDrive never fetches a URL outside the case's declared endpoints (SSRF guard)", async () => {
+  const c = cases().find((x) => x.id === "holdout-live-001");
+  const fetched = [];
+  const fetchImpl = async (url) => {
+    fetched.push(url); // must never be called with the off-list URL
+    return { ok: true, status: 200, text: async () => "should never be reached" };
+  };
+  let turn = 0;
+  const model = async (prompt) => {
+    turn++;
+    if (turn === 1) {
+      // derives a URL that is NOT in the endpoints list handed to it
+      return "```faff-live:exec\n{ \"method\": \"GET\", \"url\": \"http://localhost:9999/not-a-declared-endpoint\" }\n```";
+    }
+    // the rejection must be fed back so a confused model can self-correct
+    assert.match(prompt, /url not in this case's declared endpoints/, "the host tells the model why it refused");
+    assert.doesNotMatch(prompt, /should never be reached/, "the off-list URL's body is never in the fed-back turn — it was never fetched");
+    return "```faff-eval:judgement\n" + JSON.stringify({ case_id: c.id, "holdout-exercise": { c1: "needs-human", c2: "needs-human" } }) + "\n```";
+  };
+  const { classifications } = await hostMediatedDrive({
+    model,
+    endpoints: [{ label: "primary", url: "http://localhost:18781/" }],
+    spec_dod: c.spec_dod,
+    rubricProse: "## How it evaluates\n",
+    caseId: c.id,
+    fetchImpl,
+  });
+  assert.deepEqual(fetched, [], "fetchImpl was never invoked for the off-list URL");
+  assert.deepEqual(classifications, { c1: "needs-human", c2: "needs-human" });
+});
+
 // --- fail-closed: the model never answering within the turn budget → every criterion needs-human ---
 test("hostMediatedDrive fails closed to needs-human when no final answer lands", async () => {
   const c = cases().find((x) => x.id === "holdout-live-001");

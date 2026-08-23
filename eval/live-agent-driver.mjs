@@ -141,6 +141,13 @@ export async function hostMediatedDrive({ model, endpoints, spec_dod, rubricPros
     throw new Error("hostMediatedDrive requires a model(prompt) completion function (inject a mock in CI; makeLiveModel for real)");
   }
   const keys = (spec_dod || []).map((c) => c.key);
+  // The host-side allowlist: only URLs matching one of THIS case's declared fixture endpoints are ever
+  // fetched. The prompt already asks for "one endpoint URL", but that's a request to a probabilistic
+  // model, not an enforced boundary — a hallucinating turn, or a turn steered by an injected response body
+  // (the loop feeds every fetched body back verbatim as the next turn's input), could otherwise derive an
+  // arbitrary URL and the host would fetch it uncritically. This is the mechanical enforcement of the
+  // protocol's own stated contract, closing that gap without adding any new infra.
+  const allowedUrls = new Set((endpoints || []).map((e) => e.url));
   let convo = buildInitialPrompt({ endpoints, spec_dod, rubricProse, caseId });
   let tokens = 0;
   for (let turn = 0; turn < maxTurns; turn++) {
@@ -150,7 +157,15 @@ export async function hostMediatedDrive({ model, endpoints, spec_dod, rubricPros
     if (final) return { classifications: final, tokens };
     const exec = parseExec(raw);
     if (!exec) break; // no exec and no final — the model gave up; fall through to fail-closed
-    const result = await hostExec(exec, fetchImpl);
+    let result;
+    if (allowedUrls.has(exec.url)) {
+      result = await hostExec(exec, fetchImpl);
+    } else {
+      // Never fetched — rejected before hostExec is even called. Fed back like any other host response so
+      // a confused-but-honest model can self-correct within its turn budget, exactly as a real fetch error
+      // already is; an adversarial/injected turn just burns a turn instead of reaching the network.
+      result = `ERROR: url not in this case's declared endpoints (${[...allowedUrls].join(", ") || "none"})`;
+    }
     convo +=
       `\n\nASSISTANT:\n${raw}\n\nHOST EXECUTED ${exec.method} ${exec.url}:\n${result}\n\n` +
       "Continue: request another command (faff-live:exec) or emit your final faff-eval:judgement now.";

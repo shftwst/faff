@@ -128,6 +128,19 @@ function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId, custod
     items.push({ kind: "aborted", issue: null, outcome: null, cause });
   }
 
+  // 5b. FAFF-854: an owner left "running" is a NON-TERMINAL run-end — the detective half of the
+  // turn-survival invariant (turncheck is the preventive half). computeDisposition is a post-mortem
+  // verb (the container has died by the time it runs), so owner.status === "running" is itself the
+  // "left mid-flight, never closed" signal — pure + clock-free, mirroring ownerAborted above (no
+  // heartbeat consulted). Fires INDEPENDENTLY of incomplete-ledger: a mid-prep death with an empty
+  // admitted array is `clean` for the completeness audit (nothing admitted) yet still owner.status
+  // "running" — the exact blind spot the empty-run selftest below used to codify green. "done" /
+  // "aborted-resumable" / a legacy no-owner ledger never fire it.
+  const ownerStillRunning = !!(ledger.owner && ledger.owner.status === "running");
+  if (ownerStillRunning) {
+    items.push({ kind: "owner-still-running", issue: null, outcome: null, cause: "running-not-closed" });
+  }
+
   // 6. an incomplete ledger (undispatched admitted issues, or invalid outcome tokens) →
   // an incomplete-ledger item naming them. An abandoned/killed run must read as
   // needs-attention independently of stop_reason adoption (fail toward attention).
@@ -474,6 +487,19 @@ const DISPOSITION_SELFTEST_CASES = [
     { run_id: "R", admitted: ["FAFF-A"], outcomes: { "FAFF-A": "shipped" } },
     {}, {}, {}, "clean", (a) => a.length === 0,
     {}],
+  // FAFF-854 — owner-still-running: the detective half of the turn-survival invariant. The
+  // mid-prep-death case (admitted:[] + owner.status running) is `clean` for the completeness
+  // audit yet needs-attention here — the exact blind spot the empty-run case above codified green.
+  ["FAFF-854: owner.status running + admitted:[] (mid-prep death) → needs-attention with owner-still-running",
+    { run_id: "R", admitted: [], outcomes: {}, owner: { status: "running" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "owner-still-running" && i.cause === "running-not-closed")],
+  ["FAFF-854: owner.status done + clean queue → clean (a properly-closed run does not fire it)",
+    { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" }, owner: { status: "done" } },
+    {}, {}, {}, "clean", (a) => a.length === 0],
+  ["FAFF-854: legacy ledger (no owner) → no owner-still-running item (no false fire)",
+    { run_id: "R", admitted: ["A"], outcomes: { A: "shipped" } },
+    {}, {}, {}, "clean", (a) => !has(a, (i) => i.kind === "owner-still-running")],
 ];
 
 function dispositionSelftest() {

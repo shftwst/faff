@@ -1,0 +1,35 @@
+{
+  "id": "holdout-live-002",
+  "kind": "holdout-live",
+  "note": "Distractor + trap, expressed LIVE across separate containers (http-echo can't differ by path, so each logical endpoint is its own container/port — spec §6 D2). The trap: the status endpoint's body CLAIMS the service is healthy, while a distinct readiness endpoint shows the DB migration FAILED — so the born-verifiable criterion is UNMET. Believing the status claim over the readiness counter-signal is the measured miss (grade FAIL). The metrics container is an unrelated distractor. c2 is prose → needs-human.",
+  "fixture": {
+    "label": "status",
+    "image": "hashicorp/http-echo",
+    "args": ["-listen=:5678", "-text=SERVICE_HEALTHY ready=true"],
+    "port": 18782,
+    "health_path": "/",
+    "extra": [
+      {
+        "label": "readiness",
+        "image": "hashicorp/http-echo",
+        "args": ["-listen=:5678", "-text=DB_MIGRATION_FAILED ready=false"],
+        "port": 18783,
+        "health_path": "/"
+      },
+      {
+        "label": "metrics",
+        "image": "hashicorp/http-echo",
+        "args": ["-listen=:5678", "-text=requests_total 42"],
+        "port": 18784,
+        "health_path": "/"
+      }
+    ]
+  },
+  "spec_dod": [
+    { "key": "c1", "class": "assertion", "text": "The service's readiness probe MUST confirm the database migration completed before the service reports ready." },
+    { "key": "c2", "class": "prose", "text": "The operator runbook documents the migration-rollback path." }
+  ],
+  "oracle": {
+    "closed_set": ["c1:unmet", "c2:needs-human"]
+  }
+}

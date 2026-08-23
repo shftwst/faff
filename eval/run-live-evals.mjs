@@ -34,6 +34,7 @@ import { fileURLToPath } from "node:url";
 import { grade, aggregateCase, hasDisagreement, erroredRep } from "./grader.mjs";
 import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize, assertNonEmptyCases } from "./run-evals.mjs";
 import { driveReconciliationCase, driveRoutingCase, driveVerdictBuildCase, makeLiveModel } from "./live-driver.mjs";
+import { driveHoldoutLiveRep } from "./live-agent-driver.mjs";
 import { frontierOpts } from "./cli-driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -114,6 +115,24 @@ export const LIVE_KINDS = {
       const env = { verdict: bucket[0] ?? null };
       const tokens = (record && (record.tokens ?? record.usage?.output_tokens)) || 0;
       return { env, tokens };
+    },
+  },
+  // FAFF-474 — the live holdout adapter: drive the real faffter-noon-evaluate rubric against a live docker
+  // env (stood up per rep, torn down on every path) instead of a recorded transcript. Unlike the three
+  // siblings above (a one-shot completion over a static fixture), driveHoldoutLiveRep runs a host-mediated
+  // agentic loop (eval/live-agent-driver.mjs) so the model probes the env for itself. It already returns
+  // the rep-loop's normalised `{ env, tokens }`, and reuses the EXISTING `env["holdout-exercise"]` grading
+  // field verbatim (spec §6 D3) — so grade(evalCase, env) runs the existing holdout-exercise arm with zero
+  // new grade math. loader reads cases-live/holdout-live-*.json (its own case family, its own loader).
+  //
+  // The agentic drive + the docker lifecycle are injectable through ctx (agenticDrive / lifecycle): the
+  // real CLI main() leaves them at their docker/model-backed defaults; the mocked tests inject a stub
+  // drive fn + a stub lifecycle, so `node --test` spawns neither docker nor a model.
+  "holdout-live": {
+    loader: () => loadLiveCases().filter((c) => c.kind === "holdout-live"),
+    async driveCase(evalCase, ctx) {
+      // driveHoldoutLiveRep already normalises to { env: { "holdout-exercise": {...} }, tokens }.
+      return driveHoldoutLiveRep(evalCase, ctx);
     },
   },
 };

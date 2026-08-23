@@ -2,7 +2,7 @@
 name: faffter-noon-evaluate
 description: "Default `evaluator` slot occupant — the code-blind holdout JUDGE. Given a spec + a running env (never the codebase), it classifies the spec's DoD, exercises the born-verifiable criteria against the running feature, forces prose criteria to needs-human, and emits a `faff-contract:holdout-verdict` block before tearing the env down. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
-judgement_seam: holdout, holdout-exercise
+judgement_seam: holdout, holdout-exercise, holdout-live
 ---
 
 # faffter-noon-evaluate

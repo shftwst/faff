@@ -1,0 +1,6 @@
+-- Baseline migration (gk-20260819-wng8an).
+--
+-- The walking skeleton stores no short codes yet, so this baseline creates no
+-- schema. It exists so the golang-migrate machinery is wired and versioned:
+-- downstream epics (POST /shorten, GET /{code}, TTL) add their table
+-- migrations as 000002_*, 000003_*, ... under the DDL-holding migration role.

@@ -1,0 +1,1048 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..45d1e4c
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,20 @@
++name: ci
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++
++jobs:
++  gates:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      # Container-based checks: no toolchain setup step, self-contained on any
++      # runner with Docker. The same commands run locally in faff's gate ladder.
++      - name: gofmt
++        run: '[ -z "$(docker run --rm -v "$PWD/api":/src -w /src golang:1.23 gofmt -l .)" ]'
++      - name: go vet
++        run: docker run --rm -v "$PWD/api":/src -w /src golang:1.23 go vet ./...
++      - name: go test
++        run: docker run --rm -v "$PWD/api":/src -w /src golang:1.23 go test ./...
+diff --git a/api/.dockerignore b/api/.dockerignore
+new file mode 100644
+index 0000000..12de387
+--- /dev/null
++++ b/api/.dockerignore
+@@ -0,0 +1,3 @@
++Dockerfile
++.dockerignore
++*_test.go
+diff --git a/api/Dockerfile b/api/Dockerfile
+new file mode 100644
+index 0000000..78cd31e
+--- /dev/null
++++ b/api/Dockerfile
+@@ -0,0 +1,20 @@
++# syntax=docker/dockerfile:1
++
++# Build stage: compile a static single binary.
++FROM golang:1.23-alpine AS build
++WORKDIR /src
++
++# Cache dependencies first.
++COPY go.mod go.sum ./
++RUN go mod download
++
++# Build.
++COPY . .
++RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api .
++
++# Runtime stage: minimal, non-root, no shell.
++FROM gcr.io/distroless/static-debian12:nonroot
++COPY --from=build /out/api /api
++EXPOSE 8080
++USER nonroot:nonroot
++ENTRYPOINT ["/api"]
+diff --git a/api/go.mod b/api/go.mod
+new file mode 100644
+index 0000000..1ff6739
+--- /dev/null
++++ b/api/go.mod
+@@ -0,0 +1,21 @@
++module github.com/shftwst/link-shortener
++
++go 1.23
++
++require (
++	github.com/golang-migrate/migrate/v4 v4.18.1
++	github.com/jackc/pgx/v5 v5.7.1
++)
++
++require (
++	github.com/hashicorp/errwrap v1.1.0 // indirect
++	github.com/hashicorp/go-multierror v1.1.1 // indirect
++	github.com/jackc/pgpassfile v1.0.0 // indirect
++	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
++	github.com/jackc/puddle/v2 v2.2.2 // indirect
++	github.com/lib/pq v1.10.9 // indirect
++	go.uber.org/atomic v1.7.0 // indirect
++	golang.org/x/crypto v0.27.0 // indirect
++	golang.org/x/sync v0.8.0 // indirect
++	golang.org/x/text v0.18.0 // indirect
++)
+diff --git a/api/go.sum b/api/go.sum
+new file mode 100644
+index 0000000..1e55954
+--- /dev/null
++++ b/api/go.sum
+@@ -0,0 +1,83 @@
++github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
++github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
++github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
++github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
++github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
++github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
++github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
++github.com/dhui/dktest v0.4.3 h1:wquqUxAFdcUgabAVLvSCOKOlag5cIZuaOjYIBOWdsR0=
++github.com/dhui/dktest v0.4.3/go.mod h1:zNK8IwktWzQRm6I/l2Wjp7MakiyaFWv4G1hjmodmMTs=
++github.com/distribution/reference v0.6.0 h1:0IXCQ5g4/QMHHkarYzh5l+u8T3t73zM5QvfrDyIgxBk=
++github.com/distribution/reference v0.6.0/go.mod h1:BbU0aIcezP1/5jX/8MP0YiH4SdvB5Y4f/wlDRiLyi3E=
++github.com/docker/docker v27.2.0+incompatible h1:Rk9nIVdfH3+Vz4cyI/uhbINhEZ/oLmc+CBXmH6fbNk4=
++github.com/docker/docker v27.2.0+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
++github.com/docker/go-connections v0.5.0 h1:USnMq7hx7gwdVZq1L49hLXaFtUdTADjXGp+uj1Br63c=
++github.com/docker/go-connections v0.5.0/go.mod h1:ov60Kzw0kKElRwhNs9UlUHAE/F9Fe6GLaXnqyDdmEXc=
++github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
++github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
++github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
++github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
++github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
++github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
++github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
++github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
++github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
++github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
++github.com/golang-migrate/migrate/v4 v4.18.1 h1:JML/k+t4tpHCpQTCAD62Nu43NUFzHY4CV3uAuvHGC+Y=
++github.com/golang-migrate/migrate/v4 v4.18.1/go.mod h1:HAX6m3sQgcdO81tdjn5exv20+3Kb13cmGli1hrD6hks=
++github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
++github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
++github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
++github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
++github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
++github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
++github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
++github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 h1:iCEnooe7UlwOQYpKFhBabPMi4aNAfoODPEFNiAnClxo=
++github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761/go.mod h1:5TJZWKEWniPve33vlWYSoGYefn3gLQRzjfDlhSJ9ZKM=
++github.com/jackc/pgx/v5 v5.7.1 h1:x7SYsPBYDkHDksogeSmZZ5xzThcTgRz++I5E+ePFUcs=
++github.com/jackc/pgx/v5 v5.7.1/go.mod h1:e7O26IywZZ+naJtWWos6i6fvWK+29etgITqrqHLfoZA=
++github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo=
++github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
++github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
++github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
++github.com/moby/docker-image-spec v1.3.1 h1:jMKff3w6PgbfSa69GfNg+zN/XLhfXJGnEx3Nl2EsFP0=
++github.com/moby/docker-image-spec v1.3.1/go.mod h1:eKmb5VW8vQEh/BAr2yvVNvuiJuY6UIocYsFu/DxxRpo=
++github.com/moby/term v0.5.0 h1:xt8Q1nalod/v7BqbG21f8mQPqH+xAaC9C3N3wfWbVP0=
++github.com/moby/term v0.5.0/go.mod h1:8FzsFHVUBGZdbDsJw/ot+X+d5HLUbvklYLJ9uGfcI3Y=
++github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
++github.com/morikuni/aec v1.0.0/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
++github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
++github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
++github.com/opencontainers/image-spec v1.1.0 h1:8SG7/vwALn54lVB/0yZ/MMwhFrPYtpEHQb2IpWsCzug=
++github.com/opencontainers/image-spec v1.1.0/go.mod h1:W4s4sFTMaBeK1BQLXbG4AdM2szdn85PY75RI83NrTrM=
++github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
++github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
++github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
++github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
++github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
++github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
++github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
++github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
++github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
++go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 h1:TT4fX+nBOA/+LUkobKGW1ydGcn+G3vRw9+g5HwCphpk=
++go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0/go.mod h1:L7UH0GbB0p47T4Rri3uHjbpCFYrVrwc1I25QhNPiGK8=
++go.opentelemetry.io/otel v1.29.0 h1:PdomN/Al4q/lN6iBJEN3AwPvUiHPMlt93c8bqTG5Llw=
++go.opentelemetry.io/otel v1.29.0/go.mod h1:N/WtXPs1CNCUEx+Agz5uouwCba+i+bJGFicT8SR4NP8=
++go.opentelemetry.io/otel/metric v1.29.0 h1:vPf/HFWTNkPu1aYeIsc98l4ktOQaL6LeSoeV2g+8YLc=
++go.opentelemetry.io/otel/metric v1.29.0/go.mod h1:auu/QWieFVWx+DmQOUMgj0F8LHWdgalxXqvp7BII/W8=
++go.opentelemetry.io/otel/trace v1.29.0 h1:J/8ZNK4XgR7a21DZUAsbF8pZ5Jcw1VhACmnYt39JTi4=
++go.opentelemetry.io/otel/trace v1.29.0/go.mod h1:eHl3w0sp3paPkYstJOmAimxhiFXPg+MMTlEh3nsQgWQ=
++go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
++go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
++golang.org/x/crypto v0.27.0 h1:GXm2NjJrPaiv/h1tb2UH8QfgC/hOf/+z0p6PT8o1w7A=
++golang.org/x/crypto v0.27.0/go.mod h1:1Xngt8kV6Dvbssa53Ziq6Eqn0HqbZi5Z6R0ZpwQzt70=
++golang.org/x/sync v0.8.0 h1:3NFvSEYkUoMifnESzZl15y791HH1qU2xm6eCJU5ZPXQ=
++golang.org/x/sync v0.8.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
++golang.org/x/sys v0.25.0 h1:r+8e+loiHxRqhXVl6ML1nO3l1+oFoWbnlu2Ehimmi34=
++golang.org/x/sys v0.25.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
++golang.org/x/text v0.18.0 h1:XvMDiNzPAl0jr17s6W9lcaIhGUfUORdGCNsuLmPG224=
++golang.org/x/text v0.18.0/go.mod h1:BuEKDfySbSR4drPmRPG/7iBdf8hvFMuRexcpahXilzY=
++gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
++gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
++gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
++gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+diff --git a/api/internal/config/config.go b/api/internal/config/config.go
+new file mode 100644
+index 0000000..48f2868
+--- /dev/null
++++ b/api/internal/config/config.go
+@@ -0,0 +1,78 @@
++// Package config loads all runtime configuration from the environment
++// (12-factor). Nothing is hardcoded; a missing required variable is a
++// fail-fast error rather than a degraded default.
++package config
++
++import (
++	"fmt"
++	"os"
++	"strconv"
++	"time"
++)
++
++// Config is the fully-resolved runtime configuration for the api.
++type Config struct {
++	// ListenAddr is the TCP address the HTTP server binds, e.g. ":8080".
++	ListenAddr string
++	// MigrationDatabaseURL is the DSN used only by the startup migration
++	// step, under the DDL-holding migration role.
++	MigrationDatabaseURL string
++	// RuntimeDatabaseURL is the DSN used by the request-serving pool, under
++	// the least-privilege runtime role (no DDL).
++	RuntimeDatabaseURL string
++	// StartupRetryWindow bounds how long connect/migrate transient retries
++	// run before the api gives up and exits non-zero.
++	StartupRetryWindow time.Duration
++	// StartupRetryInterval is the fixed backoff between startup retries.
++	StartupRetryInterval time.Duration
++}
++
++// Load reads and validates configuration from the environment. It returns a
++// clear error naming the first missing required variable; it never falls back
++// to a default DSN.
++func Load() (Config, error) {
++	cfg := Config{
++		ListenAddr:           ":" + getenvDefault("API_PORT", "8080"),
++		MigrationDatabaseURL: os.Getenv("MIGRATION_DATABASE_URL"),
++		RuntimeDatabaseURL:   os.Getenv("RUNTIME_DATABASE_URL"),
++	}
++
++	if cfg.MigrationDatabaseURL == "" {
++		return Config{}, fmt.Errorf("required environment variable MIGRATION_DATABASE_URL is not set")
++	}
++	if cfg.RuntimeDatabaseURL == "" {
++		return Config{}, fmt.Errorf("required environment variable RUNTIME_DATABASE_URL is not set")
++	}
++
++	window, err := getenvSeconds("STARTUP_RETRY_WINDOW_SECONDS", 30)
++	if err != nil {
++		return Config{}, err
++	}
++	interval, err := getenvSeconds("STARTUP_RETRY_INTERVAL_SECONDS", 1)
++	if err != nil {
++		return Config{}, err
++	}
++	cfg.StartupRetryWindow = window
++	cfg.StartupRetryInterval = interval
++
++	return cfg, nil
++}
++
++func getenvDefault(key, fallback string) string {
++	if v := os.Getenv(key); v != "" {
++		return v
++	}
++	return fallback
++}
++
++func getenvSeconds(key string, fallback int) (time.Duration, error) {
++	v := os.Getenv(key)
++	if v == "" {
++		return time.Duration(fallback) * time.Second, nil
++	}
++	n, err := strconv.Atoi(v)
++	if err != nil || n < 0 {
++		return 0, fmt.Errorf("environment variable %s must be a non-negative integer, got %q", key, v)
++	}
++	return time.Duration(n) * time.Second, nil
++}
+diff --git a/api/internal/config/config_test.go b/api/internal/config/config_test.go
+new file mode 100644
+index 0000000..f02300e
+--- /dev/null
++++ b/api/internal/config/config_test.go
+@@ -0,0 +1,88 @@
++package config
++
++import (
++	"strings"
++	"testing"
++	"time"
++)
++
++func setEnv(t *testing.T, kv map[string]string) {
++	t.Helper()
++	for k, v := range kv {
++		t.Setenv(k, v)
++	}
++}
++
++func TestLoadFailsFastOnMissingRuntimeDSN(t *testing.T) {
++	setEnv(t, map[string]string{
++		"MIGRATION_DATABASE_URL": "postgres://migrator:pw@datastore:5432/linkshortener",
++		"RUNTIME_DATABASE_URL":   "",
++	})
++	_, err := Load()
++	if err == nil {
++		t.Fatal("expected error on missing RUNTIME_DATABASE_URL, got nil")
++	}
++	if !strings.Contains(err.Error(), "RUNTIME_DATABASE_URL") {
++		t.Fatalf("error should name the missing variable, got: %v", err)
++	}
++}
++
++func TestLoadFailsFastOnMissingMigrationDSN(t *testing.T) {
++	setEnv(t, map[string]string{
++		"MIGRATION_DATABASE_URL": "",
++		"RUNTIME_DATABASE_URL":   "postgres://app:pw@datastore:5432/linkshortener",
++	})
++	_, err := Load()
++	if err == nil {
++		t.Fatal("expected error on missing MIGRATION_DATABASE_URL, got nil")
++	}
++	if !strings.Contains(err.Error(), "MIGRATION_DATABASE_URL") {
++		t.Fatalf("error should name the missing variable, got: %v", err)
++	}
++}
++
++func TestLoadDefaultsAndValues(t *testing.T) {
++	setEnv(t, map[string]string{
++		"MIGRATION_DATABASE_URL": "postgres://migrator:pw@datastore:5432/linkshortener",
++		"RUNTIME_DATABASE_URL":   "postgres://app:pw@datastore:5432/linkshortener",
++	})
++	cfg, err := Load()
++	if err != nil {
++		t.Fatalf("unexpected error: %v", err)
++	}
++	if cfg.ListenAddr != ":8080" {
++		t.Fatalf("ListenAddr = %q, want :8080", cfg.ListenAddr)
++	}
++	if cfg.StartupRetryWindow != 30*time.Second {
++		t.Fatalf("StartupRetryWindow = %v, want 30s", cfg.StartupRetryWindow)
++	}
++	if cfg.StartupRetryInterval != 1*time.Second {
++		t.Fatalf("StartupRetryInterval = %v, want 1s", cfg.StartupRetryInterval)
++	}
++}
++
++func TestLoadHonoursApiPort(t *testing.T) {
++	setEnv(t, map[string]string{
++		"API_PORT":               "9090",
++		"MIGRATION_DATABASE_URL": "postgres://migrator:pw@datastore:5432/linkshortener",
++		"RUNTIME_DATABASE_URL":   "postgres://app:pw@datastore:5432/linkshortener",
++	})
++	cfg, err := Load()
++	if err != nil {
++		t.Fatalf("unexpected error: %v", err)
++	}
++	if cfg.ListenAddr != ":9090" {
++		t.Fatalf("ListenAddr = %q, want :9090", cfg.ListenAddr)
++	}
++}
++
++func TestLoadRejectsInvalidRetryWindow(t *testing.T) {
++	setEnv(t, map[string]string{
++		"MIGRATION_DATABASE_URL":       "postgres://migrator:pw@datastore:5432/linkshortener",
++		"RUNTIME_DATABASE_URL":         "postgres://app:pw@datastore:5432/linkshortener",
++		"STARTUP_RETRY_WINDOW_SECONDS": "not-a-number",
++	})
++	if _, err := Load(); err == nil {
++		t.Fatal("expected error on non-numeric STARTUP_RETRY_WINDOW_SECONDS, got nil")
++	}
++}
+diff --git a/api/internal/db/connect.go b/api/internal/db/connect.go
+new file mode 100644
+index 0000000..cc65af0
+--- /dev/null
++++ b/api/internal/db/connect.go
+@@ -0,0 +1,97 @@
++// Package db owns the datastore connection and the startup migration step.
++// Both use a bounded-backoff retry so a datastore that accepts TCP a beat
++// before it accepts queries does not crash-loop the api, while a genuinely
++// unreachable datastore still fails fast once the window is exhausted.
++package db
++
++import (
++	"context"
++	"errors"
++	"time"
++
++	"github.com/jackc/pgx/v5/pgconn"
++	"github.com/jackc/pgx/v5/pgxpool"
++)
++
++// RetryPolicy bounds startup retries: attempts run at Interval until Window
++// elapses, then the operation fails.
++type RetryPolicy struct {
++	Window   time.Duration
++	Interval time.Duration
++}
++
++// ConnectRuntimePool opens the request-serving pool using the runtime DSN
++// (the least-privilege, no-DDL role) and verifies reachability with a bounded
++// retry. On success the caller owns the returned pool and must Close it.
++//
++// The DSN is never logged here; connection-failure metadata is the caller's
++// responsibility via the dsn package, so the raw DSN and password never leak.
++func ConnectRuntimePool(ctx context.Context, runtimeDSN string, policy RetryPolicy) (*pgxpool.Pool, error) {
++	pool, err := pgxpool.New(ctx, runtimeDSN)
++	if err != nil {
++		return nil, err
++	}
++
++	err = retry(ctx, policy, func() error {
++		return pool.Ping(ctx)
++	})
++	if err != nil {
++		pool.Close()
++		return nil, err
++	}
++	return pool, nil
++}
++
++// retry runs op at policy.Interval until it succeeds, the context is
++// cancelled, policy.Window elapses, or op returns a non-transient error.
++// A non-transient error is returned immediately (fail fast on a real fault);
++// a transient error is retried until the window closes.
++func retry(ctx context.Context, policy RetryPolicy, op func() error) error {
++	deadline := time.Now().Add(policy.Window)
++	var lastErr error
++	for {
++		lastErr = op()
++		if lastErr == nil {
++			return nil
++		}
++		if !isTransient(lastErr) {
++			return lastErr
++		}
++		if time.Now().Add(policy.Interval).After(deadline) {
++			return lastErr
++		}
++		select {
++		case <-ctx.Done():
++			return ctx.Err()
++		case <-time.After(policy.Interval):
++		}
++	}
++}
++
++// isTransient reports whether err is a datastore-still-coming-up condition
++// that is worth retrying within the startup window, as opposed to a terminal
++// fault (bad SQL, auth failure, a genuine version conflict) that must not be
++// retried.
++func isTransient(err error) bool {
++	if err == nil {
++		return false
++	}
++	// Postgres signalling it is not yet ready to accept connections.
++	var pgErr *pgconn.PgError
++	if errors.As(err, &pgErr) {
++		switch pgErr.Code {
++		case "57P03", // cannot_connect_now (still starting / recovering)
++			"57P01", // admin_shutdown / terminating
++			"08006", // connection_failure
++			"08001", // sqlclient_unable_to_establish_sqlconnection
++			"08004": // sqlserver_rejected_establishment_of_sqlconnection
++			return true
++		}
++		// Any other PgError is a real server-side error: terminal.
++		return false
++	}
++	// A pgconn.ConnectError (TCP refused, DNS not yet resolvable, etc.) is
++	// the datastore not yet listening — transient during startup.
++	var connErr *pgconn.ConnectError
++	return errors.As(err, &connErr)
++}
+diff --git a/api/internal/db/migrate.go b/api/internal/db/migrate.go
+new file mode 100644
+index 0000000..d1dd28e
+--- /dev/null
++++ b/api/internal/db/migrate.go
+@@ -0,0 +1,66 @@
++package db
++
++import (
++	"context"
++	"database/sql"
++	"errors"
++	"fmt"
++
++	"github.com/golang-migrate/migrate/v4"
++	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
++	"github.com/golang-migrate/migrate/v4/source/iofs"
++	_ "github.com/jackc/pgx/v5/stdlib" // registers the "pgx" database/sql driver
++
++	"github.com/shftwst/link-shortener/internal/migrations"
++)
++
++// ApplyMigrations applies all embedded schema migrations to the current
++// version using the migration DSN (the DDL-holding migration role), before
++// the api begins serving.
++//
++// Reachability is retried with bounded backoff on transient conditions only
++// (Postgres still completing crash recovery / not yet accepting). A
++// non-transient error (bad SQL, a genuine version conflict) is terminal on
++// first occurrence and is never retried. An already-current schema is a no-op.
++func ApplyMigrations(ctx context.Context, migrationDSN string, policy RetryPolicy) error {
++	sqlDB, err := sql.Open("pgx", migrationDSN)
++	if err != nil {
++		return fmt.Errorf("open migration connection: %w", err)
++	}
++	defer sqlDB.Close()
++
++	// Bounded connection retry: the datastore may accept TCP a beat before it
++	// accepts queries even behind the compose healthcheck gate.
++	if err := retry(ctx, policy, func() error { return sqlDB.PingContext(ctx) }); err != nil {
++		return fmt.Errorf("migration datastore unreachable within retry window: %w", err)
++	}
++
++	driver, err := migratepg.WithInstance(sqlDB, &migratepg.Config{})
++	if err != nil {
++		return fmt.Errorf("init migration driver: %w", err)
++	}
++
++	source, err := iofs.New(migrations.FS, ".")
++	if err != nil {
++		return fmt.Errorf("load embedded migrations: %w", err)
++	}
++
++	m, err := migrate.NewWithInstance("iofs", source, "pgx", driver)
++	if err != nil {
++		return fmt.Errorf("init migrator: %w", err)
++	}
++
++	// Retry Up only on transient errors within the same bounded window; a
++	// non-transient migration error returns immediately.
++	err = retry(ctx, policy, func() error {
++		upErr := m.Up()
++		if upErr == nil || errors.Is(upErr, migrate.ErrNoChange) {
++			return nil
++		}
++		return upErr
++	})
++	if err != nil {
++		return fmt.Errorf("apply migrations: %w", err)
++	}
++	return nil
++}
+diff --git a/api/internal/dsn/dsn.go b/api/internal/dsn/dsn.go
+new file mode 100644
+index 0000000..a7048c0
+--- /dev/null
++++ b/api/internal/dsn/dsn.go
+@@ -0,0 +1,23 @@
++// Package dsn extracts non-secret metadata from a PostgreSQL connection
++// string using the driver's own parser. It exists so connection-failure
++// logs can name the host, port, and database without ever emitting the
++// password or the raw DSN.
++package dsn
++
++import (
++	"fmt"
++
++	"github.com/jackc/pgx/v5"
++)
++
++// SafeMetadata parses the DSN with pgx's own parser and returns a log-safe
++// "host=<h> port=<p> db=<d>" string. The password and the raw DSN are never
++// included. If the DSN cannot be parsed it returns a fixed placeholder rather
++// than echoing any of the input bytes (which could carry the credential).
++func SafeMetadata(rawDSN string) string {
++	cfg, err := pgx.ParseConfig(rawDSN)
++	if err != nil {
++		return "host=<unparseable> port=<unparseable> db=<unparseable>"
++	}
++	return fmt.Sprintf("host=%s port=%d db=%s", cfg.Host, cfg.Port, cfg.Database)
++}
+diff --git a/api/internal/dsn/dsn_test.go b/api/internal/dsn/dsn_test.go
+new file mode 100644
+index 0000000..51f96cd
+--- /dev/null
++++ b/api/internal/dsn/dsn_test.go
+@@ -0,0 +1,35 @@
++package dsn
++
++import (
++	"strings"
++	"testing"
++)
++
++func TestSafeMetadataOmitsPassword(t *testing.T) {
++	const password = "s3cr3t-pw"
++	raw := "postgres://app:" + password + "@datastore:5432/linkshortener"
++
++	got := SafeMetadata(raw)
++
++	if strings.Contains(got, password) {
++		t.Fatalf("SafeMetadata leaked the password: %q", got)
++	}
++	if strings.Contains(got, "app:") {
++		t.Fatalf("SafeMetadata leaked credentials: %q", got)
++	}
++	for _, want := range []string{"host=datastore", "port=5432", "db=linkshortener"} {
++		if !strings.Contains(got, want) {
++			t.Fatalf("SafeMetadata missing %q, got %q", want, got)
++		}
++	}
++}
++
++func TestSafeMetadataNeverEchoesUnparseableInput(t *testing.T) {
++	// A malformed DSN could still carry a secret; the function must not echo it.
++	const password = "leak-me"
++	raw := "::::not a dsn " + password
++	got := SafeMetadata(raw)
++	if strings.Contains(got, password) {
++		t.Fatalf("SafeMetadata echoed unparseable input containing a secret: %q", got)
++	}
++}
+diff --git a/api/internal/httpapi/healthz.go b/api/internal/httpapi/healthz.go
+new file mode 100644
+index 0000000..bb6ef84
+--- /dev/null
++++ b/api/internal/httpapi/healthz.go
+@@ -0,0 +1,36 @@
++// Package httpapi holds the HTTP handlers and router for the api service.
++package httpapi
++
++import (
++	"encoding/json"
++	"net/http"
++)
++
++// healthBody is the fixed liveness payload. It carries no runtime internals
++// (no versions, migration state, host metrics, or connection-state text), so
++// /healthz is a constant signal, not a reconnaissance surface.
++type healthBody struct {
++	Status string `json:"status"`
++}
++
++// Healthz returns the liveness handler. It answers 200 with the constant
++// body {"status":"ok"}. The handler is only registered after startup succeeds
++// (config valid, datastore reachable, migrations applied), so a 200 is a
++// truthful signal that the api can serve.
++func Healthz() http.HandlerFunc {
++	// Encode once; the body is constant.
++	body, _ := json.Marshal(healthBody{Status: "ok"})
++	return func(w http.ResponseWriter, _ *http.Request) {
++		w.Header().Set("Content-Type", "application/json; charset=utf-8")
++		w.WriteHeader(http.StatusOK)
++		_, _ = w.Write(body)
++	}
++}
++
++// NewRouter builds the api's HTTP router. Downstream epics register their
++// product routes here alongside /healthz.
++func NewRouter() *http.ServeMux {
++	mux := http.NewServeMux()
++	mux.Handle("GET /healthz", Healthz())
++	return mux
++}
+diff --git a/api/internal/httpapi/healthz_test.go b/api/internal/httpapi/healthz_test.go
+new file mode 100644
+index 0000000..bf2c1b3
+--- /dev/null
++++ b/api/internal/httpapi/healthz_test.go
+@@ -0,0 +1,40 @@
++package httpapi
++
++import (
++	"io"
++	"net/http"
++	"net/http/httptest"
++	"testing"
++)
++
++func TestHealthzReturns200WithExactBody(t *testing.T) {
++	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
++	rec := httptest.NewRecorder()
++
++	NewRouter().ServeHTTP(rec, req)
++
++	if rec.Code != http.StatusOK {
++		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
++	}
++
++	body, err := io.ReadAll(rec.Body)
++	if err != nil {
++		t.Fatalf("read body: %v", err)
++	}
++	if got, want := string(body), `{"status":"ok"}`; got != want {
++		t.Fatalf("body = %q, want %q", got, want)
++	}
++}
++
++func TestHealthzBodyCarriesNoRuntimeInternals(t *testing.T) {
++	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
++	rec := httptest.NewRecorder()
++	NewRouter().ServeHTTP(rec, req)
++
++	body := rec.Body.String()
++	// The body must be the constant liveness shape only — no versions,
++	// migration state, host metrics, or connection-state text.
++	if body != `{"status":"ok"}` {
++		t.Fatalf("body carries unexpected content: %q", body)
++	}
++}
+diff --git a/api/internal/migrations/000001_baseline.down.sql b/api/internal/migrations/000001_baseline.down.sql
+new file mode 100644
+index 0000000..82c9f1a
+--- /dev/null
++++ b/api/internal/migrations/000001_baseline.down.sql
+@@ -0,0 +1,2 @@
++-- Down migration for the baseline (gk-20260819-wng8an).
++-- The baseline creates no schema, so its rollback is a no-op.
+diff --git a/api/internal/migrations/000001_baseline.up.sql b/api/internal/migrations/000001_baseline.up.sql
+new file mode 100644
+index 0000000..dd218ec
+--- /dev/null
++++ b/api/internal/migrations/000001_baseline.up.sql
+@@ -0,0 +1,6 @@
++-- Baseline migration (gk-20260819-wng8an).
++--
++-- The walking skeleton stores no short codes yet, so this baseline creates no
++-- schema. It exists so the golang-migrate machinery is wired and versioned:
++-- downstream epics (POST /shorten, GET /{code}, TTL) add their table
++-- migrations as 000002_*, 000003_*, ... under the DDL-holding migration role.
+diff --git a/api/internal/migrations/migrations.go b/api/internal/migrations/migrations.go
+new file mode 100644
+index 0000000..b0fc494
+--- /dev/null
++++ b/api/internal/migrations/migrations.go
+@@ -0,0 +1,15 @@
++// Package migrations embeds the versioned SQL migration files so they ship
++// inside the static binary and apply deterministically at startup.
++//
++// At this epic the set is a baseline no-op: the golang-migrate machinery is
++// wired so downstream epics add their table migrations without changing the
++// startup path.
++package migrations
++
++import "embed"
++
++// FS holds the embedded *.sql migration files, consumed by the iofs source
++// driver in the db package.
++//
++//go:embed *.sql
++var FS embed.FS
+diff --git a/api/main.go b/api/main.go
+new file mode 100644
+index 0000000..bfddaa9
+--- /dev/null
++++ b/api/main.go
+@@ -0,0 +1,127 @@
++// Command api is the link-shortener HTTP service. At this epic it stands up
++// the walking skeleton: read config from the environment, apply schema
++// migrations under the migration role, open the least-privilege runtime pool,
++// and serve GET /healthz. Product routes are added by downstream epics.
++package main
++
++import (
++	"context"
++	"log"
++	"net/http"
++	"os"
++	"os/signal"
++	"strconv"
++	"syscall"
++	"time"
++
++	"github.com/shftwst/link-shortener/internal/config"
++	"github.com/shftwst/link-shortener/internal/db"
++	"github.com/shftwst/link-shortener/internal/dsn"
++	"github.com/shftwst/link-shortener/internal/httpapi"
++)
++
++func main() {
++	logger := log.New(os.Stdout, "", log.LstdFlags|log.LUTC)
++
++	// `api healthcheck` is the in-container liveness probe used by the compose
++	// healthcheck, so the minimal (distroless) image needs no curl/wget.
++	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
++		if err := healthcheck(); err != nil {
++			logger.Printf("healthcheck failed: %v", err)
++			os.Exit(1)
++		}
++		return
++	}
++
++	if err := run(logger); err != nil {
++		// run logs the specifics (masked); this is the terminal exit.
++		logger.Printf("startup failed: %v", err)
++		os.Exit(1)
++	}
++}
++
++// healthcheck performs a localhost GET /healthz and returns an error unless it
++// gets a 200. It reads the same API_PORT the server binds.
++func healthcheck() error {
++	port := os.Getenv("API_PORT")
++	if port == "" {
++		port = "8080"
++	}
++	client := &http.Client{Timeout: 3 * time.Second}
++	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz")
++	if err != nil {
++		return err
++	}
++	defer resp.Body.Close()
++	if resp.StatusCode != http.StatusOK {
++		return &healthcheckError{status: resp.StatusCode}
++	}
++	return nil
++}
++
++type healthcheckError struct{ status int }
++
++func (e *healthcheckError) Error() string {
++	return "unexpected status " + strconv.Itoa(e.status)
++}
++
++func run(logger *log.Logger) error {
++	cfg, err := config.Load()
++	if err != nil {
++		// Missing/invalid config: fail fast, never serve degraded.
++		return err
++	}
++
++	policy := db.RetryPolicy{
++		Window:   cfg.StartupRetryWindow,
++		Interval: cfg.StartupRetryInterval,
++	}
++
++	// Step 3: apply migrations under the DDL-holding migration role, before
++	// the api serves. Terminal on failure (never serve a half-migrated schema).
++	migCtx, cancelMig := context.WithTimeout(context.Background(), cfg.StartupRetryWindow+5*time.Second)
++	defer cancelMig()
++	if err := db.ApplyMigrations(migCtx, cfg.MigrationDatabaseURL, policy); err != nil {
++		// Log only non-secret metadata about the target; never the DSN/password.
++		logger.Printf("migration step failed against %s", dsn.SafeMetadata(cfg.MigrationDatabaseURL))
++		return err
++	}
++	logger.Printf("migrations applied against %s", dsn.SafeMetadata(cfg.MigrationDatabaseURL))
++
++	// Step 4: open the request-serving pool under the least-privilege runtime
++	// role (no DDL).
++	connCtx, cancelConn := context.WithTimeout(context.Background(), cfg.StartupRetryWindow+5*time.Second)
++	defer cancelConn()
++	pool, err := db.ConnectRuntimePool(connCtx, cfg.RuntimeDatabaseURL, policy)
++	if err != nil {
++		logger.Printf("runtime datastore unreachable at %s", dsn.SafeMetadata(cfg.RuntimeDatabaseURL))
++		return err
++	}
++	defer pool.Close()
++	logger.Printf("runtime pool connected to %s", dsn.SafeMetadata(cfg.RuntimeDatabaseURL))
++
++	// Step 5: register the router and begin listening. From here /healthz
++	// returns 200.
++	srv := &http.Server{
++		Addr:              cfg.ListenAddr,
++		Handler:           httpapi.NewRouter(),
++		ReadHeaderTimeout: 5 * time.Second,
++	}
++
++	// Graceful shutdown on SIGTERM/SIGINT so compose stop is clean.
++	shutdownErr := make(chan error, 1)
++	go func() {
++		sig := make(chan os.Signal, 1)
++		signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
++		<-sig
++		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
++		defer cancel()
++		shutdownErr <- srv.Shutdown(ctx)
++	}()
++
++	logger.Printf("listening on %s", cfg.ListenAddr)
++	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
++		return err
++	}
++	return <-shutdownErr
++}
+diff --git a/db/init/10-roles.sh b/db/init/10-roles.sh
+new file mode 100755
+index 0000000..08c219c
+--- /dev/null
++++ b/db/init/10-roles.sh
+@@ -0,0 +1,43 @@
++#!/bin/sh
++# Provision the two least-privilege datastore roles (gk-20260819-wng8an).
++#
++# Runs once, during Postgres init (as the superuser, over the bootstrap
++# socket, before the server accepts external TCP). It creates:
++#   - migrator: holds DDL (CREATE on schema public) — used only by the api's
++#     startup migration step.
++#   - app:      no DDL (USAGE only) — used by the api's request-serving pool.
++#
++# Passwords come from the environment (compose supplies them from .env); they
++# are passed to psql as variables so psql quotes/escapes them, never
++# string-concatenated into SQL.
++set -eu
++
++psql -v ON_ERROR_STOP=1 \
++	--username "$POSTGRES_USER" \
++	--dbname "$POSTGRES_DB" \
++	-v migrator_pw="$MIGRATOR_PASSWORD" \
++	-v app_pw="$APP_PASSWORD" \
++	-v dbname="$POSTGRES_DB" <<-'EOSQL'
++	-- DDL-holding migration role.
++	CREATE ROLE migrator LOGIN PASSWORD :'migrator_pw';
++	-- Least-privilege runtime role.
++	CREATE ROLE app LOGIN PASSWORD :'app_pw';
++
++	GRANT CONNECT ON DATABASE :"dbname" TO migrator;
++	GRANT CONNECT ON DATABASE :"dbname" TO app;
++
++	-- migrator gets CREATE + USAGE on schema public (DDL rights).
++	GRANT ALL ON SCHEMA public TO migrator;
++
++	-- app gets USAGE only: it may reference objects but cannot create them
++	-- (no DDL). Belt-and-braces revoke of CREATE from PUBLIC.
++	GRANT USAGE ON SCHEMA public TO app;
++	REVOKE CREATE ON SCHEMA public FROM PUBLIC;
++
++	-- Tables that migrator creates in later epics are automatically usable by
++	-- app for DML only (still no DDL for app).
++	ALTER DEFAULT PRIVILEGES FOR ROLE migrator IN SCHEMA public
++		GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app;
++	ALTER DEFAULT PRIVILEGES FOR ROLE migrator IN SCHEMA public
++		GRANT USAGE, SELECT ON SEQUENCES TO app;
++EOSQL
+diff --git a/docker-compose.yml b/docker-compose.yml
+new file mode 100644
+index 0000000..5ff8a4a
+--- /dev/null
++++ b/docker-compose.yml
+@@ -0,0 +1,58 @@
++name: link-shortener
++
++services:
++  datastore:
++    image: postgres:16-alpine
++    environment:
++      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
++      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?POSTGRES_SUPERUSER_PASSWORD must be set (see .env.example)}
++      POSTGRES_DB: ${POSTGRES_DB:-linkshortener}
++      # Consumed by the init script to create the two least-privilege roles.
++      MIGRATOR_PASSWORD: ${MIGRATOR_PASSWORD:?MIGRATOR_PASSWORD must be set (see .env.example)}
++      APP_PASSWORD: ${APP_PASSWORD:?APP_PASSWORD must be set (see .env.example)}
++    volumes:
++      # Named volume backing the data directory: persistence across restarts.
++      - pgdata:/var/lib/postgresql/data
++      # Role-provisioning init scripts (run once, on an empty data dir).
++      - ./db/init:/docker-entrypoint-initdb.d:ro
++    healthcheck:
++      # -h 127.0.0.1 forces a TCP check, so this only reports healthy AFTER
++      # initdb + the init scripts finish and the real server accepts TCP (the
++      # temporary bootstrap server listens on the socket only). That means the
++      # migrator/app roles already exist by the time api start is gated open.
++      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U \"${POSTGRES_SUPERUSER:-postgres}\" -d \"${POSTGRES_DB:-linkshortener}\""]
++      interval: 2s
++      timeout: 3s
++      retries: 20
++      start_period: 5s
++    # Bounded restart, not `always`: a persistent fault surfaces as a stopped
++    # container rather than an infinite tight crash-loop.
++    restart: "on-failure:5"
++
++  api:
++    build:
++      context: ./api
++    environment:
++      API_PORT: "8080"
++      # Startup migrations use the DDL-holding migration role.
++      MIGRATION_DATABASE_URL: postgres://migrator:${MIGRATOR_PASSWORD}@datastore:5432/${POSTGRES_DB:-linkshortener}?sslmode=disable
++      # Request serving uses the least-privilege runtime role (no DDL).
++      RUNTIME_DATABASE_URL: postgres://app:${APP_PASSWORD}@datastore:5432/${POSTGRES_DB:-linkshortener}?sslmode=disable
++    depends_on:
++      datastore:
++        condition: service_healthy
++    ports:
++      - "${API_PORT:-8080}:8080"
++    healthcheck:
++      # The binary probes its own /healthz; the distroless image has no curl.
++      test: ["CMD", "/api", "healthcheck"]
++      interval: 3s
++      timeout: 3s
++      retries: 10
++      start_period: 3s
++    # Bounded restart: a persistent migration failure ends as a stopped,
++    # unhealthy container rather than an infinite crash-loop.
++    restart: "on-failure:5"
++
++volumes:
++  pgdata:
+diff --git a/scripts/smoke.sh b/scripts/smoke.sh
+new file mode 100755
+index 0000000..d8f091b
+--- /dev/null
++++ b/scripts/smoke.sh
+@@ -0,0 +1,67 @@
++#!/usr/bin/env bash
++# Integration smoke test for the walking skeleton (gk-20260819-wng8an).
++#
++# Brings the stack up, asserts GET /healthz returns 200 with the exact body
++# within 60s, checks the compose config has two services and a named volume,
++# then tears the stack down.
++set -euo pipefail
++
++cd "$(dirname "$0")/.."
++
++PORT="${API_PORT:-8080}"
++HEALTHZ="http://127.0.0.1:${PORT}/healthz"
++
++cleanup() {
++	docker compose down -v >/dev/null 2>&1 || true
++}
++trap cleanup EXIT
++
++echo "[smoke] bringing the stack up..."
++docker compose up -d --build
++
++echo "[smoke] polling ${HEALTHZ} for up to 60s..."
++deadline=$((SECONDS + 60))
++got=""
++while [ "$SECONDS" -lt "$deadline" ]; do
++	if body=$(curl -fsS "$HEALTHZ" 2>/dev/null); then
++		got="$body"
++		break
++	fi
++	sleep 1
++done
++
++if [ -z "$got" ]; then
++	echo "[smoke] FAIL: /healthz did not return 200 within 60s" >&2
++	docker compose ps >&2 || true
++	exit 1
++fi
++
++expected='{"status":"ok"}'
++if [ "$got" != "$expected" ]; then
++	echo "[smoke] FAIL: body was '$got', expected '$expected'" >&2
++	exit 1
++fi
++echo "[smoke] OK: /healthz -> 200 ${got}"
++
++echo "[smoke] checking compose topology (two services + named volume)..."
++config_file=$(mktemp)
++trap 'cleanup; rm -f "$config_file"' EXIT
++docker compose config --format json >"$config_file"
++python3 - "$config_file" <<'PY'
++import json, sys
++with open(sys.argv[1]) as fh:
++    cfg = json.load(fh)
++services = cfg.get("services", {})
++assert "api" in services and "datastore" in services, f"expected api+datastore, got {list(services)}"
++volumes = cfg.get("volumes", {})
++assert "pgdata" in volumes, f"expected a named volume 'pgdata', got {list(volumes)}"
++# datastore mounts the named volume at the data directory
++mounts = services["datastore"].get("volumes", [])
++data_mount = [m for m in mounts if m.get("target") == "/var/lib/postgresql/data"]
++assert data_mount, f"datastore has no mount at data dir: {mounts}"
++assert data_mount[0].get("source") == "pgdata", f"data dir not backed by named volume: {data_mount[0]}"
++assert data_mount[0].get("type") == "volume", f"data dir mount is not a named volume: {data_mount[0]}"
++print("[smoke] OK: two services (api, datastore) + named volume pgdata at data dir")
++PY
++
++echo "[smoke] PASS"

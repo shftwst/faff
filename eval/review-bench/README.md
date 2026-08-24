@@ -249,7 +249,7 @@ adversarial second-opinion five categories in
 `plugin/skills/faffter-dark-adversarial-review/SKILL.md` (Specification gaming, Implicit
 assumptions, Failure mode blindness, Security surface, Concurrency and ordering), with the
 `### <severity>:` output contract appended, so it is not a verbatim copy. It carries a
-top-of-file comment naming that source. When those five categories change in the canonical
+canonical source named here. When those five categories change in the canonical
 skill, re-derive `review-lens.md` and regenerate its payload with
 `node eval/review-bench/code-review/build-requests-code.mjs`; the parity test's category-order
 check flags the divergence.

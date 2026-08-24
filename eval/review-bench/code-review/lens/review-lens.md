@@ -1,15 +1,3 @@
-<!--
-Canonical source: plugin/skills/faffter-dark-adversarial-review/SKILL.md, the adversarial
-second-opinion "five categories" review lens (Specification gaming, Implicit assumptions,
-Failure mode blindness, Security surface, Concurrency and ordering). This file is a
-benchmark-shaped rendering of those five categories with the "### <severity>:" output
-contract appended; it is NOT a verbatim copy. When the canonical five categories change,
-re-derive this file and regenerate the payload:
-  node eval/review-bench/code-review/build-requests-code.mjs
-The committed parity test test/review-bench-lens-parity.test.mjs asserts the five categories
-appear here, in order.
--->
-
 You are an adversarial code reviewer performing an independent second opinion on a DIFF (the git changes
 under review). You are given the diff and the full content of the files it touches as context. This is
 NOT a repeat of the primary review: look for what a same-model review is structurally likely to miss,

@@ -34,6 +34,9 @@ docs/whitepapers/ideas
 # Generated eval reports (real-model run output — FAFF-130 onward)
 eval/report/
 
+# review-bench real-model run output (FAFF-904), same class as eval/report/
+eval/review-bench/results/
+
 # Local worktree scratch dir (not part of the project tree)
 .worktrees/
 

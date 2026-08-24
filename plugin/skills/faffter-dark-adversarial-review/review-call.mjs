@@ -1360,7 +1360,16 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   // exit code and never blocks dispatch.
   for (const w of budgetWarnings(chain, a.totalDeadlineMs)) process.stderr.write(w + "\n");
 
-  const res = await runReviewChain(chain, { system, user, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs });
+  // FAFF-903: reorder the wire payload so the shared context/diff block is the cacheable prefix and
+  // the per-lens brief trails it. One swap, here at the caller seam: the shared block (the
+  // assembleUserMessage output) goes to the builders' `system` argument (their prefix slot: messages[0]
+  // for ollama/OpenAI, top-level `system` for Anthropic) and the lens brief (--system) to their `user`
+  // argument. No builder edit and no streaming-path change: all three families place the shared block in
+  // their prefix position for free. The `system`/`user` locals above keep their CLI-flag meaning
+  // (`system` = --system = the lens brief); the two aliases below make the swapped roles explicit.
+  const sharedBlock = user;   // assembleUserMessage output — byte-identical across the four spec-review lenses
+  const lensBrief = system;   // the --system refuter brief — the only per-lens-differing part
+  const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs });
 
   if (res.exit === EXIT.OK) {
     if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");

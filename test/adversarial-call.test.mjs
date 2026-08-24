@@ -2852,3 +2852,71 @@ test("FAFF-885 runReviewChain: an ALL-buffering chain terminates at EXIT.UNREACH
   assert.equal(res.exit, EXIT.UNREACHABLE, "an all-buffering (all fast-failed) chain is an availability exhaustion");
   assert.notEqual(res.exit, EXIT.USAGE, "never a needs-human request-failed exit");
 });
+
+// ===========================================================================
+// FAFF-903 — reorder the fan-out payload to a shared cacheable prefix
+// The shared context/diff block leads (the cacheable prefix); the per-lens brief trails.
+// The reorder lands once at the main() caller seam — the three builders are unchanged, so their
+// unit tests (buildChatPayload/buildOpenAiPayload/buildAnthropicPayload role order) stay green.
+// ===========================================================================
+
+const OK_FINDINGS = "### observation: no findings";
+
+test("FAFF-903 reorder: main() hands the shared block to `system` and the lens brief to `user`", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff903-"));
+  const sys = join(dir, "brief.md"); writeFileSync(sys, "REFUTER BRIEF");
+  const diff = join(dir, "diff.txt"); writeFileSync(diff, "THE DIFF");
+  const ctx = join(dir, "ctx.txt"); writeFileSync(ctx, "CTX ONE");
+  let captured = null;
+  const code = await main(
+    ["--host", "http://h", "--model", "m", "--system", sys, "--diff", diff, "--context", ctx],
+    { runReviewFn: async (opts) => { captured = opts; return { status: "ok", content: OK_FINDINGS }; } },
+  );
+  assert.equal(code, EXIT.OK);
+  assert.ok(captured, "runReviewFn was dispatched");
+  const expectedShared = assembleUserMessage({ contextFiles: [{ path: ctx, text: "CTX ONE" }], diff: "THE DIFF" });
+  assert.equal(captured.system, expectedShared, "the shared context/diff block occupies the prefix `system` position");
+  assert.equal(captured.user, "REFUTER BRIEF", "the lens brief trails in the `user` position");
+  assert.match(captured.system, /DIFF UNDER REVIEW:/, "the prefix carries the diff");
+  assert.ok(!captured.system.includes("REFUTER BRIEF"), "the brief is not in the prefix");
+});
+
+test("FAFF-903 reorder: across four lenses over one shared context/diff, the prefix `system` is byte-identical and only the trailing brief differs", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff903-share-"));
+  const diff = join(dir, "diff.txt"); writeFileSync(diff, "SHARED DIFF");
+  const ctx = join(dir, "ctx.txt"); writeFileSync(ctx, "SHARED CTX");
+  const briefs = ["refute A", "refute B", "refute C", "refute D"];
+  const systems = []; const users = [];
+  for (let i = 0; i < briefs.length; i++) {
+    const sys = join(dir, `brief${i}.md`); writeFileSync(sys, briefs[i]);
+    let captured = null;
+    await main(
+      ["--host", "http://h", "--model", "m", "--system", sys, "--diff", diff, "--context", ctx],
+      { runReviewFn: async (opts) => { captured = opts; return { status: "ok", content: OK_FINDINGS }; } },
+    );
+    assert.ok(captured, "runReviewFn was dispatched for each lens");
+    systems.push(captured.system); users.push(captured.user);
+  }
+  const hash = (s) => createHash("sha256").update(s).digest("hex");
+  assert.equal(new Set(systems.map(hash)).size, 1, "the prefix-position shared block is byte-identical across the four lenses");
+  assert.equal(new Set(users.map(hash)).size, 4, "each lens's trailing brief differs");
+});
+
+test("FAFF-903 reorder: checkPayloadSize is order-agnostic — swapping system/user leaves the sum unchanged", () => {
+  const A = "a".repeat(1000); const B = "b".repeat(2500);
+  const pre = checkPayloadSize({ system: A, user: B });
+  const post = checkPayloadSize({ system: B, user: A });
+  assert.equal(pre.bytes, post.bytes, "the summed byte count is identical under the swap");
+  assert.equal(pre.oversized, post.oversized);
+});
+
+test("FAFF-903 reorder watch-out: a ###-leading preamble echo (heading-rich leading spec turn) does not defeat the finding-splitter", () => {
+  const echoed = "### 3. Failure mode blindness\n(echoed from the leading spec turn)\n\n### major: real objection\nthe body";
+  const { sections } = splitFindings(echoed);
+  assert.equal(sections.length, 2, "the echoed heading and the real finding are both captured as sections");
+  assert.equal(sections[0].severity, null, "the echoed non-severity heading yields severity null — not a finding");
+  assert.equal(sections[1].severity, "major", "the real finding is recognised with its severity");
+  assert.equal(validateFindingsShape(echoed).ok, true, "still findings-shaped: a real severity finding exists past the echo");
+  const withHeader = ensureHeader(echoed, { provider: "openai", model: "m", hostSource: "config" }, 0);
+  assert.ok(hasHeader(withHeader), "the harness-authored attribution header is present after normalisation");
+});

@@ -13,8 +13,14 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # Open the release PR under a PAT, not the default GITHUB_TOKEN. Events
+      # raised by GITHUB_TOKEN never trigger other workflows (GitHub's recursion
+      # guard), which is why `semantic-pr` (the required "Validate PR title"
+      # check) was never queued on the release PR and it sat as an
+      # unsatisfiable "Expected" status forever. A PAT is attributed to a real
+      # user, so the pull_request_target event fires and the title check runs.
       - uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json

@@ -36,27 +36,9 @@ convergence:
     max_waves: 8 # reported runaway backstop only (dryness is the normal exit, never this)
 
 backends:
-  nvidia-glm-free:
-      provider: nvidia
-      model: z-ai/glm-5.2
-      host: https://integrate.api.nvidia.com/v1
-      api_key_env: NVIDIA_API_KEY # confirmed set in env (name only; never the key itself)
-      #timeout: 480
   gemini-gemma-free:
       provider: gemini
       model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
-      host: https://generativelanguage.googleapis.com/v1beta/openai
-      api_key_env: GEMINI_API_KEY
-      #timeout: 480
-  openrouter-nemotron:
-      provider: openai                       # OpenRouter is OpenAI-compatible
-      model: nvidia/nemotron-3-ultra-550b-a55b:free
-      host: https://openrouter.ai/api/v1
-      api_key_env: OPENROUTER_API_KEY
-      #timeout: 480
-  gemini-paid:
-      provider: gemini
-      model: models/gemini-3.5-flash-lite # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
       host: https://generativelanguage.googleapis.com/v1beta/openai
       api_key_env: GEMINI_API_KEY
       #timeout: 480
@@ -66,19 +48,22 @@ backends:
       host: http://studio.longhair-escalator.ts.net:11434
       #timeout: 480
   studio-qwen:
-      provider: ollama
-      model: qwen3.8:27b-mlx
-      host: http://studio.longhair-escalator.ts.net:11434
-      #timeout: 480
+      provider: openai
+      model: Qwen3.8-27B-4bit
+      host: http://studio.longhair-escalator.ts.net:8001/v1
+      api_key_env: OMLX_API_KEY
+      reasoning_off: true
+      first_byte_timeout: 1200
+  studio-gemma:
+      provider: openai
+      model: gemma-4-31B-it-MLX-4bit
+      host: http://studio.longhair-escalator.ts.net:8001/v1
+      api_key_env: OMLX_API_KEY
+      reasoning_off: true
+      first_byte_timeout: 1200
   openrouter-glm-free:
       provider: openai                       # OpenRouter is OpenAI-compatible
       model: z-ai/glm-5.2:free
-      host: https://openrouter.ai/api/v1
-      api_key_env: OPENROUTER_API_KEY
-      #timeout: 480
-  openrouter-glm-paid:
-      provider: openai                       # OpenRouter is OpenAI-compatible
-      model: z-ai/glm-5.2
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
       #timeout: 480
@@ -122,21 +107,10 @@ adversarial:
   deadline: 1800   # code_review total wall-clock (s), sliced per backend (1800/3 = 600s = timeout, so no clamp); default 480. IGNORED by spec_review.
   first_byte_timeout: 300
   refs:
-    # - openrouter-glm-free
-    - nvidia-glm-free
-    #- openrouter-glm-paid
+    - studio-qwen
+    - studio-gemma
     - gemini-gemma-free
-    - gemini-paid
-    #- studio-qwen
-    #- studio-north-code-mini
-  # code_review:
-  #   refs:
-  #     - openrouter-north-code-mini-free
-  #     - gemini-gemma-free
-  #     - studio-qwen-coder
-  #     #- studio-north-code-mini
-  #     #- studio-qwen
-
+    - openrouter-nemotron-free
 models:
     build_by_confidence:
         default: inherit

@@ -100,3 +100,32 @@ The confirmed failure is the `code-review` case (the verdict above names it expl
 because it is the ticket's other, even larger, real payload, and because a size-correlated failure
 mode would be expected to show up there too. Do not read a spec-review result on its own as
 confirming or ruling out the code-review finding.
+
+## Diagnosis — why spark-qwen degrades on this payload (2026-08-24)
+
+On FAFF-906's Phase-2 code review, spark (`unsloth/Qwen3.8-27B-NVFP4`) returned malformed
+output (no recognised `### <severity>:` finding section); the `studio-qwen` fallback then hung.
+Bench data on the shared spec-review QA lens shows the mechanism (same payload, back-to-back):
+
+| reasoning | shape | content_bytes | out_tok | finish | reasoning_len |
+|---|---|---|---|---|---|
+| off | findings-shaped | 1449 | 308   | stop   | 0     |
+| on  | findings-shaped | 5076 | 10631 | stop   | 37569 |
+| on  | **EMPTY**       | 0    | 8000  | length | 0     |
+
+**The reasoning-off lever IS respected** — the empty run has `reasoning_len: 0` (no separate
+reasoning channel). The failure is **over-deliberation exhausting the output budget**: the
+model deliberates *inline* in the content stream and hits `finish: length` before emitting a
+single `### <severity>:` finding → empty content → parse fails → the chain falls through to the
+(slow, here hanging) studio fallback. On the easy skeleton payload, reasoning-off stays tight
+(308 tokens, clean findings); on FAFF-906's much larger payload it evidently does not.
+
+Note the size: this code-review case is the **full `origin/main...HEAD` diff** (bundle.js + the
+new ADR + the new spec), ~67.5K prompt tokens — markedly larger than the curated code-only
+skeleton case, and likely a meaningful part of why spark degraded.
+
+This is **not** a "flag ignored" problem (cf. FAFF-872, which asks whether these `/v1` backends
+honour `chat_template_kwargs:{thinking:false}` — they do here). It is a **budget/verbosity**
+problem. Levers to test with this case:
+- run `--reasoning off` and sweep `--num-predict` upward until spark emits findings before the cap;
+- and/or constrain the lens prompt to emit findings first / bound deliberation on large diffs.

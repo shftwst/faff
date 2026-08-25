@@ -1,0 +1,619 @@
+diff --git a/plugin/skills/faff/bin/lib/bundle.js b/plugin/skills/faff/bin/lib/bundle.js
+index ae1cd334..0877bcde 100644
+--- a/plugin/skills/faff/bin/lib/bundle.js
++++ b/plugin/skills/faff/bin/lib/bundle.js
+@@ -761,6 +761,14 @@ function claimStoreCore(root, remoteName, spec) {
+   // exact stale sha read here — a live claim is never overwritten (reclaim is only attempted after
+   // the staleness verdict below), and two racing reclaimers of the SAME stale sha cannot both win:
+   // the first CAS moves the head, the second's lease no longer matches.
++  //
++  // FAFF-906: this `--force-with-lease` CAS is the answer to the check-then-act TOCTOU BETWEEN TWO
++  // RECLAIMERS — it is what makes "two readers both judge the claim stale" resolve to exactly one
++  // winner instead of both overwriting. It is NOT the answer to a wrongly-judged-stale LIVE
++  // holder — that is a different risk (a bad staleness verdict, closed by `confirmHead`'s own CAS
++  // on the true holder's next write, not by this one), and the skew tolerance above is a mitigation
++  // for that risk, not for this TOCTOU. Do not conflate the two: the CAS proves "the ref hadn't
++  // moved since I read it," never "the holder is actually dead."
+   function reclaimIfStale(identity, ownerSnapshot, env) {
+     const ref = spec.refName(identity);
+     const existing = gitReadClaimManifest(root, remoteName, ref);
+@@ -773,7 +781,19 @@ function claimStoreCore(root, remoteName, spec) {
+     }
+     if (existing.status !== "ok") return { reclaimed: false, reason: "store_unavailable", detail: `claim ref unreadable (${existing.status})` };
+ 
+-    const held = spec.stalePredicate(existing.claim, Date.now(), env);
++    // FAFF-906: the tolerance corrects for the READING (reclaiming) machine's clock running ahead
++    // of the holder's by up to `toleranceSecs`. It does NOT correct skew in the other direction
++    // (holder's clock ahead of reader's — that direction already biases toward "held", the safe
++    // direction) and does NOT correct reader-ahead skew beyond `toleranceSecs`: a reader whose
++    // clock runs more than `toleranceSecs` ahead of the holder's still misjudges a live holder as
++    // stale. This is a best-effort, bounded mitigation, not a guarantee — `confirmHead`'s CAS
++    // (below the reclaim write, and on the true holder's own next write) is the actual backstop
++    // for a wrong verdict, tolerance or not. `applySkewTolerance` is per-binding, not blanket: only
++    // a binding whose reclaim decision carries cross-machine wrong-verdict cost pays the delay
++    // (`recoveryClaimStore` opts out with `applySkewTolerance: false` — see its own header comment).
++    const toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env);
++    const skewedNowMs = Date.now() - toleranceSecs * 1000;
++    const held = spec.stalePredicate(existing.claim, skewedNowMs, env);
+     if (held) return { reclaimed: false, reason: "held", holder: existing.claim, sha: existing.sha };
+ 
+     const priorClaimEpoch = Number(existing.claim.claim_epoch) || 0;
+@@ -830,6 +850,14 @@ function recoveryClaimStore(root, remoteName = "origin") {
+     buildClaim: (identity, owner, epoch) => ({ run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner, claim_epoch: epoch, claimed_at: new Date().toISOString() }),
+     commitMessage: (claim) => `recovery-claim ${claim.run_id}/seg-${claim.run_segment_id} epoch=${claim.claim_epoch}`,
+     stalePredicate: (claim, nowMs, env) => require("./runcheck").runIsHeld({ owner: claim.owner }, nowMs, env),
++    // FAFF-906: applySkewTolerance: false — NOT a claim that this ref namespace is same-box (it
++    // can be read cross-box; see the header comment above this binding). Set false because a wrong
++    // verdict here costs one avoided-but-harmless resume attempt (confirmHead's CAS refuses the
++    // loser), while on buildClaimStore/landingClaimStore a wrong verdict hands over live,
++    // destructive work — see FAFF-906's "Design decision rationale" (ADR-0119) for the full
++    // argument. The default (an undeclared applySkewTolerance) stays true elsewhere; this binding
++    // is the one deliberate opt-out.
++    applySkewTolerance: false,
+   });
+   // Return WITHOUT `release` — the recovery claim has no release lifecycle.
+   return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale: core.reclaimIfStale };
+@@ -851,6 +879,22 @@ function resolveClaimTtlHours(root, env) {
+   return Number.isFinite(n) && n >= 0 ? n : 6; // config.js CANONICAL_CONFIG default
+ }
+ 
++// FAFF-906: the cross-machine clock-skew tolerance `reclaimIfStale` subtracts from `Date.now()`
++// before handing `nowMs` to a binding's `stalePredicate`, so a reader whose clock runs ahead of
++// the holder's by up to this many seconds does not misjudge a live, heartbeating holder as stale.
++// Env-var-only (no `.faffrc.yaml` key), mirroring FAFF_RUN_HEARTBEAT_STALE_SECS's own precedent.
++// A best-effort mitigation, not a guarantee: skew beyond this value is unmitigated (see the WHY
++// section of FAFF-906's spec / ADR-0119) — `confirmHead`'s CAS is the actual backstop regardless.
++const CLAIM_CLOCK_SKEW_TOLERANCE_SECS_DEFAULT = 60;
++function resolveClaimClockSkewToleranceSecs(env) {
++  const raw = env && env.FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS;
++  if (raw != null && String(raw).trim() !== "") {
++    const n = Number(raw);
++    if (Number.isFinite(n) && n >= 0) return n;
++  }
++  return CLAIM_CLOCK_SKEW_TOLERANCE_SECS_DEFAULT;
++}
++
+ // FAFF-889: given a build claim's frozen owner snapshot, resolve its run-dir on THIS filesystem
+ // (`<root>/.faff/runs/<session_id>`) — the same-box fast path reads that live heartbeat file. Null
+ // when the owner has no session_id or the run-dir is not present locally (a cross-box owner, or a
+@@ -1406,6 +1450,30 @@ function bundleSelftest() {
+       const hcConfirmB = storeB.confirmHead(hcIdentity, hcReclaimB.sha);
+       ok(hcConfirmB.confirmed === true, "recoveryClaimStore: B's head-confirm against its own (winning) sha succeeds");
+ 
++      // FAFF-906 QA regression guard: proves recoveryClaimStore's `applySkewTolerance: false` is
++      // LOAD-BEARING, not incidental — the identical hcReclaimB scenario (2s-old heartbeat, an
++      // injected 1s staleness window) run against a binding that inherits the DEFAULT tolerance
++      // (applySkewTolerance omitted -> true) must NOT reclaim: the 60s tolerance shifts
++      // skewedNowMs enough that the 2s-old heartbeat reads as still fresh even under the injected
++      // 1s window (effective age is negative). A build that dropped `applySkewTolerance: false`
++      // from recoveryClaimStore's spec object fails THIS assertion, not just a silently-still-
++      // green hcReclaimB above.
++      const defaultedToleranceStore = claimStoreCore(rootB, "origin", {
++        name: "git-remote-recovery-claim-defaulted-tolerance-selftest",
++        refName: (identity) => recoveryClaimRefName(identity),
++        buildClaim: (identity, owner, epoch) => ({ run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner, claim_epoch: epoch, claimed_at: new Date().toISOString() }),
++        commitMessage: (claim) => `recovery-claim ${claim.run_id}/seg-${claim.run_segment_id} epoch=${claim.claim_epoch}`,
++        stalePredicate: (claim, nowMs, env) => require("./runcheck").runIsHeld({ owner: claim.owner }, nowMs, env),
++        // applySkewTolerance intentionally OMITTED — exercises the default (true), i.e. what
++        // recoveryClaimStore's reclaim would compute if it inherited the tolerance instead of
++        // opting out.
++      });
++      const hcIdentityDefaulted = { run_id: runId, run_segment_id: 6 };
++      const hcAcquireADefaulted = storeA.acquire(hcIdentityDefaulted, recentOwner("session-hc-a-defaulted"));
++      ok(hcAcquireADefaulted.acquired === true, "recoveryClaimStore selftest fixture: defaulted-tolerance regression-guard claim acquired by A");
++      const hcReclaimBDefaulted = defaultedToleranceStore.reclaimIfStale(hcIdentityDefaulted, freshOwner("session-hc-b-defaulted"), wrongEnv);
++      ok(hcReclaimBDefaulted.reclaimed === false && hcReclaimBDefaulted.reason === "held", `recoveryClaimStore regression guard: the identical hcReclaimB scenario against a defaulted-tolerance binding does NOT reclaim (got ${JSON.stringify(hcReclaimBDefaulted)})`);
++
+       // No force-overwrite of a live claim: a refused reclaim (the live-block case above) never
+       // moves the ref head — a bare --force would have silently replaced it; instead the head is
+       // provably unchanged.
+@@ -1554,6 +1622,64 @@ function buildClaimSelftest() {
+       const tHolder = storeB.readHolder(idT);
+       ok(tHolder.status === "ok" && buildClaimStaleAware(rootB, tHolder.claim, Date.now(), process.env) === true,
+         "buildClaimStore: release-if-stale gate leaves a fresh holder (buildClaimStaleAware reads held)");
++
++      // FAFF-906 Problem 1 — cross-box skew tolerance, exercised through reclaimIfStale (real
++      // process.env, no injected deps — buildClaimStaleAware's Row 3 cross-box path, matching the
++      // sReclaim/cReclaim/lReclaim fixtures above).
++      const idSkew1 = { issue: "FAFF-SKEW-920" };
++      storeA.acquire(idSkew1, arg("sess-skew1-a", "machine-A", true, 920 * 1000)); // 900s window + 20s into the 60s tolerance
++      const skew920 = storeB.reclaimIfStale(idSkew1, arg("sess-skew1-b", "machine-B", true), process.env);
++      ok(skew920.reclaimed === false && skew920.reason === "held",
++        `buildClaimStore: a cross-box claim 920s stale (20s into the 60s tolerance) is forgiven — reads held (got ${JSON.stringify(skew920)})`);
++
++      const idSkew2 = { issue: "FAFF-SKEW-990" };
++      storeA.acquire(idSkew2, arg("sess-skew2-a", "machine-A", true, 990 * 1000)); // 900s window + 90s, past the 60s tolerance
++      const skew990 = storeB.reclaimIfStale(idSkew2, arg("sess-skew2-b", "machine-B", true), process.env);
++      ok(skew990.reclaimed === true,
++        `buildClaimStore: a cross-box claim 990s stale (past the 60s tolerance) is still reclaimable — the tolerance is a bounded grace period, not a permanent deadlock (got ${JSON.stringify(skew990)})`);
++
++      // FAFF-906 QA fix (round 4): a paired two-case pin on the DEFAULT tolerance value itself —
++      // case A only pins a LOWER bound (any tolerance >= 59.5s passes, including a buggy 61s
++      // default); case B is the paired upper-bound (reclaims only at tolerance <= 60.5s, so a 61s
++      // default fails it). Together they pin the default to exactly 60 integer seconds, not merely
++      // a floor. Both cases explicitly delete FAFF_RUN_HEARTBEAT_STALE_SECS and
++      // FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS from the env passed to reclaimIfStale (never rely on
++      // ambient process.env state) so a CI environment that happens to set either cannot silently
++      // shift this test's oracle — no injected window override, since the DEFAULT itself is what
++      // must be pinned.
++      const pinEnv = { ...process.env };
++      delete pinEnv.FAFF_RUN_HEARTBEAT_STALE_SECS;
++      delete pinEnv.FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS;
++
++      const idPinA = { issue: "FAFF-SKEW-PIN-A" };
++      storeA.acquire(idPinA, arg("sess-pinA-a", "machine-A", true, 959500)); // 900s window + 59.5s
++      const pinA = storeB.reclaimIfStale(idPinA, arg("sess-pinA-b", "machine-B", true), pinEnv);
++      ok(pinA.reclaimed === false && pinA.reason === "held",
++        `buildClaimStore: default-tolerance pin, case A (lower bound) — 959500ms stale reads held; a 59s default would reclaim and fail this (got ${JSON.stringify(pinA)})`);
++
++      const idPinB = { issue: "FAFF-SKEW-PIN-B" };
++      storeA.acquire(idPinB, arg("sess-pinB-a", "machine-A", true, 960500)); // 900s window + 60.5s
++      const pinB = storeB.reclaimIfStale(idPinB, arg("sess-pinB-b", "machine-B", true), pinEnv);
++      ok(pinB.reclaimed === true,
++        `buildClaimStore: default-tolerance pin, case B (upper bound) — 960500ms stale reclaims; a 61s default would stay held and fail this (got ${JSON.stringify(pinB)})`);
++
++      // FAFF-906 Problem 2 — the build-claims lease race, mirroring the recovery-claims pushX/pushY
++      // fixture above: two reclaimers who both read the SAME stale head sha, then both attempt the
++      // lease-matched CAS against it — exactly one wins. Exercised at the pushClaimCommit level
++      // (module-internal) for the same reason the recovery-claims fixture is: a sequential
++      // reclaimIfStale-vs-reclaimIfStale pair cannot reproduce the race (the second call would just
++      // observe the first's already-landed fresh claim and refuse as held).
++      const idLeaseRace = { issue: "FAFF-LEASE-RACE" };
++      storeA.acquire(idLeaseRace, arg("sess-lr-a", "machine-A", true, 2000000)); // stale frozen hb
++      const leaseRaceRef = `refs/faff/build-claims/${idLeaseRace.issue}`;
++      const preReadBc = gitReadClaimManifest(rootA, "origin", leaseRaceRef);
++      ok(preReadBc.status === "ok", "buildClaimStore selftest fixture: lease-race pre-read finds the stale claim");
++      const bcClaimX = { issue: idLeaseRace.issue, owner: { session_id: "reclaimer-x" }, machine_id: "machine-X", heartbeating: true, claim_epoch: 1, claimed_at: new Date().toISOString() };
++      const bcClaimY = { issue: idLeaseRace.issue, owner: { session_id: "reclaimer-y" }, machine_id: "machine-Y", heartbeating: true, claim_epoch: 1, claimed_at: new Date().toISOString() };
++      const bcPushX = pushClaimCommit(rootA, "origin", leaseRaceRef, bcClaimX, (sha) => [`--force-with-lease=${leaseRaceRef}:${preReadBc.sha}`, `${sha}:${leaseRaceRef}`]);
++      const bcPushY = pushClaimCommit(rootB, "origin", leaseRaceRef, bcClaimY, (sha) => [`--force-with-lease=${leaseRaceRef}:${preReadBc.sha}`, `${sha}:${leaseRaceRef}`]);
++      ok((bcPushX.push.status === 0) !== (bcPushY.push.status === 0),
++        `buildClaimStore: two lease-matched CAS pushes against the SAME stale sha on refs/faff/build-claims/<issue> — exactly one succeeds (got X=${bcPushX.push.status}, Y=${bcPushY.push.status})`);
+     } else {
+       console.log("skip  buildClaimStore checks (git init unavailable in this environment)");
+     }
+@@ -1727,6 +1853,6 @@ module.exports = {
+   localBundleStore, gitRemoteBundleStore, bundleRefName, resolveBundleStoreName, resolveBundleStore,
+   publishBundle, verifyBundleIdentity, bundleExitCode, cmdBundle, bundleSelftest,
+   recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, gitReadClaimManifest,
+-  claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, defaultResolveClaimRunDir,
++  claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, resolveClaimClockSkewToleranceSecs, defaultResolveClaimRunDir,
+   cmdBuildClaim, buildClaimSelftest,
+ };
+diff --git a/records/adr/0119-margin-based-clock-skew-tolerance-for-claim-store-reclaim-not-a-holder-side-coun.md b/records/adr/0119-margin-based-clock-skew-tolerance-for-claim-store-reclaim-not-a-holder-side-coun.md
+new file mode 100644
+index 00000000..90ba2471
+--- /dev/null
++++ b/records/adr/0119-margin-based-clock-skew-tolerance-for-claim-store-reclaim-not-a-holder-side-coun.md
+@@ -0,0 +1,33 @@
++# ADR 0119 — Margin-based clock-skew tolerance for claim-store reclaim, not a holder-side counter
++
++- **Status:** Proposed
++- **Provenance:** human
++- **Date:** 2026-08-25
++- **Issue:** FAFF-906
++
++## Context
++
++`claimStoreCore.reclaimIfStale` (`plugin/skills/faff/bin/lib/bundle.js`) is the shared reclaim primitive behind `recoveryClaimStore` and `buildClaimStore` (and, once FAFF-842 lands, `landingClaimStore`). Its staleness verdict compares the reclaiming machine's `Date.now()` directly against a `last_heartbeat` timestamp written by the holder's machine. Two machines' clocks are never guaranteed to agree, so a reader whose clock runs ahead can misjudge a live, heartbeating holder as stale and win a reclaim it should have lost — a double-drain, since the CAS that follows only proves the ref hadn't moved, not that the holder is actually dead.
++
++FAFF-906's ticket named two acceptable fix directions: a holder-side monotonic heartbeat counter/generation number (marked "preferred"), or an explicit clock-skew tolerance margin on the staleness threshold. The ticket's own scope statement forbids changing `claim.json`'s wire shape. A counter the reader could trust without comparing wall clocks requires the holder to write an always-advancing generation field the reader observes directly — which is exactly a wire-shape change, and would also require touching the holder-side heartbeat writer (`heartbeat.js`).
++
++## Decision
++
++Use a margin-based clock-skew tolerance at the single `reclaimIfStale` call site, not a holder-side monotonic counter.
++
++`resolveClaimClockSkewToleranceSecs(env)` resolves a tolerance (default 60 seconds, override via `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS`). `reclaimIfStale` computes `skewedNowMs = Date.now() - toleranceSecs * 1000` and passes that into each binding's `stalePredicate` in place of a bare `Date.now()`. The tolerance is **per-binding**, gated by a new optional `applySkewTolerance` boolean on the spec object each binding passes to `claimStoreCore` (undeclared/`true` = pay the tolerance; `false` = zero tolerance always). `buildClaimStore` keeps the safe default (`true`); `recoveryClaimStore` declares `applySkewTolerance: false`, because a wrong verdict on that path costs one avoided-but-harmless resume attempt — `confirmHead`'s compare-and-swap is the unconditional backstop regardless of the tolerance — while a wrong verdict on `buildClaimStore`/`landingClaimStore` hands over live, destructive work.
++
++The 60-second default is roughly 6.7 percent of the 900-second default heartbeat-stale window: large enough to absorb realistic drift between unsynchronized machines, small enough to barely delay reclaiming a genuinely crashed holder. The tolerance is explicitly a best-effort mitigation, not a guarantee — skew beyond the configured value remains unmitigated, exactly as it was before this fix, and the spec's WHY section states this from its opening sentence rather than only in a later caveat.
++
++No related or superseded ADRs found: `claimStoreCore`, `reclaimIfStale`, and claim-store staleness have no prior entry — this is the first ADR on this subsystem's reclaim behaviour.
++
++## Consequences
++
++- Every current and future claim-store binding that goes through `reclaimIfStale` inherits the tolerance mechanism automatically. FAFF-842's `landingClaimStore` gets the default `true` (cross-machine) tolerance for free once it rebases onto this change, with no code of its own — an undeclared `applySkewTolerance` field is the safe default. A future binding that is genuinely same-box and wants zero tolerance must declare `applySkewTolerance: false` explicitly, the same way `recoveryClaimStore` does; there is no automatic detection of same-box vs. cross-box topology.
++- `confirmHead`'s CAS stays the load-bearing backstop for a wrong staleness verdict, on every binding, regardless of the tolerance. Nothing in this decision (or any future change to the tolerance value) is permitted to weaken or bypass that pin.
++- An operator whose actual cross-box clock drift exceeds the 60-second default is not stuck with it — `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS` is the escape hatch — but this is a per-invocation env override with no `.faffrc.yaml` counterpart (mirroring `FAFF_RUN_HEARTBEAT_STALE_SECS`'s existing precedent), so an operator who wants a persistent per-repo value must set the env var wherever faff runs, not in committed config.
++- `claim.json`'s wire shape is unchanged. A future ticket that still wants a holder-side monotonic counter (the ticket's originally preferred direction) is not precluded by this decision, but it would need its own scope decision to change the wire shape and the heartbeat writer, and would supersede this ADR's tolerance mechanism rather than compose with it.
++
++**Self-review.** The shipped diff matches this record: `resolveClaimClockSkewToleranceSecs` and the `applySkewTolerance`-gated call-site change land exactly as described, `recoveryClaimStore` carries the explicit `applySkewTolerance: false` field with its own disclaiming comment, and `buildClaimStaleAware`/`runIsHeld`/`claim.json` are untouched — the Consequences above hold against what actually shipped, not a spec-time guess.
++
++confidence: high
+diff --git a/records/specs/2026-08-25-FAFF-906-harden-claimstorecore-clock-skew-staleness-toctou-reclaim-design.md b/records/specs/2026-08-25-FAFF-906-harden-claimstorecore-clock-skew-staleness-toctou-reclaim-design.md
+new file mode 100644
+index 00000000..9e75ab91
+--- /dev/null
++++ b/records/specs/2026-08-25-FAFF-906-harden-claimstorecore-clock-skew-staleness-toctou-reclaim-design.md
+@@ -0,0 +1,392 @@
++# Harden claimStoreCore: clock-skew-safe staleness and TOCTOU-closed reclaim
++
++> Spec: faffter-dark-nlspec · 2026-08-25 · interactive · claude-code/unknown · confidence: high. Full spec on Linear FAFF-906.
++
++This spec covers FAFF-906, a Linear ticket in the Faff team tracker ("Harden the shared claim-store staleness/reclaim primitive"). It is written for the build agent that implements the change and for a human reviewer checking the design before merge. The target file is `plugin/skills/faff/bin/lib/bundle.js`.
++
++## 1. WHY
++
++The shared claim mutex (`claimStoreCore`, `bundle.js`, lines roughly 693 to 818) already gets the hard part right: every ref move it makes is either a non-force create (git rejects a second push to a ref that already exists) or a `--force-with-lease` push fenced to the exact sha the caller last read. That fencing is a genuine compare-and-swap. What it does not get right is upstream of the CAS: the decision of *whether to attempt a reclaim at all* rests on comparing the reclaiming machine's `Date.now()` against a `last_heartbeat` string written by the holder's machine. Two machines' clocks are never guaranteed to agree, so a reader running fast can judge a live, heartbeating holder stale and win a reclaim it should have lost. The CAS then faithfully executes that wrong decision, because the CAS only proves "the ref hadn't moved since I read it," not "the holder is actually dead."
++
++**Problem statement.** `recoveryClaimStore` and `buildClaimStore` both delegate their staleness verdict to `claimStoreCore.reclaimIfStale`, which currently feeds each binding's `stalePredicate` a bare `Date.now()`. A reader whose clock runs ahead of the holder's can misjudge a live holder as stale and reclaim it, opening a double-drain: two executors believing they each own the same recovery segment or the same build. This spec narrows that gap at the one shared call site with a best-effort, operator-configurable tolerance margin — skew beyond the configured tolerance remains unmitigated, exactly as it is today — and separately settles whether the reclaim's read-then-act sequence has an open TOCTOU window at all, since a close read of the existing `--force-with-lease` fencing and its selftest suggests it may already be closed.
++
++**Design principles.**
++
++**The fix lives at exactly one call site.** `runIsHeld` (`runcheck.js`) is shared by non-claim-store consumers (the Stop-hook gate, `sentry.js`) for same-process liveness checks that have nothing to do with cross-machine claims. The ticket's scope pins changes to `bundle.js`, so this spec never edits `runcheck.js` or `runIsHeld`'s signature. The tolerance is applied to the `nowMs` value `reclaimIfStale` passes into `spec.stalePredicate`, not inside any predicate function.
++
++**The tolerance is a per-predicate property, not a blanket call-site behaviour.** Round 1 of this spec applied the skew tolerance unconditionally, to every binding's `stalePredicate`, regardless of whether that predicate's reclaim decision has any cross-machine comparison to correct. That is wasteful in one direction: a predicate whose reclaim carries no destructive blast radius still pays the full tolerance as pure delay, for zero additional safety. `reclaimIfStale` now reads an explicit `spec.applySkewTolerance` flag on each binding and only widens the window when the binding says it needs it (see WHAT and HOW).
++
++**A verdict that turns out wrong must still fail safe.** Even after this fix, a `stalePredicate` misjudgment is possible in principle (skew larger than the tolerance, a genuinely wedged process that keeps writing heartbeats). The system's actual safety net for that case is `confirmHead`, called by the true holder immediately before its first irreversible write. Nothing in this spec is allowed to weaken that pin, and the spec treats it as the backstop, not a wrong-verdict fix.
++
++**The tolerance is a best-effort mitigation, not a guarantee.** A fixed margin only compensates for skew up to its own value. Skew beyond the configured tolerance is unmitigated by this fix, exactly as it was before this spec: a reader whose clock runs more than `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS` ahead of the holder's can still misjudge a live, heartbeating holder as stale. This spec does not claim to close the clock-skew problem outright; it narrows the window in which skew produces a wrong verdict and leans on two things that already exist to bound the residual risk: `confirmHead`'s CAS (a wrong verdict costs a wasted reclaim attempt, never a double-drain — see the principle above) and the tolerance's own operator override (an environment with drift worse than the 60-second default is not stuck with it; see WHAT and the Design decision rationale).
++
++**Reference context.**
++
++| System | Language | Relevance |
++|---|---|---|
++| `plugin/skills/faff/bin/lib/bundle.js` | JavaScript | `claimStoreCore`, `recoveryClaimStore`, `buildClaimStore`, `buildClaimStaleAware` — everything this spec changes or tests |
++| `plugin/skills/faff/bin/lib/runcheck.js` | JavaScript | `runIsHeld` and `heartbeatStaleSecs` — read, referenced, never edited |
++| `plugin/skills/faff/bin/lib/claim-verdict.js` | JavaScript | `claimVerdict` — read, referenced, never edited |
++| `plugin/skills/faff/bin/lib/lights-out.js` | JavaScript | Sole external caller of `recoveryClaimStore`/`reclaimIfStale`; confirmed unaffected by this change (see WHAT) |
++
++**Scope statement.** This is a correctness hardening of one already-shipped shared primitive and its two already-shipped bindings on `main`. `landingClaimStore`, the third binding, does not exist yet: it ships with FAFF-842, on an unmerged branch. This spec deliberately does not add it.
++
++## 2. Out of scope
++
++- **`landingClaimStore` binding.** FAFF-842 adds this binding on its own branch. Because the fix in this spec is applied inside `claimStoreCore.reclaimIfStale` itself (the shared call site every binding routes through), FAFF-842's binding inherits both the clock-skew tolerance and the CAS guarantee automatically once it rebases onto this change, with no code of its own needed for either property — an undeclared `applySkewTolerance` field defaults to `true`, so `landingClaimStore` gets the tolerance for free unless a future spec deliberately opts it out. Extension point: `plugin/skills/faff/bin/lib/bundle.js`, wherever FAFF-842 defines `landingClaimStore` alongside `recoveryClaimStore` and `buildClaimStore`.
++- **`runIsHeld` / `runcheck.js` changes.** Out of scope per the ticket; `runIsHeld` is shared with non-claim-store consumers and its cross-cutting behaviour must not shift. Extension point: none needed; the call-site fix in `reclaimIfStale` covers every current and future `stalePredicate` that shares its shape.
++- **A monotonic heartbeat counter/generation number (the ticket's "preferred" fix direction).** Rejected here, not deferred: see design decision rationale for why the margin-based fix is chosen instead. Extension point: if a future ticket wants to add a counter, it changes `claim.json`'s shape (a wire-format change this ticket's scope explicitly forbids) and the holder-side heartbeat writer (`heartbeat.js`), not `claimStoreCore`.
++- **A `.faffrc.yaml` config key for the skew tolerance.** The tolerance is env-var-only (`FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS`), mirroring `FAFF_RUN_HEARTBEAT_STALE_SECS`, which also has no config-file counterpart. Extension point: `plugin/skills/faff/bin/lib/config.js`'s `CANONICAL_CONFIG`, if a future ticket decides operators need to set it per-repo rather than per-invocation.
++
++## 3. What changes
++
++Two additions, both scoped entirely inside `bundle.js`, plus one intentional non-change with a documented rationale.
++
++**New helper**, placed beside `resolveClaimTtlHours` (which already follows the identical env-parse-with-fallback shape):
++
++```
++CONSTANT CLAIM_CLOCK_SKEW_TOLERANCE_SECS_DEFAULT = 60
++
++FUNCTION resolveClaimClockSkewToleranceSecs(env):
++  raw = env.FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS
++  IF raw is set and parses to a finite number >= 0:
++    RETURN that number
++  RETURN CLAIM_CLOCK_SKEW_TOLERANCE_SECS_DEFAULT
++```
++
++**New spec field: `applySkewTolerance`** (optional Boolean on the object each binding passes to `claimStoreCore`, alongside the existing `refName` / `buildClaim` / `commitMessage` / `stalePredicate` / `name`). **`**Chosen:**` (round 3 rename)** — round 2 named this field `crossBox` and defined it as "is this predicate a cross-machine comparison." The round-2 architectural review correctly caught that this name does not match the field's actual decision criterion: the Design decision rationale for `recoveryClaimStore`'s opt-out explicitly does NOT argue from machine topology ("The reasoning does not depend on whether `recoveryClaimStore`'s underlying git-remote ref namespace can, in principle, be read from a different machine") — it argues from what a wrong verdict costs (blast radius, backstopped or not by `confirmHead`). A name describing reachability, next to a rationale that disclaims reachability as the criterion, is a real defect: a future binding author reading only the field name would apply the wrong test. `applySkewTolerance` names the field for what it actually gates — whether `reclaimIfStale` pays the tolerance delay for this binding's reclaim decision — with no claim about topology. `undefined` and `true` both mean "pay the tolerance"; `false` means "zero tolerance, always." The default (an undeclared `applySkewTolerance`) stays `true`, not `false`: a future binding that forgets to declare it still gets the tolerance, rather than silently reclaiming with zero grace period. Only a binding that explicitly opts OUT loses the tolerance — see `recoveryClaimStore` below and the Design decision rationale for the actual criterion (wrong-verdict cost, not reachability).
++
++**Changed call site**, inside `claimStoreCore.reclaimIfStale` (currently line 776):
++
++```
++# before
++held = spec.stalePredicate(existing.claim, Date.now(), env)
++
++# after
++# The tolerance corrects for the READING (reclaiming) machine's clock running ahead of the
++# holder's by up to `toleranceSecs`. It does NOT correct skew in the other direction (holder's
++# clock ahead of reader's — that direction already biases toward "held", the safe direction) and
++# does NOT correct reader-ahead skew beyond `toleranceSecs`: a reader whose clock runs more than
++# `toleranceSecs` ahead of the holder's still misjudges a live holder as stale. See WHY
++# ("best-effort mitigation, not a guarantee") for the residual-risk argument.
++toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env)
++skewedNowMs = Date.now() - toleranceSecs * 1000
++held = spec.stalePredicate(existing.claim, skewedNowMs, env)
++```
++
++**Changed binding**, `recoveryClaimStore`'s spec object gains one field:
++
++```
++# before
++{
++  name: "git-remote-recovery-claim",
++  refName: ...,
++  buildClaim: ...,
++  commitMessage: ...,
++  stalePredicate: (claim, nowMs, env) => runIsHeld({ owner: claim.owner }, nowMs, env),
++}
++
++# after
++{
++  name: "git-remote-recovery-claim",
++  refName: ...,
++  buildClaim: ...,
++  commitMessage: ...,
++  stalePredicate: (claim, nowMs, env) => runIsHeld({ owner: claim.owner }, nowMs, env),  # unchanged
++  // applySkewTolerance: false — NOT a claim that this ref namespace is same-box (it can be read
++  // cross-box; see the recoveryClaimStore header comment). Set false because a wrong verdict here
++  // costs one avoided-but-harmless resume attempt (confirmHead's CAS refuses the loser), while on
++  // buildClaimStore/landingClaimStore a wrong verdict hands over live, destructive work — see
++  // "Design decision rationale" in the attached spec (FAFF-906) for the full argument.
++  applySkewTolerance: false,
++}
++```
++
++`buildClaimStore`'s spec object gains no field — an undeclared `applySkewTolerance` already defaults to `true`, which is the behaviour Problem 1 needs for its cross-box row. That is the entire code change for Problem 1: one new field on one binding, one branch at the call site. Nothing else in `reclaimIfStale`, `recoveryClaimStore`, or `buildClaimStaleAware` changes shape or signature.
++
++**`**Chosen:**` no change to `buildClaimStaleAware` itself.** `buildClaimStaleAware(root, claim, nowMs, env, deps)` keeps its exact current signature and body. Because `reclaimIfStale` is the only caller that feeds it a real `Date.now()`-derived `nowMs` (the `buildClaimSelftest` pure-predicate table calls it directly with a fixed test instant, bypassing `reclaimIfStale` entirely), skewing the value at the `reclaimIfStale` call site reaches `buildClaimStaleAware` through its `nowMs` parameter without touching the function. This is why the fix is a two-line change rather than three edits across three staleness paths.
++
++**Problem 2, scoped down.** Read closely, `reclaimIfStale`'s reclaim write already uses `--force-with-lease=${ref}:${existing.sha}` (line 782): a git-server-side compare-and-swap keyed to the exact claim state read at the top of the function. Two reclaimers who both read the same stale sha and both attempt the CAS cannot both win; the loser's lease no longer matches and it re-reads to surface the winner (`lease-lost`), never a blind retry. The existing `pushX`/`pushY` selftest fixture (recoveryClaimStore block, lines roughly 1377 to 1386) already proves exactly this: two lease-matched CAS pushes against the same stale sha, exactly one succeeds. Its adjacent comment also explains why a naive test of two *sequential* `reclaimIfStale` calls cannot reproduce the race at all in a single-threaded harness: the second call's own read would see the first call's already-landed fresh claim and refuse via the `held` path before it ever reaches its own CAS. That is precisely why the existing test drives `pushClaimCommit` directly rather than `reclaimIfStale`, and it is the only way to construct this race without real concurrent processes.
++
++**`**Chosen:**` Problem 2 requires no logic change to `reclaimIfStale`.** The compare-and-swap the ticket asks for already exists and is already covered by a passing selftest. What is missing is (a) the same coverage for the `buildClaimStore` ref namespace, which shares the code path but had no equivalent direct-CAS race test, and (b) a comment at `reclaimIfStale` stating the invariant outright, since this ticket is itself evidence the existing comments did not make it obvious enough. Both are additions, not fixes to broken logic.
++
++## 4. How
++
++### Reclaim staleness check, after the fix
++
++```
++PROCEDURE reclaim_if_stale(identity, ownerSnapshot, env):
++  ref = spec.refName(identity)
++  existing = read_claim_manifest(ref)
++  IF existing is unreachable/missing/unreadable: (unchanged from today)
++
++  toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env)
++  skewedNowMs = current_time_ms() - toleranceSecs * 1000
++  held = spec.stalePredicate(existing.claim, skewedNowMs, env)
++  IF held: RETURN { reclaimed: false, reason: "held", holder: existing.claim, sha: existing.sha }
++
++  # everything below this line is UNCHANGED — the lease-matched CAS already fences
++  # the write against existing.sha, so a concurrent reclaimer or a revived holder
++  # (via confirmHead, on its own side) is already handled.
++  newClaim = spec.buildClaim(identity, ownerSnapshot, existing.claim.claim_epoch + 1)
++  push claim with `--force-with-lease=<ref>:<existing.sha>`
++  IF lease rejected: re-read, surface the new holder as "lease-lost"
++  ELSE: RETURN { reclaimed: true, sha: newCommitSha, claim: newClaim }
++```
++
++**How the skew shift propagates to each existing predicate, row by row:**
++
++- **`recoveryClaimStore`'s predicate** (`(claim, nowMs, env) => runIsHeld({ owner: claim.owner }, nowMs, env)`, `applySkewTolerance: false`): receives `skewedNowMs === Date.now()` — zero tolerance, unchanged from today's behaviour. `runIsHeld` computes `ageSecs = (nowMs - t) / 1000` against `heartbeatStaleSecs(env)` (900s default); with `toleranceSecs` pinned at 0, this row's verdict is byte-identical to round 1's *pre-fix* behaviour. See the Design decision rationale for why this row is deliberately excluded from Problem 1's fix rather than included by default.
++- **`buildClaimStaleAware` Row 3 (cross-box)**: `buildClaimStore` does not declare `applySkewTolerance`, so it defaults to `true` and receives the skewed `nowMs` (identical shape to `recoveryClaimStore`'s predicate — `runIsHeld` on the frozen snapshot — but this binding's blast radius, per the Design decision rationale, justifies paying the tolerance). A smaller `nowMs` produces a smaller `ageSecs`, biasing toward "held" exactly when the reader's clock might be running ahead. This is the row Problem 1's fix actually targets.
++- **`buildClaimStaleAware` Row 1 (`heartbeating: false`, TTL check)**: `claimVerdict(claim.claimed_at, new Date(nowMs).toISOString(), ttlHours)` also receives the skewed `nowMs` (the whole `buildClaimStore` binding shares one `applySkewTolerance` value — the flag is per-binding, not per-row, since all three rows are reached through the same `stalePredicate` function and the tolerance is applied once, upstream of it). **`**Chosen:**` no separate handling needed.** The default TTL is 6 hours (21,600 seconds); a 60-second tolerance widens that window by roughly 0.3 percent, which is immaterial and does not need its own test. `claim-verdict.js` already fails safe in the other direction too (any non-positive age reads as `live`), so this row was never fully clock-skew-blind; the fix simply extends the same conservative bias.
++- **`buildClaimStaleAware` Row 2 (same-box, live heartbeat file)**: also receives the skewed `nowMs`, but Row 2 reads a heartbeat file off the *same* machine that is judging it, so there is no genuine cross-machine skew to correct. **`**Chosen:**` no test change needed.** The existing Row 2 selftest fixtures use ages of 10 seconds (fresh) and 5000 seconds (crashed), both far enough from any 900-second-plus-60-second boundary that a 60-second shift changes nothing about their verdicts. (Row 2 is a within-binding fast path, not a separate binding — it does not get its own `applySkewTolerance` flag; `buildClaimStore`'s single flag governs the call site upstream of all three rows, and Row 2's own machine-id/local-run-dir gate is what actually keeps it insensitive to the tolerance, not a flag value.)
++
++**Recovery claims keep today's exact reclaim timing — `hcReclaimB` needs no change.** Because `recoveryClaimStore` now declares `applySkewTolerance: false`, `reclaimIfStale`'s `toleranceSecs` is pinned to 0 for every recovery-claim reclaim, so `skewedNowMs === Date.now()` exactly as it does on `main` today. The recovery-claim selftest's `hcReclaimB` fixture (lines roughly 1397 to 1407) manufactures a "B wrongly judges A's live claim stale" scenario — A's heartbeat baked 2 seconds in the past (`recentOwner`, line 1398), B reclaiming under an injected `FAFF_RUN_HEARTBEAT_STALE_SECS: "1"` window — specifically to prove `confirmHead`, not the staleness verdict, is the real safety net. With zero tolerance on this binding, that scenario is completely unaffected by this spec: B's `ageSecs` is still `2`, still `> 1` (the injected window), still reads as stale, and `hcReclaimB.reclaimed === true` keeps passing with no fixture edit. This is the payoff of round 2's per-predicate design over round 1's blanket one: round 1 needed to bump the fixture's baked age from 2000ms to 90000ms to keep it working around a tolerance that was never supposed to apply to this path in the first place; round 2 removes the need for that edit entirely, because the tolerance no longer reaches this predicate.
++
++**QA regression guard — proving `recoveryClaimStore`'s zero tolerance, not the test, is what keeps `hcReclaimB` passing.** A fixture that "still passes with no edit" is only convincing if it can be shown to depend on the `applySkewTolerance: false` wiring rather than passing by coincidence (e.g. a bug that silently no-ops the whole `applySkewTolerance` mechanism would also leave this fixture green). Add a companion assertion, in the same test block, that deliberately runs the identical `hcReclaimB` scenario but with `recoveryClaimStore` swapped for a throwaway `claimStoreCore` binding whose `spec` is byte-identical except `applySkewTolerance` is *omitted* (so it falls back to the `true` default) — i.e. the round-1 (pre-fix-for-this-ticket) behaviour:
++
++```
++PROCEDURE test_hcReclaimB_would_fail_under_the_defaulted_applySkewTolerance():
++  # Regression guard for the per-predicate design itself: proves applySkewTolerance:false is load-bearing,
++  # not incidental. Same hcReclaimB scenario (2s-old heartbeat, injected 1s window), but run
++  # against a claimStoreCore binding identical to recoveryClaimStore EXCEPT applySkewTolerance is omitted
++  # (defaults to true) — i.e., what recoveryClaimStore's reclaim would compute if it inherited
++  # the default cross-box tolerance instead of opting out.
++  applySkewToleranceDefaultStore = claimStoreCore(rootB, "origin", { ...recoveryClaimStore's spec fields, applySkewTolerance: undefined })
++  reclaim = applySkewToleranceDefaultStore.reclaimIfStale(hcIdentity, freshOwner("session-hc-b-defaulted"), wrongEnv)
++  ASSERT reclaim.reclaimed === false, reason === "held"
++  # effective age = 2s - 60s tolerance = negative → runIsHeld always reads held, so the SAME
++  # scenario that must reclaim (proving zero-tolerance is exercised) would instead refuse if
++  # applySkewTolerance defaulted through — a build that dropped `applySkewTolerance: false` from recoveryClaimStore's
++  # spec object fails THIS assertion, not just a silently-still-green hcReclaimB.
++```
++
++This directly pairs with `hcReclaimB.reclaimed === true` (unmodified, above): one proves the zero-tolerance path reclaims when it should, the other proves the default-tolerance path would NOT reclaim under the identical scenario — so a build that accidentally leaves `applySkewTolerance: false` off `recoveryClaimStore` (or a build that ignores the flag entirely) fails at least one of the pair, rather than both coincidentally passing.
++
++**`**Chosen:**` the `buildClaimStaleAware` pure-predicate table (lines roughly 1566 to 1608) needs no changes.** It calls `buildClaimStaleAware` directly with a fixed `now` value, never through `reclaimIfStale`, so it never sees the skew shift. Confirmed by tracing every call in that block.
++
++**New selftest coverage for Problem 1** (added to the `buildClaimStore` selftest block, against the cross-box Row 3 path — `applySkewTolerance: true` is the default this predicate actually exercises now, so round 2 moves this coverage from `recoveryClaimStore`, which no longer receives any tolerance, to the binding that does):
++
++```
++PROCEDURE test_skew_tolerance_forgives_moderate_age():
++  a cross-box build claim's frozen heartbeat baked 920 seconds in the past (900s window + 20s
++    INTO the 60s tolerance zone — without the fix this would misclassify as stale)
++  storeB.reclaimIfStale(...) via process.env (no injected window override)
++  ASSERT reclaimed === false, reason === "held"
++
++PROCEDURE test_skew_tolerance_is_not_a_permanent_deadlock():
++  a cross-box build claim's frozen heartbeat baked 990 seconds in the past (900s window + 90s,
++    PAST the 60s tolerance zone)
++  storeB.reclaimIfStale(...) via process.env
++  ASSERT reclaimed === true
++
++PROCEDURE test_default_tolerance_is_pinned_at_60_seconds():
++  # QA fix (round 2): the two tests above forgive a wide margin either side of the boundary and
++  # would pass unchanged against a 59s or 61s default — neither pins the SPECIFIC value 60. This
++  # test picks a heartbeat age that only reads "held" at exactly tolerance >= 60 (integer seconds),
++  # so a build shipping a 59s default fails it.
++  #
++  # QA fix (round 3): the round-2 review correctly noted that reclaimIfStale calls Date.now() a
++  # second time (inside the function), strictly after the fixture bakes its heartbeat timestamp —
++  # call this gap delta (test-harness overhead; realistically single-digit to low-double-digit
++  # milliseconds, generously bounded at 500ms even under a loaded CI runner). The chosen baked age
++  # (959500ms) is safe against delta on BOTH sides of the boundary without needing to shrink it:
++  #   - at tolerance=59 (buggy default): effective age = 959500 + delta - 59000 = 900500 + delta,
++  #     which exceeds 900000 for ANY delta >= 0 -> reclaims (fails this assertion) unconditionally.
++  #   - at tolerance=60 (real default):  effective age = 959500 + delta - 60000 = 899500 + delta,
++  #     which stays <= 900000 (holds) for any delta <= 500ms -> passes this assertion.
++  # So 959500ms is already delta-safe up to a 500ms harness gap; no different constant is needed.
++  # This also requires the test to run under the REAL 900s heartbeatStaleSecs default, not
++  # whatever happens to be in the ambient environment — explicitly ensure
++  # FAFF_RUN_HEARTBEAT_STALE_SECS is UNSET for this test's env (delete it from the env object
++  # passed to reclaimIfStale if present, do not merely rely on process.env's ambient state),
++  # so a CI environment that happens to set that var cannot silently shift this test's oracle.
++  #
++  # QA fix (round 4, operator-directed): case A below only pins a LOWER bound — it fails a 59s
++  # default but a 61s (or any larger) default also reads "held" and passes case A unchanged, so
++  # on its own it never catches an over-generous default. Case B is the paired upper-bound: a
++  # heartbeat baked 960500ms in the past (900s window + 60.5s) must RECLAIM at the real 60s
++  # default (effective age 900.5s+delta > 900s) but must stay HELD at a 61s default (effective
++  # age 899.5s+delta <= 900s for delta <= 500ms) — so a build shipping 61s fails case B instead
++  # of passing silently. Case A and case B together pin the default to the half-open window
++  # [59.5s, 60.5s), i.e. exactly 60 integer seconds; neither case alone does.
++  (Case A — lower-bound pin)
++  a cross-box build claim's frozen heartbeat baked 959500 milliseconds in the past
++    (900s window + 59.5s — held iff toleranceSecs >= 59.5, i.e. only at the real 60s default;
++    a 59s default computes effective age 900.5s+ > 900s and reclaims, failing this assertion)
++  storeB.reclaimIfStale(...) via an env with FAFF_RUN_HEARTBEAT_STALE_SECS explicitly deleted/unset
++    (no injected window override — exercises the DEFAULT, not an env override, since the default
++    itself is what must be pinned; the explicit delete is the round-3 fix, not new behaviour)
++  ASSERT reclaimed === false, reason === "held"
++
++  (Case B — upper-bound pin, round-4 addition)
++  a cross-box build claim's frozen heartbeat baked 960500 milliseconds in the past
++    (900s window + 60.5s — reclaims iff toleranceSecs <= 60.5, i.e. only at the real 60s default
++    or lower; a 61s default computes effective age 899.5s+ <= 900s and stays held, failing this
++    assertion)
++  storeB.reclaimIfStale(...) via the same env as case A (FAFF_RUN_HEARTBEAT_STALE_SECS unset,
++    no injected window override)
++  ASSERT reclaimed === true
++```
++
++**New selftest coverage for Problem 2** (mirrors the existing `pushX`/`pushY` recovery-claim lease-race fixture, added to `buildClaimSelftest`'s `buildClaimStore` block, against `refs/faff/build-claims/<issue>`):
++
++```
++PROCEDURE test_build_claim_lease_race():
++  acquire a stale build claim, note its sha (existing.sha)
++  build two competing claim objects (claimX, claimY)
++  push both via pushClaimCommit with `--force-with-lease=<ref>:<existing.sha>`
++  ASSERT exactly one push succeeds
++```
++
++**Comment addition**, at `reclaimIfStale`'s existing comment block (lines roughly 758 to 763): state explicitly that the `--force-with-lease` push is the answer to a check-then-act TOCTOU between two reclaimers, and that a wrong staleness verdict is a separate risk closed by `confirmHead`, not by the CAS. This is documentation, not a logic change, added so a future reader does not misdiagnose the same non-issue this ticket raised.
++
++**Anti-pattern:** applying the skew tolerance inside `runIsHeld`, `buildClaimStaleAware`, or `claimVerdict` instead of at the `reclaimIfStale` call site. Why: `runIsHeld` is shared with non-claim-store, same-process callers that have no cross-machine clock problem to correct; editing it would be an out-of-scope, blast-radius-widening change for a fix that only needs to touch one function.
++
++**Anti-pattern:** treating a `lease-lost` result from a failed CAS as retryable. Why: every current caller (`lights-out.js`, `cmdBuildClaim`) already surfaces the new holder and stops; a bare retry-and-force would reopen the exact double-drain this primitive exists to prevent. No caller does this today; this note exists so a future edit does not introduce it.
++
++**Failure modes.** Every mode below is a tuning failure of a deliberately best-effort, bounded mitigation, not a claim that clock skew is fully solved. Skew larger than whatever tolerance actually applies (60s default and cross-box predicates only, 0s always for `recoveryClaimStore`) is unmitigated by this fix, exactly as it was on `main` before this ticket — those cases fall through to `confirmHead`'s CAS, which is what turns a wrong staleness verdict into a wasted reclaim attempt instead of a double-drain, whether or not the tolerance was involved at all.
++
++- **The failure:** the 60-second default tolerance turns out too small for some operator's actual cross-box clock drift (an unmanaged host, no NTP). **How you'd know:** `reclaimIfStale` still reclaims a claim whose true holder is alive and heartbeating; the holder's subsequent `confirmHead` call fails with `superseded`, which is already logged distinctly in both `lights-out.js` and the `build-claim` CLI's refusal path. **What it means:** raise `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS` for that environment; no code change is needed since the value is already externally configurable — this is the tolerance's escape hatch for exactly the "skew beyond the default is unmitigated" case named above.
++- **The failure:** the tolerance is set too high (by an operator override), delaying reclaim of a genuinely crashed holder on an `applySkewTolerance: true` binding. **How you'd know:** the gap between a holder's last real heartbeat and a successful reclaim grows by roughly the tolerance value; visible in `faff build-claim reclaim` or `tidy`'s grooming output timestamps. **What it means:** lower the override; the 60-second default itself was chosen to keep this delay small relative to the 900-second heartbeat window (about 6.7 percent), so this is a risk of a bad override, not of the default. `recoveryClaimStore` is immune to this specific failure mode by construction (`applySkewTolerance: false` — no tolerance to mistune).
++
++## Scenarios
++
++> 1 holdout scenario(s) withheld from this view — evaluated code-blind against the running feature; full spec on the tracker.
++
++```
++Given a build claim's holder is genuinely alive and heartbeating, with the reclaiming
++  machine's clock reading up to 60 seconds ahead of the holder's recorded heartbeat
++When a second executor calls reclaimIfStale against that claim
++Then the reclaim is refused with reason "held", and the holder's claim is untouched
++```
++
++```
++Given a recovery claim (applySkewTolerance: false) whose recorded heartbeat is exactly at the 900-second
++  heartbeatStaleSecs boundary, with no added grace period
++When a second executor calls reclaimIfStale against that claim
++Then the reclaim outcome matches today's pre-ticket behaviour exactly (no tolerance-induced
++  delay), proving the per-predicate design does not regress the recovery path's reclaim speed
++```
++
++```
++Given two executors independently read the same stale claim at the same ref sha and both
++  attempt a lease-matched reclaim
++When both pushes race
++Then exactly one succeeds (reclaimed: true) and the other receives reason "lease-lost"
++  naming the winning holder, for both the recovery-claims and build-claims ref namespaces
++```
++
++```
++Given a holder is wrongly judged stale by a reclaimer using an artificially narrow
++  staleness window (the existing hcReclaimB scenario — unmodified by this spec, since
++  recoveryClaimStore's zero tolerance leaves its timing untouched)
++When the true holder calls confirmHead against its own claim sha immediately afterward
++Then confirmHead fails with reason "superseded", proving the ref head, not any staleness
++  verdict, decides who continues
++```
++
++## 5. Design decision rationale
++
++**Margin-based tolerance vs. a holder-side monotonic counter.** The ticket names both as acceptable fix directions, with the counter marked "preferred." A counter that the reader can trust without comparing wall clocks would need the holder to write an always-advancing generation number the reader observes directly, which means changing what `claim.json` carries and how the heartbeat writer (`heartbeat.js`) updates it. The ticket's own scope section says the fix "does not change the claim wire shape." **`**Chosen:**` the margin-based tolerance** satisfies the scope constraint, needs no new field, and is a two-line change at a single call site.
++
++**Tolerance default: 60 seconds.** **`**Chosen:**` 60 seconds**, about 6.7 percent of the 900-second default heartbeat-stale window. Large enough to absorb realistic drift between two unsynchronized machines (NTP-synced hosts typically stay within a fraction of a second of each other; unmanaged clocks can drift by tens of seconds without correction), small enough that it barely delays reclaiming a genuinely crashed holder.
++
++**Env var name: `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS`, no config-file key.** **`**Chosen:**` mirrors `FAFF_RUN_HEARTBEAT_STALE_SECS`**, which is also an env-only override with no `.faffrc.yaml` counterpart. Consistent with the existing pattern rather than introducing a new one. This override is also the escape hatch named in Failure modes for the "skew beyond the tolerance is unmitigated" case — an operator is never stuck with the 60-second default.
++
++**Per-predicate `applySkewTolerance` flag vs. a blanket call-site tolerance (round 2).** Round 1 of this spec applied `resolveClaimClockSkewToleranceSecs` unconditionally at the `reclaimIfStale` call site, to every binding's `stalePredicate` alike. The round-1 adversarial spec review's architectural lens objected: applying the tolerance without regard to whether a given predicate's reclaim decision carries any destructive blast radius is a straight, unnecessary delay wherever it doesn't buy safety, and the recovery path in particular pays that delay for no offsetting benefit. **`**Chosen:**` a per-binding `applySkewTolerance` flag, consumed at the `reclaimIfStale` call site, defaulting to `true`.** The default stays `true` (not `false`) deliberately: an unmodified `buildClaimStore` and a not-yet-shipped `landingClaimStore` both need to keep the tolerance, and a default of `true` means neither has to declare anything to get it — only the one binding that should NOT pay the delay (`recoveryClaimStore`) opts out explicitly. A default of `false` would have been the more dangerous direction: any binding that forgot to opt in would silently regain zero tolerance, quietly reopening exactly the wrong-direction risk (a live cross-box holder misjudged stale) this ticket exists to close.
++
++**`recoveryClaimStore` declares `applySkewTolerance: false` — zero added tolerance.** **`**Chosen:**` the recovery-claim reclaim path pays no delay beyond today's existing 900-second `heartbeatStaleSecs` window.** The reasoning does not depend on whether `recoveryClaimStore`'s underlying git-remote ref namespace can, in principle, be read from a different machine than wrote it — it can (the store's whole purpose, per its own header comment, is gating a "cross-box double-continue"). The reasoning instead turns on what a wrong verdict actually costs on this path versus the other two. On `buildClaimStore` and (once it ships) `landingClaimStore`, a reclaim that turns out to be wrong hands a build or a land to a second executor while the first is still actively, destructively working — the tolerance exists precisely to make that misjudgment rarer. On `recoveryClaimStore`, a reclaim that turns out to be wrong starts a *resume* of a stranded run segment a little early; per the WHY section's fail-safe principle, `confirmHead`'s CAS is unconditionally the actual backstop regardless of the tolerance, so the wrongly-reclaimed-from side's own `confirmHead` call refuses with `superseded` and it stops — the cost is one avoided-but-harmless resume attempt, not a double-drain, and the existing `hcReclaimB` fixture already exercises and accepts exactly this outcome as correct behaviour. Meanwhile a stranded segment sitting idle for an extra tolerance window before recovery even starts trying is a real, live cost with no corresponding safety upside on this path. Given that asymmetry — the tolerance buys real safety on the other two bindings and buys nothing on this one, while costing this one real recovery latency — zero tolerance is the better-tuned default for `recoveryClaimStore` specifically, independent of the same-box/cross-box framing either lens debates it in.
++
++**Recovery-claim reclaim timing is unchanged by this spec, so `hcReclaimB` needs no edit.** Round 1 chose to bump the fixture's baked heartbeat age from 2000ms to 90000ms to keep `hcReclaimB.reclaimed === true` passing once a blanket tolerance reached this predicate. Round 2's `applySkewTolerance: false` choice above removes the need for that edit outright: `recoveryClaimStore` never receives the tolerance, so the fixture's original 2-second baked age keeps working exactly as it did on `main`. **`**Chosen:**` leave the fixture's numbers untouched and add the regression-guard test described in HOW instead of an edit-and-reverify pair.** This is a stronger form of the same assurance the round-1 objection asked for (a test that would fail if the fixture were coincidentally green): rather than proving a new number works and the old number would now fail — which no longer applies, because the old number never stops working — the guard proves the `applySkewTolerance: false` wiring itself is load-bearing, by showing the identical scenario WOULD flip to "held" (fail to reclaim) if `recoveryClaimStore` inherited the default tolerance instead of opting out.
++
++**Problem 2: no logic change, coverage and documentation only.** **`**Chosen:**` after reading `reclaimIfStale`'s existing `--force-with-lease` fencing and the `pushX`/`pushY` selftest that already exercises it, the described TOCTOU window between two reclaimers is already closed.** The gap that remained was test coverage scoped to `recoveryClaimStore` only, and a comment that did not state the invariant explicitly enough to prevent this exact ticket. Both are additions, not corrections to broken logic. This conclusion is falsifiable by the new build-claims lease-race test; if it fails, the CAS is not what the code comments claim it is, and this rationale is wrong.
++
++## 6. Open questions and assumptions
++
++None. Every non-trivial decision above is marked `**Chosen:**`, and each is grounded in a specific line, function, or existing selftest rather than left open.
++
++## 7. Definition of done
++
++### From WHY
++- [ ] `reclaimIfStale`'s staleness check no longer compares the reclaiming machine's raw `Date.now()` directly against a holder-written timestamp with zero tolerance, on bindings that need the tolerance.
++- [ ] `confirmHead` remains the sole decider of who continues after a reclaim; no change weakens or bypasses it.
++- [ ] The spec's WHY and Failure modes sections state plainly that the tolerance is a best-effort mitigation (skew beyond the configured value is unmitigated) and that it is operator-configurable — not framed as a complete fix.
++
++### From WHAT
++- [ ] `resolveClaimClockSkewToleranceSecs(env)` exists in `bundle.js`, defaults to 60, and is overridable via `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS` (finite, non-negative, else falls back to default).
++- [ ] `claimStoreCore.reclaimIfStale` computes `toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env)`, then `skewedNowMs = Date.now() - toleranceSecs * 1000`, and passes `skewedNowMs` to `spec.stalePredicate` in place of a bare `Date.now()`.
++- [ ] `recoveryClaimStore`'s spec object declares `applySkewTolerance: false`; `buildClaimStore`'s spec object declares no `applySkewTolerance` field (defaults to `true`).
++- [ ] `buildClaimStaleAware`'s signature and body are unchanged; `recoveryClaimStore`'s and `buildClaimStore`'s `stalePredicate` functions are unchanged.
++- [ ] `runcheck.js` (`runIsHeld`, `heartbeatStaleSecs`) has no changes.
++- [ ] `claim.json`'s shape and key order are unchanged for both bindings.
++
++### From HOW (Problem 1 tests)
++- [ ] New selftest, `buildClaimStore` block: a cross-box build claim's heartbeat baked 920 seconds in the past (900s window + 20s into the 60s tolerance) reads as held under `reclaimIfStale` with `process.env` (no injected window override).
++- [ ] New selftest, `buildClaimStore` block: a cross-box build claim's heartbeat baked 990 seconds in the past (past the tolerance-widened window) is still reclaimed under the same conditions.
++- [ ] New selftest, `buildClaimStore` block: a paired two-case default-value pin, both run with `FAFF_RUN_HEARTBEAT_STALE_SECS` explicitly deleted/unset from the env (not just relying on ambient `process.env`) and no injected tolerance override — case A bakes a heartbeat 959500ms in the past and asserts held (fails a 59-second default), case B bakes a heartbeat 960500ms in the past and asserts reclaimed (fails a 61-second default); together they pin the DEFAULT to exactly 60 seconds, not merely a lower bound, where the 920s/990s tests above would not catch either direction.
++- [ ] `hcReclaimB` fixture is left unmodified (`recentOwner`'s baked heartbeat age stays 2000ms) — `recoveryClaimStore`'s `applySkewTolerance: false` means it never receives the tolerance, so the original scenario's timing is untouched; `hcReclaimB.reclaimed === true` still passes.
++- [ ] New selftest, recovery-claim block: the same `hcReclaimB` scenario run against a `applySkewTolerance`-defaulted (i.e. `applySkewTolerance` omitted, defaults `true`) binding instead of `recoveryClaimStore` reclaims `false` (held) — proves `applySkewTolerance: false` is load-bearing, distinguishing a correctly-wired `recoveryClaimStore` from one where the flag was dropped or ignored.
++- [ ] `buildClaimStaleAware`'s existing pure-predicate selftest table (lines roughly 1566 to 1608) passes unmodified.
++
++### From HOW (Problem 2)
++- [ ] New selftest in `buildClaimSelftest`: two lease-matched CAS pushes against the same stale sha on a `refs/faff/build-claims/<issue>` ref, exactly one succeeds (mirrors the existing recovery-claims `pushX`/`pushY` fixture).
++- [ ] `reclaimIfStale`'s comment block states explicitly that the `--force-with-lease` push is the TOCTOU answer for racing reclaimers, distinct from `confirmHead`'s role for a wrongly-judged-stale live holder.
++
++### Integration smoke test
++- [ ] `faff bundle --selftest` passes (recovery-claim block, including the unmodified `hcReclaimB` and its new companion regression-guard test).
++- [ ] `faff build-claim --selftest` passes (build-claim block, including the three new cross-box tolerance fixtures and the new lease-race fixture; pure-predicate table unmodified).
++- [ ] `faff regions selftest --region factory` passes (sweeps `bundle`, `build-claim`, and `claim-verdict` together, confirming no cross-command regression).
++
++## Round 4 revision notes
++
++Revised on 2026-08-25 — this round folds two operator-adjudicated fixes rather than a fourth adversarial spec-review pass. Round 3's `reject-approach` verdict (three lenses, `churn: false` against round 2, `converging: false` per `faff spec-review-convergence`) hit the loop cap; the operator (alec) made the tie-break call the cap escalates to and authorized building past it. Full reasoning recorded on the FAFF-906 Linear issue as a comment.
++
++- **Infosec (major, round 3) — "the skew tolerance is applied to the reclaiming machine's own clock, which does not correct the actual cross-machine skew."** **Operator ruling: valid, fixed.** Round 3's fix moved the mechanical explanation next to the changed call site but left the WHY section's opening framing sentence ("This spec closes that gap...") reading as more definitive than the fix actually is. Reworded that sentence (WHY, Problem statement) to state up front that the fix is a best-effort, operator-configurable tolerance margin and that skew beyond the tolerance remains unmitigated — matching the framing already present in the "best-effort mitigation, not a guarantee" principle and in Failure modes, but now stated from the first sentence rather than only later in the section.
++- **QA (major, round 3) — "the 959500ms 'pin the 60s default' test is not a valid oracle for the value it claims to pin."** **Operator ruling: valid, fixed.** The reviewer's underlying point survives even though its stated arithmetic issue (round 3) had already been addressed: the single-case test only ever proves a LOWER bound (any tolerance `>= 59.5s`, including a buggy 61s default, passes it unchanged) — it never fails a default that is too generous. Added a paired upper-bound case (960500ms baked age, asserts `reclaimed === true`, fails at a 61-second default) alongside the existing lower-bound case (959500ms, asserts `reclaimed === false`) in HOW and DoD. Together the two cases pin the default to the half-open window [59.5s, 60.5s) — exactly 60 integer seconds — rather than only a floor.
++- **Architectural (major, round 3) — "the `applySkewTolerance` flag encodes a blast-radius policy, not a reachability property."** **Operator ruling: dismissed as a reviewer misread, not actioned.** The objection re-raises the round-2 `crossBox`-naming concern against a field round 3 already renamed to `applySkewTolerance` specifically to remove the reachability implication, with an explicit disclaiming comment at the `recoveryClaimStore` call site (WHAT) and a Design decision rationale entry naming wrong-verdict cost, not machine topology, as the actual criterion. The reviewer's round-3 pass is reading the spec's own revision-history narrative (which recounts round 2's rejected `crossBox` name for context) as if it described the current field, not the renamed one. No spec or code change follows from this objection; per the operator's ruling it is not re-litigated in a further round.
++- **Remaining minor/observation findings** from round 3 (the same-box "silent-behaviour-change trap" for a hypothetical future binding, the unvalidated-env-var-surface observation, the negative/non-finite `resolveClaimClockSkewToleranceSecs` input coverage, the untested Row-1 TTL propagation claim) are unchanged from round 3's disposition: none were `major`/`blocker` on their own, and the operator's fold instruction scoped this round strictly to the two named major fixes plus the architectural dismissal. They remain available for a follow-up ticket if a future review re-raises them at `major` or above.
++
++## Round 2 revision notes
++
++Revised on 2026-08-25 — folding in round 1's adversarial spec review (`reject-approach`, three `major` objections across the architectural, infosec, and QA lenses; full text in `.faff/spec-review/FAFF-906/refutations.json`, round record at `.faff/spec-review/FAFF-906/round-1.json`). Round 1's spec (Linear comment, 2026-08-25 16:04 UTC) is superseded by this comment.
++
++- **Architectural (major) — "the skew tolerance is applied unconditionally to a same-machine liveness check, inverting the fail-safe direction for the recovery path."** Addressed by making the tolerance a per-binding `applySkewTolerance` property (WHAT, HOW) rather than a blanket call-site behaviour. `recoveryClaimStore` now declares `applySkewTolerance: false`; `buildClaimStore` is unchanged and keeps the tolerance via the (safe, fail-open-toward-caution) `true` default. See the Design decision rationale entry "`recoveryClaimStore` declares `applySkewTolerance: false`" for why the choice is grounded in what a wrong verdict costs on each path (via `confirmHead`'s backstop), rather than in a same-box/cross-box claim about the ref namespace's reachability, which this spec does not take a position on.
++- **Infosec (major) — "the skew tolerance is applied to the reclaiming machine's own clock, which does not correct the actual cross-machine skew."** Addressed by adding an explicit best-effort framing to WHY ("The tolerance is a best-effort mitigation, not a guarantee") and to Failure modes (opening paragraph): the spec now states plainly that skew beyond the configured tolerance is unmitigated, and that the tolerance is operator-configurable via `FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS` for environments where the 60-second default is insufficient. No behavioural change — this objection is about how the mitigation is described, not what it does.
++- **QA (major, 1 of 2) — "the '920s held' test is not a valid oracle for the fix (it passes without the change)."** Addressed by adding `test_default_tolerance_is_pinned_at_60_seconds` (HOW), which bakes a heartbeat age (959500ms) chosen so that only a tolerance `>= 60` (not `59`, not a wide range either side) reads as held — a build shipping a 59-second default fails this specific assertion, where the original 920s/990s tests (which tolerate a wide margin either side of the boundary) would not catch it.
++- **QA (major, 2 of 2) — "the `hcReclaimB` fixture adjustment is not verifiable as a regression — it only proves the new number works, not that the old number was necessary."** The round-1 fixture edit (2000ms → 90000ms) is now unnecessary: the architectural fix above means `recoveryClaimStore` never receives the tolerance, so the original 2000ms baked age keeps working unmodified. In its place, HOW adds a regression-guard test that runs the identical `hcReclaimB` scenario against a `applySkewTolerance`-defaulted binding and asserts it would NOT reclaim — proving `applySkewTolerance: false` is actually exercised and load-bearing, not a no-op, which is the same "distinguishable from a coincidental pass" property the objection asked for.
++
++Minor/observation-severity findings from round 1 (test timing fragility on the 920s case, the TOCTOU-framing nuance, the new env var as an "unvalidated input surface," the build-claims lease-race test's win-arbitration oracle, env-parsing edge-case coverage) are not addressed in this revision — none were `major`/`blocker`, and the human decision framing this ticket (Linear description, 2026-08-24) scoped it to the two `critical`/`major` problems named in the ticket. They remain available for a follow-up if a future review re-raises them at `major` or above.
++
++## Round 3 revision notes
++
++Revised on 2026-08-25 — folding in round 2's adversarial spec review (`reject-approach` again, three `major` objections across the same three lenses; churn check `.faff/spec-review/FAFF-906/round-1.json` vs `round-2.json` returned `churn: false`, same objecting lens-set, not thrashing; full text in the round-2 fan-out result). Round 2's spec (Linear comment, 2026-08-25 18:59 UTC) is superseded by this comment. Per the prep↔review loop cap, this is the loop's second iteration; the round-2 objections are addressed by renaming and clarifying in place, not by a further architectural change.
++
++- **Architectural (major) — "the `crossBox` flag is a misnomer that encodes a blast-radius policy, not a reachability property — and the spec's own rationale admits it."** Correct, and self-inflicted: round 2's own Design decision rationale for `recoveryClaimStore`'s opt-out explicitly declined to argue from machine topology, while the field name asserted exactly that topology claim. Fixed by renaming `crossBox` → `applySkewTolerance` throughout (WHAT, HOW, Design decision rationale, DoD) and adding an explicit code comment at `recoveryClaimStore`'s `applySkewTolerance: false` field stating the real criterion (wrong-verdict cost, backstopped by `confirmHead`) and explicitly disclaiming the topology reading. The paired **minor** finding ("the `true` default creates a silent-behaviour-change trap for the first genuinely same-box binding that forgets to opt out") is a fair follow-on observation but not actioned here: it describes a risk for a *hypothetical future binding*, not a defect in this ticket's two bindings, and adding an enumeration-and-warn mechanism for bindings that do not yet exist is scope creep against the ticket's stated file/scope boundary (one file, two already-shipped bindings). Left for whoever adds the next binding to weigh against `applySkewTolerance`'s now-explicit doc comment.
++- **Infosec (major) — "the skew tolerance is applied to the reclaiming machine's own clock, which does not correct the actual cross-machine skew."** Repeated from round 1 almost verbatim, despite round 2's WHY already stating the best-effort framing that this objection asks for. Round 2 added that framing to WHY as a general paragraph; the reviewer's round-2 pass evidently didn't credit it against the code change itself. Fixed by moving the precise, directional mechanical explanation (which side's clock drift is corrected, which isn't, and the exact bound) into a comment directly above the changed `reclaimIfStale` call site in WHAT — physically adjacent to the code the objection is about, not only in the separate WHY prose. No behavioural change.
++- **QA (major, 1 of 2) — "the 959500ms pin test's stated arithmetic omits the gap between the fixture's baked timestamp and `reclaimIfStale`'s own internal `Date.now()` call, and the test never pins `heartbeatStaleSecs` to the real 900s default."** The reviewer's own analysis concluded the test is still correct as numbered (959500ms is safely delta-tolerant up to ~500ms of harness gap on both sides of the 959000–960000ms window) — worked through explicitly in the test's own comments now, with the margin math shown — but the fair, actionable part of the objection is the missing environment-hygiene guarantee: the test now explicitly deletes/unsets `FAFF_RUN_HEARTBEAT_STALE_SECS` from the env passed to `reclaimIfStale` rather than trusting whatever `process.env` happens to hold, so a CI environment that sets that var cannot silently shift the oracle. No change to the 959500ms constant, which the reviewer's own math confirms is already correct.
++- **QA (major, 2 of 2) — "the `applySkewTolerance`-defaulted regression-guard test cannot be constructed as specified."** **`**Chosen:**` not actioned — self-refuting.** The finding's own body traces the construction through (`claimStoreCore` is exported, the arithmetic checks out) and ends "This works... No objection here on constructibility." The `major` header contradicts the finding's own concluding sentence; there is nothing here to fix, since the reviewer's own worked example confirms the test as specified in round 2 is correct and constructible.
++
++confidence: high
++build-tier: complex
++
++```faff-contract:spec-readiness
++{ "confidence": "high",
++  "decisions": [
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" },
++    { "marker": "chosen" }
++  ] }
++```

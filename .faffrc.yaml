@@ -84,6 +84,13 @@ backends:
       model: qwen3-coder:30b-a3b-q4_K_M
       host: http://studio.longhair-escalator.ts.net:11434
       #timeout: 480
+  spark-qwen:
+      provider: openai
+      model: unsloth/Qwen3.8-27B-NVFP4
+      host: https://spark.longhair-escalator.ts.net/qwen/v1
+      api_key_env: DUMMY_API_KEY
+      reasoning_off: true
+      first_byte_timeout: 1200
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
@@ -107,9 +114,10 @@ adversarial:
   deadline: 1800   # code_review total wall-clock (s), sliced per backend (1800/3 = 600s = timeout, so no clamp); default 480. IGNORED by spec_review.
   first_byte_timeout: 300
   refs:
+    - spark-qwen
     - studio-qwen
-    - studio-gemma
     - gemini-gemma-free
+    - studio-gemma
     - openrouter-nemotron-free
 models:
     build_by_confidence:

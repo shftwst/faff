@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.20.0](https://github.com/shftwst/faff/compare/faff--v0.19.0...faff--v0.20.0) (2026-08-24)
+
+
+### Features
+
+* **FAFF-474:** live-lane LIVE_KINDS holdout adapter (host-mediated agentic drive) ([#746](https://github.com/shftwst/faff/issues/746)) ([32a3872](https://github.com/shftwst/faff/commit/32a38722985c84af7be09f74355ae523055ce428))
+* **FAFF-852:** evaluator per-request auth plumbing for token/preview transport occupants ([#736](https://github.com/shftwst/faff/issues/736)) ([4d839bc](https://github.com/shftwst/faff/commit/4d839bcb2aa7f95706179e2a3f75abda35414e36))
+* **faff-853:** mechanize obligation-5 Class-A re-baseline as a faff integrity-digest rebaseline verb ([#735](https://github.com/shftwst/faff/issues/735)) ([369a062](https://github.com/shftwst/faff/commit/369a062c06a73e4e7e2fced9d5dd4ad9fe1bb0c4))
+* **FAFF-854:** state-based turn-survival Stop hook (turncheck) + disposition backstop ([#744](https://github.com/shftwst/faff/issues/744)) ([27c2b90](https://github.com/shftwst/faff/commit/27c2b90f5e49c95d2c6c9c55df73e75d71732d8a))
+* **FAFF-877:** shared bounded-operation supervisor for long producer and engine dispatches ([#745](https://github.com/shftwst/faff/issues/745)) ([55b834e](https://github.com/shftwst/faff/commit/55b834ea044480d0bfb39a5a45476cbc740de71c))
+* **FAFF-889:** reuse the recovery-claim primitive as the build-queue mutex; demote faff-claimed to a breadcrumb ([#743](https://github.com/shftwst/faff/issues/743)) ([fce0da3](https://github.com/shftwst/faff/commit/fce0da39a3111a6143c6d292b873602bb9c86112))
+* **FAFF-891:** collision-resistant machine-id resolver + negative-test harness ([#740](https://github.com/shftwst/faff/issues/740)) ([fa05705](https://github.com/shftwst/faff/commit/fa05705c5fd638517de93847daedce4912a8f906))
+* **FAFF-893:** interactive custody stamp — per-issue merge-floor custody verdict on the --local L4 path ([#738](https://github.com/shftwst/faff/issues/738)) ([24d3d55](https://github.com/shftwst/faff/commit/24d3d55405345b2e235b3bb12ed906a5dfde9f59))
+* **FAFF-903:** reorder the review fan-out payload to a shared cacheable prefix ([#748](https://github.com/shftwst/faff/issues/748)) ([64d4184](https://github.com/shftwst/faff/commit/64d41846e68a6cb4b7aa2db3ef7f7dffdec15005))
+* **FAFF-904:** adopt review-bench as the in-repo review benchmark harness ([#747](https://github.com/shftwst/faff/issues/747)) ([f577884](https://github.com/shftwst/faff/commit/f5778841d9d7a0a55afac2444820ba75519e0a65))
+
+
+### Bug Fixes
+
+* **FAFF-892:** merge floor admits the digest-verified custody basis (custody-trusted) ([#739](https://github.com/shftwst/faff/issues/739)) ([9397996](https://github.com/shftwst/faff/commit/93979966259ddd45e1d40fbca233020befa0f98d))
+* **FAFF-897:** carry first_byte_timeout through the refs: backend-config form ([#742](https://github.com/shftwst/faff/issues/742)) ([47d8131](https://github.com/shftwst/faff/commit/47d81312125a61fbff8defb44aea4f9cba3108cb))
+* **FAFF-898:** send enable_thinking for reasoning_off on OpenAI-compatible transports ([#741](https://github.com/shftwst/faff/issues/741)) ([954b3bb](https://github.com/shftwst/faff/commit/954b3bb318471560090925812f52af9aca42fd7d))
+
 ## [0.19.0](https://github.com/shftwst/faff/compare/faff--v0.18.0...faff--v0.19.0) (2026-08-20)
 
 

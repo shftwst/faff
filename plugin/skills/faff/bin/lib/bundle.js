@@ -761,6 +761,14 @@ function claimStoreCore(root, remoteName, spec) {
   // exact stale sha read here — a live claim is never overwritten (reclaim is only attempted after
   // the staleness verdict below), and two racing reclaimers of the SAME stale sha cannot both win:
   // the first CAS moves the head, the second's lease no longer matches.
+  //
+  // FAFF-906: this `--force-with-lease` CAS is the answer to the check-then-act TOCTOU BETWEEN TWO
+  // RECLAIMERS — it is what makes "two readers both judge the claim stale" resolve to exactly one
+  // winner instead of both overwriting. It is NOT the answer to a wrongly-judged-stale LIVE
+  // holder — that is a different risk (a bad staleness verdict, closed by `confirmHead`'s own CAS
+  // on the true holder's next write, not by this one), and the skew tolerance above is a mitigation
+  // for that risk, not for this TOCTOU. Do not conflate the two: the CAS proves "the ref hadn't
+  // moved since I read it," never "the holder is actually dead."
   function reclaimIfStale(identity, ownerSnapshot, env) {
     const ref = spec.refName(identity);
     const existing = gitReadClaimManifest(root, remoteName, ref);
@@ -773,7 +781,19 @@ function claimStoreCore(root, remoteName, spec) {
     }
     if (existing.status !== "ok") return { reclaimed: false, reason: "store_unavailable", detail: `claim ref unreadable (${existing.status})` };
 
-    const held = spec.stalePredicate(existing.claim, Date.now(), env);
+    // FAFF-906: the tolerance corrects for the READING (reclaiming) machine's clock running ahead
+    // of the holder's by up to `toleranceSecs`. It does NOT correct skew in the other direction
+    // (holder's clock ahead of reader's — that direction already biases toward "held", the safe
+    // direction) and does NOT correct reader-ahead skew beyond `toleranceSecs`: a reader whose
+    // clock runs more than `toleranceSecs` ahead of the holder's still misjudges a live holder as
+    // stale. This is a best-effort, bounded mitigation, not a guarantee — `confirmHead`'s CAS
+    // (below the reclaim write, and on the true holder's own next write) is the actual backstop
+    // for a wrong verdict, tolerance or not. `applySkewTolerance` is per-binding, not blanket: only
+    // a binding whose reclaim decision carries cross-machine wrong-verdict cost pays the delay
+    // (`recoveryClaimStore` opts out with `applySkewTolerance: false` — see its own header comment).
+    const toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env);
+    const skewedNowMs = Date.now() - toleranceSecs * 1000;
+    const held = spec.stalePredicate(existing.claim, skewedNowMs, env);
     if (held) return { reclaimed: false, reason: "held", holder: existing.claim, sha: existing.sha };
 
     const priorClaimEpoch = Number(existing.claim.claim_epoch) || 0;
@@ -830,6 +850,14 @@ function recoveryClaimStore(root, remoteName = "origin") {
     buildClaim: (identity, owner, epoch) => ({ run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner, claim_epoch: epoch, claimed_at: new Date().toISOString() }),
     commitMessage: (claim) => `recovery-claim ${claim.run_id}/seg-${claim.run_segment_id} epoch=${claim.claim_epoch}`,
     stalePredicate: (claim, nowMs, env) => require("./runcheck").runIsHeld({ owner: claim.owner }, nowMs, env),
+    // FAFF-906: applySkewTolerance: false — NOT a claim that this ref namespace is same-box (it
+    // can be read cross-box; see the header comment above this binding). Set false because a wrong
+    // verdict here costs one avoided-but-harmless resume attempt (confirmHead's CAS refuses the
+    // loser), while on buildClaimStore/landingClaimStore a wrong verdict hands over live,
+    // destructive work — see FAFF-906's "Design decision rationale" (ADR-0119) for the full
+    // argument. The default (an undeclared applySkewTolerance) stays true elsewhere; this binding
+    // is the one deliberate opt-out.
+    applySkewTolerance: false,
   });
   // Return WITHOUT `release` — the recovery claim has no release lifecycle.
   return { name: core.name, acquire: core.acquire, readHolder: core.readHolder, confirmHead: core.confirmHead, reclaimIfStale: core.reclaimIfStale };
@@ -849,6 +877,22 @@ function resolveClaimTtlHours(root, env) {
   const val = (raw === null || raw === undefined || raw === "") ? DEFAULTS["claim_ttl_hours"] : raw;
   const n = Number(val);
   return Number.isFinite(n) && n >= 0 ? n : 6; // config.js CANONICAL_CONFIG default
+}
+
+// FAFF-906: the cross-machine clock-skew tolerance `reclaimIfStale` subtracts from `Date.now()`
+// before handing `nowMs` to a binding's `stalePredicate`, so a reader whose clock runs ahead of
+// the holder's by up to this many seconds does not misjudge a live, heartbeating holder as stale.
+// Env-var-only (no `.faffrc.yaml` key), mirroring FAFF_RUN_HEARTBEAT_STALE_SECS's own precedent.
+// A best-effort mitigation, not a guarantee: skew beyond this value is unmitigated (see the WHY
+// section of FAFF-906's spec / ADR-0119) — `confirmHead`'s CAS is the actual backstop regardless.
+const CLAIM_CLOCK_SKEW_TOLERANCE_SECS_DEFAULT = 60;
+function resolveClaimClockSkewToleranceSecs(env) {
+  const raw = env && env.FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS;
+  if (raw != null && String(raw).trim() !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return CLAIM_CLOCK_SKEW_TOLERANCE_SECS_DEFAULT;
 }
 
 // FAFF-889: given a build claim's frozen owner snapshot, resolve its run-dir on THIS filesystem
@@ -1406,6 +1450,30 @@ function bundleSelftest() {
       const hcConfirmB = storeB.confirmHead(hcIdentity, hcReclaimB.sha);
       ok(hcConfirmB.confirmed === true, "recoveryClaimStore: B's head-confirm against its own (winning) sha succeeds");
 
+      // FAFF-906 QA regression guard: proves recoveryClaimStore's `applySkewTolerance: false` is
+      // LOAD-BEARING, not incidental — the identical hcReclaimB scenario (2s-old heartbeat, an
+      // injected 1s staleness window) run against a binding that inherits the DEFAULT tolerance
+      // (applySkewTolerance omitted -> true) must NOT reclaim: the 60s tolerance shifts
+      // skewedNowMs enough that the 2s-old heartbeat reads as still fresh even under the injected
+      // 1s window (effective age is negative). A build that dropped `applySkewTolerance: false`
+      // from recoveryClaimStore's spec object fails THIS assertion, not just a silently-still-
+      // green hcReclaimB above.
+      const defaultedToleranceStore = claimStoreCore(rootB, "origin", {
+        name: "git-remote-recovery-claim-defaulted-tolerance-selftest",
+        refName: (identity) => recoveryClaimRefName(identity),
+        buildClaim: (identity, owner, epoch) => ({ run_id: identity.run_id, run_segment_id: identity.run_segment_id, owner, claim_epoch: epoch, claimed_at: new Date().toISOString() }),
+        commitMessage: (claim) => `recovery-claim ${claim.run_id}/seg-${claim.run_segment_id} epoch=${claim.claim_epoch}`,
+        stalePredicate: (claim, nowMs, env) => require("./runcheck").runIsHeld({ owner: claim.owner }, nowMs, env),
+        // applySkewTolerance intentionally OMITTED — exercises the default (true), i.e. what
+        // recoveryClaimStore's reclaim would compute if it inherited the tolerance instead of
+        // opting out.
+      });
+      const hcIdentityDefaulted = { run_id: runId, run_segment_id: 6 };
+      const hcAcquireADefaulted = storeA.acquire(hcIdentityDefaulted, recentOwner("session-hc-a-defaulted"));
+      ok(hcAcquireADefaulted.acquired === true, "recoveryClaimStore selftest fixture: defaulted-tolerance regression-guard claim acquired by A");
+      const hcReclaimBDefaulted = defaultedToleranceStore.reclaimIfStale(hcIdentityDefaulted, freshOwner("session-hc-b-defaulted"), wrongEnv);
+      ok(hcReclaimBDefaulted.reclaimed === false && hcReclaimBDefaulted.reason === "held", `recoveryClaimStore regression guard: the identical hcReclaimB scenario against a defaulted-tolerance binding does NOT reclaim (got ${JSON.stringify(hcReclaimBDefaulted)})`);
+
       // No force-overwrite of a live claim: a refused reclaim (the live-block case above) never
       // moves the ref head — a bare --force would have silently replaced it; instead the head is
       // provably unchanged.
@@ -1554,6 +1622,64 @@ function buildClaimSelftest() {
       const tHolder = storeB.readHolder(idT);
       ok(tHolder.status === "ok" && buildClaimStaleAware(rootB, tHolder.claim, Date.now(), process.env) === true,
         "buildClaimStore: release-if-stale gate leaves a fresh holder (buildClaimStaleAware reads held)");
+
+      // FAFF-906 Problem 1 — cross-box skew tolerance, exercised through reclaimIfStale (real
+      // process.env, no injected deps — buildClaimStaleAware's Row 3 cross-box path, matching the
+      // sReclaim/cReclaim/lReclaim fixtures above).
+      const idSkew1 = { issue: "FAFF-SKEW-920" };
+      storeA.acquire(idSkew1, arg("sess-skew1-a", "machine-A", true, 920 * 1000)); // 900s window + 20s into the 60s tolerance
+      const skew920 = storeB.reclaimIfStale(idSkew1, arg("sess-skew1-b", "machine-B", true), process.env);
+      ok(skew920.reclaimed === false && skew920.reason === "held",
+        `buildClaimStore: a cross-box claim 920s stale (20s into the 60s tolerance) is forgiven — reads held (got ${JSON.stringify(skew920)})`);
+
+      const idSkew2 = { issue: "FAFF-SKEW-990" };
+      storeA.acquire(idSkew2, arg("sess-skew2-a", "machine-A", true, 990 * 1000)); // 900s window + 90s, past the 60s tolerance
+      const skew990 = storeB.reclaimIfStale(idSkew2, arg("sess-skew2-b", "machine-B", true), process.env);
+      ok(skew990.reclaimed === true,
+        `buildClaimStore: a cross-box claim 990s stale (past the 60s tolerance) is still reclaimable — the tolerance is a bounded grace period, not a permanent deadlock (got ${JSON.stringify(skew990)})`);
+
+      // FAFF-906 QA fix (round 4): a paired two-case pin on the DEFAULT tolerance value itself —
+      // case A only pins a LOWER bound (any tolerance >= 59.5s passes, including a buggy 61s
+      // default); case B is the paired upper-bound (reclaims only at tolerance <= 60.5s, so a 61s
+      // default fails it). Together they pin the default to exactly 60 integer seconds, not merely
+      // a floor. Both cases explicitly delete FAFF_RUN_HEARTBEAT_STALE_SECS and
+      // FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS from the env passed to reclaimIfStale (never rely on
+      // ambient process.env state) so a CI environment that happens to set either cannot silently
+      // shift this test's oracle — no injected window override, since the DEFAULT itself is what
+      // must be pinned.
+      const pinEnv = { ...process.env };
+      delete pinEnv.FAFF_RUN_HEARTBEAT_STALE_SECS;
+      delete pinEnv.FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS;
+
+      const idPinA = { issue: "FAFF-SKEW-PIN-A" };
+      storeA.acquire(idPinA, arg("sess-pinA-a", "machine-A", true, 959500)); // 900s window + 59.5s
+      const pinA = storeB.reclaimIfStale(idPinA, arg("sess-pinA-b", "machine-B", true), pinEnv);
+      ok(pinA.reclaimed === false && pinA.reason === "held",
+        `buildClaimStore: default-tolerance pin, case A (lower bound) — 959500ms stale reads held; a 59s default would reclaim and fail this (got ${JSON.stringify(pinA)})`);
+
+      const idPinB = { issue: "FAFF-SKEW-PIN-B" };
+      storeA.acquire(idPinB, arg("sess-pinB-a", "machine-A", true, 960500)); // 900s window + 60.5s
+      const pinB = storeB.reclaimIfStale(idPinB, arg("sess-pinB-b", "machine-B", true), pinEnv);
+      ok(pinB.reclaimed === true,
+        `buildClaimStore: default-tolerance pin, case B (upper bound) — 960500ms stale reclaims; a 61s default would stay held and fail this (got ${JSON.stringify(pinB)})`);
+
+      // FAFF-906 Problem 2 — the build-claims lease race, mirroring the recovery-claims pushX/pushY
+      // fixture above: two reclaimers who both read the SAME stale head sha, then both attempt the
+      // lease-matched CAS against it — exactly one wins. Exercised at the pushClaimCommit level
+      // (module-internal) for the same reason the recovery-claims fixture is: a sequential
+      // reclaimIfStale-vs-reclaimIfStale pair cannot reproduce the race (the second call would just
+      // observe the first's already-landed fresh claim and refuse as held).
+      const idLeaseRace = { issue: "FAFF-LEASE-RACE" };
+      storeA.acquire(idLeaseRace, arg("sess-lr-a", "machine-A", true, 2000000)); // stale frozen hb
+      const leaseRaceRef = `refs/faff/build-claims/${idLeaseRace.issue}`;
+      const preReadBc = gitReadClaimManifest(rootA, "origin", leaseRaceRef);
+      ok(preReadBc.status === "ok", "buildClaimStore selftest fixture: lease-race pre-read finds the stale claim");
+      const bcClaimX = { issue: idLeaseRace.issue, owner: { session_id: "reclaimer-x" }, machine_id: "machine-X", heartbeating: true, claim_epoch: 1, claimed_at: new Date().toISOString() };
+      const bcClaimY = { issue: idLeaseRace.issue, owner: { session_id: "reclaimer-y" }, machine_id: "machine-Y", heartbeating: true, claim_epoch: 1, claimed_at: new Date().toISOString() };
+      const bcPushX = pushClaimCommit(rootA, "origin", leaseRaceRef, bcClaimX, (sha) => [`--force-with-lease=${leaseRaceRef}:${preReadBc.sha}`, `${sha}:${leaseRaceRef}`]);
+      const bcPushY = pushClaimCommit(rootB, "origin", leaseRaceRef, bcClaimY, (sha) => [`--force-with-lease=${leaseRaceRef}:${preReadBc.sha}`, `${sha}:${leaseRaceRef}`]);
+      ok((bcPushX.push.status === 0) !== (bcPushY.push.status === 0),
+        `buildClaimStore: two lease-matched CAS pushes against the SAME stale sha on refs/faff/build-claims/<issue> — exactly one succeeds (got X=${bcPushX.push.status}, Y=${bcPushY.push.status})`);
     } else {
       console.log("skip  buildClaimStore checks (git init unavailable in this environment)");
     }
@@ -1727,6 +1853,6 @@ module.exports = {
   localBundleStore, gitRemoteBundleStore, bundleRefName, resolveBundleStoreName, resolveBundleStore,
   publishBundle, verifyBundleIdentity, bundleExitCode, cmdBundle, bundleSelftest,
   recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, gitReadClaimManifest,
-  claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, defaultResolveClaimRunDir,
+  claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, resolveClaimClockSkewToleranceSecs, defaultResolveClaimRunDir,
   cmdBuildClaim, buildClaimSelftest,
 };

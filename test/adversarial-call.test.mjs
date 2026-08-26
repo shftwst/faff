@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import {
   buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
   preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
-  buildOpenAiPayload, modelServedOpenAi, accumulateSse, isAuthError,
+  buildOpenAiPayload, REASONING_EXTRA_KEYS, modelServedOpenAi, accumulateSse, isAuthError,
   buildAnthropicPayload, accumulateAnthropic, ANTHROPIC_VERSION,
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
@@ -227,6 +227,12 @@ test("FAFF-914 reasoning_extra: chat_template_kwargs DEEP-merges with a reasonin
 test("FAFF-914 reasoning_extra: applied LAST — an explicit extra wins per key over reasoning_effort (raw, unclamped)", () => {
   const body = buildOpenAiPayload({ model: "m", system: "S", user: "U", reasoningEffort: "xhigh", reasoningExtra: { reasoning_effort: "minimal" } });
   assert.equal(body.reasoning_effort, "minimal", "the raw operator override wins; not clamped through the faff vocabulary");
+});
+
+test("FAFF-918 reasoning_extra: thinking_token_budget is allowlisted and emits top-level (the cross-model empty-out fix)", () => {
+  const body = buildOpenAiPayload({ model: "unsloth/Qwen3.8-27B", system: "S", user: "U", reasoningExtra: { thinking_token_budget: 2000 } });
+  assert.equal(body.thinking_token_budget, 2000, "thinking_token_budget reaches the body top-level (vLLM's reasoning-cap shape)");
+  assert.equal(REASONING_EXTRA_KEYS.includes("thinking_token_budget"), true, "thinking_token_budget is in the allowlist");
 });
 
 test("modelServedOpenAi reads the {data:[{id}]} shape and matches exactly", () => {

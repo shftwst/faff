@@ -456,7 +456,22 @@ function clampEffortToWire(effort) {
 // model honours and faff merges it verbatim, without hard-coding each provider's API.
 // The set is reasoning-control ONLY — never faff-managed transport keys (model /
 // messages / stream / max_tokens / temperature), which a merge would corrupt.
-export const REASONING_EXTRA_KEYS = ["reasoning", "thinking", "reasoning_effort", "chat_template_kwargs"];
+//
+// FAFF-918: cross-model reasoning gotchas measured on the two spark vLLM builds
+// (same vLLM 0.26.1rc1.dev1133). Read before reaching for a reasoning lever:
+//   - `thinking_token_budget` (top-level int) hard-caps reasoning tokens so content
+//     always emits. It is the ONE lever that works on BOTH qwen3 and cohere_command4
+//     (north), and it fixes the empty-content bug (reasoning eating the whole
+//     max_tokens, content:null, finish_reason:"length"). It is set per-backend via
+//     reasoning_extra, never a shared default.
+//   - `reasoning_effort` levels other than "none" are NOT graded on these builds
+//     (protocol.py: enable_thinking = reasoning_effort != "none"); "none" turns
+//     reasoning off on both.
+//   - `chat_template_kwargs.enable_thinking` is model-specific: honoured on qwen3,
+//     silently IGNORED on cohere_command4 (its parser has no enable_thinking path).
+//   - usage.reasoning_tokens reads 0 on cohere_command4 even while reasoning runs;
+//     detect the empty-out via finish_reason=="length" && content==null, not it.
+export const REASONING_EXTRA_KEYS = ["reasoning", "thinking", "reasoning_effort", "chat_template_kwargs", "thinking_token_budget"];
 
 // PURE: merge an allowlisted `reasoning_extra` object onto an OpenAI payload body, in
 // place, returning it. Fail-closed: a key outside REASONING_EXTRA_KEYS throws, so a

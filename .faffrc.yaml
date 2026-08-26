@@ -47,13 +47,23 @@ backends:
       model: unsloth/Qwen3.8-27B-NVFP4
       host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
       api_key_env: DUMMY_API_KEY
-      reasoning_off: true
+      # FAFF-918: bounded reasoning-ON. thinking_token_budget hard-caps reasoning tokens so a
+      # review both reasons AND emits findings (was `reasoning_off: true`, which on qwen suppresses
+      # reasoning entirely and misses real bugs). 2000 is a tunable starting point (FAFF-920); at
+      # max_tokens 32000 it leaves ~30k for findings and clears the empty-out knee comfortably.
+      reasoning_extra:
+          thinking_token_budget: 2000
   spark-north-code-mini:
       provider: openai
       model: CohereLabs/North-Mini-Code-1.0-fp8
       host: https://spark.longhair-escalator.ts.net/north-code-mini/v1
       api_key_env: DUMMY_API_KEY
-      reasoning_off: true
+      # FAFF-918: bounded reasoning-ON via thinking_token_budget. NOTE the prior `reasoning_off: true`
+      # was INERT here: cohere_command4's parser ignores chat_template_kwargs.enable_thinking, so this
+      # backend was still reasoning (and emptying out) despite reading as "off". The budget cap is the
+      # lever that actually works on this build.
+      reasoning_extra:
+          thinking_token_budget: 2000
   openrouter-deepseek-v4-flash:
       provider: openai                       # OpenRouter is OpenAI-compatible
       model: deepseek/deepseek-v4-flash-0731

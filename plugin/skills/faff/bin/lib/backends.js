@@ -173,6 +173,11 @@ function normalizeBackend(name, raw) {
   b.seat_token_env = present(raw.seat_token_env) ? String(raw.seat_token_env) : undefined;
   b.reasoning_off = raw.reasoning_off === true ? true : undefined;
   b.reasoning_effort = present(raw.reasoning_effort) ? String(raw.reasoning_effort) : undefined;
+  // FAFF-918: carry the per-backend reasoning_extra object through the refs path too. FAFF-914
+  // added it to BACKEND_RECORD_KEYS but never copied it here, so a refs-resolved backend silently
+  // dropped it and the passthrough only worked via the inline `backends:` array form. Object value
+  // (validated downstream by mergeReasoningExtra's allowlist), so no String() coercion.
+  b.reasoning_extra = present(raw.reasoning_extra) ? raw.reasoning_extra : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.first_byte_timeout = present(raw.first_byte_timeout) ? Number(raw.first_byte_timeout) : undefined;
   // FAFF-877: the shared supervisor's TOTAL operation-budget override (seconds) — distinct
@@ -599,6 +604,11 @@ function backendsSelftest() {
     normalizeBackend("x", { provider: "nvidia", model: "m" }).backend.reasoning_effort === undefined);
   ok("normalizeBackend: reasoning_effort carried onto the record",
     normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_effort: "xhigh" }).backend.reasoning_effort === "xhigh");
+  // --- reasoning_extra (FAFF-918: carried through the refs path, the FAFF-914 drop) -----------
+  ok("normalizeBackend: reasoning_extra absent -> undefined (byte-identical when unset)",
+    normalizeBackend("x", { provider: "nvidia", model: "m" }).backend.reasoning_extra === undefined);
+  ok("normalizeBackend: reasoning_extra object carried onto the record (refs path no longer drops it)",
+    normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_extra: { thinking_token_budget: 2000 } }).backend.reasoning_extra?.thinking_token_budget === 2000);
   ok("normalizeBackend: reasoning_effort accepts every faff tier",
     ["low", "medium", "high", "xhigh", "max"].every((v) =>
       normalizeBackend("x", { provider: "nvidia", model: "m", reasoning_effort: v }).backend.reasoning_effort === v));

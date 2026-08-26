@@ -1,0 +1,11 @@
+{
+  "signal": "unavailable",
+  "findings": [
+    {
+      "severity": "observation",
+      "title": "Adversarial code-review chain outage",
+      "description": "Phase 1 (standard structural review) passed. Phase 2 (adversarial second opinion, faffter-dark-adversarial-review) could not produce a verdict: the primary backend (spark-qwen, unsloth/Qwen3.8-27B-NVFP4) returned malformed output (no recognised finding section), and the fallback (studio-qwen) hung well past a reasonable window without returning. The chain was killed rather than left running indefinitely. No genuinely new code-level finding was obtained from either backend."
+    }
+  ],
+  "adversarial_outcome": "chain-outage-unresolved"
+}

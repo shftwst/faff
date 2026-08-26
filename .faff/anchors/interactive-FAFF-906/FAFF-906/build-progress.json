@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-906",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b31b98aca4d2ac82c1014cfbf985ae79c132be5e59c4c9601e0caff6805ddf64",
+    "branch": "faff-906-harden-the-shared-claim-store-stalenessreclaim-primitive",
+    "pushed_at": "2026-08-25T20:09:05.219Z"
+  },
+  "updated_at": "2026-08-25T20:09:05.219Z"
+}

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-917",
+  "build": {
+    "status": "complete",
+    "diff_hash": "bc2f713e6aef56807c6a996e8edf5750abf63f5c7010b2d12892ad2c9044f7f7",
+    "branch": "faff-917-rename-adversarial-output-cap-config-key-max-tokens",
+    "pushed_at": "2026-08-26T18:41:52.275Z"
+  },
+  "updated_at": "2026-08-26T18:41:52.275Z"
+}

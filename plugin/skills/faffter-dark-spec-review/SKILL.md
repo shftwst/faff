@@ -66,6 +66,12 @@ backends_json=$(mktemp)
 "$faff" spec-review-pin --resolve --dir "$pin_dir" --consumer spec_review > "$backends_json"; backends_exit=$?
 timeout=$("$faff" config get adversarial.spec_review.timeout)
 [ -z "$timeout" ] && timeout=$("$faff" config get adversarial.timeout -d 120)
+# Output-token cap (num_predict): per-consumer override, else global, else the 2000 default — the same
+# two-read fallback as timeout. The -gt 0 guard resets a present-but-non-positive-integer value
+# (empty/non-numeric/float/0/negative) back to 2000, so no NaN/null/max_tokens:0 reaches the wire.
+num_predict=$("$faff" config get adversarial.spec_review.num_predict)
+[ -z "$num_predict" ] && num_predict=$("$faff" config get adversarial.num_predict -d 2000)
+[ "$num_predict" -gt 0 ] 2>/dev/null || num_predict=2000
 
 case "$backends_exit" in
   0)
@@ -75,7 +81,7 @@ case "$backends_exit" in
     # refute-<lens>.md. Written to one temp JSON file, e.g.:
     #   [{"lens":"architectural","argv":["--backends-json","...","--system","refute-architectural.md",...]}, ...]
     requests_json=$(mktemp)
-    node -e 'const lenses = process.argv.slice(1); const reqs = lenses.map((lens) => ({ lens, argv: [/* --backends-json, --timeout, --system refute-<lens>.md, --context..., --diff */] })); process.stdout.write(JSON.stringify(reqs));' "${enabled_lenses[@]}" > "$requests_json"
+    node -e 'const lenses = process.argv.slice(1); const reqs = lenses.map((lens) => ({ lens, argv: [/* --backends-json, --timeout, --num-predict, --system refute-<lens>.md, --context..., --diff */] })); process.stdout.write(JSON.stringify(reqs));' "${enabled_lenses[@]}" > "$requests_json"
     node "$FANOUT" --requests "$requests_json"   # ONE call — spawns every lens concurrently, waits for all
     ;;
   3) : ;; # unconfigured — the resolver found no chain; every lens's outcome is unavailable/config-fault, below
@@ -85,7 +91,7 @@ esac
 
 **Pin capture (after aggregation, round 1 only in effect).** Once the round's lens results are in hand, capture the round-1 serving backend as the pin so rounds ≥ 2 hold this reviewer. From each **exit-0** lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`) parse the `chain[<i>]` index; take `winner_index = min(i)` across the served lenses (the lowest chain index that served any lens — the strongest reachable reviewer). Then `"$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index <winner_index>` — idempotent, so it writes the pin only on round 1 and is a no-op on rounds ≥ 2. If **no** lens served (empty exit-0 set) skip capture (nothing to pin; the round is `needs-human` via the transport floor anyway, and no stale pin is left behind). prep reads the served header vs the pin to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
 
-Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received: `--backends-json "$backends_json" --timeout "$timeout" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file>`.
+Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received, plus the resolved output-token cap (assembled once, identical across every lens in the pass — like `$timeout`, not per lens): `--backends-json "$backends_json" --timeout "$timeout" --num-predict "$num_predict" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file>`.
 
 - The **spec** is supplied as `--diff` (the thing under scrutiny); the files the spec names as `--context`; the lens refutation prompt as `--system`.
 - **Wire shape.** `review-call.mjs` puts the shared context+spec block in the cacheable **prefix** position (the builders' `system` slot) and the per-lens `--system` brief in the trailing `user` turn. The CLI flags are unchanged; only the wire ordering places the ~15K-token context+spec block, byte-identical across the four lenses, at the front, so a prefix-caching backend reuses its prefill (lens 1 populates the cache, lenses 2 to 4 hit it).

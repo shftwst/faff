@@ -360,6 +360,13 @@ adversarial:
                 # slow Phase-2 fits one subagent turn (default 480, under the 900s staleness window). Deadline-
                 # exceeded → the second opinion is skipped (pass+skip, logged loudly), never a mid-turn stall.
                 # Tune up if `phase2: skipped-deadline` shows in run logs while backends were healthy.
+  # num_predict: 2000  # OPTIONAL output-token cap for the reviewer's findings (OpenAI/anthropic max_tokens,
+                       # ollama options.num_predict). Default 2000; auto-doubled once to 4000 on a truncation
+                       # retry. Resolution: adversarial.<consumer>.num_predict || adversarial.num_predict || 2000
+                       # (per-consumer e.g. adversarial.code_review.num_predict / adversarial.spec_review.num_predict).
+                       # Raise it (e.g. 8000) for a verbose reviewer that overruns 2000 on a large diff and
+                       # returns empty/malformed. This raises the reasoning-OFF ceiling only — it does NOT make a
+                       # reasoning-ON backend viable on a large prompt (that over-deliberates past any sane cap).
   # FAFF-232 — OPTIONAL ordered fallback chain. The block above is the PRIMARY backend; `fallbacks`
   # adds further backends, each tried in order when the one before fails to produce findings
   # (rate-limit / unreachable / persistent transport failure / auth / not-served). First findings win;

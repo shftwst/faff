@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-911",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0a85ced8ffc3b26f35cb21837b216099e0282574822c0e826fdb32668ae0d9f5",
+    "branch": "faff-911-make-the-adversarial-review-output-cap-num_predict-operator",
+    "pushed_at": "2026-08-26T03:13:33.179Z"
+  },
+  "updated_at": "2026-08-26T03:13:33.179Z"
+}

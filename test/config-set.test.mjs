@@ -143,6 +143,55 @@ test("per-consumer timeout IS a writable scalar leaf (not caught by the refs car
   assert.match(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), /spec_review:/);
 });
 
+// FAFF-911: adversarial.num_predict — the operator-configurable output-token cap for the
+// adversarial-review dispatch. A plain scalar leaf under the already-writable `adversarial`
+// namespace (NOT a list-valued carve-out), global and per-consumer, readable with the same
+// -d fallback as adversarial.timeout / adversarial.deadline.
+test("adversarial.num_predict IS a writable scalar leaf", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "adversarial:\n  timeout: 120\n");
+  const r = run(dir, "config", "set", "adversarial.num_predict", "8000");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(run(dir, "config", "get", "adversarial.num_predict").out, "8000");
+});
+
+test("adversarial.spec_review.num_predict IS a writable per-consumer scalar leaf", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "adversarial:\n  num_predict: 8000\n");
+  const r = run(dir, "config", "set", "adversarial.spec_review.num_predict", "12000");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(run(dir, "config", "get", "adversarial.spec_review.num_predict").out, "12000");
+  // the code_review consumer, unset, falls through to the global via the caller's -d read
+  assert.equal(run(dir, "config", "get", "adversarial.code_review.num_predict", "-d", "8000").out, "8000");
+});
+
+test("adversarial.num_predict falls back to the -d default when unset", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "adversarial:\n  timeout: 120\n");
+  // no num_predict key present → the dispatch's `-d 2000` read yields the default
+  assert.equal(run(dir, "config", "get", "adversarial.num_predict", "-d", "2000").out, "2000");
+});
+
+// FAFF-911 negative test: the integer-normalisation guard both dispatch seams apply
+// (`[ "$num_predict" -gt 0 ] 2>/dev/null || num_predict=2000`) resets a present-but-non-positive
+// -integer value back to 2000, so no NaN / null / max_tokens:0 ever reaches the wire. A
+// present-but-non-integer config value bypasses `-d` (config get prints it verbatim, exit 0),
+// so this guard — not the -d default — is what closes the gap.
+function normaliseNumPredict(input) {
+  const script = 'num_predict="$1"; [ "$num_predict" -gt 0 ] 2>/dev/null || num_predict=2000; printf %s "$num_predict"';
+  return execFileSync("sh", ["-c", script, "sh", String(input)], { encoding: "utf8" });
+}
+
+test("num_predict guard: a non-positive-integer value normalises to 2000, a positive integer passes", () => {
+  // invalid → reset to 2000 (covers the DONE-mandated `abc` and `0`, plus empty / float / negative)
+  for (const bad of ["abc", "0", "00", "-1", "3.5", ""]) {
+    assert.equal(normaliseNumPredict(bad), "2000", `input ${JSON.stringify(bad)} should reset to 2000`);
+  }
+  // valid positive integers pass through untouched
+  assert.equal(normaliseNumPredict("8000"), "8000");
+  assert.equal(normaliseNumPredict("2000"), "2000");
+});
+
 test("holdout: refuses the inline-flow refs form, even with --force, file byte-unchanged", () => {
   const dir = tmpDir();
   const before = "adversarial:\n  refs: [nvidia-glm, studio-ollama]\n";

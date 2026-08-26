@@ -81,13 +81,23 @@ adversarial:
   #     deadline is a total wall-clock budget, GLOBAL (not per-consumer) and SLICED per backend
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
-  timeout: 600     # per-attempt stream deadline (s); default 120. spec_review's only clock. 6x-retry worst case (3600s) stays under the 7200s heartbeat window.
-  deadline: 1800   # code_review total wall-clock (s), sliced per backend (1800/3 = 600s = timeout, so no clamp); default 480. IGNORED by spec_review.
+  timeout: 1500    # per-attempt stream deadline (s); default 120. spec_review's only clock. Raised so one attempt can stream a full num_predict:32000 review (~24min at ~22 tok/s) without being cut mid-stream.
+  deadline: 3600   # code_review total wall-clock (s), sliced per backend; default 480. Raised above timeout so a long primary attempt still leaves the fallback chain room. IGNORED by spec_review.
   first_byte_timeout: 300
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
     - spark-north-code-mini
+  # Per-consumer output-token caps (FAFF-911). Raised well above the 2000 default so a verbose
+  # reasoning backend can emit its findings on a large diff instead of over-reasoning past the cap
+  # and returning empty (max_tokens / ollama options.num_predict). Resolution:
+  # adversarial.<consumer>.num_predict || adversarial.num_predict || 2000.
+  code_review:
+    refs:
+      - spark-north-code-mini
+    num_predict: 32000
+  spec_review:
+    num_predict: 32000
 models:
     build_by_confidence:
         default: inherit

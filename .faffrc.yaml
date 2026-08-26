@@ -48,19 +48,18 @@ backends:
       host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
       api_key_env: DUMMY_API_KEY
       reasoning_off: true
-      first_byte_timeout: 1200
   spark-north-code-mini:
       provider: openai
       model: CohereLabs/North-Mini-Code-1.0-fp8
       host: https://spark.longhair-escalator.ts.net/north-code-mini/v1
       api_key_env: DUMMY_API_KEY
       reasoning_off: true
-      first_byte_timeout: 1200
   openrouter-deepseek-v4-flash:
       provider: openai                       # OpenRouter is OpenAI-compatible
       model: deepseek/deepseek-v4-flash-0731
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
+      reasoning_off: true
       #timeout: 480
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
@@ -95,6 +94,8 @@ adversarial:
   code_review:
     refs:
       - spark-north-code-mini
+      - spark-qwen-3-8
+      - openrouter-deepseek-v4-flash
     max_tokens: 32000
   spec_review:
     max_tokens: 32000

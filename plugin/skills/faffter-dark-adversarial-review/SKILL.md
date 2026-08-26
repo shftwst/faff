@@ -181,19 +181,19 @@ consumer=code_review
 if [ -n "$consumer" ]; then timeout=$("$faff" config get "adversarial.$consumer.timeout"); fi
 [ -z "$timeout" ] && timeout=$("$faff" config get adversarial.timeout -d 120)
 deadline=$("$faff" config get adversarial.deadline -d 480)   # global — not split per-consumer
-# Output-token cap (num_predict): per-consumer override, else global, else the 2000 default.
+# Output-token cap (max_tokens): per-consumer override, else global, else the 2000 default.
 # Same two-read fallback + [ -n "$consumer" ] guard as timeout (an unset consumer would query the
-# malformed `adversarial..num_predict`). The -gt 0 guard resets a present-but-non-positive-integer
+# malformed `adversarial..max_tokens`). The -gt 0 guard resets a present-but-non-positive-integer
 # value (empty/non-numeric/float/0/negative) back to 2000, so no NaN/null/max_tokens:0 reaches the wire.
-if [ -n "$consumer" ]; then num_predict=$("$faff" config get "adversarial.$consumer.num_predict"); fi
-[ -z "$num_predict" ] && num_predict=$("$faff" config get adversarial.num_predict -d 2000)
-[ "$num_predict" -gt 0 ] 2>/dev/null || num_predict=2000
+if [ -n "$consumer" ]; then max_tokens=$("$faff" config get "adversarial.$consumer.max_tokens"); fi
+[ -z "$max_tokens" ] && max_tokens=$("$faff" config get adversarial.max_tokens -d 2000)
+[ "$max_tokens" -gt 0 ] 2>/dev/null || max_tokens=2000
 
 case "$backends_exit" in
   0)
     node "$REVIEW_SPAWN" --deadline "$deadline" -- \
     node "$REVIEW_CALL" --backends-json "$backends_json" --timeout "$timeout" --deadline "$deadline" \
-      --num-predict "$num_predict" \
+      --max-tokens "$max_tokens" \
       ${run_dir:+--run-dir "$run_dir"} \
       --system <review-lens-file> \
       --context <each file the diff touches> \

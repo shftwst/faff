@@ -81,7 +81,7 @@ adversarial:
   #     deadline is a total wall-clock budget, GLOBAL (not per-consumer) and SLICED per backend
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
-  timeout: 1500    # per-attempt stream deadline (s); default 120. spec_review's only clock. Raised so one attempt can stream a full num_predict:32000 review (~24min at ~22 tok/s) without being cut mid-stream.
+  timeout: 1500    # per-attempt stream deadline (s); default 120. spec_review's only clock. Raised so one attempt can stream a full max_tokens:32000 review (~24min at ~22 tok/s) without being cut mid-stream.
   deadline: 3600   # code_review total wall-clock (s), sliced per backend; default 480. Raised above timeout so a long primary attempt still leaves the fallback chain room. IGNORED by spec_review.
   first_byte_timeout: 300
   refs:
@@ -91,13 +91,13 @@ adversarial:
   # Per-consumer output-token caps (FAFF-911). Raised well above the 2000 default so a verbose
   # reasoning backend can emit its findings on a large diff instead of over-reasoning past the cap
   # and returning empty (max_tokens / ollama options.num_predict). Resolution:
-  # adversarial.<consumer>.num_predict || adversarial.num_predict || 2000.
+  # adversarial.<consumer>.max_tokens || adversarial.max_tokens || 2000.
   code_review:
     refs:
       - spark-north-code-mini
-    num_predict: 32000
+    max_tokens: 32000
   spec_review:
-    num_predict: 32000
+    max_tokens: 32000
 models:
     build_by_confidence:
         default: inherit

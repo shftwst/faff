@@ -125,7 +125,7 @@ test("runReview: truncation triggers exactly one retry at 2× the token budget",
 });
 
 test("parseArgs collects repeated --context and the scalar flags", () => {
-  const a = parseArgs(["--host", "http://h", "--model", "m", "--system", "s.txt", "--diff", "d.txt", "--context", "a", "--context", "b", "--num-predict", "1500"]);
+  const a = parseArgs(["--host", "http://h", "--model", "m", "--system", "s.txt", "--diff", "d.txt", "--context", "a", "--context", "b", "--max-tokens", "1500"]);
   assert.equal(a.host, "http://h");
   assert.equal(a.model, "m");
   assert.deepEqual(a.context, ["a", "b"]);

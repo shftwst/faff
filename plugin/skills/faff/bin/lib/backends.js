@@ -26,7 +26,7 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
-  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "timeout", "first_byte_timeout",
+  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout",
   "telemetry", "operation_deadline_secs",
 ];
 

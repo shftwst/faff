@@ -32,7 +32,7 @@ const { resolveBackendRefs } = require("./backends");
 // Without them a seat backend referenced via `refs:` (FAFF-523) arrives stripped of its
 // seat identity and falls back to the absent api_key_env path. Absent on every metered
 // backend, so those emit byte-identically (present() gates the copy).
-const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "timeout", "first_byte_timeout"];
+const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout"];
 
 function present(v) { return v !== null && v !== undefined && v !== ""; }
 
@@ -63,7 +63,7 @@ function pickBackendKeys(obj) {
 // to inherit there). An explicit value on the fallback is never overwritten.
 function inheritOptionalFromPrimary(fallback, primary) {
   const out = pickBackendKeys(fallback);
-  for (const k of ["api_key_env", "reasoning_off", "reasoning_effort", "timeout", "first_byte_timeout"]) {
+  for (const k of ["api_key_env", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout"]) {
     if (!(k in out) && present(primary[k])) out[k] = primary[k];
   }
   return out;

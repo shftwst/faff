@@ -197,6 +197,38 @@ test("buildOpenAiPayload: reasoning_off wins over reasoning_effort (precedence, 
   assert.equal("reasoning_effort" in body, false, "reasoning_effort NOT emitted when reasoning_off wins");
 });
 
+test("FAFF-914 reasoning_extra: per-model shapes merge verbatim (deepseek reasoning:{}, north thinking:{})", () => {
+  const ds = buildOpenAiPayload({ model: "deepseek/deepseek-v4-flash", system: "S", user: "U", reasoningExtra: { reasoning: { enabled: false } } });
+  assert.deepEqual(ds.reasoning, { enabled: false }, "OpenRouter/deepseek off-switch reaches the body unchanged");
+  const north = buildOpenAiPayload({ model: "CohereLabs/North-Mini-Code", system: "S", user: "U", reasoningExtra: { thinking: { type: "disabled" } } });
+  assert.deepEqual(north.thinking, { type: "disabled" }, "Cohere/north native shape reaches the body unchanged");
+});
+
+test("FAFF-914 reasoning_extra: unset → payload byte-identical to today (field omitted)", () => {
+  const withExtra = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U", reasoningExtra: null });
+  const withoutParam = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U" });
+  assert.deepEqual(withExtra, withoutParam, "null reasoningExtra changes nothing");
+});
+
+test("FAFF-914 reasoning_extra: fail-closed — a key outside the allowlist throws (never silently egresses)", () => {
+  assert.throws(
+    () => buildOpenAiPayload({ model: "m", system: "S", user: "U", reasoningExtra: { max_tokens: 99999 } }),
+    /unsupported key "max_tokens"/,
+    "a faff-managed / unmodelled key is rejected at the emit boundary",
+  );
+  assert.throws(() => buildOpenAiPayload({ model: "m", system: "S", user: "U", reasoningExtra: [1, 2] }), /must be an object/);
+});
+
+test("FAFF-914 reasoning_extra: chat_template_kwargs DEEP-merges with a reasoning_off default (composes, no clobber)", () => {
+  const body = buildOpenAiPayload({ model: "m", system: "S", user: "U", reasoningOff: true, reasoningExtra: { chat_template_kwargs: { reasoning_effort: "low" } } });
+  assert.deepEqual(body.chat_template_kwargs, { thinking: false, enable_thinking: false, reasoning_effort: "low" }, "reasoning_off's keys survive; the extra sub-key is added");
+});
+
+test("FAFF-914 reasoning_extra: applied LAST — an explicit extra wins per key over reasoning_effort (raw, unclamped)", () => {
+  const body = buildOpenAiPayload({ model: "m", system: "S", user: "U", reasoningEffort: "xhigh", reasoningExtra: { reasoning_effort: "minimal" } });
+  assert.equal(body.reasoning_effort, "minimal", "the raw operator override wins; not clamped through the faff vocabulary");
+});
+
 test("modelServedOpenAi reads the {data:[{id}]} shape and matches exactly", () => {
   const models = { data: [{ id: "deepseek-ai/deepseek-v4-pro" }, { id: "meta/llama-3.1-70b" }] };
   assert.equal(modelServedOpenAi(models, "deepseek-ai/deepseek-v4-pro").served, true);
@@ -291,6 +323,21 @@ test("runReview dispatch → openai: reasoningEffort threads end-to-end and clam
   assert.equal(r.status, "ok");
   assert.equal(sentBody.reasoning_effort, "high", "xhigh clamped to high on the wire, threaded end-to-end from runReview");
   assert.equal("chat_template_kwargs" in sentBody, false);
+});
+
+test("FAFF-914 runReview dispatch → openai: reasoningExtra threads end-to-end onto the wire body verbatim", async () => {
+  let sentBody;
+  const r = await runReview({
+    provider: "openai", host: "https://openrouter.ai/api/v1", model: "deepseek/deepseek-v4-flash",
+    system: "S", user: "U", apiKey: "or-KEY", reasoningExtra: { reasoning: { enabled: false } },
+    getFn: async () => JSON.stringify({ data: [{ id: "deepseek/deepseek-v4-flash" }] }),
+    streamFn: async (_url, body) => {
+      sentBody = JSON.parse(body);
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### observation: no findings" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.deepEqual(sentBody.reasoning, { enabled: false }, "the deepseek off-switch reached the wire, threaded end-to-end from runReview");
 });
 
 test("runReview dispatch → openai: SSE truncation triggers exactly one retry at 2× max_tokens", async () => {

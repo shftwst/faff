@@ -960,7 +960,7 @@ export function parseArgs(argv) {
     else if (k === "--system") a.system = argv[++i];
     else if (k === "--diff") a.diff = argv[++i];
     else if (k === "--context") a.context.push(argv[++i]);
-    else if (k === "--num-predict") a.numPredict = Number(argv[++i]);
+    else if (k === "--max-tokens") a.numPredict = Number(argv[++i]);
     else if (k === "--timeout") a.timeoutMs = Number(argv[++i]) * 1000;
     else if (k === "--deadline") a.totalDeadlineMs = Number(argv[++i]) * 1000;   // FAFF-329: TOTAL wall-clock ceiling across ALL attempts + fallback backends (distinct from --timeout, which bounds ONE stream attempt)
     else if (k === "--host-source") a.hostSource = argv[++i];
@@ -1307,7 +1307,7 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N]\n");
     return EXIT.USAGE;
   }
 

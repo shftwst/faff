@@ -447,6 +447,41 @@ function clampEffortToWire(effort) {
   }
 }
 
+// FAFF-914: the allowlist of top-level payload keys a per-backend `reasoning_extra`
+// passthrough may set. Reasoning models diverge on the wire shape they read for the
+// SAME intent — qwen3 honours top-level `reasoning_effort`; a Cohere/north model reads
+// `thinking:{type}`; an OpenRouter/deepseek model reads `reasoning:{enabled|effort}` —
+// so no single faff-modelled field (reasoning_off / reasoning_effort) reaches them all.
+// `reasoning_extra` is the escape hatch: the operator declares whatever shape THEIR
+// model honours and faff merges it verbatim, without hard-coding each provider's API.
+// The set is reasoning-control ONLY — never faff-managed transport keys (model /
+// messages / stream / max_tokens / temperature), which a merge would corrupt.
+export const REASONING_EXTRA_KEYS = ["reasoning", "thinking", "reasoning_effort", "chat_template_kwargs"];
+
+// PURE: merge an allowlisted `reasoning_extra` object onto an OpenAI payload body, in
+// place, returning it. Fail-closed: a key outside REASONING_EXTRA_KEYS throws, so a
+// typo or an unmodelled field surfaces at the call boundary rather than silently
+// egressing into the request. `chat_template_kwargs` DEEP-merges one level so an
+// explicit extra composes with a `reasoning_off` default already on the body (which
+// sets thinking/enable_thinking there); every other key is a top-level set. The caller
+// applies it AFTER the reasoning_off/reasoning_effort branch, so an explicit extra wins
+// per key — the operator's deliberate override for a model faff doesn't model natively.
+export function mergeReasoningExtra(body, extra) {
+  if (extra == null) return body;
+  if (typeof extra !== "object" || Array.isArray(extra)) throw new Error("reasoning_extra must be an object");
+  for (const [k, v] of Object.entries(extra)) {
+    if (!REASONING_EXTRA_KEYS.includes(k)) {
+      throw new Error(`reasoning_extra: unsupported key ${JSON.stringify(k)} (allowed: ${REASONING_EXTRA_KEYS.join(", ")})`);
+    }
+    if (k === "chat_template_kwargs" && body.chat_template_kwargs && v && typeof v === "object") {
+      body.chat_template_kwargs = { ...body.chat_template_kwargs, ...v };
+    } else {
+      body[k] = v;
+    }
+  }
+  return body;
+}
+
 // PURE: the /v1/chat/completions payload. reasoningOff adds
 // chat_template_kwargs:{thinking:false, enable_thinking:false} — the OpenAI-compatible
 // analogue of ollama's think:false, needed by reasoning models that else stream empty
@@ -461,7 +496,11 @@ function clampEffortToWire(effort) {
 // clampEffortToWire — but ONLY when reasoningOff is false (reasoning_off wins on the
 // wire, mirroring engine.js's buildEngineRequest `if/else if` precedent). Unset
 // reasoningEffort (the default null) changes nothing — byte-identical to today.
-export function buildOpenAiPayload({ model, system, user, maxTokens = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, temperature = 0.2 }) {
+// FAFF-914: reasoningExtra (a per-backend `reasoning_extra` object) is merged LAST via
+// mergeReasoningExtra — the per-model escape hatch for a wire shape faff doesn't model
+// natively (e.g. deepseek's `reasoning:{enabled:false}`, north's `thinking:{type}`).
+// Unset (the default null) changes nothing — byte-identical to today.
+export function buildOpenAiPayload({ model, system, user, maxTokens = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, reasoningExtra = null, temperature = 0.2 }) {
   if (!model) throw new Error("buildOpenAiPayload requires a model");
   const body = {
     model,
@@ -475,6 +514,7 @@ export function buildOpenAiPayload({ model, system, user, maxTokens = DEFAULT_NU
   };
   if (reasoningOff) body.chat_template_kwargs = { thinking: false, enable_thinking: false };
   else if (reasoningEffort) body.reasoning_effort = clampEffortToWire(reasoningEffort);
+  mergeReasoningExtra(body, reasoningExtra);
   return body;
 }
 
@@ -809,9 +849,9 @@ export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, ti
   return { unreachable: false, served, names };
 }
 
-async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs, firstByteMs }) {
+async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs, firstByteMs }) {
   const headers = apiKey ? { authorization: `Bearer ${apiKey}` } : {};
-  const body = JSON.stringify(buildOpenAiPayload({ model, system, user, maxTokens: numPredict, reasoningOff, reasoningEffort }));
+  const body = JSON.stringify(buildOpenAiPayload({ model, system, user, maxTokens: numPredict, reasoningOff, reasoningEffort, reasoningExtra }));
   const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/chat/completions"), body, timeoutMs, headers, firstByteMs);  // FAFF-885
   return accumulateSse(raw);
 }
@@ -822,7 +862,7 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
 // terminal (isTransientTransport is FALSE for 401/403, so the wrapper rethrows it into the auth catch);
 // an exhausted transport fault surfaces status "transport-failed" → a documented exit, never EXIT.OTHER.
 async function runReviewOpenAi({
-  host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, apiKey,
+  host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, reasoningExtra = null, apiKey,
   getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
 }) {
   const pf = await preflightOpenAi({ host, model, apiKey, getFn });
@@ -836,9 +876,9 @@ async function runReviewOpenAi({
     : timeoutMs);
   try {
     const streamCall = async () => {
-      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
+      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
       if (out.truncated) {
-        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
+        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
       }
       return out;
     };
@@ -928,6 +968,11 @@ export function parseArgs(argv) {
     else if (k === "--api-key-env") a.apiKeyEnv = argv[++i];
     else if (k === "--reasoning-off") a.reasoningOff = true;
     else if (k === "--reasoning-effort") a.reasoningEffort = argv[++i];   // FAFF-873: low|medium|high|xhigh|max — clamped to the wire ceiling in buildOpenAiPayload
+    else if (k === "--reasoning-extra") {   // FAFF-914: JSON object merged verbatim onto the OpenAI body (per-model reasoning-control passthrough) — e.g. '{"reasoning":{"enabled":false}}'
+      const raw = argv[++i];
+      try { a.reasoningExtra = JSON.parse(raw); }
+      catch (e) { throw new Error(`--reasoning-extra: not valid JSON: ${e.message}`); }
+    }
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
@@ -1165,7 +1210,7 @@ export async function runReviewChain(chain = [], shared = {}) {
     const callReview = () => runReviewFn({
       host: b.host, model: b.model, provider: b.provider,
       system: shared.system, user: shared.user, numPredict: shared.numPredict,
-      reasoningOff: b.reasoningOff, reasoningEffort: b.reasoningEffort, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
+      reasoningOff: b.reasoningOff, reasoningEffort: b.reasoningEffort, reasoningExtra: b.reasoningExtra, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
       hardDeadlineMs: backendDeadline,   // FAFF-617: the per-backend SLICE, not the shared start+total deadline
       firstByteMs: b.firstByteMs,        // FAFF-885: per-attempt first-byte window (per-backend; undefined ⇒ pass-through)
       getFn: shared.getFn, streamFn: shared.streamFn,
@@ -1262,7 +1307,7 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--max-payload-bytes N]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N]\n");
     return EXIT.USAGE;
   }
 
@@ -1290,6 +1335,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       seatTokenEnv: b.seat_token_env || b.seatTokenEnv,
       reasoningOff: b.reasoning_off ?? b.reasoningOff ?? false,
       reasoningEffort: b.reasoning_effort ?? b.reasoningEffort,   // FAFF-873: snake_case (config) tolerated alongside camelCase, matching reasoning_off
+      reasoningExtra: b.reasoning_extra ?? b.reasoningExtra ?? null,   // FAFF-914: per-model reasoning-control passthrough (snake_case config / camelCase tolerated)
       timeoutMs: (b.timeout != null) ? Number(b.timeout) * 1000 : a.timeoutMs,
       firstByteMs: resolveFirstByteMs(b.first_byte_timeout ?? b.firstByteTimeout, a.firstByteMs),   // FAFF-885
     }));
@@ -1300,7 +1346,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     }
     chain = [{
       provider: a.provider, model: a.model, host: a.host, hostSource: a.hostSource,
-      apiKeyEnv: a.apiKeyEnv, reasoningOff: a.reasoningOff, reasoningEffort: a.reasoningEffort, timeoutMs: a.timeoutMs,
+      apiKeyEnv: a.apiKeyEnv, reasoningOff: a.reasoningOff, reasoningEffort: a.reasoningEffort, reasoningExtra: a.reasoningExtra, timeoutMs: a.timeoutMs,
       firstByteMs: resolveFirstByteMs(undefined, a.firstByteMs),   // FAFF-885
     }];
   }

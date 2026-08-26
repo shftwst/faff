@@ -227,9 +227,9 @@ test("CLI: --selftest passes", () => {
 test("round-trip: emitted keys are a subset of the fields review-call.mjs's mapper reads", () => {
   // The mapper (review-call.mjs, --backends-json handling) reads exactly:
   //   b.provider, b.model, b.host, b.api_key_env (|| b.apiKeyEnv), b.reasoning_off (?? b.reasoningOff ?? false),
-  //   b.reasoning_effort (?? b.reasoningEffort), b.timeout, b.first_byte_timeout
+  //   b.reasoning_effort (?? b.reasoningEffort), b.reasoning_extra (?? b.reasoningExtra), b.timeout, b.first_byte_timeout
   //   plus (FAFF-481) b.auth + b.seat_token_env — the subscription-seat identity it resolves the seat token from.
-  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "timeout", "first_byte_timeout"]);
+  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout"]);
   assert.deepEqual(new Set(BACKEND_KEYS), MAPPER_ACCEPTED_KEYS);
 
   const cfg = { adversarial: {
@@ -241,6 +241,29 @@ test("round-trip: emitted keys are a subset of the fields review-call.mjs's mapp
     for (const key of Object.keys(backend)) assert.ok(MAPPER_ACCEPTED_KEYS.has(key), `emitted key '${key}' must be mapper-accepted`);
   }
   assert.equal(chain[0].reasoning_effort, "xhigh", "reasoning_effort MUST be among the emitted keys when set");
+});
+
+test("FAFF-914: reasoning_extra round-trips (object value) and inherits onto a fallback that omits it", () => {
+  const cfg = { adversarial: {
+    provider: "openai", model: "deepseek/deepseek-v4-flash", host: "https://openrouter.ai/api/v1",
+    api_key_env: "OPENROUTER_API_KEY", reasoning_extra: { reasoning: { enabled: false } },
+    fallbacks: '[{"provider":"openai","model":"CohereLabs/North-Mini-Code","host":"https://spark/north/v1","api_key_env":"K"}]',
+  } };
+  const { chain } = assembleAdversarialBackends(cfg);
+  assert.deepEqual(chain[0].reasoning_extra, { reasoning: { enabled: false } }, "object value emitted verbatim on the primary");
+  assert.deepEqual(chain[1].reasoning_extra, { reasoning: { enabled: false } }, "inherited onto a fallback that omits it, exactly like reasoning_off/reasoning_effort");
+});
+
+test("FAFF-914: reasoning_extra unset → omitted from the emitted chain (byte-identical to today)", () => {
+  const { chain } = assembleAdversarialBackends({ adversarial: { provider: "nvidia", model: "m", host: "https://a/v1" } });
+  assert.equal("reasoning_extra" in chain[0], false);
+});
+
+test("FAFF-914: a fallback's OWN reasoning_extra is never overwritten by inheritance", () => {
+  const primary = { provider: "openai", model: "m", host: "h", reasoning_extra: { reasoning: { enabled: false } } };
+  const fb = { provider: "openai", model: "n", host: "h2", reasoning_extra: { thinking: { type: "disabled" } } };
+  const out = inheritOptionalFromPrimary(fb, primary);
+  assert.deepEqual(out.reasoning_extra, { thinking: { type: "disabled" } }, "the fallback keeps its own shape (north's thinking, not the primary's reasoning)");
 });
 
 // The spec's own integration smoke test: a real .faffrc (nvidia primary + ollama fallback),

@@ -1,0 +1,98 @@
+{
+  "level": "L3",
+  "run_id": "run-20260827-084310-beepboop-list-b6d146",
+  "admitted": [
+    "FAFF-849",
+    "FAFF-842",
+    "FAFF-896"
+  ],
+  "outcomes": {
+    "FAFF-639": "routed-out",
+    "FAFF-849": "shipped",
+    "FAFF-842": "shipped"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [
+    "FAFF-849"
+  ],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [
+    {
+      "issue": "FAFF-849",
+      "pr": 762,
+      "merge_sha": "af8b8c1941b94950b235f3b2e5460345673966c8",
+      "command": "node --import ./test/hermetic-env.mjs --test"
+    },
+    {
+      "issue": "FAFF-842",
+      "pr": 761,
+      "merge_sha": "ff4469328f899418e5cab01d32d63ffd77b1a8b8",
+      "command": "node --import ./test/hermetic-env.mjs --test"
+    }
+  ],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "price_per_mtok": 0
+    },
+    "tokens_at_start": 4174911,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "5197b420-12e2-47fc-82ae-d346a69b247e",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 44,
+        "output": 16373,
+        "cache_write": 315941,
+        "cache_read": 3842553
+      }
+    },
+    "window": {
+      "anchor_epoch": 1787820244537,
+      "reset_epoch": 1787838244537,
+      "tokens_at_anchor": 591303
+    },
+    "tokens_at_last_event": {
+      "input": 136,
+      "output": 121604,
+      "cache_write": 615675,
+      "cache_read": 14330889
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 432,
+    "session_id": "run-20260827-084310-beepboop-list-b6d146",
+    "started_at": "2026-08-27T08:43:48Z",
+    "last_heartbeat": "2026-08-27T08:43:48Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-639": {
+      "state": "routed-out",
+      "verdict": "needs-human",
+      "reason": "umbrella superseded by executed human split (639a=FAFF-848 Done, 639b=FAFF-849); building umbrella as one unit contradicts executed curation; redirect to FAFF-849"
+    },
+    "FAFF-849": {
+      "state": "shipped",
+      "pr": 762,
+      "merge_sha": "4899a86",
+      "branch": "faff-849-639b-gate-ladder-runs-what-discovery-found-exclusion-rules",
+      "review": "pass (phase-2 adversarial skipped — backends unavailable)",
+      "post_merge": "verified-fail: 6 pre-existing env (jq-absent) UNIT fails; CI green"
+    },
+    "FAFF-842": {
+      "state": "shipped",
+      "pr": 761,
+      "merge_sha": "c921761",
+      "branch": "faff-842-feat-l3-cross-firing-resume-of-a-stranded-in-review-pr-beep",
+      "review": "pass (fresh adversarial, no new blocking findings; operator-adjudicated findings honored)",
+      "post_merge": "verified-fail: same 6 pre-existing env UNIT fails; CI green"
+    }
+  }
+}

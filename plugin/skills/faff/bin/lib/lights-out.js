@@ -1110,7 +1110,14 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   const clone = JSON.parse(JSON.stringify(ledger));
   overlayHeartbeat(clone, readHeartbeatFile(runDir));
   const held = runIsHeld(clone, Date.now(), process.env);
-  const cls = classifyReEnterable(ledger, { held });
+  // FAFF-896 read-side backstop: a frozen-fresh running owner whose only event since the
+  // last run-resume is that run-resume, aged past the deadclaim grace, is provably dead —
+  // reclaim it instead of trusting heartbeat age alone (covers the hard-kill case the
+  // same-session resumecheck Stop hook cannot fire on). Flows into the UNCHANGED FAFF-575
+  // epoch fence + FAFF-863 claim write path below.
+  const { resumeProvablyDead } = require("./resumecheck");
+  const provablyDead = resumeProvablyDead(runDir, Date.now(), process.env);
+  const cls = classifyReEnterable(ledger, { held, provablyDead });
   if (!cls.reEnterable) return emitRefuse(2, `lights-out --resume: ${cls.refuseReason}`, { state: cls.state });
   const priorState = cls.state;
 

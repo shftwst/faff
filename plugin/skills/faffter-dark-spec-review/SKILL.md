@@ -134,13 +134,13 @@ Supply exactly one refutation entry per enabled lens. `aggregate.mjs` **refuses 
 
 The rule it applies to a consistent set, in order:
 
-1. **Transport floor** — any `config-fault` unavailable lens → `needs-human` (a human must fix the config); an `infra-configured` unavailable lens whose missing vote could swing the verdict → `needs-human`.
+1. **Transport floor** — any `config-fault` unavailable lens → `needs-human` (a human must fix the config — not a transient the retry/hold loop can ride out); an `infra-configured` unavailable lens whose missing vote could swing the verdict → **`unavailable`** (FAFF-900: a mandatory spec-review *outage*, not a verdict about the spec — the orchestrator's in-turn retry / resumable outage-hold loop consumes this, distinct from the human-judgement-call `needs-human`).
 2. **Severity veto** — any `critical` objection → `reject-approach`.
 3. **Majority** — a strict majority of *enabled* lenses refuted (`ceil((n+1)/2)`) → `reject-approach`.
 4. **Minority** — at least one non-critical refutation → `revise`.
 5. **Clean** — all clear → `approve`.
 
-A lens is "refuted" only when it carries a **gating** objection (`critical`/`major`/`minor`); an `observation` is advisory and never gates. The refuters' `critical|major|minor|observation` vocabulary maps onto the contract's `blocker|major|minor` enum (`critical → blocker`, observations dropped). `needs-human` from the transport floor names the missing lens(es) as objections, so the founded-verdict invariant always holds.
+A lens is "refuted" only when it carries a **gating** objection (`critical`/`major`/`minor`); an `observation` is advisory and never gates. The refuters' `critical|major|minor|observation` vocabulary maps onto the contract's `blocker|major|minor` enum (`critical → blocker`, observations dropped). Both `needs-human` and `unavailable` from the transport floor name the missing lens(es) as objections (severity `blocker` for a `config-fault`, `major` — the founded default for a lens with no actual finding to grade — for a swing-capable `infra-configured` outage), so the founded-verdict invariant always holds.
 
 ## Output (the contract artifact)
 

@@ -33,3 +33,12 @@ test("faff next: todo + no spec → prep (discriminating negative case)", () => 
   const verdict = JSON.parse(stdout);
   assert.equal(verdict.next, "prep"); // a different input yields a different verdict — the assertion discriminates
 });
+
+test("faff next: backlog + high spec + --awaiting-spec-review → prep (FAFF-900 outage hold, not graft)", () => {
+  const { stdout, code } = faffNext(["--status", "backlog", "--spec", "high", "--awaiting-spec-review"]);
+  assert.equal(code, 0);
+  const verdict = JSON.parse(stdout);
+  // Without --awaiting-spec-review a backlog+high-spec issue would route to graft; the hold flag
+  // must override the confidence-derived route back to prep (review has not concluded).
+  assert.equal(verdict.next, "prep");
+});

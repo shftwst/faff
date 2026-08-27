@@ -138,6 +138,7 @@ The confidence gate above asks *is the spec internally well-formed?*. This gate 
 | `revise` | Apply the lensed fixes to the spec **in place**, re-rate, and re-review (bounded loop below). |
 | `reject-approach` | Route **by the objecting lens** (table below). |
 | `needs-human` | **Park** and surface the lensed objections for `/faff-wtf`. |
+| `unavailable` | A mandatory spec-review outage (the occupant's backend chain is down), **not** a verdict about the spec — see _Spec-review-outage disposition_ below. |
 
 **`reject-approach` routes by the objecting lens** — a deterministic function of the verdict's `objections: [{lens, severity}]`, no second inference layer:
 
@@ -166,13 +167,45 @@ This is a pure partition over the two disjoint, exhaustive lens sets — `{metho
 
 **Loop-cap convergence yield.** The count cap above **yields to a convergence signal** rather than firing as a fixed iteration count. Before parking at the cap, run `faff spec-review-convergence --dir $scratch --window-start $window_start` (the resolved scratch dir, bounded to the persisted window, never a hardcoded `.faff/runs/<run-id>/...` path) over the persisted `round-<n>.json` records within the current convergence window `[window_start .. n]`. A `converging: true` result — total objection count strictly falling every round, the latest round carrying no blocker, and no new objecting lens since the prior round — **yields the cap**: grant the next round (apply the in-place-fixable fixes, re-rate, re-review) instead of parking, then re-apply this same gate at the next would-be park. A `converging: false` result parks exactly as today, with the unchanged `spec-review loop cap reached — <verdict>` cause (no new park cause). Because a strictly-decreasing objection count is self-terminating, a yielding loop always terminates; the round-1-vs-round-2 `faff spec-review-churn` check above is unchanged and still parks a thrashing reviewer early — the yield loosens the cap in the converging direction only, never for a thrashing, churning, or plateaued reviewer.
 
+**Spec-review-outage disposition (`unavailable` verdict; FAFF-900).** The occupant's transport floor surfaces `unavailable` only for a **swing-capable, `infra-configured`** outage — a transient (host unreachable / a 429 chain), never a `config-fault` (still `needs-human`, a human config fix the retry loop can't ride out). This means *the reviewer was down*, not *the spec is suspect* — port the shipped build-side shape (FAFF-403 retry-later, FAFF-398 fail-closed, FAFF-405 `unavailable`) to this altitude:
+
+```
+PROCEDURE disposition_unavailable(issue, spec):
+  1. IF NOT autonomous → surface the outage to the human (do not auto-hold); they choose retry / park.
+  2. attempt := 0; limit_in_turn := faff config get prep.spec_review_outage_retry_limit   # default 2
+  3. WHILE attempt < limit_in_turn:                                # entirely in-turn; the turn never ends here
+       attempt += 1
+       re-dispatch the spec_review occupant for the still-outaged lenses only
+         (each attempt bounded by the existing adversarial deadline; no orchestrator wall-clock)
+       IF verdict != unavailable → route it normally (the table above) and RETURN
+  4. # in-turn ceiling hit — the chain did not clear this turn
+     holds := (.faff/resume/<issue>/spec-review-hold.json).outage_holds (absent → 0)
+     IF holds + 1 >= faff config get prep.spec_review_outage_hold_limit:   # default 3
+       → needs-human park: park protocol, cause "spec-review provider outage, N held drains exhausted",
+         remove faff-awaiting-spec-review, rm -rf .faff/resume/<issue>. Return parked.
+     ELSE hold:
+       a. write .faff/resume/<issue>/spec-review-hold.json
+          { outage_holds: holds+1, outaged_lenses: [...], pinned_reviewer?: ... }
+       b. faff label add <issue> faff-awaiting-spec-review        # descriptor → single tracker write
+       c. tracker comment: hold notice — "spec-review provider unavailable; spec attached and held;
+          attempt <holds+1>/<N>; auto-resumes at review on the next drain"
+       d. leave status Backlog (spec attached, not promoted, not parked)
+       e. return spec-review-held (executor appends the id to the spec_review_outage_pending annotation — never admitted, so no ledger-outcome bucket)
+```
+
+**The in-turn retry never ends the turn** — the same `faff turncheck` state-based Stop hook that backstops the spec-review dispatch above (FAFF-854) refuses turn-end while this loop is still running, and the loop is inside a single turn by construction. If the harness reaps the process mid-retry anyway, no hold is written and the item is simply un-progressed Backlog; the disposition backstop detects the abandoned run on the next pass. The hold write in step 4 is the point past which recovery is a clean next-drain resume — never write `.faff/resume/<issue>/spec-review-hold.json` before the in-turn ceiling is actually hit.
+
+**Anti-pattern:** coercing the outage to `approve` — the exact regression the exit-code discipline exists to prevent. **Anti-pattern:** dual-tagging `faff-parked` on a hold — the two are mutually exclusive (a hold is not a park; `faff next --parked` would otherwise block the very re-queue the hold needs). **Anti-pattern:** re-producing the spec on resume — see _Resume at the review gate_ below.
+
+**Resume at the review gate (Scenario B, autonomous).** An issue carrying `faff-awaiting-spec-review` with a valid `.faff/resume/<issue>/spec-review-hold.json` is picked up by the prep queue via `faff next`'s `--awaiting-spec-review` arm (gateway → **Next-step transition**) — status stays Backlog, so it re-enters through the ordinary existing-spec path (Scenario B), not a new one. On finding the label + store: **skip spec re-production and the already-shipped/premise gate entirely** (the spec is durable on the tracker; only the review is re-run) — carry `outage_holds` forward from the store and re-enter the spec-review gate directly (re-run the occupant fresh, same lens selection as any other pass). Terminal dispositions after the resumed review: `approve`/`revise`/`reject-approach`/`needs-human` → normal routing (the table above), then remove `faff-awaiting-spec-review` and `rm -rf .faff/resume/<issue>`; `unavailable` again → re-enter `disposition_unavailable()` — the counter reads the carried file, so it increments across drains and escalates to `needs-human` at the hold limit exactly as a fresh outage would.
+
 **Retain the verdict on the spec.** On `approve`, write a retained `spec-review: approve` line alongside the `confidence:` line (durable provenance, exactly as the confidence rating is retained). Build-admission consumes this **retained** verdict rather than re-reviewing; staleness is caught by the existing **Live-thread reconciliation** (gateway) every verdict consumer already applies — wire the retained verdict *through* that reconciliation, not around it.
 
-**Modes.** Verdict computation is identical interactive vs autonomous; only who acts on the routing differs. Autonomous prep applies `revise` fixes / design-lens re-plans within appetite and parks on `needs-human` or an L1–L3 methodology-lens reject; interactive prep surfaces the verdict + objections to the human at the same point. A methodology-lens `reject-approach` is human-interactive at **L1–L3, in both modes** (it surfaces for `/faff-plot`, never auto-re-slices); **L4 is the sole exception** — see _L4 autonomous re-slice_ above.
+**Modes.** Verdict computation is identical interactive vs autonomous; only who acts on the routing differs. Autonomous prep applies `revise` fixes / design-lens re-plans within appetite and parks on `needs-human` or an L1–L3 methodology-lens reject; interactive prep surfaces the verdict + objections to the human at the same point. A methodology-lens `reject-approach` is human-interactive at **L1–L3, in both modes** (it surfaces for `/faff-plot`, never auto-re-slices); **L4 is the sole exception** — see _L4 autonomous re-slice_ above. `unavailable` follows the same split (see _Spec-review-outage disposition_ above): autonomous prep runs the in-turn retry and, on the ceiling, holds (or escalates to `needs-human` past the hold limit) with no human touch; interactive prep never auto-holds — it surfaces the outage and lets the human choose retry or park.
 
 **Degraded methodology signal.** When no `## Methodology critique` block is attached (no methodology slot configured), the reviewer's methodology lens degrades to no-signal and emits no methodology objection — it never recomputes value/scope. prep passes whatever critique block it wrote (or none); it does not synthesise one for the reviewer.
 
-**Park causes** (folded into the standard `parked` return + park protocol): `spec-review needs-human — <lensed objections>`, `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice` (L1–L3), `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice; design-lens objections carried: <lenses+severities>` (L1–L3), `spec-review reject-approach (methodology/scope) — L4 plot ignition refused: <reason>` (the L4 plot-refuse arm above), `spec-review loop cap reached — <verdict>`, `spec-review contract not satisfied (exit <n>)`, `spec-review churn detected — new objecting lens(es) since round N: <lenses>`. The L4 `re-slice-handoff` return (above) is **not** a park cause — it is a distinct terminal outcome (see **Return values**).
+**Park causes** (folded into the standard `parked` return + park protocol): `spec-review needs-human — <lensed objections>`, `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice` (L1–L3), `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice; design-lens objections carried: <lenses+severities>` (L1–L3), `spec-review reject-approach (methodology/scope) — L4 plot ignition refused: <reason>` (the L4 plot-refuse arm above), `spec-review loop cap reached — <verdict>`, `spec-review contract not satisfied (exit <n>)`, `spec-review churn detected — new objecting lens(es) since round N: <lenses>`, `spec-review provider outage, N held drains exhausted` (FAFF-900: the outage-hold escalation at `prep.spec_review_outage_hold_limit`). The L4 `re-slice-handoff` return (above) is **not** a park cause — it is a distinct terminal outcome (see **Return values**); neither is the `spec-review-held` outage-hold return — a hold is not a park (see _Spec-review-outage disposition_ above).
 
 ## Spec quality bar (owned by the producer)
 
@@ -462,6 +495,7 @@ Return to caller one of:
 - `promoted` — fresh high-confidence spec attached, issue moved to Todo (build-eligible)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; visible for human triage but **not** build-admitted — its routing verdict is `needs-decision-first`
 - `re-slice-handoff` — **L4 only**: a methodology-lens (or multi-lens) `reject-approach` invoked `/faff-plot --autonomous` to re-slice this parent slice instead of parking (see **Spec-review gate** → _L4 autonomous re-slice_). The re-sliced epics land in Backlog and re-enter this run's wave loop. Not `parked` (no `faff-parked` label, no human handoff — the run keeps converging), not attached, not promoted.
+- `spec-review-held` — **autonomous only** (FAFF-900): a swing-capable spec-review outage (`unavailable` verdict) survived the in-turn retry ceiling with the hold limit not yet exhausted — see **Spec-review gate** → _Spec-review-outage disposition_. `.faff/resume/<issue>/spec-review-hold.json` written, `faff-awaiting-spec-review` applied, status stays Backlog (spec attached, not promoted). Not `parked` (no `faff-parked`, no `park_records` entry, no human handoff — the next drain auto-resumes at review); the caller (beep-boop's prep-queue reconcile) appends the id to the `spec_review_outage_pending` annotation array — never a ledger-outcome bucket, since a prep-queue issue is never `admitted` in the first place (unlike the build-side `retry-later`/`review_outage_pending`, whose ids *are* admitted).
 - `ineligible` — the issue is **not automation-eligible** (no `faff-automate` under the opt-in default, or it carries `faff-automation-hold`); skipped without speccing or promotion (see **Automation-eligibility gate** above). Not `parked`, not attempted, not in the run-ledger; surfaced in the On-hold bucket. No `faff-parked` label is applied and the eligibility labels are left untouched.
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run

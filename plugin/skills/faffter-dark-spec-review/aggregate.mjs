@@ -63,19 +63,23 @@ export function aggregate(refutations, nEnabled) {
 
   const unavailable = list.filter((r) => r && r.outcome === "unavailable");
   const configFault = unavailable.filter((r) => r.kind === "config-fault");
-  const nameLenses = (rs) => rs.map((r) => ({ lens: r.lens, severity: "blocker" }));
+  const nameLenses = (rs, severity) => rs.map((r) => ({ lens: r.lens, severity }));
 
   // 1. Transport floor — a config fault must be fixed by a human, always (even if the available
   //    lenses already force reject-approach): a misconfigured/auth-failed/default-host-down refuter
   //    is not a review result.
   if (configFault.length > 0) {
-    return { verdict: "needs-human", objections: [...gating, ...nameLenses(configFault)] };
+    return { verdict: "needs-human", objections: [...gating, ...nameLenses(configFault, "blocker")] };
   }
-  // 1b. An (infra-configured) down lens whose missing vote could swing the verdict → needs-human.
-  //     If the available lenses already force reject-approach, the missing lens cannot change it —
-  //     fall through to the gate.
+  // 1b. FAFF-900: an (infra-configured) down lens whose missing vote could swing the verdict is a
+  //     TRANSIENT the orchestrator can hold and retry — surface the distinct `unavailable` verdict
+  //     (never `needs-human`, which reads as "a human must act"; a swing-capable infra outage is
+  //     recoverable without one). Severity defaults to "major" (the founded default for a lens with
+  //     no actual finding to grade — distinct from the config-fault "blocker" above, which names a
+  //     human config bug). If the available lenses already force reject-approach, the missing lens
+  //     cannot change it — fall through to the gate below.
   if (unavailable.length > 0 && !forcedReject) {
-    return { verdict: "needs-human", objections: [...gating, ...nameLenses(unavailable)] };
+    return { verdict: "unavailable", objections: [...gating, ...nameLenses(unavailable, "major")] };
   }
   // 2. Severity veto — any critical objection.
   if (anyCritical) return { verdict: "reject-approach", objections: gating };
@@ -145,9 +149,11 @@ function selftest() {
   t("config-fault → needs-human", v.verdict === "needs-human");
   t("config-fault names lens", v.objections.some((o) => o.lens === "infosec" && o.severity === "blocker"));
 
-  // infra-configured down lens that could swing → needs-human
+  // FAFF-900: infra-configured down lens that could swing → unavailable (never needs-human — a
+  // transient the orchestrator can hold/retry), named as a "major" objection.
   v = aggregate([down("infosec", "infra-configured"), clear("architectural"), clear("methodology"), clear("QA")], 4);
-  t("infra-down swing → needs-human", v.verdict === "needs-human");
+  t("infra-down swing → unavailable", v.verdict === "unavailable");
+  t("infra-down swing names lens as major", v.objections.some((o) => o.lens === "infosec" && o.severity === "major"));
 
   // infra-configured down lens that cannot swing (available already force reject via critical) → reject-approach
   v = aggregate([down("infosec", "infra-configured"), r("architectural", "critical"), clear("methodology"), clear("QA")], 4);

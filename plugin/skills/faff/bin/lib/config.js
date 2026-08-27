@@ -175,6 +175,15 @@ const DEFAULTS = {
   // adversarial.* configures the engine call, not loop policy). After this many held
   // drains still unavailable, the arm escalates to the standard needs-human park (never silent-forever).
   "graft.review_outage_retry_limit": "3",
+  // FAFF-900: prep's spec-review-outage disposition loop — the prep-altitude twin of
+  // graft.review_outage_retry_limit above, in its OWN `prep.*` namespace (prep owns this loop, as
+  // graft owns its own). Two SEPARATE ceilings bound two different time-scales:
+  //   spec_review_outage_retry_limit — the IN-TURN ceiling (default 2): re-attempts inside a single
+  //     turn, riding out a transient 429 chain without ever ending the turn between attempts.
+  //   spec_review_outage_hold_limit  — the CROSS-DRAIN ceiling (default 3): how many held drains a
+  //     persistent outage may accrue before prep escalates to a needs-human park.
+  "prep.spec_review_outage_retry_limit": "2",
+  "prep.spec_review_outage_hold_limit": "3",
   // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
   // false (refuse on positive evidence of a mounted host socket). true is the operator taking
   // responsibility that a same-path socket is a BOUNDED nested engine, not the host daemon;
@@ -2142,6 +2151,9 @@ function cmdConfig(args) {
           "effort.build", "effort.methodology", "effort.intake",
           // FAFF-403: graft's outage-retry-later bound (graft.* namespace — graft owns the loop).
           "graft.review_outage_retry_limit",
+          // FAFF-900: prep's spec-review-outage disposition bounds (prep.* namespace — prep owns
+          // this loop, symmetric with graft's above): the in-turn ceiling and the cross-drain hold ceiling.
+          "prep.spec_review_outage_retry_limit", "prep.spec_review_outage_hold_limit",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
           // FAFF-717: the L3 Sentry-abort opt-in (default false) — retained alias.

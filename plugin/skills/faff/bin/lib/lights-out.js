@@ -557,6 +557,12 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
 // skill tree still ships a coherent registry pair); that residual is owned by the
 // version/build-handshake spike FAFF-902 and surfaced out-of-band by `faff doctor`.
 function guardrailReachable(knownCommands, guardrail) {
+  // Defensive, fail-closed guard (adversarial review, FAFF-899): a missing/malformed
+  // `knownCommands` (a dropped-parameter regression at some future call site, or a
+  // caller that isn't cmdLightsOut's own `new Set(...)`) reads as absent rather than
+  // throwing an uncaught TypeError — MORE fail-closed than a crash, never less; it
+  // never turns a real miss into a pass.
+  if (!knownCommands || typeof knownCommands.has !== "function") return false;
   return knownCommands.has(guardrail.probe);
 }
 

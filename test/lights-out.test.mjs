@@ -12,7 +12,7 @@ import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
 import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
-import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, engineBoundedFromConfig, estimateOnlyPosture, guardrailReachable, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, cmdLightsOut, engineBoundedFromConfig, estimateOnlyPosture, guardrailReachable, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
 import { parseYamlSubset, sortRunDirsByMtimeDesc } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { appendRecordUnderLock, eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
@@ -514,6 +514,45 @@ test("lights-out: guardrailReachable — structural presence against a fixture c
   // anything to find out; a red/in-flux `--selftest` for a PRESENT command is irrelevant here).
   assert.equal(guardrailReachable(fixtureCommands, { id: "holdout", probe: "holdout" }), false);
   assert.equal(guardrailReachable(fixtureCommands, { id: "ghost", probe: "not-a-real-command" }), false);
+});
+
+// FAFF-899 — defensive fail-closed guard (adversarial review finding): a missing/malformed
+// `knownCommands` (a dropped-parameter regression, never expected from cmdLightsOut's own
+// `new Set(...)`) reads as absent rather than throwing an uncaught TypeError from `in`/`.has`.
+test("lights-out: guardrailReachable — malformed knownCommands fails closed (absent), never throws", () => {
+  assert.equal(guardrailReachable(undefined, { id: "budget", probe: "budget" }), false);
+  assert.equal(guardrailReachable(null, { id: "budget", probe: "budget" }), false);
+  assert.equal(guardrailReachable({}, { id: "budget", probe: "budget" }), false, "a plain object (no .has) fails closed too");
+});
+
+// FAFF-899 — the actual NEW plumbing this ticket introduces is bin/faff's dispatch entry
+// threading its own COMMANDS registry into cmdLightsOut, which threads it on into
+// assembleLightsOutPreflight. The pure-fixture unit test above proves guardrailReachable's
+// own logic; this proves the INTEGRATION — that a real, incomplete command set fed through
+// cmdLightsOut itself actually produces the expected refusal, not a vacuously-true floor
+// (adversarial review finding: the real-CLI smoke test alone cannot distinguish correct
+// wiring from a floor that always reads live). Calls the exported cmdLightsOut directly
+// (no subprocess) with a command registry missing "budget" — the wiring drift case.
+test("lights-out: cmdLightsOut — an incomplete threaded command registry refuses the missing guardrail (wiring integration)", () => {
+  const root = tmpRoot();
+  const incompleteCommands = { admissible: 1, contract: 1, "run-done": 1, events: 1, sentry: 1, holdout: 1 }; // "budget" omitted
+  const orig = process.stdout.write.bind(process.stdout);
+  let out = "";
+  process.stdout.write = (chunk) => { out += chunk; return true; };
+  let code;
+  try {
+    code = cmdLightsOut(["--root", root, "--check", "--json"], incompleteCommands);
+  } finally {
+    process.stdout.write = orig;
+  }
+  const parsed = JSON.parse(out);
+  assert.equal(code, 1, out);
+  assert.equal(parsed.proceed, false);
+  assert.equal(parsed.armed.budget, "absent", "budget reads absent when its probe is missing from the threaded registry");
+  const budgetRefusal = parsed.refusals.find((r) => r.gate === "guardrail:budget");
+  assert.ok(budgetRefusal, "a guardrail:budget refusal fires");
+  assert.match(budgetRefusal.detail, /not registered in this faff build/);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 // FAFF-899 DONE item: no preflight code path may spawn a `--selftest` subprocess for guardrail

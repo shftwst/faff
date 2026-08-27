@@ -637,10 +637,10 @@ repeat-parked ⚠ (N)
 []
 ```
 (the run's `park_records` accumulator, rendered once — `[]` for zero parks; gateway → **Park protocol (shared)** → _the accumulator and render boundary_)
-
 ## Awaiting review (adversarial outage): N (rendered only when `review_outage_pending` is non-empty)
 - ISSUE-XX: title — review provider unavailable; build held (branch pushed, checkpoint intact); attempt n/N; auto-resumes at review next drain (ledger: review_outage_pending)
-## Awaiting spec-review (adversarial outage): N (rendered only when `spec_review_outage_pending` is non-empty; same row shape, spec-review-scoped — "ISSUE-XX: title — spec-review provider unavailable; spec attached and held; attempt n/N; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)")
+## Awaiting spec-review (adversarial outage): N (rendered only when `spec_review_outage_pending` is non-empty)
+- ISSUE-XX: title — spec-review provider unavailable; spec attached and held; attempt n/N; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)
 ## Errored: N
 - ISSUE-WW: title — MCP timeout during build
 

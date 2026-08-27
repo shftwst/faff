@@ -2761,7 +2761,7 @@ const CONTRACT_DESCRIBES = {
       { field: "verdict", enum: SPEC_REVIEW_VERDICTS, semantics: { approve: "the spec is ready to build as written — carries no objections", revise: "fixable objections exist — the spec needs changes before it's build-ready", "reject-approach": "the whole approach is unsound — a different design is needed, not a patch", "needs-human": "a human judgement call the reviewer can't resolve on its own", unavailable: "a mandatory spec-review outage whose outaged lens(es) could swing the verdict — the reviewer was down, not a verdict about the spec; never coerced toward approve (FAFF-900)" } },
       // lens/severity are lintable:false: the reviewer producer must WRITE these labels while
       // classifying its own findings (a checklist dialect, like spec-readiness's markers) — not a
-      // routing verdict a consumer branches on. `verdict` above stays lintable (the closed 4-value
+      // routing verdict a consumer branches on. `verdict` above stays lintable (the closed 5-value
       // routing enum every consumer pipes through `faff contract spec-review-verdict`).
       { field: "objections[].lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
       { field: "objections[].severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },

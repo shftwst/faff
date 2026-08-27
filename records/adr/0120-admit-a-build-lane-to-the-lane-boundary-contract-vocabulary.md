@@ -1,6 +1,6 @@
 # ADR 0120 — Admit a build lane to the lane-boundary contract vocabulary
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-27
 - **Issue:** FAFF-894

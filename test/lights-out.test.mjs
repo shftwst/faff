@@ -12,7 +12,7 @@ import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
 import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
-import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, engineBoundedFromConfig, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, engineBoundedFromConfig, estimateOnlyPosture, guardrailReachable, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
 import { parseYamlSubset, sortRunDirsByMtimeDesc } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { appendRecordUnderLock, eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
@@ -479,7 +479,10 @@ test("lights-out: worktree root under a non-writable ancestor refuses",
 // Real-CLI admission: on this host (no genuine declaration) no-declaration DEGRADES to an
 // advisory (FAFF-525) — every guardrail is live and admission proceeds, proving the pre-existing
 // 8-guardrail reachability logic is untouched and the corrective-integrity leg no longer refuses
-// on honest absence.
+// on honest absence. FAFF-899: "every guardrail's probe resolves in the running entrypoint's own
+// COMMANDS registry, so admission proceeds" — NOT "every subprocess `--selftest` exits 0". This
+// real-CLI run threads faff's own COMMANDS map into cmdLightsOut (see bin/faff's dispatch entry),
+// so it exercises the structural-presence floor for real, not a synthetic fixture.
 test("lights-out: real CLI — every pre-existing guardrail is live; no-declaration degrades to advisory and admission proceeds on this host", () => {
   const root = tmpRoot();
   const { stdout, code } = runCli(
@@ -496,6 +499,36 @@ test("lights-out: real CLI — every pre-existing guardrail is live; no-declarat
   assert.ok(out.degrades.some((d) => d.gate === "corrective-integrity"), "no-declaration surfaces as an advisory degrade");
   assert.ok(fs.existsSync(path.join(root, ".faff")), "a run is minted on the proceed path");
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-899 — guardrailReachable is the non-spawning structural-presence floor that replaced
+// probeContractReachable's `<bin> <sub> --selftest` spawn. Pure unit coverage against a fixture
+// command set (mirrors budgetSelftest's no-spawn style): present → true, absent → false, and no
+// subprocess is ever involved.
+test("lights-out: guardrailReachable — structural presence against a fixture command set, no spawn", () => {
+  const fixtureCommands = new Set(["admissible", "contract", "run-done", "budget", "events", "sentry"]);
+  // Present: the probe string IS a key of the fixture registry.
+  assert.equal(guardrailReachable(fixtureCommands, { id: "budget", probe: "budget" }), true);
+  assert.equal(guardrailReachable(fixtureCommands, { id: "admissibility", probe: "admissible" }), true);
+  // Absent: a probe string naming no registry key — the wiring-drift case (never spawns
+  // anything to find out; a red/in-flux `--selftest` for a PRESENT command is irrelevant here).
+  assert.equal(guardrailReachable(fixtureCommands, { id: "holdout", probe: "holdout" }), false);
+  assert.equal(guardrailReachable(fixtureCommands, { id: "ghost", probe: "not-a-real-command" }), false);
+});
+
+// FAFF-899 DONE item: no preflight code path may spawn a `--selftest` subprocess for guardrail
+// reachability — a deterministic SOURCE assertion (probeContractReachable is gone, and no
+// `spawnSync` call site anywhere in the file passes a `--selftest` argument), never a wall-clock/
+// timing one (that IS the flakiness class this ticket removes). `--selftest` itself still
+// legitimately appears elsewhere in the file (this CLI's OWN `--selftest` entry point, worktree-
+// root's `--selftest`, etc.) — the precise thing removed is a spawnSync call carrying it.
+test("lights-out: no guardrail-reachability code path spawns a --selftest subprocess", () => {
+  const src = fs.readFileSync(
+    path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "plugin", "skills", "faff", "bin", "lib", "lights-out.js"),
+    "utf8");
+  assert.ok(!/function\s+probeContractReachable/.test(src), "probeContractReachable is removed");
+  assert.ok(!/spawnSync\([^;]*--selftest/.test(src), "no spawnSync call site passes --selftest");
+  assert.ok(/function\s+guardrailReachable/.test(src), "guardrailReachable (the non-spawning floor) is present");
 });
 
 // Proceed path (via mintFixtureLedger — see its header comment): mint a strict-defaults L4

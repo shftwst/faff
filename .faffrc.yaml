@@ -47,13 +47,23 @@ backends:
       model: unsloth/Qwen3.8-27B-NVFP4
       host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
       api_key_env: DUMMY_API_KEY
-      reasoning_off: true
+      # FAFF-918: bounded reasoning-ON. thinking_token_budget hard-caps reasoning tokens so a
+      # review both reasons AND emits findings (was `reasoning_off: true`, which on qwen suppresses
+      # reasoning entirely and misses real bugs). 2000 is a tunable starting point (FAFF-920); at
+      # max_tokens 32000 it leaves ~30k for findings and clears the empty-out knee comfortably.
+      reasoning_extra:
+          thinking_token_budget: 2000
   spark-north-code-mini:
       provider: openai
       model: CohereLabs/North-Mini-Code-1.0-fp8
       host: https://spark.longhair-escalator.ts.net/north-code-mini/v1
       api_key_env: DUMMY_API_KEY
-      reasoning_off: true
+      # FAFF-918: bounded reasoning-ON via thinking_token_budget. NOTE the prior `reasoning_off: true`
+      # was INERT here: cohere_command4's parser ignores chat_template_kwargs.enable_thinking, so this
+      # backend was still reasoning (and emptying out) despite reading as "off". The budget cap is the
+      # lever that actually works on this build.
+      reasoning_extra:
+          thinking_token_budget: 2000
   openrouter-deepseek-v4-flash:
       provider: openai                       # OpenRouter is OpenAI-compatible
       model: deepseek/deepseek-v4-flash-0731
@@ -80,25 +90,33 @@ adversarial:
   #     deadline is a total wall-clock budget, GLOBAL (not per-consumer) and SLICED per backend
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
-  timeout: 1500    # per-attempt stream deadline (s); default 120. spec_review's only clock. Raised so one attempt can stream a full max_tokens:32000 review (~24min at ~22 tok/s) without being cut mid-stream.
-  deadline: 3600   # code_review total wall-clock (s), sliced per backend; default 480. Raised above timeout so a long primary attempt still leaves the fallback chain room. IGNORED by spec_review.
+  timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
+  deadline: 1800   # code_review total wall-clock (s), sliced per backend; default 480. Above timeout so a long primary attempt still leaves the fallback chain room. IGNORED by spec_review.
   first_byte_timeout: 300
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
     - spark-north-code-mini
-  # Per-consumer output-token caps (FAFF-911). Raised well above the 2000 default so a verbose
-  # reasoning backend can emit its findings on a large diff instead of over-reasoning past the cap
-  # and returning empty (max_tokens / ollama options.num_predict). Resolution:
+  # Per-consumer output-token TOTAL cap (FAFF-911), reasoning + content. Resolution:
   # adversarial.<consumer>.max_tokens || adversarial.max_tokens || 2000.
+  #
+  # FAFF-918: this was 32000 as the empty-out WORKAROUND — a big total budget so a reasoning
+  # backend that over-reasoned still had room left to emit findings. thinking_token_budget now
+  # caps the REASONING portion directly (see each spark backend's reasoning_extra), so the total
+  # cap no longer has to absorb runaway reasoning. Trimmed to 12000: ~2000 for reasoning (the
+  # per-backend budget) leaves ~10000 for content, comfortable for a large multi-finding review.
+  # INVARIANT: keep max_tokens > every backend's thinking_token_budget, or the budget never binds
+  # (reasoning would hit the total cap first and empty out again — the exact bug this fixes).
+  # Measured: a 70K-token review needed >2000 content tokens to emit well-formed findings on qwen,
+  # so do not trim the content headroom (max_tokens - budget) below ~10000 without re-measuring.
   code_review:
     refs:
       - spark-north-code-mini
       - spark-qwen-3-8
       - openrouter-deepseek-v4-flash
-    max_tokens: 32000
+    max_tokens: 12000
   spec_review:
-    max_tokens: 32000
+    max_tokens: 12000
 models:
     build_by_confidence:
         default: inherit

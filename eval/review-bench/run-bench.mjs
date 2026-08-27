@@ -29,8 +29,10 @@
 //   --key-env VAR                openai bearer token env var name (value read from process.env[VAR])
 //   --lens all|architectural|infosec|methodology|qa   (default all)
 //   --reasoning off|on           (default off) off = disable thinking; on = leave it enabled (compare)
+//   --thinking-token-budget N    top-level vLLM reasoning-token cap; the lever qwen3 AND cohere_command4 honour.
+//                                Pair with --reasoning on to bench without the empty-out (what production sends).
 //   --cohere                     openai: also send top-level thinking:{type:"disabled"} (Cohere native)
-//   --num-predict N              (default 2000) output token cap (faff's default)
+//   --max-tokens N              (default 12000) output token cap (matches production adversarial.max_tokens)
 //   --temperature T              (default 0.2)
 //   --stream                     measure time-to-first-byte (default: non-streaming, cleaner timing)
 //   --timeout-ms MS              (default 1200000 = 20min) per-request timeout
@@ -47,7 +49,7 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 
 // ---- arg parsing ----
 function parseArgs(argv) {
-  const a = { reasoning: "off", lens: "all", numPredict: 2000, temperature: 0.2, stream: false,
+  const a = { reasoning: "off", lens: "all", maxTokens: 12000, temperature: 0.2, stream: false,   // FAFF-918: default cap matches production adversarial.max_tokens (12000), not the old 2000, so a bench run reflects what faff sends
               timeoutMs: 1200000, requestsDir: join(ROOT, "requests"), cohere: false,
               repeat: 1, concurrent: false };
   for (let i = 0; i < argv.length; i++) {
@@ -59,8 +61,9 @@ function parseArgs(argv) {
     else if (k === "--lens") a.lens = argv[++i];
     else if (k === "--reasoning") a.reasoning = argv[++i];
     else if (k === "--token-budget") a.tokenBudget = Number(argv[++i]);
+    else if (k === "--thinking-token-budget") a.thinkingTokenBudget = Number(argv[++i]);   // FAFF-918: top-level vLLM reasoning-token cap (distinct from Cohere's nested thinking.token_budget)
     else if (k === "--cohere") a.cohere = true;
-    else if (k === "--num-predict") a.numPredict = Number(argv[++i]);
+    else if (k === "--max-tokens") a.maxTokens = Number(argv[++i]);
     else if (k === "--temperature") a.temperature = Number(argv[++i]);
     else if (k === "--stream") a.stream = true;
     else if (k === "--concurrent" || k === "--fanout") a.concurrent = true;
@@ -118,7 +121,7 @@ const COHERE_BUDGET = { low: 1024, medium: 8192, high: 31000 }; // Cohere token_
 
 function ollamaBody(system, user) {
   const b = { model: A.model, stream: A.stream, messages: [{ role: "system", content: system }, { role: "user", content: user }],
-              options: { temperature: A.temperature, num_predict: A.numPredict } };
+              options: { temperature: A.temperature, num_predict: A.maxTokens } };
   // ollama's native switch is boolean (think true/false); it has no effort level, so on/low/medium/high
   // all map to think:true (the level is a no-op here — use an openai endpoint for graded effort).
   b.think = A.reasoning !== "off";
@@ -126,7 +129,7 @@ function ollamaBody(system, user) {
 }
 function openaiBody(system, user) {
   const b = { model: A.model, stream: A.stream, messages: [{ role: "system", content: system }, { role: "user", content: user }],
-              temperature: A.temperature, max_tokens: A.numPredict };
+              temperature: A.temperature, max_tokens: A.maxTokens };
   if (A.stream) b.stream_options = { include_usage: true }; // ask for usage (cached_tokens, exact counts) in the final SSE chunk
   const r = A.reasoning;
   if (r === "off") {
@@ -140,6 +143,11 @@ function openaiBody(system, user) {
       b.thinking = budget ? { type: "enabled", token_budget: budget } : { type: "enabled" };
     }
   }
+  // FAFF-918: top-level vLLM reasoning-token cap — the lever that both qwen3 and cohere_command4
+  // honour. This is what production sends (per-backend reasoning_extra.thinking_token_budget) and
+  // is REQUIRED to bench the spark backends without them emptying out on a large payload. Sent
+  // whenever set, independent of the on/off/effort branch above; a server that ignores it drops it.
+  if (A.thinkingTokenBudget != null && !Number.isNaN(A.thinkingTokenBudget)) b.thinking_token_budget = A.thinkingTokenBudget;
   return b;
 }
 
@@ -263,7 +271,7 @@ const allLenses = readdirSync(A.requestsDir).filter((f) => f.endsWith(".json")).
 const want = A.lens === "all" ? allLenses : allLenses.filter((f) => f.replace(/\.json$/, "").toLowerCase() === A.lens.toLowerCase());
 if (want.length === 0) { console.error(`no request matches --lens ${A.lens} (available: ${allLenses.map((f) => f.replace(/\.json$/, "")).join(", ")})`); process.exit(2); }
 
-console.log(`endpoint: ${A.provider} ${A.host}  model=${A.model}  reasoning=${A.reasoning}${A.cohere ? " +cohere" : ""}  stream=${A.stream}  num_predict=${A.numPredict}`);
+console.log(`endpoint: ${A.provider} ${A.host}  model=${A.model}  reasoning=${A.reasoning}${A.cohere ? " +cohere" : ""}  stream=${A.stream}  max_tokens=${A.maxTokens}`);
 const pf = await preflight();
 if (!pf.ok) console.log(`preflight: WARN unreachable/${pf.status ?? "err"} ${pf.error ?? ""} — attempting anyway`);
 else if (!pf.served) console.log(`preflight: WARN model '${A.model}' NOT in served set: ${(pf.names || []).join(", ")} — attempting anyway`);
@@ -333,14 +341,14 @@ if (A.repeat > 1) {
 
 const summary = {
   endpoint: { provider: A.provider, host: A.host, model: A.model },
-  config: { reasoning: A.reasoning, cohere: A.cohere, stream: A.stream, num_predict: A.numPredict,
+  config: { reasoning: A.reasoning, cohere: A.cohere, stream: A.stream, max_tokens: A.maxTokens,
             temperature: A.temperature, mode: A.concurrent ? "concurrent" : "sequential", repeat: A.repeat },
   preflight: pf, runs, cache,
 };
 writeFileSync(join(outDir, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
 
 let md = `# review-bench run\n\n- endpoint: ${A.provider} ${A.host}\n- model: ${A.model}\n` +
-  `- reasoning: ${A.reasoning}${A.cohere ? " +cohere" : ""} · stream: ${A.stream} · num_predict: ${A.numPredict}\n` +
+  `- reasoning: ${A.reasoning}${A.cohere ? " +cohere" : ""} · stream: ${A.stream} · max_tokens: ${A.maxTokens}\n` +
   `- mode: ${A.concurrent ? "concurrent (fan-out)" : "sequential"} · repeat: ${A.repeat}\n\n`;
 md += `| iter | lens | http | total | ttfb | in | out | pe tps | gen tps | shape | severities | reasoning |\n` +
       `|--:|---|---|--:|--:|--:|--:|--:|--:|---|---|--:|\n`;

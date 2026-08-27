@@ -109,8 +109,9 @@ Notes: `--concurrent` and `--repeat` compose. Verdict bodies are saved from the 
 | `--reasoning` | `off` | `off`\|`on`\|`low`\|`medium`\|`high` — disable, enable, or set effort. A level sets openai `reasoning_effort` and (with `--cohere`) the Cohere `token_budget`. ollama has no levels (on/level all map to `think:true`). |
 | `--token-budget N` | — | Cohere: explicit thinking `token_budget` (overrides the level default: low 1024 / medium 8192 / high 31000) |
 | `--cohere` | off | openai: use Cohere's native switch — `thinking:{type:"disabled"}` when off, `{type:"enabled", token_budget}` when on/level |
-| `--requests-dir DIR` | `./requests` | which suite to benchmark. Use `code-review/requests` for the graft/code review. |
-| `--num-predict` | `2000` | output token cap (faff's default) |
+| `--thinking-token-budget N` | — | top-level vLLM reasoning-token cap (`thinking_token_budget`); the lever qwen3 AND cohere_command4 honour. Pair with `--reasoning on` to bench without the empty-out — this is what production sends (FAFF-918). |
+| `--requests-dir DIR` | `./requests` | which suite to benchmark. Use `code-review/requests` for code review, `requests-large` for the ~70K empty-out / cache fixture. |
+| `--max-tokens` | `12000` | output token cap (matches production `adversarial.max_tokens`) |
 | `--temperature` | `0.2` | sampling temperature |
 | `--stream` | off | measure time-to-first-byte (else non-streaming, cleaner timing) |
 | `--timeout-ms` | `1200000` | per-request timeout (20 min) |
@@ -189,8 +190,11 @@ Per lens the runner prints (and saves to `results/<run>/summary.md` + `.json`):
   `critical` cannot pass a spec; one with a real spread is calibrated).
 - **reasoning** — bytes in a separate `reasoning_content` channel. **`⚠ reasoning-eaten-budget`** flags the
   failure mode where `content` is EMPTY but `reasoning_content` is large: the model reasoned until it hit
-  `num_predict` and never emitted findings. Raise `--num-predict` or disable reasoning to fix — and if
-  `--reasoning off` doesn't shrink `reasoning_content`, the server is ignoring the disable switch.
+  `max_tokens` and never emitted findings. The fix is **`--thinking-token-budget N`** (a top-level cap on
+  reasoning tokens, honoured by both qwen3 and cohere_command4), NOT raising `--max-tokens` — a cap on the
+  reasoning itself leaves room for findings regardless of payload size. Note `reasoning_content` reads 0 on
+  cohere_command4 even while reasoning runs, so on that parser detect the empty-out via
+  `finish_reason == "length"` and empty `content`, not the reasoning byte count.
 
 Raw verdicts are saved as `results/<run>/<lens>.content.md`; any reasoning trace as `<lens>.reasoning.txt`.
 
@@ -199,11 +203,13 @@ Raw verdicts are saved as `results/<run>/<lens>.content.md`; any reasoning trace
 - **Qwen3.8-27B** (ollama `qwen3.8:27b-mlx` @ :11434 and openai `Qwen3.8-27B-4bit` @ :8001/v1): serves,
   parseable, calibrated (major/minor/observation spread). `--reasoning off` genuinely disables thinking.
   A cold 4-lens panel is ~18-20 min on one GPU (lenses serialise).
-- **North-Mini-Code** (Cohere "North"): **unusable at :8001**. It ignores `enable_thinking:false` *and*
-  the native `thinking:{type:"disabled"}` on that MLX server, keeps reasoning unbounded, and exhausts
-  `num_predict` on the real prompt → EMPTY content (the `⚠ reasoning-eaten-budget` case). Fine only on
-  trivial prompts. Cohere disables reasoning with `thinking:{type:"disabled"}` (default enabled,
-  unlimited) — honoured only by Cohere's own API, not by a generic MLX OpenAI server that drops the param.
+- **North-Mini-Code** (Cohere "North"): originally recorded as **unusable at :8001** — it ignores
+  `enable_thinking:false` *and* the native `thinking:{type:"disabled"}`, keeps reasoning unbounded, and
+  exhausts `max_tokens` on the real prompt → EMPTY content (the `⚠ reasoning-eaten-budget` case).
+  **Update (FAFF-918): it IS usable** with **`--thinking-token-budget N`** (e.g. 2000). On the
+  `cohere_command4` reasoning parser, `enable_thinking` and `reasoning_effort` levels are inert, but the
+  top-level `thinking_token_budget` caps reasoning so content is emitted; a large-payload bench then
+  returns real findings. `thinking_token_budget` is the one lever both qwen3 and North honour.
 
 ## Adding more specs / regenerating
 

@@ -222,6 +222,12 @@ const DEFAULTS = {
   // (validateIsolationLane below), never a silent fallback (the models/effort discipline).
   "lanes.evaluator.isolation.container": "shared",
   "lanes.evaluator.isolation.host": "local",
+  // FAFF-894: the dispatched build lane's isolation declaration. Declaration-only for custody — a
+  // build-lane lane-boundary.json flips laneBoundaryDispatchState to "dispatched" (custody required)
+  // but never arms the evaluator cage (laneBoundaryPromisesCage is evaluator-keyed). "shared"/"local"
+  // is the honest "runs locally with the repo present in its worktree" declaration.
+  "lanes.build.isolation.container": "shared",
+  "lanes.build.isolation.host": "local",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -494,6 +500,10 @@ function validateGitHostValue(key, value) {
 const ISOLATION_LANE_VOCAB = {
   "lanes.evaluator.isolation.container": ["shared", "own"],
   "lanes.evaluator.isolation.host": ["local", "remote"],
+  // FAFF-894: the build lane shares the same two-axis vocab — an off-vocabulary build-lane
+  // isolation value fails LOUD (config get/set exit 2) exactly as the evaluator lane's does.
+  "lanes.build.isolation.container": ["shared", "own"],
+  "lanes.build.isolation.host": ["local", "remote"],
 };
 function validateIsolationLane(key, value) {
   const vocab = ISOLATION_LANE_VOCAB[key];
@@ -2142,6 +2152,8 @@ function cmdConfig(args) {
           "convergence.enabled",
           // FAFF-859: the two lane-isolation declared-field axes (concrete physical defaults).
           "lanes.evaluator.isolation.container", "lanes.evaluator.isolation.host",
+          // FAFF-894: the build lane's isolation defaults (declaration-only for custody).
+          "lanes.build.isolation.container", "lanes.build.isolation.host",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -2192,7 +2204,13 @@ function cmdConfig(args) {
           validateIsolationLane("lanes.evaluator.isolation.container", DEFAULTS["lanes.evaluator.isolation.container"]) ||
           validateIsolationLane("lanes.evaluator.isolation.host", DEFAULTS["lanes.evaluator.isolation.host"]) ||
           (validateIsolationLane("lanes.evaluator.isolation.container", "vm") ? null : "isolation container axis failed to reject an off-vocabulary value") ||
-          (validateIsolationLane("lanes.evaluator.isolation.host", "moon") ? null : "isolation host axis failed to reject an off-vocabulary value");
+          (validateIsolationLane("lanes.evaluator.isolation.host", "moon") ? null : "isolation host axis failed to reject an off-vocabulary value") ||
+          // FAFF-894: the build lane's isolation vocab accepts its baked defaults and rejects an
+          // off-vocabulary value on each axis, exactly as the evaluator lane's does.
+          validateIsolationLane("lanes.build.isolation.container", DEFAULTS["lanes.build.isolation.container"]) ||
+          validateIsolationLane("lanes.build.isolation.host", DEFAULTS["lanes.build.isolation.host"]) ||
+          (validateIsolationLane("lanes.build.isolation.container", "vm") ? null : "build isolation container axis failed to reject an off-vocabulary value") ||
+          (validateIsolationLane("lanes.build.isolation.host", "moon") ? null : "build isolation host axis failed to reject an off-vocabulary value");
         if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
         console.log("config defaults --selftest: ok");
         return 0;
@@ -2315,10 +2333,12 @@ function cmdConfig(args) {
       // who armed (or will arm) the cage/locality must see it, never silent (the FAFF-50 intent as
       // the slot/model/effort echoes above). Echoed only when the resolved value DIFFERS from the
       // baked default, so an unset repo's banner is byte-for-byte the pre-FAFF-859 form.
-      for (const axis of ["container", "host"]) {
-        const key = `lanes.evaluator.isolation.${axis}`;
-        const v = dig(data, key);
-        if (v !== null && v !== undefined && v !== "" && fmt(v) !== DEFAULTS[key]) console.log(`isolation evaluator.${axis}: ${fmt(v)}`);
+      for (const lane of ["evaluator", "build"]) {
+        for (const axis of ["container", "host"]) {
+          const key = `lanes.${lane}.isolation.${axis}`;
+          const v = dig(data, key);
+          if (v !== null && v !== undefined && v !== "" && fmt(v) !== DEFAULTS[key]) console.log(`isolation ${lane}.${axis}: ${fmt(v)}`);
+        }
       }
       return 0;
     }

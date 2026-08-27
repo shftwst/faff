@@ -16,12 +16,17 @@
 // structurally-malformed or out-of-enum intent errors out rather than persisting an
 // invalid declaration the merge-gate fail-safe would then read.
 //
-// SHIP-NOT-WIRE: this slice ships the emitter built + tested + documented but does NOT
-// call it from the live run-dir setup path. A present, valid `lane-boundary.json` flips
-// merge-gate.js's laneBoundaryDispatchState to "dispatched" (custody mandatory, no caller
-// opt-out), so emitting into live runs would break every non-dispatched merge. Live
-// wiring rides with the cage+spawner sibling (FAFF-384); until then live runs keep
-// `lane-boundary.json` ABSENT and the merge-gate fail-safe is byte-for-byte preserved.
+// LIVE WIRING (per lane). A present, valid `lane-boundary.json` flips merge-gate.js's
+// laneBoundaryDispatchState to "dispatched" (custody mandatory, no caller opt-out), so it is
+// emitted only where custody is intended:
+//   - build lane (`--lane build`): WIRED LIVE by FAFF-894's dispatched-build custody producer.
+//     The concurrency dispatcher emits it once at pass start (gateway obligation 7), so a
+//     DISPATCHED build run reads "dispatched" and the detective-custody verdict gates its merge;
+//     a `build` lane never arms the evaluator cage (laneBoundaryPromisesCage stays evaluator-keyed).
+//     Top-level / interactive graft has no dispatch cut and emits NO boundary, so its merges keep
+//     `lane-boundary.json` ABSENT and the merge-gate fail-safe byte-for-byte preserved.
+//   - evaluator lane (`--lane evaluator`): still SHIP-NOT-WIRE — its live wiring rides with the
+//     cage+spawner sibling (FAFF-384); until then no live path emits an evaluator boundary.
 // ===========================================================================
 
 const fs = require("node:fs");

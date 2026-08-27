@@ -1826,6 +1826,25 @@ function mergeGateSelftest() {
     }
   })();
 
+  // FAFF-894: a build-lane boundary makes the run "dispatched" (custody required) but NEVER arms the
+  // evaluator cage — laneBoundaryPromisesCage stays keyed on lane === "evaluator". This is the core
+  // security property of admitting `build` to LANE_BOUNDARY_LANES; assert it against the shipped readers.
+  (() => {
+    const emit = (dir, intent) => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "lane-boundary.json"), JSON.stringify(intent)); };
+    const buildIntent = { version: 1, lane: "build", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false };
+    const cageIntent = { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false };
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lane-build-"));
+    try {
+      const bDir = path.join(tmp, "build"); emit(bDir, buildIntent);
+      const cDir = path.join(tmp, "cage"); emit(cDir, cageIntent);
+      check("FAFF-894: build-lane boundary → dispatchState 'dispatched' (custody required)", laneBoundaryDispatchState(bDir) === "dispatched");
+      check("FAFF-894: build-lane boundary → laneBoundaryPromisesCage false (never arms the cage)", laneBoundaryPromisesCage(bDir) === false);
+      check("FAFF-894: evaluator own/absent boundary still arms the cage (predicate unchanged)", laneBoundaryPromisesCage(cDir) === true);
+      const cust = evaluateCustody(bDir, "FAFF-894", undefined, undefined);
+      check("FAFF-894: dispatched build run with no custody flags → required:true, refuse (FAFF-784 gate fires, not {required:false})", cust.required === true && cust.ok === false);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })();
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }

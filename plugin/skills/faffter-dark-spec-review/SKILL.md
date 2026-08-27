@@ -134,7 +134,7 @@ Supply exactly one refutation entry per enabled lens. `aggregate.mjs` **refuses 
 
 The rule it applies to a consistent set, in order:
 
-1. **Transport floor** — any `config-fault` unavailable lens → `needs-human` (a human must fix the config — not a transient the retry/hold loop can ride out); an `infra-configured` unavailable lens whose missing vote could swing the verdict → **`unavailable`** (FAFF-900: a mandatory spec-review *outage*, not a verdict about the spec — the orchestrator's in-turn retry / resumable outage-hold loop consumes this, distinct from the human-judgement-call `needs-human`).
+1. **Transport floor** — any `config-fault` unavailable lens → `needs-human` (a human must fix the config — not a transient the retry/hold loop can ride out); an `infra-configured` unavailable lens whose missing vote could swing the verdict → **`unavailable`** (a mandatory spec-review *outage*, not a verdict about the spec — the orchestrator's in-turn retry / resumable outage-hold loop consumes this, distinct from the human-judgement-call `needs-human`).
 2. **Severity veto** — any `critical` objection → `reject-approach`.
 3. **Majority** — a strict majority of *enabled* lenses refuted (`ceil((n+1)/2)`) → `reject-approach`.
 4. **Minority** — at least one non-critical refutation → `revise`.

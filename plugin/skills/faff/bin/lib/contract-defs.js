@@ -717,7 +717,7 @@ function contractHoldoutVerdict(extraction, opts = {}) {
 // fail-loud would make a present-but-invalid promise THROW instead of ARM, breaking the
 // merge-gate fail-safe (laneBoundaryPromisesCage). `host: remote` is declaration-only this slice
 // (no physical remote-observation seam yet — FAFF-817's transport slot supplies it later).
-const LANE_BOUNDARY_LANES = ["evaluator"];
+const LANE_BOUNDARY_LANES = ["evaluator", "build"];
 const LANE_BOUNDARY_CONTAINERS = ["shared", "own"];
 const LANE_BOUNDARY_HOST = ["local", "remote"];
 const LANE_BOUNDARY_ACCESS = ["absent", "present"];
@@ -2385,6 +2385,7 @@ const CONTRACTS = {
       { name: "conformant-evaluator-own", in: { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 0 },
       { name: "conformant-shared-present", in: { version: 2, lane: "evaluator", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: true }, wantExit: 0 },
       { name: "conformant-own-remote", in: { version: 1, lane: "evaluator", container: "own", host: "remote", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 0 },
+      { name: "conformant-build-lane", in: { version: 1, lane: "build", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false }, wantExit: 0 },
       { name: "out-of-enum-lane", in: { version: 1, lane: "builder", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
       { name: "out-of-enum-container", in: { version: 1, lane: "evaluator", container: "vm", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
       { name: "out-of-enum-host", in: { version: 1, lane: "evaluator", container: "own", host: "banana", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }, wantExit: 1 },
@@ -2795,9 +2796,9 @@ const CONTRACT_DESCRIBES = {
     ],
   },
   "lane-boundary": {
-    purpose: "The versioned intent an orchestrator authors declaring what physical isolation boundary an evaluator lane needs — a DECLARATION of intent, never itself a trust source (the physical assert-in check is `faff evaluator-preflight`).",
+    purpose: "The versioned intent an orchestrator authors declaring what physical isolation boundary a dispatched lane (evaluator or build) needs — a DECLARATION of intent, never itself a trust source (the physical assert-in check is `faff evaluator-preflight`).",
     values: [
-      { field: "lane", enum: LANE_BOUNDARY_LANES, semantics: { evaluator: "the code-blind holdout evaluator lane — the only lane this contract covers today" } },
+      { field: "lane", enum: LANE_BOUNDARY_LANES, semantics: { evaluator: "the code-blind holdout evaluator lane", build: "the dispatched build lane — its valid boundary flips laneBoundaryDispatchState to 'dispatched' (custody required) but can NEVER arm the evaluator cage (laneBoundaryPromisesCage stays keyed on lane === 'evaluator')" } },
       { field: "container", enum: LANE_BOUNDARY_CONTAINERS, semantics: { shared: "runs inside the same container as the builder", own: "runs in its own separate container" } },
       { field: "host", enum: LANE_BOUNDARY_HOST, semantics: { local: "the lane runs on the same host as the orchestrator", remote: "the lane runs on a separate host (declaration-only until FAFF-817's transport slot supplies the remote-observation seam)" } },
       { field: "accesses.repo", enum: LANE_BOUNDARY_ACCESS, semantics: { absent: "the repo is provably withheld from this lane", present: "the repo is accessible to this lane" } },

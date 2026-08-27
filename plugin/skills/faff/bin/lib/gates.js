@@ -190,17 +190,19 @@ function reportKind(command) {
 }
 
 // Reporting variant of extractRunCommands: same line-scan posture, but additionally tracks the
-// enclosing `jobs.<key>`, the most recent `- name:` at step indentation, and a `step_index`
-// incremented ONCE per `run:` key (not once per emitted body line — a block scalar is one step
-// however many command lines it holds, the counting unit the spec's Coverage record needs).
-// Returns `{command, step_index, step_name, job}` records. The execution-path extractRunCommands
-// above is untouched and keeps returning bare command strings.
+// enclosing `jobs.<key>`, the enclosing job's `runs-on:` (a job property at indent 4 — FAFF-849
+// (639b), the input the os-mismatch exclusion needs), the most recent `- name:` at step
+// indentation, and a `step_index` incremented ONCE per `run:` key (not once per emitted body line
+// — a block scalar is one step however many command lines it holds, the counting unit the spec's
+// Coverage record needs). Returns `{command, step_index, step_name, job, runs_on}` records. The
+// execution-path extractRunCommands above is untouched and keeps returning bare command strings.
 function extractRunCommandsWithContext(text) {
   const out = [];
   const lines = String(text).split(/\r?\n/);
   const indentOf = (s) => (s.match(/^[ \t]*/) || [""])[0].length;
   let inJobsBlock = false;
   let currentJob = null;
+  let currentJobRunsOn = null;
   let currentStepName = null;
   let stepIndex = 0;
   let i = 0;
@@ -216,7 +218,16 @@ function extractRunCommandsWithContext(text) {
       const jobMatch = /^([A-Za-z0-9_.-]+):\s*$/.exec(trimmed);
       if (jobMatch && indentOf(line) === 2) {
         currentJob = jobMatch[1];
+        currentJobRunsOn = null;         // a new job resets the enclosing runs-on
         currentStepName = null;
+        i += 1; continue;
+      }
+      // Capture `runs-on:` as a direct job property (indent 4 under the indent-2 job header).
+      // The value is kept raw (`macos-latest`, `ubuntu-latest`, or a `${{ matrix.os }}` expr that
+      // osFamily() reads as unrecognised → never excluded on OS grounds).
+      const runsOnMatch = /^\s*runs-on:\s*(.+)$/.exec(line);
+      if (runsOnMatch && indentOf(line) === 4) {
+        currentJobRunsOn = runsOnMatch[1].trim().replace(/^["']|["']$/g, "");
         i += 1; continue;
       }
     }
@@ -233,16 +244,17 @@ function extractRunCommandsWithContext(text) {
     const inline = m[2].trim();
     stepIndex += 1;                     // one increment per `run:` key, regardless of body length
     const thisStepIndex = stepIndex;
+    const ctx = { step_index: thisStepIndex, step_name: currentStepName, job: currentJob, runs_on: currentJobRunsOn };
     if (/^[|>][+-]?\s*$/.test(inline)) {
       i += 1;
       while (i < lines.length && (lines[i].trim() === "" || indentOf(lines[i]) > keyIndent)) {
         const body = lines[i].trim();
-        if (body !== "") out.push({ command: body, step_index: thisStepIndex, step_name: currentStepName, job: currentJob });
+        if (body !== "") out.push({ command: body, ...ctx });
         i += 1;
       }
       continue;
     } else if (inline !== "") {
-      out.push({ command: inline.replace(/^["']|["']$/g, ""), step_index: thisStepIndex, step_name: currentStepName, job: currentJob });
+      out.push({ command: inline.replace(/^["']|["']$/g, ""), ...ctx });
     }
     i += 1;
   }
@@ -430,27 +442,234 @@ function gatesFallbackPolicy(root) {
   return "fail-closed";
 }
 
+// ===========================================================================
+// FAFF-849 (639b) — the EXECUTION path consumes the wider REPORTING recogniser (848's
+// discoverRungsReporting set), but "recognised is not runnable": before running, execution
+// subtracts what is unsafe/impossible to run locally (exclusion rules), collapses the regions
+// selftest family into one aggregate rung, caps the per-kind blast radius, and applies a
+// partial-coverage policy. See records/specs/2026-08-27-faff-849-…-design.md.
+// ===========================================================================
+
+// Read the five gates.* config knobs via the loadConfig + dig idiom (mirrors gatesFallbackPolicy),
+// each defaulting on absent/malformed. gates.exclude is a list read via dig (not a DEFAULTS scalar).
+function readGatesConfig(root) {
+  let data = {};
+  try { [data] = loadConfig(root); } catch { data = {}; }
+  const get = (k) => { try { return dig(data, k); } catch { return undefined; } };
+  const fallback = get("gates.fallback") === "advisory" ? "advisory" : "fail-closed";
+  const partial = get("gates.partial") === "needs-human" ? "needs-human" : "warn";
+  // `dig` returns null for an absent key; Number(null) === 0 is an in-range value, so guard the
+  // present-ness of the raw value BEFORE coercing — else an unset key coerces to a spurious 0.
+  const num = (k) => { const v = get(k); return (v === null || v === undefined || v === "") ? NaN : Number(v); };
+  let max_rungs_per_kind = 5;
+  const mr = Math.floor(num("gates.max_rungs_per_kind"));
+  if (Number.isFinite(mr) && mr >= 1) max_rungs_per_kind = mr;
+  let partial_threshold = 0.5;
+  const pt = num("gates.partial_threshold");
+  if (Number.isFinite(pt) && pt >= 0 && pt <= 1) partial_threshold = pt;
+  const rawExclude = get("gates.exclude");
+  const exclude = Array.isArray(rawExclude) ? rawExclude.filter((x) => typeof x === "string") : [];
+  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold };
+}
+
+// The local host OS family (process.platform → the runs-on families we compare against).
+function localOs() {
+  const p = process.platform;
+  if (p === "darwin") return "macos";
+  if (p === "win32") return "windows";
+  return "linux";                     // linux + anything unmapped → the default GitHub runner family
+}
+
+// Map a workflow `runs-on:` label to an OS family, or null for an unrecognised/absent/matrix value
+// (which fails TOWARD running — a missing/expression runs-on is usually the default Linux runner).
+function osFamily(runsOn) {
+  const s = String(runsOn || "").toLowerCase();
+  if (/macos|osx|mac-/.test(s)) return "macos";
+  if (/windows|win-/.test(s)) return "windows";
+  if (/ubuntu|linux/.test(s)) return "linux";
+  return null;
+}
+
+// Why a recognised/candidate step is excluded from local execution, or null if runnable.
+// Precedence: configured > os-mismatch > github-context (any one excludes).
+function exclusionReason(rec, cfg, localOsVal) {
+  const cmd = String(rec.command);
+  if (cfg.exclude.some((pat) => pat && cmd.includes(pat))) return "configured";
+  if (rec.runs_on) {
+    const fam = osFamily(rec.runs_on);
+    if (fam !== null && fam !== localOsVal) return "os-mismatch";
+  }
+  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(cmd)) return "github-context";
+  return null;
+}
+
+// Runnable variant of discoverCiWorkflowsReporting: applies the exclusion filter at step
+// granularity (a step is subtracted from eligible_steps only when EVERY one of its command
+// records is excluded — matching 848's per-step counting), emits a rung per recognised, runnable
+// command, and returns the runnable-coverage inputs + the exclusion log. Never throws (same
+// missing-dir/unreadable-file posture as discoverCiWorkflowsReporting).
+function discoverCiWorkflowsRunnable(root, cfg) {
+  const rungs = [];
+  const exclusions = [];
+  let eligibleSteps = 0;
+  const recognisedStepKeys = new Set();
+  const localOsVal = localOs();
+  const dir = path.join(root, ".github", "workflows");
+  let stat;
+  try { stat = fs.statSync(dir); } catch { return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 }; }
+  if (!stat.isDirectory()) return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 };
+  let entries;
+  try { entries = fs.readdirSync(dir); } catch { return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 }; }
+  const files = entries.filter((f) => /\.ya?ml$/i.test(f)).sort();
+  for (const f of files) {
+    let text;
+    try { text = fs.readFileSync(path.join(dir, f), "utf8"); } catch { continue; }
+    const records = extractRunCommandsWithContext(text);
+    const byStep = new Map();
+    for (const rec of records) {
+      if (!byStep.has(rec.step_index)) byStep.set(rec.step_index, []);
+      byStep.get(rec.step_index).push(rec);
+    }
+    for (const [idx, recs] of byStep) {
+      const reasons = recs.map((r) => exclusionReason(r, cfg, localOsVal));
+      const allExcluded = reasons.every((x) => x !== null);
+      if (allExcluded) {                             // whole step subtracted from eligible + never a rung
+        recs.forEach((r, i) => exclusions.push({ command: r.command, reason: reasons[i] }));
+        continue;
+      }
+      eligibleSteps += 1;
+      recs.forEach((rec, i) => {
+        if (reasons[i]) { exclusions.push({ command: rec.command, reason: reasons[i] }); return; }
+        const kind = reportKind(rec.command);
+        if (!kind) return;
+        recognisedStepKeys.add(`${f}:${idx}`);
+        rungs.push({ kind, name: `${kind.toLowerCase()} (ci-workflow: ${rec.command})`, command: rec.command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true });
+      });
+    }
+  }
+  return { rungs, exclusions, eligibleSteps, recognisedSteps: recognisedStepKeys.size };
+}
+
+// Collapse every recognised `regions selftest --region <x>` rung into ONE aggregate
+// `regions selftest --region all` rung (the human decision of 2026-08-19). The aggregate inherits
+// the cheapest source cost_rank so it sorts among the other STATIC_ANALYSIS rungs, and consumes a
+// single slot against the per-kind cap. The invocation prefix is derived from a source command so
+// the aggregate stays runnable (e.g. `node bin/faff regions selftest --region all`).
+function aggregateSelftest(rungs) {
+  const isSelftest = (c) => /regions\s+selftest\s+--region/i.test(String(c));
+  const selftests = rungs.filter((r) => isSelftest(r.command));
+  if (selftests.length === 0) return rungs;
+  const keep = rungs.filter((r) => !isSelftest(r.command));
+  const src = selftests[0].command;
+  const at = src.toLowerCase().indexOf("regions");
+  const prefix = at > 0 ? src.slice(0, at) : "";
+  const command = `${prefix}regions selftest --region all`;
+  const agg = {
+    kind: "STATIC_ANALYSIS",
+    name: "static_analysis (ci-workflow: regions selftest --region all)",
+    command,
+    source: "ci_workflow",
+    cost_rank: Math.min(...selftests.map((r) => r.cost_rank)),
+    required: true,
+  };
+  return [...keep, agg];
+}
+
+// Keep at most `cap` rungs of each kind, cheapest-first (rungs are cost-sorted first).
+function capPerKind(rungs, cap) {
+  const n = Number.isInteger(cap) && cap >= 1 ? cap : 5;
+  const sorted = rungs.slice().sort((a, b) => a.cost_rank - b.cost_rank);
+  const counts = new Map();
+  const out = [];
+  for (const r of sorted) {
+    const c = counts.get(r.kind) || 0;
+    if (c >= n) continue;
+    counts.set(r.kind, c + 1);
+    out.push(r);
+  }
+  return out;
+}
+
+// The EXECUTION resolver: the wide reporting set, filtered to runnable, aggregated, and capped.
+// Local rungs (pre-commit/pkg/Makefile) are reused as-is and a local rung of a kind still
+// suppresses ALL ci rungs of that kind (FAFF-533 preserved). Returns the bounded rung set +
+// runnable coverage + discovery (confident/partial/none) + the exclusion log.
+function selectRunnableRungs(root, cfg) {
+  const localRungs = [
+    ...discoverPreCommit(root),
+    ...discoverPkgScripts(root),
+    ...discoverMakefile(root),
+  ];
+  const localByKind = new Map();
+  for (const r of localRungs.slice().sort((a, b) => a.cost_rank - b.cost_rank)) {
+    if (!localByKind.has(r.kind)) localByKind.set(r.kind, r);
+  }
+  const dedupedLocal = [...localByKind.values()];
+  const localKinds = new Set(dedupedLocal.map((r) => r.kind));
+
+  const { rungs: ciRunnable, exclusions, eligibleSteps, recognisedSteps } = discoverCiWorkflowsRunnable(root, cfg);
+  const ciByKindCommand = new Map();
+  for (const r of ciRunnable) {
+    const key = `${r.kind} ${r.command}`;
+    if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r);   // two-tier: keep distinct commands
+  }
+  const dedupedCi = [...ciByKindCommand.values()].filter((r) => !localKinds.has(r.kind)); // FAFF-533
+
+  let rungs = [...dedupedLocal, ...dedupedCi];
+  rungs = aggregateSelftest(rungs);
+  rungs = capPerKind(rungs, cfg.max_rungs_per_kind);
+  rungs = rungs.sort((a, b) => a.cost_rank - b.cost_rank);
+
+  const ratio = eligibleSteps === 0 ? 1.0 : recognisedSteps / eligibleSteps;
+  const coverage = { eligible_steps: eligibleSteps, recognised_steps: recognisedSteps, ratio };
+  let discovery;
+  if (rungs.length === 0) discovery = "none";
+  else if (ratio < cfg.partial_threshold) discovery = "partial";
+  else discovery = "confident";
+  return { rungs, discovery, coverage, exclusions };
+}
+
+// The partial-coverage policy, factored out as a pure function so its "never lowers an existing
+// fail/needs-human" contract is unit-testable without running any rung. When runnable coverage is
+// below gates.partial_threshold on a `partial` discovery: gates.partial=needs-human RAISES a `pass`
+// to `needs-human` (a fail/needs-human is left untouched); gates.partial=warn leaves the signal and
+// flags a warning line. Any other case is a pass-through.
+function applyPartialPolicy(signal, discovery, coverage, cfg) {
+  if (discovery === "partial" && coverage && coverage.ratio < cfg.partial_threshold) {
+    if (cfg.partial === "needs-human") {
+      return { signal: signal === "pass" ? "needs-human" : signal, partialWarning: false };
+    }
+    return { signal, partialWarning: true };                       // warn: signal unchanged, emit a line
+  }
+  return { signal, partialWarning: false };
+}
+
 // Run the ladder: cheapest-first, fail-fast on the first failing REQUIRED rung. An errored rung at
 // L3 → needs-human (can't conclude the code is bad). discovery:none → the fallback policy decides.
+// FAFF-849 (639b): rungs now come from selectRunnableRungs (the filtered/bounded reporting set),
+// and a runnable-coverage-below-threshold `partial` verdict consults gates.partial via
+// applyPartialPolicy as a final, never-lowering signal adjustment.
 function runLadder(root) {
-  const { rungs, discovery } = discoverRungs(root);
+  const cfg = readGatesConfig(root);
+  const { rungs, discovery, coverage, exclusions } = selectRunnableRungs(root, cfg);
   const results = [];
-  let signal = "pass";
   let needsHuman = false;
   for (const rung of rungs) {
     const r = runRung(rung, root);
     results.push(r);
     if (r.status === "errored") { needsHuman = true; continue; }   // surface, don't gate as fail
     if (rung.required && r.status === "fail") {
-      return { signal: "fail", discovery, rungs: results };         // fail-fast: stop here
+      return { signal: "fail", discovery, coverage, exclusions, rungs: results };  // fail-fast
     }
   }
+  let signal = "pass";
   if (discovery === "none") {
-    signal = gatesFallbackPolicy(root) === "fail-closed" ? "needs-human" : "pass";
+    signal = cfg.fallback === "fail-closed" ? "needs-human" : "pass";
   } else if (needsHuman) {
     signal = "needs-human";
   }
-  return { signal, discovery, rungs: results };
+  const { signal: finalSignal, partialWarning } = applyPartialPolicy(signal, discovery, coverage, cfg);
+  return { signal: finalSignal, discovery, coverage, exclusions, rungs: results, partialWarning };
 }
 
 // Map a GatesOutcome → the quality-gates contract EXTRACTION shape (rungs reduced to {kind,status}).
@@ -493,6 +712,9 @@ function cmdGates(args) {
       console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);
       for (const r of outcome.rungs) console.log(`  ${r.status.padEnd(8)} ${r.kind.padEnd(16)} ${r.command}  (${r.duration_ms}ms)`);
       if (outcome.discovery === "none") console.log("  no declared engineering gates found; ran none");
+      for (const ex of outcome.exclusions || []) console.log(`  excluded (${ex.reason}): ${ex.command}`);
+      if (outcome.coverage) console.log(`  runnable coverage: recognised ${outcome.coverage.recognised_steps} / eligible ${outcome.coverage.eligible_steps} steps (${outcome.coverage.ratio.toFixed(2)})`);
+      if (outcome.partialWarning) console.log(`  [warn] partial coverage: runnable coverage below gates.partial_threshold; ran the recognised subset (gates.partial: warn)`);
       console.log(block);
     }
     // exit 0 all-pass / 1 >=1 fail / 2 usage (mirrors the spec). needs-human exits 1 (non-green).
@@ -719,19 +941,100 @@ function gatesSelftest() {
   cases.push(["report: ci STATIC_ANALYSIS/UNIT rungs still reported (local only covers LINT)",
     disSuppress.rungs.some((r) => r.kind === "STATIC_ANALYSIS") && disSuppress.rungs.some((r) => r.kind === "UNIT")]);
 
-  // 25. THE anti-pattern guard — the reporting additions never reach the execution path.
-  //     discoverRungs/runLadder on the SAME wide-workflow root see NONE of the new STATIC_ANALYSIS
-  //     recognition or the two-tier LINT dedup: still today's kind-deduped, ciRunnerKind-only set.
+  // 25. discoverRungs is UNCHANGED by 639b (it stops feeding runLadder but stays for 848's own
+  //     isolation self-tests, per the spec §2): it still sees NONE of the widened STATIC_ANALYSIS
+  //     recognition and still collapses LINT by kind — today's narrow, ciRunnerKind-only resolver.
   const disWideExecution = discoverRungs(dWide);
-  cases.push(["execution isolation: discoverRungs sees no STATIC_ANALYSIS rung on the wide fixture",
+  cases.push(["discoverRungs unchanged: sees no STATIC_ANALYSIS rung on the wide fixture",
     disWideExecution.rungs.every((r) => r.kind !== "STATIC_ANALYSIS")]);
-  cases.push(["execution isolation: discoverRungs still collapses LINT to exactly one rung",
+  cases.push(["discoverRungs unchanged: still collapses LINT to exactly one rung",
     disWideExecution.rungs.filter((r) => r.kind === "LINT").length === 1]);
-  const runLadderWide = runLadder(dWide);
-  cases.push(["execution isolation: runLadder executes no STATIC_ANALYSIS rung on the wide fixture",
-    runLadderWide.rungs.every((r) => r.kind !== "STATIC_ANALYSIS")]);
-  cases.push(["execution isolation: runLadder's discovery field is discoverRungs's (confident), not the reporting partial",
-    runLadderWide.discovery === "confident"]);
+
+  // --- FAFF-849 (639b): the EXECUTION path now CONSUMES the wider reporting set through
+  // selectRunnableRungs (filter → aggregate → cap). These re-express 848's execution-isolation
+  // runLadder assertions to reflect the intended widening. ---
+  const cfgDefault = readGatesConfig(dNone);        // dNone has no .faffrc → all gates.* defaults
+  const selWide = selectRunnableRungs(dWide, cfgDefault);
+  cases.push(["execution (639b): selectRunnableRungs surfaces the widened STATIC_ANALYSIS rungs",
+    selWide.rungs.some((r) => r.kind === "STATIC_ANALYSIS")]);
+  cases.push(["execution (639b): runnable discovery is partial on the wide fixture (ratio < 0.5)",
+    selWide.discovery === "partial" && selWide.coverage.ratio < 0.5]);
+  cases.push(["execution (639b): runnable coverage counts all 19 eligible + 9 recognised steps",
+    selWide.coverage.eligible_steps === 19 && selWide.coverage.recognised_steps === 9]);
+  cases.push(["execution (639b): runLadder now sources from selectRunnableRungs — discovery reflects runnable coverage",
+    runLadder(dWide).discovery === "partial"]);
+
+  // 26. selftest aggregation — the two per-region selftest commands collapse to ONE
+  //     `regions selftest --region all` rung, consuming a single STATIC_ANALYSIS slot; the other
+  //     STATIC_ANALYSIS rungs (regions check / adr validate / prdr validate) still stand.
+  cases.push(["aggregate: regions selftest family collapses to one --region all rung",
+    selWide.rungs.filter((r) => /regions\s+selftest/i.test(r.command)).length === 1 &&
+    selWide.rungs.some((r) => /regions\s+selftest\s+--region\s+all/i.test(r.command))]);
+  cases.push(["aggregate: 4 STATIC_ANALYSIS rungs after aggregation (check/adr/prdr/selftest-all)",
+    selWide.rungs.filter((r) => r.kind === "STATIC_ANALYSIS").length === 4]);
+  cases.push(["aggregate: derived command keeps a runnable invocation prefix",
+    selWide.rungs.some((r) => /node .*regions\s+selftest\s+--region\s+all/i.test(r.command))]);
+  const aggEmpty = aggregateSelftest([{ kind: "LINT", command: "node --test", cost_rank: 25 }]);
+  cases.push(["aggregate: no-op when no selftest rung present", aggEmpty.length === 1 && aggEmpty[0].command === "node --test"]);
+
+  // 27. exclusion reasons — precedence configured > os-mismatch > github-context; each excludes.
+  const exCfg = { exclude: ["regions selftest"], partial: "warn", max_rungs_per_kind: 5, partial_threshold: 0.5, fallback: "fail-closed" };
+  cases.push(["exclude: github-context ${{ }}", exclusionReason({ command: "node --test ${{ matrix.x }}" }, exCfg, "linux") === "github-context"]);
+  cases.push(["exclude: github-context $GITHUB_", exclusionReason({ command: "echo $GITHUB_SHA" }, exCfg, "linux") === "github-context"]);
+  cases.push(["exclude: os-mismatch macos on linux", exclusionReason({ command: "node --test", runs_on: "macos-latest" }, exCfg, "linux") === "os-mismatch"]);
+  cases.push(["exclude: same-OS ubuntu on linux is runnable", exclusionReason({ command: "node --test", runs_on: "ubuntu-latest" }, exCfg, "linux") === null]);
+  cases.push(["exclude: absent runs-on not excluded on OS grounds", exclusionReason({ command: "node --test" }, exCfg, "linux") === null]);
+  cases.push(["exclude: matrix runs-on (unrecognised) not excluded", exclusionReason({ command: "node --test", runs_on: "${{ matrix.os }}" }, exCfg, "linux") === null]);
+  cases.push(["exclude: configured substring match", exclusionReason({ command: "node bin/faff regions selftest --region factory" }, exCfg, "linux") === "configured"]);
+  cases.push(["exclude: precedence configured beats os-mismatch", exclusionReason({ command: "regions selftest x", runs_on: "macos-latest" }, exCfg, "linux") === "configured"]);
+
+  // 28. os-mismatch subtracts the whole step from eligible_steps AND emits no rung.
+  const dMac = mk("macos", { ".github/workflows/mac.yml": "jobs:\n  impure-macos:\n    runs-on: macos-latest\n    steps:\n      - name: t\n        run: node --test\n  linux-job:\n    runs-on: ubuntu-latest\n    steps:\n      - name: adapters\n        run: node bin/faff validate-adapters\n" });
+  const selMac = selectRunnableRungs(dMac, cfgDefault);
+  cases.push(["os-mismatch: macos step excluded, only the linux LINT rung runnable", selMac.rungs.filter((r) => r.kind === "UNIT").length === 0 && selMac.rungs.some((r) => r.kind === "LINT")]);
+  cases.push(["os-mismatch: macos step subtracted from eligible_steps (1 eligible, not 2)", selMac.coverage.eligible_steps === 1]);
+  cases.push(["os-mismatch: exclusion logged with reason", selMac.exclusions.some((e) => e.reason === "os-mismatch" && /node --test/.test(e.command))]);
+
+  // 29. configured exclusion — a gates.exclude entry removes matching rungs; the rest still run.
+  const dExc = mk("exc", {
+    ".faffrc.yaml": "gates:\n  exclude:\n    - regions selftest\n",
+    ".github/workflows/w.yml": "jobs:\n  v:\n    steps:\n      - name: check\n        run: node bin/faff regions check\n      - name: self\n        run: node bin/faff regions selftest --region factory\n",
+  });
+  const selExc = selectRunnableRungs(dExc, readGatesConfig(dExc));
+  cases.push(["configured: no regions selftest rung when gates.exclude names it", !selExc.rungs.some((r) => /regions\s+selftest/i.test(r.command))]);
+  cases.push(["configured: the non-excluded regions check rung still present", selExc.rungs.some((r) => /regions\s+check/i.test(r.command))]);
+  cases.push(["configured: readGatesConfig parses gates.exclude list", readGatesConfig(dExc).exclude.includes("regions selftest")]);
+
+  // 30. per-kind cap — cap 2 keeps the cheapest 2 STATIC_ANALYSIS rungs of the wide fixture.
+  const cfgCap = { ...cfgDefault, max_rungs_per_kind: 2 };
+  const selCap = selectRunnableRungs(dWide, cfgCap);
+  cases.push(["cap: max_rungs_per_kind=2 keeps 2 STATIC_ANALYSIS rungs", selCap.rungs.filter((r) => r.kind === "STATIC_ANALYSIS").length === 2]);
+  cases.push(["cap: capPerKind keeps the cheapest N by cost_rank",
+    capPerKind([{ kind: "UNIT", cost_rank: 55 }, { kind: "UNIT", cost_rank: 50 }, { kind: "UNIT", cost_rank: 60 }], 2).map((r) => r.cost_rank).join(",") === "50,55"]);
+
+  // 31. readGatesConfig malformed-value coercion → defaults.
+  const dBad = mk("badcfg", { ".faffrc.yaml": "gates:\n  partial: banana\n  max_rungs_per_kind: -3\n  partial_threshold: 9\n  exclude: not-a-list\n" });
+  const cfgBad = readGatesConfig(dBad);
+  cases.push(["config coerce: invalid gates.partial → warn", cfgBad.partial === "warn"]);
+  cases.push(["config coerce: non-positive max_rungs_per_kind → 5", cfgBad.max_rungs_per_kind === 5]);
+  cases.push(["config coerce: out-of-range partial_threshold → 0.5", cfgBad.partial_threshold === 0.5]);
+  cases.push(["config coerce: non-list gates.exclude → []", Array.isArray(cfgBad.exclude) && cfgBad.exclude.length === 0]);
+  const dGood = mk("goodcfg", { ".faffrc.yaml": "gates:\n  partial: needs-human\n  max_rungs_per_kind: 3\n  partial_threshold: 0.7\n" });
+  const cfgGood = readGatesConfig(dGood);
+  cases.push(["config: valid gates.partial needs-human parsed", cfgGood.partial === "needs-human"]);
+  cases.push(["config: valid max_rungs_per_kind parsed", cfgGood.max_rungs_per_kind === 3]);
+  cases.push(["config: valid partial_threshold parsed", cfgGood.partial_threshold === 0.7]);
+
+  // 32. applyPartialPolicy — the signal branch, unit-tested (never lowers fail/needs-human).
+  const cov = { ratio: 0.32, eligible_steps: 19, recognised_steps: 6 };
+  const cfgNH = { partial: "needs-human", partial_threshold: 0.5 };
+  const cfgWarn = { partial: "warn", partial_threshold: 0.5 };
+  cases.push(["signal: partial + needs-human + pass → needs-human", applyPartialPolicy("pass", "partial", cov, cfgNH).signal === "needs-human"]);
+  cases.push(["signal: partial + warn + pass → pass + warning", applyPartialPolicy("pass", "partial", cov, cfgWarn).signal === "pass" && applyPartialPolicy("pass", "partial", cov, cfgWarn).partialWarning === true]);
+  cases.push(["signal: never lowers a fail (needs-human config)", applyPartialPolicy("fail", "partial", cov, cfgNH).signal === "fail"]);
+  cases.push(["signal: never lowers a needs-human (warn config)", applyPartialPolicy("needs-human", "partial", cov, cfgWarn).signal === "needs-human"]);
+  cases.push(["signal: confident discovery is a pass-through", applyPartialPolicy("pass", "confident", { ratio: 1.0 }, cfgNH).signal === "pass" && applyPartialPolicy("pass", "confident", { ratio: 1.0 }, cfgNH).partialWarning === false]);
+  cases.push(["signal: ratio at/above threshold is a pass-through", applyPartialPolicy("pass", "partial", { ratio: 0.6 }, cfgNH).signal === "pass"]);
 
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
 
@@ -1228,4 +1531,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, PARTIAL_COVERAGE_THRESHOLD, assertScanSetExpectCopiesInvariant, buildDoctorJson, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, mergeFencePresentAt, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory, selectRunnableRungs };

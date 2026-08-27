@@ -55,8 +55,11 @@ test("extractRunCommands handles block-scalar bodies and does not swallow the ne
 
 // FAFF-848 (639a) — real-repo acceptance for the REPORTING path. `faff gates discover` must see
 // what `.github/workflows/validate.yml` actually enforces (the FAFF-604 class of surprise: `faff
-// regions check` runs in CI but was invisible to discovery); `faff gates run` must stay untouched.
-test("discovery reports a STATIC_ANALYSIS `regions check` rung and discovery:partial on faff's own repo, while `faff gates run` executes its today-identical rung set", () => {
+// regions check` runs in CI but was invisible to discovery). NOTE (FAFF-849/639b): `faff gates run`
+// (runLadder) now CONSUMES the wider reporting set through selectRunnableRungs — so this test asserts
+// the retained narrow resolver `discoverRungs` DIRECTLY (left in place per the 639b spec §2), not
+// runLadder, which is where execution's today-identical isolation still holds.
+test("discovery reports a STATIC_ANALYSIS `regions check` rung and discovery:partial on faff's own repo, while discoverRungs (the retained narrow resolver) stays today-identical", () => {
   const reporting = discoverRungsReporting(repoRoot);
   assert.ok(
     reporting.rungs.some((r) => r.kind === "STATIC_ANALYSIS" && r.command === "node plugin/skills/faff/bin/faff regions check"),
@@ -73,8 +76,10 @@ test("discovery reports a STATIC_ANALYSIS `regions check` rung and discovery:par
   assert.ok(reporting.coverage.ratio < 0.5, "coverage ratio must back the partial classification");
   assert.ok(reporting.coverage.eligible_steps > reporting.coverage.recognised_steps, "the report is honest about what it does not see");
 
-  // `faff gates run` (the EXECUTION resolver, untouched) sees NEITHER `regions check` nor the wider
-  // LINT set — today's exact 2-rung (LINT + UNIT) kind-deduped selection, unchanged by this ticket.
+  // discoverRungs (the retained narrow resolver, no longer feeding runLadder — 639b spec §2) sees
+  // NEITHER `regions check` nor the wider LINT set — today's exact 2-rung (LINT + UNIT) kind-deduped
+  // selection, unchanged by this ticket. (runLadder's own widened execution is covered by gates.js
+  // --selftest cases 25-32.)
   const execution = discoverRungs(repoRoot);
   assert.equal(execution.discovery, "confident");
   assert.ok(execution.rungs.every((r) => r.kind !== "STATIC_ANALYSIS"), "execution never gains a STATIC_ANALYSIS rung from this reporting change");

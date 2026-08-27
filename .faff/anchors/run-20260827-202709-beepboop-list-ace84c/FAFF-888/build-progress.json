@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-888",
+  "build": {
+    "status": "complete",
+    "diff_hash": "06f17c63b10880b63104ba79369ca60391ee4b7ee47cbd353e5c60b3e6bb4448",
+    "branch": "faff-888-spec-review-gate-has-no-calibrationliveness-guard-against-a",
+    "pushed_at": "2026-08-27T22:57:47.114Z"
+  },
+  "updated_at": "2026-08-27T22:57:47.114Z"
+}

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-872",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b62dacfa3935454e4a8cb29cc75478ad0852b6a99d0a8cf8dc81bac2cc34744b",
+    "branch": "faff-872-fold-the-native-ollama-adversarial-transport-onto-the-openai",
+    "pushed_at": "2026-08-27T15:16:53.656Z"
+  },
+  "updated_at": "2026-08-27T15:16:53.656Z"
+}

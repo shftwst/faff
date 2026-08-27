@@ -179,10 +179,20 @@ PROCEDURE disposition_unavailable(issue, spec):
          (each attempt bounded by the existing adversarial deadline; no orchestrator wall-clock)
        IF verdict != unavailable → route it normally (the table above) and RETURN
   4. # in-turn ceiling hit — the chain did not clear this turn
-     holds := (.faff/resume/<issue>/spec-review-hold.json).outage_holds (absent → 0)
+     holds := (.faff/resume/<issue>/spec-review-hold.json).outage_holds
+       # absent file → 0 (fail-safe: a genuinely fresh outage). A PRESENT-but-corrupt file
+       # (unparseable JSON, or outage_holds not an integer >= 0) is a plumbing fault, never
+       # silently read as 0 — that would silently reset the escalation counter and let a
+       # persistent outage hold forever. Mirrors a fail-safe-absent / fail-loud-corrupt convention
+       # (absent → safe default; present-but-broken → fail loud): treat it as needs-human
+       # directly (cause "spec-review-hold.json corrupt — cannot read outage_holds"), same
+       # park protocol as the hold-limit-exhausted arm below, without incrementing further.
      IF holds + 1 >= faff config get prep.spec_review_outage_hold_limit:   # default 3
        → needs-human park: park protocol, cause "spec-review provider outage, N held drains exhausted",
-         remove faff-awaiting-spec-review, rm -rf .faff/resume/<issue>. Return parked.
+         remove faff-awaiting-spec-review, rm -f .faff/resume/<issue>/spec-review-hold.json (never a bare
+         rm -rf of the whole <issue> dir — that path is shared with the build-side review-outage checkpoint
+         files, and this issue hasn't reached build yet, but scope the delete to the file this disposition
+         owns regardless). Return parked.
      ELSE hold:
        a. write .faff/resume/<issue>/spec-review-hold.json
           { outage_holds: holds+1, outaged_lenses: [...], pinned_reviewer?: ... }
@@ -197,7 +207,7 @@ PROCEDURE disposition_unavailable(issue, spec):
 
 **Anti-pattern:** coercing the outage to `approve` — the exact regression the exit-code discipline exists to prevent. **Anti-pattern:** dual-tagging `faff-parked` on a hold — the two are mutually exclusive (a hold is not a park; `faff next --parked` would otherwise block the very re-queue the hold needs). **Anti-pattern:** re-producing the spec on resume — see _Resume at the review gate_ below.
 
-**Resume at the review gate (Scenario B, autonomous).** An issue carrying `faff-awaiting-spec-review` with a valid `.faff/resume/<issue>/spec-review-hold.json` is picked up by the prep queue via `faff next`'s `--awaiting-spec-review` arm (gateway → **Next-step transition**) — status stays Backlog, so it re-enters through the ordinary existing-spec path (Scenario B), not a new one. On finding the label + store: **skip spec re-production and the already-shipped/premise gate entirely** (the spec is durable on the tracker; only the review is re-run) — carry `outage_holds` forward from the store and re-enter the spec-review gate directly (re-run the occupant fresh, same lens selection as any other pass). A conclusive resumed verdict routes exactly per the table above, then removes `faff-awaiting-spec-review` and clears `.faff/resume/<issue>`; a repeat outage re-enters `disposition_unavailable()` instead — the counter reads the carried file, so it increments across drains and escalates at the hold limit exactly as a fresh outage would.
+**Resume at the review gate (Scenario B, autonomous).** An issue carrying `faff-awaiting-spec-review` with a valid `.faff/resume/<issue>/spec-review-hold.json` is picked up by the prep queue via `faff next`'s `--awaiting-spec-review` arm (gateway → **Next-step transition**) — status stays Backlog, so it re-enters through the ordinary existing-spec path (Scenario B), not a new one. On finding the label + store: **skip spec re-production and the already-shipped/premise gate entirely** (the spec is durable on the tracker; only the review is re-run) — carry `outage_holds` forward from the store and re-enter the spec-review gate directly (re-run the occupant fresh, same lens selection as any other pass). A conclusive resumed verdict routes exactly per the table above, then removes `faff-awaiting-spec-review` and deletes `.faff/resume/<issue>/spec-review-hold.json` specifically (never the whole `<issue>` dir, which the build-side hold also uses); a repeat outage re-enters `disposition_unavailable()` instead — the counter reads the carried file, so it increments across drains and escalates at the hold limit exactly as a fresh outage would. **Label present but the store missing/invalid is not a special case** — it is not a resumable hold, so this whole short-circuit does not apply; Scenario B proceeds through its ordinary existing-spec flow (freshness checks, then ultimately the same spec-review gate any pass would run) exactly as if the label were absent.
 
 **Retain the verdict on the spec.** On `approve`, write a retained `spec-review: approve` line alongside the `confidence:` line (durable provenance, exactly as the confidence rating is retained). Build-admission consumes this **retained** verdict rather than re-reviewing; staleness is caught by the existing **Live-thread reconciliation** (gateway) every verdict consumer already applies — wire the retained verdict *through* that reconciliation, not around it.
 

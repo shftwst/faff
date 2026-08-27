@@ -1,0 +1,26 @@
+{
+  "signal": "pass",
+  "conformant": true,
+  "violations": [],
+  "findings": [
+    {
+      "severity": "advisory",
+      "category": "design-confirmation",
+      "location_present": true,
+      "action_present": true,
+      "location": "plugin/skills/faff/bin/lib/resumecheck.js (resumecheckHookDecision)",
+      "summary": "Same-session release fires at every Stop with a run-resume tail, not only headless -p; combined with aborted-resumable being unconditionally re-enterable this opens a bounded double-drive window on a zero-work turn-end.",
+      "action": "No change — spec-consistent: the approved spec §6 explicitly Chooses 'never age-gate the same-session release' and treats a turn ending with the run-resume tail as literal zero work; the epoch fence yields and FAFF-863 serializes the takeover, so harm is bounded (<= one redundant dispatch)."
+    },
+    {
+      "severity": "advisory",
+      "category": "design-confirmation",
+      "location_present": true,
+      "action_present": true,
+      "location": "plugin/skills/faff/bin/lib/resume.js (classifyReEnterable provablyDead) + lights-out.js STEP 1b",
+      "summary": "Read-side provablyDead overrides a fresh heartbeat, so a live driver that emits only heartbeats for >FAFF_RESUME_DEADCLAIM_GRACE_SECS before its first work event can be reclaimed.",
+      "action": "No change — spec-consistent: the approved spec names this as failure-mode #2 (bounded by grace + the FAFF-575/863 mutex; residual cost <= one redundant dispatch; fully race-free needs capability #2, out of scope)."
+    }
+  ],
+  "notes": "Independent senior-engineer review (decorrelated pass): no hard correctness bugs; every DoD item verified (tailEventIsRunResume shape, resumecheckHookDecision gating, mutateLedgerUnderLock expectedOwner fence + re-abort, write-side never age-gated, runs-root confinement, event appended only on mres.written, graceSecs defaulting, classifyReEnterable byte-identical for omitting callers incl. bundle-recover.js). The two findings are confirmations of already-approved spec-Chosen tradeoffs, not defects; the change is fully git-revert-able (decidable, not the human-judgement verdict). Spec-review gate: approve. Verdict: pass."
+}

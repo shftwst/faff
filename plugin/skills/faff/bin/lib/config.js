@@ -110,6 +110,15 @@ const DEFAULTS = {
   // this opt-in AND the same-team structural check must hold; each is fail-closed to outward-new-root.
   "containment.self_hosting_intake": "false",
   "gates.fallback": "fail-closed",
+  // FAFF-849 (639b): the execution ladder consumes the wider recognised set (848's reporting
+  // recogniser), bounded by these knobs. gates.partial decides whether below-threshold runnable
+  // coverage warns (default) or gates needs-human; max_rungs_per_kind caps the per-kind blast
+  // radius; partial_threshold promotes 848's hardcoded PARTIAL_COVERAGE_THRESHOLD to config.
+  // (gates.exclude — the per-repo opt-out list — is read via dig, not a DEFAULTS scalar, mirroring
+  // install.skill_targets.)
+  "gates.partial": "warn",
+  "gates.max_rungs_per_kind": "5",
+  "gates.partial_threshold": "0.5",
   // FAFF-385: post-merge verification (re-run the declared UNIT rung against the merge sha) —
   // consulted in autonomous mode only; default on so a repo opts OUT, never opts in.
   "post_merge.check": "on",
@@ -2111,7 +2120,10 @@ function cmdConfig(args) {
           "slots.env", "slots.prd", "slots.transport",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "containment.self_hosting_intake",
-          "gates.fallback", "post_merge.check", "budget.at_ceiling",
+          "gates.fallback",
+          // FAFF-849 (639b): the execution-ladder bounding knobs.
+          "gates.partial", "gates.max_rungs_per_kind", "gates.partial_threshold",
+          "post_merge.check", "budget.at_ceiling",
           "models.build", "models.prep_explore",
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
           "models.architecture",

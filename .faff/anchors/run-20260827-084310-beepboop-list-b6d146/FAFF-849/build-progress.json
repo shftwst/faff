@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-849",
+  "build": {
+    "status": "complete",
+    "diff_hash": "5179a076db10b27811891d373e45bf349219a195904b7705de6def5c6f8704e4",
+    "branch": "faff-849-639b-gate-ladder-runs-what-discovery-found-exclusion-rules",
+    "pushed_at": "2026-08-27T09:42:01.561Z"
+  },
+  "updated_at": "2026-08-27T09:42:01.561Z"
+}

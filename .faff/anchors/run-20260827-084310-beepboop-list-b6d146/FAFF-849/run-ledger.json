@@ -1,0 +1,65 @@
+{
+  "level": "L3",
+  "run_id": "run-20260827-084310-beepboop-list-b6d146",
+  "admitted": [
+    "FAFF-849",
+    "FAFF-842",
+    "FAFF-896"
+  ],
+  "outcomes": {
+    "FAFF-639": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "price_per_mtok": 0
+    },
+    "tokens_at_start": 4174911,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "5197b420-12e2-47fc-82ae-d346a69b247e",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 44,
+        "output": 16373,
+        "cache_write": 315941,
+        "cache_read": 3842553
+      }
+    },
+    "window": {
+      "anchor_epoch": 1787820244537,
+      "reset_epoch": 1787838244537,
+      "tokens_at_anchor": 591303
+    },
+    "tokens_at_last_event": {
+      "input": 136,
+      "output": 121604,
+      "cache_write": 615675,
+      "cache_read": 14330889
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 432,
+    "session_id": "run-20260827-084310-beepboop-list-b6d146",
+    "started_at": "2026-08-27T08:43:48Z",
+    "last_heartbeat": "2026-08-27T08:43:48Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-639": {
+      "state": "routed-out",
+      "verdict": "needs-human",
+      "reason": "umbrella superseded by executed human split (639a=FAFF-848 Done, 639b=FAFF-849); building umbrella as one unit contradicts executed curation; redirect to FAFF-849"
+    }
+  }
+}

@@ -25,6 +25,16 @@ bundle_store: git-remote # top-level mode enum (local | git-remote), not a slot 
 automation_default: opt-in # fail-safe: a ticket is automatable ONLY when a human adds `faff-automate` in the tracker (the control-plane gesture, FAFF-19/125/218). On this tracker-bound repo opt-out would be inert anyway (FAFF-753 — opt-out is git-only-only).
 intake_gate: warn
 
+gates:
+    # FAFF-849 (639b) / FAFF-561: the execution ladder now runs the wider recognised CI set, which
+    # includes the aggregate `regions selftest --region all` rung. That rung's budget governance
+    # selftest is state-sensitive — it FAILs on a dirty local `.faff/` state (which is why
+    # validate.yml runs `--region factory|governance` as separate interim steps rather than
+    # `--region all`). Exclude it from the LOCAL ladder until FAFF-561 clears; CI still enforces the
+    # two regions separately. This is the per-repo safety valve 639b ships (case-sensitive substring).
+    exclude:
+        - regions selftest
+
 budget:
     max_attempts: 40 # runaway backstop ONLY (won't bind the scoped bulk slice); NOT the terminator
     tokens: 3000000000 # 3B runaway backstop only; never binds a normal run (dryness + convergence.max_waves are the real exit)

@@ -52,7 +52,7 @@ Each refuter pass is made by the bundled adversarial-review transport, **`review
 
 **Dispatch the lenses CONCURRENTLY, via `fan-out.mjs` — never a per-lens loop.** Under Claude Code, issuing N Bash calls in one message happens to run them concurrently — a harness feature, not something faff asked for by name. A non-Claude harness has no such free batching, so a per-lens bash loop would run the N `review-call.mjs` subprocesses one after another, each a full adversarial-review call — a four-lens pass can stall over an hour. `fan-out.mjs` (bundled beside `review-call.mjs` in the sibling `faffter-dark-adversarial-review` skill) spawns every enabled lens's `review-call.mjs` invocation itself and awaits them together, so any harness capable of running one shell command gets the same speed-up. It is reused verbatim, the same discipline as `review-call.mjs` itself.
 
-**Resolve the chain mechanically through the reviewer-pin — never `JSON.parse` `adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff spec-review-pin --resolve` subcommand **once**. It wraps the mechanical `faff adversarial-backends` per-consumer assembly with the reviewer-pin: the backend that served round 1 is preferred across the rounds of one spec's loop (prefer-with-fallback — pinned backend first, the rest of the chain behind it, so a rate-limited pin round falls back instead of hard-parking), while round 1 / an unpinned dir is **byte-identical** to the bare per-consumer chain. It prints the same bare primary-first JSON array (drop-in for the `--backends-json` mapper), branch on its exit code, then build one `LensRequest` per enabled lens and fan them all out in a single `fan-out.mjs` call:
+**Resolve the chain mechanically through the reviewer-pin — never `JSON.parse` `adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff spec-review-pin --resolve` subcommand **once**. It wraps the mechanical `faff adversarial-backends` per-consumer assembly with the reviewer-pin: the backend that served round 1 is preferred across the rounds of one spec's loop (prefer-with-fallback — pinned backend first, the rest of the chain behind it, so a rate-limited pin round falls back instead of hard-parking), while round 1 / an unpinned dir is **byte-identical** to the bare per-consumer chain. It prints the same bare primary-first JSON array (drop-in for the `--backends-json` mapper), branch on its exit code, then build one `LensRequest` per enabled lens and fan them all out in a single `fan-out.mjs` call. On the exit-0 branch, **round 1 only** (before the pin exists), the resolved chain is first piped through `faff spec-review-reputation --eligible` so a candidate-degenerate reviewer is struck for cause at selection time; the filter never empties the chain, so the gate always survives:
 
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
@@ -75,6 +75,19 @@ max_tokens=$("$faff" config get adversarial.spec_review.max_tokens)
 
 case "$backends_exit" in
   0)
+    # Selection-time reputation strike — ROUND 1 ONLY (unpinned, no pin sidecar yet).
+    # Pipe the resolved chain through `faff spec-review-reputation --eligible` so a candidate-
+    # degenerate backend (blocks nearly every spec it reviews while a meaningful fraction of those
+    # blocks later ship/are accepted) is struck BEFORE it is served or pinned. Filter IN PLACE so
+    # the LensRequest[] --backends-json, the chain[<i>] header indices, and the --capture below all
+    # read the already-struck chain. It NEVER empties the chain (an all-flagged input passes through
+    # unchanged with the gate intact), so this cannot turn an exit-0 resolve into an empty fan-out.
+    # Round-1-only (per the committed "read at selection time, not per round" decision): on rounds
+    # >= 2 the pin already names the clean round-1 winner, so no per-round cross-run scan runs.
+    if [ ! -e "$pin_dir/pinned-reviewer.json" ]; then
+      "$faff" spec-review-reputation --eligible --backends-json "$backends_json" --consumer spec_review > "$backends_json.elig" \
+        && mv "$backends_json.elig" "$backends_json"
+    fi
     # Build the full LensRequest[] in ONE pass over $enabled_lenses (never a per-lens loop that
     # calls fan-out.mjs once per lens — the array is what fans out, not the assembly loop) — every
     # argv field byte-identical to the old per-lens call except --system, which is the lens's own

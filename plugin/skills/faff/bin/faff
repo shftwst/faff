@@ -102,6 +102,7 @@ const { cmdSentrycheck } = require("./lib/sentrycheck");
 const { cmdSpecReviewChurn } = require("./lib/spec-review-churn");
 const { cmdSpecReviewConvergence } = require("./lib/spec-review-convergence");
 const { cmdSpecReviewPin, cmdSpecReviewDir } = require("./lib/spec-review-pin");
+const { cmdSpecReviewReputation } = require("./lib/spec-review-reputation");
 const { cmdSpecReviewWindow } = require("./lib/spec-review-window");
 const { cmdStageGuard } = require("./lib/stage");
 const { cmdState } = require("./lib/state");
@@ -235,6 +236,7 @@ const COMMANDS = {
   "spec-review-convergence": cmdSpecReviewConvergence,
   "spec-review-pin": cmdSpecReviewPin,
   "spec-review-dir": cmdSpecReviewDir,
+  "spec-review-reputation": cmdSpecReviewReputation,
   "spec-review-window": cmdSpecReviewWindow,
   "backends": cmdBackends,
   "tier": cmdTier,

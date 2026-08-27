@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-899",
+  "build": {
+    "status": "complete",
+    "diff_hash": "43bc0b6767c0694b93bf70712775e56a51f1939d4a4dddd63fa07a16c738074d",
+    "branch": "faff-899-l4-guardrail-preflight-gates-on-each-subcommands-selftest",
+    "pushed_at": "2026-08-27T22:12:40.744Z"
+  },
+  "updated_at": "2026-08-27T22:12:40.744Z"
+}

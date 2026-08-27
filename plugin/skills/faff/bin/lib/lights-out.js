@@ -20,11 +20,13 @@
 
 // The 8 shipped guardrail contracts the runner composes, in banner order. Each id
 // pairs with the CLI contract that backs it (label only — the runner OWNS no copy
-// of the logic) and the subcommand whose --selftest is its reachability probe
-// (null ⇒ resolved differently: container from container-check's own verdict).
+// of the logic) and the subcommand whose STRUCTURAL PRESENCE in the running
+// entrypoint's own dispatch registry is its reachability floor (FAFF-899 — no
+// `--selftest` subprocess is spawned at launch; null ⇒ resolved differently:
+// container from container-check's own verdict).
 // `enforced` (FAFF-305): true iff an orchestrator step actually INVOKES this
-// guardrail in the loop — distinct from `probe`/armed reachability (the contract
-// answers --selftest). All 8 guardrails are now enforced: the per-run holdout
+// guardrail in the loop — distinct from `probe`/armed reachability (the structural
+// presence floor). All 8 guardrails are now enforced: the per-run holdout
 // phase (beep-boop, sibling to runcheck) invokes the env→evaluate chain via the
 // call-site-agnostic holdout step (faffter-noon-env-compose provisions, faffter-noon-evaluate
 // judges code-blind), so `holdout` earns enforced:true and the banner reads 8/8. Derived
@@ -333,8 +335,20 @@ function lightsOutPreflight(probes) {
     if (armed[id] === "live") continue;
     if (id === "container") {
       refusals.push({ gate: "guardrail:container", detail: "container-check not_confirmed — go lights-out only inside the host-isolation container (claude-box); the cage is the container's job, faff refuses to self-grant or weaken it" });
+    } else if (id === "spec_review" && armed[id] === "degraded") {
+      // The structural floor already PASSED (its `contract` command is registered) —
+      // this is a down spec_review SLOT, not a wiring defect. The dedicated
+      // `spec_review-slot` refusal below names that actionable condition; reporting
+      // a "build defect" here too would be a false, unfixable-by-the-operator claim.
+      continue;
     } else {
-      refusals.push({ gate: `guardrail:${id}`, detail: `${id} not live (${armed[id]}) — its CLI contract failed the launch reachability probe; fail-closed, no reduced mode` });
+      // FAFF-899: the reachability floor is structural presence in the running
+      // entrypoint's own dispatch registry, not a `--selftest` suite run — the only
+      // way this fires is a faff-internal wiring drift (a LIGHTS_OUT_GUARDRAILS[i].probe
+      // string that names no COMMANDS key in this build), a build/wiring defect, never
+      // an operator config or install condition. Naming it "re-link" would be wrong: a
+      // copied-not-symlinked install still passes this floor (see guardrailReachable).
+      refusals.push({ gate: `guardrail:${id}`, detail: `${id} guardrail command is not registered in this faff build (${armed[id]}) — the guardrail's probe subcommand resolves to no dispatch handler, which is a faff build/wiring defect, not a run condition. This build should not ship; run \`faff doctor\` to confirm the install and re-obtain a correct build. Fail-closed, no reduced mode.` });
     }
   }
   // FAFF-333 — host-socket boundedness (ADR-0041 decision 3): a mounted HOST docker
@@ -530,14 +544,26 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
   return lines.join("\n");
 }
 
-// Reachability probe for a CLI-backed guardrail: spawn THIS binary's `<sub> --selftest`
-// and treat exit 0 as live. A genuine probe (it executes the contract), not a config
-// read — a stale binary lacking `sentry`/`holdout` fails here and the run refuses.
-function probeContractReachable(binPath, sub) {
-  try {
-    const r = spawnSync(process.execPath, [binPath, sub, "--selftest"], { encoding: "utf8", timeout: 20000 });
-    return r.status === 0;
-  } catch { return false; }
+// FAFF-899 — reachability FLOOR for a CLI-backed guardrail: a non-spawning structural
+// presence check, not a suite run. Is `guardrail.probe` a live dispatch target of the
+// RUNNING faff entrypoint? `knownCommands` is threaded in from the entrypoint's own
+// COMMANDS registry (never read from a module-level import), so the guardrail-absent
+// branch is unit-testable against a fixture set with no real registry involved. No
+// subprocess, no timeout — this cannot flake under host load, the failure class that
+// motivated this ticket. The ONLY way this returns false is a faff-internal wiring
+// drift — a LIGHTS_OUT_GUARDRAILS[i].probe string that names no COMMANDS key in this
+// build — a code/build defect, never an operator-fixable condition. It deliberately
+// does NOT detect a stale/miscopied-but-self-consistent install (a copied-not-symlinked
+// skill tree still ships a coherent registry pair); that residual is owned by the
+// version/build-handshake spike FAFF-902 and surfaced out-of-band by `faff doctor`.
+function guardrailReachable(knownCommands, guardrail) {
+  // Defensive, fail-closed guard (adversarial review, FAFF-899): a missing/malformed
+  // `knownCommands` (a dropped-parameter regression at some future call site, or a
+  // caller that isn't cmdLightsOut's own `new Set(...)`) reads as absent rather than
+  // throwing an uncaught TypeError — MORE fail-closed than a crash, never less; it
+  // never turns a real miss into a pass.
+  if (!knownCommands || typeof knownCommands.has !== "function") return false;
+  return knownCommands.has(guardrail.probe);
 }
 
 function resolveSlotOccupant(cfg, name) {
@@ -668,8 +694,14 @@ const LIGHTS_OUT_SPEC = { flags: {
   "--slot-unreachable": { arity: 1, repeatable: true },
 } };
 
-function cmdLightsOut(args) {
+function cmdLightsOut(args, commands) {
   if (args.includes("--selftest")) return lightsOutSelftest();
+  // FAFF-899 — the entrypoint's OWN dispatch registry, threaded in (never a
+  // module-level import) so the reachability floor is unit-testable against a
+  // fixture set. A caller that doesn't pass `commands` (a stale wrapper, a direct
+  // unit-test call) degenerates to an empty set — every CLI-backed guardrail then
+  // reads absent, fail-closed, never a silent "everything's reachable".
+  const knownCommands = new Set(commands ? Object.keys(commands) : []);
   const parsed = parseArgs(args, LIGHTS_OUT_SPEC);
   if (parsed.errors.length) return usageError(parsed.errors, "usage: faff lights-out [--id RUN-ID | --resume RUN-ID] [--check] [--max N] [--until ISO] [--prd-creative-licence broad|tight] [--prd-root-container C] [--slot-unreachable NAME]... [--json] [--root DIR]");
   const values = parsed.values;
@@ -723,7 +755,7 @@ function cmdLightsOut(args) {
       else process.stderr.write(msg + "\n");
       return 2;
     }
-    return resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId });
+    return resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId, knownCommands });
   }
 
   // FAFF-757: validate a supplied --id at the same consume site it was previously used
@@ -743,7 +775,7 @@ function cmdLightsOut(args) {
   // shared verbatim between the mint path and the `--resume` re-fire, so a resumed run is
   // judged against the CURRENT config/environment exactly as a fresh mint is. One home for
   // the probe wiring means the two can never drift.
-  const A = assembleLightsOutPreflight(root, cfg, binPath, get, unreachable);
+  const A = assembleLightsOutPreflight(root, cfg, binPath, get, unreachable, knownCommands);
   const { pf, envelope, metering, correctiveAuthority, dial_profile, container, floor } = A;
 
   // REFUSE (fail-closed): print the banner + refusals, mint nothing, emit no work.
@@ -772,7 +804,10 @@ function cmdLightsOut(args) {
 // the CURRENT config + environment and run the pure preflight core. Returns everything
 // both the mint path and the resume re-fire consume. Extracted verbatim from the mint
 // path (byte-for-byte the same probe wiring) so mint/resume never diverge.
-function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
+// `knownCommands` (FAFF-899): a Set of the running entrypoint's registered COMMANDS
+// keys, threaded in from cmdLightsOut/resumeLightsOut — the structural-presence
+// reachability floor never reads a module-level registry directly.
+function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable, knownCommands) {
   // Container preflight (the containerisation ADR / claude-box): WARN→BLOCK on the
   // lights-out path only — L1–L3 keep today's warn-don't-block behaviour.
   const container = containerCheck(process.env, realFsq()).result;
@@ -795,11 +830,12 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
   const correctiveProbe = correctiveIntegrityProbe(process.env, realFsq(), []);
   const correctiveAuthority = correctiveProbe.asserted ? "available" : "channel-D-only";
 
-  // Per-guardrail contract reachability probes (genuine, not config presence).
+  // Per-guardrail reachability: a non-spawning structural-presence FLOOR (FAFF-899),
+  // never a `--selftest` suite run — see guardrailReachable's header comment.
   const reachable = {};
   for (const g of LIGHTS_OUT_GUARDRAILS) {
     if (g.probe === null) { reachable[g.id] = container === "contained"; continue; }
-    reachable[g.id] = probeContractReachable(binPath, g.probe);
+    reachable[g.id] = guardrailReachable(knownCommands, g);
   }
 
   // Slots: configured occupant + the prose-supplied liveness (default reachable when
@@ -1086,7 +1122,7 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
 
 // FAFF-527 — the resume impure shell (spec §4). Steps 1–4 are side-effect-free; the
 // first write is step 5, so `--check` runs 1–4 and prints the plan. Returns the CLI exit.
-function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId }) {
+function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId, knownCommands }) {
   const emitRefuse = (code, msg, extra) => {
     if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", resume: resumeId, error: msg, ...(extra || {}) }) + "\n");
     else process.stderr.write(msg + "\n");
@@ -1130,7 +1166,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
 
   // STEP 2: RE-FIRE the full mint preflight against CURRENT config/environment. Any
   // refusal leaves the ledger untouched (mirrors the mint refuse path).
-  const A = assembleLightsOutPreflight(root, cfg, binPath, get, unreachable);
+  const A = assembleLightsOutPreflight(root, cfg, binPath, get, unreachable, knownCommands);
   const { pf } = A;
   if (!pf.proceed) {
     if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", resume: resumeId, state: priorState, refusals: pf.refusals, banner: pf.banner }) + "\n");
@@ -1945,4 +1981,4 @@ function lightsOutSelftest() {
 // resumeLightsOut uses, rather than fork a second read of build-progress.json/
 // merge-record.json/the forge. observeForgeMerge/branchExistsOnForge stay private —
 // gatherResumeEvidence is the one call-site that needs them.
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, guardrailReachable, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

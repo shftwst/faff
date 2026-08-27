@@ -213,7 +213,10 @@ const COMMANDS = {
   "sentry-poller": cmdSentryPoller,
   "sentrycheck": cmdSentrycheck,
   "stage-guard": cmdStageGuard,
-  "lights-out": cmdLightsOut,
+  // FAFF-899: cmdLightsOut needs the entrypoint's OWN dispatch registry (never a
+  // module-level import) to compute non-spawning guardrail reachability — mirrors
+  // the harness/regions/lint-cli-* wiring above.
+  "lights-out": (args) => cmdLightsOut(args, COMMANDS),
   "audit": cmdAudit,
   "gates": cmdGates,
   "contract": cmdContract,

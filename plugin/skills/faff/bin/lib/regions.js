@@ -309,6 +309,10 @@ const REGION_MAP = {
   // a legal require edge (ADR-0042).
   "spec-review-pin": "factory",
   "spec-review-dir": "factory",
+  // FAFF-909: spec-review-window derives the next round number from disk (reuses
+  // spec-review-convergence's roundFilesInDir — factory→factory, ADR-0042) and owns the
+  // window.json sidecar read/write — a small deterministic CLI resolver faff-prep shells out to.
+  "spec-review-window": "factory",
   // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
   // reference — same shape as spec-review-churn) — factory, same family as the other small
   // deterministic CLI resolvers.
@@ -442,6 +446,7 @@ const REGION_SELFTEST_ARGV = {
   "spec-review-convergence": ["spec-review-convergence", "--selftest"],
   "spec-review-pin": ["spec-review-pin", "--selftest"],
   "spec-review-dir": ["spec-review-dir", "--selftest"],
+  "spec-review-window": ["spec-review-window", "--selftest"],
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
 };

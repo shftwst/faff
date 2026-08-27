@@ -1,0 +1,62 @@
+{
+  "level": "L3",
+  "run_id": "run-20260827-143310-beepboop-list-14ad5a",
+  "admitted": [
+    "FAFF-872",
+    "FAFF-900"
+  ],
+  "outcomes": {
+    "FAFF-639": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "6b359129-cde0-4c7e-b720-feaead3b4ef0",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 34,
+        "output": 13008,
+        "cache_write": 297890,
+        "cache_read": 2960208
+      }
+    },
+    "tokens_at_start": 3271140,
+    "window": {
+      "anchor_epoch": 1787841294880,
+      "reset_epoch": 1787859294880,
+      "tokens_at_anchor": 2975107
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 487,
+    "session_id": "run-20260827-143310-beepboop-list-14ad5a",
+    "started_at": "2026-08-27T14:33:22Z",
+    "last_heartbeat": "2026-08-27T14:33:22Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-639": {
+      "disposition": "routed-out",
+      "verdict": "needs-decision-first",
+      "reason": "umbrella spec (medium, spec-review revise); children delivered; routed out ~12x consecutively; live peer 5fe4d4 also routed it out this cycle. Recommend human closure, not a build."
+    }
+  },
+  "claimed_by_peer": [
+    "FAFF-905",
+    "FAFF-895",
+    "FAFF-899",
+    "FAFF-912"
+  ]
+}

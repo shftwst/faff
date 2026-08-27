@@ -7,8 +7,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
-  buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
-  preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
+  assembleUserMessage,
+  runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
   buildOpenAiPayload, REASONING_EXTRA_KEYS, modelServedOpenAi, accumulateSse, isAuthError,
   buildAnthropicPayload, accumulateAnthropic, ANTHROPIC_VERSION,
   providerFamily, joinUrl, preflightOpenAi,
@@ -21,44 +21,14 @@ import {
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
   streamWithFirstByte, FirstByteBreachError, isFirstByteBreach, DEFAULT_FIRST_BYTE_MS,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
+import * as ReviewCallModule from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
-test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
-  const p = buildChatPayload({ model: "m", system: "S", user: "U" });
-  assert.equal(p.think, false, "think disabled (reasoning models would else return empty content)");
-  assert.equal(p.stream, true, "streamed (long responses else drop the connection)");
-  assert.equal(p.options.num_predict, DEFAULT_NUM_PREDICT);
-  assert.deepEqual(p.messages.map((m) => m.role), ["system", "user"]);
-  assert.equal(p.messages[1].content, "U");
-});
-
-test("buildChatPayload honours an explicit num_predict", () => {
-  assert.equal(buildChatPayload({ model: "m", system: "", user: "", numPredict: 4000 }).options.num_predict, 4000);
-});
-
-test("modelServed reads /api/tags and matches exactly (the hyphen/colon typo case)", () => {
-  const tags = { models: [{ name: "qwen3.6:27b-mlx" }, { name: "smollm2:135m" }] };
-  assert.equal(modelServed(tags, "qwen3.6:27b-mlx").served, true);
-  const miss = modelServed(tags, "qwen3.6-27b-mlx"); // the real FAFF-181 typo
-  assert.equal(miss.served, false);
-  assert.deepEqual(miss.names, ["qwen3.6:27b-mlx", "smollm2:135m"]);
-});
-
-test("accumulateNdjson folds streamed content + flags length-truncation, tolerating a bad line", () => {
-  const stream = [
-    JSON.stringify({ message: { content: "Hello " } }),
-    "not json — partial frame",
-    JSON.stringify({ message: { content: "world" } }),
-    JSON.stringify({ done: true, done_reason: "length" }),
-  ].join("\n");
-  const r = accumulateNdjson(stream);
-  assert.equal(r.content, "Hello world");
-  assert.equal(r.truncated, true);
-  assert.equal(r.done, true);
-});
-
-test("accumulateNdjson: a clean stop is not truncated", () => {
-  const r = accumulateNdjson(JSON.stringify({ message: { content: "x" }, done: true, done_reason: "stop" }));
-  assert.equal(r.truncated, false);
+test("FAFF-872: the native ollama transport family's exports are gone (buildChatPayload / modelServed / accumulateNdjson / the /api/tags preflight)", () => {
+  assert.equal(typeof ReviewCallModule.runReviewOllama, "undefined", "runReviewOllama is not exported — deleted, never existed");
+  assert.equal(typeof ReviewCallModule.buildChatPayload, "undefined");
+  assert.equal(typeof ReviewCallModule.modelServed, "undefined");
+  assert.equal(typeof ReviewCallModule.accumulateNdjson, "undefined");
+  assert.equal(typeof ReviewCallModule.preflight, "undefined", "the native /api/tags preflight export is gone (preflightOpenAi survives)");
 });
 
 test("assembleUserMessage fences context files ahead of the diff (the no-hallucination fix)", () => {
@@ -67,56 +37,50 @@ test("assembleUserMessage fences context files ahead of the diff (the no-halluci
   assert.ok(u.indexOf("GATEWAY") < u.indexOf("DIFF UNDER REVIEW"), "context precedes the diff");
 });
 
-test("preflight: unreachable host (infra) is distinct from not-served (config)", async () => {
-  const down = await preflight({ host: "http://h:1", model: "m", getFn: async () => { throw new Error("ECONNREFUSED"); } });
-  assert.equal(down.unreachable, true);
-  const up = await preflight({ host: "http://h:1", model: "m", getFn: async () => JSON.stringify({ models: [{ name: "other" }] }) });
-  assert.equal(up.unreachable, false);
-  assert.equal(up.served, false);
-});
+// FAFF-872: the native ollama transport family (buildChatPayload / modelServed / accumulateNdjson /
+// the /api/tags preflight) is deleted — its coverage moves onto the OpenAI-path pure functions below
+// (buildOpenAiPayload / modelServedOpenAi / accumulateSse) and the no-provider-⇒-openai-default
+// dispatch tests, since an unset/ollama provider now resolves to that same family (D-default/D-fold).
 
-test("runReview: model-not-served → status model-not-served (skill maps to needs-human, never pass)", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): model-not-served → status model-not-served (skill maps to needs-human, never pass)", async () => {
   const r = await runReview({
-    host: "http://h:1", model: "typo", system: "S", user: "U",
-    getFn: async () => JSON.stringify({ models: [{ name: "real" }] }),
+    host: "http://h:1/v1", model: "typo", system: "S", user: "U",
+    getFn: async () => JSON.stringify({ data: [{ id: "real" }] }),
     streamFn: async () => { throw new Error("should not stream when not served"); },
   });
   assert.equal(r.status, "model-not-served");
   assert.deepEqual(r.names, ["real"]);
 });
 
-test("runReview: unreachable → status unreachable (skill maps to pass+skip)", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): unreachable → status unreachable (skill maps to pass+skip)", async () => {
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U",
+    host: "http://h:1/v1", model: "m", system: "S", user: "U",
     getFn: async () => { throw new Error("timeout"); },
     streamFn: async () => { throw new Error("unused"); },
   });
   assert.equal(r.status, "unreachable");
 });
 
-test("runReview: happy path streams findings", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): happy path streams SSE findings", async () => {
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U",
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
-    streamFn: async () => [
-      JSON.stringify({ message: { content: "### finding" } }),
-      JSON.stringify({ done: true, done_reason: "stop" }),
-    ].join("\n"),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U",
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`,
   });
   assert.equal(r.status, "ok");
   assert.equal(r.content, "### finding");
   assert.equal(r.truncated, false);
 });
 
-test("runReview: truncation triggers exactly one retry at 2× the token budget", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): SSE truncation triggers exactly one retry at 2× the token budget", async () => {
   const budgets = [];
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", numPredict: 1000,
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", numPredict: 1000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: async (_url, body) => {
-      budgets.push(JSON.parse(body).options.num_predict);
+      budgets.push(JSON.parse(body).max_tokens);
       const first = budgets.length === 1;
-      return JSON.stringify({ message: { content: first ? "partial" : "full" }, done: true, done_reason: first ? "length" : "stop" });
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: first ? "partial" : "full" }, finish_reason: first ? "length" : "stop" }] })}\ndata: [DONE]`;
     },
   });
   assert.deepEqual(budgets, [1000, 2000], "one retry at double budget");
@@ -143,14 +107,14 @@ test("EXIT codes: not-served, unreachable, default-host-unreachable, auth are di
 
 // --- OpenAI-compatible (/v1) path: NVIDIA NIM, OpenAI, vLLM, OpenRouter, DeepSeek ---
 
-test("providerFamily maps the OpenAI-compatible set (incl. gemini) to openai, anthropic to its own family, ollama to ollama, else passthrough", () => {
-  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini"]) {
+test("providerFamily maps the OpenAI-compatible set (incl. gemini AND ollama, FAFF-872) to openai, anthropic to its own family, else passthrough", () => {
+  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini", "ollama"]) {
     assert.equal(providerFamily(p), "openai", p);
   }
   assert.equal(providerFamily("gemini"), "openai", "FAFF-210: gemini rides Google's OpenAI-compat base URL");
+  assert.equal(providerFamily("OLLAMA"), "openai", "FAFF-872: ollama is now an OpenAI-compatible alias (case-insensitive), never a native family");
   assert.equal(providerFamily("anthropic"), "anthropic", "FAFF-210: anthropic is a native family");
-  assert.equal(providerFamily("ollama"), "ollama");
-  assert.equal(providerFamily(undefined), "ollama", "default is ollama (preserves original behaviour)");
+  assert.equal(providerFamily(undefined), "openai", "FAFF-872: the unset-provider default is openai — there is no longer a native ollama family");
   assert.equal(providerFamily("cohere"), "cohere", "a genuinely unknown provider still passes through → unsupported");
 });
 
@@ -370,7 +334,7 @@ test("runReview dispatch → openai: auth failure surfaces status auth-failed (s
   assert.equal(r.status, "auth-failed");
 });
 
-test("runReview dispatch → openai: model-not-served maps the same as ollama (→ needs-human)", async () => {
+test("runReview dispatch → openai: model-not-served maps to needs-human (the same class every family uses)", async () => {
   const r = await runReview({
     provider: "vllm", host: "https://h/v1", model: "absent", system: "S", user: "U", apiKey: "K",
     getFn: async () => JSON.stringify({ data: [{ id: "present" }] }),
@@ -484,14 +448,14 @@ test("runReviewAnthropic: a 401/403 → auth-failed (exit 7, needs-human)", asyn
   assert.equal(mapResultExit(r), EXIT.AUTH);
 });
 
-test("runReview with no provider still routes to ollama (back-compat — original signature unchanged)", async () => {
+test("runReview with no provider now routes to openai (FAFF-872 — the native ollama family is gone; original signature unchanged)", async () => {
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U",
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
-    streamFn: async () => JSON.stringify({ message: { content: "ollama-finding" }, done: true, done_reason: "stop" }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U",
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => `data: ${JSON.stringify({ choices: [{ delta: { content: "openai-finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`,
   });
   assert.equal(r.status, "ok");
-  assert.equal(r.content, "ollama-finding");
+  assert.equal(r.content, "openai-finding");
 });
 
 test("parseArgs collects the new --provider / --api-key-env / --reasoning-off flags", () => {
@@ -569,15 +533,15 @@ test("TRANSPORT_RETRY policy defaults: 3 attempts (2 retries), exponential backo
   assert.ok(TRANSPORT_RETRY.baseMs > 0);
 });
 
-test("runReview ollama: a transient mid-stream fault retries once then succeeds → status ok", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): a transient mid-stream fault retries once then succeeds → status ok", async () => {
   let calls = 0;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 600000,
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: async () => {
       calls += 1;
       if (calls === 1) throw new Error("HTTP 504: gateway timeout"); // transient
-      return JSON.stringify({ message: { content: "### finding" }, done: true, done_reason: "stop" });
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
     },
   });
   assert.equal(r.status, "ok");
@@ -586,15 +550,15 @@ test("runReview ollama: a transient mid-stream fault retries once then succeeds 
 });
 
 // FAFF-228: an HTTP 429 rate-limit is transient — it rides the same retry path as a 5xx (both providers).
-test("runReview ollama: an HTTP 429 rate-limit retries once then succeeds → status ok (FAFF-228)", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): an HTTP 429 rate-limit retries once then succeeds → status ok (FAFF-228)", async () => {
   let calls = 0;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 600000,
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: async () => {
       calls += 1;
       if (calls === 1) throw new Error("HTTP 429: rate limited"); // transient throttle
-      return JSON.stringify({ message: { content: "### finding" }, done: true, done_reason: "stop" });
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
     },
   });
   assert.equal(r.status, "ok");
@@ -618,11 +582,11 @@ test("runReview openai: an HTTP 429 rate-limit retries once then succeeds → st
   assert.equal(calls, 2, "retried exactly once after the 429");
 });
 
-test("runReview ollama: a persistent HTTP 429 exhausts retries → status transport-failed (FAFF-228)", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): a persistent HTTP 429 exhausts retries → status transport-failed (FAFF-228)", async () => {
   let calls = 0;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline passed → no sleeps
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline passed → no sleeps
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: async () => { calls += 1; throw new Error("HTTP 429: rate limited"); },
   });
   assert.equal(r.status, "transport-failed");
@@ -630,11 +594,11 @@ test("runReview ollama: a persistent HTTP 429 exhausts retries → status transp
   assert.ok(calls >= 1, "attempted at least once");
 });
 
-test("runReview ollama: a persistent transient fault exhausts retries → status transport-failed", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): a persistent transient fault exhausts retries → status transport-failed", async () => {
   let calls = 0;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline already passed → no sleeps
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline already passed → no sleeps
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: async () => { calls += 1; throw new Error("HTTP 504"); },
   });
   assert.equal(r.status, "transport-failed");
@@ -691,16 +655,16 @@ test("runReview openai: a non-auth 4xx mid-stream is NOT retried (terminal) → 
   assert.equal(calls, 1, "a 4xx is terminal — never retried");
 });
 
-test("runReview ollama: truncation retry still composes with the transport retry (regression)", async () => {
+test("runReview (no provider ⇒ openai default, FAFF-872): truncation retry still composes with the transport retry (regression)", async () => {
   // First stream truncates → one truncation retry at 2× budget; no transport fault → no transport retry.
   const budgets = [];
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", numPredict: 1000, timeoutMs: 600000,
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", numPredict: 1000, timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: async (_url, body) => {
-      budgets.push(JSON.parse(body).options.num_predict);
+      budgets.push(JSON.parse(body).max_tokens);
       const first = budgets.length === 1;
-      return JSON.stringify({ message: { content: first ? "partial" : "full" }, done: true, done_reason: first ? "length" : "stop" });
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: first ? "partial" : "full" }, finish_reason: first ? "length" : "stop" }] })}\ndata: [DONE]`;
     },
   });
   assert.deepEqual(budgets, [1000, 2000], "truncation retry unchanged");
@@ -1005,25 +969,25 @@ test("FAFF-414 mapResultExit: request-failed → EXIT.USAGE (reused; no new exit
   assert.equal(mapResultExit({ status: "auth-failed" }), EXIT.AUTH, "auth-failed unchanged");
 });
 
-test("FAFF-414 runReviewChain: ollama — a non-transient streamFn throw (400) advances to a healthy fallback (exit 0)", async () => {
+test("FAFF-414 runReviewChain: ollama (FAFF-872 — an OpenAI-compatible alias) — a non-transient streamFn throw (400) advances to a healthy fallback (exit 0)", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "http://a:1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+    { provider: "ollama", model: "m1", host: "http://a:1/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:1/v1", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: (opts) => runReview({
       ...opts,
-      getFn: async () => JSON.stringify({ models: [{ name: opts.model }] }),
+      getFn: async () => JSON.stringify({ data: [{ id: opts.model }] }),
       streamFn: async () => {
-        if (opts.host === "http://a:1") throw new Error("HTTP 400: bad request shape");
-        return JSON.stringify({ message: { content: "### observation: no findings" }, done: true, done_reason: "stop" });
+        if (opts.host === "http://a:1/v1") throw new Error("HTTP 400: bad request shape");
+        return `data: ${JSON.stringify({ choices: [{ delta: { content: "### observation: no findings" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
       },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
-  assert.equal(res.winner.host, "http://b:1");
+  assert.equal(res.winner.host, "http://b:1/v1");
   assert.deepEqual(res.failureClasses, [EXIT.USAGE]);
   assert.ok(trace.some((l) => /\[chain\] ollama\/m1 request-failed/.test(l) && /→ advancing/.test(l)),
     "the throwing primary's fault is logged, not silently swallowed");
@@ -1768,10 +1732,10 @@ test("FAFF-361 attributionHeader: exact provenance format, incl. chain index and
   );
 });
 
-test("FAFF-361 attributionHeader: provider falsy → renders 'ollama' (mirrors the tag fallback)", () => {
+test("FAFF-361 attributionHeader: provider falsy → renders 'openai' (FAFF-872 — mirrors the tag fallback and providerFamily's own unset default)", () => {
   assert.equal(
     attributionHeader({ model: "m" }, 0),
-    "## Adversarial findings — ollama/m (chain[0], host: config)",
+    "## Adversarial findings — openai/m (chain[0], host: config)",
   );
 });
 
@@ -1785,7 +1749,7 @@ test("FAFF-361 attributionHeader: hostSource falsy → defaults to 'config' (bac
 test("FAFF-361 attributionHeader: hostSource 'default' (unconfigured localhost) is emitted verbatim", () => {
   assert.equal(
     attributionHeader({ model: "m", hostSource: "default" }, 0),
-    "## Adversarial findings — ollama/m (chain[0], host: default)",
+    "## Adversarial findings — openai/m (chain[0], host: default)",
   );
 });
 
@@ -2273,14 +2237,14 @@ test("FAFF-746 main(): whitespace-only system or diff returns USAGE before backe
   }
 });
 
-test("FAFF-361 main(): single-backend legacy path, provider omitted, --host-source default → header renders ollama/<model> (chain[0], host: default)", async () => {
+test("FAFF-361 main(): single-backend legacy path, provider omitted, --host-source default → header renders openai/<model> (chain[0], host: default) (FAFF-872)", async () => {
   const { sys, diff } = writeMainFixtures();
   const { result: code, stdout } = await captureStdout(() => main(
     ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
     { runReviewFn: async () => ({ status: "ok", content: "### observation: no findings" }) },
   ));
   assert.equal(code, EXIT.OK);
-  assert.match(stdout, /^## Adversarial findings — ollama\/m \(chain\[0\], host: default\)\n/);
+  assert.match(stdout, /^## Adversarial findings — openai\/m \(chain\[0\], host: default\)\n/);
 });
 
 test("FAFF-361 main(): a non-OK exit (unreachable) emits NO header — stdout stays empty, exit unchanged", async () => {
@@ -2298,7 +2262,7 @@ test("FAFF-194 main(): a winning result WITH a canonical header is byte-identica
   const origErr = process.stderr.write.bind(process.stderr);
   let errOut = "";
   process.stderr.write = (c) => { errOut += c; return true; };
-  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n\n### observation: no findings";
+  const content = "## Adversarial findings — openai/m (chain[0], host: config)\n\n### observation: no findings";
   let stdout;
   try {
     ({ stdout } = await captureStdout(() => main(
@@ -2808,46 +2772,46 @@ test("FAFF-885 streamWithFirstByte: first byte before the window -> no breach, l
   assert.equal(out, "done-late");
 });
 
-test("FAFF-885 runReview ollama: a buffering backend -> transport-failed, invoked ONCE (fast-fail, no retry)", async () => {
+test("FAFF-885 runReview (no provider ⇒ openai default, FAFF-872): a buffering backend -> transport-failed, invoked ONCE (fast-fail, no retry)", async () => {
   let calls = 0;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", firstByteMs: 20,
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", firstByteMs: 20,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: (url, body, t, headers, opts) => new Promise((resolve) => {
       calls += 1;                                    // never signals first byte
-      setTimeout(() => resolve(JSON.stringify({ message: { content: "x" }, done: true })), 120);
+      setTimeout(() => resolve(`data: ${JSON.stringify({ choices: [{ delta: { content: "x" }, finish_reason: "stop" }] })}\ndata: [DONE]`), 120);
     }),
   });
   assert.equal(r.status, "transport-failed", "surfaces transport-failed, never request-failed / ok");
   assert.equal(calls, 1, "the breach broke the retry loop — not the 3x transient composition");
 });
 
-test("FAFF-885 ollama arity: opts lands FIFTH (headers slot is {} not the opts object); breach fires on the ollama path", async () => {
+test("FAFF-885 arity (no provider ⇒ openai default, FAFF-872): opts lands FIFTH (headers slot is {} not the opts object); breach fires", async () => {
   let seen;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U", firstByteMs: 20,
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", firstByteMs: 20,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
     streamFn: (url, body, t, headers, opts) => new Promise((resolve) => {
       seen = { headers, opts };
       setTimeout(() => resolve("late"), 120);
     }),
   });
-  assert.equal(r.status, "transport-failed", "a first-byte breach genuinely fires on the ollama family");
-  assert.deepEqual(seen.headers, {}, "ollama headers slot is the explicit {} (no header pollution)");
+  assert.equal(r.status, "transport-failed", "a first-byte breach genuinely fires on the default (openai) family");
+  assert.deepEqual(seen.headers, {}, "no apiKey ⇒ headers slot is {} (no header pollution)");
   assert.equal(typeof seen.opts, "object");
   assert.equal(typeof seen.opts.onFirstByte, "function", "opts landed in the fifth slot");
   assert.notStrictEqual(seen.headers, seen.opts, "the arity-trap guard: headers slot is NOT the opts object");
 });
 
-test("FAFF-885 no window: runReview ollama with no firstByteMs -> streamFn gets NO opts (byte-for-byte)", async () => {
+test("FAFF-885 no window (no provider ⇒ openai default, FAFF-872): runReview with no firstByteMs -> streamFn gets NO opts (byte-for-byte)", async () => {
   let seen;
   const r = await runReview({
-    host: "http://h:1", model: "m", system: "S", user: "U",   // no firstByteMs
-    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
-    streamFn: async (...args) => { seen = args; return JSON.stringify({ message: { content: "### observation: no findings" }, done: true, done_reason: "stop" }); },
+    host: "http://h:1/v1", model: "m", system: "S", user: "U",   // no firstByteMs
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async (...args) => { seen = args; return JSON.stringify({ choices: [{ message: { content: "### observation: no findings" }, finish_reason: "stop" }] }); },
   });
   assert.equal(r.status, "ok");
-  assert.equal(seen.length, 4, "ollama normalised to pass explicit {} headers; still no opts (5th) in pass-through");
+  assert.equal(seen.length, 4, "no apiKey ⇒ explicit {} headers; still no opts (5th) in pass-through");
   assert.deepEqual(seen[3], {}, "headers slot is the explicit {}");
   assert.equal(seen[4], undefined, "no opts -> no timer armed");
 });
@@ -2866,38 +2830,38 @@ test("FAFF-885 family-agnostic: an openai-family buffering backend also fast-fai
   assert.equal(calls, 1);
 });
 
-test("FAFF-885 runReviewChain: a buffering primary fast-fails and a healthy fallback wins (exit 0, winnerIndex 1)", async () => {
+test("FAFF-885 runReviewChain: ollama (FAFF-872 — an OpenAI-compatible alias) — a buffering primary fast-fails and a healthy fallback wins (exit 0, winnerIndex 1)", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "http://buf:1", hostSource: "config", firstByteMs: 20 },
-    { provider: "ollama", model: "m2", host: "http://good:1", hostSource: "config", firstByteMs: 20 },
+    { provider: "ollama", model: "m1", host: "http://buf:1/v1", hostSource: "config", firstByteMs: 20 },
+    { provider: "ollama", model: "m2", host: "http://good:1/v1", hostSource: "config", firstByteMs: 20 },
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
     runReviewFn: (opts) => runReview({
       ...opts,
-      getFn: async () => JSON.stringify({ models: [{ name: opts.model }] }),
+      getFn: async () => JSON.stringify({ data: [{ id: opts.model }] }),
       streamFn: (url, body, t, headers, o) => new Promise((resolve) => {
-        if (opts.host === "http://buf:1") { setTimeout(() => resolve("late"), 120); return; }   // buffering: never onFirstByte
+        if (opts.host === "http://buf:1/v1") { setTimeout(() => resolve("late"), 120); return; }   // buffering: never onFirstByte
         if (o && o.onFirstByte) o.onFirstByte();
-        resolve(JSON.stringify({ message: { content: "### observation: no findings" }, done: true, done_reason: "stop" }));
+        resolve(`data: ${JSON.stringify({ choices: [{ delta: { content: "### observation: no findings" }, finish_reason: "stop" }] })}\ndata: [DONE]`);
       }),
     }),
   });
   assert.equal(res.exit, EXIT.OK);
   assert.equal(res.winnerIndex, 1);
-  assert.equal(res.winner.host, "http://good:1");
+  assert.equal(res.winner.host, "http://good:1/v1");
 });
 
-test("FAFF-885 runReviewChain: an ALL-buffering chain terminates at EXIT.UNREACHABLE (5), not a needs-human exit", async () => {
+test("FAFF-885 runReviewChain: ollama (FAFF-872) — an ALL-buffering chain terminates at EXIT.UNREACHABLE (5), not a needs-human exit", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "http://buf1:1", hostSource: "config", firstByteMs: 20 },
-    { provider: "ollama", model: "m2", host: "http://buf2:1", hostSource: "config", firstByteMs: 20 },
+    { provider: "ollama", model: "m1", host: "http://buf1:1/v1", hostSource: "config", firstByteMs: 20 },
+    { provider: "ollama", model: "m2", host: "http://buf2:1/v1", hostSource: "config", firstByteMs: 20 },
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
     runReviewFn: (opts) => runReview({
       ...opts,
-      getFn: async () => JSON.stringify({ models: [{ name: opts.model }] }),
+      getFn: async () => JSON.stringify({ data: [{ id: opts.model }] }),
       // every backend buffers: never signals first byte, resolves after the window
       streamFn: () => new Promise((resolve) => { setTimeout(() => resolve("late"), 120); }),
     }),

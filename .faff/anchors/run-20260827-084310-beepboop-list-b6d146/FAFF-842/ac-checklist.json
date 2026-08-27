@@ -1,0 +1,30 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A stranded In Review + open-PR issue is admitted by a later executor recovering the landing boundary from the Phase 0 bundle, merged once CI is terminal, no rebuild",
+      "verified": true,
+      "evidence": "test/bundle-recover.test.mjs + test/landing-progress.test.mjs (recovery-claim + projection reconstruction of the landing boundary) — all pass"
+    },
+    {
+      "ac": "A live peer genuinely mid-build is still skipped as claimed-by-peer; no double-drain",
+      "verified": true,
+      "evidence": "test/bundle-recover.test.mjs + test/claim-verdict.test.mjs (heartbeat-gated stale-reclaim vs live holder) — all pass"
+    },
+    {
+      "ac": "disposition no longer reds a firing solely for a resumable-landing In Review + open PR; a hard-parked 3-cycle PR still reds",
+      "verified": true,
+      "evidence": "test/disposition.test.mjs + test/runcheck-gate.test.mjs (ATTENTION_OUTCOMES / landing_resumable annotation) — all pass"
+    },
+    {
+      "ac": "The endgame-only pass re-enters graft's landing loop and does not rebuild",
+      "verified": true,
+      "evidence": "faff-beep-boop/SKILL.md admission branch + faff-graft/SKILL.md resume-at-review; behavior covered by bundle-recover resume tests — all pass"
+    },
+    {
+      "ac": "The fix-cycle count recovered from the bundle is honoured: a PR that already burned 3 cycles parks hard",
+      "verified": true,
+      "evidence": "test/landing-progress.test.mjs (fix_cycles bound 0..3, hard-park at 3) + test/disposition.test.mjs — all pass"
+    }
+  ]
+}

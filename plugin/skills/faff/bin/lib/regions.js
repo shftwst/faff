@@ -227,6 +227,10 @@ const REGION_MAP = {
   // shape. Requires only contract-engine's schemaCheck (no shared-infra/governance-profile
   // dependency) — a pure producer command, sibling of prd/prdr → factory.
   "prd-checklist": "factory",
+  // ratified-scope — FAFF-919: read-only ratified-scope block assembler/validator. Requires only
+  // admissibility (sectionBody), decisions, prd, argv, shared-infra — a pure reader command, sibling
+  // of decisions/prd → factory.
+  "ratified-scope": "factory",
   "prdr": "factory",
   "profile": "factory",
   "fixtures": "factory",
@@ -404,6 +408,7 @@ const REGION_SELFTEST_ARGV = {
   "decision-capture": ["decision-capture", "--selftest"],
   "prd": ["prd", "--selftest"],
   "prd-checklist": ["prd-checklist", "--selftest"],
+  "ratified-scope": ["ratified-scope", "--selftest"],
   "prdr": ["prdr", "--selftest"],
   "profile": ["profile", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],

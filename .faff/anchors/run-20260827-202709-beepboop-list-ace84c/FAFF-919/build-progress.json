@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-919",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e9488f66d73e3878b59c8493ea563d5804f2539ea6a752179d03740716cd3627",
+    "branch": "faff-919-faff-ratified-scope-assemble-validate-the-ratified-scope",
+    "pushed_at": "2026-08-27T21:01:59.246Z"
+  },
+  "updated_at": "2026-08-27T21:01:59.246Z"
+}

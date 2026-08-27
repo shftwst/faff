@@ -83,6 +83,7 @@ const { cmdProjectNext } = require("./lib/project-next");
 const { cmdQuality } = require("./lib/quality");
 const { cmdFindingsReconcile } = require("./lib/findings-reconcile");
 const { cmdQueueState } = require("./lib/queue-state");
+const { cmdRatifiedScope } = require("./lib/ratified-scope");
 const { cmdReconcile } = require("./lib/reconcile");
 const { cmdReconcileRecover } = require("./lib/reconcile-recover");
 const { cmdMachineId } = require("./lib/machine-id");
@@ -195,6 +196,7 @@ const COMMANDS = {
   "prd": cmdPrd,
   "prd-checklist": cmdPrdChecklist,
   "prdr": cmdPrdr,
+  "ratified-scope": cmdRatifiedScope,
   "profile": cmdProfile,
   "profiles": cmdProfiles,
   "fixtures": cmdFixtures,

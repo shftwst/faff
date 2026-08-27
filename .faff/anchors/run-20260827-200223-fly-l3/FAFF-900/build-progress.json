@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-900",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8545ad2ba644c618aae25f72532bee47cd1b7d382dd3007ef42254c9213ec66c",
+    "branch": "faff-900-graceful-spec-review-outage-handling-in-turn-retry-resumable",
+    "pushed_at": "2026-08-27T23:43:05.249Z"
+  },
+  "updated_at": "2026-08-27T23:43:05.249Z"
+}

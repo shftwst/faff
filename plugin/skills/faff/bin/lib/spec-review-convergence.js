@@ -318,14 +318,23 @@ function runSpecReviewConvergenceForSelftest(args) {
   }
 }
 
-// `faff spec-review-convergence --dir <spec-review-dir>` — reads every round-<n>.json in the
-// directory, orders them by <n>, computes a SpecReviewConvergenceResult, prints it as JSON to
-// stdout, exit 0. A missing/unreadable directory DEGRADES to `converging:false` (fail-SAFE
-// direction for a YIELD gate = do not yield = park as today, the opposite of churn's degrade
-// direction). A malformed round record (present but corrupt JSON) is fail-loud (exit 2) —
-// plumbing breakage, parity with spec-review-churn's `--curr`.
-const SPEC_REVIEW_CONVERGENCE_SPEC = { flags: { "--selftest": { arity: 0 }, "--dir": { arity: 1 } } };
-const SPEC_REVIEW_CONVERGENCE_USAGE = "usage: faff spec-review-convergence --dir <spec-review-dir>";
+// `faff spec-review-convergence --dir <spec-review-dir> [--window-start N]` — reads every
+// round-<n>.json in the directory, orders them by <n>, computes a SpecReviewConvergenceResult,
+// prints it as JSON to stdout, exit 0. A missing/unreadable directory DEGRADES to
+// `converging:false` (fail-SAFE direction for a YIELD gate = do not yield = park as today, the
+// opposite of churn's degrade direction). A malformed round record (present but corrupt JSON)
+// is fail-loud (exit 2) — plumbing breakage, parity with spec-review-churn's `--curr`.
+//
+// FAFF-909: `--window-start N` bounds the comparison to the convergence window `[N .. max]` —
+// after reading every record, keep only those with round number `>= N` before ordering and
+// detecting, so a restart / human unpark can compare only records from one continuous
+// conversation (matching how spec-review-churn is already window-scoped by its explicit
+// `--prev`/`--curr` paths). Omitted → today's whole-directory behaviour, byte-identical. `N`
+// must be an integer `>= 1` (else usage error exit 2); an `N` past the max round leaves fewer
+// than two records in window, so detectSpecReviewConvergence returns `converging:false` with
+// its existing "need >=2 rounds" reason — a park, the fail-safe direction.
+const SPEC_REVIEW_CONVERGENCE_SPEC = { flags: { "--selftest": { arity: 0 }, "--dir": { arity: 1 }, "--window-start": { arity: 1 } } };
+const SPEC_REVIEW_CONVERGENCE_USAGE = "usage: faff spec-review-convergence --dir <spec-review-dir> [--window-start N]";
 
 function cmdSpecReviewConvergence(args) {
   if (args.includes("--selftest")) return specReviewConvergenceSelftest();
@@ -336,6 +345,21 @@ function cmdSpecReviewConvergence(args) {
   }
   const dir = values["--dir"];
 
+  // --window-start N — a usage error (exit 2) when malformed, validated up front so it is
+  // independent of whether the directory is readable (a usage error never depends on runtime
+  // state). A strict integer-string check: one or more digits, value >= 1.
+  let windowStart = null;
+  if (values["--window-start"] != null) {
+    const raw = values["--window-start"];
+    if (!/^\d+$/.test(String(raw)) || parseInt(raw, 10) < 1) {
+      return usageError(
+        [{ code: "invalid-value", detail: `--window-start expects an integer >= 1, got "${raw}"` }],
+        SPEC_REVIEW_CONVERGENCE_USAGE,
+      );
+    }
+    windowStart = parseInt(raw, 10);
+  }
+
   let files;
   try {
     files = roundFilesInDir(dir);
@@ -343,6 +367,12 @@ function cmdSpecReviewConvergence(args) {
     // Missing / unreadable directory — degrade to no-yield (park as today), never fail prep.
     console.log(JSON.stringify({ converging: false, reason: "spec-review dir unreadable" }));
     return 0;
+  }
+
+  // Bound the comparison to the window [windowStart .. max]: a read-time filter that leaves
+  // every record in place for forensics (never archives/moves them).
+  if (windowStart != null) {
+    files = files.filter((f) => f.n >= windowStart);
   }
 
   const rounds = [];

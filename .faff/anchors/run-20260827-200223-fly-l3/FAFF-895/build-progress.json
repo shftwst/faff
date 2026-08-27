@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-895",
+  "build": {
+    "status": "complete",
+    "diff_hash": "66b71d22bef3a36235b87a7a5604518e31f1649e3491ab448f4b8b071361d592",
+    "branch": "faff-895-interactive-pr-l4-merge-likely-hits-the-same-corrective",
+    "pushed_at": "2026-08-27T21:09:30.938Z"
+  },
+  "updated_at": "2026-08-27T21:09:30.938Z"
+}

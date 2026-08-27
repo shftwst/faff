@@ -227,3 +227,108 @@ test("faff-prep/SKILL.md: Loop cap gains the convergence-yield clause naming the
   assert.match(body, /converging: false/, "must name the converging:false park");
   assert.match(body, /converging direction only/, "must state the yield is converging-direction-only (thrashing still parks)");
 });
+
+// --- FAFF-909: --window-start N read-time filter ----------------------------------------
+
+test("CLI: --window-start omitted is byte-identical to today (whole-directory read)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-conv-ws-omit-"));
+  try {
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(14, "architectural", 0) }));
+    writeFileSync(join(dir, "round-2.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(13, "architectural", 0) }));
+    writeFileSync(join(dir, "round-3.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(8, "architectural", 0) }));
+    const withFlag = runCli(["spec-review-convergence", "--dir", dir, "--window-start", "1"]);
+    const without = runCli(["spec-review-convergence", "--dir", dir]);
+    assert.equal(withFlag.code, 0, withFlag.stdout + withFlag.stderr);
+    assert.equal(without.code, 0, without.stdout + without.stderr);
+    assert.deepEqual(JSON.parse(withFlag.stdout).totals, [14, 13, 8]);
+    assert.deepEqual(JSON.parse(without.stdout).totals, [14, 13, 8], "window-start 1 == whole-directory read");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("Scenario (discontinuity): --window-start 4 compares only round-4 and round-5", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-conv-ws-disc-"));
+  try {
+    // round-1..3 belong to a pre-restart conversation; round-4..5 are the current window.
+    // The pre-window rounds would poison the strictly-decreasing signal if included
+    // (round-3 is smaller than round-4), so the window must exclude them.
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(14, "architectural", 0) }));
+    writeFileSync(join(dir, "round-2.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(9, "architectural", 0) }));
+    writeFileSync(join(dir, "round-3.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(3, "architectural", 0) }));
+    writeFileSync(join(dir, "round-4.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(10, "architectural", 0) }));
+    writeFileSync(join(dir, "round-5.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(6, "architectural", 0) }));
+    const r = runCli(["spec-review-convergence", "--dir", dir, "--window-start", "4"]);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.deepEqual(out.totals, [10, 6], "only round-4 and round-5 contribute");
+    assert.equal(out.converging, true, "10→6 strictly decreasing, blocker-free, no churn");
+    // Without the window the pre-window round-3 (3) before round-4 (10) breaks strict-decrease.
+    const whole = JSON.parse(runCli(["spec-review-convergence", "--dir", dir]).stdout);
+    assert.equal(whole.converging, false, "whole-directory read is poisoned by the discontinuity");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("holdout scenario: round-1..4 (14,13,8,5) with --window-start 1 → converging true", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-conv-ws-holdout-"));
+  try {
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(14, "architectural", 0) }));
+    writeFileSync(join(dir, "round-2.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(13, "architectural", 0) }));
+    writeFileSync(join(dir, "round-3.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(8, "architectural", 0) }));
+    writeFileSync(join(dir, "round-4.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(5, "architectural", 0) }));
+    const r = runCli(["spec-review-convergence", "--dir", dir, "--window-start", "1"]);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.converging, true);
+    assert.deepEqual(out.totals, [14, 13, 8, 5]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI: --window-start past the max round → converging:false with the need >=2 reason (park)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-conv-ws-past-"));
+  try {
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(9, "architectural", 0) }));
+    writeFileSync(join(dir, "round-2.json"), JSON.stringify({ verdict: "reject-approach", objections: mkObjs(5, "architectural", 0) }));
+    const r = runCli(["spec-review-convergence", "--dir", dir, "--window-start", "5"]);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.converging, false);
+    assert.match(out.reason, /need >=2 rounds/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI: a malformed --window-start is a usage error (exit 2)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-conv-ws-bad-"));
+  try {
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: [] }));
+    assert.equal(runCli(["spec-review-convergence", "--dir", dir, "--window-start", "0"]).code, 2, "0 rejected");
+    assert.equal(runCli(["spec-review-convergence", "--dir", dir, "--window-start", "1.5"]).code, 2, "1.5 rejected");
+    assert.equal(runCli(["spec-review-convergence", "--dir", dir, "--window-start", "abc"]).code, 2, "abc rejected");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI: --window-start keeps the existing degrades (unreadable --dir → converging:false exit 0)", () => {
+  const r = runCli(["spec-review-convergence", "--dir", join(tmpdir(), "faff-conv-ws-missing-xyz"), "--window-start", "2"]);
+  assert.equal(r.code, 0, r.stdout + r.stderr);
+  assert.equal(JSON.parse(r.stdout).converging, false);
+});
+
+test("CLI: a malformed round record INSIDE the window is still fail-loud (exit 2)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-conv-ws-badrec-"));
+  try {
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: [] }));
+    writeFileSync(join(dir, "round-2.json"), "not json at all");
+    // round-2 is inside the window [2..] → fail-loud.
+    assert.equal(runCli(["spec-review-convergence", "--dir", dir, "--window-start", "2"]).code, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

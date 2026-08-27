@@ -1,0 +1,63 @@
+{
+  "level": "L3",
+  "run_id": "run-20260827-200223-fly-l3",
+  "mode": "explicit-list",
+  "requested_issues": [
+    "FAFF-912",
+    "FAFF-905",
+    "FAFF-900",
+    "FAFF-899",
+    "FAFF-895",
+    "FAFF-639"
+  ],
+  "admitted": ["FAFF-899", "FAFF-895", "FAFF-900", "FAFF-912", "FAFF-905"],
+  "outcomes": { "FAFF-639": "routed-out" },
+  "outcome_details": {
+    "FAFF-639": {
+      "verdict": "not-build-ready",
+      "class": "umbrella-superseded",
+      "reason": "FAFF-639 is a tracking umbrella; its whole-ticket spec was superseded (spec-review revise, 2026-08-13) and the buildable work was human-split (2026-08-17) into children FAFF-848 (639a) and FAFF-849 (639b), both Done (PR #728 merged 2026-08-19, PR #762 merged 2026-08-27). Not a buildable leaf. Recommended human action: verify the closing condition and mark Done (not auto-closed — umbrella-close is human-gated)."
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "landing_resumable": [],
+  "integrity_tampered": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "note": "runaway backstops only (config at_ceiling park-until-window-reset is non-standard; treated as stop). dryness/convergence govern the real exit."
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "44bb2efe-aab6-4aa3-8b72-f94e007fc905",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 76,
+        "output": 108518,
+        "cache_write": 534684,
+        "cache_read": 7534926
+      }
+    },
+    "tokens_at_start": 8178204,
+    "window": {
+      "anchor_epoch": 1787861452966,
+      "reset_epoch": 1787879452966,
+      "tokens_at_anchor": 749358
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260827-200223-fly-l3",
+    "started_at": "2026-08-27T20:02:23Z",
+    "last_heartbeat": "2026-08-27T20:02:23Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

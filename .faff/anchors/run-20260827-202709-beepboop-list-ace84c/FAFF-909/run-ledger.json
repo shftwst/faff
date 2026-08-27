@@ -1,0 +1,25 @@
+{
+  "level": "L3",
+  "run_id": "run-20260827-202709-beepboop-list-ace84c",
+  "admitted": [
+    "FAFF-919",
+    "FAFF-909"
+  ],
+  "outcomes": {
+    "FAFF-919": "shipped"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "owner": {
+    "status": "running",
+    "pid": 607,
+    "session_id": "run-20260827-202709-beepboop-list-ace84c",
+    "started_at": "2026-08-27T20:27:10.004Z",
+    "last_heartbeat": "2026-08-27T20:27:10.004Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

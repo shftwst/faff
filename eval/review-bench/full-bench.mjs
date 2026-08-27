@@ -16,7 +16,7 @@
 //   node full-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --quick
 //
 // OPTIONS (endpoint flags are passed straight through to run-bench.mjs)
-//   --provider --host --model --key-env --cohere --num-predict   (see run-bench.mjs)
+//   --provider --host --model --key-env --cohere --max-tokens   (see run-bench.mjs)
 //   --single LENS   lens used for the single-lens tests (cache/stream/reasoning); default qa
 //   --repeat N      iterations for the cache test; default 3
 //   --quick         run only the fast subset (fan-out panel + cache)
@@ -40,7 +40,7 @@ function parseArgs(argv) {
     else if (k === "--model") a.model = argv[++i];
     else if (k === "--key-env") a.keyEnv = argv[++i];
     else if (k === "--cohere") a.cohere = true;
-    else if (k === "--num-predict") a.numPredict = argv[++i];
+    else if (k === "--max-tokens") a.maxTokens = argv[++i];
     else if (k === "--single") a.single = argv[++i];
     else if (k === "--repeat") a.repeat = argv[++i];
     else if (k === "--quick") a.quick = true;
@@ -64,7 +64,7 @@ const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"
 const endpoint = ["--provider", A.provider, "--host", A.host, "--model", A.model];
 if (A.keyEnv) endpoint.push("--key-env", A.keyEnv);
 if (A.cohere) endpoint.push("--cohere");
-if (A.numPredict) endpoint.push("--num-predict", String(A.numPredict));
+if (A.maxTokens) endpoint.push("--max-tokens", String(A.maxTokens));
 if (A.timeoutMs) endpoint.push("--timeout-ms", String(A.timeoutMs));
 if (A.requestsDir) endpoint.push("--requests-dir", A.requestsDir);   // e.g. code-review/requests
 

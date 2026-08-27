@@ -1,15 +1,20 @@
 #!/usr/bin/env node
-// FAFF-183 — robust adversarial-review backend call for ollama.
+// FAFF-183 — robust adversarial-review backend call, originally for ollama.
 //
 // Replaces the agent-hand-rolled API call (which broke five ways on a real backend: no model
 // preflight, empty content from reasoning models, dropped connections on long responses, no token
 // budget, and diff-only context that made the reviewer hallucinate "this heading doesn't exist").
 // Per deterministic-tools-over-prose, the robust call is a tool, not prose.
 //
-// The pure functions (buildChatPayload / modelServed / accumulateNdjson / assembleUserMessage) carry
-// no I/O and are unit-tested directly; the transport (getFn/streamFn) is injectable so CI makes ZERO
-// real calls. Zero-dependency: node:http(s)/node:fs only. Mirrors eval/ollama-model.mjs's FAFF-137
-// `think:false` lever and fail-loud parsing, kept self-contained (that module pulls eval-only deps).
+// FAFF-872: the native ollama transport family (a dedicated /api/tags + /api/chat NDJSON path) was
+// folded onto the OpenAI-compatible /v1 path below — ollama and oMLX both serve /v1/chat/completions,
+// so neither needs a wire format of its own. Two transport families remain: OpenAI-compatible (the
+// shape every non-anthropic backend uses, ollama included) and anthropic native (kept — Claude's
+// extended thinking cannot cross to a plain /v1/chat/completions).
+//
+// The pure functions (buildOpenAiPayload / modelServedOpenAi / accumulateSse / assembleUserMessage)
+// carry no I/O and are unit-tested directly; the transport (getFn/streamFn) is injectable so CI makes
+// ZERO real calls. Zero-dependency: node:http(s)/node:fs only.
 
 import http from "node:http";
 import https from "node:https";
@@ -59,17 +64,24 @@ export function unreachableExit({ hostSource } = {}) {
   return hostSource === "default" ? EXIT.DEFAULT_HOST_UNREACHABLE : EXIT.UNREACHABLE;
 }
 
-// Transport families. ollama speaks /api/tags + /api/chat (NDJSON). openai speaks the
-// OpenAI-compatible /v1/models + /v1/chat/completions (SSE) shared by OpenAI, vLLM, OpenRouter,
-// NVIDIA NIM (integrate.api.nvidia.com/v1), DeepSeek, etc. gemini rides that same family via Google's
-// documented OpenAI-compatibility base URL (https://generativelanguage.googleapis.com/v1beta/openai),
-// so it needs no adaptor of its own — just the whitelist entry (FAFF-210). anthropic has a native wire
-// format (/v1/messages: top-level system, content blocks, x-api-key + anthropic-version headers,
-// max_tokens required) and gets its own family. An unknown provider still returns "unsupported-provider".
+// Transport families (FAFF-872: down from three to two). openai speaks the OpenAI-compatible
+// /v1/models + /v1/chat/completions (SSE) shared by OpenAI, vLLM, OpenRouter, NVIDIA NIM
+// (integrate.api.nvidia.com/v1), DeepSeek, etc. gemini rides that same family via Google's documented
+// OpenAI-compatibility base URL (https://generativelanguage.googleapis.com/v1beta/openai), so it needs
+// no adaptor of its own — just the whitelist entry (FAFF-210). ollama is now an ALIAS into this same
+// family rather than a native transport: it also serves /v1/chat/completions, and /v1/models is an
+// equivalent model-served preflight to the deleted native /api/tags check (parity confirmed — both
+// fail loud, "model-not-served", on a mismatch). A bare (non-/v1) ollama host therefore now fails loud
+// at preflight instead of silently routing nowhere — the deliberate migration signal; there is no
+// auto-rewrite of a bare host to add /v1 (a config edit, not a runtime rewrite). The unset-provider
+// default is now "openai" too (there is no longer a native family to default to). anthropic has a
+// native wire format (/v1/messages: top-level system, content blocks, x-api-key + anthropic-version
+// headers, max_tokens required) and keeps its own family — Claude's extended thinking cannot cross to
+// a plain /v1/chat/completions, so it is the one family kept native by design. An unknown provider
+// still returns "unsupported-provider".
 export function providerFamily(name) {
-  const n = String(name || "ollama").toLowerCase();
-  if (n === "ollama") return "ollama";
-  if (["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini"].includes(n)) return "openai";
+  const n = String(name || "openai").toLowerCase();
+  if (["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini", "ollama"].includes(n)) return "openai";
   if (n === "anthropic") return "anthropic";
   return n; // unknown — runReview returns status "unsupported-provider"
 }
@@ -78,46 +90,6 @@ export function providerFamily(name) {
 // the new URL("/models", base) trap that would drop the /v1 prefix.
 export function joinUrl(base, path) {
   return String(base).replace(/\/+$/, "") + path;
-}
-
-// PURE: the /api/chat payload. think:false disables a reasoning model's hidden think-block (else
-// message.content comes back empty); stream:true keeps a long response's connection alive.
-export function buildChatPayload({ model, system, user, numPredict = DEFAULT_NUM_PREDICT }) {
-  if (!model) throw new Error("buildChatPayload requires a model");
-  return {
-    model,
-    stream: true,
-    think: false,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    options: { temperature: 0.2, num_predict: numPredict },
-  };
-}
-
-// PURE: is the configured model in the host's served set? Reads /api/tags' shape; fail-loud otherwise.
-export function modelServed(tagsJson, model) {
-  const obj = typeof tagsJson === "string" ? JSON.parse(tagsJson) : tagsJson;
-  const names = (obj?.models ?? []).map((m) => m.name ?? m.model).filter(Boolean);
-  return { served: names.includes(model), names };
-}
-
-// PURE: fold the streamed NDJSON into the assistant text. Tolerant of a partial trailing line;
-// reports truncation (done_reason==="length") so the caller can retry at a higher budget.
-export function accumulateNdjson(text) {
-  let content = "";
-  let truncated = false;
-  let done = false;
-  for (const line of String(text).split("\n")) {
-    const t = line.trim();
-    if (!t) continue;
-    let j;
-    try { j = JSON.parse(t); } catch { continue; }
-    if (typeof j?.message?.content === "string") content += j.message.content;
-    if (j?.done) { done = true; if (j.done_reason === "length") truncated = true; }
-  }
-  return { content, truncated, done };
 }
 
 // PURE: the user message — context files (every file the diff touches, so the reviewer can verify
@@ -276,11 +248,12 @@ export function normaliseCleanRefutation(content) {
 // park on a missing one). Extended by FAFF-361 to also carry the winner's chain position and host
 // provenance (chain[<index>], host: <hostSource>) — the mechanical answer to "which configured
 // backend actually served this?", the exact provenance a same-day reconstruction incident needed.
-// provider defaults to "ollama" (mirrors the `tag` fallback in runReviewChain) and hostSource
+// provider defaults to "openai" (FAFF-872; mirrors the `tag` fallback in runReviewChain and the
+// providerFamily default — there is no longer a native ollama family to default to) and hostSource
 // defaults to "config" (back-compat for a caller that hasn't set it) when either is falsy.
 export function attributionHeader(winner, index) {
   const w = winner || {};
-  const provider = w.provider || "ollama";
+  const provider = w.provider || "openai";
   const hostSource = w.hostSource || "config";
   return `## Adversarial findings — ${provider}/${w.model} (chain[${index}], host: ${hostSource})`;
 }
@@ -498,15 +471,19 @@ export function mergeReasoningExtra(body, extra) {
 }
 
 // PURE: the /v1/chat/completions payload. reasoningOff adds
-// chat_template_kwargs:{thinking:false, enable_thinking:false} — the OpenAI-compatible
-// analogue of ollama's think:false, needed by reasoning models that else stream empty
-// content. `enable_thinking` is the key Qwen3/vLLM/SGLang/HF/MLX chat templates actually
-// read to gate the think phase (FAFF-898); `thinking` is retained alongside it for
-// compatibility with any server that reads the older key — unrecognised kwargs are
-// ignored, so sending both is free. It is OPT-IN: vanilla OpenAI rejects the unknown
-// field, so it is sent only when the provider/model needs it. maxTokens caps output
-// (OpenAI's max_tokens, the analogue of ollama's num_predict). stream:true keeps a long
-// response's connection alive.
+// chat_template_kwargs:{thinking:false, enable_thinking:false} — disables a reasoning
+// model's hidden think phase (needed by reasoning models that else stream empty content;
+// FAFF-872: the sole reasoning-off lever now — the native ollama family's hardcoded
+// think:false is gone). `enable_thinking` is the key Qwen3/vLLM/SGLang/HF/MLX chat
+// templates actually read to gate the think phase (FAFF-898); `thinking` is retained
+// alongside it for compatibility with any server that reads the older key — unrecognised
+// kwargs are ignored, so sending both is free. It is OPT-IN: vanilla OpenAI rejects the
+// unknown field, so it is sent only when the provider/model needs it — unlike the deleted
+// native path, an UNSET reasoningOff here emits no chat_template_kwargs at all (thinking
+// is left to the model's own default, not forced off; see the migration note in
+// .faffrc.example.yaml for a folded backend that relied on the old always-off default).
+// maxTokens caps output (OpenAI's max_tokens). stream:true keeps a long response's
+// connection alive.
 // FAFF-873: reasoningEffort emits the wire reasoning_effort field, clamped through
 // clampEffortToWire — but ONLY when reasoningOff is false (reasoning_off wins on the
 // wire, mirroring engine.js's buildEngineRequest `if/else if` precedent). Unset
@@ -583,8 +560,8 @@ export const ANTHROPIC_VERSION = "2023-06-01";
 // PURE: the /v1/messages payload. Distinct from the OpenAI shape: `system` is a TOP-LEVEL string (not a
 // messages[0] entry), `max_tokens` is REQUIRED by the API (no default on the wire), and NO `temperature`
 // is sent — current Claude reviewer models reject non-default sampling params under extended thinking with
-// a 400 (→ EXIT.OTHER), and the review needs no specific temperature. maxTokens is the analogue of ollama's
-// num_predict / openai's max_tokens.
+// a 400 (→ EXIT.OTHER), and the review needs no specific temperature. maxTokens is the analogue of
+// openai's max_tokens.
 export function buildAnthropicPayload({ model, system, user, maxTokens = DEFAULT_NUM_PREDICT }) {
   if (!model) throw new Error("buildAnthropicPayload requires a model");
   return {
@@ -602,7 +579,7 @@ export function buildAnthropicPayload({ model, system, user, maxTokens = DEFAULT
 // the model's hidden reasoning — dropped, we want only the answer). stop_reason==="max_tokens" on the late
 // message_delta reports truncation. Tolerant fallback: if the body carries no `data:` frames (a backend
 // that ignored stream:true and returned one Messages object), parse it whole and concatenate its
-// content[] text blocks. Same {content, truncated, done} contract as accumulateNdjson/accumulateSse.
+// content[] text blocks. Same {content, truncated, done} contract as accumulateSse.
 export function accumulateAnthropic(text) {
   let content = "";
   let truncated = false;
@@ -685,8 +662,9 @@ export function isFirstByteBreach(err) { return Boolean(err && err.firstByteBrea
 // arms a real timer and hands streamFn an { onFirstByte, signal } fifth argument: the first response byte
 // disarms the timer (the stream then proceeds under the existing inactivity timeoutMs, unchanged); if the
 // timer fires first it aborts the signal (tearing the real socket down) and rejects a FirstByteBreachError.
-// opts is ALWAYS passed at the FIFTH positional slot — the caller normalises ollama's headers arg so opts
-// never collides with it (see streamOnce). The timer is unref'd so it never keeps the process alive.
+// opts is ALWAYS passed at the FIFTH positional slot — every caller (streamOnceOpenAi/streamOnceAnthropic)
+// passes an explicit headers object so opts never collides with it. The timer is unref'd so it never
+// keeps the process alive.
 export function streamWithFirstByte(streamFn, url, body, timeoutMs, headers, firstByteMs) {
   // Pass-through unless a POSITIVE finite window is set (mirrors resolveFirstByteMs's <=0-disables
   // guard, and rejects a NaN a direct caller might pass — typeof NaN === "number" would else arm
@@ -801,55 +779,6 @@ function realStream(url, body, timeoutMs = 580000, extraHeaders = {}, opts = {})
   });
 }
 
-// Preflight: probe /api/tags. unreachable (infra) is distinct from not-served (config fault).
-export async function preflight({ host, model, getFn = realGet, timeoutMs = 5000 }) {
-  let body;
-  try { body = await getFn(new URL("/api/tags", host).toString(), timeoutMs); }
-  catch (e) { return { unreachable: true, error: e.message }; }
-  const { served, names } = modelServed(body, model);
-  return { unreachable: false, served, names };
-}
-
-async function streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs, firstByteMs }) {
-  const body = JSON.stringify(buildChatPayload({ model, system, user, numPredict }));
-  // FAFF-885: ollama's transport call carries NO headers arg (openai/anthropic pass 4) — pass an explicit
-  // {} so the first-byte opts always land in the FIFTH positional slot, never ollama's headers slot.
-  const raw = await streamWithFirstByte(streamFn, new URL("/api/chat", host).toString(), body, timeoutMs, {}, firstByteMs);
-  return accumulateNdjson(raw);
-}
-
-// ollama orchestration: preflight → stream → one truncation retry at 2× budget. getFn/streamFn injectable.
-// The stream (+ its truncation retry) is wrapped in a bounded transport retry (FAFF-227): a transient
-// mid-stream fault retries; an exhausted one surfaces status "transport-failed" → main() maps it to a
-// documented exit, never the unmapped EXIT.OTHER.
-async function runReviewOllama({
-  host, model, system, user, numPredict = DEFAULT_NUM_PREDICT,
-  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
-}) {
-  const pf = await preflight({ host, model, getFn });
-  if (pf.unreachable) return { status: "unreachable", note: pf.error };
-  if (!pf.served) return { status: "model-not-served", names: pf.names };
-
-  // FAFF-329: when a total wall-clock hardDeadlineMs is set, re-clamp EVERY stream attempt (incl. the
-  // truncation retry) to the budget still remaining, so a single backend's retry composition can never
-  // overrun the total deadline. Unset ⇒ the per-attempt timeoutMs unchanged (byte-for-byte today).
-  const perAttempt = () => (typeof hardDeadlineMs === "number"
-    ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
-    : timeoutMs);
-  const streamCall = async () => {
-    let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs: perAttempt(), firstByteMs });
-    if (out.truncated) {
-      out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs: perAttempt(), firstByteMs });
-    }
-    return out;
-  };
-  const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
-    : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
-  const r = await streamWithTransportRetry(streamCall, { deadlineMs });
-  if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
-  return { status: "ok", content: r.out.content, truncated: r.out.truncated };
-}
-
 // OpenAI-compatible preflight: GET /v1/models with Bearer auth. unreachable (infra) and auth-failed
 // (401/403 creds) are distinct from not-served (config fault).
 export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, timeoutMs = 5000 }) {
@@ -871,11 +800,12 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
   return accumulateSse(raw);
 }
 
-// OpenAI-compatible orchestration: mirrors the ollama path (preflight → stream → one 2× retry),
-// adding Bearer auth and an auth-failed branch. The stream (+ truncation retry) is wrapped in the same
-// bounded transport retry as ollama (FAFF-227): a transient mid-stream fault retries; an auth fault is
-// terminal (isTransientTransport is FALSE for 401/403, so the wrapper rethrows it into the auth catch);
-// an exhausted transport fault surfaces status "transport-failed" → a documented exit, never EXIT.OTHER.
+// OpenAI-compatible orchestration: preflight → stream → one 2× truncation retry, with Bearer auth and
+// an auth-failed branch (the same shape the deleted native ollama orchestration used, minus auth). The
+// stream (+ truncation retry) is wrapped in the FAFF-227 bounded transport retry: a transient mid-stream
+// fault retries; an auth fault is terminal (isTransientTransport is FALSE for 401/403, so the wrapper
+// rethrows it into the auth catch); an exhausted transport fault surfaces status "transport-failed" → a
+// documented exit, never EXIT.OTHER.
 async function runReviewOpenAi({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, reasoningExtra = null, apiKey,
   getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
@@ -885,7 +815,7 @@ async function runReviewOpenAi({
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
   if (!pf.served) return { status: "model-not-served", names: pf.names };
 
-  // FAFF-329: re-clamp every attempt to the remaining total budget when hardDeadlineMs is set (see runReviewOllama).
+  // FAFF-329: re-clamp every attempt to the remaining total budget when hardDeadlineMs is set, so a single backend's retry composition can never overrun the total deadline. Unset ⇒ the per-attempt timeoutMs unchanged (byte-for-byte today; mirrored in runReviewAnthropic below).
   const perAttempt = () => (typeof hardDeadlineMs === "number"
     ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
     : timeoutMs);
@@ -927,7 +857,7 @@ async function runReviewAnthropic({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, apiKey,
   getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
 }) {
-  // FAFF-329: re-clamp every attempt to the remaining total budget when hardDeadlineMs is set (see runReviewOllama).
+  // FAFF-329: re-clamp every attempt to the remaining total budget (see runReviewOpenAi above for the full rationale).
   const perAttempt = () => (typeof hardDeadlineMs === "number"
     ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
     : timeoutMs);
@@ -952,14 +882,14 @@ async function runReviewAnthropic({
   }
 }
 
-// Dispatcher: routes on the configured provider's transport family. Default (no provider) is ollama,
-// preserving the original behaviour and signature.
+// Dispatcher: routes on the configured provider's transport family. Default (no provider) is now
+// "openai" (FAFF-872 — there is no longer a native ollama family to default to); ollama itself is an
+// OpenAI-compatible alias, so it also dispatches here, never to a native path.
 export async function runReview(opts = {}) {
   const fam = providerFamily(opts.provider);
   if (fam === "openai") return runReviewOpenAi(opts);
-  if (fam === "ollama") return runReviewOllama(opts);
   if (fam === "anthropic") return runReviewAnthropic(opts);
-  return { status: "unsupported-provider", note: `provider '${opts.provider}' has no transport in review-call.mjs (use an OpenAI-compatible base URL, or ollama)` };
+  return { status: "unsupported-provider", note: `provider '${opts.provider}' has no transport in review-call.mjs (use an OpenAI-compatible base URL, or anthropic)` };
 }
 
 // --- CLI ---
@@ -1016,7 +946,7 @@ export function ledgerMandatory(runDir) {
   return !!(ledger && ledger.level === "L4");
 }
 
-// PURE (FAFF-414): map a throw that escaped a family's orchestration function (runReviewOllama/OpenAi/
+// PURE (FAFF-414): map a throw that escaped a family's orchestration function (runReviewOpenAi/
 // Anthropic — a bad request shape, an oversized payload/413, or any other non-transient fault those
 // functions don't already convert into a status) to a stable per-backend status string. Mirrors
 // isAuthError so an escaped 401/403 still routes distinctly (defense-in-depth: each family already
@@ -1096,7 +1026,7 @@ export function budgetWarnings(chain = [], totalDeadlineMs, multiplier = 6) {
     const t = b && b.timeoutMs;
     if (typeof t !== "number") continue;                // a backend with no explicit timeout can't be judged
     if (t * multiplier >= perBackendBudget) {
-      const tag = `${(b && b.provider) || "ollama"}/${(b && b.model) || "?"}`;
+      const tag = `${(b && b.provider) || "openai"}/${(b && b.model) || "?"}`;
       out.push(
         `budget: backend ${tag}: timeout ${Math.round(t / 1000)}s × ~${multiplier} worst-case ` +
         `(~${Math.round((t * multiplier) / 1000)}s) >= per-backend budget ${Math.round(perBackendBudget / 1000)}s ` +
@@ -1120,7 +1050,7 @@ const CHAIN_ADVANCE_REASON = {
 };
 
 // Non-rejecting wrapper around a per-backend callReview() invocation (FAFF-414). The per-family
-// orchestration functions (runReviewOllama/OpenAi/Anthropic) are BYTE-UNCHANGED — they still throw
+// orchestration functions (runReviewOpenAi/Anthropic) are BYTE-UNCHANGED — they still throw
 // straight out on a non-transient, non-auth error (a bad request shape, an oversized payload/413, etc.);
 // the catch lives ONLY here, at the chain boundary, OUTSIDE streamWithTransportRetry (which already owns
 // the transient-retry catch). A throw that escapes a run function is exactly as informative as any other
@@ -1176,11 +1106,11 @@ export async function runReviewChain(chain = [], shared = {}) {
       return { exit, deadlineExceeded: true, failureClasses };
     }
     const b = chain[i] || {};
-    const tag = `${b.provider || "ollama"}/${b.model || "?"}`;
+    const tag = `${b.provider || "openai"}/${b.model || "?"}`;
     const verb = i === n - 1 ? "exhausted" : "advancing";
     // A backend missing model or host is a per-element config fault (USAGE) — advance, never abort the chain.
-    // provider is optional (omitted ⇒ ollama, via runReview/providerFamily), preserving the legacy single-
-    // backend path where callers never passed --provider.
+    // provider is optional (omitted ⇒ openai, via runReview/providerFamily — FAFF-872), preserving the
+    // legacy single-backend path where callers never passed --provider.
     if (!b.model || !b.host) {
       failureClasses.push(EXIT.USAGE);
       log(verb === "advancing"
@@ -1424,9 +1354,9 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   // FAFF-903: reorder the wire payload so the shared context/diff block is the cacheable prefix and
   // the per-lens brief trails it. One swap, here at the caller seam: the shared block (the
   // assembleUserMessage output) goes to the builders' `system` argument (their prefix slot: messages[0]
-  // for ollama/OpenAI, top-level `system` for Anthropic) and the lens brief (--system) to their `user`
-  // argument. No builder edit and no streaming-path change: all three families place the shared block in
-  // their prefix position for free. The `system`/`user` locals above keep their CLI-flag meaning
+  // for OpenAI-compatible, top-level `system` for Anthropic) and the lens brief (--system) to their
+  // `user` argument. No builder edit and no streaming-path change: both families place the shared block
+  // in their prefix position for free. The `system`/`user` locals above keep their CLI-flag meaning
   // (`system` = --system = the lens brief); the two aliases below make the swapped roles explicit.
   const sharedBlock = user;   // assembleUserMessage output — byte-identical across the four spec-review lenses
   const lensBrief = system;   // the --system refuter brief — the only per-lens-differing part

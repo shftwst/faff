@@ -104,9 +104,9 @@ models:
 #     api_key_env: NVIDIA_API_KEY   # → auth: api-key (derived); egress: external (derived, public host)
 #     timeout: 480
 #   studio-ollama:
-#     provider: ollama
+#     provider: ollama    # an OpenAI-compatible ALIAS (FAFF-872) when referenced by an adversarial refs: list — no native transport
 #     model: qwen3-next:80b-a3b-instruct-q4_K_M
-#     host: http://studio.example.ts.net:11434   # → auth: none, egress: local (both derived)
+#     host: http://studio.example.ts.net:11434/v1   # /v1 required; a bare host fails loud at preflight — auth: none, egress: local (both derived)
 #   claude-sub:
 #     provider: anthropic
 #     model: claude-frontier
@@ -320,10 +320,16 @@ prdr:
 
 # faffter-dark: LLM provider config for adversarial review.
 # Used by the faffter-dark-adversarial-review skill (when set as the review slot).
-# Transport families: ollama (/api/chat), OpenAI-compatible (/v1/chat/completions — covers openai,
-# vllm, openrouter, nvidia, deepseek, AND gemini via Google's OpenAI-compat base URL), and anthropic
-# (native /v1/messages). gemini needs no adaptor — set host to Google's compat URL and it rides the
-# openai path (see the gemini example below). For anthropic, set host: https://api.anthropic.com.
+# FAFF-872: two transport shapes (down from three — the native ollama transport was folded onto the
+# OpenAI-compatible path). OpenAI-compatible (/v1/models preflight + /v1/chat/completions SSE) covers
+# openai, vllm, openrouter, nvidia, deepseek, gemini (via Google's OpenAI-compat base URL — no adaptor
+# needed, see the gemini example below), AND ollama/oMLX — ollama has no native transport of its own
+# anymore; it is now an OpenAI-compatible ALIAS, so declare it provider: ollama (or provider: openai)
+# with a host ending in /v1 and it rides this same path (a bare, non-/v1 host now fails LOUD at
+# preflight instead of silently working — a deliberate migration signal, never auto-rewritten). anthropic
+# keeps its own native shape (/v1/messages) — Claude's extended thinking can't cross to a plain
+# /v1/chat/completions, so it is the one family kept native by design. For anthropic, set
+# host: https://api.anthropic.com.
 # INDEPENDENCE: don't set provider: anthropic when Claude wrote/ran the primary review — a same-family
 # reviewer defeats the point (a *different* model family is the value). See the skill's independence note.
 #
@@ -357,19 +363,24 @@ prdr:
 #   #    timeout / deadline / requires) — those are the shared block's own fields, not a
 #   #    per-consumer sub-block.
 adversarial:
-  provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic
+  provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic — ollama is an OpenAI-compatible ALIAS (FAFF-872), not a native transport
   model: llama3.1:70b # provider-specific model identifier
-  host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
+  host: http://localhost:11434/v1 # base URL incl. /v1 — every provider is OpenAI-compatible now (ollama included); a bare (non-/v1) host fails loud at preflight (D-host: never auto-rewritten)
   api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
-  reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
+  # FAFF-872 migration note: the deleted native ollama transport FORCED thinking off (unconditionally,
+  # regardless of this flag). The OpenAI-compatible path only disables it when reasoning_off is
+  # explicitly true — unset now leaves thinking at the model's own default (may be ON). A migrated
+  # ollama backend that relied on the old implicit always-off behaviour must set reasoning_off: true.
+  reasoning_off: false # true → chat_template_kwargs:{thinking:false, enable_thinking:false} for reasoning models (deepseek, qwen3, ollama/oMLX)
   reasoning_effort: # optional low|medium|high|xhigh|max — OpenAI-compat wire reasoning_effort (xhigh/max clamp to high); reasoning_off wins when both set; unset omits the field entirely
   timeout: 120 # seconds — bounds ONE stream attempt
   deadline: 480 # FAFF-329: TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends, so the
                 # slow Phase-2 fits one subagent turn (default 480, under the 900s staleness window). Deadline-
                 # exceeded → the second opinion is skipped (pass+skip, logged loudly), never a mid-turn stall.
                 # Tune up if `phase2: skipped-deadline` shows in run logs while backends were healthy.
-  # max_tokens: 2000  # OPTIONAL output-token cap for the reviewer's findings (OpenAI/anthropic max_tokens,
-                       # ollama options.num_predict). Default 2000; auto-doubled once to 4000 on a truncation
+  # max_tokens: 2000  # OPTIONAL output-token cap for the reviewer's findings (OpenAI/anthropic
+                       # max_tokens — every provider is OpenAI-compatible now, ollama included, FAFF-872).
+                       # Default 2000; auto-doubled once to 4000 on a truncation
                        # retry. Resolution: adversarial.<consumer>.max_tokens || adversarial.max_tokens || 2000
                        # (per-consumer e.g. adversarial.code_review.max_tokens / adversarial.spec_review.max_tokens).
                        # Raise it (e.g. 8000) for a verbose reviewer that overruns 2000 on a large diff and
@@ -389,14 +400,14 @@ adversarial:
   # fallbacks:
   #   - provider: ollama
   #     model: qwen3-next:80b
-  #     host: http://studio:11434
+  #     host: http://studio:11434/v1   # /v1 required (FAFF-872) — ollama is an OpenAI-compatible alias, no native transport
   #   - provider: openai
   #     model: gpt-4o
   #     host: https://api.openai.com/v1
   #     api_key_env: OPENAI_API_KEY
   #
   #   JSON-string scalar (legacy, still parsed):
-  # fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"},{"provider":"openai","model":"gpt-4o","host":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY"}]'
+  # fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434/v1"},{"provider":"openai","model":"gpt-4o","host":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY"}]'
   # NVIDIA free testbed example:
   #   provider: nvidia
   #   model: deepseek-ai/deepseek-v4-pro

@@ -78,6 +78,12 @@ const DELIVERY_PROFILE = {
     // FAFF-527: one run-scoped event per L4 re-entry (epoch, prior_state, skipped_shipped,
     // rebuilt_coarse) — continues the SAME run_id's seq stream, never a second run-start.
     "run-resume",
+    // FAFF-896: one run-scoped event per same-session release of an unworked resume claim —
+    // the resumecheck Stop hook stamps owner.status running→aborted-resumable at a no-work
+    // turn-exit and appends this (data.{released_from,to,reason}). Run-scoped like run-resume
+    // (NOT issue-scoped, carries no ledger outcome), so it stays out of issue_scoped_types /
+    // outcome_required_types / sentry.progress.forward_types (parity with run-resume).
+    "run-claim-abandoned",
     // FAFF-564: one run-scoped event per run-ledger.json write (data.ledger_sha256 =
     // SHA-256 of the post-write ledger bytes, always CLI-computed) — how the mutable
     // ledger's history joins the events tamper-evidence chain. Emitted by

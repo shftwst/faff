@@ -58,7 +58,12 @@ function classifyReEnterable(ledger, opts) {
   if (abortMarker || ownerAborted) return { reEnterable: true, state: "aborted-resumable" };
   if (isEscalateStopReason(ledger && ledger.stop_reason)) return { reEnterable: true, state: "escalated" };
   if (owner && owner.status === "running") {
-    if (held) {
+    // FAFF-896 read-side backstop: a held-but-PROVABLY-DEAD claim (the only event since
+    // the last run-resume is that run-resume, aged past FAFF_RESUME_DEADCLAIM_GRACE_SECS)
+    // reclaims as dead-running despite the frozen-fresh heartbeat. `provablyDead` is
+    // opt-in (default false), so a caller omitting it is byte-identical to today.
+    const provablyDead = !!(opts && opts.provablyDead);
+    if (held && !provablyDead) {
       return { reEnterable: false, state: "live-running",
         refuseReason: "the run's owner is running with a fresh heartbeat — a second driver would race it; refusing (resume only a dead/aborted/escalated run)" };
     }
@@ -233,6 +238,12 @@ function resumeSelftest() {
   check("running + stale heartbeat → dead-running (re-enterable)", dead.state === "dead-running" && dead.reEnterable === true);
   const live = classifyReEnterable({ owner: { status: "running" } }, { held: true });
   check("running + fresh heartbeat → live-running REFUSE", live.state === "live-running" && live.reEnterable === false);
+  // FAFF-896: a held-but-provably-dead running owner reclaims as dead-running (the read-side
+  // backstop); the opt-in bit never disturbs a caller that omits it (byte-identical above).
+  const provdead = classifyReEnterable({ owner: { status: "running" } }, { held: true, provablyDead: true });
+  check("running + fresh heartbeat + provablyDead → dead-running (re-enterable)", provdead.state === "dead-running" && provdead.reEnterable === true);
+  check("running + fresh heartbeat + provablyDead:false → still live-running REFUSE (omit-is-identical)",
+    classifyReEnterable({ owner: { status: "running" } }, { held: true, provablyDead: false }).state === "live-running");
   const done = classifyReEnterable({ owner: { status: "done" }, admitted: ["A"], outcomes: { A: "shipped" } }, {});
   check("terminal owner, all shipped → done-clean REFUSE", done.state === "done-clean" && done.reEnterable === false);
 

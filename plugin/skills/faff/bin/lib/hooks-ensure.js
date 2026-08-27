@@ -28,7 +28,12 @@ const { findRoot, homeDir } = require("./shared-infra");
 // planner/probe/resolve already cover; every HOOKS_ENSURE_SELFTEST_CASES fixture +
 // the structural + identity tables carry it through so the table stays exact against
 // the live five-member planner (a stale four-member fixture would pass vacuously).
-const FAFF_STOP_HOOKS = ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"];
+// FAFF-896: resumecheck joins the Stop family (order: runcheck, prepcheck, inflightcheck,
+// resumecheck, sentrycheck, turncheck) as the same-session release of an unworked resume
+// claim — one more member the generalised planner/probe/resolve already cover; every
+// fixture + the structural + identity tables carry it through so the table stays exact
+// against the live SIX-member planner.
+const FAFF_STOP_HOOKS = ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"];
 // FAFF-434/491: the PreToolUse hook set — the raw-gh-pr-merge fence, plus
 // (FAFF-491) the self-backgrounded-gate fence: a build subagent that runs its
 // own gate/test command with run_in_background:true and ends its turn strands
@@ -361,29 +366,36 @@ function cmdHooksEnsure(args) {
 // through served/present/added/skip so the table stays exact against the live
 // four-member planner (a stale three-member fixture would pass vacuously by
 // under-covering the new member, not by testing it).
+// FAFF-896: resumecheck is now the fourth FAFF_STOP_HOOKS member (order: runcheck,
+// prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck) — every fixture carries
+// it through served/present/added/skip so the table stays exact against the live SIX-member
+// planner (a stale five-member fixture would pass vacuously by under-covering the new member).
 const HOOKS_ENSURE_SELFTEST_CASES = [
-  ["empty + all five served", {}, [], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], [], [], []],
-  ["runcheck present (divergent path), the other four served",
+  ["empty + all six served", {}, [], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], [], [], []],
+  ["runcheck present (divergent path), the other five served",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/x/bin/faff runcheck --hook" }] }] } },
-    ["runcheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck"], [], ["runcheck"]],
-  ["all five present, canonical → no-op",
-    { hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }, { type: "command", command: "faff prepcheck --hook" }, { type: "command", command: "faff inflightcheck --hook" }, { type: "command", command: "faff sentrycheck --hook" }, { type: "command", command: "faff turncheck --hook" }] }] } },
-    ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], [], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], [], []],
-  ["stale bin serves none", {}, [], [], [], [], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], []],
-  ["present-but-unserved counts present (not skipped); inflightcheck+sentrycheck+turncheck unserved → skipped",
-    {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], ["inflightcheck", "sentrycheck", "turncheck"], []],
-  ["present-but-divergent-path → normalized (prepcheck); the other four added",
+    ["runcheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck"], [], ["runcheck"]],
+  ["all six present, canonical → no-op",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }, { type: "command", command: "faff prepcheck --hook" }, { type: "command", command: "faff inflightcheck --hook" }, { type: "command", command: "faff resumecheck --hook" }, { type: "command", command: "faff sentrycheck --hook" }, { type: "command", command: "faff turncheck --hook" }] }] } },
+    ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], [], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], [], []],
+  ["stale bin serves none", {}, [], [], [], [], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], []],
+  ["present-but-unserved counts present (not skipped); inflightcheck+resumecheck+sentrycheck+turncheck unserved → skipped",
+    {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], ["inflightcheck", "resumecheck", "sentrycheck", "turncheck"], []],
+  ["present-but-divergent-path → normalized (prepcheck); the other five added",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/abs/repo/path/faff prepcheck --hook" }] }] } },
-    ["prepcheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck", "inflightcheck", "sentrycheck", "turncheck"], ["prepcheck"], [], ["prepcheck"]],
+    ["prepcheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["prepcheck"], [], ["prepcheck"]],
   ["inflightcheck present (divergent path), others served",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/z/bin/faff inflightcheck --hook" }] }] } },
-    ["inflightcheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "sentrycheck", "turncheck"], ["inflightcheck"], [], ["inflightcheck"]],
+    ["inflightcheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "resumecheck", "sentrycheck", "turncheck"], ["inflightcheck"], [], ["inflightcheck"]],
+  ["resumecheck present (divergent path), others served",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "/v/bin/faff resumecheck --hook" }] }] } },
+    ["resumecheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["resumecheck"], [], ["resumecheck"]],
   ["sentrycheck present (divergent path), others served",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/y/bin/faff sentrycheck --hook" }] }] } },
-    ["sentrycheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "turncheck"], ["sentrycheck"], [], ["sentrycheck"]],
+    ["sentrycheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "turncheck"], ["sentrycheck"], [], ["sentrycheck"]],
   ["turncheck present (divergent path), others served",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/w/bin/faff turncheck --hook" }] }] } },
-    ["turncheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck"], ["turncheck"], [], ["turncheck"]],
+    ["turncheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck"], ["turncheck"], [], ["turncheck"]],
 ];
 
 // FAFF-434/491/530: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
@@ -441,12 +453,12 @@ function hooksEnsureSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} PreToolUse: ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} ~${JSON.stringify(p.normalized)} skip${JSON.stringify(p.skipped_stale)}`);
   }
-  // structural: adding into {} builds one Stop group carrying the five command hooks
-  const built = planStopHooks({}, [], ["runcheck", "prepcheck", "inflightcheck", "sentrycheck", "turncheck"], inv).nextSettings;
+  // structural: adding into {} builds one Stop group carrying the six command hooks
+  const built = planStopHooks({}, [], ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"], inv).nextSettings;
   const cmds = (((built.hooks || {}).Stop || [])[0] || {}).hooks || [];
-  const structOk = cmds.length === 5 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck|inflightcheck|sentrycheck|turncheck) --hook/.test(h.command));
+  const structOk = cmds.length === 6 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck|inflightcheck|resumecheck|sentrycheck|turncheck) --hook/.test(h.command));
   if (!structOk) fail++;
-  console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 5 command hooks`);
+  console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 6 command hooks`);
   // structural (FAFF-530): adding into {} builds a Bash-matcher group carrying BOTH
   // fences AND a distinct Monitor-matcher group carrying only background-fence.
   const builtPre = planPreToolUseHooks({}, [], ["merge-fence", "background-fence"], inv).nextSettings;

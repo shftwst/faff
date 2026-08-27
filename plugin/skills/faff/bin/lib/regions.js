@@ -67,6 +67,11 @@ const REGION_MAP = {
   // gate core behind a thin I/O shell, no factory-identifier references (same governance
   // family as sentrycheck; imports only governance/shared modules).
   "inflightcheck": "governance",
+  // resumecheck — FAFF-896: the same-session release of an unworked resume claim (owner
+  // running→aborted-resumable at a no-work turn-exit). Reuses runcheck's
+  // runIsOwned/resolveRunDir + events' tail reader + heartbeat's mutateLedgerUnderLock —
+  // a pure decision behind a thin I/O shell, governance family (no factory imports).
+  "resumecheck": "governance",
   // turncheck — FAFF-854: the STATE-based turn-end floor (the enumeration-based
   // inflightcheck's sibling) — refuses a non-terminal turn-end when owner.status is
   // still "running" with a clean queue and nothing in flight. Reuses runcheck's
@@ -336,6 +341,7 @@ const REGION_SELFTEST_ARGV = {
   "sentry-poller": ["sentry-poller", "--selftest"],
   "sentrycheck": ["sentrycheck", "--selftest"],
   "inflightcheck": ["inflightcheck", "--selftest"],
+  "resumecheck": ["resumecheck", "--selftest"],
   "turncheck": ["turncheck", "--selftest"],
   "audit": ["audit", "--selftest"],
   "reconcile": ["reconcile", "--selftest"],

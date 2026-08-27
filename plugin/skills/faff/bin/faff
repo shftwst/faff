@@ -77,6 +77,7 @@ const { cmdPrdChecklist } = require("./lib/prd-checklist");
 const { cmdPrdr } = require("./lib/prdr");
 const { cmdPrepcheck } = require("./lib/prepcheck");
 const { cmdInflightcheck } = require("./lib/inflightcheck");
+const { cmdResumecheck } = require("./lib/resumecheck");
 const { cmdProfile } = require("./lib/profile");
 const { cmdProjectNext } = require("./lib/project-next");
 const { cmdQuality } = require("./lib/quality");
@@ -124,6 +125,7 @@ const COMMANDS = {
   "heartbeat": cmdHeartbeat,
   "prepcheck": cmdPrepcheck,
   "inflightcheck": cmdInflightcheck,
+  "resumecheck": cmdResumecheck,
   "turncheck": cmdTurncheck,
   "intakecheck": cmdIntakecheck,
   "intake-record": cmdIntakeRecord,

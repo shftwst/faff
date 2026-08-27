@@ -91,11 +91,11 @@ function computeReputation(reviewFacts, outcomeFacts, opts) {
 
   // shipRuns[issue] = Set of run_ids with a ship/pr-open accept (each sorts at (run_id, +Inf)).
   const shipRuns = new Map();
-  for (const of of outcomes) {
-    if (!of || typeof of !== "object" || !of.accepted) continue;
-    if (typeof of.issue !== "string" || typeof of.run_id !== "string") continue;
-    if (!shipRuns.has(of.issue)) shipRuns.set(of.issue, new Set());
-    shipRuns.get(of.issue).add(of.run_id);
+  for (const oc of outcomes) {
+    if (!oc || typeof oc !== "object" || !oc.accepted) continue;
+    if (typeof oc.issue !== "string" || typeof oc.run_id !== "string") continue;
+    if (!shipRuns.has(oc.issue)) shipRuns.set(oc.issue, new Set());
+    shipRuns.get(oc.issue).add(oc.run_id);
   }
 
   // peerAccepts[issue] = [{ run_id, round }] for every non-reject review verdict on the issue
@@ -507,6 +507,16 @@ function cmdSpecReviewReputation(args) {
     return 2;
   }
   const res = filterEligible(chain, new Set(ledger.flagged));
+  // Operator-attention advisory on STDERR (never stdout — the bare chain stays byte-compatible
+  // with adversarial-backends / spec-review-pin, the drop-in-filter guarantee). The occupant
+  // consumes the default bare-array stdout, which cannot itself carry `all_struck`, so surface it
+  // here where a run log / operator can see it: an all-flagged chain is preserved with the gate
+  // intact, but the operator is advised to widen the backend pool (the strike was a no-op).
+  if (res.all_struck) {
+    process.stderr.write(`faff spec-review-reputation: every candidate backend is flagged candidate-degenerate (${res.struck.join(", ")}) — the chain is preserved UNCHANGED with the gate intact, but the reviewer pool should be widened\n`);
+  } else if (res.struck.length) {
+    process.stderr.write(`faff spec-review-reputation: struck ${res.struck.length} candidate-degenerate backend(s) from the chain: ${res.struck.join(", ")}\n`);
+  }
   // Default: the bare struck chain array (byte-compatible with adversarial-backends /
   // spec-review-pin output, so it is a drop-in filter). --json: the { chain, struck, all_struck } wrapper.
   console.log(JSON.stringify(values["--json"] ? { chain: res.chain, struck: res.struck, all_struck: res.all_struck } : res.chain));

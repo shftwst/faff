@@ -276,6 +276,7 @@ test("CLI --eligible strikes the flagged identity and keeps a clean one", () => 
     assert.deepEqual(out.chain, [{ provider: "q", model: "n", host: "h2" }]);
     assert.deepEqual(out.struck, ["p|m|h"]);
     assert.equal(out.all_struck, false);
+    assert.match(r.stderr, /struck 1 candidate-degenerate backend/, "the strike is advised on stderr (stdout stays byte-compatible)");
     // default (no --json) prints the bare struck chain array — byte-compatible with the pin output.
     const bare = runCli(["spec-review-reputation", "--eligible", "--backends-json", chainFile, "--root", root]);
     assert.deepEqual(JSON.parse(bare.stdout), [{ provider: "q", model: "n", host: "h2" }]);
@@ -292,6 +293,7 @@ test("CLI --eligible on an all-flagged chain returns it unchanged (fail-safe: ga
     const out = JSON.parse(r.stdout);
     assert.deepEqual(out.chain, [{ provider: "p", model: "m", host: "h" }]);
     assert.equal(out.all_struck, true);
+    assert.match(r.stderr, /every candidate backend is flagged/, "an all-flagged chain warns the operator to widen the pool on stderr");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

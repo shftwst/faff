@@ -173,3 +173,63 @@ test("regression: the real repo's docs/decisions.md (if any) validates clean", (
   assert.equal(r.status, 0, `shipped docs/decisions.md must validate:\n${r.stdout}`);
   assert.match(r.stdout, /^OK —/m);
 });
+
+// --- FAFF-910: the ratified_tradeoff entry kind -----------------------------
+
+const RATIFIED_TRADEOFF =
+  "## Single-region health readout\n" +
+  "- Chosen: single-region health, no failover probe\n" +
+  "- Rationale: the v1 dashboard reads one region only\n" +
+  "- Scope: the v1 single-region deployment\n" +
+  "- Source-issue: FAFF-910\n" +
+  "- Ratified-by: human\n" +
+  "- Date: 2026-08-28\n";
+
+test("FAFF-910: list --json carries an additive `kind` field per entry", () => {
+  const root = tmpRepo(RATIFIED_TRADEOFF + "\n" + loggingEntry);
+  const r = run(["list", "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const out = JSON.parse(r.stdout);
+  const byId = Object.fromEntries(out.map((e) => [e.id, e]));
+  assert.equal(byId["single-region-health-readout"].kind, "ratified_tradeoff");
+  assert.equal(byId["logging-library"].kind, "precedent");
+  // additive: the precedent object keeps its existing keys/values unchanged
+  assert.equal(byId["logging-library"].chosen, "pino");
+  assert.equal(byId["logging-library"].date, "2026-07-11");
+});
+
+test("FAFF-910: matchDecision ignores a ratified tradeoff, still returns a precedent", () => {
+  const root = tmpRepo(RATIFIED_TRADEOFF + "\n" + loggingEntry);
+  const t = run(["match", "--punt", "single region health readout", "--json", "--root", root]);
+  assert.equal(t.status, 0);
+  assert.deepEqual(JSON.parse(t.stdout), { match: null });
+  const p = run(["match", "--punt", "pino vs winston", "--json", "--root", root]);
+  assert.equal(JSON.parse(p.stdout).id, "logging-library");
+});
+
+test("FAFF-910: a valid mixed register (tradeoff + precedent) validates clean", () => {
+  const root = tmpRepo(RATIFIED_TRADEOFF + "\n" + loggingEntry);
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+test("FAFF-910: Ratified-by: loop is refused, naming FAFF-922", () => {
+  const root = tmpRepo(RATIFIED_TRADEOFF.replace("- Ratified-by: human\n", "- Ratified-by: loop\n"));
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /FAFF-922/);
+});
+
+test("FAFF-910: a bad Source-issue is flagged", () => {
+  const root = tmpRepo(RATIFIED_TRADEOFF.replace("- Source-issue: FAFF-910\n", "- Source-issue: not-a-ticket\n"));
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /Source-issue/);
+});
+
+test("FAFF-910: a blank Ratified-by: is a malformed tradeoff, not a precedent fall-through", () => {
+  const root = tmpRepo("## Blank rb\n- Chosen: x\n- Rationale: y\n- Scope: s\n- Source-issue: FAFF-910\n- Ratified-by: \n- Date: 2026-08-28\n");
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /Ratified-by/);
+});

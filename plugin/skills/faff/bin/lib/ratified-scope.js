@@ -22,7 +22,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { sectionBody } = require("./admissibility");
-const { listEntries } = require("./decisions");
+const { listEntries, listRatifiedTradeoffs } = require("./decisions");
 const { prdDir, prdSlug } = require("./prd");
 const { parseArgs, usageError } = require("./argv");
 const { findRoot } = require("./shared-infra");
@@ -54,8 +54,12 @@ function placeholderOnly(body) {
   return t === "" || t === "_TODO._";
 }
 
-// assemble(root, container) -> { exit, block }. Reads only; a source read throw propagates (caller maps
-// it to exit 2). exit 3 when nothing ratified (no non-goals section AND no scoped precedent).
+// assemble(root, container) -> { exit, block, warnings }. Reads only; a source read throw propagates
+// (caller maps it to exit 2). exit 3 when nothing ratified — no non-goals section AND no scoped
+// precedent AND no honourable ratified tradeoff (FAFF-910 widened the exit-3 condition). `warnings` is
+// one no-expiry-enforcement line per honourable tradeoff, returned for the CLI to write to stderr — a
+// deterministic function of the register contents alone, so a tradeoff-bearing assemble ALWAYS carries
+// its warnings regardless of any downstream demotion (assemble itself stays write/network-free).
 function assemble(root, container) {
   let nonGoals = null;
   if (container != null) {
@@ -69,19 +73,31 @@ function assemble(root, container) {
     }
   }
 
+  // Precedents are the existing scoped-entry consumer. FAFF-910: skip ratified_tradeoff entries here so
+  // a tradeoff (which always carries a Scope) is not ALSO swept into the settled-precedents subsection.
   const precedents = [];
   for (const entry of listEntries(root)) { // absent docs/decisions.md => [] (not an error)
+    if (entry.kind === "ratified_tradeoff") continue;
     if (typeof entry.scope === "string" && entry.scope.trim() !== "") {
       precedents.push({ id: entry.id, topic: entry.topic, chosen: entry.chosen, scope: entry.scope });
     }
   }
 
-  if (nonGoals == null && precedents.length === 0) return { exit: 3, block: "" };
-  return { exit: 0, block: render(nonGoals, precedents) };
+  // FAFF-910: the honourable human-ratified tradeoffs (via the decisions reader, which validates each
+  // and admits only Ratified-by: human). Rendered under their own subsection so a design lens has a
+  // concrete settling line to cite; each carries a v1 no-expiry-enforcement warning.
+  const tradeoffs = listRatifiedTradeoffs(root);
+  const warnings = tradeoffs.map(
+    (t) => `Honouring ${t.id} under recorded Scope "${t.scope}" without scope/topology expiry enforcement (v1); v2 owns automatic expiry.`,
+  );
+
+  if (nonGoals == null && precedents.length === 0 && tradeoffs.length === 0) return { exit: 3, block: "", warnings };
+  return { exit: 0, block: render(nonGoals, precedents, tradeoffs), warnings };
 }
 
-// render(nonGoals, precedents) -> markdown. Preserves listEntries order (document order in the register).
-function render(nonGoals, precedents) {
+// render(nonGoals, precedents, tradeoffs) -> markdown. Preserves listEntries order (document order in
+// the register). FAFF-910 adds the `### Ratified tradeoffs (docs/decisions.md)` subsection.
+function render(nonGoals, precedents, tradeoffs) {
   const out = ["## Ratified scope", "", PROVENANCE_SENTENCE, ""];
   if (nonGoals != null) {
     out.push("### Non-goals: PRD `" + nonGoals.container + "` (" + nonGoals.source_path + ")", "");
@@ -93,6 +109,16 @@ function render(nonGoals, precedents) {
       out.push("- **" + p.topic + "** (`" + p.id + "`)");
       out.push("  - Chosen: " + (p.chosen == null ? "" : p.chosen));
       out.push("  - Scope: " + p.scope);
+    }
+    out.push("");
+  }
+  if (tradeoffs && tradeoffs.length > 0) {
+    out.push("### Ratified tradeoffs (docs/decisions.md)", "");
+    for (const t of tradeoffs) {
+      out.push("- **" + t.topic + "** (`" + t.id + "`)");
+      out.push("  - Chosen: " + (t.chosen == null ? "" : t.chosen));
+      out.push("  - Scope: " + t.scope);
+      out.push("  - Source-issue: " + t.source_issue + "  ·  Ratified-by: human");
     }
     out.push("");
   }
@@ -116,8 +142,9 @@ function validate(text) {
   }
   const hasNonGoals = lines.some((l) => /^### Non-goals: PRD /.test(l));
   const hasPrecedents = lines.some((l) => l === "### Settled precedents (docs/decisions.md)");
-  if (!(hasNonGoals || hasPrecedents)) {
-    problems.push("no non-goals section and no settled-precedents section (an empty block is never emitted)");
+  const hasRatifiedTradeoffs = lines.some((l) => l === "### Ratified tradeoffs (docs/decisions.md)");
+  if (!(hasNonGoals || hasPrecedents || hasRatifiedTradeoffs)) {
+    problems.push("no non-goals, settled-precedents, or ratified-tradeoffs section (an empty block is never emitted)");
   }
   return { valid: problems.length === 0, problems };
 }
@@ -201,6 +228,9 @@ function cmdRatifiedScope(args) {
       process.stderr.write(`faff ratified-scope: cannot read a source (${e.message})\n`);
       return 2;
     }
+    // FAFF-910: emit one no-expiry-enforcement warning per honourable tradeoff to stderr, at assemble
+    // time — a deterministic function of the register contents, independent of any downstream demotion.
+    for (const w of result.warnings || []) process.stderr.write(w + "\n");
     if (result.exit === 0) {
       process.stdout.write(result.block.endsWith("\n") ? result.block : result.block + "\n");
     }
@@ -268,6 +298,17 @@ function ratifiedScopeSelftest() {
     validate("## Ratified scope\n\nSomething else entirely.\n\n### Settled precedents (docs/decisions.md)\n").valid === false);
   ok("a hand-crafted well-formed block validates (shape, not authenticity)",
     validate("## Ratified scope\n\n" + PROVENANCE_SENTENCE + "\n\n### Settled precedents (docs/decisions.md)\n").valid === true);
+  // FAFF-910: a tradeoffs-ONLY block (no non-goals, no settled precedents) is well-formed
+  ok("a tradeoffs-only block validates (FAFF-910)",
+    validate("## Ratified scope\n\n" + PROVENANCE_SENTENCE + "\n\n### Ratified tradeoffs (docs/decisions.md)\n").valid === true);
+  // FAFF-910: render carries the tradeoff subsection + its settling line
+  {
+    const tblock = render(null, [], [{ id: "single-region-health", topic: "Single-region health", chosen: "no failover in v1", scope: "the v1 single-region deployment", source_issue: "FAFF-910" }]);
+    ok("render carries the ratified-tradeoffs subsection", tblock.includes("### Ratified tradeoffs (docs/decisions.md)"));
+    ok("render carries the tradeoff settling line", tblock.includes("- **Single-region health** (`single-region-health`)"));
+    ok("render carries the tradeoff Source-issue + Ratified-by", tblock.includes("Source-issue: FAFF-910  ·  Ratified-by: human"));
+    ok("render's tradeoff block validates clean (shape round-trip)", validate(tblock).valid === true);
+  }
 
   // assemble against a temp fixture (I/O confined to the selftest's own sandbox). The tmp base is
   // resolved from the environment (never a require) so the module's dependency set stays confined to
@@ -291,6 +332,27 @@ function ratifiedScopeSelftest() {
       "# Decisions register\n\n## No scope here\n- Chosen: x\n- Rationale: y\n- Matches: k\n- Date: 2026-08-27\n");
     const a3 = assemble(tmp, null);
     ok("assemble with nothing ratified exits 3, empty block", a3.exit === 3 && a3.block === "");
+
+    // FAFF-910: a honourable human tradeoff assembles (no PRD container) with exit 0 + one warning
+    fs.writeFileSync(path.join(tmp, "docs", "decisions.md"),
+      "# Decisions register\n\n## Single-region health readout\n- Chosen: single-region health, no failover probe\n- Rationale: v1 reads one region\n- Scope: the v1 single-region deployment\n- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n");
+    const at = assemble(tmp, null);
+    ok("FAFF-910: a honourable tradeoff assembles with no PRD (exit 0)", at.exit === 0);
+    ok("FAFF-910: the block carries the ratified-tradeoffs subsection", at.block.includes("### Ratified tradeoffs (docs/decisions.md)"));
+    ok("FAFF-910: exactly one warning line for one honourable entry", at.warnings.length === 1 && /single-region-health-readout/.test(at.warnings[0]) && /v2 owns automatic expiry/.test(at.warnings[0]));
+
+    // FAFF-910: two honourable tradeoffs -> exactly two warning lines
+    fs.writeFileSync(path.join(tmp, "docs", "decisions.md"),
+      "# Decisions register\n\n## Health A\n- Chosen: a\n- Rationale: r\n- Scope: s1\n- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n\n" +
+      "## Health B\n- Chosen: b\n- Rationale: r\n- Scope: s2\n- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n");
+    ok("FAFF-910: two honourable tradeoffs emit exactly two warnings", assemble(tmp, null).warnings.length === 2);
+
+    // FAFF-910: a register whose ONLY tradeoff is loop/malformed (no scoped precedent, no non-goals)
+    // is not honourable -> exit 3, no tradeoffs subsection, cannot count toward exit 0.
+    fs.writeFileSync(path.join(tmp, "docs", "decisions.md"),
+      "# Decisions register\n\n## Loop tradeoff\n- Chosen: x\n- Rationale: y\n- Scope: s\n- Source-issue: FAFF-910\n- Ratified-by: loop\n- Date: 2026-08-28\n");
+    const aloop = assemble(tmp, null);
+    ok("FAFF-910: a loop-only register exits 3 (not honourable, cannot count toward exit 0)", aloop.exit === 3 && aloop.block === "" && aloop.warnings.length === 0);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

@@ -20,9 +20,26 @@
 // after the colon) swallow the line break and capture the NEXT non-blank line — typically the
 // following "## Context" heading. Bounding to [ \t*]* keeps the match on one line, so a blank
 // field now correctly yields null. The leading marker class and the value capture are unchanged.
+// The shared field-line HEAD: leading list/bold marker class, the field name, non-newline space,
+// a MANDATORY colon. Both the value read (readField) and the presence check (hasFieldLine) build on
+// this one source so they can never fork into two grammars (FAFF-910 anti-drift). readField appends
+// the value capture; hasFieldLine stops at the colon.
+function fieldLineHead(name) {
+  return `^[\\s>*-]*${name}[ \\t*]*:`;
+}
+
 function readField(text, name) {
-  const m = text.match(new RegExp(`^[\\s>*-]*${name}[ \\t*]*:[ \\t*]*([^\\s*].*)$`, "mi"));
+  const m = text.match(new RegExp(fieldLineHead(name) + "[ \\t*]*([^\\s*].*)$", "mi"));
   return m ? m[1].trim() : null;
 }
 
-module.exports = { readField };
+// FAFF-850/FAFF-910: test the LEXICAL PRESENCE of a field line, independent of its value. readField
+// maps both an absent line AND a present-but-blank value to null, so a value read alone cannot tell
+// "no such line" from "line present, value blank" — this presence check on the SAME shared head
+// supplies that distinction (a blank `Ratified-by:` is a present line, hence a malformed tradeoff
+// rather than a precedent fall-through).
+function hasFieldLine(text, name) {
+  return new RegExp(fieldLineHead(name), "mi").test(String(text));
+}
+
+module.exports = { fieldLineHead, hasFieldLine, readField };

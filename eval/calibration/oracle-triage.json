@@ -22,10 +22,10 @@
       "resolved-elsewhere",
       "prdr-yagni"
     ],
-    "case_count": 45,
+    "case_count": 47,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 36,
+      "sound": 38,
       "oracle-defect": 9,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
@@ -499,6 +499,22 @@
       "class": "sound",
       "triage_ticket": "FAFF-907",
       "rationale": "The lens_bounds oracle { must_object: [infosec], may_object: [architectural, QA] } is correct. The embedded `## Ratified scope` block settles only the missing per-request auth / rate limiting as an MVP non-goal, so a bare 'no rate limiting' objection is deferred. But the spec independently carries two genuine criticals the block does NOT settle — logging the caller's Authorization bearer token verbatim, and unlinking a path built straight from unvalidated request input — and a `critical` is never deferred by any lens. infosec must still object; architectural/QA may pile on the unauthenticated destructive action; methodology stays silent with no critique. Sound — the guard fixture that fails if any lens defers the critical."
+    },
+    {
+      "case_id": "refutation-spec-013",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "triage_ticket": "FAFF-910",
+      "rationale": "The closed_set:[] oracle is correct. The only material design-lens objection on this otherwise-clean single-region health spec is the missing multi-region failover, and that posture is a human-ratified spec-level tradeoff rendered into the embedded `## Ratified scope` block under `### Ratified tradeoffs (docs/decisions.md)` (Ratified-by: human). The deferral rule must honour a ratified-tradeoffs settling line exactly as it honours a settled precedent, so every design lens defers and nothing gates — the refuter approves, empty objecting-lens set. Sound — the defer-and-approve fixture for the tradeoff-subsection kind."
+    },
+    {
+      "case_id": "refutation-spec-014",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "triage_ticket": "FAFF-910",
+      "rationale": "The lens_bounds oracle { must_object: [infosec], may_object: [architectural, QA] } is correct. The embedded `## Ratified scope` block settles only the single-region / no-failover posture as a human-ratified tradeoff, so a bare 'no failover' objection is deferred. But the spec independently carries a genuine critical the block does NOT settle — an unauthenticated `?probe_file=<path>` read that returns arbitrary file contents (path traversal) — and a `critical` is never deferred regardless of subsection kind. infosec must still object; architectural/QA may pile on; methodology stays silent. Sound — the guard fixture that fails if a rendered ratified tradeoff widens the deferral to the critical."
     }
   ]
 }

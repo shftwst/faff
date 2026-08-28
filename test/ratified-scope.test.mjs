@@ -54,7 +54,52 @@ function tmpRepo({ prd, decisions } = {}) {
   return root;
 }
 
+// FAFF-910 fixtures: a honourable human-ratified tradeoff, and a non-honourable loop one.
+const RATIFIED_TRADEOFF =
+  "# Decisions register\n\n## Single-region health readout\n" +
+  "- Chosen: single-region health, no failover probe\n" +
+  "- Rationale: the v1 dashboard reads one region only\n" +
+  "- Scope: the v1 single-region deployment\n" +
+  "- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n";
+const LOOP_TRADEOFF = RATIFIED_TRADEOFF.replace("- Ratified-by: human\n", "- Ratified-by: loop\n");
+
 // --- assemble --------------------------------------------------------------
+
+test("FAFF-910: a honourable tradeoff assembles with NO PRD -> exit 0, tradeoffs subsection + one stderr warning", () => {
+  const root = tmpRepo({ decisions: RATIFIED_TRADEOFF }); // no --container, no PRD
+  const r = run(["--assemble", "--root", root]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^### Ratified tradeoffs \(docs\/decisions\.md\)$/m);
+  assert.match(r.stdout, /Source-issue: FAFF-910  ·  Ratified-by: human/);
+  // exactly one no-expiry-enforcement warning line, at assemble time, on stderr
+  const warnLines = r.stderr.split("\n").filter((l) => /without scope\/topology expiry enforcement/.test(l));
+  assert.equal(warnLines.length, 1, r.stderr);
+  assert.match(warnLines[0], /single-region-health-readout/);
+});
+
+test("FAFF-910: two honourable tradeoffs -> exactly two warning lines", () => {
+  const two =
+    "# Decisions register\n\n## Health A\n- Chosen: a\n- Rationale: r\n- Scope: s1\n- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n\n" +
+    "## Health B\n- Chosen: b\n- Rationale: r\n- Scope: s2\n- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n";
+  const r = run(["--assemble", "--root", tmpRepo({ decisions: two })]);
+  assert.equal(r.status, 0);
+  const warnLines = r.stderr.split("\n").filter((l) => /without scope\/topology expiry enforcement/.test(l));
+  assert.equal(warnLines.length, 2, r.stderr);
+});
+
+test("FAFF-910: a register whose ONLY tradeoff is loop/non-honourable (no precedent, no non-goals) -> exit 3, no subsection", () => {
+  const r = run(["--assemble", "--root", tmpRepo({ decisions: LOOP_TRADEOFF })]);
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.equal(r.stdout.trim(), "");
+});
+
+test("FAFF-910: --validate accepts a tradeoffs-only block", () => {
+  const root = tmpRepo({ decisions: RATIFIED_TRADEOFF });
+  const block = run(["--assemble", "--root", root]).stdout;
+  assert.match(block, /### Ratified tradeoffs/);
+  const v = run(["--validate"], { input: block });
+  assert.equal(v.status, 0, v.stdout + v.stderr);
+});
 
 test("assemble: both halves present -> exit 0, heading + provenance + both bodies", () => {
   const root = tmpRepo({ prd: PRD_WITH_NON_GOALS, decisions: SCOPED_DECISION });
@@ -144,7 +189,7 @@ test("validate: malformed (heading + provenance, no subsection) -> exit 1", () =
   const block = "## Ratified scope\n\n" + rs.PROVENANCE_SENTENCE + "\n";
   const r = run(["--validate"], { input: block });
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /no non-goals section and no settled-precedents section/);
+  assert.match(r.stderr, /no non-goals, settled-precedents, or ratified-tradeoffs section/);
 });
 
 test("validate: provenance line not beginning with the anchor -> exit 1", () => {

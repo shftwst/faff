@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-912",
+  "build": {
+    "status": "complete",
+    "diff_hash": "938d423f9b5ab0581f1e6ffbd3dfd7ab28fbb151ec6e5efdd41fcd7f8f1b4776",
+    "branch": "faff-912-add-a-narrow-audited-operator-accepts-review-unavailable",
+    "pushed_at": "2026-08-28T13:40:09.098Z"
+  },
+  "updated_at": "2026-08-28T13:40:09.098Z"
+}

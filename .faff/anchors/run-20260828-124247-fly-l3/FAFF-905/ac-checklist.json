@@ -1,0 +1,13 @@
+{
+  "all_verified": true,
+  "issue": "FAFF-905",
+  "criteria": [
+    { "id": "AC1", "desc": "shape() accepts bare clean-pass form for all four lenses (architectural/infosec/methodology/QA)", "verified": true },
+    { "id": "AC2", "desc": "shape() accepts headed clean-pass form ('## Refutation — <lens>' + sentence) for all four lenses", "verified": true },
+    { "id": "AC3", "desc": "findings-shaped still wins when a clean sentence appears as a substring alongside a '### <severity>:' section", "verified": true },
+    { "id": "AC4", "desc": "EMPTY and NOT-shaped ordering/classification preserved (empty→EMPTY; prose/header-only/wrong-lens-pair→NOT-shaped)", "verified": true },
+    { "id": "AC5", "desc": "README documents both the bare and headed clean-pass forms", "verified": true },
+    { "id": "AC6", "desc": "isCleanRefutation faithfully mirrors production normaliseCleanRefutation/CLEAN_REFUTATIONS grammar (no looser, no stricter)", "verified": true }
+  ],
+  "note": "Verified via behavioral sanity run of shape() over 9 cases (all pass) and diff inspection of README + review-call.mjs grammar parity."
+}

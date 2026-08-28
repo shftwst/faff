@@ -13,7 +13,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const { findRoot } = require("./shared-infra");
-const { readField } = require("./fields");
+// FAFF-910: `hasFieldLine` (the lexical-presence check that discriminates a ratified tradeoff) lives
+// in the shared `fields` module beside `readField`, both built on one `fieldLineHead` so the presence
+// check and the value read can never fork into two grammars. A blank `Ratified-by:` is a present line
+// (hence a malformed tradeoff), never a precedent fall-through.
+const { readField, hasFieldLine } = require("./fields");
+
+// A ratified tradeoff's Source-issue must be a tracker id shape; validation rejects anything else
+// (closes the unvalidated-source_issue fail-open). v1 accepts ONLY `Ratified-by: human`; a `loop`
+// value is refused until FAFF-922's deterministic admit gate exists.
+const SOURCE_ISSUE_RE = /^[A-Z]+-\d+$/;
 
 const DECISIONS_SPEC = { flags: {
   "--json": { arity: 0 }, "--punt": { arity: 1 }, "--root": { arity: 1 }, "--selftest": { arity: 0 },
@@ -86,7 +95,12 @@ function listEntries(root) {
   const text = fs.readFileSync(p, "utf8");
   return splitSections(text).map((s) => {
     const matchesRaw = decisionField(s.text, "Matches");
+    // FAFF-910: derive the kind from the lexical presence of a `Ratified-by:` field line (see
+    // hasFieldLine) — a separate check from the value read, so a blank `Ratified-by:` is a
+    // ratified_tradeoff (which then fails validation) rather than a precedent fall-through.
+    const kind = hasFieldLine(s.text, "Ratified-by") ? "ratified_tradeoff" : "precedent";
     return {
+      kind,
       topic: s.topic,
       id: kebabSlug(s.topic),
       chosen: decisionField(s.text, "Chosen"),
@@ -95,25 +109,67 @@ function listEntries(root) {
       matches: parseMatches(matchesRaw),
       date: decisionField(s.text, "Date"),
       adr: decisionField(s.text, "ADR"),
+      // FAFF-910 ratified-tradeoff fields (null on a precedent — the value read, not the presence check)
+      source_issue: decisionField(s.text, "Source-issue"),
+      ratified_by: decisionField(s.text, "Ratified-by"),
     };
   });
 }
 
-// Structure lint: required fields present + non-empty, matches non-empty, unique citation ids.
-// Returns a list of problem strings (empty = valid).
+// Structure lint for a PRECEDENT entry: required fields present + non-empty, matches non-empty.
+// Returns a list of problem strings (empty = valid) — the citation-id column is checked globally.
+function validatePrecedent(e) {
+  const problems = [];
+  if (!e.chosen) problems.push(`${e.topic}: missing Chosen field`);
+  if (!e.rationale) problems.push(`${e.topic}: missing Rationale field`);
+  if (!e.scope) problems.push(`${e.topic}: missing Scope field`);
+  if (!e.date) problems.push(`${e.topic}: missing Date field`);
+  if (!e.matches.length) problems.push(`${e.topic}: Matches must be non-empty — an entry with no declared keys can never fire`);
+  return problems;
+}
+
+// FAFF-910: structure lint for a RATIFIED-TRADEOFF entry. Requires Chosen/Rationale/Scope/
+// Source-issue/Ratified-by/Date; Source-issue matches the tracker-id shape; Ratified-by is exactly
+// `human` in v1 (a `loop` value names FAFF-922 as the future admit gate; a blank/other value is a
+// malformed tradeoff — it never falls through to precedent because kind was fixed lexically). Matches
+// is optional here and never consulted by matchDecision for this kind.
+function validateTradeoff(e) {
+  const problems = [];
+  if (!e.chosen) problems.push(`${e.topic}: missing Chosen field`);
+  if (!e.rationale) problems.push(`${e.topic}: missing Rationale field`);
+  if (!e.scope) problems.push(`${e.topic}: missing Scope field`);
+  if (!e.date) problems.push(`${e.topic}: missing Date field`);
+  if (!e.source_issue) problems.push(`${e.topic}: ratified tradeoff missing Source-issue field`);
+  else if (!SOURCE_ISSUE_RE.test(e.source_issue)) problems.push(`${e.topic}: Source-issue "${e.source_issue}" is not a tracker id (^[A-Z]+-\\d+$)`);
+  if (!e.ratified_by) problems.push(`${e.topic}: ratified tradeoff has a blank or missing Ratified-by (a blank Ratified-by: is a malformed tradeoff, not a precedent)`);
+  else if (e.ratified_by === "loop") problems.push(`${e.topic}: Ratified-by: loop is not honourable in v1 — a deterministic loop-provenance admit gate (FAFF-922) must exist first`);
+  else if (e.ratified_by !== "human") problems.push(`${e.topic}: Ratified-by must be "human" in v1 (got "${e.ratified_by}")`);
+  return problems;
+}
+
+// Structure lint over the whole register: per-entry rules dispatched by kind, plus a GLOBAL
+// citation-id uniqueness check across both kinds. Returns a list of problem strings (empty = valid).
 function validateEntries(entries) {
   const problems = [];
   const seenIds = new Map();
   for (const e of entries) {
-    if (!e.chosen) problems.push(`${e.topic}: missing Chosen field`);
-    if (!e.rationale) problems.push(`${e.topic}: missing Rationale field`);
-    if (!e.scope) problems.push(`${e.topic}: missing Scope field`);
-    if (!e.date) problems.push(`${e.topic}: missing Date field`);
-    if (!e.matches.length) problems.push(`${e.topic}: Matches must be non-empty — an entry with no declared keys can never fire`);
+    if (e.kind === "ratified_tradeoff") problems.push(...validateTradeoff(e));
+    else problems.push(...validatePrecedent(e));
     if (seenIds.has(e.id)) problems.push(`duplicate citation id "${e.id}" — ${seenIds.get(e.id)}, ${e.topic}`);
     else seenIds.set(e.id, e.topic);
   }
   return problems;
+}
+
+// FAFF-910: the ratified-tradeoff reader `ratified-scope.js` consumes. Returns only fully-valid
+// `ratified_tradeoff` entries carrying `Ratified-by: human`; a malformed or `loop` entry is never
+// honourable. An absent register is a clean empty list (listEntries already yields []).
+function listRatifiedTradeoffs(root) {
+  return listEntries(root)
+    .filter((e) => e.kind === "ratified_tradeoff")
+    .filter((e) => validateTradeoff(e).length === 0)
+    .filter((e) => e.ratified_by === "human")
+    .map((e) => ({ id: e.id, topic: e.topic, chosen: e.chosen, scope: e.scope, source_issue: e.source_issue, ratified_by: e.ratified_by }));
 }
 
 // The match core (HOW §4, WHAT's "Design decision — match / citation form"): normalized FULL
@@ -125,6 +181,10 @@ function matchDecision(entries, punt) {
   const target = normalizeMatchKey(punt);
   const hits = [];
   for (const e of entries) {
+    // FAFF-910: matchDecision considers PRECEDENT entries only. A ratified tradeoff may carry an
+    // optional Matches, but it is a distinct register consumer (the ratified-scope reader) and is
+    // never returned here. An untagged hand-built entry (no kind) is treated as a precedent.
+    if (e.kind === "ratified_tradeoff") continue;
     if (e.matches.some((k) => normalizeMatchKey(k) === target)) hits.push(e);
   }
   if (hits.length !== 1) return null;
@@ -165,7 +225,9 @@ function cmdDecisions(args) {
     const { entries, err } = readEntriesOrFail(root, "list");
     if (err) return 2;
     if (json) {
-      console.log(JSON.stringify(entries.map(({ id, topic, chosen, date }) => ({ id, topic, chosen, date })), null, 2));
+      // FAFF-910: the `kind` field is ADDITIVE — the existing id/topic/chosen/date keys are unchanged
+      // in name, order, and value for a precedent, so an existing consumer reading those keys is unaffected.
+      console.log(JSON.stringify(entries.map(({ id, topic, chosen, date, kind }) => ({ id, topic, chosen, date, kind })), null, 2));
     } else if (!entries.length) {
       console.log(`No decisions register entries in ${path.relative(root, decisionsPath(root)) || decisionsPath(root)}.`);
     } else {
@@ -299,6 +361,75 @@ function decisionsSelftest() {
     t("validate: duplicate citation id flagged", problems.some((p) => /duplicate citation id/.test(p)));
   }
 
+  // FAFF-910: ratified-tradeoff kind detection + validation + reader
+  const goodTradeoff =
+    "## Single-region health readout\n" +
+    "- Chosen: single-region health, no failover probe\n" +
+    "- Rationale: the v1 dashboard reads one region only\n" +
+    "- Scope: the v1 single-region deployment\n" +
+    "- Source-issue: FAFF-910\n" +
+    "- Ratified-by: human\n" +
+    "- Date: 2026-08-28\n";
+  {
+    const root = path.join(tmp, "tradeoff-good");
+    writeRegister(root, goodTradeoff);
+    const e = listEntries(root)[0];
+    t("FAFF-910: a Ratified-by line makes kind ratified_tradeoff", e.kind === "ratified_tradeoff");
+    t("FAFF-910: valid tradeoff has no validation problems", validateTradeoff(e).length === 0);
+    t("FAFF-910: validateEntries clean on a valid tradeoff", validateEntries(listEntries(root)).length === 0);
+    const honourable = listRatifiedTradeoffs(root);
+    t("FAFF-910: listRatifiedTradeoffs returns the human tradeoff", honourable.length === 1 && honourable[0].id === "single-region-health-readout" && honourable[0].source_issue === "FAFF-910");
+    t("FAFF-910: matchDecision ignores a tradeoff (even if it declared Matches)",
+      matchDecision(listEntries(root), "single-region health readout") === null);
+  }
+  // a precedent with no Ratified-by line stays a precedent and is still topic-matchable
+  {
+    const root = path.join(tmp, "precedent-still");
+    writeRegister(root, loggingEntry);
+    t("FAFF-910: no Ratified-by line -> kind precedent", listEntries(root)[0].kind === "precedent");
+    t("FAFF-910: precedent still matches by topic", matchDecision(listEntries(root), "pino vs winston") !== null);
+  }
+  // a tradeoff carrying an optional Matches is still absent from matchDecision
+  {
+    const root = path.join(tmp, "tradeoff-matches");
+    writeRegister(root, goodTradeoff.replace("- Date: 2026-08-28\n", "- Matches: single region health\n- Date: 2026-08-28\n"));
+    t("FAFF-910: a tradeoff with Matches is absent from matchDecision", matchDecision(listEntries(root), "single region health") === null);
+    t("FAFF-910: a tradeoff with Matches still validates + is honourable", listRatifiedTradeoffs(root).length === 1);
+  }
+  // blank Ratified-by: is a MALFORMED tradeoff, never a precedent fall-through
+  {
+    const root = path.join(tmp, "tradeoff-blank-rb");
+    writeRegister(root,
+      "## Blank ratified-by\n- Chosen: x\n- Rationale: y\n- Scope: s\n- Source-issue: FAFF-910\n- Ratified-by: \n- Date: 2026-08-28\n");
+    const e = listEntries(root)[0];
+    t("FAFF-910: blank Ratified-by: is still kind ratified_tradeoff (lexical presence)", e.kind === "ratified_tradeoff");
+    t("FAFF-910: blank Ratified-by: fails validation as a malformed tradeoff", validateTradeoff(e).some((p) => /blank or missing Ratified-by/.test(p)));
+    t("FAFF-910: blank Ratified-by: is not honourable", listRatifiedTradeoffs(root).length === 0);
+  }
+  // Ratified-by: loop is refused, naming FAFF-922
+  {
+    const root = path.join(tmp, "tradeoff-loop");
+    writeRegister(root, goodTradeoff.replace("- Ratified-by: human\n", "- Ratified-by: loop\n"));
+    const e = listEntries(root)[0];
+    t("FAFF-910: Ratified-by: loop is refused and names FAFF-922", validateTradeoff(e).some((p) => /FAFF-922/.test(p)));
+    t("FAFF-910: Ratified-by: loop is not honourable", listRatifiedTradeoffs(root).length === 0);
+  }
+  // Source-issue shape is enforced
+  {
+    const root = path.join(tmp, "tradeoff-bad-source");
+    writeRegister(root, goodTradeoff.replace("- Source-issue: FAFF-910\n", "- Source-issue: not-a-ticket\n"));
+    t("FAFF-910: a bad Source-issue is flagged", validateTradeoff(listEntries(root)[0]).some((p) => /Source-issue/.test(p)));
+  }
+  // citation-id uniqueness stays GLOBAL across both kinds
+  {
+    const root = path.join(tmp, "cross-kind-dup");
+    writeRegister(root,
+      "## Shared topic\n- Chosen: a\n- Rationale: r\n- Scope: s\n- Matches: k\n- Date: 2026-08-28\n\n" +
+      "## shared topic\n- Chosen: b\n- Rationale: r2\n- Scope: s2\n- Source-issue: FAFF-910\n- Ratified-by: human\n- Date: 2026-08-28\n");
+    t("FAFF-910: duplicate citation id across a precedent and a tradeoff is flagged",
+      validateEntries(listEntries(root)).some((p) => /duplicate citation id/.test(p)));
+  }
+
   // kebabSlug
   t("kebabSlug kebabs a topic heading", kebabSlug("Logging library!") === "logging-library");
 
@@ -310,4 +441,4 @@ function decisionsSelftest() {
   return failed.length ? 1 : 0;
 }
 
-module.exports = { cmdDecisions, decisionsPath, kebabSlug, listEntries, matchDecision, normalizeMatchKey, parseMatches, splitSections, validateEntries };
+module.exports = { cmdDecisions, decisionsPath, hasFieldLine, kebabSlug, listEntries, listRatifiedTradeoffs, matchDecision, normalizeMatchKey, parseMatches, splitSections, validateEntries, validatePrecedent, validateTradeoff };

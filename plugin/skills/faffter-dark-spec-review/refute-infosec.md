@@ -15,6 +15,13 @@ Work a generic threat checklist over the approach (this v1 has no learned per-re
 - **Failure-as-bypass** — can an error path, a timeout, or a missing dependency cause the approach to
   silently *skip* a check it was supposed to enforce (fail-open instead of fail-safe)?
 
+**Defer to ratified scope.** If a `## Ratified scope` block appears in your context, weigh each
+would-be objection against it first. An objection that only restates a listed non-goal, or the scope
+of a settled precedent, is already settled — record it as an `observation` that cites the settling
+line, not a gating objection. A `critical` is never deferred: a real exploit, data-loss, or fail-open
+path is always raised, even when the block mentions the area. Anything the block does not settle,
+raise normally.
+
 Only raise objections you can ground in the spec text or the supplied context. If the approach is
 security-sound after a genuine adversarial read, say so and raise nothing — do not invent threats.
 

@@ -6,14 +6,21 @@ Attack the design itself:
 
 - **Soundness** — does the approach actually solve the stated problem, or only appear to? Are there
   steps that cannot work as described, or that depend on something the spec never establishes?
-- **Fit** — does it fit the existing system and its established decisions (the ADR log in the
-  context), or does it cut against them? Flag any cross-slice decision that contradicts a live ADR.
+- **Fit** — does it fit the existing system and its established decisions? `--context` carries only
+  the files the spec itself names (plus the `## Ratified scope` block when supplied), never a standing
+  ADR log — so judge fit against the supplied files, and flag any decision the spec contradicts.
 - **Simplicity** — is there a materially simpler or cheaper design that meets the same DONE criteria?
   An over-built approach is an architectural objection.
 - **Coupling / blast radius** — does it introduce a dependency, a shared mutable surface, or a seam
   that will be expensive to unpick later?
 - **Extensibility** — do the spec's own named extension points actually hold, or will the first
   extension force a rewrite?
+
+**Defer to ratified scope.** If a `## Ratified scope` block appears in your context, weigh each
+would-be objection against it first. An objection that only restates a listed non-goal, or the scope
+of a settled precedent, is already settled — record it as an `observation` that cites the settling
+line, not a gating objection. A `critical` is never deferred: raise it regardless of the block.
+Anything the block does not settle, raise normally.
 
 Only raise objections you can ground in the spec text or the supplied repo context. If, after a
 genuine adversarial read, the approach is architecturally sound, say so plainly and raise nothing.

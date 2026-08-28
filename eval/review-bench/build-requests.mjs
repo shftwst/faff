@@ -45,23 +45,38 @@ for (const f of contextFiles) user += `<file path="${f.path}">\n${f.text}\n</fil
 user += `DIFF UNDER REVIEW:\n\n${specText}`;
 
 const contextPaths = contextFiles.map((f) => f.path);
+const userBytes = Buffer.byteLength(user);
 for (const { lens, brief } of LENSES) {
   const system = readFileSync(join(ROOT, "lenses", brief), "utf8");
   const outName = lens.toLowerCase();
-  const payload = {
-    lens,
-    system,
-    user,
-    context_paths: contextPaths,
-    meta: {
-      spec: SPEC_FILE,
-      brief,
-      system_bytes: Buffer.byteLength(system),
-      user_bytes: Buffer.byteLength(user),
-      approx_prompt_tokens: Math.round((Buffer.byteLength(system) + Buffer.byteLength(user)) / 4),
-    },
+  const systemBytes = Buffer.byteLength(system);
+  // meta byte-counts are LOGICAL (system_bytes = the lens brief, user_bytes = the context+spec block),
+  // so both layouts below share one meta — only the field placement differs.
+  const meta = {
+    spec: SPEC_FILE,
+    brief,
+    system_bytes: systemBytes,
+    user_bytes: userBytes,
+    approx_prompt_tokens: Math.round((systemBytes + userBytes) / 4),
   };
+  // Default layout: the lens brief is `system`, the context+spec block is `user`.
+  const payload = { lens, system, user, context_paths: contextPaths, meta };
   writeFileSync(join(ROOT, "requests", `${outName}.json`), JSON.stringify(payload, null, 2) + "\n");
-  console.log(`requests/${outName}.json  system=${payload.meta.system_bytes}b user=${payload.meta.user_bytes}b ~${payload.meta.approx_prompt_tokens} tok`);
+  console.log(`requests/${outName}.json  system=${systemBytes}b user=${userBytes}b ~${meta.approx_prompt_tokens} tok`);
+  // Shared-prefix layout (FAFF-903 cache): the byte-identical context+spec block moves to the cacheable
+  // `system` prefix and the per-lens brief is the trailing `user` turn. `review-call.mjs`'s wire shape.
+  const sharedPayload = {
+    lens,
+    system: user,
+    user: system,
+    context_paths: contextPaths,
+    meta: { ...meta, variant: "shared-prefix (context+spec as prefix, lens instruction last)" },
+  };
+  // The committed shared-prefix payloads use ASCII-safe escaping (non-ASCII → \uXXXX) and no trailing
+  // newline — their original generator's encoding. Reproduce it exactly so an unchanged lens regenerates
+  // byte-for-byte (the `requests/` suite above keeps its own literal-UTF-8 + trailing-newline encoding).
+  const sharedJson = JSON.stringify(sharedPayload, null, 2).replace(/[^\x00-\x7f]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+  writeFileSync(join(ROOT, "requests-shared-prefix", `${outName}.json`), sharedJson);
+  console.log(`requests-shared-prefix/${outName}.json  system=${userBytes}b user=${systemBytes}b ~${meta.approx_prompt_tokens} tok`);
 }
-console.log(`\nDone. ${LENSES.length} request payloads written to requests/ for spec ${SPEC_FILE}.`);
+console.log(`\nDone. ${LENSES.length} request payloads written to requests/ and requests-shared-prefix/ for spec ${SPEC_FILE}.`);

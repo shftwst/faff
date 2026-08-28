@@ -63,17 +63,6 @@ backends:
       # max_tokens 32000 it leaves ~30k for findings and clears the empty-out knee comfortably.
       reasoning_extra:
           thinking_token_budget: 2000
-  spark-north-code-mini:
-      provider: openai
-      model: CohereLabs/North-Mini-Code-1.0-fp8
-      host: https://spark.longhair-escalator.ts.net/north-code-mini/v1
-      api_key_env: DUMMY_API_KEY
-      # FAFF-918: bounded reasoning-ON via thinking_token_budget. NOTE the prior `reasoning_off: true`
-      # was INERT here: cohere_command4's parser ignores chat_template_kwargs.enable_thinking, so this
-      # backend was still reasoning (and emptying out) despite reading as "off". The budget cap is the
-      # lever that actually works on this build.
-      reasoning_extra:
-          thinking_token_budget: 2000
   openrouter-deepseek-v4-flash:
       provider: openai                       # OpenRouter is OpenAI-compatible
       model: deepseek/deepseek-v4-flash-0731
@@ -106,7 +95,7 @@ adversarial:
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
-    - spark-north-code-mini
+    - gemini-gemma-free
   # Per-consumer output-token TOTAL cap (FAFF-911), reasoning + content. Resolution:
   # adversarial.<consumer>.max_tokens || adversarial.max_tokens || 2000.
   #
@@ -120,10 +109,6 @@ adversarial:
   # Measured: a 70K-token review needed >2000 content tokens to emit well-formed findings on qwen,
   # so do not trim the content headroom (max_tokens - budget) below ~10000 without re-measuring.
   code_review:
-    refs:
-      - spark-north-code-mini
-      - spark-qwen-3-8
-      - openrouter-deepseek-v4-flash
     max_tokens: 12000
   spec_review:
     max_tokens: 12000

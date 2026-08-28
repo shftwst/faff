@@ -341,6 +341,43 @@ test("--human-override WITHOUT --interactive (non-TTY) → exit 2, NO override f
   assert.equal(existsSync(overrideFile(runDir)), false);
 });
 
+// --- FAFF-912 --accept-review-unavailable TTY fence: non-TTY runCli child → exit 2 BEFORE any gh
+// call (the SAME PR-path proof shape as --human-override above — the fence gates before any gh
+// spawn, on both flags). The full "narrow accept lands the merge" landing test lives in
+// mergeGateSelftest (merge-gate.js) against the --local path, where process.stdin.isTTY is
+// directly stubbable in-process; a runCli child is non-TTY by construction (see the file-header
+// DRIFT note), so the PR-path proof here is the fence-before-any-gh-call property, identically.
+test("--interactive --accept-review-unavailable (non-TTY) → exit 2 fence, NO override file, NO merge (before any gh call)", () => {
+  const runDir = seedRunDir("refuse");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /--accept-review-unavailable is human-only/);
+  assert.match(stderr, /real terminal/);
+  assert.equal(existsSync(overrideFile(runDir)), false, "the fence must return before the override is recorded");
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("--accept-review-unavailable WITHOUT --interactive (non-TTY) → exit 2, NO override file, NO merge", () => {
+  const runDir = seedRunDir("refuse");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir, ["--accept-review-unavailable", "--override-reason", "outage; clean graft"]), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /--accept-review-unavailable/);
+  assert.equal(existsSync(overrideFile(runDir)), false);
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("--human-override + --accept-review-unavailable together (PR path) → exit 2 mutual exclusion, NO override file, NO merge (before any gh call)", () => {
+  const runDir = seedRunDir("refuse");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--human-override", "--accept-review-unavailable", "--override-reason", "x"]), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /mutually exclusive/);
+  assert.equal(existsSync(overrideFile(runDir)), false);
+  assert.equal(existsSync(sentinel), false);
+});
+
 // --- FAFF-690 (F1): merge-gate derives the governing level from the HEAD-SHA-PINNED COMMITTED ANCHOR
 // (not the live run-ledger.json), refusing a contradicting --level and failing closed on a missing/
 // malformed anchor. These supersede the FAFF-424 "derive level from the live ledger" tests

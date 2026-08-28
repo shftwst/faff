@@ -27,6 +27,10 @@ const MERGE_GATE_SPEC = { flags: {
   // FAFF-673: the justification a human non-graft merge records on merge-gate-override.json —
   // required whenever --human-override is present (fenceHumanFlags), so no override lands unexplained.
   "--override-reason": { arity: 1 },
+  // FAFF-912: the narrow, audited "operator accepts a review-unavailable outage" disposition —
+  // a scalpel beside --human-override's hammer. Reuses --override-reason and --interactive; fenced
+  // identically to --human-override in fenceHumanFlags, plus mutual exclusion with it.
+  "--accept-review-unavailable": { arity: 0 },
   // FAFF-784: the recorded custody verdict — required for a structurally-detected dispatched merge
   // (derived from lane-boundary.json, never a caller opt-out). Carried on both the PR path and
   // --local.
@@ -105,6 +109,19 @@ function fenceHumanFlags(i) {
   if (i.human_override && (i.override_reason === undefined || i.override_reason === null || String(i.override_reason).trim() === "")) {
     violations.push('--human-override requires --override-reason "<what merged + why no floor applies>"');
   }
+  // FAFF-912: --accept-review-unavailable gets the SAME human-only fence as --human-override
+  // (real TTY + --interactive + a non-empty reason) — it is still a human overriding a floor leg,
+  // just a narrower one. Plus a mutual-exclusion check: the two flags write different audit
+  // records at different scopes, so passing both is an ambiguous invocation, fenced loud rather
+  // than silently resolved by precedence.
+  if (i.accept_review_unavailable && !i.stdin_is_tty) violations.push(`--accept-review-unavailable is human-only: stdin is not a TTY — ${remedy}`);
+  if (i.accept_review_unavailable && !i.interactive) violations.push("--accept-review-unavailable requires --interactive");
+  if (i.accept_review_unavailable && (i.override_reason === undefined || i.override_reason === null || String(i.override_reason).trim() === "")) {
+    violations.push('--accept-review-unavailable requires --override-reason "<what merged + why the review outage is acceptable>"');
+  }
+  if (i.human_override && i.accept_review_unavailable) {
+    violations.push("--human-override and --accept-review-unavailable are mutually exclusive — choose the blanket override or the narrow review-unavailable accept");
+  }
   return { ok: violations.length === 0, violations };
 }
 
@@ -115,6 +132,17 @@ function fenceHumanFlags(i) {
 // graft floor (review_verdict "fail"/"pass", or ac_complete true) never matches this key.
 function nonGraftFloorSignature(floor) {
   return floor.ac_complete === false && floor.review_verdict === "missing";
+}
+
+// FAFF-912: the narrow-accept predicate — true iff the ONLY thing keeping the floor from merge-ok
+// is the review-unavailable leg. Computed STRUCTURALLY by re-deciding the pure floor (decideFloor,
+// unmodified) with review_verdict forced to "pass" and requiring the remaining blocker set to be
+// empty — never by string-matching the blockers array, which would couple this gate to blocker
+// prose. `fail` / `needs-human` / `missing` review verdicts all fail the first conjunct: this
+// disposition accepts a review OUTAGE, never an absent or adverse review.
+function narrowReviewUnavailableExcusable(floor) {
+  return floor.review_verdict === "unavailable"
+    && decideFloor({ ...floor, review_verdict: "pass" }).blockers.length === 0;
 }
 
 // FAFF-673: the human-merge remedy named beside the blockers ON THE NON-GRAFT SIGNATURE ONLY.
@@ -870,7 +898,7 @@ function landBaseFfOnly({ cwd, base, tipSha, baseShaBefore, allowInPlace = false
   return { ok: true, case: "A" };
 }
 
-function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
+function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, acceptReviewUnavailable, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
     else {
@@ -897,7 +925,7 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   const parsedMerge = parseMergeArgs(mergeArgsRaw);
   if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
 
-  const fence = fenceHumanFlags({ human_override: humanOverride, override_reason: overrideReason, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
+  const fence = fenceHumanFlags({ human_override: humanOverride, accept_review_unavailable: acceptReviewUnavailable, override_reason: overrideReason, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
   if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
 
   // FAFF-690 (F1): resolve the branch BEFORE the level — the anchor is pinned to the branch head sha.
@@ -971,7 +999,26 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [] };
 
   if (verdict === "refuse") {
-    if (interactive && humanOverride) {
+    if (interactive && acceptReviewUnavailable) {
+      // FAFF-912: the narrow accept — evaluated ahead of the blanket override; the two are mutually
+      // exclusive by fence, so ordering only decides which branch a single-flag invocation takes.
+      if (narrowReviewUnavailableExcusable(floor)) {
+        try {
+          fs.mkdirSync(path.join(runDir, issue), { recursive: true });
+          // FAFF-912: a DISTINCT source ("review-unavailable-accept") from the blanket override, so
+          // `faff audit` and any override classifier never conflate a narrow outage-accept with a
+          // blanket "overrode everything" record.
+          fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ issue, head_sha: headShaBefore, blockers, overridden_at: new Date().toISOString(), reason: overrideReason, source: "review-unavailable-accept" }, null, 2) + "\n");
+        } catch (e) { process.stderr.write(`faff merge-gate: could not record review-unavailable accept: ${e.message}\n`); return 2; }
+        // fall through to execute — the recorded narrow accept REPLACES the refusal.
+      } else {
+        // FAFF-912: the review isn't actually unavailable, or another leg is also unmet — REFUSE
+        // without merging and WITHOUT escalating to a blanket override (that would silently widen
+        // the operator's intent from "accept the outage" to "override everything").
+        result.remedy = `--accept-review-unavailable only excuses a review-unavailable outage; this floor is unmet for other reasons: ${blockers.join(", ")}`;
+        return emit(result, 1);
+      }
+    } else if (interactive && humanOverride) {
       try {
         fs.mkdirSync(path.join(runDir, issue), { recursive: true });
         // FAFF-673: the override record carries the justification (`reason`, fenced non-empty above)
@@ -1041,6 +1088,7 @@ function cmdMergeGate(args) {
   const mode = args.includes("--check-only") ? "check-only" : "execute";
   const interactive = args.includes("--interactive");
   const humanOverride = args.includes("--human-override");
+  const acceptReviewUnavailable = args.includes("--accept-review-unavailable"); // FAFF-912
   const overrideReason = get("--override-reason"); // FAFF-673: required with --human-override (fenceHumanFlags)
   const allowNoCi = args.includes("--allow-no-ci");
   const noCiPolicy = allowNoCi ? "allow" : "needs-human";
@@ -1055,7 +1103,7 @@ function cmdMergeGate(args) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
     return cmdMergeGateLocal({
       issue, runDir, branchFlag: get("--branch"), baseFlag: get("--base"),
-      flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json,
+      flagLevel, mode, interactive, humanOverride, acceptReviewUnavailable, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json,
       custodyPathArg: get("--custody-verdict"), custodyShaArg: get("--custody-verdict-sha256"),
       cwd: process.cwd(),
     });
@@ -1082,7 +1130,7 @@ function cmdMergeGate(args) {
   // a fenced flag from a non-interactive context is a caller bug, surfaced loudly (exit 2) rather
   // than silently ignored. Pre-network ordering also makes the refusal CLI-boundary-testable with
   // zero mocking (the spawned test child is non-TTY by construction).
-  const fence = fenceHumanFlags({ human_override: humanOverride, override_reason: overrideReason, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
+  const fence = fenceHumanFlags({ human_override: humanOverride, accept_review_unavailable: acceptReviewUnavailable, override_reason: overrideReason, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
   if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
 
   const emit = (res, status) => {
@@ -1171,7 +1219,26 @@ function cmdMergeGate(args) {
   const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display };
 
   if (verdict === "refuse") {
-    if (interactive && humanOverride) {
+    if (interactive && acceptReviewUnavailable) {
+      // FAFF-912: the narrow accept — evaluated ahead of the blanket override; the two are mutually
+      // exclusive by fence, so ordering only decides which branch a single-flag invocation takes.
+      if (narrowReviewUnavailableExcusable(floor)) {
+        try {
+          fs.mkdirSync(path.join(runDir, issue), { recursive: true });
+          // FAFF-912: a DISTINCT source ("review-unavailable-accept") from the blanket override, so
+          // `faff audit` and any override classifier never conflate a narrow outage-accept with a
+          // blanket "overrode everything" record.
+          fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ pr, issue, head_sha: headSha, blockers, overridden_at: new Date().toISOString(), reason: overrideReason, source: "review-unavailable-accept" }, null, 2) + "\n");
+        } catch (e) { process.stderr.write(`faff merge-gate: could not record review-unavailable accept: ${e.message}\n`); return 2; }
+        // fall through to execute — the recorded narrow accept REPLACES the refusal.
+      } else {
+        // FAFF-912: the review isn't actually unavailable, or another leg is also unmet — REFUSE
+        // without merging and WITHOUT escalating to a blanket override (that would silently widen
+        // the operator's intent from "accept the outage" to "override everything").
+        result.remedy = `--accept-review-unavailable only excuses a review-unavailable outage; this floor is unmet for other reasons: ${blockers.join(", ")}`;
+        return emit(result, 1);
+      }
+    } else if (interactive && humanOverride) {
       try {
         fs.mkdirSync(path.join(runDir, issue), { recursive: true });
         // FAFF-673: the override record carries the justification (`reason`, fenced non-empty above)
@@ -1494,6 +1561,18 @@ function mergeGateSelftest() {
   check("fence: --human-override + reason present → ok", fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: "spike; no floor" }).ok);
   check("fence: missing-reason violation names --override-reason", /--override-reason/.test(fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: "" }).violations.join(" ")));
   check("fence: --override-reason WITHOUT --human-override → ok (reason only meaningful paired)", fence({ human_override: false, override_reason: "" }).ok);
+  // FAFF-912: --accept-review-unavailable gets the SAME TTY/--interactive/reason fence as
+  // --human-override, plus mutual exclusion with it.
+  check("fence: --accept-review-unavailable + non-TTY → violation", !fence({ accept_review_unavailable: true, interactive: true }).ok);
+  check("fence: --accept-review-unavailable + TTY + no --interactive → violation", !fence({ accept_review_unavailable: true, stdin_is_tty: true }).ok);
+  check("fence: --accept-review-unavailable + TTY + --interactive + reason → ok", fence({ accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: "outage; clean graft" }).ok);
+  check("fence: --accept-review-unavailable + NO reason → violation", !fence({ accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: "" }).ok);
+  check("fence: --accept-review-unavailable + whitespace-only reason → violation", !fence({ accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: "   " }).ok);
+  check("fence: --accept-review-unavailable + absent reason → violation", !fence({ accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: undefined }).ok);
+  check("fence: --accept-review-unavailable missing-reason violation names --override-reason", /--override-reason/.test(fence({ accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: "" }).violations.join(" ")));
+  check("fence: --accept-review-unavailable non-TTY names the real-terminal remedy", /real terminal/.test(fence({ accept_review_unavailable: true, interactive: true }).violations.join(" ")));
+  check("fence: --human-override + --accept-review-unavailable together → violation (mutual exclusion)", !fence({ human_override: true, accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: "x" }).ok);
+  check("fence: mutual-exclusion violation names both flags", (() => { const v = fence({ human_override: true, accept_review_unavailable: true, interactive: true, stdin_is_tty: true, override_reason: "x" }).violations.join(" "); return /--human-override/.test(v) && /--accept-review-unavailable/.test(v) && /mutually exclusive/.test(v); })());
   // FAFF-673: nonGraftFloorSignature — the non-graft tell (!ac_complete && review missing); a graft
   // floor (review fail/pass, or ac_complete true) never matches. Signature-boundary coverage.
   check("nonGraftFloorSignature: !ac_complete && review missing → true", nonGraftFloorSignature({ ac_complete: false, review_verdict: "missing" }) === true);
@@ -1501,6 +1580,24 @@ function mergeGateSelftest() {
   check("nonGraftFloorSignature: review pass → false", nonGraftFloorSignature({ ac_complete: false, review_verdict: "pass" }) === false);
   check("nonGraftFloorSignature: ac_complete true (graft) → false", nonGraftFloorSignature({ ac_complete: true, review_verdict: "missing" }) === false);
   check("nonGraftFloorSignature: unavailable review verdict → false (not the missing tell)", nonGraftFloorSignature({ ac_complete: false, review_verdict: "unavailable" }) === false);
+  // FAFF-912: narrowReviewUnavailableExcusable — true iff review_verdict is "unavailable" AND
+  // forcing it to "pass" leaves ZERO remaining blockers (every other leg already green). A pure
+  // selftest table: true for review-unavailable-only; false for review fail/missing/needs-human,
+  // and for review-unavailable + any other unmet leg, at both L3 and L4.
+  const cleanFloorL3 = { ac_complete: true, review_verdict: "unavailable", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "needs-human" };
+  const cleanFloorL4 = { ...cleanFloorL3, level: "L4", holdout: "meets-spec", integrity: "asserted" };
+  check("narrowReviewUnavailableExcusable: L3, review-unavailable-only → true", narrowReviewUnavailableExcusable(cleanFloorL3) === true);
+  check("narrowReviewUnavailableExcusable: L4, review-unavailable-only + holdout meets-spec → true", narrowReviewUnavailableExcusable(cleanFloorL4) === true);
+  check("narrowReviewUnavailableExcusable: review fail → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, review_verdict: "fail" }) === false);
+  check("narrowReviewUnavailableExcusable: review missing → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, review_verdict: "missing" }) === false);
+  check("narrowReviewUnavailableExcusable: review needs-human → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, review_verdict: "needs-human" }) === false);
+  check("narrowReviewUnavailableExcusable: review pass (not unavailable) → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, review_verdict: "pass" }) === false);
+  check("narrowReviewUnavailableExcusable: review-unavailable + CI red → false (another leg unmet)", narrowReviewUnavailableExcusable({ ...cleanFloorL3, ci_state: "ci-red" }) === false);
+  check("narrowReviewUnavailableExcusable: review-unavailable + AC not verified → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, ac_complete: false }) === false);
+  check("narrowReviewUnavailableExcusable: review-unavailable + head-sha mismatch → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, head_sha_matches: false }) === false);
+  check("narrowReviewUnavailableExcusable: L4 review-unavailable + holdout blocked → false", narrowReviewUnavailableExcusable({ ...cleanFloorL4, holdout: "blocked" }) === false);
+  check("narrowReviewUnavailableExcusable: L4 review-unavailable + holdout missing → false", narrowReviewUnavailableExcusable({ ...cleanFloorL4, holdout: "missing" }) === false);
+  check("narrowReviewUnavailableExcusable: review-unavailable + integrity violated → false", narrowReviewUnavailableExcusable({ ...cleanFloorL3, integrity: "violated" }) === false);
   // classifyCiObservation (FAFF-376): primary check-runs signal is required; legacy status is an optional supplement
   check("ci-obs: both APIs down → indeterminate + reason", (() => { const r = classifyCiObservation(false, [], false, null, 0); return r.ci_state === "indeterminate" && !!r.api_degraded_reason; })());
   check("ci-obs: check-runs down + legacy success(n>0) → indeterminate (FAFF-376)", classifyCiObservation(false, [], true, "success", 1).ci_state === "indeterminate");
@@ -1821,6 +1918,77 @@ function mergeGateSelftest() {
       } finally { process.stdin.isTTY = origTty; process.stderr.write = origStderr673; }
       check("FAFF-673: --human-override with NO --override-reason → exit 2 (fenced, never a silent override)", noReasonExit === 2);
       check("FAFF-673: --human-override with NO reason → NO merge-gate-override.json written", !fs.existsSync(path.join(runDirK, "FAFF-673K", "merge-gate-override.json")));
+
+      // === FAFF-912: --accept-review-unavailable — the narrow, audited outage-accept =============
+
+      // --- repo L: clean build EXCEPT review is "unavailable" → narrow accept lands the merge ---
+      const repoL = path.join(gitTmp, "repo-l");
+      makeRepo(repoL, "true");
+      const runDirL = path.join(gitTmp, "run-dir-l");
+      writeFloor(runDirL, "FAFF-912L", true, "unavailable");
+      commitAnchor(repoL, runDirL, "FAFF-912L", "L3");
+      let acceptExit;
+      try {
+        process.stdin.isTTY = true;
+        acceptExit = captureStdout(() => runLocal("FAFF-912L", runDirL, repoL, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; clean graft" })).ret;
+      } finally { process.stdin.isTTY = origTty; }
+      check("FAFF-912: narrow accept on a review-unavailable-only refuse → exit 0 (merges)", acceptExit === 0);
+      const ovrL = JSON.parse(fs.readFileSync(path.join(runDirL, "FAFF-912L", "merge-gate-override.json"), "utf8"));
+      check("FAFF-912: narrow accept override JSON carries source:review-unavailable-accept", ovrL.source === "review-unavailable-accept");
+      check("FAFF-912: narrow accept override JSON carries the reason", ovrL.reason === "outage; clean graft");
+      check("FAFF-912: narrow accept override JSON names the review-unavailable blocker", ovrL.blockers.some((b) => /review verdict is unavailable/.test(b)));
+
+      // --- repo M: review is "fail" (an adverse finding, not an outage) → narrow accept REFUSES,
+      // never merges, writes NO override record, and does NOT escalate to a blanket override ---
+      const repoM = path.join(gitTmp, "repo-m");
+      makeRepo(repoM, "true");
+      const runDirM = path.join(gitTmp, "run-dir-m");
+      writeFloor(runDirM, "FAFF-912M", true, "fail");
+      commitAnchor(repoM, runDirM, "FAFF-912M", "L3");
+      const baseBeforeM = git(repoM, "rev-parse", "main").stdout.trim();
+      let refuseExit;
+      try {
+        process.stdin.isTTY = true;
+        refuseExit = captureStdout(() => runLocal("FAFF-912M", runDirM, repoM, { interactive: true, acceptReviewUnavailable: true, overrideReason: "trying to excuse a real failure" })).ret;
+      } finally { process.stdin.isTTY = origTty; }
+      check("FAFF-912: narrow accept on review 'fail' (not an outage) → exit 1 refuse, no merge", refuseExit === 1);
+      check("FAFF-912: narrow-accept refuse → base ref NOT advanced", git(repoM, "rev-parse", "main").stdout.trim() === baseBeforeM);
+      check("FAFF-912: narrow-accept refuse on review-fail → NO merge-gate-override.json written", !fs.existsSync(path.join(runDirM, "FAFF-912M", "merge-gate-override.json")));
+
+      // --- repo N: review "unavailable" but CI red (another leg unmet) → narrow accept REFUSES,
+      // naming the CI leg — never widens into a blanket override ---
+      const repoN = path.join(gitTmp, "repo-n");
+      makeRepo(repoN, "false"); // failing UNIT rung → CI red
+      const runDirN = path.join(gitTmp, "run-dir-n");
+      writeFloor(runDirN, "FAFF-912N", true, "unavailable");
+      commitAnchor(repoN, runDirN, "FAFF-912N", "L3");
+      let ciRedRefuseExit, ciRedRefuseOut;
+      try {
+        process.stdin.isTTY = true;
+        const cap = captureStdout(() => runLocal("FAFF-912N", runDirN, repoN, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; also CI is red" }));
+        ciRedRefuseExit = cap.ret; ciRedRefuseOut = cap.out;
+      } finally { process.stdin.isTTY = origTty; }
+      check("FAFF-912: narrow accept with review-unavailable + CI red → exit 1 refuse (another leg unmet)", ciRedRefuseExit === 1);
+      check("FAFF-912: narrow-accept refuse → NO merge-gate-override.json written", !fs.existsSync(path.join(runDirN, "FAFF-912N", "merge-gate-override.json")));
+      check("FAFF-912: narrow-accept refuse remedy names --accept-review-unavailable + the CI leg", (() => { const r = JSON.parse(ciRedRefuseOut); return typeof r.remedy === "string" && /--accept-review-unavailable/.test(r.remedy) && /CI failing/.test(r.remedy); })());
+
+      // --- repo O: both --human-override and --accept-review-unavailable somehow reach cmdMergeGateLocal
+      // (the CLI-level fence already refuses this at exit 2 — see the arg-validation tests in
+      // test/merge-gate.test.mjs; this proves the byte-for-byte-unchanged blanket path still works
+      // standalone) ---
+      const repoO = path.join(gitTmp, "repo-o");
+      makeRepo(repoO, "true");
+      const runDirO = path.join(gitTmp, "run-dir-o");
+      writeFloor(runDirO, "FAFF-912O", true, "unavailable");
+      commitAnchor(repoO, runDirO, "FAFF-912O", "L3");
+      let blanketStillWorksExit;
+      try {
+        process.stdin.isTTY = true;
+        blanketStillWorksExit = captureStdout(() => runLocal("FAFF-912O", runDirO, repoO, { interactive: true, humanOverride: true, overrideReason: "spike; no floor" })).ret;
+      } finally { process.stdin.isTTY = origTty; }
+      check("FAFF-912: --human-override blanket path is byte-for-byte unchanged (still lands, still source:human-override)", blanketStillWorksExit === 0);
+      const ovrO = JSON.parse(fs.readFileSync(path.join(runDirO, "FAFF-912O", "merge-gate-override.json"), "utf8"));
+      check("FAFF-912: unchanged blanket override still records source:human-override", ovrO.source === "human-override");
     } finally {
       fs.rmSync(gitTmp, { recursive: true, force: true });
     }
@@ -1878,4 +2046,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

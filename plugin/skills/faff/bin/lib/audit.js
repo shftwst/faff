@@ -95,7 +95,12 @@ function accountHumanMerge(issue, overrideRec, mergeRecord, effectsEntries) {
   }
   const reason_present = typeof overrideRec.reason === "string" && overrideRec.reason.trim() !== "";
   const accounted_for = reason_present && declare_present && landing_covered;
-  return { present: true, reason: reason_present ? overrideRec.reason : null, reason_present, declare_present, landing_covered, accounted_for };
+  // FAFF-912: pass `source` straight through (unchanged reason + declare + landing logic — this
+  // does NOT change the accounted_for decision) so a renderer/classifier can name a narrow
+  // "review-unavailable-accept" distinctly from a blanket "human-override". A pre-FAFF-912 record
+  // carries no `source` field at all; that reads as null, never coerced to a specific label.
+  const source = typeof overrideRec.source === "string" ? overrideRec.source : null;
+  return { present: true, reason: reason_present ? overrideRec.reason : null, reason_present, declare_present, landing_covered, accounted_for, source };
 }
 
 // FAFF-700: the ONE per-cluster stamp token this recompute matches — EXACT, never
@@ -431,8 +436,12 @@ function renderAuditText(recon) {
       console.log(`  ${r.issue}  ${prov}  ${r.outcome ?? "(no outcome)"}${tail}  (${r.events.length} event${r.events.length === 1 ? "" : "s"})`);
       // FAFF-673: an accounted-for human-merge is EXPLAINED on the audit, not flagged — one line,
       // never a coherence finding. The unexplained case surfaces below under coherence findings.
+      // FAFF-912: name the source distinctly — a narrow "review-unavailable-accept" reads
+      // differently from a blanket "human-override"; a pre-FAFF-912 record with no source at all
+      // renders as the historical unlabelled line.
       if (r.human_merge && r.human_merge.accounted_for) {
-        console.log(`    human-merge: accounted-for (reason: ${r.human_merge.reason})`);
+        const src = r.human_merge.source ? ` [${r.human_merge.source}]` : "";
+        console.log(`    human-merge: accounted-for (reason: ${r.human_merge.reason})${src}`);
       }
     }
   }
@@ -887,6 +896,37 @@ function auditSelftest() {
   // 26. FAFF-673: accountHumanMerge returns null when there is no override for the issue.
   {
     check("accountHumanMerge: no override → null", accountHumanMerge("FAFF-1", null, { merged: true }, []) === null);
+  }
+
+  // 26b. FAFF-912: accountHumanMerge passes `source` straight through — unchanged reason + declare
+  // + landing logic (accounted_for identical to the human-override case), but the returned record
+  // (and the rendered audit line) name a narrow "review-unavailable-accept" distinctly from a
+  // blanket "human-override". A pre-FAFF-912 record with no `source` field reads as null, never
+  // coerced to a specific label.
+  {
+    const issue = "FAFF-912A";
+    const overrides = { [issue]: { issue, head_sha: "abc", blockers: ["review verdict is unavailable (need pass)"], reason: "outage; clean graft", source: "review-unavailable-accept" } };
+    const mergeRecords = { [issue]: { pr: 0, head_sha: "abc", merged: true } };
+    const effectsEntries = [{ kind_of_entry: "declare", issue, step: "merge", effect: { kind: "merge", target: "pr:0" } }];
+    const ledger = { run_id: "r", admitted: [issue], outcomes: { [issue]: "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {}, { overrides, mergeRecords, effectsEntries });
+    const hm = rec.issues.find((x) => x.issue === issue).human_merge;
+    check("hm narrow accept: present + accounted_for (same reason+declare+landing logic)", !!hm && hm.present === true && hm.accounted_for === true);
+    check("hm narrow accept: source is review-unavailable-accept", hm.source === "review-unavailable-accept");
+    check("hm narrow accept: coherence stays clean", rec.coherence.clean === true);
+
+    const issueB = "FAFF-912B";
+    const overridesB = { [issueB]: { issue: issueB, head_sha: "abc", blockers: [], reason: "spike; no floor", source: "human-override" } };
+    const mergeRecordsB = { [issueB]: { pr: 0, head_sha: "abc", merged: true } };
+    const effectsEntriesB = [{ kind_of_entry: "declare", issue: issueB, step: "merge", effect: { kind: "merge", target: "pr:0" } }];
+    const ledgerB = { run_id: "r", admitted: [issueB], outcomes: { [issueB]: "shipped" } };
+    const recB = buildReconstruction("r", "/d", evs([]), ledgerB, {}, { overrides: overridesB, mergeRecords: mergeRecordsB, effectsEntries: effectsEntriesB });
+    const hmB = recB.issues.find((x) => x.issue === issueB).human_merge;
+    check("hm blanket override: source is human-override (unchanged)", hmB.source === "human-override");
+
+    // A pre-FAFF-912 override record carries no `source` field at all.
+    const noSource = accountHumanMerge("FAFF-1", { issue: "FAFF-1", head_sha: "abc", blockers: [], reason: "docs" }, { pr: 0, merged: true }, []);
+    check("hm pre-FAFF-912 record (no source field): source reads null, never coerced", noSource.source === null);
   }
 
   // 27. FAFF-700: dispatch_observability — a run with no agent-dispatch events at all

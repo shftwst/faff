@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.21.0](https://github.com/shftwst/faff/compare/faff--v0.20.0...faff--v0.21.0) (2026-08-28)
+
+
+### Features
+
+* add new adversarial backend ([#751](https://github.com/shftwst/faff/issues/751)) ([ecf673f](https://github.com/shftwst/faff/commit/ecf673f1ff76855cf0df779ab8e2df43e0c7621e))
+* **FAFF-842:** L3 cross-firing resume of a stranded In Review PR (recovery-claim + disposition) ([#761](https://github.com/shftwst/faff/issues/761)) ([c921761](https://github.com/shftwst/faff/commit/c9217617607df82a726b14c9b70e15782fb2e6d0))
+* **FAFF-849:** gate ladder executes the wider recognised set (639b) ([#762](https://github.com/shftwst/faff/issues/762)) ([4899a86](https://github.com/shftwst/faff/commit/4899a865e7fe297dcd86d7dd2a7a0c112f552b70))
+* **FAFF-872:** fold the native ollama adversarial transport onto the OpenAI-compatible /v1 path ([#764](https://github.com/shftwst/faff/issues/764)) ([185bf20](https://github.com/shftwst/faff/commit/185bf207d64097629aef1b263c12155063430a91))
+* **FAFF-888:** spec-review backend reputation ledger strikes a candidate-degenerate reviewer at slot selection ([#770](https://github.com/shftwst/faff/issues/770)) ([431e25e](https://github.com/shftwst/faff/commit/431e25e8ce40896da991c63741fa5205975316ad))
+* **FAFF-894:** wire the dispatched-lane custody producer ([#765](https://github.com/shftwst/faff/issues/765)) ([1aa8bb6](https://github.com/shftwst/faff/commit/1aa8bb6e3a867e924cc3b21adf18b8fdd44d468e))
+* **FAFF-895:** broaden the interactive custody stamp to the --pr L4 merge path ([#767](https://github.com/shftwst/faff/issues/767)) ([b8f5142](https://github.com/shftwst/faff/commit/b8f5142b4577e4ed38aa6db708ac0ae973853fe1))
+* **FAFF-896:** release a dead headless-resume claim on the turn it dies ([#763](https://github.com/shftwst/faff/issues/763)) ([e99802c](https://github.com/shftwst/faff/commit/e99802c3e9c37106d9b14b3e2525f0e8e2a9b6a3))
+* **FAFF-900:** graceful spec-review outage handling — in-turn retry + resumable outage-hold ([#771](https://github.com/shftwst/faff/issues/771)) ([cbd83dd](https://github.com/shftwst/faff/commit/cbd83dda7b5595ca01e9a9143a3cd555ba89f91d))
+* **FAFF-906:** clock-skew-safe staleness + atomic reclaim in the shared claim-store primitive ([#754](https://github.com/shftwst/faff/issues/754)) ([f0c137d](https://github.com/shftwst/faff/commit/f0c137de6e138f39bb2b0d0cdab7a079c2db5f8f))
+* **FAFF-909:** persist the spec-review convergence window across restart or human unpark ([#768](https://github.com/shftwst/faff/issues/768)) ([d94fba7](https://github.com/shftwst/faff/commit/d94fba7887e88fbf19ba3ca7f8668f5b21e0cf8a))
+* **FAFF-911:** operator-configurable adversarial-review output cap (adversarial.num_predict) ([#755](https://github.com/shftwst/faff/issues/755)) ([d972e54](https://github.com/shftwst/faff/commit/d972e5464eef8d9926cd9ddd57022654fa3ba233))
+* **FAFF-912:** narrow, audited --accept-review-unavailable merge disposition ([#775](https://github.com/shftwst/faff/issues/775)) ([9042402](https://github.com/shftwst/faff/commit/90424023829e85ee85a50549b58d0706698f7ef0))
+* **FAFF-914:** per-model reasoning-control passthrough for adversarial backends ([#757](https://github.com/shftwst/faff/issues/757)) ([5bb6758](https://github.com/shftwst/faff/commit/5bb6758e24a0071209ff84a0adbd43d3e032ee57))
+* **FAFF-917:** rename adversarial output-cap config key num_predict → max_tokens ([#758](https://github.com/shftwst/faff/issues/758)) ([f7eea3b](https://github.com/shftwst/faff/commit/f7eea3baad35cf526992390e0516fa10044e133a))
+* **FAFF-918:** thinking_token_budget reasoning-cap fixes the review empty-content bug ([#760](https://github.com/shftwst/faff/issues/760)) ([31f8821](https://github.com/shftwst/faff/commit/31f882174551d403da581eaf3a3e5b33be490cac))
+* **FAFF-919:** faff ratified-scope, assemble + validate the ratified-scope block ([#766](https://github.com/shftwst/faff/issues/766)) ([dd58893](https://github.com/shftwst/faff/commit/dd58893a882e879c714c92dcc65e708e9e90148a))
+
+
+### Bug Fixes
+
+* **FAFF-899:** gate L4 guardrail preflight on structural presence, not each subcommand's --selftest suite ([#769](https://github.com/shftwst/faff/issues/769)) ([ccedf0a](https://github.com/shftwst/faff/commit/ccedf0af872653b120d2e7ac1c0cfc2490f110ea))
+* **FAFF-905:** relax review-bench shape() clean-pass detection to accept header-wrapped clean refutations ([#774](https://github.com/shftwst/faff/issues/774)) ([670c92a](https://github.com/shftwst/faff/commit/670c92a6b486f241c8440b749c532f4d787f2fe3))
+* sign off release-please commits so the dco check passes ([#772](https://github.com/shftwst/faff/issues/772)) ([a94dfb1](https://github.com/shftwst/faff/commit/a94dfb1bc7ff2227e8782b7e08943500a4c2fb0e))
+
 ## [0.20.0](https://github.com/shftwst/faff/compare/faff--v0.19.0...faff--v0.20.0) (2026-08-24)
 
 

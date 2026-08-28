@@ -153,11 +153,31 @@ function openaiBody(system, user) {
 
 // ---- parsing / metrics ----
 const SEV = /^###\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/im;
-const CLEAN = ["No architectural objection.", "No infosec objection.", "No methodology objection.", "No QA objection."];
+// FAFF-905: mirrors the closed bare-or-headed clean-refutation grammar production accepts
+// (CLEAN_REFUTATIONS / normaliseCleanRefutation in
+// plugin/skills/faffter-dark-adversarial-review/review-call.mjs) — no looser, no stricter.
+const CLEAN_REFUTATIONS = [
+  { heading: "## Refutation — architectural", sentence: "No architectural objection." },
+  { heading: "## Refutation — infosec", sentence: "No infosec objection." },
+  { heading: "## Refutation — methodology", sentence: "No methodology objection." },
+  { heading: "## Refutation — QA", sentence: "No QA objection." },
+];
+function isCleanRefutation(content) {
+  const lines = String(content == null ? "" : content)
+    .replace(/\r\n?/g, "\n")
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim() !== "");
+  for (const { heading, sentence } of CLEAN_REFUTATIONS) {
+    if (lines.length === 1 && lines[0] === sentence) return true;       // bare form
+    if (lines.length === 2 && lines[0] === heading && lines[1] === sentence) return true; // headed form
+  }
+  return false;
+}
 function shape(content) {
   const t = (content || "").trim();
   if (!t) return "EMPTY";
-  if (CLEAN.includes(t)) return "clean-pass";
+  if (isCleanRefutation(t)) return "clean-pass";
   return SEV.test(t) ? "findings-shaped" : "NOT-shaped";
 }
 function severities(content) {

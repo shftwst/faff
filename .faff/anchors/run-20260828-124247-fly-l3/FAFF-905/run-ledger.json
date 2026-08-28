@@ -1,0 +1,47 @@
+{
+  "level": "L3",
+  "run_id": "run-20260828-124247-fly-l3",
+  "admitted": [
+    "FAFF-912",
+    "FAFF-905"
+  ],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "owner": {
+    "status": "running",
+    "pid": 837,
+    "session_id": "run-20260828-124247-fly-l3",
+    "started_at": "2026-08-28T12:52:06Z",
+    "last_heartbeat": "2026-08-28T12:52:06Z",
+    "harness": "claude-code",
+    "model": "claude-opus-4-8"
+  },
+  "budget": {
+    "measure_session_id": "163ff179-a7d1-4e90-bfa4-21461d39a455",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 104,
+        "output": 119429,
+        "cache_write": 520173,
+        "cache_read": 11442377
+      }
+    },
+    "tokens_at_start": 12082083
+  },
+  "outcome_details": {
+    "FAFF-905": {
+      "verdict": "fire-and-forget",
+      "note": "landing-resume: PR #774 built+gated green by dead run efc2ed; AC verified, CI green, adversarial review pass"
+    },
+    "FAFF-912": {
+      "verdict": "fire-and-forget",
+      "note": "full build needed: dead run efc2ed produced nothing"
+    }
+  }
+}

@@ -15,6 +15,12 @@ Attack the spec's testability and done-ness:
 - **Regression surface** — could a build satisfy every named AC while breaking something the spec
   assumes but never asserts?
 
+**Defer to ratified scope.** If a `## Ratified scope` block appears in your context, weigh each
+would-be objection against it first. An objection that only restates a listed non-goal, or the scope
+of a settled precedent, is already settled — record it as an `observation` that cites the settling
+line, not a gating objection. A `critical` is never deferred: raise it regardless of the block.
+Anything the block does not settle, raise normally.
+
 Only raise objections grounded in the spec text. If the spec is genuinely verifiable end-to-end, say
 so and raise nothing — do not invent missing tests for behaviour that is out of scope.
 

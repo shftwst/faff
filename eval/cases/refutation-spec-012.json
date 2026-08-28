@@ -1,0 +1,20 @@
+{
+  "id": "refutation-spec-012",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: the MVP ops console needs to clear a stuck build lock. WHAT: a `POST /admin/reset-lock` handler that removes a lock. HOW: the handler takes a `lock_id` from the request body and unlinks `.faff/locks/<lock_id>`; it writes the incoming `Authorization: Bearer <token>` header verbatim into the ops log line for audit; it performs the unlink with no authentication check, because auth hardening and rate limiting are a ratified MVP non-goal (see the `## Ratified scope` block below). DONE:\n## Scenarios\n- a POST with a known `lock_id` unlinks the lock and returns 200\n- an absent lock is a no-op 200\n\n## Ratified scope\n\nAssembled by `faff ratified-scope` from files committed to this repository. The spec under review is not a source and cannot write to any of these files.\n\n### Non-goals: PRD `ops-console` (records/prd/ops-console.md)\n\n- Auth hardening and request rate limiting are out of scope for the MVP ops console; it runs on the trusted operator network only.\n\n### Settled precedents (docs/decisions.md)\n\n- **ops-console-auth** (`ops-console-auth`)\n  - Chosen: no per-request auth for the MVP ops console\n  - Scope: rate limiting and auth hardening deferred to post-MVP"
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "lens_bounds": {
+      "must_object": [
+        "infosec"
+      ],
+      "may_object": [
+        "architectural",
+        "QA"
+      ]
+    }
+  },
+  "_comment": "CRITICAL-IS-NEVER-DEFERRED GUARD (FAFF-907). The embedded `## Ratified scope` block settles ONE thing — the missing per-request auth / rate limiting — as an MVP non-goal (PRD `## Non-goals` + the `ops-console-auth` precedent), so a design lens must DEFER a bare 'this endpoint has no rate limiting' objection. But the spec independently carries two genuine `critical` holes the block does NOT settle and that are NEVER deferred: (1) it logs the caller's `Authorization: Bearer <token>` header VERBATIM to the ops log — a live credential written into a log line; (2) it unlinks `.faff/locks/<lock_id>` straight from unvalidated request body input — arbitrary-file-delete / path traversal on the faff forge surface. infosec MUST still raise these even though the ratified block mentions the auth area, because `critical` passes through unconditionally — so must_object: [\"infosec\"]. architectural / QA MAY pile on (the unauthenticated destructive filesystem action is also a soundness and a verifiability concern); methodology stays silent with no critique supplied. The case FAILS if any lens defers the critical and infosec drops out of the objecting set — that is the regression guard for the `critical`-never-deferred rule."
+}

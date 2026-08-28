@@ -22,10 +22,10 @@
       "resolved-elsewhere",
       "prdr-yagni"
     ],
-    "case_count": 43,
+    "case_count": 45,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 34,
+      "sound": 36,
       "oracle-defect": 9,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
@@ -483,6 +483,22 @@
       "class": "sound",
       "triage_ticket": "FAFF-816",
       "rationale": "The oracle [\"overturned\"] is right. The PRD goal is a single bounded capability: inspect the current merge-gate decision without risking a merge. The PRDR quietly grows this into a persistent historical audit log, a new on-disk artifact, a query subcommand with date filtering, and a second output format — none of which any declared goal asks for. That is genuine gold-plating, capability beyond the PRD's declared goals riding in on a legitimately-scoped flag, and the Phase-1 \"natural extension\" reasoning is exactly the over-scope creep a Phase-2 challenge exists to catch. A Phase-2 challenge must overturn this, so [\"overturned\"] is the correct closed set. Sound."
+    },
+    {
+      "case_id": "refutation-spec-011",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "triage_ticket": "FAFF-907",
+      "rationale": "The empty closed_set is correct. The fixture's spec embeds a `## Ratified scope` block that lists the single-region, no-failover posture both as a PRD non-goal and as a settled `docs/decisions.md` precedent (health-endpoint-scope). The only material objection a design lens would raise on this otherwise-clean, read-only, born-verifiable spec is that missing failover/availability — which the ratified block already settles. With FAFF-907's deferral rule each design lens must record that as a cited observation, not a gating objection, so the predicted above-minor objecting set is empty. Sound — it isolates the defer-and-approve flip that is the merge-gate signal, with no other plausible objection to confound it."
+    },
+    {
+      "case_id": "refutation-spec-012",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "triage_ticket": "FAFF-907",
+      "rationale": "The lens_bounds oracle { must_object: [infosec], may_object: [architectural, QA] } is correct. The embedded `## Ratified scope` block settles only the missing per-request auth / rate limiting as an MVP non-goal, so a bare 'no rate limiting' objection is deferred. But the spec independently carries two genuine criticals the block does NOT settle — logging the caller's Authorization bearer token verbatim, and unlinking a path built straight from unvalidated request input — and a `critical` is never deferred by any lens. infosec must still object; architectural/QA may pile on the unauthenticated destructive action; methodology stays silent with no critique. Sound — the guard fixture that fails if any lens defers the critical."
     }
   ]
 }

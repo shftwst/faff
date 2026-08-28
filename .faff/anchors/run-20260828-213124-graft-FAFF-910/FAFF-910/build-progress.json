@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-910",
+  "build": {
+    "status": "complete",
+    "diff_hash": "aa6504fd58735e0b26824ce13d246e86543520fe4734fca0c155a505ab5c0073",
+    "branch": "faff-910-a-spec-can-document-and-accept-a-tradeoff-but-cannot-record",
+    "pushed_at": "2026-08-28T22:07:30.338Z"
+  },
+  "updated_at": "2026-08-28T22:07:30.338Z"
+}

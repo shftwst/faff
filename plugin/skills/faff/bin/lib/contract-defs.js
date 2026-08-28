@@ -404,7 +404,14 @@ function contractPrdReadiness(extraction) {
 // producer emits it, so an out-of-enum verdict is producer breakage, not a review outcome).
 // Soft objection fields (lens/severity) enforce their enum via violations = the prd-readiness.reason
 // precedent — so an echoed bad value never trips schemaCheck into a spurious fail-loud.
-const SPEC_REVIEW_VERDICTS = ["approve", "revise", "reject-approach", "needs-human"];
+// FAFF-900: `unavailable` joins the enum — a mandatory spec-review outage whose outaged
+// lens(es) could swing the verdict (symmetric with review-verdict's FAFF-405 `unavailable`).
+// It is NOT a safe coerce target for an out-of-enum verdict (still fail-loud, below) — it is
+// something the occupant's aggregation deliberately EMITS, never something an unknown string
+// coerces to. computeSpecReviewVerdict treats it like every other non-approve verdict: the
+// generic "non-approve carries objections" check below already applies to it unchanged, and it
+// never coerces toward approve.
+const SPEC_REVIEW_VERDICTS = ["approve", "revise", "reject-approach", "needs-human", "unavailable"];
 const SPEC_REVIEW_LENSES = ["architectural", "infosec", "methodology", "QA"];
 const SPEC_REVIEW_SEVERITIES = ["blocker", "major", "minor"];
 function computeSpecReviewVerdict(extraction) {
@@ -412,7 +419,7 @@ function computeSpecReviewVerdict(extraction) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
   }
   if (!SPEC_REVIEW_VERDICTS.includes(extraction.verdict)) {
-    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {approve,revise,reject-approach,needs-human} — no safe coerce target` };
+    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {approve,revise,reject-approach,needs-human,unavailable} — no safe coerce target` };
   }
   const verdict = extraction.verdict;
   const violations = [];
@@ -2317,8 +2324,13 @@ const CONTRACTS = {
       { name: "conformant-approve", in: { verdict: "approve", objections: [] }, wantExit: 0 },
       { name: "conformant-reject-approach", in: { verdict: "reject-approach", objections: [{ lens: "architectural", severity: "blocker" }] }, wantExit: 0 },
       { name: "conformant-revise", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor" }] }, wantExit: 0 },
+      // FAFF-900: unavailable (a mandatory spec-review outage that could swing the verdict) is
+      // treated like every other non-approve verdict — it must carry the outaged lens(es) as
+      // objections, and it is never a safe coerce target for an out-of-enum verdict.
+      { name: "conformant-unavailable", in: { verdict: "unavailable", objections: [{ lens: "infosec", severity: "major" }] }, wantExit: 0 },
       { name: "approve-with-objections", in: { verdict: "approve", objections: [{ lens: "infosec", severity: "major" }] }, wantExit: 1 },
       { name: "non-approve-no-objections", in: { verdict: "reject-approach", objections: [] }, wantExit: 1 },
+      { name: "unavailable-no-objections", in: { verdict: "unavailable", objections: [] }, wantExit: 1 },
       { name: "bad-lens", in: { verdict: "revise", objections: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
       { name: "bad-severity", in: { verdict: "needs-human", objections: [{ lens: "methodology", severity: "huge" }] }, wantExit: 1 },
       { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
@@ -2746,10 +2758,10 @@ const CONTRACT_DESCRIBES = {
   "spec-review-verdict": {
     purpose: "The fixed spec-stage review verdict every spec_review slot occupant emits — what faff-prep's readiness gate and the L1–L4 review lenses (architectural/infosec/methodology/QA) all map onto.",
     values: [
-      { field: "verdict", enum: SPEC_REVIEW_VERDICTS, semantics: { approve: "the spec is ready to build as written — carries no objections", revise: "fixable objections exist — the spec needs changes before it's build-ready", "reject-approach": "the whole approach is unsound — a different design is needed, not a patch", "needs-human": "a human judgement call the reviewer can't resolve on its own" } },
+      { field: "verdict", enum: SPEC_REVIEW_VERDICTS, semantics: { approve: "the spec is ready to build as written — carries no objections", revise: "fixable objections exist — the spec needs changes before it's build-ready", "reject-approach": "the whole approach is unsound — a different design is needed, not a patch", "needs-human": "a human judgement call the reviewer can't resolve on its own", unavailable: "a mandatory spec-review outage whose outaged lens(es) could swing the verdict — the reviewer was down, not a verdict about the spec; never coerced toward approve (FAFF-900)" } },
       // lens/severity are lintable:false: the reviewer producer must WRITE these labels while
       // classifying its own findings (a checklist dialect, like spec-readiness's markers) — not a
-      // routing verdict a consumer branches on. `verdict` above stays lintable (the closed 4-value
+      // routing verdict a consumer branches on. `verdict` above stays lintable (the closed 5-value
       // routing enum every consumer pipes through `faff contract spec-review-verdict`).
       { field: "objections[].lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
       { field: "objections[].severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },

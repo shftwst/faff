@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": ["verdict", "objections", "conformant", "violations"],
   "properties": {
-    "verdict": { "type": "string", "enum": ["approve", "revise", "reject-approach", "needs-human"] },
+    "verdict": { "type": "string", "enum": ["approve", "revise", "reject-approach", "needs-human", "unavailable"] },
     "objections": {
       "type": "array",
       "items": {

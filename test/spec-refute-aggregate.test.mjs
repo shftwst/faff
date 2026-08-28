@@ -63,9 +63,10 @@ test("a config-fault unavailable lens forces needs-human even when others are cl
   assert.ok(v.objections.some((o) => o.lens === "infosec" && o.severity === "blocker"));
 });
 
-test("an infra-configured down lens → needs-human when it could swing, reject when it cannot", () => {
+test("an infra-configured down lens → unavailable when it could swing (FAFF-900), reject when it cannot", () => {
   let v = aggregate([down("infosec", "infra-configured"), clear("architectural"), clear("methodology"), clear("QA")], 4);
-  assert.equal(v.verdict, "needs-human", "missing lens could swing a clean board");
+  assert.equal(v.verdict, "unavailable", "missing lens could swing a clean board — a transient, never needs-human");
+  assert.ok(v.objections.some((o) => o.lens === "infosec" && o.severity === "major"), "outaged lens named as a major objection");
   v = aggregate([down("infosec", "infra-configured"), r("architectural", "critical"), clear("methodology"), clear("QA")], 4);
   assert.equal(v.verdict, "reject-approach", "available critical already forces reject; missing lens cannot change it");
 });
@@ -87,6 +88,7 @@ test("every non-approve verdict carries ≥1 objection; approve carries none", (
   const cases = [
     aggregate([r("architectural", "major"), clear("infosec")], 2),       // revise
     aggregate([down("infosec", "config-fault"), clear("architectural")], 2), // needs-human
+    aggregate([down("infosec", "infra-configured"), clear("architectural")], 2), // unavailable (FAFF-900)
     aggregate([r("architectural", "critical")], 1),                       // reject-approach
     aggregate([clear("architectural")], 1),                              // approve
   ];
@@ -188,6 +190,20 @@ test("aggregate.mjs CLI: stdin refutations → a contract block that validates a
   // extract the JSON line from the fenced block and pipe it to the contract validator
   const json = agg.stdout.split("\n").find((l) => l.trim().startsWith("{"));
   assert.ok(json, "a JSON line is emitted");
+  const contract = spawnSync(process.execPath, [BIN, "contract", "spec-review-verdict"], { input: json, encoding: "utf8" });
+  assert.equal(contract.status, 0, `contract validation failed: ${contract.stdout}${contract.stderr}`);
+});
+
+test("aggregate.mjs CLI: a swing-capable infra-configured outage emits an unavailable block that validates (FAFF-900)", () => {
+  const input = JSON.stringify({
+    enabled_lenses: ["architectural", "infosec", "methodology", "QA"],
+    refutations: [down("infosec", "infra-configured"), clear("architectural"), clear("methodology"), clear("QA")],
+  });
+  const agg = spawnSync(process.execPath, [AGG], { input, encoding: "utf8" });
+  assert.equal(agg.status, 0, agg.stderr);
+  const json = agg.stdout.split("\n").find((l) => l.trim().startsWith("{"));
+  assert.ok(json, "a JSON line is emitted");
+  assert.equal(JSON.parse(json).verdict, "unavailable");
   const contract = spawnSync(process.execPath, [BIN, "contract", "spec-review-verdict"], { input: json, encoding: "utf8" });
   assert.equal(contract.status, 0, `contract validation failed: ${contract.stdout}${contract.stderr}`);
 });

@@ -26,16 +26,24 @@ function runOnFixtures(fixtures) {
 }
 const runOne = (body, name = "zz-enum-fixture") => runOnFixtures({ [name]: body });
 
-test("regression fixture: restating all four spec-review verdicts in one sentence fires the lint", () => {
-  // The spec's own acceptance scenario: "a SKILL.md line reintroducing all four spec-review
-  // verdicts in one sentence" — `verdict` stays lintable (unlike lens/severity, its producer-
-  // dialect siblings), so this is exactly the fixture the DoD names.
-  const body = "# fixture\n\nThe reviewer returns one of `approve` / `revise` / `reject-approach` / `needs-human` after its pass.\n";
+test("regression fixture: restating all five spec-review verdicts in one sentence fires the lint", () => {
+  // The spec's own acceptance scenario: "a SKILL.md line reintroducing all spec-review verdicts in
+  // one sentence" — `verdict` stays lintable (unlike lens/severity, its producer-dialect siblings),
+  // so this is exactly the fixture the DoD names. The set gained a 5th member (`unavailable`, a
+  // mandatory-outage signal distinct from a verdict about the spec) — the fixture must restate the
+  // FULL current set to still exercise the full-set match, not the stale 4-value one.
+  const body = "# fixture\n\nThe reviewer returns one of `approve` / `revise` / `reject-approach` / `needs-human` / `unavailable` after its pass.\n";
   const r = runOne(body);
   assert.match(r.stdout, /inline enum restatement/);
   assert.match(r.stdout, /spec-review-verdict\.verdict/);
   assert.match(r.stdout, /faff contract spec-review-verdict --describe/);
   assert.notEqual(r.status, 0);
+});
+
+test("a four-of-five partial restatement (missing `unavailable`) never fires (not the full current set)", () => {
+  const body = "# fixture\n\nThe reviewer returns one of `approve` / `revise` / `reject-approach` / `needs-human` after its pass.\n";
+  const r = runOne(body);
+  assert.doesNotMatch(r.stdout, /spec-review-verdict\.verdict/);
 });
 
 test("a single verdict mention never fires (no full-set restatement)", () => {

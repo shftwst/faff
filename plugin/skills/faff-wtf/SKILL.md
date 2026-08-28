@@ -79,6 +79,10 @@ Surface every issue that is **not automation-eligible** **and** notable (gateway
 
 Surface every issue tagged `faff-awaiting-review` via a **live tracker label query** (this label is not `faff-parked`'s query above and is easy to miss otherwise — wtf's parked query is scoped to `faff-parked` only). **Distinct from both Parked and On-hold above:** this is neither a human park nor a human-set eligibility hold — it means the built work is durable (branch pushed) and the review is waiting on a **machine** (the provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no rebuild. For each: issue id + title, the outage-retry attempt count (`n`/`graft.review_outage_retry_limit`), and a note that no action is needed — it self-resolves next drain, or escalates to an ordinary park after the retry bound. Skip the section if none.
 
+### 4c-bis. Awaiting spec-review — adversarial outage
+
+The prep-altitude twin of §4c above. Surface every issue tagged `faff-awaiting-spec-review` via a **live tracker label query** (a distinct label + query from `faff-awaiting-review`'s §4c — the two altitudes stay separable). **Distinct from Parked, On-hold, and §4c above:** neither a human park nor a human-set eligibility hold, and not a stalled *build* — the spec is attached and durable on the tracker, review has not concluded, and the outage is waiting on a **machine** (the spec-review provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no re-spec. For each: issue id + title, the held-drain attempt count (`n`/`prep.spec_review_outage_hold_limit`), and a note that no action is needed — it self-resolves next prep drain, or escalates to an ordinary park past the hold limit. Skip the section if none.
+
 ### 4d. ADR supersession proposals awaiting ratification
 
 Surface every **propose-only** ADR-admission candidate recorded by an autonomous `faff-graft` Step 3b run — a **loop-authored** ADR proposing to supersede a **human/legacy-provenance** ADR, which the admit gate correctly refused to auto-write (guardrails ratify only by human gesture; the loop never self-ratifies). Read `.faff/adr-proposals/*.json` (one file per candidate, keyed by the new ADR's number; written by graft, never by `/faff-wtf`). **Distinct from Parked / On-hold / Awaiting-review above:** this isn't a stalled issue — the build that authored the proposing ADR already shipped; the proposal is a standing, git-native artifact (an ADR pair, not a tracker issue) waiting on a **ratification gesture**, not a build retry.
@@ -212,6 +216,9 @@ Source of truth is the configured issue tracker. Snapshot below — re-query via
 
 ### Awaiting review (adversarial outage)
 - ISSUE-XX  [synthesis gloss] — review provider unavailable, attempt n/N; auto-resumes next drain, no action needed
+
+### Awaiting spec-review (adversarial outage)
+- ISSUE-XX  [synthesis gloss] — spec-review provider unavailable, held drain n/N; auto-resumes next prep drain, no action needed
 
 ### ADR supersession proposals awaiting ratification
 - ADR-NNNN proposes to supersede ADR-MMMM (authored by ISSUE-XX): [why]. Ratify? (y/n)

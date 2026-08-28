@@ -17,9 +17,10 @@ const NEXT_SPEC = {
     "--parked": { arity: 0 },
     "--blocked": { arity: 0 },
     "--if-eligible": { arity: 0 },
+    "--awaiting-spec-review": { arity: 0 },
   },
 };
-const NEXT_USAGE = "usage: faff next --status STATUS --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]";
+const NEXT_USAGE = "usage: faff next --status STATUS --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible] [--awaiting-spec-review]";
 
 const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
 // FAFF-484: the single terminal-state set (the one definition of "terminal" in the normalised-status
@@ -29,7 +30,7 @@ const TERMINAL_STATUSES = ["done", "cancelled", "duplicate"];
 const WORKABLE_STATUSES = NEXT_STATUSES.filter((s) => !TERMINAL_STATUSES.includes(s));
 const NEXT_SPECS = ["none", "low", "medium", "high"];
 
-function nextStep({ status, spec, eligible, parked, blocked, ifEligible }) {
+function nextStep({ status, spec, eligible, parked, blocked, ifEligible, awaitingSpecReview }) {
   if (!NEXT_STATUSES.includes(status)) return ["error", `unknown --status '${status}'`];
   if (!NEXT_SPECS.includes(spec)) return ["error", `unknown --spec '${spec}'`];
   // FAFF-484: membership via TERMINAL_STATUSES; the two branches keep their distinct returns
@@ -42,6 +43,12 @@ function nextStep({ status, spec, eligible, parked, blocked, ifEligible }) {
   // Terminal states (above) still win; the live skip-ineligible path is unchanged when the flag is absent.
   if (!eligible && !ifEligible) return ["skip-ineligible", "not automation-eligible — human cranks it up (faff-automate)"];
   if (parked) return ["needs-human", "parked — human decision"];
+  // FAFF-900: a spec-review-outage hold (Backlog + attached spec + faff-awaiting-spec-review,
+  // NOT faff-parked) routes back to prep regardless of the spec's retained confidence rating — the
+  // spec itself may be high-confidence, but review has not concluded, so it is not build-ready.
+  // Checked before the spec-confidence branches below (and before --blocked, which is a build-side
+  // concern) so the hold always wins over whatever the confidence rating alone would have returned.
+  if (awaitingSpecReview) return ["prep", "awaiting spec-review resume — outage hold, auto-resumes at review next drain"];
   if (spec === "none") return ["prep", "no spec — needs prep"];
   if (spec === "low") return ["needs-human", "low-confidence spec"];
   if (spec === "medium") return ["needs-human", "needs-decision-first (medium spec)"];
@@ -51,7 +58,7 @@ function nextStep({ status, spec, eligible, parked, blocked, ifEligible }) {
 
 function nextSelftest() {
   // eligible defaults true; pass { eligible: false } to model a not-automation-eligible ticket.
-  const C = (status, spec, x = {}) => ({ status, spec, eligible: x.eligible !== false, parked: !!x.parked, blocked: !!x.blocked, ifEligible: !!x.ifEligible });
+  const C = (status, spec, x = {}) => ({ status, spec, eligible: x.eligible !== false, parked: !!x.parked, blocked: !!x.blocked, ifEligible: !!x.ifEligible, awaitingSpecReview: !!x.awaitingSpecReview });
   const cases = [
     [C("cancelled", "high"), "none"],
     [C("duplicate", "none"), "none"],
@@ -77,6 +84,14 @@ function nextSelftest() {
     [C("todo", "high", { eligible: false, ifEligible: true, blocked: true }), "blocked"], // would-be-blocked
     [C("todo", "high", { ifEligible: true }), "graft"],                             // no-op when already eligible
     [C("done", "none", { eligible: false, ifEligible: true }), "done"],             // terminal still wins
+    // FAFF-900: a spec-review-outage hold routes back to prep regardless of the spec's retained
+    // confidence — review has not concluded, so it is never build-ready.
+    [C("backlog", "high", { awaitingSpecReview: true }), "prep"],
+    [C("backlog", "medium", { awaitingSpecReview: true }), "prep"],
+    [C("backlog", "none", { awaitingSpecReview: true }), "prep"],               // same as plain no-spec, just a different reason
+    [C("todo", "high", { awaitingSpecReview: true, parked: true }), "needs-human"], // faff-parked always wins over the hold
+    [C("todo", "high", { awaitingSpecReview: true, eligible: false }), "skip-ineligible"], // eligibility still gates first
+    [C("backlog", "high", { awaitingSpecReview: true, blocked: true }), "prep"], // blocked never blocks prep, same as the plain no-spec case
   ];
   let fail = 0;
   for (const [inp, want] of cases) {
@@ -107,6 +122,7 @@ function cmdNext(args) {
     parked: !!values["--parked"],
     blocked: !!values["--blocked"],
     ifEligible: !!values["--if-eligible"],   // FAFF-83: advisory hypothetical
+    awaitingSpecReview: !!values["--awaiting-spec-review"],   // FAFF-900: spec-review-outage hold
   };
   const [next, reason] = nextStep(state);
   if (next === "error") { process.stderr.write(`faff next: ${reason}\n`); return 2; }

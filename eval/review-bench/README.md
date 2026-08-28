@@ -184,8 +184,9 @@ Per lens the runner prints (and saves to `results/<run>/summary.md` + `.json`):
     count tells you it was a hit). So: benchmark pe/gen tps with `--stream` on a **fresh** prompt (a lens
     you haven't sent yet, or the first `--repeat` iteration). `summary.json` also carries the server's own
     `server_total_s` (`usage.total_time`) when present.
-- **shape** — `findings-shaped` (has `### <severity>:`), `clean-pass` (`No <lens> objection.`), `EMPTY`,
-  or `NOT-shaped`. Only `findings-shaped` / `clean-pass` are usable by faff's aggregator.
+- **shape** — `findings-shaped` (has `### <severity>:`), `clean-pass` (the bare `No <lens> objection.`
+  sentence, or that sentence headed by `## Refutation — <lens>`), `EMPTY`, or `NOT-shaped`. Only
+  `findings-shaped` / `clean-pass` are usable by faff's aggregator.
 - **severities** — the `[major,minor,…]` it raised (calibration signal — a model that stamps everything
   `critical` cannot pass a spec; one with a real spread is calibrated).
 - **reasoning** — bytes in a separate `reasoning_content` channel. **`⚠ reasoning-eaten-budget`** flags the

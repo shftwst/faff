@@ -159,6 +159,43 @@ test("merge-gate: non-TTY --interactive --allow-no-ci → exit 2 naming the TTY 
   assert.match(stderr, /--allow-no-ci is human-only/);
 });
 
+// --- FAFF-912: --accept-review-unavailable — the narrow, audited outage-accept, CLI arg surface ---
+// runCli spawns a child with piped stdio (non-TTY by construction), so these exercise the exact
+// fence refusal before any gh call — no network, no mocking.
+test("merge-gate: --accept-review-unavailable is accepted by MERGE_GATE_SPEC (not rejected as unknown-flag)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L9", "--accept-review-unavailable"]);
+  // hits the pre-existing bad-level check (exit 2) — proves argv parsing proceeded PAST
+  // --accept-review-unavailable rather than rejecting it as an unrecognised flag.
+  assert.equal(code, 2);
+  assert.doesNotMatch(stderr, /unknown[- ]flag/);
+  assert.match(stderr, /--level/);
+});
+
+test("merge-gate: non-TTY --interactive --accept-review-unavailable → exit 2 naming the TTY fence (FAFF-912)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /--accept-review-unavailable is human-only/);
+  assert.match(stderr, /real terminal/);
+});
+
+test("merge-gate: --accept-review-unavailable without --interactive → exit 2 (fenced)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /--accept-review-unavailable requires --interactive/);
+});
+
+test("merge-gate: --accept-review-unavailable with an empty --override-reason → exit 2 naming the reason fence", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--accept-review-unavailable"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /--accept-review-unavailable requires --override-reason/);
+});
+
+test("merge-gate: --human-override + --accept-review-unavailable together → exit 2 naming the mutual exclusion (FAFF-912)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--human-override", "--accept-review-unavailable", "--override-reason", "x"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /mutually exclusive/);
+});
+
 // --- the sole-sanctioned-path property: graft + default ship carry no raw `gh pr merge` command ---
 test("graft Step 10 + default ship producer contain no direct `gh pr merge` command (routes through merge-gate)", () => {
   const files = [

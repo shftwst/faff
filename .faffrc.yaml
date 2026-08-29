@@ -85,6 +85,14 @@ backends:
       model: z-ai/glm-5.2:free
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
+  openrouter-glm-5-3-flash:
+      # FAFF-922 judge PAID fallback, second in adversarial.spec_judge.refs. Rides out a free-tier
+      # 5.2 outage / rate-limit so the judge stays autonomous under load instead of parking to a
+      # human. Same distinct-from-refuters identity requirement; reasoning left ON like the primary.
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: z-ai/glm-5.3-flash
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
@@ -136,7 +144,8 @@ adversarial:
   spec_judge:
     keepgoing_bound: 2
     refs:
-      - openrouter-glm-5-2
+      - openrouter-glm-5-2         # free primary
+      - openrouter-glm-5-3-flash   # paid fallback when the free tier is rate-limited/down
 models:
     build_by_confidence:
         default: inherit

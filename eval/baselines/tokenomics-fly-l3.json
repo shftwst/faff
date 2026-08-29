@@ -1,0 +1,115 @@
+{
+  "census": {
+    "calls": 281,
+    "models": {
+      "claude-opus-4-8": 89,
+      "claude-sonnet-5": 192
+    },
+    "cache_read": {
+      "n": 281,
+      "sum": 59489314,
+      "avg": 211705.744,
+      "median": 222879,
+      "max": 386463
+    },
+    "cache_write": {
+      "n": 281,
+      "sum": 2756643,
+      "avg": 9810.117,
+      "median": 1399,
+      "max": 378725
+    },
+    "input": {
+      "n": 281,
+      "sum": 20433,
+      "avg": 72.715,
+      "median": 2,
+      "max": 10040
+    },
+    "output": {
+      "n": 281,
+      "sum": 1616,
+      "avg": 5.751,
+      "median": 3,
+      "max": 24
+    },
+    "read_write_ratio": 21.58,
+    "context_tokens": 62266390,
+    "output_tokens": 1616,
+    "context_share_pct": 99.997,
+    "output_suspect": true
+  },
+  "fixed": 66153,
+  "lean": 8300,
+  "bench": [
+    {
+      "name": "baseline",
+      "note": "the run as measured",
+      "cost": 35.674,
+      "delta": 0,
+      "pct": 0,
+      "byModel": {
+        "claude-opus-4-8": 15.732,
+        "claude-sonnet-5": 19.941
+      },
+      "legs": {
+        "read": 21.075,
+        "write": 14.509,
+        "input": 0.062,
+        "output": 0.029
+      }
+    },
+    {
+      "name": "lean-gateway (66153->8300)",
+      "note": "shrink injected prefix to the lean target",
+      "cost": 27.867,
+      "delta": -7.807,
+      "pct": -21.884,
+      "byModel": {
+        "claude-opus-4-8": 11.896,
+        "claude-sonnet-5": 15.968
+      },
+      "legs": {
+        "read": 15.654,
+        "write": 12.122,
+        "input": 0.062,
+        "output": 0.029
+      }
+    },
+    {
+      "name": "drop-injection",
+      "note": "remove the fixed prefix from cached context entirely (upper bound)",
+      "cost": 26.746,
+      "delta": -8.928,
+      "pct": -25.027,
+      "byModel": {
+        "claude-opus-4-8": 11.35,
+        "claude-sonnet-5": 15.401
+      },
+      "legs": {
+        "read": 14.876,
+        "write": 11.78,
+        "input": 0.062,
+        "output": 0.029
+      }
+    },
+    {
+      "name": "writes-5m-ttl",
+      "note": "1h cache writes repriced as 5m (hit rate held; upper bound)",
+      "cost": 33.821,
+      "delta": -1.853,
+      "pct": -5.194,
+      "byModel": {
+        "claude-opus-4-8": 13.88,
+        "claude-sonnet-5": 19.941
+      },
+      "legs": {
+        "read": 21.075,
+        "write": 12.655,
+        "input": 0.062,
+        "output": 0.029
+      }
+    }
+  ],
+  "saving_per_10k_prefix_tokens": 1.35
+}

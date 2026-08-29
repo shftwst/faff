@@ -9,24 +9,43 @@ dominated by the **size of the cached context re-read per call** (~115-220k toke
 number of calls and not by cache churn. This tool corroborates that from source and turns the
 lever into something you can measure a change against.
 
-## Is the finding genuine? Yes — corroborated from an independent run
+## Is the finding genuine? Yes — reproduced on the run itself, and on an independent run
 
-The jot P1 measured a 2026-08-29 L4 run. The evidence directory holds a *different* real run
-(`transcript-run-20260812-153033-fly-l3.jsonl`, an L3 fly build, 281 API calls). Running the tool
-over it reproduces the same profile the jot describes:
+The jot P1 measured a 2026-08-29 full-build L4 run (`run-20260829-100405-lights-out`). Pointed at
+that run's transcripts (`evidence/cost-run-20260829-100405/`, drive + subagents, 843 API calls), the
+tool reproduces the jot's headline almost exactly:
 
-| Claim (jot P1, L4 run) | This tool on the L3 evidence run | Verdict |
+| Claim (jot P1) | This tool on the full cost-run | Verdict |
+| --- | --- | --- |
+| Book-sized context re-read per call | `cache_read` avg **183,960** (jot: 183,998), median 147,220, max **582,874** (jot: 582,874) | reproduced to ~0.02% |
+| Caching healthy, not thrashing (~30:1) | read:write **36.6:1** | reproduced |
+| Cost is context, not output/calls | context = **99.4%** of all token movement | reproduced |
+| Per-call context is the lever | lean-gateway 66k→8.3k cuts the run **−18.9%** ($132.91→$107.80); lever ~$4.34 per 10k prefix tokens | reproduced |
+
+This is a **full end-to-end build** (a real feature shipped through the pipeline), so its call mix is
+representative of production usage — the right run to optimize from. The committed baseline is
+`eval/baselines/tokenomics-cost-run-20260829.json` (the raw transcripts live under the gitignored
+`evidence/`, so the derived baseline is what's version-controlled). Output is real on this run
+(avg ~1,181 tok/call), so the bill's output leg is measured, not a floor.
+
+### Also reproduced on an independent run
+
+A second, unrelated run (`transcript-run-20260812-153033-fly-l3.jsonl`, an L3 fly build, 281 calls,
+committed as `eval/baselines/tokenomics-fly-l3.json`) shows the same profile — reproducing the
+finding on a run the jot never touched:
+
+| Claim (jot P1) | This tool on the L3 evidence run | Verdict |
 | --- | --- | --- |
 | Book-sized context re-read per call | `cache_read` avg **211,706**, median **222,879**, max 386,463 tok/call | corroborated (same regime as the jot's 184k avg / 115k median) |
 | Caching healthy, not thrashing (~30:1 read:write) | read:write ratio **21.6:1** | corroborated |
 | Cost is context size, not output | context = **99.997%** of all token movement | corroborated, decisively |
 | Per-call context is the lever | shrinking the injected gateway prefix 66k→8.3k cuts this run **~22%** ($35.67→$27.87) | corroborated |
 
-One caveat surfaced by the tool and worth stating plainly: this evidence transcript records
-`output_tokens` only on the message-start line (avg < 6/call, a 24k-char text block reports 8),
-so the **output** side of the jot (avg ~847 tok/call) could not be checked here. It doesn't
-matter for the conclusion — output is a rounding error against a 200k-token cached context. The
-tool flags this automatically (`output_suspect`) so the output leg of the bill reads as a floor.
+One caveat specific to this L3 fly transcript: it records `output_tokens` only on the message-start
+line (avg < 6/call), so the output side could not be checked from it — the tool flags this
+(`output_suspect`) and treats the output leg as a floor. The full cost-run above does not have this
+limitation (its output is real), so nothing rests on it; output is a rounding error against a
+200k-token cached context either way.
 
 ### Precedent in faff source
 
@@ -52,8 +71,10 @@ node eval/tokenomics.mjs --transcript <file|dir> [--fixed N] [--lean N] [--json]
   each call needs" target).
 - `--save` writes the full report JSON; `--json` prints it to stdout.
 
-The committed baseline `eval/baselines/tokenomics-fly-l3.json` is this tool's output on the
-evidence run.
+Committed baselines: `eval/baselines/tokenomics-cost-run-20260829.json` (the full-build L4 run — the
+representative reference to optimize from) and `eval/baselines/tokenomics-fly-l3.json` (the
+independent L3 run). Both are the tool's output; the raw transcripts stay under the gitignored
+`evidence/`.
 
 ## What it computes
 

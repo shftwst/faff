@@ -1,0 +1,110 @@
+{
+  "census": {
+    "calls": 843,
+    "models": {
+      "claude-opus-4-8": 843
+    },
+    "cache_read": {
+      "n": 843,
+      "sum": 155078239,
+      "avg": 183959.951,
+      "median": 147220,
+      "max": 582874
+    },
+    "cache_write": {
+      "n": 843,
+      "sum": 4241578,
+      "avg": 5031.528,
+      "median": 1556,
+      "max": 206850
+    },
+    "input": {
+      "n": 843,
+      "sum": 1686,
+      "avg": 2,
+      "median": 2,
+      "max": 2
+    },
+    "output": {
+      "n": 843,
+      "sum": 995907,
+      "avg": 1181.384,
+      "median": 732,
+      "max": 21484
+    },
+    "read_write_ratio": 36.561,
+    "context_tokens": 159321503,
+    "output_tokens": 995907,
+    "context_share_pct": 99.379,
+    "output_suspect": false
+  },
+  "fixed": 66153,
+  "lean": 8300,
+  "bench": [
+    {
+      "name": "baseline",
+      "note": "the run as measured",
+      "cost": 132.913,
+      "delta": 0,
+      "pct": 0,
+      "byModel": {
+        "claude-opus-4-8": 132.909
+      },
+      "legs": {
+        "read": 77.539,
+        "write": 30.467,
+        "input": 0.008,
+        "output": 24.898
+      }
+    },
+    {
+      "name": "lean-gateway (66153->8300)",
+      "note": "shrink injected prefix to the lean target",
+      "cost": 107.804,
+      "delta": -25.109,
+      "pct": -18.891,
+      "byModel": {
+        "claude-opus-4-8": 107.793
+      },
+      "legs": {
+        "read": 57.059,
+        "write": 25.839,
+        "input": 0.008,
+        "output": 24.898
+      }
+    },
+    {
+      "name": "drop-injection",
+      "note": "remove the fixed prefix from cached context entirely (upper bound)",
+      "cost": 104.202,
+      "delta": -28.711,
+      "pct": -21.601,
+      "byModel": {
+        "claude-opus-4-8": 104.207
+      },
+      "legs": {
+        "read": 54.121,
+        "write": 25.175,
+        "input": 0.008,
+        "output": 24.898
+      }
+    },
+    {
+      "name": "writes-5m-ttl",
+      "note": "1h cache writes repriced as 5m (hit rate held; upper bound)",
+      "cost": 128.955,
+      "delta": -3.958,
+      "pct": -2.978,
+      "byModel": {
+        "claude-opus-4-8": 128.951
+      },
+      "legs": {
+        "read": 77.539,
+        "write": 26.51,
+        "input": 0.008,
+        "output": 24.898
+      }
+    }
+  ],
+  "saving_per_10k_prefix_tokens": 4.34
+}

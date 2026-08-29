@@ -203,12 +203,13 @@ test("faff-prep/SKILL.md: Park causes gains a spec-review-churn entry", () => {
   assert.match(parkCausesLine, /spec-review churn detected/, "Park causes must gain the churn-detected cause string");
 });
 
-test("faff-prep/SKILL.md: the existing count-cap and confidence-cap prose are preserved, with the convergence-yield clause added (FAFF-874)", () => {
+test("faff-prep/SKILL.md: the count-cap resolves through the appetite resolver, with the convergence-yield clause preserved", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  // The verbatim count-cap fragments stay — the convergence-yield is additive, never a rewrite.
-  assert.match(body, /capped at \*\*2 iterations\*\*/, "the 2-iteration count cap must still be stated");
-  assert.match(body, /third unresolved `revise`\/`reject-approach`/, "the third-round fallback must still be stated");
-  // FAFF-874: the drift guard now also pins the convergence-yield clause the count cap gained.
+  // FAFF-908 (absorbed into FAFF-922): the fixed-2 cap is now an appetite-scaled ceiling `N`
+  // resolved through the CLI — the Loop cap must name the resolver, never a bare integer.
+  assert.match(body, /faff spec-review-iteration-cap/, "the Loop cap must resolve the ceiling via the resolver, never a hardcoded integer");
+  assert.match(body, /unresolved `revise`\/`reject-approach`/, "the would-be-park fallback on N unresolved rounds must still be stated");
+  // FAFF-874: the drift guard still pins the convergence-yield clause the count cap carries.
   assert.match(body, /faff spec-review-convergence/, "the Loop cap must resolve convergence via the CLI, never eyeball it");
   assert.match(body, /yields to a convergence signal/, "must state the count cap yields to the convergence signal");
   assert.match(body, /converging direction only/, "must state the yield is converging-direction-only (thrashing still parks)");

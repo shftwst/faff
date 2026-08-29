@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-922",
+  "build": {
+    "status": "complete",
+    "diff_hash": "90cd9d6be7aaf6647cb9baca2c2d4e0f82b124c0d4d5f74a822982c1a70cbdaa",
+    "branch": "faff-922-spec-review-judgearbiter-weigh-standing-objections-and-rule",
+    "pushed_at": "2026-08-29T03:00:50.507Z"
+  },
+  "updated_at": "2026-08-29T03:00:50.507Z"
+}

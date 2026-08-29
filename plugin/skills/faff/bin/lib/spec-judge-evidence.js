@@ -231,7 +231,15 @@ function cmdSpecJudgeEvidence(args) {
     process.stderr.write(`faff spec-judge-evidence: spec-review-convergence failed (exit ${conv.code})\n${conv.stderr}`);
     return 2;
   }
-  const convergence = JSON.parse(conv.stdout);
+  let convergence;
+  try {
+    convergence = JSON.parse(conv.stdout);
+  } catch (e) {
+    // The exit-2 fail-loud contract must hold on the shelled-CLI-stdout path too: an exit-0
+    // resolver that emitted empty/non-JSON stdout is a plumbing fault, not a park signal.
+    process.stderr.write(`faff spec-judge-evidence: spec-review-convergence returned unparseable stdout: ${e.message}\n`);
+    return 2;
+  }
 
   // churn — shelled over the last two in-window round records (the same pairing faff-prep's own
   // churn check uses). Fewer than two in-window rounds degrades to the churn-false null form.
@@ -244,7 +252,12 @@ function cmdSpecJudgeEvidence(args) {
       process.stderr.write(`faff spec-judge-evidence: spec-review-churn failed (exit ${churnRes.code})\n${churnRes.stderr}`);
       return 2;
     }
-    churn = JSON.parse(churnRes.stdout);
+    try {
+      churn = JSON.parse(churnRes.stdout);
+    } catch (e) {
+      process.stderr.write(`faff spec-judge-evidence: spec-review-churn returned unparseable stdout: ${e.message}\n`);
+      return 2;
+    }
   } else {
     churn = { churn: false, prev_lenses: [], curr_lenses: [], new_lenses: [], reason: "fewer than two in-window rounds" };
   }

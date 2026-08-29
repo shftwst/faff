@@ -99,8 +99,10 @@ const { cmdSelfIntake } = require("./lib/self-intake");
 const { cmdSentry } = require("./lib/sentry");
 const { cmdSentryPoller } = require("./lib/sentry-poller");
 const { cmdSentrycheck } = require("./lib/sentrycheck");
+const { cmdSpecJudgeEvidence } = require("./lib/spec-judge-evidence");
 const { cmdSpecReviewChurn } = require("./lib/spec-review-churn");
 const { cmdSpecReviewConvergence } = require("./lib/spec-review-convergence");
+const { cmdSpecReviewIterationCap } = require("./lib/spec-review-iteration-cap");
 const { cmdSpecReviewPin, cmdSpecReviewDir } = require("./lib/spec-review-pin");
 const { cmdSpecReviewReputation } = require("./lib/spec-review-reputation");
 const { cmdSpecReviewWindow } = require("./lib/spec-review-window");
@@ -232,8 +234,10 @@ const COMMANDS = {
   "models": cmdModels,
   "adversarial-backends": cmdAdversarialBackends,
   "review-iteration-cap": cmdReviewIterationCap,
+  "spec-judge-evidence": cmdSpecJudgeEvidence,
   "spec-review-churn": cmdSpecReviewChurn,
   "spec-review-convergence": cmdSpecReviewConvergence,
+  "spec-review-iteration-cap": cmdSpecReviewIterationCap,
   "spec-review-pin": cmdSpecReviewPin,
   "spec-review-dir": cmdSpecReviewDir,
   "spec-review-reputation": cmdSpecReviewReputation,

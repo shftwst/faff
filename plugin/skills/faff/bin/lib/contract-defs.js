@@ -447,6 +447,57 @@ function contractSpecReviewVerdict(extraction) {
   return { contractData };
 }
 
+// --- spec-judge-verdict (FAFF-922) ---
+// The spec-review judge's closed ruling, emitted at the would-be-park point and overriding the
+// refuter majority at the loop level. Its vocabulary is DISTINCT from spec-review-verdict:
+// `accept` overrides a non-clean refuter vote, `keep-going` grants more rounds (no refuter term
+// for it), `park-needs-human` escalates. Fail-loud (exit 2) on a verdict outside the closed
+// three (faff's own producer emits it — no safe coerce target), mirroring spec-review-verdict.
+// The founded-verdict invariant: a non-accept must carry a non-empty rationale AND uphold at
+// least one objection; an accept upholds none. Echoed lens/severity enforce their enum via
+// violations (exit 1), the spec-review-verdict precedent — never a spurious fail-loud.
+// INTERIM vocabulary (kept thin).
+const SPEC_JUDGE_VERDICTS = ["accept", "park-needs-human", "keep-going"];
+function computeSpecJudgeVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!SPEC_JUDGE_VERDICTS.includes(extraction.verdict)) {
+    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {accept,park-needs-human,keep-going} — no safe coerce target` };
+  }
+  const verdict = extraction.verdict;
+  const violations = [];
+  const rationale = typeof extraction.rationale === "string" ? extraction.rationale : "";
+  const normList = (raw, field) => {
+    if (raw !== undefined && !Array.isArray(raw)) violations.push(`${field} is not an array — treated as empty`);
+    const arr = Array.isArray(raw) ? raw : [];
+    return arr.map((o, i) => {
+      const lens = o && typeof o === "object" ? o.lens : undefined;
+      const severity = o && typeof o === "object" ? o.severity : undefined;
+      if (!SPEC_REVIEW_LENSES.includes(lens)) violations.push(`${field}[${i}] lens ${JSON.stringify(lens)} not in {architectural,infosec,methodology,QA}`);
+      if (!SPEC_REVIEW_SEVERITIES.includes(severity)) violations.push(`${field}[${i}] severity ${JSON.stringify(severity)} not in {blocker,major,minor}`);
+      return { lens: typeof lens === "string" ? lens : "", severity: typeof severity === "string" ? severity : "" };
+    });
+  };
+  const downweighted = normList(extraction.downweighted, "downweighted");
+  const upheld = normList(extraction.upheld, "upheld");
+  if (verdict === "accept") {
+    if (upheld.length > 0) violations.push("accept upholds objections — an accept must uphold none");
+  } else {
+    if (!rationale.trim()) violations.push(`${verdict} carries no rationale — a non-accept ruling must state what it upheld and why`);
+    if (upheld.length === 0) violations.push(`${verdict} upholds no objections — a non-accept ruling must uphold at least one`);
+  }
+  return { contractData: { verdict, rationale, downweighted, upheld, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractSpecJudgeVerdict(extraction) {
+  const { contractData, failLoud } = computeSpecJudgeVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "spec-judge-verdict");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- architecture-proposal (FAFF-27) ---
 // The proposal envelope FAFF-27's `architecture` slot producer (default faffter-noon-architecture)
 // emits: a best-fit, build-biased architecture proposal generated from the infra profile + brief.
@@ -2337,6 +2388,21 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "spec-judge-verdict": {
+    run: contractSpecJudgeVerdict,
+    fixtures: [
+      { name: "conformant-accept", in: { verdict: "accept", rationale: "taste-level minors, no blocker, no major infosec", upheld: [], downweighted: [{ lens: "QA", severity: "minor" }] }, wantExit: 0 },
+      { name: "conformant-keep-going", in: { verdict: "keep-going", rationale: "count still falling, grant a round", upheld: [{ lens: "architectural", severity: "major" }] }, wantExit: 0 },
+      { name: "conformant-park", in: { verdict: "park-needs-human", rationale: "a standing blocker the judge will not ship", upheld: [{ lens: "infosec", severity: "blocker" }] }, wantExit: 0 },
+      { name: "accept-with-upheld", in: { verdict: "accept", rationale: "x", upheld: [{ lens: "QA", severity: "minor" }] }, wantExit: 1 },
+      { name: "non-accept-empty-upheld", in: { verdict: "keep-going", rationale: "x", upheld: [] }, wantExit: 1 },
+      { name: "non-accept-empty-rationale", in: { verdict: "park-needs-human", rationale: "", upheld: [{ lens: "QA", severity: "minor" }] }, wantExit: 1 },
+      { name: "bad-lens", in: { verdict: "keep-going", rationale: "x", upheld: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
+      { name: "bad-severity", in: { verdict: "park-needs-human", rationale: "x", upheld: [{ lens: "QA", severity: "huge" }] }, wantExit: 1 },
+      { name: "fail-loud-bad-verdict", in: { verdict: "ship-it", upheld: [] }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "architecture-proposal": {
     run: contractArchitectureProposal,
     fixtures: [
@@ -2769,6 +2835,19 @@ const CONTRACT_DESCRIBES = {
     coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "approve declared with any objections, or a non-approve verdict declared with zero objections → conformant:false", "an out-of-enum objection lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
     producer_notes: [],
   },
+  "spec-judge-verdict": {
+    purpose: "The spec-review judge's closed ruling at the would-be-park point — ship the spec (accept), escalate to a human (park-needs-human), or grant more rounds (keep-going) — overriding the refuter majority at the loop level.",
+    values: [
+      { field: "verdict", enum: SPEC_JUDGE_VERDICTS, semantics: { accept: "the standing objections are taste-level residue — ship the spec (stands in for a refuter approve; still ANDed with the confidence gate)", "park-needs-human": "the residue is load-bearing or undecidable — escalate to a human", "keep-going": "not settled yet but trending — grant another review round (bounded by the keep-going counter)" } },
+      // lens/severity are lintable:false: the judge WRITES these labels while classifying which
+      // objections it upheld vs down-weighted — a producer dialect, not a routing verdict a
+      // consumer branches on. `verdict` above stays lintable (the closed 3-value routing enum).
+      { field: "upheld[].lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
+      { field: "upheld[].severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },
+    ],
+    coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "accept declared with any upheld objection, or a non-accept verdict declared with an empty upheld or an empty rationale → conformant:false", "an out-of-enum upheld/downweighted lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
+    producer_notes: [],
+  },
   "architecture-proposal": {
     purpose: "The best-fit, build-biased architecture proposal the `architecture` slot producer generates from an infra profile + brief — the generative counterpart to FAFF-9's architectural review lens, which only critiques a proposal already landed in a spec.",
     values: [
@@ -3027,4 +3106,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

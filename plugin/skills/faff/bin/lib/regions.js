@@ -319,6 +319,12 @@ const REGION_MAP = {
   // spec-review-convergence's roundFilesInDir — factory→factory, ADR-0042) and owns the
   // window.json sidecar read/write — a small deterministic CLI resolver faff-prep shells out to.
   "spec-review-window": "factory",
+  // FAFF-922: spec-review-iteration-cap re-exports review-iteration-cap's APPETITE_CAP/resolver
+  // (factory→factory, ADR-0042) and spec-judge-evidence shells the deterministic spec-review
+  // resolvers to assemble the judge's evidence bundle — both small deterministic CLI resolvers
+  // faff-prep shells out to, same family as the other spec-review resolvers → factory.
+  "spec-review-iteration-cap": "factory",
+  "spec-judge-evidence": "factory",
   // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
   // reference — same shape as spec-review-churn) — factory, same family as the other small
   // deterministic CLI resolvers.
@@ -454,6 +460,10 @@ const REGION_SELFTEST_ARGV = {
   "spec-review-dir": ["spec-review-dir", "--selftest"],
   "spec-review-reputation": ["spec-review-reputation", "--selftest"],
   "spec-review-window": ["spec-review-window", "--selftest"],
+  "spec-review-iteration-cap": ["spec-review-iteration-cap", "--selftest"],
+  // spec-judge-evidence has no standalone --selftest (its shelling seam is exercised by
+  // test/spec-judge-evidence.test.mjs, declared in lint-cli-coverage's TEST_FILE_COVERAGE).
+  "spec-judge-evidence": null,
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
 };

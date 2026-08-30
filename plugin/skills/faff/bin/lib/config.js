@@ -184,6 +184,12 @@ const DEFAULTS = {
   //     persistent outage may accrue before prep escalates to a needs-human park.
   "prep.spec_review_outage_retry_limit": "2",
   "prep.spec_review_outage_hold_limit": "3",
+  // FAFF-941: the spec-review JUDGE dispatch's IN-TURN transport-outage retry ceiling (default 2) —
+  // the judge twin of spec_review_outage_retry_limit above. The judge is dispatched once per
+  // would-be-park; without a bounded retry a single transient transport blip (an EXIT.UNREACHABLE /
+  // EXIT.DEADLINE outage exhausting the judge chain) parks the whole pass to needs-human. A distinct
+  // key keeps the reviewer and judge dispatches independently tunable.
+  "prep.spec_review_judge_retry_limit": "2",
   // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
   // false (refuse on positive evidence of a mounted host socket). true is the operator taking
   // responsibility that a same-path socket is a BOUNDED nested engine, not the host daemon;
@@ -2154,6 +2160,8 @@ function cmdConfig(args) {
           // FAFF-900: prep's spec-review-outage disposition bounds (prep.* namespace — prep owns
           // this loop, symmetric with graft's above): the in-turn ceiling and the cross-drain hold ceiling.
           "prep.spec_review_outage_retry_limit", "prep.spec_review_outage_hold_limit",
+          // FAFF-941: the spec-review judge dispatch's in-turn transport-outage retry ceiling.
+          "prep.spec_review_judge_retry_limit",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
           // FAFF-717: the L3 Sentry-abort opt-in (default false) — retained alias.

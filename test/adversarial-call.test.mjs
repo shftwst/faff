@@ -13,6 +13,7 @@ import {
   buildAnthropicPayload, accumulateAnthropic, ANTHROPIC_VERSION,
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
+  judgeDispatchDisposition, JUDGE_RETRY_OUTAGE_EXITS,
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory, budgetWarnings,
   splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS,
@@ -197,6 +198,63 @@ test("FAFF-918 reasoning_extra: thinking_token_budget is allowlisted and emits t
   const body = buildOpenAiPayload({ model: "unsloth/Qwen3.8-27B", system: "S", user: "U", reasoningExtra: { thinking_token_budget: 2000 } });
   assert.equal(body.thinking_token_budget, 2000, "thinking_token_budget reaches the body top-level (vLLM's reasoning-cap shape)");
   assert.equal(REASONING_EXTRA_KEYS.includes("thinking_token_budget"), true, "thinking_token_budget is in the allowlist");
+});
+
+// FAFF-941 defect 1: the GLM/OpenRouter judge backend's reasoning cap is data in .faffrc
+// (reasoning_extra), not a knob hardcoded in the dispatch — so it reaches the request body with no
+// branch on model or provider. `reasoning` is already allowlisted (FAFF-914), so no transport change.
+test("FAFF-941 reasoning_extra: an OpenRouter judge backend's request body carries reasoning.max_tokens sourced from config, no dropped thinking_token_budget", () => {
+  // The backend object exactly as `faff adversarial-backends --consumer spec_judge` emits it and
+  // review-call.mjs's --backends-json mapper reads it (reasoningExtra <- b.reasoning_extra).
+  const judgeBackend = { provider: "openai", model: "z-ai/glm-5.2:free", host: "https://openrouter.ai/api/v1", reasoning_extra: { reasoning: { max_tokens: 2000 } } };
+  const body = buildOpenAiPayload({ model: judgeBackend.model, system: "S", user: "U", reasoningExtra: judgeBackend.reasoning_extra });
+  assert.deepEqual(body.reasoning, { max_tokens: 2000 }, "OpenRouter's reasoning cap reaches the body as reasoning.max_tokens");
+  assert.equal(body.thinking_token_budget, undefined, "no dropped qwen-lever thinking_token_budget on the GLM body");
+});
+
+test("FAFF-941 reasoning_extra: the qwen refuter's thinking_token_budget still passes through (no regression to the refuter path)", () => {
+  const qwenBackend = { provider: "openai", model: "unsloth/Qwen3.8-27B-NVFP4", reasoning_extra: { thinking_token_budget: 2000 } };
+  const body = buildOpenAiPayload({ model: qwenBackend.model, system: "S", user: "U", reasoningExtra: qwenBackend.reasoning_extra });
+  assert.equal(body.thinking_token_budget, 2000, "the qwen chat-template cap still reaches the body unchanged");
+  assert.equal(body.reasoning, undefined, "no OpenRouter reasoning object leaks onto the qwen body");
+});
+
+// FAFF-941 defect 2: the judge dispatch's retry-vs-park decision is a tested classifier over the
+// whole EXIT taxonomy, not prose — so "retry a transient outage, park a config-fault/garble" has an
+// executable oracle. The retry pair matches mandatoryRemap's no-opinion outage class.
+test("FAFF-941 judgeDispatchDisposition: classifies every EXIT code as ruling / retry / park", () => {
+  assert.equal(judgeDispatchDisposition(EXIT.OK), "ruling", "OK is a ruling to validate");
+  // retry: the swing-capable no-opinion outage pair (mandatoryRemap's fail-closed pair)
+  assert.equal(judgeDispatchDisposition(EXIT.UNREACHABLE), "retry", "5 all-hosts-down/429-exhausted is a transient outage");
+  assert.equal(judgeDispatchDisposition(EXIT.DEADLINE), "retry", "8 budget-hit-before-ruling is a transient outage");
+  assert.deepEqual([...JUDGE_RETRY_OUTAGE_EXITS].sort(), [EXIT.UNREACHABLE, EXIT.DEADLINE].sort(), "the retry set is exactly {5,8}");
+  // park: config-fault / needs-human (CHAIN_NEEDS_HUMAN), OTHER, garbled ruling, and mandatory-outage
+  for (const e of [EXIT.OTHER, EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MANDATORY_OUTAGE, EXIT.MALFORMED, EXIT.NO_FINDINGS_CONTENT]) {
+    assert.equal(judgeDispatchDisposition(e), "park", `exit ${e} parks directly (never rescued by a retry)`);
+  }
+  // total over the taxonomy — no EXIT value falls through unclassified
+  for (const e of Object.values(EXIT)) {
+    assert.ok(["ruling", "retry", "park"].includes(judgeDispatchDisposition(e)), `exit ${e} has a disposition`);
+  }
+});
+
+// A single transient transport blip is retried in-band by the transport primitive, not surfaced as an
+// outage the caller parks on. The judge dispatch relies on this primitive (plus the classifier above
+// and its bounded in-turn re-dispatch in faff-prep/SKILL.md) to ride out one blip in a would-be-park pass.
+test("FAFF-941 transport-retry: a single transient transport failure is retried and does not park when the retry succeeds", async () => {
+  let calls = 0;
+  const r = await runReview({
+    host: "http://h:1/v1", model: "m", system: "S", user: "U",
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("HTTP 503 upstream blip");   // transient (isTransientTransport true)
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.equal(calls, 2, "the transient first attempt is retried exactly once");
+  assert.equal(r.status, "ok", "the retry succeeds — status ok, never a transport-failed park");
+  assert.equal(r.content, "### finding");
 });
 
 test("modelServedOpenAi reads the {data:[{id}]} shape and matches exactly", () => {

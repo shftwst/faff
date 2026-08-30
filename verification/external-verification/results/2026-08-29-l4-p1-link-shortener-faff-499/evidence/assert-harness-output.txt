@@ -1,0 +1,7 @@
+# assert-p1-top-of-loop  (substrate: git-only, cwd: /Users/shftwst/workspace/shftwst/faff/evidence/e2e-run-20260829-100405)
+PASS  AC1    .faff/intake/20260829-link-shortener-roadmap.md: 1 initiative, 1 project, 3 first-slice epic(s), deps present, autonomous provenance present
+PASS  AC2    1/1 loop PRDR(s) Accepted: 0001-link-shortener-v1-persisted-runnable-service.md=Accepted/loop
+PASS  AC3    gk-20260829-zr4n8l drained: spec present, run ledger run-20260829-100405-lights-out 
+PASS  AC-neg self-directed (shftwst/faff): outward=false, refuse/self-directed, runs unchanged (2)
+# --------------------------------------------------------------
+# VERDICT: GREEN — top-of-loop plumbing connected

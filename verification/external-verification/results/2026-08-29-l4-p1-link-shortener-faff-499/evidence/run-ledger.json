@@ -1,0 +1,172 @@
+{
+  "run_id": "run-20260829-100405-lights-out",
+  "level": "L4",
+  "armed": {
+    "admissibility": "live",
+    "spec_review": "live",
+    "terminating": "live",
+    "budget": "live",
+    "observability": "live",
+    "kill_switch": "live",
+    "holdout": "live",
+    "container": "live"
+  },
+  "enforced": {
+    "admissibility": true,
+    "spec_review": true,
+    "terminating": true,
+    "budget": true,
+    "observability": true,
+    "kill_switch": true,
+    "holdout": true,
+    "container": true
+  },
+  "banner": "faff lights-out — L4 (preview) run banner\n  level: L4 (preview)   container: contained   convergence: forced\n  guardrails (8):\n    ● admissibility  reachable:live      enforced       (faff admissible --lights-out)\n    ● spec_review    reachable:live      enforced       (faff contract spec-review-verdict)\n    ● terminating    reachable:live      enforced       (faff run-done)\n    ● budget         reachable:live      enforced       (faff budget check)\n    ● observability  reachable:live      enforced       (faff events)\n    ● kill_switch    reachable:live      enforced       (faff sentry check)\n    ● holdout        reachable:live      enforced       (faff holdout / faff prdr coverage)\n    ● container      reachable:live      enforced       (faff container-check)\n  floor: no-execute ✓ static  ·  worktree-isolation ✓ checked  ·  autonomous-contract ✓ static\n  status: ARMED — 8/8 enforced\n  degraded (proceeding):\n    ⚠ corrective-integrity: no FAFF_INTEGRITY_BOUNDARY declaration in pid-1 environ — proceeding on the FAFF-518 digest custody floor (unconditional per L4 run, FAFF-520 obligation 5). For the stronger mount-asserted basis, compose the value with `faff integrity-boundary` once the cage read-only-mounts the integrity dirs (FAFF-517)",
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "until": null,
+        "max_attempts": 30,
+        "tokens": 300000000,
+        "cost": null
+      },
+      "until_invalid": null,
+      "price_per_mtok_removed": null,
+      "at_ceiling": "stop",
+      "price_per_mtok": 0,
+      "pricing": "map",
+      "window": null,
+      "allow_unmetered": []
+    },
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 10,
+        "output": 2078,
+        "cache_write": 41305,
+        "cache_read": 137752
+      }
+    },
+    "tokens_at_start": 181145,
+    "measure_session_id": "50af9ca9-1751-4f59-b208-b15d41a9dfe0",
+    "metering": {
+      "source_at_mint": "transcript",
+      "degraded": false
+    },
+    "tokens_at_last_event": {
+      "input": 290,
+      "output": 263444,
+      "cache_write": 1283277,
+      "cache_read": 25228029
+    },
+    "sessions": [
+      {
+        "session_id": null,
+        "baseline_by_model_class": {
+          "claude-opus-4-8": {
+            "input": 10,
+            "output": 2078,
+            "cache_write": 41305,
+            "cache_read": 137752
+          }
+        },
+        "closed_delta_by_model_class": {
+          "claude-opus-4-8": {
+            "input": 0,
+            "output": 0,
+            "cache_write": 0,
+            "cache_read": 0
+          }
+        },
+        "closed_at": "2026-08-29T14:24:08.080Z",
+        "close_source": "transcript"
+      },
+      {
+        "session_id": "711f8137-c100-4a15-a49d-9d7dd2de0b7c",
+        "baseline_by_model_class": {
+          "claude-opus-4-8": {
+            "input": 8,
+            "output": 582,
+            "cache_write": 40280,
+            "cache_read": 102508
+          }
+        },
+        "closed_delta_by_model_class": null,
+        "closed_at": null,
+        "close_source": null
+      }
+    ]
+  },
+  "budget_ceiling": {
+    "until": null,
+    "max_attempts": 30,
+    "tokens": 300000000,
+    "cost": null
+  },
+  "dial_profile": {
+    "appetite": "full",
+    "convergence": "forced",
+    "slots": {
+      "review": "faffter-dark-adversarial-review",
+      "spec_review": "faffter-dark-spec-review"
+    },
+    "gates": null
+  },
+  "prd_creative_licence": "broad",
+  "prd_root_container": "link-shortener",
+  "corrective_authority": "channel-D-only",
+  "container": "contained",
+  "floor": {
+    "no_execute": true,
+    "worktree_isolation": true,
+    "autonomous_contract": true
+  },
+  "admitted": [
+    "gk-20260829-zr4n8l",
+    "gk-20260829-u9qzgx",
+    "gk-20260829-tleugm"
+  ],
+  "outcomes": {
+    "gk-20260829-zr4n8l": "shipped",
+    "gk-20260829-u9qzgx": "shipped",
+    "gk-20260829-tleugm": "shipped"
+  },
+  "owner": {
+    "status": "done",
+    "epoch": 1,
+    "session_id": null,
+    "pid": 537,
+    "started_at": "2026-08-29T14:24:08.080Z",
+    "last_heartbeat": "2026-08-29T15:17:02.440Z",
+    "closed_at": "2026-08-29T16:51:43.944Z"
+  },
+  "discovered_scope_filed": 1,
+  "review_outage_pending": [],
+  "owner_history": [
+    {
+      "status": "done",
+      "session_id": null,
+      "pid": 495,
+      "started_at": "2026-08-29T10:04:05.399Z",
+      "last_heartbeat": "2026-08-29T10:04:05.399Z",
+      "closed_at": "2026-08-29T12:20:00Z"
+    }
+  ],
+  "abort_history": [],
+  "resume": [
+    {
+      "epoch": 1,
+      "resumed_at": "2026-08-29T14:24:08.080Z",
+      "session_id": null,
+      "prior_state": "escalated",
+      "plan_summary": {
+        "skipped_shipped": [],
+        "redispatched": [],
+        "rebuilt_coarse": [],
+        "parked_divergent": [
+          "gk-20260829-zr4n8l"
+        ]
+      }
+    }
+  ],
+  "stop_reason": "converged/both-dry"
+}

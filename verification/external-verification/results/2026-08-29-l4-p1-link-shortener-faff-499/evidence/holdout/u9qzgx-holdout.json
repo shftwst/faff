@@ -1,0 +1,20 @@
+{
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "criteria": [
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "scenario", "verdict": "met", "evidence_present": true },
+    { "class": "assertion", "verdict": "met", "evidence_present": true },
+    { "class": "assertion", "verdict": "met", "evidence_present": true },
+    { "class": "assertion", "verdict": "met", "evidence_present": true },
+    { "class": "assertion", "verdict": "met", "evidence_present": true },
+    { "class": "assertion", "verdict": "met", "evidence_present": true }
+  ],
+  "violations": []
+}

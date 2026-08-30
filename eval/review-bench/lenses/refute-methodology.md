@@ -14,8 +14,10 @@ upstream judgement into refutations and add only delivery-shape objections the c
 - **Surfaced deps?** Are the spec's own assumptions and prerequisites drawn as real dependencies, or
   buried in prose where the pipeline cannot see them?
 
-If no `issue-critique` is supplied, say "no methodology signal available", raise no methodology
-objection, and do **not** fall back to recomputing value or scope yourself.
+If no `issue-critique` is supplied, raise no methodology objection and do **not** fall back to
+recomputing value or scope yourself. Emit exactly one findings-shaped observation under the heading:
+`### observation: no methodology signal available` — nothing else. It is non-gating (an observation is
+dropped in aggregation) and keeps the diagnostic without being mis-read as an empty or failed lens.
 
 Only raise objections grounded in the supplied critique or the spec text. If the slice is well-shaped,
 say so and raise nothing.

@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-942",
+  "verified_at": "2026-08-30",
+  "method": "node --test full suite (3967 pass / 0 fail), targeted assertions, validate-adapters + lint-refs + lint-cli-doc",
+  "criteria": [
+    {"id": 1, "text": "Methodology no-critique 3-line no-op normalises to CANONICAL_NO_FINDINGS (clean pass, not fault)", "status": "pass", "evidence": "test 'FAFF-942 normaliseCleanRefutation: the methodology 3-line no-critique no-op normalises to a clean pass'"},
+    {"id": 2, "text": "refute-methodology.md no-critique emits '### observation: no methodology signal available'; passes validateFindingsShape; dropped by aggregate as observation", "status": "pass", "evidence": "test 'FAFF-942 ... findings-shaped observation ... valid + non-gating' + aggregate.mjs --selftest ok + prompt-contract assertion"},
+    {"id": 3, "text": "Other lenses' clean bare+headed forms normalise unchanged", "status": "pass", "evidence": "existing FAFF-746 tests green + new non-methodology-3-line test"},
+    {"id": 4, "text": "Genuinely garbled / near-miss forms still fail normalisation (closed grammar); methodology negative cases pinned", "status": "pass", "evidence": "test 'FAFF-942 ... the new 3-line grammar stays CLOSED (negative cases)' + signal-bytes pin"},
+    {"id": 5, "text": "429 no same-endpoint retry (one attempt, rate-limited status); advances chain; all-429->EXIT.RATE_LIMITED; judgeDispatchDisposition(RATE_LIMITED)=park; UNREACHABLE/DEADLINE=retry; 5xx/socket still retry; mandatory all-429 fails closed", "status": "pass", "evidence": "tests: isTransientTransport/isRateLimited partition; runReview 429 one-attempt (openai/anthropic/preflight); chainTerminalExit pure vs mixed; judgeDispatchDisposition; mandatoryRemap; main() 429->RATE_LIMITED"},
+    {"id": 6, "text": "faff validate-adapters lints clean on the edited refuter", "status": "pass", "evidence": "validate-adapters RESULT: PASS (20 slot skills)"},
+    {"id": 7, "text": "Full test suite + repo gates pass", "status": "pass", "evidence": "node --test 3967 pass/0 fail/4 pre-existing skips; lint-refs PASS; lint-cli-doc PASS; adr/prdr validate exit 0; regions check PASS; evaluate --selftest ok"}
+  ],
+  "all_verified": true
+}

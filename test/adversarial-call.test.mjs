@@ -12,7 +12,7 @@ import {
   buildOpenAiPayload, REASONING_EXTRA_KEYS, modelServedOpenAi, accumulateSse, isAuthError,
   buildAnthropicPayload, accumulateAnthropic, ANTHROPIC_VERSION,
   providerFamily, joinUrl, preflightOpenAi,
-  isTransientTransport, TRANSPORT_RETRY, main,
+  isTransientTransport, isRateLimited, TRANSPORT_RETRY, main,
   judgeDispatchDisposition, JUDGE_RETRY_OUTAGE_EXITS,
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory, budgetWarnings,
@@ -103,7 +103,8 @@ test("EXIT codes: not-served, unreachable, default-host-unreachable, auth are di
   assert.equal(EXIT.UNREACHABLE, 5);
   assert.equal(EXIT.DEFAULT_HOST_UNREACHABLE, 6);
   assert.equal(EXIT.AUTH, 7); // renumbered from 6 → 7 after FAFF-213 took exit 6
-  assert.equal(new Set([EXIT.NOT_SERVED, EXIT.UNREACHABLE, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH]).size, 4);
+  assert.equal(EXIT.RATE_LIMITED, 12); // FAFF-942: a distinct availability class for an all-429 chain
+  assert.equal(new Set([EXIT.NOT_SERVED, EXIT.UNREACHABLE, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.RATE_LIMITED]).size, 5);
 });
 
 // --- OpenAI-compatible (/v1) path: NVIDIA NIM, OpenAI, vLLM, OpenRouter, DeepSeek ---
@@ -225,11 +226,15 @@ test("FAFF-941 reasoning_extra: the qwen refuter's thinking_token_budget still p
 test("FAFF-941 judgeDispatchDisposition: classifies every EXIT code as ruling / retry / park", () => {
   assert.equal(judgeDispatchDisposition(EXIT.OK), "ruling", "OK is a ruling to validate");
   // retry: the swing-capable no-opinion outage pair (mandatoryRemap's fail-closed pair)
-  assert.equal(judgeDispatchDisposition(EXIT.UNREACHABLE), "retry", "5 all-hosts-down/429-exhausted is a transient outage");
+  assert.equal(judgeDispatchDisposition(EXIT.UNREACHABLE), "retry", "5 all-hosts-down is a transient outage");
   assert.equal(judgeDispatchDisposition(EXIT.DEADLINE), "retry", "8 budget-hit-before-ruling is a transient outage");
   assert.deepEqual([...JUDGE_RETRY_OUTAGE_EXITS].sort(), [EXIT.UNREACHABLE, EXIT.DEADLINE].sort(), "the retry set is exactly {5,8}");
-  // park: config-fault / needs-human (CHAIN_NEEDS_HUMAN), OTHER, garbled ruling, and mandatory-outage
-  for (const e of [EXIT.OTHER, EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MANDATORY_OUTAGE, EXIT.MALFORMED, EXIT.NO_FINDINGS_CONTENT]) {
+  // FAFF-942: RATE_LIMITED(12, an all-429 chain) is NOT retried — re-dispatching a throttled chain does not
+  // clear the limit, so it parks (the next drain, not an in-turn re-run, is the recovery path).
+  assert.equal(judgeDispatchDisposition(EXIT.RATE_LIMITED), "park", "12 all-429 parks — a re-dispatch cannot clear a rate limit");
+  assert.ok(!JUDGE_RETRY_OUTAGE_EXITS.has(EXIT.RATE_LIMITED), "RATE_LIMITED is deliberately absent from the retry set");
+  // park: config-fault / needs-human (CHAIN_NEEDS_HUMAN), OTHER, garbled ruling, mandatory-outage, and rate-limited
+  for (const e of [EXIT.OTHER, EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MANDATORY_OUTAGE, EXIT.MALFORMED, EXIT.NO_FINDINGS_CONTENT, EXIT.RATE_LIMITED]) {
     assert.equal(judgeDispatchDisposition(e), "park", `exit ${e} parks directly (never rescued by a retry)`);
   }
   // total over the taxonomy — no EXIT value falls through unclassified
@@ -564,18 +569,18 @@ test("unreachableExit: default-host down → exit 6 (needs-human); configured ho
 
 // --- FAFF-227: bounded transient-transport retry; persistent fault → documented exit, never unmapped 1 ---
 
-test("isTransientTransport: 5xx / dropped-socket / timeout / 429 are transient; other 4xx, auth, usage, unknown are not", () => {
-  // transient (retry) — incl. HTTP 429 rate-limit (FAFF-228): a throttle is transient infra, not a request fault
-  for (const m of ["HTTP 504", "HTTP 502: bad gateway", "HTTP 500", "stream timed out after 580000ms", "preflight timed out after 5000ms", "socket hang up", "HTTP 429", "HTTP 429: rate limited"]) {
+test("isTransientTransport: 5xx / dropped-socket / timeout are transient; 429 and other 4xx, auth, usage, unknown are not (FAFF-942)", () => {
+  // transient (same-endpoint retry) — a genuine transport fault the same request may clear after a backoff
+  for (const m of ["HTTP 504", "HTTP 502: bad gateway", "HTTP 500", "stream timed out after 580000ms", "preflight timed out after 5000ms", "socket hang up"]) {
     assert.equal(isTransientTransport(new Error(m)), true, m);
   }
   for (const code of ["ECONNRESET", "ETIMEDOUT", "EPIPE"]) {
     const e = new Error("write failed"); e.code = code;
     assert.equal(isTransientTransport(e), true, code);
   }
-  // terminal (no retry) — 4xx *other than 429* incl. auth, usage, model-not-served text, anything unrecognised.
-  // 429 is deliberately NOT here (FAFF-228); only 429 among the 4xx flips transient — 401/403/404/400 stay terminal.
-  for (const m of ["HTTP 401", "HTTP 403", "HTTP 404", "HTTP 400 Bad Request", "usage error", "model 'x' not served", "some other error"]) {
+  // terminal (no same-endpoint retry) — 4xx incl. HTTP 429 (FAFF-942: a throttle is not cleared by re-hitting
+  // the same endpoint; it advances the chain instead), auth, usage, model-not-served text, anything unrecognised.
+  for (const m of ["HTTP 429", "HTTP 429: rate limited", "HTTP 401", "HTTP 403", "HTTP 404", "HTTP 400 Bad Request", "usage error", "model 'x' not served", "some other error"]) {
     assert.equal(isTransientTransport(new Error(m)), false, m);
   }
   assert.equal(isTransientTransport(null), false);
@@ -584,6 +589,21 @@ test("isTransientTransport: 5xx / dropped-socket / timeout / 429 are transient; 
   // signal) is intentionally NOT transient here — the streaming-phase retry targets mid-stream drops/5xx.
   const refused = new Error("ECONNREFUSED"); refused.code = "ECONNREFUSED";
   assert.equal(isTransientTransport(refused), false, "ECONNREFUSED is not a mid-stream transient");
+});
+
+test("isRateLimited: only HTTP 429 is a rate-limit; everything else is not (FAFF-942)", () => {
+  for (const m of ["HTTP 429", "HTTP 429: rate limited", "HTTP 429: Too Many Requests"]) {
+    assert.equal(isRateLimited(new Error(m)), true, m);
+  }
+  for (const m of ["HTTP 500", "HTTP 503", "HTTP 401", "HTTP 400", "socket hang up", "stream timed out"]) {
+    assert.equal(isRateLimited(new Error(m)), false, m);
+  }
+  assert.equal(isRateLimited(null), false);
+  assert.equal(isRateLimited(undefined), false);
+  // a 429 is deliberately partitioned OUT of the transient (same-endpoint retry) set and INTO the
+  // rate-limited (advance-the-chain) set — the two predicates never both match one error.
+  assert.equal(isTransientTransport(new Error("HTTP 429")), false);
+  assert.equal(isRateLimited(new Error("HTTP 429")), true);
 });
 
 test("TRANSPORT_RETRY policy defaults: 3 attempts (2 retries), exponential backoff base — named, not magic", () => {
@@ -607,49 +627,51 @@ test("runReview (no provider ⇒ openai default, FAFF-872): a transient mid-stre
   assert.equal(calls, 2, "retried exactly once after the transient fault");
 });
 
-// FAFF-228: an HTTP 429 rate-limit is transient — it rides the same retry path as a 5xx (both providers).
-test("runReview (no provider ⇒ openai default, FAFF-872): an HTTP 429 rate-limit retries once then succeeds → status ok (FAFF-228)", async () => {
+// FAFF-942: an HTTP 429 rate-limit is NOT same-endpoint-retried (reversing FAFF-228). It surfaces as the
+// `rate-limited` status after exactly one stream attempt, so the fallback chain advances to a different backend.
+test("runReview (no provider ⇒ openai default): an HTTP 429 rate-limit is NOT retried → status rate-limited, one attempt (FAFF-942)", async () => {
   let calls = 0;
   const r = await runReview({
     host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 600000,
     getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
-    streamFn: async () => {
-      calls += 1;
-      if (calls === 1) throw new Error("HTTP 429: rate limited"); // transient throttle
-      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
-    },
+    streamFn: async () => { calls += 1; throw new Error("HTTP 429: rate limited"); },
   });
-  assert.equal(r.status, "ok");
-  assert.equal(r.content, "### finding");
-  assert.equal(calls, 2, "retried exactly once after the 429");
+  assert.equal(r.status, "rate-limited");
+  assert.match(r.note, /HTTP 429/);
+  assert.equal(calls, 1, "429 is not retried on the same endpoint — streamed exactly once");
 });
 
-test("runReview openai: an HTTP 429 rate-limit retries once then succeeds → status ok (FAFF-228)", async () => {
+test("runReview openai: an HTTP 429 rate-limit is NOT retried → status rate-limited, one attempt (FAFF-942)", async () => {
   let calls = 0;
   const r = await runReview({
     provider: "nvidia", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "K", timeoutMs: 600000,
     getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
-    streamFn: async () => {
-      calls += 1;
-      if (calls === 1) throw new Error("HTTP 429: Too Many Requests"); // transient throttle
-      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
-    },
+    streamFn: async () => { calls += 1; throw new Error("HTTP 429: Too Many Requests"); },
   });
-  assert.equal(r.status, "ok");
-  assert.equal(r.content, "### finding");
-  assert.equal(calls, 2, "retried exactly once after the 429");
+  assert.equal(r.status, "rate-limited");
+  assert.match(r.note, /HTTP 429/);
+  assert.equal(calls, 1, "429 is not retried on the same endpoint — streamed exactly once");
 });
 
-test("runReview (no provider ⇒ openai default, FAFF-872): a persistent HTTP 429 exhausts retries → status transport-failed (FAFF-228)", async () => {
+test("runReview anthropic: an HTTP 429 rate-limit is NOT retried → status rate-limited, one attempt (FAFF-942)", async () => {
   let calls = 0;
   const r = await runReview({
-    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline passed → no sleeps
-    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    provider: "anthropic", host: "https://h", model: "m", system: "S", user: "U", apiKey: "K", timeoutMs: 600000,
     streamFn: async () => { calls += 1; throw new Error("HTTP 429: rate limited"); },
   });
-  assert.equal(r.status, "transport-failed");
+  assert.equal(r.status, "rate-limited");
   assert.match(r.note, /HTTP 429/);
-  assert.ok(calls >= 1, "attempted at least once");
+  assert.equal(calls, 1, "429 is not retried on the same endpoint — streamed exactly once");
+});
+
+test("runReview openai: a 429 at PREFLIGHT surfaces status rate-limited (advances the chain, not unreachable) (FAFF-942)", async () => {
+  const r = await runReview({
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 600000,
+    getFn: async () => { throw new Error("HTTP 429: rate limited"); },
+    streamFn: async () => { throw new Error("should not stream after a preflight 429"); },
+  });
+  assert.equal(r.status, "rate-limited");
+  assert.match(r.note, /HTTP 429/);
 });
 
 test("runReview (no provider ⇒ openai default, FAFF-872): a persistent transient fault exhausts retries → status transport-failed", async () => {
@@ -759,25 +781,26 @@ test("main(): persistent transport-failed with --host-source default → EXIT.DE
   assert.notEqual(code, EXIT.OTHER);
 });
 
-// FAFF-228: a persistent HTTP 429 surfaces as transport-failed and so inherits the SAME documented exit
-// mapping (5 config / 6 default) — never the unmapped EXIT.OTHER (1) it used to return as a terminal 4xx.
-test("main(): persistent HTTP 429 with --host-source config → EXIT.UNREACHABLE (5), never OTHER (1) (FAFF-228)", async () => {
+// FAFF-942: a persistent HTTP 429 surfaces as the `rate-limited` status → EXIT.RATE_LIMITED (12), a distinct
+// availability class, independent of host provenance (a rate-limit is about the endpoint, not whether the
+// host was configured or defaulted) — never the unmapped EXIT.OTHER (1).
+test("main(): persistent HTTP 429 with --host-source config → EXIT.RATE_LIMITED (12), never OTHER (1) (FAFF-942)", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(
     ["--host", "https://h/v1", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "config"],
-    { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 429: rate limited" }) },
+    { runReviewFn: async () => ({ status: "rate-limited", note: "HTTP 429: rate limited" }) },
   );
-  assert.equal(code, EXIT.UNREACHABLE);
+  assert.equal(code, EXIT.RATE_LIMITED);
   assert.notEqual(code, EXIT.OTHER);
 });
 
-test("main(): persistent HTTP 429 with --host-source default → EXIT.DEFAULT_HOST_UNREACHABLE (6), never OTHER (1) (FAFF-228)", async () => {
+test("main(): persistent HTTP 429 with --host-source default → EXIT.RATE_LIMITED (12) (host-provenance-independent) (FAFF-942)", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(
     ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
-    { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 429: rate limited" }) },
+    { runReviewFn: async () => ({ status: "rate-limited", note: "HTTP 429: rate limited" }) },
   );
-  assert.equal(code, EXIT.DEFAULT_HOST_UNREACHABLE);
+  assert.equal(code, EXIT.RATE_LIMITED);
   assert.notEqual(code, EXIT.OTHER);
 });
 
@@ -802,6 +825,25 @@ test("FAFF-232 chainTerminalExit: returns the FIRST needs-human class in chain o
   assert.equal(chainTerminalExit([EXIT.NOT_SERVED, EXIT.AUTH]), EXIT.NOT_SERVED);
   assert.equal(chainTerminalExit([]), EXIT.UNREACHABLE);
   assert.deepEqual([...CHAIN_NEEDS_HUMAN].sort((a, b) => a - b), [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.NO_FINDINGS_CONTENT].sort((a, b) => a - b));
+});
+
+test("FAFF-942 mapResultExit: a rate-limited backend → EXIT.RATE_LIMITED (12), independent of host provenance", () => {
+  assert.equal(mapResultExit({ status: "rate-limited", note: "HTTP 429" }, "config"), EXIT.RATE_LIMITED);
+  assert.equal(mapResultExit({ status: "rate-limited", note: "HTTP 429" }, "default"), EXIT.RATE_LIMITED);
+});
+
+test("FAFF-942 chainTerminalExit: a PURELY rate-limited chain → RATE_LIMITED; a mix with a genuine outage → UNREACHABLE", () => {
+  // pure all-429 → the distinct rate-limited class (not re-run by the dispatch retry)
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED, EXIT.RATE_LIMITED]), EXIT.RATE_LIMITED);
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED]), EXIT.RATE_LIMITED);
+  // mixed with a genuine unreachable/deadline/garble → stays UNREACHABLE, so a real transient still earns its retry
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED, EXIT.UNREACHABLE]), EXIT.UNREACHABLE);
+  assert.equal(chainTerminalExit([EXIT.UNREACHABLE, EXIT.RATE_LIMITED]), EXIT.UNREACHABLE);
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED, EXIT.DEADLINE]), EXIT.UNREACHABLE);
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED, EXIT.MALFORMED]), EXIT.UNREACHABLE);
+  // a needs-human class still dominates a rate-limited one (no silent weakening)
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED, EXIT.AUTH]), EXIT.AUTH);
+  assert.equal(chainTerminalExit([EXIT.RATE_LIMITED, EXIT.NOT_SERVED]), EXIT.NOT_SERVED);
 });
 
 test("FAFF-232 mapResultExit: per-backend result → exit class (host-source aware)", () => {
@@ -919,7 +961,7 @@ test("FAFF-232 runReviewChain: a malformed backend (missing host) advances, not 
     "FAFF-361: the invalid-backend skip is logged via the reshaped [chain] ... → advancing note");
 });
 
-test("FAFF-232 main(): --backends-json advances past a 429 primary to a healthy fallback → exit 0", async () => {
+test("FAFF-942 main(): --backends-json advances past a rate-limited (429) primary to a healthy fallback → exit 0", async () => {
   const { sys, diff } = writeMainFixtures();
   const dir = mkdtempSync(join(tmpdir(), "faff232-"));
   const bf = join(dir, "backends.json");
@@ -930,11 +972,11 @@ test("FAFF-232 main(): --backends-json advances past a 429 primary to a healthy 
   const code = await main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
-      "https://nv/v1": { status: "transport-failed", note: "HTTP 429" },
+      "https://nv/v1": { status: "rate-limited", note: "HTTP 429: rate limited" },
       "http://ollama:11434": { status: "ok", content: "### observation: no findings" },
     }) },
   );
-  assert.equal(code, EXIT.OK);
+  assert.equal(code, EXIT.OK, "a 429 primary advances the chain rather than being retried on the same endpoint");
 });
 
 test("FAFF-361 main(): --backends-json header names the FALLBACK's provider/model and chain[1] when the primary is skipped", async () => {
@@ -948,7 +990,7 @@ test("FAFF-361 main(): --backends-json header names the FALLBACK's provider/mode
   const { result: code, stdout } = await captureStdout(() => main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
-      "https://nv/v1": { status: "transport-failed", note: "HTTP 429" },
+      "https://nv/v1": { status: "rate-limited", note: "HTTP 429" },
       "http://ollama:11434": { status: "ok", content: "### observation: no findings" },
     }) },
   ));
@@ -1333,9 +1375,12 @@ test("FAFF-398 parseArgs: --lights-out → mandatory=true; absent ⇒ falsy", ()
 });
 
 test("FAFF-398 mandatoryRemap: no-opinion classes (UNREACHABLE/DEADLINE) → MANDATORY_OUTAGE only when mandatory", () => {
-  // mandatory: the two no-opinion classes fail closed
+  // mandatory: the no-opinion classes fail closed
   assert.equal(mandatoryRemap(EXIT.UNREACHABLE, true), EXIT.MANDATORY_OUTAGE);
   assert.equal(mandatoryRemap(EXIT.DEADLINE, true), EXIT.MANDATORY_OUTAGE);
+  // FAFF-942: an all-429 chain is a no-opinion outage too — a mandatory review got no second opinion, so it fails closed
+  assert.equal(mandatoryRemap(EXIT.RATE_LIMITED, true), EXIT.MANDATORY_OUTAGE);
+  assert.equal(mandatoryRemap(EXIT.RATE_LIMITED, false), EXIT.RATE_LIMITED, "advisory: rate-limited passes through unchanged");
   // mandatory: config-fault classes pass through UNCHANGED (never upgraded or masked)
   for (const c of [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH]) {
     assert.equal(mandatoryRemap(c, true), c, `config-fault ${c} must pass through unchanged`);
@@ -1744,6 +1789,69 @@ test("FAFF-746 prompt contract: every allowlisted heading and sentence matches i
     assert.ok(prompt.includes(entry.sentence), `${entry.lens}: sentence drifted`);
     assert.equal(Buffer.from(entry.heading, "utf8").includes(Buffer.from([0xe2, 0x80, 0x94])), true, `${entry.lens}: heading must contain U+2014`);
   }
+});
+
+// ── FAFF-942: a legitimate methodology no-op (the no-critique case) is a recognised clean pass ──
+
+test("FAFF-942 CLEAN_REFUTATIONS: only methodology carries a `signal`, pinned to its exact bytes", () => {
+  const methodology = CLEAN_REFUTATIONS.find((e) => e.lens === "methodology");
+  assert.equal(methodology.signal, "no methodology signal available.", "the no-signal diagnostic bytes are pinned");
+  for (const entry of CLEAN_REFUTATIONS) {
+    if (entry.lens !== "methodology") assert.equal(entry.signal, undefined, `${entry.lens} must not carry a signal — the 3-line arm is methodology-specific`);
+  }
+});
+
+test("FAFF-942 normaliseCleanRefutation: the methodology 3-line no-critique no-op normalises to a clean pass", () => {
+  const noop = "## Refutation — methodology\n\nno methodology signal available.\n\nNo methodology objection.\n";
+  assert.deepEqual(
+    normaliseCleanRefutation(noop),
+    { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "methodology", form: "headed+signal" },
+  );
+  // tolerant of CRLF and outer/blank whitespace, exactly like the bare/headed arms
+  assert.deepEqual(
+    normaliseCleanRefutation(" \r\n## Refutation — methodology\r\n\r\nno methodology signal available.\r\n\r\nNo methodology objection.\r\n "),
+    { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "methodology", form: "headed+signal" },
+  );
+});
+
+test("FAFF-942 normaliseCleanRefutation: the findings-shaped observation the refuter now emits is valid + non-gating", () => {
+  // the refuter's no-critique case emits this line; it must pass the findings-shape gate on its own
+  assert.equal(validateFindingsShape("### observation: no methodology signal available").ok, true);
+  // and the refuter file actually instructs emitting it (contract with the prompt)
+  const prompt = readFileSync(new URL("../plugin/skills/faffter-dark-spec-review/refute-methodology.md", import.meta.url), "utf8");
+  assert.ok(prompt.includes("### observation: no methodology signal available"), "refute-methodology.md must instruct the observation form");
+});
+
+test("FAFF-942 normaliseCleanRefutation: the new 3-line grammar stays CLOSED (negative cases)", () => {
+  const rejected = [
+    // a trailing 4th line past the recognised no-op
+    "## Refutation — methodology\nno methodology signal available.\nNo methodology objection.\nAnd one more thing.",
+    // near-miss signal line: wrong casing
+    "## Refutation — methodology\nNo methodology signal available.\nNo methodology objection.",
+    // near-miss signal line: missing trailing period
+    "## Refutation — methodology\nno methodology signal available\nNo methodology objection.",
+    // a different lens's signal line (methodology signal under the wrong heading)
+    "## Refutation — architectural\nno methodology signal available.\nNo architectural objection.",
+    // 2-line signal-only form (no objection sentence)
+    "## Refutation — methodology\nno methodology signal available.",
+    // signal + sentence without the heading
+    "no methodology signal available.\nNo methodology objection.",
+    // the objection sentence with unrelated trailing prose (the pre-existing openness guard)
+    "No methodology objection.\nAdditional prose.",
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      JSON.stringify(content),
+    );
+  }
+});
+
+test("FAFF-942 normaliseCleanRefutation: a non-methodology lens gets NO 3-line arm (signal is methodology-only)", () => {
+  // even if a model echoed a methodology-style signal line under the QA heading, QA carries no signal → not normalised
+  const content = "## Refutation — QA\nno methodology signal available.\nNo QA objection.";
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
 });
 
 test("FAFF-746/706 spec-review command contract supplies non-empty system, diff, and context paths", () => {

@@ -38,7 +38,7 @@ import { createHash } from "node:crypto";
 //   wrong/incapable model), per-backend, member of CHAIN_NEEDS_HUMAN (never masked by an otherwise-
 //   available chain — this is the split that makes a full-chain exhaustion's terminal disposition
 //   deterministic on a stable response property, not on the incidental run-to-run failure-class mix).
-export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9, MALFORMED: 10, NO_FINDINGS_CONTENT: 11 };
+export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9, MALFORMED: 10, NO_FINDINGS_CONTENT: 11, RATE_LIMITED: 12 };
 // FAFF-329: DEADLINE(8) — the Phase-2 total wall-clock budget (--deadline) was hit before any backend
 // produced findings. Distinct from UNREACHABLE(5) so a deadline-skip is observable, but the caller routes
 // it IDENTICALLY: pass + skip the second opinion, logged loudly (a bounded turn beats an unbounded stall;
@@ -222,10 +222,14 @@ export function validateFindingsShape(content) {
 // token. Matching is provider-neutral and deliberately strict: line endings, outer whitespace, and
 // blank separator lines are formatting; every substantive byte remains case- and punctuation-sensitive.
 export const CANONICAL_NO_FINDINGS = "### observation: no findings";
+// FAFF-942: a lens may carry an optional `signal` — a lens-specific no-signal diagnostic line the
+// refuter emits alongside its no-objection sentence. Only methodology has one (the no-critique case).
+// It extends the closed grammar by exactly one recognised three-line `heading` + `signal` + `sentence`
+// form; every substantive byte stays exact, so arbitrary trailing prose is still rejected.
 export const CLEAN_REFUTATIONS = Object.freeze([
   Object.freeze({ lens: "architectural", heading: "## Refutation — architectural", sentence: "No architectural objection." }),
   Object.freeze({ lens: "infosec", heading: "## Refutation — infosec", sentence: "No infosec objection." }),
-  Object.freeze({ lens: "methodology", heading: "## Refutation — methodology", sentence: "No methodology objection." }),
+  Object.freeze({ lens: "methodology", heading: "## Refutation — methodology", sentence: "No methodology objection.", signal: "no methodology signal available." }),
   Object.freeze({ lens: "QA", heading: "## Refutation — QA", sentence: "No QA objection." }),
 ]);
 
@@ -238,6 +242,12 @@ export function normaliseCleanRefutation(content) {
     }
     if (lines.length === 2 && lines[0] === entry.heading && lines[1] === entry.sentence) {
       return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed" };
+    }
+    // FAFF-942: heading + the lens's own no-signal diagnostic line + sentence — the exact three-line
+    // no-op the methodology refuter emits when handed no critique. Closed: only an entry that declares a
+    // `signal`, and only that exact middle line, ever matches this arm.
+    if (entry.signal != null && lines.length === 3 && lines[0] === entry.heading && lines[1] === entry.signal && lines[2] === entry.sentence) {
+      return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed+signal" };
     }
   }
   return { content: original, normalised: false, lens: null, form: null };
@@ -626,15 +636,16 @@ export function isAuthError(err) {
   return /HTTP 40[13]/.test(m) || (/HTTP 400/.test(m) && /API_KEY_INVALID|api key not valid/i.test(m));
 }
 
-// PURE (FAFF-227; 429 added FAFF-228): is this a *transient* transport fault that should be retried?
-// Mirrors isAuthError. TRUE for a retryable condition — HTTP 5xx, a dropped socket (ECONNRESET/ETIMEDOUT/
-// EPIPE or "socket hang up"), a stream/preflight timeout, or an HTTP 429 rate-limit (the provider is up but
-// throttling — transient infra, not a request fault, so the same request may succeed after a backoff).
-// FALSE for everything else (4xx *other than 429* incl. auth, usage, model-not-served, anything unknown):
-// default-terminal, so the predicate never over-retries a real fault. Only 429 among the 4xx flips
-// transient — do NOT broaden to /HTTP 4\d\d/ (401/403/404/400 are genuine auth/request faults that must
-// stay terminal). realGet/realStream reject 5xx/429 as `HTTP <status>: …` and surface socket faults with
-// err.code, so both the message and (when present) the code are inspected.
+// PURE (FAFF-227; FAFF-942 removed 429): is this a *transient* transport fault that should be retried on
+// the SAME endpoint? Mirrors isAuthError. TRUE for a genuinely transient condition — HTTP 5xx, a dropped
+// socket (ECONNRESET/ETIMEDOUT/EPIPE or "socket hang up"), or a stream/preflight timeout, all of which the
+// same request may clear after a backoff. FALSE for everything else, including HTTP 429: a rate-limited
+// endpoint is not cleared by hitting it again — a same-endpoint retry only burns the deadline budget, so a
+// 429 must ADVANCE the fallback chain to a different, un-throttled backend instead (see isRateLimited and
+// the `rate-limited` status). FALSE for the other 4xx too (auth/usage/model-not-served/anything unknown):
+// default-terminal, so the predicate never over-retries a real fault. Do NOT broaden to /HTTP 4\d\d/.
+// realGet/realStream reject 5xx as `HTTP <status>: …` and surface socket faults with err.code, so both the
+// message and (when present) the code are inspected.
 export function isTransientTransport(err) {
   if (!err) return false;
   const msg = String(err.message || "");
@@ -642,8 +653,16 @@ export function isTransientTransport(err) {
   return /HTTP 5\d\d/.test(msg)                       // 5xx server fault from a reject
     || ["ECONNRESET", "ETIMEDOUT", "EPIPE"].includes(code)
     || /socket hang up/.test(msg)
-    || /timed out/.test(msg)                           // realStream / preflight timeout text
-    || /HTTP 429/.test(msg);                            // FAFF-228: rate-limit is transient infra, retry it
+    || /timed out/.test(msg);                          // realStream / preflight timeout text
+}
+
+// PURE (FAFF-942): is this an HTTP 429 rate-limit? A throttled endpoint is up but refusing this request;
+// re-hitting it does not clear the limit. Kept OUT of isTransientTransport (no same-endpoint retry) and
+// classified as the `rate-limited` status so it advances the fallback chain to a different backend, and so
+// a purely-rate-limited exhausted chain surfaces EXIT.RATE_LIMITED — distinct from the genuine-outage
+// UNREACHABLE/DEADLINE the dispatch-level retry re-runs.
+export function isRateLimited(err) {
+  return /HTTP 429/.test(String(err && err.message));
 }
 
 // FAFF-885: a first-byte (time-to-first-token) breach. Distinct from a transient stream timeout: it is
@@ -787,6 +806,7 @@ export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, ti
   try { body = await getFn(joinUrl(host, "/models"), timeoutMs, headers); }
   catch (e) {
     if (isAuthError(e)) return { authFailed: true, error: e.message };
+    if (isRateLimited(e)) return { rateLimited: true, error: e.message };  // FAFF-942: advance the chain, don't retry the throttled host
     return { unreachable: true, error: e.message };
   }
   const { served, names } = modelServedOpenAi(body, model);
@@ -812,6 +832,7 @@ async function runReviewOpenAi({
 }) {
   const pf = await preflightOpenAi({ host, model, apiKey, getFn });
   if (pf.authFailed) return { status: "auth-failed", note: pf.error };
+  if (pf.rateLimited) return { status: "rate-limited", note: pf.error };  // FAFF-942
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
   if (!pf.served) return { status: "model-not-served", names: pf.names };
 
@@ -834,6 +855,7 @@ async function runReviewOpenAi({
     return { status: "ok", content: r.out.content, truncated: r.out.truncated };
   } catch (e) {
     if (isAuthError(e)) return { status: "auth-failed", note: e.message };
+    if (isRateLimited(e)) return { status: "rate-limited", note: e.message };  // FAFF-942: no same-endpoint retry — advance the chain
     throw e;
   }
 }
@@ -876,6 +898,7 @@ async function runReviewAnthropic({
     return { status: "ok", content: r.out.content, truncated: r.out.truncated };
   } catch (e) {
     if (isAuthError(e)) return { status: "auth-failed", note: e.message };
+    if (isRateLimited(e)) return { status: "rate-limited", note: e.message };  // FAFF-942: no same-endpoint retry — advance the chain
     const m = String(e && e.message);
     if (/HTTP 404/.test(m) || /not_found/i.test(m)) return { status: "model-not-served", note: e.message };
     throw e;
@@ -978,6 +1001,10 @@ export function mapResultExit(result, hostSource) {
     // FAFF-414: a non-transient throw that escaped a run function (see safeCall/mapThrowStatus) — reuse
     // USAGE(2), already a needs-human class (CHAIN_NEEDS_HUMAN below), rather than minting a new exit code.
     case "request-failed": return EXIT.USAGE;
+    // FAFF-942: a rate-limited (HTTP 429) backend — an availability class distinct from unreachable, so an
+    // all-429 exhausted chain is separable from a genuine-outage one (see chainTerminalExit) and is not
+    // re-run by the dispatch-level retry (see judgeDispatchDisposition).
+    case "rate-limited": return EXIT.RATE_LIMITED;
     case "unreachable":
     case "transport-failed": return unreachableExit({ hostSource });
     default: return EXIT.OTHER;
@@ -998,6 +1025,13 @@ export function mapResultExit(result, hostSource) {
 export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.NO_FINDINGS_CONTENT]);
 export function chainTerminalExit(failureClasses = []) {
   for (const c of failureClasses) if (CHAIN_NEEDS_HUMAN.has(c)) return c;
+  // FAFF-942: a PURELY rate-limited exhausted chain (every non-needs-human fault was a 429) collapses to
+  // RATE_LIMITED — a distinct availability class the dispatch-level retry does not re-run (re-hitting a
+  // throttled chain does not clear the limit). A chain that mixes in ANY genuine availability fault
+  // (unreachable/deadline/transport-failed/garble) stays UNREACHABLE, so a real transient blip still earns
+  // its bounded dispatch retry. Empty list → UNREACHABLE unchanged (no faults to surface).
+  const nonHuman = failureClasses.filter((c) => !CHAIN_NEEDS_HUMAN.has(c));
+  if (nonHuman.length > 0 && nonHuman.every((c) => c === EXIT.RATE_LIMITED)) return EXIT.RATE_LIMITED;
   return EXIT.UNREACHABLE;
 }
 
@@ -1013,7 +1047,9 @@ export function chainTerminalExit(failureClasses = []) {
 // covered by construction — runReviewChain itself never learns "mandatory" (stays level-agnostic).
 export function mandatoryRemap(exit, mandatory) {
   if (!mandatory) return exit;
-  if (exit === EXIT.UNREACHABLE || exit === EXIT.DEADLINE) return EXIT.MANDATORY_OUTAGE;
+  // FAFF-942: an all-429 chain (RATE_LIMITED) is a no-opinion outage for a mandatory review exactly as
+  // UNREACHABLE/DEADLINE are — no second opinion was obtained — so it fails closed to MANDATORY_OUTAGE too.
+  if (exit === EXIT.UNREACHABLE || exit === EXIT.DEADLINE || exit === EXIT.RATE_LIMITED) return EXIT.MANDATORY_OUTAGE;
   return exit;
 }
 
@@ -1021,15 +1057,16 @@ export function mandatoryRemap(exit, mandatory) {
 // exit — one of "ruling" (an OK result to validate), "retry" (a transient no-opinion outage: the
 // faff-prep dispatch re-dispatches up to the bounded limit before parking), or "park" (a config
 // fault, a garbled ruling, or an empty result — a human call a retry never rescues). The retry class
-// is EXACTLY mandatoryRemap's no-opinion outage pair: UNREACHABLE(5 — all configured judge hosts
-// down, or a 429 chain that exhausted the internal transport-retry) and DEADLINE(8 — the judge budget
-// hit before any ruling). Those are the swing-capable, infra-configured outage the spec-review outage
-// disposition already rides out one altitude up, so a single blip in a would-be-park pass no longer
-// escalates it to needs-human. Every needs-human/config-fault class (CHAIN_NEEDS_HUMAN = 2/4/6/7/11),
-// OTHER(1), and a garbled ruling (MALFORMED/10) PARK directly — a broken backend or a garbled verdict
-// is not a transient blip. MANDATORY_OUTAGE(9) never arises (the judge is never a --lights-out
-// mandatory review) and is classified park for completeness. Total over the whole EXIT taxonomy — the
-// faff-prep dispatch reads this, never an ad-hoc per-exit branch.
+// is UNREACHABLE(5 — all configured judge hosts down) and DEADLINE(8 — the judge budget hit before any
+// ruling): the swing-capable, infra-configured outage the spec-review outage disposition already rides out
+// one altitude up, so a single blip in a would-be-park pass no longer escalates it to needs-human.
+// RATE_LIMITED(12 — an all-429 chain, FAFF-942) is deliberately NOT in the retry set: re-dispatching a
+// throttled chain does not clear the limit, so it PARKS directly (the next drain, not an in-turn re-run,
+// is the recovery path). Every needs-human/config-fault class (CHAIN_NEEDS_HUMAN = 2/4/6/7/11), OTHER(1),
+// and a garbled ruling (MALFORMED/10) PARK directly — a broken backend or a garbled verdict is not a
+// transient blip. MANDATORY_OUTAGE(9) never arises (the judge is never a --lights-out mandatory review)
+// and is classified park for completeness. Total over the whole EXIT taxonomy — the faff-prep dispatch
+// reads this, never an ad-hoc per-exit branch.
 export const JUDGE_RETRY_OUTAGE_EXITS = new Set([EXIT.UNREACHABLE, EXIT.DEADLINE]);
 export function judgeDispatchDisposition(exit) {
   if (exit === EXIT.OK) return "ruling";

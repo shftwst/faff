@@ -125,7 +125,7 @@ Map each `LensResult.exit` (the underlying `review-call.mjs` exit code the fan-o
 | exit | meaning | lens outcome |
 |---|---|---|
 | `0` | findings returned | parse the refutation; **refuted** if it carries any gating objection, else **clear** |
-| `5` | configured host unreachable / persistent transport failure | **unavailable**, kind `infra-configured` |
+| `5` / `12` | configured host unreachable / persistent transport failure / rate-limited (all backends 429) | **unavailable**, kind `infra-configured` |
 | `6` / `2` / `4` / `7` | default-host down / unsupported provider / model-not-served / auth failed | **unavailable**, kind `config-fault` |
 
 A refuter that is **down never silently approves** — an unavailable lens feeds the transport floor in aggregation below, surfacing `needs-human` rather than a quiet pass.

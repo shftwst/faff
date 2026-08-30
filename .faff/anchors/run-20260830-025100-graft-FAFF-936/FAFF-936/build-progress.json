@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-936",
+  "build": {
+    "status": "complete",
+    "diff_hash": "52c20bb03829e30f12ce080cb87ff997373e62bdedec3532706e17618b2e5682",
+    "branch": "faff-936-ground-refuters-in-prd-goals",
+    "pushed_at": "2026-08-30T03:28:57.586Z"
+  },
+  "updated_at": "2026-08-30T03:28:57.586Z"
+}

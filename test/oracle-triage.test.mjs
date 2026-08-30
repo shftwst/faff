@@ -151,7 +151,7 @@ test("FAFF-670 provenance: every entry names its triage ticket", () => {
     assert.ok(/^FAFF-\d+$/.test(e.triage_ticket || ""), `entry ${e.case_id}: triage_ticket must match /^FAFF-\\d+$/`);
   }
   const tickets = new Set(entries.map((e) => e.triage_ticket));
-  for (const t of tickets) assert.ok(t === "FAFF-319" || t === "FAFF-670" || t === "FAFF-816" || t === "FAFF-907" || t === "FAFF-910", `unexpected triage_ticket ${t}`);
+  for (const t of tickets) assert.ok(t === "FAFF-319" || t === "FAFF-670" || t === "FAFF-816" || t === "FAFF-907" || t === "FAFF-910" || t === "FAFF-936", `unexpected triage_ticket ${t}`);
 });
 
 test("FAFF-319/670 per-class required fields, present-iff", () => {

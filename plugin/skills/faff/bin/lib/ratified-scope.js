@@ -41,11 +41,22 @@ const VALIDATE_MAX_BYTES = 1048576; // 1 MiB
 
 const NON_GOALS_HEADING_RE = /^\s*##\s+non-goals/i;
 
+// FAFF-936: the goals heading. The `\b` word-boundary matches "## Goals & success metrics" and a bare
+// "## Goals", and rejects both "## Non-goals" (the `##\s+goals` prefix never starts there) and
+// "## Goalsomething" (no word boundary after "goals").
+const GOALS_HEADING_RE = /^\s*##\s+goals\b/i;
+
 // The non-goals scanner — the first EXTERNAL caller of the shared exported `sectionBody`, with its
 // DEFAULT boundary (fence-aware, stops at the next equal-or-higher heading). No option is passed and
 // no scanner logic is copied here.
 function nonGoalsSection(prdText) {
   return sectionBody(prdText, NON_GOALS_HEADING_RE);
+}
+
+// FAFF-936: the goals scanner — the same shared `sectionBody` scanner, keyed on the goals heading; it
+// stops at the next equal-or-higher heading (i.e. at "## Non-goals"). Same placeholder treatment.
+function goalsSection(prdText) {
+  return sectionBody(prdText, GOALS_HEADING_RE);
 }
 
 // A `## Non-goals` body that trims to empty or to the scaffold's `_TODO._` marker is treated as absent.
@@ -61,14 +72,22 @@ function placeholderOnly(body) {
 // deterministic function of the register contents alone, so a tradeoff-bearing assemble ALWAYS carries
 // its warnings regardless of any downstream demotion (assemble itself stays write/network-free).
 function assemble(root, container) {
+  let goals = null;
   let nonGoals = null;
   if (container != null) {
     const prdPath = path.join(prdDir(root), prdSlug(container) + ".md");
     if (fs.existsSync(prdPath)) {
       const text = fs.readFileSync(prdPath, "utf8"); // a read throw => exit 2 (unreadable source)
+      const source_path = path.relative(root, prdPath);
+      // FAFF-936: extract BOTH sections from the ONE PRD read (goals + non-goals); each kept only when
+      // its body is not the placeholder.
+      const goalsBody = goalsSection(text);
+      if (goalsBody != null && !placeholderOnly(goalsBody)) {
+        goals = { container, source_path, body: goalsBody };
+      }
       const body = nonGoalsSection(text);
       if (body != null && !placeholderOnly(body)) {
-        nonGoals = { container, source_path: path.relative(root, prdPath), body };
+        nonGoals = { container, source_path, body };
       }
     }
   }
@@ -91,14 +110,19 @@ function assemble(root, container) {
     (t) => `Honouring ${t.id} under recorded Scope "${t.scope}" without scope/topology expiry enforcement (v1); v2 owns automatic expiry.`,
   );
 
-  if (nonGoals == null && precedents.length === 0 && tradeoffs.length === 0) return { exit: 3, block: "", warnings };
-  return { exit: 0, block: render(nonGoals, precedents, tradeoffs), warnings };
+  if (goals == null && nonGoals == null && precedents.length === 0 && tradeoffs.length === 0) return { exit: 3, block: "", warnings };
+  return { exit: 0, block: render(goals, nonGoals, precedents, tradeoffs), warnings };
 }
 
-// render(nonGoals, precedents, tradeoffs) -> markdown. Preserves listEntries order (document order in
-// the register). FAFF-910 adds the `### Ratified tradeoffs (docs/decisions.md)` subsection.
-function render(nonGoals, precedents, tradeoffs) {
+// render(goals, nonGoals, precedents, tradeoffs) -> markdown. Preserves listEntries order (document
+// order in the register). FAFF-936 adds the `### Ratified goals: PRD` subsection FIRST (inclusions
+// before exclusions); FAFF-910 adds the `### Ratified tradeoffs (docs/decisions.md)` subsection.
+function render(goals, nonGoals, precedents, tradeoffs) {
   const out = ["## Ratified scope", "", PROVENANCE_SENTENCE, ""];
+  if (goals != null) {
+    out.push("### Ratified goals: PRD `" + goals.container + "` (" + goals.source_path + ")", "");
+    out.push(goals.body.trim(), ""); // trim leading/trailing blank lines only
+  }
   if (nonGoals != null) {
     out.push("### Non-goals: PRD `" + nonGoals.container + "` (" + nonGoals.source_path + ")", "");
     out.push(nonGoals.body.trim(), ""); // trim leading/trailing blank lines only
@@ -140,11 +164,12 @@ function validate(text) {
   if (!String(text).includes(PROVENANCE_ANCHOR)) {
     problems.push("missing the provenance sentence");
   }
+  const hasGoals = lines.some((l) => /^### Ratified goals: PRD /.test(l));
   const hasNonGoals = lines.some((l) => /^### Non-goals: PRD /.test(l));
   const hasPrecedents = lines.some((l) => l === "### Settled precedents (docs/decisions.md)");
   const hasRatifiedTradeoffs = lines.some((l) => l === "### Ratified tradeoffs (docs/decisions.md)");
-  if (!(hasNonGoals || hasPrecedents || hasRatifiedTradeoffs)) {
-    problems.push("no non-goals, settled-precedents, or ratified-tradeoffs section (an empty block is never emitted)");
+  if (!(hasGoals || hasNonGoals || hasPrecedents || hasRatifiedTradeoffs)) {
+    problems.push("no ratified-goals, non-goals, settled-precedents, or ratified-tradeoffs section (an empty block is never emitted)");
   }
   return { valid: problems.length === 0, problems };
 }
@@ -278,6 +303,7 @@ function ratifiedScopeSelftest() {
 
   // render + validate round-trip (shape only)
   const block = render(
+    null,
     { container: "demo", source_path: "docs/prd/demo.md", body: "- No scaling in v1.\n- No read replica." },
     [{ id: "single-instance-rate-limiting-for-v1", topic: "Single-instance rate limiting for v1", chosen: "in-process counters", scope: "the v1 deployment" }],
   );
@@ -286,6 +312,20 @@ function ratifiedScopeSelftest() {
   ok("render carries the non-goals body verbatim", block.includes("- No scaling in v1."));
   ok("render carries the precedent scope", block.includes("- Scope: the v1 deployment"));
   ok("assemble output validates clean (shape round-trip)", validate(block).valid === true);
+
+  // FAFF-936: render carries the goals subsection, ordered before non-goals, and a goals-only block validates
+  {
+    const gblock = render(
+      { container: "demo", source_path: "docs/prd/demo.md", body: "- Public redirect is the product." },
+      { container: "demo", source_path: "docs/prd/demo.md", body: "- No scaling in v1." },
+      [], [],
+    );
+    ok("FAFF-936: render carries the goals subsection", gblock.includes("### Ratified goals: PRD `demo` (docs/prd/demo.md)"));
+    ok("FAFF-936: render carries the goals body verbatim", gblock.includes("- Public redirect is the product."));
+    ok("FAFF-936: goals subsection precedes non-goals", gblock.indexOf("### Ratified goals: PRD ") < gblock.indexOf("### Non-goals: PRD "));
+    const gonly = render({ container: "demo", source_path: "docs/prd/demo.md", body: "- Public redirect is the product." }, null, [], []);
+    ok("FAFF-936: a goals-only block validates (shape round-trip)", validate(gonly).valid === true);
+  }
 
   // validate rejections
   ok("empty input is invalid with the empty-input problem",
@@ -303,7 +343,7 @@ function ratifiedScopeSelftest() {
     validate("## Ratified scope\n\n" + PROVENANCE_SENTENCE + "\n\n### Ratified tradeoffs (docs/decisions.md)\n").valid === true);
   // FAFF-910: render carries the tradeoff subsection + its settling line
   {
-    const tblock = render(null, [], [{ id: "single-region-health", topic: "Single-region health", chosen: "no failover in v1", scope: "the v1 single-region deployment", source_issue: "FAFF-910" }]);
+    const tblock = render(null, null, [], [{ id: "single-region-health", topic: "Single-region health", chosen: "no failover in v1", scope: "the v1 single-region deployment", source_issue: "FAFF-910" }]);
     ok("render carries the ratified-tradeoffs subsection", tblock.includes("### Ratified tradeoffs (docs/decisions.md)"));
     ok("render carries the tradeoff settling line", tblock.includes("- **Single-region health** (`single-region-health`)"));
     ok("render carries the tradeoff Source-issue + Ratified-by", tblock.includes("Source-issue: FAFF-910  ·  Ratified-by: human"));
@@ -326,6 +366,22 @@ function ratifiedScopeSelftest() {
     ok("assemble output validates clean", validate(a.block).valid === true);
     ok("assemble renders the non-goals section", a.block.includes("### Non-goals: PRD `demo`"));
     ok("assemble renders the precedent", a.block.includes("Rate limiting for v1"));
+
+    // FAFF-936: a PRD carrying BOTH goals and non-goals -> both subsections, goals before non-goals
+    fs.writeFileSync(path.join(tmp, "docs", "prd", "demo.md"),
+      "# PRD — demo\n\n## Goals & success metrics\n\n- Public redirect is the product.\n\n## Non-goals\n\n- No scaling in v1.\n\n## Acceptance criteria\n\n- Given x, When y, Then z.\n");
+    const ag = assemble(tmp, "demo");
+    ok("FAFF-936: assemble renders the goals section", ag.block.includes("### Ratified goals: PRD `demo`"));
+    ok("FAFF-936: goals section precedes non-goals in assemble output", ag.block.indexOf("### Ratified goals: PRD ") < ag.block.indexOf("### Non-goals: PRD "));
+
+    // FAFF-936: a goals-ONLY PRD (no non-goals, no scoped precedent, no tradeoff) assembles at exit 0
+    fs.writeFileSync(path.join(tmp, "docs", "prd", "demo.md"),
+      "# PRD — demo\n\n## Goals & success metrics\n\n- Public redirect is the product.\n\n## Acceptance criteria\n\n- Given x, When y, Then z.\n");
+    fs.writeFileSync(path.join(tmp, "docs", "decisions.md"),
+      "# Decisions register\n\n## No scope here\n- Chosen: x\n- Rationale: y\n- Matches: k\n- Date: 2026-08-27\n");
+    const ago = assemble(tmp, "demo");
+    ok("FAFF-936: a goals-only PRD assembles at exit 0 (not 3)", ago.exit === 0 && ago.block.includes("### Ratified goals: PRD `demo`"));
+    ok("FAFF-936: a goals-only block validates clean", validate(ago.block).valid === true);
 
     // exit-3: no PRD non-goals + a decisions register whose sole entry has no Scope
     fs.writeFileSync(path.join(tmp, "docs", "decisions.md"),
@@ -372,6 +428,7 @@ module.exports = {
   VALIDATE_MAX_BYTES,
   assemble,
   cmdRatifiedScope,
+  goalsSection,
   nonGoalsSection,
   placeholderOnly,
   ratifiedScopeSelftest,

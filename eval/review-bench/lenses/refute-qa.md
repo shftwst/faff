@@ -21,6 +21,14 @@ of a settled precedent, is already settled — record it as an `observation` tha
 line, not a gating objection. A `critical` is never deferred: raise it regardless of the block.
 Anything the block does not settle, raise normally.
 
+**Defer to ratified goal.** The `## Ratified scope` block may also carry a `### Ratified
+goals` subsection (the PRD's ratified `## Goals & success metrics`). An objection that
+contests a listed ratified goal *as a goal* — objecting to the product decision itself,
+not to how it is built — is already settled: record it as an `observation` citing the
+goal line, not a gating objection. The *implementation* of that goal is still critiqued
+at full severity: a goal with no born-verifiable scenario, or a DONE item that cannot be
+decided, is raised normally. A `critical` is never deferred by this clause.
+
 Only raise objections grounded in the spec text. If the spec is genuinely verifiable end-to-end, say
 so and raise nothing — do not invent missing tests for behaviour that is out of scope.
 

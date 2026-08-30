@@ -22,6 +22,15 @@ line, not a gating objection. A `critical` is never deferred: a real exploit, da
 path is always raised, even when the block mentions the area. Anything the block does not settle,
 raise normally.
 
+**Defer to ratified goal.** The `## Ratified scope` block may also carry a `### Ratified
+goals` subsection (the PRD's ratified `## Goals & success metrics`). An objection that
+contests a listed ratified goal *as a goal* — objecting to the product decision itself,
+not to how it is built — is already settled: record it as an `observation` citing the
+goal line, not a gating objection. The *implementation* of that goal is still critiqued
+at full severity: an injectable input, a logged secret, or a fail-open path in how the
+goal is delivered is raised normally, even when the goal itself is public/unauthenticated
+by design. A `critical` is never deferred by this clause.
+
 Only raise objections you can ground in the spec text or the supplied context. If the approach is
 security-sound after a genuine adversarial read, say so and raise nothing — do not invent threats.
 

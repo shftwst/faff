@@ -1,0 +1,13 @@
+{
+  "all_verified": true,
+  "issue": "FAFF-940",
+  "criteria": [
+    { "n": 1, "verified": true, "summary": "parseArgs accepts --expect contract / --no-findings-shape; usage lists --expect contract" },
+    { "n": 2, "verified": true, "summary": "runReviewChain contract mode returns non-findings block verbatim; empty OK advances" },
+    { "n": 3, "verified": true, "summary": "default refuter path unchanged; block still dropped, malformed logged" },
+    { "n": 4, "verified": true, "summary": "main contract mode writes block verbatim, EXIT.OK, no header/refutation" },
+    { "n": 5, "verified": true, "summary": "faff-prep judge dispatch passes --expect contract and resolved clock" },
+    { "n": 6, "verified": true, "summary": ".faffrc.yaml deadline 2700 + per-backend first_byte windows; config get resolves each" },
+    { "n": 7, "verified": true, "summary": "gate ladder green: validate-adapters, lint-refs, lint-cli-doc, unit suite 3951/0" }
+  ]
+}

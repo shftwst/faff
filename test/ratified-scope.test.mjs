@@ -166,6 +166,64 @@ test("assemble: a linked-mode PRD (no ## sections) yields no non-goals half and 
   rmSync(root, { recursive: true, force: true });
 });
 
+// --- FAFF-936: ratified goals ----------------------------------------------
+
+const GOALS_BODY = "- Anyone can resolve a short code without authentication — public redirect is the product.";
+const PRD_WITH_GOALS_AND_NON_GOALS =
+  "# PRD — demo\n\n## Goals & success metrics\n\n" + GOALS_BODY + "\n\n" +
+  "## Non-goals\n\n" + NON_GOALS_BODY + "\n\n" +
+  "## Acceptance criteria\n\n- Given a request, When it arrives, Then it is served.\n";
+const PRD_GOALS_ONLY =
+  "# PRD — demo\n\n## Goals & success metrics\n\n" + GOALS_BODY + "\n\n" +
+  "## Acceptance criteria\n\n- Given a request, When it arrives, Then it is served.\n";
+const PRD_PLACEHOLDER_GOALS =
+  "# PRD — demo\n\n## Goals & success metrics\n\n_TODO._\n\n## Acceptance criteria\n\n- Given x, When y, Then z.\n";
+
+test("FAFF-936: a PRD with both goals and non-goals -> both subsections, goals ordered first, validates clean", () => {
+  const root = tmpRepo({ prd: PRD_WITH_GOALS_AND_NON_GOALS });
+  const r = run(["--assemble", "--root", root, "--container", "demo"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /### Ratified goals: PRD `demo` \(docs\/prd\/demo\.md\)/);
+  assert.ok(r.stdout.includes("public redirect is the product"), "goals body verbatim");
+  assert.match(r.stdout, /### Non-goals: PRD `demo`/);
+  assert.ok(
+    r.stdout.indexOf("### Ratified goals: PRD ") < r.stdout.indexOf("### Non-goals: PRD "),
+    "goals subsection is emitted before non-goals",
+  );
+  const v = run(["--validate"], { input: r.stdout });
+  assert.equal(v.status, 0, v.stdout + v.stderr);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("FAFF-936: a goals-only PRD (no non-goals, no precedent, no tradeoff) -> exit 0, goals-only block validates", () => {
+  const root = tmpRepo({ prd: PRD_GOALS_ONLY }); // no decisions.md at all
+  const r = run(["--assemble", "--root", root, "--container", "demo"]);
+  assert.equal(r.status, 0, "a goals-only PRD assembles at exit 0, not 3");
+  assert.match(r.stdout, /### Ratified goals: PRD `demo`/);
+  assert.ok(!r.stdout.includes("### Non-goals"), "no non-goals subsection");
+  assert.ok(!r.stdout.includes("### Settled precedents"), "no precedents subsection");
+  const v = run(["--validate"], { input: r.stdout });
+  assert.equal(v.status, 0, v.stdout + v.stderr);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("FAFF-936: a placeholder (_TODO._) goals body is treated as absent", () => {
+  const root = tmpRepo({ prd: PRD_PLACEHOLDER_GOALS });
+  const r = run(["--assemble", "--root", root, "--container", "demo"]);
+  // No real goals, no non-goals, no scoped precedent -> nothing ratified.
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("FAFF-936: GOALS_HEADING_RE boundary — matches goals headings, rejects non-goals and Goalsomething", () => {
+  const rs = require(RS_PATH);
+  assert.notEqual(rs.goalsSection("## Goals & success metrics\n\n- g\n"), null, "matches '## Goals & success metrics'");
+  assert.notEqual(rs.goalsSection("## Goals\n\n- g\n"), null, "matches a bare '## Goals'");
+  assert.equal(rs.goalsSection("## Non-goals\n\n- n\n"), null, "does not match '## Non-goals'");
+  assert.equal(rs.goalsSection("## Goalsomething\n\n- x\n"), null, "does not match '## Goalsomething' (word boundary)");
+});
+
 // --- validate --------------------------------------------------------------
 
 test("validate: assemble output piped to --validate exits 0 (shape round-trip)", () => {
@@ -189,7 +247,7 @@ test("validate: malformed (heading + provenance, no subsection) -> exit 1", () =
   const block = "## Ratified scope\n\n" + rs.PROVENANCE_SENTENCE + "\n";
   const r = run(["--validate"], { input: block });
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /no non-goals, settled-precedents, or ratified-tradeoffs section/);
+  assert.match(r.stderr, /no ratified-goals, non-goals, settled-precedents, or ratified-tradeoffs section/);
 });
 
 test("validate: provenance line not beginning with the anchor -> exit 1", () => {

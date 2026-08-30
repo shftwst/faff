@@ -777,7 +777,9 @@ test("all eval/cases load and validate", () => {
   // the critical-never-deferred guard → lens_bounds must_object infosec).
   // FAFF-910: +2 refutation-spec (013 defer-and-approve on a ratified TRADEOFF subsection → closed_set:[];
   // 014 the critical-never-deferred guard past a rendered tradeoff → lens_bounds must_object infosec).
-  assert.equal(cases.length, 85);
+  // FAFF-936: +2 refutation-spec (015 defer-and-approve on a ratified GOALS subsection → closed_set:[];
+  // 016 the critical-never-deferred guard past a rendered goal → lens_bounds must_object infosec).
+  assert.equal(cases.length, 87);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger", "grouping"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

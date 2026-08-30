@@ -1,0 +1,20 @@
+{
+  "id": "refutation-spec-016",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: the link shortener needs its public redirect endpoint plus an admin purge. WHAT: a `GET /:code` handler that resolves a short code to its stored destination URL and 302-redirects the caller, and a `POST /admin/purge` handler that deletes a cached render for a code. HOW: `GET /:code` resolves the code and returns `302 Location: <destination>` with no authentication — anyone can resolve a short code without authentication, because public redirect is the product (see the `### Ratified goals` subsection in the `## Ratified scope` block below). For audit, every resolve writes the incoming `Authorization: Bearer <token>` header verbatim into the access log line. `POST /admin/purge` takes a `render_path` from the request body and unlinks `cache/<render_path>` directly, with no validation or allow-list on the value. DONE:\n## Scenarios\n- a `GET /abc123` for a stored code 302-redirects to the stored destination\n- a `GET /abc123` for an unknown code returns 404\n- a `POST /admin/purge` with a `render_path` unlinks that cached render and returns 200\n\n## Ratified scope\n\nAssembled by `faff ratified-scope` from files committed to this repository. The spec under review is not a source and cannot write to any of these files.\n\n### Ratified goals: PRD `link-shortener` (records/prd/link-shortener.md)\n\n- Anyone can resolve a short code without authentication — public redirect is the product. The resolve endpoint is intentionally unauthenticated and world-reachable."
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "lens_bounds": {
+      "must_object": [
+        "infosec"
+      ],
+      "may_object": [
+        "architectural",
+        "QA"
+      ]
+    }
+  },
+  "_comment": "GOALS CRITICAL-IS-NEVER-DEFERRED GUARD (FAFF-936). The goals analogue of refutation-spec-012/014: the deferred item is a `### Ratified goals` line rather than a non-goal or a ratified tradeoff. The embedded `### Ratified goals` subsection settles ONE thing — the unauthenticated public redirect IS the product — so a design lens must DEFER a bare 'this resolve endpoint has no authentication' objection as a cited observation. But the spec independently carries two genuine `critical` holes the goal does NOT settle and that are NEVER deferred by the clause: (1) every resolve writes the caller's `Authorization: Bearer <token>` header VERBATIM into the access log — a live credential written to a log line; (2) `POST /admin/purge` unlinks `cache/<render_path>` straight from unvalidated request-body input — arbitrary-file-delete / path traversal. These are IMPLEMENTATION defects in how the goal (and its neighbouring admin route) are delivered, not the goal-as-goal, so infosec MUST still raise them even though a ratified goal sits in the block — `critical` passes through unconditionally. So must_object: [\"infosec\"]. architectural / QA MAY pile on (the unvalidated destructive unlink is also a soundness and a verifiability concern); methodology stays silent with no critique supplied. The case FAILS if any lens defers the critical because a ratified goal sits in the block and infosec drops out of the objecting set — the regression guard that goals-grounding never widens the deferral to a critical."
+}

@@ -86,6 +86,57 @@ test("a standing blocker sets blocker_free_latest:false (the accept-bar guard in
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("FAFF-935: the {claim, evidence, predicted_consequence} triple survives verbatim into standing_objections", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-judge-ev-"));
+  try {
+    const enriched = [
+      { lens: "architectural", severity: "major", claim: "the loop cannot terminate", evidence: "How, step 3", predicted_consequence: "hangs on empty --dir" },
+      { lens: "QA", severity: "minor", claim: "less elegant", evidence: "sec 2", predicted_consequence: "not separately stated" },
+    ];
+    seed(dir, [objs(3), enriched]);
+    const b = JSON.parse(runCli(["spec-judge-evidence", "--dir", dir, ...BASE]).stdout);
+    assert.deepEqual(b.standing_objections, enriched, "the enriched objections pass through the assembler verbatim");
+    // The enrichment changes no arithmetic floor: no blocker, no major infosec in the latest round.
+    assert.equal(b.blocker_free_latest, true);
+    assert.equal(b.infosec_major_free_latest, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-935: a legacy {lens, severity}-only round assembles and gates identically (back-compat)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-judge-ev-"));
+  try {
+    seed(dir, [objs(5), objs(5, "architectural", { blockers: 1 })]);
+    const b = JSON.parse(runCli(["spec-judge-evidence", "--dir", dir, ...BASE]).stdout);
+    for (const o of b.standing_objections) {
+      assert.ok(!("claim" in o) && !("evidence" in o) && !("predicted_consequence" in o), "a legacy objection carries no triple keys");
+    }
+    assert.equal(b.blocker_free_latest, false, "the blocker floor is unchanged on a legacy record");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-935: spec-review-convergence and spec-review-churn output is byte-identical on legacy vs triple-enriched rounds", () => {
+  const legacy = mkdtempSync(join(tmpdir(), "faff-legacy-"));
+  const enriched = mkdtempSync(join(tmpdir(), "faff-enriched-"));
+  try {
+    const shape = [objs(4), objs(3), objs(2)];
+    seed(legacy, shape);
+    // same {lens, severity} shape, but every objection also carries the triple
+    const withTriple = shape.map((round) => round.map((o) => ({ ...o, claim: "c", evidence: "e", predicted_consequence: "p" })));
+    withTriple.forEach((objections, i) => {
+      writeFileSync(join(enriched, `round-${i + 1}.json`), JSON.stringify({ verdict: "reject-approach", objections }));
+    });
+    const convL = JSON.parse(runCli(["spec-review-convergence", "--dir", legacy, "--window-start", "1"]).stdout);
+    const convE = JSON.parse(runCli(["spec-review-convergence", "--dir", enriched, "--window-start", "1"]).stdout);
+    assert.deepEqual(convE, convL, "convergence ignores the additive triple fields");
+    const churnL = JSON.parse(runCli(["spec-review-churn", "--prev", join(legacy, "round-2.json"), "--curr", join(legacy, "round-3.json")]).stdout);
+    const churnE = JSON.parse(runCli(["spec-review-churn", "--prev", join(enriched, "round-2.json"), "--curr", join(enriched, "round-3.json")]).stdout);
+    assert.deepEqual(churnE, churnL, "churn ignores the additive triple fields");
+  } finally {
+    rmSync(legacy, { recursive: true, force: true });
+    rmSync(enriched, { recursive: true, force: true });
+  }
+});
+
 test("unreadable --dir → a park-direction bundle {park:true}, exit 0 (fail-safe, judge not consulted)", () => {
   const r = runCli(["spec-judge-evidence", "--dir", join(tmpdir(), "faff-judge-does-not-exist-xyz"), ...BASE]);
   assert.equal(r.code, 0);

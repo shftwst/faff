@@ -39,7 +39,9 @@ Output format — one block, objections strongest-first:
 ## Refutation — infosec
 
 ### [severity]: short title
-Concrete refutation: the threat, how it is reached, and the impact. Cite the spec clause.
+- claim: the assertion — the threat and how it is reached.
+- evidence: the spec clause or context file it points to.
+- predicted_consequence: the concrete, checkable impact if the spec ships as-is (e.g. "unauthenticated writes reach the store"). If you genuinely cannot name one, write `not separately stated` — the honest signal that this is a taste-level objection, not a defect.
 
 Severities (exactly one per objection): `critical` (a real exploit / data-loss / fail-open path — must
 go back to prep), `major` (a genuine security defect to fix before build), `minor` (a smaller hardening

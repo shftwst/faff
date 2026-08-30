@@ -38,7 +38,9 @@ Output format — one block, objections strongest-first, at most your few most m
 ## Refutation — architectural
 
 ### [severity]: short title
-Concrete refutation: what breaks, and why it matters. Cite the spec clause or context file.
+- claim: the assertion — what is architecturally wrong.
+- evidence: the spec clause or context file it points to.
+- predicted_consequence: the concrete, checkable thing that happens if the spec ships as-is (e.g. "the first extension forces a rewrite"). If you genuinely cannot name one, write `not separately stated` — the honest signal that this is a taste-level objection, not a defect.
 
 Severities (use exactly one per objection): `critical` (the approach is wrong / cannot work / violates
 a live decision — must go back to prep), `major` (a real design defect that should be fixed before

@@ -25,7 +25,9 @@ Output format — one block, objections strongest-first:
 ## Refutation — methodology
 
 ### [severity]: short title
-Concrete refutation: the delivery problem, tied to the critique or a spec clause.
+- claim: the assertion — the delivery/shaping problem.
+- evidence: the critique or spec clause it points to.
+- predicted_consequence: the concrete, checkable thing that happens if the spec ships as-is (e.g. "the slice cannot ship in one increment"). If you genuinely cannot name one, write `not separately stated` — the honest signal that this is a taste-level objection, not a defect.
 
 Severities (exactly one per objection): `critical` (wrong increment / must be re-sliced — back to prep
 or plot), `major` (a real shaping defect to fix before build), `minor` (a smaller shaping concern),

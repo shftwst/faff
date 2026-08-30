@@ -34,7 +34,22 @@ export function strictMajority(n) {
 // of lenses that fired for this issue (default: the number of refutations supplied).
 //
 // Refutation: { lens, outcome: "refuted"|"clear"|"unavailable", kind?: "infra-configured"|"config-fault",
-//               objections: [{ severity, summary? }], model? }
+//               objections: [{ severity, claim?, evidence?, predicted_consequence?, summary? }], model? }
+//
+// FAFF-935: an objection may carry the enrichment triple {claim, evidence, predicted_consequence}
+// (the argued content a downstream judge reads). aggregate() carries each field VERBATIM from the
+// source objection onto the output objection when present as a string — additive, so the triple
+// survives into the round record and thence `faff spec-judge-evidence`. It changes NO gating input:
+// the severity map, the refutedCount/anyCritical tally, and the majority gate are untouched.
+const TRIPLE_FIELDS = ["claim", "evidence", "predicted_consequence"];
+function carryTriple(target, source) {
+  if (source && typeof source === "object") {
+    for (const field of TRIPLE_FIELDS) {
+      if (typeof source[field] === "string") target[field] = source[field];
+    }
+  }
+  return target;
+}
 export function aggregate(refutations, nEnabled) {
   const list = Array.isArray(refutations) ? refutations : [];
 
@@ -49,7 +64,7 @@ export function aggregate(refutations, nEnabled) {
       const sev = mapSeverity(o && o.severity);
       if (sev === null) continue;            // advisory / unknown — non-gating
       if (o && o.severity === "critical") anyCritical = true;
-      lensGating.push({ lens: r.lens, severity: sev });
+      lensGating.push(carryTriple({ lens: r.lens, severity: sev }, o));
     }
     if (lensGating.length > 0) {
       refutedCount += 1;
@@ -176,6 +191,26 @@ function selftest() {
   // observation-only lens is clear (advisory, non-gating)
   v = aggregate([{ lens: "QA", outcome: "refuted", objections: [{ severity: "observation" }] }, clear("architectural")], 2);
   t("observation-only → clear → approve", v.verdict === "approve");
+
+  // FAFF-935: the enrichment triple {claim, evidence, predicted_consequence} rides verbatim from
+  // the input objection onto the output objection, and changes no gating decision.
+  const enriched = { lens: "architectural", outcome: "refuted", objections: [{ severity: "major", claim: "C", evidence: "E", predicted_consequence: "P" }] };
+  v = aggregate([enriched, clear("infosec"), clear("methodology"), clear("QA")], 4);
+  t("triple carried onto output objection", v.objections.length === 1 && v.objections[0].claim === "C" && v.objections[0].evidence === "E" && v.objections[0].predicted_consequence === "P");
+  t("triple carry keeps lens+severity", v.objections[0].lens === "architectural" && v.objections[0].severity === "major");
+  t("triple carry unchanged verdict", v.verdict === "revise");
+  // a bare {severity} objection yields no triple keys (back-compat — identical to today's shape)
+  v = aggregate([r("architectural", "major"), clear("infosec"), clear("methodology"), clear("QA")], 4);
+  t("bare objection carries no triple keys", !("claim" in v.objections[0]) && !("evidence" in v.objections[0]) && !("predicted_consequence" in v.objections[0]));
+  // the taste-level sentinel is carried like any other string
+  v = aggregate([{ lens: "QA", outcome: "refuted", objections: [{ severity: "minor", claim: "less elegant", evidence: "sec 3", predicted_consequence: "not separately stated" }] }, clear("architectural"), clear("methodology"), clear("infosec")], 4);
+  t("taste sentinel carried verbatim", v.objections[0].predicted_consequence === "not separately stated");
+  // a partial triple carries only the present strings; a non-string field is dropped (never gates)
+  v = aggregate([{ lens: "infosec", outcome: "refuted", objections: [{ severity: "major", claim: "auth bypass", predicted_consequence: 42 }] }, clear("architectural"), clear("methodology"), clear("QA")], 4);
+  t("partial triple carries present string only", v.objections[0].claim === "auth bypass" && !("evidence" in v.objections[0]) && !("predicted_consequence" in v.objections[0]));
+  // transport-floor synthesized objection (down lens, no finding to grade) carries no triple
+  v = aggregate([down("infosec", "config-fault"), clear("architectural"), clear("methodology"), clear("QA")], 4);
+  t("synthesized objection carries no triple", v.objections.some((o) => o.lens === "infosec" && !("claim" in o)));
 
   if (fails.length) {
     process.stderr.write("aggregate --selftest: FAIL\n" + fails.map((f) => "  ✗ " + f).join("\n") + "\n");

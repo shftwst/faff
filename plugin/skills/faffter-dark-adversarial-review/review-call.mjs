@@ -923,6 +923,8 @@ export function parseArgs(argv) {
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
     else if (k === "--first-byte-timeout") a.firstByteMs = Number(argv[++i]) * 1000;   // FAFF-885: per-attempt first-byte (TTFT) window override; 0 disables (pass-through)
+    else if (k === "--expect") a.expectContract = (argv[++i] === "contract");   // FAFF-940: `--expect contract` opts into contract-output mode (skip the findings-shape gate; the consumer validates the block)
+    else if (k === "--no-findings-shape") a.expectContract = true;   // FAFF-940: bare alias for --expect contract
   }
   return a;
 }
@@ -1206,6 +1208,23 @@ export async function runReviewChain(chain = [], shared = {}) {
       // successfully-normalised clean refutation (raw bytes fail shape, but normalisation accepts it) still
       // takes the accepted path with the canonical token — preserving FAFF-746 acceptance.
       const originalContent = result.content || "";
+      // FAFF-940: contract-output mode. A consumer that expects a contract block (e.g. the spec-review
+      // judge's `faff-contract:spec-judge-verdict`, which is JSON, not `### <severity>:`-shaped) opts out
+      // of the findings-shape/clean-refutation gate and validates the block itself downstream. The
+      // fallback-chain semantics are otherwise unchanged: a non-empty OK result is accepted verbatim, but
+      // an empty/whitespace result still ADVANCES (a dead backend never short-circuits the chain). The
+      // default (refuter) path below is untouched — `shared.expectContract` is falsy unless set.
+      if (shared.expectContract) {
+        if (!originalContent.trim()) {
+          failureClasses.push(EXIT.NO_FINDINGS_CONTENT);
+          log(verb === "advancing"
+            ? `[chain] ${tag} empty (contract mode: empty content) → advancing (exit ${EXIT.NO_FINDINGS_CONTENT})`
+            : `${verb}: ${tag} produced empty output (contract mode) (exit ${EXIT.NO_FINDINGS_CONTENT})`);
+          continue;
+        }
+        if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced contract output (after ${i} skipped)`);
+        return { exit: EXIT.OK, content: originalContent, truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses };
+      }
       const shape = validateFindingsShape(originalContent);
       const normalisation = normaliseCleanRefutation(originalContent);
       if (!shape.ok && !normalisation.normalised) {
@@ -1252,7 +1271,7 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--expect contract]\n");
     return EXIT.USAGE;
   }
 
@@ -1360,10 +1379,17 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   // (`system` = --system = the lens brief); the two aliases below make the swapped roles explicit.
   const sharedBlock = user;   // assembleUserMessage output — byte-identical across the four spec-review lenses
   const lensBrief = system;   // the --system refuter brief — the only per-lens-differing part
-  const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs });
+  const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs, expectContract: a.expectContract });
 
   if (res.exit === EXIT.OK) {
     if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
+    // FAFF-940: contract-output mode emits the winning backend's block verbatim. The findings-only
+    // refutation pass and the `## Adversarial findings` header prepend below both assume findings-shaped
+    // content, so they would corrupt a contract block (e.g. a JSON verdict) — skip them entirely.
+    if (a.expectContract) {
+      process.stdout.write((res.content || "").trim() + "\n");
+      return EXIT.OK;
+    }
     // FAFF-194: refutation pass (machine-checkable syntax claims, downgrade-only) then header
     // normalisation (harness-authored provenance), in that order — both run on the winning content only.
     const { content: refuted, refutations } = refuteFindings(res.content || "", a.context, { checkFn });

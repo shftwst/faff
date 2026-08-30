@@ -51,6 +51,7 @@ backends:
       model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
       host: https://generativelanguage.googleapis.com/v1beta/openai
       api_key_env: GEMINI_API_KEY
+      first_byte_timeout: 120 # hosted first-byte lands in seconds; 120s fails a hung/dead host fast so the fallback chain keeps its budget.
       #timeout: 480
   spark-qwen-3-8:
       provider: openai
@@ -59,9 +60,10 @@ backends:
       api_key_env: DUMMY_API_KEY
       # Per-backend first-byte (TTFT) window, seconds. Moved here from adversarial.first_byte_timeout,
       # which the code silently ignores (first_byte_timeout is read per-backend only, unlike timeout/
-      # deadline). The local 27B's time-to-first-token under the 4-lens fan-out runs ~42-74s, over the
-      # 60s DEFAULT_FIRST_BYTE_MS, so the default breached and the chain fell over to the cloud fallbacks.
-      first_byte_timeout: 600
+      # deadline). The local 27B's time-to-first-token under the 4-lens fan-out runs ~42-74s (measured
+      # TTFT ~50ms idle, ~74s worst case under concurrent load). 180 is 2.4x over that worst case with
+      # headroom, and fails a hung/dead qwen in 3 min not 10, leaving the rest of the deadline for fallbacks.
+      first_byte_timeout: 180
       # FAFF-918: bounded reasoning-ON. thinking_token_budget hard-caps reasoning tokens so a
       # review both reasons AND emits findings (was `reasoning_off: true`, which on qwen suppresses
       # reasoning entirely and misses real bugs). 2000 is a tunable starting point (FAFF-920); at
@@ -73,6 +75,7 @@ backends:
       model: deepseek/deepseek-v4-flash-0731
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
+      first_byte_timeout: 120 # hosted first-byte lands in seconds; 120s fails a hung/dead host fast so the fallback chain keeps its budget.
       reasoning_off: true
       #timeout: 480
   openrouter-glm-5-2:
@@ -85,6 +88,7 @@ backends:
       model: z-ai/glm-5.2:free
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
+      first_byte_timeout: 180 # judge, reasoning-on: may be slower to first token than a reasoning-off refuter, so a wider window than the hosted refuters' 120s; still fails a dead host well inside the deadline.
   openrouter-glm-5-3-flash:
       # FAFF-922 judge PAID fallback, second in adversarial.spec_judge.refs. Rides out a free-tier
       # 5.2 outage / rate-limit so the judge stays autonomous under load instead of parking to a
@@ -93,6 +97,7 @@ backends:
       model: z-ai/glm-5.3-flash
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
+      first_byte_timeout: 180 # judge paid fallback, reasoning-on like the primary: same 180s first-byte window.
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
@@ -113,7 +118,7 @@ adversarial:
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
   timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
-  deadline: 1800   # code_review total wall-clock (s), sliced per backend; default 480. Above timeout so a long primary attempt still leaves the fallback chain room. IGNORED by spec_review.
+  deadline: 2700   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets a full attempt within the budget, with room left for the code_review + judge fallback chains. IGNORED by spec_review (which sends no --deadline).
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash

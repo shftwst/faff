@@ -2937,3 +2937,92 @@ test("FAFF-903 reorder watch-out: a ###-leading preamble echo (heading-rich lead
   const withHeader = ensureHeader(echoed, { provider: "openai", model: "m", hostSource: "config" }, 0);
   assert.ok(hasHeader(withHeader), "the harness-authored attribution header is present after normalisation");
 });
+
+// FAFF-940: contract-output mode. The spec-review judge returns a `faff-contract:spec-judge-verdict`
+// block — JSON, not `### <severity>:`-findings-shaped — so the unconditional findings-shape gate dropped
+// it as `garbled` and the judge could never dispatch. `--expect contract` (shared.expectContract) skips
+// the gate for a consumer that validates the block itself, while the default refuter path is unchanged.
+const JUDGE_VERDICT_BLOCK = [
+  "```faff-contract:spec-judge-verdict",
+  JSON.stringify({
+    verdict: "accept",
+    rationale: "The two standing QA objections are taste-level; no blocker or major-infosec objection stands.",
+    downweighted: [{ lens: "QA", severity: "minor" }],
+    upheld: [],
+    conformant: true,
+    violations: [],
+  }, null, 2),
+  "```",
+].join("\n");
+
+test("FAFF-940 runReviewChain contract mode: a spec-judge-verdict block (non-findings-shaped) is returned intact, not dropped as garbled", async () => {
+  // Guard: the exact block the judge emits fails the findings-shape gate — this IS the drop FAFF-940 fixes.
+  assert.equal(validateFindingsShape(JUDGE_VERDICT_BLOCK).ok, false, "the verdict block is not findings-shaped");
+  assert.equal(validateFindingsShape(JUDGE_VERDICT_BLOCK).kind, "garbled");
+
+  const chain = [{ provider: "openai", model: "glm", host: "https://judge/v1", hostSource: "config" }];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", expectContract: true,
+    runReviewFn: scriptedRunReview({ "https://judge/v1": { status: "ok", content: JUDGE_VERDICT_BLOCK } }),
+  });
+  assert.equal(res.exit, EXIT.OK, "a non-empty OK result is accepted in contract mode");
+  assert.equal(res.winnerIndex, 0);
+  assert.equal(res.content, JUDGE_VERDICT_BLOCK, "the block is returned byte-for-byte — no shape gate, no normalisation");
+});
+
+test("FAFF-940 runReviewChain contract mode: an empty OK result still advances (a dead backend never short-circuits the chain)", async () => {
+  const chain = [
+    { provider: "openai", model: "dead", host: "https://a/v1", hostSource: "config" },
+    { provider: "openai", model: "glm", host: "https://b/v1", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", expectContract: true,
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "ok", content: "   \n  " },   // whitespace-only OK → advance
+      "https://b/v1": { status: "ok", content: JUDGE_VERDICT_BLOCK },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1, "the empty primary advanced; the fallback served the verdict block");
+  assert.equal(res.content, JUDGE_VERDICT_BLOCK);
+});
+
+test("FAFF-940 runReviewChain default (refuter) path: the same non-findings block is still rejected as garbled — no regression to the shape gate", async () => {
+  const chain = [
+    { provider: "openai", model: "glm", host: "https://a/v1", hostSource: "config" },
+    { provider: "openai", model: "glm2", host: "https://b/v1", hostSource: "config" },
+  ];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),   // expectContract omitted → default refuter gate
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "ok", content: JUDGE_VERDICT_BLOCK },
+      "https://b/v1": { status: "ok", content: JUDGE_VERDICT_BLOCK },
+    }),
+  });
+  assert.notEqual(res.exit, EXIT.OK, "the non-findings block is NOT accepted on the default path");
+  assert.equal(res.content, undefined, "no content is returned — the block was dropped, not passed through");
+  assert.equal(res.exit, EXIT.UNREACHABLE, "an all-garbled exhausted chain terminates at UNREACHABLE (5, pass+skip), exactly as before");
+  assert.ok(trace.some((l) => /\[chain\] openai\/glm malformed .* → advancing \(exit 10\)/.test(l)),
+    "the default path still drops the non-findings block via the shape gate (per-backend MALFORMED/10)");
+});
+
+test("FAFF-940 main() contract mode: emits the verdict block verbatim — no '## Adversarial findings' header prepend, no refutation pass", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const chunks = [];
+  const origWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (s) => { chunks.push(String(s)); return true; };
+  let code;
+  try {
+    code = await main(
+      ["--host", "https://judge/v1", "--model", "glm", "--system", sys, "--diff", diff, "--host-source", "config", "--expect", "contract"],
+      { runReviewFn: async () => ({ status: "ok", content: JUDGE_VERDICT_BLOCK }) },
+    );
+  } finally {
+    process.stdout.write = origWrite;
+  }
+  assert.equal(code, EXIT.OK);
+  const out = chunks.join("");
+  assert.equal(out.trim(), JUDGE_VERDICT_BLOCK, "stdout is the verdict block, trimmed, and nothing else");
+  assert.ok(!/Adversarial findings/.test(out), "no findings header was prepended onto the contract block");
+});

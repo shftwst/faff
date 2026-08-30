@@ -923,7 +923,14 @@ export function parseArgs(argv) {
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
     else if (k === "--first-byte-timeout") a.firstByteMs = Number(argv[++i]) * 1000;   // FAFF-885: per-attempt first-byte (TTFT) window override; 0 disables (pass-through)
-    else if (k === "--expect") a.expectContract = (argv[++i] === "contract");   // FAFF-940: `--expect contract` opts into contract-output mode (skip the findings-shape gate; the consumer validates the block)
+    else if (k === "--expect") {   // FAFF-940: `--expect contract` opts into contract-output mode (skip the findings-shape gate; the consumer validates the block)
+      const v = argv[++i];
+      // Fail loud on any other value (mirrors --reasoning-extra / --backends-json): a silent coerce
+      // to the default path would turn a one-character typo in the flag the judge dispatch is told to
+      // pass into a silent park, indistinguishable from a dead judge backend.
+      if (v !== "contract") throw new Error(`--expect: only "contract" is supported, got ${JSON.stringify(v)}`);
+      a.expectContract = true;
+    }
     else if (k === "--no-findings-shape") a.expectContract = true;   // FAFF-940: bare alias for --expect contract
   }
   return a;

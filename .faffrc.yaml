@@ -118,7 +118,7 @@ adversarial:
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
   timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
-  deadline: 2700   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets a full attempt within the budget, with room left for the code_review + judge fallback chains. IGNORED by spec_review (which sends no --deadline).
+  deadline: 2700   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets one full attempt (2700 is exactly 3x900, no slack). A fast-failing backend hands its unspent slice back to the survivors (the per-backend slice is work-conserving), which is what leaves room for the fallbacks; the judge is dispatched separately and carries its own --deadline. IGNORED by spec_review (which sends no --deadline).
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash

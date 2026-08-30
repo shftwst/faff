@@ -3026,3 +3026,38 @@ test("FAFF-940 main() contract mode: emits the verdict block verbatim — no '##
   assert.equal(out.trim(), JUDGE_VERDICT_BLOCK, "stdout is the verdict block, trimmed, and nothing else");
   assert.ok(!/Adversarial findings/.test(out), "no findings header was prepended onto the contract block");
 });
+
+test("FAFF-940 parseArgs: --expect contract and the --no-findings-shape alias both set expectContract; a bad --expect value fails loud", () => {
+  assert.equal(parseArgs(["--expect", "contract"]).expectContract, true);
+  assert.equal(parseArgs(["--no-findings-shape"]).expectContract, true);
+  assert.equal(parseArgs(["--timeout", "10"]).expectContract, undefined, "absent flag leaves the default (refuter) path");
+  // A typo must NOT silently degrade to the default path (that would park a live judge). Fail loud,
+  // mirroring --reasoning-extra / --backends-json.
+  assert.throws(() => parseArgs(["--expect", "contracts"]), /only "contract" is supported/);
+  assert.throws(() => parseArgs(["--expect", "Contract"]), /only "contract" is supported/);
+});
+
+test("FAFF-940 main() contract mode genuinely skips the findings pipeline: a findings-SHAPED block passes through with NO header prepended", async () => {
+  // A findings-shaped block is one the default path WOULD mutate (ensureHeader prepends the attribution
+  // header, refuteFindings may downgrade). Contract mode must emit it verbatim — this input, unlike a
+  // JSON verdict block, distinguishes "pipeline skipped" from "pipeline ran and did nothing".
+  const FINDINGS_SHAPED = "### major: a real objection\nthe body of the objection";
+  assert.equal(validateFindingsShape(FINDINGS_SHAPED).ok, true, "guard: this input IS findings-shaped");
+  const { sys, diff } = writeMainFixtures();
+  const chunks = [];
+  const origWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (s) => { chunks.push(String(s)); return true; };
+  let code;
+  try {
+    code = await main(
+      ["--host", "https://judge/v1", "--model", "glm", "--system", sys, "--diff", diff, "--host-source", "config", "--expect", "contract"],
+      { runReviewFn: async () => ({ status: "ok", content: FINDINGS_SHAPED }) },
+    );
+  } finally {
+    process.stdout.write = origWrite;
+  }
+  assert.equal(code, EXIT.OK);
+  const out = chunks.join("");
+  assert.equal(out.trim(), FINDINGS_SHAPED, "the findings-shaped block is emitted verbatim in contract mode");
+  assert.ok(!/## Adversarial findings/.test(out), "no attribution header prepended — the findings pipeline was genuinely skipped");
+});

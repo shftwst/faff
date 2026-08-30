@@ -363,6 +363,24 @@ test("per-consumer refs: a named consumer resolves its OWN refs chain from the s
   assert.equal(res.chain[1].model, "mA");
 });
 
+test("FAFF-941: the spec_judge consumer chain carries each GLM backend's OpenRouter reasoning cap through from config", () => {
+  // Mirrors the shipped .faffrc: the judge backends declare the OpenRouter-native reasoning cap in
+  // their own reasoning_extra, so faff adversarial-backends --consumer spec_judge emits it and the
+  // review-call --backends-json mapper reads it. No dispatch literal, no per-provider branch.
+  const cfg = {
+    backends: {
+      "glm-5-2": { provider: "openai", model: "z-ai/glm-5.2:free", host: "https://openrouter.ai/api/v1", api_key_env: "OPENROUTER_API_KEY", reasoning_extra: { reasoning: { max_tokens: 2000 } } },
+      "glm-5-3-flash": { provider: "openai", model: "z-ai/glm-5.3-flash", host: "https://openrouter.ai/api/v1", api_key_env: "OPENROUTER_API_KEY", reasoning_extra: { reasoning: { max_tokens: 2000 } } },
+    },
+    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_judge: { refs: ["glm-5-2", "glm-5-3-flash"] } },
+  };
+  const res = assembleAdversarialBackends(cfg, "spec_judge");
+  assert.equal(res.chain.length, 2);
+  assert.deepEqual(res.chain[0].reasoning_extra, { reasoning: { max_tokens: 2000 } }, "primary GLM judge carries reasoning.max_tokens");
+  assert.deepEqual(res.chain[1].reasoning_extra, { reasoning: { max_tokens: 2000 } }, "fallback GLM judge carries it too");
+  assert.equal("thinking_token_budget" in (res.chain[0].reasoning_extra ?? {}), false, "no qwen lever on the GLM judge chain");
+});
+
 test("per-consumer: an unconfigured consumer is BYTE-IDENTICAL to the no-consumer shared chain (the zero-change guarantee)", () => {
   const cfg = {
     backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },

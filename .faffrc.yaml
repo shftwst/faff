@@ -82,13 +82,20 @@ backends:
       # FAFF-922 spec-review judge backend. Deliberately NOT in the adversarial.refs refuter pool
       # below and a stronger reasoner than it — the judge is the higher-authority second opinion
       # that weighs the refuters' standing objections, so it must be a distinct identity.
-      # Reasoning left ON (no reasoning_off): the judge dispatch sets thinking_token_budget itself
-      # and the FAFF-922 design forbids reasoning_off on the judge.
+      # Reasoning left ON (no reasoning_off): the judge weighs objections and must reason to do it.
       provider: openai                       # OpenRouter is OpenAI-compatible
       model: z-ai/glm-5.2:free
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
       first_byte_timeout: 180 # judge, reasoning-on: may be slower to first token than a reasoning-off refuter, so a wider window than the hosted refuters' 120s; still fails a dead host well inside the deadline.
+      # FAFF-941: bounded reasoning-ON, in the form OpenRouter honours. thinking_token_budget is a
+      # qwen3 chat-template lever OpenRouter does not read, so it left GLM reasoning unbounded until
+      # it consumed the whole max_tokens and returned empty (exit 11). reasoning.max_tokens is the
+      # OpenRouter-native reasoning cap. Carried per-backend here, not in the judge dispatch, so the
+      # transport stays generic (no model/provider branch). Keep max_tokens > this, or it never binds.
+      reasoning_extra:
+          reasoning:
+              max_tokens: 2000
   openrouter-glm-5-3-flash:
       # FAFF-922 judge PAID fallback, second in adversarial.spec_judge.refs. Rides out a free-tier
       # 5.2 outage / rate-limit so the judge stays autonomous under load instead of parking to a
@@ -98,6 +105,10 @@ backends:
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
       first_byte_timeout: 180 # judge paid fallback, reasoning-on like the primary: same 180s first-byte window.
+      # FAFF-941: same OpenRouter-native reasoning cap as the primary (see openrouter-glm-5-2).
+      reasoning_extra:
+          reasoning:
+              max_tokens: 2000
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).

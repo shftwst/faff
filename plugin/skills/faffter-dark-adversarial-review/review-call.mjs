@@ -1017,6 +1017,26 @@ export function mandatoryRemap(exit, mandatory) {
   return exit;
 }
 
+// PURE (FAFF-941): the spec-review JUDGE dispatch's in-turn disposition for a review-call terminal
+// exit — one of "ruling" (an OK result to validate), "retry" (a transient no-opinion outage: the
+// faff-prep dispatch re-dispatches up to the bounded limit before parking), or "park" (a config
+// fault, a garbled ruling, or an empty result — a human call a retry never rescues). The retry class
+// is EXACTLY mandatoryRemap's no-opinion outage pair: UNREACHABLE(5 — all configured judge hosts
+// down, or a 429 chain that exhausted the internal transport-retry) and DEADLINE(8 — the judge budget
+// hit before any ruling). Those are the swing-capable, infra-configured outage the spec-review outage
+// disposition already rides out one altitude up, so a single blip in a would-be-park pass no longer
+// escalates it to needs-human. Every needs-human/config-fault class (CHAIN_NEEDS_HUMAN = 2/4/6/7/11),
+// OTHER(1), and a garbled ruling (MALFORMED/10) PARK directly — a broken backend or a garbled verdict
+// is not a transient blip. MANDATORY_OUTAGE(9) never arises (the judge is never a --lights-out
+// mandatory review) and is classified park for completeness. Total over the whole EXIT taxonomy — the
+// faff-prep dispatch reads this, never an ad-hoc per-exit branch.
+export const JUDGE_RETRY_OUTAGE_EXITS = new Set([EXIT.UNREACHABLE, EXIT.DEADLINE]);
+export function judgeDispatchDisposition(exit) {
+  if (exit === EXIT.OK) return "ruling";
+  if (JUDGE_RETRY_OUTAGE_EXITS.has(exit)) return "retry";
+  return "park";
+}
+
 // PURE (FAFF-617): advisory, non-gating config check surfaced once before the chain runs. The per-backend
 // slice (runReviewChain) makes a bad timeout/deadline combination NON-FATAL — fail-over still happens — but
 // a per-backend `timeout` set so high that no single backend can finish its full retry composition inside

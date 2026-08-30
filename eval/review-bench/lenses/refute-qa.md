@@ -37,7 +37,9 @@ Output format — one block, objections strongest-first:
 ## Refutation — QA
 
 ### [severity]: short title
-Concrete refutation: what cannot be verified, and which DONE item / scenario it concerns.
+- claim: the assertion — what cannot be verified.
+- evidence: the DONE item / scenario it concerns.
+- predicted_consequence: the concrete, checkable thing that happens if the spec ships as-is (e.g. "done cannot be decided for scenario X"). If you genuinely cannot name one, write `not separately stated` — the honest signal that this is a taste-level objection, not a defect.
 
 Severities (exactly one per objection): `critical` (the spec cannot be verified at all as written —
 needs revision before build), `major` (a real verifiability gap to close before build), `minor` (a

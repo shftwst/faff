@@ -13,7 +13,7 @@ The default occupant of the **`spec_review`** slot — the L1–L3 single-pass a
 
 ## What it does
 
-One LLM pass walks the **selected lenses** as a checklist over the spec, gathers `{lens, severity}` objections, maps them to a single verdict, and emits one contract block. It is **not** an adversarial review — that costlier per-lens refuter form is a separate occupant. The consumer's lens-selection step (the change-surface cost-gate) chooses which of the four lenses fire; this pass runs exactly that set. **With no lens-set passed, all four fire** (the back-compatible default) — selection only ever *removes* a lens on a confidently-safe surface, and `infosec` + `QA` always fire at L1–L3.
+One LLM pass walks the **selected lenses** as a checklist over the spec, gathers `{lens, severity, claim, evidence, predicted_consequence}` objections, maps them to a single verdict, and emits one contract block. It is **not** an adversarial review — that costlier per-lens refuter form is a separate occupant. The consumer's lens-selection step (the change-surface cost-gate) chooses which of the four lenses fire; this pass runs exactly that set. **With no lens-set passed, all four fire** (the back-compatible default) — selection only ever *removes* a lens on a confidently-safe surface, and `infosec` + `QA` always fire at L1–L3.
 
 The contract (`faff contract spec-review-verdict`) validates the verdict's **shape** only. This producer owns the **reasoning** — the lenses and the severity→verdict roll-up below. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
 
@@ -36,6 +36,8 @@ The consumer passes:
 | `QA` | Is it *verifiable*? Can we tell when it is done and right? | The spec's scenarios / DONE criteria. |
 
 Severities are `blocker` / `major` / `minor`. Emit at most one objection per lens (the lens's worst finding); a lens with no finding contributes none.
+
+**Each objection carries the enrichment triple** `{claim, evidence, predicted_consequence}` alongside `{lens, severity}` — `claim` (what is wrong), `evidence` (the spec clause / file it points to), `predicted_consequence` (the concrete, checkable thing that happens if the spec ships as-is). A lens that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` — the honest signal that the objection is taste-level. The triple is additive: it never changes the verdict roll-up below, and a legacy `{lens, severity}`-only objection still validates.
 
 **Methodology lens — consume, never recompute.** Read the attached critique and translate it into at most one `methodology` objection (e.g. a critique flagging a too-large slice → a `methodology` blocker on scope). It must issue **zero** value/scope re-derivation. **If no `## Methodology critique` block is present** (prep ran with no methodology slot), the lens degrades to "no signal available", emits no methodology objection, and notes the gap — it never falls back to recomputing value or scope.
 
@@ -69,11 +71,11 @@ Emit exactly one fenced block as the producer's output — the consumer (`faff-p
 Examples of a founded non-approve verdict:
 
 ```faff-contract:spec-review-verdict
-{ "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker" } ] }
+{ "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker", "claim": "the loop cannot terminate", "evidence": "How, step 3", "predicted_consequence": "hangs on empty --dir" } ] }
 ```
 
 ```faff-contract:spec-review-verdict
-{ "verdict": "revise", "objections": [ { "lens": "QA", "severity": "major" } ] }
+{ "verdict": "revise", "objections": [ { "lens": "QA", "severity": "major", "claim": "scenario X is unverifiable", "evidence": "DONE item 2", "predicted_consequence": "done cannot be decided for X" } ] }
 ```
 
 The fixed verdict shape and its validation (canonical semantics: `faff contract spec-review-verdict --describe`) live in the gateway's contract-as-code surface. A swapped-in reviewer (e.g. an adversarial per-lens occupant) conforms by emitting the same block.

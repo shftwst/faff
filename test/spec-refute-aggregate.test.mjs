@@ -84,6 +84,44 @@ test("observation-only objections are advisory — the lens is clear, not refute
   assert.equal(v.verdict, "approve");
 });
 
+test("FAFF-935: the {claim, evidence, predicted_consequence} triple rides verbatim onto the output objection, changing no verdict", () => {
+  const enriched = {
+    lens: "architectural", outcome: "refuted",
+    objections: [{ severity: "major", claim: "the loop cannot terminate", evidence: "How, step 3", predicted_consequence: "hangs on empty --dir" }],
+  };
+  const v = aggregate([enriched, clear("infosec"), clear("methodology"), clear("QA")], 4);
+  assert.equal(v.verdict, "revise", "the triple never changes the gating decision");
+  assert.deepEqual(v.objections, [{
+    lens: "architectural", severity: "major",
+    claim: "the loop cannot terminate", evidence: "How, step 3", predicted_consequence: "hangs on empty --dir",
+  }]);
+  // a bare {severity} objection yields today's {lens, severity} shape with no triple keys
+  const bare = aggregate([r("architectural", "major"), clear("infosec"), clear("methodology"), clear("QA")], 4);
+  assert.deepEqual(bare.objections, [{ lens: "architectural", severity: "major" }]);
+});
+
+test("FAFF-935: an enriched objection flows through the CLI into a block that validates and keeps the triple", () => {
+  const enriched = {
+    lens: "infosec", outcome: "refuted",
+    objections: [{ severity: "major", claim: "auth bypass on empty token", evidence: "refute-infosec", predicted_consequence: "unauthenticated writes" }],
+  };
+  const input = JSON.stringify({
+    enabled_lenses: ["architectural", "infosec", "methodology", "QA"],
+    refutations: [enriched, clear("architectural"), clear("methodology"), clear("QA")],
+  });
+  const agg = spawnSync(process.execPath, [AGG], { input, encoding: "utf8" });
+  assert.equal(agg.status, 0, agg.stderr);
+  const json = agg.stdout.split("\n").find((l) => l.trim().startsWith("{"));
+  const parsed = JSON.parse(json);
+  assert.equal(parsed.objections[0].claim, "auth bypass on empty token");
+  assert.equal(parsed.objections[0].predicted_consequence, "unauthenticated writes");
+  const contract = spawnSync(process.execPath, [BIN, "contract", "spec-review-verdict"], { input: json, encoding: "utf8" });
+  assert.equal(contract.status, 0, `contract validation failed: ${contract.stdout}${contract.stderr}`);
+  // the validator preserves the triple through to contractData
+  const cd = JSON.parse(contract.stdout);
+  assert.equal(cd.objections[0].evidence, "refute-infosec");
+});
+
 test("every non-approve verdict carries ≥1 objection; approve carries none", () => {
   const cases = [
     aggregate([r("architectural", "major"), clear("infosec")], 2),       // revise

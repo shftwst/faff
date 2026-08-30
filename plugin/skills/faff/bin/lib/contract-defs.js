@@ -411,6 +411,11 @@ function contractPrdReadiness(extraction) {
 // coerces to. computeSpecReviewVerdict treats it like every other non-approve verdict: the
 // generic "non-approve carries objections" check below already applies to it unchanged, and it
 // never coerces toward approve.
+// FAFF-935: each objection may carry the OPTIONAL enrichment triple {claim, evidence,
+// predicted_consequence} (the argued content a downstream judge reads) alongside {lens, severity}.
+// The validator preserves each field only when present as a string and adds NO violation for it —
+// additive enrichment, never a re-gate: the {lens, severity} gating decision is byte-identical and
+// a legacy {lens, severity}-only objection validates unchanged.
 const SPEC_REVIEW_VERDICTS = ["approve", "revise", "reject-approach", "needs-human", "unavailable"];
 const SPEC_REVIEW_LENSES = ["architectural", "infosec", "methodology", "QA"];
 const SPEC_REVIEW_SEVERITIES = ["blocker", "major", "minor"];
@@ -432,7 +437,20 @@ function computeSpecReviewVerdict(extraction) {
     const severity = o && typeof o === "object" ? o.severity : undefined;
     if (!SPEC_REVIEW_LENSES.includes(lens)) violations.push(`objection[${i}] lens ${JSON.stringify(lens)} not in {architectural,infosec,methodology,QA}`);
     if (!SPEC_REVIEW_SEVERITIES.includes(severity)) violations.push(`objection[${i}] severity ${JSON.stringify(severity)} not in {blocker,major,minor}`);
-    return { lens: typeof lens === "string" ? lens : "", severity: typeof severity === "string" ? severity : "" };
+    // FAFF-935: the enriched objection triple {claim, evidence, predicted_consequence} rides
+    // alongside {lens, severity} as OPTIONAL, additive fields. Preserve each only when it is
+    // present as a string (so it survives verbatim through the round record into the shape
+    // `faff spec-judge-evidence` reads); omit an absent or non-string field. This is additive
+    // enrichment, never a re-gate — the triple adds NO violation and changes NO verdict, so the
+    // {lens, severity} gating path (majority, arithmetic floors) is a byte-identical decision and
+    // a legacy {lens, severity}-only objection still validates exactly as before.
+    const out = { lens: typeof lens === "string" ? lens : "", severity: typeof severity === "string" ? severity : "" };
+    if (o && typeof o === "object") {
+      for (const field of ["claim", "evidence", "predicted_consequence"]) {
+        if (typeof o[field] === "string") out[field] = o[field];
+      }
+    }
+    return out;
   });
   if (verdict === "approve" && objections.length > 0) violations.push("approve carries objections — approve must carry none");
   if (verdict !== "approve" && objections.length === 0) violations.push(`${verdict} carries no objections`);
@@ -2384,6 +2402,12 @@ const CONTRACTS = {
       { name: "unavailable-no-objections", in: { verdict: "unavailable", objections: [] }, wantExit: 1 },
       { name: "bad-lens", in: { verdict: "revise", objections: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
       { name: "bad-severity", in: { verdict: "needs-human", objections: [{ lens: "methodology", severity: "huge" }] }, wantExit: 1 },
+      // FAFF-935: the OPTIONAL enrichment triple {claim, evidence, predicted_consequence} is
+      // additive — a triple-carrying objection is conformant, a non-string triple field adds no
+      // violation (dropped), and a legacy {lens, severity}-only objection still validates (above).
+      { name: "conformant-triple", in: { verdict: "revise", objections: [{ lens: "architectural", severity: "major", claim: "C", evidence: "E", predicted_consequence: "P" }] }, wantExit: 0 },
+      { name: "conformant-triple-taste-sentinel", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", claim: "less elegant", evidence: "sec 3", predicted_consequence: "not separately stated" }] }, wantExit: 0 },
+      { name: "conformant-triple-non-string-dropped", in: { verdict: "revise", objections: [{ lens: "infosec", severity: "major", claim: "auth bypass", evidence: 42 }] }, wantExit: 0 },
       { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],

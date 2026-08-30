@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-935",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3d46a2609f0a803a6e19d3ca3f9f25f85c2e9bb42897d0ae110b1319ca65a72c",
+    "branch": "faff-935-refuter-objections-carry-claim-evidence",
+    "pushed_at": "2026-08-30T06:08:19.662Z"
+  },
+  "updated_at": "2026-08-30T06:08:19.662Z"
+}

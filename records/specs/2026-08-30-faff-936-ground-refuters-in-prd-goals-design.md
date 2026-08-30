@@ -161,7 +161,7 @@ born-verifiable scenario, or a DONE item that cannot be decided, is raised norma
 **Failure modes.**
 
 - **The failure:** the goals regex matches `## Non-goals` and folds exclusions into the goals subsection, or the non-goals regex starts matching goals. **How you'd know:** the `ratified-scope.js` selftest and `ratified-scope.test.mjs` assertions for a PRD carrying both sections would show goals body text under the non-goals subsection or vice-versa. **What it means:** proceed only with the `\b`-anchored `GOALS_HEADING_RE` verified against both headings (already confirmed: goals=true/non=false for `## Goals & success metrics`, goals=false/non=true for `## Non-goals`).
-- **The failure:** the deferral over-fires and silences a genuine implementation defect once any ratified goal is present (a PRD goal launders an exploit past the gate). **How you'd know:** the guard fixture `refutation-spec-014` would grade as a miss (infosec drops out of the objecting set). **What it means:** the clause wording is wrong; narrow "as a goal" until the guard fixture refutes again. This is the single most important thing to get right and is why the guard fixture is mandatory, not optional.
+- **The failure:** the deferral over-fires and silences a genuine implementation defect once any ratified goal is present (a PRD goal launders an exploit past the gate). **How you'd know:** the guard fixture `refutation-spec-016` would grade as a miss (infosec drops out of the objecting set). **What it means:** the clause wording is wrong; narrow "as a goal" until the guard fixture refutes again. This is the single most important thing to get right and is why the guard fixture is mandatory, not optional.
 - **The failure:** goals presence flips the exit-3 emptiness result, so a PRD with only goals (no non-goals, no precedents) now assembles a block where it used to exit 3, changing behaviour for existing repos unexpectedly. **How you'd know:** a selftest case with a goals-only PRD asserting exit 0 plus a goals-only-validates assertion. **What it means:** this is the intended new behaviour (a goals-only PRD *should* now produce a block); name it explicitly in tests so it is a decision, not a surprise.
 
 ## 5. SCENARIOS — born-verifiable main objectives
@@ -197,7 +197,7 @@ When the infosec design lens refutes it
 Then infosec still raises a critical implementation objection (the deferral clause does not touch it), and the aggregate verdict is reject-approach
 ```
 
-No scenario is withheld as a holdout: this change ships prompt prose, an assembler function, and eval fixtures, with no running feature surface for a code-blind evaluator to exercise. The guard scenario above is verified by the `refutation-spec-014` eval fixture, not by a withheld env check.
+No scenario is withheld as a holdout: this change ships prompt prose, an assembler function, and eval fixtures, with no running feature surface for a code-blind evaluator to exercise. The guard scenario above is verified by the `refutation-spec-016` eval fixture, not by a withheld env check.
 
 ## 6. DESIGN DECISION RATIONALE
 
@@ -225,7 +225,7 @@ No scenario is withheld as a holdout: this change ships prompt prose, an assembl
 ## 8. DONE — Definition of Done
 
 ### From WHY
-- [ ] A ratified goal listed in the block no longer reads as an unmitigated defect: the link-shortener defer-and-approve fixture (`refutation-spec-013`) grades to an empty objecting-lens set.
+- [ ] A ratified goal listed in the block no longer reads as an unmitigated defect: the link-shortener defer-and-approve fixture (`refutation-spec-015`) grades to an empty objecting-lens set.
 
 ### From WHAT (assembler)
 - [ ] `GOALS_HEADING_RE` matches `## Goals & success metrics` and `## Goals`, and does not match `## Non-goals` or `## Goalsomething`.
@@ -240,14 +240,14 @@ No scenario is withheld as a holdout: this change ships prompt prose, an assembl
 - [ ] `faff-prep/SKILL.md` and the occupant transport are unchanged (goals ride the existing per-round assembly and `--context` delivery).
 
 ### From HOW (edge cases / failure modes)
-- [ ] The guard fixture `refutation-spec-014` (a ratified goal present, plus a genuine critical implementation defect) still refutes: infosec is in `must_object`.
+- [ ] The guard fixture `refutation-spec-016` (a ratified goal present, plus a genuine critical implementation defect) still refutes: infosec is in `must_object`.
 
 ### From eval + docs
 - [ ] `eval/review-bench/lenses/refute-{architectural,infosec,qa}.md` are byte-identical to their plugin sources and `test/review-bench-lens-parity.test.mjs` passes.
 - [ ] The `requests/` and `requests-shared-prefix/` payloads for the three design lenses are regenerated (`node eval/review-bench/build-requests.mjs`) and embed the current lens text.
-- [ ] `eval/cases/refutation-spec-013.json` (defer-and-approve, `closed_set: []`) and `refutation-spec-014.json` (`lens_bounds.must_object: ["infosec"]`) exist and grade as specified under `eval/grader.mjs`.
+- [ ] `eval/cases/refutation-spec-015.json` (defer-and-approve, `closed_set: []`) and `refutation-spec-016.json` (`lens_bounds.must_object: ["infosec"]`) exist and grade as specified under `eval/grader.mjs`.
 - [ ] The `docs/guide/cli.md` `ratified-scope` row mentions the `## Goals & success metrics` source, and `lint-cli-doc` passes.
-- [ ] **Mechanical merge-gate:** at least one previously-refuting design lens now defers on `refutation-spec-013` (empty objecting set) AND `refutation-spec-014` still refutes (infosec objects). No baseline re-sweep is required in DONE.
+- [ ] **Mechanical merge-gate:** at least one previously-refuting design lens now defers on `refutation-spec-015` (empty objecting set) AND `refutation-spec-016` still refutes (infosec objects). No baseline re-sweep is required in DONE.
 
 ### Eval coverage
 - [ ] The change touches the `refutation-spec` judgement seam; the two fixtures above register under the existing `refutation-spec` KIND (already in `eval/grader.mjs` `KINDS`/`CLOSED_SET_KINDS`), so no new grader KIND or seam-registry row is needed. Recording/accepting the baseline is a separate human-supervised step and is not required here.

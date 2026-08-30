@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-941",
+  "criteria": [
+    { "id": 1, "status": "pass", "text": ".faffrc GLM judge backends carry reasoning.max_tokens:2000; qwen thinking_token_budget unchanged", "evidence": "faff adversarial-backends --consumer spec_judge --json emits both GLM backends with reasoning_extra.reasoning.max_tokens=2000; faff config check clean; test/adversarial-backends.test.mjs spec_judge-consumer case green" },
+    { "id": 2, "status": "pass", "text": "faff-prep judge dispatch sets no hardcoded reasoning knob; cap comes from backend reasoning_extra", "evidence": "SKILL.md judge step edited (no thinking_token_budget literal); faff validate-adapters PASS (20 slot skills)" },
+    { "id": 3, "status": "pass", "text": "retry-vs-park is the tested judgeDispatchDisposition classifier; faff-prep re-dispatches up to prep.spec_review_judge_retry_limit (default 2)", "evidence": "classifier enumeration test green (retries 5/8, parks 1/2/4/6/7/9/10/11); faff config get prep.spec_review_judge_retry_limit resolves 2 (from source)" },
+    { "id": 4, "status": "pass", "text": "OpenRouter judge request body carries reasoning.max_tokens from config, no thinking_token_budget; qwen thinking_token_budget still passes; no model/provider branch", "evidence": "two buildOpenAiPayload cases in test/adversarial-call.test.mjs green" },
+    { "id": 5, "status": "pass", "text": "a single transient transport failure is retried and does not park when the retry succeeds", "evidence": "runReview transient-transport-retry case (HTTP 503 once then SSE, status ok) green" },
+    { "id": 6, "status": "pass", "text": "gate ladder green: validate-adapters, lint-refs, lint-cli-doc, unit suite", "evidence": "validate-adapters PASS, lint-refs PASS, lint-cli-doc PASS (114 subcommands), unit suite 3958 pass / 0 fail / 4 skip (3962 total)" }
+  ],
+  "overall": "pass",
+  "all_verified": true,
+  "verified_at": "2026-08-30",
+  "note": "AC verified in the FAFF-941 worktree at commit 4c25965f (code) + 19cb6ac7 (spec), based on origin/main 86bcba4a."
+}

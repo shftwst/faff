@@ -1,0 +1,11 @@
+{
+  "signal": "pass",
+  "findings": [
+    {"location_present": true, "action_present": true},
+    {"location_present": true, "action_present": true},
+    {"location_present": true, "action_present": true},
+    {"location_present": true, "action_present": true}
+  ],
+  "conformant": true,
+  "violations": []
+}

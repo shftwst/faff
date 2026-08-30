@@ -1,0 +1,8 @@
+{
+  "run_id": "run-20260830-025100-graft-FAFF-936",
+  "issue": "FAFF-936",
+  "head_seq": 1,
+  "head_sha256": "3e4bc6a6fecbf890b9d0bbb9cb758683d9205a86ea361c42f786acafea626e39",
+  "line_count": 2,
+  "schema_floor": 2
+}

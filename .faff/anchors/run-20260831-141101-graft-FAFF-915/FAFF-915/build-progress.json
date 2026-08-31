@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-915",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a065979e37335f320d7fce9acd87f85480904607192108a90dde233b520cff57",
+    "branch": "faff-915-trim-adversarial-review-context-to-diff-relevant-regions",
+    "pushed_at": "2026-08-31T14:25:22.331Z"
+  },
+  "updated_at": "2026-08-31T14:25:22.331Z"
+}

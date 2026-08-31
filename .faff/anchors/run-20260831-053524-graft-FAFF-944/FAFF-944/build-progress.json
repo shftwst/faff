@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-944",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8edbd3490048ecf265a585524d7b62a81c2881fdfc0386f89f81ba4201d36f30",
+    "branch": "faff-944-select-the-smallest-safe-v5-cutover-slice-from-the-state",
+    "pushed_at": "2026-08-31T12:55:31.307Z"
+  },
+  "updated_at": "2026-08-31T12:55:31.307Z"
+}

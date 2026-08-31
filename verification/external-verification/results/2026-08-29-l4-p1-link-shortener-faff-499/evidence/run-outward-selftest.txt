@@ -1,0 +1,16 @@
+ok   outward-adopter: target positively resolves to a non-self container
+ok   self-container: target.container == self.container (both non-null)
+ok   self-marked: self.is_self asserted true (repo-slug match, caller-computed)
+ok   unresolved-target: target.container and target.repo both null (fail-safe)
+ok   self-referential: target.repo == self.repo (both non-null)
+ok   null-safety: two null containers do NOT match as self-container
+ok   null-safety: all-null self with a resolved non-self target => outward
+ok   ordering: self-marked wins over an otherwise-outward-resolving target
+ok   ordering: self-marked wins over an unresolved target
+ok   ordering: self-container (rung 3) wins over a coincident self-referential match
+ok   fail-safe: non-object target coerces to unresolved-target
+ok   fail-safe: non-object self coerces to is_self:false, non-null-container comparisons safe
+ok   fail-safe: self.is_self as a truthy non-boolean does NOT read as self-marked
+ok   shape: every produced reason is in the closed OutwardReason enum
+
+RESULT: PASS (0 failed)

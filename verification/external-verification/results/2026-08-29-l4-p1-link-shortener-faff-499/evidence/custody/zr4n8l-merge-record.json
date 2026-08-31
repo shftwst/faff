@@ -1,0 +1,9 @@
+{
+  "pr": 0,
+  "head_sha": "15a0212436d44c7c4e6a34cd14f79d6eea74303e",
+  "merged": true,
+  "merged_at": "2026-08-29T12:08:41.904Z",
+  "integrity": "custody-trusted",
+  "harness": "claude-code",
+  "model": "unknown"
+}

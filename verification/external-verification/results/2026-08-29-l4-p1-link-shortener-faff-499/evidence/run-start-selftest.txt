@@ -1,0 +1,19 @@
+ok   plan/coverage-thin: outward+admissible+measurable+uncovered
+ok   drain/prd-covered: outward+admissible+measurable+covered
+ok   drain/no-prd-nothing-to-plan: outward, no PRD present
+ok   refuse/no-target: no target resolvable
+ok   refuse/self-directed: inward (outward==false)
+ok   refuse/prd-ambiguous: multiple Active/Frozen PRDs
+ok   refuse/prd-inadmissible: prd-readiness not admissible
+ok   refuse/coverage-unmeasurable: admissible PRD but coverage malformed
+ok   ordering: inward+no-PRD => self-directed (outward floor BEFORE PRD checks)
+ok   ordering: outward+no-PRD => drain/no-prd-nothing-to-plan (distinct from inward)
+ok   ordering: no-target wins over inward
+ok   ordering: prd-ambiguous wins over an inadmissible+uncovered tail
+ok   fail-safe: empty bundle => refuse/no-target
+ok   fail-safe: non-object bundle => refuse/no-target
+ok   fail-safe: non-boolean signals coerce false => refuse (plan unreachable without affirmative true)
+ok   refusal-bias: plan requires every affirmative signal true (drop any => not plan)
+ok   shape: every produced verdict/reason is in the closed enums
+
+RESULT: PASS (0 failed)

@@ -1,6 +1,5 @@
 // ===========================================================================
-// === region:factory — spec-judge-casefile — FAFF-930: the per-proposition case-file
-// assembler + deterministic admit roll-up ===
+// === region:factory — spec-judge-casefile — FAFF-930: per-proposition case-file assembler + admit roll-up ===
 //
 // FAFF-930 reshapes FAFF-922's review-level weighing judge into a blinded, two-phase,
 // per-proposition case-file ADJUDICATOR. This module owns the two DETERMINISTIC seams

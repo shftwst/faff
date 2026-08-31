@@ -1,0 +1,21 @@
+{
+  "proposition_id": "p-defect",
+  "reconstruction_context": {
+    "governing_requirements": "The CLI must fail safe on unreadable input: an unreadable or empty --dir degrades to a park-direction result, never a crash. Production-readiness is in scope.",
+    "relevant_spec_sections": "**Chosen:** the assembler reads the round records from --dir and takes the latest in-window round's objections as the standing residue.",
+    "repository_evidence": "# assembler.js\nconst files = roundFilesInDir(dir).filter(f => f.n >= windowStart);\nconst latest = files[files.length - 1];\nconst objections = latest.objections;  // no guard: files may be empty",
+    "proposition": "Is the decision at empty-dir-handling sound with respect to software architecture and design?"
+  },
+  "arguments": {
+    "argument_A": {
+      "claim": "The standing-residue read dereferences the last element of files without checking that files is non-empty.",
+      "evidence": "assembler.js reads latest = files[files.length - 1] then latest.objections with no length guard; an empty --dir yields files == [] so latest is undefined.",
+      "predicted_consequence": "crashes on an empty --dir with a TypeError reading 'objections' of undefined, instead of the required park-direction result"
+    },
+    "argument_B": {
+      "claim": "The read follows the established pattern and the surrounding loop generally has records to read.",
+      "evidence": "the current spec rationale under empty-dir-handling",
+      "predicted_consequence": "not separately stated"
+    }
+  }
+}

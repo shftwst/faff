@@ -343,6 +343,15 @@ function assemble(opts) {
     const repoEv = gatherRepositoryEvidence(obj || {}, repoRoot);
 
     // Randomise A/B order (blinding). The ledger records the un-blinding truth.
+    // HONESTY BOUND (blind is best-effort at the content level): the HARD guarantees are the
+    // structural label-strip (no lens/source/round-count field reaches the case file) and the
+    // run-seeded order randomisation. What this does NOT hide is that argument_B is spec-DERIVED
+    // (the orchestrator's Chosen: rationale) while argument_A is refuter-derived, so argument_B's
+    // text overlaps `relevant_spec_sections` and a model reading both could infer which anonymised
+    // side is the spec's own. Removing that overlap deterministically is not possible without a
+    // model-call paraphrase the determinism-first bar forbids, so source-inference from content is
+    // a documented residual (same best-effort framing as the lens-token scrub), not an absolute
+    // guarantee. The authority HALO — the "the orchestrator says" label — is what the blind removes.
     const seed = orderSeed(runId, windowStart, pid);
     const swap = coinSwap(seed);
     const refuterSource = `refuter:${servingIdentity}`;
@@ -592,10 +601,20 @@ function parseVerdictBlock(stdout) {
 function validateReconstruction(text) {
   const s = String(text || "");
   if (!s.trim()) return { ok: false, missing: RECONSTRUCTION_SECTION_KEYS.slice(), reason: "empty reconstruction" };
-  // Locate each key's position (first occurrence). Missing key → fail.
-  const positions = RECONSTRUCTION_SECTION_KEYS.map((k) => ({ k, i: s.indexOf(k) }));
+  // Locate each key only where it appears as a section LABEL — at the start of a line, allowing
+  // leading markdown/list/quote markers and an optional wrapping backtick. Matching the bare key
+  // anywhere would let a key name mentioned inside another section's prose reorder or mis-measure
+  // the sections; anchoring to a label position closes that.
+  const labelIndex = (key) => {
+    const re = new RegExp(`(^|\\n)[\\s>#*_\\-]*\`?${reEscape(key)}\`?`, "");
+    const m = re.exec(s);
+    if (!m) return -1;
+    // point at the key itself, not the leading markers
+    return m.index + m[0].indexOf(key);
+  };
+  const positions = RECONSTRUCTION_SECTION_KEYS.map((k) => ({ k, i: labelIndex(k) }));
   const missing = positions.filter((p) => p.i < 0).map((p) => p.k);
-  if (missing.length) return { ok: false, missing, reason: `missing section(s): ${missing.join(", ")}` };
+  if (missing.length) return { ok: false, missing, reason: `missing section label(s): ${missing.join(", ")}` };
   // Order the found keys by position; each section's content runs to the next key (or end).
   const ordered = positions.slice().sort((a, b) => a.i - b.i);
   for (let j = 0; j < ordered.length; j++) {

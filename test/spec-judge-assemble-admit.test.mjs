@@ -148,6 +148,31 @@ test("parseVerdictBlock: exactly one block parses; zero blocks parks (no-verdict
   assert.equal(r.cause, "multiple-verdict-blocks");
 });
 
+test("validateReconstruction: a section body that mentions another section key in prose does not reorder/mis-measure (label-anchored)", () => {
+  const s = [
+    "requirements_invariants: the reconstruction must state undeterminable_facts separately and never conflate them with invariants here.",
+    "existing_behaviour: today the assembler reads the round records and derives the standing residue without an empty-dir guard at all.",
+    "valid_solution_properties: a valid solution refuses an empty --dir with a founded error and leaves the happy path completely unchanged.",
+    "undeterminable_facts: whether callers ever pass an empty --dir in practice cannot be settled from the evidence in front of us.",
+  ].join("\n\n");
+  assert.equal(cf.validateReconstruction(s).ok, true);
+});
+
+test("--admit fails CLOSED on the blocker floor when the convergence source (--dir/--window-start) is absent", () => {
+  const dir = seedScratch([{ lens: "QA", severity: "minor", claim: "x", evidence: "", predicted_consequence: "not separately stated", spec_anchor: "the-guard-decision" }]);
+  try {
+    const out = join(dir, "scratch", "judge");
+    runCli(["spec-judge-evidence", "--assemble", "--dir", join(dir, "scratch"), "--window-start", "1", "--spec", join(dir, "spec.md"), "--issue", "FAFF-930", "--repo-root", repoRoot, "--out", out]);
+    writeFileSync(join(out, "ruling-p-01.json"), JSON.stringify({ proposition_id: "p-01", outcome: "AFFIRM_SPEC", correction: null, synthesis_sources: [], prd_gap_citation: "" }));
+    // NO --dir/--window-start → blocker_free_latest cannot be computed → floor fails closed
+    const r = runCli(["spec-judge-evidence", "--admit", "--level", "L3", "--out", out, "--spec", join(dir, "spec.md")]);
+    assert.equal(r.code, 0, r.stderr);
+    const res = JSON.parse(r.stdout);
+    assert.equal(res.admit, false, "a missing blocker-floor input must fail closed, never fail open to admit");
+    assert.ok(res.floor_veto.includes("floor_input_degraded"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("validateReconstruction: four non-empty sections pass; an empty / under-length / missing section fails", () => {
   const good = [
     "requirements_invariants: the assembler must refuse an empty --dir and never silently pass over it, per the guard decision.",

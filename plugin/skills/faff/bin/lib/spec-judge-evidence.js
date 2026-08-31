@@ -568,16 +568,23 @@ function cmdAdmit(values) {
   }
 
   // Floors. blocker_free_latest from convergence (shelled); infosec_major_free over the ledger's
-  // retained {lens,severity}. A degraded convergence yields a null blocker floor (fails closed).
+  // retained {lens,severity}. blocker_free_latest is convergence-derived and has NO ledger analogue,
+  // so if the convergence source is unavailable (no --dir/--window-start) or degrades, the floor
+  // input stays `null` and admitRollup fails it CLOSED (floor_input_degraded) — a missing blocker
+  // signal must never fail open to admit.
   let blockerFree = null;
   if (values["--dir"] && values["--window-start"]) {
     const conv = runFaff(["spec-review-convergence", "--dir", values["--dir"], "--window-start", String(values["--window-start"])]);
     if (conv.code === 0) {
       try { blockerFree = JSON.parse(conv.stdout).blocker_free_latest === true; } catch { blockerFree = null; }
     }
-  } else {
-    blockerFree = true; // no convergence source wired — treat as pass (the ledger-side floors still apply)
   }
+  // infosec_major_free is computed over the ledger's RETAINED {lens,severity} (the standing
+  // residue), and it vetoes OVER THE TOP regardless of the per-proposition outcome — a deliberate
+  // security-conservative floor: a standing infosec major/blocker routes to needs-human even when
+  // the judge affirms it (the security-severity floor stays arithmetic and outside the judge, so
+  // blinding the judge to the lens label never weakens security protection). This is the spec's
+  // pinned behaviour, not an oversight of the per-proposition rulings.
   const ledgerObjections = ledger.order.map((pid) => ledger.entries[pid]).filter(Boolean).map((e) => ({ lens: e.lens, severity: e.severity }));
   const infosecMajorFreeVal = infosecMajorFree(ledgerObjections);
 

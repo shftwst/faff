@@ -2,37 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "faff/contracts/spec-judge-verdict",
   "title": "spec-judge-verdict contract data",
-  "description": "Reference schema (FAFF-922). The SHAPE of the spec-review judge's ruling, emitted at the would-be-park point and overriding the refuter majority at the loop level. Shape is normative here; the WEIGHING (which objection is taste vs load-bearing) lives in the judge occupant, not the contract. Fail-loud on a verdict outside the enum (no safe coerce target — faff's own producer emits it). upheld/downweighted lens/severity are plain strings: their enum is enforced in the compute fn via violations (the spec-review-verdict precedent), so an echoed bad value never trips a spurious fail-loud.",
+  "description": "The spec-review judge's per-proposition ruling (FAFF-930, reshaped from FAFF-922's review-level {verdict,downweighted,upheld}). One PropositionRuling in the closed four-outcome vocabulary AFFIRM_SPEC|UPHOLD_REVIEW|SYNTHESIZE|PRD_BOUNDARY. Shape is normative here; the WEIGHING (which side established a material defect) lives in the judge occupant, not the contract. Fail-loud on an outcome outside the enum (no safe coerce target — faff's own producer emits it). The founded-outcome invariants (correction required for UPHOLD_REVIEW/SYNTHESIZE with a verification literal at least 24 chars; synthesis_sources a non-empty subset of {A,B} for SYNTHESIZE; prd_gap_citation required for PRD_BOUNDARY) are enforced in the compute fn via violations (exit 1), the spec-review-verdict precedent. An echoed out-of-enum lens/severity is conformant:false, never a fail-loud.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["verdict", "rationale", "downweighted", "upheld", "conformant", "violations"],
+  "required": ["proposition_id", "outcome", "rationale", "correction", "synthesis_sources", "prd_gap_citation", "lens", "severity", "conformant", "violations"],
   "properties": {
-    "verdict": { "type": "string", "enum": ["accept", "park-needs-human", "keep-going"] },
+    "proposition_id": { "type": "string" },
+    "outcome": { "type": "string", "enum": ["AFFIRM_SPEC", "UPHOLD_REVIEW", "SYNTHESIZE", "PRD_BOUNDARY"] },
     "rationale": { "type": "string" },
-    "downweighted": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["lens", "severity"],
-        "properties": {
-          "lens": { "type": "string" },
-          "severity": { "type": "string" }
-        }
-      }
-    },
-    "upheld": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["lens", "severity"],
-        "properties": {
-          "lens": { "type": "string" },
-          "severity": { "type": "string" }
-        }
-      }
-    },
+    "correction": { "type": ["object", "null"] },
+    "synthesis_sources": { "type": "array", "items": { "type": "string" } },
+    "prd_gap_citation": { "type": "string" },
+    "lens": { "type": "string" },
+    "severity": { "type": "string" },
     "conformant": { "type": "boolean" },
     "violations": { "type": "array", "items": { "type": "string" } }
   }

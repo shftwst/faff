@@ -1,0 +1,8 @@
+{
+  "signal": "pass",
+  "findings": [
+    { "severity": "non-blocking", "status": "fixed", "summary": "graft next-capture only runs on the proceed path; reworded the prep-bail clause." },
+    { "severity": "non-blocking", "status": "fixed", "summary": "SKILL_LINE_BASELINE annotation +4/+4 corrected to +5/+5 (values were already correct)." },
+    { "severity": "non-blocking", "status": "deferred", "summary": "beep-boop eligible selected_action conflates admission with eligibility (safe direction, spec-faithful) — flagged to the widening follow-up FAFF-949." }
+  ]
+}

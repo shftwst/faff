@@ -613,6 +613,8 @@ Those functions do not yet form one complete coordinator. A fidelity study can c
 | Per-issue specs, review, holdout, PRDR, and gate artifacts | Software Delivery evidence | Skills, workers, and gate commands | Merge, holdout, review, audit, tracker flows | Immutable blobs or domain records according to Phase 1 map |
 | Tracker state and comments | Human control and Software Delivery projection | Skills and operators | Queue assembly and operator review | Remains a projection and command surface |
 
+[the state authority map](STATE-AUTHORITY-MAP-v5.md) is the fine-grained successor to this table: every current writer, consumer, integrity class, future owner, translation, cutover, and rollback rule, at the grain of all 114 current commands and every durable artifact among them.
+
 The current ledgers have valuable integrity and completeness rules, but most state is runner-local. L4 resume expects the original run directory. Current Phase 0 work must publish verified recovery material without inventing a second canonical event vocabulary.
 
 ## Current lanes and isolation
@@ -656,6 +658,8 @@ The migration must support symlink, marketplace, in-checkout, and pinned enforce
 | PR, CI, merge, holdout, tracker, and environment logic | Software Delivery binding | Keep domain nouns above generic ports |
 | Disposition, quality, economics, and tracker status | Projection engine and domain views | Rebuild from current records first; switch reader after canonical cutover |
 | L3 and L4 watcher assets | Deployment triggers | Add bundle publication and recovery while retaining bounded invocations |
+
+[the state authority map](STATE-AUTHORITY-MAP-v5.md) is the fine-grained successor to this table: a classification row for every one of the 114 current commands (semantic owner, not just current region) plus an ownership/migration/assurance row for every durable artifact and state-changing step.
 
 # Part III: transition architecture
 

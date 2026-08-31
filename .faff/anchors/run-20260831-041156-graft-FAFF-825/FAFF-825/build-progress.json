@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-825",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9056e36c63aea741055bce778610e7e05acd759530e73a72010543ce76c795c2",
+    "branch": "faff-825-map-current-state-authority-for-the-v5-cutover",
+    "pushed_at": "2026-08-31T05:02:47.166Z"
+  },
+  "updated_at": "2026-08-31T05:02:47.166Z"
+}

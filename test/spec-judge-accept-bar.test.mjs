@@ -87,6 +87,22 @@ test("an upheld infosec MINOR does not fire the L1–L3 scan (major/blocker only
   }
 });
 
+test("an accept with a missing / non-array upheld does not throw — the L1–L3 scan is null-tolerant (accept-provisional)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-acceptbar-"));
+  try {
+    // missing upheld
+    const r1 = run(CLEAN, { verdict: "accept" }, "L3", dir);
+    assert.equal(r1.code, 0, r1.stderr);
+    assert.deepEqual(r1.out, { disposition: "accept-provisional", coerced_from: null, floor_fired: null, level: "L3" });
+    // non-array upheld
+    const r2 = run(CLEAN, { verdict: "accept", upheld: null }, "L3", dir);
+    assert.equal(r2.code, 0, r2.stderr);
+    assert.equal(r2.out.disposition, "accept-provisional");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("accept + standing blocker → park-needs-human, floor_fired:blocker, at every level", () => {
   const dir = mkdtempSync(join(tmpdir(), "faff-acceptbar-"));
   try {

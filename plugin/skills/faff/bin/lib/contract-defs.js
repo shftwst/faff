@@ -456,6 +456,13 @@ function computeSpecReviewVerdict(extraction) {
   });
   if (verdict === "approve" && objections.length > 0) violations.push("approve carries objections — approve must carry none");
   if (verdict !== "approve" && objections.length === 0) violations.push(`${verdict} carries no objections`);
+  // FAFF-951: gate `approve` on a recorded review round. round_recorded is a consumer-supplied
+  // (faff-prep) input-only signal — true when at least one round-<n>.json exists in the resolved
+  // spec-review scratch dir at pipe time — mirroring provenance_present (line 46): read here,
+  // never emitted into contractData, so an absent field stays backward-compatible (no violation)
+  // and only an explicit false trips the rule. This stops a mid-review bail from leaving an
+  // unearned approve with no round record on disk.
+  if (verdict === "approve" && extraction.round_recorded === false) violations.push("approve with no recorded review round");
   return { contractData: { verdict, objections, conformant: violations.length === 0, violations }, failLoud: null };
 }
 
@@ -2463,6 +2470,13 @@ const CONTRACTS = {
       { name: "approve-with-objections", in: { verdict: "approve", objections: [{ lens: "infosec", severity: "major" }] }, wantExit: 1 },
       { name: "non-approve-no-objections", in: { verdict: "reject-approach", objections: [] }, wantExit: 1 },
       { name: "unavailable-no-objections", in: { verdict: "unavailable", objections: [] }, wantExit: 1 },
+      // FAFF-951: `approve` is gated on a recorded review round via the consumer-supplied
+      // round_recorded input (mirrors provenance_present at line 46). An explicit false is
+      // non-conformant (exit 1); true is conformant; an absent field adds no violation (the
+      // conformant-approve fixture above still exits 0), so the gate is backward-compatible and
+      // only bites a caller that reports "no round recorded".
+      { name: "approve-no-round-record", in: { verdict: "approve", objections: [], round_recorded: false }, wantExit: 1 },
+      { name: "approve-with-round-record", in: { verdict: "approve", objections: [], round_recorded: true }, wantExit: 0 },
       { name: "bad-lens", in: { verdict: "revise", objections: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
       { name: "bad-severity", in: { verdict: "needs-human", objections: [{ lens: "methodology", severity: "huge" }] }, wantExit: 1 },
       // FAFF-935: the OPTIONAL enrichment triple {claim, evidence, predicted_consequence} is

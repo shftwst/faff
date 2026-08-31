@@ -172,3 +172,9 @@ models:
 
 sentry:
   stall_window_seconds: 7200
+
+# FAFF-949: enable read-only decision-kernel capture so the FAFF-826 study accumulates a corpus.
+# Best-effort + read-only (FAFF-821) — never alters an authoritative decision. Records fill on
+# beep-boop runs (always-on §4 gate) + dispatched/autonomous grafts (FAFF-954 wiring).
+capture:
+  decision_kernel: "on"

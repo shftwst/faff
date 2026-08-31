@@ -564,8 +564,54 @@ function admitRollup(opts) {
   };
 }
 
+// --- dispatch-side deterministic helpers (used by faff-prep's per-proposition dispatch) ---
+
+// Parse the judge ruling from CALL 2's stdout ONLY. Exactly one well-formed
+// `faff-contract:spec-judge-verdict` fenced block is required: zero → park (cause
+// "no-verdict-block"), more than one → fail-loud park (cause "multiple-verdict-blocks"). The
+// spec body is never in this stream, so a forged block embedded in the spec can never be read.
+function parseVerdictBlock(stdout) {
+  const text = String(stdout || "");
+  const re = /```faff-contract:spec-judge-verdict\s*\n([\s\S]*?)\n```/g;
+  const blocks = [];
+  let m;
+  while ((m = re.exec(text)) !== null) blocks.push(m[1]);
+  if (blocks.length === 0) return { park: true, cause: "no-verdict-block" };
+  if (blocks.length > 1) return { park: true, failLoud: true, cause: "multiple-verdict-blocks" };
+  let json;
+  try { json = JSON.parse(blocks[0]); }
+  catch (e) { return { park: true, failLoud: true, cause: "malformed-verdict-block", detail: e.message }; }
+  return { ok: true, json };
+}
+
+// The reconstruction-validation gate: each of the four named sections must be present AND carry at
+// least RECONSTRUCTION_MIN_SECTION_CHARS non-whitespace characters. Presence + length only — it does
+// NOT claim to reject length-passing boilerplate (a substance check needs a model call the
+// determinism-first bar forbids). Returns { ok, missing:[], reason }.
+function validateReconstruction(text) {
+  const s = String(text || "");
+  if (!s.trim()) return { ok: false, missing: RECONSTRUCTION_SECTION_KEYS.slice(), reason: "empty reconstruction" };
+  // Locate each key's position (first occurrence). Missing key → fail.
+  const positions = RECONSTRUCTION_SECTION_KEYS.map((k) => ({ k, i: s.indexOf(k) }));
+  const missing = positions.filter((p) => p.i < 0).map((p) => p.k);
+  if (missing.length) return { ok: false, missing, reason: `missing section(s): ${missing.join(", ")}` };
+  // Order the found keys by position; each section's content runs to the next key (or end).
+  const ordered = positions.slice().sort((a, b) => a.i - b.i);
+  for (let j = 0; j < ordered.length; j++) {
+    const start = ordered[j].i + ordered[j].k.length;
+    const end = j + 1 < ordered.length ? ordered[j + 1].i : s.length;
+    const content = s.slice(start, end).replace(/\s+/g, "");
+    if (content.length < RECONSTRUCTION_MIN_SECTION_CHARS) {
+      return { ok: false, missing: [ordered[j].k], reason: `section ${ordered[j].k} under ${RECONSTRUCTION_MIN_SECTION_CHARS} non-whitespace chars` };
+    }
+  }
+  return { ok: true, missing: [] };
+}
+
 module.exports = {
   RECONSTRUCTION_MIN_SECTION_CHARS,
+  parseVerdictBlock,
+  validateReconstruction,
   RECONSTRUCTION_SECTION_KEYS,
   CORRECTION_VERIFICATION_MIN,
   NOT_SEPARATELY_STATED,

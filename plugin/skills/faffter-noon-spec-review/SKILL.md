@@ -37,7 +37,11 @@ The consumer passes:
 
 Severities are `blocker` / `major` / `minor`. Emit at most one objection per lens (the lens's worst finding); a lens with no finding contributes none.
 
-**Each objection carries the enrichment triple** `{claim, evidence, predicted_consequence}` alongside `{lens, severity}` — `claim` (what is wrong), `evidence` (the spec clause / file it points to), `predicted_consequence` (the concrete, checkable thing that happens if the spec ships as-is). A lens that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` — the honest signal that the objection is taste-level. The triple is additive: it never changes the verdict roll-up below, and a legacy `{lens, severity}`-only objection still validates.
+**Each objection carries the enrichment triple** `{claim, evidence, predicted_consequence}` alongside `{lens, severity}` — `claim` (what is wrong), `evidence` (the spec clause / file it points to), `predicted_consequence` (the concrete, checkable thing that happens if the spec ships as-is). A lens that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` — the honest signal that the objection is taste-level. Each objection also carries the optional `spec_anchor`, stated as this exact bullet (the one rule home in code is faff `bin/lib/heading-slug.js`):
+
+- spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.
+
+The enrichment fields are additive: they never change the verdict roll-up below, and a legacy `{lens, severity}`-only objection still validates.
 
 **Methodology lens — consume, never recompute.** Read the attached critique and translate it into at most one `methodology` objection (e.g. a critique flagging a too-large slice → a `methodology` blocker on scope). It must issue **zero** value/scope re-derivation. **If no `## Methodology critique` block is present** (prep ran with no methodology slot), the lens degrades to "no signal available", emits no methodology objection, and notes the gap — it never falls back to recomputing value or scope.
 
@@ -71,7 +75,7 @@ Emit exactly one fenced block as the producer's output — the consumer (`faff-p
 Examples of a founded non-approve verdict:
 
 ```faff-contract:spec-review-verdict
-{ "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker", "claim": "the loop cannot terminate", "evidence": "How, step 3", "predicted_consequence": "hangs on empty --dir" } ] }
+{ "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker", "claim": "the loop cannot terminate", "evidence": "How, step 3", "predicted_consequence": "hangs on empty --dir", "spec_anchor": "the-gate-verdict-seam" } ] }
 ```
 
 ```faff-contract:spec-review-verdict

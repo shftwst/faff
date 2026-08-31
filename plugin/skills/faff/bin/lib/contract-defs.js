@@ -438,15 +438,17 @@ function computeSpecReviewVerdict(extraction) {
     if (!SPEC_REVIEW_LENSES.includes(lens)) violations.push(`objection[${i}] lens ${JSON.stringify(lens)} not in {architectural,infosec,methodology,QA}`);
     if (!SPEC_REVIEW_SEVERITIES.includes(severity)) violations.push(`objection[${i}] severity ${JSON.stringify(severity)} not in {blocker,major,minor}`);
     // FAFF-935: the enriched objection triple {claim, evidence, predicted_consequence} rides
-    // alongside {lens, severity} as OPTIONAL, additive fields. Preserve each only when it is
-    // present as a string (so it survives verbatim through the round record into the shape
+    // alongside {lens, severity} as OPTIONAL, additive fields. FAFF-943 adds `spec_anchor` (the
+    // heading slug of the attacked spec section — canonical derivation: bin/lib/heading-slug.js)
+    // as one more optional string beside the triple. Preserve each only when it is present as a
+    // string (so it survives verbatim through the round record into the shape
     // `faff spec-judge-evidence` reads); omit an absent or non-string field. This is additive
-    // enrichment, never a re-gate — the triple adds NO violation and changes NO verdict, so the
+    // enrichment, never a re-gate — the fields add NO violation and change NO verdict, so the
     // {lens, severity} gating path (majority, arithmetic floors) is a byte-identical decision and
     // a legacy {lens, severity}-only objection still validates exactly as before.
     const out = { lens: typeof lens === "string" ? lens : "", severity: typeof severity === "string" ? severity : "" };
     if (o && typeof o === "object") {
-      for (const field of ["claim", "evidence", "predicted_consequence"]) {
+      for (const field of ["claim", "evidence", "predicted_consequence", "spec_anchor"]) {
         if (typeof o[field] === "string") out[field] = o[field];
       }
     }
@@ -2408,6 +2410,13 @@ const CONTRACTS = {
       { name: "conformant-triple", in: { verdict: "revise", objections: [{ lens: "architectural", severity: "major", claim: "C", evidence: "E", predicted_consequence: "P" }] }, wantExit: 0 },
       { name: "conformant-triple-taste-sentinel", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", claim: "less elegant", evidence: "sec 3", predicted_consequence: "not separately stated" }] }, wantExit: 0 },
       { name: "conformant-triple-non-string-dropped", in: { verdict: "revise", objections: [{ lens: "infosec", severity: "major", claim: "auth bypass", evidence: 42 }] }, wantExit: 0 },
+      // FAFF-943: the OPTIONAL spec_anchor (attacked section's heading slug) is additive beside
+      // the triple — triple+anchor, anchor-only, an empty-string anchor (carried verbatim), and a
+      // non-string anchor (dropped) all validate exit 0 with the {lens, severity} gate unchanged.
+      { name: "conformant-triple-plus-anchor", in: { verdict: "revise", objections: [{ lens: "architectural", severity: "major", claim: "C", evidence: "E", predicted_consequence: "P", spec_anchor: "aggregation-carry-the-anchor" }] }, wantExit: 0 },
+      { name: "conformant-anchor-only", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", spec_anchor: "phase-2-revised" }] }, wantExit: 0 },
+      { name: "conformant-anchor-empty-string", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", spec_anchor: "" }] }, wantExit: 0 },
+      { name: "conformant-anchor-non-string-dropped", in: { verdict: "revise", objections: [{ lens: "infosec", severity: "major", claim: "auth bypass", spec_anchor: 42 }] }, wantExit: 0 },
       { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],

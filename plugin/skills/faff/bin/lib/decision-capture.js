@@ -88,10 +88,57 @@ const KERNEL_REGISTRY = {
     version: "regions@1",
     required_inputs: ["files"],
   },
+  // FAFF-947 widening: the five decision-kernel predicates the state-authority
+  // map classifies as decision-kernel that FAFF-821 left uninstrumented. `state` is
+  // deliberately absent (a read-model producer, not a prescribe-an-action
+  // predicate: it reads the filesystem and emits an issue's resolved state with
+  // status/eligible/blocked fixed to "unknown", so there is no verdict to replay
+  // against selected_action); `run-ledger`/`decision-capture` are likewise out
+  // of scope (a record-mint entry and the instrumentation itself).
+  // derived from claim-verdict.js claimVerdict(claimedAtISO, nowISO, ttlHours) —
+  // the three positional argument names, in order (the eligible/regions positional
+  // precedent), validated against claimVerdictSelftest/CLAIM_VERDICT_CASES.
+  "claim-verdict": {
+    version: "claim-verdict@1",
+    required_inputs: ["claimedAtISO", "nowISO", "ttlHours"],
+  },
+  // derived from park-verdict.js parkVerdict(status, draftPr, parkComment, humanTakeover) —
+  // the four positional argument names, in order; validated against parkVerdictSelftest.
+  "park-verdict": {
+    version: "park-verdict@1",
+    required_inputs: ["status", "draftPr", "parkComment", "humanTakeover"],
+  },
+  // derived from project-next.js projectNext({current, kind, total, active, done, hasDod, dodMet}) —
+  // all seven options-object keys (none optional: dodMet/hasDod gate the DoD Done
+  // path, the counts drive the all-done rollup); validated against projectNextSelftest.
+  "project-next": {
+    version: "project-next@1",
+    required_inputs: ["current", "kind", "total", "active", "done", "hasDod", "dodMet"],
+  },
+  // derived from run-outward.js decideOutward(targetRaw, selfRaw) — recorded POSITIONAL,
+  // NOT flat-bundle: normalizeTargetRef -> {container, repo, source} and normalizeSelfRef
+  // -> {container, repo, is_self} collide on container/repo, so a single flat signal list
+  // cannot disambiguate the two references. Each resolved reference is captured whole under
+  // its argument name (the eligible/regions positional precedent); normalize* is idempotent
+  // on an already-resolved ref, so replay re-normalization is a no-op. Validated against
+  // runOutwardSelftest.
+  "run-outward": {
+    version: "run-outward@1",
+    required_inputs: ["targetRaw", "selfRaw"],
+  },
+  // derived from run-start.js deriveRunTrigger(normalizeRunTriggerSignals(raw)) — the seven
+  // flat signal keys the normalize step reads (the run-done normalize-then-derive precedent,
+  // since run-start is its mirror predicate); validated against runStartSelftest.
+  "run-start": {
+    version: "run-start@1",
+    required_inputs: ["target_resolved", "outward", "prd_present", "prd_ambiguous", "prd_admissible", "coverage_measurable", "coverage_covered"],
+  },
 };
 
-// The ratified six-name set, sorted — the born-verifiable DoD assertion.
-const KERNEL_REGISTRY_RATIFIED_NAMES = ["eligible", "next", "queue-state", "regions", "run-done", "tier"];
+// The ratified eleven-name set, sorted — the born-verifiable DoD assertion.
+// FAFF-947 widened this from the FAFF-821 six by adding the five replayable
+// decision-kernel predicates above.
+const KERNEL_REGISTRY_RATIFIED_NAMES = ["claim-verdict", "eligible", "next", "park-verdict", "project-next", "queue-state", "regions", "run-done", "run-outward", "run-start", "tier"];
 
 // ---------------------------------------------------------------------------
 // classifyCoverage — the PROCEDURE from spec §4 "Coverage classification". Pure: no I/O,
@@ -444,7 +491,7 @@ function decisionCaptureSelftest() {
   let fail = 0;
   const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
 
-  ok("KERNEL_REGISTRY seeds EXACTLY the 6 ratified kernels (next/eligible/tier/run-done/queue-state/regions)",
+  ok("KERNEL_REGISTRY seeds EXACTLY the 11 ratified kernels (claim-verdict/eligible/next/park-verdict/project-next/queue-state/regions/run-done/run-outward/run-start/tier)",
     JSON.stringify(Object.keys(KERNEL_REGISTRY).sort()) === JSON.stringify(KERNEL_REGISTRY_RATIFIED_NAMES));
   ok("every registry entry carries a version string and a non-empty required_inputs list",
     Object.values(KERNEL_REGISTRY).every((s) => typeof s.version === "string" && s.version !== "" && Array.isArray(s.required_inputs) && s.required_inputs.length > 0));

@@ -219,12 +219,12 @@ test("malformed shape: an invalid selected_action (undefined; no --action, no st
 // Bare assertion: selected_action is the harness's real action, never silently
 // substituted with the kernel's own prescribed output. This is a code-shape guarantee
 // (spec's anti-pattern: "calling the journal from inside nextStep()") — asserted here as
-// a purity check: the capture module never requires any of the six kernel modules, so it
+// a purity check: the capture module never requires any of the eleven kernel modules, so it
 // has no way to compute/override selected_action itself.
 // ---------------------------------------------------------------------------
-test("purity: decision-capture.js never requires any of the six kernel modules (selected_action can only come from the caller, never computed here)", () => {
+test("purity: decision-capture.js never requires any of the eleven kernel modules (selected_action can only come from the caller, never computed here)", () => {
   const src = readFileSync(join(REPO, "plugin", "skills", "faff", "bin", "lib", "decision-capture.js"), "utf8");
-  for (const mod of ["next", "eligible", "tier", "run-done", "queue-state", "regions"]) {
+  for (const mod of ["next", "eligible", "tier", "run-done", "queue-state", "regions", "claim-verdict", "park-verdict", "project-next", "run-outward", "run-start"]) {
     assert.ok(!new RegExp(`require\\(["']\\./${mod}["']\\)`).test(src), `decision-capture.js must not require ./${mod}`);
   }
 });

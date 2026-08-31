@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-947",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d3fabd1b05da6e8e048484cfdbe02c42b7dd1be270bfe5dd35f1ea3429e1b519",
+    "branch": "faff-947-widen-decision-capture-instrumentation-to-the-remaining",
+    "pushed_at": "2026-08-31T15:12:27.739Z"
+  },
+  "updated_at": "2026-08-31T15:12:27.739Z"
+}

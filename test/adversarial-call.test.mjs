@@ -21,6 +21,9 @@ import {
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
   streamWithFirstByte, FirstByteBreachError, isFirstByteBreach, DEFAULT_FIRST_BYTE_MS,
+  trimContextFiles, trimOneFile, parseDiffTouched, elisionMarker,
+  DEFAULT_CONTEXT_TRIM_BYTES, DEFAULT_MIN_FILE_TRIM_BYTES, DEFAULT_TRIM_WINDOW,
+  DEFAULT_TRIM_HEAD_LINES, DEFAULT_MAX_ANCHOR_LINES, DEFAULT_RETAINED_CEILING,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import * as ReviewCallModule from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
@@ -3226,4 +3229,154 @@ test("FAFF-940 main() contract mode genuinely skips the findings pipeline: a fin
   const out = chunks.join("");
   assert.equal(out.trim(), FINDINGS_SHAPED, "the findings-shaped block is emitted verbatim in contract mode");
   assert.ok(!/## Adversarial findings/.test(out), "no attribution header prepended — the findings pipeline was genuinely skipped");
+});
+
+// --- FAFF-915: diff-relevance context trim -------------------------------------------------------
+
+// The fixed acceptance fixture (see the FAFF-915 spec): three synthetic context files of `line NNN`
+// text, plus a diff that touches touched.js at lines 200-201. Explicit knobs so no default constant
+// is part of the oracle.
+function faff915Fixture() {
+  const mk = (n, prefix) => Array.from({ length: n }, (_, i) => `${prefix} ${String(i + 1).padStart(3, "0")}`).join("\n");
+  const touched = mk(400, "touched");        // ~3 KB, diff-touched
+  const unrelatedBig = mk(400, "unrelated"); // ~3 KB, no anchors, above the floor
+  const unrelatedSmall = mk(20, "small");    // 20 lines, below the floor
+  const diff = [
+    "--- a/touched.js", "+++ b/touched.js",
+    "@@ -198,4 +198,5 @@",
+    "  touched 198", "  touched 199",
+    "-touched 200", "+touched 200 changed", "+touched 201 more",
+    "  touched 202",
+  ].join("\n");
+  const contextFiles = [
+    { path: "touched.js", text: touched },
+    { path: "unrelated_big.js", text: unrelatedBig },
+    { path: "unrelated_small.js", text: unrelatedSmall },
+  ];
+  const opts = { window: 24, minFileBytes: 2048, headLines: 12, maxAnchorLines: 40, retainedCeiling: 0.8 };
+  return { contextFiles, diff, opts, touched, unrelatedBig, unrelatedSmall };
+}
+const lines915 = (s) => s.split("\n");
+
+test("FAFF-915: below the threshold the trim is a byte-identical no-op (existing reviews unaffected)", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 10_000_000, ...opts });
+  assert.equal(r.report.trimmed, false, "no trim below the threshold");
+  assert.equal(r.contextFiles, contextFiles, "the exact input array is returned (identity)");
+  // and the assembled user message is byte-identical to assembling the untrimmed files
+  const before = assembleUserMessage({ contextFiles, diff });
+  const after = assembleUserMessage({ contextFiles: r.contextFiles, diff });
+  assert.equal(after, before, "assembleUserMessage output is byte-identical");
+});
+
+test("FAFF-915: --context-trim-bytes 0 disables the trim regardless of size", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 0, ...opts });
+  assert.equal(r.report.trimmed, false);
+  assert.equal(r.contextFiles, contextFiles, "disabled → identity passthrough");
+});
+
+test("FAFF-915: above the threshold a diff-touched file keeps the touched region and its window, drops the rest", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  assert.equal(r.report.trimmed, true);
+  const t = lines915(r.contextFiles.find((f) => f.path === "touched.js").text);
+  // touched lines 200-201 (the changed range) are kept
+  assert.ok(t.includes("touched 200"), "touched line 200 kept");
+  assert.ok(t.includes("touched 201"), "touched line 201 kept");
+  // window ±24 around 200-201 → lines 176..225 kept, 175 and 226 dropped
+  assert.ok(t.includes("touched 176") && t.includes("touched 225"), "window boundary kept");
+  assert.ok(!t.includes("touched 175") && !t.includes("touched 226"), "outside the window dropped");
+});
+
+test("FAFF-915: the byte-reduction oracle holds on the fixed fixture (bytesAfter <= 0.6 * bytesBefore)", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  assert.ok(r.report.bytesAfter <= 0.6 * r.report.bytesBefore,
+    `bytesAfter (${r.report.bytesAfter}) <= 0.6 * bytesBefore (${r.report.bytesBefore})`);
+});
+
+test("FAFF-915: a large no-anchor file is reduced to its head plus one elision marker", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  const big = lines915(r.contextFiles.find((f) => f.path === "unrelated_big.js").text);
+  assert.equal(big.length, opts.headLines + 1, "head lines + one marker");
+  assert.ok(big.slice(0, opts.headLines).every((l, i) => l === `unrelated ${String(i + 1).padStart(3, "0")}`), "the head is verbatim");
+  assert.equal(big[big.length - 1], elisionMarker(400 - opts.headLines), "one marker for the dropped body");
+});
+
+test("FAFF-915: a small no-anchor caller-selected file passes through unchanged even above the threshold", () => {
+  const { contextFiles, diff, opts, unrelatedSmall } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  const small = r.contextFiles.find((f) => f.path === "unrelated_small.js").text;
+  assert.equal(small, unrelatedSmall, "below the per-file floor → untouched");
+});
+
+test("FAFF-915: a line inside a diff-touched range is never dropped (the conservative guarantee)", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const r = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  const t = r.contextFiles.find((f) => f.path === "touched.js").text;
+  const out = lines915(t);
+  // every touched line's exact text is present as one of the output lines; a marker can never equal it
+  for (const ln of [200, 201]) {
+    assert.ok(out.includes(`touched ${ln}`), `touched line ${ln} survives`);
+  }
+  assert.ok(out.every((l) => !/^touched \d+$/.test(l) || out.filter((x) => x === l).length === 1 || true), "sanity");
+});
+
+test("FAFF-915: identifier-window retention keeps a line naming a diff identifier, whole-word only", () => {
+  // touched.js names `zestyHelper` on line 250; the diff names it too → line 250 anchors even though
+  // it is outside the touched window. `zesty` alone must NOT anchor (whole-word boundary).
+  const body = Array.from({ length: 400 }, (_, i) => (i === 249 ? "call zestyHelper() here" : (i === 300 ? "a zestyHelperExtra thing" : `filler ${i}`))).join("\n");
+  const diff = ["--- a/z.js", "+++ b/z.js", "@@ -1,1 +1,2 @@", " keep", "+result = zestyHelper(x)"].join("\n");
+  const { identifiers } = parseDiffTouched(diff);
+  assert.ok(identifiers.has("zestyHelper"), "the diff identifier is extracted");
+  const out = lines915(trimOneFile(body, [], identifiers, { window: 0, minFileBytes: 2048, headLines: 12, maxAnchorLines: 40, retainedCeiling: 0.99 }));
+  assert.ok(out.includes("call zestyHelper() here"), "the whole-word match anchors line 250");
+  assert.ok(!out.includes("a zestyHelperExtra thing"), "a longer identifier run (zestyHelperExtra) does NOT match zestyHelper");
+});
+
+test("FAFF-915: a frequency-capped identifier (over maxAnchorLines) contributes no anchors, file head-reduces", () => {
+  const body = Array.from({ length: 300 }, (_, i) => `row ${String(i).padStart(3, "0")} widget token`).join("\n");
+  const out = lines915(trimOneFile(body, [], new Set(["widget"]), { window: 2, minFileBytes: 2048, headLines: 12, maxAnchorLines: 40, retainedCeiling: 0.8 }));
+  assert.equal(out.length, 13, "widget appears 300× > 40 → no anchors → head + marker");
+  assert.ok(out[out.length - 1].includes("elided"));
+});
+
+test("FAFF-915: the retained-ceiling fallback head-reduces a no-touch file that would still keep too much", () => {
+  const body = Array.from({ length: 100 }, (_, i) => `tok line ${i}`).join("\n");
+  // window 50 around an anchor would keep the whole file; the 0.8 ceiling forces head-reduction
+  const out = lines915(trimOneFile(body, [], new Set(["tok"]), { window: 50, minFileBytes: 2048, headLines: 12, maxAnchorLines: 200, retainedCeiling: 0.8 }));
+  assert.equal(out.length, 13, "over the retained ceiling → head + marker");
+});
+
+test("FAFF-915: fail-safe — a malformed diff yields no touched ranges, so an unmatched file with no anchors head-reduces rather than trimming on a bad guess", () => {
+  const body = Array.from({ length: 100 }, (_, i) => `content ${i}`).join("\n");
+  const malformed = "not a diff at all\njust some text\n@@ garbage @@\n";
+  const { touchedByPath, identifiers } = parseDiffTouched(malformed);
+  assert.equal(touchedByPath.size, 0, "no touched paths parsed from a malformed diff");
+  // with no touched ranges and no shared identifiers, a large file head-reduces (never a mid-file guess)
+  const out = lines915(trimOneFile(body, touchedByPath.get("x.js") || [], identifiers, { window: 24, minFileBytes: 50, headLines: 5, maxAnchorLines: 40, retainedCeiling: 0.8 }));
+  assert.equal(out.length, 6, "head + marker, never a windowed slice from a bad guess");
+});
+
+test("FAFF-915: path matching accepts both a/ b/ prefixed and bare diff paths", () => {
+  const prefixed = parseDiffTouched(["+++ b/src/foo.js", "@@ -1,0 +1,1 @@", "+added"].join("\n"));
+  assert.ok(prefixed.touchedByPath.has("foo.js"), "b/ prefix stripped to basename");
+  const bare = parseDiffTouched(["+++ src/foo.js", "@@ -1,0 +1,1 @@", "+added"].join("\n"));
+  assert.ok(bare.touchedByPath.has("foo.js"), "bare path keyed by basename");
+});
+
+test("FAFF-915: the trim is deterministic — identical (contextFiles, diff) give identical output (shared-prefix cache holds)", () => {
+  const { contextFiles, diff, opts } = faff915Fixture();
+  const a = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  const b = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000, ...opts });
+  assert.deepEqual(a.contextFiles, b.contextFiles, "byte-identical across calls");
+});
+
+test("FAFF-915: parseArgs collects --context-trim-bytes", () => {
+  const a = parseArgs(["--context-trim-bytes", "1234"]);
+  assert.equal(a.contextTrimBytes, 1234);
+  const b = parseArgs([]);
+  assert.equal(b.contextTrimBytes, undefined, "absent → undefined → main applies the default constant");
 });

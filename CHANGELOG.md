@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.22.0](https://github.com/shftwst/faff/compare/faff--v0.21.0...faff--v0.22.0) (2026-08-31)
+
+
+### Features
+
+* **FAFF-907:** ratified-scope deferral in the spec-review design lenses ([#776](https://github.com/shftwst/faff/issues/776)) ([4b74fcd](https://github.com/shftwst/faff/commit/4b74fcd55cda9fa48386f09762db633a8eec5087))
+* **FAFF-910:** record human-ratified spec-level tradeoffs the spec-review gate honours ([#779](https://github.com/shftwst/faff/issues/779)) ([9816007](https://github.com/shftwst/faff/commit/9816007a337f28a2a34159d5b37122196d9566f4))
+* **FAFF-915:** trim adversarial-review context to diff-relevant regions ([#793](https://github.com/shftwst/faff/issues/793)) ([aef1d53](https://github.com/shftwst/faff/commit/aef1d5370424b77fc9cbdb790c8036a46457ccef))
+* **FAFF-922:** spec-review judge scaffold — weigh standing objections, rule accept/park/keep-going ([#780](https://github.com/shftwst/faff/issues/780)) ([13fb323](https://github.com/shftwst/faff/commit/13fb3239f042970cfa83aeb80681217949746f46))
+* **FAFF-932:** tokenomics eval suite for prompt/skill caching strategies ([#782](https://github.com/shftwst/faff/issues/782)) ([174f62b](https://github.com/shftwst/faff/commit/174f62b75a889a263835d9cb2fae87d2abc39742))
+* **FAFF-935:** refuter objections carry {claim, evidence, predicted_consequence} ([#784](https://github.com/shftwst/faff/issues/784)) ([6be36d8](https://github.com/shftwst/faff/commit/6be36d873caa93dc765afb98260a8fcf6658dc91))
+* **FAFF-936:** ground spec-review refuters in PRD goals ([#783](https://github.com/shftwst/faff/issues/783)) ([482c328](https://github.com/shftwst/faff/commit/482c328c96d5ee7b93d0de4b64afcd391526ad5c))
+* **FAFF-943:** refuter objections carry spec_anchor for the judge's Argument-B binding ([#790](https://github.com/shftwst/faff/issues/790)) ([93a8865](https://github.com/shftwst/faff/commit/93a88659da939f234b5744248cdabba865db808a))
+* **FAFF-945:** move spec-review infosec accept-bar to post-adjudication ([#792](https://github.com/shftwst/faff/issues/792)) ([080971d](https://github.com/shftwst/faff/commit/080971dc8ce9e8fabd89df556bd09fa5851961a6))
+* **FAFF-947:** widen decision-capture instrumentation to the remaining decision-kernel predicates ([#794](https://github.com/shftwst/faff/issues/794)) ([f490f46](https://github.com/shftwst/faff/commit/f490f46d161bd85013ec9ce957ef225629266cf4))
+
+
+### Bug Fixes
+
+* apply qwen first-byte timeout per-backend, not at the ignored adversarial level ([#777](https://github.com/shftwst/faff/issues/777)) ([4525abb](https://github.com/shftwst/faff/commit/4525abb164e8cfc15841e9680febf7b7832f347e))
+* **FAFF-940:** contract-output mode on review-call so the spec-review judge can dispatch ([#785](https://github.com/shftwst/faff/issues/785)) ([86bcba4](https://github.com/shftwst/faff/commit/86bcba4aa5f759310e517e431b1b97fe161be789))
+* **FAFF-941:** reliable unattended spec-review judge dispatch ([#787](https://github.com/shftwst/faff/issues/787)) ([1200b24](https://github.com/shftwst/faff/commit/1200b24b0f4728baf614b89c84851626e23305a0))
+* **FAFF-942:** spec-review lens no-op resilience + 429 no-retry ([#788](https://github.com/shftwst/faff/issues/788)) ([59fb175](https://github.com/shftwst/faff/commit/59fb175e4263b7811d8bef3c2a80751cb5ba0a64))
+
 ## [0.21.0](https://github.com/shftwst/faff/compare/faff--v0.20.0...faff--v0.21.0) (2026-08-28)
 
 

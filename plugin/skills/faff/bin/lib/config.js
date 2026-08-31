@@ -184,6 +184,18 @@ const DEFAULTS = {
   //     persistent outage may accrue before prep escalates to a needs-human park.
   "prep.spec_review_outage_retry_limit": "2",
   "prep.spec_review_outage_hold_limit": "3",
+  // FAFF-950: prep's spec-review TURN-BUDGET hand-back — the healthy-slow twin of the outage
+  // loop above. When a slow-but-healthy fan-out would exceed the prep subagent's turn, prep bounds
+  // it by a wall-clock and hands back a resumable review-pending hold (cause "turn-budget") instead
+  // of dying mid-fan-out. Two knobs, mirroring the outage pair:
+  //   spec_review_turn_budget_secs        — the fan-out DEADLINE (default 300): the wall-clock
+  //     bounding the in-turn fan-out attempt(s), set below the harness turn ceiling with headroom
+  //     for the hand-back write. A conservative starting default, tuned by the felt-pain loop.
+  //   spec_review_turn_budget_hold_limit  — the CROSS-DRAIN ceiling (default 3): how many
+  //     turn-budget held drains may accrue before prep escalates to a needs-human park. Its counter
+  //     (turn_budget_holds) is independent of the outage hold's, so the two never mask each other.
+  "prep.spec_review_turn_budget_secs": "300",
+  "prep.spec_review_turn_budget_hold_limit": "3",
   // FAFF-941: the spec-review JUDGE dispatch's IN-TURN transport-outage retry ceiling (default 2) —
   // the judge twin of spec_review_outage_retry_limit above. The judge is dispatched once per
   // would-be-park; without a bounded retry a single transient transport blip (an EXIT.UNREACHABLE /

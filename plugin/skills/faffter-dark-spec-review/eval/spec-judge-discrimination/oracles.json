@@ -1,0 +1,16 @@
+{
+  "grader_kind": "spec-judge-discrimination",
+  "description": "The judge-quality discrimination seam for the spec-review adjudicator (FAFF-930). A defect case, whose Argument A names a concrete evidence-backed predicted consequence, must NOT be ruled AFFIRM_SPEC; a taste case, whose predicted consequence is the 'not separately stated' sentinel, must be ruled AFFIRM_SPEC. The defect-half catches a constant-AFFIRM_SPEC judge; the taste-half catches a constant-UPHOLD_REVIEW judge.",
+  "gating": false,
+  "advisory_note": "In FAFF-930 this pair is read by the ADVISORY in-ticket run only (a single stochastic sample cannot certify a probabilistic judge, so it neither passes nor fails the build). The GATING check — N samples with a calibrated pass-rate threshold over a case corpus, plus the grader KIND wired into eval/grader.mjs and eval/seam-registry.json — is the sibling calibrated-corpus ticket's scope.",
+  "cases": [
+    {
+      "case_file": "case-defect.json",
+      "oracle": { "outcome_not": "AFFIRM_SPEC" }
+    },
+    {
+      "case_file": "case-taste.json",
+      "oracle": { "outcome": "AFFIRM_SPEC" }
+    }
+  ]
+}

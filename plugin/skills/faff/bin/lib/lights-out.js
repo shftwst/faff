@@ -1104,7 +1104,12 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
 
   // Emit the run-start event onto the observability timeline substrate (FAFF-574: through
   // the shared lock-guarded core — the seq is minted from the log's tail under the lock).
-  appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start" }));
+  // FAFF-930 (leg 2 of the L4-ratification gate): the mint-time run-start event carries the
+  // launch `level` in its `data`, so the spec-judge admit roll-up can corroborate the run-ledger
+  // `level` against the from-genesis-verified events.jsonl chain. A run-ledger `level: L4` set by
+  // a direct file edit that never went through this mint has no matching chain event, so the
+  // roll-up coerces it down to L3 (`l4_chain_uncorroborated`).
+  appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start", data: { level: "L4" } }));
 
   if (json) {
     // FAFF-679: ledger_sha256_before is always null on a mint (nothing existed to bracket

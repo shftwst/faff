@@ -467,47 +467,108 @@ function contractSpecReviewVerdict(extraction) {
   return { contractData };
 }
 
-// --- spec-judge-verdict (FAFF-922) ---
-// The spec-review judge's closed ruling, emitted at the would-be-park point and overriding the
-// refuter majority at the loop level. Its vocabulary is DISTINCT from spec-review-verdict:
-// `accept` overrides a non-clean refuter vote, `keep-going` grants more rounds (no refuter term
-// for it), `park-needs-human` escalates. Fail-loud (exit 2) on a verdict outside the closed
-// three (faff's own producer emits it — no safe coerce target), mirroring spec-review-verdict.
-// The founded-verdict invariant: a non-accept must carry a non-empty rationale AND uphold at
-// least one objection; an accept upholds none. Echoed lens/severity enforce their enum via
-// violations (exit 1), the spec-review-verdict precedent — never a spurious fail-loud.
-// INTERIM vocabulary (kept thin).
-const SPEC_JUDGE_VERDICTS = ["accept", "park-needs-human", "keep-going"];
+// --- spec-judge-verdict (FAFF-930, reshaped from FAFF-922) ---
+// The spec-review judge's per-proposition ruling in the closed four-outcome vocabulary, emitted
+// at the would-be-park point for ONE atomic disputed proposition (FAFF-930 replaced FAFF-922's
+// review-level {verdict, downweighted[], upheld[]}). Fail-loud (exit 2) on an outcome outside the
+// closed four (faff's own producer emits it — no safe coerce target), mirroring spec-review-verdict.
+// Founded-outcome invariants (violations → conformant:false, exit 1):
+//   AFFIRM_SPEC   — no correction, empty synthesis_sources, empty prd_gap_citation.
+//   UPHOLD_REVIEW — non-empty rationale + a correction {summary, verification>=24 chars};
+//                   empty synthesis_sources + prd_gap_citation.
+//   SYNTHESIZE    — non-empty rationale + correction {summary, verification>=24} + synthesis_sources
+//                   non-empty and a subset of {"A","B"} (the reference-integrity check); empty
+//                   prd_gap_citation.
+//   PRD_BOUNDARY  — non-empty rationale + non-empty prd_gap_citation; no correction, empty sources.
+// An echoed out-of-enum lens/severity (optional audit passthrough) is conformant:false, never a
+// spurious fail-loud (the spec-review-verdict precedent). Absence-of-verification-literal-in-the-
+// pre-correction-spec is NOT checked here (the contract sees only the ruling) — the admit roll-up
+// checks it against the retained pre_ruling_spec_content.
+const SPEC_JUDGE_OUTCOMES = ["AFFIRM_SPEC", "UPHOLD_REVIEW", "SYNTHESIZE", "PRD_BOUNDARY"];
+const SPEC_JUDGE_VERIFICATION_MIN = 24;
 function computeSpecJudgeVerdict(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
   }
-  if (!SPEC_JUDGE_VERDICTS.includes(extraction.verdict)) {
-    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {accept,park-needs-human,keep-going} — no safe coerce target` };
+  if (!SPEC_JUDGE_OUTCOMES.includes(extraction.outcome)) {
+    return { contractData: null, failLoud: `outcome ${JSON.stringify(extraction.outcome)} not in {AFFIRM_SPEC,UPHOLD_REVIEW,SYNTHESIZE,PRD_BOUNDARY} — no safe coerce target` };
   }
-  const verdict = extraction.verdict;
+  const outcome = extraction.outcome;
   const violations = [];
+  const proposition_id = typeof extraction.proposition_id === "string" ? extraction.proposition_id : "";
+  if (!proposition_id.trim()) violations.push("proposition_id is empty");
   const rationale = typeof extraction.rationale === "string" ? extraction.rationale : "";
-  const normList = (raw, field) => {
-    if (raw !== undefined && !Array.isArray(raw)) violations.push(`${field} is not an array — treated as empty`);
-    const arr = Array.isArray(raw) ? raw : [];
-    return arr.map((o, i) => {
-      const lens = o && typeof o === "object" ? o.lens : undefined;
-      const severity = o && typeof o === "object" ? o.severity : undefined;
-      if (!SPEC_REVIEW_LENSES.includes(lens)) violations.push(`${field}[${i}] lens ${JSON.stringify(lens)} not in {architectural,infosec,methodology,QA}`);
-      if (!SPEC_REVIEW_SEVERITIES.includes(severity)) violations.push(`${field}[${i}] severity ${JSON.stringify(severity)} not in {blocker,major,minor}`);
-      return { lens: typeof lens === "string" ? lens : "", severity: typeof severity === "string" ? severity : "" };
-    });
-  };
-  const downweighted = normList(extraction.downweighted, "downweighted");
-  const upheld = normList(extraction.upheld, "upheld");
-  if (verdict === "accept") {
-    if (upheld.length > 0) violations.push("accept upholds objections — an accept must uphold none");
-  } else {
-    if (!rationale.trim()) violations.push(`${verdict} carries no rationale — a non-accept ruling must state what it upheld and why`);
-    if (upheld.length === 0) violations.push(`${verdict} upholds no objections — a non-accept ruling must uphold at least one`);
+
+  // correction: object {summary, verification} or null. A non-object/non-null is a violation.
+  let correction = null;
+  const rawCorr = extraction.correction;
+  if (rawCorr !== null && rawCorr !== undefined) {
+    if (typeof rawCorr !== "object" || Array.isArray(rawCorr)) {
+      violations.push("correction must be an object or null");
+    } else {
+      correction = {
+        summary: typeof rawCorr.summary === "string" ? rawCorr.summary : "",
+        verification: typeof rawCorr.verification === "string" ? rawCorr.verification : "",
+      };
+    }
   }
-  return { contractData: { verdict, rationale, downweighted, upheld, conformant: violations.length === 0, violations }, failLoud: null };
+  const hasCorrection = correction !== null;
+  const checkCorrectionShape = () => {
+    if (!hasCorrection) { violations.push(`${outcome} carries no correction — a bounded correction with a verification literal is required`); return; }
+    if (!correction.summary.trim()) violations.push(`${outcome} correction has an empty summary`);
+    if (correction.verification.length < SPEC_JUDGE_VERIFICATION_MIN) {
+      violations.push(`${outcome} correction.verification is shorter than ${SPEC_JUDGE_VERIFICATION_MIN} chars — the trivial-edit bypass is a violation`);
+    }
+  };
+
+  // synthesis_sources: array of strings (subset of {"A","B"} for SYNTHESIZE).
+  let synthesis_sources = [];
+  if (extraction.synthesis_sources !== undefined) {
+    if (!Array.isArray(extraction.synthesis_sources)) violations.push("synthesis_sources is not an array — treated as empty");
+    else synthesis_sources = extraction.synthesis_sources.map((s) => (typeof s === "string" ? s : String(s)));
+  }
+  const prd_gap_citation = typeof extraction.prd_gap_citation === "string" ? extraction.prd_gap_citation : "";
+
+  // Optional echoed lens/severity (audit passthrough) — enum enforced via violations only when present.
+  let lens = "";
+  if (extraction.lens !== undefined) {
+    lens = typeof extraction.lens === "string" ? extraction.lens : "";
+    if (!SPEC_REVIEW_LENSES.includes(extraction.lens)) violations.push(`lens ${JSON.stringify(extraction.lens)} not in {architectural,infosec,methodology,QA}`);
+  }
+  let severity = "";
+  if (extraction.severity !== undefined) {
+    severity = typeof extraction.severity === "string" ? extraction.severity : "";
+    if (!SPEC_REVIEW_SEVERITIES.includes(extraction.severity)) violations.push(`severity ${JSON.stringify(extraction.severity)} not in {blocker,major,minor}`);
+  }
+
+  if (outcome === "AFFIRM_SPEC") {
+    if (hasCorrection) violations.push("AFFIRM_SPEC carries a correction — an affirm requires none");
+    if (synthesis_sources.length) violations.push("AFFIRM_SPEC carries synthesis_sources — must be empty");
+    if (prd_gap_citation.trim()) violations.push("AFFIRM_SPEC carries a prd_gap_citation — must be empty");
+  } else if (outcome === "UPHOLD_REVIEW") {
+    if (!rationale.trim()) violations.push("UPHOLD_REVIEW carries no rationale — a non-affirm ruling must state what it upheld and why");
+    checkCorrectionShape();
+    if (synthesis_sources.length) violations.push("UPHOLD_REVIEW carries synthesis_sources — must be empty (SYNTHESIZE is the composing outcome)");
+    if (prd_gap_citation.trim()) violations.push("UPHOLD_REVIEW carries a prd_gap_citation — must be empty");
+  } else if (outcome === "SYNTHESIZE") {
+    if (!rationale.trim()) violations.push("SYNTHESIZE carries no rationale");
+    checkCorrectionShape();
+    if (synthesis_sources.length === 0) violations.push("SYNTHESIZE carries no synthesis_sources — must cite the source claims (a non-empty subset of {A,B})");
+    for (const s of synthesis_sources) {
+      if (s !== "A" && s !== "B") violations.push(`SYNTHESIZE synthesis_sources cites ${JSON.stringify(s)} outside {A,B} — the reference-integrity check`);
+    }
+    if (prd_gap_citation.trim()) violations.push("SYNTHESIZE carries a prd_gap_citation — must be empty");
+  } else if (outcome === "PRD_BOUNDARY") {
+    if (!rationale.trim()) violations.push("PRD_BOUNDARY carries no rationale");
+    if (!prd_gap_citation.trim()) violations.push("PRD_BOUNDARY carries no prd_gap_citation — the specific PRD gap must be cited");
+    if (hasCorrection) violations.push("PRD_BOUNDARY carries a correction — must be null (resolution needs a product/policy decision)");
+    if (synthesis_sources.length) violations.push("PRD_BOUNDARY carries synthesis_sources — must be empty");
+  }
+
+  return {
+    contractData: { proposition_id, outcome, rationale, correction, synthesis_sources, prd_gap_citation, lens, severity, conformant: violations.length === 0, violations },
+    failLoud: null,
+  };
 }
 
 function contractSpecJudgeVerdict(extraction) {
@@ -2424,15 +2485,18 @@ const CONTRACTS = {
   "spec-judge-verdict": {
     run: contractSpecJudgeVerdict,
     fixtures: [
-      { name: "conformant-accept", in: { verdict: "accept", rationale: "taste-level minors, no blocker, no major infosec", upheld: [], downweighted: [{ lens: "QA", severity: "minor" }] }, wantExit: 0 },
-      { name: "conformant-keep-going", in: { verdict: "keep-going", rationale: "count still falling, grant a round", upheld: [{ lens: "architectural", severity: "major" }] }, wantExit: 0 },
-      { name: "conformant-park", in: { verdict: "park-needs-human", rationale: "a standing blocker the judge will not ship", upheld: [{ lens: "infosec", severity: "blocker" }] }, wantExit: 0 },
-      { name: "accept-with-upheld", in: { verdict: "accept", rationale: "x", upheld: [{ lens: "QA", severity: "minor" }] }, wantExit: 1 },
-      { name: "non-accept-empty-upheld", in: { verdict: "keep-going", rationale: "x", upheld: [] }, wantExit: 1 },
-      { name: "non-accept-empty-rationale", in: { verdict: "park-needs-human", rationale: "", upheld: [{ lens: "QA", severity: "minor" }] }, wantExit: 1 },
-      { name: "bad-lens", in: { verdict: "keep-going", rationale: "x", upheld: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
-      { name: "bad-severity", in: { verdict: "park-needs-human", rationale: "x", upheld: [{ lens: "QA", severity: "huge" }] }, wantExit: 1 },
-      { name: "fail-loud-bad-verdict", in: { verdict: "ship-it", upheld: [] }, wantExit: 2 },
+      { name: "conformant-affirm", in: { proposition_id: "p-01", outcome: "AFFIRM_SPEC", rationale: "the reviewer has not established a material defect", correction: null, synthesis_sources: [], prd_gap_citation: "" }, wantExit: 0 },
+      { name: "conformant-uphold", in: { proposition_id: "p-01", outcome: "UPHOLD_REVIEW", rationale: "a material defect is established", correction: { summary: "refuse the empty --dir case", verification: "an empty --dir is refused with a founded error" }, synthesis_sources: [], prd_gap_citation: "" }, wantExit: 0 },
+      { name: "conformant-synthesize", in: { proposition_id: "p-02", outcome: "SYNTHESIZE", rationale: "both positions have valid reasoning", correction: { summary: "compose A and B", verification: "combine the guard from A with the bound from B" }, synthesis_sources: ["A", "B"], prd_gap_citation: "" }, wantExit: 0 },
+      { name: "conformant-prd-boundary", in: { proposition_id: "p-03", outcome: "PRD_BOUNDARY", rationale: "needs a product decision", correction: null, synthesis_sources: [], prd_gap_citation: "the PRD does not bound the MVP-vs-production line for this behaviour" }, wantExit: 0 },
+      { name: "affirm-with-correction", in: { proposition_id: "p-01", outcome: "AFFIRM_SPEC", rationale: "", correction: { summary: "x", verification: "this correction should not be present here at all" }, synthesis_sources: [], prd_gap_citation: "" }, wantExit: 1 },
+      { name: "uphold-missing-correction", in: { proposition_id: "p-01", outcome: "UPHOLD_REVIEW", rationale: "defect", correction: null, synthesis_sources: [], prd_gap_citation: "" }, wantExit: 1 },
+      { name: "uphold-short-verification", in: { proposition_id: "p-01", outcome: "UPHOLD_REVIEW", rationale: "defect", correction: { summary: "s", verification: "tooshort" }, synthesis_sources: [], prd_gap_citation: "" }, wantExit: 1 },
+      { name: "synthesize-source-outside-ab", in: { proposition_id: "p-02", outcome: "SYNTHESIZE", rationale: "both valid", correction: { summary: "compose", verification: "combine the guard from A with the bound from B" }, synthesis_sources: ["A", "C"], prd_gap_citation: "" }, wantExit: 1 },
+      { name: "prd-boundary-empty-citation", in: { proposition_id: "p-03", outcome: "PRD_BOUNDARY", rationale: "needs a decision", correction: null, synthesis_sources: [], prd_gap_citation: "" }, wantExit: 1 },
+      { name: "bad-lens", in: { proposition_id: "p-01", outcome: "AFFIRM_SPEC", rationale: "", correction: null, synthesis_sources: [], prd_gap_citation: "", lens: "vibes" }, wantExit: 1 },
+      { name: "bad-severity", in: { proposition_id: "p-01", outcome: "AFFIRM_SPEC", rationale: "", correction: null, synthesis_sources: [], prd_gap_citation: "", severity: "huge" }, wantExit: 1 },
+      { name: "fail-loud-bad-outcome", in: { proposition_id: "p-01", outcome: "ESCALATE_UNCERTAIN", upheld: [] }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -2869,16 +2933,16 @@ const CONTRACT_DESCRIBES = {
     producer_notes: [],
   },
   "spec-judge-verdict": {
-    purpose: "The spec-review judge's closed ruling at the would-be-park point — ship the spec (accept), escalate to a human (park-needs-human), or grant more rounds (keep-going) — overriding the refuter majority at the loop level.",
+    purpose: "The spec-review judge's per-proposition ruling at the would-be-park point (FAFF-930): for ONE atomic disputed proposition, in the closed four-outcome vocabulary. Admission is the deterministic admit roll-up over the resolved ledger, never asserted by the judge.",
     values: [
-      { field: "verdict", enum: SPEC_JUDGE_VERDICTS, semantics: { accept: "the standing objections are taste-level residue — ship the spec (stands in for a refuter approve; still ANDed with the confidence gate)", "park-needs-human": "the residue is load-bearing or undecidable — escalate to a human", "keep-going": "not settled yet but trending — grant another review round (bounded by the keep-going counter)" } },
-      // lens/severity are lintable:false: the judge WRITES these labels while classifying which
-      // objections it upheld vs down-weighted — a producer dialect, not a routing verdict a
-      // consumer branches on. `verdict` above stays lintable (the closed 3-value routing enum).
-      { field: "upheld[].lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
-      { field: "upheld[].severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },
+      { field: "outcome", enum: SPEC_JUDGE_OUTCOMES, semantics: { AFFIRM_SPEC: "the reviewer has not established a material defect — resolved, no correction", UPHOLD_REVIEW: "the reviewer established a material defect; the required correction is bounded by the existing PRD — the orchestrator applies the correction, then it is resolved", SYNTHESIZE: "both positions contain valid reasoning; the judge specifies a third resolution composed SOLELY from claims already in A and B (cited via synthesis_sources) — applied, does not re-enter the refuter gate", PRD_BOUNDARY: "resolution needs a product/policy decision not derivable from the governing PRD — the only outcome that goes to a human, with a founded prd_gap_citation" } },
+      // lens/severity are lintable:false and OPTIONAL: the ruling may echo the disputed proposition's
+      // lens/severity for the audit log, but the judge is BLIND to them — they are not a routing verdict
+      // a consumer branches on. `outcome` above stays lintable (the closed 4-value routing enum).
+      { field: "lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
+      { field: "severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },
     ],
-    coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "accept declared with any upheld objection, or a non-accept verdict declared with an empty upheld or an empty rationale → conformant:false", "an out-of-enum upheld/downweighted lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
+    coercions: ["an out-of-enum outcome → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "AFFIRM_SPEC with a correction/synthesis_sources/prd_gap_citation, UPHOLD_REVIEW/SYNTHESIZE missing a correction or a >=24-char verification literal, SYNTHESIZE with an empty synthesis_sources or a source outside {A,B}, or PRD_BOUNDARY with an empty prd_gap_citation → conformant:false", "an out-of-enum echoed lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
     producer_notes: [],
   },
   "architecture-proposal": {
@@ -3139,4 +3203,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

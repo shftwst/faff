@@ -1,1007 +1,1386 @@
 [
-  {
-    "contract": "spec-readiness",
-    "name": "valid",
-    "input": "{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}],\"provenance_present\":true}",
-    "expectExit": 0,
-    "expectStdout": {
-      "confidence": "high",
-      "decisions": [
-        {
-          "classification": "closed"
-        },
-        {
-          "classification": "open"
-        }
-      ],
-      "markers_valid": true,
-      "violations": []
+ {
+  "contract": "spec-readiness",
+  "name": "valid",
+  "input": "{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}],\"provenance_present\":true}",
+  "expectExit": 0,
+  "expectStdout": {
+   "confidence": "high",
+   "decisions": [
+    {
+     "classification": "closed"
+    },
+    {
+     "classification": "open"
     }
-  },
-  {
-    "contract": "spec-readiness",
-    "name": "fail-loud-bad-confidence",
-    "input": "{\"confidence\":\"banana\",\"decisions\":[{\"marker\":\"chosen\"}],\"provenance_present\":true}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "review-verdict",
-    "name": "valid",
-    "input": "{\"signal\":\"pass\",\"findings\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "signal": "pass",
-      "findings": [],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "review-verdict",
-    "name": "boundary-coerce-needs-human",
-    "input": "{\"verdict\":\"pass\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "signal": "needs-human",
-      "findings": [],
-      "conformant": false,
-      "violations": [
-        "signal undefined not in {pass,fail,needs-human,unavailable} — coerced to needs-human",
-        "needs-human carries no findings"
-      ]
-    }
-  },
-  {
-    "contract": "review-verdict",
-    "name": "unavailable-bare-conformant",
-    "input": "{\"signal\":\"unavailable\",\"findings\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "signal": "unavailable",
-      "findings": [],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "review-verdict",
-    "name": "unavailable-with-well-formed-finding-conformant",
-    "input": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":true,\"action_present\":true}]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "signal": "unavailable",
-      "findings": [{ "location_present": true, "action_present": true }],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "review-verdict",
-    "name": "unavailable-with-malformed-finding-still-flagged",
-    "input": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":false,\"action_present\":false}]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "signal": "unavailable",
-      "findings": [{ "location_present": false, "action_present": false }],
-      "conformant": false,
-      "violations": ["finding[0] has no location", "finding[0] has no action"]
-    }
-  },
-  {
-    "contract": "integrity-floor",
-    "name": "review-unavailable-refuses",
-    "input": "{\"ac_complete\":true,\"review_verdict\":\"unavailable\",\"ci_state\":\"ci-green\",\"head_sha_matches\":true,\"level\":\"L3\",\"holdout\":\"not-applicable\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "refuse",
-      "ci_state": "ci-green",
-      "level": "L3",
-      "conformant": false,
-      "violations": [
-        "review verdict is unavailable (need pass)"
-      ]
-    }
-  },
-  {
-    "contract": "delivery-outcome",
-    "name": "valid",
-    "input": "{\"outcome\":\"shipped\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "outcome": "shipped",
-      "reason": "",
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "delivery-outcome",
-    "name": "boundary-coerce-failed",
-    "input": "{\"merged\":true,\"deploy_ok\":true}",
-    "expectExit": 1,
-    "expectStdout": {
-      "outcome": "failed",
-      "reason": "malformed delivery result coerced to failed",
-      "conformant": false,
-      "violations": [
-        "outcome undefined not in {shipped,not-ready,failed} — coerced to failed"
-      ]
-    }
-  },
-  {
-    "contract": "automation-routing",
-    "name": "valid",
-    "input": "{\"verdict\":\"fire-and-forget\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "fire-and-forget",
-      "root_cause": null,
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "automation-routing",
-    "name": "fail-loud-no-verdict",
-    "input": "{\"confidence\":\"high\",\"spec_present\":true}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "quality-gates",
-    "name": "valid-pass",
-    "input": "{\"signal\":\"pass\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"pass\"},{\"kind\":\"UNIT\",\"status\":\"pass\"}]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "signal": "pass",
-      "rungs": [
-        {
-          "kind": "LINT",
-          "status": "pass"
-        },
-        {
-          "kind": "UNIT",
-          "status": "pass"
-        }
-      ],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "quality-gates",
-    "name": "coerce-malformed-signal-to-needs-human",
-    "input": "{\"signal\":\"maybe\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"fail\"}]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "signal": "needs-human",
-      "rungs": [
-        {
-          "kind": "LINT",
-          "status": "fail"
-        }
-      ],
-      "conformant": false,
-      "violations": [
-        "signal \"maybe\" not in {pass,fail,needs-human} — coerced to needs-human"
-      ]
-    }
-  },
-  {
-    "contract": "quality-gates",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "prd-readiness",
-    "name": "valid-admissible",
-    "input": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "admissible",
-      "reason": "",
-      "stop_conditions_verifiable": true,
-      "creative_licence": "broad",
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prd-readiness",
-    "name": "valid-not-ready",
-    "input": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "not-ready",
-      "reason": "no-stop-conditions",
-      "stop_conditions_verifiable": false,
-      "creative_licence": "tight",
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prd-readiness",
-    "name": "out-of-set-reason-normalised-to-other",
-    "input": "{\"verdict\":\"not-ready\",\"reason\":\"weird\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "not-ready",
-      "reason": "other",
-      "stop_conditions_verifiable": false,
-      "creative_licence": "broad",
-      "conformant": false,
-      "violations": [
-        "reason \"weird\" not in {no-stop-conditions,ambiguous-stop-conditions,other} — normalised to other"
-      ]
-    }
-  },
-  {
-    "contract": "prd-readiness",
-    "name": "admissible-but-unverifiable",
-    "input": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "admissible",
-      "reason": "",
-      "stop_conditions_verifiable": false,
-      "creative_licence": "tight",
-      "conformant": false,
-      "violations": [
-        "admissible but stop_conditions_verifiable is false"
-      ]
-    }
-  },
-  {
-    "contract": "prd-readiness",
-    "name": "fail-loud-bad-verdict",
-    "input": "{\"verdict\":\"maybe\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "prdr-admission",
-    "name": "conformant-admit",
-    "input": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":1,\"breached\":false},\"reasons\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "disposition": "admit",
-      "upper": {
-        "admit": true,
-        "reason": ""
-      },
-      "lower": {
-        "covered": true,
-        "uncovered_goals": []
-      },
-      "authority": {
-        "actor": "loop",
-        "supersedes_provenance": "loop",
-        "by_level": "ok"
-      },
-      "ratchet": {
-        "lineage_supersessions": 1,
-        "breached": false
-      },
-      "reasons": [],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prdr-admission",
-    "name": "admit-violates-two-gate-constraint",
-    "input": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"violation\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "disposition": "admit",
-      "upper": {
-        "admit": true,
-        "reason": ""
-      },
-      "lower": {
-        "covered": true,
-        "uncovered_goals": []
-      },
-      "authority": {
-        "actor": "loop",
-        "supersedes_provenance": "loop",
-        "by_level": "violation"
-      },
-      "ratchet": {
-        "lineage_supersessions": 0,
-        "breached": false
-      },
-      "reasons": [],
-      "conformant": false,
-      "violations": [
-        "admit disposition violates the two-gate constraint (requires upper.admit ∧ by_level==ok ∧ ¬ratchet.breached ∧ lower.covered ∧ ¬(loop supersedes human))"
-      ]
-    }
-  },
-  {
-    "contract": "prdr-admission",
-    "name": "fail-loud-bad-disposition",
-    "input": "{\"disposition\":\"maybe\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "prdr-yagni",
-    "name": "conformant-admit",
-    "input": "{\"admit\":true,\"reason\":\"serves the goal, within scope\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"serves the goal, within scope\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
-    "expectExit": 0,
-    "expectStdout": {
-      "admit": true,
-      "reason": "serves the goal, within scope",
-      "trace_to_goal": true,
-      "cited_goals": [],
-      "dod_covers": [],
-      "over_scope": false,
-      "proposal": {
-        "serves_goal": true,
-        "within_scope": true,
-        "verdict": "admit",
-        "reason": "serves the goal, within scope"
-      },
-      "challenge": {
-        "ran": true,
-        "overturns": false,
-        "reason": "",
-        "ground": "other"
-      },
-      "grounding_present": false,
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prdr-yagni",
-    "name": "conformant-reject-no-trace",
-    "input": "{\"admit\":false,\"reason\":\"no PRD-goal trace\",\"trace_to_goal\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"reject\",\"reason\":\"\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
-    "expectExit": 0,
-    "expectStdout": {
-      "admit": false,
-      "reason": "no PRD-goal trace",
-      "trace_to_goal": false,
-      "cited_goals": [],
-      "dod_covers": [],
-      "over_scope": false,
-      "proposal": {
-        "serves_goal": false,
-        "within_scope": false,
-        "verdict": "reject",
-        "reason": ""
-      },
-      "challenge": {
-        "ran": false,
-        "overturns": false,
-        "reason": "",
-        "ground": "other"
-      },
-      "grounding_present": false,
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prdr-yagni",
-    "name": "admit-violates-conservative-constraint",
-    "input": "{\"admit\":true,\"reason\":\"x\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"x\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"gold-plating\"},\"grounding_present\":false}",
-    "expectExit": 1,
-    "expectStdout": {
-      "admit": true,
-      "reason": "x",
-      "trace_to_goal": true,
-      "cited_goals": [],
-      "dod_covers": [],
-      "over_scope": false,
-      "proposal": {
-        "serves_goal": true,
-        "within_scope": true,
-        "verdict": "admit",
-        "reason": "x"
-      },
-      "challenge": {
-        "ran": true,
-        "overturns": true,
-        "reason": "gold-plating",
-        "ground": "other"
-      },
-      "grounding_present": false,
-      "conformant": false,
-      "violations": [
-        "admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬over_scope ∧ (¬challenge.overturns ∨ (under-citation ∧ challenge.ground==over-scope)))"
-      ]
-    }
-  },
-  {
-    "contract": "prdr-yagni",
-    "name": "conformant-under-citation-admit",
-    "input": "{\"admit\":true,\"reason\":\"admit — mis-attributed under-citation\",\"trace_to_goal\":true,\"cited_goals\":[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\"],\"dod_covers\":[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"cites g1 but covers g1-5\",\"ground\":\"over-scope\"},\"grounding_present\":false}",
-    "expectExit": 0,
-    "expectStdout": {
-      "admit": true,
-      "reason": "admit — mis-attributed under-citation",
-      "trace_to_goal": true,
-      "cited_goals": ["g1", "g2", "g3", "g4", "g5"],
-      "dod_covers": ["g1", "g2", "g3", "g4", "g5"],
-      "over_scope": false,
-      "proposal": {
-        "serves_goal": true,
-        "within_scope": true,
-        "verdict": "admit",
-        "reason": ""
-      },
-      "challenge": {
-        "ran": true,
-        "overturns": true,
-        "reason": "cites g1 but covers g1-5",
-        "ground": "over-scope"
-      },
-      "grounding_present": false,
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prdr-yagni",
-    "name": "over-scope-admit-flagged-non-conformant",
-    "input": "{\"admit\":true,\"reason\":\"x\",\"trace_to_goal\":true,\"cited_goals\":[\"g1\"],\"dod_covers\":[\"g1\",\"analytics\"],\"over_scope\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\",\"ground\":\"other\"},\"grounding_present\":false}",
-    "expectExit": 1,
-    "expectStdout": {
-      "admit": true,
-      "reason": "x",
-      "trace_to_goal": true,
-      "cited_goals": ["g1"],
-      "dod_covers": ["g1", "analytics"],
-      "over_scope": true,
-      "proposal": {
-        "serves_goal": true,
-        "within_scope": true,
-        "verdict": "admit",
-        "reason": ""
-      },
-      "challenge": {
-        "ran": true,
-        "overturns": false,
-        "reason": "",
-        "ground": "other"
-      },
-      "grounding_present": false,
-      "conformant": false,
-      "violations": [
-        "admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬over_scope ∧ (¬challenge.overturns ∨ (under-citation ∧ challenge.ground==over-scope)))"
-      ]
-    }
-  },
-  {
-    "contract": "prdr-yagni",
-    "name": "fail-loud-bad-proposal-verdict",
-    "input": "{\"admit\":false,\"reason\":\"r\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"maybe\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "prd-coverage",
-    "name": "conformant-satisfied",
-    "input": "{\"covered\":true,\"uncovered_goals\":[],\"satisfied\":true,\"reason\":\"\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
-    "expectExit": 0,
-    "expectStdout": {
-      "covered": true,
-      "uncovered_goals": [],
-      "satisfied": true,
-      "reason": "",
-      "completion": {
-        "all_met": true,
-        "unmet_or_unverified": []
-      },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prd-coverage",
-    "name": "conformant-uncovered-lower-violation",
-    "input": "{\"covered\":false,\"uncovered_goals\":[\"reduce no-shows\"],\"satisfied\":false,\"reason\":\"uncovered goals (no live PRDR covers): reduce no-shows\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
-    "expectExit": 0,
-    "expectStdout": {
-      "covered": false,
-      "uncovered_goals": [
-        "reduce no-shows"
-      ],
-      "satisfied": false,
-      "reason": "uncovered goals (no live PRDR covers): reduce no-shows",
-      "completion": {
-        "all_met": true,
-        "unmet_or_unverified": []
-      },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prd-coverage",
-    "name": "conformant-conservative-unverified-dod",
-    "input": "{\"covered\":true,\"uncovered_goals\":[],\"satisfied\":false,\"reason\":\"DoD unmet/unverified (FAFF-34 verdict ≠ met): 0002\",\"completion\":{\"all_met\":false,\"unmet_or_unverified\":[\"0002\"]}}",
-    "expectExit": 0,
-    "expectStdout": {
-      "covered": true,
-      "uncovered_goals": [],
-      "satisfied": false,
-      "reason": "DoD unmet/unverified (FAFF-34 verdict ≠ met): 0002",
-      "completion": {
-        "all_met": false,
-        "unmet_or_unverified": [
-          "0002"
-        ]
-      },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "prd-coverage",
-    "name": "nonconformant-satisfied-while-uncovered",
-    "input": "{\"covered\":false,\"uncovered_goals\":[\"g\"],\"satisfied\":true,\"reason\":\"\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
-    "expectExit": 1,
-    "expectStdout": {
-      "covered": false,
-      "uncovered_goals": [
-        "g"
-      ],
-      "satisfied": true,
-      "reason": "",
-      "completion": {
-        "all_met": true,
-        "unmet_or_unverified": []
-      },
-      "conformant": false,
-      "violations": [
-        "satisfied:true while PRD goals are uncovered — a goal lost its last live PRDR (silent abandonment)"
-      ]
-    }
-  },
-  {
-    "contract": "prd-coverage",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "conformant-approve",
-    "input": "{\"verdict\":\"approve\",\"objections\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "approve",
-      "objections": [],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "conformant-reject-approach",
-    "input": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\"}]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "reject-approach",
-      "objections": [{ "lens": "architectural", "severity": "blocker" }],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "non-approve-no-objections",
-    "input": "{\"verdict\":\"reject-approach\",\"objections\":[]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "reject-approach",
-      "objections": [],
-      "conformant": false,
-      "violations": ["reject-approach carries no objections"]
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "approve-with-objections",
-    "input": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"infosec\",\"severity\":\"major\"}]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "approve",
-      "objections": [{ "lens": "infosec", "severity": "major" }],
-      "conformant": false,
-      "violations": ["approve carries objections — approve must carry none"]
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "bad-lens",
-    "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"vibes\",\"severity\":\"major\"}]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "revise",
-      "objections": [{ "lens": "vibes", "severity": "major" }],
-      "conformant": false,
-      "violations": ["objection[0] lens \"vibes\" not in {architectural,infosec,methodology,QA}"]
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "conformant-triple-plus-anchor",
-    "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"major\",\"claim\":\"C\",\"evidence\":\"E\",\"predicted_consequence\":\"P\",\"spec_anchor\":\"aggregation-carry-the-anchor\"}]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "revise",
-      "objections": [{ "lens": "architectural", "severity": "major", "claim": "C", "evidence": "E", "predicted_consequence": "P", "spec_anchor": "aggregation-carry-the-anchor" }],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "legacy-no-anchor-unchanged",
-    "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"minor\"}]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "revise",
-      "objections": [{ "lens": "QA", "severity": "minor" }],
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "fail-loud-bad-verdict",
-    "input": "{\"verdict\":\"meh\",\"objections\":[]}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "spec-review-verdict",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "architecture-proposal",
-    "name": "conformant-build",
-    "input": "{\"chosen_architecture\":\"modular monolith on Node\",\"rationale\":\"fits the single Node runtime + existing CI\",\"recommendation\":\"build\",\"adr_candidates\":[],\"assumptions\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "chosen_architecture": "modular monolith on Node",
-      "rationale": "fits the single Node runtime + existing CI",
-      "adr_candidates": [],
-      "assumptions": [],
-      "recommendation": "build",
-      "violations": []
-    }
-  },
-  {
-    "contract": "architecture-proposal",
-    "name": "conformant-buy",
-    "input": "{\"chosen_architecture\":\"managed Postgres + thin API\",\"rationale\":\"no DB ops capacity in profile\",\"recommendation\":\"buy\",\"adr_candidates\":[{\"title\":\"Use managed Postgres\",\"decision\":\"adopt a managed DB\",\"rationale\":\"no self-host ops capacity\"}],\"assumptions\":[\"budget allows a managed tier\"]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "chosen_architecture": "managed Postgres + thin API",
-      "rationale": "no DB ops capacity in profile",
-      "adr_candidates": [{ "title": "Use managed Postgres", "decision": "adopt a managed DB", "rationale": "no self-host ops capacity" }],
-      "assumptions": ["budget allows a managed tier"],
-      "recommendation": "buy",
-      "violations": []
-    }
-  },
-  {
-    "contract": "architecture-proposal",
-    "name": "empty-chosen-architecture",
-    "input": "{\"chosen_architecture\":\"\",\"rationale\":\"y\",\"recommendation\":\"build\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "chosen_architecture": "",
-      "rationale": "y",
-      "adr_candidates": [],
-      "assumptions": [],
-      "recommendation": "build",
-      "violations": ["chosen_architecture is empty"]
-    }
-  },
-  {
-    "contract": "architecture-proposal",
-    "name": "bad-recommendation",
-    "input": "{\"chosen_architecture\":\"x\",\"rationale\":\"y\",\"recommendation\":\"rent\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "chosen_architecture": "x",
-      "rationale": "y",
-      "adr_candidates": [],
-      "assumptions": [],
-      "recommendation": "rent",
-      "violations": ["recommendation \"rent\" not in {build,buy,hybrid}"]
-    }
-  },
-  {
-    "contract": "architecture-proposal",
-    "name": "malformed-adr-candidate",
-    "input": "{\"chosen_architecture\":\"x\",\"rationale\":\"y\",\"recommendation\":\"build\",\"adr_candidates\":[{\"title\":\"t\"}]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "chosen_architecture": "x",
-      "rationale": "y",
-      "adr_candidates": [{ "title": "t", "decision": "", "rationale": "" }],
-      "assumptions": [],
-      "recommendation": "build",
-      "violations": ["adr_candidates[0] has no decision", "adr_candidates[0] has no rationale"]
-    }
-  },
-  {
-    "contract": "architecture-proposal",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "env-handle",
-    "name": "conformant-ready",
-    "input": "{\"status\":\"ready\",\"endpoint\":\"http://localhost:8080\",\"endpoints\":{\"api\":\"http://localhost:8080\"},\"health_checks\":[{\"name\":\"api\",\"path\":\"/healthz\",\"expected_status\":200}],\"teardown_ref\":\"faff-env-7f3a\",\"teardown_cmd\":\"docker-compose -p faff-env-7f3a down\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "status": "ready",
-      "endpoint": "http://localhost:8080",
-      "health_checks": [{ "name": "api", "path": "/healthz", "expected_status": 200 }],
-      "teardown_ref": "faff-env-7f3a",
-      "provisioned_at": "2026-06-28T00:00:00Z",
-      "provisioner": "faffter-noon-env-compose",
-      "violations": [],
-      "endpoints": { "api": "http://localhost:8080" },
-      "teardown_cmd": "docker-compose -p faff-env-7f3a down"
-    }
-  },
-  {
-    "contract": "env-handle",
-    "name": "provisioning-not-ready",
-    "input": "{\"status\":\"provisioning\",\"health_checks\":[],\"teardown_ref\":\"faff-env-abc\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "status": "provisioning",
-      "endpoint": "",
-      "health_checks": [],
-      "teardown_ref": "faff-env-abc",
-      "provisioned_at": "2026-06-28T00:00:00Z",
-      "provisioner": "faffter-noon-env-compose",
-      "violations": ["status is \"provisioning\" — not a gate-passing (ready) env"]
-    }
-  },
-  {
-    "contract": "env-handle",
-    "name": "ready-missing-endpoint",
-    "input": "{\"status\":\"ready\",\"endpoint\":\"\",\"health_checks\":[{\"name\":\"api\",\"path\":\"/healthz\",\"expected_status\":200}],\"teardown_ref\":\"faff-env-abc\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "status": "ready",
-      "endpoint": "",
-      "health_checks": [{ "name": "api", "path": "/healthz", "expected_status": 200 }],
-      "teardown_ref": "faff-env-abc",
-      "provisioned_at": "2026-06-28T00:00:00Z",
-      "provisioner": "faffter-noon-env-compose",
-      "violations": ["status is ready but endpoint is missing/empty"]
-    }
-  },
-  {
-    "contract": "env-handle",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "holdout-verdict",
-    "name": "conformant-meets-spec",
-    "input": "{\"aggregate\":\"meets-spec\",\"code_blind\":true,\"criteria\":[{\"class\":\"scenario\",\"verdict\":\"met\",\"evidence_present\":true}],\"violations\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "aggregate": "meets-spec",
-      "code_blind": true,
-      "criteria": [
-        { "class": "scenario", "verdict": "met", "evidence_present": true }
-      ],
-      "violations": []
-    }
-  },
-  {
-    "contract": "holdout-verdict",
-    "name": "conformant-needs-human-prose",
-    "input": "{\"aggregate\":\"needs-human\",\"code_blind\":true,\"criteria\":[{\"class\":\"prose\",\"verdict\":\"needs-human\",\"evidence_present\":false}],\"violations\":[]}",
-    "expectExit": 0,
-    "expectStdout": {
-      "aggregate": "needs-human",
-      "code_blind": true,
-      "criteria": [
-        { "class": "prose", "verdict": "needs-human", "evidence_present": false }
-      ],
-      "violations": []
-    }
-  },
-  {
-    "contract": "holdout-verdict",
-    "name": "code-blind-false-violation",
-    "input": "{\"aggregate\":\"meets-spec\",\"code_blind\":false,\"criteria\":[{\"class\":\"scenario\",\"verdict\":\"met\",\"evidence_present\":true}],\"violations\":[]}",
-    "expectExit": 1,
-    "expectStdout": {
-      "aggregate": "meets-spec",
-      "code_blind": false,
-      "criteria": [
-        { "class": "scenario", "verdict": "met", "evidence_present": true }
-      ],
-      "violations": [
-        "code_blind is not true — a non-blind verdict is structurally inadmissible"
-      ]
-    }
-  },
-  {
-    "contract": "holdout-verdict",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "post-merge-verification",
-    "name": "valid-verified-ok",
-    "input": "{\"verdict\":\"verified-ok\",\"command\":\"npm run test\",\"basis\":\"npm run test exit 0\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "verified-ok",
-      "command": "npm run test",
-      "basis": "npm run test exit 0",
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "post-merge-verification",
-    "name": "valid-unverified-no-rung",
-    "input": "{\"verdict\":\"unverified\",\"command\":null,\"basis\":\"no UNIT rung discovered\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "unverified",
-      "command": null,
-      "basis": "no UNIT rung discovered",
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "post-merge-verification",
-    "name": "coerce-malformed-verdict-to-unverified",
-    "input": "{\"verdict\":\"maybe\",\"command\":\"npm run test\",\"basis\":\"?\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "unverified",
-      "command": "npm run test",
-      "basis": "?",
-      "conformant": false,
-      "violations": [
-        "verdict \"maybe\" not in {verified-ok,verified-fail,unverified} — coerced to unverified"
-      ]
-    }
-  },
-  {
-    "contract": "post-merge-verification",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "l4-topology-envelope",
-    "name": "container-create-accepted-root-admit",
-    "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false,\"contained_under_accepted_prd\":true},\"verdict\":{\"disposition\":\"admit\",\"reason\":\"prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)\",\"reversible\":true}}",
-    "expectExit": 0,
-    "expectStdout": {
-      "op": { "kind": "container-create", "level": "L4", "provenance": "faff-authored", "parent_confirmed": false, "contained_under_accepted_prd": true },
-      "verdict": { "disposition": "admit", "reason": "prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)", "reversible": true },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "l4-topology-envelope",
-    "name": "container-create-signal-false-gated",
-    "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false,\"contained_under_accepted_prd\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"outside the accepted-root envelope \u2014 container-confirm holds\",\"reversible\":true}}",
-    "expectExit": 0,
-    "expectStdout": {
-      "op": { "kind": "container-create", "level": "L4", "provenance": "faff-authored", "parent_confirmed": false, "contained_under_accepted_prd": false },
-      "verdict": { "disposition": "propose-only", "reason": "outside the accepted-root envelope \u2014 container-confirm holds", "reversible": true },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "l4-topology-envelope",
-    "name": "fail-loud-missing-contained-under-accepted-prd",
-    "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"\",\"reversible\":true}}",
-    "expectExit": 2,
-    "expectStderrIncludes": "fail-loud"
-  },
-  {
-    "contract": "run-trigger",
-    "name": "conformant-plan-coverage-thin",
-    "input": "{\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"plan\",\"reason\":\"coverage-thin\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "plan",
-      "reason": "coverage-thin",
-      "signals": {
-        "target_resolved": true,
-        "outward": true,
-        "prd_present": true,
-        "prd_ambiguous": false,
-        "prd_admissible": true,
-        "coverage_measurable": true,
-        "coverage_covered": false
-      },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "run-trigger",
-    "name": "conformant-refuse-self-directed",
-    "input": "{\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"refuse\",\"reason\":\"self-directed\"}",
-    "expectExit": 0,
-    "expectStdout": {
-      "verdict": "refuse",
-      "reason": "self-directed",
-      "signals": {
-        "target_resolved": true,
-        "outward": false,
-        "prd_present": true,
-        "prd_ambiguous": false,
-        "prd_admissible": true,
-        "coverage_measurable": true,
-        "coverage_covered": false
-      },
-      "conformant": true,
-      "violations": []
-    }
-  },
-  {
-    "contract": "run-trigger",
-    "name": "reject-hand-altered-drain-on-plan-signals",
-    "input": "{\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"drain\",\"reason\":\"prd-covered\"}",
-    "expectExit": 1,
-    "expectStdout": {
-      "verdict": "plan",
-      "reason": "coverage-thin",
-      "signals": {
-        "target_resolved": true,
-        "outward": true,
-        "prd_present": true,
-        "prd_ambiguous": false,
-        "prd_admissible": true,
-        "coverage_measurable": true,
-        "coverage_covered": false
-      },
-      "conformant": false,
-      "violations": [
-        "declared verdict \"drain\" does not match the re-derived \"plan\" for the given signals",
-        "declared reason \"prd-covered\" does not match the re-derived \"coverage-thin\" for the given signals"
-      ]
-    }
-  },
-  {
-    "contract": "run-trigger",
-    "name": "fail-loud-non-object",
-    "input": "\"not an object\"",
-    "expectExit": 2,
-    "expectStderrIncludes": "extraction must be a JSON object"
+   ],
+   "markers_valid": true,
+   "violations": []
   }
+ },
+ {
+  "contract": "spec-readiness",
+  "name": "fail-loud-bad-confidence",
+  "input": "{\"confidence\":\"banana\",\"decisions\":[{\"marker\":\"chosen\"}],\"provenance_present\":true}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "review-verdict",
+  "name": "valid",
+  "input": "{\"signal\":\"pass\",\"findings\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "signal": "pass",
+   "findings": [],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "review-verdict",
+  "name": "boundary-coerce-needs-human",
+  "input": "{\"verdict\":\"pass\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "signal": "needs-human",
+   "findings": [],
+   "conformant": false,
+   "violations": [
+    "signal undefined not in {pass,fail,needs-human,unavailable} \u2014 coerced to needs-human",
+    "needs-human carries no findings"
+   ]
+  }
+ },
+ {
+  "contract": "review-verdict",
+  "name": "unavailable-bare-conformant",
+  "input": "{\"signal\":\"unavailable\",\"findings\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "signal": "unavailable",
+   "findings": [],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "review-verdict",
+  "name": "unavailable-with-well-formed-finding-conformant",
+  "input": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":true,\"action_present\":true}]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "signal": "unavailable",
+   "findings": [
+    {
+     "location_present": true,
+     "action_present": true
+    }
+   ],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "review-verdict",
+  "name": "unavailable-with-malformed-finding-still-flagged",
+  "input": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":false,\"action_present\":false}]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "signal": "unavailable",
+   "findings": [
+    {
+     "location_present": false,
+     "action_present": false
+    }
+   ],
+   "conformant": false,
+   "violations": [
+    "finding[0] has no location",
+    "finding[0] has no action"
+   ]
+  }
+ },
+ {
+  "contract": "integrity-floor",
+  "name": "review-unavailable-refuses",
+  "input": "{\"ac_complete\":true,\"review_verdict\":\"unavailable\",\"ci_state\":\"ci-green\",\"head_sha_matches\":true,\"level\":\"L3\",\"holdout\":\"not-applicable\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "refuse",
+   "ci_state": "ci-green",
+   "level": "L3",
+   "conformant": false,
+   "violations": [
+    "review verdict is unavailable (need pass)"
+   ]
+  }
+ },
+ {
+  "contract": "delivery-outcome",
+  "name": "valid",
+  "input": "{\"outcome\":\"shipped\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "outcome": "shipped",
+   "reason": "",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "delivery-outcome",
+  "name": "boundary-coerce-failed",
+  "input": "{\"merged\":true,\"deploy_ok\":true}",
+  "expectExit": 1,
+  "expectStdout": {
+   "outcome": "failed",
+   "reason": "malformed delivery result coerced to failed",
+   "conformant": false,
+   "violations": [
+    "outcome undefined not in {shipped,not-ready,failed} \u2014 coerced to failed"
+   ]
+  }
+ },
+ {
+  "contract": "automation-routing",
+  "name": "valid",
+  "input": "{\"verdict\":\"fire-and-forget\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "fire-and-forget",
+   "root_cause": null,
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "automation-routing",
+  "name": "fail-loud-no-verdict",
+  "input": "{\"confidence\":\"high\",\"spec_present\":true}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "quality-gates",
+  "name": "valid-pass",
+  "input": "{\"signal\":\"pass\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"pass\"},{\"kind\":\"UNIT\",\"status\":\"pass\"}]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "signal": "pass",
+   "rungs": [
+    {
+     "kind": "LINT",
+     "status": "pass"
+    },
+    {
+     "kind": "UNIT",
+     "status": "pass"
+    }
+   ],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "quality-gates",
+  "name": "coerce-malformed-signal-to-needs-human",
+  "input": "{\"signal\":\"maybe\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"fail\"}]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "signal": "needs-human",
+   "rungs": [
+    {
+     "kind": "LINT",
+     "status": "fail"
+    }
+   ],
+   "conformant": false,
+   "violations": [
+    "signal \"maybe\" not in {pass,fail,needs-human} \u2014 coerced to needs-human"
+   ]
+  }
+ },
+ {
+  "contract": "quality-gates",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "prd-readiness",
+  "name": "valid-admissible",
+  "input": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "admissible",
+   "reason": "",
+   "stop_conditions_verifiable": true,
+   "creative_licence": "broad",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prd-readiness",
+  "name": "valid-not-ready",
+  "input": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "not-ready",
+   "reason": "no-stop-conditions",
+   "stop_conditions_verifiable": false,
+   "creative_licence": "tight",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prd-readiness",
+  "name": "out-of-set-reason-normalised-to-other",
+  "input": "{\"verdict\":\"not-ready\",\"reason\":\"weird\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "not-ready",
+   "reason": "other",
+   "stop_conditions_verifiable": false,
+   "creative_licence": "broad",
+   "conformant": false,
+   "violations": [
+    "reason \"weird\" not in {no-stop-conditions,ambiguous-stop-conditions,other} \u2014 normalised to other"
+   ]
+  }
+ },
+ {
+  "contract": "prd-readiness",
+  "name": "admissible-but-unverifiable",
+  "input": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "admissible",
+   "reason": "",
+   "stop_conditions_verifiable": false,
+   "creative_licence": "tight",
+   "conformant": false,
+   "violations": [
+    "admissible but stop_conditions_verifiable is false"
+   ]
+  }
+ },
+ {
+  "contract": "prd-readiness",
+  "name": "fail-loud-bad-verdict",
+  "input": "{\"verdict\":\"maybe\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "prdr-admission",
+  "name": "conformant-admit",
+  "input": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":1,\"breached\":false},\"reasons\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "disposition": "admit",
+   "upper": {
+    "admit": true,
+    "reason": ""
+   },
+   "lower": {
+    "covered": true,
+    "uncovered_goals": []
+   },
+   "authority": {
+    "actor": "loop",
+    "supersedes_provenance": "loop",
+    "by_level": "ok"
+   },
+   "ratchet": {
+    "lineage_supersessions": 1,
+    "breached": false
+   },
+   "reasons": [],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prdr-admission",
+  "name": "admit-violates-two-gate-constraint",
+  "input": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"violation\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "disposition": "admit",
+   "upper": {
+    "admit": true,
+    "reason": ""
+   },
+   "lower": {
+    "covered": true,
+    "uncovered_goals": []
+   },
+   "authority": {
+    "actor": "loop",
+    "supersedes_provenance": "loop",
+    "by_level": "violation"
+   },
+   "ratchet": {
+    "lineage_supersessions": 0,
+    "breached": false
+   },
+   "reasons": [],
+   "conformant": false,
+   "violations": [
+    "admit disposition violates the two-gate constraint (requires upper.admit \u2227 by_level==ok \u2227 \u00acratchet.breached \u2227 lower.covered \u2227 \u00ac(loop supersedes human))"
+   ]
+  }
+ },
+ {
+  "contract": "prdr-admission",
+  "name": "fail-loud-bad-disposition",
+  "input": "{\"disposition\":\"maybe\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "prdr-yagni",
+  "name": "conformant-admit",
+  "input": "{\"admit\":true,\"reason\":\"serves the goal, within scope\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"serves the goal, within scope\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
+  "expectExit": 0,
+  "expectStdout": {
+   "admit": true,
+   "reason": "serves the goal, within scope",
+   "trace_to_goal": true,
+   "cited_goals": [],
+   "dod_covers": [],
+   "over_scope": false,
+   "proposal": {
+    "serves_goal": true,
+    "within_scope": true,
+    "verdict": "admit",
+    "reason": "serves the goal, within scope"
+   },
+   "challenge": {
+    "ran": true,
+    "overturns": false,
+    "reason": "",
+    "ground": "other"
+   },
+   "grounding_present": false,
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prdr-yagni",
+  "name": "conformant-reject-no-trace",
+  "input": "{\"admit\":false,\"reason\":\"no PRD-goal trace\",\"trace_to_goal\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"reject\",\"reason\":\"\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
+  "expectExit": 0,
+  "expectStdout": {
+   "admit": false,
+   "reason": "no PRD-goal trace",
+   "trace_to_goal": false,
+   "cited_goals": [],
+   "dod_covers": [],
+   "over_scope": false,
+   "proposal": {
+    "serves_goal": false,
+    "within_scope": false,
+    "verdict": "reject",
+    "reason": ""
+   },
+   "challenge": {
+    "ran": false,
+    "overturns": false,
+    "reason": "",
+    "ground": "other"
+   },
+   "grounding_present": false,
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prdr-yagni",
+  "name": "admit-violates-conservative-constraint",
+  "input": "{\"admit\":true,\"reason\":\"x\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"x\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"gold-plating\"},\"grounding_present\":false}",
+  "expectExit": 1,
+  "expectStdout": {
+   "admit": true,
+   "reason": "x",
+   "trace_to_goal": true,
+   "cited_goals": [],
+   "dod_covers": [],
+   "over_scope": false,
+   "proposal": {
+    "serves_goal": true,
+    "within_scope": true,
+    "verdict": "admit",
+    "reason": "x"
+   },
+   "challenge": {
+    "ran": true,
+    "overturns": true,
+    "reason": "gold-plating",
+    "ground": "other"
+   },
+   "grounding_present": false,
+   "conformant": false,
+   "violations": [
+    "admit verdict violates the conservative arbitration constraint (requires trace_to_goal \u2227 proposal.verdict==admit \u2227 challenge.ran \u2227 \u00acover_scope \u2227 (\u00acchallenge.overturns \u2228 (under-citation \u2227 challenge.ground==over-scope)))"
+   ]
+  }
+ },
+ {
+  "contract": "prdr-yagni",
+  "name": "conformant-under-citation-admit",
+  "input": "{\"admit\":true,\"reason\":\"admit \u2014 mis-attributed under-citation\",\"trace_to_goal\":true,\"cited_goals\":[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\"],\"dod_covers\":[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"cites g1 but covers g1-5\",\"ground\":\"over-scope\"},\"grounding_present\":false}",
+  "expectExit": 0,
+  "expectStdout": {
+   "admit": true,
+   "reason": "admit \u2014 mis-attributed under-citation",
+   "trace_to_goal": true,
+   "cited_goals": [
+    "g1",
+    "g2",
+    "g3",
+    "g4",
+    "g5"
+   ],
+   "dod_covers": [
+    "g1",
+    "g2",
+    "g3",
+    "g4",
+    "g5"
+   ],
+   "over_scope": false,
+   "proposal": {
+    "serves_goal": true,
+    "within_scope": true,
+    "verdict": "admit",
+    "reason": ""
+   },
+   "challenge": {
+    "ran": true,
+    "overturns": true,
+    "reason": "cites g1 but covers g1-5",
+    "ground": "over-scope"
+   },
+   "grounding_present": false,
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prdr-yagni",
+  "name": "over-scope-admit-flagged-non-conformant",
+  "input": "{\"admit\":true,\"reason\":\"x\",\"trace_to_goal\":true,\"cited_goals\":[\"g1\"],\"dod_covers\":[\"g1\",\"analytics\"],\"over_scope\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\",\"ground\":\"other\"},\"grounding_present\":false}",
+  "expectExit": 1,
+  "expectStdout": {
+   "admit": true,
+   "reason": "x",
+   "trace_to_goal": true,
+   "cited_goals": [
+    "g1"
+   ],
+   "dod_covers": [
+    "g1",
+    "analytics"
+   ],
+   "over_scope": true,
+   "proposal": {
+    "serves_goal": true,
+    "within_scope": true,
+    "verdict": "admit",
+    "reason": ""
+   },
+   "challenge": {
+    "ran": true,
+    "overturns": false,
+    "reason": "",
+    "ground": "other"
+   },
+   "grounding_present": false,
+   "conformant": false,
+   "violations": [
+    "admit verdict violates the conservative arbitration constraint (requires trace_to_goal \u2227 proposal.verdict==admit \u2227 challenge.ran \u2227 \u00acover_scope \u2227 (\u00acchallenge.overturns \u2228 (under-citation \u2227 challenge.ground==over-scope)))"
+   ]
+  }
+ },
+ {
+  "contract": "prdr-yagni",
+  "name": "fail-loud-bad-proposal-verdict",
+  "input": "{\"admit\":false,\"reason\":\"r\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"maybe\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "prd-coverage",
+  "name": "conformant-satisfied",
+  "input": "{\"covered\":true,\"uncovered_goals\":[],\"satisfied\":true,\"reason\":\"\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
+  "expectExit": 0,
+  "expectStdout": {
+   "covered": true,
+   "uncovered_goals": [],
+   "satisfied": true,
+   "reason": "",
+   "completion": {
+    "all_met": true,
+    "unmet_or_unverified": []
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prd-coverage",
+  "name": "conformant-uncovered-lower-violation",
+  "input": "{\"covered\":false,\"uncovered_goals\":[\"reduce no-shows\"],\"satisfied\":false,\"reason\":\"uncovered goals (no live PRDR covers): reduce no-shows\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
+  "expectExit": 0,
+  "expectStdout": {
+   "covered": false,
+   "uncovered_goals": [
+    "reduce no-shows"
+   ],
+   "satisfied": false,
+   "reason": "uncovered goals (no live PRDR covers): reduce no-shows",
+   "completion": {
+    "all_met": true,
+    "unmet_or_unverified": []
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prd-coverage",
+  "name": "conformant-conservative-unverified-dod",
+  "input": "{\"covered\":true,\"uncovered_goals\":[],\"satisfied\":false,\"reason\":\"DoD unmet/unverified (FAFF-34 verdict \u2260 met): 0002\",\"completion\":{\"all_met\":false,\"unmet_or_unverified\":[\"0002\"]}}",
+  "expectExit": 0,
+  "expectStdout": {
+   "covered": true,
+   "uncovered_goals": [],
+   "satisfied": false,
+   "reason": "DoD unmet/unverified (FAFF-34 verdict \u2260 met): 0002",
+   "completion": {
+    "all_met": false,
+    "unmet_or_unverified": [
+     "0002"
+    ]
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "prd-coverage",
+  "name": "nonconformant-satisfied-while-uncovered",
+  "input": "{\"covered\":false,\"uncovered_goals\":[\"g\"],\"satisfied\":true,\"reason\":\"\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
+  "expectExit": 1,
+  "expectStdout": {
+   "covered": false,
+   "uncovered_goals": [
+    "g"
+   ],
+   "satisfied": true,
+   "reason": "",
+   "completion": {
+    "all_met": true,
+    "unmet_or_unverified": []
+   },
+   "conformant": false,
+   "violations": [
+    "satisfied:true while PRD goals are uncovered \u2014 a goal lost its last live PRDR (silent abandonment)"
+   ]
+  }
+ },
+ {
+  "contract": "prd-coverage",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "conformant-approve",
+  "input": "{\"verdict\":\"approve\",\"objections\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "approve",
+   "objections": [],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "conformant-reject-approach",
+  "input": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\"}]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "reject-approach",
+   "objections": [
+    {
+     "lens": "architectural",
+     "severity": "blocker"
+    }
+   ],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "non-approve-no-objections",
+  "input": "{\"verdict\":\"reject-approach\",\"objections\":[]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "reject-approach",
+   "objections": [],
+   "conformant": false,
+   "violations": [
+    "reject-approach carries no objections"
+   ]
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "approve-with-objections",
+  "input": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"infosec\",\"severity\":\"major\"}]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "approve",
+   "objections": [
+    {
+     "lens": "infosec",
+     "severity": "major"
+    }
+   ],
+   "conformant": false,
+   "violations": [
+    "approve carries objections \u2014 approve must carry none"
+   ]
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "bad-lens",
+  "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"vibes\",\"severity\":\"major\"}]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "revise",
+   "objections": [
+    {
+     "lens": "vibes",
+     "severity": "major"
+    }
+   ],
+   "conformant": false,
+   "violations": [
+    "objection[0] lens \"vibes\" not in {architectural,infosec,methodology,QA}"
+   ]
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "conformant-triple-plus-anchor",
+  "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"major\",\"claim\":\"C\",\"evidence\":\"E\",\"predicted_consequence\":\"P\",\"spec_anchor\":\"aggregation-carry-the-anchor\"}]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "revise",
+   "objections": [
+    {
+     "lens": "architectural",
+     "severity": "major",
+     "claim": "C",
+     "evidence": "E",
+     "predicted_consequence": "P",
+     "spec_anchor": "aggregation-carry-the-anchor"
+    }
+   ],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "legacy-no-anchor-unchanged",
+  "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"minor\"}]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "revise",
+   "objections": [
+    {
+     "lens": "QA",
+     "severity": "minor"
+    }
+   ],
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "fail-loud-bad-verdict",
+  "input": "{\"verdict\":\"meh\",\"objections\":[]}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "spec-review-verdict",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "architecture-proposal",
+  "name": "conformant-build",
+  "input": "{\"chosen_architecture\":\"modular monolith on Node\",\"rationale\":\"fits the single Node runtime + existing CI\",\"recommendation\":\"build\",\"adr_candidates\":[],\"assumptions\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "chosen_architecture": "modular monolith on Node",
+   "rationale": "fits the single Node runtime + existing CI",
+   "adr_candidates": [],
+   "assumptions": [],
+   "recommendation": "build",
+   "violations": []
+  }
+ },
+ {
+  "contract": "architecture-proposal",
+  "name": "conformant-buy",
+  "input": "{\"chosen_architecture\":\"managed Postgres + thin API\",\"rationale\":\"no DB ops capacity in profile\",\"recommendation\":\"buy\",\"adr_candidates\":[{\"title\":\"Use managed Postgres\",\"decision\":\"adopt a managed DB\",\"rationale\":\"no self-host ops capacity\"}],\"assumptions\":[\"budget allows a managed tier\"]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "chosen_architecture": "managed Postgres + thin API",
+   "rationale": "no DB ops capacity in profile",
+   "adr_candidates": [
+    {
+     "title": "Use managed Postgres",
+     "decision": "adopt a managed DB",
+     "rationale": "no self-host ops capacity"
+    }
+   ],
+   "assumptions": [
+    "budget allows a managed tier"
+   ],
+   "recommendation": "buy",
+   "violations": []
+  }
+ },
+ {
+  "contract": "architecture-proposal",
+  "name": "empty-chosen-architecture",
+  "input": "{\"chosen_architecture\":\"\",\"rationale\":\"y\",\"recommendation\":\"build\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "chosen_architecture": "",
+   "rationale": "y",
+   "adr_candidates": [],
+   "assumptions": [],
+   "recommendation": "build",
+   "violations": [
+    "chosen_architecture is empty"
+   ]
+  }
+ },
+ {
+  "contract": "architecture-proposal",
+  "name": "bad-recommendation",
+  "input": "{\"chosen_architecture\":\"x\",\"rationale\":\"y\",\"recommendation\":\"rent\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "chosen_architecture": "x",
+   "rationale": "y",
+   "adr_candidates": [],
+   "assumptions": [],
+   "recommendation": "rent",
+   "violations": [
+    "recommendation \"rent\" not in {build,buy,hybrid}"
+   ]
+  }
+ },
+ {
+  "contract": "architecture-proposal",
+  "name": "malformed-adr-candidate",
+  "input": "{\"chosen_architecture\":\"x\",\"rationale\":\"y\",\"recommendation\":\"build\",\"adr_candidates\":[{\"title\":\"t\"}]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "chosen_architecture": "x",
+   "rationale": "y",
+   "adr_candidates": [
+    {
+     "title": "t",
+     "decision": "",
+     "rationale": ""
+    }
+   ],
+   "assumptions": [],
+   "recommendation": "build",
+   "violations": [
+    "adr_candidates[0] has no decision",
+    "adr_candidates[0] has no rationale"
+   ]
+  }
+ },
+ {
+  "contract": "architecture-proposal",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "env-handle",
+  "name": "conformant-ready",
+  "input": "{\"status\":\"ready\",\"endpoint\":\"http://localhost:8080\",\"endpoints\":{\"api\":\"http://localhost:8080\"},\"health_checks\":[{\"name\":\"api\",\"path\":\"/healthz\",\"expected_status\":200}],\"teardown_ref\":\"faff-env-7f3a\",\"teardown_cmd\":\"docker-compose -p faff-env-7f3a down\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "status": "ready",
+   "endpoint": "http://localhost:8080",
+   "health_checks": [
+    {
+     "name": "api",
+     "path": "/healthz",
+     "expected_status": 200
+    }
+   ],
+   "teardown_ref": "faff-env-7f3a",
+   "provisioned_at": "2026-06-28T00:00:00Z",
+   "provisioner": "faffter-noon-env-compose",
+   "violations": [],
+   "endpoints": {
+    "api": "http://localhost:8080"
+   },
+   "teardown_cmd": "docker-compose -p faff-env-7f3a down"
+  }
+ },
+ {
+  "contract": "env-handle",
+  "name": "provisioning-not-ready",
+  "input": "{\"status\":\"provisioning\",\"health_checks\":[],\"teardown_ref\":\"faff-env-abc\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "status": "provisioning",
+   "endpoint": "",
+   "health_checks": [],
+   "teardown_ref": "faff-env-abc",
+   "provisioned_at": "2026-06-28T00:00:00Z",
+   "provisioner": "faffter-noon-env-compose",
+   "violations": [
+    "status is \"provisioning\" \u2014 not a gate-passing (ready) env"
+   ]
+  }
+ },
+ {
+  "contract": "env-handle",
+  "name": "ready-missing-endpoint",
+  "input": "{\"status\":\"ready\",\"endpoint\":\"\",\"health_checks\":[{\"name\":\"api\",\"path\":\"/healthz\",\"expected_status\":200}],\"teardown_ref\":\"faff-env-abc\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "status": "ready",
+   "endpoint": "",
+   "health_checks": [
+    {
+     "name": "api",
+     "path": "/healthz",
+     "expected_status": 200
+    }
+   ],
+   "teardown_ref": "faff-env-abc",
+   "provisioned_at": "2026-06-28T00:00:00Z",
+   "provisioner": "faffter-noon-env-compose",
+   "violations": [
+    "status is ready but endpoint is missing/empty"
+   ]
+  }
+ },
+ {
+  "contract": "env-handle",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "holdout-verdict",
+  "name": "conformant-meets-spec",
+  "input": "{\"aggregate\":\"meets-spec\",\"code_blind\":true,\"criteria\":[{\"class\":\"scenario\",\"verdict\":\"met\",\"evidence_present\":true}],\"violations\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "aggregate": "meets-spec",
+   "code_blind": true,
+   "criteria": [
+    {
+     "class": "scenario",
+     "verdict": "met",
+     "evidence_present": true
+    }
+   ],
+   "violations": []
+  }
+ },
+ {
+  "contract": "holdout-verdict",
+  "name": "conformant-needs-human-prose",
+  "input": "{\"aggregate\":\"needs-human\",\"code_blind\":true,\"criteria\":[{\"class\":\"prose\",\"verdict\":\"needs-human\",\"evidence_present\":false}],\"violations\":[]}",
+  "expectExit": 0,
+  "expectStdout": {
+   "aggregate": "needs-human",
+   "code_blind": true,
+   "criteria": [
+    {
+     "class": "prose",
+     "verdict": "needs-human",
+     "evidence_present": false
+    }
+   ],
+   "violations": []
+  }
+ },
+ {
+  "contract": "holdout-verdict",
+  "name": "code-blind-false-violation",
+  "input": "{\"aggregate\":\"meets-spec\",\"code_blind\":false,\"criteria\":[{\"class\":\"scenario\",\"verdict\":\"met\",\"evidence_present\":true}],\"violations\":[]}",
+  "expectExit": 1,
+  "expectStdout": {
+   "aggregate": "meets-spec",
+   "code_blind": false,
+   "criteria": [
+    {
+     "class": "scenario",
+     "verdict": "met",
+     "evidence_present": true
+    }
+   ],
+   "violations": [
+    "code_blind is not true \u2014 a non-blind verdict is structurally inadmissible"
+   ]
+  }
+ },
+ {
+  "contract": "holdout-verdict",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "post-merge-verification",
+  "name": "valid-verified-ok",
+  "input": "{\"verdict\":\"verified-ok\",\"command\":\"npm run test\",\"basis\":\"npm run test exit 0\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "verified-ok",
+   "command": "npm run test",
+   "basis": "npm run test exit 0",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "post-merge-verification",
+  "name": "valid-unverified-no-rung",
+  "input": "{\"verdict\":\"unverified\",\"command\":null,\"basis\":\"no UNIT rung discovered\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "unverified",
+   "command": null,
+   "basis": "no UNIT rung discovered",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "post-merge-verification",
+  "name": "coerce-malformed-verdict-to-unverified",
+  "input": "{\"verdict\":\"maybe\",\"command\":\"npm run test\",\"basis\":\"?\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "unverified",
+   "command": "npm run test",
+   "basis": "?",
+   "conformant": false,
+   "violations": [
+    "verdict \"maybe\" not in {verified-ok,verified-fail,unverified} \u2014 coerced to unverified"
+   ]
+  }
+ },
+ {
+  "contract": "post-merge-verification",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "l4-topology-envelope",
+  "name": "container-create-accepted-root-admit",
+  "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false,\"contained_under_accepted_prd\":true},\"verdict\":{\"disposition\":\"admit\",\"reason\":\"prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)\",\"reversible\":true}}",
+  "expectExit": 0,
+  "expectStdout": {
+   "op": {
+    "kind": "container-create",
+    "level": "L4",
+    "provenance": "faff-authored",
+    "parent_confirmed": false,
+    "contained_under_accepted_prd": true
+   },
+   "verdict": {
+    "disposition": "admit",
+    "reason": "prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)",
+    "reversible": true
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "l4-topology-envelope",
+  "name": "container-create-signal-false-gated",
+  "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false,\"contained_under_accepted_prd\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"outside the accepted-root envelope \u2014 container-confirm holds\",\"reversible\":true}}",
+  "expectExit": 0,
+  "expectStdout": {
+   "op": {
+    "kind": "container-create",
+    "level": "L4",
+    "provenance": "faff-authored",
+    "parent_confirmed": false,
+    "contained_under_accepted_prd": false
+   },
+   "verdict": {
+    "disposition": "propose-only",
+    "reason": "outside the accepted-root envelope \u2014 container-confirm holds",
+    "reversible": true
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "l4-topology-envelope",
+  "name": "fail-loud-missing-contained-under-accepted-prd",
+  "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"\",\"reversible\":true}}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ },
+ {
+  "contract": "run-trigger",
+  "name": "conformant-plan-coverage-thin",
+  "input": "{\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"plan\",\"reason\":\"coverage-thin\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "plan",
+   "reason": "coverage-thin",
+   "signals": {
+    "target_resolved": true,
+    "outward": true,
+    "prd_present": true,
+    "prd_ambiguous": false,
+    "prd_admissible": true,
+    "coverage_measurable": true,
+    "coverage_covered": false
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "run-trigger",
+  "name": "conformant-refuse-self-directed",
+  "input": "{\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"refuse\",\"reason\":\"self-directed\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "verdict": "refuse",
+   "reason": "self-directed",
+   "signals": {
+    "target_resolved": true,
+    "outward": false,
+    "prd_present": true,
+    "prd_ambiguous": false,
+    "prd_admissible": true,
+    "coverage_measurable": true,
+    "coverage_covered": false
+   },
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "run-trigger",
+  "name": "reject-hand-altered-drain-on-plan-signals",
+  "input": "{\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"drain\",\"reason\":\"prd-covered\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "verdict": "plan",
+   "reason": "coverage-thin",
+   "signals": {
+    "target_resolved": true,
+    "outward": true,
+    "prd_present": true,
+    "prd_ambiguous": false,
+    "prd_admissible": true,
+    "coverage_measurable": true,
+    "coverage_covered": false
+   },
+   "conformant": false,
+   "violations": [
+    "declared verdict \"drain\" does not match the re-derived \"plan\" for the given signals",
+    "declared reason \"prd-covered\" does not match the re-derived \"coverage-thin\" for the given signals"
+   ]
+  }
+ },
+ {
+  "contract": "run-trigger",
+  "name": "fail-loud-non-object",
+  "input": "\"not an object\"",
+  "expectExit": 2,
+  "expectStderrIncludes": "extraction must be a JSON object"
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "affirm-conformant",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"AFFIRM_SPEC\", \"rationale\": \"the reviewer has not established a material defect\", \"correction\": null, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "proposition_id": "p-01",
+   "outcome": "AFFIRM_SPEC",
+   "rationale": "the reviewer has not established a material defect",
+   "correction": null,
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "uphold-conformant",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"UPHOLD_REVIEW\", \"rationale\": \"a material defect is established\", \"correction\": {\"summary\": \"refuse the empty --dir case\", \"verification\": \"an empty --dir is refused with a founded error\"}, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "proposition_id": "p-01",
+   "outcome": "UPHOLD_REVIEW",
+   "rationale": "a material defect is established",
+   "correction": {
+    "summary": "refuse the empty --dir case",
+    "verification": "an empty --dir is refused with a founded error"
+   },
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "affirm-with-correction-nonconformant",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"AFFIRM_SPEC\", \"rationale\": \"\", \"correction\": {\"summary\": \"x\", \"verification\": \"this should not be here at all really\"}, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-01",
+   "outcome": "AFFIRM_SPEC",
+   "rationale": "",
+   "correction": {
+    "summary": "x",
+    "verification": "this should not be here at all really"
+   },
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "AFFIRM_SPEC carries a correction \u2014 an affirm requires none"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "uphold-missing-correction-nonconformant",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"UPHOLD_REVIEW\", \"rationale\": \"defect\", \"correction\": null, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-01",
+   "outcome": "UPHOLD_REVIEW",
+   "rationale": "defect",
+   "correction": null,
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "UPHOLD_REVIEW carries no correction \u2014 a bounded correction with a verification literal is required"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "uphold-short-verification-nonconformant",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"UPHOLD_REVIEW\", \"rationale\": \"defect\", \"correction\": {\"summary\": \"s\", \"verification\": \"tooshort\"}, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-01",
+   "outcome": "UPHOLD_REVIEW",
+   "rationale": "defect",
+   "correction": {
+    "summary": "s",
+    "verification": "tooshort"
+   },
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "UPHOLD_REVIEW correction.verification is shorter than 24 chars \u2014 the trivial-edit bypass is a violation"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "synthesize-conformant",
+  "input": "{\"proposition_id\": \"p-02\", \"outcome\": \"SYNTHESIZE\", \"rationale\": \"both positions have valid reasoning\", \"correction\": {\"summary\": \"compose A and B\", \"verification\": \"combine the guard from A with the bound from B\"}, \"synthesis_sources\": [\"A\", \"B\"], \"prd_gap_citation\": \"\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "proposition_id": "p-02",
+   "outcome": "SYNTHESIZE",
+   "rationale": "both positions have valid reasoning",
+   "correction": {
+    "summary": "compose A and B",
+    "verification": "combine the guard from A with the bound from B"
+   },
+   "synthesis_sources": [
+    "A",
+    "B"
+   ],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "synthesize-empty-sources-nonconformant",
+  "input": "{\"proposition_id\": \"p-02\", \"outcome\": \"SYNTHESIZE\", \"rationale\": \"both valid\", \"correction\": {\"summary\": \"compose\", \"verification\": \"combine the guard from A with the bound from B\"}, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-02",
+   "outcome": "SYNTHESIZE",
+   "rationale": "both valid",
+   "correction": {
+    "summary": "compose",
+    "verification": "combine the guard from A with the bound from B"
+   },
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "SYNTHESIZE carries no synthesis_sources \u2014 must cite the source claims (a non-empty subset of {A,B})"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "synthesize-source-outside-ab-nonconformant",
+  "input": "{\"proposition_id\": \"p-02\", \"outcome\": \"SYNTHESIZE\", \"rationale\": \"both valid\", \"correction\": {\"summary\": \"compose\", \"verification\": \"combine the guard from A with the bound from B\"}, \"synthesis_sources\": [\"A\", \"C\"], \"prd_gap_citation\": \"\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-02",
+   "outcome": "SYNTHESIZE",
+   "rationale": "both valid",
+   "correction": {
+    "summary": "compose",
+    "verification": "combine the guard from A with the bound from B"
+   },
+   "synthesis_sources": [
+    "A",
+    "C"
+   ],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "SYNTHESIZE synthesis_sources cites \"C\" outside {A,B} \u2014 the reference-integrity check"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "prd-boundary-conformant",
+  "input": "{\"proposition_id\": \"p-03\", \"outcome\": \"PRD_BOUNDARY\", \"rationale\": \"needs a product decision\", \"correction\": null, \"synthesis_sources\": [], \"prd_gap_citation\": \"the PRD does not bound the MVP-vs-production line for this behaviour\"}",
+  "expectExit": 0,
+  "expectStdout": {
+   "proposition_id": "p-03",
+   "outcome": "PRD_BOUNDARY",
+   "rationale": "needs a product decision",
+   "correction": null,
+   "synthesis_sources": [],
+   "prd_gap_citation": "the PRD does not bound the MVP-vs-production line for this behaviour",
+   "lens": "",
+   "severity": "",
+   "conformant": true,
+   "violations": []
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "prd-boundary-empty-citation-nonconformant",
+  "input": "{\"proposition_id\": \"p-03\", \"outcome\": \"PRD_BOUNDARY\", \"rationale\": \"needs a decision\", \"correction\": null, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-03",
+   "outcome": "PRD_BOUNDARY",
+   "rationale": "needs a decision",
+   "correction": null,
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "PRD_BOUNDARY carries no prd_gap_citation \u2014 the specific PRD gap must be cited"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "echoed-bad-lens-nonconformant",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"AFFIRM_SPEC\", \"rationale\": \"\", \"correction\": null, \"synthesis_sources\": [], \"prd_gap_citation\": \"\", \"lens\": \"bogus\"}",
+  "expectExit": 1,
+  "expectStdout": {
+   "proposition_id": "p-01",
+   "outcome": "AFFIRM_SPEC",
+   "rationale": "",
+   "correction": null,
+   "synthesis_sources": [],
+   "prd_gap_citation": "",
+   "lens": "bogus",
+   "severity": "",
+   "conformant": false,
+   "violations": [
+    "lens \"bogus\" not in {architectural,infosec,methodology,QA}"
+   ]
+  }
+ },
+ {
+  "contract": "spec-judge-verdict",
+  "name": "out-of-enum-outcome-fail-loud",
+  "input": "{\"proposition_id\": \"p-01\", \"outcome\": \"ESCALATE_UNCERTAIN\", \"rationale\": \"x\", \"correction\": null, \"synthesis_sources\": [], \"prd_gap_citation\": \"\"}",
+  "expectExit": 2,
+  "expectStderrIncludes": "fail-loud"
+ }
 ]

@@ -330,6 +330,21 @@ function mutateLedgerUnderLock(runDir, mutate, expectedOwner) {
     }
     const next = mutate(fresh);
     if (next === null || next === undefined) return { written: false, yielded: false, before_sha256: beforeSha256, after_sha256: null };
+    // FAFF-930 leg 1 of the L4-ratification gate — write-once / refuse-overwrite guard on `level`.
+    // The mint (`faff lights-out`) establishes `level`; every subsequent locked write may keep it
+    // but must not CHANGE it. A mutation that would raise/alter an already-set level (e.g. an
+    // in-run orchestrator forging its own L4) is REFUSED loudly and nothing is written, so the
+    // field keeps its launch value. A mutation that simply omits `level` re-inherits the launch
+    // value (never a silent drop). On a mint (fresh === null) there is no established level to guard.
+    if (fresh && fresh.level != null && next && typeof next === "object") {
+      if (Object.prototype.hasOwnProperty.call(next, "level") && next.level !== fresh.level) {
+        throw Object.assign(
+          new Error(`run-ledger level is write-once: refusing to change level ${JSON.stringify(fresh.level)} -> ${JSON.stringify(next.level)} in ${runDir}`),
+          { code: "LEVEL_WRITE_ONCE" },
+        );
+      }
+      if (!Object.prototype.hasOwnProperty.call(next, "level")) next.level = fresh.level;
+    }
     const afterSha256 = atomicWriteLedger(runDir, next);
     return { written: true, yielded: false, before_sha256: beforeSha256, after_sha256: afterSha256 };
   }, { code: "LEDGER_LOCKED", label: "ledger lock" });

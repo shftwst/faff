@@ -29,6 +29,7 @@ const { readRoundRecord } = require("./spec-review-churn");
 const { roundFilesInDir } = require("./spec-review-convergence");
 const { resolveReviewIterationCap } = require("./spec-review-iteration-cap");
 const { backendIdentity } = require("./spec-review-pin");
+const casefile = require("./spec-judge-casefile");
 
 // The same bin/faff entrypoint tests and users invoke — resolved relative to this module
 // (lib/../faff), never a hardcoded absolute path.
@@ -148,16 +149,33 @@ const SPEC_JUDGE_EVIDENCE_SPEC = {
     "--appetite": { arity: 1 },
     "--issue": { arity: 1 },
     "--container": { arity: 1 },
+    // FAFF-930 — case-file assembler / admit roll-up modes.
+    "--assemble": { arity: 0 },
+    "--admit": { arity: 0 },
+    "--spec": { arity: 1 },
+    "--out": { arity: 1 },
+    "--run-id": { arity: 1 },
+    "--run-dir": { arity: 1 },
+    "--repo-root": { arity: 1 },
   },
 };
 const SPEC_JUDGE_EVIDENCE_USAGE =
   "usage: faff spec-judge-evidence --dir <scratch> --window-start <N> --level <L1..L4> " +
-  "--appetite <low|medium|high|full> --issue <ISSUE-XX> [--container <c>]";
+  "--appetite <low|medium|high|full> --issue <ISSUE-XX> [--container <c>]\n" +
+  "   or: faff spec-judge-evidence --assemble --dir <scratch> --window-start <N> --spec <file> " +
+  "--issue <ISSUE-XX> [--out <judge-dir>] [--repo-root <path>] [--run-id <id>] [--container <c>]\n" +
+  "   or: faff spec-judge-evidence --admit --level <L3|L4> --out <judge-dir> --spec <file> " +
+  "--dir <scratch> --window-start <N> [--run-dir <path>]";
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 function cmdSpecJudgeEvidence(args) {
   const { values, errors } = parseArgs(args, SPEC_JUDGE_EVIDENCE_SPEC);
   if (errors.length) return usageError(errors, SPEC_JUDGE_EVIDENCE_USAGE);
+  if (values["--assemble"] && values["--admit"]) {
+    return usageError([{ code: "invalid-value", detail: "--assemble and --admit are mutually exclusive" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  }
+  if (values["--assemble"]) return cmdAssemble(values);
+  if (values["--admit"]) return cmdAdmit(values);
 
   const dir = values["--dir"];
   const level = values["--level"];
@@ -403,6 +421,186 @@ function cmdSpecJudgeAcceptBar(args) {
   }
 
   const result = computeAcceptBar(evidence, verdict, level);
+  console.log(JSON.stringify(result));
+  return 0;
+}
+
+// ===========================================================================
+// === region:factory — FAFF-930: --assemble (case files + ledger) and --admit (roll-up) ===
+// ===========================================================================
+
+// Read the standing residue (the latest in-window round's objections) from the round records.
+// Returns { objections } on success, { unreadable:true } (fail-safe park) or { malformed:true }
+// (fail-loud) mirroring the bundle mode's two fail directions.
+function readStandingResidue(dir, windowStart) {
+  let files;
+  try { files = roundFilesInDir(dir).filter((f) => f.n >= windowStart); }
+  catch { return { unreadable: true }; }
+  let latest = null;
+  for (const f of files) {
+    const read = readRoundRecord(f.path);
+    if (read.malformed || read.missing) return { malformed: true, path: f.path, why: read.malformed || "vanished" };
+    latest = read.record || {};
+  }
+  return { objections: latest && Array.isArray(latest.objections) ? latest.objections : [] };
+}
+
+// Resolve the serving backend identity + the reputation flagged[] list (best-effort; absence →
+// identity "unknown" / empty flagged, never a blocker).
+function resolveReputation(dir, notes) {
+  let identity = "unknown";
+  try {
+    const pin = JSON.parse(fs.readFileSync(path.join(dir, "pinned-reviewer.json"), "utf8"));
+    identity = backendIdentity(pin) || "unknown";
+  } catch { notes.push("no pinned-reviewer.json — argument_A backend identity is \"unknown\""); }
+  let flagged = [];
+  const rep = runFaff(["spec-review-reputation", "--report", "--json"]);
+  if (rep.code === 0) {
+    try {
+      const report = JSON.parse(rep.stdout);
+      if (report && report.backends) {
+        for (const [id, row] of Object.entries(report.backends)) if (row && row.flagged) flagged.push(id);
+      }
+    } catch { notes.push("reputation report unparseable — no contested_source annotation"); }
+  }
+  return { identity, flagged };
+}
+
+function resolveRunId(values, issue) {
+  if (values["--run-id"] != null) return values["--run-id"];
+  const runDir = values["--run-dir"] || process.env.FAFF_RUN_DIR;
+  if (runDir) {
+    try {
+      const led = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+      if (led && typeof led.run_id === "string" && led.run_id) return led.run_id;
+    } catch { /* fall through */ }
+  }
+  return issue;
+}
+
+function cmdAssemble(values) {
+  const dir = values["--dir"];
+  const specPath = values["--spec"];
+  const issue = values["--issue"];
+  if (dir == null) return usageError([{ code: "missing-value", detail: "--assemble requires --dir" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  if (specPath == null) return usageError([{ code: "missing-value", detail: "--assemble requires --spec" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  if (issue == null) return usageError([{ code: "missing-value", detail: "--assemble requires --issue" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  if (badBareId(issue)) return usageError([{ code: "invalid-value", detail: `--issue "${issue}" is not a bare id` }], SPEC_JUDGE_EVIDENCE_USAGE);
+  const container = values["--container"];
+  if (container != null && badBareId(container)) return usageError([{ code: "invalid-value", detail: `--container "${container}" is not a bare id` }], SPEC_JUDGE_EVIDENCE_USAGE);
+
+  const rawWindow = values["--window-start"];
+  if (rawWindow == null || !/^\d+$/.test(String(rawWindow)) || parseInt(rawWindow, 10) < 1) {
+    return usageError([{ code: "invalid-value", detail: "--window-start expects an integer >= 1" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  }
+  const windowStart = parseInt(rawWindow, 10);
+
+  const residue = readStandingResidue(dir, windowStart);
+  if (residue.unreadable) { console.log(JSON.stringify({ park: true, reason: "spec-review dir unreadable" })); return 0; }
+  if (residue.malformed) { process.stderr.write(`faff spec-judge-evidence --assemble: ${residue.path} is malformed (${residue.why})\n`); return 2; }
+
+  let specText;
+  try { specText = fs.readFileSync(specPath, "utf8"); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --assemble: cannot read --spec ${JSON.stringify(specPath)}: ${e.message}\n`); return 2; }
+
+  const notes = [];
+  const governingRequirements = assembleRatifiedScope(container, notes) || "";
+  const { identity, flagged } = resolveReputation(dir, notes);
+  const runId = resolveRunId(values, issue);
+  const repoRoot = values["--repo-root"] || process.cwd();
+  const outDir = values["--out"] || path.join(dir, "judge");
+
+  const { caseFiles, ledger } = casefile.assemble({
+    standingObjections: residue.objections,
+    specText, runId, windowStart, repoRoot,
+    reputationFlagged: flagged, servingIdentity: identity,
+    governingRequirements,
+  });
+
+  try { fs.mkdirSync(outDir, { recursive: true }); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --assemble: cannot create --out ${JSON.stringify(outDir)}: ${e.message}\n`); return 2; }
+
+  for (const pid of ledger.order) {
+    fs.writeFileSync(path.join(outDir, `case-${pid}.json`), JSON.stringify(caseFiles[pid], null, 2) + "\n");
+  }
+  // The ledger is the un-blinding key — write it 0600 (owner read/write only).
+  fs.writeFileSync(path.join(outDir, "ledger.json"), JSON.stringify(ledger, null, 2) + "\n", { mode: 0o600 });
+  try { fs.chmodSync(path.join(outDir, "ledger.json"), 0o600); } catch { /* best-effort on platforms without chmod */ }
+
+  for (const note of notes) process.stderr.write(`faff spec-judge-evidence --assemble: ${note}\n`);
+  console.log(JSON.stringify({ assembled: ledger.order.length, out: outDir, propositions: ledger.order }));
+  return 0;
+}
+
+function cmdAdmit(values) {
+  const level = values["--level"];
+  if (level !== "L3" && level !== "L4") {
+    return usageError([{ code: "invalid-value", detail: "--admit requires --level L3 or L4" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  }
+  const outDir = values["--out"] || (values["--dir"] ? path.join(values["--dir"], "judge") : null);
+  if (outDir == null) return usageError([{ code: "missing-value", detail: "--admit requires --out (or --dir)" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  const specPath = values["--spec"];
+  if (specPath == null) return usageError([{ code: "missing-value", detail: "--admit requires --spec" }], SPEC_JUDGE_EVIDENCE_USAGE);
+
+  // Malformed / unparseable ledger.json → fail-loud exit 2 (never a silent resolve/drop).
+  let ledger;
+  try { ledger = JSON.parse(fs.readFileSync(path.join(outDir, "ledger.json"), "utf8")); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: ledger.json unreadable/malformed in ${outDir}: ${e.message}\n`); return 2; }
+  if (!ledger || !Array.isArray(ledger.order) || !ledger.entries) {
+    process.stderr.write(`faff spec-judge-evidence --admit: ledger.json in ${outDir} has no order[]/entries{}\n`); return 2;
+  }
+
+  let specText;
+  try { specText = fs.readFileSync(specPath, "utf8"); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: cannot read --spec ${JSON.stringify(specPath)}: ${e.message}\n`); return 2; }
+
+  // Load rulings for every non-parked listed proposition (a missing ruling for a listed,
+  // non-parked proposition is fail-loud).
+  const rulings = {};
+  for (const pid of ledger.order) {
+    const entry = ledger.entries[pid];
+    if (entry && entry.resolution === "parked") { rulings[pid] = null; continue; }
+    const rp = path.join(outDir, `ruling-${pid}.json`);
+    let ruling;
+    try { ruling = JSON.parse(fs.readFileSync(rp, "utf8")); }
+    catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: missing/malformed ruling-${pid}.json in ${outDir}: ${e.message}\n`); return 2; }
+    rulings[pid] = ruling;
+  }
+
+  // Floors. blocker_free_latest from convergence (shelled); infosec_major_free over the ledger's
+  // retained {lens,severity}. blocker_free_latest is convergence-derived and has NO ledger analogue,
+  // so if the convergence source is unavailable (no --dir/--window-start) or degrades, the floor
+  // input stays `null` and admitRollup fails it CLOSED (floor_input_degraded) — a missing blocker
+  // signal must never fail open to admit.
+  let blockerFree = null;
+  if (values["--dir"] && values["--window-start"]) {
+    const conv = runFaff(["spec-review-convergence", "--dir", values["--dir"], "--window-start", String(values["--window-start"])]);
+    if (conv.code === 0) {
+      try { blockerFree = JSON.parse(conv.stdout).blocker_free_latest === true; } catch { blockerFree = null; }
+    }
+  }
+  // infosec_major_free is computed over the ledger's RETAINED {lens,severity} (the standing
+  // residue), and it vetoes OVER THE TOP regardless of the per-proposition outcome — a deliberate
+  // security-conservative floor: a standing infosec major/blocker routes to needs-human even when
+  // the judge affirms it (the security-severity floor stays arithmetic and outside the judge, so
+  // blinding the judge to the lens label never weakens security protection). This is the spec's
+  // pinned behaviour, not an oversight of the per-proposition rulings.
+  const ledgerObjections = ledger.order.map((pid) => ledger.entries[pid]).filter(Boolean).map((e) => ({ lens: e.lens, severity: e.severity }));
+  const infosecMajorFreeVal = infosecMajorFree(ledgerObjections);
+
+  const runDir = values["--run-dir"] || process.env.FAFF_RUN_DIR || null;
+
+  let result;
+  try {
+    result = casefile.admitRollup({
+      ledger, rulings, currentSpecText: specText, level, runDir,
+      floors: { blocker_free_latest: blockerFree, infosec_major_free: infosecMajorFreeVal },
+      governingRequirements: ledger.governing_requirements || "",
+    });
+  } catch (e) {
+    if (e && e.failLoud) { process.stderr.write(`faff spec-judge-evidence --admit: ${e.failLoud}\n`); return 2; }
+    throw e;
+  }
   console.log(JSON.stringify(result));
   return 0;
 }

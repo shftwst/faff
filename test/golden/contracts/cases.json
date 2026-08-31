@@ -634,6 +634,30 @@
   },
   {
     "contract": "spec-review-verdict",
+    "name": "conformant-triple-plus-anchor",
+    "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"major\",\"claim\":\"C\",\"evidence\":\"E\",\"predicted_consequence\":\"P\",\"spec_anchor\":\"aggregation-carry-the-anchor\"}]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "revise",
+      "objections": [{ "lens": "architectural", "severity": "major", "claim": "C", "evidence": "E", "predicted_consequence": "P", "spec_anchor": "aggregation-carry-the-anchor" }],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "legacy-no-anchor-unchanged",
+    "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"minor\"}]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "revise",
+      "objections": [{ "lens": "QA", "severity": "minor" }],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
     "name": "fail-loud-bad-verdict",
     "input": "{\"verdict\":\"meh\",\"objections\":[]}",
     "expectExit": 2,

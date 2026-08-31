@@ -42,6 +42,7 @@ Output format — one block, objections strongest-first:
 - claim: the assertion — the threat and how it is reached.
 - evidence: the spec clause or context file it points to.
 - predicted_consequence: the concrete, checkable impact if the spec ships as-is (e.g. "unauthenticated writes reach the store"). If you genuinely cannot name one, write `not separately stated` — the honest signal that this is a taste-level objection, not a defect.
+- spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.
 
 Severities (exactly one per objection): `critical` (a real exploit / data-loss / fail-open path — must
 go back to prep), `major` (a genuine security defect to fix before build), `minor` (a smaller hardening

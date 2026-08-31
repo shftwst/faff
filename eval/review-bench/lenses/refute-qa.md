@@ -40,6 +40,7 @@ Output format — one block, objections strongest-first:
 - claim: the assertion — what cannot be verified.
 - evidence: the DONE item / scenario it concerns.
 - predicted_consequence: the concrete, checkable thing that happens if the spec ships as-is (e.g. "done cannot be decided for scenario X"). If you genuinely cannot name one, write `not separately stated` — the honest signal that this is a taste-level objection, not a defect.
+- spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.
 
 Severities (exactly one per objection): `critical` (the spec cannot be verified at all as written —
 needs revision before build), `major` (a real verifiability gap to close before build), `minor` (a

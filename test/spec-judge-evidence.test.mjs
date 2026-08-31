@@ -137,6 +137,47 @@ test("FAFF-935: spec-review-convergence and spec-review-churn output is byte-ide
   }
 });
 
+
+test("FAFF-943: spec_anchor survives verbatim into standing_objections; a legacy round carries no anchor key", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-judge-ev-"));
+  try {
+    const anchored = [
+      { lens: "architectural", severity: "major", claim: "c", evidence: "e", predicted_consequence: "p", spec_anchor: "aggregation-carry-the-anchor" },
+      { lens: "QA", severity: "minor", spec_anchor: "no-such-heading" },
+      { lens: "QA", severity: "minor" },
+    ];
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify({ verdict: "reject-approach", objections: anchored }));
+    const b = JSON.parse(runCli(["spec-judge-evidence", "--dir", dir, ...BASE]).stdout);
+    assert.equal(b.standing_objections[0].spec_anchor, "aggregation-carry-the-anchor", "matching-slug anchor verbatim");
+    assert.equal(b.standing_objections[1].spec_anchor, "no-such-heading", "a no-match slug still carries verbatim (binding is the consumer's zero-match path)");
+    assert.ok(!("spec_anchor" in b.standing_objections[2]), "a missing field stays missing");
+    assert.equal(b.blocker_free_latest, true);
+    assert.equal(b.infosec_major_free_latest, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-943: churn and convergence stdout is string-identical on legacy vs anchored rounds (the named fixture pair)", () => {
+  const legacy = mkdtempSync(join(tmpdir(), "faff-legacy-"));
+  const anchored = mkdtempSync(join(tmpdir(), "faff-anchored-"));
+  try {
+    const shape = [objs(4), objs(3), objs(2)];
+    seed(legacy, shape);
+    const withAnchor = shape.map((round) => round.map((o) => ({ ...o, claim: "c", evidence: "e", predicted_consequence: "p", spec_anchor: "phase-2-revised" })));
+    withAnchor.forEach((objections, i) => {
+      writeFileSync(join(anchored, `round-${i + 1}.json`), JSON.stringify({ verdict: "reject-approach", objections }));
+    });
+    const convL = runCli(["spec-review-convergence", "--dir", legacy, "--window-start", "1"]).stdout;
+    const convA = runCli(["spec-review-convergence", "--dir", anchored, "--window-start", "1"]).stdout;
+    assert.equal(convA, convL, "convergence stdout strictly equal on legacy vs anchored");
+    const churnL = runCli(["spec-review-churn", "--prev", join(legacy, "round-2.json"), "--curr", join(legacy, "round-3.json")]).stdout;
+    const churnA = runCli(["spec-review-churn", "--prev", join(anchored, "round-2.json"), "--curr", join(anchored, "round-3.json")]).stdout;
+    assert.equal(churnA, churnL, "churn stdout strictly equal on legacy vs anchored");
+  } finally {
+    rmSync(legacy, { recursive: true, force: true });
+    rmSync(anchored, { recursive: true, force: true });
+  }
+});
+
 test("unreadable --dir → a park-direction bundle {park:true}, exit 0 (fail-safe, judge not consulted)", () => {
   const r = runCli(["spec-judge-evidence", "--dir", join(tmpdir(), "faff-judge-does-not-exist-xyz"), ...BASE]);
   assert.equal(r.code, 0);

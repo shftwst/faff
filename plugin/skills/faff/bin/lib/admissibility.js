@@ -8,7 +8,7 @@ const { parseArgs, requireFlags, usageError } = require("./argv");
 const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
-const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 }, "--persist": { arity: 0 }, "--prdr-dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 // FAFF-628 — declared grammar for the two subcommand-dispatch verbs this module owns. `spec`
@@ -975,6 +975,22 @@ function cmdHoldout(args) {
   // The caller (the run bridge) sets it iff the run's lane-boundary intent promised the evaluator cage.
   const requireSpawnerAttested = args.includes("--require-spawner-attested");
   const out = computeHoldoutVerdictsMap(association, files, { requireSpawnerAttested });
+  // FAFF-953: --persist writes each trust-gated verdict onto its PRDR record, so a cold
+  // `faff prdr coverage` on the mainline reproduces the run's verdict. The value written is
+  // out.verdicts (the gate output of computeHoldoutVerdictsMap), never a caller-supplied
+  // literal, so a hand-authored `met` can never reach a record through this path. A verdict
+  // whose record is absent in --prdr-dir is reported to stderr, never silently dropped.
+  if (args.includes("--persist")) {
+    const prdrDir = get("--prdr-dir");
+    if (!prdrDir) { process.stderr.write("faff holdout verdicts --persist: requires --prdr-dir <dir>\n"); return 2; }
+    const { setPrdrDodVerdict } = require("./prdr");
+    const persisted = [], missing = [];
+    for (const [id, verdict] of Object.entries(out.verdicts)) {
+      (setPrdrDodVerdict(prdrDir, id, verdict) ? persisted : missing).push(id);
+    }
+    out.persisted = persisted;
+    if (missing.length) { out.persist_missing = missing; process.stderr.write(`faff holdout verdicts --persist: no PRDR record for ${missing.join(", ")} in ${prdrDir}\n`); }
+  }
   const json = args.includes("--json");   // accepted for symmetry with `dod classify`; output is always JSON
   process.stdout.write(JSON.stringify(out, null, json ? 0 : 2) + "\n");
   // The skipped audit trail also goes to stderr so a missing/untrusted PRDR is visible, never silent.

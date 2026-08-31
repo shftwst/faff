@@ -97,6 +97,12 @@ function parsePrdrRecord(file, text) {
   // the primary (prd_goals[0]) for distance/list and any single-goal consumer.
   const goalsRaw = adrField(text, "PRD-goals") ?? adrField(text, "PRD-goal");
   const prd_goals = parsePrdGoalsField(goalsRaw);
+  // FAFF-953 — the persisted per-PRDR DoD verdict (the trust-gated holdout result the
+  // bridge writes with `faff holdout verdicts --persist`). Surface it as `dod_verdict`
+  // ONLY when present, so an absent field stays `undefined` and the `--dod-verdicts`
+  // merge guard in coverage/distance (`p.dod_verdict === undefined`) still fills a
+  // record that carries none. A present value is the bridge's closed vocabulary verbatim.
+  const dodVerdict = adrField(text, "DoD-verdict");
   return {
     number: parseInt(m[1], 10), num: m[1], slug: m[2], file,
     title: titleM ? titleM[1].trim() : null,
@@ -106,7 +112,30 @@ function parsePrdrRecord(file, text) {
     status: adrField(text, "Status"),
     provenance: adrField(text, "Provenance"),
     date: adrField(text, "Date"),
+    ...(dodVerdict != null ? { dod_verdict: dodVerdict } : {}),
   };
+}
+
+// FAFF-953 — write the trust-gated DoD verdict onto a PRDR record's metadata block, add-or-
+// replace. The value MUST be the bridge's gate output (computeHoldoutVerdictsMap), never a
+// caller-supplied literal — the sole writer is `faff holdout verdicts --persist`. Returns
+// true on write, false if no record with `num` exists in `dir`.
+function setPrdrDodVerdict(dir, num, verdict) {
+  const rec = listPrdrs(dir).find((p) => p.num === num);
+  if (!rec) return false;
+  const p = path.join(dir, rec.file);
+  let text = fs.readFileSync(p, "utf8");
+  const line = `- **DoD-verdict:** ${verdict}`;
+  if (/^- \*\*DoD-verdict:\*\*.*$/m.test(text)) {
+    text = text.replace(/^- \*\*DoD-verdict:\*\*.*$/m, line);
+  } else {
+    // Insert as the last metadata line, immediately before the blank line that precedes
+    // the first `## ` section (the template always separates metadata from body by one
+    // blank line). First-match only, so it lands in the metadata block, not a body list.
+    text = text.replace(/\n\n(## )/, `\n${line}\n\n$1`);
+  }
+  fs.writeFileSync(p, text);
+  return true;
 }
 
 function listPrdrs(dir) {
@@ -437,7 +466,7 @@ function prdrLand(dir, root, number, { baseFlag, prdGoalsRaw, runDir, issue, cfg
   const selfNowBranch = gitOut(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
   const rawLive = selfNowBranch === base ? listPrdrs(dir) : listPrdrsAtRef(root, dir, newBaseSha);
   const livePrdrs = rawLive.filter((p) => !recordSupersededBy(p.status, "PRDR"))
-    .map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal }));
+    .map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal, dod_verdict: p.dod_verdict }));
 
   let prdGoals = [];
   if (prdGoalsRaw != null) {
@@ -728,7 +757,7 @@ function cmdPrdr(args) {
       const container = get("--container");
       if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
       // FAFF-815 — carry the plural cited set so coverage unions it (prd_goal kept for legacy readers).
-      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal }));
+      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal, dod_verdict: p.dod_verdict }));
     }
     // --dod-verdicts: optional FAFF-34 verdict map { "<prdr-id>": "met"|... }, merged onto livePrdrs by id.
     // Absent ⇒ every DoD unverified ⇒ conservatively not-met (the unbuilt-evaluator default).
@@ -771,7 +800,7 @@ function cmdPrdr(args) {
       let prdrs = listPrdrs(dir).filter((p) => !recordSupersededBy(p.status, "PRDR"));
       const container = get("--container");
       if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
-      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goal: p.prd_goal, container: p.container }));
+      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goal: p.prd_goal, container: p.container, dod_verdict: p.dod_verdict }));
     }
     // --dod-verdicts: optional FAFF-34 verdict map { "<prdr-id>": "met"|... }, merged onto livePrdrs by id.
     const dvRaw = get("--dod-verdicts");
@@ -1114,6 +1143,35 @@ function prdrSelftest() {
     const v = cov({ livePrdrs: [{ id: "0001", prd_goal: "ship booking", dod_verdict: "unmet" }, { id: "0002", prd_goal: "reduce no-shows", dod_verdict: "met" }] });
     return v.satisfied === false && v.completion.unmet_or_unverified.includes("0001");
   })());
+  // FAFF-953: a DoD verdict persisted on the record makes a cold coverage read reproduce it.
+  const build953 = (dd) => listPrdrs(dd).map((p) => ({ id: p.num, prd_goals: p.prd_goals, prd_goal: p.prd_goal, dod_verdict: p.dod_verdict }));
+  t("953: setPrdrDodVerdict writes the field, parse reads it, cold coverage flips to satisfied", (() => {
+    const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-953-"));
+    const dd = path.join(tp, "docs", "prdr"); fs.mkdirSync(dd, { recursive: true });
+    fs.writeFileSync(path.join(dd, "0001-mvp.md"), "# PRDR 0001 — mvp\n\n- **Status:** Accepted\n- **Provenance:** loop\n- **Date:** 2026-08-31\n- **Container:** c\n- **PRD-goal:** ship it\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
+    const before = computePrdCoverageVerdict({ prdGoals: ["ship it"], livePrdrs: build953(dd) });
+    const wrote = setPrdrDodVerdict(dd, "0001", "met");
+    const rec = parsePrdrRecord("0001-mvp.md", fs.readFileSync(path.join(dd, "0001-mvp.md"), "utf8"));
+    const after = computePrdCoverageVerdict({ prdGoals: ["ship it"], livePrdrs: build953(dd) });
+    return before.satisfied === false && wrote === true && rec.dod_verdict === "met" && after.covered === true && after.satisfied === true;
+  })());
+  t("953: absent DoD-verdict leaves the record byte-identical and coverage conservative", (() => {
+    const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-953b-"));
+    const dd = path.join(tp, "docs", "prdr"); fs.mkdirSync(dd, { recursive: true });
+    const body = "# PRDR 0001 — mvp\n\n- **Status:** Accepted\n- **Provenance:** loop\n- **Date:** 2026-08-31\n- **Container:** c\n- **PRD-goal:** ship it\n\n## Context\nx\n\n## Definition of done\nw\n";
+    fs.writeFileSync(path.join(dd, "0001-mvp.md"), body);
+    const rec = parsePrdrRecord("0001-mvp.md", body);
+    return !("dod_verdict" in rec) && fs.readFileSync(path.join(dd, "0001-mvp.md"), "utf8") === body;
+  })());
+  t("953: setPrdrDodVerdict replaces an existing field (no duplicate) and returns false for a missing record", (() => {
+    const tp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-953c-"));
+    const dd = path.join(tp, "docs", "prdr"); fs.mkdirSync(dd, { recursive: true });
+    fs.writeFileSync(path.join(dd, "0001-mvp.md"), "# PRDR 0001 — mvp\n\n- **Status:** Accepted\n- **Provenance:** loop\n- **Date:** 2026-08-31\n- **Container:** c\n- **PRD-goal:** g\n- **DoD-verdict:** fails\n\n## Context\nx\n\n## Definition of done\nw\n");
+    setPrdrDodVerdict(dd, "0001", "met");
+    const text = fs.readFileSync(path.join(dd, "0001-mvp.md"), "utf8");
+    const rec = parsePrdrRecord("0001-mvp.md", text);
+    return rec.dod_verdict === "met" && (text.match(/DoD-verdict/g) || []).length === 1 && setPrdrDodVerdict(dd, "9999", "met") === false;
+  })());
   t("empty PRD (no goals) → vacuously covered, satisfied (additive/pure: a repo with no goals is unchanged)", (() => {
     const v = computePrdCoverageVerdict({ prdGoals: [], livePrdrs: [] });
     return v.covered === true && v.satisfied === true && v.uncovered_goals.length === 0;
@@ -1431,4 +1489,4 @@ function prdrSelftest() {
 }
 
 
-module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, PRDR_SPEC, PRDR_SURFACE, cmdPrdr, landCandidateProblems, landPathAllowed, listPrdrs, listPrdrsAtRef, prdrAccept, prdrDir, prdrGitTier, prdrLand, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate };
+module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, PRDR_SPEC, PRDR_SURFACE, cmdPrdr, landCandidateProblems, landPathAllowed, listPrdrs, listPrdrsAtRef, prdrAccept, prdrDir, prdrGitTier, prdrLand, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate, setPrdrDodVerdict };

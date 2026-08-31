@@ -252,6 +252,16 @@ function declaredUnattendedFromConfig(cfg) {
   return literalTrue(dig(cfg, "autonomous.unattended")) || sentryActingFromConfig(cfg);
 }
 
+// FAFF-952 — resolve the operator's DECLARED opt-in to soften the run-elapsed wall-clock
+// ceiling while the run is provably live, FAIL-CLOSED to "ceiling stays on". Mirrors the
+// attendedness resolvers above: literalTrue positive-assertion only, so every unset,
+// malformed, or non-affirmative value leaves the ceiling's abort in force. DECLARED in
+// config, never env-sniffed (the detached poller lane reads config only, FAFF-887). This
+// is a posture flag, not a threshold, so it is NOT added to the numeric-only th object.
+function runElapsedCeilingSkipWhenLive(cfg) {
+  return literalTrue(dig(cfg, "sentry.run_elapsed_ceiling_skip_when_live"));
+}
+
 // FAFF-717/FAFF-765 — the SINGLE resolver for "does Sentry's ABORT act on this run?",
 // re-keyed from the L4-mint proxy onto the real axis: ATTENDEDNESS. An UNATTENDED run
 // acts; an attended L3 stays advisory (the human at the keyboard is the kill-switch).
@@ -759,7 +769,7 @@ function evalMemberStall(inflight, memberBeats, nowMs, th, profile = activeProfi
 // threaded engine cores) — the default resolves DELIVERY_PROFILE, byte-identical.
 // It sits AFTER `authority` (not before) so it never disturbs the AC5-shaped
 // no-foreign-authorship property of that parameter's position/semantics.
-function evaluateDerailment(rawSignals, thresholds, authority, profile = activeProfile()) {
+function evaluateDerailment(rawSignals, thresholds, authority, profile = activeProfile(), skipCeilingWhenLive = false) {
   const s = normalizeSentrySignals(rawSignals);
   const th = thresholds || profile.sentry.thresholds;
   const authorityAvailable = authority === "available";
@@ -833,6 +843,27 @@ function evaluateDerailment(rawSignals, thresholds, authority, profile = activeP
       v.evidence.in_flight = inflight.map((m) => m.issue);
       v.evidence.grace = "in-flight-unit";
       mapped = "pause";
+    }
+    // FAFF-952: the run-scoped, run-elapsed live-liveness gate. When the operator has
+    // opted in (skipCeilingWhenLive) and the run is provably live — a running owner, a
+    // FRESH heartbeat, and no heartbeat-progress-mismatch verdict (real forward progress
+    // within stall_window_secs) — the run-elapsed ceiling's abort softens to "surface":
+    // a long-but-live run is not a runaway. The verdict still TRIPS (visible, logged);
+    // only its contributed intervention softens, and evidence.ceiling_skip records why.
+    // Mutually exclusive with the FAFF-553 grace above by tripped_on (run-elapsed vs
+    // heartbeat-staleness), and never touches a member trip (scope undefined only). The
+    // gate re-engages the instant liveness fails: a stale heartbeat flips tripped_on to
+    // heartbeat-staleness (so this guard fails and the ceiling aborts), and a stale-
+    // progress mismatch verdict withholds the softening (the FAFF-847 gamed-liveness
+    // case). It only WITHHOLDS a softening on the mismatch's presence; it never makes
+    // that warn-only signal an abort cause. Fail-closed: default off (skipCeilingWhenLive
+    // false) is today's unconditional backstop, byte-for-byte.
+    if (skipCeilingWhenLive && v.signal === "wall-clock-runaway" && v.scope === undefined
+        && v.evidence && v.evidence.tripped_on === "run-elapsed"
+        && v.evidence.heartbeat_age_secs != null && v.evidence.heartbeat_age_secs <= th.stall_window_secs
+        && !verdicts.some((w) => w.signal === "heartbeat-progress-mismatch")) {
+      v.evidence.ceiling_skip = "live-liveness";
+      mapped = "surface";
     }
     if (SENTRY_INTERVENTIONS.indexOf(mapped) > SENTRY_INTERVENTIONS.indexOf(intervention)) intervention = mapped;
   }
@@ -1144,6 +1175,7 @@ function cmdSentry(args) {
     // fallback) and thread it through every profile-consuming call below.
     const profile = activeProfile();
     const th = sentryThresholds(cfg, profile);
+    const skipCeilingWhenLive = runElapsedCeilingSkipWhenLive(cfg);
     const nowRes = resolveSentryNow(get); // hermetic test-only clock seam (FAFF-301) — checked before ledger resolution
     if (nowRes.error) { process.stderr.write(`faff sentry check: ${nowRes.error}\n`); return 2; }
 
@@ -1234,7 +1266,7 @@ function cmdSentry(args) {
         }
       }
     }
-    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile);
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile, skipCeilingWhenLive);
     // FAFF-887: the wrong-lane flag rides every payload (false in the healthy case),
     // mirroring config_malformed, so the poller writes it verbatim into the
     // sentry-checkpoint event in events.jsonl — the one channel that survives the
@@ -1452,6 +1484,29 @@ function sentrySelftest() {
       const v = evalHeartbeatProgressMismatch(hpmRunning(60, hpmStaleWindow + 100), noise, NOW, TH);
       return v && v.evidence.last_progress_event_type === null && v.evidence.last_progress_event_seq === null;
     })());
+
+  // --- FAFF-952: run-elapsed live-liveness ceiling skip (skipCeilingWhenLive) ---
+  const f952Over = TH.run_elapsed_ceiling_secs + 60;                          // run-elapsed over the ceiling
+  const f952FreshProgress = [{ type: "ledger-write", ts: ago(120), seq: 0 }]; // forward progress within the window
+  const f952LiveLedger = hpmRunning(60, f952Over);                           // fresh heartbeat, over the ceiling
+  const f952Soft = evaluateDerailment({ ledger: f952LiveLedger, events: f952FreshProgress, now_ms: NOW }, TH, "unavailable", undefined, true);
+  const f952SoftV = f952Soft.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+  ok("FAFF-952: knob on + live + progressing → run-elapsed trip softens to surface, ceiling_skip annotated",
+    f952Soft.intervention === "surface" && f952Soft.tripped === true &&
+    f952SoftV && f952SoftV.evidence.tripped_on === "run-elapsed" && f952SoftV.evidence.ceiling_skip === "live-liveness");
+  ok("FAFF-952: knob on + fresh heartbeat + stale progress (mismatch present) → still abort (FAFF-847 hinge)",
+    evaluateDerailment({ ledger: f952LiveLedger, events: hpm1Events, now_ms: NOW }, TH, "unavailable", undefined, true).intervention === "abort");
+  ok("FAFF-952: knob on + no forward-progress event over the ceiling → still abort (mismatch present)",
+    evaluateDerailment({ ledger: f952LiveLedger, events: [], now_ms: NOW }, TH, "unavailable", undefined, true).intervention === "abort");
+  ok("FAFF-952: knob on + stale heartbeat → gate does not fire (staleness owns it), abort",
+    evaluateDerailment({ ledger: hpmRunning(TH.stall_window_secs + 600, f952Over), events: f952FreshProgress, now_ms: NOW }, TH, "unavailable", undefined, true).intervention === "abort");
+  ok("FAFF-952: knob off (default) + live + over ceiling → abort (unchanged backstop, no 5th arg)",
+    evaluateDerailment({ ledger: f952LiveLedger, events: f952FreshProgress, now_ms: NOW }, TH, "unavailable").intervention === "abort");
+  ok("FAFF-952: runElapsedCeilingSkipWhenLive is fail-closed, positive-assertion only",
+    runElapsedCeilingSkipWhenLive({ sentry: { run_elapsed_ceiling_skip_when_live: true } }) === true &&
+    runElapsedCeilingSkipWhenLive({ sentry: { run_elapsed_ceiling_skip_when_live: "true" } }) === true &&
+    runElapsedCeilingSkipWhenLive({ sentry: { run_elapsed_ceiling_skip_when_live: "yes" } }) === false &&
+    runElapsedCeilingSkipWhenLive({}) === false);
 
   // --- fix-review-thrash ---
   const thr = [{ type: "build-start", issue: "A", seq: 0 }, { type: "build-start", issue: "A", seq: 1 }, { type: "build-start", issue: "A", seq: 2 }];
@@ -1941,4 +1996,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds, stallWindowEnvIgnored };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, sentryActingFromConfig, runElapsedCeilingSkipWhenLive, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds, stallWindowEnvIgnored };

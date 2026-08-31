@@ -1,0 +1,63 @@
+{
+  "level": "L3",
+  "run_id": "run-20260830-051755-beepboop-list-ebb0cc",
+  "admitted": [
+    "FAFF-935",
+    "FAFF-930"
+  ],
+  "outcomes": {
+    "FAFF-935": "shipped",
+    "FAFF-930": "parked"
+  },
+  "discovered_scope_filed": 1,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "measure_session_id": "33a29728-722a-43ce-a5ec-ab0cbf51f5ca",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 110,
+        "output": 54659,
+        "cache_write": 810557,
+        "cache_read": 9414282
+      }
+    },
+    "tokens_at_start": 10279608,
+    "tokens_at_last_event": {
+      "input": 372,
+      "output": 316020,
+      "cache_write": 4367586,
+      "cache_read": 49101479
+    }
+  },
+  "owner": {
+    "status": "done",
+    "pid": 617523,
+    "session_id": "run-20260830-051755-beepboop-list-ebb0cc",
+    "started_at": "2026-08-30T05:18:07Z",
+    "last_heartbeat": "2026-08-30T05:18:07Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "park_records": [
+    {
+      "issue_id": "FAFF-930",
+      "root_cause_class": "spec-review-judge-park-needs-human",
+      "timestamp": "2026-08-31T00:31:40Z"
+    }
+  ],
+  "stop_reason": "all-remaining-parked"
+}

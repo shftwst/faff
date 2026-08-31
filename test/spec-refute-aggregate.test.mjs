@@ -122,6 +122,48 @@ test("FAFF-935: an enriched objection flows through the CLI into a block that va
   assert.equal(cd.objections[0].evidence, "refute-infosec");
 });
 
+
+test("FAFF-943: spec_anchor rides verbatim beside the triple, changing no verdict; absent stays absent", () => {
+  const anchored = {
+    lens: "architectural", outcome: "refuted",
+    objections: [{ severity: "major", claim: "C", evidence: "E", predicted_consequence: "P", spec_anchor: "aggregation-carry-the-anchor" }],
+  };
+  const v = aggregate([anchored, clear("infosec"), clear("methodology"), clear("QA")], 4);
+  assert.equal(v.verdict, "revise", "the anchor never changes the gating decision");
+  assert.deepEqual(v.objections, [{
+    lens: "architectural", severity: "major",
+    claim: "C", evidence: "E", predicted_consequence: "P", spec_anchor: "aggregation-carry-the-anchor",
+  }]);
+  // a bare objection carries no anchor key; a non-string anchor is dropped; empty string carries verbatim
+  const bare = aggregate([r("architectural", "major"), clear("infosec"), clear("methodology"), clear("QA")], 4);
+  assert.ok(!("spec_anchor" in bare.objections[0]));
+  const nonString = aggregate([{ lens: "infosec", outcome: "refuted", objections: [{ severity: "major", spec_anchor: 42 }] }, clear("architectural"), clear("methodology"), clear("QA")], 4);
+  assert.ok(!("spec_anchor" in nonString.objections[0]));
+  const empty = aggregate([{ lens: "QA", outcome: "refuted", objections: [{ severity: "minor", spec_anchor: "" }] }, clear("architectural"), clear("methodology"), clear("infosec")], 4);
+  assert.equal(empty.objections[0].spec_anchor, "");
+  // a transport-floor synthesized objection (down lens) never carries an anchor
+  const synth = aggregate([down("infosec", "config-fault"), clear("architectural"), clear("methodology"), clear("QA")], 4);
+  assert.ok(synth.objections.some((o) => o.lens === "infosec" && !("spec_anchor" in o)));
+});
+
+test("FAFF-943: an anchored objection flows through the CLI into a block that validates and keeps the anchor", () => {
+  const anchored = {
+    lens: "infosec", outcome: "refuted",
+    objections: [{ severity: "major", claim: "auth bypass on empty token", evidence: "refute-infosec", predicted_consequence: "unauthenticated writes", spec_anchor: "phase-2-revised" }],
+  };
+  const input = JSON.stringify({
+    enabled_lenses: ["architectural", "infosec", "methodology", "QA"],
+    refutations: [anchored, clear("architectural"), clear("methodology"), clear("QA")],
+  });
+  const agg = spawnSync(process.execPath, [AGG], { input, encoding: "utf8" });
+  assert.equal(agg.status, 0, agg.stderr);
+  const json = agg.stdout.split("\n").find((l) => l.trim().startsWith("{"));
+  assert.equal(JSON.parse(json).objections[0].spec_anchor, "phase-2-revised");
+  const contract = spawnSync(process.execPath, [BIN, "contract", "spec-review-verdict"], { input: json, encoding: "utf8" });
+  assert.equal(contract.status, 0, `contract validation failed: ${contract.stdout}${contract.stderr}`);
+  assert.equal(JSON.parse(contract.stdout).objections[0].spec_anchor, "phase-2-revised");
+});
+
 test("every non-approve verdict carries ≥1 objection; approve carries none", () => {
   const cases = [
     aggregate([r("architectural", "major"), clear("infosec")], 2),       // revise

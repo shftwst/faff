@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "faff/contracts/spec-review-verdict",
   "title": "spec-review-verdict contract data",
-  "description": "Reference schema (FAFF-265). The SHAPE of the spec-stage review verdict that FAFF-9's reviewer (FAFF-266), L4 refuters (FAFF-267), and lens-selection (FAFF-268) all map onto. Shape is normative here; the verdict SEMANTICS (which severity implies which verdict) live in the reviewer, not the contract. Fail-loud on a verdict outside the enum (no safe coerce target — faff's own producer emits it). lens/severity are plain strings: their enum is enforced in the compute fn via violations (the prd-readiness.reason precedent), so an echoed bad value never trips a spurious fail-loud. FAFF-935: each objection may additionally carry the OPTIONAL enrichment triple {claim, evidence, predicted_consequence} (plain strings) — additive, never gating; a legacy {lens, severity}-only objection still validates because the triple fields are optional.",
+  "description": "Reference schema (FAFF-265). The SHAPE of the spec-stage review verdict that FAFF-9's reviewer (FAFF-266), L4 refuters (FAFF-267), and lens-selection (FAFF-268) all map onto. Shape is normative here; the verdict SEMANTICS (which severity implies which verdict) live in the reviewer, not the contract. Fail-loud on a verdict outside the enum (no safe coerce target — faff's own producer emits it). lens/severity are plain strings: their enum is enforced in the compute fn via violations (the prd-readiness.reason precedent), so an echoed bad value never trips a spurious fail-loud. FAFF-935: each objection may additionally carry the OPTIONAL enrichment triple {claim, evidence, predicted_consequence} (plain strings) — additive, never gating; a legacy {lens, severity}-only objection still validates because the triple fields are optional. FAFF-943: each objection may additionally carry the OPTIONAL spec_anchor (plain string) — the MUTABLE heading slug of the spec section the objection attacks, canonically derived by bin/lib/heading-slug.js (the single rule home; never the rename-resistant case-file anchor of the same name, and never persisted across spec revisions) — additive, never gating; absence is the signal that no single section is nameable (the consumer zero-match path handles it).",
   "type": "object",
   "additionalProperties": false,
   "required": ["verdict", "objections", "conformant", "violations"],
@@ -19,7 +19,8 @@
           "severity": { "type": "string" },
           "claim": { "type": "string" },
           "evidence": { "type": "string" },
-          "predicted_consequence": { "type": "string" }
+          "predicted_consequence": { "type": "string" },
+          "spec_anchor": { "type": "string" }
         }
       }
     },

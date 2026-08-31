@@ -37,11 +37,14 @@ export function strictMajority(n) {
 //               objections: [{ severity, claim?, evidence?, predicted_consequence?, summary? }], model? }
 //
 // FAFF-935: an objection may carry the enrichment triple {claim, evidence, predicted_consequence}
-// (the argued content a downstream judge reads). aggregate() carries each field VERBATIM from the
-// source objection onto the output objection when present as a string — additive, so the triple
-// survives into the round record and thence `faff spec-judge-evidence`. It changes NO gating input:
-// the severity map, the refutedCount/anyCritical tally, and the majority gate are untouched.
-const TRIPLE_FIELDS = ["claim", "evidence", "predicted_consequence"];
+// (the argued content a downstream judge reads). FAFF-943 adds `spec_anchor` — the heading slug of
+// the attacked spec section (canonical derivation: faff bin/lib/heading-slug.js; the refuter omits
+// it when no single section is nameable, and a transport-floor synthesized objection never carries
+// one). aggregate() carries each field VERBATIM from the source objection onto the output objection
+// when present as a string — additive, so the fields survive into the round record and thence
+// `faff spec-judge-evidence`. It changes NO gating input: the severity map, the
+// refutedCount/anyCritical tally, and the majority gate are untouched.
+const TRIPLE_FIELDS = ["claim", "evidence", "predicted_consequence", "spec_anchor"];
 function carryTriple(target, source) {
   if (source && typeof source === "object") {
     for (const field of TRIPLE_FIELDS) {
@@ -211,6 +214,20 @@ function selftest() {
   // transport-floor synthesized objection (down lens, no finding to grade) carries no triple
   v = aggregate([down("infosec", "config-fault"), clear("architectural"), clear("methodology"), clear("QA")], 4);
   t("synthesized objection carries no triple", v.objections.some((o) => o.lens === "infosec" && !("claim" in o)));
+  // FAFF-943: spec_anchor rides verbatim beside the triple, changes no verdict, and an absent /
+  // non-string / synthesized-objection anchor stays absent (the FAFF-930 absence-path precondition).
+  const anchored = { lens: "architectural", outcome: "refuted", objections: [{ severity: "major", claim: "C", evidence: "E", predicted_consequence: "P", spec_anchor: "aggregation-carry-the-anchor" }] };
+  v = aggregate([anchored, clear("infosec"), clear("methodology"), clear("QA")], 4);
+  t("anchor carried onto output objection", v.objections[0].spec_anchor === "aggregation-carry-the-anchor");
+  t("anchor carry unchanged verdict", v.verdict === "revise");
+  v = aggregate([r("architectural", "major"), clear("infosec"), clear("methodology"), clear("QA")], 4);
+  t("bare objection carries no anchor key", !("spec_anchor" in v.objections[0]));
+  v = aggregate([{ lens: "QA", outcome: "refuted", objections: [{ severity: "minor", spec_anchor: "" }] }, clear("architectural"), clear("methodology"), clear("infosec")], 4);
+  t("empty-string anchor carried verbatim", v.objections[0].spec_anchor === "");
+  v = aggregate([{ lens: "infosec", outcome: "refuted", objections: [{ severity: "major", spec_anchor: 42 }] }, clear("architectural"), clear("methodology"), clear("QA")], 4);
+  t("non-string anchor dropped", !("spec_anchor" in v.objections[0]));
+  v = aggregate([down("infosec", "config-fault"), clear("architectural"), clear("methodology"), clear("QA")], 4);
+  t("synthesized objection carries no anchor", v.objections.some((o) => o.lens === "infosec" && !("spec_anchor" in o)));
 
   if (fails.length) {
     process.stderr.write("aggregate --selftest: FAIL\n" + fails.map((f) => "  ✗ " + f).join("\n") + "\n");

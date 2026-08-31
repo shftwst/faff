@@ -119,6 +119,265 @@ export function checkPayloadSize({ system, user, maxBytes = DEFAULT_MAX_PAYLOAD_
   return { oversized: bytes > maxBytes, bytes, maxBytes };
 }
 
+// --- FAFF-915: diff-relevance context trim -------------------------------------------------------
+//
+// Reasoning reviewers empty out on large review payloads: the model spends its whole output budget
+// reasoning and emits zero findings. The context bundle (whole source files shipped as --context) is
+// most of that payload while the diff only touches a few regions, so trimming the context to the
+// diff-relevant regions roughly halves the payload and puts a reasoning-ON review back under the
+// empty-out knee. This is the targeted context-trim (the lighter fix), NOT a general decomposer.
+//
+// The trim is a PURE function of (contextFiles, diff): identical inputs give identical output, so the
+// trimmed context stays byte-identical across the four spec-review lenses (only --system differs) and
+// remains a stable shared-prefix cache (FAFF-903). It is gated by a byte threshold — below the
+// threshold the context passes through unchanged, so every existing review and its golden tests are
+// byte-for-byte unaffected — and it never drops a line inside a diff-touched range (the conservative
+// guarantee). See the FAFF-915 spec.
+
+// The trim's fixed build defaults. Named constants (not magic numbers) so a later review-bench pass
+// (FAFF-904) re-tunes them in one place; the trim's shape and contract never depend on the values.
+export const DEFAULT_CONTEXT_TRIM_BYTES = 49152;   // 48 KB — below this assembled-context size the trim is a no-op
+export const DEFAULT_MIN_FILE_TRIM_BYTES = 2048;   // 2 KB — a no-anchor file below this passes through untrimmed
+export const DEFAULT_TRIM_WINDOW = 24;             // lines of context kept either side of each anchor
+export const DEFAULT_TRIM_HEAD_LINES = 12;         // leading lines kept when a large no-anchor file is head-reduced
+export const DEFAULT_MAX_ANCHOR_LINES = 40;        // a diff token anchoring more lines than this in a file is too common to anchor
+export const DEFAULT_RETAINED_CEILING = 0.8;       // if a trimmed file still retains more than this fraction, head-reduce it instead
+
+// A whole-word identifier token: a run of JS identifier characters. Length >= 3 is applied by the caller.
+const IDENT_RE = /[A-Za-z_$][A-Za-z0-9_$]*/g;
+// Closed stoplist (no "and similar"): common JS keywords too generic to be a relevance signal.
+const IDENT_STOPLIST = new Set([
+  "const", "let", "var", "function", "return", "import", "export", "default", "this", "new",
+  "typeof", "void", "await", "async", "class", "extends", "super", "yield", "delete", "instanceof",
+]);
+
+// PURE (FAFF-915): the fixed elision-marker sentinel written in place of a dropped span. It carries the
+// dropped-line count and can never equal a real source line, so a touched line is never mistaken for a
+// marker (the survival oracle depends on this).
+export function elisionMarker(n) {
+  return `... ${n} line(s) elided (FAFF-915 relevance trim) ...`;
+}
+
+// PURE (FAFF-915): parse a unified diff into { touchedByPath, identifiers }.
+// - touchedByPath: Map<full-path, Array<[startLine, endLine]>> of the new-file (+++) line ranges each
+//   hunk touches. Keyed by the FULL path (a/ b/ prefixes stripped) — not the basename — so two context
+//   files that share a basename (src/foo.js vs lib/foo.js) never cross-apply each other's ranges;
+//   pathsMatch() below resolves a context path to a touched path by exact-or-suffix.
+// - identifiers: Set of >=3-char identifier tokens named on the diff's +/- body lines, minus the
+//   stoplist — a cheap textual stand-in for the diff's direct callers/callees.
+// Fail-safe: an unparseable hunk header contributes no range for that hunk (never a wrong range).
+export function parseDiffTouched(diff) {
+  const touchedByPath = new Map();
+  const identifiers = new Set();
+  // Strip a trailing CR so a CRLF-terminated diff's blank context lines are recognised (a bare "\r"
+  // would otherwise fall through and desync the new-file counter).
+  const lines = String(diff == null ? "" : diff).split("\n").map((l) => l.replace(/\r$/, ""));
+  let curKey = null;   // full stripped path of the current +++ file
+  let newLine = 0;     // running new-file line number inside the current hunk
+  let oldRemain = 0;   // old-file body lines still expected in the current hunk (from the @@ header)
+  let newRemain = 0;   // new-file body lines still expected in the current hunk
+  const inHunk = () => oldRemain > 0 || newRemain > 0;   // a hunk is "open" until its declared counts are consumed
+  const addRange = (key, a, b) => {
+    if (!key) return;
+    if (!touchedByPath.has(key)) touchedByPath.set(key, []);
+    touchedByPath.get(key).push([a, b]);
+  };
+  for (const line of lines) {
+    // Structural lines are only recognised BETWEEN hunks (counts exhausted). Inside an open hunk a
+    // body line whose content begins with "+++ " / "--- " / "@@" is data, not a header — the declared
+    // line counts, not a leading-token guess, decide where the hunk ends, so such content is parsed
+    // correctly instead of being misread as the next file header.
+    if (!inHunk()) {
+      if (line.startsWith("+++ ")) {
+        const p = line.slice(4).trim().split("\t")[0];
+        curKey = p === "/dev/null" ? null : (p.replace(/^[ab]\//, "") || null);
+        continue;
+      }
+      const m = line.match(/^@@\s+-\d+(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/);
+      if (m) {
+        oldRemain = m[1] === undefined ? 1 : Number(m[1]);   // b defaults to 1 when omitted
+        newLine = Number(m[2]);
+        newRemain = m[3] === undefined ? 1 : Number(m[3]);   // d defaults to 1 when omitted
+        continue;
+      }
+      continue;   // any other between-hunk line (diff --git, index, --- , context noise) is ignored
+    }
+    // Inside an open hunk: classify by the leading marker and decrement the declared counts.
+    const marker = line.charAt(0);
+    if (marker === "+") {
+      addRange(curKey, newLine, newLine);
+      collectIdents(line.slice(1), identifiers);
+      newLine += 1;
+      if (newRemain > 0) newRemain -= 1;
+    } else if (marker === "-") {
+      collectIdents(line.slice(1), identifiers);   // a removed line names identifiers but consumes no new-file line
+      if (oldRemain > 0) oldRemain -= 1;
+    } else if (marker === "\\") {
+      // "\ No newline at end of file" — a marker, not a body line; consumes no count.
+    } else {
+      // a context line (" " prefix, or a truly-empty blank context line) advances the new-file counter
+      newLine += 1;
+      if (oldRemain > 0) oldRemain -= 1;
+      if (newRemain > 0) newRemain -= 1;
+    }
+  }
+  return { touchedByPath, identifiers };
+}
+
+// PURE (FAFF-915): does a context-file path resolve to a touched diff path? Exact match, or either is
+// a path-component suffix of the other (so a bare "review-call.mjs" matches "plugin/.../review-call.mjs",
+// but "src/foo.js" never matches "lib/foo.js"). Strips a/ b/ prefixes on both sides. Full-path context
+// paths (the normal caller shape) resolve unambiguously; a BARE-basename context path can still suffix-
+// match more than one same-basename diff path, but the trim is keep-only (a wrong match over-retains,
+// never under-retains a genuinely-relevant line), so the failure mode is safe.
+export function pathsMatch(ctxPath, diffPath) {
+  const norm = (p) => String(p || "").replace(/^[ab]\//, "");
+  const a = norm(ctxPath);
+  const b = norm(diffPath);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return a.endsWith("/" + b) || b.endsWith("/" + a);
+}
+
+function collectIdents(text, out) {
+  const found = String(text).match(IDENT_RE);
+  if (!found) return;
+  for (const t of found) {
+    if (t.length >= 3 && !IDENT_STOPLIST.has(t)) out.add(t);
+  }
+}
+
+// PURE (FAFF-915): does `line` contain token `t` as a whole word — delimited by a non-identifier
+// character (or line start/end) on both sides, so `parse` does not match inside `parseArgs`?
+function lineHasWholeWord(line, t) {
+  let from = 0;
+  for (;;) {
+    const i = line.indexOf(t, from);
+    if (i < 0) return false;
+    const before = i === 0 ? "" : line[i - 1];
+    const after = i + t.length >= line.length ? "" : line[i + t.length];
+    const boundary = (c) => c === "" || !/[A-Za-z0-9_$]/.test(c);
+    if (boundary(before) && boundary(after)) return true;
+    from = i + 1;
+  }
+}
+
+// PURE (FAFF-915): reduce one file's text to its head (first `headLines` lines) plus one elision
+// marker for the dropped body. Used for a large no-anchor file and as the retained-ceiling fallback.
+function headReduce(fileLines, headLines) {
+  const h = Math.max(0, Math.trunc(headLines) || 0);   // clamp: a negative/NaN headLines never yields a bogus marker count
+  if (fileLines.length <= h) return fileLines.join("\n");
+  const kept = fileLines.slice(0, h);
+  const dropped = fileLines.length - h;
+  return kept.concat([elisionMarker(dropped)]).join("\n");
+}
+
+// PURE (FAFF-915): trim one file's text to its diff-relevant regions. Returns the trimmed text.
+// Retained line set = diff-touched ranges (always) ∪ identifier-anchored lines, each expanded by a
+// ±window and merged; a frequency-capped token (anchoring > maxAnchorLines lines) is dropped as too
+// common; a file that would still retain > retainedCeiling is head-reduced instead. A no-anchor file
+// below minFileBytes is returned unchanged; a larger no-anchor file is head-reduced.
+export function trimOneFile(text, touchedRanges, identifiers, opts) {
+  const { window, minFileBytes, headLines, maxAnchorLines, retainedCeiling } = opts;
+  const fileLines = text.split("\n");
+  const n = fileLines.length;
+  const anchored = new Array(n).fill(false);   // an anchor line (touched or identifier)
+  const touched = new Array(n).fill(false);    // a diff-touched line (never dropped, exempt from caps)
+
+  // 1) diff-touched ranges (1-based, inclusive) — always anchors, and marked touched.
+  for (const [a, b] of touchedRanges || []) {
+    for (let ln = a; ln <= b; ln++) {
+      const idx = ln - 1;
+      if (idx >= 0 && idx < n) { anchored[idx] = true; touched[idx] = true; }
+    }
+  }
+
+  // 2) identifier anchors, frequency-capped per file.
+  for (const t of identifiers) {
+    const hits = [];
+    for (let i = 0; i < n; i++) if (lineHasWholeWord(fileLines[i], t)) hits.push(i);
+    if (hits.length === 0 || hits.length > maxAnchorLines) continue;   // absent or too common → no anchors
+    for (const i of hits) anchored[i] = true;
+  }
+
+  const anyAnchor = anchored.some(Boolean);
+  const bytesOf = (s) => Buffer.byteLength(s, "utf8");
+
+  // No anchors at all → protect small files, head-reduce large ones.
+  if (!anyAnchor) {
+    if (bytesOf(text) < minFileBytes) return text;   // small caller-selected file → untouched
+    return headReduce(fileLines, headLines);
+  }
+
+  // 3) expand anchors by ±window, merge, emit kept spans + one marker per dropped gap.
+  const keep = new Array(n).fill(false);
+  for (let i = 0; i < n; i++) {
+    if (!anchored[i]) continue;
+    const lo = Math.max(0, i - window);
+    const hi = Math.min(n - 1, i + window);
+    for (let j = lo; j <= hi; j++) keep[j] = true;
+  }
+  // Touched lines are always kept regardless of any later reduction (the conservative guarantee).
+  for (let i = 0; i < n; i++) if (touched[i]) keep[i] = true;
+
+  const keptCount = keep.filter(Boolean).length;
+  // 4) retained-ceiling fallback: if we would still keep too much, head-reduce. This is GUARDED by
+  //    `!hasTouched` — a file with ANY diff-touched line is exempt from the ceiling entirely and keeps
+  //    its full windowed set, so the head-reduce below can never drop a touched line (the conservative
+  //    guarantee). The ceiling only ever reshapes a purely identifier-anchored file.
+  const hasTouched = touched.some(Boolean);
+  if (!hasTouched && keptCount / n > retainedCeiling) {
+    return headReduce(fileLines, headLines);
+  }
+
+  const out = [];
+  let gap = 0;
+  for (let i = 0; i < n; i++) {
+    if (keep[i]) {
+      if (gap > 0) { out.push(elisionMarker(gap)); gap = 0; }
+      out.push(fileLines[i]);
+    } else {
+      gap += 1;
+    }
+  }
+  if (gap > 0) out.push(elisionMarker(gap));
+  return out.join("\n");
+}
+
+// PURE (FAFF-915): the relevance filter over the whole context bundle. Below the byte threshold it is
+// an identity no-op (byte-identical to today). thresholdBytes = 0 disables the trim entirely.
+export function trimContextFiles({
+  contextFiles = [],
+  diff = "",
+  thresholdBytes = DEFAULT_CONTEXT_TRIM_BYTES,
+  window = DEFAULT_TRIM_WINDOW,
+  minFileBytes = DEFAULT_MIN_FILE_TRIM_BYTES,
+  headLines = DEFAULT_TRIM_HEAD_LINES,
+  maxAnchorLines = DEFAULT_MAX_ANCHOR_LINES,
+  retainedCeiling = DEFAULT_RETAINED_CEILING,
+} = {}) {
+  const bytesOf = (s) => Buffer.byteLength(String(s == null ? "" : s), "utf8");
+  const bytesBefore = contextFiles.reduce((acc, f) => acc + bytesOf(f.text), 0);
+  // Gate: disabled (0), or the whole context is already under the threshold → identity no-op.
+  if (!(thresholdBytes > 0) || bytesBefore <= thresholdBytes) {
+    return { contextFiles, report: { trimmed: false, bytesBefore, bytesAfter: bytesBefore } };
+  }
+  const { touchedByPath, identifiers } = parseDiffTouched(diff);
+  const opts = { window, minFileBytes, headLines, maxAnchorLines, retainedCeiling };
+  const out = contextFiles.map((f) => {
+    // Resolve this context file's touched ranges by full-path match (exact-or-suffix), so a shared
+    // basename never cross-applies another file's ranges. Aggregate across all matching diff paths.
+    const ranges = [];
+    for (const [diffPath, rs] of touchedByPath) {
+      if (pathsMatch(f.path, diffPath)) ranges.push(...rs);
+    }
+    const trimmedText = trimOneFile(f.text, ranges, identifiers, opts);
+    return { path: f.path, text: trimmedText };
+  });
+  const bytesAfter = out.reduce((acc, f) => acc + bytesOf(f.text), 0);
+  return { contextFiles: out, report: { trimmed: true, bytesBefore, bytesAfter } };
+}
+
 // --- FAFF-194: deterministic guards for machine-checkable findings + output-format enforcement ---
 //
 // The adversarial reviewer's findings are hypotheses from a deliberately fallible LLM; two things the
@@ -945,6 +1204,7 @@ export function parseArgs(argv) {
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
+    else if (k === "--context-trim-bytes") a.contextTrimBytes = Number(argv[++i]);   // FAFF-915: relevance-trim threshold override; 0 disables the trim (default DEFAULT_CONTEXT_TRIM_BYTES applies when absent)
     else if (k === "--first-byte-timeout") a.firstByteMs = Number(argv[++i]) * 1000;   // FAFF-885: per-attempt first-byte (TTFT) window override; 0 disables (pass-through)
     else if (k === "--expect") {   // FAFF-940: `--expect contract` opts into contract-output mode (skip the findings-shape gate; the consumer validates the block)
       const v = argv[++i];
@@ -1401,10 +1661,22 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
 
   const system = readFileSync(a.system, "utf8");
   const diff = readFileSync(a.diff, "utf8");
-  const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
+  const contextFilesRaw = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
   if (!system.trim() || !diff.trim()) {
     process.stderr.write("review inputs must contain a non-empty system prompt and diff\n");
     return EXIT.USAGE;
+  }
+  // FAFF-915: trim the context bundle to the diff-relevant regions before assembly. A no-op below the
+  // byte threshold (byte-identical to today) and when --context-trim-bytes is 0. Only the winning
+  // backend's content is affected via the assembled user message; the trim is pure and identical across
+  // lenses, so the shared-prefix cache (FAFF-903) still holds.
+  const { contextFiles, report: trimReport } = trimContextFiles({
+    contextFiles: contextFilesRaw,
+    diff,
+    thresholdBytes: a.contextTrimBytes === undefined ? DEFAULT_CONTEXT_TRIM_BYTES : a.contextTrimBytes,
+  });
+  if (trimReport.trimmed) {
+    process.stderr.write(`[note] FAFF-915 context trim: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes (diff-relevant regions kept)\n`);
   }
   const user = assembleUserMessage({ contextFiles, diff });
 

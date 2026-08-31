@@ -1,0 +1,8 @@
+{
+  "signal": "pass",
+  "findings": [
+    { "severity": "blocking", "status": "fixed", "file": "plugin/skills/faff/bin/lib/shadow-fidelity.js", "summary": "measureRunSpend called with wrong opts ({root,runDir}) threw a swallowed TypeError, leaving token_cost permanently dead; fixed to {cwd:root, env:{}, runStartMs:null, runDir}." },
+    { "severity": "non-blocking", "status": "fixed", "file": "plugin/skills/faff/bin/lib/shadow-fidelity.js", "summary": "--non-default-policy-run advertised repeatable but parseArgs rejected a second occurrence; marked repeatable:true." },
+    { "severity": "non-blocking", "status": "fixed", "file": "plugin/skills/faff/bin/lib/shadow-fidelity.js", "summary": "a replayable adapter-kernel absent from the in-scope matrix (unavailable map) crashed at matrix[kernel].denominator++; guarded as an out_of_scope record." }
+  ]
+}

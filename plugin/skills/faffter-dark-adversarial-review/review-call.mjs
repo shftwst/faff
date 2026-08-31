@@ -225,8 +225,11 @@ export function parseDiffTouched(diff) {
 }
 
 // PURE (FAFF-915): does a context-file path resolve to a touched diff path? Exact match, or either is
-// a path-component suffix of the other (so "review-call.mjs" matches "plugin/.../review-call.mjs", but
-// "src/foo.js" never matches "lib/foo.js"). Strips a/ b/ prefixes on both sides.
+// a path-component suffix of the other (so a bare "review-call.mjs" matches "plugin/.../review-call.mjs",
+// but "src/foo.js" never matches "lib/foo.js"). Strips a/ b/ prefixes on both sides. Full-path context
+// paths (the normal caller shape) resolve unambiguously; a BARE-basename context path can still suffix-
+// match more than one same-basename diff path, but the trim is keep-only (a wrong match over-retains,
+// never under-retains a genuinely-relevant line), so the failure mode is safe.
 export function pathsMatch(ctxPath, diffPath) {
   const norm = (p) => String(p || "").replace(/^[ab]\//, "");
   const a = norm(ctxPath);
@@ -318,9 +321,12 @@ export function trimOneFile(text, touchedRanges, identifiers, opts) {
   for (let i = 0; i < n; i++) if (touched[i]) keep[i] = true;
 
   const keptCount = keep.filter(Boolean).length;
-  // 4) retained-ceiling fallback: if we would still keep too much, head-reduce — but never drop a
-  //    touched line, so only fall back when no line is touched (a touched file keeps its windows).
-  if (!touched.some(Boolean) && keptCount / n > retainedCeiling) {
+  // 4) retained-ceiling fallback: if we would still keep too much, head-reduce. This is GUARDED by
+  //    `!hasTouched` — a file with ANY diff-touched line is exempt from the ceiling entirely and keeps
+  //    its full windowed set, so the head-reduce below can never drop a touched line (the conservative
+  //    guarantee). The ceiling only ever reshapes a purely identifier-anchored file.
+  const hasTouched = touched.some(Boolean);
+  if (!hasTouched && keptCount / n > retainedCeiling) {
     return headReduce(fileLines, headLines);
   }
 

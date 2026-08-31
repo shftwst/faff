@@ -3447,3 +3447,21 @@ test("FAFF-915: parseDiffTouched stops consuming at the declared hunk length, so
   assert.deepEqual(touchedByPath.get("a.js"), [[2, 2]], "a.js touched at 2");
   assert.deepEqual(touchedByPath.get("b.js"), [[6, 6]], "b.js touched at 6 (hunk 1 ended at its declared length)");
 });
+
+test("FAFF-915: a touched file over the retained ceiling keeps ALL its touched lines (refutes the ceiling-drops-touched claim)", () => {
+  // 30-line file; the diff touches lines 5 and 25. A window of 24 would keep >80% (over the 0.8 ceiling),
+  // but a file with ANY touched line is exempt from the ceiling fallback, so it never head-reduces and
+  // every touched line survives — even one beyond headLines.
+  const body = Array.from({ length: 30 }, (_, i) => `row ${String(i + 1).padStart(2, "0")}`).join("\n");
+  const out = trimOneFile(body, [[5, 5], [25, 25]], new Set(), { window: 24, minFileBytes: 2048, headLines: 3, maxAnchorLines: 40, retainedCeiling: 0.8 });
+  const lines = out.split("\n");
+  assert.ok(lines.includes("row 05"), "touched line 5 kept");
+  assert.ok(lines.includes("row 25"), "touched line 25 kept (beyond headLines=3, proving no head-reduce)");
+  assert.ok(!out.includes("elided") || lines.includes("row 25"), "not collapsed to a head stub");
+});
+
+test("FAFF-915: a pure-insertion new-file hunk (@@ -0,0 +1,N @@) is parsed correctly", () => {
+  const diff = ["+++ b/new.js", "@@ -0,0 +1,3 @@", "+line one", "+line two", "+line three"].join("\n");
+  const { touchedByPath } = parseDiffTouched(diff);
+  assert.deepEqual(touchedByPath.get("new.js"), [[1, 1], [2, 2], [3, 3]], "all three inserted lines touched at 1,2,3");
+});

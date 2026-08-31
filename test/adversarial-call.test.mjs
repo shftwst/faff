@@ -21,7 +21,7 @@ import {
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
   streamWithFirstByte, FirstByteBreachError, isFirstByteBreach, DEFAULT_FIRST_BYTE_MS,
-  trimContextFiles, trimOneFile, parseDiffTouched, elisionMarker,
+  trimContextFiles, trimOneFile, parseDiffTouched, elisionMarker, pathsMatch,
   DEFAULT_CONTEXT_TRIM_BYTES, DEFAULT_MIN_FILE_TRIM_BYTES, DEFAULT_TRIM_WINDOW,
   DEFAULT_TRIM_HEAD_LINES, DEFAULT_MAX_ANCHOR_LINES, DEFAULT_RETAINED_CEILING,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
@@ -3360,11 +3360,49 @@ test("FAFF-915: fail-safe — a malformed diff yields no touched ranges, so an u
   assert.equal(out.length, 6, "head + marker, never a windowed slice from a bad guess");
 });
 
-test("FAFF-915: path matching accepts both a/ b/ prefixed and bare diff paths", () => {
+test("FAFF-915: path matching accepts both a/ b/ prefixed and bare diff paths (keyed by full path)", () => {
   const prefixed = parseDiffTouched(["+++ b/src/foo.js", "@@ -1,0 +1,1 @@", "+added"].join("\n"));
-  assert.ok(prefixed.touchedByPath.has("foo.js"), "b/ prefix stripped to basename");
+  assert.ok(prefixed.touchedByPath.has("src/foo.js"), "b/ prefix stripped, full path retained");
   const bare = parseDiffTouched(["+++ src/foo.js", "@@ -1,0 +1,1 @@", "+added"].join("\n"));
-  assert.ok(bare.touchedByPath.has("foo.js"), "bare path keyed by basename");
+  assert.ok(bare.touchedByPath.has("src/foo.js"), "bare path keyed by full path");
+  // pathsMatch resolves a context path to a touched path by exact-or-suffix, never a bare basename clash
+  assert.ok(pathsMatch("review-call.mjs", "plugin/skills/x/review-call.mjs"), "suffix match");
+  assert.ok(pathsMatch("a/src/foo.js", "b/src/foo.js"), "prefixes stripped, exact match");
+  assert.ok(!pathsMatch("src/foo.js", "lib/foo.js"), "same basename, different dir → no match");
+});
+
+test("FAFF-915: a shared basename never cross-applies another file's touched ranges (major fix)", () => {
+  // diff touches src/foo.js only; the context bundle also has lib/foo.js (same basename, unrelated).
+  const srcFoo = Array.from({ length: 100 }, (_, i) => `src ${i}`).join("\n");
+  const libFoo = Array.from({ length: 100 }, (_, i) => `lib ${i}`).join("\n");
+  const diff = ["--- a/src/foo.js", "+++ b/src/foo.js", "@@ -49,1 +49,2 @@", " src 48", "+src 49 changed", " src 50"].join("\n");
+  const r = trimContextFiles({
+    contextFiles: [{ path: "src/foo.js", text: srcFoo }, { path: "lib/foo.js", text: libFoo }],
+    diff, thresholdBytes: 100, window: 1, minFileBytes: 100000, headLines: 5, maxAnchorLines: 40, retainedCeiling: 0.9,
+  });
+  const src = r.contextFiles.find((f) => f.path === "src/foo.js").text;
+  assert.ok(src.split("\n").includes("src 49"), "the genuinely-touched src/foo.js keeps its touched line");
+  const lib = r.contextFiles.find((f) => f.path === "lib/foo.js").text;
+  // lib/foo.js has no touched ranges of its own → it is a no-anchor small file → passthrough unchanged,
+  // NOT windowed around src/foo.js's line 49.
+  assert.equal(lib, libFoo, "lib/foo.js is untouched — no cross-applied ranges");
+});
+
+test("FAFF-915: an empty context line inside a hunk advances new-file line numbers (desync fix)", () => {
+  // a blank context line encoded as a truly empty line must still advance the new-file counter, so the
+  // + line after it gets the correct line number.
+  const diff = ["+++ b/z.js", "@@ -1,4 +1,5 @@", " keep 1", "", " keep 3", "+added at 4", " keep 5"].join("\n");
+  const { touchedByPath } = parseDiffTouched(diff);
+  const ranges = touchedByPath.get("z.js");
+  // new-file lines: keep1=1, ""=2, keep3=3, added=4 → the touched range is [4,4], not [3,3]
+  assert.deepEqual(ranges, [[4, 4]], "the empty context line advanced the counter, so the + line is at 4");
+});
+
+test("FAFF-915: headReduce clamps a negative/NaN headLines to a correct marker count (minor fix)", () => {
+  const body = Array.from({ length: 30 }, (_, i) => `x ${i}`).join("\n");
+  // a large no-anchor file with headLines = -3 must not report a bogus (over-large) elided count
+  const out = trimOneFile(body, [], new Set(), { window: 2, minFileBytes: 10, headLines: -3, maxAnchorLines: 40, retainedCeiling: 0.8 });
+  assert.equal(out, elisionMarker(30), "headLines clamped to 0 → all 30 lines elided, one marker");
 });
 
 test("FAFF-915: the trim is deterministic — identical (contextFiles, diff) give identical output (shared-prefix cache holds)", () => {

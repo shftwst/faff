@@ -159,8 +159,10 @@ export function elisionMarker(n) {
 }
 
 // PURE (FAFF-915): parse a unified diff into { touchedByPath, identifiers }.
-// - touchedByPath: Map<basename, Array<[startLine, endLine]>> of the new-file (+++) line ranges each
-//   hunk touches. Keyed by basename so both git-prefixed (a/ b/) and bare paths match a context path.
+// - touchedByPath: Map<full-path, Array<[startLine, endLine]>> of the new-file (+++) line ranges each
+//   hunk touches. Keyed by the FULL path (a/ b/ prefixes stripped) — not the basename — so two context
+//   files that share a basename (src/foo.js vs lib/foo.js) never cross-apply each other's ranges;
+//   pathsMatch() below resolves a context path to a touched path by exact-or-suffix.
 // - identifiers: Set of >=3-char identifier tokens named on the diff's +/- body lines, minus the
 //   stoplist — a cheap textual stand-in for the diff's direct callers/callees.
 // Fail-safe: an unparseable hunk header contributes no range for that hunk (never a wrong range).
@@ -168,7 +170,7 @@ export function parseDiffTouched(diff) {
   const touchedByPath = new Map();
   const identifiers = new Set();
   const lines = String(diff == null ? "" : diff).split("\n");
-  let curKey = null;   // basename of the current +++ file
+  let curKey = null;   // full stripped path of the current +++ file
   let newLine = 0;     // running new-file line number inside the current hunk
   let inHunk = false;
   const addRange = (key, a, b) => {
@@ -181,8 +183,7 @@ export function parseDiffTouched(diff) {
       // +++ b/path/to/file.js   (or bare "+++ path", or "+++ /dev/null")
       let p = line.slice(4).trim().split("\t")[0];
       if (p === "/dev/null") { curKey = null; inHunk = false; continue; }
-      p = p.replace(/^[ab]\//, "");
-      curKey = p.split("/").pop() || null;
+      curKey = p.replace(/^[ab]\//, "") || null;
       inHunk = false;
       continue;
     }
@@ -201,13 +202,28 @@ export function parseDiffTouched(diff) {
     } else if (line.startsWith("-")) {
       // a removed line still names identifiers, but consumes no new-file line number
       collectIdents(line.slice(1), identifiers);
-    } else if (line.startsWith(" ")) {
-      newLine += 1;   // unchanged context line advances the new-file counter
+    } else if (line.startsWith(" ") || line === "") {
+      // an unchanged context line advances the new-file counter; a git unified diff prefixes a blank
+      // context line with a single space, but a truly empty line inside a hunk is still a context line
+      // — treat it as one so later +/- lines in the hunk keep the correct new-file line numbers.
+      newLine += 1;
     } else {
       // "\ No newline at end of file" and anything else — ignore, do not advance
     }
   }
   return { touchedByPath, identifiers };
+}
+
+// PURE (FAFF-915): does a context-file path resolve to a touched diff path? Exact match, or either is
+// a path-component suffix of the other (so "review-call.mjs" matches "plugin/.../review-call.mjs", but
+// "src/foo.js" never matches "lib/foo.js"). Strips a/ b/ prefixes on both sides.
+export function pathsMatch(ctxPath, diffPath) {
+  const norm = (p) => String(p || "").replace(/^[ab]\//, "");
+  const a = norm(ctxPath);
+  const b = norm(diffPath);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return a.endsWith("/" + b) || b.endsWith("/" + a);
 }
 
 function collectIdents(text, out) {
@@ -236,9 +252,10 @@ function lineHasWholeWord(line, t) {
 // PURE (FAFF-915): reduce one file's text to its head (first `headLines` lines) plus one elision
 // marker for the dropped body. Used for a large no-anchor file and as the retained-ceiling fallback.
 function headReduce(fileLines, headLines) {
-  if (fileLines.length <= headLines) return fileLines.join("\n");
-  const kept = fileLines.slice(0, headLines);
-  const dropped = fileLines.length - headLines;
+  const h = Math.max(0, Math.trunc(headLines) || 0);   // clamp: a negative/NaN headLines never yields a bogus marker count
+  if (fileLines.length <= h) return fileLines.join("\n");
+  const kept = fileLines.slice(0, h);
+  const dropped = fileLines.length - h;
   return kept.concat([elisionMarker(dropped)]).join("\n");
 }
 
@@ -332,8 +349,12 @@ export function trimContextFiles({
   const { touchedByPath, identifiers } = parseDiffTouched(diff);
   const opts = { window, minFileBytes, headLines, maxAnchorLines, retainedCeiling };
   const out = contextFiles.map((f) => {
-    const base = String(f.path || "").split("/").pop();
-    const ranges = touchedByPath.get(base) || [];
+    // Resolve this context file's touched ranges by full-path match (exact-or-suffix), so a shared
+    // basename never cross-applies another file's ranges. Aggregate across all matching diff paths.
+    const ranges = [];
+    for (const [diffPath, rs] of touchedByPath) {
+      if (pathsMatch(f.path, diffPath)) ranges.push(...rs);
+    }
     const trimmedText = trimOneFile(f.text, ranges, identifiers, opts);
     return { path: f.path, text: trimmedText };
   });

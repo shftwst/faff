@@ -263,7 +263,7 @@ function extractPathTokens(evidenceText) {
 function gatherRepositoryEvidence(objection, repoRoot) {
   const notes = [];
   const chunks = [];
-  const root = fs.realpathSync.native ? realpathSafe(repoRoot) : realpathSafe(repoRoot);
+  const root = realpathSafe(repoRoot);
   const tokens = extractPathTokens(objection && objection.evidence);
   for (const tok of tokens) {
     if (REFUSE_PATH_RE.some((re) => re.test(tok))) { notes.push(`refused refuse-list path ${tok}`); continue; }
@@ -338,8 +338,7 @@ function assemble(opts) {
     const orchTriple = argumentBTriple(bDerived);
     const proposition = buildProposition(obj || {});
 
-    const relevantB = deriveArgumentB(specText, anchor, "assemble");
-    const relevantSpecSections = scrubSpecField(relevantB.body || "(no bound spec section)");
+    const relevantSpecSections = scrubSpecField(bDerived.body || "(no bound spec section)");
 
     const repoEv = gatherRepositoryEvidence(obj || {}, repoRoot);
 
@@ -510,24 +509,27 @@ function admitRollup(opts) {
   const blockingParked = parked.filter((pid) => entries[pid] && entries[pid].blocking);
   const everyBlockingResolved = blockingUnresolved.length === 0 && blockingParked.length === 0;
 
-  // Floors — each evaluated as `=== true` so a null/degraded input fails CLOSED.
+  // Floors — each evaluated as `=== true` so a null/degraded input fails CLOSED. A specific `false`
+  // records the named floor; any other non-true value (null/absent/degraded) records
+  // "floor_input_degraded" once (never a silent `!= false` skip that fails open).
   let floorPass = true;
+  const pushVeto = (v) => { if (!floor_veto.includes(v)) floor_veto.push(v); };
   const floorIsTrue = (v) => v === true;
   if (!floorIsTrue(floors.blocker_free_latest)) {
     floorPass = false;
-    floor_veto.push(floors.blocker_free_latest === false ? "blocker" : "floor_input_degraded");
+    pushVeto(floors.blocker_free_latest === false ? "blocker" : "floor_input_degraded");
   }
   if (!floorIsTrue(floors.infosec_major_free)) {
     floorPass = false;
-    floor_veto.push(floors.infosec_major_free === false ? "infosec_major" : "floor_input_degraded");
+    pushVeto(floors.infosec_major_free === false ? "infosec_major" : "floor_input_degraded");
   }
   if (floors.reputation_ok !== undefined && !floorIsTrue(floors.reputation_ok)) {
     floorPass = false;
-    if (!floor_veto.includes("floor_input_degraded")) floor_veto.push("floor_input_degraded");
+    pushVeto("floor_input_degraded");
   }
   if (floors.ratified_scope_ok !== undefined && !floorIsTrue(floors.ratified_scope_ok)) {
     floorPass = false;
-    if (!floor_veto.includes("floor_input_degraded")) floor_veto.push("floor_input_degraded");
+    pushVeto("floor_input_degraded");
   }
 
   // L4-ratification: the roll-up's half of the two-part L4-final gate.

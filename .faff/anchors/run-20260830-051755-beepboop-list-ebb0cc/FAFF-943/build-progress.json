@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-943",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f7b07e0bce1006c64eab2d1260c1207b251e912944df61c7ca04ddfbbd66952d",
+    "branch": "faff-943-refuter-objections-carry-spec_anchor-the-attacked-sections",
+    "pushed_at": "2026-08-31T05:24:26.967Z"
+  },
+  "updated_at": "2026-08-31T05:24:26.967Z"
+}

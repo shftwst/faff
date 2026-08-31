@@ -222,6 +222,11 @@ const REGION_MAP = {
   // redact.js (governance) — factory→governance is legal (ADR-0042), same family as
   // decisions/andon above.
   "decision-capture": "factory",
+  // shadow-fidelity — FAFF-826: the read-only coordination-fidelity study. Imports the
+  // nine in-scope pure kernels (next/eligible/run-done/queue-state/claim-verdict/park-verdict/
+  // project-next/run-outward/run-start) plus decision-capture's KERNEL_REGISTRY and argv/
+  // shared-infra; all factory/decision-kernel, the same read-only family as economics/disposition.
+  "shadow-fidelity": "factory",
   "prd": "factory",
   // prd-checklist — FAFF-557: pure checklist-PRD parser emitting the existing prd-coverage
   // shape. Requires only contract-engine's schemaCheck (no shared-infra/governance-profile
@@ -426,6 +431,7 @@ const REGION_SELFTEST_ARGV = {
   "andon": ["andon", "--selftest"],
   "decisions": ["decisions", "--selftest"],
   "decision-capture": ["decision-capture", "--selftest"],
+  "shadow-fidelity": ["shadow-fidelity", "--selftest"],
   "prd": ["prd", "--selftest"],
   "prd-checklist": ["prd-checklist", "--selftest"],
   "ratified-scope": ["ratified-scope", "--selftest"],

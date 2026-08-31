@@ -96,7 +96,7 @@ const MATRIX = [
     "intake-record", "intakecheck", "label", "labels", "lights-out", "lint-cli-doc",
     "lint-refs", "merge-fence", "merge-gate", "models", "next", "park-history", "prdr",
     "prepcheck", "profile", "project-next", "quality", "review-progress", "run-done",
-    "runcheck", "sentry", "spec-review-lenses", "state", "validate-adapters",
+    "runcheck", "sentry", "shadow-fidelity", "spec-review-lenses", "state", "validate-adapters",
     "worktree-prune", "worktree-root",
   ].map((s) => [s, "--selftest"]),
   ["config", "init", "--selftest"],     // config's selftest is under `init`

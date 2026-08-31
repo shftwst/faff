@@ -91,6 +91,7 @@
   },
   "missing_input_records": [],
   "uncovered_records": [],
+  "out_of_scope_records": [],
   "set_aside": [
     {
       "command": "decision-capture",

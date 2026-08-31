@@ -262,6 +262,7 @@ function analyzeCorpus(records, opts = {}) {
   const exclusions = { version_skew: [], input_uncaptured: [], replay_error: [] };
   const missingInputRecords = [];
   const uncoveredRecords = [];
+  const outOfScopeRecords = [];
   const setAsideCounts = {};
   for (const c of setAsideCommands) setAsideCounts[c] = 0;
 
@@ -290,6 +291,13 @@ function analyzeCorpus(records, opts = {}) {
     // non-scope kernel) is set aside — counted, never replayed, never divergence-graded.
     if (!REPLAY_ADAPTERS[kernel]) {
       if (Object.prototype.hasOwnProperty.call(setAsideCounts, kernel)) setAsideCounts[kernel]++;
+      continue;
+    }
+    // A kernel WITH an adapter that the map did not put in scope this run (an unavailable
+    // or partial state-authority map ⇒ empty/short inScope) has no matrix row — record it
+    // as out-of-scope and move on, never dereference a missing row.
+    if (!matrix[kernel]) {
+      outOfScopeRecords.push({ kernel, ...at });
       continue;
     }
     const adapter = REPLAY_ADAPTERS[kernel];
@@ -353,6 +361,7 @@ function analyzeCorpus(records, opts = {}) {
     exclusions,
     missing_input_records: missingInputRecords,
     uncovered_records: uncoveredRecords,
+    out_of_scope_records: outOfScopeRecords,
     set_aside: setAside,
   };
 }
@@ -403,10 +412,15 @@ function snapshotCost(records, root) {
       const { attemptsFromLedger } = require("./budget");
       signal.retry = attemptsFromLedger(ledger);
     } catch (e) { signal.retry = { available: false, reason: `attemptsFromLedger: ${e && e.message}` }; }
-    // token cost — best-effort per-run spend.
+    // token cost — best-effort per-run spend. `env: {}` deliberately excludes the CURRENT
+    // session's live transcript spend (measureTokensByModelClass keys off env.CLAUDE_CODE_
+    // SESSION_ID): a historical captured run's cost must come from its OWN durable engine
+    // spend in the run dir (readEngineSpend), never from the analysis session's live tokens.
+    // With env absent measureTokensByModelClass would deref undefined and throw; with `{}`
+    // it finds no session file, so only the run's engine spend is folded.
     try {
       const { measureRunSpend } = require("./budget");
-      signal.token_cost = measureRunSpend({ root, runDir });
+      signal.token_cost = measureRunSpend({ cwd: root, env: {}, runStartMs: null, runDir });
     } catch (e) { signal.token_cost = { available: false, reason: `measureRunSpend: ${e && e.message}` }; }
     // intervention — parked/needs-human outcomes recorded on the ledger.
     try {
@@ -453,6 +467,7 @@ function corpusDerived(result) {
     exclusions: result.exclusions,
     missing_input_records: result.missing_input_records,
     uncovered_records: result.uncovered_records,
+    out_of_scope_records: result.out_of_scope_records,
     set_aside: result.set_aside,
   };
 }
@@ -483,7 +498,7 @@ const SHADOW_FIDELITY_SPEC = {
     "--dir": { arity: 1 },
     "--out": { arity: 1 },
     "--root": { arity: 1 },
-    "--non-default-policy-run": { arity: 1 },
+    "--non-default-policy-run": { arity: 1, repeatable: true },
     "--json": { arity: 0 },
   },
   positionals: { min: 0, max: 1, name: "verb (run|reproduce)" },

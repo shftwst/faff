@@ -117,6 +117,43 @@ test("manifest digest mismatch is refused (exit 1)", () => {
   assert.match(r.err, /digest mismatch/);
 });
 
+test("cost snapshot reads a real run ledger without crashing (finding-1 regression)", () => {
+  const root = scratch();
+  // the state-authority map so `eligible` resolves in-scope under this scratch --root
+  const mapRel = join("docs", "rfc", "rfc-superdomestique-runtime", "v5", "STATE-AUTHORITY-MAP-v5.md");
+  mkdirSync(dirname(join(root, mapRel)), { recursive: true });
+  writeFileSync(join(root, mapRel), readFileSync(join(REPO, mapRel), "utf8"));
+  // a scratch run dir with a real ledger + event log the record joins to by run_id
+  const runId = "run-20260101-000000-graft-cost";
+  const runDir = join(root, ".faff", "runs", runId);
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ level: "L2", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, run_segments: [] }));
+  writeFileSync(join(runDir, "events.jsonl"), [
+    JSON.stringify({ schema: 1, run_id: runId, seq: 0, ts: "2026-01-01T00:00:00Z", phase: "run", type: "run-start" }),
+    JSON.stringify({ schema: 1, run_id: runId, seq: 1, ts: "2026-01-01T00:10:00Z", phase: "run", type: "run-end" }),
+  ].join("\n") + "\n");
+  const corpus = join(root, "corpus.jsonl");
+  writeFileSync(corpus, rec("eligible", { labels: ["faff-automate"], automationDefault: "opt-in", trackerPresent: true }, "eligible", { run_id: runId }) + "\n");
+  const r = run(REPO, ["shadow-fidelity", "run", "--corpus", corpus, "--root", root, "--json"]);
+  assert.equal(r.code, 0, r.err || r.out);
+  const result = JSON.parse(r.out);
+  assert.equal(result.cost.artifacts_present, true);
+  const runCost = result.cost.runs[runId];
+  assert.equal(runCost.available, true);
+  // token_cost must NOT be the swallowed-TypeError shape — it read the run's engine spend
+  assert.ok(!(runCost.token_cost && runCost.token_cost.available === false && /Cannot read properties/.test(runCost.token_cost.reason || "")), "token_cost crashed: " + JSON.stringify(runCost.token_cost));
+  assert.ok(runCost.token_cost && "totals" in runCost.token_cost, "token_cost should carry a real measureRunSpend result");
+  assert.equal(runCost.latency.events, 2);
+});
+
+test("--non-default-policy-run is repeatable (finding-2 regression)", () => {
+  const root = scratch();
+  const corpus = join(root, "corpus.jsonl");
+  writeFileSync(corpus, rec("next", { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false, awaitingSpecReview: false }, "graft") + "\n");
+  const r = run(REPO, ["shadow-fidelity", "run", "--corpus", corpus, "--root", REPO, "--json", "--non-default-policy-run", "run-a", "--non-default-policy-run", "run-b"]);
+  assert.equal(r.code, 0, r.err || r.out); // two occurrences must NOT be a duplicate-flag error
+});
+
 test("the committed FAFF-826 report reproduces from a clean context", () => {
   const dir = join(REPO, "verification", "reports", "FAFF-826-coordination-fidelity");
   const r = run(REPO, ["shadow-fidelity", "reproduce", "--dir", dir, "--root", REPO]);

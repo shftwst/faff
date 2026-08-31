@@ -280,7 +280,136 @@ function cmdSpecJudgeEvidence(args) {
   return 0;
 }
 
+// ===========================================================================
+// === region:factory — spec-judge-accept-bar (FAFF-945) ===
+// The deterministic accept-bar roll-up: given the pre-judge evidence bundle, the judge's
+// CONFORMANT spec-judge-verdict, and the level, it returns the coerced disposition.
+// "Arithmetic over the bundle, not the judge's read." It moves the infosec floor from the
+// pre-judge residue to the POST-adjudication ledger at L1–L3, while keeping the interim
+// pre-judge floor at L4 (flipped to full-trust by FAFF-946, once the durable audit trail lands).
+//
+// Preconditions (faff-prep enforces before calling this): the verdict has already been
+// validated conformant by `faff contract spec-judge-verdict` (exit 0), so `computeAcceptBar`
+// does NOT re-police the `accept ⇒ empty upheld` invariant — that is the contract layer's job.
+// This is what keeps the L1–L3 `upheld`-scan forward-compatible: today `accept ⇒ empty upheld`
+// (the scan is a no-op), but when the four-outcome vocabulary widens the contract to let a
+// conformant `accept` carry an auto-applied UPHOLD_REVIEW correction on `upheld[]`, the same
+// scan coerces on a still-standing infosec major with no rewrite.
+//
+// Fail direction: fail-CLOSED (exit 2, no disposition) on genuine plumbing faults only
+// (non-object input, unreadable file, non-JSON body, verdict outside the closed three). A
+// merely-missing blocker_free_latest/infosec_major_free_latest field is the fail-SAFE (the
+// floor fires — coerce to park-needs-human), never clear.
+// ===========================================================================
+
+const ACCEPT_BAR_JUDGE_VERDICTS = ["accept", "keep-going", "park-needs-human"];
+
+// computeAcceptBar — the pure coercion. `evidence` and `verdict` are assumed to be plain
+// objects (the CLI validates that); `verdict.verdict` is assumed to be one of the closed three
+// (the CLI validates that too). Returns { disposition, coerced_from, floor_fired, level }.
+function computeAcceptBar(evidence, verdict, level) {
+  const v = verdict.verdict;
+  // The accept-bar only ever coerces an `accept`; keep-going / park-needs-human pass through.
+  if (v === "keep-going" || v === "park-needs-human") {
+    return { disposition: v, coerced_from: null, floor_fired: null, level };
+  }
+  // v === "accept" from here.
+  // Blocker floor (unchanged, every level). Fail-safe: a missing blocker_free_latest fires.
+  if (evidence.blocker_free_latest !== true) {
+    return { disposition: "park-needs-human", coerced_from: "accept", floor_fired: "blocker", level };
+  }
+  // Infosec floor — level-aware (the FAFF-945 change).
+  if (level === "L4") {
+    // Interim PRE-judge floor: coerce on a standing pre-judge infosec major. Fail-safe: a
+    // missing infosec_major_free_latest field fires (treated as not-free).
+    if (evidence.infosec_major_free_latest !== true) {
+      return { disposition: "park-needs-human", coerced_from: "accept", floor_fired: "infosec", level };
+    }
+  } else {
+    // L1–L3 POST-adjudication floor: coerce only on an infosec major the judge left STANDING
+    // in `upheld[]`. A conformant `accept` upholds none, so this is a no-op today; it goes live
+    // under the widened four-outcome contract.
+    if (!infosecMajorFree(verdict.upheld)) {
+      return { disposition: "park-needs-human", coerced_from: "accept", floor_fired: "infosec", level };
+    }
+  }
+  // Uncoerced accept — authority gate.
+  return {
+    disposition: level === "L4" ? "accept-final" : "accept-provisional",
+    coerced_from: null,
+    floor_fired: null,
+    level,
+  };
+}
+
+const SPEC_JUDGE_ACCEPT_BAR_SPEC = {
+  flags: {
+    "--evidence": { arity: 1 },
+    "--verdict": { arity: 1 },
+    "--level": { arity: 1 },
+  },
+};
+const SPEC_JUDGE_ACCEPT_BAR_USAGE =
+  "usage: faff spec-judge-accept-bar --evidence <file|-> --verdict <file|-> --level <L1..L4>";
+
+// Read a `--evidence`/`--verdict` argument: a file path, or `-` for stdin. Returns the parsed
+// object, or throws (caught by the caller and mapped to fail-closed exit 2).
+function readJsonArg(value, label) {
+  let raw;
+  try {
+    raw = value === "-" ? fs.readFileSync(0, "utf8") : fs.readFileSync(value, "utf8");
+  } catch (e) {
+    throw new Error(`${label}: could not read ${value === "-" ? "stdin" : JSON.stringify(value)} (${e.message})`);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new Error(`${label}: body is not valid JSON (${e.message})`);
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${label}: must be a JSON object`);
+  }
+  return parsed;
+}
+
+function cmdSpecJudgeAcceptBar(args) {
+  const { values, errors } = parseArgs(args, SPEC_JUDGE_ACCEPT_BAR_SPEC);
+  if (errors.length) return usageError(errors, SPEC_JUDGE_ACCEPT_BAR_USAGE);
+
+  const evidenceArg = values["--evidence"];
+  const verdictArg = values["--verdict"];
+  const level = values["--level"];
+  if (evidenceArg == null) return usageError([{ code: "missing-value", detail: "--evidence is required" }], SPEC_JUDGE_ACCEPT_BAR_USAGE);
+  if (verdictArg == null) return usageError([{ code: "missing-value", detail: "--verdict is required" }], SPEC_JUDGE_ACCEPT_BAR_USAGE);
+  if (!LEVELS.includes(level)) {
+    return usageError([{ code: "invalid-value", detail: `--level must be one of ${LEVELS.join(", ")}` }], SPEC_JUDGE_ACCEPT_BAR_USAGE);
+  }
+
+  // Fail-closed (exit 2, no disposition on stdout) on any unreadable / malformed input.
+  let evidence, verdict;
+  try {
+    evidence = readJsonArg(evidenceArg, "--evidence");
+    verdict = readJsonArg(verdictArg, "--verdict");
+  } catch (e) {
+    process.stderr.write(`faff spec-judge-accept-bar: ${e.message}\n`);
+    return 2;
+  }
+  if (!ACCEPT_BAR_JUDGE_VERDICTS.includes(verdict.verdict)) {
+    process.stderr.write(
+      `faff spec-judge-accept-bar: verdict.verdict ${JSON.stringify(verdict.verdict)} not in {accept,keep-going,park-needs-human}\n`,
+    );
+    return 2;
+  }
+
+  const result = computeAcceptBar(evidence, verdict, level);
+  console.log(JSON.stringify(result));
+  return 0;
+}
+
 module.exports = {
   cmdSpecJudgeEvidence,
+  cmdSpecJudgeAcceptBar,
+  computeAcceptBar,
   infosecMajorFree,
 };

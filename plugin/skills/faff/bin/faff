@@ -38,6 +38,7 @@ const { CORRECTIVE_OPS, cmdCorrective, foldCorrectiveAuthority, foldCorrectiveCo
 const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./lib/corrective-integrity");
 const { cmdIntegrityDigest } = require("./lib/integrity-digest");
 const { cmdDecisionCapture } = require("./lib/decision-capture");
+const { cmdShadowFidelity } = require("./lib/shadow-fidelity");
 const { cmdDecisions } = require("./lib/decisions");
 const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
@@ -196,6 +197,7 @@ const COMMANDS = {
   "adr": cmdAdr,
   "decisions": cmdDecisions,
   "decision-capture": cmdDecisionCapture,
+  "shadow-fidelity": cmdShadowFidelity,
   "andon": cmdAndon,
   "prd": cmdPrd,
   "prd-checklist": cmdPrdChecklist,

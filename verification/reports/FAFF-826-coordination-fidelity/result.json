@@ -1,0 +1,134 @@
+{
+  "record_count": 0,
+  "null_result": true,
+  "null_reason": "no captured decisions: capture was off or sparse for the observation window",
+  "in_scope_kernels": [
+    "claim-verdict",
+    "eligible",
+    "next",
+    "park-verdict",
+    "project-next",
+    "queue-state",
+    "run-done",
+    "run-outward",
+    "run-start"
+  ],
+  "coverage": {
+    "replayable": 0,
+    "uncovered": 0,
+    "missing_input": 0
+  },
+  "matrix": {
+    "claim-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "eligible": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "park-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "project-next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "queue-state": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-done": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-outward": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-start": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    }
+  },
+  "divergences": [],
+  "exclusions": {
+    "version_skew": [],
+    "input_uncaptured": [],
+    "replay_error": []
+  },
+  "missing_input_records": [],
+  "uncovered_records": [],
+  "out_of_scope_records": [],
+  "set_aside": [
+    {
+      "command": "decision-capture",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "the instrumentation itself, not a decision the shadow would replay",
+      "captured_count": 0
+    },
+    {
+      "command": "regions",
+      "classification": "instrumented-non-decision-kernel",
+      "reason": "instrumented but classified harness-and-skill-orchestration by the state-authority map, not a coordinator-transition decision",
+      "captured_count": 0
+    },
+    {
+      "command": "run-ledger",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "record-mint entry (a record writer), not a pure prescribe-an-action predicate",
+      "captured_count": 0
+    },
+    {
+      "command": "state",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "read-model producer, not a prescribe-an-action predicate — no verdict to compare against selected_action",
+      "captured_count": 0
+    },
+    {
+      "command": "tier",
+      "classification": "instrumented-non-decision-kernel",
+      "reason": "instrumented but classified software-delivery-policy by the state-authority map, not a coordinator-transition decision",
+      "captured_count": 0
+    }
+  ],
+  "map_source": "state-authority-map",
+  "cost": {
+    "note": "cost is a recorded observation joined to the corpus by run_id, NOT a content-addressed reproducible output; the corpus digest covers only the decision-capture records",
+    "artifacts_present": false,
+    "run_ids": [],
+    "runs": {}
+  }
+}

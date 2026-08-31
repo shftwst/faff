@@ -325,6 +325,10 @@ const REGION_MAP = {
   // faff-prep shells out to, same family as the other spec-review resolvers → factory.
   "spec-review-iteration-cap": "factory",
   "spec-judge-evidence": "factory",
+  // FAFF-945: spec-judge-accept-bar is the deterministic accept-bar roll-up faff-prep's judge
+  // step shells — a pure coercion over the evidence bundle + the judge verdict, same family as
+  // the other small spec-review resolvers → factory.
+  "spec-judge-accept-bar": "factory",
   // FAFF-417: tier is a pure deterministic classifier over spec text (no factory-identifier
   // reference — same shape as spec-review-churn) — factory, same family as the other small
   // deterministic CLI resolvers.
@@ -464,6 +468,9 @@ const REGION_SELFTEST_ARGV = {
   // spec-judge-evidence has no standalone --selftest (its shelling seam is exercised by
   // test/spec-judge-evidence.test.mjs, declared in lint-cli-coverage's TEST_FILE_COVERAGE).
   "spec-judge-evidence": null,
+  // spec-judge-accept-bar has no standalone --selftest either — its coercion + fail-closed
+  // seam is exercised by test/spec-judge-accept-bar.test.mjs (lint-cli-coverage TEST_FILE_COVERAGE).
+  "spec-judge-accept-bar": null,
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
 };

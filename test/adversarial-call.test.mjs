@@ -3418,3 +3418,32 @@ test("FAFF-915: parseArgs collects --context-trim-bytes", () => {
   const b = parseArgs([]);
   assert.equal(b.contextTrimBytes, undefined, "absent → undefined → main applies the default constant");
 });
+
+test("FAFF-915: parseDiffTouched handles CRLF-terminated diffs (blank context line desync fix)", () => {
+  // a CRLF diff: each line ends with \r; the blank context line arrives as "\r" after split("\n").
+  const diff = ["+++ b/z.js", "@@ -1,4 +1,5 @@", " keep 1", "", " keep 3", "+added at 4", " keep 5"]
+    .map((l) => l + "\r").join("\n");
+  const { touchedByPath } = parseDiffTouched(diff);
+  assert.deepEqual(touchedByPath.get("z.js"), [[4, 4]], "CR stripped, blank line advances the counter → touched line 4");
+});
+
+test("FAFF-915: parseDiffTouched bounds each hunk by its declared line counts (a '+++ ' added line is data, not a header)", () => {
+  // an added line whose CONTENT begins with "++ b/foo" makes the full diff line "+++ b/foo". Bounded by
+  // the hunk's declared +2 count, it is parsed as an added body line, never misread as a file header.
+  const diff = ["+++ b/real.js", "@@ -1,1 +1,2 @@", " keep 1", "+++ b/foo"].join("\n");
+  const { touchedByPath } = parseDiffTouched(diff);
+  assert.ok(touchedByPath.has("real.js"), "the real file header was taken");
+  assert.ok(!touchedByPath.has("foo"), "the in-hunk '+++ b/foo' body line was NOT misread as a new header");
+  // new-file lines: keep1=1, then the added line at 2 → touched [2,2]
+  assert.deepEqual(touchedByPath.get("real.js"), [[2, 2]], "the added line is counted at line 2");
+});
+
+test("FAFF-915: parseDiffTouched stops consuming at the declared hunk length, so a second file's hunk is attributed correctly", () => {
+  const diff = [
+    "+++ b/a.js", "@@ -1,1 +1,2 @@", " a-keep", "+a-added",
+    "+++ b/b.js", "@@ -5,1 +5,2 @@", " b-keep", "+b-added",
+  ].join("\n");
+  const { touchedByPath } = parseDiffTouched(diff);
+  assert.deepEqual(touchedByPath.get("a.js"), [[2, 2]], "a.js touched at 2");
+  assert.deepEqual(touchedByPath.get("b.js"), [[6, 6]], "b.js touched at 6 (hunk 1 ended at its declared length)");
+});

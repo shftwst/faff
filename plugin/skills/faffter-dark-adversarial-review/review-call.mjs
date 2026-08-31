@@ -169,46 +169,56 @@ export function elisionMarker(n) {
 export function parseDiffTouched(diff) {
   const touchedByPath = new Map();
   const identifiers = new Set();
-  const lines = String(diff == null ? "" : diff).split("\n");
+  // Strip a trailing CR so a CRLF-terminated diff's blank context lines are recognised (a bare "\r"
+  // would otherwise fall through and desync the new-file counter).
+  const lines = String(diff == null ? "" : diff).split("\n").map((l) => l.replace(/\r$/, ""));
   let curKey = null;   // full stripped path of the current +++ file
   let newLine = 0;     // running new-file line number inside the current hunk
-  let inHunk = false;
+  let oldRemain = 0;   // old-file body lines still expected in the current hunk (from the @@ header)
+  let newRemain = 0;   // new-file body lines still expected in the current hunk
+  const inHunk = () => oldRemain > 0 || newRemain > 0;   // a hunk is "open" until its declared counts are consumed
   const addRange = (key, a, b) => {
     if (!key) return;
     if (!touchedByPath.has(key)) touchedByPath.set(key, []);
     touchedByPath.get(key).push([a, b]);
   };
   for (const line of lines) {
-    if (line.startsWith("+++ ")) {
-      // +++ b/path/to/file.js   (or bare "+++ path", or "+++ /dev/null")
-      let p = line.slice(4).trim().split("\t")[0];
-      if (p === "/dev/null") { curKey = null; inHunk = false; continue; }
-      curKey = p.replace(/^[ab]\//, "") || null;
-      inHunk = false;
-      continue;
+    // Structural lines are only recognised BETWEEN hunks (counts exhausted). Inside an open hunk a
+    // body line whose content begins with "+++ " / "--- " / "@@" is data, not a header — the declared
+    // line counts, not a leading-token guess, decide where the hunk ends, so such content is parsed
+    // correctly instead of being misread as the next file header.
+    if (!inHunk()) {
+      if (line.startsWith("+++ ")) {
+        const p = line.slice(4).trim().split("\t")[0];
+        curKey = p === "/dev/null" ? null : (p.replace(/^[ab]\//, "") || null);
+        continue;
+      }
+      const m = line.match(/^@@\s+-\d+(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/);
+      if (m) {
+        oldRemain = m[1] === undefined ? 1 : Number(m[1]);   // b defaults to 1 when omitted
+        newLine = Number(m[2]);
+        newRemain = m[3] === undefined ? 1 : Number(m[3]);   // d defaults to 1 when omitted
+        continue;
+      }
+      continue;   // any other between-hunk line (diff --git, index, --- , context noise) is ignored
     }
-    if (line.startsWith("@@")) {
-      // @@ -a,b +c,d @@ — take the new-file start c; a malformed header just skips this hunk.
-      const m = line.match(/@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/);
-      if (m) { newLine = Number(m[1]); inHunk = true; }
-      else { inHunk = false; }
-      continue;
-    }
-    if (!inHunk) continue;
-    if (line.startsWith("+")) {
+    // Inside an open hunk: classify by the leading marker and decrement the declared counts.
+    const marker = line.charAt(0);
+    if (marker === "+") {
       addRange(curKey, newLine, newLine);
       collectIdents(line.slice(1), identifiers);
       newLine += 1;
-    } else if (line.startsWith("-")) {
-      // a removed line still names identifiers, but consumes no new-file line number
-      collectIdents(line.slice(1), identifiers);
-    } else if (line.startsWith(" ") || line === "") {
-      // an unchanged context line advances the new-file counter; a git unified diff prefixes a blank
-      // context line with a single space, but a truly empty line inside a hunk is still a context line
-      // — treat it as one so later +/- lines in the hunk keep the correct new-file line numbers.
-      newLine += 1;
+      if (newRemain > 0) newRemain -= 1;
+    } else if (marker === "-") {
+      collectIdents(line.slice(1), identifiers);   // a removed line names identifiers but consumes no new-file line
+      if (oldRemain > 0) oldRemain -= 1;
+    } else if (marker === "\\") {
+      // "\ No newline at end of file" — a marker, not a body line; consumes no count.
     } else {
-      // "\ No newline at end of file" and anything else — ignore, do not advance
+      // a context line (" " prefix, or a truly-empty blank context line) advances the new-file counter
+      newLine += 1;
+      if (oldRemain > 0) oldRemain -= 1;
+      if (newRemain > 0) newRemain -= 1;
     }
   }
   return { touchedByPath, identifiers };

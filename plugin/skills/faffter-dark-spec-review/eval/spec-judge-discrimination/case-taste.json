@@ -1,0 +1,21 @@
+{
+  "proposition_id": "p-taste",
+  "reconstruction_context": {
+    "governing_requirements": "The CLI must be correct and readable. There is no requirement bounding which of two equivalent helper-naming conventions the code uses.",
+    "relevant_spec_sections": "**Chosen:** the helper is named readStandingResidue and returns the latest in-window round's objections.",
+    "repository_evidence": "# assembler.js\nfunction readStandingResidue(dir, windowStart) { /* returns { objections } | { unreadable } | { malformed } */ }\n// callers branch on the returned shape; behaviour is identical either way",
+    "proposition": "Is the decision at helper-naming sound with respect to software architecture and design?"
+  },
+  "arguments": {
+    "argument_A": {
+      "claim": "The helper would read more elegantly if it were named gatherResidue and returned a bare array rather than a tagged object.",
+      "evidence": "a matter of naming and return-shape taste; the callers already branch on the tagged shape and behave identically.",
+      "predicted_consequence": "not separately stated"
+    },
+    "argument_B": {
+      "claim": "The tagged-object return distinguishes unreadable from malformed from a clean read, which the callers rely on.",
+      "evidence": "the current spec rationale under helper-naming",
+      "predicted_consequence": "not separately stated"
+    }
+  }
+}

@@ -89,7 +89,7 @@ const KERNEL_REGISTRY = {
     required_inputs: ["files"],
   },
   // FAFF-947 widening: the five decision-kernel predicates the state-authority
-  // map classifies decision-kernel that FAFF-821 left uninstrumented. `state` is
+  // map classifies as decision-kernel that FAFF-821 left uninstrumented. `state` is
   // deliberately absent (a read-model producer, not a prescribe-an-action
   // predicate: it reads the filesystem and emits an issue's resolved state with
   // status/eligible/blocked fixed to "unknown", so there is no verdict to replay

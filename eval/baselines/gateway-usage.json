@@ -1,0 +1,491 @@
+{
+  "_note": "Seed from reference-scan. 'unknown' blocks are treated conservatively (carried by all skills). Narrow them to a consumer list as you confirm; each one narrowed unlocks savings.",
+  "blocks": [
+    {
+      "title": "(preamble)",
+      "tokens": 153,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "What faff is",
+      "tokens": 1722,
+      "kind": "universal",
+      "consumers": "universal"
+    },
+    {
+      "title": "Governing principles",
+      "tokens": 399,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Routing",
+      "tokens": 388,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "First run",
+      "tokens": 674,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Install health (doctor-at-entry)",
+      "tokens": 604,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop"
+      ]
+    },
+    {
+      "title": "Configuration (shared across all sub-skills)",
+      "tokens": 2829,
+      "kind": "universal",
+      "consumers": "universal"
+    },
+    {
+      "title": "Tracker availability resolution",
+      "tokens": 884,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-jot",
+        "faff-map",
+        "faff-prep",
+        "faff-tidy",
+        "faff-wtf"
+      ]
+    },
+    {
+      "title": "Spec docs location",
+      "tokens": 432,
+      "kind": "set",
+      "consumers": [
+        "faff-graft",
+        "faff-onboard",
+        "faff-prep"
+      ]
+    },
+    {
+      "title": "Slots (optional delegation)",
+      "tokens": 2826,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Model & effort selection (`models:` / `effort:` — per-lane)",
+      "tokens": 1616,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Agent Lanes",
+      "tokens": 65,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Orchestrator (outermost lane)",
+      "tokens": 185,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Implementor (innermost lane)",
+      "tokens": 555,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Evaluator (external lane)",
+      "tokens": 187,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Lane isolation",
+      "tokens": 641,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Shared Rules",
+      "tokens": 30,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-jot",
+        "faff-map",
+        "faff-plot",
+        "faff-prep",
+        "faff-tidy",
+        "faff-wtf",
+        "faffter-dark-spec-review",
+        "faffter-noon-architecture",
+        "faffter-noon-env-compose",
+        "faffter-noon-evaluate",
+        "faffter-noon-prd",
+        "faffter-noon-spec-review",
+        "faffter-noon-transport-private-network"
+      ]
+    },
+    {
+      "title": "Ignore cancelled and archived",
+      "tokens": 523,
+      "kind": "set",
+      "consumers": [
+        "faff-jot",
+        "faff-plot",
+        "faffter-noon-methodology-thematic"
+      ]
+    },
+    {
+      "title": "Satisfied blockers — edges to terminal work",
+      "tokens": 358,
+      "kind": "set",
+      "consumers": [
+        "faff-map",
+        "faff-wtf",
+        "faffter-noon-methodology-thematic"
+      ]
+    },
+    {
+      "title": "Workable vs terminal states",
+      "tokens": 437,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop"
+      ]
+    },
+    {
+      "title": "Automation eligibility",
+      "tokens": 2027,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-jot",
+        "faff-prep",
+        "faff-tidy",
+        "faff-wtf"
+      ]
+    },
+    {
+      "title": "Ordering & judgement delegation (the orchestration layer holds no opinion)",
+      "tokens": 648,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Next-step transition — consult `faff next`",
+      "tokens": 1021,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Always pull fresh (never act on stale tracker state)",
+      "tokens": 404,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Re-ground before gate (gating inputs must be live)",
+      "tokens": 353,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Lean tracker reads (ask for only what the step consumes)",
+      "tokens": 323,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Tracker as the lights-out control plane",
+      "tokens": 952,
+      "kind": "set",
+      "consumers": [
+        "faff-graft"
+      ]
+    },
+    {
+      "title": "Human curation is authoritative",
+      "tokens": 1013,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-prep",
+        "faff-tidy"
+      ]
+    },
+    {
+      "title": "Review-findings comment identity (the idempotency key)",
+      "tokens": 1072,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Spec discovery (where to look for an existing spec)",
+      "tokens": 1063,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Untrusted input (no-execute floor)",
+      "tokens": 961,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "`.faff/` logging directory",
+      "tokens": 1594,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Issue claim & status monotonicity (multi-orchestrator safety)",
+      "tokens": 1361,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Worktree policy",
+      "tokens": 1025,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faffter-dark-concurrency-parallel",
+        "faffter-noon-ship"
+      ]
+    },
+    {
+      "title": "Blast-radius boundary — the container, not faff",
+      "tokens": 220,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Autonomous Mode Contract",
+      "tokens": 4978,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-prep",
+        "faff-tidy",
+        "faff-wtf"
+      ]
+    },
+    {
+      "title": "Appetite for destruction",
+      "tokens": 3167,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-plot",
+        "faff-prep",
+        "faff-tidy",
+        "faffter-dark-methodology-agile-delivery",
+        "faffter-noon-methodology-thematic"
+      ]
+    },
+    {
+      "title": "Resolve-attempt before park",
+      "tokens": 1141,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faffidavit-routing"
+      ]
+    },
+    {
+      "title": "Calibration log",
+      "tokens": 884,
+      "kind": "set",
+      "consumers": [
+        "faff-graft",
+        "faff-tidy",
+        "faff-wtf",
+        "faffidavit-routing"
+      ]
+    },
+    {
+      "title": "Interactive park resolution (surface, don't settle)",
+      "tokens": 604,
+      "kind": "set",
+      "consumers": [
+        "faff-prep",
+        "faff-tidy"
+      ]
+    },
+    {
+      "title": "Park protocol (shared)",
+      "tokens": 926,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faffidavit-routing"
+      ]
+    },
+    {
+      "title": "Unpark protocol (shared)",
+      "tokens": 593,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Control-label provisioning — `faff label` (the mechanical op)",
+      "tokens": 1282,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Ticket templates (born-structured create boundary)",
+      "tokens": 1577,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Sibling-skill invocation (install-mode portable)",
+      "tokens": 2647,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Chaining pattern",
+      "tokens": 605,
+      "kind": "set",
+      "consumers": [
+        "faff-jot",
+        "faff-plot",
+        "faff-prep"
+      ]
+    },
+    {
+      "title": "Interactive next-step offer (the forward-lean, in prose)",
+      "tokens": 620,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Core contracts and adaptor slots",
+      "tokens": 207,
+      "kind": "set",
+      "consumers": [
+        "faffidavit-routing",
+        "faffter-dark-authoring-adaptors",
+        "faffter-noon-ship"
+      ]
+    },
+    {
+      "title": "Contract loading & conformance (how a skill actually gets these definitions)",
+      "tokens": 1999,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Review verdict (fixed)",
+      "tokens": 493,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Spec-review verdict (fixed)",
+      "tokens": 322,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Delivery outcome (fixed)",
+      "tokens": 1434,
+      "kind": "set",
+      "consumers": [
+        "faffter-noon-ship"
+      ]
+    },
+    {
+      "title": "Automation-routing verdict (fixed) → `routing_adaptor`",
+      "tokens": 622,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Spec readiness (fixed)",
+      "tokens": 1304,
+      "kind": "set",
+      "consumers": [
+        "faff-prep",
+        "faffter-dark-nlspec",
+        "faffter-noon-spec"
+      ]
+    },
+    {
+      "title": "Rendering — no internal contract → `rendering_adaptor`",
+      "tokens": 425,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Producer slots vs adaptor slots (what to swap, when)",
+      "tokens": 524,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "The `methodology` slot",
+      "tokens": 4541,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faff-jot",
+        "faff-map",
+        "faff-plot",
+        "faff-prep",
+        "faff-tidy",
+        "faff-wtf",
+        "faffidavit-routing",
+        "faffter-dark-authoring-adaptors",
+        "faffter-dark-methodology-agile-delivery",
+        "faffter-dark-spec-review",
+        "faffter-noon-concurrency-sequential",
+        "faffter-noon-intake",
+        "faffter-noon-methodology-thematic",
+        "faffter-noon-spec-review"
+      ]
+    },
+    {
+      "title": "Transport (per-output dispatch grain)",
+      "tokens": 679,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Mechanism slot (`concurrency`)",
+      "tokens": 316,
+      "kind": "set",
+      "consumers": [
+        "faff-beep-boop",
+        "faffter-noon-concurrency-sequential"
+      ]
+    },
+    {
+      "title": "The `concurrency` slot contract (fixed)",
+      "tokens": 4449,
+      "kind": "unknown",
+      "consumers": "unknown"
+    },
+    {
+      "title": "Routing fallbacks",
+      "tokens": 281,
+      "kind": "unknown",
+      "consumers": "unknown"
+    }
+  ]
+}

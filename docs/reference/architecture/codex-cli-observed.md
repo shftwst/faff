@@ -77,7 +77,7 @@ input_tokens, cached_input_tokens, cache_write_input_tokens,
 output_tokens, reasoning_output_tokens
 ```
 
-`sumCodexUsage` now accounts for all five fields. The two live 0.145.0 captures establish the event shape, but their zero values do not establish how cache-write or reasoning tokens relate to their parent totals.
+`sumCodexUsage` now disposes of all five fields: four are summed into classes, while `reasoning_output_tokens` is documented as a subset already inside `output_tokens`. The two live 0.145.0 captures establish the event shape, but their zero values do not establish how cache-write or reasoning tokens relate to their parent totals.
 
 ### Token relationship verdict
 
@@ -85,11 +85,11 @@ output_tokens, reasoning_output_tokens
 
 The evidence is the first-party schema plus Codex's mapping and parser fixture:
 
-- The [OpenAI Responses usage schema](https://developers.openai.com/api/reference/cli/resources/responses/methods/create) describes `input_tokens_details` and `output_tokens_details` as detailed breakdowns of their parent token totals. It places `cache_write_tokens` under input-token details and `reasoning_tokens` under output-token details.
-- [Codex 0.147.0 maps those detail fields directly](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L133-L160) to the five `turn.completed.usage` fields observed here.
+- The [OpenAI Responses usage schema](https://developers.openai.com/api/reference/cli/resources/responses/methods/create) (accessed 2026-09-01) calls `input_tokens_details` “A detailed breakdown of the input tokens” and gives the corresponding description for output tokens. It places `cache_write_tokens` under input-token details and `reasoning_tokens` under output-token details.
+- The [`rust-v0.147.0` tag](https://github.com/openai/codex/tree/rust-v0.147.0) resolves to commit `be6e8eac029b183056b7e4402879f15d2c85f61b`; [that source maps the detail fields directly](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L133-L160) to the five `turn.completed.usage` fields. The flat field shape was observed live on 0.145.0; the 0.147.0 verdict relies on those field names remaining stable, as the tagged mapping shows.
 - [Codex's own tagged parser test](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L813-L838) uses `input_tokens: 100`, split into `cached_tokens: 40` and `cache_write_tokens: 60`. It also uses `output_tokens: 10` with `reasoning_tokens: 5`, while `total_tokens` is `110`, exactly `input_tokens + output_tokens` rather than `115`.
 
-The resulting four-class accounting is:
+For each `turn.completed` event, with its contribution clamped before contributions are summed across events, the resulting four-class accounting is:
 
 ```text
 input       = max(0, input_tokens - cached_input_tokens - cache_write_input_tokens)

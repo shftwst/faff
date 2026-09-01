@@ -777,7 +777,7 @@ test("FAFF-666: the committed real observed payload (codex-cli-observed.md) tota
   assert.deepEqual(u, { input: 2743, output: 6, cache_write: 0, cache_read: 12032 });
 });
 
-test("FAFF-724: the Codex 0.147.0 source fixture confirms cache-write and reasoning subsets", () => {
+test("FAFF-724: the Codex 0.147.0 source fixture buckets per the settled subset verdict", () => {
   const u = sumCodexUsage([
     { type: "turn.completed", usage: { input_tokens: 100, cached_input_tokens: 40, cache_write_input_tokens: 60, output_tokens: 10, reasoning_output_tokens: 5, total_tokens: 110 } },
   ]);

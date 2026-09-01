@@ -105,7 +105,7 @@ function parseCodexEvents(raw) {
 // Anthropic reader, whose `input` class already excludes both cache classes
 // (see TOKEN_CLASS_FROM_USAGE in budget.js).
 //
-// `reasoning_output_tokens` is READ (named here) but NOT added to `output`.
+// `reasoning_output_tokens` is dispositioned here but NOT added to `output`.
 // codex-rs maps it from `output_tokens_details.reasoning_tokens`; OpenAI calls
 // that object the detailed breakdown of output tokens. The same codex fixture
 // reports 10 output tokens, including 5 reasoning tokens, so reasoning is a

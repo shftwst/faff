@@ -5,7 +5,7 @@
 // fixture pattern (FAFF-948) plus merge-gate-controlflow.test.mjs's stub-`gh`-on-PATH pattern.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, chmodSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, chmodSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir, devNull } from "node:os";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -37,8 +37,13 @@ function commitFile(cwd, file, content, msg) {
 
 // A git-only (no origin) repo — remote-diff-base.sh's git-only branch resolves the LOCAL default
 // (main/master) directly, matching worktree-check.test.mjs's fixture shape exactly.
+// realpathSync: on macOS, tmpdir() (/var/folders/...) is a symlink to /private/var/folders/...,
+// so a `git worktree add` under it resolves to the /private/... form in `git worktree list`'s
+// output while a manually path.join()'d expectation stays on the symlinked form — resolve once,
+// up front, so every downstream path.join(root, ...) already agrees with git's own resolution
+// on every OS (Linux's /tmp has no such symlink, so this is a no-op there).
 function makeFixture() {
-  const root = mkdtempSync(path.join(tmpdir(), "faff957-reviewtarget-"));
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "faff957-reviewtarget-")));
   git(root, "init", "-q", "-b", "main");
   git(root, "config", "user.email", ENV.GIT_AUTHOR_EMAIL);
   git(root, "config", "user.name", ENV.GIT_AUTHOR_NAME);

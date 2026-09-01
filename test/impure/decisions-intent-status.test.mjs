@@ -122,6 +122,12 @@ test("intent-status: reads the body from stdin when --file is omitted", () => {
   assert.equal(stdout.trim(), "superseded");
 });
 
+test("intent-status --file -: the conventional dash sentinel reads stdin, not a literal file named \"-\" — the exact invocation faff-graft Step 4c and faff-prep's reconcile step pipe through", () => {
+  const { stdout, code } = runCli(["decisions", "intent-status", "--file", "-"], { input: SUPERSEDED_INTENT });
+  assert.equal(code, 1, stdout);
+  assert.equal(stdout.trim(), "superseded");
+});
+
 test("intent-status --file: an unreadable path exits 2 with a clear stderr message, never a crash", () => {
   const { stderr, code } = runCli(["decisions", "intent-status", "--file", "/nonexistent/faff929-fixture.md"]);
   assert.equal(code, 2);

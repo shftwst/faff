@@ -270,13 +270,16 @@ function cmdDecisions(args) {
   if (action === "intent-status") {
     // FAFF-929: the deterministic skip decision both faff-prep (the tracker-writer) and
     // faff-graft Step 4c (the materialiser) shell out to — no fs write, no tracker call. Reads
-    // the comment body from --file, else stdin (never both; --file wins when given).
+    // the comment body from --file, else stdin (never both; --file wins when given). `--file -`
+    // is the conventional stdin sentinel (the exact invocation both call sites' prose uses,
+    // `faff decisions intent-status --file -`) — a literal path named "-" is never intended.
     const filePath = get("--file");
+    const readFromFile = filePath != null && filePath !== "-";
     let body;
     try {
-      body = filePath != null ? fs.readFileSync(filePath, "utf8") : fs.readFileSync(0, "utf8");
+      body = readFromFile ? fs.readFileSync(filePath, "utf8") : fs.readFileSync(0, "utf8");
     } catch (e) {
-      process.stderr.write(`faff decisions intent-status: cannot read ${filePath != null ? filePath : "stdin"}: ${e.message}\n`);
+      process.stderr.write(`faff decisions intent-status: cannot read ${readFromFile ? filePath : "stdin"}: ${e.message}\n`);
       return 2;
     }
     const result = classifyIntentComment(body);

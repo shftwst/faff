@@ -52,6 +52,57 @@ test("dod classify: emits per-criterion holdout + top-level holdout_counts, coun
   assert.equal(out.counts.scenario + out.counts.assertion + out.counts.prose, out.criteria.length);
 });
 
+const TIER_SPEC = [
+  "## Scenarios", "",
+  "```integration",
+  "Given a migrated database",
+  "When the down-migration runs",
+  "Then the schema reverts",
+  "```", "",
+  "- The rollback MUST restore the previous schema",
+  "- integration: the reverse migration MUST succeed",
+  "- The API MUST return 200 on /healthz",
+  "",
+  "## 8. DONE", "",
+  "- [ ] the parser returns >=1 item",
+].join("\n");
+
+test("dod classify (FAFF-961): emits per-criterion verification_tier + top-level verification_tier_counts, existing shape unchanged", () => {
+  const r = run(["classify", "--spec", "-", "--json"], TIER_SPEC);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const out = JSON.parse(r.stdout);
+  const scen = out.criteria.filter((c) => c.source === "scenarios");
+  // integration fence → integration, class unchanged
+  const fenceCrit = scen.find((c) => c.class === "scenario");
+  assert.equal(fenceCrit.verification_tier, "integration");
+  assert.equal(fenceCrit.class, "scenario");
+  // keyword ("rollback") → integration
+  assert.ok(scen.some((c) => /rollback/.test(c.text) && c.verification_tier === "integration"));
+  // "integration:" prefix stripped + tiered integration
+  const prefixCrit = scen.find((c) => /reverse migration/.test(c.text));
+  assert.equal(prefixCrit.verification_tier, "integration");
+  assert.doesNotMatch(prefixCrit.text, /^integration:/i);
+  // conservative default holds for an unmarked running-stack assertion
+  assert.ok(scen.some((c) => /healthz/.test(c.text) && c.verification_tier === "running-stack"));
+  // every criterion carries a legal tier value
+  assert.ok(out.criteria.every((c) => c.verification_tier === "running-stack" || c.verification_tier === "integration"));
+  // the new count map sums to criteria.length, and the existing counts are untouched-shape
+  assert.equal(out.verification_tier_counts["running-stack"] + out.verification_tier_counts.integration, out.criteria.length);
+  assert.equal(out.counts.scenario + out.counts.assertion + out.counts.prose, out.criteria.length);
+  assert.equal(out.holdout_counts.holdout + out.holdout_counts.visible, out.criteria.length);
+});
+
+test("dod classify (FAFF-961): a marker- and keyword-free spec tiers every criterion running-stack; counts unchanged from today", () => {
+  const r = run(["classify", "--spec", "-", "--json"], HOLDOUT_SPEC);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.ok(out.criteria.every((c) => c.verification_tier === "running-stack"));
+  assert.equal(out.verification_tier_counts.integration, 0);
+  assert.equal(out.verification_tier_counts["running-stack"], out.criteria.length);
+  // additive-only: the holdout axis and its counts are unperturbed by the new tier axis
+  assert.equal(out.holdout_counts.holdout, 2);
+});
+
 test("dod classify: a `holdout:`-prefixed DONE item stays literal, holdout false, stderr advisory", () => {
   const spec = "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] holdout: the parser returns >=1 item\n";
   const r = run(["classify", "--spec", "-", "--json"], spec);

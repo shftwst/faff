@@ -96,6 +96,41 @@ function isHoldoutFenceOpen(line) {
   return /^\s*(?:```|~~~)\s*holdout\s*$/i.test(line);
 }
 
+// --- verification-tier tagging (FAFF-961) ---
+// A second, orthogonal axis over `class` (shape) and `holdout` (builder-visibility): which VERIFIER
+// can observe a criterion. This slice defines two values — `running-stack` (the default; the
+// code-blind holdout's remit) and `integration` (born-verifiable, but only by the review/merge test
+// floor, e.g. a down-migration on a forward-only stack the holdout cannot roll back). Carried on an
+// additive `verification_tier` field (never a fourth `class` value — that would break every consumer
+// switching on the three-value `class`, exactly what FAFF-812 rejected for `oracle_less`). FAFF-962
+// widens the enum with `not-yet-reachable` + its deferred-with-obligation carrier.
+//
+// A fence-open line whose info string is EXACTLY `integration` (case-insensitive) — every criterion
+// unit formed inside it is integration-tier. Mirrors isHoldoutFenceOpen.
+function isIntegrationFenceOpen(line) {
+  return /^\s*(?:```|~~~)\s*integration\s*$/i.test(line);
+}
+
+// The integration keyword heuristic: a narrow, phrase-specific migration-reversal set, applied to any
+// criterion an explicit marker did not tier. Deliberately minimal (grown from real misses, like
+// BANNED_VAGUE) — only the reversal family signals the tier; a bare "migration"/"database" is
+// running-stack-observable and must NOT match (an over-broad match removes a criterion from the
+// holdout's judged set, weakening verification — the dangerous direction).
+const INTEGRATION_TIER_MARKERS = [
+  "down-migration", "down migration", "migrate down", "downward migration",
+  "rollback", "roll back", "rolled back",
+  "revert the migration", "reverse the migration", "reversible migration",
+];
+
+// Pure. Resolves a criterion's verification tier by precedence: an explicit marker (from the parser)
+// wins over an INTEGRATION_TIER_MARKERS keyword hit, which wins over the running-stack default.
+function resolveVerificationTier(text, markerTier) {
+  if (markerTier) return markerTier;
+  const lc = String(text == null ? "" : text).toLowerCase();
+  if (INTEGRATION_TIER_MARKERS.some((k) => lc.includes(k))) return "integration";
+  return "running-stack";
+}
+
 // Pure function over the `## Acceptance criteria` / `## Scenarios` section body. No filesystem /
 // tracker I/O, so it is unit-testable in isolation. Returns [{text, kind, holdout}].
 //  - strips blank lines, code-fence markers, and whole-line italic placeholders (^_.*_$)
@@ -109,14 +144,16 @@ function classifyAcceptanceCriteria(sectionText) {
   const units = [];
   let cur = null;
   let curHoldout = false;
+  let curTier = null;                                           // FAFF-961: null = no explicit marker (post-pass decides)
   let fence = false;
   let fenceHoldout = false;
-  const pushCur = () => { if (cur != null) { const t = cur.trim(); if (t) units.push({ text: t, holdout: curHoldout }); } cur = null; curHoldout = false; };
+  let fenceTier = null;                                         // FAFF-961: an enclosing `integration` fence's tier
+  const pushCur = () => { if (cur != null) { const t = cur.trim(); if (t) units.push({ text: t, holdout: curHoldout, tier: curTier }); } cur = null; curHoldout = false; curTier = null; };
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, "");
     if (/^\s*(?:```|~~~)/.test(line)) {                          // drop fence markers, keep content
-      if (!fence) { fence = true; fenceHoldout = isHoldoutFenceOpen(line); }
-      else { fence = false; fenceHoldout = false; }
+      if (!fence) { fence = true; fenceHoldout = isHoldoutFenceOpen(line); fenceTier = isIntegrationFenceOpen(line) ? "integration" : null; }
+      else { fence = false; fenceHoldout = false; fenceTier = null; }
       continue;
     }
     if (line.trim() === "") { pushCur(); continue; }             // blank closes a unit
@@ -126,16 +163,18 @@ function classifyAcceptanceCriteria(sectionText) {
     if (li) {
       pushCur();
       const m = li[1].match(/^holdout:\s*(.*)$/i);
-      if (m) { cur = m[1]; curHoldout = true; }                  // FAFF-275: bullet-prefix marker, stripped before classifying
-      else { cur = li[1]; curHoldout = fence && fenceHoldout; }
+      const ti = li[1].match(/^integration:\s*(.*)$/i);         // FAFF-961: bullet-prefix tier marker, stripped like holdout:
+      if (m) { cur = m[1]; curHoldout = true; curTier = fence ? fenceTier : null; }  // FAFF-275: holdout prefix; tier still inherits an enclosing fence
+      else if (ti) { cur = ti[1]; curHoldout = fence && fenceHoldout; curTier = "integration"; }
+      else { cur = li[1]; curHoldout = fence && fenceHoldout; curTier = fence ? fenceTier : null; }
       continue;
     }
-    if (/^\s*Given\b/i.test(line)) { pushCur(); cur = line.trim(); curHoldout = fence && fenceHoldout; continue; }  // GWT block start
+    if (/^\s*Given\b/i.test(line)) { pushCur(); cur = line.trim(); curHoldout = fence && fenceHoldout; curTier = fence ? fenceTier : null; continue; }  // GWT block start
     if (cur != null) cur += "\n" + line.trim();                  // continuation (When/Then/And/wrap)
-    else { cur = line.trim(); curHoldout = fence && fenceHoldout; }  // a bare leading prose/assertion line
+    else { cur = line.trim(); curHoldout = fence && fenceHoldout; curTier = fence ? fenceTier : null; }  // a bare leading prose/assertion line
   }
   pushCur();
-  return units.map((u) => ({ text: u.text, kind: classifyCriterion(u.text), holdout: u.holdout }));
+  return units.map((u) => ({ text: u.text, kind: classifyCriterion(u.text), holdout: u.holdout, tier: u.tier }));
 }
 
 // --- dod classify (FAFF-34) ---
@@ -186,9 +225,10 @@ function sectionBody(specText, headingRe, opts) {
 // still sums to `criteria.length`, so every existing consumer keeps working unread.
 function dodClassify(specText) {
   const criteria = [];
+  const markerTiers = [];                                       // FAFF-961: parallel to criteria — the explicit-marker tier (or null) per criterion
   const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE, { extraStop: scenariosBoundaryStop });
   if (scenBody != null) {
-    for (const u of classifyAcceptanceCriteria(scenBody)) criteria.push({ text: u.text, class: u.kind, source: "scenarios", holdout: u.holdout });
+    for (const u of classifyAcceptanceCriteria(scenBody)) { criteria.push({ text: u.text, class: u.kind, source: "scenarios", holdout: u.holdout }); markerTiers.push(u.tier || null); }
   }
   const doneAdvisories = [];
   for (const t of parseDoneChecklist(specText)) {
@@ -197,6 +237,7 @@ function dodClassify(specText) {
     // DONE item is left LITERAL (no strip, holdout stays false) and draws an advisory, never a strip/removal.
     if (/^holdout:\s*/i.test(t)) doneAdvisories.push(t);
     criteria.push({ text: t, class: classifyCriterion(t), source: "done", holdout: false });
+    markerTiers.push(null);                                     // FAFF-961: DONE items carry no tier marker (mirrors the holdout-literal rule); keyword/default still applies below
   }
   for (const t of doneAdvisories) {
     process.stderr.write(`dod classify: DONE item begins "holdout:" but DONE items are never withheld (marker ignored, text kept literal): ${t.replace(/\s+/g, " ").slice(0, 60)}\n`);
@@ -213,7 +254,17 @@ function dodClassify(specText) {
     c.oracle_less = c.class === "assertion" && !hasObservableOracle(c.text);
     if (c.oracle_less) oracle_less_count++;
   }
-  return { criteria, counts, holdout_counts, oracle_less_count };
+  // FAFF-961: additive verification_tier — marker (from the parser) > INTEGRATION_TIER_MARKERS keyword
+  // > running-stack default. A single post-pass over the already-built criteria, mirroring the
+  // oracle_less pass; never changes class/counts/holdout/oracle_less. verification_tier_counts sums to
+  // criteria.length by construction (every criterion resolves to exactly one tier value).
+  const verification_tier_counts = { "running-stack": 0, integration: 0 };
+  for (let i = 0; i < criteria.length; i++) {
+    const c = criteria[i];
+    c.verification_tier = resolveVerificationTier(c.text, markerTiers[i]);
+    verification_tier_counts[c.verification_tier]++;
+  }
+  return { criteria, counts, holdout_counts, oracle_less_count, verification_tier_counts };
 }
 
 // FAFF-275: within a Scenarios-section BODY (already isolated by sectionBodyRange), find the
@@ -919,6 +970,35 @@ function dodSelftest() {
   check("FAFF-812: renderOracleLessWarning renders the deterministic prefixed line", /^oracle-less-assertion advisory: 1 assertion\(s\) name no observable oracle/.test(renderOracleLessWarning(olAdv)));
   check("FAFF-812: the lint never flips the admissible verdict (advisory only)", admissibleVerdict(oracleLessSpec, true).admissible === true);
 
+  // --- FAFF-961: verification-tier tagging (integration tier) ---
+  const tierSpec = [
+    "## Scenarios", "",
+    "```integration", "Given a migrated database", "When the down-migration runs", "Then the schema reverts", "```", "",
+    "- The rollback MUST restore the previous schema",
+    "- integration: the reverse migration MUST succeed",
+    "- The API MUST return 200 on /healthz",
+    "",
+    "## 8. DONE", "",
+    "- [ ] the parser returns >=1 item",
+  ].join("\n");
+  const tc = dodClassify(tierSpec);
+  const fenceCrit = tc.criteria.find((c) => c.source === "scenarios" && c.class === "scenario");
+  const rollbackCrit = tc.criteria.find((c) => /rollback/.test(c.text));
+  const prefixCrit = tc.criteria.find((c) => /reverse migration/.test(c.text));
+  const healthzTierCrit = tc.criteria.find((c) => /healthz/.test(c.text));
+  check("FAFF-961: an integration fence tiers integration with class unchanged (scenario)", fenceCrit && fenceCrit.verification_tier === "integration" && fenceCrit.class === "scenario");
+  check("FAFF-961: an unmarked 'rollback' assertion tiers integration via the keyword heuristic", rollbackCrit && rollbackCrit.verification_tier === "integration");
+  check("FAFF-961: an 'integration:' bullet prefix tiers integration and strips the prefix from text", prefixCrit && prefixCrit.verification_tier === "integration" && !/^integration:/i.test(prefixCrit.text));
+  check("FAFF-961: an unmarked running-stack assertion keeps the conservative running-stack default", healthzTierCrit && healthzTierCrit.verification_tier === "running-stack");
+  check("FAFF-961: every criterion resolves to a legal tier value", tc.criteria.every((c) => c.verification_tier === "running-stack" || c.verification_tier === "integration"));
+  check("FAFF-961: verification_tier_counts sums to criteria.length", tc.verification_tier_counts["running-stack"] + tc.verification_tier_counts.integration === tc.criteria.length);
+  check("FAFF-961: counts is UNCHANGED shape and still sums to criteria.length (no regression)", tc.counts.scenario + tc.counts.assertion + tc.counts.prose === tc.criteria.length);
+  check("FAFF-961: the tier axis never perturbs holdout_counts or oracle_less_count shape", tc.holdout_counts.holdout + tc.holdout_counts.visible === tc.criteria.length && typeof tc.oracle_less_count === "number");
+  check("FAFF-961: precedence — a 'rollback' inside a running-stack context still tiers integration by keyword", resolveVerificationTier("The rollback MUST restore the schema", null) === "integration");
+  check("FAFF-961: precedence — an explicit marker wins even when no keyword is present", resolveVerificationTier("the endpoint returns 200", "integration") === "integration");
+  check("FAFF-961: a bare 'migration'/'database' mention is NOT integration (running-stack default holds)", resolveVerificationTier("the migration applies and the database has the row", null) === "running-stack");
+  check("FAFF-961: a marker-free spec assigns running-stack to every criterion", dodClassify(ADMISSIBLE_GOOD).criteria.every((c) => c.verification_tier === "running-stack"));
+
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;
 }
@@ -1260,4 +1340,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderOracleLessWarning, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderOracleLessWarning, renderProseDoneWarning, resolveVerificationTier, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

@@ -372,17 +372,85 @@ function collectRunDirs(root, runArg, allRuns) {
 // (full envelope, incl. run_id/issue/seq). Reuses the same permissive per-line JSON.parse
 // tolerance `events read` already applies (a torn/malformed line is skipped, never a fault)
 // — never a second JSONL-parsing implementation.
-function readDecisionCaptureRecords(dir) {
+function readDecisionCaptureRecords(dir, note) {
+  // `note` (optional) is a best-effort noting hook the anchor-source path passes so a bad
+  // anchor is skipped with a stderr note (FAFF-960 AC5). Live/list callers omit it, so their
+  // behaviour is byte-for-byte unchanged: torn/malformed lines are silently tolerated.
   let raw;
-  try { raw = fs.readFileSync(path.join(dir, "events.jsonl"), "utf8"); } catch { return []; }
+  try { raw = fs.readFileSync(path.join(dir, "events.jsonl"), "utf8"); }
+  catch (e) { if (note) note(`unreadable events.jsonl in ${dir}: ${e.message}`); return []; }
   const out = [];
+  let malformed = 0;
   for (const line of raw.split("\n")) {
     if (line.trim() === "") continue;
     let obj;
-    try { obj = JSON.parse(line); } catch { continue; }
+    try { obj = JSON.parse(line); } catch { malformed++; continue; }
     if (obj && typeof obj === "object" && obj.type === "decision-capture") out.push(obj);
   }
+  if (malformed && note) note(`skipped ${malformed} malformed line(s) in ${path.join(dir, "events.jsonl")}`);
   return out;
+}
+
+// Return the sorted list of issue-level directories under `.faff/anchors` that hold an
+// events.jsonl (FAFF-960: reach external/distributed lights-out records that reached main
+// only as committed per-PR anchors). Recursive `**/events.jsonl` walk, mirroring
+// bundle-recover.js's endsWith("/events.jsonl") seam; record parsing reuses
+// readDecisionCaptureRecords, never a second parser. Best-effort and read-only: a missing
+// `.faff/anchors` yields []; an unreadable subdirectory is skipped with a stderr note and
+// the walk continues — a bad anchor never faults export.
+function collectAnchorRecordDirs(root) {
+  const anchorsRoot = path.join(root, ".faff", "anchors");
+  const dirs = [];
+  const walk = (dir) => {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) {
+      process.stderr.write(`faff decision-capture export: skipping unreadable anchor dir ${dir}: ${e.message}\n`);
+      return;
+    }
+    let hasEvents = false;
+    for (const ent of entries) {
+      if (ent.isDirectory()) walk(path.join(dir, ent.name));
+      else if (ent.isFile() && ent.name === "events.jsonl") hasEvents = true;
+    }
+    if (hasEvents) dirs.push(dir);
+  };
+  if (!fs.existsSync(anchorsRoot)) return [];
+  walk(anchorsRoot);
+  return dirs.sort();
+}
+
+// De-duplicate decision-capture records by the `run_id`+`seq` envelope identity (first
+// occurrence wins — callers gather live run dirs before anchors, so a live record is kept
+// over its byte-identical anchor copy) and return a deterministic, source-mix-invariant
+// total order: well-formed records first, ascending by `run_id` (string) then `seq`
+// (numeric); any record missing `run_id` or a non-integer `seq` is kept but ordered after
+// all well-formed records. Every remaining tie is broken by the record's serialised bytes —
+// never by original index — so the output never depends on which source a record arrived
+// from. Pure: no I/O, no mutation of its inputs.
+function dedupeAndOrder(records) {
+  const seen = new Set();
+  const kept = [];
+  let malformed = 0;
+  for (const rec of records) {
+    const wellFormed = rec && typeof rec.run_id === "string" && Number.isInteger(rec.seq);
+    // Only a well-formed record has a real run_id+seq identity to dedup on. A record
+    // missing either is un-identifiable — never collapsed against another, so distinct
+    // malformed records are all kept (its unique key is never re-seen).
+    const key = wellFormed ? `id ${rec.run_id} ${rec.seq}` : `malformed ${malformed++}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const runId = wellFormed ? rec.run_id : "";
+    const seq = wellFormed ? rec.seq : -1;
+    kept.push({ rec, wf: wellFormed, runId, seq, bytes: JSON.stringify(rec) });
+  }
+  kept.sort((a, b) => {
+    if (a.wf !== b.wf) return a.wf ? -1 : 1;           // well-formed records ordered before malformed
+    if (a.runId !== b.runId) return a.runId < b.runId ? -1 : 1;
+    if (a.seq !== b.seq) return a.seq - b.seq;
+    if (a.bytes !== b.bytes) return a.bytes < b.bytes ? -1 : 1;
+    return 0;
+  });
+  return kept.map((k) => k.rec);
 }
 
 function cmdListVerb(values, root) {
@@ -405,15 +473,29 @@ function cmdExportVerb(values, root) {
     return usageError([{ code: "missing-value", flag: "--out", detail: "flag --out requires a value" }], DECISION_CAPTURE_USAGE);
   }
   const secretValues = resolveKnownSecretValues(root);
-  const records = [];
+  // Live run dirs first (they win the dedup over a byte-identical anchor copy). The default
+  // path (no --include-anchors) collects exactly this — live dirs only, in collectRunDirs
+  // order, no dedup, no sort — so its corpus is byte-for-byte today's.
+  let collected = [];
   for (const dir of collectRunDirs(root, null, true)) {
-    for (const rec of readDecisionCaptureRecords(dir)) {
-      // Belt-and-braces re-redaction at the publish boundary (bundle.js's export precedent,
-      // FAFF-819): the record is already redacted at capture time via appendEventRecord —
-      // this reuses the SAME two redact.js primitives, never a forked redaction pass.
-      records.push(redactKnownSecrets(rec, secretValues));
-    }
+    for (const rec of readDecisionCaptureRecords(dir)) collected.push(rec);
   }
+  if (values["--include-anchors"]) {
+    // FAFF-960: fold in committed-anchor records so an external/distributed rig's decision
+    // records that reached main (as per-PR anchors) are studyable. Best-effort; an
+    // unreadable subdir is skipped inside collectAnchorRecordDirs and a bad events.jsonl is
+    // skipped with a stderr note here — never a fault.
+    const note = (m) => process.stderr.write(`faff decision-capture export: ${m}\n`);
+    for (const dir of collectAnchorRecordDirs(root)) {
+      for (const rec of readDecisionCaptureRecords(dir, note)) collected.push(rec);
+    }
+    collected = dedupeAndOrder(collected);
+  }
+  // One post-merge, publish-boundary re-redaction pass over the final record list — applied
+  // identically whether a record came from a live dir or an anchor (bundle.js's export
+  // precedent, FAFF-819). Records are already redacted at capture time via
+  // appendEventRecord; this reuses the SAME two redact.js primitives, never a forked pass.
+  const records = collected.map((rec) => redactKnownSecrets(rec, secretValues));
   try {
     fs.mkdirSync(out, { recursive: true });
   } catch (e) {
@@ -454,12 +536,13 @@ const DECISION_CAPTURE_SPEC = {
     "--all-runs": { arity: 0 },
     "--coverage": { arity: 1, enum: ["replayable", "non-replayable", "uncovered"] },
     "--out": { arity: 1 },
+    "--include-anchors": { arity: 0 },
     "--json": { arity: 0 },
   },
   positionals: { min: 0, max: null, name: "verb selector" },
 };
 const DECISION_CAPTURE_USAGE =
-  'usage: faff decision-capture <record --run ID --issue ID --kernel NAME [--action JSON]|list [--run ID|--all-runs] [--coverage replayable|non-replayable|uncovered]|export --out DIR> [--root DIR]';
+  'usage: faff decision-capture <record --run ID --issue ID --kernel NAME [--action JSON]|list [--run ID|--all-runs] [--coverage replayable|non-replayable|uncovered]|export --out DIR [--include-anchors]> [--root DIR]';
 
 function cmdDecisionCapture(args) {
   if (args.includes("--selftest")) return decisionCaptureSelftest();
@@ -554,6 +637,40 @@ function decisionCaptureSelftest() {
   const uncoveredRecord = buildRecord("some-unknown-thing", "", { anything: 1 }, { action: "x" }, "uncovered", [], causation);
   ok("an uncovered record (unknown kernel) is itself shape-valid", decisionCaptureViolations(uncoveredRecord).length === 0);
 
+  // --- dedupeAndOrder (FAFF-960): dedup by run_id+seq (first/live wins), deterministic
+  // source-mix-invariant order, malformed kept, and input never mutated (so the export
+  // default path, which never calls it, leaves its live-only record list unchanged). ---
+  const live = { run_id: "a", seq: 2, mark: "live" };
+  const other = { run_id: "a", seq: 1, mark: "x" };
+  const otherRun = { run_id: "b", seq: 1, mark: "y" };
+  // A live record and its committed anchor are byte-COPIES (mintIssueAnchor byte-copies the
+  // file), so a real duplicate pair is byte-identical — model that here.
+  const dupLive = { run_id: "a", seq: 2, mark: "same" };
+  const dupAnchor = { run_id: "a", seq: 2, mark: "same" };
+  ok("dedupeAndOrder: dedups by run_id+seq, first occurrence wins",
+    (() => { const r = dedupeAndOrder([dupLive, dupAnchor]); return r.length === 1 && r[0].mark === "same"; })());
+  ok("dedupeAndOrder: orders ascending by run_id then seq",
+    (() => {
+      const r = dedupeAndOrder([otherRun, live, other]);
+      return JSON.stringify(r.map((x) => `${x.run_id}:${x.seq}`)) === JSON.stringify(["a:1", "a:2", "b:1"]);
+    })());
+  ok("dedupeAndOrder: output is source-mix-invariant (same logical set of byte-identical copies, different input order -> identical bytes)",
+    (() => {
+      const a = dedupeAndOrder([dupLive, other, otherRun, dupAnchor]);
+      const b = dedupeAndOrder([dupAnchor, otherRun, dupLive, other]);
+      return a.map((r) => JSON.stringify(r)).join("\n") === b.map((r) => JSON.stringify(r)).join("\n");
+    })());
+  ok("dedupeAndOrder: distinct malformed records are all kept, ordered after well-formed by bytes",
+    (() => {
+      const m1 = { no_id: 1 };
+      const m2 = { no_id: 2 };
+      const r = dedupeAndOrder([m2, live, m1]);
+      return r.length === 3 && r[0].mark === "live"
+        && JSON.stringify(r.slice(1)) === JSON.stringify([m1, m2]); // "{"no_id":1}" < "{"no_id":2}"
+    })());
+  ok("dedupeAndOrder: does not mutate its input array (default export path keeps its live-only list unchanged)",
+    (() => { const input = [live, dupLive, other]; const snap = JSON.stringify(input); dedupeAndOrder(input); return JSON.stringify(input) === snap && input.length === 3; })());
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (decision-capture, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -564,6 +681,8 @@ module.exports = {
   buildRecord,
   classifyCoverage,
   cmdDecisionCapture,
+  collectAnchorRecordDirs,
+  dedupeAndOrder,
   decisionCaptureSelftest,
   decisionCaptureViolations,
 };

@@ -167,8 +167,17 @@ Run `git worktree list` and check if a worktree for this issue already exists (m
 
 If a worktree already exists:
 - Verify the checked-out branch matches the expected branch name. Warn if not.
-- Tell the user the worktree exists and open it.
-- Skip to step 5 (status update). Spec was already committed on first graft.
+
+**Reuse-path staleness gate (FAFF-948 — runs before "Skip to step 5", both modes).** FAFF-708 already made every FRESH-created worktree base off the fetched `origin/<default>` (fail-loud); this closes the symmetric gap on the REUSE arm above — a worktree from a prior run otherwise keeps its original base indefinitely, and reuse alone would silently run the gate ladder and the build against stale code merged to `main` since it forked (the FAFF-930 incident: a reused worktree missed two merges and burned ~15 minutes of review compute on code that could not succeed). Before trusting the existing worktree, certify its base:
+
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+"$faff" worktree-check --issue <ISSUE-XX> --root "$repo_root" --json
+```
+
+- **Fresh (exit 0)** → reuse exactly as today: tell the user/log that the worktree exists and open it, skip to Step 5 (status update; spec was already committed on first graft).
+- **Stale (exit 1)** → emit a loud note (the worktree path, `base_ref`, and `behind` count from the JSON) — to stderr always, and additionally to `.faff/runs/<run-id>/ISSUE-XX/graft.md` under autonomous mode — then remediate in place rather than building on the stale base: `git -C "$wt" fetch && git -C "$wt" rebase <base_ref>` (the `base_ref` `worktree-check` reported). A clean rebase preserves the branch's already-committed spec/build work and continues into the reuse flow above (now on a current base) — open the worktree, skip to Step 5. A rebase **conflict**: **autonomous** — abort the rebase (`git -C "$wt" rebase --abort`), log the conflict to `graft.md`, and return `parked` (cause "reused worktree base stale and rebase conflicted — needs human"), never building on a half-rebased or still-stale tree; **interactive** — surface the same WARN and hand the conflict to the human to resolve (remove-and-recreate is their fallback if they prefer to discard the branch's committed state).
+- **Error (exit 2)** → "cannot certify freshness" (no worktree resolvable, an ambiguous match, the base ref unresolvable, or an unreadable behind-count) — log the reason loudly and fall through to the **no-worktree fresh-create path** below (which itself bases off the fetched default), never a silent stale reuse on an unproven base.
 
 If no worktree exists:
 

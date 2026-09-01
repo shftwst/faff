@@ -1118,8 +1118,21 @@ function cmdEvents(args) {
       const anchorRecords = [];
       for (const l of anchorEventLines) { try { anchorRecords.push(JSON.parse(l.toString("utf8"))); } catch { /* malformed line — mintIssueAnchor/governance-check classify this, not this precondition */ } }
       const anchorFold = eventsLedgerFold(dirArg, anchorRecords, {});
-      if (anchorFold) {
-        process.stderr.write(`faff events anchor: precondition failed — ${anchorFold.detail}; append a ledger-write to re-sync the ledger fold before anchoring (echo '{"phase":"run","type":"ledger-write"}' | faff events append --run ${dirArg}), then re-run\n`);
+      // Adversarial review (FAFF-958): eventsLedgerFold itself returns null (no refusal) when
+      // run-ledger.json is simply ABSENT, regardless of whether a ledger-write was chained — by
+      // design, so a run dir that never wrote a ledger at all is never refused. But a ledger-write
+      // event that WAS chained records a fold the ledger file must still be able to satisfy; if the
+      // file has since been deleted, "absent" and "no ledger-write yet" are no longer the same case
+      // — the recorded fold can never match a file that isn't there. This is an orthogonal PRESENCE
+      // assertion alongside the reused hash-match core, never a second hash comparison (the "one
+      // detector" rule is about the hash-match logic, not this file-existence check).
+      const anchorHasLedgerWrite = anchorRecords.some((r) => r && r.type === "ledger-write");
+      const anchorLedgerMissing = anchorHasLedgerWrite && !fs.existsSync(path.join(dirArg, "run-ledger.json"));
+      if (anchorFold || anchorLedgerMissing) {
+        const detail = anchorFold ? anchorFold.detail : "run-ledger.json is missing but a ledger-write event is chained — the recorded fold cannot be satisfied";
+        // The recovery command takes a run ID (joined internally as .faff/runs/<run>), not a
+        // filesystem path — dirArg is --run-dir's path value, so pass its basename.
+        process.stderr.write(`faff events anchor: precondition failed — ${detail}; append a ledger-write to re-sync the ledger fold before anchoring (echo '{"phase":"run","type":"ledger-write"}' | faff events append --run ${path.basename(dirArg)}), then re-run\n`);
         return 1;
       }
     }
@@ -1627,9 +1640,41 @@ function eventsSelftest() {
         try { rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]); }
         finally { process.stderr.write = origStderr; }
 
-        vcheck("anchor: drifted ledger fold → non-zero exit", rc !== 0);
+        vcheck("anchor: drifted ledger fold → exit 1 (precondition-failed, per spec)", rc === 1);
         vcheck("anchor: drifted ledger fold → dest not created (no partial mint)", !fs.existsSync(dest));
         vcheck("anchor: drifted ledger fold → stderr names the mismatch + the re-sync fix", /ledger fold mismatch/.test(stderrBuf) && /ledger-write/.test(stderrBuf) && /faff events append/.test(stderrBuf));
+        // Adversarial review (FAFF-958): the recovery command's --run value must be a run ID
+        // (joined internally as .faff/runs/<run>), not the --run-dir filesystem path — assert
+        // the message carries the basename and never the full source path.
+        vcheck("anchor: drifted ledger fold → recovery command's --run is the run ID (basename), not the --run-dir path", stderrBuf.includes(`--run ${path.basename(src)}`) && !stderrBuf.includes(`--run ${src}`));
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
+    }
+    { // Adversarial review (FAFF-958): a ledger-write IS chained but run-ledger.json has since been
+      // deleted — eventsLedgerFold alone returns null here (it treats "file absent" the same as "no
+      // ledger-write yet"), so the orthogonal presence assertion above is what refuses this case;
+      // without it, mintIssueAnchor would silently mint an anchor with no run-ledger.json at all.
+      const src = mkDir(), destRoot = mkDir();
+      const dest = path.join(destRoot, "anchor-dest");
+      try {
+        const ledger = JSON.stringify({ run_id: "run-anchor-deleted-ledger", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
+        buildChain(src, "run-anchor-deleted-ledger", [
+          { phase: "run", type: "run-start" },
+          { phase: "build", type: "build-start", issue: "FAFF-1" },
+          { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
+        ], ledger);
+        fs.rmSync(path.join(src, "run-ledger.json")); // the ledger vanishes after the ledger-write chained
+
+        const origStderr = process.stderr.write;
+        let stderrBuf = "";
+        process.stderr.write = (chunk) => { stderrBuf += chunk; return true; };
+        let rc;
+        try { rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]); }
+        finally { process.stderr.write = origStderr; }
+
+        vcheck("anchor: ledger-write chained but run-ledger.json deleted → exit 1, refused", rc === 1);
+        vcheck("anchor: ledger-write chained but run-ledger.json deleted → dest not created", !fs.existsSync(dest));
+        vcheck("anchor: ledger-write chained but run-ledger.json deleted → stderr names the cause + the fix", /run-ledger\.json is missing/.test(stderrBuf) && /faff events append/.test(stderrBuf));
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
     }
     { // no ledger-write event yet (normal pre-run-close Step-9b) → still mints, absence is not a refusal
@@ -1675,7 +1720,7 @@ function eventsSelftest() {
         fs.writeFileSync(path.join(src, "run-ledger.json"), ledgerAfter);
 
         const preResync = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
-        vcheck("anchor: pre-resync attempt on drifted ledger → refused", preResync !== 0);
+        vcheck("anchor: pre-resync attempt on drifted ledger → exit 1 (precondition-failed, per spec)", preResync === 1);
 
         // `faff events append` self-computes ledger_sha256 from the on-disk bytes — reproduced
         // here as a chained ledger-write over the CURRENT (post-rewrite) ledger bytes.

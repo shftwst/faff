@@ -77,9 +77,28 @@ input_tokens, cached_input_tokens, cache_write_input_tokens,
 output_tokens, reasoning_output_tokens
 ```
 
-`sumCodexUsage` reads three of them and subtracts `cached_input_tokens` out of `input_tokens`. Verified against both captures: `14775 − 12032 = 2743` and `32104 − 28160 = 3944`.
+`sumCodexUsage` now disposes of all five fields: four are summed into classes, while `reasoning_output_tokens` is documented as a subset already inside `output_tokens`. The two live 0.145.0 captures establish the event shape, but their zero values do not establish how cache-write or reasoning tokens relate to their parent totals.
 
-`cache_write_input_tokens` and `reasoning_output_tokens` are **not read anywhere in faff**, and were `0` in both observations — including the 32k-input tool-using turn. So whether they are additive or already inside the fields faff reads is **undetermined**; nothing here settles it. FAFF-666 owns that question.
+### Token relationship verdict
+
+**Settled for Codex 0.147.0 on 2026-08-19:** `cache_write_input_tokens` is a subset of `input_tokens`, and `reasoning_output_tokens` is a subset of `output_tokens`. Keep the existing `sumCodexUsage` arithmetic.
+
+The evidence is the first-party schema plus Codex's mapping and parser fixture:
+
+- The [OpenAI Responses usage schema](https://developers.openai.com/api/reference/cli/resources/responses/methods/create) (accessed 2026-09-01) calls `input_tokens_details` “A detailed breakdown of the input tokens” and gives the corresponding description for output tokens. It places `cache_write_tokens` under input-token details and `reasoning_tokens` under output-token details.
+- The [`rust-v0.147.0` tag](https://github.com/openai/codex/tree/rust-v0.147.0) resolves to commit `be6e8eac029b183056b7e4402879f15d2c85f61b`; [that source maps the detail fields directly](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L133-L160) to the five `turn.completed.usage` fields. The flat field shape was observed live on 0.145.0; the 0.147.0 verdict relies on those field names remaining stable, as the tagged mapping shows.
+- [Codex's own tagged parser test](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L813-L838) uses `input_tokens: 100`, split into `cached_tokens: 40` and `cache_write_tokens: 60`. It also uses `output_tokens: 10` with `reasoning_tokens: 5`, while `total_tokens` is `110`, exactly `input_tokens + output_tokens` rather than `115`.
+
+For each `turn.completed` event, with its contribution clamped before contributions are summed across events, the resulting four-class accounting is:
+
+```text
+input       = max(0, input_tokens - cached_input_tokens - cache_write_input_tokens)
+cache_read  = cached_input_tokens
+cache_write = cache_write_input_tokens
+output      = output_tokens
+```
+
+The earlier requirement for a paid cold-cache call is superseded. A live non-zero payload could show that the server emits the field for a particular account and model, but it cannot improve on the API schema and the tagged Codex parser fixture for deciding whether the field is a detail of, or additive to, its parent total.
 
 **A codex call carries a substantial fixed input cost.** A two-line prompt cost 14,775 input tokens, of which 12,032 were cached — so roughly 2,700 fresh tokens of codex's own preamble before any user content. Budget and economics should expect that floor per call.
 

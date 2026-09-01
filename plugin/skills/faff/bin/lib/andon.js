@@ -62,10 +62,11 @@ const ANDON_SPEC = {
     "--title": { arity: 1 },
     "--body": { arity: 1 },
     "--issue": { arity: 1 },
+    "--check": { arity: 0 },
   },
   positionals: { min: 1, max: 1, name: "verb" },
 };
-const ANDON_USAGE = "usage: faff andon pump --run-dir DIR [--json] | faff andon send --class C --title T --body B [--issue ID] [--run-dir DIR] [--json]";
+const ANDON_USAGE = "usage: faff andon pump --run-dir DIR [--json] | faff andon send --class C --title T --body B [--issue ID] [--run-dir DIR] [--json] | faff andon send --check [--run-dir DIR] [--json]";
 // FAFF-628 — declared grammar (cli-surface.js's drift-guard source).
 const ANDON_SURFACE = {
   kind: "subcommand_dispatch",
@@ -76,6 +77,16 @@ const ANDON_SURFACE = {
   },
 };
 
+// FAFF-926 D1 — a "Slack-shaped" webhook host: `hooks.slack.com` (case-insensitive)
+// or any `*.slack.com` host. Pure, total: a malformed/unparseable URL is never
+// Slack-shaped (falls through to the "generic" default, unchanged).
+function isSlackShapedUrl(url) {
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  const host = u.hostname.toLowerCase();
+  return host === "hooks.slack.com" || host.endsWith(".slack.com");
+}
+
 // ---------------------------------------------------------------------------
 // Config resolution — `andon.*` via the factory config resolver (`loadConfig`),
 // mirroring `adr.js`'s use of the same reader. Defaults are applied LOCALLY here
@@ -85,15 +96,32 @@ const ANDON_SURFACE = {
 function resolveAndonConfig(root) {
   const [data] = loadConfig(root);
   const url = dig(data, "andon.url");
-  const format = dig(data, "andon.format");
+  const rawFormat = dig(data, "andon.format");
   const token = dig(data, "andon.token");
   const eventsCfg = dig(data, "andon.events");
   const events = Array.isArray(eventsCfg) && eventsCfg.length
     ? eventsCfg.filter((e) => ANDON_CLASSES.includes(e))
     : ANDON_DEFAULT_EVENTS.slice();
+  const resolvedUrl = typeof url === "string" && url.trim() ? url.trim() : null;
+
+  // FAFF-926 D1 — an EXPLICIT format (including explicit "generic") is always
+  // obeyed; inference only fires when the key is genuinely absent. `dig()`
+  // (shared-infra.js) resolves an absent key to `null`, never `undefined` — the
+  // sentinel checked here matches that actual contract, not the stricter
+  // `undefined`-only reading the original spec draft assumed (see the tracker
+  // resolve-attempt comment on this issue).
+  let format;
+  if (ANDON_FORMATS.includes(rawFormat)) {
+    format = rawFormat;
+  } else if (rawFormat === null && resolvedUrl && isSlackShapedUrl(resolvedUrl)) {
+    format = "slack";
+  } else {
+    format = "generic";
+  }
+
   return {
-    url: typeof url === "string" && url.trim() ? url.trim() : null,
-    format: ANDON_FORMATS.includes(format) ? format : "generic",
+    url: resolvedUrl,
+    format,
     token: typeof token === "string" && token.trim() ? token.trim() : null,
     events,
   };
@@ -199,6 +227,20 @@ function ntfyPriority(cls) {
   return "default";
 }
 
+// FAFF-926 D2 — total, pure: the Slack preset's `text` must NEVER be empty or
+// whitespace-only (Slack rejects both as HTTP 400 no_text). Non-empty lines of
+// [title, body] joined by newline; falls back to "faff <run_id>: <class>", then
+// to a fixed literal — always non-empty.
+function slackText(notif) {
+  const title = notif && typeof notif.title === "string" ? notif.title : "";
+  const body = notif && typeof notif.body === "string" ? notif.body : "";
+  const parts = [title, body].filter((s) => s.trim() !== "");
+  const joined = parts.join("\n");
+  if (joined.trim() !== "") return joined;
+  if (notif && notif.run_id && notif.class) return `faff ${notif.run_id}: ${notif.class}`;
+  return "faff andon notification";
+}
+
 // PURE: shape the notification per format preset. Presets RESHAPE the generic
 // record, never extend it (spec §3).
 function formatPayload(format, notif) {
@@ -209,7 +251,7 @@ function formatPayload(format, notif) {
     };
   }
   if (format === "slack") {
-    return { body: JSON.stringify({ text: `${notif.title}\n${notif.body}` }), headers: { "content-type": "application/json" } };
+    return { body: JSON.stringify({ text: slackText(notif) }), headers: { "content-type": "application/json" } };
   }
   if (format === "discord") {
     return { body: JSON.stringify({ content: `${notif.title}\n${notif.body}` }), headers: { "content-type": "application/json" } };
@@ -243,6 +285,41 @@ function realPost(url, body, headers, timeoutMs) {
     req.write(bodyBuf);
     req.end();
   });
+}
+
+// FAFF-926 D4 — raw-status transport variant for the `--check` probe: resolves
+// `{ ok, statusCode, body }` for EVERY HTTP response (2xx and non-2xx alike),
+// rejecting only on a transport-level error (DNS/connect/timeout). `realPost`
+// above is UNCHANGED — its reject-on-non-2xx behaviour still drives the
+// pump/send fail-open failure recording (N4).
+function realPostRaw(url, body, headers, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let u;
+    try { u = new URL(url); } catch (e) { reject(e); return; }
+    const lib = u.protocol === "https:" ? https : http;
+    const bodyBuf = Buffer.isBuffer(body) ? body : Buffer.from(String(body), "utf8");
+    const allHeaders = { "content-length": bodyBuf.length, ...headers };
+    const req = lib.request(u, { method: "POST", headers: allHeaders }, (res) => {
+      let data = "";
+      res.setEncoding("utf8");
+      res.on("data", (c) => { data += c; });
+      res.on("end", () => {
+        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, statusCode: res.statusCode, body: data });
+      });
+    });
+    req.on("error", reject);
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`andon POST timed out after ${timeoutMs}ms`)));
+    req.write(bodyBuf);
+    req.end();
+  });
+}
+
+// FAFF-926 D4 — cap a reported body at ~200 chars so a large error page doesn't
+// flood the terminal (mirrors `realPost`'s existing `data.slice(0,200)`).
+function truncate(s, n) {
+  if (typeof s !== "string") return s;
+  const cap = n || 200;
+  return s.length > cap ? s.slice(0, cap) : s;
 }
 
 // One retry in-call (spec: "5s timeout, 1 retry") — 2 attempts total, no backoff
@@ -382,6 +459,26 @@ async function runPump(root, runDir, postFn) {
   return { disabled: false, sent, failed, skipped, cursor, malformed };
 }
 
+// FAFF-926 D3 — the `--check` probe's notification record: if the operator
+// supplied --class/--title/--body, honour them; otherwise synthesize a
+// clearly-labelled diagnostic record. Payload minimisation (N2): a fixed title
+// + timestamp only — no spec/diff/transcript content. `get` is the same
+// `(flag) => value|null` accessor `cmdAndon` already builds from `parsed.values`.
+function synthesizeProbeNotification(get) {
+  const runDirFlag = get("--run-dir");
+  const notif = {
+    run_id: runDirFlag ? path.basename(runDirFlag) : null,
+    class: get("--class"),
+    title: get("--title") || "faff andon --check",
+    body: get("--body") || `end-to-end delivery probe — ${new Date().toISOString()}`,
+    ts: new Date().toISOString(),
+    seq: null,
+  };
+  const issue = get("--issue");
+  if (issue) notif.issue = issue;
+  return notif;
+}
+
 // ---------------------------------------------------------------------------
 // CLI dispatch
 // ---------------------------------------------------------------------------
@@ -407,6 +504,31 @@ async function cmdAndon(args) {
   }
 
   if (sub === "send") {
+    // FAFF-926 D3 — `--check` is handled BEFORE requireFlags: the probe does not
+    // require --class/--title/--body (it synthesizes a diagnostic record when
+    // they're absent), unlike an ordinary send.
+    if (parsed.values["--check"]) {
+      const config = resolveAndonConfig(root);
+      if (!config.url) {
+        if (asJson) console.log(JSON.stringify({ check: true, ok: false, configured: false, error: "not configured (no andon.url)" }));
+        else console.log("andon: not configured (no andon.url) — nothing to check");
+        return 1; // D5 — nothing to check is a failed check
+      }
+      const notif = synthesizeProbeNotification(get);
+      const { body, headers } = formatPayload(config.format, notif);
+      const authHeaders = config.token ? { authorization: `Bearer ${config.token}` } : {};
+      try {
+        const res = await realPostRaw(config.url, body, { ...headers, ...authHeaders }, ANDON_TIMEOUT_MS);
+        if (asJson) console.log(JSON.stringify({ check: true, ok: res.ok, statusCode: res.statusCode, body: truncate(res.body) }));
+        else console.log(`andon check: HTTP ${res.statusCode}${res.ok ? " ok" : " FAILED"} — ${truncate(res.body)}`);
+        return res.ok ? 0 : 1; // D5
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        if (asJson) console.log(JSON.stringify({ check: true, ok: false, error: msg }));
+        else console.log(`andon check: transport error — ${msg}`);
+        return 1; // D5 — transport error (DNS/connect/timeout)
+      }
+    }
     const reqErr = requireFlags(parsed.values, ANDON_SURFACE.subcommands.send, "andon", "send");
     if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const config = resolveAndonConfig(root);
@@ -500,6 +622,17 @@ function andonSelftest() {
   ok("slack preset wraps title+body in {text}", JSON.parse(formatPayload("slack", n).body).text === "T\nB");
   ok("discord preset wraps title+body in {content}", JSON.parse(formatPayload("discord", n).body).content === "T\nB");
 
+  // --- FAFF-926 D2: slackText is total — never empty/whitespace-only `text` ---
+  ok("slackText: empty title+body falls back to 'faff <run_id>: <class>'",
+    slackText({ run_id: "run-x", class: "sentry-trip", title: "", body: "" }) === "faff run-x: sentry-trip");
+  ok("slackText: no run_id/class either → fixed literal fallback",
+    slackText({ title: "", body: "  " }) === "faff andon notification");
+  ok("slackText: whitespace-only title+body treated as empty (falls back)",
+    slackText({ run_id: "r", class: "park", title: "   ", body: "\n" }) === "faff r: park");
+  ok("slackText: only body present → body alone (no leading blank line)", slackText({ title: "", body: "B" }) === "B");
+  ok("formatPayload slack branch on an all-empty notif never emits whitespace-only text",
+    JSON.parse(formatPayload("slack", { title: "", body: "" }).body).text.trim() !== "");
+
   // --- resolveAndonConfig: defaults + disabled-by-default ---
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-andon-cfg-"));
   try {
@@ -522,6 +655,32 @@ function andonSelftest() {
     const cfgInfo = resolveAndonConfig(tmpRoot);
     ok("andon.events accepts the three FAFF-781 informational classes, still drops unknown names",
       JSON.stringify(cfgInfo.events) === JSON.stringify(["admitted", "prep-start", "build-start"]));
+
+    // --- FAFF-926 D1: unset format + Slack-shaped host ⇒ inferred "slack" ---
+    ok("isSlackShapedUrl: hooks.slack.com is Slack-shaped", isSlackShapedUrl("https://hooks.slack.com/services/X/Y/Z") === true);
+    ok("isSlackShapedUrl: any *.slack.com host is Slack-shaped", isSlackShapedUrl("https://foo.slack.com/hook") === true);
+    ok("isSlackShapedUrl: a non-Slack host is not", isSlackShapedUrl("https://example.com/hook") === false);
+    ok("isSlackShapedUrl: a malformed URL is not (never throws)", isSlackShapedUrl("not a url") === false);
+
+    fs.writeFileSync(path.join(tmpRoot, ".faffrc.yaml"), "andon:\n  url: https://hooks.slack.com/services/T/B/C\n");
+    const cfgSlackInferred = resolveAndonConfig(tmpRoot);
+    ok("D1: format UNSET + hooks.slack.com URL ⇒ format inferred 'slack' (the live-box bug)",
+      cfgSlackInferred.format === "slack");
+
+    fs.writeFileSync(path.join(tmpRoot, ".faffrc.yaml"), "andon:\n  url: https://hooks.slack.com/services/T/B/C\n  format: generic\n");
+    const cfgSlackExplicitGeneric = resolveAndonConfig(tmpRoot);
+    ok("D1: an EXPLICIT format (incl. explicit generic) is always obeyed, never overridden by host inference",
+      cfgSlackExplicitGeneric.format === "generic");
+
+    fs.writeFileSync(path.join(tmpRoot, ".faffrc.yaml"), "andon:\n  url: https://example.com/hook\n");
+    const cfgNonSlackUnset = resolveAndonConfig(tmpRoot);
+    ok("D1: format unset + non-Slack URL ⇒ format stays 'generic' (unchanged default)",
+      cfgNonSlackUnset.format === "generic");
+
+    fs.writeFileSync(path.join(tmpRoot, ".faffrc.yaml"), "andon:\n  url: https://hooks.slack.com/services/T/B/C\n  format: banana\n");
+    const cfgSlackGarbageFormat = resolveAndonConfig(tmpRoot);
+    ok("D1: a present-but-garbage format string is NOT treated as unset — falls through to 'generic', no inference",
+      cfgSlackGarbageFormat.format === "generic");
   } finally { fs.rmSync(tmpRoot, { recursive: true, force: true }); }
 
   // --- runPump: disabled short-circuit writes NO state file ---
@@ -634,5 +793,6 @@ function andonSelftest() {
 module.exports = {
   ANDON_CLASSES, ANDON_DEFAULT_EVENTS, ANDON_FLOOD_CAP, ANDON_FORMATS, ANDON_SPEC, ANDON_SURFACE,
   andonSelftest, andonStatePath, buildNotification, classifyEvent, cmdAndon, formatPayload,
-  ntfyPriority, readAndonState, readEventsSince, realPost, resolveAndonConfig, runPump, writeAndonState,
+  isSlackShapedUrl, ntfyPriority, readAndonState, readEventsSince, realPost, realPostRaw,
+  resolveAndonConfig, runPump, slackText, synthesizeProbeNotification, writeAndonState,
 };

@@ -1,6 +1,8 @@
 # FAFF-724 — Confirm codex cache_write/reasoning token relationships on a live cold-cache call
 
 > Spec: faffter-dark-nlspec · 2026-08-10 · autonomous · confidence: medium. Full spec on Linear FAFF-724.
+>
+> Revised by human decision on 2026-08-19: the paid live non-zero capture requirement below is superseded. Official OpenAI Responses usage semantics plus the version-pinned Codex mapping are the acceptance evidence; the original text remains as the historical proposal. Reconfirmed on 2026-08-27 with the instruction to preserve the implementation and rerun review and CI.
 
 confidence: medium
 spec-review: approve

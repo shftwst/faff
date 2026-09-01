@@ -85,7 +85,7 @@ output_tokens, reasoning_output_tokens
 
 The evidence is the first-party schema plus Codex's mapping and parser fixture:
 
-- The [OpenAI API usage schema](https://developers.openai.com/api/reference/resources/batches) describes `input_tokens_details` and `output_tokens_details` as detailed breakdowns of their parent token totals. The [completion usage schema](https://developers.openai.com/api/reference/java/resources/completions/methods/create) places `cache_write_tokens` under prompt/input token details and `reasoning_tokens` under completion/output token details.
+- The [OpenAI Responses usage schema](https://developers.openai.com/api/reference/cli/resources/responses/methods/create) describes `input_tokens_details` and `output_tokens_details` as detailed breakdowns of their parent token totals. It places `cache_write_tokens` under input-token details and `reasoning_tokens` under output-token details.
 - [Codex 0.147.0 maps those detail fields directly](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L133-L160) to the five `turn.completed.usage` fields observed here.
 - [Codex's own tagged parser test](https://github.com/openai/codex/blob/be6e8eac029b183056b7e4402879f15d2c85f61b/codex-rs/codex-api/src/sse/responses.rs#L813-L838) uses `input_tokens: 100`, split into `cached_tokens: 40` and `cache_write_tokens: 60`. It also uses `output_tokens: 10` with `reasoning_tokens: 5`, while `total_tokens` is `110`, exactly `input_tokens + output_tokens` rather than `115`.
 

@@ -1,0 +1,74 @@
+{
+  "level": "L3",
+  "run_id": "run-20260901-071649-fly-l3",
+  "admitted": [
+    "FAFF-958",
+    "FAFF-957",
+    "FAFF-948",
+    "FAFF-938",
+    "FAFF-929",
+    "FAFF-928",
+    "FAFF-926",
+    "FAFF-924",
+    "FAFF-913",
+    "FAFF-862"
+  ],
+  "outcomes": {
+    "FAFF-927": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop",
+      "price_per_mtok": 0
+    },
+    "tokens_at_start": 4042792,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "1dcf6a97-c309-4f48-8a98-f9113d131c3c",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 42,
+        "output": 22813,
+        "cache_write": 314658,
+        "cache_read": 3705279
+      }
+    },
+    "window": {
+      "anchor_epoch": 1788247227983,
+      "reset_epoch": 1788265227983,
+      "tokens_at_anchor": 2217439
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 616,
+    "session_id": "run-20260901-071649-fly-l3",
+    "started_at": "2026-09-01T07:18:39Z",
+    "last_heartbeat": "2026-09-01T07:18:39Z",
+    "harness": "claude-code",
+    "model": "claude-opus-4-8"
+  },
+  "outcome_details": {
+    "FAFF-927": {
+      "verdict": "needs-decision-first",
+      "resolve_attempt": "failed",
+      "root_cause": "punt-not-closed",
+      "note": "medium confidence + open qa-Punt on review-safety false-clean classification, load-bearing on unshipped FAFF-928; security-adjacent architectural call -> escalate/park"
+    }
+  },
+  "park_records": [
+    {
+      "issue_id": "FAFF-927",
+      "root_cause_class": "punt-not-closed",
+      "timestamp": "2026-09-01T07:30:07Z"
+    }
+  ]
+}

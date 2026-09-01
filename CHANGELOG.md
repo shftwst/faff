@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/shftwst/faff/compare/faff--v0.23.0...faff--v0.24.0) (2026-09-01)
+
+
+### Features
+
+* **FAFF-960:** anchor-sourced --include-anchors decision-capture export ([#804](https://github.com/shftwst/faff/issues/804)) ([1c84bd1](https://github.com/shftwst/faff/commit/1c84bd15db1a5fabf169c6d424150cd6606f847b))
+
 ## [0.23.0](https://github.com/shftwst/faff/compare/faff--v0.22.0...faff--v0.23.0) (2026-08-31)
 
 

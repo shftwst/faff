@@ -1,0 +1,58 @@
+{
+  "level": "L3",
+  "run_id": "run-20260901-150826-beepboop-list-22197e",
+  "admitted": [
+    "FAFF-958",
+    "FAFF-957",
+    "FAFF-938",
+    "FAFF-928",
+    "FAFF-926",
+    "FAFF-924",
+    "FAFF-913",
+    "FAFF-862"
+  ],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "price_per_mtok": 0,
+      "pricing": "map"
+    },
+    "measure_session_id": "faaae6a9-f07c-460d-9e34-18b45ab05685",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 143,
+        "output": 148883,
+        "cache_write": 774062,
+        "cache_read": 15637013
+      }
+    },
+    "tokens_at_start": 16560101,
+    "window": {
+      "anchor_epoch": 1788275835749,
+      "reset_epoch": 1788293835749,
+      "tokens_at_anchor": 1914705
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 1025,
+    "session_id": "run-20260901-150826-beepboop-list-22197e",
+    "started_at": "2026-09-01T15:13:55Z",
+    "last_heartbeat": "2026-09-01T15:13:55Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

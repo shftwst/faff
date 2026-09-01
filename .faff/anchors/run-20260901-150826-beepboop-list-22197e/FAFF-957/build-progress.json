@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-957",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c84ef65220d3b94c0d17ac47a31f1c963d01475581c1203bc8b9f260c20657c7",
+    "branch": "faff-957-code-review-reviews-the-session-cwds-diff-not-the-build",
+    "pushed_at": "2026-09-01T15:58:09.253Z"
+  },
+  "updated_at": "2026-09-01T15:58:09.253Z"
+}

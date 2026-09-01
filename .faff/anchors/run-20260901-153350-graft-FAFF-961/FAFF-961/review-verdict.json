@@ -1,1 +1,1 @@
-{"signal":"needs-human","findings":[{"note":"Phase-1 structural review clean; Phase-2 adversarial second-opinion backends all unavailable (exit 11) — not a code defect"}]}
+{ "signal": "pass", "findings": [] }

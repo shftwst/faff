@@ -96,27 +96,20 @@ function parseCodexEvents(raw) {
 // adding both would count those tokens twice and, once codex models reach the
 // price map, bill them twice (at the full input rate AND the cache-read rate).
 //
-// `cache_write_input_tokens` → `cache_write` (FAFF-666): read so the class is
-// no longer structurally dead for codex (it was declared, returned, and never
-// written). Its relationship to `input_tokens` is UNPROVEN — both live
-// captures to date show it `0` — but it carries codex's `_input_tokens`
-// suffix, the one such field with a proven relationship (`cached_input_tokens`)
-// is nested inside `input_tokens`, and subtracting is the undercount-safe
-// default (if actually disjoint, subtracting only undercounts `input`; NOT
-// subtracting a truly-nested field would double-count it). So it is treated as
-// a SUBSET here too, alongside `cached`. This also gives true class parity
-// with the Anthropic reader, whose `input` class already excludes both cache
-// classes (see TOKEN_CLASS_FROM_USAGE in budget.js). FAFF-666 filed a
-// follow-up verification ticket ("Confirm codex cache_write/reasoning token
-// relationships on a live cold-cache call") to settle this on a live non-zero
-// call; if it proves disjoint, drop the `- cacheWrite` term below (one line).
+// `cache_write_input_tokens` -> `cache_write` (FAFF-666, settled by FAFF-724):
+// codex-rs 0.147.0 maps it from `input_tokens_details.cache_write_tokens`.
+// OpenAI defines that object as the detailed breakdown of input tokens, and
+// codex's own parser fixture partitions 100 input tokens into 40 cached plus
+// 60 cache-write tokens. It is therefore a SUBSET of `input_tokens` and must
+// be subtracted alongside `cached`. This also gives true class parity with the
+// Anthropic reader, whose `input` class already excludes both cache classes
+// (see TOKEN_CLASS_FROM_USAGE in budget.js).
 //
-// `reasoning_output_tokens` is READ (named here) but NOT added to `output` —
-// treated as already inside `output_tokens`, mirroring the Anthropic
-// transcript, which folds thinking into `output_tokens` with no separate key.
-// Same unproven/zero/undercount-safe posture as cache_write above, same
-// follow-up ticket; if a live call proves it disjoint, add
-// `+ n(u.reasoning_output_tokens)` to the output line below (one line).
+// `reasoning_output_tokens` is dispositioned here but NOT added to `output`.
+// codex-rs maps it from `output_tokens_details.reasoning_tokens`; OpenAI calls
+// that object the detailed breakdown of output tokens. The same codex fixture
+// reports 10 output tokens, including 5 reasoning tokens, so reasoning is a
+// SUBSET already inside `output_tokens`.
 //
 // Floored at 0: a stream reporting more cached+cache_write than input is
 // incoherent, and clamping keeps the class non-negative rather than

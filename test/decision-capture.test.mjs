@@ -462,6 +462,29 @@ test("export --include-anchors: a malformed anchor events.jsonl is skipped with 
   }
 });
 
+test("export --include-anchors: no .faff/anchors directory behaves as the default path over the live dirs (spec 'No anchors present' scenario)", () => {
+  const { root } = mkRoot("dc-no-anchors-", "Rna");
+  const outFlag = mkdtempSync(join(tmpdir(), "dc-na-flag-"));
+  const outPlain = mkdtempSync(join(tmpdir(), "dc-na-plain-"));
+  try {
+    enableCapture(root);
+    seedGenesis(root, "Rna");
+    run(root, ["decision-capture", "record", "--run", "Rna", "--issue", "FAFF-na", "--kernel", "next"],
+      JSON.stringify({ normalised_inputs: FULL_NEXT_INPUTS, selected_action: "graft" }));
+    // No .faff/anchors exists at all; --include-anchors must degrade to the live-only corpus.
+    const rFlag = run(root, ["decision-capture", "export", "--out", outFlag, "--include-anchors"]);
+    assert.equal(rFlag.code, 0, rFlag.err);
+    const rPlain = run(root, ["decision-capture", "export", "--out", outPlain]);
+    assert.equal(rPlain.code, 0, rPlain.err);
+    // With one live record and no anchors, both digests must agree and count 1 (a well-formed corpus).
+    assert.equal(JSON.parse(readFileSync(join(outFlag, "manifest.json"), "utf8")).record_count, 1);
+    assert.equal(JSON.parse(readFileSync(join(outFlag, "manifest.json"), "utf8")).corpus_sha256,
+      JSON.parse(readFileSync(join(outPlain, "manifest.json"), "utf8")).corpus_sha256);
+  } finally {
+    for (const d of [root, outFlag, outPlain]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
 test("export --include-anchors then shadow-fidelity run: non-null result for an anchor-only run whose live dir is absent (AC6)", () => {
   const root = mkdtempSync(join(tmpdir(), "dc-anchor-e2e-"));
   const outDir = mkdtempSync(join(tmpdir(), "dc-e2e-out-"));

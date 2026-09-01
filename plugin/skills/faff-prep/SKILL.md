@@ -316,6 +316,18 @@ Both interactive resolution sites invoke this subroutine immediately after a hum
 
 **The autonomous resolve-attempt path (gateway) never runs this offer and never writes the register** — capture is human-confirmed only, at these two interactive sites, so every entry is human-authored by construction.
 
+## Decisions-register reconcile step (shared subroutine)
+
+Sibling to the capture step above, closing the asymmetry with the ADR-promotion guard: `faff-graft` Step 4b/3b already re-checks an ADR-promotion intent for contradictions before materialising, and the register now has the same analogue — a revise loop or re-prep can change the design out from under an already-captured intent, and nothing else marks it stale. Invoked at each finalisation seam below, **after** the spec content is finalised (re-attached / reattached / replaced) and **before** the seam's own next-step offer continues. This is earlier surfacing, not the sole guard — `faff-graft` Step 4c re-checks again at materialise time as the backstop for any path that skips this pass (e.g. a mid-build respec).
+
+1. **Enumerate.** Fetch every `## Decisions-register intent` comment on the issue (a single tracker list-comments call; reuse a same-turn comment fetch — e.g. Scenario B Step 2a's — instead of a second round-trip). For each, pipe the comment body to `faff decisions intent-status --file -` and **skip** any it reports `superseded` (nothing to re-check) or `not-intent` (not a register intent).
+2. **Re-check each live intent** (in-context LLM judgement, the sole judgement step here — mirrors the ADR `detect_contradictions` seam): does the just-finalised spec still support this intent's `topic`/`Chosen`/`Scope`?
+   - **Still supported** → leave live, no write.
+   - **Obsoleted / contradicted** → edit the comment in place (tracker `save_comment` on its id) to append `> Superseded <today> (<ISSUE-XX>): <one-line reason>` — **never delete** the comment. Record the supersession: interactive surfaces it to the human in the same turn ("Superseded a stale decisions-register intent: `<topic>` — `<reason>`"); autonomous Path 1 annotates the refreshed spec's own annotation block with the same one-liner.
+3. **Never park solely for this.** A superseded intent is surfaced, not build-blocking — autonomous mode marks it and continues, the same "enrichment, not a gate" posture as the capture step and the Architecture proposal step. A `faff decisions intent-status` failure (unreadable comment, non-0/1/2 exit) fails safe to **leave the intent live and surface the failure** — never guess a status, never supersede on a read error.
+
+**Finalisation seams** (run this subroutine at each, immediately before the seam's own next step, each wired inline at its own site below): Scenario A Step 3's `resolve` branch, Scenario B's `iterate` exit, `## Re-prepping`, and the autonomous mirror's Path 1 stale-refresh.
+
 ## Prep Gate
 
 `/faff-graft` requires a spec to exist on the issue before implementation can start. That's the only gate — one artifact.
@@ -415,7 +427,7 @@ Then the build gate — a separate yes/no, confidence-aware. This is a surviving
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
 > **`confidence: low`:** "Prepped at low confidence — explore couldn't resolve [the core question]. Resolve it together now, or park for later? (resolve/park)"
 
-On `high` confirm (or `medium` → `build`), invoke the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) on `ISSUE-XX` in the same conversation — **only on this standalone affirmative; the build decision is never bundled into the spec-resolution choice** (gateway → **Chaining pattern**). On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach, run the **Decisions-register capture step** (above) on each closed punt, then **re-present this standalone build gate** — resolving a punt is not itself build consent. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag `faff-parked` via the op (`faff label add <issue> faff-parked`), record `disposition:"parked"` on the attach-state marker (so `prepcheck` doesn't false-block a by-design non-attach), and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
+On `high` confirm (or `medium` → `build`), invoke the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) on `ISSUE-XX` in the same conversation — **only on this standalone affirmative; the build decision is never bundled into the spec-resolution choice** (gateway → **Chaining pattern**). On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach, run the **Decisions-register capture step** (above) on each closed punt, then run the **Decisions-register reconcile step** (above) against the just-re-attached spec, then **re-present this standalone build gate** — resolving a punt is not itself build consent. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag `faff-parked` via the op (`faff label add <issue> faff-parked`), record `disposition:"parked"` on the attach-state marker (so `prepcheck` doesn't false-block a by-design non-attach), and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
 
 **When the open item is an architecture / scope / taste call rather than a fact,** "walk the open punts/unknowns with the user" above is where the gateway's **Interactive park resolution (surface, don't settle)** rule applies: surface the punt and a recommendation, let the human author the `**Chosen:**`; the correctness carve-out lets prep close a fact-not-taste punt directly.
 
@@ -449,7 +461,7 @@ Then offer a three-way choice (not passive text) — a surviving OFFER gate, per
 
 > "What next? (iterate / build / park)"
 
-- **iterate** — revise the spec (loop back to Step 2 of Scenario A)
+- **iterate** — revise the spec (loop back to Step 2 of Scenario A); once the revised spec is produced and re-attached, run the **Decisions-register reconcile step** (above) before returning to this offer — a revision can change the design out from under an already-captured intent, regardless of which confidence branch the revision lands in
 - **build** — invoke the `faff-graft` skill via the Skill tool on `ISSUE-XX` (only if spec is fresh)
 - **park** — stop here; apply the shared Park / Unpark protocol (tag `faff-parked`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
@@ -462,6 +474,7 @@ When the user says "I'm working on ISSUE-XX" or picks an issue from the catch-up
 At any point, the user (or `/faff-graft` mid-build) can say "reprep this" or "update the spec":
 
 - Produce the revised spec → replace on the issue immediately
+- Run the **Decisions-register reconcile step** (above) against the just-replaced spec — a reprep can obsolete an already-captured intent exactly like an iterate revision
 - Add a note: "Revised on [date] — [brief reason]"
 - If the issue was already in Todo, it stays in Todo
 - If revising closes an architecture / scope / taste decision — including unparking a `needs-human` — the gateway's **Interactive park resolution (surface, don't settle)** rule governs: surface the call and a recommendation, let the human author the `**Chosen:**`. The correctness carve-out still lets prep close a fact-not-taste item (a genuine bug, a rule already written down) itself.
@@ -525,7 +538,7 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), **re-run the Spec-review gate** on the refreshed spec (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching), then reattach to the issue and keep it where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), **re-run the Spec-review gate** on the refreshed spec (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching), run the **Decisions-register reconcile step** (above) against the refreshed spec, then reattach to the issue and keep it where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.23.0](https://github.com/shftwst/faff/compare/faff--v0.22.0...faff--v0.23.0) (2026-08-31)
+
+
+### Features
+
+* **FAFF-826:** read-only coordination-fidelity shadow study ([#795](https://github.com/shftwst/faff/issues/795)) ([b3d3225](https://github.com/shftwst/faff/commit/b3d3225ec6bd960acf0f688af92d6b9e6440cc7b))
+* **FAFF-930:** blinded two-sided case-file spec-review adjudicator ([#797](https://github.com/shftwst/faff/issues/797)) ([407be00](https://github.com/shftwst/faff/commit/407be00b623492a6d45b2d1bc14d17f2cd94767f))
+* **FAFF-950:** resumable review-pending hold when a slow spec-review fan-out would exceed the prep turn ([#802](https://github.com/shftwst/faff/issues/802)) ([0297df8](https://github.com/shftwst/faff/commit/0297df8e0a8aeda42f3fe1dea70d73fe84d6f666))
+* **FAFF-952:** make the L4 wall-clock ceiling operator-disableable while live ([#800](https://github.com/shftwst/faff/issues/800)) ([6185e2c](https://github.com/shftwst/faff/commit/6185e2cd6c616c3b9ad7110139e16c4a2e50323b))
+* **FAFF-953:** persist per-PRDR DoD verdict so cold coverage reproduces it ([#801](https://github.com/shftwst/faff/issues/801)) ([a2d12af](https://github.com/shftwst/faff/commit/a2d12af7e5e789bd5c3be4b10177f07fbf0879f8))
+* **FAFF-954:** wire live decision-capture into the core-loop gates ([#799](https://github.com/shftwst/faff/issues/799)) ([8dd8d00](https://github.com/shftwst/faff/commit/8dd8d00bd39a2784170392293f0aa099787d0551))
+
+
+### Bug Fixes
+
+* **FAFF-951:** gate spec-review approve on a recorded review round ([#798](https://github.com/shftwst/faff/issues/798)) ([f793aa6](https://github.com/shftwst/faff/commit/f793aa61a0157645dff97f685b16976a8dc6a88d))
+
 ## [0.22.0](https://github.com/shftwst/faff/compare/faff--v0.21.0...faff--v0.22.0) (2026-08-31)
 
 

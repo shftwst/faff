@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-960",
+  "build": {
+    "status": "complete",
+    "diff_hash": "585771af42ce82ceec771b93348fa1ef1aa242233d5799bc94e629be7ea5c309",
+    "branch": "faff-960-make-externaldistributed-lights-out-runs-decision-capture",
+    "pushed_at": "2026-09-01T01:20:21.863Z"
+  },
+  "updated_at": "2026-09-01T01:20:21.863Z"
+}

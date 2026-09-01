@@ -48,120 +48,79 @@ convergence:
 backends:
   gemini-gemma-free:
       provider: gemini
-      model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
+      model: models/gemma-4-31b-it
       host: https://generativelanguage.googleapis.com/v1beta/openai
       api_key_env: GEMINI_API_KEY
-      first_byte_timeout: 120 # hosted first-byte lands in seconds; 120s fails a hung/dead host fast so the fallback chain keeps its budget.
+      first_byte_timeout: 120
       #timeout: 480
   spark-qwen-3-8:
       provider: openai
       model: unsloth/Qwen3.8-27B-NVFP4
       host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
       api_key_env: DUMMY_API_KEY
-      # Per-backend first-byte (TTFT) window, seconds. Moved here from adversarial.first_byte_timeout,
-      # which the code silently ignores (first_byte_timeout is read per-backend only, unlike timeout/
-      # deadline). The local 27B's time-to-first-token under the 4-lens fan-out runs ~42-74s (measured
-      # TTFT ~50ms idle, ~74s worst case under concurrent load). 180 is 2.4x over that worst case with
-      # headroom, and fails a hung/dead qwen in 3 min not 10, leaving the rest of the deadline for fallbacks.
       first_byte_timeout: 180
-      # FAFF-918: bounded reasoning-ON. thinking_token_budget hard-caps reasoning tokens so a
-      # review both reasons AND emits findings (was `reasoning_off: true`, which on qwen suppresses
-      # reasoning entirely and misses real bugs). 2000 is a tunable starting point (FAFF-920); at
-      # max_tokens 32000 it leaves ~30k for findings and clears the empty-out knee comfortably.
       reasoning_extra:
           thinking_token_budget: 2000
   openrouter-deepseek-v4-flash:
-      provider: openai                       # OpenRouter is OpenAI-compatible
+      provider: openai
       model: deepseek/deepseek-v4-flash-0731
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
-      first_byte_timeout: 120 # hosted first-byte lands in seconds; 120s fails a hung/dead host fast so the fallback chain keeps its budget.
+      first_byte_timeout: 120
       reasoning_off: true
-      #timeout: 480
   openrouter-glm-5-2:
-      # FAFF-922 spec-review judge backend. Deliberately NOT in the adversarial.refs refuter pool
-      # below and a stronger reasoner than it — the judge is the higher-authority second opinion
-      # that weighs the refuters' standing objections, so it must be a distinct identity.
-      # Reasoning left ON (no reasoning_off): the judge weighs objections and must reason to do it.
-      provider: openai                       # OpenRouter is OpenAI-compatible
+      provider: openai
       model: z-ai/glm-5.2:free
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
-      first_byte_timeout: 180 # judge, reasoning-on: may be slower to first token than a reasoning-off refuter, so a wider window than the hosted refuters' 120s; still fails a dead host well inside the deadline.
-      # FAFF-941: bounded reasoning-ON, in the form OpenRouter honours. thinking_token_budget is a
-      # qwen3 chat-template lever OpenRouter does not read, so it left GLM reasoning unbounded until
-      # it consumed the whole max_tokens and returned empty (exit 11). reasoning.max_tokens is the
-      # OpenRouter-native reasoning cap. Carried per-backend here, not in the judge dispatch, so the
-      # transport stays generic (no model/provider branch). Keep max_tokens > this, or it never binds.
+      first_byte_timeout: 180
       reasoning_extra:
           reasoning:
               max_tokens: 2000
   openrouter-glm-5-3-flash:
-      # FAFF-922 judge PAID fallback, second in adversarial.spec_judge.refs. Rides out a free-tier
-      # 5.2 outage / rate-limit so the judge stays autonomous under load instead of parking to a
-      # human. Same distinct-from-refuters identity requirement; reasoning left ON like the primary.
-      provider: openai                       # OpenRouter is OpenAI-compatible
+      provider: openai
       model: z-ai/glm-5.3-flash
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
-      first_byte_timeout: 180 # judge paid fallback, reasoning-on like the primary: same 180s first-byte window.
-      # FAFF-941: same OpenRouter-native reasoning cap as the primary (see openrouter-glm-5-2).
+      first_byte_timeout: 180
       reasoning_extra:
           reasoning:
               max_tokens: 2000
+  openrouter-gemma:
+      provider: openai
+      model: google/gemma-4-31b-it
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      first_byte_timeout: 180
+      reasoning_extra:
+          reasoning:
+              max_tokens: 2000
+  spark-glimmer:
+      provider: openai
+      model: glimmer
+      host: https://spark.longhair-escalator.ts.net/glimmer/v1
+      api_key_env: DUMMY_API_KEY
+      first_byte_timeout: 180
+      reasoning_extra:
+          thinking_token_budget: 2000
 
-# faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
-# backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
-# Flattened to the top-level `adversarial:` key per the schema change on faff main (the older
-# `faffter_dark.adversarial.refs` nesting is retired; a stale local `faff config check` still warns
-# on the flat form).
 adversarial:
-  # Larger deadline for the adversarial reviews. The local studio-qwen primary is slower than a
-  # hosted API, and the default 120s per-attempt clock abandons a slow-but-working generation to a
-  # weaker fallback (the round-3 degrade that helped park the last drain).
-  #
-  # The two review slots treat these knobs DIFFERENTLY (traced from their SKILL.md call sites):
-  #   - spec_review (faffter-dark-spec-review) passes ONLY `--timeout`. It sends no `--deadline`, so
-  #     `adversarial.deadline` below has NO effect on the spec review. `timeout` is its only clock,
-  #     and there is no total wall-clock cap: its worst case is per-attempt x retries x lenses.
-  #   - code_review (faffter-dark-adversarial-review) passes BOTH `--timeout` and `--deadline`. The
-  #     deadline is a total wall-clock budget, GLOBAL (not per-consumer) and SLICED per backend
-  #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
-  # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
   timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
-  deadline: 2700   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets one full attempt (2700 is exactly 3x900, no slack). A fast-failing backend hands its unspent slice back to the survivors (the per-backend slice is work-conserving), which is what leaves room for the fallbacks; the judge is dispatched separately and carries its own --deadline. IGNORED by spec_review (which sends no --deadline).
+  deadline: 3600   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets one full attempt (2700 is exactly 3x900, no slack). A fast-failing backend hands its unspent slice back to the survivors (the per-backend slice is work-conserving), which is what leaves room for the fallbacks; the judge is dispatched separately and carries its own --deadline. IGNORED by spec_review (which sends no --deadline).
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
-    - gemini-gemma-free
-  # Per-consumer output-token TOTAL cap (FAFF-911), reasoning + content. Resolution:
-  # adversarial.<consumer>.max_tokens || adversarial.max_tokens || 2000.
-  #
-  # FAFF-918: this was 32000 as the empty-out WORKAROUND — a big total budget so a reasoning
-  # backend that over-reasoned still had room left to emit findings. thinking_token_budget now
-  # caps the REASONING portion directly (see each spark backend's reasoning_extra), so the total
-  # cap no longer has to absorb runaway reasoning. Trimmed to 12000: ~2000 for reasoning (the
-  # per-backend budget) leaves ~10000 for content, comfortable for a large multi-finding review.
-  # INVARIANT: keep max_tokens > every backend's thinking_token_budget, or the budget never binds
-  # (reasoning would hit the total cap first and empty out again — the exact bug this fixes).
-  # Measured: a 70K-token review needed >2000 content tokens to emit well-formed findings on qwen,
-  # so do not trim the content headroom (max_tokens - budget) below ~10000 without re-measuring.
+    - spark-glimmer
   code_review:
     max_tokens: 12000
   spec_review:
     max_tokens: 12000
-  # FAFF-922: the spec-review JUDGE — the would-be-park interceptor at L3–L4. It weighs the
-  # refuters' standing objections and rules accept / park-needs-human / keep-going. Its backend
-  # config resolves under adversarial.spec_judge.* and falls back to the global adversarial block
-  # when a key is absent. `refs` MUST name a backend NOT in the refuter `refs:` above (a distinct,
-  # higher-authority identity) — here the GLM-5.2 backend, distinct from the qwen/deepseek-flash/
-  # gemma refuters. keepgoing_bound caps how many extra rounds a `keep-going` ruling may grant
-  # before a forced park (the SKILL applies a safe small default when unset; 2 is explicit here).
   spec_judge:
     keepgoing_bound: 2
     refs:
-      - openrouter-glm-5-2         # free primary
-      - openrouter-glm-5-3-flash   # paid fallback when the free tier is rate-limited/down
+      - openrouter-gemma
+      - openrouter-glm-5-3-flash
+      - openrouter-glm-5-2
 models:
     build_by_confidence:
         default: inherit
@@ -173,8 +132,5 @@ models:
 sentry:
   stall_window_seconds: 7200
 
-# FAFF-949: enable read-only decision-kernel capture so the FAFF-826 study accumulates a corpus.
-# Best-effort + read-only (FAFF-821) — never alters an authoritative decision. Records fill on
-# beep-boop runs (always-on §4 gate) + dispatched/autonomous grafts (FAFF-954 wiring).
 capture:
   decision_kernel: "on"

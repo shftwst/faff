@@ -109,6 +109,23 @@ backends:
       reasoning_extra:
           reasoning:
               max_tokens: 2000
+  openrouter-gemma:
+      provider: openai                       # OpenRouter is OpenAI-compatible
+      model: google/gemma-4-31b-it
+      host: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      first_byte_timeout: 180
+      reasoning_extra:
+          reasoning:
+              max_tokens: 2000
+  spark-glimmer:
+      provider: openai
+      model: glimmer
+      host: https://spark.longhair-escalator.ts.net/glimmer/v1
+      api_key_env: DUMMY_API_KEY
+      first_byte_timeout: 180
+      reasoning_extra:
+          thinking_token_budget: 2000
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
@@ -129,11 +146,12 @@ adversarial:
   #     (deadline / remaining-backends); each attempt is clamped to min(timeout, slice-now).
   # Resolution for both: timeout = adversarial.<slot>.timeout || adversarial.timeout || 120.
   timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
-  deadline: 2700   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets one full attempt (2700 is exactly 3x900, no slack). A fast-failing backend hands its unspent slice back to the survivors (the per-backend slice is work-conserving), which is what leaves room for the fallbacks; the judge is dispatched separately and carries its own --deadline. IGNORED by spec_review (which sends no --deadline).
+  deadline: 3600   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets one full attempt (2700 is exactly 3x900, no slack). A fast-failing backend hands its unspent slice back to the survivors (the per-backend slice is work-conserving), which is what leaves room for the fallbacks; the judge is dispatched separately and carries its own --deadline. IGNORED by spec_review (which sends no --deadline).
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
-    - gemini-gemma-free
+    - spark-glimmer
+    - openrouter-gemma
   # Per-consumer output-token TOTAL cap (FAFF-911), reasoning + content. Resolution:
   # adversarial.<consumer>.max_tokens || adversarial.max_tokens || 2000.
   #

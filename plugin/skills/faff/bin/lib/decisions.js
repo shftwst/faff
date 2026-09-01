@@ -24,8 +24,28 @@ const { readField, hasFieldLine } = require("./fields");
 // value is refused until FAFF-922's deterministic admit gate exists.
 const SOURCE_ISSUE_RE = /^[A-Z]+-\d+$/;
 
+// FAFF-929: the fixed marker grammar shared by the tracker-writer (faff-prep's reconcile step)
+// and the materialiser (faff-graft Step 4c) — the deterministic half of the reconcile-before-
+// materialise design. A `## Decisions-register intent` comment is discriminated from any other
+// comment by heading alone (tolerant of a trailing " (superseded)" heading suffix — that suffix
+// is descriptive only, never authoritative); supersession is discriminated by the LEXICAL
+// PRESENCE of a `> Superseded ...` line, not the heading suffix, so the two can never fork on
+// what "superseded" means.
+const INTENT_HEADING_RE = /^##\s+Decisions-register intent\b/im;
+const SUPERSEDED_MARKER_RE = /^>\s*Superseded\b/im;
+
+// Pure core: classify a tracker comment body as an intent (live/superseded) or not an intent at
+// all. No fs, no tracker — a plain string function both the prep-writer and the graft-reader call
+// so the marker parse can never drift into two grammars.
+function classifyIntentComment(body) {
+  const text = String(body ?? "");
+  if (!INTENT_HEADING_RE.test(text)) return { kind: "not-intent", status: null };
+  return { kind: "intent", status: SUPERSEDED_MARKER_RE.test(text) ? "superseded" : "live" };
+}
+
 const DECISIONS_SPEC = { flags: {
   "--json": { arity: 0 }, "--punt": { arity: 1 }, "--root": { arity: 1 }, "--selftest": { arity: 0 },
+  "--file": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb selector" } };
 // FAFF-628-style declared grammar for the drift-guard's flag-layer assertions (mirrors adr.js's
 // ADR_SURFACE shape) — only the unconditional required-flag check is declared here.
@@ -36,6 +56,7 @@ const DECISIONS_SURFACE = {
     match: { required_flags: ["--punt"] },
     list: { required_flags: [] },
     validate: { required_flags: [] },
+    "intent-status": { required_flags: [] },
   },
 };
 
@@ -246,7 +267,26 @@ function cmdDecisions(args) {
     return 1;
   }
 
-  process.stderr.write("faff decisions: expected one of: match | list | validate (or --selftest)\n");
+  if (action === "intent-status") {
+    // FAFF-929: the deterministic skip decision both faff-prep (the tracker-writer) and
+    // faff-graft Step 4c (the materialiser) shell out to — no fs write, no tracker call. Reads
+    // the comment body from --file, else stdin (never both; --file wins when given).
+    const filePath = get("--file");
+    let body;
+    try {
+      body = filePath != null ? fs.readFileSync(filePath, "utf8") : fs.readFileSync(0, "utf8");
+    } catch (e) {
+      process.stderr.write(`faff decisions intent-status: cannot read ${filePath != null ? filePath : "stdin"}: ${e.message}\n`);
+      return 2;
+    }
+    const result = classifyIntentComment(body);
+    if (json) console.log(JSON.stringify(result));
+    else console.log(result.kind === "not-intent" ? "not-intent" : result.status);
+    if (result.kind === "not-intent") return 2;
+    return result.status === "superseded" ? 1 : 0;
+  }
+
+  process.stderr.write("faff decisions: expected one of: match | list | validate | intent-status (or --selftest)\n");
   return 2;
 }
 
@@ -433,6 +473,35 @@ function decisionsSelftest() {
   // kebabSlug
   t("kebabSlug kebabs a topic heading", kebabSlug("Logging library!") === "logging-library");
 
+  // FAFF-929: classifyIntentComment — the deterministic marker classifier shared by faff-prep's
+  // reconcile step and faff-graft Step 4c's materialise guard.
+  {
+    const liveIntent =
+      "## Decisions-register intent\n" +
+      "- topic: pino vs winston\n" +
+      "- Chosen: pino\n" +
+      "- Rationale: house structured-JSON logger.\n" +
+      "- Scope: all backend services.\n" +
+      "- Matches: pino vs winston\n";
+    t("classifyIntentComment: an intent comment with no marker line is live",
+      (() => { const r = classifyIntentComment(liveIntent); return r.kind === "intent" && r.status === "live"; })());
+
+    const supersededIntent = liveIntent + "\n> Superseded 2026-09-01 (FAFF-929): design dropped the sha256 digest\n";
+    t("classifyIntentComment: a marker line makes it superseded",
+      (() => { const r = classifyIntentComment(supersededIntent); return r.kind === "intent" && r.status === "superseded"; })());
+
+    const suffixOnly = "## Decisions-register intent (superseded)\n- topic: x\n- Chosen: y\n";
+    t("classifyIntentComment: a '(superseded)' heading suffix alone (no marker line) is still live — the marker line, not the suffix, is authoritative",
+      (() => { const r = classifyIntentComment(suffixOnly); return r.kind === "intent" && r.status === "live"; })());
+
+    const notIntent = "## ADR promotion intent\n- Decision: use pino\n";
+    t("classifyIntentComment: an unrelated comment (e.g. ADR promotion) is not-intent",
+      (() => { const r = classifyIntentComment(notIntent); return r.kind === "not-intent" && r.status === null; })());
+
+    t("classifyIntentComment: empty/absent body is not-intent, never throws",
+      (() => { const r = classifyIntentComment(""); return r.kind === "not-intent"; })());
+  }
+
   fs.rmSync(tmp, { recursive: true, force: true });
 
   const failed = cases.filter(([, ok]) => !ok);
@@ -441,4 +510,4 @@ function decisionsSelftest() {
   return failed.length ? 1 : 0;
 }
 
-module.exports = { cmdDecisions, decisionsPath, hasFieldLine, kebabSlug, listEntries, listRatifiedTradeoffs, matchDecision, normalizeMatchKey, parseMatches, splitSections, validateEntries, validatePrecedent, validateTradeoff };
+module.exports = { cmdDecisions, classifyIntentComment, decisionsPath, hasFieldLine, kebabSlug, listEntries, listRatifiedTradeoffs, matchDecision, normalizeMatchKey, parseMatches, splitSections, validateEntries, validatePrecedent, validateTradeoff };

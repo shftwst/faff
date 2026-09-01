@@ -1,0 +1,273 @@
+{
+  "_what": "Pre-split cost+time baseline for the gateway split (FAFF-607). Reproduce post-split with the same command and diff.",
+  "captured": "2026-09-01",
+  "source_run": "evidence/cost-run-20260829-100405 (full L4 build, 843 calls)",
+  "repro": "node eval/tokenomics.mjs --transcript evidence/cost-run-20260829-100405/transcripts --fixed <new_prefix_tokens> --lean <target> --latency --json",
+  "caveat": "The tps profiles (15000/60 frontier, 1000/35 local) are pinned here on purpose. Absolute seconds are uncalibrated, but the before/after wall-clock DELTA is valid as long as the post-split run uses these same tps (the defaults), because tps is a constant multiplier that cancels in the comparison. Cost is real. cache_write leg understated on 1h writes until FAFF-964.",
+  "gateway_tokens_now": 66165,
+  "cost": [
+    {
+      "name": "baseline",
+      "note": "the run as measured",
+      "cost": 132.913,
+      "delta": 0,
+      "pct": 0,
+      "byModel": {
+        "claude-opus-4-8": 132.909
+      },
+      "legs": {
+        "read": 77.539,
+        "write": 30.467,
+        "input": 0.008,
+        "output": 24.898
+      }
+    },
+    {
+      "name": "lean-gateway (66153->8300)",
+      "note": "shrink injected prefix to the lean target",
+      "cost": 107.804,
+      "delta": -25.109,
+      "pct": -18.891,
+      "byModel": {
+        "claude-opus-4-8": 107.793
+      },
+      "legs": {
+        "read": 57.059,
+        "write": 25.839,
+        "input": 0.008,
+        "output": 24.898
+      }
+    },
+    {
+      "name": "drop-injection",
+      "note": "remove the fixed prefix from cached context entirely (upper bound)",
+      "cost": 104.202,
+      "delta": -28.711,
+      "pct": -21.601,
+      "byModel": {
+        "claude-opus-4-8": 104.207
+      },
+      "legs": {
+        "read": 54.121,
+        "write": 25.175,
+        "input": 0.008,
+        "output": 24.898
+      }
+    },
+    {
+      "name": "writes-5m-ttl",
+      "note": "1h cache writes repriced as 5m (hit rate held; upper bound)",
+      "cost": 128.955,
+      "delta": -3.958,
+      "pct": -2.978,
+      "byModel": {
+        "claude-opus-4-8": 128.951
+      },
+      "legs": {
+        "read": 77.539,
+        "write": 26.51,
+        "input": 0.008,
+        "output": 24.898
+      }
+    }
+  ],
+  "saving_per_10k_prefix_tokens": 4.34,
+  "time": {
+    "profiles": {
+      "frontier": {
+        "prefillTps": 15000,
+        "decodeTps": 60
+      },
+      "local": {
+        "prefillTps": 1000,
+        "decodeTps": 35
+      }
+    },
+    "summary": {
+      "frontier": {
+        "cached": {
+          "regime": "cached",
+          "prefill_s": 282.884,
+          "decode_s": 16598.45,
+          "wall_s": 16881.334,
+          "ttft_s": {
+            "median": 0.104,
+            "avg": 0.336,
+            "max": 13.79
+          }
+        },
+        "uncached": {
+          "regime": "uncached",
+          "prefill_s": 10621.434,
+          "decode_s": 16598.45,
+          "wall_s": 27219.884,
+          "ttft_s": {
+            "median": 9.89,
+            "avg": 12.6,
+            "max": 39.02
+          }
+        }
+      },
+      "local": {
+        "cached": {
+          "regime": "cached",
+          "prefill_s": 4243.264,
+          "decode_s": 28454.486,
+          "wall_s": 32697.75,
+          "ttft_s": {
+            "median": 1.558,
+            "avg": 5.034,
+            "max": 206.852
+          }
+        },
+        "uncached": {
+          "regime": "uncached",
+          "prefill_s": 159321.503,
+          "decode_s": 28454.486,
+          "wall_s": 187775.989,
+          "ttft_s": {
+            "median": 148.352,
+            "avg": 188.993,
+            "max": 585.295
+          }
+        }
+      }
+    },
+    "bench": [
+      {
+        "name": "baseline",
+        "per": {
+          "frontier": {
+            "cached_wall_s": 16881.334,
+            "uncached_wall_s": 27219.884,
+            "cached_ttft_median_s": 0.104
+          },
+          "local": {
+            "cached_wall_s": 32697.75,
+            "uncached_wall_s": 187775.989,
+            "cached_ttft_median_s": 1.558
+          }
+        },
+        "ratio": {
+          "cached": 1.937,
+          "uncached": 6.898
+        }
+      },
+      {
+        "name": "lean-gateway (66153->8300)",
+        "per": {
+          "frontier": {
+            "cached_wall_s": 16838.909,
+            "uncached_wall_s": 24446.796,
+            "cached_ttft_median_s": 0.104
+          },
+          "local": {
+            "cached_wall_s": 32061.367,
+            "uncached_wall_s": 146179.682,
+            "cached_ttft_median_s": 1.558
+          }
+        },
+        "ratio": {
+          "cached": 1.904,
+          "uncached": 5.98
+        }
+      },
+      {
+        "name": "drop-injection",
+        "per": {
+          "frontier": {
+            "cached_wall_s": 16832.822,
+            "uncached_wall_s": 24048.95,
+            "cached_ttft_median_s": 0.104
+          },
+          "local": {
+            "cached_wall_s": 31970.067,
+            "uncached_wall_s": 140211.982,
+            "cached_ttft_median_s": 1.558
+          }
+        },
+        "ratio": {
+          "cached": 1.899,
+          "uncached": 5.83
+        }
+      },
+      {
+        "name": "writes-5m-ttl",
+        "per": {
+          "frontier": {
+            "cached_wall_s": 16881.334,
+            "uncached_wall_s": 27219.884,
+            "cached_ttft_median_s": 0.104
+          },
+          "local": {
+            "cached_wall_s": 32697.75,
+            "uncached_wall_s": 187775.989,
+            "cached_ttft_median_s": 1.558
+          }
+        },
+        "ratio": {
+          "cached": 1.937,
+          "uncached": 6.898
+        }
+      }
+    ],
+    "anchors": [],
+    "ttl": [
+      {
+        "ttl_seconds": 300,
+        "gaps": 842,
+        "median_gap_s": 12.633,
+        "max_gap_s": 2990.077,
+        "expiries": 10,
+        "expiry_pct": 1.188
+      },
+      {
+        "ttl_seconds": 3600,
+        "gaps": 842,
+        "median_gap_s": 12.633,
+        "max_gap_s": 2990.077,
+        "expiries": 0,
+        "expiry_pct": 0
+      }
+    ]
+  },
+  "census": {
+    "calls": 843,
+    "models": {
+      "claude-opus-4-8": 843
+    },
+    "cache_read": {
+      "n": 843,
+      "sum": 155078239,
+      "avg": 183959.951,
+      "median": 147220,
+      "max": 582874
+    },
+    "cache_write": {
+      "n": 843,
+      "sum": 4241578,
+      "avg": 5031.528,
+      "median": 1556,
+      "max": 206850
+    },
+    "input": {
+      "n": 843,
+      "sum": 1686,
+      "avg": 2,
+      "median": 2,
+      "max": 2
+    },
+    "output": {
+      "n": 843,
+      "sum": 995907,
+      "avg": 1181.384,
+      "median": 732,
+      "max": 21484
+    },
+    "read_write_ratio": 36.561,
+    "context_tokens": 159321503,
+    "output_tokens": 995907,
+    "context_share_pct": 99.379,
+    "output_suspect": false
+  }
+}

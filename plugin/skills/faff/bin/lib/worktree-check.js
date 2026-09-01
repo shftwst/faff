@@ -87,33 +87,40 @@ function cmdWorktreeCheck(args) {
   const root = get("--root") || findRoot();
   const thresholdRaw = get("--behind-threshold");
   const threshold = thresholdRaw == null ? 0 : Number(thresholdRaw);
-  if (thresholdRaw != null && !Number.isFinite(threshold)) {
-    return usageError([{ code: "bad-enum", flag: "--behind-threshold", detail: `--behind-threshold must be a number, got ${thresholdRaw}` }], "usage: faff worktree-check --issue ID [--root DIR] [--behind-threshold N] [--json]");
+  if (thresholdRaw != null && (!Number.isFinite(threshold) || threshold < 0)) {
+    return usageError([{ code: "bad-enum", flag: "--behind-threshold", detail: `--behind-threshold must be a non-negative number, got ${thresholdRaw}` }], "usage: faff worktree-check --issue ID [--root DIR] [--behind-threshold N] [--json]");
   }
 
-  const fail = (msg) => {
-    if (asJson) console.log(JSON.stringify({ issue, error: msg }));
+  // `reason` distinguishes the ONE exit-2 cause a caller may safely treat as "nothing to
+  // reuse, create fresh" (no-worktree — no admin-dir/branch collision to hit) from every other
+  // exit-2 cause, where a worktree for this issue ALREADY EXISTS and a naive fresh-create would
+  // collide with it (`fatal: '<branch>' is already checked out …`) or re-fail on the same
+  // unresolvable base. Those other causes mean "cannot certify — a worktree is already there",
+  // which the caller must treat like a stale-rebase conflict (park/warn), never a fresh-create
+  // fall-through.
+  const fail = (msg, reason) => {
+    if (asJson) console.log(JSON.stringify({ issue, error: msg, reason }));
     else process.stderr.write(`faff worktree-check: ${msg}\n`);
     return 2;
   };
 
   const entries = parseWorktreeEntries(root);
-  if (entries === null) return fail("not a git work tree (or git unavailable)");
+  if (entries === null) return fail("not a git work tree (or git unavailable)", "git-unavailable");
 
   const sel = { paths: [], branch: null, issue };
   const matches = entries.filter((e) => ownMatches(e, sel));
-  if (matches.length === 0) return fail(`no worktree resolvable for issue '${issue}' — nothing to reuse (create fresh)`);
-  if (matches.length > 1) return fail(`ambiguous: ${matches.length} worktrees match issue '${issue}' — cannot certify which to check`);
+  if (matches.length === 0) return fail(`no worktree resolvable for issue '${issue}' — nothing to reuse (create fresh)`, "no-worktree");
+  if (matches.length > 1) return fail(`ambiguous: ${matches.length} worktrees match issue '${issue}' — cannot certify which to check`, "ambiguous-match");
   const entry = matches[0];
-  if (!entry.branch) return fail(`worktree '${entry.path}' for issue '${issue}' has no resolvable branch`);
+  if (!entry.branch) return fail(`worktree '${entry.path}' for issue '${issue}' has no resolvable branch`, "no-branch");
 
   const { base, detail } = resolveBaseRef(entry.path);
-  if (!base) return fail(`cannot certify freshness — base ref unresolvable: ${detail}`);
+  if (!base) return fail(`cannot certify freshness — base ref unresolvable: ${detail}`, "base-unresolvable");
 
   const r = spawnSync("git", ["-C", entry.path, "rev-list", "--count", `${entry.branch}..${base}`], { encoding: "utf8" });
   const behindRaw = r.status === 0 && typeof r.stdout === "string" ? r.stdout.trim() : NaN;
   const cls = classifyWorktreeStaleness({ behind: Number(behindRaw), threshold });
-  if (cls.error) return fail(`cannot certify freshness — ${cls.error} (git rev-list exit ${r.status})`);
+  if (cls.error) return fail(`cannot certify freshness — ${cls.error} (git rev-list exit ${r.status})`, "unreadable-behind");
 
   const result = { issue, worktree_path: entry.path, branch: entry.branch, base_ref: base, behind: cls.behind, threshold: cls.threshold, stale: cls.stale };
   if (asJson) console.log(JSON.stringify(result));

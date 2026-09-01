@@ -96,14 +96,42 @@ test("worktree-check reports FRESH (behind: 0) for a worktree current with main"
   }
 });
 
-test("worktree-check exits 2 (cannot certify) for an issue with no resolvable worktree — never a false fresh", () => {
+test("worktree-check exits 2 (cannot certify) for an issue with no resolvable worktree — reason: no-worktree, never a false fresh", () => {
   const root = makeFixture();
   try {
     const { stdout, stderr, code } = runCli(["worktree-check", "--issue", "faff-948-nonexistent", "--json"], { cwd: root });
     assert.equal(code, 2, stdout + stderr);
     // Never a fresh/stale claim — no worktree exists to certify against.
     assert.ok(!/"stale":(true|false)/.test(stdout), "an unresolvable issue must never emit a stale/fresh verdict");
+    const result = JSON.parse(stdout);
+    // reason: "no-worktree" is the ONE exit-2 cause a caller may fall through to a fresh
+    // create for — every other reason means a worktree for the issue already exists and a
+    // fresh-create would collide with it. Locking this in prevents the two classes drifting
+    // back together.
+    assert.equal(result.reason, "no-worktree");
   } finally {
+    rmSync(root, { recursive: true, force: true, maxRetries: 3 });
+  }
+});
+
+test("worktree-check exits 2 with reason: ambiguous-match when two worktrees token-match the same issue — a worktree DOES exist, so this must never read as no-worktree", () => {
+  const root = makeFixture();
+  let wt1, wt2;
+  try {
+    git(root, "branch", "faff-948-dup-case");
+    git(root, "branch", "faff-948-dup-case-extra");
+    wt1 = path.join(root, ".worktrees", "faff-948-dup-case");
+    wt2 = path.join(root, ".worktrees", "faff-948-dup-case-extra");
+    git(root, "worktree", "add", wt1, "faff-948-dup-case");
+    git(root, "worktree", "add", wt2, "faff-948-dup-case-extra");
+
+    // "faff-948-dup-case" token-matches BOTH branches (the second is a superset token-run).
+    const { stdout, code } = runCli(["worktree-check", "--issue", "faff-948-dup-case", "--json"], { cwd: root });
+    assert.equal(code, 2, stdout);
+    const result = JSON.parse(stdout);
+    assert.equal(result.reason, "ambiguous-match", "a worktree already exists here — this must never be reason: no-worktree");
+  } finally {
+    for (const wt of [wt1, wt2]) if (wt) spawnSync("git", ["-C", root, "worktree", "remove", "--force", wt]);
     rmSync(root, { recursive: true, force: true, maxRetries: 3 });
   }
 });

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-948",
+  "build": {
+    "status": "complete",
+    "diff_hash": "45196788ef8d75224eb6f306a510e0964a93003aeadefa418a74a64e330a0ba2",
+    "branch": "faff-948-graft-reuses-an-issues-existing-worktree-without-checking",
+    "pushed_at": "2026-09-01T08:37:48.972Z"
+  },
+  "updated_at": "2026-09-01T08:37:48.972Z"
+}

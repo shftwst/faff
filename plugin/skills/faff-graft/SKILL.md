@@ -167,8 +167,19 @@ Run `git worktree list` and check if a worktree for this issue already exists (m
 
 If a worktree already exists:
 - Verify the checked-out branch matches the expected branch name. Warn if not.
-- Tell the user the worktree exists and open it.
-- Skip to step 5 (status update). Spec was already committed on first graft.
+
+**Reuse-path staleness gate (runs before "Skip to step 5", both modes).** The fresh-create path already bases every new worktree off the fetched `origin/<default>` (fail-loud, above); the REUSE arm above has no equivalent — a worktree from a prior run otherwise keeps its original base indefinitely, and reuse alone would silently run the gate ladder and the build against stale code merged to `main` since it forked (an observed incident: a reused worktree missed two merges and burned real review compute on code that could not succeed against the tooling under test). Before trusting the existing worktree, certify its base:
+
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+"$faff" worktree-check --issue <ISSUE-XX> --root "$repo_root" --json
+```
+
+- **Fresh (exit 0)** → reuse exactly as today: tell the user/log that the worktree exists and open it, skip to Step 5 (status update; spec was already committed on first graft).
+- **Stale (exit 1)** → emit a loud note (the JSON's `worktree_path`, `base_ref`, and `behind` count) — to stderr always, and additionally to `.faff/runs/<run-id>/ISSUE-XX/graft.md` under autonomous mode — then remediate in place rather than building on the stale base: `git -C "<worktree_path>" fetch && git -C "<worktree_path>" rebase <base_ref>`, both values taken from the JSON `worktree-check` just printed (never a separately-tracked path variable — the JSON is the single source for where the existing worktree lives). A clean rebase preserves the branch's already-committed spec/build work and continues into the reuse flow above (now on a current base) — open the worktree, skip to Step 5. A rebase **conflict**: **autonomous** — abort the rebase (`git -C "<worktree_path>" rebase --abort`), log the conflict to `graft.md`, and return `parked` (cause "reused worktree base stale and rebase conflicted — needs human"), never building on a half-rebased or still-stale tree; **interactive** — surface the same WARN and hand the conflict to the human to resolve (remove-and-recreate is their fallback if they prefer to discard the branch's committed state).
+- **Error (exit 2)** → the JSON's `reason` field tells you which of two shapes this is — **never treat every exit-2 the same**, since for four of the five causes a worktree for this issue already exists and a naive fresh-create would collide with it:
+  - **`reason: "no-worktree"`** — genuinely nothing to reuse (the only cause with no existing checkout in the way) → log it and fall through to the **no-worktree fresh-create path** below (which itself bases off the fetched default) exactly as if `git worktree list` had found nothing.
+  - **any other `reason`** (`ambiguous-match`, `no-branch`, `base-unresolvable`, `unreadable-behind`, `git-unavailable`) — a worktree for this issue already exists but its freshness cannot be certified, so a fresh-create would either collide (`fatal: '<branch>' is already checked out …`) or re-fail identically → treat exactly like the stale-rebase-conflict case above: **autonomous** parks (cause "existing worktree found but its freshness could not be certified: <reason>" — needs human), **interactive** WARNs with the reason and hands it to the human. Never a silent stale reuse, and never a fresh-create attempt against a path that is already checked out.
 
 If no worktree exists:
 

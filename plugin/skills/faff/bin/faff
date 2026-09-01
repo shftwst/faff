@@ -113,6 +113,7 @@ const { cmdTier } = require("./lib/tier");
 const { cmdTracker } = require("./lib/tracker");
 const { cmdTurncheck } = require("./lib/turncheck");
 const { cmdValidateAdapters } = require("./lib/validate-adapters");
+const { cmdWorktreeCheck } = require("./lib/worktree-check");
 const { cmdWorktreePrune } = require("./lib/worktree-prune");
 
 // ===========================================================================
@@ -226,6 +227,7 @@ const COMMANDS = {
   "gates": cmdGates,
   "contract": cmdContract,
   "doctor": cmdDoctor,
+  "worktree-check": cmdWorktreeCheck,
   "worktree-prune": cmdWorktreePrune,
   "worktree-root": cmdWorktreeRoot,
   "lint-refs": cmdLintRefs,

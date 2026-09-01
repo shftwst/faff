@@ -256,6 +256,10 @@ const REGION_MAP = {
   "worktree-check": "factory",
   "worktree-prune": "factory",
   "worktree-root": "factory",
+  // review-target — FAFF-957: the worktree/PR-aware review-target resolver + ambient-cwd/branch
+  // mismatch guard. Reuses worktree-prune.js's matcher + worktree-check.js's base resolver — both
+  // factory — so it belongs in the same family.
+  "review-target": "factory",
   "stage-guard": "factory",
   "lint-refs": "factory",
   "lint-cli-doc": "factory",
@@ -450,6 +454,7 @@ const REGION_SELFTEST_ARGV = {
   "worktree-check": ["worktree-check", "--selftest"],
   "worktree-prune": ["worktree-prune", "--selftest"],
   "worktree-root": ["worktree-root", "--selftest"],
+  "review-target": ["review-target", "--selftest"],
   "stage-guard": ["stage-guard", "--selftest"],
   "lint-refs": ["lint-refs", "--selftest"],
   "lint-cli-doc": ["lint-cli-doc", "--selftest"],

@@ -90,6 +90,7 @@ const { cmdReconcileRecover } = require("./lib/reconcile-recover");
 const { cmdMachineId } = require("./lib/machine-id");
 const { cmdRegions } = require("./lib/regions");
 const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
+const { cmdReviewTarget } = require("./lib/review-target");
 const { cmdRunDone } = require("./lib/run-done");
 const { cmdRunLedger } = require("./lib/run-ledger");
 const { cmdRunOutward } = require("./lib/run-outward");
@@ -230,6 +231,7 @@ const COMMANDS = {
   "worktree-check": cmdWorktreeCheck,
   "worktree-prune": cmdWorktreePrune,
   "worktree-root": cmdWorktreeRoot,
+  "review-target": cmdReviewTarget,
   "lint-refs": cmdLintRefs,
   "lint-cli-doc": (args) => cmdLintCliDoc(args, COMMANDS),
   "lint-cli-coverage": (args) => cmdLintCliCoverage(args, COMMANDS),

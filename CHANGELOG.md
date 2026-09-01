@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/shftwst/faff/compare/faff--v0.25.0...faff--v0.26.0) (2026-09-01)
+
+
+### Features
+
+* **FAFF-607:** Lean the gateway prose (FAFF-487): -2,260 tokens, behaviour-preserving ([#814](https://github.com/shftwst/faff/issues/814)) ([958bc26](https://github.com/shftwst/faff/commit/958bc265447094e98af2a8ce6a44edabf1a93855))
+
 ## [0.25.0](https://github.com/shftwst/faff/compare/faff--v0.24.0...faff--v0.25.0) (2026-09-01)
 
 

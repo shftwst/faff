@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-958",
+  "build": {
+    "status": "complete",
+    "diff_hash": "76fbce9fd7cbcdcc0918ecead56b0b4c5d615ba3b03f52960de022cf52bca9d9",
+    "branch": "faff-958-faff-events-anchor-snapshots-a-drifted-run-ledger-fold-so",
+    "pushed_at": "2026-09-01T16:04:10.805Z"
+  },
+  "updated_at": "2026-09-01T16:04:10.805Z"
+}

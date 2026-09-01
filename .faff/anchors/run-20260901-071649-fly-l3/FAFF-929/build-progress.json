@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-929",
+  "build": {
+    "status": "complete",
+    "diff_hash": "af14fb721a0d3e2b194e4fbf5ef50004a72520edfbf82769ea32c13e427aa3a6",
+    "branch": "faff-929-stale-decisions-register-intent-is-materialised-into",
+    "pushed_at": "2026-09-01T10:49:42.002Z"
+  },
+  "updated_at": "2026-09-01T10:49:42.002Z"
+}

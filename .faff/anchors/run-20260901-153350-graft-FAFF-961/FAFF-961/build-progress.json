@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-961",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ad5d86cf4ac4cb30187d3b66ad28f7762d855baabc25be79032101b3196c99e4",
+    "branch": "faff-961-code-blind-holdout-integration-tier-delegation",
+    "pushed_at": "2026-09-01T15:51:12.516Z"
+  },
+  "updated_at": "2026-09-01T15:51:12.516Z"
+}

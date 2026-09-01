@@ -13,8 +13,8 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  andonStatePath, buildNotification, classifyEvent, formatPayload, ntfyPriority,
-  resolveAndonConfig, runPump,
+  andonStatePath, buildNotification, classifyEvent, formatPayload, isSlackShapedUrl, ntfyPriority,
+  realPostRaw, resolveAndonConfig, runPump, slackText,
 } from "../plugin/skills/faff/bin/lib/andon.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -478,4 +478,255 @@ test("pump against a missing run dir is a usage error (exit 2), never a silent n
     const r = await run(["andon", "pump", "--run-dir", join(root, "does-not-exist"), "--root", root]);
     assert.equal(r.code, 2);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- FAFF-926: no top-level `text` on Slack payloads (renderer bug) ------------------
+//
+// Root cause: `resolveAndonConfig` resolved an unset `andon.format` to "generic" even
+// against a Slack webhook URL, and the `generic` preset never carries a top-level
+// `text` — Slack rejects the POST with HTTP 400 no_text. D1 infers `format: "slack"`
+// from an unset format + a Slack-shaped host; D2 hardens the `slack` preset so its
+// `text` is never empty/whitespace-only; D3-D5 add the `faff andon send --check`
+// end-to-end delivery probe.
+
+test("isSlackShapedUrl: hooks.slack.com / *.slack.com match, everything else (incl. malformed) does not", () => {
+  assert.equal(isSlackShapedUrl("https://hooks.slack.com/services/T/B/C"), true);
+  assert.equal(isSlackShapedUrl("https://HOOKS.SLACK.COM/x"), true, "case-insensitive host match");
+  assert.equal(isSlackShapedUrl("https://team-name.slack.com/hook"), true);
+  assert.equal(isSlackShapedUrl("https://example.com/hook"), false);
+  assert.equal(isSlackShapedUrl("https://notslack.com/hook"), false, "suffix match only on the dot boundary");
+  assert.equal(isSlackShapedUrl("not a url"), false);
+});
+
+test("D1: resolveAndonConfig — format UNSET + hooks.slack.com URL ⇒ inferred 'slack' (the live-box shape)", () => {
+  const root = tmp("andon-d1-infer-");
+  try {
+    writeConfig(root, "andon:\n  url: https://hooks.slack.com/services/T/B/C\n");
+    assert.equal(resolveAndonConfig(root).format, "slack");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("D1: resolveAndonConfig — an explicit format (incl. explicit 'generic') is always obeyed against a Slack URL", () => {
+  const root = tmp("andon-d1-explicit-");
+  try {
+    writeConfig(root, "andon:\n  url: https://hooks.slack.com/services/T/B/C\n  format: generic\n");
+    assert.equal(resolveAndonConfig(root).format, "generic", "explicit generic is not overridden by host inference");
+    writeConfig(root, "andon:\n  url: https://hooks.slack.com/services/T/B/C\n  format: ntfy\n");
+    assert.equal(resolveAndonConfig(root).format, "ntfy");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("D1: resolveAndonConfig — format unset + a NON-Slack URL stays 'generic' (unchanged default)", () => {
+  const root = tmp("andon-d1-nonslack-");
+  try {
+    writeConfig(root, "andon:\n  url: https://example.com/hook\n");
+    assert.equal(resolveAndonConfig(root).format, "generic");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("D2: slackText is total — non-empty title+body join by newline; empty/whitespace-only falls back, never empty", () => {
+  assert.equal(slackText({ title: "T", body: "B" }), "T\nB");
+  assert.equal(slackText({ run_id: "run-x", class: "sentry-trip", title: "", body: "" }), "faff run-x: sentry-trip");
+  assert.equal(slackText({ title: "", body: "" }), "faff andon notification");
+  assert.equal(slackText({ run_id: "r", class: "park", title: "   ", body: "\n" }), "faff r: park", "whitespace-only counts as empty");
+  assert.ok(slackText({}).trim() !== "", "slackText is total — never throws, never empty, even on a bare object");
+});
+
+test("S1: the live-box shape — unset format + Slack-shaped URL — POSTs a body with non-empty top-level `text`; server accepts it", async (t) => {
+  const posts = [];
+  const server = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      posts.push(body);
+      const parsed = JSON.parse(body);
+      // Mirrors the real Slack contract: reject an absent/empty/whitespace-only `text`.
+      if (typeof parsed.text === "string" && parsed.text.trim() !== "") { res.writeHead(200); res.end("ok"); }
+      else { res.writeHead(400); res.end("no_text"); }
+    });
+  });
+  t.after(() => new Promise((r) => server.close(r)));
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const port = server.address().port;
+
+  const root = tmp("andon-s1-live-root-"), runDir = tmp("andon-s1-live-run-");
+  try {
+    // The exact live-box shape from the ticket: a hooks.slack.com-style webhook, no andon.format key.
+    writeConfig(root, `andon:\n  url: http://127.0.0.1:${port}/hook\n`);
+    // A real webhook host wouldn't be 127.0.0.1, so drive format resolution directly against
+    // the Slack-shaped host contract, then verify the loopback server accepts the resulting payload.
+    const cfg = resolveAndonConfig(root);
+    assert.notEqual(cfg.format, "slack", "127.0.0.1 is not Slack-shaped by design — sanity check on the fixture");
+
+    writeEvents(runDir, [{ schema: 2, run_id: "run-x", seq: 0, type: "park", issue: "FAFF-1", phase: "prep", data: { reason: "needs-human" } }]);
+    const { body } = formatPayload("slack", { run_id: "run-x", class: "park", title: "faff run-x: FAFF-1 parked", body: "reason: needs-human" });
+    const posted = JSON.parse(body);
+    assert.ok(typeof posted.text === "string" && posted.text.trim() !== "", "the slack preset always carries a non-empty top-level text");
+
+    // End-to-end: point a config with an EXPLICIT format:slack (the effective post-D1 shape for a
+    // real hooks.slack.com URL) at the loopback server and confirm the pump delivers successfully.
+    writeConfig(root, `andon:\n  url: http://127.0.0.1:${port}/hook\n  format: slack\n`);
+    const r = await runPump(root, runDir);
+    assert.equal(r.sent, 1);
+    assert.equal(r.failed, 0);
+    assert.equal(posts.length, 1);
+    const parsedPost = JSON.parse(posts[0]);
+    assert.ok(typeof parsedPost.text === "string" && parsedPost.text.trim() !== "", "never no_text");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+// --- D4: realPostRaw — resolves {ok,statusCode,body} for 2xx AND non-2xx alike -------
+
+test("D4: realPostRaw resolves ok:true on 2xx and ok:false on non-2xx (never rejects on an HTTP status)", async (t) => {
+  const { server, url } = await loopbackServer(t, (req, res) => { res.writeHead(200); res.end("all good"); });
+  const okRes = await realPostRaw(url(), JSON.stringify({ text: "hi" }), { "content-type": "application/json" }, 2000);
+  assert.deepEqual(okRes, { ok: true, statusCode: 200, body: "all good" });
+  void server;
+});
+
+test("D4: realPostRaw resolves (not rejects) on a non-2xx HTTP response, carrying the body", async (t) => {
+  const { url } = await loopbackServer(t, (req, res) => { res.writeHead(400); res.end("no_text"); });
+  const res = await realPostRaw(url(), JSON.stringify({}), { "content-type": "application/json" }, 2000);
+  assert.deepEqual(res, { ok: false, statusCode: 400, body: "no_text" });
+});
+
+test("D4: realPostRaw rejects on a transport-level error (connection refused)", async (t) => {
+  const closed = await loopbackServer(t);
+  const closedUrl = closed.url();
+  await new Promise((r) => closed.server.close(r));
+  await assert.rejects(() => realPostRaw(closedUrl, "{}", { "content-type": "application/json" }, 2000));
+});
+
+// --- D3/D5: `faff andon send --check` — the end-to-end delivery probe ---------------
+
+test("S4: --check against a healthy (2xx) channel posts one real message, reports HTTP 200, exits 0", async (t) => {
+  const { url, posts } = await loopbackServer(t, (req, res) => { res.writeHead(200); res.end("ok"); });
+  const root = tmp("andon-check-ok-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n  format: slack\n`);
+    const r = await run(["andon", "send", "--check", "--root", root, "--json"]);
+    assert.equal(r.code, 0);
+    const parsed = JSON.parse(r.out);
+    assert.equal(parsed.check, true);
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.statusCode, 200);
+    assert.equal(posts.length, 1);
+    const body = JSON.parse(posts[0].body);
+    assert.ok(typeof body.text === "string" && body.text.trim() !== "", "the probe posts a real Slack-shaped payload");
+
+    const textResult = await run(["andon", "send", "--check", "--root", root]);
+    assert.equal(textResult.code, 0);
+    assert.match(textResult.out, /HTTP 200/);
+    assert.match(textResult.out, / ok/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("S5: --check against a 400 no_text-rejecting channel reports the failure and exits 1", async (t) => {
+  const { url } = await loopbackServer(t, (req, res) => { res.writeHead(400); res.end("no_text"); });
+  const root = tmp("andon-check-fail-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n`); // generic (non-slack host, format unset) — deliberately still-broken shape
+    const r = await run(["andon", "send", "--check", "--root", root, "--json"]);
+    assert.equal(r.code, 1);
+    const parsed = JSON.parse(r.out);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.statusCode, 400);
+
+    const textResult = await run(["andon", "send", "--check", "--root", root]);
+    assert.equal(textResult.code, 1);
+    assert.match(textResult.out, /HTTP 400/);
+    assert.match(textResult.out, /FAILED/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("S6: --check with andon.url unset prints 'not configured', exits 1, and makes no network call", async (t) => {
+  const { url, posts } = await loopbackServer(t);
+  const root = tmp("andon-check-nourl-");
+  try {
+    writeConfig(root, "tracking:\n  repo: x/y\n"); // no andon.url at all
+    const r = await run(["andon", "send", "--check", "--root", root]);
+    assert.equal(r.code, 1);
+    assert.match(r.out, /not configured/);
+    assert.equal(posts.length, 0, "no network call was made");
+    void url;
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--check does not require --class/--title/--body (dispatched before requireFlags)", async (t) => {
+  const { url } = await loopbackServer(t, (req, res) => { res.writeHead(200); res.end("ok"); });
+  const root = tmp("andon-check-noflags-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n`);
+    const r = await run(["andon", "send", "--check", "--root", root]); // no --class/--title/--body
+    assert.equal(r.code, 0, r.out + r.err);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--check synthesizes a fixed diagnostic title+body when none supplied (payload minimisation, N2)", async (t) => {
+  const { url, posts } = await loopbackServer(t, (req, res) => { res.writeHead(200); res.end("ok"); });
+  const root = tmp("andon-check-payload-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n`);
+    await run(["andon", "send", "--check", "--root", root]);
+    assert.equal(posts.length, 1);
+    const body = JSON.parse(posts[0].body);
+    assert.equal(body.title, "faff andon --check");
+    assert.match(body.body, /^end-to-end delivery probe — /);
+    assert.doesNotMatch(JSON.stringify(body), /```|diff --git|Chosen:/, "no spec/diff/transcript content leaks into the probe payload");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--check honours operator-supplied --class/--title/--body when given", async (t) => {
+  const { url, posts } = await loopbackServer(t, (req, res) => { res.writeHead(200); res.end("ok"); });
+  const root = tmp("andon-check-custom-");
+  try {
+    writeConfig(root, `andon:\n  url: ${url()}\n`);
+    await run(["andon", "send", "--check", "--class", "run-end", "--title", "custom title", "--body", "custom body", "--root", root]);
+    assert.equal(posts.length, 1);
+    const body = JSON.parse(posts[0].body);
+    assert.equal(body.title, "custom title");
+    assert.equal(body.body, "custom body");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--check transport error (connection refused) is reported and exits 1", async (t) => {
+  const closed = await loopbackServer(t);
+  const closedUrl = closed.url();
+  await new Promise((r) => closed.server.close(r));
+  const root = tmp("andon-check-transport-");
+  try {
+    writeConfig(root, `andon:\n  url: ${closedUrl}\n`);
+    const r = await run(["andon", "send", "--check", "--root", root, "--json"]);
+    assert.equal(r.code, 1);
+    const parsed = JSON.parse(r.out);
+    assert.equal(parsed.ok, false);
+    assert.ok(parsed.error, "a transport-error result carries an error message");
+
+    const textResult = await run(["andon", "send", "--check", "--root", root]);
+    assert.equal(textResult.code, 1);
+    assert.match(textResult.out, /transport error/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("S7 / AC3: --check is diagnostic-only — ordinary pump/send fail-open exit-0 behaviour is unchanged", async (t) => {
+  const closed = await loopbackServer(t);
+  const closedUrl = closed.url();
+  await new Promise((r) => closed.server.close(r));
+  const root = tmp("andon-check-noregress-"), runDir = tmp("andon-check-noregress-run-");
+  try {
+    writeConfig(root, `andon:\n  url: ${closedUrl}\n`);
+    writeEvents(runDir, [{ schema: 2, run_id: "r", seq: 0, type: "park", issue: "FAFF-1", phase: "prep", data: { reason: "x" } }]);
+    const pumpResult = await run(["andon", "pump", "--run-dir", runDir, "--root", root, "--json"]);
+    assert.equal(pumpResult.code, 0, "ordinary pump still exits 0 on a refusing endpoint");
+    const sendResult = await run(["andon", "send", "--class", "park", "--title", "T", "--body", "B", "--root", root, "--json"]);
+    assert.equal(sendResult.code, 0, "ordinary send still exits 0 on a refusing endpoint (--check absent)");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(runDir, { recursive: true, force: true }); }
+});
+
+test("N3: --check is added to ANDON_SPEC.flags / ANDON_USAGE without touching send's required_flags", async () => {
+  const mod = await import("../plugin/skills/faff/bin/lib/andon.js");
+  assert.ok(mod.ANDON_SPEC.flags["--check"], "--check is a declared flag");
+  assert.equal(mod.ANDON_SPEC.flags["--check"].arity, 0);
+  assert.deepEqual(mod.ANDON_SURFACE.subcommands.send.required_flags, ["--class", "--title", "--body"],
+    "an ordinary (non-check) send still requires class/title/body — unchanged");
 });

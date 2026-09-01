@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-926",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3f83b6ea9b68d4e231ae48a3af91eeab323021129b496bb55682351b7ddb956b",
+    "branch": "faff-926-faff-andon-slack-delivery-posts-no-text-field-every",
+    "pushed_at": "2026-09-01T16:05:06.019Z"
+  },
+  "updated_at": "2026-09-01T16:05:06.019Z"
+}

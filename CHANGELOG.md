@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.25.0](https://github.com/shftwst/faff/compare/faff--v0.24.0...faff--v0.25.0) (2026-09-01)
+
+
+### Features
+
+* **FAFF-929:** reconcile decisions-register intents against the finalised spec ([#808](https://github.com/shftwst/faff/issues/808)) ([79f214f](https://github.com/shftwst/faff/commit/79f214f04fd65d3ac6e7d6bbf3768e2508a52288))
+* **FAFF-961:** verification_tier tagging — delegate integration-tier DoD criteria off the code-blind holdout ([#811](https://github.com/shftwst/faff/issues/811)) ([47c1140](https://github.com/shftwst/faff/commit/47c114060f0f139ac689f50aa24a6d3d25e8902a))
+
+
+### Bug Fixes
+
+* **FAFF-926:** guarantee a non-empty top-level text on every Slack-bound andon payload ([#812](https://github.com/shftwst/faff/issues/812)) ([6820250](https://github.com/shftwst/faff/commit/68202503b96af2b8a9b7172a3bd80218932dc98e))
+* **FAFF-948:** certify a reused worktree's base before graft trusts it ([#806](https://github.com/shftwst/faff/issues/806)) ([2a28bbc](https://github.com/shftwst/faff/commit/2a28bbc195136007392292d32e5263cf32b7e199))
+* **FAFF-957:** worktree-aware review target + ambient-cwd/branch mismatch guard ([#809](https://github.com/shftwst/faff/issues/809)) ([04ae4f4](https://github.com/shftwst/faff/commit/04ae4f42f1ce2af0cc27a516ec24c367fd795b82))
+* **FAFF-958:** refuse to anchor a drifted run-ledger fold in faff events anchor ([#810](https://github.com/shftwst/faff/issues/810)) ([fdb8419](https://github.com/shftwst/faff/commit/fdb8419e83ccf21bb0832c7500685519a6976a39))
+
 ## [0.24.0](https://github.com/shftwst/faff/compare/faff--v0.23.0...faff--v0.24.0) (2026-09-01)
 
 

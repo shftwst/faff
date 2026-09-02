@@ -1,0 +1,88 @@
+{
+  "issue": "FAFF-965",
+  "all_verified": true,
+  "items": [
+    {
+      "section": "WHY",
+      "criterion": "faff config check on faff's own repo (.faffrc.yaml with capture: { decision_kernel: \"on\" }) emits no known-key finding for capture.",
+      "verified": true,
+      "evidence": "faff config check on /home/faff/app's own .faffrc.yaml -> 'config check: clean', exit 0. Also reproduced against a synthetic fixture repo with only capture: { decision_kernel: 'on' } -> exit 0."
+    },
+    {
+      "section": "WHY",
+      "criterion": "WRITABLE_NAMESPACES's membership, config set's write-guard (~L1099), and configSetSelftest's example-drift check are unchanged.",
+      "verified": true,
+      "evidence": "faff config set --selftest: all cases pass incl. 'namespace-drift: .faffrc.example.yaml top-level keys ⊆ WRITABLE_NAMESPACES (missing: none)'. New selftest case 'FAFF-965: WRITABLE_NAMESPACES excludes capture/provenance' passes."
+    },
+    {
+      "section": "WHAT",
+      "criterion": "READ_ONLY_NAMESPACES = { 'capture', 'provenance' } exists with a charter comment (read-via-dig, not config-set-writable, not in DEFAULTS).",
+      "verified": true,
+      "evidence": "plugin/skills/faff/bin/lib/config.js — READ_ONLY_NAMESPACES defined with charter comment immediately after WRITABLE_NAMESPACES."
+    },
+    {
+      "section": "WHAT",
+      "criterion": "The lint consumes the union WRITABLE_NAMESPACES ∪ READ_ONLY_NAMESPACES; both knownKeyLint call sites in computeConfigCheck pass the union, not WRITABLE_NAMESPACES.",
+      "verified": true,
+      "evidence": "Both knownKeyLint(...) call sites in computeConfigCheck repointed to RECOGNISED_NAMESPACES; verified by the full known-key selftest suite (14 existing + 10 new cases, all pass)."
+    },
+    {
+      "section": "HOW-behaviour",
+      "criterion": "A config doc with a top-level provenance: key produces no 'unrecognised top-level key' warning.",
+      "verified": true,
+      "evidence": "selftest case 'FAFF-965: provenance stanza → no known-key finding, exit 0' passes."
+    },
+    {
+      "section": "HOW-behaviour",
+      "criterion": "The known-key lint's 'Known namespaces:' message lists the full recognised union (including capture and provenance) sorted.",
+      "verified": true,
+      "evidence": "selftest case 'FAFF-965: Known-namespaces text lists the sorted recognised union incl. capture/provenance' passes; manually reproduced against a typo'd key, message includes both capture and provenance in sorted position."
+    },
+    {
+      "section": "HOW-behaviour",
+      "criterion": "A known-key configCheckSelftest case asserts a capture: stanza yields no known-key finding (and exit 0 absent other findings).",
+      "verified": true,
+      "evidence": "selftest case 'FAFF-965: capture stanza → no known-key finding, exit 0' passes."
+    },
+    {
+      "section": "HOW-drift-guard",
+      "criterion": "A --selftest case scans bin/lib/*.js for dig(<blessed-ident>, \"<ns>.…\") reads and asserts each namespace is in the recognised union; it passes on the current source.",
+      "verified": true,
+      "evidence": "missingRecognisedNamespaces() wired into configCheckSelftest, invoked via `faff config check --selftest`; case 'FAFF-965: recognised-namespaces drift guard passes on current source' passes against the real bin/lib/*.js tree."
+    },
+    {
+      "section": "HOW-drift-guard",
+      "criterion": "The guard uses an explicit CONFIG_DOC_IDENTS allowlist and an explicit exceptions list, each commented.",
+      "verified": true,
+      "evidence": "CONFIG_DOC_IDENTS and RECOGNISED_NAMESPACES_DRIFT_EXCEPTIONS both defined with comments in config.js; exceptions-suppression selftest case passes."
+    },
+    {
+      "section": "HOW-drift-guard",
+      "criterion": "Injecting a read of an unregistered namespace via a blessed identifier makes the guard fail, naming the offending namespace.",
+      "verified": true,
+      "evidence": "selftest case 'FAFF-965: drift guard flags an injected unregistered namespace via a blessed ident' passes (asserts missing.has('newns') and the offending file name)."
+    },
+    {
+      "section": "HOW-posture",
+      "criterion": "Known-key findings remain severity: \"warn\"; no unknown key hard-fails config check.",
+      "verified": true,
+      "evidence": "selftest case 'FAFF-965: unrecognised key stays severity warn' passes; direct fixture-repo check of a genuine unknown key (totally_bogus_namespace_xyz) exits 1 (not 2), severity warn, and correctly still names it as unrecognised."
+    },
+    {
+      "section": "Integration smoke test",
+      "criterion": "Fixture repo with capture: decision_kernel 'on' and no other faults -> no capture known-key finding, exit 0.",
+      "verified": true,
+      "evidence": "Reproduced live: /tmp/smoke-965-repo with only tracking.repo + capture.decision_kernel -> 'config check: clean', exit 0."
+    },
+    {
+      "section": "Integration smoke test",
+      "criterion": "config.js's --selftest (via the module selftest / faff validate-adapters) -> the new drift guard and the new known-key case both PASS.",
+      "verified": true,
+      "evidence": "faff config check --selftest -> RESULT: PASS (config check, 0 failed), all 10 new FAFF-965 cases ok."
+    }
+  ],
+  "unrelated_findings": {
+    "note": "faff gates run's declared full-suite UNIT rung reported errored due to a fixed 600s internal spawnSync cap (gates.js:422) at this repo's current test scale (~18min full run), not a real test failure. A direct, uncapped run of the full suite (node --import ./test/hermetic-env.mjs --test) completed: 4149/4169 pass, 9 fail — all 9 in test files that never reference lib/config.js (test/impure/setup-worktree-base.test.mjs FAFF-708 hook-mode subtests, test/oracle-triage.test.mjs, test/sentry-poller.test.mjs), and a re-run of the latter two files in isolation reproduced a different failure subset (2/38 vs 4 in the full run), consistent with pre-existing order-dependent/environmental flakiness. faff regions selftest --region factory (101 members, includes config.js's own module coverage) is 0 failed; --region governance has one pre-existing, documented, state-sensitive false-failure (budget) already called out in .faffrc.yaml as the reason regions selftest is excluded from the local gate ladder. Logged as discovered scope, not treated as a build blocker for this change.",
+    "discovered_scope_path": ".faff/runs/run-20260902-183401-fly-l3/FAFF-965/discovered-scope.json"
+  }
+}

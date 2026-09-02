@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-965",
+  "build": {
+    "status": "complete",
+    "diff_hash": "81998054c87be73f1c8c4fdc2955fda3e7190ab028b896497d3042e37da52fd8",
+    "branch": "faff-965-faff-config-check-false-warns-on-capture-known-namespaces",
+    "pushed_at": "2026-09-02T20:31:28.019Z"
+  },
+  "updated_at": "2026-09-02T20:31:28.019Z"
+}

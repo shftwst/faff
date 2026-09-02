@@ -1,0 +1,18 @@
+{
+  "signal": "pass",
+  "findings": [],
+  "adversarial_outcome": "chain-outage-skipped",
+  "phase1": {
+    "verdict": "pass",
+    "notes": "Standard structural review over the diff (git diff origin/main...HEAD): AC coverage checked against ac-checklist.json (all 12 DoD items verified), no obvious bugs, no scope creep (WRITABLE_NAMESPACES / config-set write-guard / example-drift check left untouched as the spec requires), spec fidelity confirmed against records/specs/2026-09-02-faff-965-config-check-false-warns-on-capture-design.md, no human-judgement flags (mechanical, low-risk, no security/privacy/irreversible-side-effect surface). One issue found and fixed during self-review: a charter comment on READ_ONLY_NAMESPACES named a standalone recognisedNamespacesDriftSelftest() function that had actually been folded into configCheckSelftest before the first commit — a stale reference, not a behavioural bug. Fixed in commit e30b16dc and re-verified (config check --selftest still PASS 0 failed)."
+  },
+  "phase2": {
+    "status": "chain-exhausted-no-findings",
+    "backends_tried": [
+      "openai/unsloth/Qwen3.8-27B-NVFP4 (spark-qwen-3-8, tailscale host)",
+      "openai/deepseek/deepseek-v4-flash-0731 (openrouter)",
+      "openai/glimmer (spark-glimmer, tailscale host)"
+    ],
+    "notes": "First attempt (deadline 3600s per .faffrc.yaml adversarial.deadline) terminated exit 7: the two spark-* backends use api_key_env: DUMMY_API_KEY, which is genuinely unset in this sandbox (auth-class fault, not a code finding); the openrouter backend (real OPENROUTER_API_KEY present) returned empty content. Re-ran with DUMMY_API_KEY set to a local placeholder so the spark backends could at least attempt a call: both spark backends then exhausted their sliced per-backend budget without responding, and the openrouter backend hit a transport failure (no first byte within 180s). review-call.mjs's own chain logic concluded 'adversarial chain exhausted (3 backends, none produced findings); terminal exit 5 -> pass+skip', but the outer review-spawn.mjs hard-kill deadline+grace fired before the process fully exited, so the wrapper's own returned exit code was 8 (same disposition class: pass + skip, logged loudly). No adversarial findings were obtained from any backend in this environment."
+  }
+}

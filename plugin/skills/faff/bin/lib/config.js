@@ -954,9 +954,9 @@ const WRITABLE_NAMESPACES = new Set([
 // with no DEFAULTS entry (a get/set asymmetry) and would force it into .faffrc.example.yaml to
 // satisfy configSetSelftest's example-drift check, over-promoting a read-only key as writable.
 // Every namespace the source reads via a blessed dig() call must be a member — asserted by the
-// recognisedNamespacesDriftSelftest guard below (config --selftest), which fails loud on drift
-// instead of silently reintroducing this bug (FAFF-949 added the `capture` read without this
-// entry; `provenance` was already dormant the same way).
+// recognised-namespaces drift --selftest case below (`faff config check --selftest`), which
+// fails loud on drift instead of silently reintroducing this bug (FAFF-949 added the `capture`
+// read without this entry; `provenance` was already dormant the same way).
 const READ_ONLY_NAMESPACES = new Set([
   "capture",    // decision-capture.js: dig(data, "capture.decision_kernel")
   "provenance", // harness.js: dig(cfgData, "provenance.harness" | "provenance.model")

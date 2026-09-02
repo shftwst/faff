@@ -16,7 +16,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references prep consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/review.md`. prep gates on the **fixed spec-readiness contract**; its `spec` slot inherits the gateway ambiently.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references prep consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/review.md`, `faff/references/park.md`. prep gates on the **fixed spec-readiness contract**; its `spec` slot inherits the gateway ambiently.
 
 ### Spec slot (always delegated)
 
@@ -571,7 +571,7 @@ Apply the gate to the producer's output:
 
 ### Park protocol
 
-Follow the shared park protocol (see the sibling `faff/references/kernel.md`):
+Follow the shared park protocol (see the sibling `faff/references/park.md`):
 - Post a tracker comment with cause (e.g. "low-confidence fresh-spec", "architectural change required in refresh")
 - Tag the issue `faff-parked` via `faff label add <issue> faff-parked` and its descriptor's write (gateway → **Control-label provisioning**)
 - Log to `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` with the full reasoning

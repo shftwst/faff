@@ -1,7 +1,7 @@
 {
   "_note": "Human-owned gateway block-to-consumer matrix (FAFF-963). Seeded from the FAFF-963 verified 61-block matrix, then human-owned. The planner reads this as the authoritative consumer set; the title scan is only a seed and a drift alarm, never the live classification. keep:true marks canonical/(fixed)/core blocks that are never move candidates.",
   "_schema": 1,
-  "_faff607_note": "FAFF-607 gateway split: wtf/map removed from 'Autonomous Mode Contract' consumers and wtf removed from 'Appetite for destruction' consumers — verified they reference no autonomous-contract anchors (wtf uses only the Calibration log sub-anchor, kept kernel-side), so the autonomous.md reference stays off interactive /faff-wtf and /faff-map (acceptance criterion: interactive wtf loads no autonomous-contract prose).",
+  "_faff607_note": "FAFF-607 gateway split: wtf/map removed from 'Autonomous Mode Contract' consumers and wtf removed from 'Appetite for destruction' consumers — verified they reference no autonomous-contract anchors (wtf uses only the Calibration log sub-anchor, moved to methodology.md by FAFF-970 and still off autonomous.md), so the autonomous.md reference stays off interactive /faff-wtf and /faff-map (acceptance criterion: interactive wtf loads no autonomous-contract prose).",
   "blocks": [
     {
       "title": "(preamble)",

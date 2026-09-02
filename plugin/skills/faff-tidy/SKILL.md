@@ -15,7 +15,7 @@ Tidy the backlog. Looks both ways in one pass:
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references tidy consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`. tidy assigns against the **fixed automation-routing contract**; its `methodology` / `routing_adaptor` slots inherit the gateway ambiently.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references tidy consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/park.md`. tidy assigns against the **fixed automation-routing contract**; its `methodology` / `routing_adaptor` slots inherit the gateway ambiently.
 
 **Consuming-project CLAUDE.md is context.** Read the consuming project's `CLAUDE.md` (and any docs it points at) before tidying. Treat it as clues to organisation and current workstream priority — what areas the project cares about right now, what's been deprioritised, naming conventions for groupings. Use this to inform priority calls when ordering ready/promotion suggestions and to spot mis-grouping in "Uncategorised".
 

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-968",
+  "build": {
+    "status": "complete",
+    "diff_hash": "51c25204f19a25c0bc2d494dcde920afe0f34f24b59a53469aa067b066750549",
+    "branch": "faff-968-adr-promotion-has-no-git-only-channel-adrs-silently-fail-to",
+    "pushed_at": "2026-09-02T22:22:54.685Z"
+  },
+  "updated_at": "2026-09-02T22:22:54.685Z"
+}

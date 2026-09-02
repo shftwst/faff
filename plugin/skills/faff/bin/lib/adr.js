@@ -17,7 +17,7 @@ const { parseArgs, requireFlags, usageError } = require("./argv");
 const ADR_SPEC = { flags: {
   "--json": { arity: 0 }, "--self": { arity: 0 }, "--selftest": { arity: 0 },
   "--actor": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 }, "--date": { arity: 1 },
-  "--exclude": { arity: 1 }, "--initiative": { arity: 1 }, "--issue": { arity: 1 },
+  "--exclude": { arity: 1 }, "--file": { arity: 1 }, "--initiative": { arity: 1 }, "--issue": { arity: 1 },
   "--lineage-supersessions": { arity: 1 }, "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 },
   "--root": { arity: 1 }, "--status": { arity: 1 }, "--supersedes-provenance": { arity: 1 },
   "--thrash-max": { arity: 1 }, "--title": { arity: 1 }, "--to": { arity: 1 },
@@ -39,6 +39,7 @@ const ADR_SURFACE = {
     supersede: { required_flags: ["--by"] },
     admit: { required_flags: [] },
     renumber: { required_flags: ["--to"] },
+    "extract-intent": { required_flags: [] },
   },
 };
 // FAFF-199: PRDR_ACTORS/PRDR_SUPERSEDES are reused verbatim (aliased) — the actor/supersedes
@@ -58,6 +59,36 @@ function adrDir(root) { return path.join(root, resolveAdrDocsPath(root, loadConf
 
 function adrSlug(title) {
   return String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "adr";
+}
+
+// FAFF-968: the deterministic section-locator behind `faff adr extract-intent` — graft Step 4b's
+// git-only fallback channel for the `## ADR promotion intent` block when no tracker comment
+// carries it. Case-insensitive on the heading text, leading-`#`-level tolerant (matches `#`
+// through `######`); the section runs to the next heading at the SAME OR SHALLOWER level, or to
+// end-of-blob. Section-location only — it does NOT parse individual decision entries (the two
+// producers — architecture-proposal per-entry, prep tail-step title+section — emit different
+// per-entry shapes; entry enumeration stays with the existing LLM read in Step 4b). Pure: no fs
+// write, no tracker, no network, no git. Returns null when no such heading is present.
+function extractAdrPromotionIntent(text) {
+  const lines = String(text).split(/\r?\n/);
+  const headingRe = /^(#{1,6})\s+(.+?)\s*$/;
+  let startIdx = -1;
+  let startLevel = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(headingRe);
+    if (m && m[2].trim().toLowerCase() === "adr promotion intent") {
+      startIdx = i;
+      startLevel = m[1].length;
+      break;
+    }
+  }
+  if (startIdx === -1) return null;
+  let endIdx = lines.length;
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const m = lines[i].match(headingRe);
+    if (m && m[1].length <= startLevel) { endIdx = i; break; }
+  }
+  return lines.slice(startIdx, endIdx).join("\n").replace(/\s+$/, "") + "\n";
 }
 
 // The metadata-field reader is shared with prd.js / prdr.js / decisions.js and lives in one home
@@ -464,7 +495,7 @@ function adrOfferRoute({ interactive, mode, contradicts, appetite }) {
 function cmdAdr(args) {
   if (args.includes("--selftest")) return adrSelftest();
   const parsed = parseArgs(args, ADR_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept> [flags]");
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept|extract-intent> [flags]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
   const root = get("--root") || findRoot();
@@ -603,7 +634,31 @@ function cmdAdr(args) {
     return r.code;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber | accept (or --selftest)\n");
+  if (action === "extract-intent") {
+    // FAFF-968: deterministic section-locator for the `## ADR promotion intent` block — the
+    // git-only fallback channel graft Step 4b reads when no tracker comment carries the intent.
+    // Mirrors `faff decisions intent-status`'s stdin / --file precedent (`--file -` = stdin, the
+    // conventional sentinel; a literal path named "-" is never intended). Pure: fs/stdin read
+    // only, no tracker, no network, no git.
+    const filePath = get("--file");
+    const readFromFile = filePath != null && filePath !== "-";
+    let body;
+    try {
+      body = readFromFile ? fs.readFileSync(filePath, "utf8") : fs.readFileSync(0, "utf8");
+    } catch (e) {
+      process.stderr.write(`faff adr extract-intent: cannot read ${readFromFile ? filePath : "stdin"}: ${e.message}\n`);
+      return 2;
+    }
+    const section = extractAdrPromotionIntent(body);
+    if (section == null) {
+      process.stderr.write("faff adr extract-intent: no '## ADR promotion intent' section found\n");
+      return 1;
+    }
+    process.stdout.write(section);
+    return 0;
+  }
+
+  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber | accept | extract-intent (or --selftest)\n");
   return 2;
 }
 
@@ -920,4 +975,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };

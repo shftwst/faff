@@ -802,7 +802,7 @@ test("FAFF-558: `budget baseline` fresh write populates BOTH tokens_at_start_by_
 
     const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
     assert.equal(persisted.budget.tokens_at_start, 7000);
-    assert.deepEqual(persisted.budget.tokens_at_start_by_model_class, { "claude-opus-4-8": { input: 5000, output: 0, cache_write: 0, cache_read: 2000 } });
+    assert.deepEqual(persisted.budget.tokens_at_start_by_model_class, { "claude-opus-4-8": { input: 5000, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 2000 } });
     assert.equal(persisted.budget.measure_session_id, sid, "FAFF-552: the effective measuring session must be persisted");
   } finally { f.cleanup(); }
 });
@@ -1137,7 +1137,7 @@ test("S1 (FAFF-488): --session-id resolves the transcript from a mismatched proc
     assert.equal(econ.status, 0, econ.stderr);
     const econJson = JSON.parse(econ.stdout);
     assert.equal(econJson.breakdown.source, "transcript");
-    assert.deepEqual(econJson.breakdown.rows.map((r) => r.key).sort(), ["cache_read", "cache_write", "input", "output"]);
+    assert.deepEqual(econJson.breakdown.rows.map((r) => r.key).sort(), ["cache_read", "cache_write_1h", "cache_write_5m", "input", "output"]);
     for (const row of econJson.breakdown.rows) {
       assert.ok(Number.isInteger(row.total) && row.total >= 0, `row ${row.key} total=${row.total}`);
     }

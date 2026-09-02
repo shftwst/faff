@@ -321,7 +321,7 @@ test("ordering is by seq, independent of ts (out-of-order ts keeps ascending seq
 
 // --- FAFF-408: token-tag (--tokens) ---------------------------------------
 
-const ZERO_BY_CLASS = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+const ZERO_BY_CLASS = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
 
 test("append --tokens: four-class delta from transcript; checkpoint advances", () => {
   const dir = tmp(); mkRun(dir, "R");
@@ -342,10 +342,10 @@ test("append --tokens: four-class delta from transcript; checkpoint advances", (
     // ledger-write (via the atomicWriteLedger fold), then the tagged payload event.
     assert.equal(ev.length, 2);
     assert.equal(ev[0].type, "ledger-write", "the checkpoint's ledger-write precedes the tagged payload event");
-    assert.deepEqual(ev[1].data.tokens, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
+    assert.deepEqual(ev[1].data.tokens, { input: 100, output: 20, cache_write_5m: 0, cache_write_1h: 5, cache_read: 0 });
     assert.equal(ev[1].data.tokens_source, "transcript");
     // checkpoint advanced to the fresh cumulative
-    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
+    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 100, output: 20, cache_write_5m: 0, cache_write_1h: 5, cache_read: 0 });
     // the ledger-write's hash is the post-write on-disk ledger bytes
     assert.equal(ev[0].data.ledger_sha256, createHash("sha256").update(readFileSync(ledgerPath(dir, "R"))).digest("hex"));
     // FAFF-679: Class A of the gateway's mid-bracket write rule — --tokens is a
@@ -383,9 +383,9 @@ test("append --tokens twice: second delta is baselined against the first (checkp
     // FAFF-564: each tagged append emits [ledger-write, payload] — 4 links total.
     const ev = lines(dir, "R");
     assert.deepEqual(ev.map((e) => e.type), ["ledger-write", "prep-done", "ledger-write", "issue-outcome"]);
-    assert.deepEqual(ev[3].data.tokens, { input: 50, output: 10, cache_write: 0, cache_read: 0 });
+    assert.deepEqual(ev[3].data.tokens, { input: 50, output: 10, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
     assert.equal(ev[3].data.outcome, "shipped"); // pre-existing data preserved
-    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 150, output: 30, cache_write: 5, cache_read: 0 });
+    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 150, output: 30, cache_write_5m: 0, cache_write_1h: 5, cache_read: 0 });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -466,7 +466,7 @@ test("non-leak: a tagged event line carries no prompt/response payload, only the
     // ledger-write precedes it).
     const rawLines = readFileSync(logPath(dir, "R"), "utf8").split("\n").filter((l) => l.trim() !== "");
     const tok = JSON.parse(rawLines[rawLines.length - 1]).data.tokens;
-    assert.deepEqual(Object.keys(tok).sort(), ["cache_read", "cache_write", "input", "output"]);
+    assert.deepEqual(Object.keys(tok).sort(), ["cache_read", "cache_write_1h", "cache_write_5m", "input", "output"]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -482,7 +482,7 @@ test("parity: the --tokens delta sum equals budget check's total on the same tra
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
     // FAFF-564: the tagged payload is preceded by its checkpoint's ledger-write link.
     const delta = lines(dir, "R")[1].data.tokens;
-    const deltaSum = delta.input + delta.output + delta.cache_write + delta.cache_read;
+    const deltaSum = delta.input + delta.output + delta.cache_write_5m + delta.cache_write_1h + delta.cache_read;
     const b = run(dir, ["budget", "check", "--run-dir", join(dir, ".faff", "runs", "R"), "--root", dir], undefined,
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
     const budgetTokens = JSON.parse(b.out).spent.tokens;
@@ -511,7 +511,7 @@ test("S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects th
     // FAFF-564: [ledger-write, payload] — the tagged payload is the second link.
     const ev = lines(dir, "R");
     assert.equal(ev[1].data.tokens_source, "transcript");
-    assert.deepEqual(ev[1].data.tokens, { input: 10, output: 2, cache_write: 0, cache_read: 0 });
+    assert.deepEqual(ev[1].data.tokens, { input: 10, output: 2, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
 
     // faff events validate confirms the well-formed shape.
     const v = run(dir, ["events", "validate", "--file", logPath(dir, "R")]);
@@ -522,7 +522,7 @@ test("S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects th
     // exactly the four classes — nothing else.
     const raw = readFileSync(logPath(dir, "R"), "utf8");
     assert.ok(!raw.includes(sid), "the --session-id value must never appear in the emitted event line");
-    assert.deepEqual(Object.keys(ev[1].data.tokens).sort(), ["cache_read", "cache_write", "input", "output"]);
+    assert.deepEqual(Object.keys(ev[1].data.tokens).sort(), ["cache_read", "cache_write_1h", "cache_write_5m", "input", "output"]);
     // FAFF-679: the before/after ledger digest pair is additive, expected data — not a leak.
     assert.deepEqual(Object.keys(ev[1].data).sort(), ["ledger_sha256_after", "ledger_sha256_before", "tokens", "tokens_source"],
       "data carries tokens + tokens_source + the FAFF-679 ledger digest pair — no session id, no other extra field");

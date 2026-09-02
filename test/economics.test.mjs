@@ -338,7 +338,7 @@ test("FAFF-410 INTEGRATION: --by class --json reconciles to the top-line total",
     const e = JSON.parse(r.out);
     assert.equal(e.breakdown.axis, "class");
     assert.equal(e.breakdown.source, "transcript");
-    assert.deepEqual(e.breakdown.rows.map((x) => x.key), ["input", "output", "cache_write", "cache_read"]);
+    assert.deepEqual(e.breakdown.rows.map((x) => x.key), ["input", "output", "cache_write_5m", "cache_write_1h", "cache_read"]);
     assert.equal(e.breakdown.reconciliation.reconciles, true);
     assert.equal(e.breakdown.reconciliation.grand_total, 1685);
     assert.equal(e.breakdown.reconciliation.top_line_total, 1685);
@@ -504,7 +504,7 @@ test("FAFF-415 INTEGRATION: --by effort buckets events.jsonl dispatches, coverag
     // NON-LEAK: each breakdown row carries only counts/labels — no event payload keys.
     for (const row of e.breakdown.rows) {
       assert.deepEqual(Object.keys(row).sort(),
-        ["cache_read", "cache_write", "cost", "count", "input", "key", "output", "total"]);
+        ["cache_read", "cache_write_1h", "cache_write_5m", "cost", "count", "input", "key", "output", "total"]);
     }
   } finally { f.cleanup(); }
 });
@@ -605,7 +605,7 @@ test("FAFF-500 INTEGRATION: --by phase splits explore(child)/synthesis(parent)/b
     // rows carry only counts/labels/cost — no payload keys
     for (const row of bd.rows) {
       assert.deepEqual(Object.keys(row).sort(),
-        ["cache_read", "cache_write", "cost", "input", "key", "output", "tool_calls", "total", "turns"]);
+        ["cache_read", "cache_write_1h", "cache_write_5m", "cost", "input", "key", "output", "tool_calls", "total", "turns"]);
     }
   } finally { f.cleanup(); }
 });
@@ -1058,7 +1058,8 @@ test("FAFF-640: --by class --json folds engine spend into every row and reconcil
     const byKey = Object.fromEntries(bd.rows.map((x) => [x.key, x]));
     assert.equal(byKey.input.total, 1100, "class row totals equal transcript class counts plus engine class counts");
     assert.equal(byKey.output.total, 220);
-    assert.equal(byKey.cache_write.total, 0);
+    assert.equal(byKey.cache_write_5m.total, 0);
+    assert.equal(byKey.cache_write_1h.total, 0);
     assert.equal(byKey.cache_read.total, 0);
     assert.ok(bd.rows.every((row) => row.source === "transcript+engine-spend"),
       "every emitted class row carries the mixed source, not just the axis level");

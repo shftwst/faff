@@ -55,7 +55,24 @@ const EVENTS_SURFACE = {
     "anchor-run": { required_flags: ["--run-dir"] },
   },
 };
-const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
+const { TOKEN_DELTA_CLASSES, measureTokensByClass, routeUnknownTtlWrite } = require("./budget");
+
+// FAFF-964: a token-delta event persisted before the cache-write TTL split carries a
+// bare `cache_write` under data.tokens. Normalise it IN PLACE to the split shape
+// (cache_write → cache_write_1h at 2x, cache_write_5m 0) so a replayed/resumed legacy
+// event passes the data.tokens validator instead of failing on the renamed class.
+// A no-op for an already-split (or tokens-less) event.
+function normalizeLegacyEventTokens(data) {
+  const tok = data && data.tokens;
+  if (!tok || typeof tok !== "object" || Array.isArray(tok)) return;
+  if (!("cache_write" in tok)) return;
+  if (!("cache_write_5m" in tok) && !("cache_write_1h" in tok)) {
+    const routed = routeUnknownTtlWrite(Number.isFinite(tok.cache_write) ? tok.cache_write : 0);
+    tok.cache_write_5m = routed.cache_write_5m;
+    tok.cache_write_1h = routed.cache_write_1h;
+  }
+  delete tok.cache_write;
+}
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock } = require("./heartbeat");
 const { withFileLock } = require("./fs-lock");
@@ -219,6 +236,7 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
   // counts-ONLY four-class object (⇒ tokens_source "transcript"). No other field may
   // appear under data.tokens — the non-leak invariant (no prompt/response payload).
   if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) && "tokens" in obj.data) {
+    normalizeLegacyEventTokens(obj.data);   // FAFF-964: legacy bare cache_write → cache_write_1h before validation
     const tok = obj.data.tokens;
     const src = obj.data.tokens_source;
     if (tok === null) {
@@ -931,16 +949,15 @@ function cmdEvents(args) {
               ? b.tokens_at_last_event
               : (b.tokens_at_start_by_class && typeof b.tokens_at_start_by_class === "object")
                 ? b.tokens_at_start_by_class
-                : { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+                : { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
             delta = {};
             for (const cls of TOKEN_DELTA_CLASSES) {
               delta[cls] = Math.max(0, (measured.tokens[cls] || 0) - (checkpoint[cls] || 0));
             }
             fresh.budget = b;
-            fresh.budget.tokens_at_last_event = {
-              input: measured.tokens.input, output: measured.tokens.output,
-              cache_write: measured.tokens.cache_write, cache_read: measured.tokens.cache_read,
-            };
+            const nextCheckpoint = {};
+            for (const cls of TOKEN_DELTA_CLASSES) nextCheckpoint[cls] = measured.tokens[cls] || 0;
+            fresh.budget.tokens_at_last_event = nextCheckpoint;
             return fresh; // if the write throws, the catch degrades to estimate
           });
           if (res.written && delta) {
@@ -1349,7 +1366,9 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "bogus" } }, 1, "outcome not in ledger vocab"],
     [[], 1, "not an object"],
     // FAFF-408 — token-tag telemetry under data.tokens (additive; schema stays 1).
-    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 100, output: 20, cache_write: 5, cache_read: 0 }, tokens_source: "transcript" } }, 0, "valid 4-class transcript delta"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 100, output: 20, cache_write: 5, cache_read: 0 }, tokens_source: "transcript" } }, 0, "FAFF-964: legacy bare-cache_write delta normalised (→ cache_write_1h) and valid"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 100, output: 20, cache_write_5m: 3, cache_write_1h: 2, cache_read: 0 }, tokens_source: "transcript" } }, 0, "FAFF-964: valid 5-class split transcript delta"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write_5m: 3, cache_read: 4 }, tokens_source: "transcript" } }, 1, "FAFF-964: split delta missing cache_write_1h rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: null, tokens_source: "estimate" } }, 0, "valid null estimate delta"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4 }, tokens_source: "estimate" } }, 1, "4-class delta but source estimate (mismatch)"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: null, tokens_source: "transcript" } }, 1, "null delta but source transcript (mismatch)"],

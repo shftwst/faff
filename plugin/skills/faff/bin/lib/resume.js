@@ -286,12 +286,12 @@ function resumeSelftest() {
     owner: { status: "aborted-resumable", session_id: "old-sid", epoch: 0, started_at: "t0" },
     abort: { status: "aborted-resumable", signal: "budget-breach", wip_commit: "deadbee" },
     stop_reason: "sentry-abort",
-    budget: { envelope: { ceilings: {} }, tokens_at_start_by_model_class: { m: { input: 1, output: 0, cache_write: 0, cache_read: 0 } } },
+    budget: { envelope: { ceilings: {} }, tokens_at_start_by_model_class: { m: { input: 1, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 } } },
   };
   const beforeSnapshot = JSON.stringify(before);
   const { ledger: after, epoch } = applyResumeToLedger(before, {
     nowIso: "t1", sessionId: "new-sid", pid: 42, priorState: "aborted-resumable", plan,
-    budgetSessions: [{ session_id: "old-sid", baseline_by_model_class: {}, closed_delta_by_model_class: { m: { input: 5, output: 0, cache_write: 0, cache_read: 0 } }, closed_at: "t1", close_source: "transcript" }, { session_id: "new-sid", baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null }],
+    budgetSessions: [{ session_id: "old-sid", baseline_by_model_class: {}, closed_delta_by_model_class: { m: { input: 5, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 } }, closed_at: "t1", close_source: "transcript" }, { session_id: "new-sid", baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null }],
   });
   check("input ledger not mutated (pure)", JSON.stringify(before) === beforeSnapshot);
   check("epoch incremented 0→1", epoch === 1 && after.owner.epoch === 1);

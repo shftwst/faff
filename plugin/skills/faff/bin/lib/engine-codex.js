@@ -30,6 +30,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawn, spawnSync } = require("node:child_process");
 const { ENGINE_EXIT } = require("./engine");
+const { routeUnknownTtlWrite } = require("./budget");
 const { reasoningEffortForTransport } = require("./config");
 // FAFF-877: the shared bounded-operation supervisor — the codex exec spawn now runs
 // under it (async + detached + heartbeat-renewed) instead of a blocking spawnSync.
@@ -96,7 +97,12 @@ function parseCodexEvents(raw) {
 // adding both would count those tokens twice and, once codex models reach the
 // price map, bill them twice (at the full input rate AND the cache-read rate).
 //
-// `cache_write_input_tokens` -> `cache_write` (FAFF-666, settled by FAFF-724):
+// `cache_write_input_tokens` -> the cache-write classes (FAFF-666, settled by
+// FAFF-724; FAFF-964 TTL split): codex reports no TTL split for its cache-write, so
+// the whole amount is an unknown-TTL write and is routed through the shared
+// `routeUnknownTtlWrite` (→ `cache_write_1h`, the overcount-safe direction). A fresh
+// codex spend record therefore carries the split keys, and a legacy bare-`cache_write`
+// record is read back-compatibly by `readEngineSpend`.
 // codex-rs 0.147.0 maps it from `input_tokens_details.cache_write_tokens`.
 // OpenAI defines that object as the detailed breakdown of input tokens, and
 // codex's own parser fixture partitions 100 input tokens into 40 cached plus
@@ -117,7 +123,7 @@ function parseCodexEvents(raw) {
 // (an under-count, the safe direction — the same posture the transcript loop
 // takes on a malformed record).
 function sumCodexUsage(events) {
-  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const n = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
   for (const ev of events || []) {
     if (!ev || ev.type !== "turn.completed") continue;
@@ -127,7 +133,9 @@ function sumCodexUsage(events) {
     const cacheWrite = n(u.cache_write_input_tokens);
     totals.input += Math.max(0, n(u.input_tokens) - cached - cacheWrite);
     totals.output += n(u.output_tokens);
-    totals.cache_write += cacheWrite;
+    const routed = routeUnknownTtlWrite(cacheWrite);
+    totals.cache_write_5m += routed.cache_write_5m;
+    totals.cache_write_1h += routed.cache_write_1h;
     totals.cache_read += cached;
   }
   return totals;
@@ -439,9 +447,13 @@ async function codexSelftest() {
     ]);
     // input_tokens 10+1 = 11, of which 3 are cached → 8 non-cached input + 3 cache_read.
     ok("usage: sums turn.completed, splitting cached input OUT of the input class (disjoint, never double-counted)",
-      u.input === 8 && u.output === 7 && u.cache_read === 3 && u.cache_write === 0);
+      u.input === 8 && u.output === 7 && u.cache_read === 3 && u.cache_write_5m === 0 && u.cache_write_1h === 0);
     ok("usage: the two input classes partition input_tokens", u.input + u.cache_read === 11);
     ok("usage: a non-turn event's usage is not counted", u.input === 8);
+    // FAFF-964: codex reports no TTL split, so its cache-write routes entirely to 1h.
+    const uw = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 100, output_tokens: 0, cache_write_input_tokens: 60 } }]);
+    ok("usage: codex cache_write routes to cache_write_1h (unknown-TTL → 1h), subtracted out of input",
+      uw.cache_write_1h === 60 && uw.cache_write_5m === 0 && uw.input === 40);
     const empty = sumCodexUsage([{ type: "turn.completed" }, { type: "turn.completed", usage: { input_tokens: "x" } }]);
     ok("usage: missing/non-numeric fields contribute nothing (under-count, the safe direction)",
       empty.input === 0 && empty.output === 0 && empty.cache_read === 0);
@@ -464,7 +476,7 @@ async function codexSelftest() {
     ok("sink: record carries engine/provider/model + the exec-json-events source label",
       r && r.engine === "seat" && r.provider === "codex" && r.model === "gpt-5-codex" && r.source === "exec-json-events");
     ok("sink: record carries the class-mapped usage sums",
-      r && r.input === 10 && r.output === 5 && r.cache_read === 0 && r.cache_write === 0);
+      r && r.input === 10 && r.output === 5 && r.cache_read === 0 && r.cache_write_5m === 0 && r.cache_write_1h === 0);
     ok("sink: TURN_LINE carries no cached tokens, so input is unsplit here", r && r.input === 10);
     // FAFF-705: an inherit (no effort) call records NO effort key — byte-identity for pre-705 runs.
     ok("sink: inherit call omits the effort key (byte-identity)", r && !("effort" in r));

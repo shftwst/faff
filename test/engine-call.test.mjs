@@ -529,7 +529,7 @@ test("FAFF-604: sumCodexUsage totals turn.completed usage into the four token cl
     { type: "turn.completed", usage: { input_tokens: 2 } },
   ]);
   // 40 input of which 8 cached → 32 non-cached; plus 2 uncached from the second turn.
-  assert.deepEqual(u, { input: 34, output: 12, cache_write: 0, cache_read: 8 });
+  assert.deepEqual(u, { input: 34, output: 12, cache_write_5m: 0, cache_write_1h: 0, cache_read: 8 });
 });
 
 test("FAFF-604: a successful codex call hands the sink one record with class-mapped usage", async () => {
@@ -549,7 +549,7 @@ test("FAFF-604: a successful codex call hands the sink one record with class-map
   assert.equal(code, ENGINE_EXIT.OK);
   assert.deepEqual(recorded, [{
     ts: "2026-07-25T00:00:00Z", engine: "seat", provider: "codex", model: "gpt-5-codex",
-    source: "exec-json-events", input: 26, output: 9, cache_write: 0, cache_read: 4,
+    source: "exec-json-events", input: 26, output: 9, cache_write_5m: 0, cache_write_1h: 0, cache_read: 4,
   }]);
 });
 
@@ -721,7 +721,7 @@ test("FAFF-642: readEngineSpend totals are unchanged by the new attribution fiel
     sink({ ts: "t", engine: "e", provider: "p", model: "gpt-5-codex", source: "s", input: 10, output: 5, cache_write: 0, cache_read: 2 });
     const totals = readEngineSpend(runA);
     assert.equal(totals.records, 1);
-    assert.deepEqual(totals.totals, { input: 10, output: 5, cache_write: 0, cache_read: 2 });
+    assert.deepEqual(totals.totals, { input: 10, output: 5, cache_write_5m: 0, cache_write_1h: 0, cache_read: 2 });
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -753,7 +753,7 @@ test("FAFF-604 REGRESSION: codex cached input is a SUBSET of input_tokens, never
   // reports cached input INSIDE input_tokens (hence codex-rs's non_cached_input
   // helper), so counting both would bill those tokens twice.
   const u = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 40, output_tokens: 12, cached_input_tokens: 8 } }]);
-  assert.deepEqual(u, { input: 32, output: 12, cache_write: 0, cache_read: 8 });
+  assert.deepEqual(u, { input: 32, output: 12, cache_write_5m: 0, cache_write_1h: 0, cache_read: 8 });
   assert.equal(u.input + u.cache_read, 40, "the classes must partition input_tokens, not overlap it");
   // Incoherent stream (more cached than input) clamps rather than going negative.
   const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 9 } }]);
@@ -774,7 +774,7 @@ test("FAFF-666: the committed real observed payload (codex-cli-observed.md) tota
     { type: "turn.completed", usage: { input_tokens: 14775, cached_input_tokens: 12032, cache_write_input_tokens: 0, output_tokens: 6, reasoning_output_tokens: 0 } },
   ]);
   // 14775 - 12032 - 0 = 2743
-  assert.deepEqual(u, { input: 2743, output: 6, cache_write: 0, cache_read: 12032 });
+  assert.deepEqual(u, { input: 2743, output: 6, cache_write_5m: 0, cache_write_1h: 0, cache_read: 12032 });
 });
 
 test("FAFF-724: the Codex 0.147.0 source fixture buckets per the settled subset verdict", () => {
@@ -784,15 +784,15 @@ test("FAFF-724: the Codex 0.147.0 source fixture buckets per the settled subset 
   // OpenAI Codex's tagged parser test uses these exact values. Its input details
   // partition 100 into 40 cached + 60 cache-write tokens, while 5 reasoning
   // tokens remain inside the 10 output tokens and total_tokens stays 100 + 10.
-  assert.deepEqual(u, { input: 0, output: 10, cache_write: 60, cache_read: 40 });
-  assert.equal(u.input + u.cache_read + u.cache_write, 100);
+  assert.deepEqual(u, { input: 0, output: 10, cache_write_5m: 0, cache_write_1h: 60, cache_read: 40 });
+  assert.equal(u.input + u.cache_read + u.cache_write_5m + u.cache_write_1h, 100);
   assert.equal(u.output, 10, "reasoning tokens must not be added to output twice");
 });
 
 test("FAFF-666: an incoherent stream where cache_write_input_tokens alone exceeds input_tokens clamps at 0", () => {
   const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cache_write_input_tokens: 9 } }]);
   assert.equal(weird.input, 0);
-  assert.equal(weird.cache_write, 9, "cache_write is still recorded even when the input clamp fires");
+  assert.equal(weird.cache_write_1h, 9, "cache_write (unknown-TTL → 1h) is still recorded even when the input clamp fires");
 });
 
 test("FAFF-666: an incoherent stream where cached + cache_write TOGETHER exceed input_tokens clamps at 0 (the actual widened guard)", () => {
@@ -809,5 +809,5 @@ test("FAFF-666: an incoherent stream where cached + cache_write TOGETHER exceed 
   // undercount-on-`input`-only posture (unchanged since the pre-FAFF-666 `cached`-only
   // clamp), not a new double-count introduced here.
   assert.equal(weird.cache_read, 4);
-  assert.equal(weird.cache_write, 4);
+  assert.equal(weird.cache_write_1h, 4);
 });

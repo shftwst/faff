@@ -122,16 +122,62 @@ const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate", "park-until-w
 const BUDGET_TOKEN_USAGE_KEYS = [
   "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
 ];
-// FAFF-408: the four token-delta CLASSES (pivot-friendly names) and their mapping
-// onto the raw transcript usage keys above. `sumTranscriptFileByClass` splits by
-// these; the sum of the four equals `sumTranscriptFile` on the same file (parity).
-const TOKEN_DELTA_CLASSES = ["input", "output", "cache_write", "cache_read"];
+// FAFF-408: the token-delta CLASSES (pivot-friendly names) and their mapping onto
+// the raw transcript usage keys above. `sumTranscriptFileByClass` splits by these;
+// the sum of the classes equals `sumTranscriptFile` on the same file (parity).
+// FAFF-964: `cache_write` split by TTL into `cache_write_5m` (5-minute write, 1.25x
+// input) and `cache_write_1h` (1-hour write, 2x input). The two ephemeral counts are
+// nested under `usage.cache_creation` and are read by `classCountsFromUsage` (below),
+// not by a flat `TOKEN_CLASS_FROM_USAGE` lookup — so that map keeps only the three
+// flat classes; the two cache-write classes are computed by the helper.
+const TOKEN_DELTA_CLASSES = ["input", "output", "cache_write_5m", "cache_write_1h", "cache_read"];
 const TOKEN_CLASS_FROM_USAGE = {
   input: "input_tokens",
   output: "output_tokens",
-  cache_write: "cache_creation_input_tokens",
   cache_read: "cache_read_input_tokens",
 };
+
+// FAFF-964: the fail-safe TTL for a cache-creation write whose TTL is unknown — an
+// older/foreign transcript reporting only the flat aggregate, or a codex engine-spend
+// record (codex carries no TTL split). The un-split residual routes entirely to the
+// 1-hour rate (2x) for BOTH the governor and the reporting surface: one pricing
+// source, no divergence. This honours ADR-0059's overcount-never-undercount posture
+// (over-pricing an unknown write is the safe direction; under-counting a real 1h
+// write is the failure to avoid) and matches eval/tokenomics.mjs's observed-default
+// routing. `routeUnknownTtlWrite` is the ONE residual splitter shared by the usage
+// extractor and the two persisted-record read sites (engine spend, events).
+const UNKNOWN_TTL_WRITE_CLASS = "cache_write_1h";
+function routeUnknownTtlWrite(residual) {
+  const n = Number.isFinite(residual) && residual > 0 ? residual : 0;
+  return UNKNOWN_TTL_WRITE_CLASS === "cache_write_5m"
+    ? { cache_write_5m: n, cache_write_1h: 0 }
+    : { cache_write_5m: 0, cache_write_1h: n };
+}
+
+// FAFF-964: the ONE per-usage class extractor. Both the budget.js transcript read
+// loop and all three economics per-usage read loops delegate here, so there is a
+// single token-attribution path (the FAFF-229/408 guard-rail). The three flat
+// classes read via TOKEN_CLASS_FROM_USAGE unchanged; the two cache-write classes
+// read the ephemeral sub-fields under `usage.cache_creation`, clamp the un-split
+// residual, and route it via `routeUnknownTtlWrite`. Parity: for any record,
+// cache_write_5m + cache_write_1h == max(ephem_5m + ephem_1h, aggregate).
+function classCountsFromUsage(usage) {
+  const u = usage && typeof usage === "object" ? usage : {};
+  const finite = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  const counts = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
+  for (const cls of ["input", "output", "cache_read"]) {
+    counts[cls] = finite(u[TOKEN_CLASS_FROM_USAGE[cls]]);
+  }
+  const cc = u.cache_creation && typeof u.cache_creation === "object" ? u.cache_creation : {};
+  const ephem5m = finite(cc.ephemeral_5m_input_tokens);
+  const ephem1h = finite(cc.ephemeral_1h_input_tokens);
+  const aggregate = finite(u.cache_creation_input_tokens);
+  const residual = Math.max(0, aggregate - ephem5m - ephem1h);
+  const routed = routeUnknownTtlWrite(residual);
+  counts.cache_write_5m = ephem5m + routed.cache_write_5m;
+  counts.cache_write_1h = ephem1h + routed.cache_write_1h;
+  return counts;
+}
 
 // FAFF-427: per-model x per-class USD pricing — MOVED here from economics.js
 // (factory). budget.js (governance) is the region that GOVERNS spend (the
@@ -156,15 +202,15 @@ const TOKEN_CLASS_FROM_USAGE = {
 // this date, or set the override, when the nudge fires.
 const PRICE_TABLE_AS_OF = "2026-07-23";
 const PRICE_PER_MTOK = {
-  "claude-fable-5": { input: 10, output: 50, cache_write: 12.5, cache_read: 1.0 },
-  "claude-opus-4-8": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-opus-4-7": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-opus-4-6": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-opus-4-5": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-sonnet-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
-  "claude-sonnet-4-6": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
-  "claude-sonnet-4-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
-  "claude-haiku-4-5": { input: 1, output: 5, cache_write: 1.25, cache_read: 0.1 },
+  "claude-fable-5": { input: 10, output: 50, cache_write_5m: 12.5, cache_write_1h: 20, cache_read: 1.0 },
+  "claude-opus-4-8": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },
+  "claude-opus-4-7": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },
+  "claude-opus-4-6": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },
+  "claude-opus-4-5": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },
+  "claude-sonnet-5": { input: 3, output: 15, cache_write_5m: 3.75, cache_write_1h: 6, cache_read: 0.3 },
+  "claude-sonnet-4-6": { input: 3, output: 15, cache_write_5m: 3.75, cache_write_1h: 6, cache_read: 0.3 },
+  "claude-sonnet-4-5": { input: 3, output: 15, cache_write_5m: 3.75, cache_write_1h: 6, cache_read: 0.3 },
+  "claude-haiku-4-5": { input: 1, output: 5, cache_write_5m: 1.25, cache_write_1h: 2, cache_read: 0.1 },
 };
 
 // FAFF-579 item E: non-failing price-table freshness nudge. Guideline threshold —
@@ -195,7 +241,8 @@ function economicsPriceForModel(model, priceMap) {
   return {
     input: Number(row.input) || 0,
     output: Number(row.output) || 0,
-    cache_write: Number(row.cache_write) || 0,
+    cache_write_5m: Number(row.cache_write_5m) || 0,
+    cache_write_1h: Number(row.cache_write_1h) || 0,
     cache_read: Number(row.cache_read) || 0,
   };
 }
@@ -221,7 +268,7 @@ function resolveEconomicsPriceMap(cfg) {
 // This is deliberately the GOVERNOR's rule only; `economics` (a reporting, not a
 // governing, surface) keeps its existing cost:null-for-unpriced convention.
 function conservativePriceRow(priceMap) {
-  const row = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const row = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   for (const r of Object.values(priceMap || {})) {
     if (!r || typeof r !== "object") continue;
     for (const cls of TOKEN_DELTA_CLASSES) {
@@ -432,7 +479,7 @@ function transcriptBaseDir(cwd, env) {
 // check). Model id defaults to "unknown" when a record carries no message.model
 // (mirrors economics.js's existing per-model pivot rule).
 function sumTranscriptFileByModelClass(file) {
-  const by_class = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const by_class = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
   let text;
   try { text = fs.readFileSync(file, "utf8"); } catch { return { by_model, by_class }; }
@@ -445,12 +492,10 @@ function sumTranscriptFileByModelClass(file) {
       : (rec && rec.usage ? rec.usage : null);
     if (!usage || typeof usage !== "object") continue;
     const model = (rec.message && typeof rec.message.model === "string" && rec.message.model) || "unknown";
-    if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
     const mb = by_model.get(model);
-    for (const cls of TOKEN_DELTA_CLASSES) {
-      const v = usage[TOKEN_CLASS_FROM_USAGE[cls]];
-      if (typeof v === "number" && Number.isFinite(v)) { by_class[cls] += v; mb[cls] += v; }
-    }
+    const counts = classCountsFromUsage(usage);
+    for (const cls of TOKEN_DELTA_CLASSES) { by_class[cls] += counts[cls]; mb[cls] += counts[cls]; }
   }
   return { by_model, by_class };
 }
@@ -472,7 +517,7 @@ function sumTranscriptFileByClass(file) {
 // BUDGET_TOKEN_USAGE_KEYS mapped 1:1).
 function sumTranscriptFile(file) {
   const c = sumTranscriptFileByClass(file);
-  return c.input + c.output + c.cache_write + c.cache_read;
+  return c.input + c.output + c.cache_write_5m + c.cache_write_1h + c.cache_read;
 }
 
 // The owning session of a child agent-*.jsonl transcript: the top-level
@@ -553,7 +598,7 @@ function measureTokensByClass(opts) {
   // Transcript unavailable (no session id, dir missing, or session file absent —
   // e.g. CLAUDE_CODE_SKIP_PROMPT_HISTORY) → estimate fallback (caller computes).
   if (!files) return { tokens: null, source: "estimate" };
-  const acc = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const acc = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   for (const f of files) {
     const c = sumTranscriptFileByClass(f);
     for (const cls of TOKEN_DELTA_CLASSES) acc[cls] += c[cls];
@@ -576,13 +621,13 @@ function measureTokensByModelClass(opts) {
   const base = transcriptBaseDir(cwd, env);
   const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
   if (!files) return { source: "estimate" };
-  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
   for (const f of files) {
     const { by_model: fm, by_class: fc } = sumTranscriptFileByModelClass(f);
     for (const cls of TOKEN_DELTA_CLASSES) totals[cls] += fc[cls];
     for (const [model, counts] of fm) {
-      if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+      if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
       const mb = by_model.get(model);
       for (const cls of TOKEN_DELTA_CLASSES) mb[cls] += counts[cls];
     }
@@ -622,7 +667,7 @@ function appendEngineSpend(runDir, record) {
 // `malformed` carries the skipped count so economics can name it rather than
 // silently under-report. A missing file is the common case: zeros, no error.
 function readEngineSpend(runDir) {
-  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
   // FAFF-705: a JOINT model×effort aggregation the `economics --by effort` fold reads.
   // Keyed "<model> <effort>" (effort "(none)" when a record carries no effort field), so
@@ -649,21 +694,32 @@ function readEngineSpend(runDir) {
     try { rec = JSON.parse(s); } catch { malformed++; continue; }
     if (!rec || typeof rec !== "object") { malformed++; continue; }
     const model = (typeof rec.model === "string" && rec.model) || "unknown";
-    if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
     const mb = by_model.get(model);
     const effort = (typeof rec.effort === "string" && rec.effort) || "(none)";
     const meKey = `${model} ${effort}`;
-    if (!by_model_effort.has(meKey)) by_model_effort.set(meKey, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    if (!by_model_effort.has(meKey)) by_model_effort.set(meKey, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
     const meb = by_model_effort.get(meKey);
     const tsMatch = typeof rec.ts === "string" && /^(\d{4}-\d{2}-\d{2})/.exec(rec.ts);
     const day = tsMatch ? tsMatch[1] : "unknown";
     if (!by_day.has(day)) by_day.set(day, new Map());
     const dm = by_day.get(day);
-    if (!dm.has(model)) dm.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    if (!dm.has(model)) dm.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
     const db = dm.get(model);
     for (const cls of TOKEN_DELTA_CLASSES) {
       const v = rec[cls];
       if (typeof v === "number" && Number.isFinite(v)) { totals[cls] += v; mb[cls] += v; meb[cls] += v; db[cls] += v; }
+    }
+    // FAFF-964 back-compat: a legacy engine-spend record persisted before the TTL
+    // split carries a bare `cache_write` (codex reports no TTL split). Route it via
+    // routeUnknownTtlWrite (→ cache_write_1h) so already-persisted codex spend is
+    // never silently dropped on re-read (the ADR-0059 undercount this must avoid).
+    if (typeof rec.cache_write === "number" && Number.isFinite(rec.cache_write)) {
+      const routed = routeUnknownTtlWrite(rec.cache_write);
+      for (const cls of ["cache_write_5m", "cache_write_1h"]) {
+        const v = routed[cls];
+        if (v) { totals[cls] += v; mb[cls] += v; meb[cls] += v; db[cls] += v; }
+      }
     }
     if (typeof rec.engine === "string" && rec.engine) engines.add(rec.engine);
     records++;
@@ -683,21 +739,21 @@ function measureRunSpend(opts) {
   const { cwd, env, runStartMs, runDir, unmeteredEngines } = opts;
   const transcript = measureTokensByModelClass({ cwd, env, runStartMs });
   const engine_spend = readEngineSpend(runDir);
-  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
   const fold = (src) => {
     if (!src) return;
     for (const cls of TOKEN_DELTA_CLASSES) totals[cls] += (src.totals ? src.totals[cls] : 0) || 0;
     const m = src.by_model instanceof Map ? src.by_model : new Map();
     for (const [model, counts] of m) {
-      if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+      if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
       const mb = by_model.get(model);
       for (const cls of TOKEN_DELTA_CLASSES) mb[cls] += counts[cls] || 0;
     }
   };
   if (transcript.source === "transcript") fold(transcript);
   fold(engine_spend);
-  const sumOf = (t) => t.input + t.output + t.cache_write + t.cache_read;
+  const sumOf = (t) => t.input + t.output + t.cache_write_5m + t.cache_write_1h + t.cache_read;
   const sources = [];
   if (transcript.source === "transcript") {
     sources.push({ source: "transcript-jsonl", tokens: sumOf(transcript.totals) });
@@ -727,7 +783,7 @@ function measureTokens(opts) {
   const m = measureTokensByClass(opts);
   if (m.source !== "transcript") return { total: null, source: "estimate" };
   const t = m.tokens;
-  return { total: t.input + t.output + t.cache_write + t.cache_read, source: "transcript" };
+  return { total: t.input + t.output + t.cache_write_5m + t.cache_write_1h + t.cache_read, source: "transcript" };
 }
 
 // FAFF-527 — budget session-accumulation (shape (a)). A resumed run's ledger carries
@@ -765,7 +821,7 @@ function closedSessionsSpend(sessions) {
     const cd = span && span.closed_delta_by_model_class;
     if (!cd || typeof cd !== "object" || Array.isArray(cd)) continue;
     for (const [model, counts] of Object.entries(cd)) {
-      if (!byModel.has(model)) byModel.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+      if (!byModel.has(model)) byModel.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
       const mb = byModel.get(model);
       for (const cls of TOKEN_DELTA_CLASSES) { const n = Number(counts[cls]) || 0; mb[cls] += n; total += n; }
     }
@@ -967,7 +1023,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   const costConfigured = env.ceilings.cost != null;
   if (measuredFull.source === "transcript") {
     const wholeSessionTotal = measuredFull.totals.input + measuredFull.totals.output
-      + measuredFull.totals.cache_write + measuredFull.totals.cache_read;
+      + measuredFull.totals.cache_write_5m + measuredFull.totals.cache_write_1h + measuredFull.totals.cache_read;
     tokens = Math.max(0, wholeSessionTotal - tokensAtStart); // this-run delta, baselined at run start
     tokensSource = "transcript";
 
@@ -996,7 +1052,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
     // FAFF-527: fold prior CLOSED spans' per-model deltas into the map-pricing delta so
     // cost sums Σ closed + current-span (the token total below adds closedSpend.total too).
     for (const [model, counts] of closedSpend.byModel) {
-      const existing = tokensByModelDelta.get(model) || { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+      const existing = tokensByModelDelta.get(model) || { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
       for (const cls of TOKEN_DELTA_CLASSES) existing[cls] = (Number(existing[cls]) || 0) + (Number(counts[cls]) || 0);
       tokensByModelDelta.set(model, existing);
     }
@@ -1021,11 +1077,11 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   // event stream, whatever the transcript side could or couldn't resolve.
   const engineSpend = runSpend.engine_spend;
   const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
-    + engineSpend.totals.cache_write + engineSpend.totals.cache_read;
+    + engineSpend.totals.cache_write_5m + engineSpend.totals.cache_write_1h + engineSpend.totals.cache_read;
   tokens += engineSpendTotal;
   if (engineSpend.records > 0 && tokensByModelDelta) {
     for (const [model, counts] of engineSpend.by_model) {
-      const existing = tokensByModelDelta.get(model) || { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+      const existing = tokensByModelDelta.get(model) || { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
       for (const cls of TOKEN_DELTA_CLASSES) existing[cls] = (Number(existing[cls]) || 0) + (Number(counts[cls]) || 0);
       tokensByModelDelta.set(model, existing);
     }
@@ -1651,7 +1707,7 @@ function budgetSelftest(now = Date.now()) {
   ok("economicsPriceForModel known model", (() => { const p = economicsPriceForModel("claude-sonnet-4-6", PRICE_PER_MTOK); return p.input === 3 && p.cache_read === 0.3; })());
   ok("economicsPriceForModel dated-suffix strip", JSON.stringify(economicsPriceForModel("claude-opus-4-8-20260101", PRICE_PER_MTOK)) === JSON.stringify(economicsPriceForModel("claude-opus-4-8", PRICE_PER_MTOK)));
   ok("economicsPriceForModel unknown model → null", economicsPriceForModel("mystery-model", PRICE_PER_MTOK) === null);
-  const pm427 = resolveEconomicsPriceMap({ budget: { price_per_mtok_by_model: { "claude-opus-4-8": { input: 99, output: 99, cache_write: 99, cache_read: 99 } } } });
+  const pm427 = resolveEconomicsPriceMap({ budget: { price_per_mtok_by_model: { "claude-opus-4-8": { input: 99, output: 99, cache_write_5m: 99, cache_write_1h: 99, cache_read: 99 } } } });
   ok("resolveEconomicsPriceMap: config override wins per-model, built-ins retained", pm427["claude-opus-4-8"].input === 99 && pm427["claude-sonnet-4-6"].input === 3);
   ok("resolveEconomicsPriceMap: no override → built-in map (identity)", resolveEconomicsPriceMap({}) === PRICE_PER_MTOK);
 
@@ -1670,13 +1726,75 @@ function budgetSelftest(now = Date.now()) {
 
   // --- FAFF-427: conservativePriceRow / priceModelClassSums (fail-safe unpriced pricing) ---
   const consRow = conservativePriceRow(PRICE_PER_MTOK);
-  ok("conservativePriceRow: max per-class rate across the map", consRow.input === 10 && consRow.output === 50 && consRow.cache_write === 12.5 && consRow.cache_read === 1.0);
-  const priced1 = priceModelClassSums(new Map([["claude-sonnet-4-6", { input: 1_000_000, output: 0, cache_write: 0, cache_read: 0 }]]), PRICE_PER_MTOK);
+  ok("conservativePriceRow: max per-class rate across the map", consRow.input === 10 && consRow.output === 50 && consRow.cache_write_5m === 12.5 && consRow.cache_write_1h === 20 && consRow.cache_read === 1.0);
+  const priced1 = priceModelClassSums(new Map([["claude-sonnet-4-6", { input: 1_000_000, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 }]]), PRICE_PER_MTOK);
   ok("priceModelClassSums: known model priced at its own rate, no unpriced", Math.abs(priced1.cost - 3) < 1e-9 && priced1.unpriced_models.length === 0);
-  const priced2 = priceModelClassSums(new Map([["totally-unknown-model", { input: 1_000_000, output: 0, cache_write: 0, cache_read: 0 }]]), PRICE_PER_MTOK);
+  const priced2 = priceModelClassSums(new Map([["totally-unknown-model", { input: 1_000_000, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 }]]), PRICE_PER_MTOK);
   ok("priceModelClassSums: unknown model priced at the CONSERVATIVE (costliest) rate, named as unpriced", Math.abs(priced2.cost - 10) < 1e-9 && priced2.unpriced_models[0] === "totally-unknown-model");
   const priced3 = priceModelClassSums({}, PRICE_PER_MTOK);
   ok("priceModelClassSums: empty by-model map → cost 0, no unpriced", priced3.cost === 0 && priced3.unpriced_models.length === 0);
+
+  // --- FAFF-964: TTL-split cache-write pricing (5m 1.25x, 1h 2x; residual → 1h) ---
+  ok("PRICE_PER_MTOK opus carries both cache-write rates (5m 6.25, 1h 10)",
+    PRICE_PER_MTOK["claude-opus-4-8"].cache_write_5m === 6.25 && PRICE_PER_MTOK["claude-opus-4-8"].cache_write_1h === 10);
+  ok("economicsPriceForModel returns both cache-write rates",
+    (() => { const p = economicsPriceForModel("claude-opus-4-8", PRICE_PER_MTOK); return p.cache_write_5m === 6.25 && p.cache_write_1h === 10; })());
+  // A 1h write is priced at 2x input ($10 / MTok for opus), a 5m write at 1.25x ($6.25).
+  const price1h = priceModelClassSums(new Map([["claude-opus-4-8", { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 1_000_000, cache_read: 0 }]]), PRICE_PER_MTOK);
+  ok("priceModelClassSums: 1h write priced at 2x input ($10), not 1.25x", Math.abs(price1h.cost - 10) < 1e-9);
+  const price5m = priceModelClassSums(new Map([["claude-opus-4-8", { input: 0, output: 0, cache_write_5m: 1_000_000, cache_write_1h: 0, cache_read: 0 }]]), PRICE_PER_MTOK);
+  ok("priceModelClassSums: 5m write priced at 1.25x input ($6.25)", Math.abs(price5m.cost - 6.25) < 1e-9);
+  // classCountsFromUsage: mixed ephemeral split, residual zero, parity holds.
+  const ccMixed = classCountsFromUsage({ input_tokens: 3, output_tokens: 1, cache_read_input_tokens: 9, cache_creation_input_tokens: 300, cache_creation: { ephemeral_5m_input_tokens: 100, ephemeral_1h_input_tokens: 200 } });
+  ok("classCountsFromUsage: reads ephemeral split (5m 100, 1h 200), residual 0",
+    ccMixed.cache_write_5m === 100 && ccMixed.cache_write_1h === 200);
+  ok("classCountsFromUsage: parity — cache_write_5m + cache_write_1h == max(ephem sum, aggregate)",
+    ccMixed.cache_write_5m + ccMixed.cache_write_1h === Math.max(300, 300));
+  // Aggregate-only usage (no ephemeral sub-fields) → whole aggregate routes to 1h.
+  const ccAgg = classCountsFromUsage({ input_tokens: 0, cache_creation_input_tokens: 300 });
+  ok("classCountsFromUsage: aggregate-only routes whole aggregate → cache_write_1h (residual policy)",
+    ccAgg.cache_write_5m === 0 && ccAgg.cache_write_1h === 300);
+  const priceAgg = priceModelClassSums(new Map([["claude-opus-4-8", ccAgg]]), PRICE_PER_MTOK);
+  ok("aggregate-only opus write priced at 2x via residual → 1h (300 tok → 300/1e6 * $10)", Math.abs(priceAgg.cost - (300 / 1_000_000) * 10) < 1e-9);
+  // Partial sub-field: only 1h reported, aggregate larger → residual → 1h; parity holds.
+  const ccPartial = classCountsFromUsage({ cache_creation_input_tokens: 500, cache_creation: { ephemeral_1h_input_tokens: 200 } });
+  ok("classCountsFromUsage: partial sub-field + residual both land in 1h (parity)",
+    ccPartial.cache_write_5m === 0 && ccPartial.cache_write_1h === 500);
+  // Sub-fields exceed aggregate (malformed): sub-fields win, residual clamps to 0.
+  const ccMalformed = classCountsFromUsage({ cache_creation_input_tokens: 100, cache_creation: { ephemeral_5m_input_tokens: 80, ephemeral_1h_input_tokens: 90 } });
+  ok("classCountsFromUsage: sub-fields-exceed-aggregate → sub-fields win, residual clamped 0",
+    ccMalformed.cache_write_5m === 80 && ccMalformed.cache_write_1h === 90);
+  // Non-finite / absent → all zero, no throw.
+  const ccEmpty = classCountsFromUsage({ input_tokens: "x", cache_creation_input_tokens: NaN });
+  ok("classCountsFromUsage: non-finite coerced to 0, no throw",
+    ccEmpty.input === 0 && ccEmpty.cache_write_5m === 0 && ccEmpty.cache_write_1h === 0);
+  // routeUnknownTtlWrite: residual → 1h; negatives/non-finite clamp to 0.
+  ok("routeUnknownTtlWrite: residual routes entirely to 1h",
+    routeUnknownTtlWrite(50).cache_write_1h === 50 && routeUnknownTtlWrite(50).cache_write_5m === 0);
+  ok("routeUnknownTtlWrite: negative/non-finite → 0",
+    routeUnknownTtlWrite(-5).cache_write_1h === 0 && routeUnknownTtlWrite(NaN).cache_write_1h === 0);
+  // readEngineSpend back-compat: a legacy bare-`cache_write` record is routed to 1h, never dropped.
+  const bcd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-backcompat-"));
+  try {
+    appendEngineSpend(bcd, { ts: "t", engine: "seat", model: "gpt-5-codex", input: 10, output: 5, cache_read: 2, cache_write: 40 });
+    const bc = readEngineSpend(bcd);
+    ok("readEngineSpend: legacy bare cache_write routed to cache_write_1h (no dropped spend)",
+      bc.totals.cache_write_1h === 40 && bc.totals.cache_write_5m === 0 && bc.by_model.get("gpt-5-codex").cache_write_1h === 40);
+  } finally { fs.rmSync(bcd, { recursive: true, force: true }); }
+  // Transcript parity across mixed TTL records: class sum == scalar total (FAFF-229/408 invariant).
+  const ptd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-parity-"));
+  try {
+    const pf = path.join(ptd, "mix.jsonl");
+    fs.writeFileSync(pf, [
+      JSON.stringify({ message: { model: "claude-opus-4-8", usage: { input_tokens: 100, output_tokens: 10, cache_read_input_tokens: 1000, cache_creation_input_tokens: 300, cache_creation: { ephemeral_5m_input_tokens: 100, ephemeral_1h_input_tokens: 200 } } } }),
+      JSON.stringify({ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 50, cache_creation_input_tokens: 80 } } }),  // aggregate-only → 1h
+    ].join("\n"));
+    const bc2 = sumTranscriptFileByClass(pf);
+    ok("FAFF-964 parity: mixed + aggregate-only transcript, class sum == scalar total",
+      bc2.input + bc2.output + bc2.cache_write_5m + bc2.cache_write_1h + bc2.cache_read === sumTranscriptFile(pf));
+    ok("FAFF-964: aggregate-only record's whole aggregate lands in cache_write_1h (80), mixed 5m 100 / 1h 200",
+      bc2.cache_write_5m === 100 && bc2.cache_write_1h === 280);
+  } finally { fs.rmSync(ptd, { recursive: true, force: true }); }
 
   // --- FAFF-427: sumTranscriptFileByModelClass — parity with sumTranscriptFileByClass ---
   const smcd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-modelclass-"));
@@ -1693,7 +1811,7 @@ function budgetSelftest(now = Date.now()) {
     ok("sumTranscriptFileByClass delegates to sumTranscriptFileByModelClass (byte-identical totals)",
       JSON.stringify(byModelClass.by_class) === JSON.stringify(byClassDirect));
     ok("sumTranscriptFileByModelClass: by_class equals the sum over by_model (parity)", (() => {
-      const summed = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+      const summed = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
       for (const counts of byModelClass.by_model.values()) for (const cls of TOKEN_DELTA_CLASSES) summed[cls] += counts[cls];
       return JSON.stringify(summed) === JSON.stringify(byModelClass.by_class);
     })());
@@ -1788,11 +1906,11 @@ function budgetSelftest(now = Date.now()) {
       && byDayResult.by_day.get("2026-08-02").get("gpt-5-codex").input === 7);
     ok("readEngineSpend: a missing/unparseable ts lands in \"unknown\", still counted",
       byDayResult.by_day.get("unknown").get("claude-opus-4-8").input === 1);
-    const sumByDay = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+    const sumByDay = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
     for (const dm of byDayResult.by_day.values()) {
       for (const counts of dm.values()) for (const cls of TOKEN_DELTA_CLASSES) sumByDay[cls] += counts[cls];
     }
-    const sumByModel = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+    const sumByModel = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
     for (const counts of byDayResult.by_model.values()) for (const cls of TOKEN_DELTA_CLASSES) sumByModel[cls] += counts[cls];
     ok("readEngineSpend: by_day totals equal by_model totals equal totals (CONSTRAINT)",
       TOKEN_DELTA_CLASSES.every((cls) => sumByDay[cls] === sumByModel[cls] && sumByModel[cls] === byDayResult.totals[cls]));
@@ -1835,4 +1953,4 @@ function budgetSelftest(now = Date.now()) {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, appendEngineSpend, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, routeUnknownTtlWrite, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

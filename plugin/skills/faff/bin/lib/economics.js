@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, classCountsFromUsage, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
@@ -346,11 +346,11 @@ function econAttributeCacheRead(lightRecords) {
 // null for the estimate path). Selftest-coverable like computeUnitEconomics.
 function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend = null) {
   const grandTotal = { total: 0 };
-  const byClass = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
-  const byModel = new Map();               // model -> {input,output,cache_write,cache_read,total}
+  const byClass = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
+  const byModel = new Map();               // model -> {input,output,cache_write_5m,cache_write_1h,cache_read,total}
   const byDay = new Map();                 // day -> Map(model -> {classes,total})
   const modelTokens = new Map();           // model -> total tokens (dominant-model resolution)
-  const mkc = () => ({ input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 });
+  const mkc = () => ({ input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total: 0 });
 
   for (const rec of records) {
     const u = economicsUsageOf(rec);
@@ -363,15 +363,17 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
     const dm = byDay.get(day);
     if (!dm.has(model)) dm.set(model, mkc());
     const db = dm.get(model);
+    // FAFF-964: the ONE per-usage extractor (shared with budget.js) reads the flat
+    // classes AND the nested ephemeral cache-write split, routing any unknown-TTL
+    // residual to cache_write_1h. No second read loop.
+    const counts = classCountsFromUsage(u);
     for (const cls of TOKEN_DELTA_CLASSES) {
-      const v = u[TOKEN_CLASS_FROM_USAGE[cls]];
-      if (typeof v === "number" && Number.isFinite(v)) {
-        grandTotal.total += v;
-        byClass[cls] += v;
-        mb[cls] += v; mb.total += v;
-        db[cls] += v; db.total += v;
-        modelTokens.set(model, (modelTokens.get(model) || 0) + v);
-      }
+      const v = counts[cls];
+      grandTotal.total += v;
+      byClass[cls] += v;
+      mb[cls] += v; mb.total += v;
+      db[cls] += v; db.total += v;
+      modelTokens.set(model, (modelTokens.get(model) || 0) + v);
     }
   }
 
@@ -383,7 +385,7 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
 
   const mkRow = (key, counts, model) => ({
     key,
-    input: counts.input, output: counts.output, cache_write: counts.cache_write, cache_read: counts.cache_read,
+    input: counts.input, output: counts.output, cache_write_5m: counts.cache_write_5m, cache_write_1h: counts.cache_write_1h, cache_read: counts.cache_read,
     total: counts.total,
     cost: economicsRowCost(counts, model, priceMap),
   });
@@ -398,7 +400,7 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
   // additive on the reader) is read directly by the day fold.
   const engineByModel = engineSpend && engineSpend.by_model instanceof Map ? engineSpend.by_model : null;
   const engineFolded = engineByModel
-    ? [...engineByModel.values()].reduce((s, c) => s + c.input + c.output + c.cache_write + c.cache_read, 0)
+    ? [...engineByModel.values()].reduce((s, c) => s + c.input + c.output + c.cache_write_5m + c.cache_write_1h + c.cache_read, 0)
     : 0;
 
   if (axis === "class") {
@@ -433,7 +435,7 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
         total = transcriptCount + engineCount;
         cost = (transcriptCost == null || engineUnpriced) ? null : transcriptCost + engineCost;
       }
-      const one = { input: 0, output: 0, cache_write: 0, cache_read: 0, total };
+      const one = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total };
       one[cls] = total;
       const row = { key: cls, ...one, cost };
       // FAFF-640 (spec revision): a folded class row is genuinely an aggregate of
@@ -451,7 +453,7 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
     // unchanged JSON, down to the absent key.
     const engineRows = engineByModel && engineByModel.size > 0
       ? [...engineByModel.entries()].map(([model, counts]) => {
-        const b = { ...counts, total: counts.input + counts.output + counts.cache_write + counts.cache_read };
+        const b = { ...counts, total: counts.input + counts.output + counts.cache_write_5m + counts.cache_write_1h + counts.cache_read };
         return { ...mkRow(model, b, model), source: "exec-json-events" };
       })
       : [];
@@ -491,7 +493,7 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
         const c = economicsRowCost(b, model, priceMap);
         if (c != null) { cost += c; anyPriced = true; }
       }
-      const row = { key: day, input: agg.input, output: agg.output, cache_write: agg.cache_write, cache_read: agg.cache_read, total: agg.total, cost: anyPriced ? cost : null };
+      const row = { key: day, input: agg.input, output: agg.output, cache_write_5m: agg.cache_write_5m, cache_write_1h: agg.cache_write_1h, cache_read: agg.cache_read, total: agg.total, cost: anyPriced ? cost : null };
       // FAFF-640 (spec revision): same per-row source stamp as the class axis —
       // every emitted day row is an aggregate once the run has any engine spend.
       if (engineFolded > 0) row.source = "transcript+engine-spend";
@@ -594,8 +596,12 @@ function economicsDominantModel(records) {
     const u = economicsUsageOf(rec);
     if (!u) continue;
     const model = (rec.message && typeof rec.message.model === "string" && rec.message.model) || "unknown";
+    // FAFF-964: the ONE per-usage extractor (shared with budget.js); counts every
+    // cache-write class including the TTL split, so dominant-model ranking is not
+    // skewed by dropped cache-creation tokens.
+    const counts = classCountsFromUsage(u);
     let sum = 0;
-    for (const cls of TOKEN_DELTA_CLASSES) { const v = u[TOKEN_CLASS_FROM_USAGE[cls]]; if (typeof v === "number" && Number.isFinite(v)) sum += v; }
+    for (const cls of TOKEN_DELTA_CLASSES) sum += counts[cls];
     modelTokens.set(model, (modelTokens.get(model) || 0) + sum);
   }
   return [...modelTokens.entries()].filter(([m]) => m !== "unknown")
@@ -614,7 +620,7 @@ function economicsDominantModel(records) {
 // windows), so we report coverage_pct rather than forcing a false reconciliation.
 // NON-LEAK: emits only counts, token totals, effort-labels, model-id and derived cost.
 function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malformedLines, engineSpend = null) {
-  const mk = () => ({ count: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 });
+  const mk = () => ({ count: 0, input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total: 0 });
   const buckets = new Map();     // effort-label (or "(none)") -> event-lane counts (priced at dominant)
   let eventsTokenTotal = 0;
   for (const ev of events) {
@@ -636,6 +642,12 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malf
         const v = tok[cls];
         if (Number.isFinite(v)) { b[cls] += v; b.total += v; eventsTokenTotal += v; }
       }
+      // FAFF-964 back-compat: a legacy persisted event carries a bare `cache_write`
+      // (pre-TTL-split); route it to cache_write_1h so an old run's effort tokens are
+      // not silently dropped from the bucket total / coverage reconciliation.
+      if (Number.isFinite(tok.cache_write)) {
+        b.cache_write_1h += tok.cache_write; b.total += tok.cache_write; eventsTokenTotal += tok.cache_write;
+      }
     }
   }
   const pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
@@ -653,7 +665,7 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malf
       const model = idx >= 0 ? meKey.slice(0, idx) : "unknown";
       let eff = idx >= 0 ? meKey.slice(idx + 1) : EFFORT_NONE_KEY;
       if (!EFFORT_LEVELS.has(eff)) eff = EFFORT_NONE_KEY;   // incl. the reader's literal "(none)"
-      if (!engineByEffort.has(eff)) engineByEffort.set(eff, { input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0, cost: null });
+      if (!engineByEffort.has(eff)) engineByEffort.set(eff, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total: 0, cost: null });
       const g = engineByEffort.get(eff);
       for (const cls of TOKEN_DELTA_CLASSES) {
         const v = Number.isFinite(cell[cls]) ? cell[cls] : 0;
@@ -678,11 +690,11 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malf
     } else {
       cost = economicsRowCost(b, pricedAtModel, priceMap);
     }
-    const g0 = g || { input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 };
+    const g0 = g || { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total: 0 };
     return {
       key: k, count: b.count,
       input: b.input + g0.input, output: b.output + g0.output,
-      cache_write: b.cache_write + g0.cache_write, cache_read: b.cache_read + g0.cache_read,
+      cache_write_5m: b.cache_write_5m + g0.cache_write_5m, cache_write_1h: b.cache_write_1h + g0.cache_write_1h, cache_read: b.cache_read + g0.cache_read,
       total: b.total + g0.total, cost,
     };
   });
@@ -823,7 +835,7 @@ function econIsAssistantTurn(rec) {
 // reconcile to it by construction (incl. `unattributed`). Selftest-coverable like the
 // class/effort cores.
 function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLineTotal, eventsMalformed) {
-  const mk = () => ({ input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0, turns: 0, tool_calls: 0 });
+  const mk = () => ({ input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total: 0, turns: 0, tool_calls: 0 });
   const buckets = new Map(PHASE_BUCKET_KEYS.map((k) => [k, mk()]));
   const usable = (windows || []).filter(phaseWindowUsable);
   for (const f of fileRecords) {
@@ -838,10 +850,10 @@ function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLi
       const b = buckets.get(key);
       const u = economicsUsageOf(r);
       if (u) {
-        for (const cls of TOKEN_DELTA_CLASSES) {
-          const v = u[TOKEN_CLASS_FROM_USAGE[cls]];
-          if (typeof v === "number" && Number.isFinite(v)) { b[cls] += v; b.total += v; }
-        }
+        // FAFF-964: the ONE per-usage extractor (shared with budget.js), so the phase
+        // buckets carry the TTL-split cache-write classes and reconcile to the top line.
+        const counts = classCountsFromUsage(u);
+        for (const cls of TOKEN_DELTA_CLASSES) { b[cls] += counts[cls]; b.total += counts[cls]; }
       }
       if (econIsAssistantTurn(r)) b.turns += 1;
       const content = r && r.message && r.message.content;
@@ -853,7 +865,7 @@ function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLi
     .filter((k) => { const b = buckets.get(k); return b.total > 0 || b.turns > 0 || b.tool_calls > 0; })
     .map((k) => {
       const b = buckets.get(k);
-      return { key: k, input: b.input, output: b.output, cache_write: b.cache_write, cache_read: b.cache_read,
+      return { key: k, input: b.input, output: b.output, cache_write_5m: b.cache_write_5m, cache_write_1h: b.cache_write_1h, cache_read: b.cache_read,
         total: b.total, turns: b.turns, tool_calls: b.tool_calls, cost: economicsRowCost(b, pricedAtModel, priceMap) };
     });
   const grandTotal = PHASE_BUCKET_KEYS.reduce((s, k) => s + buckets.get(k).total, 0);
@@ -966,7 +978,7 @@ function renderEconomicsBreakdown(bd) {
     lines.push(`  cost priced at ${bd.priced_at_model || "—"} (ESTIMATE — events carry no model)  ·  coverage of top-line: ${cov}`);
     lines.push(`  ${"effort".padEnd(10)} ${"dispatches".padStart(10)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
     for (const r of bd.rows) {
-      lines.push(`  ${String(r.key).padEnd(10)} ${String(r.count).padStart(10)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+      lines.push(`  ${String(r.key).padEnd(10)} ${String(r.count).padStart(10)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
     }
     const mal = rc.malformed_lines ? `  malformed_lines=${rc.malformed_lines}` : "";
     lines.push(`  events_token_total=${rc.events_token_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);
@@ -981,7 +993,7 @@ function renderEconomicsBreakdown(bd) {
     lines.push(`  cost priced at ${bd.priced_at_model || "—"} (ESTIMATE — one dominant model)  ·  coverage of top-line: ${cov}  ·  windows_found=${rc.windows_found}`);
     lines.push(`  ${"phase".padEnd(15)} ${"turns".padStart(7)} ${"tools".padStart(7)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
     for (const r of bd.rows) {
-      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(7)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(7)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
     }
     const mal = rc.events_malformed ? `  events_malformed=${rc.events_malformed}` : "";
     lines.push(`  grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);
@@ -1023,7 +1035,7 @@ function renderEconomicsBreakdown(bd) {
   lines.push(`  ${"key".padEnd(22)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}${srcHead}`);
   for (const r of bd.rows) {
     const srcCell = hasSource ? ` ${abbreviateSpendSource(r.source).slice(0, 10).padEnd(10)}` : "";
-    lines.push(`  ${String(r.key).slice(0, 22).padEnd(22)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}${srcCell}`);
+    lines.push(`  ${String(r.key).slice(0, 22).padEnd(22)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}${srcCell}`);
   }
   lines.push(`  reconciles=${rc.reconciles}  (grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total})`);
   return lines.join("\n");
@@ -1107,7 +1119,7 @@ function cmdEconomics(args) {
   const measured = runSpend.transcript;
   const measuredSource = measured.source;
   const measuredTotal = measuredSource === "transcript"
-    ? (measured.totals.input + measured.totals.output + measured.totals.cache_write + measured.totals.cache_read)
+    ? (measured.totals.input + measured.totals.output + measured.totals.cache_write_5m + measured.totals.cache_write_1h + measured.totals.cache_read)
     : null;
   let tokensTotal, tokensSource;
   if (measuredSource === "transcript") {
@@ -1126,7 +1138,7 @@ function cmdEconomics(args) {
   // sanity gate downstream is untouched; measured engine spend counts either way.
   const engineSpend = runSpend.engine_spend;
   const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
-    + engineSpend.totals.cache_write + engineSpend.totals.cache_read;
+    + engineSpend.totals.cache_write_5m + engineSpend.totals.cache_write_1h + engineSpend.totals.cache_read;
   const transcriptPortion = tokensTotal;
   tokensTotal += engineSpendTotal;
 
@@ -1391,15 +1403,30 @@ function economicsSelftest() {
   const topline = 100 + 10 + 20 + 1000 + 50 + 5 + 500; // 1685
 
   const bc = economicsBreakdown(recs, "class", PRICE_PER_MTOK, topline);
-  ok("class axis: 4 rows fixed order", bc.rows.length === 4 && bc.rows.map((r) => r.key).join(",") === "input,output,cache_write,cache_read");
+  ok("class axis: 5 rows fixed order (FAFF-964 TTL split)", bc.rows.length === 5 && bc.rows.map((r) => r.key).join(",") === "input,output,cache_write_5m,cache_write_1h,cache_read");
   ok("class axis: reconciles to top-line", bc.reconciliation.reconciles === true && bc.reconciliation.grand_total === topline);
-  ok("class axis: per-class totals", bc.rows[0].total === 150 && bc.rows[3].total === 1500);
+  ok("class axis: per-class totals (aggregate-only cache-creation → cache_write_1h)", bc.rows[0].total === 150 && bc.rows[3].total === 20 && bc.rows[4].total === 1500);
   ok("class axis: priced at dominant model", bc.priced_at_model === "claude-opus-4-8");
+
+  // FAFF-964: a transcript with an explicit ephemeral TTL split — 5m and 1h land in
+  // their own class rows; the class breakdown reconciles to the top line.
+  const ttlRecs = [
+    { message: { model: "claude-opus-4-8", usage: { input_tokens: 10, output_tokens: 2, cache_read_input_tokens: 5, cache_creation_input_tokens: 300, cache_creation: { ephemeral_5m_input_tokens: 100, ephemeral_1h_input_tokens: 200 } } }, timestamp: "2026-09-01T10:00:00Z" },
+  ];
+  const ttlTop = 10 + 2 + 5 + 300; // 317
+  const ttlBc = economicsBreakdown(ttlRecs, "class", PRICE_PER_MTOK, ttlTop);
+  ok("FAFF-964 class axis: ephemeral split → cache_write_5m 100, cache_write_1h 200", (() => {
+    const r5 = ttlBc.rows.find((r) => r.key === "cache_write_5m"); const r1 = ttlBc.rows.find((r) => r.key === "cache_write_1h");
+    return r5.total === 100 && r1.total === 200;
+  })());
+  ok("FAFF-964 class axis: TTL-split transcript reconciles to top line", ttlBc.reconciliation.reconciles === true && ttlBc.reconciliation.grand_total === ttlTop);
+  const ttlBm = economicsBreakdown(ttlRecs, "model", PRICE_PER_MTOK, ttlTop);
+  ok("FAFF-964 model axis: 5m priced 1.25x + 1h priced 2x", Math.abs(ttlBm.rows[0].cost - ((10 * 5 + 2 * 25 + 100 * 6.25 + 200 * 10 + 5 * 0.5) / 1e6)) < 1e-9);
 
   const bm = economicsBreakdown(recs, "model", PRICE_PER_MTOK, topline);
   ok("model axis: one row per model, desc by total", bm.rows.length === 2 && bm.rows[0].key === "claude-opus-4-8");
   ok("model axis: rows sum to top-line", bm.reconciliation.grand_total === topline && bm.reconciliation.reconciles === true);
-  ok("model axis: prices each row at its own model", Math.abs(bm.rows[0].cost - ((100 * 5 + 10 * 25 + 20 * 6.25 + 1000 * 0.5) / 1e6)) < 1e-9);
+  ok("model axis: prices each row at its own model (cache-creation aggregate → 1h @ 2x)", Math.abs(bm.rows[0].cost - ((100 * 5 + 10 * 25 + 20 * 10 + 1000 * 0.5) / 1e6)) < 1e-9);
 
   const bday = economicsBreakdown(recs, "day", PRICE_PER_MTOK, topline);
   ok("day axis: chronological ascending", bday.rows.map((r) => r.key).join(",") === "2026-07-01,2026-07-02");
@@ -1410,7 +1437,7 @@ function economicsSelftest() {
   ok("unpriced model → cost null (not 0)", up.rows.length === 1 && up.rows[0].cost === null && up.rows[0].total === 100);
   ok("dated model-id suffix stripped", JSON.stringify(economicsPriceForModel("claude-opus-4-8-20260101", PRICE_PER_MTOK)) === JSON.stringify(economicsPriceForModel("claude-opus-4-8", PRICE_PER_MTOK)));
   ok("unknown model → null price row", economicsPriceForModel("mystery-model", PRICE_PER_MTOK) === null);
-  const pm = resolveEconomicsPriceMap({ budget: { price_per_mtok_by_model: { "claude-opus-4-8": { input: 99, output: 99, cache_write: 99, cache_read: 99 } } } });
+  const pm = resolveEconomicsPriceMap({ budget: { price_per_mtok_by_model: { "claude-opus-4-8": { input: 99, output: 99, cache_write_5m: 99, cache_write_1h: 99, cache_read: 99 } } } });
   ok("config override wins per-model, built-ins retained", pm["claude-opus-4-8"].input === 99 && pm["claude-sonnet-4-6"].input === 3);
   ok("no override → built-in map (identity)", resolveEconomicsPriceMap({}) === PRICE_PER_MTOK);
 
@@ -1455,7 +1482,7 @@ function economicsSelftest() {
   ok("effort axis: malformed_lines surfaced so low coverage is attributable", ebMal.reconciliation.malformed_lines === 2 && ebMal.reconciliation.coverage_pct === 40);
 
   // --- FAFF-705: the two-source fold (events.jsonl + engine-spend.jsonl by_model_effort) ---
-  const zero = () => ({ input: 0, output: 0, cache_write: 0, cache_read: 0 });
+  const zero = () => ({ input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
   const engineSpend = {
     records: 3,
     by_model_effort: new Map([

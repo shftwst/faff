@@ -7,6 +7,16 @@
 // stubs — request a terminal verdict and a sealed bundle. Verb 3 (request-decision)
 // is built to depth; verbs 5/6 delegate to existing anchor/bundle handlers.
 //
+// Six conceptual facade verbs → SEVEN CLI subcommands: verb 4 ("Observe + reconcile") is
+// exposed as two atomic ops (`observe` + `reconcile`) rather than one compound command — the
+// compound-verb split the spec's U1 defers (decides: architecture). The mapping:
+//   1 Admission        -> admit
+//   2 Declare          -> declare
+//   3 Request decision -> request-decision   (built to depth)
+//   4 Observe+reconcile-> observe, reconcile  (two atomic ops)
+//   5 Terminal verdict -> terminal-verdict    (boundary stub)
+//   6 Seal+bundle      -> seal-bundle         (boundary stub)
+//
 // The facade delivers a DECISION, not an enforcement: it makes a grant unforgeable
 // and verifiable (Commissaire signs with Ed25519; a producer holds only a symmetric
 // HMAC key). PREVENTION is a separate act a chokepoint on the effect path performs by

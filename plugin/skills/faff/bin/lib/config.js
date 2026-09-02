@@ -947,6 +947,28 @@ const WRITABLE_NAMESPACES = new Set([
   "bundle_store", "install", "lanes", "producer_tick_max_secs",
 ]);
 
+// Top-level namespaces faff genuinely READS (via dig(config, "<ns>.…")) but that `config set`
+// does not write and `DEFAULTS` does not register — recognised by the known-key lint (FAFF-794)
+// without being promoted to WRITABLE_NAMESPACES (FAFF-965). Folding a read-only namespace into
+// WRITABLE_NAMESPACES would make `config set <ns>.<leaf> <value>` silently succeed for a key
+// with no DEFAULTS entry (a get/set asymmetry) and would force it into .faffrc.example.yaml to
+// satisfy configSetSelftest's example-drift check, over-promoting a read-only key as writable.
+// Every namespace the source reads via a blessed dig() call must be a member — asserted by the
+// recognisedNamespacesDriftSelftest guard below (config --selftest), which fails loud on drift
+// instead of silently reintroducing this bug (FAFF-949 added the `capture` read without this
+// entry; `provenance` was already dormant the same way).
+const READ_ONLY_NAMESPACES = new Set([
+  "capture",    // decision-capture.js: dig(data, "capture.decision_kernel")
+  "provenance", // harness.js: dig(cfgData, "provenance.harness" | "provenance.model")
+]);
+
+// The known-key lint's notion of "not a typo" — every namespace `config set` may write, PLUS
+// every read-only namespace above. Kept as a derived union (never merged into WRITABLE_NAMESPACES
+// itself) so the writable-vs-recognised distinction stays load-bearing for `config set`'s
+// write-guard and configSetSelftest's example-drift check, both of which keep using
+// WRITABLE_NAMESPACES directly, untouched by this addition.
+const RECOGNISED_NAMESPACES = new Set([...WRITABLE_NAMESPACES, ...READ_ONLY_NAMESPACES]);
+
 // Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each
 // segment but the last becomes a bare map-header line at escalating 2-space indent; the leaf
 // carries the value.
@@ -1682,8 +1704,8 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // default with no signal. Walks baseDoc and overlayDoc INDEPENDENTLY (never the merged
   // doc) — a mistake in either file is its own distinct silent no-op and must be attributed
   // to the file it lives in, exactly as the secret scan (Check 4) attributes per-file.
-  if (baseDoc) findings.push(...knownKeyLint(baseDoc, rel(basePath) || ".faffrc.yaml", WRITABLE_NAMESPACES));
-  if (overlayDoc) findings.push(...knownKeyLint(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml", WRITABLE_NAMESPACES));
+  if (baseDoc) findings.push(...knownKeyLint(baseDoc, rel(basePath) || ".faffrc.yaml", RECOGNISED_NAMESPACES));
+  if (overlayDoc) findings.push(...knownKeyLint(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml", RECOGNISED_NAMESPACES));
 
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }
@@ -1754,6 +1776,59 @@ function cmdConfigCheck(args, root) {
   }
   return exit;
 }
+
+// FAFF-965: the small, explicit allowlist of variable names observed to hold a resolved
+// config document (loadConfig's return, or a merge of it) at a dig() call site — the scope
+// the drift guard below trusts. `dig` is a general nested-map getter used on plenty of
+// non-config objects too; an unscoped scan would flood the guard with false positives and
+// make it untrustworthy, so the allowlist is the point, not an afterthought.
+const CONFIG_DOC_IDENTS = ["cfg", "cfgData", "data", "mergedDoc", "d", "parsed"];
+
+// (ident, namespace) pairs deliberately excluded from the drift guard below — a blessed
+// identifier that, at some specific call, holds non-config data rather than a resolved config
+// document. Explicit and commented so an exclusion is a reviewable one-line addition, never a
+// silent regex tweak. None known today.
+const RECOGNISED_NAMESPACES_DRIFT_EXCEPTIONS = new Set([
+  // "ident:namespace", e.g. "d:someHelperLocal" — add here with a comment if the scan ever
+  // false-positives on a blessed ident holding non-config data.
+]);
+
+// Regex-extract every `dig(IDENT, "NS.…")` occurrence from `text`, where IDENT is one of
+// CONFIG_DOC_IDENTS and NS is the top-level segment before the first ".". Namespace reads with
+// no "." (e.g. `dig(cfg, "appetite")`) are out of this guard's scope — the known-key lint's own
+// key-name check already covers a bare top-level scalar; this guard is specifically for the
+// "<ns>.<leaf>" nested-read shape that WRITABLE_NAMESPACES/RECOGNISED_NAMESPACES classify.
+function scanConfigReadNamespaces(text) {
+  const identAlt = CONFIG_DOC_IDENTS.map((i) => i.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const re = new RegExp(`\\bdig\\(\\s*(${identAlt})\\s*,\\s*[\`"']([A-Za-z_][\\w]*)\\.[^\`"']*[\`"']`, "g");
+  const out = [];
+  let m;
+  while ((m = re.exec(text))) out.push({ ident: m[1], ns: m[2] });
+  return out;
+}
+
+// Pure core of the drift guard: given `fileTexts` ([{ name, text }]), returns a Map of
+// namespace -> Set(file name) for every dig(<blessed-ident>, "<ns>.…") read whose namespace is
+// NOT in RECOGNISED_NAMESPACES (after applying RECOGNISED_NAMESPACES_DRIFT_EXCEPTIONS). Split
+// from the real-source scan below so a unit test can inject synthetic source text without
+// touching disk (mirrors computeConfigCheck's split from cmdConfigCheck's I/O).
+function missingRecognisedNamespaces(fileTexts) {
+  const missing = new Map();
+  for (const { name, text } of fileTexts) {
+    for (const { ident, ns } of scanConfigReadNamespaces(text)) {
+      if (RECOGNISED_NAMESPACES_DRIFT_EXCEPTIONS.has(`${ident}:${ns}`)) continue;
+      if (RECOGNISED_NAMESPACES.has(ns)) continue;
+      if (!missing.has(ns)) missing.set(ns, new Set());
+      missing.get(ns).add(name);
+    }
+  }
+  return missing;
+}
+
+// The FAFF-965 --selftest case lives inside configCheckSelftest below (invoked via
+// `faff config check --selftest`) — it asserts missingRecognisedNamespaces() against the CLI's
+// own current source, plus a synthetic-injection regression case, alongside the guard's sibling
+// known-key cases (the natural host per FAFF-965's spec).
 
 // In-memory selftest of the secret-pattern table + the merge (deepMergeConfig)
 // behaviour + the posture logic (via computeConfigCheck's pure core). Mirrors the
@@ -2057,6 +2132,100 @@ function configCheckSelftest() {
   {
     // WRITABLE_NAMESPACES must include "install" (gates.js's install.skill_targets is live).
     check("known-key: WRITABLE_NAMESPACES includes 'install'", WRITABLE_NAMESPACES.has("install"));
+  }
+
+  // --- FAFF-965: read-only recognised namespaces (capture, provenance) --------
+  {
+    // The repo's own live repro: a `capture:` stanza (decision-capture.js's read) yields no
+    // known-key finding, and exit 0 absent other findings.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { capture: { decision_kernel: "on" } },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-965: capture stanza → no known-key finding, exit 0", r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    // provenance (harness.js's dormant read) is recognised the same way.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { provenance: { harness: "x" } },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-965: provenance stanza → no known-key finding, exit 0", r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    // the "Known namespaces:" help text lists the full recognised UNION (capture + provenance
+    // included), sorted — proven via a genuinely-unknown key so the message is actually emitted.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { bogus_unknown_key: 1 },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    const msg = r.findings[0] && r.findings[0].message;
+    const sortedUnion = [...RECOGNISED_NAMESPACES].sort().join(", ");
+    check("FAFF-965: Known-namespaces text lists the sorted recognised union incl. capture/provenance",
+      !!msg && msg.includes(`Known namespaces: ${sortedUnion}.`) && msg.includes("capture") && msg.includes("provenance"));
+  }
+  {
+    // the writable-vs-recognised distinction: capture/provenance are recognised but NOT
+    // writable — config set's write-guard and configSetSelftest's example-drift check must
+    // stay untouched by this change.
+    check("FAFF-965: WRITABLE_NAMESPACES excludes capture/provenance (writable-vs-recognised distinction preserved)",
+      !WRITABLE_NAMESPACES.has("capture") && !WRITABLE_NAMESPACES.has("provenance"));
+    check("FAFF-965: RECOGNISED_NAMESPACES is the union (⊇ WRITABLE_NAMESPACES, includes capture+provenance)",
+      [...WRITABLE_NAMESPACES].every((ns) => RECOGNISED_NAMESPACES.has(ns))
+      && RECOGNISED_NAMESPACES.has("capture") && RECOGNISED_NAMESPACES.has("provenance"));
+  }
+  {
+    // known-key findings never hard-fail: severity stays "warn" for an unrecognised key.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { totally_unknown_namespace: 1 },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-965: unrecognised key stays severity 'warn' (never hard-fails)",
+      r.findings.length === 1 && r.findings[0].severity === "warn");
+  }
+
+  // --- FAFF-965: recognised-namespaces drift guard (source-scan) --------------
+  {
+    // the guard passes against the CLI's OWN current source — every dig(<blessed-ident>,
+    // "<ns>.…") read it can see is a member of RECOGNISED_NAMESPACES.
+    const libDir = __dirname;
+    const fileTexts = fs.readdirSync(libDir).filter((f) => f.endsWith(".js"))
+      .map((name) => ({ name, text: fs.readFileSync(path.join(libDir, name), "utf8") }));
+    const missing = missingRecognisedNamespaces(fileTexts);
+    check("FAFF-965: recognised-namespaces drift guard passes on current source", missing.size === 0);
+  }
+  {
+    // scanConfigReadNamespaces only matches the small CONFIG_DOC_IDENTS allowlist — an
+    // un-blessed identifier holding the same shaped call is invisible to the guard (by design).
+    const hits = scanConfigReadNamespaces('const v = dig(someOtherThing, "notconfig.leaf");');
+    check("FAFF-965: scan ignores dig() calls on a non-blessed identifier", hits.length === 0);
+  }
+  {
+    // injecting a read of an unregistered namespace via a BLESSED identifier makes the guard
+    // fail, naming the offending namespace — the guard's own regression coverage. The synthetic
+    // call text is assembled by concatenation so this test's OWN source bytes never contain the
+    // contiguous "dig(cfgData" pattern — otherwise the "current source" scan above (which reads
+    // THIS file's real bytes) would self-trip on its own test fixture.
+    const digCall = "dig(" + "cfgData" + ', "' + "newns" + '.field");';
+    const injected = [{ name: "fake-module.js", text: `const x = ${digCall}` }];
+    const missing = missingRecognisedNamespaces(injected);
+    check("FAFF-965: drift guard flags an injected unregistered namespace via a blessed ident",
+      missing.size === 1 && missing.has("newns") && missing.get("newns").has("fake-module.js"));
+  }
+  {
+    // the exceptions list suppresses a specific (ident, namespace) pair — proven with a
+    // temporarily-injected exception (restored immediately after) rather than depending on the
+    // real (currently empty) production list. Same concatenation precaution as above.
+    const digCall = "dig(" + "d" + ', "' + "excludedns" + '.field");';
+    const injected = [{ name: "fake-module.js", text: `const x = ${digCall}` }];
+    RECOGNISED_NAMESPACES_DRIFT_EXCEPTIONS.add("d:excludedns");
+    const missing = missingRecognisedNamespaces(injected);
+    RECOGNISED_NAMESPACES_DRIFT_EXCEPTIONS.delete("d:excludedns");
+    check("FAFF-965: an explicit (ident, namespace) exception suppresses the guard's finding", missing.size === 0);
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config check, ${fail} failed)`);

@@ -1,0 +1,26 @@
+{
+  "_what": "Post-lean snapshot for FAFF-970 (kernel leaning, Phases 1-4). Companion to post-split-snapshot-20260902.json; the measured before/after for the next lean (FAFF-487).",
+  "captured": "2026-09-02",
+  "predecessor": "eval/baselines/post-split-snapshot-20260902.json (kernel 28,634 tok post-FAFF-607)",
+  "moves": [
+    "Phase 1: Ticket templates -> references/create.md (new)",
+    "Phase 2: Control-label provisioning -> references/autonomous.md",
+    "Phase 3: Park protocol + Interactive park resolution -> references/park.md (new)",
+    "Phase 4: Calibration log -> references/methodology.md"
+  ],
+  "kernel_tokens_before": 28634,
+  "kernel_tokens_after": 23361,
+  "kernel_lines_after": 469,
+  "universal_core_floor_tokens": 15290,
+  "contiguity_tax_before": 19320,
+  "contiguity_tax_after": 19339,
+  "per_lane_prefix": {
+    "_note": "kernel + the lane references each skill Reads",
+    "wtf": { "before": 42931, "after": 38542, "delta": -4389 },
+    "map": { "before": 42931, "after": 38542, "delta": -4389 },
+    "onboard": { "before": 34606, "after": 29333, "delta": -5273 }
+  },
+  "remaining_to_target": "Kernel at 23,361 tok, above the ~16-18k aspiration; the remainder is the FAFF-487 prose lean of the retained blocks (fixed-verdict cluster, Model & effort, Unpark, Chaining) and the ~15,290 universal-core floor. FAFF-971 (loader decouple) would later unlock relocating Review verdict + Delivery outcome (~1.9k).",
+  "verification": "validate-adapters PASS (orphan/under-read/kernel-cap green, KERNEL_LINE_BASELINE ratcheted 591->469); prefix-planner --check-manifest exit 0; full 210-file test suite green; relocations text-preserving (zero content lines lost).",
+  "related": "FAFF-970 (this lean), FAFF-607 (the split), FAFF-487 (prose-lean remainder), FAFF-971 (loader decouple)"
+}

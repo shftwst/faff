@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references graft consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/review.md`, `faff/references/methodology.md`, `faff/references/l4.md`. graft branches on the **fixed review-verdict, spec-readiness, and delivery-outcome contracts**; it consumes the `review` / `ship` slots' `faff-contract:review-verdict` / `faff-contract:delivery-outcome` blocks and pipes them to `faff contract <name>`.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references graft consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/review.md`, `faff/references/methodology.md`, `faff/references/l4.md`, `faff/references/park.md`. graft branches on the **fixed review-verdict, spec-readiness, and delivery-outcome contracts**; it consumes the `review` / `ship` slots' `faff-contract:review-verdict` / `faff-contract:delivery-outcome` blocks and pipes them to `faff contract <name>`.
 
 ### Worktree provisioning
 
@@ -820,7 +820,7 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 
 **What this does NOT do.** Does not bypass existing safety boundaries. Side-effects-outside-PR-flow still park unconditionally. Destructive operations still park unconditionally.
 
-**Park protocol:** shared — see the sibling `faff/references/kernel.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `faff-parked` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
+**Park protocol:** shared — see the sibling `faff/references/park.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `faff-parked` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
 
 **Return values to caller (beep-boop / the `concurrency` slot):** one of the terminal tokens below is the **only** sanctioned turn end for a dispatched build (the `foreground-to-terminal` rule, Step 7.5 posture) — "progress so far" / a mid-flight status is never a return value.
 - `ineligible` — the pre-worktree eligibility gate (Step 2) refused a not-eligible issue under autonomous mode: a skip, **not** a build attempt and **never** `parked`. Like `claimed-by-peer`, the issue **does not enter the run-ledger `admitted` array** (so `runcheck`'s `admitted − outcomes == ∅` invariant holds) and is surfaced in the run summary's On-hold bucket, not Parked (beep-boop → run summary). No terminal ledger bucket is written for it.

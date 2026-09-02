@@ -127,3 +127,26 @@ BATCH RESPONSE (the tool result): one "## <output-name>" section per request, in
 
 **Loud degradation.** A failed or garbled dispatch degrades per each output's own unanswered rule but is surfaced as **"methodology unavailable this pass"** — never rendered as a clean result, and a missing `backlog-diagnostics` structural floor is never shown as `clean ✓`. Interactive may retry once; autonomous logs and continues.
 
+### Calibration log
+
+Captures evidence about over-cautious parks, wrong inferences, and post-merge reverts so the resolve-attempt rules and verdict gates can evolve with data.
+
+**Capture points (append-only):**
+
+| Event | Path | Captured |
+|---|---|---|
+| Autonomous-park then interactive-complete-no-questions | `.faff/calibration/over-cautious-parks/<issue-id>.md` | Park reason, root-cause class, what the interactive resolution actually was (read from the commit / PR) |
+| Autonomous-resolve-attempt then human-overrode | `.faff/calibration/wrong-inferences/<issue-id>.md` | Original marker, inferred answer, human's correction |
+| Autonomous-shipped then post-merge-reverted within 7 days | `.faff/calibration/post-merge-reverts/<issue-id>.md` | Shipped commit SHA, revert commit SHA, the diff between them, any comments on the revert |
+| Appetite-influenced decision (at `appetite: high`, autonomous proceeded on `confidence: medium` or widened-threshold resolve-attempt) | `.faff/calibration/appetite-decisions/<issue-id>.md` | The verdict, the spec marker, the inferred answer, the audit-trail comment posted, and the merge outcome (pass / human-overrode / post-merge-reverted) once known. Pairs with the wrong-inferences and post-merge-reverts captures above for the cross-cut "is `high` over-shooting?" tidy signal. |
+| Medium-confidence held for human (at `appetite: low`/`medium`, a `confidence: medium` spec was attached + surfaced, not built) | `.faff/calibration/held-decisions/<issue-id>.md` | The verdict, the spec marker + thin area, the appetite at the time, and the human's eventual resolution (resolved-as-flagged / changed-direction / waved-through-no-change) once known. The symmetric counterpart to `appetite-decisions` — pairs with it for the cross-cut "is `low`/`medium` *under*-shooting — holding things the human just rubber-stamps?" tidy signal. |
+
+**Synthesis and surfacing.** Every `/faff-tidy` run (or the equivalent step within `/faff-wtf` when no tidy ran this pass) reads the calibration log and surfaces patterns when they cross a threshold:
+
+> _Calibration signal:_ Your autonomous mode parked 4 issues in the last 14 days flagged `needs-decision-first` on `Punt: pino vs winston`. All 4 completed interactively without questions. The codebase has used pino since SHF-92 shipped (3 months ago). Consider: (a) extending the resolve-attempt rules to recognise this pattern, (b) running `/faff-prep --refresh` on the affected issues to update their specs with `Chosen: pino`, or (c) ignore — no change.
+
+Surfaced signals are **advisory** — they suggest a fix but never auto-apply rule changes.
+
+**Critical invariant.** The calibration log is **append-only and never authoritative**. A skill never reads calibration to make a current decision; only humans (or the skills' future iterations) read it to evolve the rules.
+
+**Threshold (fixed):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days; the Todo→Backlog repeat-park demotion fires at 3+ parks in 21 days. These are built-in defaults, not `.faffrc` knobs — a user has no basis to hand-tune them, and the surfaced signal is advisory anyway: a human closes the loop. **Closing that loop automatically** — auto-tuning appetite / specs / resolve-rules from this accumulated evidence, and widening the evidence to include evaluator-lane (business-value / QA) outcomes rather than just parks and reverts — is an **L4 capability**, gated on the evaluator lane existing. Not built; today the loop stays advisory.

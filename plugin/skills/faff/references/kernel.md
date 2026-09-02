@@ -276,7 +276,7 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
       <ISSUE-ID>.md
 ```
 
-The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about autonomous decisions (over-cautious parks, wrong inferences, post-merge reverts, appetite-influenced proceeds, and medium-confidence holds) so resolve-attempt rules and verdict gates can evolve with data. See **Autonomous Mode Contract → Calibration log** for capture rules and the synthesis-and-surface flow.
+The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about autonomous decisions (over-cautious parks, wrong inferences, post-merge reverts, appetite-influenced proceeds, and medium-confidence holds) so resolve-attempt rules and verdict gates can evolve with data. See **Calibration log** (in `faff/references/methodology.md`) for capture rules and the synthesis-and-surface flow.
 
 The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verdicts.md` equivalent) lets other sub-skills read the verdict computed by `/faff-tidy` without recomputing within a single pass. Across passes, always recompute — same "always pull fresh" rule that governs spec discovery.
 
@@ -302,53 +302,6 @@ The boundary that bounds what an **unattended** run may touch is an **OS-level h
 faff's only role here is **assertion, not enforcement**: it detects whether that container is present and says so, but never refuses to run on its own authority. The deterministic check is `faff container-check` (reads standard runtime signals — Docker/Podman marker files, the k8s service-host var, the systemd `container=` convention — and invents no marker); the autonomous-entry preflight below consumes it.
 
 
-### Calibration log
-
-Captures evidence about over-cautious parks, wrong inferences, and post-merge reverts so the resolve-attempt rules and verdict gates can evolve with data.
-
-**Capture points (append-only):**
-
-| Event | Path | Captured |
-|---|---|---|
-| Autonomous-park then interactive-complete-no-questions | `.faff/calibration/over-cautious-parks/<issue-id>.md` | Park reason, root-cause class, what the interactive resolution actually was (read from the commit / PR) |
-| Autonomous-resolve-attempt then human-overrode | `.faff/calibration/wrong-inferences/<issue-id>.md` | Original marker, inferred answer, human's correction |
-| Autonomous-shipped then post-merge-reverted within 7 days | `.faff/calibration/post-merge-reverts/<issue-id>.md` | Shipped commit SHA, revert commit SHA, the diff between them, any comments on the revert |
-| Appetite-influenced decision (at `appetite: high`, autonomous proceeded on `confidence: medium` or widened-threshold resolve-attempt) | `.faff/calibration/appetite-decisions/<issue-id>.md` | The verdict, the spec marker, the inferred answer, the audit-trail comment posted, and the merge outcome (pass / human-overrode / post-merge-reverted) once known. Pairs with the wrong-inferences and post-merge-reverts captures above for the cross-cut "is `high` over-shooting?" tidy signal. |
-| Medium-confidence held for human (at `appetite: low`/`medium`, a `confidence: medium` spec was attached + surfaced, not built) | `.faff/calibration/held-decisions/<issue-id>.md` | The verdict, the spec marker + thin area, the appetite at the time, and the human's eventual resolution (resolved-as-flagged / changed-direction / waved-through-no-change) once known. The symmetric counterpart to `appetite-decisions` — pairs with it for the cross-cut "is `low`/`medium` *under*-shooting — holding things the human just rubber-stamps?" tidy signal. |
-
-**Synthesis and surfacing.** Every `/faff-tidy` run (or the equivalent step within `/faff-wtf` when no tidy ran this pass) reads the calibration log and surfaces patterns when they cross a threshold:
-
-> _Calibration signal:_ Your autonomous mode parked 4 issues in the last 14 days flagged `needs-decision-first` on `Punt: pino vs winston`. All 4 completed interactively without questions. The codebase has used pino since SHF-92 shipped (3 months ago). Consider: (a) extending the resolve-attempt rules to recognise this pattern, (b) running `/faff-prep --refresh` on the affected issues to update their specs with `Chosen: pino`, or (c) ignore — no change.
-
-Surfaced signals are **advisory** — they suggest a fix but never auto-apply rule changes.
-
-**Critical invariant.** The calibration log is **append-only and never authoritative**. A skill never reads calibration to make a current decision; only humans (or the skills' future iterations) read it to evolve the rules.
-
-**Threshold (fixed):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days; the Todo→Backlog repeat-park demotion fires at 3+ parks in 21 days. These are built-in defaults, not `.faffrc` knobs — a user has no basis to hand-tune them, and the surfaced signal is advisory anyway: a human closes the loop. **Closing that loop automatically** — auto-tuning appetite / specs / resolve-rules from this accumulated evidence, and widening the evidence to include evaluator-lane (business-value / QA) outcomes rather than just parks and reverts — is an **L4 capability**, gated on the evaluator lane existing. Not built; today the loop stays advisory.
-
-
-### Interactive park resolution (surface, don't settle)
-
-**Resolve-attempt before park** (above) is the autonomous boundary: an unattended run parks a `needs-decision-first` / `gap-blocked` / `circular-blocked` verdict and never self-resolves it. The **interactive** path (L1/L2, human at the keyboard) needs the equivalent stated — nothing else stops a "helpful" pass from investigating a `needs-human` park, deciding the call itself, and writing a settled resolution: it looks like progress but is the AI-makes-the-call outcome the park exists to prevent, harder to notice because it arrives wrapped in the analysis the human asked for. Mirrors *Resolve-attempt before park* and applies **Human curation is authoritative**: the human's call is authoritative; the agent's job is to inform it, not make it.
-
-1. **Surface, don't settle.** Resolving a `needs-human` park interactively requires the **human's actual judgment** on any architecture / scope / taste decision the park names. The agent **surfaces** the decision and may offer a **recommendation**; it does **not** author a settled `**Chosen:**` / Resolution on the human's behalf. More subagent analysis does not discharge this — the judgment, not the investigation, is reserved for the human. Analysis and recommendation are welcome; only *authorship of the verdict* transfers.
-2. **Correctness carve-out.** An agent **may** close a park whose fix is a **matter of fact, not taste** — a genuine bug, a falsified measurement, a rule already written down — because there is a *right answer*, not a *choice*. Architecture / scope / taste are **never** in this carve-out. **In doubt → treat as taste and surface it.**
-3. **Verify subagent findings against the source.** A finding is checked against the authoritative source before it is acted on; a summary that contradicts its cited source loses to the source (an investigator once claimed a decision record mandated a behaviour the cited ticket's own text called deliberately otherwise — the source won).
-
-**Symmetry, not licence.** The autonomous rule *parks* a needs-human call; this one *surfaces* it — both refuse to let the agent settle it, but this is the mirror, not a restatement, and is never licence for mid-run prompts on an **autonomous** run (stays forbidden by the **no-prompt invariant**, **Autonomous Mode Contract**). `faff-tidy` and `faff-prep` point back here rather than restating it.
-
-
-### Park protocol (shared)
-
-Every faff skill that can park work follows the same protocol:
-
-1. **Preserve WIP and flip the PR to draft, only when they already exist.** Commit WIP with a clear message when a branch/worktree exists for this unit of work, and flip an existing PR to draft. A pre-build park — e.g. a `needs-decision-first` whose resolve-attempt fails before any build started — has neither, so both steps are skipped rather than manufacturing a branch, worktree, or PR.
-2. Post a comment on the tracker issue: cause, what was attempted, what is needed from a human. The reason line follows **the short comment rule** below — a short, dedicated line naming the unresolved decision and its owner, never the fuller run-summary decision paragraph. Tag the issue `faff-parked` (or the tracker's equivalent label) so `/faff-wtf` can surface it — via `faff label add <issue> faff-parked` and its descriptor's write (**Control-label provisioning**).
-3. **Append one record to the in-run park-record accumulator** — `{ issue_id, root_cause_class, timestamp }` — using the `routing_adaptor`'s already-assigned root-cause class, never re-derived here; a failed `needs-decision-first` resolve-attempt uses `punt-not-closed`. See **the accumulator and render boundary** below for ownership and dedup.
-4. Write to `.faff/logs/…` with the full context, then return control to the caller (beep-boop or interactive invoker). **Interactive mode — the recovery offer (per gateway → *Interactive next-step offer*):** the terminal line names the exact re-invoke command per park cause — spec-level → `/faff-prep <issue>`, build-level → `/faff-graft <issue>` (resume from the draft PR), structural (`gap-blocked`/`circular-blocked`) → resolve the gap/cycle and the next `/faff-tidy` re-routes it — plus the later route "or see it again anytime via `/faff-wtf` → Parked work." **Autonomous mode:** emit **no** offer (the no-prompt invariant); just return control.
-
-**The accumulator and render boundary (single shared locus).** The run **orchestrator** (`faff-beep-boop`) owns one ordered `park_records` array for the run; a park-capable sub-skill (or a build lane under a `concurrency` dispatch cut) returns its park fact to the orchestrator rather than editing `summary.md` directly — no worker concurrently edits the summary. A completed Park-protocol invocation (steps 2 + 3 above both succeeded) contributes **exactly one** record; a retry of the same completed transition, or backstop reconciliation rediscovering it, deduplicates against the existing record rather than appending a second one. Zero parks render a valid empty `[]`; multiple parks retain occurrence order, and the same issue/class may recur only when each occurrence is a genuinely distinct completed park transition. At run-end summary rendering — never mid-run, never from a worker — the orchestrator serialises the complete accumulator exactly once as one fenced `` ```faff-parks `` block (`JSON.stringify(park_records, null, 2)`; `[]` when empty) — the same wire shape `faff park-history` parses back (`extractParksBlock`). **The short comment rule (same locus):** the tracker comment's reason line names the unresolved decision and its owner in one line — never the fuller run-summary decision paragraph; supporting detail may follow it. Canonical shape for a failed `needs-decision-first` resolve-attempt: **Park reason:** unresolved Punt — `<short decision topic>` (`decides: <owner>`) — the topic derived from the spec's `**Punt:**` line, excluding the run summary's recovery/process prose. `gap-blocked` / `circular-blocked` parks use the equivalent one-line shape for their own cause — the rule is shared, not Punt-special-cased.
-
 ### Unpark protocol (shared)
 
 Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-map's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `faff-parked` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
@@ -360,81 +313,6 @@ Parking is reversible by design — the **single owner of unpark mechanics is th
 2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes a stale `faff-parked` label (via `faff label remove <issue> faff-parked` and its descriptor's write) without human action when the state moved on (issue now In Review/Done/Cancelled, or an In-Progress issue that `faff park-verdict` clears as `strip-ok` — never a bare In-Progress strip, since an In-Progress + `faff-parked` issue is usually a live faff mid-build park) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
 
 **The label is the contract.** Removing the `faff-parked` label (by either path) is what returns the issue to normal routing — `/faff-wtf` stops surfacing it as a blocker, and the build queue reconsiders it on the next pass. Whoever clears a park (a skill on re-entry, or tidy's auto-removal) **must** remove the label and log the unpark with its cause. A resolved park that keeps its label is a bug: it lies to every downstream surfacer.
-
-
-### Control-label provisioning — `faff label` (the mechanical op)
-
-faff owns a fixed set of **control labels** — the tracker signals the pipeline tags issues with. The canonical set is the **`faff labels` CLI manifest** (resolve the `faff` executable per **Resolver**): `faff labels` emits each control label's `name`, `color`, and `description` as JSON (`faff labels --names` for bare names). This manifest is the **single source of truth** — every path that tags, and any bootstrap that bulk-provisions, reads the set from here rather than hardcoding it. Today the set is `faff-automate`, `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`, `faff-awaiting-review`, `faff-awaiting-spec-review`, `faff-repeat-parked`, `faff-claimed` (all `faff-`-prefixed per the control-label convention).
-
-`faff-repeat-parked` is a machine-writable cosmetic breadcrumb (no `tracker_owned` flag) that marks a Todo→Backlog demotion when `faff park-history` flags an issue repeat-parked; the *detection* is seam-computed, never read from the label, and it is distinct from the `repeat-parked` routing **verdict** token. `faff-awaiting-review` is a **hold**, not a park — it means automation is waiting on a machine (the review provider) to recover, never on a human; it is machine-writable like `faff-parked` (no `tracker_owned` flag); applied by `faff-graft`, cleared by `faff-graft` (on terminal disposition) or `faff-tidy` (stale-label auto-clear). `faff-awaiting-spec-review` is prep's hold on a mandatory spec-review outage — the prep-altitude twin of `faff-awaiting-review`, kept distinct so a prep hold and a build hold stay separable in `faff disposition` / `/faff-wtf`; machine-writable, applied/cleared by `faff-prep`. `faff-claimed` is a machine-writable **claim-provenance breadcrumb** (no `tracker_owned` flag): `faff-graft` applies it at the Step-5 claim (proving faff set the `In Progress` claim), and it is cleared by `faff-graft` (on terminal disposition / the retry-later release) or `faff-tidy` (state-driven stale-label auto-clear). Its **presence** is what lets `/faff-tidy` auto-reclaim a stale (past `claim_ttl_hours`) claim to `Todo` — the second scoped monotonicity carve-out above; a claim **without** it is human-set or unprovable and is only surfaced, never reverted.
-
-**The shared op — `faff label add|remove <issue> <label>`.** Every control-label mutation runs this one mechanical op rather than carrying inline ensure-then-write prose. The op is **pure — no tracker access**: it validates `<label>` against the manifest (rejecting any non-control label) and emits a `faff-contract:label-op` descriptor carrying `issue`, `label`, `action`, the `ensure_first` intent, and the resolved `manifest_entry`. The agent then performs the **single tracker write** the descriptor describes — the deterministic *which-label / ensure-first* decision is the CLI's, the write is the agent's (the CLI has no MCP; same split as `faff next` / `faff eligible`).
-
-**Tracker-owned labels are refused.** The two eligibility-throttle labels — `faff-automate` and `faff-automation-hold` — carry `tracker_owned: true` in the manifest. `faff label add|remove` **refuses** to emit a descriptor for either, in any direction (crank-up / crank-down / hold / unhold): it exits non-zero (code `3`) with a message pointing the human at the tracker toggle, and writes nothing. So the **only** way these labels change is a human toggling them in the tracker UI — which is exactly the by-construction provenance the eligibility read-gate relies on (see **Automation eligibility → Release / crank-up**). The refusal predicate reads the manifest flag, not a hardcoded name set. The machine-breadcrumb labels (`faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`) are not tracker-owned and the op writes them as normal.
-
-**Ensure-before-tag — the one home for the rule.** The descriptor's `ensure_first` intent *is* this rule: on `ensure_first: true` (an `add`), before tagging the agent lists the tracker's labels and, if the manifest label is absent, creates it from the descriptor's `manifest_entry` (name + color + description); then writes. This is **idempotent** — add-of-present / remove-of-absent is a clean no-op. **Git-only mode:** no-op — the descriptor still computes (pure CLI), but there is no tracker MCP to write to, so the agent performs no write. Every machine-breadcrumb tagging site (`/faff-jot` intake, `/faff-plot`, `/faff-tidy` parks + chain-gaps, `/faff-beep-boop` parks + discovered-scope, `/faff-graft` parks + discovered-scope, `/faff-prep` parks) invokes the op and executes the described write — no per-site copy of the ensure mechanic. The **crank-up / hold flows** (`/faff-jot`'s interactor, `/faff-tidy`'s crank-up offers, `/faff-prep`'s Step-3 gate) target the **tracker-owned** eligibility labels, so they are **advisory**: they name the label + direction for the human to toggle in the tracker and invoke no write.
-
-This closes the unattended-run failure mode where tagging against a not-yet-created label fails or mis-tags, so an auto-filled ticket is missed by the next prep pass.
-
-
-### Ticket templates (born-structured create boundary)
-
-The single canonical definition of the **type-appropriate templates** that `/faff-jot` (Step 4) and `/faff-plot` (Step 5) fill when they *create* tickets, so issues are **born structured** — predictable per-type fields a later `/faff-prep` can build on — instead of free prose prep has to reverse-engineer. It generalises the lite spec arc (WHY/WHAT/HOW/DONE) **earlier** (the create stage) and **by type**. Both create-skills reference this one section; they never duplicate the taxonomy or field sets. The fill step runs **after** the `methodology` slot's `ticket-shaping` proposes the set and **before** the description is handed to the `rendering_adaptor` (gateway → **Rendering**).
-
-**The load-bearing invariant — seed, never constrain.** A template is a default the producer *fills*, never a form that *gates*. Ticket creation is **never** rejected, blocked, or warned-to-block because a field has no content; there is **no create-time completeness gate**. A one-line idea yields a thin-but-structured ticket (one filled field, the rest placeholdered), not an error. Completeness is `/faff-prep`'s gate, not creation's.
-
-**Type taxonomy (closed set + fallback).**
-
-- `bug` — a defect in existing behaviour
-- `feature` — a new capability or behaviour
-- `spike` — a time-boxed investigation / decision, no committed deliverable
-- `chore` — maintenance with no user-facing behaviour change
-- `epic` — a container that decomposes into child slices
-- `default` — fallback when type can't be determined (guarantees the fill step always has a skeleton, preserving the never-block invariant)
-
-**Built-in default field sets.** Each is an ordered field list; **every** template ends with `Open questions` (preserves jot's and plot's existing "carry open questions into the description" behaviour):
-
-| Type | Fields (in order) |
-|---|---|
-| `bug` | Repro · Expected · Actual · Scope · Open questions |
-| `feature` | Why · What · Acceptance · Open questions |
-| `spike` | Question · Timebox · Decision to make · Open questions |
-| `chore` | What · Why now · Open questions |
-| `epic` | Outcome · Child slices · Open questions |
-| `default` | Why · What · Open questions |
-
-**Template resolution order** (first match wins, per type):
-
-1. *Reserved native-template slot* — for the read-half (tracker-native Linear/GitHub templates, **idea G**); **not implemented in the write-half — always misses today**. The slot exists so G can later inject "fill the tracker's native template if present" without reworking this path.
-2. A committed **override file** at `.faff-templates/<type>.md`, if present.
-3. The built-in default field set above.
-
-(`default` resolves the same way; a project may even override `.faff-templates/default.md`.)
-
-**Override files.** Live at committed `.faff-templates/<type>.md` — **deliberately outside** the gitignored `.faff/` directory (the `.faff/`-dir-only ignore is append-only and git's parent-exclusion rule blocks a `!.faff/templates/` carve-out, so the store sits outside `.faff/`; a multi-line per-type map is also not cleanly readable through the scalar/block-scalar config CLI — so files, not config, are the single override surface). **Format:** a markdown file whose level-2 headings (`## <Field>`) are the field list, in order; body text under a heading is the project's own guidance and is ignored by the fill step (it reads only the heading sequence).
-
-**Type determination** (per proposed ticket):
-
-1. If the methodology's `ticket-shaping` attached an optional per-ticket `type` that is in the taxonomy → use it.
-2. Else infer from the ticket's title + description: *broken / incorrect / regressed behaviour* ("fails", "doesn't", "regression") → `bug`; *open question / "figure out" / "decide", no committed deliverable* → `spike`; *maintenance with no user-facing change (deps, refactor, config, cleanup)* → `chore`; *a container that decomposes into child slices / spans multiple deliverables* → `epic`; *a new capability or behaviour* → `feature` (the lean for greenfield brief items).
-3. If inference isn't confident → `default`.
-
-**The fill step** (run once per proposed ticket):
-
-1. Determine the type (above).
-2. Resolve the template (above).
-3. For each field in order: emit `## <Field>` followed by the best-available content drawn from the proposed ticket + brief (e.g. `feature.Why` ← the brief's goal/why prose; `feature.Acceptance` ← the brief's done-signal; `bug.Repro` ← any repro prose; every template's `Open questions` ← the brief's open questions). **When no content is available, emit the field heading with the explicit placeholder `_To be determined during prep._`** — never silently omit a field, and **never fabricate** factual content (no invented repro steps, no invented acceptance).
-4. The assembled fields become the description, which then routes through the `rendering_adaptor` and is written to the tracker exactly as before.
-
-**Edge cases.**
-
-- Override file that's empty, heading-less, or unreadable → treat as absent, fall through to the built-in default (never block), and **log the skipped override**.
-- Override filename for an unknown type (`.faff-templates/foo.md`) → ignored; only the recognised type filenames + `default` are consulted.
-- **plot** container nodes (`shape-level` = `initiative` / `project`, or any node with children) resolve to the `epic` template; buildable first-slice nodes infer their own type per node.
-- **Git-only mode:** the fill step runs identically and the structured description is written into the `.faff/intake/…` file jot/plot already use; override files at `.faff-templates/` are read the same way.
-- Existing create-path behaviour is otherwise unchanged — the fill step only restructures the *description body*; the `faff-jot-intake` tag, blocker/blocked-by links, `Backlog` status, and plot's `planned by /faff-plot` provenance line all still apply.
-
-**Out-of-scope seams (documented, not built here):** the native-template resolution slot (idea G); persisting type as a `faff-type-<type>` control label (a later ticket, via **Control-label provisioning**, reading the type the fill step already determined); and a configurable `tracking.templates_path` key (mirroring `spec_docs_path` — a clean follow-up that touches the CLI allowlist).
 
 
 ### Sibling-skill invocation (install-mode portable)

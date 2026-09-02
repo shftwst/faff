@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-938",
+  "build": {
+    "status": "complete",
+    "diff_hash": "822f8de08251e6547685ed199922c6aad1357dd2bef7216369776c2ade7d8887",
+    "branch": "faff-938-deterministic-parser-for-the-spec-review-refuter-objection",
+    "pushed_at": "2026-09-02T20:31:05.227Z"
+  },
+  "updated_at": "2026-09-02T20:31:05.227Z"
+}

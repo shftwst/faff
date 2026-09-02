@@ -116,7 +116,6 @@ adversarial:
   spec_review:
     max_tokens: 12000
   spec_judge:
-    keepgoing_bound: 2
     refs:
       - openrouter-gemma
       - openrouter-glm-5-3-flash

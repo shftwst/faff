@@ -1,491 +1,744 @@
 {
-  "_note": "Seed from reference-scan. 'unknown' blocks are treated conservatively (carried by all skills). Narrow them to a consumer list as you confirm; each one narrowed unlocks savings.",
+  "_note": "Human-owned gateway block-to-consumer matrix (FAFF-963). Seeded from the FAFF-963 verified 61-block matrix, then human-owned. The planner reads this as the authoritative consumer set; the title scan is only a seed and a drift alarm, never the live classification. keep:true marks canonical/(fixed)/core blocks that are never move candidates.",
+  "_schema": 1,
   "blocks": [
     {
       "title": "(preamble)",
-      "tokens": 153,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "none",
+      "keep": false,
+      "source": "verified",
+      "tokens": 153
     },
     {
       "title": "What faff is",
-      "tokens": 1722,
-      "kind": "universal",
-      "consumers": "universal"
+      "consumers": "none",
+      "keep": false,
+      "source": "verified",
+      "tokens": 1722
     },
     {
       "title": "Governing principles",
-      "tokens": 399,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 399
     },
     {
       "title": "Routing",
-      "tokens": 388,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "none",
+      "keep": false,
+      "source": "verified",
+      "tokens": 388
     },
     {
       "title": "First run",
-      "tokens": 674,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "none",
+      "keep": false,
+      "source": "verified",
+      "tokens": 674
     },
     {
       "title": "Install health (doctor-at-entry)",
-      "tokens": 604,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop"
-      ]
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 604
     },
     {
       "title": "Configuration (shared across all sub-skills)",
-      "tokens": 2829,
-      "kind": "universal",
-      "consumers": "universal"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 2828
     },
     {
       "title": "Tracker availability resolution",
-      "tokens": 884,
-      "kind": "set",
       "consumers": [
-        "faff-beep-boop",
+        "faff-prep",
         "faff-graft",
         "faff-jot",
-        "faff-map",
-        "faff-prep",
         "faff-tidy",
-        "faff-wtf"
-      ]
+        "faff-wtf",
+        "faff-beep-boop",
+        "faff-map"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 884
     },
     {
       "title": "Spec docs location",
-      "tokens": 432,
-      "kind": "set",
       "consumers": [
+        "faff-prep",
         "faff-graft",
         "faff-onboard",
-        "faff-prep"
-      ]
+        "faff-tidy",
+        "faff-beep-boop"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 432
     },
     {
       "title": "Slots (optional delegation)",
-      "tokens": 2826,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 2649
     },
     {
       "title": "Model & effort selection (`models:` / `effort:` — per-lane)",
-      "tokens": 1616,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-beep-boop",
+        "faff-prep",
+        "faff-jot",
+        "faff-tidy",
+        "faff-plot",
+        "faff-map",
+        "faff-wtf",
+        "faffter-noon-concurrency-sequential",
+        "faffter-dark-concurrency-parallel",
+        "faffter-dark-adversarial-review"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1616
     },
     {
       "title": "Agent Lanes",
-      "tokens": 65,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-graft",
+        "faff-beep-boop",
+        "faff-plot",
+        "faff-jot",
+        "faff-onboard"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 65
     },
     {
       "title": "Orchestrator (outermost lane)",
-      "tokens": 185,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-jot",
+        "faff-plot",
+        "faff-onboard",
+        "faff-tidy",
+        "faff-beep-boop",
+        "faff-graft",
+        "faffter-noon-methodology-thematic",
+        "faffter-dark-methodology-agile-delivery"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 185
     },
     {
       "title": "Implementor (innermost lane)",
-      "tokens": 555,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-graft",
+        "faff-beep-boop",
+        "faffter-dark-adversarial-review"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 555
     },
     {
       "title": "Evaluator (external lane)",
-      "tokens": 187,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faffter-noon-evaluate",
+        "faff-graft",
+        "faff-beep-boop",
+        "faffter-noon-env-compose",
+        "faffter-noon-transport-private-network",
+        "faffter-noon-concurrency-sequential",
+        "faffter-dark-concurrency-parallel"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 187
     },
     {
       "title": "Lane isolation",
-      "tokens": 641,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-graft",
+        "faff-beep-boop",
+        "faffter-dark-adversarial-review",
+        "faffter-noon-evaluate",
+        "faffter-noon-env-compose"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 641
     },
     {
       "title": "Shared Rules",
-      "tokens": 30,
-      "kind": "set",
-      "consumers": [
-        "faff-beep-boop",
-        "faff-graft",
-        "faff-jot",
-        "faff-map",
-        "faff-plot",
-        "faff-prep",
-        "faff-tidy",
-        "faff-wtf",
-        "faffter-dark-spec-review",
-        "faffter-noon-architecture",
-        "faffter-noon-env-compose",
-        "faffter-noon-evaluate",
-        "faffter-noon-prd",
-        "faffter-noon-spec-review",
-        "faffter-noon-transport-private-network"
-      ]
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 30
     },
     {
       "title": "Ignore cancelled and archived",
-      "tokens": 523,
-      "kind": "set",
       "consumers": [
+        "faff-tidy",
+        "faff-wtf",
+        "faff-map",
         "faff-jot",
         "faff-plot",
+        "faff-prep",
+        "faff-beep-boop",
+        "faff-graft",
         "faffter-noon-methodology-thematic"
-      ]
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 523
     },
     {
       "title": "Satisfied blockers — edges to terminal work",
-      "tokens": 358,
-      "kind": "set",
       "consumers": [
+        "faffter-noon-methodology-thematic",
         "faff-map",
         "faff-wtf",
-        "faffter-noon-methodology-thematic"
-      ]
+        "faff-tidy",
+        "faffter-dark-methodology-agile-delivery"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 358
     },
     {
       "title": "Workable vs terminal states",
-      "tokens": 437,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop"
-      ]
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 437
     },
     {
       "title": "Automation eligibility",
-      "tokens": 2027,
-      "kind": "set",
       "consumers": [
-        "faff-beep-boop",
-        "faff-graft",
-        "faff-jot",
         "faff-prep",
         "faff-tidy",
-        "faff-wtf"
-      ]
+        "faff-graft",
+        "faff-beep-boop",
+        "faff-wtf",
+        "faff-jot",
+        "faffter-noon-methodology-thematic",
+        "faffter-dark-methodology-agile-delivery"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 2027
     },
     {
       "title": "Ordering & judgement delegation (the orchestration layer holds no opinion)",
-      "tokens": 648,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 648
     },
     {
       "title": "Next-step transition — consult `faff next`",
-      "tokens": 1021,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-prep",
+        "faff-tidy",
+        "faff-wtf",
+        "faffter-noon-methodology-thematic"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1021
     },
     {
       "title": "Always pull fresh (never act on stale tracker state)",
-      "tokens": 404,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 404
     },
     {
       "title": "Re-ground before gate (gating inputs must be live)",
-      "tokens": 353,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-beep-boop",
+        "faff-tidy",
+        "faff-prep",
+        "faff-graft"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 353
     },
     {
       "title": "Lean tracker reads (ask for only what the step consumes)",
-      "tokens": 323,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-beep-boop",
+        "faff-tidy",
+        "faff-prep"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 323
     },
     {
       "title": "Tracker as the lights-out control plane",
-      "tokens": 952,
-      "kind": "set",
       "consumers": [
-        "faff-graft"
-      ]
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-prep",
+        "faff-tidy",
+        "faff-jot"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 952
     },
     {
       "title": "Human curation is authoritative",
-      "tokens": 1013,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop",
         "faff-prep",
-        "faff-tidy"
-      ]
+        "faff-tidy",
+        "faff-plot",
+        "faffter-noon-methodology-thematic",
+        "faffter-dark-methodology-agile-delivery"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1013
     },
     {
       "title": "Review-findings comment identity (the idempotency key)",
-      "tokens": 1072,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-graft",
+        "faffter-dark-adversarial-review"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1072
     },
     {
       "title": "Spec discovery (where to look for an existing spec)",
-      "tokens": 1063,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-tidy",
+        "faff-prep",
+        "faff-graft",
+        "faff-wtf",
+        "faff-map",
+        "faff-beep-boop",
+        "faffter-noon-methodology-thematic"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1063
     },
     {
       "title": "Untrusted input (no-execute floor)",
-      "tokens": 961,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 961
     },
     {
       "title": "`.faff/` logging directory",
-      "tokens": 1594,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 1594
     },
     {
       "title": "Issue claim & status monotonicity (multi-orchestrator safety)",
-      "tokens": 1361,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-graft",
+        "faff-beep-boop",
+        "faff-tidy"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1361
     },
     {
       "title": "Worktree policy",
-      "tokens": 1025,
-      "kind": "set",
       "consumers": [
-        "faff-beep-boop",
         "faff-graft",
+        "faff-beep-boop",
         "faffter-dark-concurrency-parallel",
-        "faffter-noon-ship"
-      ]
+        "faffter-noon-concurrency-sequential",
+        "faffter-noon-ship",
+        "faffter-dark-authoring-adaptors"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1025
     },
     {
       "title": "Blast-radius boundary — the container, not faff",
-      "tokens": 220,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-graft"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 220
     },
     {
       "title": "Autonomous Mode Contract",
-      "tokens": 4978,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop",
         "faff-graft",
         "faff-prep",
         "faff-tidy",
+        "faff-jot",
+        "faff-map",
         "faff-wtf"
-      ]
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 3175
     },
     {
       "title": "Appetite for destruction",
-      "tokens": 3167,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop",
         "faff-graft",
+        "faff-jot",
         "faff-plot",
         "faff-prep",
         "faff-tidy",
+        "faff-wtf",
+        "faffter-noon-methodology-thematic",
         "faffter-dark-methodology-agile-delivery",
-        "faffter-noon-methodology-thematic"
-      ]
+        "faffter-noon-review",
+        "faffter-noon-spec-review",
+        "faffter-noon-adr",
+        "faffter-noon-intake"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 3167
     },
     {
       "title": "Resolve-attempt before park",
-      "tokens": 1141,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop",
         "faff-graft",
+        "faff-prep",
+        "faff-tidy",
         "faffidavit-routing"
-      ]
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1141
     },
     {
       "title": "Calibration log",
-      "tokens": 884,
-      "kind": "set",
       "consumers": [
         "faff-graft",
+        "faff-beep-boop",
         "faff-tidy",
-        "faff-wtf",
-        "faffidavit-routing"
-      ]
+        "faff-wtf"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 884
     },
     {
       "title": "Interactive park resolution (surface, don't settle)",
-      "tokens": 604,
-      "kind": "set",
       "consumers": [
         "faff-prep",
         "faff-tidy"
-      ]
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 604
     },
     {
       "title": "Park protocol (shared)",
-      "tokens": 926,
-      "kind": "set",
       "consumers": [
+        "faff-prep",
+        "faff-graft",
         "faff-beep-boop",
+        "faff-tidy",
+        "faff-plot",
         "faffidavit-routing"
-      ]
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 926
     },
     {
       "title": "Unpark protocol (shared)",
-      "tokens": 593,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-tidy",
+        "faff-wtf",
+        "faff-map",
+        "faff-prep",
+        "faff-graft",
+        "faff-beep-boop"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 593
     },
     {
       "title": "Control-label provisioning — `faff label` (the mechanical op)",
-      "tokens": 1282,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-jot",
+        "faff-plot",
+        "faff-tidy",
+        "faff-beep-boop",
+        "faff-graft",
+        "faff-prep",
+        "faffter-dark-concurrency-parallel",
+        "faffter-noon-methodology-thematic"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1282
     },
     {
       "title": "Ticket templates (born-structured create boundary)",
-      "tokens": 1577,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-jot",
+        "faff-plot"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 1577
     },
     {
       "title": "Sibling-skill invocation (install-mode portable)",
-      "tokens": 2647,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 2368
     },
     {
       "title": "Chaining pattern",
-      "tokens": 605,
-      "kind": "set",
       "consumers": [
         "faff-jot",
         "faff-plot",
-        "faff-prep"
-      ]
+        "faff-prep",
+        "faff-graft",
+        "faff-tidy",
+        "faff-wtf",
+        "faff-map",
+        "faff-beep-boop"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 605
     },
     {
       "title": "Interactive next-step offer (the forward-lean, in prose)",
-      "tokens": 620,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 620
     },
     {
       "title": "Core contracts and adaptor slots",
-      "tokens": 207,
-      "kind": "set",
-      "consumers": [
-        "faffidavit-routing",
-        "faffter-dark-authoring-adaptors",
-        "faffter-noon-ship"
-      ]
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 207
     },
     {
       "title": "Contract loading & conformance (how a skill actually gets these definitions)",
-      "tokens": 1999,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 1999
     },
     {
       "title": "Review verdict (fixed)",
-      "tokens": 493,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faffter-noon-review",
+        "faffter-dark-adversarial-review",
+        "faffter-dark-spec-review",
+        "faff-graft",
+        "faff-beep-boop"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 493
     },
     {
       "title": "Spec-review verdict (fixed)",
-      "tokens": 322,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-prep",
+        "faffter-noon-spec-review",
+        "faffter-dark-spec-review",
+        "faff-wtf",
+        "faff-beep-boop"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 322
     },
     {
       "title": "Delivery outcome (fixed)",
-      "tokens": 1434,
-      "kind": "set",
       "consumers": [
-        "faffter-noon-ship"
-      ]
+        "faffter-noon-ship",
+        "faff-graft",
+        "faffter-noon-concurrency-sequential",
+        "faffter-dark-concurrency-parallel",
+        "faffter-dark-authoring-adaptors"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 1434
     },
     {
       "title": "Automation-routing verdict (fixed) → `routing_adaptor`",
-      "tokens": 622,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faffidavit-routing",
+        "faff-tidy",
+        "faff-wtf",
+        "faff-beep-boop",
+        "faff-prep"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 622
     },
     {
       "title": "Spec readiness (fixed)",
-      "tokens": 1304,
-      "kind": "set",
       "consumers": [
-        "faff-prep",
+        "faffter-noon-spec",
         "faffter-dark-nlspec",
-        "faffter-noon-spec"
-      ]
+        "faff-prep",
+        "faff-graft",
+        "faff-tidy",
+        "faff-beep-boop",
+        "faffidavit-routing",
+        "faffter-noon-review",
+        "faffter-noon-adr",
+        "faffter-noon-spec-review",
+        "faffter-dark-spec-review",
+        "faffter-dark-authoring-adaptors"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 1304
     },
     {
       "title": "Rendering — no internal contract → `rendering_adaptor`",
-      "tokens": 425,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "all",
+      "keep": true,
+      "keep_reason": "shared kernel",
+      "source": "verified",
+      "tokens": 425
     },
     {
       "title": "Producer slots vs adaptor slots (what to swap, when)",
-      "tokens": 524,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faffter-dark-authoring-adaptors",
+        "faff-prep",
+        "faff-graft",
+        "faffter-noon-ship",
+        "faffidavit-routing",
+        "faffidavit-rendering"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 524
     },
     {
       "title": "The `methodology` slot",
-      "tokens": 4541,
-      "kind": "set",
       "consumers": [
         "faff-beep-boop",
-        "faff-jot",
-        "faff-map",
-        "faff-plot",
-        "faff-prep",
-        "faff-tidy",
         "faff-wtf",
-        "faffidavit-routing",
-        "faffter-dark-authoring-adaptors",
-        "faffter-dark-methodology-agile-delivery",
-        "faffter-dark-spec-review",
-        "faffter-noon-concurrency-sequential",
-        "faffter-noon-intake",
+        "faff-map",
+        "faff-tidy",
+        "faff-prep",
+        "faff-jot",
+        "faff-plot",
         "faffter-noon-methodology-thematic",
-        "faffter-noon-spec-review"
-      ]
+        "faffter-dark-methodology-agile-delivery",
+        "faffidavit-routing",
+        "faffter-noon-spec-review",
+        "faffter-dark-spec-review",
+        "faffter-dark-authoring-adaptors"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 4541
     },
     {
       "title": "Transport (per-output dispatch grain)",
-      "tokens": 679,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faff-tidy",
+        "faff-wtf",
+        "faff-map",
+        "faff-jot",
+        "faff-plot",
+        "faff-beep-boop",
+        "faff-prep"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 679
     },
     {
       "title": "Mechanism slot (`concurrency`)",
-      "tokens": 316,
-      "kind": "set",
       "consumers": [
+        "faffter-noon-concurrency-sequential",
+        "faffter-dark-concurrency-parallel",
         "faff-beep-boop",
-        "faffter-noon-concurrency-sequential"
-      ]
+        "faff-graft",
+        "faffter-noon-ship",
+        "faffter-dark-authoring-adaptors"
+      ],
+      "keep": false,
+      "source": "verified",
+      "tokens": 316
     },
     {
       "title": "The `concurrency` slot contract (fixed)",
-      "tokens": 4449,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": [
+        "faffter-noon-concurrency-sequential",
+        "faffter-dark-concurrency-parallel",
+        "faff-beep-boop",
+        "faff-graft"
+      ],
+      "keep": true,
+      "keep_reason": "fixed-contract/canonical refer-back home",
+      "source": "verified",
+      "tokens": 4449
     },
     {
       "title": "Routing fallbacks",
-      "tokens": 281,
-      "kind": "unknown",
-      "consumers": "unknown"
+      "consumers": "none",
+      "keep": false,
+      "source": "verified",
+      "tokens": 281
     }
   ]
 }

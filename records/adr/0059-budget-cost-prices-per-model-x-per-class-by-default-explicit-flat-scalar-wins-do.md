@@ -109,3 +109,43 @@ deliberately does **not** touch: a ledger already minted under `pricing:"flat"`
 by a pre-FAFF-446 binary keeps its recorded price verbatim via
 `envelopeFromLedger` — an in-flight run's dollar ceiling never silently
 changes mid-run just because the config schema changed underneath it.
+
+## Amendment (FAFF-964, 2026-09-02): cache-write pricing splits by TTL, unknown-TTL residual routes to 1h
+
+The per-class map priced every cache-creation token as one `cache_write` class
+at the 5-minute rate (1.25x input). Anthropic bills cache-creation writes at two
+rates by time-to-live: a 5-minute write at 1.25x input, a 1-hour write at 2x.
+faff's measured L3/L4 runs use a 1-hour TTL that never times out (`eval/TOKENOMICS.md`),
+so every real write was priced 2/1.25 = 1.6x too low, understating both the
+`budget.cost` governor and the `economics` dollars for 1h-cached runs.
+
+This amendment splits the single `cache_write` token class into two:
+
+- **`cache_write_5m`** (1.25x input, the prior rate) and **`cache_write_1h`**
+  (2x input) across `TOKEN_DELTA_CLASSES` and every `PRICE_PER_MTOK` row. The
+  extraction reads `usage.cache_creation.ephemeral_5m_input_tokens` and
+  `ephemeral_1h_input_tokens`, mirroring the field names and multipliers the
+  tokenomics eval suite (`eval/tokenomics.mjs`) already uses.
+- **Unknown-TTL residual routes to 1h.** When a usage record reports only the
+  flat aggregate `cache_creation_input_tokens` with no ephemeral sub-fields (an
+  older or foreign transcript, or a codex engine-spend record, which carries no
+  TTL split), the un-split residual `max(0, aggregate - ephem_5m - ephem_1h)`
+  is priced entirely at the 1h rate via one module constant,
+  `UNKNOWN_TTL_WRITE_CLASS = "cache_write_1h"`. This holds for both the governor
+  and the reporting surface: one pricing source, no divergence. It honours this
+  ADR's overcount-never-undercount posture (the safe direction is to over-price
+  an unknown write, never to under-count a real 1h write) and matches
+  `eval/tokenomics.mjs`'s observed-default routing.
+- **Single attribution path preserved.** The split keeps budget.js's one
+  transcript read loop: a single `classCountsFromUsage` helper computes all
+  cache-write classes, so the FAFF-229/408 parity invariant (class sum equals
+  the scalar total on every file) still holds. Every cache-creation token lands
+  in exactly one write class.
+
+Consistent with the FAFF-446 amendment above, this deliberately does **not**
+reinterpret an already-minted ledger: a ledger recorded under the old flat
+`cache_write` shape keeps its recorded price verbatim via `envelopeFromLedger`,
+so an in-flight L4 ceiling never changes mid-run because the code was upgraded.
+Legacy persisted engine-spend records and token-delta events that carry a bare
+`cache_write` are read back-compatibly (routed to `cache_write_1h`) so no
+persisted spend is dropped on re-read.

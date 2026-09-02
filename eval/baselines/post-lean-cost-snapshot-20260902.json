@@ -1,0 +1,80 @@
+{
+  "_what": "Post-lean COST snapshot for FAFF-970 (kernel leaning, PR #821). Dollar companion to post-lean-snapshot-20260902.json (which carried only per-lane prefixes, no $). Reprices the SAME pinned reference run per-lane at the post-lean resident prefixes and reconciles against the post-split blend.",
+  "captured": "2026-09-02",
+  "source_run": "evidence/cost-run-20260829-100405 (full L4 lights-out build, 843 calls, 19 transcripts) — the same run the pre-split and post-split baselines were captured on",
+  "measured_on": "main @ 079c3850 (FAFF-970 merged)",
+  "method": "Real per-file tokenomics pass. Each of the 19 transcripts is classified into its lane by its opening instruction (see per_file_classification), then priced with `node eval/tokenomics.mjs --transcript <file> --fixed 66165 --lean <post-lean lane prefix> --json` (bench[0]=baseline @ 66,165, bench[1]=post-lean). The SAME files repriced at the post-split prefixes reconstruct the pinned figures — reconstructed baseline $132.91 (pinned $132.913) and post-split $128.28 (pinned $128.29) — validating the classification. Per-lane resident prefix re-measured on merged main = kernel.md (23,364 tok) + estimateTokens() of each lane reference the skill's load-line declares it Reads (negated 'never Reads' clauses and 'see the sibling' pointers excluded; only wtf/map affected, by the autonomous.md pointer).",
+  "compares_to": "eval/baselines/post-split-snapshot-20260902.json (post_split blended $128.29, kernel 28,634 tok) and pre-split-snapshot-20260901.json (pinned baseline $132.913, gateway 66,165 tok)",
+  "gateway_tokens_before": 66165,
+  "kernel_tokens_post_split": 28634,
+  "kernel_tokens_post_lean": 23364,
+  "kernel_reduction_pct_vs_split": -18.4,
+  "universal_core_floor_tokens": 15293,
+  "contiguity_tax_post_split": 19320,
+  "contiguity_tax_post_lean": 19339,
+  "per_lane_prefixes_post_lean": {
+    "_note": "measured post-lean resident gateway prefix per skill = kernel (23,364) + the lane references that skill Reads; wtf/map exclude autonomous.md (declared never-read).",
+    "kernel_only": 23364,
+    "graft_build": 59735,
+    "beep_boop": 58073,
+    "tidy": 52413,
+    "prep": 51070,
+    "plot": 51049,
+    "jot": 49455,
+    "wtf_map": 38545,
+    "faffidavit_routing": 45098,
+    "spec_review_noon": 41842,
+    "spec_review_dark": 32573,
+    "onboard": 29336,
+    "evaluate": 29024
+  },
+  "per_lane_prefix_delta_vs_split": {
+    "_note": "post-lean minus post-split resident prefix. The split is asymmetric by design: heavy build lanes shed only Ticket templates (moved to create.md, which they do not Read); Control-label/Calibration/Park moved into references those lanes still Read, so they are neutral there. Interactive + light lanes, which Read none of autonomous/methodology/park, shed the full ~4.4-5.3k.",
+    "kernel_only": -5270,
+    "onboard": -5270,
+    "evaluate": -5270,
+    "wtf_map": -4386,
+    "spec_review_dark": -4386,
+    "heavy_build_graft_beepboop_prep_tidy": -1511
+  },
+  "per_lane_cost": [
+    { "lane": "beep-boop orchestrator", "files": 2, "prefix_post_split": 59584, "prefix_post_lean": 58073, "baseline": 58.71, "post_split": 57.69, "post_lean": 57.45, "saved_vs_split": 0.24 },
+    { "lane": "autonomous prep/graft/tidy (heavy)", "files": 4, "prefix_post_split": 57000, "prefix_post_lean": 55489, "baseline": 39.78, "post_split": 38.54, "post_lean": 38.33, "saved_vs_split": 0.21, "note": "heavy-blend prefix; prep/graft/tidy not individually separable in these four, all shed only Ticket templates" },
+    { "lane": "graft build executor", "files": 2, "prefix_post_split": 61246, "prefix_post_lean": 59735, "baseline": 14.83, "post_split": 14.47, "post_lean": 14.36, "saved_vs_split": 0.11 },
+    { "lane": "spec_review producer (light lane)", "files": 8, "prefix_post_split": 36959, "prefix_post_lean": 32573, "baseline": 17.84, "post_split": 15.85, "post_lean": 15.55, "saved_vs_split": 0.30, "note": "dark spec-review; reads kernel + methodology only, sheds the full Ticket-templates + Control-label + Park" },
+    { "lane": "evaluate (code-blind)", "files": 1, "prefix_post_split": 34294, "prefix_post_lean": 29024, "baseline": 1.18, "post_split": 1.18, "post_lean": 1.18, "saved_vs_split": 0.00, "note": "gateway not a cost driver for this transcript; prefix drops 5,270 but dollar impact ~0" },
+    { "lane": "lights-out bootstrap (no gateway)", "files": 2, "prefix_post_split": 66165, "prefix_post_lean": 66165, "baseline": 0.56, "post_split": 0.56, "post_lean": 0.56, "saved_vs_split": 0.00 }
+  ],
+  "per_file_classification": {
+    "_note": "Each transcript classified by its opening instruction. Validated: repricing these at the post-split prefixes reconstructs $132.91 baseline / $128.28 post-split.",
+    "beep-boop orchestrator": ["transcripts/225c9b53-eae6-4597-8f76-11eacccfff0b.jsonl", "transcripts/ec4ad0fa-109d-4d22-8f40-78e1b54eb375.jsonl"],
+    "lights-out bootstrap": ["transcripts/50af9ca9-1751-4f59-b208-b15d41a9dfe0.jsonl", "transcripts/711f8137-c100-4a15-a49d-9d7dd2de0b7c.jsonl"],
+    "graft build executor": ["transcripts/subagents/agent-a16cf15432ee42509.jsonl", "transcripts/subagents/agent-a989c3771a7800e24.jsonl"],
+    "autonomous prep/graft/tidy (heavy)": ["transcripts/subagents/agent-aac5a3b38b0a1e47a.jsonl", "transcripts/subagents/agent-aaff39d48298b33af.jsonl", "transcripts/subagents/agent-ad0a97745e5807100.jsonl", "transcripts/subagents/agent-ae98acee50bfc9d4e.jsonl"],
+    "spec_review producer (light)": ["transcripts/subagents/agent-a5fe8fa0810b8bb55.jsonl", "transcripts/subagents/agent-a7254da73fa2b1628.jsonl", "transcripts/subagents/agent-a78f2c1e693822ed0.jsonl", "transcripts/subagents/agent-a8805936642de548f.jsonl", "transcripts/subagents/agent-a9fbff138588f2754.jsonl", "transcripts/subagents/agent-aba479dd1c67349b8.jsonl", "transcripts/subagents/agent-ad89d19c1c931f174.jsonl", "transcripts/subagents/agent-aed007fcd739aa8de.jsonl"],
+    "evaluate (code-blind)": ["transcripts/subagents/agent-a7f3289e5c1546d4e.jsonl"]
+  },
+  "totals": {
+    "pinned_baseline": 132.913,
+    "reconstructed_baseline": 132.91,
+    "reconstructed_post_split": 128.28,
+    "per_lane_blended_post_split": 128.29,
+    "per_lane_blended_post_lean": 127.43,
+    "delta_vs_split": -0.85,
+    "pct_vs_split": -0.66,
+    "delta_vs_baseline": -5.48,
+    "pct_vs_baseline": -4.1
+  },
+  "findings": [
+    "FAFF-970 adds -$0.85 (-0.66%) on this build-dominated L4 run; cumulative -4.1% from the pinned baseline.",
+    "Small here by design: the lanes that dominate the bill (beep-boop, graft, prep/tidy) shed only Ticket templates (~1,511 tok) because Control-label -> autonomous.md, Calibration -> methodology.md, and Park -> park.md all landed in references those heavy lanes still Read.",
+    "Where FAFF-970 actually lifts hard: interactive wtf/map entry (-4,386 tok/call) and the light lanes onboard/evaluate (-5,270 tok/call) — none well-represented on a build transcript.",
+    "Confirms the FAFF-607 prediction: the dollar prize needs read-heavy interactive workloads this build run does not represent; on build-dominated runs the win is per-call prefix (measured, real) more than blended dollars (small)."
+  ],
+  "caveats": [
+    "Real per-file tokenomics pass, not an interpolation; reconstructed baseline $132.91 and post-split $128.28 reconcile with the pinned $132.913 / $128.29, validating the lane classification. The 'autonomous prep/graft/tidy (heavy)' lane keeps the snapshot's single blended prefix (prep/graft/tidy not individually separable in those 4 transcripts); post-lean shifts it by -1,511 (Ticket templates), the shed common to all three heavy lanes.",
+    "Per-lane prefixes measured with eval/cli-driver.mjs estimateTokens (chars/4), the same estimator eval/prefix-planner.mjs uses; wtf/map corrected for the never-read autonomous.md pointer."
+  ],
+  "repro": "Classify each transcript by opening instruction (see per_file_classification), then `node eval/tokenomics.mjs --transcript <file> --fixed 66165 --lean <post-lean lane prefix> --json` and sum bench[1].cost per lane. Structure: `node eval/prefix-planner.mjs` (kernel 23,364 / tax 19,339 / floor 15,293).",
+  "related": "FAFF-970 (this lean, PR #821), FAFF-607 (the split, PR #819), FAFF-487 (prose-lean remainder), FAFF-971 (loader decouple)"
+}

@@ -30,6 +30,7 @@ const { cmdCiTriage } = require("./lib/ci-triage");
 const { cmdClaimVerdict } = require("./lib/claim-verdict");
 const { cmdParkVerdict } = require("./lib/park-verdict");
 const { cmdCliSurface } = require("./lib/cli-surface");
+const { cmdCommissaire } = require("./lib/commissaire");
 const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
@@ -138,6 +139,7 @@ const COMMANDS = {
   "intakecheck": cmdIntakecheck,
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,
+  "commissaire": cmdCommissaire,
   "self-intake": cmdSelfIntake,
   // FAFF-604: the dispatch shell is the sanctioned meeting point for the two
   // regions (it is exempt from the require-graph lint by design). `budget check`

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-828",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8f8bd5a9ca1a029c5986816963f76a682db13efbae5aa31ea13f13b909987a26",
+    "branch": "faff-828-prove-the-external-commissaire-protocol-with-a-second",
+    "pushed_at": "2026-09-02T19:38:27.895Z"
+  },
+  "updated_at": "2026-09-02T19:38:27.895Z"
+}

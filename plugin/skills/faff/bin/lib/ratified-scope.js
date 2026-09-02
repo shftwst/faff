@@ -13,8 +13,9 @@
 //               to be consumed; it proves nothing about origin (FAFF-919 committed decision).
 //
 // The `## Non-goals` scan REUSES the shared scanner `admissibility.js` already exports
-// (`sectionBody`, default boundary) — no scanner is copied and `admissibility.js` is not modified;
-// deduping its separate `acceptanceSection` onto the shared scanner is deferred to FAFF-923.
+// (`sectionBody`, default boundary) — no scanner is copied. `admissibility.js`'s own
+// `acceptanceSection` delegates to the same shared scanner (FAFF-923): one heading-boundary
+// scanner in the module, no hand-rolled duplicate.
 //
 // PURE where it matters: assemble/validate/render/placeholderOnly do no writes and reach no network.
 // Only file READS happen (the resolved PRD path, docs/decisions.md, and the config prdDir consults).

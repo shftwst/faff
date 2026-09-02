@@ -346,21 +346,12 @@ function dodSplit(specText, view) {
 }
 
 // The `## Acceptance criteria` section body (case-insensitive heading PREFIX, so
-// "## Acceptance Criteria" / "## Acceptance criteria (release)" match), up to the
-// next "## " heading or EOF. null when no such section exists.
+// "## Acceptance Criteria" / "## Acceptance criteria (release)" match). Delegates to the
+// shared sectionBody/sectionBodyRange scanner (FAFF-923): fence-aware start scan, body stops
+// at the first equal-or-higher heading (a `#` h1 included, not just the next `## `). null when
+// no such section exists. No local boundary-scanning loop — see sectionBodyRange for the walk.
 function acceptanceSection(prdText) {
-  const lines = String(prdText == null ? "" : prdText).split(/\r?\n/);
-  let start = -1;
-  for (let k = 0; k < lines.length; k++) {
-    if (/^\s*##\s+acceptance criteria/i.test(lines[k])) { start = k; break; }
-  }
-  if (start === -1) return null;
-  const body = [];
-  for (let k = start + 1; k < lines.length; k++) {
-    if (/^\s*##\s+\S/.test(lines[k])) break;
-    body.push(lines[k]);
-  }
-  return body.join("\n");
+  return sectionBody(prdText, /^\s*##\s+acceptance criteria/i);
 }
 
 const BANNED_VAGUE = [

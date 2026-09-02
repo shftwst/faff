@@ -152,6 +152,9 @@ const SPEC_JUDGE_EVIDENCE_SPEC = {
     // FAFF-930 — case-file assembler / admit roll-up modes.
     "--assemble": { arity: 0 },
     "--admit": { arity: 0 },
+    // FAFF-959 — per-proposition dispatch-time pre_ruling_* re-stamp mode.
+    "--restamp": { arity: 0 },
+    "--pid": { arity: 1 },
     "--spec": { arity: 1 },
     "--out": { arity: 1 },
     "--run-id": { arity: 1 },
@@ -165,17 +168,21 @@ const SPEC_JUDGE_EVIDENCE_USAGE =
   "   or: faff spec-judge-evidence --assemble --dir <scratch> --window-start <N> --spec <file> " +
   "--issue <ISSUE-XX> [--out <judge-dir>] [--repo-root <path>] [--run-id <id>] [--container <c>]\n" +
   "   or: faff spec-judge-evidence --admit --level <L3|L4> --out <judge-dir> --spec <file> " +
-  "--dir <scratch> --window-start <N> [--run-dir <path>]";
+  "--dir <scratch> --window-start <N> [--run-dir <path>]\n" +
+  "   or: faff spec-judge-evidence --restamp --pid <pid> --spec <file> " +
+  "[--out <judge-dir> | --dir <scratch>]";
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 function cmdSpecJudgeEvidence(args) {
   const { values, errors } = parseArgs(args, SPEC_JUDGE_EVIDENCE_SPEC);
   if (errors.length) return usageError(errors, SPEC_JUDGE_EVIDENCE_USAGE);
-  if (values["--assemble"] && values["--admit"]) {
-    return usageError([{ code: "invalid-value", detail: "--assemble and --admit are mutually exclusive" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  const modeCount = ["--assemble", "--admit", "--restamp"].filter((f) => values[f]).length;
+  if (modeCount > 1) {
+    return usageError([{ code: "invalid-value", detail: "--assemble, --admit, and --restamp are mutually exclusive" }], SPEC_JUDGE_EVIDENCE_USAGE);
   }
   if (values["--assemble"]) return cmdAssemble(values);
   if (values["--admit"]) return cmdAdmit(values);
+  if (values["--restamp"]) return cmdRestamp(values);
 
   const dir = values["--dir"];
   const level = values["--level"];
@@ -608,6 +615,51 @@ function cmdAdmit(values) {
   try { fs.writeFileSync(path.join(outDir, "admit-result.json"), JSON.stringify(result, null, 2) + "\n"); }
   catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: warning — could not write admit-result.json: ${e.message}\n`); }
   console.log(JSON.stringify(result));
+  return 0;
+}
+
+// FAFF-959 — re-stamp one proposition's pre_ruling_spec_sha/pre_ruling_spec_content to the
+// current on-disk spec state. Called mid-dispatch (faff-prep's per-proposition loop) between the
+// previous proposition's applied correction and this proposition's judgement, so the roll-up's
+// correction-applied check later compares against the right pre-correction baseline instead of
+// the shared assemble-time snapshot. Runs only after --assemble has provably written
+// ledger.json, so a missing/malformed ledger here is a plumbing fault — fail-loud (exit 2),
+// mirroring --admit's treatment of the same ledger. Mutates exactly the target entry's two
+// pre_ruling_* fields on the parsed-in-place ledger and writes it back — every sibling entry and
+// every other field of the target entry survive the JSON round-trip byte-for-byte.
+function cmdRestamp(values) {
+  const pid = values["--pid"];
+  if (pid == null) return usageError([{ code: "missing-value", detail: "--restamp requires --pid" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  if (badBareId(pid)) return usageError([{ code: "invalid-value", detail: `--pid "${pid}" is not a bare id` }], SPEC_JUDGE_EVIDENCE_USAGE);
+  const specPath = values["--spec"];
+  if (specPath == null) return usageError([{ code: "missing-value", detail: "--restamp requires --spec" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  const outDir = values["--out"] || (values["--dir"] ? path.join(values["--dir"], "judge") : null);
+  if (outDir == null) return usageError([{ code: "missing-value", detail: "--restamp requires --out (or --dir)" }], SPEC_JUDGE_EVIDENCE_USAGE);
+
+  // Malformed / unparseable ledger.json → fail-loud exit 2 (never a silent resolve/drop) — restamp
+  // is only ever called mid-dispatch, after --assemble has provably written this file.
+  let ledger;
+  try { ledger = JSON.parse(fs.readFileSync(path.join(outDir, "ledger.json"), "utf8")); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --restamp: ledger.json unreadable/malformed in ${outDir}: ${e.message}\n`); return 2; }
+  if (!ledger || !Array.isArray(ledger.order) || !ledger.entries) {
+    process.stderr.write(`faff spec-judge-evidence --restamp: ledger.json in ${outDir} has no order[]/entries{}\n`); return 2;
+  }
+  if (!ledger.order.includes(pid) || !ledger.entries[pid]) {
+    process.stderr.write(`faff spec-judge-evidence --restamp: ledger.json in ${outDir} lists no proposition "${pid}"\n`); return 2;
+  }
+
+  let specText;
+  try { specText = fs.readFileSync(specPath, "utf8"); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --restamp: cannot read --spec ${JSON.stringify(specPath)}: ${e.message}\n`); return 2; }
+
+  const entry = ledger.entries[pid];
+  entry.pre_ruling_spec_sha = casefile.sha256Text(specText);
+  entry.pre_ruling_spec_content = specText;
+
+  fs.writeFileSync(path.join(outDir, "ledger.json"), JSON.stringify(ledger, null, 2) + "\n", { mode: 0o600 });
+  try { fs.chmodSync(path.join(outDir, "ledger.json"), 0o600); } catch { /* best-effort on platforms without chmod */ }
+
+  console.log(JSON.stringify({ restamped: pid, sha: entry.pre_ruling_spec_sha, out: outDir }));
   return 0;
 }
 

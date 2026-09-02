@@ -130,7 +130,7 @@ Map each `LensResult.exit` (the underlying `review-call.mjs` exit code the fan-o
 
 A refuter that is **down never silently approves** — an unavailable lens feeds the transport floor in aggregation below, surfacing `needs-human` rather than a quiet pass.
 
-**Parsing an exit-0 lens (FAFF-938 — deterministic, not prose).** A refuter's exit-0 stdout is markdown prose; turning it into the `objections[]` JSON below is a **machine-guaranteed** producer-boundary step, not an unenforced convention. For each exit-0 lens, run:
+**Parsing an exit-0 lens (deterministic, not prose).** A refuter's exit-0 stdout is markdown prose; turning it into the `objections[]` JSON below is a **machine-guaranteed** producer-boundary step, not an unenforced convention. For each exit-0 lens, run:
 
 ```bash
 printf '%s' "$LENS_STDOUT" | node plugin/skills/faffter-dark-spec-review/parse-refutation.mjs --lens <lens>

@@ -124,11 +124,22 @@ Map each `LensResult.exit` (the underlying `review-call.mjs` exit code the fan-o
 
 | exit | meaning | lens outcome |
 |---|---|---|
-| `0` | findings returned | parse the refutation; **refuted** if it carries any gating objection, else **clear** |
+| `0` | findings returned | run the bundled **`parse-refutation.mjs`** (below) on the exit-0 stdout; **refuted** if it carries any gating objection, else **clear** |
 | `5` / `12` | configured host unreachable / persistent transport failure / rate-limited (all backends 429) | **unavailable**, kind `infra-configured` |
 | `6` / `2` / `4` / `7` | default-host down / unsupported provider / model-not-served / auth failed | **unavailable**, kind `config-fault` |
 
 A refuter that is **down never silently approves** — an unavailable lens feeds the transport floor in aggregation below, surfacing `needs-human` rather than a quiet pass.
+
+**Parsing an exit-0 lens (FAFF-938 — deterministic, not prose).** A refuter's exit-0 stdout is markdown prose; turning it into the `objections[]` JSON below is a **machine-guaranteed** producer-boundary step, not an unenforced convention. For each exit-0 lens, run:
+
+```bash
+printf '%s' "$LENS_STDOUT" | node plugin/skills/faffter-dark-spec-review/parse-refutation.mjs --lens <lens>
+```
+
+- **Exit 0** — use the printed `RefutationEntry` JSON verbatim as that lens's entry in the refutations array below.
+- **Non-zero exit** — a **parse fault**: the lens omitted or malformed a required triple field on a gating objection (or emitted content the parser cannot make sense of at all). Record that lens's entry as `{ "lens": "<lens>", "outcome": "unavailable", "kind": "config-fault", "objections": [] }` — the same transport floor an exit `6`/`2`/`4`/`7` config-fault lens hits, so the pass rolls up to `needs-human` naming the lens (never a silent `clear`/`approve`, and never a partial pass on the objections the lens *did* get right). Write the parser's stderr diagnostic (names lens + severity + title + the missing field) into that lens's `$pin_dir/round-<n>-<lens>.md` transcript alongside its raw stdout, so the audit trail distinguishes a parse fault from a genuine `review-call.mjs` config fault.
+
+The parser is self-contained (`plugin/skills/faffter-dark-spec-review/parse-refutation.mjs`, zero-dependency, reused verbatim — never hand-rolled inline) and models the **exit-0 wire bytes** — the transport's post-`normaliseCleanRefutation`/`refuteFindings` output — never the raw `refute-<lens>.md` prompt grammar. It does not change the contract: `spec-review-verdict` stays permissive (a legacy `{lens, severity}` objection still validates), and `aggregate.mjs`'s majority/severity gate is untouched.
 
 ### Per-lens transcript (audit trail)
 
@@ -145,7 +156,7 @@ Collect the per-lens refutations into one JSON array and pipe it to the bundled 
   "model": "provider/model" }
 ```
 
-Each objection carries the **enrichment fields** — the triple `{claim, evidence, predicted_consequence}` plus the optional `spec_anchor` — parsed from the lens's `### [severity]` block. `aggregate.mjs` carries these verbatim onto the output objection, so they survive into the round record and thence `faff spec-judge-evidence`. A taste-level objection that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"`. A lens that cannot name the single attacked section omits `spec_anchor` (absence is the signal; canonical derivation: faff `bin/lib/heading-slug.js`). Each lens's prompt states the anchor rule as this exact bullet:
+Each objection carries the **enrichment fields** — the triple `{claim, evidence, predicted_consequence}` plus the optional `spec_anchor` — extracted from the lens's `### [severity]` block by `parse-refutation.mjs` above, never by an ad-hoc prose parse. On a **gating** objection (`critical`/`major`/`minor`) the triple is machine-guaranteed present (a missing/empty field is a parse fault, handled above); an `observation` carries whatever fields the parser found, unchecked. `aggregate.mjs` carries these verbatim onto the output objection, so they survive into the round record and thence `faff spec-judge-evidence`. A taste-level objection that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` (a present value, not a fault). A lens that cannot name the single attacked section omits `spec_anchor` (absence is the signal; canonical derivation: faff `bin/lib/heading-slug.js`). Each lens's prompt states the anchor rule as this exact bullet:
 
 - spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.
 

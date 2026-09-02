@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-923",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4fd3177edf6be9ec39f5467e96aa351ef44cd6749f22869652699850a6e388e1",
+    "branch": "faff-923-faff-admissible-route-acceptancesection-through-the-fence",
+    "pushed_at": "2026-09-02T20:35:24.242Z"
+  },
+  "updated_at": "2026-09-02T20:35:24.242Z"
+}

@@ -38,6 +38,7 @@ const { auditLedger, TERMINAL_STATES } = require("./runcheck");
 const { readAcComplete, readHoldout, readReviewVerdict } = require("./merge-gate");
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
+const { verifyAuthLeg, hasGovernanceContext } = require("./commissaire");
 const { findRoot, readLedger } = require("./shared-infra");
 const { computeChainHead, sha256Hex, verifyChain, verifyEffectsChain } = require("./events");
 
@@ -217,6 +218,23 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
   if (!events.pass) return events; // events failure keeps today's exact result + forensics
   const effects = integrityLegForChain(verifyEffectsChain(dir, { legacyPolicy }), legacyPolicy, opts, dir, "declared-effects.jsonl", "effects-chain-head.json");
   if (!effects.pass) return effects; // events clean, effects broken → surface the effects failure
+  // FAFF-828: the schema:3 auth leg. When the ledger carries any schema:3 governance record, the
+  // integrity leg ALSO re-authenticates each record — producer claims under the master-re-derived
+  // HMAC key (only when the master is present; the honest symmetric limit is non-gating), and every
+  // Commissaire decision under the public PK (always checkable). A forged/tampered decision, a
+  // producer-auth mismatch, or a revoked/unadmitted producer fails-closed here, gating the merge
+  // exactly as a broken chain does. An ordinary run with no schema:3 record is a clean no-op.
+  if (hasGovernanceContext(dir)) {
+    const auth = verifyAuthLeg(dir);
+    if (!auth.pass) {
+      const first = auth.failures[0];
+      return {
+        pass: false, status: "auth-failed",
+        detail: `declared-effects.jsonl: schema:3 auth leg failed (${auth.failures.length} record(s)): first at seq ${first.seq} — ${first.reason}`,
+        first_break: null, note: null, torn_tail: effects.torn_tail, witness: effects.witness,
+      };
+    }
+  }
   // Both pass — prefer whichever carries a warn note (so `warn` is never silently identical to
   // `pass`); default to the events result (byte-identical to today when effects is absent/clean).
   if (!events.note && effects.note) return effects;

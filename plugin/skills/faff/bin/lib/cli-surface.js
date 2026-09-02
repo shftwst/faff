@@ -20,6 +20,7 @@ const { parseArgs, usageError } = require("./argv");
 
 const { ADR_SURFACE } = require("./adr");
 const { ANDON_SURFACE } = require("./andon");
+const { COMMISSAIRE_SURFACE } = require("./commissaire");
 const { CONFIG_SURFACE } = require("./config");
 const { CORRECTIVE_SURFACE } = require("./corrective");
 const { DOD_SURFACE, HOLDOUT_SURFACE } = require("./admissibility");
@@ -41,6 +42,7 @@ const { SENTRY_SURFACE } = require("./sentry");
 const DISPATCH_SURFACES = {
   adr: ADR_SURFACE,
   andon: ANDON_SURFACE,
+  commissaire: COMMISSAIRE_SURFACE,
   config: CONFIG_SURFACE,
   corrective: CORRECTIVE_SURFACE,
   dod: DOD_SURFACE,

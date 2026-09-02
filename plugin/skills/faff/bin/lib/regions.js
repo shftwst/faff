@@ -95,6 +95,11 @@ const REGION_MAP = {
   "intakecheck": "factory",
   "intake-record": "factory",
   "contain": "factory",
+  // commissaire — FAFF-828: the external Commissaire facade shell (external CLI, admission, key
+  // delivery, PK publication). Requires the governance cores (producer-auth.js, events.js,
+  // effects.js) — factory→governance is legal (ADR-0042); the pure split-key cores stay in
+  // governance so no governance file requires this factory shell.
+  "commissaire": "factory",
   // self-intake — FAFF-539: the mechanical same-repo/team gate on the outward-self-intake
   // reclassification. Reads config via loadConfig (factory identifier) + imports contain's
   // isSafeRunId — factory, like contain; the pure comparator lives in shared-infra so
@@ -387,6 +392,7 @@ const REGION_SELFTEST_ARGV = {
   "intakecheck": ["intakecheck", "--selftest"],
   "intake-record": ["intake-record", "--selftest"],
   "contain": ["contain", "--selftest"],
+  "commissaire": ["commissaire", "--selftest"],
   "self-intake": ["self-intake", "--selftest"],
   "economics": ["economics", "--selftest"],
   "disposition": ["disposition", "--selftest"],

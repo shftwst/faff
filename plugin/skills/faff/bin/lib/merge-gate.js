@@ -45,6 +45,7 @@ const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, compu
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
+const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir } = require("./commissaire");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
@@ -757,6 +758,34 @@ function observeMergeEffects(runDir, issue, effects) {
   }
 }
 
+// FAFF-828: the worked chokepoint. Resolve the Commissaire protected-effect decision leg for THIS
+// merge — a three-state signal decideFloor consumes. "not-applicable" (an ordinary merge the
+// external facade never governed: no schema:3 effect-decision-verdict for this issue's merge step)
+// is a no-op, so ordinary merges are byte-for-byte unaffected. When governance DOES apply, the
+// latest signed verdict is verified through chokepoint_permit against the pinned public PK: a
+// genuine covering grant → "valid-grant" (no-op), anything else (missing/forged/deny/non-covering
+// grant, or an unreadable pinned PK) → "absent-or-invalid", which decideFloor refuses BEFORE the
+// merge. This is where a verified unforgeable decision becomes prevention. Any read error is
+// swallowed to "not-applicable" — the decision leg never itself crashes a merge that the facade
+// was never governing. `mergeTarget` (the base branch) is the effect target the grant must cover;
+// when unresolved, the grant's own declared merge target is used (the governor's signed intent).
+function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
+  let entries;
+  try { entries = commissaireReadLedger(runDir); } catch { return "not-applicable"; }
+  const verdicts = entries.filter((e) =>
+    e && e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" &&
+    e.issue === issue && e.step === "merge");
+  if (verdicts.length === 0) return "not-applicable"; // the facade never governed this merge
+  const verdict = verdicts[verdicts.length - 1]; // the latest decision for this issue's merge
+  let pkRec;
+  try { pkRec = JSON.parse(fs.readFileSync(commissairePkFile(commissaireProducerDir(runDir)), "utf8")); }
+  catch { return "absent-or-invalid"; } // governance applies but the pinned PK is unreadable — fail-closed
+  const grantedTarget = verdict.payload && verdict.payload.effect && verdict.payload.effect.target;
+  const mergeEffect = { kind: "merge", target: mergeTarget || grantedTarget };
+  const res = commissaireChokepointPermit(mergeEffect, verdict, pkRec.pk, pkRec.pk_fingerprint);
+  return res.permit ? "valid-grant" : "absent-or-invalid";
+}
+
 // ===========================================================================
 // === FAFF-526: the git-only `--local` branch of the SAME merge locus. ====================
 // A sibling condition, never a second command: it substitutes the CI-green floor leg with a
@@ -994,6 +1023,7 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
     holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
+    decision_grant: resolveCommissaireDecisionGrant(runDir, issue, base),
   };
   const { verdict, blockers } = decideFloor(floor); // UNCHANGED pure core
   const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [] };
@@ -1214,6 +1244,7 @@ function cmdMergeGate(args) {
     holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
+    decision_grant: resolveCommissaireDecisionGrant(runDir, issue, null),
   };
   const { verdict, blockers } = decideFloor(floor);
   const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display };

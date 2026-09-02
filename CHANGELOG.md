@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.28.0](https://github.com/shftwst/faff/compare/faff--v0.27.0...faff--v0.28.0) (2026-09-02)
+
+
+### Features
+
+* **FAFF-828:** external Commissaire facade — schema:3 governed records, split-key auth, verb-3 protected-effect decisions ([#823](https://github.com/shftwst/faff/issues/823)) ([881f4a2](https://github.com/shftwst/faff/commit/881f4a2555aa919947ec7e52a15b093478ed8110))
+* **FAFF-938:** deterministic parser for the spec-review refuter objection triple ([#826](https://github.com/shftwst/faff/issues/826)) ([f34856e](https://github.com/shftwst/faff/commit/f34856ed10c7afa0221daf689beddfb930500697))
+* **FAFF-956:** deterministic in-kernel decision-capture across nine kernels ([#822](https://github.com/shftwst/faff/issues/822)) ([4ecf494](https://github.com/shftwst/faff/commit/4ecf49484c986fb047a4d99235c031676caff6ed))
+* **FAFF-968:** give ADR promotion intent a git-only channel ([#830](https://github.com/shftwst/faff/issues/830)) ([8229c89](https://github.com/shftwst/faff/commit/8229c89bf9205417706291a3f8bf732796c53663))
+
+
+### Bug Fixes
+
+* **FAFF-923:** route acceptanceSection through the fence-aware shared scanner ([#827](https://github.com/shftwst/faff/issues/827)) ([24d7011](https://github.com/shftwst/faff/commit/24d7011e1841f9c529f001c5cea12d5cec34f2ad))
+* **FAFF-965:** recognise capture/provenance in config check's known-key lint ([#825](https://github.com/shftwst/faff/issues/825)) ([dd349cb](https://github.com/shftwst/faff/commit/dd349cb0be3460fb334dc3ce5bf29b15a48b4824))
+* **FAFF-973:** remove orphaned adversarial.spec_judge.keepgoing_bound config ([#829](https://github.com/shftwst/faff/issues/829)) ([69ea98a](https://github.com/shftwst/faff/commit/69ea98a26980332c8c47cb8c275ef81e70e6825e))
+
 ## [0.27.0](https://github.com/shftwst/faff/compare/faff--v0.26.0...faff--v0.27.0) (2026-09-02)
 
 

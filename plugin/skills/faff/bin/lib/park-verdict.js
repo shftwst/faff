@@ -93,6 +93,7 @@ function parkVerdictSelftest() {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 
 const PARK_VERDICT_SPEC = {
   flags: {
@@ -116,8 +117,17 @@ function cmdParkVerdict(args) {
     return usageError([{ code: "invalid-input", detail: `--human-takeover is not true|false: ${htRaw}` }], PARK_VERDICT_USAGE);
   }
   try {
-    const out = parkVerdict(values["--status"], values["--draft-pr"], values["--park-comment"], htRaw === "true");
+    const humanTakeover = htRaw === "true";
+    const out = parkVerdict(values["--status"], values["--draft-pr"], values["--park-comment"], humanTakeover);
     console.log(JSON.stringify(out));
+    // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+    // authority-inert. normalised_inputs uses the registry's canonical positional keys.
+    captureDecision({
+      kernel: "park-verdict",
+      normalised_inputs: { status: values["--status"], draftPr: values["--draft-pr"], parkComment: values["--park-comment"], humanTakeover },
+      verdict: out,
+      issue: process.env.FAFF_DECISION_ISSUE || "",
+    });
     return 0;
   } catch (e) {
     if (e instanceof ParkVerdictError) return usageError([{ code: "invalid-input", detail: e.message }], PARK_VERDICT_USAGE);

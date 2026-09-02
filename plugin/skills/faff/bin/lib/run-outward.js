@@ -75,6 +75,7 @@ function decideOutward(targetRaw, selfRaw) {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 const RUN_OUTWARD_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--target": { arity: 1 }, "--self": { arity: 1 } } };
 
 function cmdRunOutward(args) {
@@ -114,6 +115,11 @@ function cmdRunOutward(args) {
   } else {
     process.stdout.write(`outward: ${signal.outward} (${signal.reason})\n`);
   }
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert. Run-level: `issue` is the `__run__` sentinel. Captured POSITIONAL
+  // ({targetRaw, selfRaw}) — decideOutward normalises internally, so replay re-normalisation
+  // is a no-op on the already-parsed refs.
+  captureDecision({ kernel: "run-outward", normalised_inputs: { targetRaw: target, selfRaw: self }, verdict: signal, issue: "__run__" });
   return 0; // report-only (parity with run-start/run-done): the boolean is in the payload
 }
 

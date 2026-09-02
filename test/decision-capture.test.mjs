@@ -62,7 +62,7 @@ function lastPhysicalLineSha(logPath) {
   return sha256(raw.subarray(start, end));
 }
 
-const FULL_NEXT_INPUTS = { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false };
+const FULL_NEXT_INPUTS = { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false, awaitingSpecReview: false };
 
 // ---------------------------------------------------------------------------
 // Scenario 1 (spec §5): replayable.
@@ -115,7 +115,7 @@ test("non-replayable: a required next-kernel input is omitted -> coverage=non-re
     assert.equal(JSON.parse(r.out).coverage, "non-replayable");
     const rec = records(log).pop();
     assert.equal(rec.data.coverage, "non-replayable");
-    assert.deepEqual(rec.data.missing_inputs.sort(), ["blocked", "eligible", "ifEligible", "parked"]);
+    assert.deepEqual(rec.data.missing_inputs.sort(), ["awaitingSpecReview", "blocked", "eligible", "ifEligible", "parked"]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -533,7 +533,7 @@ test("integration smoke test (spec §8): stdin JSON -> record --run R --issue FA
     enableCapture(root);
     seedGenesis(root, "R");
     const stdin = JSON.stringify({
-      normalised_inputs: { status: "backlog", spec: "none", eligible: true, parked: false, blocked: false, ifEligible: false },
+      normalised_inputs: { status: "backlog", spec: "none", eligible: true, parked: false, blocked: false, ifEligible: false, awaitingSpecReview: false },
       selected_action: "prep",
     });
     const r = run(root, ["decision-capture", "record", "--run", "R", "--issue", "FAFF-1", "--kernel", "next"], stdin);

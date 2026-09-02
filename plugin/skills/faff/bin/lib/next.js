@@ -6,6 +6,7 @@
 
 const { runEligibleCases } = require("./eligible");
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 
 const NEXT_SPEC = {
   flags: {
@@ -130,6 +131,10 @@ function cmdNext(args) {
   // not eligible, --if-eligible bypassed the short-circuit, and it wasn't a terminal short-circuit.
   const hypothetical = !state.eligible && state.ifEligible && !TERMINAL_STATUSES.includes(state.status);
   console.log(JSON.stringify(hypothetical ? { next, reason, would_be_eligible: true } : { next, reason }));
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert (never changes the stdout above or the exit below). `state` carries all
+  // seven canonical `nextStep` keys by construction, so the record is always input-complete.
+  captureDecision({ kernel: "next", normalised_inputs: state, verdict: next, issue: process.env.FAFF_DECISION_ISSUE || "" });
   return 0;
 }
 

@@ -115,12 +115,20 @@ const DELIVERY_PROFILE = {
     // kernel saw, the action the harness actually took, and a computed coverage class. Read-only
     // instrumentation, gated off by default (capture.decision_kernel); see decision-capture.js.
     "decision-capture",
+    // FAFF-956: the decision-capture action marker — the orchestrator's actual downstream
+    // action, joined to a base decision-capture record by correlation id. Issue-scoped like
+    // the base record (a run-level marker supplies the `__run__` sentinel). See
+    // decision-capture.js's `action` verb.
+    "decision-capture-action",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
     "corrective-authored", "corrective-consumed", "containment-check", "self-intake-check",
     // FAFF-821: a decision-capture record is about one work item — `issue` is required.
     "decision-capture",
+    // FAFF-956: the action marker is about the same work item as its base record; a
+    // run-level marker supplies the `__run__` sentinel so `issue` is always present.
+    "decision-capture-action",
   ],
   outcome_required_types: ["issue-outcome"],
   ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded", "parked-window"],

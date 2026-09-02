@@ -9,7 +9,7 @@ judgement_seam: architecture
 
 The default occupant of the **`architecture`** slot — the generative half of faff's architecture story. Given a brief or spec plus the team's acquired infra profile, it **proposes** one best-fit, production-grade architecture + infra, reasoned. It is the missing PROPOSE box: faff already records ADRs (the `adr` slot), critiques a spec's design (the spec-review `architectural` lens), and acquires the infra profile (the `profile` slot) — this generates the proposal those steps then judge.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 

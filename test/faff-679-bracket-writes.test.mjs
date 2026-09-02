@@ -17,7 +17,9 @@ import { createHash } from "node:crypto";
 import { runCli } from "./helpers/run-cli.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const gatewaySkill = readFileSync(join(repoRoot, "plugin", "skills", "faff", "SKILL.md"), "utf8");
+// FAFF-607: the `concurrency` slot contract (obligation 5) moved from the monolith into the L4 lane
+// reference (faff/references/l4.md) — that is where the obligation-5 prose now lives.
+const gatewaySkill = readFileSync(join(repoRoot, "plugin", "skills", "faff", "references", "l4.md"), "utf8");
 const sequentialSkill = readFileSync(join(repoRoot, "plugin", "skills", "faffter-noon-concurrency-sequential", "SKILL.md"), "utf8");
 const parallelSkill = readFileSync(join(repoRoot, "plugin", "skills", "faffter-dark-concurrency-parallel", "SKILL.md"), "utf8");
 

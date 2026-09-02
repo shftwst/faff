@@ -11,7 +11,7 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 ## Configuration
 
-**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. wtf displays the **fixed automation-routing + spec-readiness contracts**; it falls back to git-only mode only when no tracker connector resolves **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin, discover before concluding absence — never infer git-only from an immediately-invisible tool list).
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references wtf consumes: `faff/references/tracker.md`, `faff/references/methodology.md` — wtf is interactive-only and never Reads `faff/references/autonomous.md` (it surfaces calibration via the kernel-side Calibration log, carrying no autonomous-contract prose). wtf displays the **fixed automation-routing + spec-readiness contracts**; it falls back to git-only mode only when no tracker connector resolves **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin, discover before concluding absence — never infer git-only from an immediately-invisible tool list).
 
 **Ordering is delegated.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), it renders the order the configured `methodology` slot's `pick-ordering` returns (gateway → **Ordering & judgement delegation**). `/faff-wtf` states no ordering of its own; the thematic default supplies priority + chainable unlock value when no methodology is set.
 
@@ -307,7 +307,7 @@ Skip any section that has nothing to report — **except the automation preview 
 
 ## Autonomous Mode
 
-When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
+When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see the sibling `faff/references/autonomous.md`) and these specifics:
 
 **Output:** a plain ready-queue list — issue id, title, readiness flag (`ready` or `needs-prep`). No focus recommendation, no "Do this", no "Heads up", no chat-style prose.
 

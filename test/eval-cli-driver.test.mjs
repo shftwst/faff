@@ -768,11 +768,13 @@ const ANCHOR_REGISTRY = {
   SPLITTABLE_START: { skill: "faff-tidy", end: "SPLITTABLE_END", endCount: 2 },
   CHAIN_GAP_START: { skill: "faff-tidy", end: "CHAIN_GAP_END" },
   CONFIDENCE_RUBRIC_START: { skill: "faffter-dark-nlspec", end: "CONFIDENCE_RUBRIC_END" },
-  MARKER_DIALECT_START: { skill: "faff", end: "MARKER_DIALECT_END" },
+  // FAFF-607: the three fixed-contract sections moved from the monolith into the shared kernel
+  // (faff/references/kernel.md); the `file` field points the loader/anchor check at that file.
+  MARKER_DIALECT_START: { skill: "faff", file: "references/kernel.md", end: "MARKER_DIALECT_END" },
   RECONCILIATION_RUBRIC_START: { skill: "faff-prep", end: "RECONCILIATION_RUBRIC_END" },
   REVIEW_VERDICT_START: { skill: "faffter-noon-review", end: "REVIEW_VERDICT_END" },
-  GATEWAY_VERDICT_START: { skill: "faff", end: "GATEWAY_VERDICT_END" },
-  GATEWAY_ROUTING_START: { skill: "faff", end: "GATEWAY_ROUTING_END" },
+  GATEWAY_VERDICT_START: { skill: "faff", file: "references/kernel.md", end: "GATEWAY_VERDICT_END" },
+  GATEWAY_ROUTING_START: { skill: "faff", file: "references/kernel.md", end: "GATEWAY_ROUTING_END" },
   ADAPTOR_ROUTING_START: { skill: "faffidavit-routing", end: "ADAPTOR_ROUTING_END" },
   JOT_MODE_START: { skill: "faff-jot", end: "JOT_MODE_END" },
   INTAKE_MODE_START: { skill: "faffter-noon-intake", end: "INTAKE_MODE_END" },
@@ -803,13 +805,17 @@ const anchorValue = (name) => {
   assert.ok(m, `anchor constant ${name} not found in eval/cli-driver.mjs`);
   return JSON.parse(m[1]);
 };
+// FAFF-607: a registry row reads its skill's SKILL.md by default, or the `file` it names (a lane
+// reference under the skill dir, e.g. references/kernel.md for a section moved by the gateway split).
+const rowFile = (row) => row.file || "SKILL.md";
+const rowPath = (row) => join(DEFAULT_PLUGIN_DIR, "skills", row.skill, rowFile(row));
 const occurrences = (haystack, needle) => haystack.split(needle).length - 1;
 
 test("FAFF-669 every registered start anchor occurs exactly once in the file its loader reads", () => {
   for (const [name, row] of Object.entries(ANCHOR_REGISTRY)) {
-    const md = readFileSync(join(DEFAULT_PLUGIN_DIR, "skills", row.skill, "SKILL.md"), "utf8");
+    const md = readFileSync(rowPath(row), "utf8");
     assert.equal(occurrences(md, anchorValue(name)), 1,
-      `${name} is not unique in ${row.skill}/SKILL.md — extractSection would silently take the first match`);
+      `${name} is not unique in ${row.skill}/${rowFile(row)} — extractSection would silently take the first match`);
   }
 });
 
@@ -837,14 +843,14 @@ test("FAFF-669 the anchor registry covers every start-anchor constant declared i
 test("FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window", () => {
   for (const [name, row] of Object.entries(ANCHOR_REGISTRY)) {
     if (row.end === null) continue; // extractSectionToEnd — no end anchor to guard
-    const md = readFileSync(join(DEFAULT_PLUGIN_DIR, "skills", row.skill, "SKILL.md"), "utf8");
+    const md = readFileSync(rowPath(row), "utf8");
     const startVal = anchorValue(name);
     const startPos = md.indexOf(startVal);
-    assert.ok(startPos >= 0, `${name} not found in ${row.skill}/SKILL.md`);
+    assert.ok(startPos >= 0, `${name} not found in ${row.skill}/${rowFile(row)}`);
     const window = md.slice(startPos + startVal.length);
     const expected = row.endCount ?? 1;
     assert.equal(occurrences(window, anchorValue(row.end)), expected,
-      `${row.end} does not occur ${expected}x after ${name} in ${row.skill}/SKILL.md — extractSection would silently truncate`);
+      `${row.end} does not occur ${expected}x after ${name} in ${row.skill}/${rowFile(row)} — extractSection would silently truncate`);
   }
 });
 

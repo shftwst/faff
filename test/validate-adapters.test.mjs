@@ -43,12 +43,15 @@ test("flags a SKILL.md over the line cap", () => {
   assert.notEqual(r.status, 0);
 });
 
-test("the gateway hub gets its own downward-ratchet baseline, not the shared ceiling", () => {
-  // a 700-line file named `faff` is the shared-prose hub — SKILL_LINE_BASELINE.faff is its own
-  // committed-size ratchet (comfortably above 700 at real-repo size), so no line-cap failure here.
+test("a hub file gets its own downward-ratchet baseline, not the shared ceiling", () => {
+  // a 700-line file named `faff-graft` is a shared-prose hub — SKILL_LINE_BASELINE["faff-graft"] is
+  // its own committed-size ratchet (854, above 700), so no line-cap failure, even though 700 is over
+  // the shared lenient SKILL_LINE_CAP (600). FAFF-607: the bare-`/faff` gateway is no longer a hub
+  // (it dropped to its post-split size, baseline 80); the hub baselines that override the ceiling are
+  // faff-beep-boop / faff-graft and the path-keyed KERNEL_LINE_BASELINE.
   const body = Array.from({ length: 700 }, (_, i) => `gateway line ${i}`).join("\n");
-  const r = runOne(body, "faff");
-  assert.equal(has(r, "line cap"), false, "the gateway's SKILL_LINE_BASELINE ratchet must not trip at 700 lines");
+  const r = runOne(body, "faff-graft");
+  assert.equal(has(r, "line cap"), false, "a hub's SKILL_LINE_BASELINE ratchet must not trip below its own baseline (854)");
 });
 
 test("flags a wall-of-text paragraph", () => {

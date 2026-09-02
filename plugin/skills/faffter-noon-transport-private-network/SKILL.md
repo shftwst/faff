@@ -9,7 +9,7 @@ judgement_seam: none
 
 The default occupant of the **`transport`** slot, composed under `env`: given the provision context, it resolves the base host the evaluator uses to reach the system under build across the lane boundary, for the **private-network reachability class** — the system sits on a private network, the evaluator is a member of it, and network-layer segmentation alone satisfies "only the evaluator can reach it", with no application-layer auth.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 

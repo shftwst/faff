@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-956",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0ea89464135e89da4c64700ac4a306cc74062c5ee0a805073123c4a1658a440c",
+    "branch": "faff-956-widen-decision-capture-instrumentation-beyond-the-faff-954",
+    "pushed_at": "2026-09-02T19:13:49.810Z"
+  },
+  "updated_at": "2026-09-02T19:13:49.810Z"
+}

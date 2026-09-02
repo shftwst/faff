@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.27.0](https://github.com/shftwst/faff/compare/faff--v0.26.0...faff--v0.27.0) (2026-09-02)
+
+
+### Features
+
+* **FAFF-607:** split the gateway into a kernel + six lane references ([#819](https://github.com/shftwst/faff/issues/819)) ([18caabf](https://github.com/shftwst/faff/commit/18caabfe9e9a9ba88cd69df443978ff1a49d8121))
+* **FAFF-963:** declared-manifest matrix for the gateway prefix-planner ([#816](https://github.com/shftwst/faff/issues/816)) ([18d4956](https://github.com/shftwst/faff/commit/18d49568ea2c5824dc2bdc8dd25bace19206badf))
+* **FAFF-964:** TTL-aware cache-write pricing (split cache_write into 5m/1h) ([#818](https://github.com/shftwst/faff/issues/818)) ([8dc79f8](https://github.com/shftwst/faff/commit/8dc79f8866454bcd17c4fafc47ba6bef9eb890bb))
+* **FAFF-970:** lean the gateway kernel (28.6k to 23.4k, -4.4k on wtf/map) ([#821](https://github.com/shftwst/faff/issues/821)) ([079c385](https://github.com/shftwst/faff/commit/079c38506c25cff60867d459ef049ae202740d1c))
+
 ## [0.26.0](https://github.com/shftwst/faff/compare/faff--v0.25.0...faff--v0.26.0) (2026-09-01)
 
 

@@ -4,6 +4,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { HERE } = require("./shared-infra");
 const { parseArgs, usageError } = require("./argv");
 const VALIDATE_ADAPTERS_SPEC = { flags: { "--configured": { arity: 0 }, "--root": { arity: 1 }, "--skills-dir": { arity: 1 }, "--is-bundled": { arity: 1 }, "--slot": { arity: 1 } } };
@@ -659,6 +660,42 @@ function cmdIsBundled(args) {
   return 0;
 }
 
+// FAFF-963: gateway-usage manifest lint. Shells out to the ESM planner's `--check-manifest --json`
+// (validate-adapters is CJS; the planner is ESM) so the gateway-heading parse stays single-source in
+// `segmentGateway` — no second parser to drift. Structural + reference violations FAIL the run (exit 1,
+// folded into `failed`); a missing/unparseable manifest is fail-loud (exit 2, harness-can't-run),
+// mirroring the seam-registry / frontier.json precedent. A root with no eval/ harness (a fixture
+// skills-dir) has no planner to run and is a clean no-op, exactly as the seam block skips an absent
+// registry. Usage drift is NOT checked here — it is advisory (`--drift`), never a CI gate.
+function lintGatewayManifest(root) {
+  const plannerPath = path.join(root, "eval", "prefix-planner.mjs");
+  if (!fs.existsSync(plannerPath)) return { failed: false, exit2: false };
+  try {
+    execFileSync(process.execPath, [plannerPath, "--check-manifest", "--json"], { encoding: "utf8" });
+  } catch (err) {
+    if (err.status === 2) {
+      console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
+      console.log(`        ✗ manifest missing or unparseable — the CI lint cannot read the declared block→consumer matrix (FAFF-963: exit 2)`);
+      return { failed: true, exit2: true };
+    }
+    if (err.status === 1) {
+      let parsed = null;
+      try { parsed = JSON.parse(err.stdout || ""); } catch { parsed = null; }
+      console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
+      const violations = parsed ? [...(parsed.structural || []), ...(parsed.reference || [])] : [];
+      if (violations.length) for (const v of violations) console.log(`        ✗ ${v}`);
+      else console.log(`        ✗ ${(err.stdout || err.message || "").trim()}`);
+      return { failed: true, exit2: false };
+    }
+    // Any other exit is an unexpected harness fault, not a content FAIL.
+    console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
+    console.log(`        ✗ prefix-planner --check-manifest failed unexpectedly: ${err.message}`);
+    return { failed: true, exit2: true };
+  }
+  console.log(`pass  gateway-usage manifest`);
+  return { failed: false, exit2: false };
+}
+
 function cmdValidateAdapters(args) {
   if (args.includes("--is-bundled")) return cmdIsBundled(args);
   const { values, errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
@@ -1045,6 +1082,14 @@ function cmdValidateAdapters(args) {
     }
   }
 
+  // FAFF-963: gateway-usage manifest lint (structural + reference). Runs after the seam block, off the
+  // same shared root. Fail-loud (exit 2) on a missing/unparseable manifest; violations fold into `failed`.
+  {
+    const m = lintGatewayManifest(root);
+    if (m.exit2) return 2;
+    if (m.failed) failed = true;
+  }
+
   for (const n of Object.keys(REGISTRY)) {
     if (!present.includes(n)) console.log(`WARN  ${n} is registered but not present on disk`);
   }
@@ -1062,4 +1107,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

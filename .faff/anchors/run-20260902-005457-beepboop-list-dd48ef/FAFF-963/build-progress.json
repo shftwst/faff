@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-963",
+  "build": {
+    "status": "complete",
+    "diff_hash": "66de99f31f5f67e703ec89e5e6d21c3cffef3b76dfa43f344552d7747408ff46",
+    "branch": "faff-963-prefix-planner-mis-classifies-refer-back-canonical-gateway",
+    "pushed_at": "2026-09-02T02:20:58.145Z"
+  },
+  "updated_at": "2026-09-02T02:20:58.145Z"
+}

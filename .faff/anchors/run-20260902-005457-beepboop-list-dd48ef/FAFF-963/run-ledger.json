@@ -1,0 +1,20 @@
+{
+  "level": "L3",
+  "run_id": "run-20260902-005457-beepboop-list-dd48ef",
+  "admitted": [
+    "FAFF-963"
+  ],
+  "outcomes": {
+    "FAFF-964": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "owner": {
+    "status": "running",
+    "pid": 21926,
+    "session_id": "run-20260902-005457-beepboop-list-dd48ef",
+    "started_at": "2026-09-02T00:54:57Z",
+    "last_heartbeat": "2026-09-02T00:54:57Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

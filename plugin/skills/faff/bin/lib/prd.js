@@ -289,6 +289,22 @@ function prdSelftest() {
     !acceptanceSection("## Acceptance criteria\n- a MUST b\n\n## Open questions\n- The x MUST be y\n").includes("Open"));
   t("acceptanceSection null when absent", acceptanceSection("## Problem\nx\n") === null);
 
+  // FAFF-923: acceptanceSection delegates to the shared sectionBody scanner — fence-aware,
+  // equal-or-higher-heading stop. Two edge inputs where this corrects the old hand-rolled scan:
+  {
+    // (a) an h1 (or bigger) heading after the section now stops the body — old scanner only
+    // stopped at the next "## ", so a later "# Appendix" was swallowed into the acceptance body.
+    const withAppendix = "## Acceptance criteria\n- a MUST b\n\n# Appendix\n- loose prose here\n";
+    const bodyA = acceptanceSection(withAppendix);
+    t("acceptanceSection (a) stops at a post-section h1", bodyA.includes("a MUST b") && !bodyA.includes("loose prose here"));
+
+    // (b) a fenced "## ..." line inside the body no longer truncates it — old scanner was not
+    // fence-aware and mistook a fenced "## " line for the next heading, dropping later criteria.
+    const withFence = "## Acceptance criteria\n- a MUST b\n\n```\n## fenced not-a-heading\n```\n- c MUST d\n";
+    const bodyB = acceptanceSection(withFence);
+    t("acceptanceSection (b) fenced '## ' line does not truncate the body", bodyB.includes("a MUST b") && bodyB.includes("c MUST d"));
+  }
+
   // strictCheck + dispatch: placeholder-only fails; born-verifiable passes; prose fails; Requirements ignored.
   const bvCriteria = "## Acceptance criteria\n\n- Given a run, When the PRD is admissible, Then the run starts\n- The p99 latency MUST be < 200ms\n";
   const prosey = "## Acceptance criteria\n\n- the dashboard should look nice\n";
@@ -322,6 +338,15 @@ function prdSelftest() {
   fs.writeFileSync(path.join(dir, "nosec.md"), mkPrd("Draft", "## Problem\nx\n"));
   t("missing acceptance-criteria section fails --strict", prdValidate(dir, { strict: true }).some((p) => /^nosec\.md:.*no '## Acceptance criteria'/.test(p)));
   fs.unlinkSync(path.join(dir, "nosec.md"));
+
+  // FAFF-923 gate-level: the corrected h1 boundary reaches `faff prd validate --strict` end-to-end.
+  // A loose-prose line living under a POST-acceptance "# Appendix" heading is no longer classified
+  // as an acceptance criterion, so it no longer trips --strict (old scanner swallowed it and failed).
+  fs.writeFileSync(path.join(dir, "appendix.md"), mkPrd("Draft",
+    bvCriteria + "\n# Appendix\n\n- this loose prose lives after the acceptance section, not in it\n"));
+  t("gate: --strict ignores prose under a post-acceptance h1 (boundary fix)",
+    !prdValidate(dir, { strict: true }).some((p) => /^appendix\.md/.test(p)));
+  fs.unlinkSync(path.join(dir, "appendix.md"));
 
   fs.rmSync(tmp, { recursive: true, force: true });
 

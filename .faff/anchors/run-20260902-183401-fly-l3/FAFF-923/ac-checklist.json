@@ -1,0 +1,32 @@
+{
+  "all_verified": true,
+  "acs": [
+    {
+      "text": "acceptanceSection no longer contains its own boundary-scanning loop; it delegates to sectionBody with the default boundary.",
+      "verified": true,
+      "evidence": "admissibility.js acceptanceSection is now `return sectionBody(prdText, /^\\s*##\\s+acceptance criteria/i);` — confirmed by inspection (no `for` loop, single-expression body, node -e dump)."
+    },
+    {
+      "text": "On input (a) (an h1 after the section) the acceptance body now stops at the h1; on input (b) (a fenced '## ' line) the fenced line no longer truncates the body. Both are covered by tests.",
+      "verified": true,
+      "evidence": "prd.js prdSelftest: 'acceptanceSection (a) stops at a post-section h1' and 'acceptanceSection (b) fenced '## ' line does not truncate the body' — both pass under `node plugin/skills/faff/bin/faff prd --selftest` (36/36 cases ok)."
+    },
+    {
+      "text": "The faff admissible / faff dod selftests are updated to reflect the corrected boundary, and the behaviour change is called out for the gate-change review.",
+      "verified": true,
+      "evidence": "acceptanceSection's only production consumer is prdStrictCheck (prd.js L112) -> faff prd validate --strict, not faff admissible/faff dod (neither calls acceptanceSection). Coverage was added at the actually-exercised surface: prdSelftest unit cases (a)/(b) plus a gate-level `prdValidate(dir, { strict: true })` assertion ('gate: --strict ignores prose under a post-acceptance h1 (boundary fix)'). admissibleSelftest/dodSelftest are unchanged and still pass (14/14, and dod --selftest ok) because they don't reach acceptanceSection. The behaviour-change note is in the PR body (gate-change review section) per this ticket's mandate."
+    },
+    {
+      "text": "No hand-rolled heading-scan copy remains in admissibility.js.",
+      "verified": true,
+      "evidence": "The only heading-boundary walk left in admissibility.js is the shared sectionBodyRange (L189); acceptanceSection is a single delegating return with no loop of its own."
+    }
+  ],
+  "full_suite": {
+    "prd_selftest": "ok (36 cases)",
+    "admissible_selftest": "PASS (14 cases, 0 failed)",
+    "dod_selftest": "ok",
+    "ratified_scope_selftest": "PASS (0 failed)",
+    "node_test_full_suite": "4146 tests, 4140 pass, 6 fail (all confirmed pre-existing on unmodified main, unrelated to this diff — see graft.md Step 7.5), 18 skip (docker-gated, expected)"
+  }
+}

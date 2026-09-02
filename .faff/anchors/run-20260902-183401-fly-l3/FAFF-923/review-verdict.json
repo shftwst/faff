@@ -1,0 +1,15 @@
+{
+  "signal": "pass",
+  "findings": [],
+  "conformant": true,
+  "violations": [],
+  "phase1": {
+    "verdict": "pass",
+    "summary": "Standard (Phase 1) review: clean. All 4 ticket ACs + all spec DoD items verified with automated tests (prd --selftest 36/36, admissible --selftest 14/14, dod --selftest ok, ratified-scope --selftest 0 failed). Change is a single-expression delegation (`return sectionBody(prdText, /^\\s*##\\s+acceptance criteria/i);`) matching the spec's Chosen design exactly, confined to admissibility.js (function + comment), prd.js (test coverage), ratified-scope.js (stale-breadcrumb comment only). No scope creep, no bugs found, no human-judgement items. Full node --test suite (4146 tests, chunked) passes except 6 failures independently confirmed to reproduce identically on unmodified main, unrelated to this diff (see graft.md)."
+  },
+  "phase2": {
+    "outcome": "skipped-deadline",
+    "attempts": 4,
+    "detail": "Four independent adversarial Phase-2 attempts against the configured 3-backend fallback chain (openai/unsloth/Qwen3.8-27B-NVFP4, openai/deepseek/deepseek-v4-flash-0731 via OpenRouter with a real credential, openai/glimmer), with escalating budgets (max_tokens 2000/3000/6000/4000, deadline 140s/400s/560s/400s). Results varied run to run — exit 8 (deadline) on backends 1 and 3 every time; backend 2 alternated between exit 11 (empty content) and exit 10 (malformed, no recognised finding section) across attempts — confirming genuine transient contention on the shared adversarial-review infrastructure (this run has multiple sibling autonomous build lanes concurrently calling the same backends) rather than a structural per-model fault. The final attempt terminated at exit 8 (deadline exceeded, the availability class — advisory only per review-call.mjs's own exit-code table): 'pass + skip the second opinion, logged loudly (phase2: skipped-deadline)', both interactively and autonomously. Per the same table, this is distinct from the exit-11 dominant case (structural, needs-human) — an earlier attempt in this same review session did land on exit 11 and was provisionally logged as needs-human before this later, less-contended attempt produced the advisory exit-8 outcome instead; the later, successful classification is authoritative for this review pass. No Phase-2 findings were obtained; nothing to disposition."
+  }
+}

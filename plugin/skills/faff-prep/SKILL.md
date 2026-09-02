@@ -16,7 +16,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. prep gates on the **fixed spec-readiness contract**; its `spec` slot inherits the gateway ambiently.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references prep consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/review.md`. prep gates on the **fixed spec-readiness contract**; its `spec` slot inherits the gateway ambiently.
 
 ### Spec slot (always delegated)
 
@@ -379,7 +379,7 @@ Do **not** include an acceptance-criteria count here — fresh prep hasn't explo
 
 **Automation eligibility (interactive).** If the issue is **not automation-eligible** (gateway → **Automation eligibility**) — it lacks `faff-automate` under the opt-in default, or carries `faff-automation-hold` — warn — "this ticket isn't automation-eligible; proceeding interactively, eligibility is unchanged until you set it" — then continue normally. Interactive prep is never *blocked* by eligibility (only autonomous prep skips not-eligible issues). Prep never **auto**-changes eligibility labels; in interactive mode it **offers to crank it up on explicit confirm** once the spec is attached — see Step 3's *Held-ticket lift gate*. (Autonomous prep never cranks up: a not-eligible issue returns `ineligible` and is skipped.)
 
-Resolve tracker availability first **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin via `faff tracker probe`, discover the connector before concluding git-only, resolve the mode once for this prep) — so a deferred-tool harness doesn't read a connected tracker as absent and mis-route discovery to the git-only store. Then apply the shared **Spec discovery** rule (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
+Resolve tracker availability first **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin via `faff tracker probe`, discover the connector before concluding git-only, resolve the mode once for this prep) — so a deferred-tool harness doesn't read a connected tracker as absent and mis-route discovery to the git-only store. Then apply the shared **Spec discovery** rule (the sibling `faff/references/tracker.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
 
@@ -433,7 +433,7 @@ On `high` confirm (or `medium` → `build`), invoke the `faff-graft` skill via t
 
 ### Scenario B: Resume (existing spec found)
 
-The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (the sibling `faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
+The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (the sibling `faff/references/tracker.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
 
 **Step 1: Restore working state** — pull the spec from whichever source had it. If multiple sources exist, use the most recently modified one and note the others in the log. **Note the spec comment's timestamp** — you'll use it in the next step.
 
@@ -497,7 +497,7 @@ Everything else is unchanged: the producer still runs, marker validation and the
 
 ## Autonomous Mode
 
-When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
+When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see the sibling `faff/references/autonomous.md`) and these specifics:
 
 **Automation-eligibility gate (runs first).** Before either path, check the shared **Automation eligibility** rule (gateway). If the issue is **not automation-eligible** — compute `faff eligible` from its labels (`faff-automate` / `faff-automation-hold`) + `automation_default` + the tracker-present signal (`--tracker present|absent`, resolved from **Tracker availability resolution**; opt-out is inert under a tracker) — **skip it entirely**: do not run the already-shipped scan, do not spec, refresh, or promote. The labels passed to `faff eligible` here are the issue's **at-the-gate read** — prep fetches the issue fresh at entry, and that fetch is the gate's label source (gateway → **Re-ground before gate**); if a refresh path spans turns, re-read the labels before this gate rather than reusing the entry snapshot, so a human cranking the issue up between turns is honoured. Return the `ineligible` disposition (below). A not-eligible issue is **not** `parked` (it was never attempted and never enters the run-ledger); `/faff-beep-boop` surfaces it in the On-hold bucket, not Parked. Never add `faff-automate` or remove `faff-automation-hold`.
 
@@ -571,7 +571,7 @@ Apply the gate to the producer's output:
 
 ### Park protocol
 
-Follow the shared park protocol (see the sibling `faff/SKILL.md`):
+Follow the shared park protocol (see the sibling `faff/references/kernel.md`):
 - Post a tracker comment with cause (e.g. "low-confidence fresh-spec", "architectural change required in refresh")
 - Tag the issue `faff-parked` via `faff label add <issue> faff-parked` and its descriptor's write (gateway → **Control-label provisioning**)
 - Log to `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` with the full reasoning

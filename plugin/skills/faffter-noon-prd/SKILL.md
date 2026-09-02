@@ -9,7 +9,7 @@ judgement_seam: prd-readiness
 
 The default occupant of the **`prd`** slot — the LLM half of the PRD-admissibility gate. Given a container's PRD document — and **nothing else** — it answers one question the L4 run-start gate needs before a lights-out run may mint: does this PRD state a machine-verifiable done-signal, so an unattended run is terminable and auditable rather than free to loop forever against vague prose goals? It emits one `faff-contract:prd-readiness` verdict; the deterministic `faff contract prd-readiness` check validates that verdict's shape and makes the admit/refuse call.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 

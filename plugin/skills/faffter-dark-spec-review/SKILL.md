@@ -11,7 +11,7 @@ The **L4 (lights-out)** occupant of the **`spec_review`** slot. Where the defaul
 
 It is the spec-stage twin of the code-stage adversarial reviewer: same independent-model transport, one altitude up. At L4 there is no human in the room, so a single pass run by one model — even a four-lens one — inherits that model's correlated blind spots; running the lenses as **independent** passes is what decorrelates them.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/methodology.md` (the methodology lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## When it runs
 

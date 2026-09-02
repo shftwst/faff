@@ -55,7 +55,13 @@ const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap 
 // `faff-graft` carries an unrelated, pre-existing override (FAFF-708 et al.) with headroom, not a
 // zero-headroom ratchet; it predates and is out of this ticket's two-hub-file scope, so its value is
 // carried forward unchanged rather than folded into the ratchet invariant above.
-const SKILL_LINE_BASELINE = { faff: 1170, "faff-beep-boop": 763, "faff-graft": 854 };   // renamed from SKILL_LINE_CAP_OVERRIDE (FAFF-584). FAFF-487 -7 gateway lines (Autonomous Mode Contract leaned: no-prompt/anti-park prose deduped + four preflights folded to one table; baseline lowered to lock the reduction). Sibling-skill invocation Producer-dispatch bullet later tightened (token-only, line-neutral). FAFF-948 +11 faff-graft (Step 3 reuse-arm staleness gate: `faff worktree-check` before "Skip to step 5" — fresh reuses as today, stale rebases onto the fetched base (via the JSON's worktree_path/base_ref, never an unestablished shell var) or parks on conflict; an exit-2 `reason:"no-worktree"` falls through to fresh-create, every other reason parks/warns instead of colliding with the already-checked-out worktree). FAFF-950 +3 beep-boop (turn-budget review-pending hold: the spec_review_turn_budget_pending ledger array entry + the "## Awaiting spec-review (slow fan-out)" run-summary subsection + the annotation twin). FAFF-954 +5 beep-boop (§4 build-queue gate: best-effort flag-guarded decision-capture record of the next/eligible core-loop decision) +5 faff-graft (Step 2 prep + eligibility gates: dispatched/autonomous-only decision-capture record of next/eligible). FAFF-895 +6 faff-graft (Interactive custody stamp sub-step broadened from L4 `--local`-only to L4 top-level `--local` or `--pr`; split its one over-cap paragraph into a bulleted lead + 5 bullets for the paragraph-word-cap lint). FAFF-842 +16 beep-boop (claim-before-admit: the endgame-only admission branch for a stranded In Review PR — reconstruct/store/PR/budget gates, recovery-claim mint/tick/release, landing_resumable ledger bullet + run-summary subsection) +1 faff-graft (Step 10 endgame-only entry paragraph: a third, no-rebuild dispatch shape re-entering the bounded landing loop directly). FAFF-889 -1 faff-graft (Step-5 build-claim mutex rewrite is net-leaner than the demoted breadcrumb prose it replaced — baseline lowered to lock the reduction). faff/faff-beep-boop: ratchet baselines, set to their exact committed size. faff-graft: unchanged carry-forward, see above. (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7), FAFF-767 +1 beep-boop (surface intervention row) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return), FAFF-448 +6 gateway (decisions-register consult in Resolve-attempt before park) + faff-graft +6 (register-consult mirror + 3/5 bound-drift fix), FAFF-584 gateway ## Routing dedupe (line-neutral rename) + baseline re-pin to committed size, FAFF-699 +11 gateway (Interactive next-step offer subsection + Park-protocol recovery addendum), FAFF-761 +6 faff-graft (Step 3 standalone-interactive L2 mint block + Step 10 terminal outcome-write block), FAFF-214 +11 faff-graft (Step 9b draft→sanitize→check→gh pr create --body-file sequence + Step 8 pointer + autonomous-summary mirror), FAFF-782 +2 beep-boop (step 11.6 run-end synchronicity invariant — the whole reconcile→post-merge→owner-close tail runs in-turn, never a fire-and-forget background wait), FAFF-788 +1 beep-boop (Run ledger top-level level field-bullet), FAFF-779 +1 gateway (Park protocol (shared): conditional WIP/draft-PR steps + park-record accumulator + short-comment-rule) +1 beep-boop (park backstop's park_records accumulator write + summary faff-parks fence), FAFF-796 +1 beep-boop (git-only run-level anchor mint + commit bullet at orchestrator exit, per ADR 0109), FAFF-808 +5 gateway (Tracker availability resolution step 1: three-way probe branch for the git-only pin), FAFF-814 +12 beep-boop (step 7 eager containment-gated discovered-scope filing at L4 + step 8.0 reconcile/backstop + filed_this_wave accounting), FAFF-810 +1 beep-boop (step 3 re-slice-handoff prep-return bullet + reconciliation non-attach-expecting wiring), FAFF-841 +107 faff-graft (Step 9b In Review transition + Step 10 bounded landing loop: observe(pr) oracle, landing_loop procedure, landing-resumable outcome token + ledger-bucket mapping), FAFF-819 +4 faff-graft (Step 9b bundle-publish paragraph, after the anchor mint) +1 beep-boop (run-close bundle-publish bullet, after anchor-run), FAFF-817 +1 gateway (Slots table: transport row), FAFF-884 beep-boop line-neutral (Turn-survival invariant in-flight-marker sentence appended in-line; baseline unchanged at 739) + faff-prep +2 (spec-review-gate in-flight-marker turn-survival prose, under the uncapped 600 default, no baseline entry), FAFF-844 +63 faff-graft (Step 10 staged fix cycle: autofix config gate, handle_fixable_state/run_fix_cycle/same_class/observe_to_terminal, loop-entry hard-park-at-3 read, CONFLICTING/CI_RED_REGRESSION re-pointed via a CONTINUE sentinel resolved only at the SWITCH call site), FAFF-929 +10 faff-graft (Step 4c rewritten from presence-only to reconcile-before-materialise: `faff decisions intent-status` classify + skip-superseded/not-intent, a consistency backstop against the just-committed spec mirroring Step 4b/3b's detect_contradictions seam, skip+supersede+surface on an obsoleted intent, and a `faff decisions validate` pass after any materialise)
+// FAFF-607: path-keyed downward line-cap ratchet for the gateway split's lean target,
+// faff/references/kernel.md (the dir-keyed SKILL_LINE_BASELINE loop below only iterates dirs that
+// contain a SKILL.md, so a references file is never line-capped by it). Growth FAILs; a shrink below
+// baseline prints a non-failing RATCHET advisory — lower it to lock the reduction, exactly like
+// SKILL_LINE_BASELINE. The bare-/faff faff/SKILL.md baseline drops from 1170 to its post-split size.
+const KERNEL_LINE_BASELINE = 591;
+const SKILL_LINE_BASELINE = { faff: 80, "faff-beep-boop": 763, "faff-graft": 854 };   // renamed from SKILL_LINE_CAP_OVERRIDE (FAFF-584). FAFF-487 -7 gateway lines (Autonomous Mode Contract leaned: no-prompt/anti-park prose deduped + four preflights folded to one table; baseline lowered to lock the reduction). Sibling-skill invocation Producer-dispatch bullet later tightened (token-only, line-neutral). FAFF-948 +11 faff-graft (Step 3 reuse-arm staleness gate: `faff worktree-check` before "Skip to step 5" — fresh reuses as today, stale rebases onto the fetched base (via the JSON's worktree_path/base_ref, never an unestablished shell var) or parks on conflict; an exit-2 `reason:"no-worktree"` falls through to fresh-create, every other reason parks/warns instead of colliding with the already-checked-out worktree). FAFF-950 +3 beep-boop (turn-budget review-pending hold: the spec_review_turn_budget_pending ledger array entry + the "## Awaiting spec-review (slow fan-out)" run-summary subsection + the annotation twin). FAFF-954 +5 beep-boop (§4 build-queue gate: best-effort flag-guarded decision-capture record of the next/eligible core-loop decision) +5 faff-graft (Step 2 prep + eligibility gates: dispatched/autonomous-only decision-capture record of next/eligible). FAFF-895 +6 faff-graft (Interactive custody stamp sub-step broadened from L4 `--local`-only to L4 top-level `--local` or `--pr`; split its one over-cap paragraph into a bulleted lead + 5 bullets for the paragraph-word-cap lint). FAFF-842 +16 beep-boop (claim-before-admit: the endgame-only admission branch for a stranded In Review PR — reconstruct/store/PR/budget gates, recovery-claim mint/tick/release, landing_resumable ledger bullet + run-summary subsection) +1 faff-graft (Step 10 endgame-only entry paragraph: a third, no-rebuild dispatch shape re-entering the bounded landing loop directly). FAFF-889 -1 faff-graft (Step-5 build-claim mutex rewrite is net-leaner than the demoted breadcrumb prose it replaced — baseline lowered to lock the reduction). faff/faff-beep-boop: ratchet baselines, set to their exact committed size. faff-graft: unchanged carry-forward, see above. (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7), FAFF-767 +1 beep-boop (surface intervention row) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return), FAFF-448 +6 gateway (decisions-register consult in Resolve-attempt before park) + faff-graft +6 (register-consult mirror + 3/5 bound-drift fix), FAFF-584 gateway ## Routing dedupe (line-neutral rename) + baseline re-pin to committed size, FAFF-699 +11 gateway (Interactive next-step offer subsection + Park-protocol recovery addendum), FAFF-761 +6 faff-graft (Step 3 standalone-interactive L2 mint block + Step 10 terminal outcome-write block), FAFF-214 +11 faff-graft (Step 9b draft→sanitize→check→gh pr create --body-file sequence + Step 8 pointer + autonomous-summary mirror), FAFF-782 +2 beep-boop (step 11.6 run-end synchronicity invariant — the whole reconcile→post-merge→owner-close tail runs in-turn, never a fire-and-forget background wait), FAFF-788 +1 beep-boop (Run ledger top-level level field-bullet), FAFF-779 +1 gateway (Park protocol (shared): conditional WIP/draft-PR steps + park-record accumulator + short-comment-rule) +1 beep-boop (park backstop's park_records accumulator write + summary faff-parks fence), FAFF-796 +1 beep-boop (git-only run-level anchor mint + commit bullet at orchestrator exit, per ADR 0109), FAFF-808 +5 gateway (Tracker availability resolution step 1: three-way probe branch for the git-only pin), FAFF-814 +12 beep-boop (step 7 eager containment-gated discovered-scope filing at L4 + step 8.0 reconcile/backstop + filed_this_wave accounting), FAFF-810 +1 beep-boop (step 3 re-slice-handoff prep-return bullet + reconciliation non-attach-expecting wiring), FAFF-841 +107 faff-graft (Step 9b In Review transition + Step 10 bounded landing loop: observe(pr) oracle, landing_loop procedure, landing-resumable outcome token + ledger-bucket mapping), FAFF-819 +4 faff-graft (Step 9b bundle-publish paragraph, after the anchor mint) +1 beep-boop (run-close bundle-publish bullet, after anchor-run), FAFF-817 +1 gateway (Slots table: transport row), FAFF-884 beep-boop line-neutral (Turn-survival invariant in-flight-marker sentence appended in-line; baseline unchanged at 739) + faff-prep +2 (spec-review-gate in-flight-marker turn-survival prose, under the uncapped 600 default, no baseline entry), FAFF-844 +63 faff-graft (Step 10 staged fix cycle: autofix config gate, handle_fixable_state/run_fix_cycle/same_class/observe_to_terminal, loop-entry hard-park-at-3 read, CONFLICTING/CI_RED_REGRESSION re-pointed via a CONTINUE sentinel resolved only at the SWITCH call site), FAFF-929 +10 faff-graft (Step 4c rewritten from presence-only to reconcile-before-materialise: `faff decisions intent-status` classify + skip-superseded/not-intent, a consistency backstop against the just-committed spec mirroring Step 4b/3b's detect_contradictions seam, skip+supersede+surface on an obsoleted intent, and a `faff decisions validate` pass after any materialise)
 // FAFF-884: the turn-survival anchor-phrase lint, generalised from the hard-coded
 // `name === "faff-graft"` branch to a data-driven PER-SKILL map. Each skill anchors
 // on the literal phrases its OWN prose genuinely carries (the three faff-graft phrases
@@ -114,7 +120,9 @@ function anchorResolves(leaf, headings) {
   }
   return false;
 }
-const REFER_BACK = /Read[^\n]*\bfaff\/SKILL\.md/;
+// FAFF-607: the refer-back requirement is satisfied by Reading the kernel (faff/references/kernel.md,
+// where the shared gateway prose now lives after the split), not only the bare-/faff faff/SKILL.md.
+const REFER_BACK = /Read[^\n]*\bfaff\/(?:references\/kernel|SKILL)\.md/;
 const NON_NORMATIVE = /non-normative|gateway wins/i;
 
 // FAFF-54: every faff-* user command emits human-facing output (terminal, tracker
@@ -497,7 +505,11 @@ function extractVoicePathToken(line) {
 }
 function lintVoicePointer(args, skillsDir, allSkills) {
   const findings = [];
-  const gatewayPath = path.join(skillsDir, "faff", "SKILL.md");
+  // FAFF-607: post-split the `House voice:` clause (the Voice clause under Sibling-skill invocation)
+  // lives in faff/references/kernel.md; read it there, falling back to the bare gateway for a
+  // pre-split tree.
+  const kernelPath = path.join(skillsDir, "faff", "references", "kernel.md");
+  const gatewayPath = fs.existsSync(kernelPath) ? kernelPath : path.join(skillsDir, "faff", "SKILL.md");
   if (!fs.existsSync(gatewayPath)) return findings; // leg 1, no-gateway case: skip silently
 
   const { values } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
@@ -766,7 +778,11 @@ function cmdValidateAdapters(args) {
     // FAFF-54: every faff-* user command emits human-facing output, so its SKILL.md
     // must reference routing that output through the configured renderer. Presence
     // check only — see RENDERING_REF for the honest runtime-routing limit.
-    if (!RENDERING_REF.test(text)) {
+    // FAFF-607: exempt the bare-`/faff` router. Post-split faff/SKILL.md is routing + narrative only;
+    // the Rendering / Universal-routing rule moved to faff/references/kernel.md, which every
+    // output-emitting sub-skill Reads (and each still carries its own RENDERING_REF). The router
+    // itself emits no adaptor-routed output.
+    if (name !== "faff" && !RENDERING_REF.test(text)) {
       failed = true;
       console.log(`FAIL  ${name} (rendering pass)`);
       console.log(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
@@ -987,12 +1003,36 @@ function cmdValidateAdapters(args) {
     console.log(`        ✗ ${DUP_BLOCK_WINDOW}+ identical lines shared across skills — give shared prose one home (gateway) and reference it, never copy (FAFF-120/115)`);
     console.log(`          first line: "${key.split("\n")[0].slice(0, 70)}"`);
   }
+  // FAFF-607: pool the gateway kernel + reference headings into the anchor set, so an anchor whose
+  // target section moved from the monolith into faff/references/*.md still resolves. Also retain the
+  // reference bodies so their own cross-references (references cross-refer) are anchor-checked too.
+  const faffRefDir = path.join(skillsDir, "faff", "references");
+  const refFiles = fs.existsSync(faffRefDir)
+    ? fs.readdirSync(faffRefDir).filter((f) => f.endsWith(".md")).sort()
+    : [];
+  const refLinesByFile = new Map();
+  const refHeadingsByFile = new Map();
+  for (const rf of refFiles) {
+    const rlines = fs.readFileSync(path.join(faffRefDir, rf), "utf8").split("\n");
+    refLinesByFile.set(rf, rlines);
+    const set = new Set();
+    let infence = false;
+    for (const line of rlines) {
+      if (line.trim().startsWith("```")) { infence = !infence; continue; }
+      if (infence) continue;
+      const hm = line.match(HEADING_LINE);
+      if (hm) { const n = normalizeHeading(hm[2]); headings.add(n); set.add(n); }
+    }
+    refHeadingsByFile.set(rf, set);
+  }
+
   // FAFF-584: anchor-existence lint — resolve every `→ **Target**` ref against the pooled headings
-  // set collected above. WARN-severity (advisory): the ~200-occurrence anchor web has never been
-  // linted, so a hard gate on first pass would red-CI the tree; this makes breakage visible instead.
-  // Resolves heading EXISTENCE only, not the "A → B nests under A" claim (deliberately out of scope).
-  for (const name of allSkills) {
-    const lines = linesByFile.get(name);
+  // set collected above (FAFF-607 adds the kernel + reference headings to that pool). WARN-severity
+  // (advisory): the ~200-occurrence anchor web has never been linted, so a hard gate on first pass
+  // would red-CI the tree; this makes breakage visible instead. Resolves heading EXISTENCE only, not
+  // the "A → B nests under A" claim (deliberately out of scope). Scans both SKILL.md files and — per
+  // FAFF-607 — the reference bodies themselves.
+  const anchorScan = (label, lines) => {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (line.includes(".example")) continue;
@@ -1001,7 +1041,91 @@ function cmdValidateAdapters(args) {
         const segments = target.split(" → ");
         const leaf = normalizeHeading(segments[segments.length - 1]);
         if (anchorResolves(leaf, headings)) continue;
-        console.log(`WARN  ${name} (anchor) — line ${i + 1}: "${target}" resolves to no heading (leaf "${leaf}") — fix the ref or the heading (FAFF-120)`);
+        console.log(`WARN  ${label} (anchor) — line ${i + 1}: "${target}" resolves to no heading (leaf "${leaf}") — fix the ref or the heading (FAFF-120)`);
+      }
+    }
+  };
+  for (const name of allSkills) anchorScan(name, linesByFile.get(name));
+  for (const rf of refFiles) anchorScan(`faff/references/${rf}`, refLinesByFile.get(rf));
+
+  // FAFF-607: gateway kernel/reference split lints — kernel line-cap ratchet, orphan-reference (FAIL),
+  // and matrix-driven under-read completeness (FAIL). Only fires once the split has landed
+  // (faff/references/ exists); a byte-for-byte no-op on a repo without it.
+  if (refFiles.length) {
+    // (a) kernel line-cap ratchet — the kernel is the split's lean target; cap it by path.
+    const kernelPath = path.join(faffRefDir, "kernel.md");
+    if (fs.existsSync(kernelPath)) {
+      const klen = fs.readFileSync(kernelPath, "utf8").split("\n").length;
+      if (klen > KERNEL_LINE_BASELINE) {
+        failed = true;
+        console.log(`FAIL  faff/references/kernel.md (kernel line cap)`);
+        console.log(`        ✗ kernel is ${klen} lines (cap ${KERNEL_LINE_BASELINE}) — the kernel is the split's lean target; move prose to a lane reference, never grow the cap (FAFF-607)`);
+      } else if (klen < KERNEL_LINE_BASELINE) {
+        console.log(`RATCHET  faff/references/kernel.md — now ${klen} lines, below baseline ${KERNEL_LINE_BASELINE}; lower KERNEL_LINE_BASELINE to lock the reduction (FAFF-607)`);
+      }
+    }
+    const skillText = new Map();
+    for (const name of allSkills) skillText.set(name, fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8"));
+    const namedRefs = (text) => new Set([...text.matchAll(/faff\/references\/([A-Za-z0-9_-]+\.md)/g)].map((m) => m[1]));
+    // (b) orphan-reference lint (FAIL): a reference Read by no skill; a load-line naming a missing
+    //     reference. kernel.md is exempt (universally Read).
+    for (const rf of refFiles) {
+      if (rf === "kernel.md") continue;
+      const readers = allSkills.filter((n) => namedRefs(skillText.get(n)).has(rf));
+      if (readers.length === 0) {
+        failed = true;
+        console.log(`FAIL  faff/references/${rf} (orphan reference)`);
+        console.log(`        ✗ Read by no skill — fold it into the kernel or delete it (FAFF-607)`);
+      }
+    }
+    for (const name of allSkills) {
+      for (const rf of namedRefs(skillText.get(name))) {
+        if (rf !== "kernel.md" && !refFiles.includes(rf)) {
+          failed = true;
+          console.log(`FAIL  ${name} (missing reference)`);
+          console.log(`        ✗ Reads faff/references/${rf} which does not exist (FAFF-607)`);
+        }
+      }
+    }
+    // (c) under-read completeness lint (FAIL): a load-line carrier that consumes a gateway block (per
+    //     the authoritative matrix eval/baselines/gateway-usage.json) placed in a reference, but omits
+    //     that reference from its load-line. Placement = which reference holds the block's heading. An
+    //     `unknown`-consumer reference-placed block degrades to WARN (its consumer set is uncomputable).
+    const matrixPath = path.join(root, "eval", "baselines", "gateway-usage.json");
+    if (fs.existsSync(matrixPath)) {
+      let matrix = null;
+      try { matrix = JSON.parse(fs.readFileSync(matrixPath, "utf8")); } catch (e) { matrix = null; }
+      if (matrix && Array.isArray(matrix.blocks)) {
+        const placementOf = (title) => {
+          const nt = normalizeHeading(title);
+          for (const rf of refFiles) {
+            if (rf !== "kernel.md" && refHeadingsByFile.get(rf).has(nt)) return rf;
+          }
+          return null; // kernel or bare gateway — imposes no reference requirement
+        };
+        // load-line carriers = skills that Read the kernel (the 20; empty before the load-lines land).
+        const carriers = allSkills.filter((n) => namedRefs(skillText.get(n)).has("kernel.md"));
+        for (const name of carriers) {
+          const declared = namedRefs(skillText.get(name));
+          const needed = new Set();
+          for (const blk of matrix.blocks) {
+            const cons = blk.consumers;
+            const rf = placementOf(blk.title);
+            if (!rf) continue; // kernel/bare-gateway block — no requirement
+            if (cons === "unknown") {
+              console.log(`WARN  faff/references/${rf} (under-read) — block "${blk.title}" has consumers:"unknown"; its consumer set is uncomputable, so under-read cannot verify it (FAFF-607/963)`);
+              continue;
+            }
+            if (!Array.isArray(cons)) continue; // "all" blocks live in the kernel; "none" never placed
+            if (cons.includes(name)) needed.add(rf);
+          }
+          const missing = [...needed].filter((rf) => !declared.has(rf));
+          if (missing.length) {
+            failed = true;
+            console.log(`FAIL  ${name} (under-read)`);
+            console.log(`        ✗ consumes gateway block(s) placed in ${missing.sort().join(", ")} (per gateway-usage.json) but its load-line does not Read them — add them (FAFF-607)`);
+          }
+        }
       }
     }
   }
@@ -1107,4 +1231,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

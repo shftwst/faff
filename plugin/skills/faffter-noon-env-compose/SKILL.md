@@ -9,7 +9,7 @@ judgement_seam: none
 
 The default occupant of the **`env`** slot — the provision box of faff's build-and-judge pipeline. Given an architecture proposal plus the team's acquired infra profile, it stands up a running, health-checked **stand-in** for the system under build, seeds it with a deterministic synthetic dataset, and emits one `faff-contract:env-handle` describing how to reach it and how to tear it down. The handle is the interface the evaluator depends on; the provisioning mechanism — docker-compose here, a cloud preview or ephemeral container in a swapped-in occupant — sits behind it.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 

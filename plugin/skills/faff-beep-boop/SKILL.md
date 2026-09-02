@@ -11,7 +11,7 @@ Unattended end-to-end runs of the faff suite. Drives the other faff skills in **
 
 ## Configuration
 
-**Load the gateway first.** Beep-boop is the autonomous entry point; if `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. It gates the queue on the **fixed automation-routing admission rule**; every skill it delegates to (tidy, prep, graft + their slots) inherits the gateway ambiently.
+**Load the kernel first.** Beep-boop is the autonomous entry point; if `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references beep-boop consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/l4.md`. It gates the queue on the **fixed automation-routing admission rule**; every skill it delegates to (tidy, prep, graft + their slots) inherits the gateway ambiently.
 
 **Tracker availability is resolved once per run (gateway → Tracker availability resolution).** The whole-lifecycle structural git-only signal this run asserts once and never re-sniffs per wave (step 8.5) **is** the tracker side of that shared rule: honour a `tracking.tracker` pin, discover the connector before concluding git-only (never infer absence from an immediately-invisible tool list under a deferred-tool harness), and hold that one resolved answer for the run's lifecycle — every delegated skill (tidy/prep/graft) consumes it rather than re-inferring.
 

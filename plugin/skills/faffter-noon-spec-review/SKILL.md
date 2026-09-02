@@ -9,7 +9,7 @@ user-invocable: false
 
 The default occupant of the **`spec_review`** slot — the L1–L3 single-pass approach reviewer. It is the judgement layer of the spec stage: it challenges *the approach itself* (sound? safe? right-sized? verifiable?) while the work is still just a spec, before any code exists. faff-prep invokes it once after the spec is confidence-rated and before promote-to-Todo, then pipes its verdict through `faff contract spec-review-verdict` and routes on the result.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/autonomous.md` and `faff/references/methodology.md` (the lanes it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 

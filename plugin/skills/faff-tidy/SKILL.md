@@ -15,7 +15,7 @@ Tidy the backlog. Looks both ways in one pass:
 
 ## Configuration
 
-**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. tidy assigns against the **fixed automation-routing contract**; its `methodology` / `routing_adaptor` slots inherit the gateway ambiently.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references tidy consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`. tidy assigns against the **fixed automation-routing contract**; its `methodology` / `routing_adaptor` slots inherit the gateway ambiently.
 
 **Consuming-project CLAUDE.md is context.** Read the consuming project's `CLAUDE.md` (and any docs it points at) before tidying. Treat it as clues to organisation and current workstream priority — what areas the project cares about right now, what's been deprioritised, naming conventions for groupings. Use this to inform priority calls when ordering ready/promotion suggestions and to spot mis-grouping in "Uncategorised".
 
@@ -263,7 +263,7 @@ Every chain point is an explicit gate. No "you should run" language.
 
 ## Autonomous Mode
 
-When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipeline mode), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
+When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipeline mode), follow the shared autonomous contract (see the sibling `faff/references/autonomous.md`) and these specifics:
 
 **Not-eligible issues are exempt from autonomous mutation (gateway → Automation eligibility).** Before any auto-action or prep-queue tagging below, skip issues that are **not automation-eligible** (no `faff-automate` under opt-in, or a `faff-automation-hold`): do **not** tag them `stale-spec`/`superseded-spec` (that feeds `/faff-beep-boop`'s prep queue), do **not** promote them to Todo, and do **not** auto-change eligibility labels (crank-up is human-gated — only interactive tidy cranks up, see the On hold section). Mechanical housekeeping that doesn't enter the autonomous pipeline still applies and must **preserve** eligibility — e.g. an auto-reparented not-eligible issue stays not-eligible.
 

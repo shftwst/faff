@@ -211,7 +211,8 @@ export function loadConfidenceRubricProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 const MARKER_DIALECT_START = "\n### Spec readiness (fixed)\n";
 const MARKER_DIALECT_END = "**The producer emits, the consumer parses.**";
 export function loadMarkerDialectProse(pluginDir = DEFAULT_PLUGIN_DIR) {
-  const skillPath = join(pluginDir, "skills", "faff", "SKILL.md");
+  // FAFF-607: "### Spec readiness (fixed)" moved from the monolith into the shared kernel.
+  const skillPath = join(pluginDir, "skills", "faff", "references", "kernel.md");
   return extractSection(skillPath, MARKER_DIALECT_START, MARKER_DIALECT_END, "loadMarkerDialectProse");
 }
 
@@ -253,7 +254,8 @@ function sliceAnchored(md, skillPath, label, startAnchor, endAnchor) {
 
 export function loadReviewVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const reviewPath = join(pluginDir, "skills", "faffter-noon-review", "SKILL.md");
-  const gatewayPath = join(pluginDir, "skills", "faff", "SKILL.md");
+  // FAFF-607: the fixed "### Review verdict (fixed)" contract moved into the shared kernel.
+  const gatewayPath = join(pluginDir, "skills", "faff", "references", "kernel.md");
   let reviewMd, gatewayMd;
   try {
     reviewMd = readFileSync(reviewPath, "utf8");
@@ -287,7 +289,8 @@ const ADAPTOR_ROUTING_START = "\n## The six verdicts (non-normative recap for as
 const ADAPTOR_ROUTING_END = "## Validate — wired to the contract script";
 
 export function loadRoutingVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
-  const gatewayPath = join(pluginDir, "skills", "faff", "SKILL.md");
+  // FAFF-607: the fixed "### Automation-routing verdict" contract moved into the shared kernel.
+  const gatewayPath = join(pluginDir, "skills", "faff", "references", "kernel.md");
   const adaptorPath = join(pluginDir, "skills", "faffidavit-routing", "SKILL.md");
   let gatewayMd, adaptorMd;
   try {

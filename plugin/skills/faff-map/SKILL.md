@@ -14,7 +14,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 ## Configuration
 
-**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. The `methodology` slot map delegates to inherits the gateway ambiently.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references map consumes: `faff/references/tracker.md`, `faff/references/methodology.md` — map is interactive-only and never Reads `faff/references/autonomous.md`. The `methodology` slot map delegates to inherits the gateway ambiently.
 
 **Resolve tracker availability first (gateway → Tracker availability resolution).** map reads the whole roadmap from the tracker, so before treating the tracker as absent it honours a `tracking.tracker` pin and discovers the connector — never inferring git-only from an immediately-invisible tool list under a deferred-tool harness — resolving the mode once for the pass.
 
@@ -208,7 +208,7 @@ Keep the tracker as the source of truth. This skill **never** writes to the trac
 
 ## Autonomous Mode
 
-When invoked autonomously (rare — this is primarily a human-facing strategic artifact), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
+When invoked autonomously (rare — this is primarily a human-facing strategic artifact), follow the shared autonomous contract (see the sibling `faff/references/autonomous.md`) and these specifics:
 
 **Output:** the full roadmap as defined above, but with no chaining gates. Append a structured `findings:` block summarising structural gaps, ghost projects, and parked issues whose unpark conditions are unmet.
 

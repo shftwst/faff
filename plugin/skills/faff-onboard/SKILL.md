@@ -11,7 +11,7 @@ It is **discovery, not interrogation** — every value it can detect is offered 
 
 ## Configuration
 
-**Load the gateway first — note onboard runs *before* a config exists.** If `faff/SKILL.md` isn't in context this turn, Read it now — onboard uses the `.faff/` logging layout, the Untrusted-input no-execute rule, the canonical Resolver snippet, and the Control-label conventions. Loading it needs no resolvable `.faffrc.yaml` (the gateway is static skill prose, and onboard exists for the no-config case). Don't call `faff config get …` here — onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
+**Load the kernel first — note onboard runs *before* a config exists.** If `faff/references/kernel.md` isn't in context this turn, Read it now — onboard uses the `.faff/` logging layout, the Untrusted-input no-execute rule, the canonical Resolver snippet, and the Control-label conventions (all kernel-side). Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway). Then Read `faff/references/tracker.md` (the Spec docs location onboard writes). Loading needs no resolvable `.faffrc.yaml` (the kernel is static skill prose, and onboard exists for the no-config case). Don't call `faff config get …` here — onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
 
 **Resolving the `faff` executable.** Use the canonical gateway snippet (gateway → **Resolving the `faff` executable**) — onboard cannot assume `faff` is on `PATH`:
 

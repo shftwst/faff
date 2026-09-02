@@ -12,7 +12,7 @@ This is a `faffter-dark-*` skill — advanced tooling, not part of the day-to-da
 
 ## Why this skill exists (the binding problem)
 
-Skills load independently. When a slot skill runs — as a delegated slot, or standalone — the sibling `faff/SKILL.md` is **not** guaranteed to be in context. The faff suite handles this with three mechanisms (see gateway → _Core contracts and adaptor slots → Contract loading & conformance_):
+Skills load independently. When a slot skill runs — as a delegated slot, or standalone — the sibling `faff/references/kernel.md` (the shared kernel) is **not** guaranteed to be in context. When authoring or validating a slot skill standalone, Read `faff/references/kernel.md` first, then the lane references whose contracts you touch — `faff/references/build.md`, `faff/references/l4.md`, `faff/references/methodology.md`, `faff/references/review.md`. The faff suite handles this with three mechanisms (see gateway → _Core contracts and adaptor slots → Contract loading & conformance_):
 
 1. fixed consumers load the gateway on entry, so a slot they delegate to inherits the contract ambiently;
 2. a standalone-invoked slot skill **reads the gateway itself** before applying a contract;
@@ -43,7 +43,7 @@ A slot occupant never owns the contract — it owns its *dialect* and maps onto 
 ## Conformance checklist (what Validate checks, what Author bakes in)
 
 1. **Names its slot and contract.** The skill states which slot it occupies and which gateway contract section it maps onto (from the table above). A `rendering_adaptor` states it has none.
-2. **Carries refer-back prose.** A "How this contract reaches you" note that: (a) says the invoking consumer loads the gateway so the contract is ambient when run as a slot, and (b) instructs **Read the sibling `faff/SKILL.md` → _<the named §>_ now** when invoked standalone. (`rendering_adaptor` exempt.)
+2. **Carries refer-back prose.** A "How this contract reaches you" note that: (a) says the invoking consumer loads the gateway so the contract is ambient when run as a slot, and (b) instructs **Read the sibling `faff/references/kernel.md` → _<the named §>_ now** (or the lane reference that now holds the named section) when invoked standalone. (`rendering_adaptor` exempt.)
 3. **Recaps are non-normative.** Any restatement of the fixed vocabulary/classes/verdicts is explicitly marked non-normative with "gateway wins on any conflict." No copy is presented as authoritative.
 4. **Maps onto, never redefines.** The skill does not add, remove, narrow, or rename the fixed vocabulary/classes/verdicts/named-outputs. It only translates its native dialect onto them. (A reviewer needing a fourth verdict state, a spec format with a fourth decision class, a methodology dropping a required output → non-conformant.)
 5. **Has both faces / honours its obligations where the slot expects them.** Adaptors define + validate. Producers produce + **emit their `faff-contract:<name>` block** (or, if their native tool can't, are wrapped here so the wrapper emits it). A methodology answers the required named outputs (`pick-ordering`, `promotion-readiness`, `build-queue`, plus `backlog-diagnostics` which always fires) and degrades gracefully on the optional ones. A **mechanism** honours its action obligations (gateway → Mechanism slot): a `concurrency` occupant builds every partition issue, serialises + requires a dependency blocker to have merged, records every terminal outcome to the ledger, and never weakens the merge gate. A mechanism that skips/defers partition issues, weakens the gate, or shares a worktree across concurrent builds is non-conformant. (The `ship` producer is covered by the producer obligations above: it merges/deploys only gate-passed PRs and emits its `faff-contract:delivery-outcome` block, which the consumer parses onto the three fixed outcomes — never inventing a fourth.)
@@ -64,7 +64,7 @@ Given the target slot + a one-line description, emit a skeleton:
 Maps onto gateway → <named §>. Fixed there, unaffected by this swap: <one-line recap, non-normative>.
 
 **How this contract reaches you.** Loaded by the invoking consumer when run as a slot; if invoked
-standalone, Read the sibling `faff/SKILL.md` → <named §> now before applying. Gateway wins on any conflict.
+standalone, Read the sibling `faff/references/kernel.md` → <named §> now before applying. Gateway wins on any conflict.
 
 ## <Dialect>           ← the markers / envelope / assignment rules / lens / execution strategy this skill owns
 ## Validate            ← for adaptors: checks + the pass/fail envelope

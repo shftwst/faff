@@ -16,7 +16,7 @@ One skill, three entry points — **not** separate commands per item type:
 
 ## Configuration
 
-**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. jot leans on **Agent Lanes** and the `intake` / `methodology` slot contracts it delegates to.
+**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references jot consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`. jot leans on **Agent Lanes** and the `intake` / `methodology` slot contracts it delegates to.
 
 ## Rendering
 

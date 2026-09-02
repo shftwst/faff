@@ -9,7 +9,7 @@ judgement_seam: holdout, holdout-exercise, holdout-live
 
 The default occupant of the **`evaluator`** slot — the evaluate box of faff's build-and-judge pipeline (propose → provision → seed → evaluate). Given a spec and a feature *running* in a provisioned environment — and **never the diff or the codebase** — it answers one question: does the running thing satisfy what the spec promised? It exercises the spec's born-verifiable done-criteria against the live system and emits one `faff-contract:holdout-verdict`, then tears the env down. Its trust comes from a structural fact: code-blind by construction, it cannot mark its own homework or be talked into a pass by a plausible implementation.
 
-> When standalone, Read the sibling `faff/SKILL.md` (the gateway) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway wins.
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 

@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-970",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": null,
+    "pid": 619077,
+    "started_at": "2026-09-02T14:59:54.526Z",
+    "last_heartbeat": "2026-09-02T14:59:54.526Z"
+  },
+  "machine_id": "3b4773cf43035353838414e0686e203ac9aacb3ee04a51f2dec8281631e8957f",
+  "heartbeating": false,
+  "claim_epoch": 0,
+  "claimed_at": "2026-09-02T14:59:54.913Z"
+}

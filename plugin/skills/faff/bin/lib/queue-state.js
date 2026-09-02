@@ -161,6 +161,7 @@ function deriveQueueState({ itemKeys, outcomes, terminalStates }) {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 const QUEUE_STATE_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
 
 function cmdDerive(values) {
@@ -182,8 +183,13 @@ function cmdDerive(values) {
   // terminal-states set, which would misclassify every item as pending forever.
   const terminalStates = activeProfile().terminal_states;
 
-  const result = deriveQueueState({ itemKeys, outcomes, terminalStates });
+  const inputs = { itemKeys, outcomes, terminalStates };
+  const result = deriveQueueState(inputs);
   console.log(JSON.stringify(result));
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert. A run-level read-model: `issue` is the `__run__` sentinel and the
+  // record is action-uncaptured by design (no single downstream action to join).
+  captureDecision({ kernel: "queue-state", normalised_inputs: inputs, verdict: result, issue: "__run__" });
   return 0; // report-only (parity with run-done/next): the verdict is in the payload, not the exit code
 }
 

@@ -43,11 +43,14 @@ const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 // for the fidelity study and may only be EXPANDED by a later protocol version.
 // ---------------------------------------------------------------------------
 const KERNEL_REGISTRY = {
-  // derived from next.js nextStep({status, spec, eligible, parked, blocked, ifEligible}) —
-  // the options-object's six top-level keys, validated against nextSelftest's case table.
+  // derived from next.js nextStep({status, spec, eligible, parked, blocked, ifEligible,
+  // awaitingSpecReview}) — the options-object's SEVEN top-level keys, validated against
+  // nextSelftest's case table. FAFF-956 reconciled this to the full declared signature:
+  // in-kernel capture sources every key from `cmdNext`'s own `state` object, so all seven
+  // are present by construction and a captured `next` record is always input-complete.
   next: {
     version: "next@1",
-    required_inputs: ["status", "spec", "eligible", "parked", "blocked", "ifEligible"],
+    required_inputs: ["status", "spec", "eligible", "parked", "blocked", "ifEligible", "awaitingSpecReview"],
   },
   // derived from eligible.js automationEligible(labels, automationDefault, trackerPresent) —
   // the three positional-arg names, validated against runEligibleCases/ELIGIBLE_CASES.
@@ -174,6 +177,43 @@ function buildRecord(kernel, kernel_version, normalised_inputs, selected_action,
 const DECISION_CAPTURE_COVERAGE_VALUES = new Set(["replayable", "non-replayable", "uncovered"]);
 
 // ---------------------------------------------------------------------------
+// buildBaseRecord — FAFF-956 pure assembler of the DecisionCaptureBase record (spec §3's
+// type): the deterministic `{normalised_inputs, verdict}` record minted INSIDE the kernel
+// CLI, carrying a `correlation_id` (the join key an action marker references) and NO
+// `selected_action`. The kernel cannot see its own downstream action, so the base is
+// captured here and the action is joined later by correlation id.
+// ---------------------------------------------------------------------------
+function buildBaseRecord(kernel, kernel_version, normalised_inputs, verdict, coverage, missing_inputs, correlation_id, causation) {
+  return {
+    kernel,
+    kernel_version,
+    normalised_inputs: (normalised_inputs && typeof normalised_inputs === "object" && !Array.isArray(normalised_inputs)) ? normalised_inputs : {},
+    verdict,
+    coverage,
+    missing_inputs: Array.isArray(missing_inputs) ? missing_inputs : [],
+    correlation_id: typeof correlation_id === "string" ? correlation_id : "",
+    causation,
+  };
+}
+
+// The shared {seq, sha256} causation shape check, used by every record-shape validator here.
+function causationViolations(c) {
+  const v = [];
+  if (c === null || typeof c !== "object" || Array.isArray(c)) {
+    v.push("data.causation must be an object {seq, sha256}");
+    return v;
+  }
+  if (!Number.isInteger(c.seq)) v.push("data.causation.seq must be an integer");
+  if (typeof c.sha256 !== "string" || !HEX64_RE.test(c.sha256)) v.push("data.causation.sha256 must be 64 lowercase hex chars (SHA-256)");
+  return v;
+}
+
+// A selected_action / verdict leaf is a bare string OR a non-null, non-array object.
+function isStringOrObject(x) {
+  return typeof x === "string" || (x !== null && typeof x === "object" && !Array.isArray(x));
+}
+
+// ---------------------------------------------------------------------------
 // decisionCaptureViolations — the pure DecisionCapture shape validator (spec §3's type,
 // point 5 of the house-convention brief). Deliberately DUPLICATED (not required) from
 // events.js's inline `type === "decision-capture"` block inside eventViolations: this
@@ -200,10 +240,23 @@ function decisionCaptureViolations(data) {
   if (data.normalised_inputs === null || typeof data.normalised_inputs !== "object" || Array.isArray(data.normalised_inputs)) {
     v.push("data.normalised_inputs must be a plain object");
   }
-  const actionOk = typeof data.selected_action === "string"
-    || (data.selected_action !== null && typeof data.selected_action === "object" && !Array.isArray(data.selected_action));
-  if (!actionOk) {
-    v.push("data.selected_action must be an object or a string");
+  // FAFF-956: two accepted shapes. LEGACY combined (selected_action present) is the
+  // FAFF-954/821 record the five pilot records use; BASE (selected_action absent) is the
+  // new deterministic in-kernel record carrying `verdict` + `correlation_id`, joined to a
+  // separate action marker later. Presence of `selected_action` is the discriminator.
+  if (data.selected_action !== undefined) {
+    if (!isStringOrObject(data.selected_action)) {
+      v.push("data.selected_action must be an object or a string");
+    }
+  } else {
+    if (data.verdict === undefined || !isStringOrObject(data.verdict)) {
+      v.push("base record data.verdict must be an object or a string");
+    }
+    // correlation_id is the join key; it may be "" (a hard-to-join base that lands
+    // action-uncaptured at analysis, the safe direction — never a crash, never agreement).
+    if (typeof data.correlation_id !== "string") {
+      v.push("base record data.correlation_id must be a string");
+    }
   }
   if (!Array.isArray(data.missing_inputs) || !data.missing_inputs.every((x) => typeof x === "string")) {
     v.push("data.missing_inputs must be an array of strings");
@@ -212,13 +265,32 @@ function decisionCaptureViolations(data) {
   } else if (data.coverage !== "non-replayable" && data.missing_inputs.length > 0) {
     v.push(`data.missing_inputs must be empty when coverage is ${JSON.stringify(data.coverage)}`);
   }
-  const c = data.causation;
-  if (c === null || typeof c !== "object" || Array.isArray(c)) {
-    v.push("data.causation must be an object {seq, sha256}");
-  } else {
-    if (!Number.isInteger(c.seq)) v.push("data.causation.seq must be an integer");
-    if (typeof c.sha256 !== "string" || !HEX64_RE.test(c.sha256)) v.push("data.causation.sha256 must be 64 lowercase hex chars (SHA-256)");
+  v.push(...causationViolations(data.causation));
+  return v;
+}
+
+// ---------------------------------------------------------------------------
+// decisionCaptureActionViolations — FAFF-956 shape validator for the DecisionCaptureAction
+// marker (type "decision-capture-action"): the separate record carrying the orchestrator's
+// actual `selected_action` plus the `correlation_id` that references exactly one base
+// record. Same hand-mirrored discipline as decisionCaptureViolations (the events.js copy is
+// kept in sync by hand — governance must never require factory back, ADR-0042).
+// ---------------------------------------------------------------------------
+function decisionCaptureActionViolations(data) {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    return ["decision-capture-action data must be an object"];
   }
+  const v = [];
+  if (typeof data.kernel !== "string" || data.kernel === "") {
+    v.push("data.kernel must be a non-empty string");
+  }
+  if (typeof data.correlation_id !== "string" || data.correlation_id === "") {
+    v.push("data.correlation_id must be a non-empty string");
+  }
+  if (!isStringOrObject(data.selected_action)) {
+    v.push("data.selected_action must be an object or a string");
+  }
+  v.push(...causationViolations(data.causation));
   return v;
 }
 
@@ -336,6 +408,123 @@ function cmdRecordVerb(values, root) {
     return bestEffortFail(root, run, `journal append failed: ${e && e.message}`);
   }
   console.log(JSON.stringify({ seq: record.seq, coverage }));
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// captureDecision — FAFF-956 the in-kernel capture hook. Each `cmd<Kernel>` calls this
+// AFTER computing and printing its verdict, sourcing `normalised_inputs` from the kernel's
+// OWN parsed input object (canonical keys by construction — the aliasing that produced the
+// five FAFF-954 missing-input records is impossible for the inputs the CLI controls). It is
+// the `cmdRecordVerb` best-effort core refactored to accept an already-built inputs object
+// rather than parsing stdin. AUTHORITY-INERT: it NEVER throws, NEVER writes to stdout, and
+// NEVER changes the kernel's exit code — the whole body is wrapped so an unforeseen fault is
+// swallowed. When the flag is off it returns before any run-dir or chain I/O, so the
+// kernel's stdout bytes and exit are byte-identical to the flag-off build.
+//
+// `issue`: the caller passes the real issue id (per-issue kernels), the container id
+// (project-next), or the literal "__run__" (the four run-level kernels). When left
+// undefined it falls back to $FAFF_DECISION_ISSUE (the orchestrator-supplied id), else "".
+// ---------------------------------------------------------------------------
+function captureDecisionCore({ kernel, normalised_inputs, verdict, issue } = {}) {
+  let root;
+  try { root = findRoot(); } catch { return; } // no repo root ⇒ nothing to anchor, silent
+  const runDirEnv = process.env.FAFF_RUN_DIR;
+  const run = runDirEnv ? path.basename(runDirEnv) : null;
+
+  let enabled;
+  try { enabled = captureEnabled(root); }
+  catch (e) { bestEffortFail(root, run, `config read failed: ${e && e.message}`); return; }
+  if (!enabled) return; // disabled ⇒ byte-identical silent no-op (the default posture)
+
+  if (!runDirEnv) { bestEffortFail(root, run, "no $FAFF_RUN_DIR — standalone call, no substrate to capture into"); return; }
+  const correlation_id = process.env.FAFF_DECISION_CORRELATION_ID || "";
+  const issueVal = (issue === undefined || issue === null) ? (process.env.FAFF_DECISION_ISSUE || "") : issue;
+
+  let dir;
+  try { dir = resolveRunDir(root, run, false); }
+  catch (e) { bestEffortFail(root, run, `run dir resolution failed: ${e && e.message}`); return; }
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) { bestEffortFail(root, run, `run dir missing: ${dir}`); return; }
+
+  const { coverage, kernel_version, missing_inputs } = classifyCoverage(kernel, normalised_inputs);
+
+  let causation;
+  try {
+    const { prevRecord, prevLineBuf } = tailReadState(path.join(dir, "events.jsonl"));
+    if (!prevRecord || !prevLineBuf) { bestEffortFail(root, run, "no prior chain head in events.jsonl to anchor causation"); return; }
+    causation = { seq: prevRecord.seq, sha256: sha256Hex(prevLineBuf) };
+  } catch (e) { bestEffortFail(root, run, `chain head read failed: ${e && e.message}`); return; }
+
+  const data = buildBaseRecord(kernel, kernel_version, normalised_inputs, verdict, coverage, missing_inputs, correlation_id, causation);
+  const violations = decisionCaptureViolations(data);
+  if (violations.length) { bestEffortFail(root, run, `base record failed shape validation: ${violations.join("; ")}`); return; }
+
+  try {
+    appendEventRecord(dir, run, { phase: "run", type: "decision-capture", issue: issueVal, data });
+  } catch (e) { bestEffortFail(root, run, `journal append failed: ${e && e.message}`); return; }
+  // NO stdout: the authoritative kernel already printed its verdict; capture is a side effect.
+}
+
+// The never-throw wrapper the kernels call. A capture-path defect must never surface to an
+// authoritative command as a throw or a non-zero exit (spec §1 BEST-EFFORT-FAIL).
+function captureDecision(args) {
+  try { captureDecisionCore(args); } catch { /* best-effort: capture never fails a kernel */ }
+}
+
+// ---------------------------------------------------------------------------
+// cmdActionVerb — FAFF-956 `faff decision-capture action`. Appends one
+// `decision-capture-action` marker referencing a base record by correlation id. Same
+// best-effort discipline as `record`: every failure path writes a degraded note and exits 0.
+// ---------------------------------------------------------------------------
+function cmdActionVerb(values, root) {
+  const run = values["--run"];
+  const issue = values["--issue"];
+  const kernel = values["--kernel"];
+  const correlation_id = values["--correlates"];
+
+  let enabled;
+  try { enabled = captureEnabled(root); }
+  catch (e) { return bestEffortFail(root, run, `config read failed: ${e && e.message}`); }
+  if (!enabled) return 0; // disabled ⇒ no-op, exit 0
+
+  // --action carries the actual downstream action: JSON when parseable, else a bare string.
+  let selected_action = values["--action"];
+  if (selected_action !== undefined) {
+    try { selected_action = JSON.parse(values["--action"]); }
+    catch { selected_action = values["--action"]; }
+  }
+
+  let dir;
+  try { dir = resolveRunDir(root, run, values["--root"] !== undefined); }
+  catch (e) { return bestEffortFail(root, run, `run dir resolution failed: ${e && e.message}`); }
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    return bestEffortFail(root, run, `run dir missing: ${dir}`);
+  }
+
+  let causation;
+  try {
+    const { prevRecord, prevLineBuf } = tailReadState(path.join(dir, "events.jsonl"));
+    if (!prevRecord || !prevLineBuf) {
+      return bestEffortFail(root, run, "no prior chain head in events.jsonl to anchor causation");
+    }
+    causation = { seq: prevRecord.seq, sha256: sha256Hex(prevLineBuf) };
+  } catch (e) {
+    return bestEffortFail(root, run, `chain head read failed: ${e && e.message}`);
+  }
+
+  const data = { kernel, correlation_id, selected_action, causation };
+  const violations = decisionCaptureActionViolations(data);
+  if (violations.length) {
+    return bestEffortFail(root, run, `action marker failed shape validation: ${violations.join("; ")}`);
+  }
+
+  let record;
+  try {
+    record = appendEventRecord(dir, run, { phase: "run", type: "decision-capture-action", issue, data });
+  } catch (e) {
+    return bestEffortFail(root, run, `journal append failed: ${e && e.message}`);
+  }
+  console.log(JSON.stringify({ seq: record.seq, correlation_id }));
   return 0;
 }
 
@@ -532,6 +721,7 @@ const DECISION_CAPTURE_SPEC = {
     "--issue": { arity: 1 },
     "--kernel": { arity: 1 },
     "--action": { arity: 1 },
+    "--correlates": { arity: 1 },
     "--root": { arity: 1 },
     "--all-runs": { arity: 0 },
     "--coverage": { arity: 1, enum: ["replayable", "non-replayable", "uncovered"] },
@@ -542,7 +732,7 @@ const DECISION_CAPTURE_SPEC = {
   positionals: { min: 0, max: null, name: "verb selector" },
 };
 const DECISION_CAPTURE_USAGE =
-  'usage: faff decision-capture <record --run ID --issue ID --kernel NAME [--action JSON]|list [--run ID|--all-runs] [--coverage replayable|non-replayable|uncovered]|export --out DIR [--include-anchors]> [--root DIR]';
+  'usage: faff decision-capture <record --run ID --issue ID --kernel NAME [--action JSON]|action --run ID --issue ID|__run__ --kernel NAME --correlates ID --action TOKEN|list [--run ID|--all-runs] [--coverage replayable|non-replayable|uncovered]|export --out DIR [--include-anchors]> [--root DIR]';
 
 function cmdDecisionCapture(args) {
   if (args.includes("--selftest")) return decisionCaptureSelftest();
@@ -557,18 +747,24 @@ function cmdDecisionCapture(args) {
     }
     return cmdRecordVerb(values, root);
   }
+  if (sub === "action") {
+    if (values["--run"] == null || values["--issue"] == null || values["--kernel"] == null || values["--correlates"] == null || values["--action"] == null) {
+      return usageError([{ code: "missing-value", detail: "action requires --run, --issue, --kernel, --correlates, and --action" }], DECISION_CAPTURE_USAGE);
+    }
+    return cmdActionVerb(values, root);
+  }
   if (sub === "list") return cmdListVerb(values, root);
   if (sub === "export") return cmdExportVerb(values, root);
 
-  process.stderr.write("faff decision-capture: expected one of: record | list | export (or --selftest)\n");
+  process.stderr.write("faff decision-capture: expected one of: record | action | list | export (or --selftest)\n");
   return 2;
 }
 
 // ---------------------------------------------------------------------------
 // --selftest — in-process pure-core tests (house convention): classifyCoverage's 3
 // branches, buildRecord's shape, decisionCaptureViolations catching each malformed field,
-// and the born-verifiable DoD assertion that KERNEL_REGISTRY seeds EXACTLY the ratified
-// 6-name set.
+// the FAFF-956 base-record + action-marker shapes, and the born-verifiable DoD assertion
+// that KERNEL_REGISTRY seeds EXACTLY the ratified 11-name set.
 // ---------------------------------------------------------------------------
 function decisionCaptureSelftest() {
   let fail = 0;
@@ -579,6 +775,30 @@ function decisionCaptureSelftest() {
   ok("every registry entry carries a version string and a non-empty required_inputs list",
     Object.values(KERNEL_REGISTRY).every((s) => typeof s.version === "string" && s.version !== "" && Array.isArray(s.required_inputs) && s.required_inputs.length > 0));
 
+  // --- FAFF-956: every registry entry's required_inputs equals its kernel's declared
+  // signature key-set. Transcribed as literals here (decision-capture.js must NOT require
+  // any kernel module — the purity test enforces that), and asserted set-equal. The
+  // structural, source-derived mirror of this lives in shadow-fidelity.js's
+  // `optionalInputs` (declared − required == [] for every in-scope kernel). ---
+  const DECLARED_SIGNATURES = {
+    next: ["status", "spec", "eligible", "parked", "blocked", "ifEligible", "awaitingSpecReview"],
+    eligible: ["labels", "automationDefault", "trackerPresent"],
+    tier: ["spec_lines", "done_items", "scenario_count", "confidence"],
+    "run-done": ["queue_empty", "all_parked", "ledger_clean", "budget", "prd_satisfied", "inflection", "non_convergence"],
+    "queue-state": ["itemKeys", "outcomes", "terminalStates"],
+    regions: ["files"],
+    "claim-verdict": ["claimedAtISO", "nowISO", "ttlHours"],
+    "park-verdict": ["status", "draftPr", "parkComment", "humanTakeover"],
+    "project-next": ["current", "kind", "total", "active", "done", "hasDod", "dodMet"],
+    "run-outward": ["targetRaw", "selfRaw"],
+    "run-start": ["target_resolved", "outward", "prd_present", "prd_ambiguous", "prd_admissible", "coverage_measurable", "coverage_covered"],
+  };
+  const sortedSet = (a) => JSON.stringify([...a].sort());
+  ok("every registry entry's required_inputs equals its kernel's declared signature key-set",
+    Object.keys(KERNEL_REGISTRY).every((k) => sortedSet(KERNEL_REGISTRY[k].required_inputs) === sortedSet(DECLARED_SIGNATURES[k])));
+  ok("FAFF-956: next.required_inputs is reconciled to the full seven-key signature (incl. awaitingSpecReview)",
+    KERNEL_REGISTRY.next.required_inputs.length === 7 && KERNEL_REGISTRY.next.required_inputs.includes("awaitingSpecReview"));
+
   // --- classifyCoverage: the 3 branches ---
   const unc = classifyCoverage("not-a-real-kernel", { a: 1 });
   ok("classifyCoverage: unknown kernel -> uncovered, kernel_version '', missing_inputs []",
@@ -587,9 +807,9 @@ function decisionCaptureSelftest() {
   const nonRep = classifyCoverage("next", { status: "todo" });
   ok("classifyCoverage: known kernel, missing required inputs -> non-replayable + exact missing set",
     nonRep.coverage === "non-replayable" && nonRep.kernel_version === "next@1"
-    && JSON.stringify(nonRep.missing_inputs.sort()) === JSON.stringify(["blocked", "eligible", "ifEligible", "parked", "spec"]));
+    && JSON.stringify(nonRep.missing_inputs.sort()) === JSON.stringify(["awaitingSpecReview", "blocked", "eligible", "ifEligible", "parked", "spec"]));
 
-  const fullNextInputs = { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false };
+  const fullNextInputs = { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false, awaitingSpecReview: false };
   const rep = classifyCoverage("next", fullNextInputs);
   ok("classifyCoverage: known kernel, all required inputs present -> replayable",
     rep.coverage === "replayable" && rep.kernel_version === "next@1" && rep.missing_inputs.length === 0);
@@ -637,6 +857,35 @@ function decisionCaptureSelftest() {
   const uncoveredRecord = buildRecord("some-unknown-thing", "", { anything: 1 }, { action: "x" }, "uncovered", [], causation);
   ok("an uncovered record (unknown kernel) is itself shape-valid", decisionCaptureViolations(uncoveredRecord).length === 0);
 
+  // --- FAFF-956: the base record + action marker both pass THIS copy of the validators
+  // (the born-verifiable contract-single-sourcing DoD; the events.js mirror asserts the
+  // same under its own copy). ---
+  const baseRec = buildBaseRecord("next", "next@1", fullNextInputs, "graft", "replayable", [], "run-x/FAFF-1/next/1", causation);
+  ok("buildBaseRecord: the base shape has verdict + correlation_id and NO selected_action",
+    baseRec.verdict === "graft" && baseRec.correlation_id === "run-x/FAFF-1/next/1" && !("selected_action" in baseRec));
+  ok("decisionCaptureViolations: a well-formed BASE record (verdict + correlation_id, no selected_action) passes",
+    decisionCaptureViolations(baseRec).length === 0);
+  ok("decisionCaptureViolations: a base record with an OBJECT verdict passes",
+    decisionCaptureViolations({ ...baseRec, verdict: { eligible: true } }).length === 0);
+  ok("decisionCaptureViolations: a base record with an EMPTY correlation_id still passes (lands action-uncaptured, safe)",
+    decisionCaptureViolations({ ...baseRec, correlation_id: "" }).length === 0);
+  ok("decisionCaptureViolations: a base record MISSING verdict is rejected",
+    decisionCaptureViolations({ ...baseRec, verdict: undefined }).length > 0);
+  ok("decisionCaptureViolations: a base record with a non-string correlation_id is rejected",
+    decisionCaptureViolations({ ...baseRec, correlation_id: 5 }).length > 0);
+  ok("decisionCaptureViolations: the LEGACY combined record (selected_action, no verdict) still passes",
+    decisionCaptureViolations({ kernel: "next", kernel_version: "next@1", normalised_inputs: fullNextInputs, selected_action: "graft", coverage: "replayable", missing_inputs: [], causation }).length === 0);
+
+  const marker = { kernel: "next", correlation_id: "run-x/FAFF-1/next/1", selected_action: "graft", causation };
+  ok("decisionCaptureActionViolations: a well-formed action marker passes", decisionCaptureActionViolations(marker).length === 0);
+  ok("decisionCaptureActionViolations: an object selected_action passes", decisionCaptureActionViolations({ ...marker, selected_action: { action: "graft" } }).length === 0);
+  ok("decisionCaptureActionViolations: an empty correlation_id is rejected", decisionCaptureActionViolations({ ...marker, correlation_id: "" }).length > 0);
+  ok("decisionCaptureActionViolations: an empty kernel is rejected", decisionCaptureActionViolations({ ...marker, kernel: "" }).length > 0);
+  ok("decisionCaptureActionViolations: a numeric selected_action is rejected", decisionCaptureActionViolations({ ...marker, selected_action: 5 }).length > 0);
+  ok("decisionCaptureActionViolations: a bad causation is rejected", decisionCaptureActionViolations({ ...marker, causation: { seq: "x", sha256: "no" } }).length > 0);
+  ok("decisionCaptureActionViolations: a non-object payload is one violation, not a crash",
+    decisionCaptureActionViolations(null).length === 1 && decisionCaptureActionViolations("x").length === 1);
+
   // --- dedupeAndOrder (FAFF-960): dedup by run_id+seq (first/live wins), deterministic
   // source-mix-invariant order, malformed kept, and input never mutated (so the export
   // default path, which never calls it, leaves its live-only record list unchanged). ---
@@ -679,10 +928,13 @@ module.exports = {
   KERNEL_REGISTRY,
   KERNEL_REGISTRY_RATIFIED_NAMES,
   buildRecord,
+  buildBaseRecord,
+  captureDecision,
   classifyCoverage,
   cmdDecisionCapture,
   collectAnchorRecordDirs,
   dedupeAndOrder,
   decisionCaptureSelftest,
   decisionCaptureViolations,
+  decisionCaptureActionViolations,
 };

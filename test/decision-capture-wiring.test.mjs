@@ -73,15 +73,16 @@ test("AC1/AC2/AC5: a next record with all seven keys lands in matrix.next, end-t
   assert.equal(result.exclusions.input_uncaptured.length, 0);    // AC2: NOT input-uncaptured
 });
 
-test("AC2: a next record OMITTING awaitingSpecReview falls into input_uncaptured (the criterion bites)", () => {
+test("AC2: a next record OMITTING the now-required awaitingSpecReview classifies missing-input (FAFF-956 6→7 reconciliation)", () => {
   const { root, runId, runDir } = scratchRoot();
-  const { awaitingSpecReview, ...sixKeys } = NEXT_INPUTS;         // drop the optional seventh key
+  const { awaitingSpecReview, ...sixKeys } = NEXT_INPUTS;         // drop the now-REQUIRED seventh key
   const rec = record(root, runId, "FAFF-1", "next", sixKeys, "graft");
   assert.equal(rec.code, 0, rec.err);
+  assert.match(rec.out, /"coverage":"non-replayable"/);          // required key absent ⇒ non-replayable
   const result = study(root, runDir);
   assert.equal(result.matrix.next.denominator, 0);               // excluded from the matrix
-  assert.equal(result.exclusions.input_uncaptured.length, 1);
-  assert.equal(result.exclusions.input_uncaptured[0].missing_optional, "awaitingSpecReview");
+  assert.equal(result.coverage.missing_input, 1);                // classifies missing-input, not input-uncaptured
+  assert.equal(result.exclusions.input_uncaptured.length, 0);
 });
 
 test("AC3: a divergent eligible record (ineligible prescribed, eligible actual) is a wrong divergence, not agreement", () => {

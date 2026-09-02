@@ -303,10 +303,21 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
     if (d.normalised_inputs === null || typeof d.normalised_inputs !== "object" || Array.isArray(d.normalised_inputs)) {
       v.push("data.normalised_inputs must be a plain object");
     }
-    const actionOk = typeof d.selected_action === "string"
-      || (d.selected_action !== null && typeof d.selected_action === "object" && !Array.isArray(d.selected_action));
-    if (!actionOk) {
-      v.push("data.selected_action must be an object or a string");
+    // FAFF-956: two accepted shapes — LEGACY combined (selected_action present) and the new
+    // BASE record (selected_action absent, carrying verdict + correlation_id). Kept in sync
+    // by hand with decisionCaptureViolations in decision-capture.js.
+    const isStringOrObject = (x) => typeof x === "string" || (x !== null && typeof x === "object" && !Array.isArray(x));
+    if (d.selected_action !== undefined) {
+      if (!isStringOrObject(d.selected_action)) {
+        v.push("data.selected_action must be an object or a string");
+      }
+    } else {
+      if (d.verdict === undefined || !isStringOrObject(d.verdict)) {
+        v.push("base record data.verdict must be an object or a string");
+      }
+      if (typeof d.correlation_id !== "string") {
+        v.push("base record data.correlation_id must be a string");
+      }
     }
     if (!Array.isArray(d.missing_inputs) || !d.missing_inputs.every((x) => typeof x === "string")) {
       v.push("data.missing_inputs must be an array of strings");
@@ -314,6 +325,29 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
       v.push("data.missing_inputs must be non-empty when coverage is non-replayable");
     } else if (d.coverage !== "non-replayable" && d.missing_inputs.length > 0) {
       v.push(`data.missing_inputs must be empty when coverage is ${JSON.stringify(d.coverage)}`);
+    }
+    const c = d.causation;
+    if (c === null || typeof c !== "object" || Array.isArray(c)) {
+      v.push("data.causation must be an object {seq, sha256}");
+    } else {
+      if (!Number.isInteger(c.seq)) v.push("data.causation.seq must be an integer");
+      if (typeof c.sha256 !== "string" || !HEX64_RE.test(c.sha256)) v.push("data.causation.sha256 must be 64 lowercase hex chars (SHA-256)");
+    }
+  }
+  // FAFF-956: the decision-capture-action marker shape (spec §3). Hand-mirrored from
+  // decisionCaptureActionViolations in decision-capture.js — governance must never require
+  // factory back (ADR-0042), so the two copies share the same RULES, kept in sync by hand.
+  if (obj.type === "decision-capture-action") {
+    const d = obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) ? obj.data : {};
+    const isStringOrObject = (x) => typeof x === "string" || (x !== null && typeof x === "object" && !Array.isArray(x));
+    if (typeof d.kernel !== "string" || d.kernel === "") {
+      v.push("data.kernel must be a non-empty string");
+    }
+    if (typeof d.correlation_id !== "string" || d.correlation_id === "") {
+      v.push("data.correlation_id must be a non-empty string");
+    }
+    if (!isStringOrObject(d.selected_action)) {
+      v.push("data.selected_action must be an object or a string");
     }
     const c = d.causation;
     if (c === null || typeof c !== "object" || Array.isArray(c)) {

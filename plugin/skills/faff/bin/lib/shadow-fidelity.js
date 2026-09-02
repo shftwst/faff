@@ -259,14 +259,34 @@ function analyzeCorpus(records, opts = {}) {
   for (const k of inScope) matrix[k] = { agreement: 0, harmless: 0, wasteful: 0, wrong: 0, denominator: 0 };
 
   const divergences = [];
-  const exclusions = { version_skew: [], input_uncaptured: [], replay_error: [] };
+  const exclusions = { version_skew: [], input_uncaptured: [], replay_error: [], verdict_skew: [] };
   const missingInputRecords = [];
   const uncoveredRecords = [];
   const outOfScopeRecords = [];
+  const actionUncaptured = [];
   const setAsideCounts = {};
   for (const c of setAsideCommands) setAsideCounts[c] = 0;
 
+  // FAFF-956: index the action markers by correlation_id (first marker wins an id), and
+  // process only the base/legacy decision-capture records in the main loop. A base record is
+  // joined to its marker by correlation_id (plus a same-kernel check); a legacy combined
+  // record (selected_action present, no correlation_id) reads its action inline as today.
+  const markers = new Map();
+  const bases = [];
   for (const rec of records) {
+    const d = rec && rec.data ? rec.data : {};
+    if (rec && rec.type === "decision-capture-action") {
+      const cid = d.correlation_id;
+      if (typeof cid === "string" && cid !== "" && !markers.has(cid)) {
+        markers.set(cid, { kernel: d.kernel, selected_action: d.selected_action });
+      }
+      continue;
+    }
+    bases.push(rec);
+  }
+  const consumed = new Set(); // correlation_ids already joined to a base (first base wins)
+
+  for (const rec of bases) {
     const d = rec && rec.data ? rec.data : {};
     const kernel = d.kernel;
     const at = { run_id: rec.run_id ?? null, seq: rec.seq ?? null };
@@ -330,7 +350,36 @@ function analyzeCorpus(records, opts = {}) {
       exclusions.replay_error.push({ kernel, error: e && e.message ? e.message : String(e), ...at });
       continue;
     }
-    const actual = adapter.project(d.selected_action);
+
+    // FAFF-956 stored-verdict cross-check (base records only carry `verdict`). Compare
+    // BOTH sides in the SAME projected form (a raw-vs-projected compare would false-flag
+    // every record). A mismatch is version/replay drift — counted separately as
+    // verdict-skew, NEVER an agreement, and NOT joined to a marker.
+    if (d.verdict !== undefined && d.verdict !== null) {
+      const storedProjected = adapter.project(d.verdict);
+      if (storedProjected !== prescribed) {
+        exclusions.verdict_skew.push({ kernel, stored: storedProjected, replayed: prescribed, ...at });
+        continue;
+      }
+    }
+
+    // Determine the actual downstream action. A LEGACY combined record carries it inline; a
+    // BASE record joins its action marker by correlation_id (plus a same-kernel check).
+    let actual;
+    if (d.selected_action !== undefined) {
+      actual = adapter.project(d.selected_action); // legacy combined record — unchanged read
+    } else {
+      const cid = d.correlation_id;
+      const marker = (typeof cid === "string" && cid !== "") ? markers.get(cid) : undefined;
+      // absent / kernel-mismatched / duplicate-id (already consumed) => action-uncaptured:
+      // never agreement, never divergence, never double-count (the safe direction).
+      if (!marker || marker.kernel !== kernel || consumed.has(cid)) {
+        actionUncaptured.push({ kernel, correlation_id: typeof cid === "string" ? cid : null, ...at });
+        continue;
+      }
+      consumed.add(cid); // first base wins the id; later bases fall to action-uncaptured above
+      actual = adapter.project(marker.selected_action);
+    }
 
     matrix[kernel].denominator++;
     if (prescribed === actual) {
@@ -362,6 +411,7 @@ function analyzeCorpus(records, opts = {}) {
     missing_input_records: missingInputRecords,
     uncovered_records: uncoveredRecords,
     out_of_scope_records: outOfScopeRecords,
+    action_uncaptured: actionUncaptured,
     set_aside: setAside,
   };
 }
@@ -468,6 +518,7 @@ function corpusDerived(result) {
     missing_input_records: result.missing_input_records,
     uncovered_records: result.uncovered_records,
     out_of_scope_records: result.out_of_scope_records,
+    action_uncaptured: result.action_uncaptured,
     set_aside: result.set_aside,
   };
 }
@@ -693,16 +744,20 @@ function shadowFidelitySelftest() {
   ok("version skew: a next@2 capture is excluded, never divergence-graded",
     rSkew.exclusions.version_skew.length === 1 && rSkew.matrix.next.denominator === 0);
 
-  // --- input-uncaptured exclusions: next awaitingSpecReview AND run-done policy ---
-  ok("optionalInputs derives next's awaitingSpecReview structurally (and nothing else)",
-    JSON.stringify(optionalInputs("next")) === JSON.stringify(["awaitingSpecReview"]));
-  ok("optionalInputs is empty for the other eight in-scope kernels",
-    IN_SCOPE_KERNELS.filter((k) => k !== "next").every((k) => optionalInputs(k).length === 0));
-  const niNoASR = { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false }; // omits awaitingSpecReview (optional)
-  const uncapNext = rec("next", niNoASR, "graft");
-  const rUncapNext = analyzeCorpus([uncapNext], { mapDecisionKernelCommands: MAP_DK });
-  ok("input-uncaptured: a next record omitting awaitingSpecReview is excluded, not a false divergence",
-    rUncapNext.exclusions.input_uncaptured.length === 1 && rUncapNext.exclusions.input_uncaptured[0].missing_optional === "awaitingSpecReview" && rUncapNext.matrix.next.denominator === 0);
+  // --- input-uncaptured exclusions: run-done policy (next has none after the 6→7 reconciliation) ---
+  // FAFF-956: reconciling next.required_inputs to the full seven-key signature makes
+  // optionalInputs("next") empty — every in-scope kernel now has an empty optional set, so
+  // a next record's awaitingSpecReview is REQUIRED (a record omitting it is missing-input,
+  // not input-uncaptured).
+  ok("optionalInputs('next') is now [] (the 6→7 reconciliation removed the sole optional key)",
+    JSON.stringify(optionalInputs("next")) === JSON.stringify([]));
+  ok("optionalInputs is empty for every in-scope kernel",
+    IN_SCOPE_KERNELS.every((k) => optionalInputs(k).length === 0));
+  const niNoASR = { status: "todo", spec: "high", eligible: true, parked: false, blocked: false, ifEligible: false }; // omits the now-REQUIRED awaitingSpecReview
+  const missNext = rec("next", niNoASR, "graft", { coverage: "non-replayable", missing_inputs: ["awaitingSpecReview"] });
+  const rMissNext = analyzeCorpus([missNext], { mapDecisionKernelCommands: MAP_DK });
+  ok("a next record omitting the now-required awaitingSpecReview classifies missing-input (not input-uncaptured)",
+    rMissNext.coverage.missing_input === 1 && rMissNext.matrix.next.denominator === 0 && rMissNext.exclusions.input_uncaptured.length === 0);
   const rdPolicy = rec("run-done", { queue_empty: true, all_parked: false, ledger_clean: true, budget: {}, prd_satisfied: true, inflection: "none", non_convergence: false }, "continue", { run_id: "run-nondefault" });
   const rPolicy = analyzeCorpus([rdPolicy], { mapDecisionKernelCommands: MAP_DK, knownNonDefaultPolicyRuns: ["run-nondefault"] });
   ok("input-uncaptured: a run-done record under a known non-default policy is policy-uncaptured, excluded",
@@ -713,6 +768,83 @@ function shadowFidelitySelftest() {
   const rErr = analyzeCorpus([badClaim], { mapDecisionKernelCommands: MAP_DK });
   ok("replay error: a claim-verdict record with a malformed timestamp is excluded, never divergence-graded",
     rErr.exclusions.replay_error.length === 1 && rErr.matrix["claim-verdict"].denominator === 0);
+
+  // --- FAFF-956: the base<->marker join ---
+  // A base record carries verdict + correlation_id and NO selected_action; a separate action
+  // marker (type decision-capture-action) carries the actual action + the same correlation_id.
+  const base = (kernel, ni, verdict, correlation_id, over = {}) => ({
+    type: "decision-capture",
+    run_id: over.run_id || "run-x",
+    seq: over.seq ?? 1,
+    data: {
+      kernel,
+      kernel_version: over.kernel_version || (KERNEL_REGISTRY[kernel] ? KERNEL_REGISTRY[kernel].version : `${kernel}@1`),
+      normalised_inputs: ni,
+      verdict,
+      coverage: over.coverage || "replayable",
+      missing_inputs: over.missing_inputs || [],
+      correlation_id,
+    },
+  });
+  const mark = (kernel, correlation_id, selected_action, over = {}) => ({
+    type: "decision-capture-action",
+    run_id: over.run_id || "run-x",
+    seq: over.seq ?? 2,
+    data: { kernel, correlation_id, selected_action, causation: { seq: 1, sha256: "a".repeat(64) } },
+  });
+
+  const joinAgree = analyzeCorpus(
+    [base("next", fullNext, "graft", "c-join"), mark("next", "c-join", "graft")],
+    { mapDecisionKernelCommands: MAP_DK });
+  ok("join: a base record + its matching action marker replay to an agreement",
+    joinAgree.matrix.next.denominator === 1 && joinAgree.matrix.next.agreement === 1
+    && joinAgree.divergences.length === 0 && joinAgree.action_uncaptured.length === 0);
+
+  // --- action-uncaptured: a base with no joinable marker is its own stratum, never agreement ---
+  const noMarker = analyzeCorpus([base("next", fullNext, "graft", "c-none")], { mapDecisionKernelCommands: MAP_DK });
+  ok("action-uncaptured: an unjoined base record is action-uncaptured, never an agreement",
+    noMarker.matrix.next.denominator === 0 && noMarker.matrix.next.agreement === 0
+    && noMarker.action_uncaptured.length === 1 && noMarker.action_uncaptured[0].correlation_id === "c-none");
+  // an empty correlation id can join nothing → action-uncaptured, not a crash
+  const emptyCid = analyzeCorpus([base("next", fullNext, "graft", "")], { mapDecisionKernelCommands: MAP_DK });
+  ok("action-uncaptured: a base with an EMPTY correlation id is action-uncaptured, not a crash",
+    emptyCid.action_uncaptured.length === 1 && emptyCid.matrix.next.denominator === 0);
+  // a marker whose kernel differs from the base's does not join (guards a mis-wired site)
+  const kmismatch = analyzeCorpus([base("next", fullNext, "graft", "c-km"), mark("eligible", "c-km", "graft")], { mapDecisionKernelCommands: MAP_DK });
+  ok("action-uncaptured: a kernel-mismatched marker does not join → action-uncaptured",
+    kmismatch.action_uncaptured.length === 1 && kmismatch.matrix.next.denominator === 0);
+
+  // --- duplicate correlation id: the marker joins the FIRST base; later bases fall to
+  // action-uncaptured; never a double-count ---
+  const dup = analyzeCorpus(
+    [base("next", fullNext, "graft", "c-dup", { seq: 1 }), base("next", fullNext, "graft", "c-dup", { seq: 2 }), mark("next", "c-dup", "graft")],
+    { mapDecisionKernelCommands: MAP_DK });
+  ok("duplicate-id: a marker joins only the first base; the second is action-uncaptured (no double-count)",
+    dup.matrix.next.denominator === 1 && dup.matrix.next.agreement === 1 && dup.action_uncaptured.length === 1);
+
+  // --- a constructed divergence over the join (inputs prescribe graft, marker records prep) ---
+  const joinDiv = analyzeCorpus(
+    [base("next", fullNext, "graft", "c-div"), mark("next", "c-div", "prep")],
+    { mapDecisionKernelCommands: MAP_DK });
+  ok("join divergence: prescribed graft, marker prep → one divergence, never an agreement",
+    joinDiv.matrix.next.denominator === 1 && joinDiv.matrix.next.agreement === 0
+    && joinDiv.divergences.length === 1 && joinDiv.divergences[0].prescribed === "graft" && joinDiv.divergences[0].actual === "prep");
+
+  // --- verdict-skew: a base whose STORED verdict projects differently from the replayed
+  // prescription is counted separately, never an agreement, never joined ---
+  const skewInputs = { claimedAtISO: "2026-01-01T00:00:00Z", nowISO: "2026-01-01T00:05:00Z", ttlHours: 6 }; // replays to "live"
+  const vskew = analyzeCorpus(
+    [base("claim-verdict", skewInputs, { verdict: "stale" }, "c-skew"), mark("claim-verdict", "c-skew", "live")],
+    { mapDecisionKernelCommands: MAP_DK });
+  ok("verdict-skew: a stored verdict that disagrees with the replay is flagged, never an agreement",
+    vskew.exclusions.verdict_skew.length === 1 && vskew.exclusions.verdict_skew[0].stored === "stale"
+    && vskew.exclusions.verdict_skew[0].replayed === "live" && vskew.matrix["claim-verdict"].denominator === 0
+    && vskew.matrix["claim-verdict"].agreement === 0);
+
+  // --- legacy combined records (selected_action, no correlation_id) still read as today ---
+  const legacy = analyzeCorpus([rec("next", fullNext, "graft")], { mapDecisionKernelCommands: MAP_DK });
+  ok("legacy: a combined record (selected_action inline, no correlation_id) still agrees as today",
+    legacy.matrix.next.denominator === 1 && legacy.matrix.next.agreement === 1 && legacy.action_uncaptured.length === 0);
 
   // --- empty bundle is a null result ---
   const rNull = analyzeCorpus([], { mapDecisionKernelCommands: MAP_DK });

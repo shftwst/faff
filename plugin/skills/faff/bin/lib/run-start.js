@@ -70,6 +70,7 @@ function deriveRunTrigger(s) {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 const RUN_START_SIGNAL_NAMES = ["target-resolved", "outward", "prd-present", "prd-ambiguous", "prd-admissible", "coverage-measurable", "coverage-covered"];
 const RUN_START_SPEC = { flags: (() => {
   const f = { "--selftest": { arity: 0 }, "--signals": { arity: 1 } };
@@ -105,6 +106,11 @@ function cmdRunStart(args) {
   const schemaErr = schemaCheck(out, "run-trigger");
   if (schemaErr) { process.stderr.write(`faff run-start: ${schemaErr}\n`); return 2; }
   process.stdout.write(JSON.stringify(out) + "\n");
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert. Run-level: `issue` is the `__run__` sentinel. normalised_inputs is the
+  // NORMALISED signals bundle (the seven canonical flat keys the replay's normalize-then-
+  // derive step reads); the stored verdict is the {verdict, reason} pair.
+  captureDecision({ kernel: "run-start", normalised_inputs: signals, verdict: { verdict, reason }, issue: "__run__" });
   return 0; // report-only (parity with run-done / budget check / prdr coverage): the verdict is in the payload
 }
 

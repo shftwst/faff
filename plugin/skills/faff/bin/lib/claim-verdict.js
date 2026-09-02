@@ -68,6 +68,7 @@ function claimVerdictSelftest() {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 
 const CLAIM_VERDICT_SPEC = {
   flags: {
@@ -88,6 +89,14 @@ function cmdClaimVerdict(args) {
   try {
     const out = claimVerdict(values["--claimed-at"], values["--now"], values["--ttl-hours"]);
     console.log(JSON.stringify(out));
+    // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+    // authority-inert. normalised_inputs uses the registry's canonical positional keys.
+    captureDecision({
+      kernel: "claim-verdict",
+      normalised_inputs: { claimedAtISO: values["--claimed-at"], nowISO: values["--now"], ttlHours: values["--ttl-hours"] },
+      verdict: out,
+      issue: process.env.FAFF_DECISION_ISSUE || "",
+    });
     return 0;
   } catch (e) {
     if (e instanceof ClaimVerdictError) return usageError([{ code: "invalid-input", detail: e.message }], CLAIM_VERDICT_USAGE);

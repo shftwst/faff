@@ -163,6 +163,7 @@ function projectNextSelftest() {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 const PROJECT_NEXT_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, // --json is accepted (output is always JSON); declared so it isn't rejected
   "--current": { arity: 1 }, "--kind": { arity: 1 },
@@ -188,6 +189,11 @@ function cmdProjectNext(args) {
   const r = projectNext(state);
   if (r.error) { process.stderr.write(`faff project-next: ${r.error}\n`); return 2; }
   console.log(JSON.stringify(r));
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert. `issue` is the real container id (a project or initiative), supplied by
+  // the orchestrator via $FAFF_DECISION_ISSUE; a container rollup is action-uncaptured by
+  // design (there is no single downstream action to join).
+  captureDecision({ kernel: "project-next", normalised_inputs: state, verdict: r, issue: process.env.FAFF_DECISION_ISSUE || "" });
   return 0;
 }
 

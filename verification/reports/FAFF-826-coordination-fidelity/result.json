@@ -87,11 +87,13 @@
   "exclusions": {
     "version_skew": [],
     "input_uncaptured": [],
-    "replay_error": []
+    "replay_error": [],
+    "verdict_skew": []
   },
   "missing_input_records": [],
   "uncovered_records": [],
   "out_of_scope_records": [],
+  "action_uncaptured": [],
   "set_aside": [
     {
       "command": "decision-capture",

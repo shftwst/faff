@@ -60,6 +60,7 @@ function eligibleSelftest() {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 
 const ELIGIBLE_SPEC = {
   flags: {
@@ -79,7 +80,18 @@ function cmdEligible(args) {
   const def = (values["--default"] || "opt-in").toLowerCase();
   // absent ⇒ git-only (false); present, omitted, or any other value ⇒ tracker-present (true, tighter).
   const trackerPresent = (values["--tracker"] || "present").toLowerCase() !== "absent";
-  console.log(String(automationEligible(labels, def, trackerPresent)));
+  const verdict = automationEligible(labels, def, trackerPresent);
+  console.log(String(verdict));
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert. normalised_inputs uses the registry's canonical keys
+  // (labels/automationDefault/trackerPresent); verdict is wrapped so it projects like-for-
+  // like against the replay (a bare boolean is not an object|string base-record verdict).
+  captureDecision({
+    kernel: "eligible",
+    normalised_inputs: { labels, automationDefault: def, trackerPresent },
+    verdict: { eligible: verdict },
+    issue: process.env.FAFF_DECISION_ISSUE || "",
+  });
   return 0;
 }
 

@@ -125,6 +125,7 @@ function computeRunDoneVerdict(rawSignals, policy) {
 }
 
 const { parseArgs, usageError } = require("./argv");
+const { captureDecision } = require("./decision-capture");
 const RUN_DONE_SPEC = { flags: (() => {
   const f = {
     "--selftest": { arity: 0 }, "--no-prd": { arity: 0 }, "--non-convergence": { arity: 0 },
@@ -196,6 +197,12 @@ function cmdRunDone(args) {
   const schemaErr = schemaCheck(verdict, "run-termination");
   if (schemaErr) { process.stderr.write(`faff run-done: ${schemaErr}\n`); return 2; }
   process.stdout.write(JSON.stringify(verdict) + "\n");
+  // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
+  // authority-inert. Run-level: `issue` is the `__run__` sentinel. `signals` carries the
+  // seven canonical RunSignals keys by construction; `policy` (the optional methodology
+  // override) is not part of the RunSignals bundle, so the record replays under the default
+  // ladder and analysis flags any known non-default-policy run separately.
+  captureDecision({ kernel: "run-done", normalised_inputs: signals, verdict, issue: "__run__" });
   return 0; // report-only (parity with budget check / prdr coverage): the verdict is in the payload, not the exit code
 }
 

@@ -261,7 +261,7 @@ The `--autonomous` harness always ends up against an L4 run-ledger (Ignition, ab
    - any gate fail-loud (malformed verdict / contract mismatch) → park, never an implicit admit
    The `Proposed` PRDR is left in place (not superseded, not deleted) so the parked scope is recoverable; the pass finishes forward and surfaces the park set for `/faff-wtf`.
 
-**Every 5c PRDR terminates in exactly one of: admit-and-land, or a labelled park — no PRDR is silently dropped.** `deferred` / `deferred-recoverable` is not a terminal state — it does not exist for a loop-PRDR. Leaving a `Proposed` loop-PRDR in place because the arbitration was unscored, or because a coverage floor already read satisfied, is a silent drop under an invented label, forbidden exactly as the two states above.
+**Every 5c PRDR terminates in exactly one of: admit-and-land, or a labelled park — no PRDR is silently dropped.** `deferred` / `deferred-recoverable` is not a terminal state — it does not exist for a loop-PRDR. Leaving a `Proposed` loop-PRDR in place because the arbitration was unscored, or because a coverage floor already read satisfied, is a silent drop under an invented label, forbidden exactly as the two states above. A "labelled park" is one of the five reasons in step 4 above, reached by actually running the arbitration and getting refused — a park whose label merely repackages "unscored" or "coverage already satisfied" as a refusal the arbitration never gave is the same silent drop wearing a different name.
 
 ### Integration smoke (acceptance)
 

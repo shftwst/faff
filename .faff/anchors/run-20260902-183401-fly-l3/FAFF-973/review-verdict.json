@@ -1,0 +1,6 @@
+{
+  "signal": "pass",
+  "findings": [],
+  "adversarial_outcome": "chain-outage-skipped",
+  "note": "Adversarial review backend chain in full-chain outage (unset API keys) this run. Disposed pass + chain-outage-skipped per contract — an availability signal, not a verdict on the work. Diff is a two-line config/prose deletion verified directly: grep -rn keepgoing_bound .faffrc.yaml plugin/ empty, faff config check no new finding, faff validate-adapters PASS."
+}

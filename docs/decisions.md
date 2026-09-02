@@ -41,3 +41,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: Gateway reference decomposition and future prefix-cache layering.
 - Matches: reference clustering; contiguity tax; coarse references
 - Date: 2026-09-02
+
+## Relocation lemma — move a kernel block to a reference all its consumers already Read
+
+- Chosen: When a gateway block's every consumer already Reads reference R, relocating that block from the kernel into R is a strict improvement and should be done: the kernel shrinks by the block's tokens; every carrier that does not Read R drops those tokens; every carrier that does Read R is token-neutral (it carried the block via the kernel before, via R now); and the under-read lint stays green with zero load-line edits because every consumer already declares R. The precondition to check before each move is `consumers ⊆ R-readers`.
+- Rationale: it turns "which blocks can safely leave the kernel" from a judgement call into a checkable condition, and corrects the intuition that relocating a broadly-consumed block over-carries its non-consumers — they already carried it via the kernel, so a reference home they don't Read is a pure saving for them and neutral for everyone else.
+- Scope: any future gateway kernel/reference leaning (FAFF-970, FAFF-487, and later passes); the prefix-planner + tokenomics measurement confirms the real per-lane move.
+- Matches: relocation lemma; kernel leaning; move block to reference; consumers subset of readers; kernel/reference placement
+- Date: 2026-09-02

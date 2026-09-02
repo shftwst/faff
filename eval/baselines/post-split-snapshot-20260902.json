@@ -1,0 +1,60 @@
+{
+  "_what": "Post-split cost snapshot for the gateway kernel/reference split (FAFF-607, PR #819). Companion to pre-split-snapshot-20260901.json. Prices the SAME pinned reference run per-lane: each transcript is classified by its running skill and repriced against that skill's post-split resident gateway prefix (kernel + only the lane references it Reads), then summed.",
+  "captured": "2026-09-02",
+  "source_run": "evidence/cost-run-20260829-100405 (full L4 lights-out build, 843 calls) — the same run the pre-split baseline was captured on",
+  "method": "Per-file: classify each of the 19 transcripts (4 top-level + 15 subagents) by its skill from the opening instruction, assign that skill's measured post-split prefix, and run `node eval/tokenomics.mjs --transcript <file> --fixed 66165 --lean <skill prefix>` per file. Reconstructed baseline sums to $132.90, reconciling with the pinned whole-run $132.91 (validates the classification).",
+  "compares_to": "eval/baselines/pre-split-snapshot-20260901.json (baseline $132.913, gateway 66165 tok)",
+  "gateway_tokens_before": 66165,
+  "kernel_tokens_after": 28634,
+  "kernel_reduction_pct": -56.7,
+  "universal_core_floor_tokens": 15290,
+  "per_lane_prefixes": {
+    "_note": "measured post-split resident gateway prefix per skill = kernel (28634) + the lane references that skill Reads",
+    "kernel_only": 28634,
+    "graft_build": 61246,
+    "beep_boop": 59584,
+    "prep": 52581,
+    "tidy": 53924,
+    "wtf_map": 42931,
+    "onboard": 34606,
+    "spec_review_dark": 36959,
+    "evaluate": 34294
+  },
+  "per_lane_cost": [
+    { "lane": "beep-boop orchestrator",             "prefix": 59584, "files": 2, "baseline": 58.71, "post_split": 57.69, "saved": 1.02 },
+    { "lane": "autonomous prep/graft/tidy (heavy)", "prefix": 57000, "files": 4, "baseline": 39.78, "post_split": 38.55, "saved": 1.23, "note": "heavy-blend prefix; prep/graft/tidy not individually separable in these four, all heavy consumers 52-61k" },
+    { "lane": "graft build executor",               "prefix": 61246, "files": 2, "baseline": 14.83, "post_split": 14.47, "saved": 0.36 },
+    { "lane": "spec_review producer (light lane)",  "prefix": 36959, "files": 8, "baseline": 17.84, "post_split": 15.84, "saved": 2.00, "note": "biggest saver: light lane (kernel + methodology) sheds ~29k per call" },
+    { "lane": "evaluate (code-blind)",              "prefix": 34294, "files": 1, "baseline": 1.18,  "post_split": 1.18,  "saved": 0.00, "note": "gateway is not a cost driver here (code-blind, little gateway resident)" },
+    { "lane": "lights-out bootstrap (no gateway)",  "prefix": 66165, "files": 2, "baseline": 0.56,  "post_split": 0.56,  "saved": 0.00, "note": "these tasks never load the faff gateway" }
+  ],
+  "totals": {
+    "reconstructed_baseline": 132.90,
+    "pinned_baseline": 132.913,
+    "per_lane_blended_post_split": 128.29,
+    "delta": -4.61,
+    "pct": -3.5
+  },
+  "brackets_for_context": {
+    "_note": "whole-run uniform --lean bounds, for comparison with the per-lane blend above",
+    "all_graft_61246": { "cost": 130.78, "pct": -1.6 },
+    "all_kernel_only_28634": { "cost": 116.62, "pct": -12.3 },
+    "aspirational_leaned_kernel_8300": { "cost": 107.80, "pct": -18.9 },
+    "drop_injection_upper_bound": { "cost": 104.20, "pct": -21.6 }
+  },
+  "saving_per_10k_prefix_tokens": 4.34,
+  "findings": [
+    "On this build-dominated L4 run the split saves ~$4.61 (-3.5%), near the bottom of the [-1.6%, -12.3%] bracket.",
+    "The spec_review producer subagents are the single biggest saver ($2.00 of $4.61) despite small raw cost, because they are a light lane (kernel + methodology ~37k) that sheds ~29k per call.",
+    "The heavy consumers that dominate the bill (graft executors ~61k, beep-boop ~60k) shed only ~5k and barely move; the evaluator and bootstrap tasks save nothing (gateway not resident / not a cost driver).",
+    "The dollar prize on build-dominated runs needs FAFF-970's kernel-leaning (which lifts every lane, including the heavy ones) plus read-heavy interactive workloads that this build transcript does not represent."
+  ],
+  "caveats": [
+    "Holds under the pre-split baseline's own assumption that the full 66,165-tok gateway was resident on every faff-skill call.",
+    "The four autonomous prep/graft/tidy subagents were priced at a heavy blend (~57k) because prep/graft/tidy could not be cleanly separated among them; all are heavy consumers (52-61k), so the uncertainty is at most ~+/-$0.3.",
+    "spec_review priced as faffter-dark-spec-review (kernel + methodology). If an occupant additionally Read autonomous.md its prefix would be ~45k and its saving smaller.",
+    "Cost is real; the tps-based time legs from the pre-split snapshot are not recomputed here."
+  ],
+  "repro": "For a single uniform figure: node eval/tokenomics.mjs --transcript evidence/cost-run-20260829-100405/transcripts --fixed 66165 --lean <prefix>. For the per-lane blend: reprice each transcript under transcripts/ (+ transcripts/subagents/) with its skill's prefix from per_lane_prefixes and sum.",
+  "related": "FAFF-607 (the split), FAFF-970 (kernel-leaning follow-up), FAFF-932 (tokenomics harness), FAFF-963 (declared-manifest matrix)"
+}

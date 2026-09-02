@@ -20,8 +20,9 @@ import {
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
   evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, appendProducerRecords,
-  governorFileOf, producerFileOf, governorDirOf, producerDirOf,
+  governorFileOf, producerFileOf, pkFileOf, governorDirOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
+import { mintGovernorKeypair as _mintKp } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import { appendEffectEntries, computeEscapes } from "../plugin/skills/faff/bin/lib/effects.js";
 import { verifyEffectsChain } from "../plugin/skills/faff/bin/lib/events.js";
 import { decideFloor } from "../plugin/skills/faff/bin/lib/contract-defs.js";
@@ -269,4 +270,68 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   const localRequires = requires.filter((r) => r.startsWith("."));
   const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
+});
+
+// --- FAFF-978 hardening: admit idempotency ---------------------------------------------
+test("hardening: admit refuses re-admission (silent key rotation) unless --force", () => {
+  const { runDir } = mkRun("com-admit-idem-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    const gov1 = readFileSync(governorFileOf(governorDirOf(runDir)), "utf8");
+    // a second admit is REFUSED (exit 2) and does NOT rotate the keypair/master
+    const re = runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    assert.equal(re.code, 2, "re-admit is refused");
+    assert.match(re.stderr, /already admitted/);
+    assert.equal(readFileSync(governorFileOf(governorDirOf(runDir)), "utf8"), gov1, "governor material is unchanged after a refused re-admit");
+    // --force rotates deliberately
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge", "--force"]).code, 0);
+    assert.notEqual(readFileSync(governorFileOf(governorDirOf(runDir)), "utf8"), gov1, "--force rotates the governor material");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- FAFF-978 hardening: authoritative-PK auth leg --------------------------------------
+test("hardening: verifyAuthLeg fails closed when the producer-writable pk.json is swapped (prefers the governor's authoritative PK)", () => {
+  const { runDir } = mkRun("com-authpk-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.ok(verifyAuthLeg(runDir).pass, "baseline auth leg passes");
+    // an attacker swaps the producer-dir pk.json to their own key — the leg must fail closed on the
+    // fingerprint mismatch against the governor's authoritative PK, never verify against the swapped key
+    const attacker = _mintKp();
+    writeFileSync(pkFileOf(producerDirOf(runDir)), JSON.stringify({ pk: attacker.pk, pk_fingerprint: attacker.pk_fingerprint }));
+    const res = verifyAuthLeg(runDir);
+    assert.equal(res.pass, false, "a swapped producer-dir pk.json fails the auth leg");
+    assert.ok(res.failures.some((f) => f.reason === "pk-fingerprint-tampered"), "the tamper is named explicitly");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- FAFF-978 hardening: pre-append revocation check ------------------------------------
+test("hardening: a revoked producer is refused at CLI entry, before any ledger append", () => {
+  const { runDir, ledger } = mkRun("com-revoke-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    const linesBefore = records(ledger).length;
+    // revoke P1
+    const pf = producerFileOf(producerDirOf(runDir), "P1");
+    const pj = JSON.parse(readFileSync(pf, "utf8")); pj.status = "revoked"; writeFileSync(pf, JSON.stringify(pj));
+    // declare and request-decision are both refused (exit 2) with NO ledger append
+    const d = runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    assert.equal(d.code, 2); assert.match(d.stderr, /revoked/);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.equal(rd.code, 2); assert.match(rd.stderr, /revoked/);
+    assert.equal(records(ledger).length, linesBefore, "no record was appended by the revoked producer");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- FAFF-978 hardening: reconcile no longer requires --producer ------------------------
+test("hardening: reconcile works with only --issue (the phantom --producer requirement is gone)", () => {
+  const { runDir } = mkRun("com-recon-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    const rec = runCom(["reconcile", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    assert.equal(rec.code, 0, "reconcile succeeds without --producer");
+    assert.equal(JSON.parse(rec.stdout.trim()).any_escape, false);
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
 });

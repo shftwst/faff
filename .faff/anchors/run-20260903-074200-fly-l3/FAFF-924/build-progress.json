@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-924",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3d8e449d8541f642f7487ce4271cfe3a2c0370d3a6da74f233d67867e2397619",
+    "branch": "faff-924-split-governance-check-binary-resolution-into-condition",
+    "pushed_at": "2026-09-03T09:41:39.713Z"
+  },
+  "updated_at": "2026-09-03T09:41:39.713Z"
+}

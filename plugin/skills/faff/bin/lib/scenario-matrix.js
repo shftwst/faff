@@ -65,6 +65,18 @@ function claimImpliesEB(label) {
 function claimImpliesNonRepudiation(label) {
   return /non[-\s]?repudiat/i.test(label);
 }
+// The strongest journal class a label NAMES (J-A strongest … J-D weakest), or null if it names
+// none. Used to refuse a label that advertises a stronger journal dimension than the vector the
+// oracle computed (the "claim_label ≤ every dimension" principle, journal axis).
+const JOURNAL_RANK = { "J-A": 0, "J-B": 1, "J-C": 2, "J-D": 3 };
+function claimJournalClass(label) {
+  let strongest = null;
+  for (const m of String(label).matchAll(/(^|[^A-Za-z])(J-[ABCD])([^A-Za-z]|$)/gi)) {
+    const cls = m[2].toUpperCase();
+    if (strongest === null || JOURNAL_RANK[cls] < JOURNAL_RANK[strongest]) strongest = cls;
+  }
+  return strongest;
+}
 
 // --- assurance vector: computed FROM the disposition basis, never a static string ----------
 // journal_class: J-C when the audit_verify basis shows a producer HMAC leg `verified`; J-D for a
@@ -153,9 +165,16 @@ function buildScenarioRecord(scenarioResult) {
   if (claimImpliesEB(claim_label) && r.disposition !== "blocked") {
     throw new Error("scenario-matrix: claim_label implies E-B prevention but disposition is not blocked (E-B is claimable only at the merge chokepoint)");
   }
-  const producerLeg = !!(r.disposition_basis.audit_verify && r.disposition_basis.audit_verify.producer);
-  if (claimImpliesNonRepudiation(claim_label) && (producerLeg || assurance_vector.journal_class === "J-C")) {
-    throw new Error("scenario-matrix: claim_label implies non-repudiation on a producer HMAC leg (producer HMAC is J-C mechanical detection, never non-repudiation)");
+  // Non-repudiation is never claimable at J-C or weaker (symmetric HMAC / self-declared), and in
+  // Phase 0 the journal_class is always J-C or J-D — so a non-repudiation claim on ANY row is an
+  // overstatement, not only on a row carrying a producer leg (the J-D gap).
+  if (claimImpliesNonRepudiation(claim_label) && JOURNAL_RANK[assurance_vector.journal_class] >= JOURNAL_RANK["J-C"]) {
+    throw new Error(`scenario-matrix: claim_label implies non-repudiation but journal_class is ${assurance_vector.journal_class} (non-repudiation needs asymmetric producer signing, absent in Phase 0; producer HMAC is J-C mechanical detection at best)`);
+  }
+  // The label may not advertise a stronger journal class than the vector the oracle computed.
+  const namedJournal = claimJournalClass(claim_label);
+  if (namedJournal && JOURNAL_RANK[namedJournal] < JOURNAL_RANK[assurance_vector.journal_class]) {
+    throw new Error(`scenario-matrix: claim_label names journal class ${namedJournal} but the computed vector is ${assurance_vector.journal_class} (a label may never exceed its assurance vector)`);
   }
 
   // 6. the frozen record — field order is stable so matrix.jsonl serialises deterministically.
@@ -185,7 +204,10 @@ function buildScenarioRecord(scenarioResult) {
 // function of the records: no timestamps, no randomness, no environment reads.
 function renderReport(records) {
   const rows = (Array.isArray(records) ? records.slice() : []).sort((a, b) => a.scenario_ordinal - b.scenario_ordinal);
-  const controlCell = (c) => (c ? `shipped: ${c.artifact_ref}` : "—");
+  // Markdown-table cell safety: a literal pipe or newline in free-text (claim_label, artifact_ref,
+  // scenario_id) would corrupt the table, so escape pipes and flatten newlines in every dynamic cell.
+  const cell = (v) => String(v == null ? "" : v).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  const controlCell = (c) => (c ? `shipped: ${cell(c.artifact_ref)}` : "—");
   const lines = [];
   lines.push("# Phase 0 reference matrix — nine-scenario assurance bank");
   lines.push("");
@@ -195,7 +217,7 @@ function renderReport(records) {
   lines.push("|---|---|---|---|---|---|---|---|---|---|");
   for (const r of rows) {
     const av = r.assurance_vector || {};
-    lines.push(`| ${r.scenario_ordinal} | ${r.scenario_id} | ${r.disposition} | ${av.journal_class} | ${av.effect_class} | ${av.isolation} | ${av.review} | ${r.two_custodian_split_verified ? "verified" : "NOT verified"} | ${controlCell(r.one_shot_control)} | ${r.claim_label} |`);
+    lines.push(`| ${r.scenario_ordinal} | ${cell(r.scenario_id)} | ${cell(r.disposition)} | ${cell(av.journal_class)} | ${cell(av.effect_class)} | ${cell(av.isolation)} | ${cell(av.review)} | ${r.two_custodian_split_verified ? "verified" : "NOT verified"} | ${controlCell(r.one_shot_control)} | ${cell(r.claim_label)} |`);
   }
   lines.push("");
   lines.push("## Assurance notes");
@@ -300,6 +322,23 @@ function scenarioMatrixSelftest() {
   // honest-claim guards throw
   throws(() => buildScenarioRecord(base({ claim_label: "E-B prevention" })), "E-B label on a non-blocked row throws");
   throws(() => buildScenarioRecord(base({ claim_label: "non-repudiation of the producer record" })), "non-repudiation on a producer leg throws");
+  // the widened journal-dimension guard: non-repudiation on a J-D self-declared row also throws
+  throws(() => buildScenarioRecord(base({ scenario_id: "05-stale-evidence", scenario_ordinal: 5, disposition: "denied",
+    disposition_basis: { commissaire_verdict: { verdict: "deny", reason: "stale-evidence" } },
+    claim_label: "non-repudiation of a self-declared record",
+    one_shot_control: { ungoverned_shipped: true, artifact_ref: "acted on stale evidence", governed_disposition: "denied" } })),
+    "non-repudiation on a J-D row throws (the journal-dimension gap)");
+  // a label naming a stronger journal class than the computed vector throws (J-D row labelled J-C)
+  throws(() => buildScenarioRecord(base({ scenario_id: "05-stale-evidence", scenario_ordinal: 5, disposition: "denied",
+    disposition_basis: { commissaire_verdict: { verdict: "deny", reason: "stale-evidence" } },
+    claim_label: "J-C mechanical detection of stale evidence",
+    one_shot_control: { ungoverned_shipped: true, artifact_ref: "acted on stale evidence", governed_disposition: "denied" } })),
+    "a J-D row whose label names J-C throws (label exceeds the journal dimension)");
+  // but a J-D row honestly labelled J-D builds fine
+  buildScenarioRecord(base({ scenario_id: "05-stale-evidence", scenario_ordinal: 5, disposition: "denied",
+    disposition_basis: { commissaire_verdict: { verdict: "deny", reason: "stale-evidence" } },
+    claim_label: "J-D self-declared; E-C detection of stale evidence",
+    one_shot_control: { ungoverned_shipped: true, artifact_ref: "acted on stale evidence", governed_disposition: "denied" } }));
   throws(() => buildScenarioRecord(base({ two_custodian_split_verified: false })), "two-custodian split not verified throws");
   throws(() => buildScenarioRecord(base({ scenario_ordinal: 1, one_shot_control: { ungoverned_shipped: true, artifact_ref: "x", governed_disposition: "accepted" } })), "one_shot_control on a non-catch ordinal throws");
   throws(() => buildScenarioRecord(base({ scenario_id: "05-stale-evidence", scenario_ordinal: 5, disposition: "denied", one_shot_control: null })), "missing one_shot_control on a catch ordinal throws");
@@ -313,6 +352,12 @@ function scenarioMatrixSelftest() {
   if (!/\| 1 \| 01-normal-completion \|/.test(r1)) fail("render includes the accepted row");
   if (!/E-B/.test(r1)) fail("render retains the blocked row's E-B");
 
+  // a pipe in a free-text cell is escaped (rendered as \| so a markdown reader keeps it in-cell,
+  // never as a column separator) and no raw unescaped pipe survives in the cell text
+  const recPipe = buildScenarioRecord(base({ claim_label: "J-C auth | E-C detection" }));
+  const dataRow = renderReport([recPipe]).split("\n").find((l) => /^\| 1 \|/.test(l));
+  if (!dataRow || !dataRow.includes("J-C auth \\| E-C detection")) fail("a pipe in claim_label is escaped as \\| in the cell");
+
   if (failed) return 1;
   console.log("scenario-matrix selftest: ok");
   return 0;
@@ -321,6 +366,6 @@ function scenarioMatrixSelftest() {
 module.exports = {
   SCHEMA, DISPOSITIONS, DISPOSITION_SET, JOURNAL_CLASSES, EFFECT_CLASSES, CATCH_ORDINALS,
   SCENARIO_RECORD_REQUIRED_FIELDS, SCENARIO_MATRIX_SPEC, SCENARIO_MATRIX_SURFACE,
-  claimImpliesEB, claimImpliesNonRepudiation, computeAssuranceVector,
+  claimImpliesEB, claimImpliesNonRepudiation, claimJournalClass, computeAssuranceVector,
   buildScenarioRecord, renderReport, cmdScenarioMatrix, scenarioMatrixSelftest,
 };

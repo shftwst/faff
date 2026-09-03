@@ -97,6 +97,7 @@ const { cmdRunLedger } = require("./lib/run-ledger");
 const { cmdRunOutward } = require("./lib/run-outward");
 const { cmdRunRecordPrd } = require("./lib/run-record-prd");
 const { cmdRunStart } = require("./lib/run-start");
+const { cmdScenarioMatrix } = require("./lib/scenario-matrix");
 const { cmdRuncheck } = require("./lib/runcheck");
 const { cmdSelfIntake } = require("./lib/self-intake");
 const { cmdSentry } = require("./lib/sentry");
@@ -140,6 +141,7 @@ const COMMANDS = {
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,
   "commissaire": cmdCommissaire,
+  "scenario-matrix": cmdScenarioMatrix,
   "self-intake": cmdSelfIntake,
   // FAFF-604: the dispatch shell is the sanctioned meeting point for the two
   // regions (it is exempt from the require-graph lint by design). `budget check`

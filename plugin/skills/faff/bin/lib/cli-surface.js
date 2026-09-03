@@ -34,6 +34,7 @@ const { PRD_SURFACE } = require("./prd");
 const { PROFILES_SURFACE } = require("./governance-profile");
 const { PROFILE_SURFACE } = require("./profile");
 const { RUN_LEDGER_SURFACE } = require("./run-ledger");
+const { SCENARIO_MATRIX_SURFACE } = require("./scenario-matrix");
 const { SENTRY_POLLER_SURFACE } = require("./sentry-poller");
 const { SENTRY_SURFACE } = require("./sentry");
 
@@ -57,6 +58,7 @@ const DISPATCH_SURFACES = {
   profiles: PROFILES_SURFACE,
   profile: PROFILE_SURFACE,
   "run-ledger": RUN_LEDGER_SURFACE,
+  "scenario-matrix": SCENARIO_MATRIX_SURFACE,
   "sentry-poller": SENTRY_POLLER_SURFACE,
   sentry: SENTRY_SURFACE,
 };

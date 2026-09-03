@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-972",
+  "build": {
+    "status": "complete",
+    "diff_hash": "91c2df1ed140ae192a2a12aeb85e51b73b900abaa40a0dc0c6c46804dfdcdc06",
+    "branch": "faff-972-wire-max_tokens-into-the-spec-review-judge-dispatch-or",
+    "pushed_at": "2026-09-03T00:33:34.796Z"
+  },
+  "updated_at": "2026-09-03T00:33:34.796Z"
+}

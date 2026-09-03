@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.31.0](https://github.com/shftwst/faff/compare/faff--v0.30.0...faff--v0.31.0) (2026-09-03)
+
+
+### Features
+
+* **FAFF-822:** bank the nine-scenario Phase 0 reference matrix + common scenario record ([#840](https://github.com/shftwst/faff/issues/840)) ([e2df151](https://github.com/shftwst/faff/commit/e2df151ab013c1639eba4911c2f2820be76f98e1))
+* **FAFF-971:** decouple the review-verdict eval loader slice from spec-review ([#841](https://github.com/shftwst/faff/issues/841)) ([15d98bd](https://github.com/shftwst/faff/commit/15d98bdd2c2d593a799ab3e30996c223e6f32bb6))
+
+
+### Bug Fixes
+
+* **FAFF-924:** split governance-check binary resolution into condition-gated steps ([#842](https://github.com/shftwst/faff/issues/842)) ([a77a606](https://github.com/shftwst/faff/commit/a77a60684035a676a5f5a1fc2699d328243ce2ab))
+* sentry key + spark-qwen host + spark api_key_env ([#844](https://github.com/shftwst/faff/issues/844)) ([8849fb8](https://github.com/shftwst/faff/commit/8849fb88b50cc74d4cbbc8ca698d20c15fb44084))
+
 ## [0.30.0](https://github.com/shftwst/faff/compare/faff--v0.29.0...faff--v0.30.0) (2026-09-03)
 
 

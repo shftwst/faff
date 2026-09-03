@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-989",
+  "build": {
+    "status": "complete",
+    "diff_hash": "719495f9ab9f02bbf6e05cc813f738a6412d1b498992fbfff2c2f351c6d6b5b2",
+    "branch": "faff-989-decision-capture-action-marker-is-never-emitted-at-runtime",
+    "pushed_at": "2026-09-03T19:25:38.815Z"
+  },
+  "updated_at": "2026-09-03T19:25:38.815Z"
+}

@@ -530,14 +530,24 @@ function cmdActionVerb(values, root) {
   const run = values["--run"];
   const issue = values["--issue"];
   const kernel = values["--kernel"];
-  // FAFF-989: prefer an explicit --correlates, else re-derive the SAME id the base carried from
-  // {run, issue, kernel, wave} via mintCorrelationId — so the marker joins by construction rather
-  // than by two matching format strings. `run` here is the run id the caller passes (or the
+  // FAFF-989: resolve the correlation id so the marker genuinely REUSES the id the base carried,
+  // rather than re-deriving it from separately-supplied args (which a --wave/--run-form mismatch
+  // between the `decide` and `action` calls could silently make disagree — reopening the very
+  // no-join bug this fixes). Precedence: an explicit --correlates > $FAFF_DECISION_CORRELATION_ID
+  // (the exact id `decide --export` set and the base was minted with — the reuse path) > a fresh
+  // derivation from {run, issue, kernel, wave}. `runId` is the run id the caller passes (or the
   // basename of $FAFF_RUN_DIR); a still-empty id is caught by decisionCaptureActionViolations below.
   const runId = run || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  const envId = process.env.FAFF_DECISION_CORRELATION_ID || "";
+  const derivedId = (runId != null && issue != null && kernel != null) ? mintCorrelationId(runId, issue, kernel, values["--wave"]) : "";
   const correlation_id = values["--correlates"] != null
     ? values["--correlates"]
-    : (runId != null && issue != null && kernel != null ? mintCorrelationId(runId, issue, kernel, values["--wave"]) : "");
+    : (envId !== "" ? envId : derivedId);
+  // Observability only: if a fresh derivation would have disagreed with the reused/explicit id, note
+  // it (best-effort, never blocks) so a genuine arg mismatch is visible rather than a silent no-join.
+  if (correlation_id !== "" && derivedId !== "" && derivedId !== correlation_id) {
+    bestEffortFail(root, run, `action correlation id ${JSON.stringify(correlation_id)} differs from the id derived from --run/--issue/--kernel/--wave (${JSON.stringify(derivedId)}); using the former (the base's own id)`);
+  }
 
   let enabled;
   try { enabled = captureEnabled(root); }

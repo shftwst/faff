@@ -143,6 +143,23 @@ test("Part C: `decide` mints a deterministic id and `action` re-derives the iden
   assert.equal(result.matrix.next.agreement, 1);
 });
 
+test("Part C hardening: `action` reuses the exported id, so a --wave mismatch cannot silently break the join", () => {
+  const { root, runId, runDir } = scratchRoot();
+  // decide (wave default 1) → base minted with env id .../next/1
+  const cid = run(root, ["decision-capture", "decide", "--run", runId, "--issue", "FAFF-1", "--kernel", "next", "--root", root]);
+  assert.equal(cid.out, `${runId}/FAFF-1/next/1`);
+  const kenv = { FAFF_RUN_DIR: runDir, FAFF_DECISION_CORRELATION_ID: cid.out, FAFF_DECISION_ISSUE: "FAFF-1" };
+  run(root, ["next", "--status", "todo", "--spec", "high"], { env: kenv });
+  // action inherits the env id but is (mistakenly) given a MISMATCHED --wave 9 — the reuse path must
+  // win over the fresh derivation (.../next/9), so the marker still carries .../next/1 and JOINS.
+  const marker = run(root, ["decision-capture", "action", "--run", runId, "--issue", "FAFF-1", "--kernel", "next", "--wave", "9", "--action", "graft", "--root", root], { env: kenv });
+  assert.equal(marker.code, 0, marker.err);
+  const result = study(root, runDir);
+  assert.equal(result.matrix.next.denominator, 1);            // joined despite the arg mismatch
+  assert.equal(result.matrix.next.agreement, 1);
+  assert.equal(result.action_uncaptured.length, 0);
+});
+
 test("the edited SKILL.md files pass the authoring gate", () => {
   const r = run(REPO, ["validate-adapters"]);
   assert.equal(r.code, 0, r.err || r.out.split("\n").filter((l) => /FAIL/.test(l)).join("\n"));

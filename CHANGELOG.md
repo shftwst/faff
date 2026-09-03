@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/shftwst/faff/compare/faff--v0.29.0...faff--v0.30.0) (2026-09-03)
+
+
+### Features
+
+* **FAFF-986:** allow reasoning_extra to carry custom_params (Qwen thinking_budget) ([#837](https://github.com/shftwst/faff/issues/837)) ([9f7e5c7](https://github.com/shftwst/faff/commit/9f7e5c7ffd8dcf0bd8185a0910921876d52a6c3e))
+
 ## [0.29.0](https://github.com/shftwst/faff/compare/faff--v0.28.0...faff--v0.29.0) (2026-09-03)
 
 

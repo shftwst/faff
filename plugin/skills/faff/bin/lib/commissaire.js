@@ -312,15 +312,15 @@ function cmdAuditVerify(flags) {
 
 function usage() {
   process.stderr.write(
-    "usage: faff commissaire <admit|declare|request-decision|observe|reconcile|terminal-verdict|seal-bundle|audit verify> ...\n" +
-    "  admit            --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]\n" +
-    "  declare          --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])\n" +
-    "  request-decision --run-dir DIR --producer ID --issue I --step S   (stdin: {effect, evidence_seq?})\n" +
-    "  observe          --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])\n" +
-    "  reconcile        --run-dir DIR --issue I\n" +
-    "  terminal-verdict --run-dir DIR --issue I   (boundary stub over `faff events anchor`)\n" +
-    "  seal-bundle      --run-dir DIR             (boundary stub over `faff bundle`)\n" +
-    "  audit verify     --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n");
+    "usage: faff commissaire <object> <action> ...  (ADR-0123 object-verb grammar; the flat verbs are retained aliases)\n" +
+    "  contract admit    --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]   (alias: admit)\n" +
+    "  effect declare    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: declare)\n" +
+    "  effect authorize  --run-dir DIR --producer ID --issue I --step S   (stdin: {effect, evidence_seq?})   (alias: request-decision)\n" +
+    "  effect observe    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
+    "  effect reconcile  --run-dir DIR --issue I   (alias: reconcile)\n" +
+    "  verdict conclude  --run-dir DIR --issue I   (boundary stub over `faff events anchor`)   (alias: terminal-verdict)\n" +
+    "  audit seal        --run-dir DIR             (boundary stub over `faff bundle`)   (alias: seal-bundle)\n" +
+    "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n");
 }
 
 function parseCommissaireArgs(args) {
@@ -475,39 +475,86 @@ function cmdBoundaryStub(flags, verb, childArgs) {
   return r.status === null ? 1 : r.status;
 }
 
+// --- boundary-stub handlers (extracted verbatim from the old switch) ---------------------
+// `verdict conclude` / `audit seal` (and their flat aliases terminal-verdict / seal-bundle) each
+// reach ONE handler. The stderr labels stay as today (stderr text only, never JSON or exit code),
+// which is what keeps the handler bodies untouched under an object-verb invocation.
+function cmdTerminalVerdict(flags) {
+  const runDir = flags["--run-dir"], issue = flags["--issue"];
+  if (!runDir || !issue) { process.stderr.write("faff commissaire terminal-verdict: --run-dir and --issue are required\n"); return 2; }
+  return cmdBoundaryStub(flags, "terminal-verdict", ["events", "anchor", "--run-dir", runDir, "--issue", issue]);
+}
+function cmdSealBundle(flags) {
+  const runDir = flags["--run-dir"];
+  if (!runDir) { process.stderr.write("faff commissaire seal-bundle: --run-dir is required\n"); return 2; }
+  return cmdBoundaryStub(flags, "seal-bundle", ["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "run-close", "--boundary-key", path.basename(runDir)]);
+}
+
+// === ADR-0123 noun-verb object grammar (FAFF-980) =======================================
+// The Commissaire surface is `commissaire <object> <action>` over the governed objects, with the
+// seven FAFF-828 flat verbs retained as compatibility aliases. Two module-level tables replace the
+// ad-hoc verb switch: a canonical dispatch table (the ONLY place a handler is named) and a flat-
+// verb → canonical-key alias map (an alias is a second spelling, never a second implementation).
+
+// First-token object namespaces.
+const OBJECT_TOKENS = new Set(["contract", "effect", "verdict", "audit"]);
+
+// Canonical key (object-verb string) → the single handler invocation. `audit verify` is FAFF-977's
+// handler, wired in here so the unified resolver keeps it working; its body is untouched.
+const COMMISSAIRE_DISPATCH = {
+  "contract admit": (flags) => cmdAdmit(flags),
+  "effect declare": (flags) => cmdProducerLedger(flags, "declare", "declare"),
+  "effect authorize": (flags) => cmdRequestDecision(flags),
+  "effect observe": (flags) => cmdProducerLedger(flags, "observe", "observe"),
+  "effect reconcile": (flags) => cmdReconcile(flags),
+  "verdict conclude": (flags) => cmdTerminalVerdict(flags),
+  "audit seal": (flags) => cmdSealBundle(flags),
+  "audit verify": (flags) => cmdAuditVerify(flags), // FAFF-977, retained (not this ticket's key)
+};
+
+// Flat verb (FAFF-828 spelling) → canonical key. An alias never appears as a COMMISSAIRE_DISPATCH
+// key: it resolves to one before dispatch, so there is exactly one handler per operation.
+const COMMISSAIRE_ALIASES = {
+  "admit": "contract admit",
+  "declare": "effect declare",
+  "request-decision": "effect authorize",
+  "observe": "effect observe",
+  "reconcile": "effect reconcile",
+  "terminal-verdict": "verdict conclude",
+  "seal-bundle": "audit seal",
+};
+
+// Required flags per canonical key — the single source COMMISSAIRE_SURFACE.subcommands derives from,
+// so the declared grammar cannot drift from dispatch. `effect reconcile` requires only `--issue`
+// (FAFF-978 removed the phantom `--producer` requirement; cmdReconcile gates on nothing else).
+const REQUIRED_FLAGS_BY_CANONICAL = {
+  "contract admit": ["--producer", "--contract-revision"],
+  "effect declare": ["--producer", "--issue", "--step"],
+  "effect authorize": ["--producer", "--issue", "--step"],
+  "effect observe": ["--producer", "--issue", "--step"],
+  "effect reconcile": ["--issue"],
+  "verdict conclude": ["--issue"],
+  "audit seal": [],
+  "audit verify": ["--run-dir"], // FAFF-977, retained
+};
+
+// Resolve one or two leading non-flag tokens to a canonical COMMISSAIRE_DISPATCH key, or null.
+function resolveCommissaireKey(rest) {
+  if (!rest.length) return null;
+  if (OBJECT_TOKENS.has(rest[0])) {
+    const key = rest[0] + " " + (rest[1] || ""); // "contract admit" — or "contract " when no action
+    return Object.prototype.hasOwnProperty.call(COMMISSAIRE_DISPATCH, key) ? key : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(COMMISSAIRE_ALIASES, rest[0])) return COMMISSAIRE_ALIASES[rest[0]];
+  return null;
+}
+
 function cmdCommissaire(args) {
   if (args.includes("--selftest")) return commissaireSelftest();
   const { flags, rest } = parseCommissaireArgs(args);
-  const verb = rest[0];
-  switch (verb) {
-    case "admit": return cmdAdmit(flags);
-    case "declare": return cmdProducerLedger(flags, "declare", "declare");
-    case "observe": return cmdProducerLedger(flags, "observe", "observe");
-    case "request-decision": return cmdRequestDecision(flags);
-    case "reconcile": return cmdReconcile(flags);
-    case "terminal-verdict": {
-      const runDir = flags["--run-dir"], issue = flags["--issue"];
-      if (!runDir || !issue) { process.stderr.write("faff commissaire terminal-verdict: --run-dir and --issue are required\n"); return 2; }
-      return cmdBoundaryStub(flags, "terminal-verdict", ["events", "anchor", "--run-dir", runDir, "--issue", issue]);
-    }
-    case "seal-bundle": {
-      const runDir = flags["--run-dir"];
-      if (!runDir) { process.stderr.write("faff commissaire seal-bundle: --run-dir is required\n"); return 2; }
-      return cmdBoundaryStub(flags, "seal-bundle", ["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "run-close", "--boundary-key", path.basename(runDir)]);
-    }
-    case "audit": {
-      // ADR-0123 `audit` object namespace. `verify` is the only built action this slice; `seal`
-      // and `export` are unbuilt (an unknown action falls through to the usage error, and the flat
-      // `seal-bundle` verb keeps serving seal). Dispatch on the action token (rest[1]).
-      const action = rest[1];
-      if (action === "verify") return cmdAuditVerify(flags);
-      usage();
-      return 2;
-    }
-    default:
-      usage();
-      return 2;
-  }
+  const key = resolveCommissaireKey(rest);
+  if (!key) { usage(); return 2; }
+  return COMMISSAIRE_DISPATCH[key](flags);
 }
 
 // The CLI surface grammar (cli-surface.js DISPATCH_SURFACES entry).
@@ -516,22 +563,26 @@ const COMMISSAIRE_SPEC = { flags: {
   "--scope": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--governor-dir": { arity: 1 },
   "--producer-dir": { arity: 1 }, "--ts": { arity: 1 }, "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
 } };
+// Derive the declared surface from the single source (REQUIRED_FLAGS_BY_CANONICAL +
+// COMMISSAIRE_ALIASES): every canonical compound key plus every flat alias key, each alias carrying
+// its canonical's required_flags. Compound string keys stay on the flat `subcommands` map (mirroring
+// the hyphenated `request-decision` key and FAFF-977's `audit verify`), so buildCliSurface /
+// acceptedFlags / cliSurfaceSelftest need no change. Listing an alias here is not a second
+// implementation — dispatch still resolves it through COMMISSAIRE_ALIASES to one handler.
+function buildCommissaireSubcommands() {
+  const subs = {};
+  for (const [canonical, required] of Object.entries(REQUIRED_FLAGS_BY_CANONICAL)) {
+    subs[canonical] = { required_flags: required };
+  }
+  for (const [alias, canonical] of Object.entries(COMMISSAIRE_ALIASES)) {
+    subs[alias] = { required_flags: REQUIRED_FLAGS_BY_CANONICAL[canonical] };
+  }
+  return subs;
+}
 const COMMISSAIRE_SURFACE = {
   kind: "subcommand_dispatch",
   spec: COMMISSAIRE_SPEC,
-  subcommands: {
-    admit: { required_flags: ["--producer", "--contract-revision"] },
-    declare: { required_flags: ["--producer", "--issue", "--step"] },
-    "request-decision": { required_flags: ["--producer", "--issue", "--step"] },
-    observe: { required_flags: ["--producer", "--issue", "--step"] },
-    reconcile: { required_flags: ["--issue"] },
-    "terminal-verdict": { required_flags: ["--issue"] },
-    "seal-bundle": { required_flags: [] },
-    // FAFF-977: the ADR-0123 `audit` object namespace lands as a compound subcommand key on the
-    // existing flat map (mirroring the hyphenated `request-decision` key), keeping the SURFACE
-    // schema flat this slice — the nested-object representation is FAFF-980's concern.
-    "audit verify": { required_flags: ["--run-dir"] },
-  },
+  subcommands: buildCommissaireSubcommands(),
 };
 
 // In-memory selftest: the split-key cores (delegated to producer-auth) + the facade's own pure
@@ -593,36 +644,45 @@ function commissaireSelftest() {
   const deny = { author: "commissaire", payload: { verdict: "deny", effect } }; deny.commissaire_sig = signDecision(deny, gov.sk);
   if (chokepointPermit(effect, deny, gov.pk, gov.pk_fingerprint).permit) fail("chokepoint refuses a deny verdict");
 
-  // --- full CLI round trip (admit → declare → request-decision → reconcile) ---
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-commissaire-"));
-  try {
-    const runDir = path.join(tmp, ".faff", "runs", "RUN-C1");
-    fs.mkdirSync(runDir, { recursive: true });
-    const run = (a, input) => spawnSync(process.execPath, [ENTRYPOINT, "commissaire", ...a], { encoding: "utf8", input: input ?? "" });
-    let r = run(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    if (r.status !== 0) fail(`admit exited ${r.status}: ${r.stderr}`);
-    r = run(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    if (r.status !== 0) fail(`declare exited ${r.status}: ${r.stderr}`);
-    r = run(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
-    if (r.status !== 0) fail(`request-decision exited ${r.status}: ${r.stderr}`);
-    let verdict = null; try { verdict = JSON.parse(r.stdout.trim()); } catch { /* */ }
-    if (!verdict || verdict.verdict !== "grant") fail(`request-decision granted on the covered path (got ${r.stdout.trim()})`);
-    // the ledger chain verifies
-    if (verifyEffectsChain(runDir, {}).status !== "verified") fail("the schema:3 ledger verifies");
-    // the auth leg passes over the whole run
-    if (!verifyAuthLeg(runDir).pass) fail(`the auth leg passes on a clean run (${JSON.stringify(verifyAuthLeg(runDir).failures)})`);
-    // split-key custody: the governor file holds SK + master, never a producer key; the producer
-    // file holds K_producer, never SK/master.
-    const govJson = readJson(governorFileOf(governorDirOf(runDir)));
-    const prodJson = readJson(producerFileOf(producerDirOf(runDir), "P1"));
-    if (!govJson.sk || !govJson.master_secret) fail("governor file holds SK + master");
-    if (govJson.key_hex) fail("governor file must NOT hold a producer key");
-    if (!prodJson.key_hex) fail("producer file holds K_producer");
-    if (prodJson.sk || prodJson.master_secret) fail("producer file must NOT hold SK or master");
-    // reconcile reports no escape on the fully-declared/observed-free run
-    r = run(["reconcile", "--run-dir", runDir, "--issue", "FAFF-1"]);
-    if (r.status !== 0) fail(`reconcile exited ${r.status}`);
-  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  // --- full CLI round trip under BOTH spellings (flat + object-verb) ---
+  // The chain admit → declare → request-decision → reconcile is run once with the flat verbs and
+  // once with the object-verb forms; both must exit and verdict-match identically, proving each
+  // alias resolves to the same handler as its object-verb form (ADR-0123, FAFF-980).
+  const spellings = {
+    flat: { admit: ["admit"], declare: ["declare"], authorize: ["request-decision"], reconcile: ["reconcile"] },
+    "object-verb": { admit: ["contract", "admit"], declare: ["effect", "declare"], authorize: ["effect", "authorize"], reconcile: ["effect", "reconcile"] },
+  };
+  for (const [label, tok] of Object.entries(spellings)) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-commissaire-"));
+    try {
+      const runDir = path.join(tmp, ".faff", "runs", "RUN-C1");
+      fs.mkdirSync(runDir, { recursive: true });
+      const run = (a, input) => spawnSync(process.execPath, [ENTRYPOINT, "commissaire", ...a], { encoding: "utf8", input: input ?? "" });
+      let r = run([...tok.admit, "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+      if (r.status !== 0) fail(`[${label}] admit exited ${r.status}: ${r.stderr}`);
+      r = run([...tok.declare, "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+      if (r.status !== 0) fail(`[${label}] declare exited ${r.status}: ${r.stderr}`);
+      r = run([...tok.authorize, "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+      if (r.status !== 0) fail(`[${label}] request-decision exited ${r.status}: ${r.stderr}`);
+      let verdict = null; try { verdict = JSON.parse(r.stdout.trim()); } catch { /* */ }
+      if (!verdict || verdict.verdict !== "grant") fail(`[${label}] request-decision granted on the covered path (got ${r.stdout.trim()})`);
+      // the ledger chain verifies
+      if (verifyEffectsChain(runDir, {}).status !== "verified") fail(`[${label}] the schema:3 ledger verifies`);
+      // the auth leg passes over the whole run
+      if (!verifyAuthLeg(runDir).pass) fail(`[${label}] the auth leg passes on a clean run (${JSON.stringify(verifyAuthLeg(runDir).failures)})`);
+      // split-key custody: the governor file holds SK + master, never a producer key; the producer
+      // file holds K_producer, never SK/master.
+      const govJson = readJson(governorFileOf(governorDirOf(runDir)));
+      const prodJson = readJson(producerFileOf(producerDirOf(runDir), "P1"));
+      if (!govJson.sk || !govJson.master_secret) fail(`[${label}] governor file holds SK + master`);
+      if (govJson.key_hex) fail(`[${label}] governor file must NOT hold a producer key`);
+      if (!prodJson.key_hex) fail(`[${label}] producer file holds K_producer`);
+      if (prodJson.sk || prodJson.master_secret) fail(`[${label}] producer file must NOT hold SK or master`);
+      // reconcile reports no escape on the fully-declared/observed-free run
+      r = run([...tok.reconcile, "--run-dir", runDir, "--issue", "FAFF-1"]);
+      if (r.status !== 0) fail(`[${label}] reconcile exited ${r.status}`);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
 
   if (failed) return 1;
   console.log("commissaire selftest: ok");
@@ -631,6 +691,7 @@ function commissaireSelftest() {
 
 module.exports = {
   KIND_AUTHOR, DECISION_VERDICTS, LEDGER_CFG, COMMISSAIRE_SPEC, COMMISSAIRE_SURFACE,
+  OBJECT_TOKENS, COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, resolveCommissaireKey,
   buildEnvelope, appendProducerRecords, appendCommissaireRecord,
   evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, hasGovernanceContext,
   readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf,

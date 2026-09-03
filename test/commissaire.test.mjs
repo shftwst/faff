@@ -335,3 +335,156 @@ test("hardening: reconcile works with only --issue (the phantom --producer requi
     assert.equal(JSON.parse(rec.stdout.trim()).any_escape, false);
   } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
 });
+
+// === FAFF-977: `audit verify` — secret-free external replay ==============================
+// The read-only projection of verifyAuthLeg onto the stable AuditVerifyOutput contract.
+// A run minted through the real CLI, then (per scenario) sanitized or tampered, and replayed.
+
+const FIXTURE_ROOT = join(HERE, "fixtures", "commissaire", "secret-free-replay");
+
+// Mint a governed run (admit → declare → request-decision) through the real bin. Yields a ledger
+// with two commissaire decisions (admission + verdict) and two producer records (declare + request).
+function mintGovernedRun(prefix) {
+  const { root, runDir, ledger } = mkRun(prefix);
+  assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+  assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+  assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
+  return { root, runDir, ledger };
+}
+
+test("audit verify: the checked-in secret-free fixture replays — exit 0, buckets as specified, never folds unverifiable", () => {
+  const r = runCom(["audit", "verify", "--run-dir", FIXTURE_ROOT]);
+  assert.equal(r.code, 0, `secret-free fixture verifies (${r.stderr})`);
+  const out = JSON.parse(r.stdout.trim());
+  assert.equal(out.version, 1);
+  assert.equal(out.result, "pass");
+  assert.equal(out.governance_context, true);
+  assert.ok(out.producer_claims.unverifiable_without_secret > 0, "producer claims are unverifiable without the secret");
+  assert.equal(out.producer_claims.verified, 0, "NEVER fold unverifiable into a verified/pass total");
+  assert.equal(out.producer_claims.failed, 0);
+  assert.ok(out.commissaire_decisions.verified >= 1, "public-key decisions verify from pk.json alone");
+  // commissaire_decisions carries no unverifiable bucket (a public-key decision is always checkable)
+  assert.deepEqual(Object.keys(out.commissaire_decisions).sort(), ["failed", "verified"]);
+  assert.equal(out.ledger_failures.length, 0, "no ledger-level failure on the pure secret-free path");
+  assert.equal(typeof out.pk_fingerprint, "string");
+  // records are one-per-schema:3-entry, in ledger (seq) order
+  const seqs = out.records.map((x) => x.seq);
+  assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b));
+});
+
+test("audit verify: a live secret-present run reports producer claims as verified (secret present)", () => {
+  const { root, runDir } = mintGovernedRun("com-av-secret-");
+  try {
+    const r = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(r.code, 0);
+    const out = JSON.parse(r.stdout.trim());
+    assert.equal(out.result, "pass");
+    assert.ok(out.producer_claims.verified > 0, "with the governor secret present, producer HMACs verify");
+    assert.equal(out.producer_claims.unverifiable_without_secret, 0);
+    assert.ok(out.commissaire_decisions.verified >= 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: fail closed when pk.json is missing but Commissaire decisions exist (exit 1)", () => {
+  const { root, runDir } = mintGovernedRun("com-av-nopk-");
+  try {
+    // sanitize to secret-free, then also remove the published key — nothing left to check decisions with
+    rmSync(governorDirOf(runDir), { recursive: true, force: true });
+    rmSync(pkFileOf(producerDirOf(runDir)), { force: true });
+    const r = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(r.code, 1);
+    const out = JSON.parse(r.stdout.trim());
+    assert.equal(out.result, "fail");
+    assert.equal(out.pk_fingerprint, null, "pk_fingerprint is null when pk.json is absent");
+    const decision = out.records.find((x) => x.author === "commissaire");
+    assert.equal(decision.classification, "failed");
+    assert.equal(decision.reason, "commissaire-sig-invalid");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: a tampered Commissaire decision fails closed (exit 1, commissaire-sig-invalid)", () => {
+  const { root, runDir, ledger } = mintGovernedRun("com-av-tamper-dec-");
+  try {
+    const recs = records(ledger);
+    const idx = recs.findIndex((x) => x.kind_of_entry === "effect-decision-verdict");
+    recs[idx].payload = { ...recs[idx].payload, reason: "tampered-after-signing" };
+    writeFileSync(ledger, recs.map((x) => JSON.stringify(x)).join("\n") + "\n");
+    const r = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(r.code, 1);
+    const out = JSON.parse(r.stdout.trim());
+    assert.equal(out.result, "fail");
+    const decision = out.records.find((x) => x.kind_of_entry === "effect-decision-verdict");
+    assert.equal(decision.classification, "failed");
+    assert.equal(decision.reason, "commissaire-sig-invalid");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: a tampered producer HMAC on a secret-present run classifies failed (exit 1, producer-auth-mismatch)", () => {
+  const { root, runDir, ledger } = mintGovernedRun("com-av-tamper-prod-");
+  try {
+    const recs = records(ledger);
+    const idx = recs.findIndex((x) => x.author === "producer" && x.producer_hmac);
+    const h = recs[idx].producer_hmac;
+    recs[idx].producer_hmac = (h[0] === "0" ? "1" : "0") + h.slice(1); // flip one hex char
+    writeFileSync(ledger, recs.map((x) => JSON.stringify(x)).join("\n") + "\n");
+    const r = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(r.code, 1);
+    const out = JSON.parse(r.stdout.trim());
+    assert.equal(out.result, "fail");
+    assert.ok(out.producer_claims.failed > 0);
+    const bad = out.records.find((x) => x.classification === "failed" && x.author === "producer");
+    assert.equal(bad.reason, "producer-auth-mismatch");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: a governor/pk.json fingerprint mismatch surfaces under ledger_failures (exit 1)", () => {
+  const { root, runDir } = mintGovernedRun("com-av-fp-");
+  try {
+    // an actor swaps the producer-dir pk.json to a foreign key; the governor is the authoritative PK
+    const foreign = mintGovernorKeypair();
+    writeFileSync(pkFileOf(producerDirOf(runDir)), JSON.stringify({ pk: foreign.pk, pk_fingerprint: foreign.pk_fingerprint }));
+    const r = runCom(["audit", "verify", "--run-dir", runDir, "--governor-dir", governorDirOf(runDir)]);
+    assert.equal(r.code, 1);
+    const out = JSON.parse(r.stdout.trim());
+    assert.equal(out.result, "fail");
+    assert.ok(out.ledger_failures.some((f) => f.reason === "pk-fingerprint-tampered"), "the record-less failure is surfaced under ledger_failures, not dropped");
+    // the record-less failure has no matching ledger record, so it never lands in `records`
+    assert.ok(!out.records.some((x) => x.reason === "pk-fingerprint-tampered"));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: an ungoverned run (no schema:3 records) is a setup error — exit 2, nothing on stdout", () => {
+  const { root, runDir } = mkRun("com-av-ungov-");
+  try {
+    const r = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(r.code, 2);
+    assert.equal(r.stdout.trim(), "", "no partial contract is printed on the setup-error path");
+    assert.match(r.stderr, /governance context/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: a missing run dir is a setup error — exit 2, nothing on stdout", () => {
+  const r = runCom(["audit", "verify", "--run-dir", join(tmpdir(), `com-av-missing-${Date.now()}`)]);
+  assert.equal(r.code, 2);
+  assert.equal(r.stdout.trim(), "");
+});
+
+test("audit verify: grammar — `audit verify` routes to the handler; an unknown `audit` action is a usage error (exit 2)", () => {
+  const { root, runDir } = mintGovernedRun("com-av-grammar-");
+  try {
+    // routes (a governed run replays cleanly)
+    assert.equal(runCom(["audit", "verify", "--run-dir", runDir]).code, 0);
+    // an unbuilt action (seal/export) or a typo falls through to the usage error
+    const bogus = runCom(["audit", "bogus", "--run-dir", runDir]);
+    assert.equal(bogus.code, 2);
+    assert.match(bogus.stderr, /usage: faff commissaire/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("audit verify: the seven flat verbs and the cli-surface bijection/pinned selftest are unchanged", () => {
+  // the compound `audit verify` SURFACE key does not break the surface selftest
+  assert.equal(runCli(["cli-surface", "--selftest"]).code, 0);
+  // a representative flat verb still dispatches with its own (legacy exit-3) run-dir contract
+  const missing = runCom(["reconcile", "--run-dir", join(tmpdir(), `com-flat-missing-${Date.now()}`), "--issue", "FAFF-1"]);
+  assert.equal(missing.code, 3, "the flat verbs keep their own exit-3 missing-run-dir convention");
+});

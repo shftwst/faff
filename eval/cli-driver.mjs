@@ -242,7 +242,7 @@ export function loadReconciliationProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 const REVIEW_VERDICT_START = "\n### 5. Human-judgement flag\n";
 const REVIEW_VERDICT_END = "## Output";          // the "## Output" that FOLLOWS "## Verdict rules"
 const GATEWAY_VERDICT_START = "\n### Review verdict (fixed)\n";
-const GATEWAY_VERDICT_END = "### Delivery outcome (fixed)";
+const GATEWAY_VERDICT_END = "### Spec-review verdict (fixed)";
 
 function sliceAnchored(md, skillPath, label, startAnchor, endAnchor) {
   const start = md.indexOf(startAnchor);

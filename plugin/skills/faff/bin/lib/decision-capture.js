@@ -196,6 +196,17 @@ function buildBaseRecord(kernel, kernel_version, normalised_inputs, verdict, cov
   };
 }
 
+// mintCorrelationId — FAFF-989. The ONE place a correlation id is formed, so a base's id and
+// its action marker's id are the same string BY CONSTRUCTION (derived once, reused), never two
+// separate prose interpolations that can silently disagree. Canonical shape `<run>/<issue>/<kernel>/<wave>`;
+// an absent/empty wave defaults to "1". Pure — used by the `decide` driver (which exports it into
+// FAFF_DECISION_CORRELATION_ID for the in-kernel base capture) and by the `action` verb (which
+// re-derives the identical id when --correlates is omitted).
+function mintCorrelationId(run, issue, kernel, wave) {
+  const w = (wave === undefined || wave === null || wave === "") ? "1" : String(wave);
+  return `${run}/${issue}/${kernel}/${w}`;
+}
+
 // The shared {seq, sha256} causation shape check, used by every record-shape validator here.
 function causationViolations(c) {
   const v = [];
@@ -439,6 +450,15 @@ function captureDecisionCore({ kernel, normalised_inputs, verdict, issue } = {})
 
   if (!runDirEnv) { bestEffortFail(root, run, "no $FAFF_RUN_DIR — standalone call, no substrate to capture into"); return; }
   const correlation_id = process.env.FAFF_DECISION_CORRELATION_ID || "";
+  // FAFF-989 (Part B): an empty correlation_id yields a base no action marker can ever join —
+  // it lands `action_uncaptured` and grades nothing. Surface that loud via the degraded-capture
+  // note instead of appending a silent orphan. The append STILL happens below (suppressing it is
+  // a deferred, separate FAFF-956 contract-change decision, out of scope here); call bestEffortFail
+  // for its note+stderr side effect only and fall through — capture stays best-effort and never
+  // changes the kernel's exit code or stdout.
+  if (correlation_id === "") {
+    bestEffortFail(root, run, "base record has empty correlation_id — no action marker can join it; capture is ungradeable");
+  }
   const issueVal = (issue === undefined || issue === null) ? (process.env.FAFF_DECISION_ISSUE || "") : issue;
 
   let dir;
@@ -472,6 +492,36 @@ function captureDecision(args) {
 }
 
 // ---------------------------------------------------------------------------
+// cmdDecideVerb — FAFF-989 `faff decision-capture decide`. The set-env half of the driver: mint
+// the correlation id ONCE (mintCorrelationId) and emit it, so the orchestrator exports it before
+// the kernel call and the paired `action` marker re-derives the identical id. `--export` prints two
+// shell-eval-able lines (FAFF_DECISION_CORRELATION_ID + FAFF_DECISION_ISSUE) for `eval "$(...)"`;
+// otherwise it prints the bare id. Pure and gate-agnostic: it only forms + prints an id (the env is
+// inert when capture is off, since captureDecisionCore / cmdActionVerb both no-op under the gate),
+// so it never reads config, touches a run dir, or writes an event. `--run` defaults to the basename
+// of $FAFF_RUN_DIR; `--wave` defaults to "1".
+// ---------------------------------------------------------------------------
+function cmdDecideVerb(values) {
+  const issue = values["--issue"];
+  const kernel = values["--kernel"];
+  const run = values["--run"] || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  if (run == null) {
+    process.stderr.write("faff decision-capture decide: no --run and no $FAFF_RUN_DIR — cannot mint a correlation id\n");
+    return 2;
+  }
+  const cid = mintCorrelationId(run, issue, kernel, values["--wave"]);
+  if (values["--export"] !== undefined) {
+    // single-quote the values so a shell `eval` cannot re-interpret them
+    const q = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
+    console.log(`export FAFF_DECISION_CORRELATION_ID=${q(cid)}`);
+    console.log(`export FAFF_DECISION_ISSUE=${q(issue)}`);
+  } else {
+    console.log(cid);
+  }
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
 // cmdActionVerb — FAFF-956 `faff decision-capture action`. Appends one
 // `decision-capture-action` marker referencing a base record by correlation id. Same
 // best-effort discipline as `record`: every failure path writes a degraded note and exits 0.
@@ -480,7 +530,14 @@ function cmdActionVerb(values, root) {
   const run = values["--run"];
   const issue = values["--issue"];
   const kernel = values["--kernel"];
-  const correlation_id = values["--correlates"];
+  // FAFF-989: prefer an explicit --correlates, else re-derive the SAME id the base carried from
+  // {run, issue, kernel, wave} via mintCorrelationId — so the marker joins by construction rather
+  // than by two matching format strings. `run` here is the run id the caller passes (or the
+  // basename of $FAFF_RUN_DIR); a still-empty id is caught by decisionCaptureActionViolations below.
+  const runId = run || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  const correlation_id = values["--correlates"] != null
+    ? values["--correlates"]
+    : (runId != null && issue != null && kernel != null ? mintCorrelationId(runId, issue, kernel, values["--wave"]) : "");
 
   let enabled;
   try { enabled = captureEnabled(root); }
@@ -557,10 +614,13 @@ function collectRunDirs(root, runArg, allRuns) {
   return latest ? [latest] : [];
 }
 
-// Stream a run dir's events.jsonl and return every `type === "decision-capture"` record
-// (full envelope, incl. run_id/issue/seq). Reuses the same permissive per-line JSON.parse
-// tolerance `events read` already applies (a torn/malformed line is skipped, never a fault)
-// — never a second JSONL-parsing implementation.
+// Stream a run dir's events.jsonl and return every decision-capture-family record — both the
+// `decision-capture` base AND the FAFF-956 `decision-capture-action` marker (full envelope, incl.
+// run_id/issue/seq). FAFF-989: the marker MUST reach the exported corpus, or shadow-fidelity's
+// analyzeCorpus has no marker to join a base to and every capture lands `action_uncaptured` — the
+// export leak that made the join impossible even when a marker was emitted. Reuses the same
+// permissive per-line JSON.parse tolerance `events read` already applies (a torn/malformed line is
+// skipped, never a fault) — never a second JSONL-parsing implementation.
 function readDecisionCaptureRecords(dir, note) {
   // `note` (optional) is a best-effort noting hook the anchor-source path passes so a bad
   // anchor is skipped with a stderr note (FAFF-960 AC5). Live/list callers omit it, so their
@@ -574,7 +634,7 @@ function readDecisionCaptureRecords(dir, note) {
     if (line.trim() === "") continue;
     let obj;
     try { obj = JSON.parse(line); } catch { malformed++; continue; }
-    if (obj && typeof obj === "object" && obj.type === "decision-capture") out.push(obj);
+    if (obj && typeof obj === "object" && (obj.type === "decision-capture" || obj.type === "decision-capture-action")) out.push(obj);
   }
   if (malformed && note) note(`skipped ${malformed} malformed line(s) in ${path.join(dir, "events.jsonl")}`);
   return out;
@@ -722,6 +782,8 @@ const DECISION_CAPTURE_SPEC = {
     "--kernel": { arity: 1 },
     "--action": { arity: 1 },
     "--correlates": { arity: 1 },
+    "--wave": { arity: 1 },
+    "--export": { arity: 0 },
     "--root": { arity: 1 },
     "--all-runs": { arity: 0 },
     "--coverage": { arity: 1, enum: ["replayable", "non-replayable", "uncovered"] },
@@ -732,7 +794,7 @@ const DECISION_CAPTURE_SPEC = {
   positionals: { min: 0, max: null, name: "verb selector" },
 };
 const DECISION_CAPTURE_USAGE =
-  'usage: faff decision-capture <record --run ID --issue ID --kernel NAME [--action JSON]|action --run ID --issue ID|__run__ --kernel NAME --correlates ID --action TOKEN|list [--run ID|--all-runs] [--coverage replayable|non-replayable|uncovered]|export --out DIR [--include-anchors]> [--root DIR]';
+  'usage: faff decision-capture <record --run ID --issue ID --kernel NAME [--action JSON]|decide --issue ID|__run__ --kernel NAME [--run ID] [--wave N] [--export]|action --issue ID|__run__ --kernel NAME --action TOKEN [--correlates ID | --run ID [--wave N]]|list [--run ID|--all-runs] [--coverage replayable|non-replayable|uncovered]|export --out DIR [--include-anchors]> [--root DIR]';
 
 function cmdDecisionCapture(args) {
   if (args.includes("--selftest")) return decisionCaptureSelftest();
@@ -747,16 +809,25 @@ function cmdDecisionCapture(args) {
     }
     return cmdRecordVerb(values, root);
   }
+  if (sub === "decide") {
+    if (values["--issue"] == null || values["--kernel"] == null) {
+      return usageError([{ code: "missing-value", detail: "decide requires --issue and --kernel (--run defaults to $FAFF_RUN_DIR)" }], DECISION_CAPTURE_USAGE);
+    }
+    return cmdDecideVerb(values);
+  }
   if (sub === "action") {
-    if (values["--run"] == null || values["--issue"] == null || values["--kernel"] == null || values["--correlates"] == null || values["--action"] == null) {
-      return usageError([{ code: "missing-value", detail: "action requires --run, --issue, --kernel, --correlates, and --action" }], DECISION_CAPTURE_USAGE);
+    // FAFF-989: --correlates is now OPTIONAL — the id re-derives from --run/--issue/--kernel/--wave
+    // ($FAFF_RUN_DIR fills in --run). Require the fields the marker needs plus a resolvable run.
+    const haveRun = values["--run"] != null || process.env.FAFF_RUN_DIR != null;
+    if (values["--issue"] == null || values["--kernel"] == null || values["--action"] == null || (values["--correlates"] == null && !haveRun)) {
+      return usageError([{ code: "missing-value", detail: "action requires --issue, --kernel, --action, and a correlation id (via --correlates, or derived from --run/$FAFF_RUN_DIR + --issue + --kernel [+ --wave])" }], DECISION_CAPTURE_USAGE);
     }
     return cmdActionVerb(values, root);
   }
   if (sub === "list") return cmdListVerb(values, root);
   if (sub === "export") return cmdExportVerb(values, root);
 
-  process.stderr.write("faff decision-capture: expected one of: record | action | list | export (or --selftest)\n");
+  process.stderr.write("faff decision-capture: expected one of: record | decide | action | list | export (or --selftest)\n");
   return 2;
 }
 
@@ -929,6 +1000,7 @@ module.exports = {
   KERNEL_REGISTRY_RATIFIED_NAMES,
   buildRecord,
   buildBaseRecord,
+  mintCorrelationId,
   captureDecision,
   classifyCoverage,
   cmdDecisionCapture,

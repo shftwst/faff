@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-971",
+  "build": {
+    "status": "complete",
+    "diff_hash": "84f17d14b70bb2a65aba74e7f8b432d24aecec3a391d1e3829f5733264aa017b",
+    "branch": "faff-971-decouple-the-review-verdict-eval-loader-slice-so",
+    "pushed_at": "2026-09-03T09:43:40.824Z"
+  },
+  "updated_at": "2026-09-03T09:43:40.824Z"
+}

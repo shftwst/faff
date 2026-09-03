@@ -196,9 +196,20 @@ function verifyAuthLeg(runDir, governorDir, producerDir) {
   const entries = readLedgerEntries(runDir);
   const gov = readJson(governorFileOf(governorDirOf(runDir, governorDir)));
   const pkRec = readJson(pkFileOf(producerDirOf(runDir, producerDir)));
-  const pk = pkRec ? pkRec.pk : (gov ? gov.pk : null);
+  // FAFF-978: the governor file is the AUTHORITATIVE source of PK_commissaire — prefer it. The
+  // producer-dir pk.json is producer-writable (the less-trusted custodian), so it must never be
+  // the source of truth for verifying Commissaire signatures; a producer could otherwise swap it
+  // for their own key and self-sign a "commissaire" verdict. Fall back to it only when no governor
+  // material is present (a pure-audit context reading a published PK). When BOTH exist, cross-check
+  // the producer-dir fingerprint against the governor's and fail closed on a mismatch (tamper signal).
+  const pk = gov ? gov.pk : (pkRec ? pkRec.pk : null);
   const failures = [];
   const unverifiable = [];
+  if (gov && pkRec) {
+    let fp = null;
+    try { fp = pkFingerprint(pkRec.pk); } catch { fp = null; }
+    if (fp !== gov.pk_fingerprint) failures.push({ seq: null, reason: "pk-fingerprint-tampered" });
+  }
   for (const e of entries) {
     if (e.schema !== 3) continue; // frozen pre-cutover line — never re-authenticated
     if (e.author === "producer") {
@@ -225,11 +236,11 @@ function hasGovernanceContext(runDir) {
 function usage() {
   process.stderr.write(
     "usage: faff commissaire <admit|declare|request-decision|observe|reconcile|terminal-verdict|seal-bundle> ...\n" +
-    "  admit            --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D]\n" +
+    "  admit            --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]\n" +
     "  declare          --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])\n" +
     "  request-decision --run-dir DIR --producer ID --issue I --step S   (stdin: {effect, evidence_seq?})\n" +
     "  observe          --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])\n" +
-    "  reconcile        --run-dir DIR --producer ID --issue I\n" +
+    "  reconcile        --run-dir DIR --issue I\n" +
     "  terminal-verdict --run-dir DIR --issue I   (boundary stub over `faff events anchor`)\n" +
     "  seal-bundle      --run-dir DIR             (boundary stub over `faff bundle`)\n");
 }
@@ -241,6 +252,7 @@ function parseCommissaireArgs(args) {
   for (let i = 0; i < args.length; i++) {
     if (single.has(args[i])) flags[args[i]] = args[++i];
     else if (args[i] === "--json") flags["--json"] = true;
+    else if (args[i] === "--force") flags["--force"] = true;
     else rest.push(args[i]);
   }
   return { flags, rest };
@@ -273,6 +285,14 @@ function cmdAdmit(flags) {
   if (path.resolve(governorDir) === path.resolve(producerDir)) {
     process.stderr.write("faff commissaire admit: --governor-dir and --producer-dir must differ (the SK and a producer key must never share one custodian)\n"); return 2;
   }
+  // FAFF-978: admit is NOT idempotent by construction — a second admit mints a fresh keypair +
+  // master, which would silently orphan every record already signed under the old material (the
+  // whole audit trail becomes unverifiable). Refuse when governor OR this producer's material
+  // already exists, unless --force is given (a deliberate key rotation the operator owns).
+  if (!flags["--force"] && (fs.existsSync(governorFileOf(governorDir)) || fs.existsSync(producerFileOf(producerDir, producerId)))) {
+    process.stderr.write(`faff commissaire admit: producer ${producerId} (or its governor) is already admitted — re-admitting mints a new keypair + master and orphans every record signed under the old material. Pass --force to rotate deliberately.\n`);
+    return 2;
+  }
   // Governor half: mint the keypair + master, hold SK + master in the governor dir only.
   const kp = mintGovernorKeypair();
   const masterSecret = require("node:crypto").randomBytes(32).toString("hex");
@@ -299,6 +319,11 @@ function loadProducerKey(runDir, flags, producerId, verb) {
   const producerDir = producerDirOf(runDir, flags["--producer-dir"]);
   const admission = readJson(producerFileOf(producerDir, producerId));
   if (!admission) { process.stderr.write(`faff commissaire ${verb}: producer ${producerId} is not admitted (run \`admit\` first)\n`); return null; }
+  // FAFF-978: refuse a REVOKED producer here, BEFORE any ledger append — otherwise a revoked
+  // producer's request/declare/observe record lands in the ledger (polluting the audit trail) and
+  // is only rejected later by evaluateDecisionRequest / the auth leg. This does NOT change the
+  // killed-producer property: records written BEFORE revocation still fail the auth leg fail-closed.
+  if (admission.status === "revoked") { process.stderr.write(`faff commissaire ${verb}: producer ${producerId} is revoked — no further records may be written\n`); return null; }
   return { admission, key: Buffer.from(admission.key_hex, "hex"), producerDir };
 }
 
@@ -402,7 +427,7 @@ function cmdCommissaire(args) {
 const COMMISSAIRE_SPEC = { flags: {
   "--run-dir": { arity: 1 }, "--run": { arity: 1 }, "--producer": { arity: 1 }, "--contract-revision": { arity: 1 },
   "--scope": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--governor-dir": { arity: 1 },
-  "--producer-dir": { arity: 1 }, "--ts": { arity: 1 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
+  "--producer-dir": { arity: 1 }, "--ts": { arity: 1 }, "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
 } };
 const COMMISSAIRE_SURFACE = {
   kind: "subcommand_dispatch",
@@ -412,7 +437,7 @@ const COMMISSAIRE_SURFACE = {
     declare: { required_flags: ["--producer", "--issue", "--step"] },
     "request-decision": { required_flags: ["--producer", "--issue", "--step"] },
     observe: { required_flags: ["--producer", "--issue", "--step"] },
-    reconcile: { required_flags: ["--producer", "--issue"] },
+    reconcile: { required_flags: ["--issue"] },
     "terminal-verdict": { required_flags: ["--issue"] },
     "seal-bundle": { required_flags: [] },
   },

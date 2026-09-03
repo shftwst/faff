@@ -135,11 +135,11 @@ The first Commissaire facade has these logical operations:
 
 ```text
 commissaire contract admit
-commissaire evidence register
-commissaire effect decide
-commissaire observation append
-commissaire reconcile
-commissaire verdict decide
+commissaire effect declare
+commissaire effect authorize
+commissaire effect observe
+commissaire effect reconcile
+commissaire verdict conclude
 commissaire audit seal
 commissaire audit export
 commissaire audit verify

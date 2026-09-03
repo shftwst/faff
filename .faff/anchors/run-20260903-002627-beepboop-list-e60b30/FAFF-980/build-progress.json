@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-980",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b2765bfc3c608777d0032b593929839290afbd3a42940ea206a64cc508d495f0",
+    "branch": "faff-980-re-group-the-commissaire-facade-cli-to-the-adr-0123-noun",
+    "pushed_at": "2026-09-03T02:50:32.863Z"
+  },
+  "updated_at": "2026-09-03T02:50:32.863Z"
+}

@@ -488,3 +488,59 @@ test("audit verify: the seven flat verbs and the cli-surface bijection/pinned se
   const missing = runCom(["reconcile", "--run-dir", join(tmpdir(), `com-flat-missing-${Date.now()}`), "--issue", "FAFF-1"]);
   assert.equal(missing.code, 3, "the flat verbs keep their own exit-3 missing-run-dir convention");
 });
+
+// === FAFF-980: ADR-0123 noun-verb object grammar =======================================
+// Every object-verb form resolves to the same handler as its flat-verb alias, byte-identical in
+// exit and JSON. Two fresh run dirs driven with identical inputs (one flat, one object-verb) so the
+// ledger seqs match and the request-decision verdict JSON is byte-identical (spec Scenario 2).
+
+test("grammar: object-verb chain and flat-alias chain return byte-identical exit and request-decision JSON", () => {
+  const flat = mkRun("com-grammar-flat-", "RUN-FLAT");
+  const obj = mkRun("com-grammar-obj-", "RUN-OBJ");
+  try {
+    // flat spelling
+    assert.equal(runCom(["admit", "--run-dir", flat.runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", flat.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rdFlat = runCom(["request-decision", "--run-dir", flat.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    // object-verb spelling — same inputs against a fresh dir
+    assert.equal(runCom(["contract", "admit", "--run-dir", obj.runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["effect", "declare", "--run-dir", obj.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rdObj = runCom(["effect", "authorize", "--run-dir", obj.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+
+    assert.equal(rdFlat.code, rdObj.code, "identical exit code");
+    assert.equal(rdObj.code, 0);
+    assert.equal(rdFlat.stdout.trim(), rdObj.stdout.trim(), "byte-identical request-decision JSON across spellings");
+    assert.equal(JSON.parse(rdObj.stdout.trim()).verdict, "grant");
+    // reconcile pairs: `effect reconcile` == `reconcile`, same exit + JSON
+    const recFlat = runCom(["reconcile", "--run-dir", flat.runDir, "--issue", "FAFF-1"]);
+    const recObj = runCom(["effect", "reconcile", "--run-dir", obj.runDir, "--issue", "FAFF-1"]);
+    assert.equal(recFlat.code, recObj.code);
+    assert.equal(recFlat.stdout.trim(), recObj.stdout.trim(), "byte-identical reconcile JSON across spellings");
+  } finally { rmSync(flat.root, { recursive: true, force: true }); rmSync(obj.root, { recursive: true, force: true }); }
+});
+
+test("grammar: unresolved spellings print usage and exit 2 (bare object, unknown action, unknown token)", () => {
+  for (const args of [["contract"], ["effect", "frobnicate"], ["wibble"], ["verdict"], ["audit", "bogus"]]) {
+    const r = runCom(args);
+    assert.equal(r.code, 2, `${JSON.stringify(args)} → exit 2`);
+    assert.match(r.stderr, /usage: faff commissaire/, `${JSON.stringify(args)} prints usage`);
+  }
+});
+
+test("grammar: all seven flat aliases and their object-verb forms dispatch to the same handler (missing-run-dir contract)", () => {
+  const missing = join(tmpdir(), `com-alias-missing-${Date.now()}`);
+  // each pair [flat tokens, object-verb tokens] must produce the same exit on the same missing dir.
+  const pairs = [
+    [["admit", "--run-dir", missing, "--producer", "P1", "--contract-revision", "r1"], ["contract", "admit", "--run-dir", missing, "--producer", "P1", "--contract-revision", "r1"]],
+    [["declare", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"], ["effect", "declare", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"]],
+    [["request-decision", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"], ["effect", "authorize", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"]],
+    [["observe", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"], ["effect", "observe", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"]],
+    [["reconcile", "--run-dir", missing, "--issue", "I"], ["effect", "reconcile", "--run-dir", missing, "--issue", "I"]],
+    [["terminal-verdict", "--run-dir", missing, "--issue", "I"], ["verdict", "conclude", "--run-dir", missing, "--issue", "I"]],
+    [["seal-bundle", "--run-dir", missing], ["audit", "seal", "--run-dir", missing]],
+  ];
+  for (const [flatArgs, objArgs] of pairs) {
+    const rf = runCom(flatArgs), ro = runCom(objArgs);
+    assert.equal(rf.code, ro.code, `${flatArgs[0]} alias exit == ${objArgs[0]} ${objArgs[1]} exit (got ${rf.code} vs ${ro.code})`);
+  }
+});

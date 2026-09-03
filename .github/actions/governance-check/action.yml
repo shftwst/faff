@@ -78,30 +78,58 @@ outputs:
 runs:
   using: "composite"
   steps:
-    # 1. Resolve the faff binary: in-checkout path first, else fetch-by-pinned-ref.
-    - name: Resolve faff binary
-      id: resolve-binary
+    # 1a. Probe: does an in-checkout binary exist? An explicit boolean output — never
+    # branch subsequent steps on stringified emptiness (same convention as `discover`'s
+    # found=true|false below). Never fetches, never chmods, never errors.
+    - name: Check for in-checkout faff binary
+      id: check-binary
       shell: bash
       run: |
         set -euo pipefail
         BIN="${{ inputs.faff-binary }}"
         if [ -f "$BIN" ]; then
-          echo "faff governance-check: using in-checkout binary: $BIN"
-          chmod +x "$BIN" 2>/dev/null || true
+          echo "in-checkout=true" >> "$GITHUB_OUTPUT"
         else
-          if [ -z "${{ inputs.faff-version }}" ]; then
-            echo "::error::faff governance-check: setup fault — no in-checkout binary at $BIN and no faff-version pinned to fetch one (pin a commit sha, preferably, or a tag)"
-            exit 1
-          fi
-          BIN="${RUNNER_TEMP}/faff-governance-check-bin"
-          URL="https://raw.githubusercontent.com/shftwst/faff/${{ inputs.faff-version }}/plugin/skills/faff/bin/faff"
-          echo "faff governance-check: no in-checkout binary at ${{ inputs.faff-binary }} — fetching pinned ref from $URL"
-          if ! curl -fsSL "$URL" -o "$BIN"; then
-            echo "::error::faff governance-check: setup fault — failed to fetch the faff binary from $URL (faff-version=${{ inputs.faff-version }})"
-            exit 1
-          fi
-          chmod +x "$BIN"
+          echo "in-checkout=false" >> "$GITHUB_OUTPUT"
         fi
+
+    # 1b. In-checkout path. Step-level `if:`-gated — completely silent (no script-source
+    # preview, no runtime output) when the fetch-pinned path ran instead.
+    - name: Use in-checkout faff binary
+      id: use-in-checkout
+      if: steps.check-binary.outputs.in-checkout == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        BIN="${{ inputs.faff-binary }}"
+        echo "faff governance-check: using in-checkout binary: $BIN"
+        chmod +x "$BIN" 2>/dev/null || true
+        echo "bin=$BIN" >> "$GITHUB_OUTPUT"
+
+    # 1c. Fetch-pinned path: silent (skipped) on the in-checkout path — this is the
+    # fix itself. Owns the entire fetch-or-fault flow, including both genuine
+    # setup-fault ::error:: lines; those never leak into the log's source preview when
+    # the in-checkout binary was found, because this whole step is `if:`-skipped
+    # rather than an untaken branch inside a single executed script.
+    - name: Fetch pinned faff binary
+      id: fetch-pinned
+      if: steps.check-binary.outputs.in-checkout == 'false'
+      shell: bash
+      run: |
+        set -euo pipefail
+        BIN="${{ inputs.faff-binary }}"
+        if [ -z "${{ inputs.faff-version }}" ]; then
+          echo "::error::faff governance-check: setup fault — no in-checkout binary at $BIN and no faff-version pinned to fetch one (pin a commit sha, preferably, or a tag)"
+          exit 1
+        fi
+        BIN="${RUNNER_TEMP}/faff-governance-check-bin"
+        URL="https://raw.githubusercontent.com/shftwst/faff/${{ inputs.faff-version }}/plugin/skills/faff/bin/faff"
+        echo "faff governance-check: no in-checkout binary at ${{ inputs.faff-binary }} — fetching pinned ref from $URL"
+        if ! curl -fsSL "$URL" -o "$BIN"; then
+          echo "::error::faff governance-check: setup fault — failed to fetch the faff binary from $URL (faff-version=${{ inputs.faff-version }})"
+          exit 1
+        fi
+        chmod +x "$BIN"
         echo "bin=$BIN" >> "$GITHUB_OUTPUT"
 
     # 2/3. Discover carried run dirs from the PR's own diff (never "newest dir in the
@@ -148,7 +176,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        BIN="${{ steps.resolve-binary.outputs.bin }}"
+        BIN="${{ steps.use-in-checkout.outputs.bin || steps.fetch-pinned.outputs.bin }}"
         ANCHORS_PATH="${{ inputs.anchors-path }}"
         BASE_SHA="${{ github.event.pull_request.base.sha }}"
         HEAD_SHA="${{ github.event.pull_request.head.sha }}"
@@ -238,7 +266,7 @@ runs:
       shell: bash
       run: |
         set -uo pipefail
-        BIN="${{ steps.resolve-binary.outputs.bin }}"
+        BIN="${{ steps.use-in-checkout.outputs.bin || steps.fetch-pinned.outputs.bin }}"
         ARGS=()
         while IFS= read -r d; do
           [ -n "$d" ] && ARGS+=(--run-dir "$d")

@@ -52,15 +52,6 @@ backends:
       host: https://generativelanguage.googleapis.com/v1beta/openai
       api_key_env: GEMINI_API_KEY
       first_byte_timeout: 120
-      #timeout: 480
-  spark-qwen-3-8:
-      provider: openai
-      model: unsloth/Qwen3.8-27B-NVFP4
-      host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
-      api_key_env: DUMMY_API_KEY
-      first_byte_timeout: 180
-      reasoning_extra:
-          thinking_token_budget: 2000
   openrouter-deepseek-v4-flash:
       provider: openai
       model: deepseek/deepseek-v4-flash-0731
@@ -91,10 +82,20 @@ backends:
       model: google/gemma-4-31b-it
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
-      first_byte_timeout: 180
+      first_byte_timeout: 900
       reasoning_extra:
           reasoning:
               max_tokens: 2000
+
+  spark-qwen-3-8:
+      provider: openai
+      model: unsloth/Qwen3.8-27B-NVFP4
+      host: https://some-where/v1
+      api_key_env: DUMMY_API_KEY
+      first_byte_timeout: 180
+      reasoning_extra:
+          custom_params:
+              thinking_budget: 2000
   spark-glimmer:
       provider: openai
       model: glimmer
@@ -110,12 +111,13 @@ adversarial:
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
-    - spark-glimmer
+    #- spark-glimmer
   code_review:
     max_tokens: 12000
   spec_review:
     max_tokens: 12000
   spec_judge:
+    max-tokens: 12000
     refs:
       - openrouter-gemma
       - openrouter-glm-5-3-flash
@@ -130,6 +132,7 @@ models:
 
 sentry:
   stall_window_seconds: 7200
+  run_elapsed_ceiling_skip_when_live: true
 
 capture:
   decision_kernel: "on"

@@ -100,6 +100,13 @@ const REGION_MAP = {
   // effects.js) — factory→governance is legal (ADR-0042); the pure split-key cores stay in
   // governance so no governance file requires this factory shell.
   "commissaire": "factory",
+  // FAFF-822: the nine-scenario Phase 0 reference-matrix emitter. buildScenarioRecord /
+  // renderReport are PURE (read only their inputs, no factory-identifier references) —
+  // governance, and requires NO factory file (the require-graph direction lint holds).
+  // Region and CLI namespace are independent axes: it is deliberately NOT a commissaire
+  // facade object (ADR-0123 fixes those as contract/effect/verdict/audit), so it gets its
+  // own `faff scenario-matrix` group while staying governance-region.
+  "scenario-matrix": "governance",
   // self-intake — FAFF-539: the mechanical same-repo/team gate on the outward-self-intake
   // reclassification. Reads config via loadConfig (factory identifier) + imports contain's
   // isSafeRunId — factory, like contain; the pure comparator lives in shared-infra so
@@ -450,6 +457,7 @@ const REGION_SELFTEST_ARGV = {
   "profile": ["profile", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
+  "scenario-matrix": ["scenario-matrix", "--selftest"],
   "eval": ["eval", "affected", "--selftest"],
   "engine": ["engine", "--selftest"],
   "lights-out": ["lights-out", "--selftest"],

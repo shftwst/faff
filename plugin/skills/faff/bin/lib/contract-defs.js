@@ -1217,6 +1217,105 @@ function contractRecoveryDispositionVerdict(extraction) {
   return { contractData };
 }
 
+// --- scenario-record (FAFF-822) ---
+// The deterministic validator of a ScenarioRecord (schema:1) banked in the nine-scenario Phase 0
+// reference matrix. The record is EMITTED by the pure `faff scenario-matrix record` emitter
+// (scenario-matrix.js, region governance); this contract re-validates its shape and the honest-
+// claim invariants a banked reader depends on, mirroring recovery-disposition's idiom. Fail-loud
+// only on a non-object extraction; every other problem is a flagged violation (never a coerce —
+// this validates faff's own emitter output, so a shape defect is surfaced, not silently repaired).
+const SCENARIO_RECORD_DISPOSITIONS = ["accepted", "blocked", "refused", "recovered", "denied", "detected", "parked", "amended", "corrected"];
+const SCENARIO_RECORD_JOURNAL_CLASSES = ["J-A", "J-B", "J-C", "J-D"];
+const SCENARIO_RECORD_EFFECT_CLASSES = ["E-A", "E-B", "E-C", "E-D"];
+const SCENARIO_RECORD_CATCH_ORDINALS = new Set([2, 3, 5, 6]);
+const SCENARIO_RECORD_FIELDS = ["schema", "scenario_id", "scenario_ordinal", "inputs", "environment", "run_id", "work_item_id", "disposition", "disposition_basis", "evidence_paths", "human_interventions", "cost", "assurance_vector", "claim_label", "one_shot_control", "two_custodian_split_verified"];
+
+function computeScenarioRecordVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+
+  const schema = Number.isInteger(extraction.schema) ? extraction.schema : null;
+  if (schema !== 1) violations.push(`schema must be 1 (got ${JSON.stringify(extraction.schema)})`);
+
+  for (const f of SCENARIO_RECORD_FIELDS) {
+    if (!(f in extraction)) violations.push(`missing required field ${f}`);
+  }
+
+  const scenario_id = typeof extraction.scenario_id === "string" ? extraction.scenario_id : "";
+  if (typeof extraction.scenario_id !== "string" || scenario_id === "") violations.push("scenario_id must be a non-empty string");
+
+  const ordinalOk = Number.isInteger(extraction.scenario_ordinal) && extraction.scenario_ordinal >= 1 && extraction.scenario_ordinal <= 9;
+  if (!ordinalOk) violations.push("scenario_ordinal must be an integer in 1..9");
+  const scenario_ordinal = ordinalOk ? extraction.scenario_ordinal : 0;
+
+  const dispositionOk = SCENARIO_RECORD_DISPOSITIONS.includes(extraction.disposition);
+  if (!dispositionOk) violations.push(`disposition ${JSON.stringify(extraction.disposition)} not in {${SCENARIO_RECORD_DISPOSITIONS.join(",")}}`);
+  const disposition = dispositionOk ? extraction.disposition : "";
+
+  if (typeof extraction.run_id !== "string" || extraction.run_id === "") violations.push("run_id must be a non-empty string");
+  if (typeof extraction.work_item_id !== "string" || extraction.work_item_id === "") violations.push("work_item_id must be a non-empty string");
+
+  const av = (extraction.assurance_vector && typeof extraction.assurance_vector === "object" && !Array.isArray(extraction.assurance_vector)) ? extraction.assurance_vector : null;
+  if (!av) violations.push("assurance_vector must be an object");
+
+  const journalOk = av && SCENARIO_RECORD_JOURNAL_CLASSES.includes(av.journal_class);
+  if (av && !journalOk) violations.push(`assurance_vector.journal_class ${JSON.stringify(av.journal_class)} not in {${SCENARIO_RECORD_JOURNAL_CLASSES.join(",")}}`);
+  const journal_class = journalOk ? av.journal_class : "";
+
+  const effectOk = av && SCENARIO_RECORD_EFFECT_CLASSES.includes(av.effect_class);
+  if (av && !effectOk) violations.push(`assurance_vector.effect_class ${JSON.stringify(av.effect_class)} not in {${SCENARIO_RECORD_EFFECT_CLASSES.join(",")}}`);
+  const effect_class = effectOk ? av.effect_class : "";
+
+  const independence = (av && av.independence && typeof av.independence === "object") ? av.independence : null;
+  const organisational_independence = independence ? independence.organisational_independence === true : false;
+
+  // The load-bearing honest-claim invariants (the same guards the emitter enforces at build time,
+  // re-checked here so a hand-altered banked record is caught):
+  // (1) effect_class E-B is claimable ONLY where disposition is blocked (the merge chokepoint).
+  if (effect_class === "E-B" && disposition !== "blocked") {
+    violations.push("assurance_vector.effect_class is E-B but disposition is not blocked — E-B prevention is claimable only at the merge chokepoint");
+  }
+  // (2) journal_class is at most J-C on a producer-HMAC leg — never J-A/J-B (producer HMAC is
+  //     mechanical detection, not non-repudiation).
+  if (journal_class === "J-A" || journal_class === "J-B") {
+    violations.push(`assurance_vector.journal_class is ${journal_class} — producer authentication is at most J-C (mechanical detection, never non-repudiation)`);
+  }
+  // (3) organisational_independence is false on every Phase 0 row (one maintainer).
+  if (organisational_independence !== false) {
+    violations.push("assurance_vector.independence.organisational_independence must be false in Phase 0 (independence is proved as key-custody mechanism only)");
+  }
+  // (4) one_shot_control non-null IFF the ordinal is a catch scenario {2,3,5,6}.
+  const controlPresent = extraction.one_shot_control !== null && extraction.one_shot_control !== undefined;
+  if (ordinalOk) {
+    const isCatch = SCENARIO_RECORD_CATCH_ORDINALS.has(scenario_ordinal);
+    if (isCatch !== controlPresent) {
+      violations.push(`one_shot_control must be non-null iff scenario_ordinal in {2,3,5,6} (ordinal ${scenario_ordinal}, control ${controlPresent ? "present" : "null"})`);
+    }
+  }
+
+  const two_custodian_split_verified = extraction.two_custodian_split_verified === true;
+  if (extraction.two_custodian_split_verified !== true) violations.push("two_custodian_split_verified must be true on every row");
+
+  return {
+    contractData: {
+      verb: "scenario-record", schema: schema === null ? 0 : schema, scenario_id, scenario_ordinal, disposition,
+      journal_class, effect_class, organisational_independence, one_shot_control_present: controlPresent,
+      two_custodian_split_verified, conformant: violations.length === 0, violations,
+    },
+    failLoud: null,
+  };
+}
+
+function contractScenarioRecordVerdict(extraction) {
+  const { contractData, failLoud } = computeScenarioRecordVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "scenario-record");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- holdout verdicts → DoD-verdict map (FAFF-277) ---
 // The pure, trust-gated bridge between the evaluator's persisted holdout verdicts and the already-shipped
 // `faff prdr coverage --dod-verdicts` flag. Reuses computeHoldoutVerdict VERBATIM as the trust gate (never
@@ -2324,6 +2423,22 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "scenario-record": {
+    run: contractScenarioRecordVerdict,
+    fixtures: [
+      { name: "conformant-accepted", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "accepted", disposition_basis: { audit_verify: { exit: 0, producer: { verified: 1, unverifiable_without_secret: 0, failed: 0 }, decisions_valid: true } }, evidence_paths: ["declared-effects.jsonl"], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-C", effect_class: "E-C", independence: { key_custody_split: true, author_binding: true, process_independence: true, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "J-C mechanical auth; E-C detection", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 0 },
+      { name: "conformant-blocked-with-control", in: { schema: 1, scenario_id: "02-governance-block", scenario_ordinal: 2, inputs: {}, environment: {}, run_id: "RUN-COM-02", work_item_id: "FAFF-2", disposition: "blocked", disposition_basis: { floor_verdict: { verdict: "refuse", blockers: ["x"] } }, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-D", effect_class: "E-B", independence: { key_custody_split: true, author_binding: false, process_independence: false, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "E-B prevention at the merge chokepoint", one_shot_control: { ungoverned_shipped: true, artifact_ref: "merged main", governed_disposition: "blocked" }, two_custodian_split_verified: true }, wantExit: 0 },
+      { name: "conformant-parked", in: { schema: 1, scenario_id: "07-exhausted-budget", scenario_ordinal: 7, inputs: {}, environment: {}, run_id: "RUN-COM-07", work_item_id: "FAFF-7", disposition: "parked", disposition_basis: { budget_outcome: "park-until-window-reset" }, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-D", effect_class: "E-D", independence: { key_custody_split: true, author_binding: false, process_independence: false, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "budget park until window reset", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 0 },
+      { name: "eb-on-non-blocked-flagged", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "accepted", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-C", effect_class: "E-B", independence: { key_custody_split: true, author_binding: true, process_independence: true, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 1 },
+      { name: "journal-above-jc-flagged", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "accepted", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-A", effect_class: "E-C", independence: { key_custody_split: true, author_binding: true, process_independence: true, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 1 },
+      { name: "organisational-independence-true-flagged", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "accepted", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-C", effect_class: "E-C", independence: { key_custody_split: true, author_binding: true, process_independence: true, organisational_independence: true }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 1 },
+      { name: "control-on-non-catch-flagged", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "accepted", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-C", effect_class: "E-C", independence: { key_custody_split: true, author_binding: true, process_independence: true, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: { ungoverned_shipped: true, artifact_ref: "x", governed_disposition: "accepted" }, two_custodian_split_verified: true }, wantExit: 1 },
+      { name: "missing-control-on-catch-flagged", in: { schema: 1, scenario_id: "05-stale-evidence", scenario_ordinal: 5, inputs: {}, environment: {}, run_id: "RUN-COM-05", work_item_id: "FAFF-5", disposition: "denied", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-D", effect_class: "E-C", independence: { key_custody_split: true, author_binding: false, process_independence: false, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 1 },
+      { name: "split-not-verified-flagged", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "accepted", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-C", effect_class: "E-C", independence: { key_custody_split: false, author_binding: true, process_independence: true, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: null, two_custodian_split_verified: false }, wantExit: 1 },
+      { name: "bad-disposition-flagged", in: { schema: 1, scenario_id: "01-normal-completion", scenario_ordinal: 1, inputs: {}, environment: {}, run_id: "RUN-COM-01", work_item_id: "FAFF-1", disposition: "maybe", disposition_basis: {}, evidence_paths: [], human_interventions: 0, cost: {}, assurance_vector: { journal_class: "J-C", effect_class: "E-C", independence: { key_custody_split: true, author_binding: true, process_independence: true, organisational_independence: false }, isolation: "fixture", review: "mechanical" }, claim_label: "x", one_shot_control: null, two_custodian_split_verified: true }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "post-merge-verification": {
     run: contractPostMergeVerification,
     fixtures: [
@@ -2854,6 +2969,31 @@ const CONTRACT_DESCRIBES = {
     ],
     producer_notes: ["`faff bundle-recover` computes the disposition via its own pure cores (selectMostRecent, idempotencyDecision, reconstructResumePlan reused unforked from resume.js) over already-verified bundle bytes, then pipes its own output through this contract as a belt-and-braces conformance check before printing — never a live liveness check, never a forge call (see the verb's own no-gh-call invariant)."],
   },
+  "scenario-record": {
+    purpose: "The validation summary of one ScenarioRecord (schema:1) banked in the nine-scenario Phase 0 reference matrix — schema, required fields, the single canonical disposition, and the honest-claim invariants (E-B only when blocked, journal ≤ J-C on a producer-HMAC leg, organisational_independence always false, one_shot_control non-null only on the catch ordinals).",
+    values: [
+      { field: "disposition", enum: SCENARIO_RECORD_DISPOSITIONS, semantics: {
+        accepted: "scenario 1 — a grant with the chain verified, `commissaire audit verify` clean, and no escaped effect",
+        blocked: "scenario 2 — decideFloor refuses at the merge chokepoint (the one E-B prevention row)",
+        refused: "scenario 3 — a forged grant fails `commissaire audit verify` / chokepointPermit",
+        recovered: "scenario 4 — bundleRecover reconstructed or noop-already-present after a torn tail; a divergence refuses",
+        denied: "scenario 5 — a request on stale evidence is denied, no grant written",
+        detected: "scenario 6 — computeEscapes flags an observed effect covered by no declaration",
+        parked: "scenario 7 — a budget window breach parks until window reset with a resume_at",
+        amended: "scenario 8 — new-revision records verify while a stale-key record fails the auth leg",
+        corrected: "scenario 9 — an idempotency match/conflict with a gap-free resumed seq and no duplicated work-item",
+      } },
+    ],
+    coercions: [
+      "a non-object extraction → fail-loud (exit 2) — nothing to validate",
+      "every other problem is a flagged violation (conformant:false, exit 1), never a coerce — this validates faff's own emitter output, so a shape defect is surfaced rather than silently repaired",
+      "assurance_vector.effect_class E-B with disposition ≠ blocked → flagged (E-B prevention is claimable only at the merge chokepoint)",
+      "assurance_vector.journal_class J-A or J-B → flagged (producer authentication is at most J-C, mechanical detection never non-repudiation)",
+      "assurance_vector.independence.organisational_independence ≠ false → flagged (Phase 0 proves key-custody mechanism only)",
+      "one_shot_control present/absent disagreeing with the catch-ordinal rule {2,3,5,6} → flagged",
+    ],
+    producer_notes: ["The record is emitted by the pure `faff scenario-matrix record` emitter (scenario-matrix.js, region governance); this contract is the belt-and-braces re-validation a banked reader (or a clean-checkout replay) runs, mirroring recovery-disposition's own-output conformance idiom."],
+  },
   "ci-triage": {
     purpose: "The three-axis CI-failure classifier (`faff ci-triage`) that decides whether a red PR check is worth a re-run, whose fault it is, and what to do next.",
     values: [
@@ -3246,4 +3386,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

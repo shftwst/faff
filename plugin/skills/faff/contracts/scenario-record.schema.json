@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/scenario-record",
+  "title": "scenario-record contract data",
+  "description": "Reference schema (FAFF-822). The validation summary of one ScenarioRecord (schema:1) banked in the nine-scenario Phase 0 reference matrix. The record itself is emitted by the pure `faff scenario-matrix record` emitter; this contract re-validates its shape and the honest-claim invariants: schema:1, the required fields present, disposition in the nine-value enum, effect_class E-B only when disposition is blocked, journal_class at most J-C on a producer-HMAC leg, organisational_independence always false, and one_shot_control non-null iff the ordinal is one of {2,3,5,6}. Named off 'audit' so the record never clashes with ADR-0123's `commissaire audit` governance-evidence object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verb", "schema", "scenario_id", "scenario_ordinal", "disposition", "journal_class", "effect_class", "organisational_independence", "one_shot_control_present", "two_custodian_split_verified", "conformant", "violations"],
+  "properties": {
+    "verb": { "type": "string", "enum": ["scenario-record"] },
+    "schema": { "type": "integer" },
+    "scenario_id": { "type": "string" },
+    "scenario_ordinal": { "type": "integer" },
+    "disposition": { "type": "string", "description": "One of {accepted, blocked, refused, recovered, denied, detected, parked, amended, corrected}; a non-enum value from a malformed record is echoed as the empty string and flagged in `violations` (exit 1), never a schema fail-loud." },
+    "journal_class": { "type": "string", "description": "One of {J-A, J-B, J-C, J-D}; empty when a malformed record carried no valid assurance_vector — flagged in `violations`, not a schema fail-loud." },
+    "effect_class": { "type": "string", "description": "One of {E-A, E-B, E-C, E-D}; empty when a malformed record carried no valid assurance_vector — flagged in `violations`, not a schema fail-loud." },
+    "organisational_independence": { "type": "boolean" },
+    "one_shot_control_present": { "type": "boolean" },
+    "two_custodian_split_verified": { "type": "boolean" },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

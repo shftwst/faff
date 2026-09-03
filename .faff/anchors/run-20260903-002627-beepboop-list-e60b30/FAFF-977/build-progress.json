@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-977",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f1f0dd25f3ae971de3dfe5606b463454cf19c0d1028016a1f8ca827c3f3f24ec",
+    "branch": "faff-977-expose-secret-free-commissaire-replay-verification-for",
+    "pushed_at": "2026-09-03T01:01:50.047Z"
+  },
+  "updated_at": "2026-09-03T01:01:50.047Z"
+}

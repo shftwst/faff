@@ -1,0 +1,94 @@
+{
+  "level": "L3",
+  "run_id": "run-20260902-223451-beepboop-list-d10c81",
+  "admitted": [
+    "FAFF-959",
+    "FAFF-972"
+  ],
+  "outcomes": {
+    "FAFF-973": "shipped",
+    "FAFF-968": "shipped",
+    "FAFF-959": "parked"
+  },
+  "outcome_details": {
+    "FAFF-973": {
+      "state": "shipped",
+      "via": "resumable-landing",
+      "pr": 829,
+      "merge_commit": "69ea98a26980332c8c47cb8c275ef81e70e6825e",
+      "built_by": "run-20260902-183401-fly-l3",
+      "note": "endgame landing-only resume; not rebuilt; not in admitted"
+    },
+    "FAFF-968": {
+      "state": "shipped",
+      "via": "resumable-landing",
+      "pr": 830,
+      "merge_commit": "8229c89bf9205417706291a3f8bf732796c53663",
+      "built_by": "run-20260902-183401-fly-l3",
+      "note": "endgame landing-only resume; branch updated (was BEHIND after FAFF-973); not rebuilt; not in admitted"
+    },
+    "FAFF-959": {
+      "state": "parked",
+      "via": "built-then-parked-at-review",
+      "pr": null,
+      "branch": "faff-959-spec-judge-evidence-pre_ruling_-captured-at-assemble-time",
+      "branch_head": "f771885b0ef1535f7f47a9b675ce8b22780b8dc5",
+      "root_cause": "other",
+      "note": "Build complete + pushed, all 11 ACs verified (17/17 tests), phase-1 review clean. Parked pre-PR at phase-2 adversarial review: backend chain auth-misconfigured this session (DUMMY_API_KEY unset => exit 7, not a chain-outage-skip-eligible signal) => review verdict needs-human. Merge floor not overridable. Resumable: fix the adversarial backend, re-run /faff-graft FAFF-959 (resumes at review). faff-parked applied."
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [
+    "FAFF-973",
+    "FAFF-968"
+  ],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "735b00a2-4ff5-4587-8ba1-f898c2d248e0",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 67,
+        "output": 29817,
+        "cache_write_5m": 0,
+        "cache_write_1h": 577907,
+        "cache_read": 5008109
+      }
+    },
+    "tokens_at_start": 5615900,
+    "window": {
+      "anchor_epoch": 1788388549204,
+      "reset_epoch": 1788406549204,
+      "tokens_at_anchor": 577572
+    },
+    "tokens_at_last_event": {
+      "input": 387,
+      "output": 386716,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1191840,
+      "cache_read": 50922355
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 518,
+    "session_id": "run-20260902-223451-beepboop-list-d10c81",
+    "started_at": "2026-09-02T22:35:19Z",
+    "last_heartbeat": "2026-09-02T22:35:19Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

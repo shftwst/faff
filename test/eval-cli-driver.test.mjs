@@ -323,7 +323,8 @@ test("loadReviewVerdictProse folds the gateway's fixed contract and the review p
   assert.ok(prose.includes("### 5. Human-judgement flag"), "carries the review producer's pass-5 header");
   assert.ok(prose.includes("Only flag when the effect persists after revert"), "carries the verbatim revert test (line 103)");
   assert.ok(prose.includes("## Verdict rules"), "carries the verdict mapping");
-  // ...and stops before the END anchor (no Contract-artifact / Delivery-outcome bleed)
+  // ...and stops before the END anchor (no Spec-review-verdict / Contract-artifact / Delivery-outcome bleed)
+  assert.ok(!prose.includes("### Spec-review verdict (fixed)"), "stops before the Spec-review-verdict block (the new gateway END anchor)");
   assert.ok(!prose.includes("### Delivery outcome (fixed)"), "stops before the gateway END anchor");
   assert.ok(!prose.includes("## Contract artifact"), "stops before the review END anchor (## Output)");
 });

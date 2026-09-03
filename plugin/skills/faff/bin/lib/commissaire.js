@@ -231,18 +231,96 @@ function hasGovernanceContext(runDir) {
   return readLedgerEntries(runDir).some((e) => e.schema === 3);
 }
 
+// FAFF-977: `audit verify` — the secret-free external replay entry point, the first operation
+// under the ADR-0123 `audit` object namespace. A thin READ-ONLY projection of verifyAuthLeg onto
+// a stable, versioned JSON contract (AuditVerifyOutput) that FAFF-360's independent portable
+// verifier reproduces by hand and is tested against as the conformance oracle. It writes NO
+// signature or HMAC logic of its own — verifyAuthLeg is the one core, called exactly once. The
+// three-way producer classification (verified / unverifiable_without_secret / failed) maps
+// directly onto that core's { pass, failures, unverifiable } return; unverifiable is NEVER folded
+// into a pass, because a claim the secret-free consumer cannot check is not authenticated.
+//
+// Exit contract (a public part of the oracle, deliberately distinct from the sibling verbs' 0/2/3):
+//   0  valid decisions, honest producer classification (auth.pass true, a governance context exists)
+//   1  verification failure (any verifyAuthLeg failure — a failed record, or a record-less
+//      ledger-level failure such as pk-fingerprint-tampered)
+//   2  invalid invocation or setup (missing/non-directory --run-dir, or no schema-3 governance
+//      context) — nothing is written to stdout, the diagnostic goes to stderr
+function cmdAuditVerify(flags) {
+  const runDir = flags["--run-dir"];
+  if (!runDir || !fs.existsSync(runDir) || !fs.statSync(runDir).isDirectory()) {
+    process.stderr.write("faff commissaire audit verify: --run-dir <dir> is required and must be an existing directory\n");
+    return 2;
+  }
+  if (!hasGovernanceContext(runDir)) {
+    process.stderr.write(`faff commissaire audit verify: no schema-3 governance context in ${runDir} — nothing to replay\n`);
+    return 2;
+  }
+  // The ONE core call. governor/producer dir overrides pass straight through; a secret-free
+  // consumer supplies neither and the defaults resolve to <run-dir>/commissaire/{governor,producer}.
+  const auth = verifyAuthLeg(runDir, flags["--governor-dir"], flags["--producer-dir"]);
+  // Split the core's failures into record-level (a seq) and ledger-level (seq == null, e.g. the
+  // FAFF-978 pk-fingerprint-tampered cross-check) — the latter matches no ledger record, so it is
+  // surfaced under ledger_failures rather than silently dropped from the projection.
+  const ledgerFailures = [];
+  const failBySeq = new Map();
+  for (const f of auth.failures) {
+    if (f.seq == null) ledgerFailures.push({ reason: f.reason });
+    else failBySeq.set(f.seq, f.reason);
+  }
+  const unverBySeq = new Map();
+  for (const u of auth.unverifiable) unverBySeq.set(u.seq, u.reason);
+
+  const entries = readLedgerEntries(runDir).filter((e) => e.schema === 3);
+  const records = [];
+  const producer = { verified: 0, unverifiable_without_secret: 0, failed: 0 };
+  const commissaire = { verified: 0, failed: 0 };
+  for (const e of entries) {
+    let cls;
+    let reason = null;
+    if (e.author === "producer") {
+      if (unverBySeq.has(e.seq)) { cls = "unverifiable_without_secret"; reason = unverBySeq.get(e.seq); }
+      else if (failBySeq.has(e.seq)) { cls = "failed"; reason = failBySeq.get(e.seq); }
+      else { cls = "verified"; }
+      producer[cls]++;
+    } else if (e.author === "commissaire") {
+      // A public-key decision is always checkable — it never lands in `unverifiable`.
+      if (failBySeq.has(e.seq)) { cls = "failed"; reason = failBySeq.get(e.seq); }
+      else { cls = "verified"; }
+      commissaire[cls]++;
+    } else {
+      continue; // no other author writes a schema:3 record; skip defensively rather than misclassify
+    }
+    records.push({ seq: e.seq, author: e.author, kind_of_entry: e.kind_of_entry, classification: cls, reason });
+  }
+  const pkRec = readJson(pkFileOf(producerDirOf(runDir, flags["--producer-dir"])));
+  const out = {
+    version: 1,
+    result: auth.pass ? "pass" : "fail",
+    governance_context: true,
+    producer_claims: producer,
+    commissaire_decisions: commissaire,
+    pk_fingerprint: pkRec ? (pkRec.pk_fingerprint ?? null) : null,
+    ledger_failures: ledgerFailures,
+    records,
+  };
+  console.log(JSON.stringify(out));
+  return auth.pass ? 0 : 1;
+}
+
 // --- CLI shell --------------------------------------------------------------------------
 
 function usage() {
   process.stderr.write(
-    "usage: faff commissaire <admit|declare|request-decision|observe|reconcile|terminal-verdict|seal-bundle> ...\n" +
+    "usage: faff commissaire <admit|declare|request-decision|observe|reconcile|terminal-verdict|seal-bundle|audit verify> ...\n" +
     "  admit            --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]\n" +
     "  declare          --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])\n" +
     "  request-decision --run-dir DIR --producer ID --issue I --step S   (stdin: {effect, evidence_seq?})\n" +
     "  observe          --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])\n" +
     "  reconcile        --run-dir DIR --issue I\n" +
     "  terminal-verdict --run-dir DIR --issue I   (boundary stub over `faff events anchor`)\n" +
-    "  seal-bundle      --run-dir DIR             (boundary stub over `faff bundle`)\n");
+    "  seal-bundle      --run-dir DIR             (boundary stub over `faff bundle`)\n" +
+    "  audit verify     --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n");
 }
 
 function parseCommissaireArgs(args) {
@@ -417,6 +495,15 @@ function cmdCommissaire(args) {
       if (!runDir) { process.stderr.write("faff commissaire seal-bundle: --run-dir is required\n"); return 2; }
       return cmdBoundaryStub(flags, "seal-bundle", ["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "run-close", "--boundary-key", path.basename(runDir)]);
     }
+    case "audit": {
+      // ADR-0123 `audit` object namespace. `verify` is the only built action this slice; `seal`
+      // and `export` are unbuilt (an unknown action falls through to the usage error, and the flat
+      // `seal-bundle` verb keeps serving seal). Dispatch on the action token (rest[1]).
+      const action = rest[1];
+      if (action === "verify") return cmdAuditVerify(flags);
+      usage();
+      return 2;
+    }
     default:
       usage();
       return 2;
@@ -440,6 +527,10 @@ const COMMISSAIRE_SURFACE = {
     reconcile: { required_flags: ["--issue"] },
     "terminal-verdict": { required_flags: ["--issue"] },
     "seal-bundle": { required_flags: [] },
+    // FAFF-977: the ADR-0123 `audit` object namespace lands as a compound subcommand key on the
+    // existing flat map (mirroring the hyphenated `request-decision` key), keeping the SURFACE
+    // schema flat this slice — the nested-object representation is FAFF-980's concern.
+    "audit verify": { required_flags: ["--run-dir"] },
   },
 };
 

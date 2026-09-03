@@ -103,7 +103,9 @@ backends:
       api_key_env: DUMMY_API_KEY
       first_byte_timeout: 180
       reasoning_extra:
-          thinking_token_budget: 2000
+          # glimmer reads a graded reasoning lever, not a token cap.
+          chat_template_kwargs:
+              reasoning_strength: medium
 
 adversarial:
   timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
@@ -111,7 +113,7 @@ adversarial:
   refs:
     - spark-qwen-3-8
     - openrouter-deepseek-v4-flash
-    #- spark-glimmer
+    - spark-glimmer
   code_review:
     max_tokens: 12000
   spec_review:
@@ -132,6 +134,7 @@ models:
 
 sentry:
   stall_window_seconds: 7200
+  run_elapsed_ceiling_secs: 43200
   run_elapsed_ceiling_skip_when_live: true
 
 capture:

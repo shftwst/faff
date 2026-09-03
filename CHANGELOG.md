@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.29.0](https://github.com/shftwst/faff/compare/faff--v0.28.0...faff--v0.29.0) (2026-09-03)
+
+
+### Features
+
+* **FAFF-977:** expose secret-free commissaire audit verify replay ([#834](https://github.com/shftwst/faff/issues/834)) ([5e9eafa](https://github.com/shftwst/faff/commit/5e9eafabae87abe19470fbbcbfdac8649e4ca0e9))
+* **FAFF-980:** re-group the Commissaire facade CLI to the noun-verb object grammar ([#835](https://github.com/shftwst/faff/issues/835)) ([72f3138](https://github.com/shftwst/faff/commit/72f31389c21ef211fb7def1f6d8f8618ddb03d58))
+
+
+### Bug Fixes
+
+* **FAFF-967:** name-and-forbid the invented deferred-recoverable PRDR state ([#831](https://github.com/shftwst/faff/issues/831)) ([9e26b73](https://github.com/shftwst/faff/commit/9e26b73d73c3d7be1d62e923890911340ebe2e7c))
+* **FAFF-972:** wire max_tokens into the spec-review judge dispatch ([#833](https://github.com/shftwst/faff/issues/833)) ([f706dbe](https://github.com/shftwst/faff/commit/f706dbe4831329053d6bcbbc8fee4364927c4bdc))
+* **FAFF-978:** harden the Commissaire facade (admit idempotency, authoritative-PK auth leg, revocation, reconcile flag) ([#828](https://github.com/shftwst/faff/issues/828)) ([d0bec16](https://github.com/shftwst/faff/commit/d0bec165693a853e562b094c8c184b971b554c3b))
+
 ## [0.28.0](https://github.com/shftwst/faff/compare/faff--v0.27.0...faff--v0.28.0) (2026-09-02)
 
 

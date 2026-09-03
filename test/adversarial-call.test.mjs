@@ -204,6 +204,12 @@ test("FAFF-918 reasoning_extra: thinking_token_budget is allowlisted and emits t
   assert.equal(REASONING_EXTRA_KEYS.includes("thinking_token_budget"), true, "thinking_token_budget is in the allowlist");
 });
 
+test("FAFF-986 reasoning_extra: custom_params is allowlisted and emits the nested wrapper verbatim (the Qwen custom_params.thinking_budget shape)", () => {
+  const body = buildOpenAiPayload({ model: "unsloth/Qwen3.8-27B-NVFP4", system: "S", user: "U", reasoningExtra: { custom_params: { thinking_budget: 2000 } } });
+  assert.deepEqual(body.custom_params, { thinking_budget: 2000 }, "custom_params reaches the body as a nested object (the Qwen build's reasoning-cap shape)");
+  assert.equal(REASONING_EXTRA_KEYS.includes("custom_params"), true, "custom_params is in the allowlist");
+});
+
 // FAFF-941 defect 1: the GLM/OpenRouter judge backend's reasoning cap is data in .faffrc
 // (reasoning_extra), not a knob hardcoded in the dispatch — so it reaches the request body with no
 // branch on model or provider. `reasoning` is already allowlisted (FAFF-914), so no transport change.

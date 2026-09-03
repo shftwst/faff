@@ -713,7 +713,13 @@ function clampEffortToWire(effort) {
 //     silently IGNORED on cohere_command4 (its parser has no enable_thinking path).
 //   - usage.reasoning_tokens reads 0 on cohere_command4 even while reasoning runs;
 //     detect the empty-out via finish_reason=="length" && content==null, not it.
-export const REASONING_EXTRA_KEYS = ["reasoning", "thinking", "reasoning_effort", "chat_template_kwargs", "thinking_token_budget"];
+//
+// FAFF-986: `custom_params` is the nested-wrapper analogue of `thinking_token_budget`.
+// Some Qwen vLLM builds read the budget at `custom_params.thinking_budget` rather than
+// the top-level key, so faff must be able to emit `custom_params:{thinking_budget:N}`.
+// It is a plain top-level set (faff sets no `custom_params` of its own, so unlike
+// `chat_template_kwargs` there is no default on the body to deep-merge with).
+export const REASONING_EXTRA_KEYS = ["reasoning", "thinking", "reasoning_effort", "chat_template_kwargs", "thinking_token_budget", "custom_params"];
 
 // PURE: merge an allowlisted `reasoning_extra` object onto an OpenAI payload body, in
 // place, returning it. Fail-closed: a key outside REASONING_EXTRA_KEYS throws, so a

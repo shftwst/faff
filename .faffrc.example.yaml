@@ -137,6 +137,11 @@ models:
 #     api_key_env:              # env var NAME holding the API key; optional (LAN ollama needs none)
 #     reasoning_off: false      # true → disable reasoning-model think blocks (ollama think:false / openai chat_template_kwargs)
 #     reasoning_effort:         # optional low|medium|high|xhigh|max — OpenAI-compat only; emits wire reasoning_effort (xhigh/max clamp to high); reasoning_off wins when both set
+#     reasoning_extra:          # optional per-backend passthrough for a reasoning shape faff doesn't model natively; allowlisted keys
+#                               # (reasoning / thinking / reasoning_effort / chat_template_kwargs / thinking_token_budget / custom_params)
+#                               # merge verbatim onto the request body, applied LAST (an explicit key wins). e.g. a vLLM reasoning cap:
+#                               #   reasoning_extra: { thinking_token_budget: 2000 }              # top-level key (qwen3 + north)
+#                               #   reasoning_extra: { custom_params: { thinking_budget: 2000 } } # nested wrapper some Qwen builds read (FAFF-986)
 #     timeout: 120              # seconds — bounds the ONE completion attempt (default 120)
 
 # Max concurrent builds for faffter-dark-concurrency-parallel. Ignored by the

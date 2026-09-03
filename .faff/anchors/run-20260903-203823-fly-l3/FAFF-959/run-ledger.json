@@ -1,0 +1,62 @@
+{
+  "level": "L3",
+  "run_id": "run-20260903-203823-fly-l3",
+  "admitted": [
+    "FAFF-959"
+  ],
+  "outcomes": {
+    "FAFF-981": "routed-out",
+    "FAFF-984": "routed-out",
+    "FAFF-946": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-981": "needs-human: human dedup challenge (2026-09-03T20:36) 'think 981 and 984 might be duplicates'. Held pre-build; build preserved on branch faff-981 (8f61e61d). Surfaced consolidated dedup analysis (not duplicates: ENOBUFS vs ETIMEDOUT).",
+    "FAFF-984": "needs-human: sibling of the 981 dedup challenge; held pre-build; build preserved on branch faff-984 (265e0766).",
+    "FAFF-946": "needs-human: human resolution (2026-09-03T04:45, option 3) replaced the approach and reserved a re-slice into 2 tickets to the human; L3 prep already re-parked (07:57) since re-slice is human-reserved topology (re-slice-handoff is L4-only). blockedBy FAFF-945 is Done (satisfied)."
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_session_id": "2da79b33-2c39-4b43-9d6f-26e6cae01ada",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 144,
+        "output": 202936,
+        "cache_write_5m": 0,
+        "cache_write_1h": 1256479,
+        "cache_read": 16645028
+      }
+    },
+    "tokens_at_start": 18104587,
+    "tokens_at_last_event": {
+      "input": 301,
+      "output": 358341,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1461900,
+      "cache_read": 45734481
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 717,
+    "session_id": "run-20260903-203823-fly-l3",
+    "started_at": "2026-09-03T20:49:57Z",
+    "last_heartbeat": "2026-09-03T20:49:57Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

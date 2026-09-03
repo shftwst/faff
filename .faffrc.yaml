@@ -51,23 +51,25 @@ backends:
       model: models/gemma-4-31b-it
       host: https://generativelanguage.googleapis.com/v1beta/openai
       api_key_env: GEMINI_API_KEY
-      first_byte_timeout: 120
+      first_byte_timeout: 180
   openrouter-deepseek-v4-flash:
       provider: openai
       model: deepseek/deepseek-v4-flash-0731
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
-      first_byte_timeout: 120
-      reasoning_off: true
-  openrouter-glm-5-2:
+      first_byte_timeout: 180
+      reasoning_extra:
+          reasoning:
+              enabled: false
+  openrouter-deepseek-v4-flash-reasoning:
       provider: openai
-      model: z-ai/glm-5.2:free
+      model: deepseek/deepseek-v4-flash-0731
       host: https://openrouter.ai/api/v1
       api_key_env: OPENROUTER_API_KEY
       first_byte_timeout: 180
       reasoning_extra:
           reasoning:
-              max_tokens: 2000
+              effort: low
   openrouter-glm-5-3-flash:
       provider: openai
       model: z-ai/glm-5.3-flash
@@ -101,19 +103,20 @@ backends:
       model: glimmer
       host: https://spark.longhair-escalator.ts.net/glimmer/v1
       api_key_env: LOCAL_API_KEY
-      first_byte_timeout: 180
+      first_byte_timeout: 360
       reasoning_extra:
           # glimmer reads a graded reasoning lever, not a token cap.
           chat_template_kwargs:
-              reasoning_strength: medium
+              reasoning_strength: low
 
 adversarial:
   timeout: 900     # per-attempt stream deadline (s); default 120. spec_review's only clock. Sized for a max_tokens:12000 review (~9min at ~22 tok/s) plus large-payload prompt-eval headroom. Was 1500 when max_tokens was 32000 (the empty-out workaround); FAFF-918's thinking_token_budget caps reasoning directly, so reviews finish far sooner.
   deadline: 3600   # code_review + judge total wall-clock (s), sliced per backend; default 480. 3 refuter backends x 900s timeout = each gets one full attempt (2700 is exactly 3x900, no slack). A fast-failing backend hands its unspent slice back to the survivors (the per-backend slice is work-conserving), which is what leaves room for the fallbacks; the judge is dispatched separately and carries its own --deadline. IGNORED by spec_review (which sends no --deadline).
   refs:
     - spark-qwen-3-8
+    - openrouter-deepseek-v4-flash-reasoning
     - openrouter-deepseek-v4-flash
-    - spark-glimmer
+    #- spark-glimmer
   code_review:
     max_tokens: 12000
   spec_review:
@@ -121,9 +124,8 @@ adversarial:
   spec_judge:
     max-tokens: 12000
     refs:
-      - openrouter-gemma
       - openrouter-glm-5-3-flash
-      - openrouter-glm-5-2
+      - openrouter-gemma
 models:
     build_by_confidence:
         default: inherit

@@ -72,6 +72,7 @@ function parseArgs(argv) {
     else if (k === "--timeout-ms") a.timeoutMs = Number(argv[++i]);
     else if (k === "--out") a.out = argv[++i];
     else if (k === "--requests-dir") a.requestsDir = argv[++i];
+    else if (k === "--reasoning-extra") a.reasoningExtra = argv[++i];   // JSON: production's per-backend reasoning_extra, merged onto the openai body
     else if (k === "-h" || k === "--help") a.help = true;
   }
   return a;
@@ -83,7 +84,7 @@ if (A.help || !A.provider || !A.host || !A.model) {
   process.exit(A.help ? 0 : 2);
 }
 if (!["ollama", "openai"].includes(A.provider)) { console.error(`--provider must be ollama|openai`); process.exit(2); }
-if (!["off", "on", "low", "medium", "high"].includes(A.reasoning)) { console.error(`--reasoning must be off|on|low|medium|high`); process.exit(2); }
+if (!["off", "on", "none", "low", "medium", "high", "xhigh"].includes(A.reasoning)) { console.error(`--reasoning must be off|on|none|low|medium|high|xhigh`); process.exit(2); }
 // --cache-bust: one nonce per RUN, prepended to every lens's system message, so the run starts cold vs
 // the server's existing cache but the 4 lenses in this run still share an identical prefix (preserving
 // within-run fan-out cache sharing for the shared-prefix layout). New nonce each invocation.
@@ -132,7 +133,11 @@ function openaiBody(system, user) {
               temperature: A.temperature, max_tokens: A.maxTokens };
   if (A.stream) b.stream_options = { include_usage: true }; // ask for usage (cached_tokens, exact counts) in the final SSE chunk
   const r = A.reasoning;
-  if (r === "off") {
+  if (r === "none") {
+    // emit NO reasoning lever in this branch — rely entirely on --reasoning-extra below. This mirrors
+    // production buildOpenAiPayload when a backend sets neither reasoning_off nor reasoning_effort and
+    // controls reasoning purely through its reasoning_extra (e.g. an OpenRouter model's reasoning:{...}).
+  } else if (r === "off") {
     b.chat_template_kwargs = { thinking: false, enable_thinking: false }; // Qwen3/vLLM/SGLang/HF/MLX templates
     if (A.cohere) b.thinking = { type: "disabled" };                      // Cohere "North" native switch
   } else {
@@ -148,6 +153,20 @@ function openaiBody(system, user) {
   // is REQUIRED to bench the spark backends without them emptying out on a large payload. Sent
   // whenever set, independent of the on/off/effort branch above; a server that ignores it drops it.
   if (A.thinkingTokenBudget != null && !Number.isNaN(A.thinkingTokenBudget)) b.thinking_token_budget = A.thinkingTokenBudget;
+  // --reasoning-extra: apply a backend's production reasoning_extra verbatim, mirroring review-call.mjs's
+  // mergeReasoningExtra — allowlisted top-level keys, chat_template_kwargs deep-merges one level, applied
+  // LAST so an explicit extra wins. Lets the bench replicate a backend's exact .faffrc reasoning config.
+  if (A.reasoningExtra) {
+    let extra;
+    try { extra = JSON.parse(A.reasoningExtra); } catch (e) { console.error(`--reasoning-extra must be JSON: ${e.message}`); process.exit(2); }
+    if (typeof extra !== "object" || Array.isArray(extra)) { console.error("--reasoning-extra must be a JSON object"); process.exit(2); }
+    const ALLOW = ["reasoning", "thinking", "reasoning_effort", "chat_template_kwargs", "thinking_token_budget", "custom_params"];
+    for (const [k, v] of Object.entries(extra)) {
+      if (!ALLOW.includes(k)) { console.error(`--reasoning-extra: unsupported key ${JSON.stringify(k)} (allowed: ${ALLOW.join(", ")})`); process.exit(2); }
+      if (k === "chat_template_kwargs" && b.chat_template_kwargs && v && typeof v === "object") b.chat_template_kwargs = { ...b.chat_template_kwargs, ...v };
+      else b[k] = v;
+    }
+  }
   return b;
 }
 

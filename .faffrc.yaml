@@ -90,8 +90,8 @@ backends:
   spark-qwen-3-8:
       provider: openai
       model: unsloth/Qwen3.8-27B-NVFP4
-      host: https://some-where/v1
-      api_key_env: DUMMY_API_KEY
+      host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
+      api_key_env: LOCAL_API_KEY
       first_byte_timeout: 180
       reasoning_extra:
           custom_params:
@@ -100,7 +100,7 @@ backends:
       provider: openai
       model: glimmer
       host: https://spark.longhair-escalator.ts.net/glimmer/v1
-      api_key_env: DUMMY_API_KEY
+      api_key_env: LOCAL_API_KEY
       first_byte_timeout: 180
       reasoning_extra:
           # glimmer reads a graded reasoning lever, not a token cap.
@@ -133,7 +133,7 @@ models:
     eval: claude-opus-4-8
 
 sentry:
-  stall_window_seconds: 7200
+  stall_window_secs: 7200
   run_elapsed_ceiling_secs: 43200
   run_elapsed_ceiling_skip_when_live: true
 

@@ -727,6 +727,38 @@ function checkAnchorBeforePrOrder(text) {
   return { scoped: true, ok, anchorIdx, prIdx };
 }
 
+// FAFF-1005: pure order-check for a broad error-swallow attached to faff-graft's Step 9b anchor
+// commit (exported for unit tests). FAFF-1001 bounded the anchor commit's tolerance to the
+// nothing-to-commit signal only — a genuine commit failure must abort before `gh pr create`,
+// never a blanket `|| true`. Step 9b is agent-run prose with no executable unit, so this static
+// lint is the reachable guard against a future `git commit … || true`. The crux: the correct
+// prose NAMES `|| true` (in the sentence forbidding it), so a naive scan self-defeats. Flag the
+// swallow only when it shares a single code span (an inline backtick run, or one fenced line)
+// with a `git commit`/`git add` command — the prohibitive prose keeps the command and the token
+// in SEPARATE spans, so it stays clean. Same Step 9b section bounds as checkAnchorBeforePrOrder.
+function collectStep9bCodeSpans(section) {
+  const spans = [];
+  let inFence = false;
+  for (const line of section.split("\n")) {
+    if (line.trim().startsWith("```")) { inFence = !inFence; continue; }
+    if (inFence) { spans.push(line); continue; }
+    for (const m of line.matchAll(/`([^`]+)`/g)) spans.push(m[1]);
+  }
+  return spans;
+}
+function checkAnchorCommitNoBroadSwallow(text) {
+  const start = text.indexOf("**Step 9b:");
+  const end = text.indexOf("**Step 10:", start + 1);
+  if (start === -1 || end === -1) return { scoped: false, ok: true, hit: null };
+  const section = text.slice(start, end);
+  const gitCmd = /git\s+(commit|add)\b/;
+  const swallow = /\|\|\s*(true|:)(\s|$|["';)&|])/;
+  for (const span of collectStep9bCodeSpans(section)) {
+    if (gitCmd.test(span) && swallow.test(span)) return { scoped: true, ok: false, hit: span };
+  }
+  return { scoped: true, ok: true, hit: null };
+}
+
 function cmdValidateAdapters(args) {
   if (args.includes("--is-bundled")) return cmdIsBundled(args);
   const { values, errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
@@ -973,6 +1005,16 @@ function cmdValidateAdapters(args) {
         failed = true;
         console.log(`FAIL  ${name} (anchor-before-PR order)`);
         console.log(`        ✗ Step 9b must commit + push the anchor before \`gh pr create\` — first \`faff events anchor\` (idx ${order.anchorIdx}) must precede first \`gh pr create\` (idx ${order.prIdx}); a crash between PR-open and the anchor commit strands a review-passed PR as anchor-missing (FAFF-1001)`);
+      }
+      // FAFF-1005: a broad error-swallow (`|| true` / `|| :`) sharing a code span with a Step 9b
+      // git commit/add would mask a genuine commit failure and re-open the anchor-less-PR window
+      // FAFF-1001 closed. Same-span match keeps the prohibitive prose (which names `|| true` to
+      // forbid it, in a separate span) clean. See checkAnchorCommitNoBroadSwallow.
+      const swallow = checkAnchorCommitNoBroadSwallow(text);
+      if (swallow.scoped && !swallow.ok) {
+        failed = true;
+        console.log(`FAIL  ${name} (anchor-commit broad-swallow)`);
+        console.log(`        ✗ Step 9b commits the anchor with a broad error-swallow (\`|| true\` / \`|| :\`) on a git commit/add — a genuine commit failure must abort Step 9b before \`gh pr create\`, never be masked (offending span: ${swallow.hit}) (FAFF-1005)`);
       }
     }
 
@@ -1269,4 +1311,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkAnchorBeforePrOrder, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, c3CalibrationFloor, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

@@ -1,0 +1,10 @@
+run run-faff913/FAFF-1  (/anchors/run-faff913/FAFF-1)
+  completeness: pass — n/a — anchor snapshot (completeness runs on live run dirs only)
+  budget:       pass — n/a — anchor snapshot (budget runs on live run dirs only)
+  merge_floor:  FAIL — FAFF-1:review-verdict unavailable
+  coherence:    clean (report-only)
+  liveness:     pass — n/a — anchor snapshot (liveness runs on live run dirs only)
+  integrity:    pass — verified
+
+verdict: FAIL
+  ✗ run-faff913/FAFF-1: merge_floor — FAFF-1: review-verdict unavailable

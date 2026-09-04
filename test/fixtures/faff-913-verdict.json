@@ -1,0 +1,25 @@
+{
+  "pass": false,
+  "reasons": [
+    "run-faff913/FAFF-1: merge_floor — FAFF-1: review-verdict unavailable"
+  ],
+  "runs": [
+    {
+      "run_id": "run-faff913/FAFF-1",
+      "run_dir": "/anchors/run-faff913/FAFF-1",
+      "legs": {
+        "completeness": { "pass": true, "detail": "n/a — anchor snapshot (completeness runs on live run dirs only)" },
+        "budget": { "pass": true, "detail": "n/a — anchor snapshot (budget runs on live run dirs only)" },
+        "merge_floor": {
+          "pass": false,
+          "issues": [
+            { "issue": "FAFF-1", "pass": false, "ac_complete": true, "review_verdict": "unavailable", "holdout": null, "reasons": ["review-verdict unavailable"] }
+          ]
+        },
+        "coherence": { "clean": true },
+        "liveness": { "pass": true, "detail": "n/a — anchor snapshot (liveness runs on live run dirs only)" },
+        "integrity": { "pass": true, "detail": "verified" }
+      }
+    }
+  ]
+}

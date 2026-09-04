@@ -179,3 +179,10 @@ free-form ref), but only a sha gives you the guarantee:
 - **The `on-missing: pass` fail-open.** Named above — visible per-PR in the job summary,
   closed per-branch by flipping to `fail`.
 - **Conformance, not authenticity.** Named above — the check's honest boundary.
+- **A hand-authored PR carrying an anchor without a passing review verdict.** A PRESENT
+  anchor is gated fail-closed regardless of `on-missing`. If you commit `.faff/anchors/**`
+  for an issue by hand (`gh pr create`, not `/faff-graft`), `merge_floor` fails until that
+  anchor also carries a `review-verdict.json` whose signal is `pass`. The failing job's
+  `::error::` annotation now names the exact leg and issue; get a review verdict recorded
+  before landing by hand — for example by running the issue through `/faff-graft`'s review
+  step — or don't commit an anchor for work that hasn't been reviewed.

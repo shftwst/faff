@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-987",
+  "build": {
+    "status": "complete",
+    "diff_hash": "46384ad1b83d97537bfa58e31263dfc4092b063ca0ee9929a6bb3b4c519f8174",
+    "branch": "faff-987-speed-up-the-faff-cli-test-suite-on-ci-parallelise-shard-the",
+    "pushed_at": "2026-09-04T18:17:10.541Z"
+  },
+  "updated_at": "2026-09-04T18:17:10.541Z"
+}

@@ -588,6 +588,61 @@ function renderGovernanceCheckSummaryMd(verdict) {
   return lines.join("\n") + "\n";
 }
 
+// FAFF-913: escape a value spliced into a `::error::` GitHub Actions workflow-command
+// line. GitHub's published workflow-command *data* escaping is exactly `%`/`\r`/`\n`
+// (percent FIRST, so the `%`-escapes introduced below are not double-escaped), then
+// the two line terminators. The `::` command delimiter is NOT in that published table
+// and is neutralised explicitly — a PR-controlled value carrying a literal `::` would
+// otherwise mangle the `::error::` line or open a second same-line workflow command
+// (an annotation-injection vector). The `::` replacement runs AFTER the `%`-escape so
+// its introduced `%3A` is not itself re-percent-escaped. Lossless: renders as
+// `%0A`/`%25`/`%3A%3A`, leaving single colons in legitimate reason text readable.
+function escapeWorkflowData(s) {
+  return String(s)
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A")
+    .replaceAll("::", "%3A%3A");
+}
+
+// FAFF-913: a THIRD renderer of the SAME verdict, alongside the text + summary-md
+// renderers above — the verb owns rendering, so local and CI never drift. It surfaces
+// the genuine failure as job-level `::error::` GitHub Actions annotations, the one
+// surface a required-check failure directs the reader to (the Checks tab / PR banner),
+// which the step summary and the separate PR bot comment are not. Writes to stdout via
+// `console.log` — the same stream `renderGovernanceCheckText` uses, and the stream
+// GitHub scans for workflow commands (the pinned annotation-stream contract the smoke
+// test asserts against). CI-only and fail-only: a `::error::` line is meaningless noise
+// outside an Actions runner or on a pass. Every spliced value is sanitized through
+// `escapeWorkflowData` because annotation data (run/anchor ids, per-leg reason text)
+// originates from PR-authored artifacts.
+function renderGovernanceCheckAnnotations(verdict) {
+  if (process.env.GITHUB_ACTIONS !== "true") return;
+  if (verdict.pass) return;
+
+  for (const reason of verdict.reasons) {
+    console.log(`::error::faff governance-check: ${escapeWorkflowData(reason)}`);
+  }
+
+  // Detect on the STRUCTURED leg result — verdict.runs[].legs.merge_floor.pass is the
+  // same field buildReasons reads — never by sniffing the free-text reason, so this hint
+  // cannot drift from what actually failed. Emitted exactly once per invocation, however
+  // many runs/anchors have a failing merge_floor leg. The literal carries none of the
+  // escaped characters, but it rides the same helper so no future edit can reintroduce an
+  // unescaped value on this path.
+  if (verdict.runs.some((r) => r.legs && r.legs.merge_floor && r.legs.merge_floor.pass === false)) {
+    console.log(
+      "::error::faff governance-check: " +
+        escapeWorkflowData(
+          "merge_floor failures need recorded evidence (ac-checklist / review " +
+            "verdict / holdout) before landing by hand. See " +
+            "docs/guide/governance-check.md, or land the issue through " +
+            "/faff-graft's review step instead.",
+        ),
+    );
+  }
+}
+
 const { parseArgs, usageError } = require("./argv");
 const GOVERNANCE_CHECK_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 },
@@ -715,6 +770,11 @@ function cmdGovernanceCheck(args) {
     try { fs.appendFileSync(summaryMdPath, renderGovernanceCheckSummaryMd(verdict)); }
     catch (e) { process.stderr.write(`faff governance-check: warning — could not write --summary-md: ${e.message}\n`); }
   }
+  // FAFF-913: job-level `::error::` annotations for a failing verdict. Rides only the
+  // non-`json` path (matching the `if (json) … else renderGovernanceCheckText` split
+  // above), so `--json` stdout stays pure JSON; the renderer itself is also CI-only and
+  // fail-only. The `!json` guard is load-bearing and is observed by the smoke test.
+  if (!json && !verdict.pass) renderGovernanceCheckAnnotations(verdict);
 
   return pass ? 0 : 1;
 }
@@ -1356,8 +1416,11 @@ module.exports = {
   evaluateMergeFloorLeg,
   evaluateRunDir,
   governanceCheckSelftest,
+  escapeWorkflowData,
   matchIssueFromBranchName,
   readBudgetCheckpoints,
+  renderGovernanceCheckAnnotations,
   renderGovernanceCheckSummaryMd,
+  renderGovernanceCheckText,
   resolveTargetIssues,
 };

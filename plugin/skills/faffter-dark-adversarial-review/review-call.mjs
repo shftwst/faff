@@ -497,18 +497,35 @@ export const CLEAN_REFUTATIONS = Object.freeze([
   Object.freeze({ lens: "QA", heading: "## Refutation — QA", sentence: "No QA objection." }),
 ]);
 
-// FAFF-927: a decorative header is any single ATX heading line that is NEITHER a severity finding
+// FAFF-927: a decorative header is any single ATX heading line that is NEITHER a severity-worded
 // heading (that would make the content genuinely findings-shaped — swallowing it as clean would hide a
 // real finding) NOR inside the reserved `## Refutation — <lens>` namespace (whose lens-consistency is
 // already enforced by the `headed` arm below — a mismatched pair like `## Refutation — architectural` +
 // `No QA objection.` must stay rejected). Every other decorative wrapper a model realistically emits
 // (`# Code review`, `## Second opinion`, `### Assessment`) is accepted.
+//
+// FAFF-927 self-review fix: SEVERITY_HEADING_RE only matches the CANONICAL 3-hash `### <severity>:`
+// form splitFindings itself parses. A backend can still state a real finding inside a severity-worded
+// heading at a DIFFERENT ATX level — `## Critical: null check removed in parseDiff` followed by
+// `No QA objection.` — which SEVERITY_HEADING_RE does not match, so it would have been accepted as
+// decorative and the stated finding silently swallowed. SEVERITY_LIKE_HEADING_RE is level-agnostic
+// (any of 1-6 hashes) so a severity-worded heading is excluded regardless of level, closing that gap
+// without touching SEVERITY_HEADING_RE's own (unrelated) job of parsing genuine finding sections.
+//
+// FAFF-927 self-review fix: REFUTATION_NAMESPACE_RE originally matched only the exact 2-hash,
+// em-dash-only canonical spelling. A near-miss spelling — `### Refutation — architectural` (3 hashes)
+// or `## Refutation - architectural` (plain hyphen) — fell outside the namespace and was accepted as
+// decorative, letting a lens-mismatched clean sentence (e.g. paired with `No QA objection.`) through
+// as `header-wrapped` instead of staying rejected like the exact-spelling FAFF-746 fixtures. Widened to
+// any heading level and either dash form so the namespace exclusion holds under punctuation/heading-
+// level drift, not just the one canonical spelling.
 const ATX_HEADING_RE = /^#{1,6}\s+\S/;
-const REFUTATION_NAMESPACE_RE = /^##\s+Refutation\s+—/;
+const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
+const REFUTATION_NAMESPACE_RE = /^#{1,6}\s+Refutation\s+[—-]/;
 
 function isDecorativeHeader(line) {
   if (!ATX_HEADING_RE.test(line)) return false;
-  if (SEVERITY_HEADING_RE.test(line)) return false;
+  if (SEVERITY_LIKE_HEADING_RE.test(line)) return false;
   if (REFUTATION_NAMESPACE_RE.test(line)) return false;
   return true;
 }

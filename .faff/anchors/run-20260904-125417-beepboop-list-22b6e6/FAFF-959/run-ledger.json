@@ -1,0 +1,68 @@
+{
+  "level": "L3",
+  "run_id": "run-20260904-125417-beepboop-list-22b6e6",
+  "admitted": [
+    "FAFF-981",
+    "FAFF-959"
+  ],
+  "outcomes": {
+    "FAFF-981": "shipped"
+  },
+  "outcome_details": {
+    "FAFF-981": {
+      "pr": 851,
+      "merge_commit": "acb8a284c8dc1ce0807b165ca79909dc17eac759",
+      "head_sha": "4a93f52c49ca9f6beb16d94eb7e3b7c06df43166",
+      "review": "pass",
+      "ci": "ci-green",
+      "integrity": "custody-trusted",
+      "note": "rebuilt onto post-984 main; maxBuffer 64MiB + ENOBUFS branch, coexists with 984 ETIMEDOUT"
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "price_per_mtok": 0
+    },
+    "tokens_at_start": 14606854,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "55aacd13-d2eb-4943-959f-f7b27855ff8d",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 130,
+        "output": 120522,
+        "cache_write_5m": 0,
+        "cache_write_1h": 758639,
+        "cache_read": 13727563
+      }
+    },
+    "tokens_at_last_event": {
+      "input": 234,
+      "output": 226533,
+      "cache_write_5m": 0,
+      "cache_write_1h": 901626,
+      "cache_read": 30826862
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 2881,
+    "session_id": "run-20260904-125417-beepboop-list-22b6e6",
+    "started_at": "2026-09-04T12:54:45Z",
+    "last_heartbeat": "2026-09-04T12:54:45Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

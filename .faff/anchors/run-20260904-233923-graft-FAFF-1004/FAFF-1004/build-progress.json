@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1004",
+  "build": {
+    "status": "complete",
+    "diff_hash": "786bef72b5e81a3e3ab6e71e4a1bda1cd78326f461eafbd0fbbedd1867aa7551",
+    "branch": "faff-1004-fail-closed-the-anchor-before-pr-order-lint-on-a",
+    "pushed_at": "2026-09-04T23:42:50.874Z"
+  },
+  "updated_at": "2026-09-04T23:42:50.874Z"
+}

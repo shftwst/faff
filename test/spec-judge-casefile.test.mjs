@@ -378,3 +378,108 @@ test("admitRollup at effective L4 with null governing_requirements -> admit fals
     assert.equal(r3.admit, true, "the PRD-less state admits only provisionally at L3");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// --- FAFF-995: judge-aware L4 infosec floor --------------------------------
+// Veto only on a post-judge STANDING infosec major/blocker (not in resolved[]); L3 stays the
+// byte-identical pre-judge arithmetic gate.
+
+test("FAFF-995 scenario 1: effective-L4, infosec major AFFIRM_SPEC'd by the judge -> floor does NOT veto, admit true", () => {
+  const dir = mintRunDir({ level: "L4", includeChainLevel: true });
+  try {
+    const entries = { "p-01": { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_content: "" } };
+    const ledger = { order: ["p-01"], entries, governing_requirements: "PRD bounds present" };
+    const rulings = { "p-01": { outcome: "AFFIRM_SPEC" } };
+    const r = cf.admitRollup({ ledger, rulings, level: "L4", runDir: dir, floors: { blocker_free_latest: true, infosec_major_free: false }, governingRequirements: "PRD bounds present" });
+    assert.equal(r.level, "L4");
+    assert.ok(!r.floor_veto.includes("infosec_major"), `floor_veto must not include infosec_major: ${JSON.stringify(r.floor_veto)}`);
+    assert.equal(r.admit, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-995 scenario 2: same ledger+rulings but level L3 -> floor STILL vetoes, admit false", () => {
+  const entries = { "p-01": { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_content: "" } };
+  const ledger = { order: ["p-01"], entries, governing_requirements: "PRD bounds present" };
+  const rulings = { "p-01": { outcome: "AFFIRM_SPEC" } };
+  const r = cf.admitRollup({ ledger, rulings, level: "L3", floors: { blocker_free_latest: true, infosec_major_free: false }, governingRequirements: "PRD bounds present" });
+  assert.equal(r.level, "L3");
+  assert.ok(r.floor_veto.includes("infosec_major"));
+  assert.equal(r.admit, false);
+});
+
+test("FAFF-995 scenario 3 (holdout): effective-L4, infosec major ruled PRD_BOUNDARY -> admit false, prd_boundary lists it, floor_veto includes infosec_major", () => {
+  const dir = mintRunDir({ level: "L4", includeChainLevel: true });
+  try {
+    const entries = { "p-01": { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_content: "" } };
+    const ledger = { order: ["p-01"], entries, governing_requirements: "PRD bounds present" };
+    const rulings = { "p-01": { outcome: "PRD_BOUNDARY", prd_gap_citation: "gap" } };
+    const r = cf.admitRollup({ ledger, rulings, level: "L4", runDir: dir, floors: { blocker_free_latest: true, infosec_major_free: false }, governingRequirements: "PRD bounds present" });
+    assert.equal(r.admit, false);
+    assert.deepEqual(r.prd_boundary, ["p-01"]);
+    assert.ok(r.floor_veto.includes("infosec_major"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-995 scenario 4: a caller-claimed L4 run that FAILS ratification (no run-dir) falls back to effective-L3 and keeps the floor", () => {
+  const entries = { "p-01": { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_content: "" } };
+  const ledger = { order: ["p-01"], entries, governing_requirements: "PRD bounds present" };
+  const rulings = { "p-01": { outcome: "AFFIRM_SPEC" } };
+  const r = cf.admitRollup({ ledger, rulings, level: "L4", runDir: null, floors: { blocker_free_latest: true, infosec_major_free: false }, governingRequirements: "PRD bounds present" });
+  assert.equal(r.level, "L3");
+  assert.ok(r.floor_veto.includes("l4_unratified"));
+  assert.ok(r.floor_veto.includes("infosec_major"));
+  assert.equal(r.admit, false);
+});
+
+test("FAFF-995: effective-L4 with a degraded (null) infosec floor input fails CLOSED regardless of the standing set", () => {
+  const dir = mintRunDir({ level: "L4", includeChainLevel: true });
+  try {
+    const entries = { "p-01": { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_content: "" } };
+    const ledger = { order: ["p-01"], entries, governing_requirements: "PRD bounds present" };
+    const rulings = { "p-01": { outcome: "AFFIRM_SPEC" } };
+    const r = cf.admitRollup({ ledger, rulings, level: "L4", runDir: dir, floors: { blocker_free_latest: true, infosec_major_free: null }, governingRequirements: "PRD bounds present" });
+    assert.equal(r.admit, false);
+    assert.ok(r.floor_veto.includes("floor_input_degraded"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-995: effective-L4 with an UNAPPLIED infosec correction still stands (not in resolved[]) -> floor vetoes", () => {
+  const dir = mintRunDir({ level: "L4", includeChainLevel: true });
+  try {
+    const spec = "spec body";
+    const entry = { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_sha: cf.sha256Text(spec), pre_ruling_spec_content: spec };
+    const ledger = { order: ["p-01"], entries: { "p-01": entry }, governing_requirements: "PRD bounds present" };
+    const ruling = { outcome: "UPHOLD_REVIEW", correction: { summary: "s", verification: "the fix was applied here" } };
+    // currentSpecText unchanged -> correctionApplied() is false -> p-01 stays unresolved, not in resolved[]
+    const r = cf.admitRollup({ ledger, rulings: { "p-01": ruling }, currentSpecText: spec, level: "L4", runDir: dir, floors: { blocker_free_latest: true, infosec_major_free: false }, governingRequirements: "PRD bounds present" });
+    assert.ok(!r.resolved.includes("p-01"));
+    assert.ok(r.floor_veto.includes("infosec_major"));
+    assert.equal(r.admit, false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-995: effective-L4 with an APPLIED infosec correction resolves it (in resolved[]) -> floor does NOT veto", () => {
+  const dir = mintRunDir({ level: "L4", includeChainLevel: true });
+  try {
+    const spec = "spec body";
+    const applied = "the minor tweak literal was added to the spec here";
+    const entry = { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_sha: cf.sha256Text(spec), pre_ruling_spec_content: spec };
+    const ledger = { order: ["p-01"], entries: { "p-01": entry }, governing_requirements: "PRD bounds present" };
+    const ruling = { outcome: "UPHOLD_REVIEW", correction: { summary: "s", verification: applied } };
+    const r = cf.admitRollup({ ledger, rulings: { "p-01": ruling }, currentSpecText: spec + " " + applied, level: "L4", runDir: dir, floors: { blocker_free_latest: true, infosec_major_free: false }, governingRequirements: "PRD bounds present" });
+    assert.ok(r.resolved.includes("p-01"));
+    assert.ok(!r.floor_veto.includes("infosec_major"));
+    assert.equal(r.admit, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-995: L3 infosec floor stays byte-identical for both false and null infosec inputs (same veto tokens as pre-change)", () => {
+  const entries = { "p-01": { proposition_id: "p-01", lens: "infosec", severity: "major", blocking: true, resolution: "pending", pre_ruling_spec_content: "" } };
+  const ledger = ledgerOf(entries);
+  const rulings = { "p-01": { outcome: "AFFIRM_SPEC" } };
+  const rFalse = cf.admitRollup({ ledger, rulings, level: "L3", floors: { blocker_free_latest: true, infosec_major_free: false } });
+  assert.deepEqual(rFalse.floor_veto, ["infosec_major"]);
+  assert.equal(rFalse.admit, false);
+  const rNull = cf.admitRollup({ ledger, rulings, level: "L3", floors: { blocker_free_latest: true, infosec_major_free: null } });
+  assert.deepEqual(rNull.floor_veto, ["floor_input_degraded"]);
+  assert.equal(rNull.admit, false);
+});

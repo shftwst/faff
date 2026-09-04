@@ -4,10 +4,14 @@
 // (blocker_free_latest reused verbatim; infosec_major_free_latest derived here).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runCli } from "./helpers/run-cli.mjs";
+import { createRequire } from "node:module";
+import { runCli, repoRoot } from "./helpers/run-cli.mjs";
+
+const require = createRequire(import.meta.url);
+const events = require("../plugin/skills/faff/bin/lib/events.js");
 
 function seed(dir, rounds) {
   rounds.forEach((objections, i) => {
@@ -219,4 +223,69 @@ test("an out-of-set --level is a usage error (exit 2)", () => {
     const r = runCli(["spec-judge-evidence", "--dir", dir, "--window-start", "1", "--level", "L9", "--appetite", "high", "--issue", "FAFF-1"]);
     assert.equal(r.code, 2);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- FAFF-995: end-to-end cmdAdmit — the wired effective-L4 judge-aware path ------------------
+
+function mintRatifiedL4RunDir() {
+  // Mirrors spec-judge-casefile.test.mjs's mintRunDir: the chain's genesis prev-hash seed is
+  // basename(dir), so the run dir MUST be named after the run_id for the from-genesis walk to
+  // verify (exactly as production run dirs are).
+  const parent = mkdtempSync(join(tmpdir(), "faff-sj-ev-run-"));
+  const runId = "run-995-e2e";
+  const dir = join(parent, runId);
+  mkdirSync(dir);
+  writeFileSync(join(dir, "run-ledger.json"), JSON.stringify({ run_id: runId, level: "L4" }));
+  events.appendRecordUnderLock(dir, (seq, _prev, prevHash) => ({
+    schema: 2, run_id: runId, seq, ts: "t", prev: prevHash, phase: "run", type: "run-start",
+    data: { level: "L4" },
+  }));
+  return dir;
+}
+
+test("FAFF-995 e2e: cmdAdmit at effective-L4 with a judge-AFFIRM_SPEC'd infosec major -> admit JSON with no infosec_major veto", () => {
+  const specDir = mkdtempSync(join(tmpdir(), "faff-sj-ev-cli-"));
+  const scratch = join(specDir, "scratch");
+  mkdirSync(scratch);
+  const runDir = mintRatifiedL4RunDir();
+  try {
+    const specPath = join(specDir, "spec.md");
+    writeFileSync(specPath, "# Spec\n\n## The guard decision\n\n**Chosen:** refuse an empty --dir with a founded error.\n");
+    writeFileSync(join(scratch, "round-1.json"), JSON.stringify({
+      verdict: "reject-approach",
+      objections: [{ lens: "infosec", severity: "major", claim: "leak", evidence: "see config.txt", predicted_consequence: "exfiltration", spec_anchor: "the-guard-decision" }],
+    }));
+    const out = join(scratch, "judge");
+    const a = runCli(["spec-judge-evidence", "--assemble", "--dir", scratch, "--window-start", "1", "--spec", specPath, "--issue", "FAFF-995", "--repo-root", repoRoot, "--out", out]);
+    assert.equal(a.code, 0, a.stderr);
+    assert.deepEqual(JSON.parse(a.stdout).propositions, ["p-01"]);
+
+    // The judge AFFIRMs the infosec major.
+    writeFileSync(join(out, "ruling-p-01.json"), JSON.stringify({ proposition_id: "p-01", outcome: "AFFIRM_SPEC", correction: null, synthesis_sources: [], prd_gap_citation: "" }));
+
+    // PRD-presence fail-safe: stamp governing_requirements onto the assembled ledger so the
+    // effective-L4 admit isn't independently vetoed by prd_absent_at_l4 (a different floor, out
+    // of scope for this infosec-floor test).
+    const ledgerPath = join(out, "ledger.json");
+    const ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
+    ledger.governing_requirements = "PRD bounds present";
+    writeFileSync(ledgerPath, JSON.stringify(ledger, null, 2) + "\n", { mode: 0o600 });
+
+    const r = runCli(["spec-judge-evidence", "--admit", "--level", "L4", "--out", out, "--spec", specPath, "--dir", scratch, "--window-start", "1", "--run-dir", runDir]);
+    assert.equal(r.code, 0, r.stderr);
+    const res = JSON.parse(r.stdout);
+    assert.equal(res.level, "L4", "the run-dir is genuinely ratified L4");
+    assert.equal(res.admit, true);
+    assert.ok(!res.floor_veto.includes("infosec_major"), `floor_veto must not include infosec_major once the judge affirmed it: ${JSON.stringify(res.floor_veto)}`);
+
+    // Same case, but level L3 (no judge-awareness) -> the pre-judge residue still vetoes.
+    const r3 = runCli(["spec-judge-evidence", "--admit", "--level", "L3", "--out", out, "--spec", specPath, "--dir", scratch, "--window-start", "1"]);
+    assert.equal(r3.code, 0, r3.stderr);
+    const res3 = JSON.parse(r3.stdout);
+    assert.equal(res3.admit, false);
+    assert.ok(res3.floor_veto.includes("infosec_major"));
+  } finally {
+    rmSync(specDir, { recursive: true, force: true });
+    rmSync(runDir, { recursive: true, force: true });
+  }
 });

@@ -586,12 +586,16 @@ function cmdAdmit(values) {
       try { blockerFree = JSON.parse(conv.stdout).blocker_free_latest === true; } catch { blockerFree = null; }
     }
   }
-  // infosec_major_free is computed over the ledger's RETAINED {lens,severity} (the standing
-  // residue), and it vetoes OVER THE TOP regardless of the per-proposition outcome — a deliberate
-  // security-conservative floor: a standing infosec major/blocker routes to needs-human even when
-  // the judge affirms it (the security-severity floor stays arithmetic and outside the judge, so
-  // blinding the judge to the lens label never weakens security protection). This is the spec's
-  // pinned behaviour, not an oversight of the per-proposition rulings.
+  // infosec_major_free is computed over the ledger's RETAINED {lens,severity} (the pre-judge
+  // standing residue) and is passed to admitRollup as one tri-state floor input; admitRollup
+  // itself decides how to use it, and that decision now differs by effective level (FAFF-995).
+  // At effective-L3 the floor still vetoes OVER THE TOP regardless of the per-proposition
+  // outcome — a deliberate security-conservative arithmetic gate, independent of the judge. At
+  // effective-L4 the floor is judge-aware: it vetoes only when an infosec major/blocker is still
+  // STANDING after the judge ruled (not AFFIRM_SPEC'd, and not an applied correction), so a
+  // judge-resolved infosec major no longer forces a park. Either way the lens/severity residue
+  // computed here is the same input; blinding the judge to the lens label never weakens security
+  // protection, since the floor reads the judge's ruling OUTPUT, not its blinded input.
   const ledgerObjections = ledger.order.map((pid) => ledger.entries[pid]).filter(Boolean).map((e) => ({ lens: e.lens, severity: e.severity }));
   const infosecMajorFreeVal = infosecMajorFree(ledgerObjections);
 

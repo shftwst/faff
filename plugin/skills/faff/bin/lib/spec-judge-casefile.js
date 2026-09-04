@@ -524,24 +524,10 @@ function admitRollup(opts) {
   let floorPass = true;
   const pushVeto = (v) => { if (!floor_veto.includes(v)) floor_veto.push(v); };
   const floorIsTrue = (v) => v === true;
-  if (!floorIsTrue(floors.blocker_free_latest)) {
-    floorPass = false;
-    pushVeto(floors.blocker_free_latest === false ? "blocker" : "floor_input_degraded");
-  }
-  if (!floorIsTrue(floors.infosec_major_free)) {
-    floorPass = false;
-    pushVeto(floors.infosec_major_free === false ? "infosec_major" : "floor_input_degraded");
-  }
-  if (floors.reputation_ok !== undefined && !floorIsTrue(floors.reputation_ok)) {
-    floorPass = false;
-    pushVeto("floor_input_degraded");
-  }
-  if (floors.ratified_scope_ok !== undefined && !floorIsTrue(floors.ratified_scope_ok)) {
-    floorPass = false;
-    pushVeto("floor_input_degraded");
-  }
 
-  // L4-ratification: the roll-up's half of the two-part L4-final gate.
+  // L4-ratification: the roll-up's half of the two-part L4-final gate. Hoisted above the floor
+  // block (FAFF-995) so `effectiveLevel` — and `resolved[]` from the loop above — are both in hand
+  // before any floor, in particular the infosec floor below, is decided.
   let effectiveLevel = level;
   if (level === "L4") {
     if (!runDir) {
@@ -557,6 +543,46 @@ function admitRollup(opts) {
       floorPass = false;
       floor_veto.push("prd_absent_at_l4");
     }
+  }
+
+  if (!floorIsTrue(floors.blocker_free_latest)) {
+    floorPass = false;
+    pushVeto(floors.blocker_free_latest === false ? "blocker" : "floor_input_degraded");
+  }
+
+  // infosec floor (FAFF-995) — judge-aware at effective-L4: veto only on an infosec major/blocker
+  // still STANDING after the judge ruled (not in `resolved[]` — i.e. not AFFIRM_SPEC'd and not an
+  // applied correction; covers PRD_BOUNDARY, unapplied corrections, parked, and non-conformant
+  // outcomes). A degraded (non-boolean) input still fails closed. Effective-L3 — including a
+  // caller-claimed-L4 run that failed ratification above — keeps the byte-identical pre-judge
+  // arithmetic gate.
+  if (effectiveLevel === "L4") {
+    const infosecInput = floors.infosec_major_free;
+    if (infosecInput !== true && infosecInput !== false) {
+      floorPass = false;
+      pushVeto("floor_input_degraded");
+    } else {
+      const standingInfosecMajor = order.some((pid) => {
+        const entry = entries[pid];
+        return !!entry && entry.lens === "infosec" && blockingOf(entry.severity) && !resolved.includes(pid);
+      });
+      if (standingInfosecMajor) {
+        floorPass = false;
+        pushVeto("infosec_major");
+      }
+    }
+  } else if (!floorIsTrue(floors.infosec_major_free)) {
+    floorPass = false;
+    pushVeto(floors.infosec_major_free === false ? "infosec_major" : "floor_input_degraded");
+  }
+
+  if (floors.reputation_ok !== undefined && !floorIsTrue(floors.reputation_ok)) {
+    floorPass = false;
+    pushVeto("floor_input_degraded");
+  }
+  if (floors.ratified_scope_ok !== undefined && !floorIsTrue(floors.ratified_scope_ok)) {
+    floorPass = false;
+    pushVeto("floor_input_degraded");
   }
 
   const admit = everyBlockingResolved && prd_boundary.length === 0 && floorPass;

@@ -18,8 +18,8 @@
 
 import http from "node:http";
 import https from "node:https";
-import { readFileSync } from "node:fs";
-import { join as pathJoin } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join as pathJoin, dirname as pathDirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
@@ -45,6 +45,11 @@ export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, 
 // the hard merge gate — AC + CI + Phase-1 pass — is untouched). A config fault (needs-human class) seen on
 // an earlier backend still DOMINATES (surfaced instead of 8) — the no-silent-weakening invariant.
 export const DEFAULT_NUM_PREDICT = 2000;
+
+// FAFF-928: per-body byte cap for retained raw adversarial-review response bodies. A captured body
+// larger than this is truncated with an explicit marker (see captureRawResponseBody); the 2000-token
+// default num_predict is far under it, so the common case is retained whole.
+export const RAW_BODY_MAX_BYTES = 256 * 1024;   // 256 KB
 
 // FAFF-885: the DEFAULT per-attempt first-byte (time-to-first-token) window, in ms. Applied at the CLI
 // boundary (main) as the DEFAULT-ON value when neither a per-backend `first_byte_timeout` nor the
@@ -1221,6 +1226,9 @@ export function parseArgs(argv) {
       a.expectContract = true;
     }
     else if (k === "--no-findings-shape") a.expectContract = true;   // FAFF-940: bare alias for --expect contract
+    else if (k === "--raw-dir") a.rawDir = argv[++i];   // FAFF-928: retain each backend's raw response body under this dir (per lens × backend × round); absent ⇒ no capture (byte-for-byte today)
+    else if (k === "--lens") a.lens = argv[++i];        // FAFF-928: lens name for the raw-body artifact filename + preamble
+    else if (k === "--round") a.round = argv[++i];      // FAFF-928: spec-review round for the raw-body artifact filename + preamble
   }
   return a;
 }
@@ -1419,6 +1427,104 @@ async function safeCall(callFn) {
 // elements failed. The terminal ("exhausted", last backend, no fallback left) log line is deliberately
 // UNCHANGED — reshaping it is out of scope (the design spec §2: "Restructuring the existing
 // exhausted/success stderr log lines").
+// FAFF-928 — retained raw adversarial-review response bodies (per lens × backend × round).
+// The chain discards every backend's raw bytes the moment it classifies them, so a misclassification
+// can never be inspected after the fact and there is no corpus to calibrate the classifier against.
+// These helpers persist each backend's raw body (or a metadata stub for a no-body failure) to a
+// bounded, self-describing artifact, keyed on the SAME provenance fields FAFF-361's attribution header
+// carries. Capture is a pure add-on gated entirely on shared.rawDir, so an absent flag is byte-for-today.
+
+// The injectable write path (mirrors getFn/streamFn/checkFn): real mkdir -p + writeFile, so CI writes
+// nothing to disk unless a test injects its own writeFn.
+export function realWrite(filePath, content) {
+  mkdirSync(pathDirname(filePath), { recursive: true });
+  writeFileSync(filePath, content);
+}
+
+// PURE: filename-safe a path segment (provider/model/lens can carry "/" and other unsafe chars).
+function sanitizeSegment(s) {
+  return String(s == null ? "" : s).replace(/[^A-Za-z0-9._-]/g, "-") || "unknown";
+}
+
+// PURE (FAFF-928): the per-backend outcome token that names the artifact — derived from the runReview
+// RESULT alone, so it is computed at the single capture site AHEAD of the classification branch (and so
+// composes with FAFF-927, which re-partitions that branch, in either merge order). For an OK result it
+// reuses the SAME primitives the classification branch keys off (validateFindingsShape /
+// normaliseCleanRefutation on the raw content), so the token matches the outcome the loop would record.
+// A null `result` (a pre-dispatch config/deadline stub) is handled by the callers, never here.
+export function classifyCapturedResult(result, hostSource, expectContract) {
+  const status = result && result.status;
+  if (status === "ok") {
+    const content = (result && result.content) || "";
+    if (expectContract) {
+      return content.trim() ? { token: "contract", exit: EXIT.OK } : { token: "empty", exit: EXIT.NO_FINDINGS_CONTENT };
+    }
+    if (!content.trim()) return { token: "empty", exit: EXIT.NO_FINDINGS_CONTENT };
+    const shape = validateFindingsShape(content);
+    if (shape.ok) return { token: "findings", exit: EXIT.OK };
+    const normalisation = normaliseCleanRefutation(content);
+    if (normalisation.normalised) return { token: "clean", exit: EXIT.OK };
+    if (shape.kind === "empty") return { token: "empty", exit: EXIT.NO_FINDINGS_CONTENT };
+    if (shape.kind === "refusal") return { token: "refusal", exit: EXIT.NO_FINDINGS_CONTENT };
+    return { token: "malformed", exit: EXIT.MALFORMED };
+  }
+  const exit = mapResultExit(result, hostSource);
+  const byStatus = {
+    unreachable: "unreachable", "transport-failed": "transport-failed", "auth-failed": "auth",
+    "rate-limited": "rate-limited", "model-not-served": "not-served", "request-failed": "request-failed",
+    "unsupported-provider": "unsupported-provider",
+  };
+  return { token: byStatus[status] || status || "failed", exit };
+}
+
+// The one side-effecting capture call. No-op unless shared.rawDir is set — so an absent --raw-dir writes
+// NOTHING and never touches writeFn (the byte-for-byte-today invariant). Writes one file per lens ×
+// backend × round: a self-describing metadata preamble then the raw body, byte-capped at
+// RAW_BODY_MAX_BYTES with an explicit truncation marker. `result` may be null for a no-body stub.
+export function captureRawResponseBody(shared, { chainIndex, backend, result, token, exit }) {
+  if (!shared || !shared.rawDir) return;
+  const writeFn = shared.writeFn || realWrite;
+  const b = backend || {};
+  const lens = shared.lens || "lens";
+  const round = shared.round == null ? "0" : String(shared.round);
+  const provider = b.provider || "openai";
+  const model = b.model || "unknown";
+  const hostSource = b.hostSource || "config";
+  const content = (result && result.content) || "";
+  const byteLength = Buffer.byteLength(content, "utf8");
+  const sha256 = createHash("sha256").update(content, "utf8").digest("hex");
+  let body = content;
+  let truncated = false;
+  if (byteLength > RAW_BODY_MAX_BYTES) {
+    body = Buffer.from(content, "utf8").subarray(0, RAW_BODY_MAX_BYTES).toString("utf8")
+      + `\n…[truncated ${byteLength - RAW_BODY_MAX_BYTES} bytes]`;
+    truncated = true;
+  }
+  const fname = `round-${sanitizeSegment(round)}.${sanitizeSegment(lens)}.${chainIndex}-${sanitizeSegment(provider)}-${sanitizeSegment(model)}.${sanitizeSegment(token)}.txt`;
+  const preamble = [
+    "# faff-raw-adversarial-body (FAFF-928)",
+    `# lens: ${lens}`,
+    `# round: ${round}`,
+    `# provider: ${provider}`,
+    `# model: ${model}`,
+    `# chain_index: ${chainIndex}`,
+    `# host_source: ${hostSource}`,
+    `# classification: ${token}`,
+    `# exit: ${exit}`,
+    `# truncated: ${truncated}`,
+    `# byte_length: ${byteLength}`,
+    `# sha256: ${sha256}`,
+    "# ---",
+    "",
+  ].join("\n");
+  try {
+    writeFn(pathJoin(shared.rawDir, fname), preamble + body);
+  } catch (e) {
+    const log = shared.log || ((m) => process.stderr.write(m + "\n"));
+    log(`[raw-capture] FAFF-928: failed to write ${fname}: ${e && e.message}`);
+  }
+}
+
 export async function runReviewChain(chain = [], shared = {}) {
   const runReviewFn = shared.runReviewFn || runReview;
   const log = shared.log || ((m) => process.stderr.write(m + "\n"));
@@ -1445,6 +1551,7 @@ export async function runReviewChain(chain = [], shared = {}) {
     // legacy single-backend path where callers never passed --provider.
     if (!b.model || !b.host) {
       failureClasses.push(EXIT.USAGE);
+      if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "invalid", exit: EXIT.USAGE });   // FAFF-928: no-body stub — the record of this round stays complete
       log(verb === "advancing"
         ? `[chain] ${tag} invalid (missing model/host) → advancing (exit ${EXIT.USAGE})`
         : `${verb}: backend ${i + 1}/${n} invalid (missing model/host) (exit ${EXIT.USAGE})`);
@@ -1453,6 +1560,7 @@ export async function runReviewChain(chain = [], shared = {}) {
     // A declared-but-unset api key env is that backend's auth fault — no point calling, advance.
     if (b.apiKeyMissing) {
       failureClasses.push(EXIT.AUTH);
+      if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "auth", exit: EXIT.AUTH });   // FAFF-928: no-body stub (the FAFF-927 unset-key first-backend case)
       log(verb === "advancing"
         ? `[chain] ${tag} unset-key (env '${b.apiKeyEnv}') → advancing (exit ${EXIT.AUTH})`
         : `${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
@@ -1512,6 +1620,7 @@ export async function runReviewChain(chain = [], shared = {}) {
         // EXIT.DEADLINE thus still occurs ONLY via the top-of-loop total-budget gate or this last-backend
         // exhaustion — never mid-chain.
         failureClasses.push(EXIT.DEADLINE);
+        if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "deadline", exit: EXIT.DEADLINE });   // FAFF-928: dispatched-then-abandoned backend — no-body stub
         log(verb === "advancing"
           ? `[chain] ${tag} slice ${Math.round(sliceMs / 1000)}s exhausted → advancing (exit ${EXIT.DEADLINE})`
           : `deadline: Phase-2 backend ${tag} exhausted its ${Math.round(sliceMs / 1000)}s slice, chain exhausted (exit ${EXIT.DEADLINE})`);
@@ -1523,6 +1632,13 @@ export async function runReviewChain(chain = [], shared = {}) {
       result = await safeCall(callReview);
     }
     const exit = mapResultExit(result, b.hostSource);
+    // FAFF-928: retain this backend's raw body BEFORE/independently of the classification branch below,
+    // so retention never depends on which class it lands in (and composes with FAFF-927 re-partitioning
+    // that branch). Gated on rawDir so an absent flag is byte-for-byte today.
+    if (shared.rawDir) {
+      const cap = classifyCapturedResult(result, b.hostSource, shared.expectContract);
+      captureRawResponseBody(shared, { chainIndex: i, backend: b, result, token: cap.token, exit: cap.exit });
+    }
     if (exit === EXIT.OK) {
       // FAFF-194/FAFF-465: per-backend shape validation — a non-findings-shaped OK result advances to the
       // next backend rather than short-circuiting the whole chain, so a healthy fallback still gets a
@@ -1601,7 +1717,7 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--expect contract]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--expect contract] [--raw-dir DIR --lens NAME --round N]\n");
     return EXIT.USAGE;
   }
 
@@ -1721,7 +1837,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   // (`system` = --system = the lens brief); the two aliases below make the swapped roles explicit.
   const sharedBlock = user;   // assembleUserMessage output — byte-identical across the four spec-review lenses
   const lensBrief = system;   // the --system refuter brief — the only per-lens-differing part
-  const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs, expectContract: a.expectContract });
+  const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs, expectContract: a.expectContract, rawDir: a.rawDir, lens: a.lens, round: a.round });
 
   if (res.exit === EXIT.OK) {
     if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");

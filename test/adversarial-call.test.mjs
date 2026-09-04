@@ -15,6 +15,7 @@ import {
   isTransientTransport, isRateLimited, TRANSPORT_RETRY, main,
   judgeDispatchDisposition, JUDGE_RETRY_OUTAGE_EXITS,
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
+  RAW_BODY_MAX_BYTES, classifyCapturedResult, captureRawResponseBody, realWrite,
   ledgerMandatory, budgetWarnings,
   splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS,
   attributionHeader, ensureHeader, hasHeader,
@@ -3470,4 +3471,171 @@ test("FAFF-915: a pure-insertion new-file hunk (@@ -0,0 +1,N @@) is parsed corre
   const diff = ["+++ b/new.js", "@@ -0,0 +1,3 @@", "+line one", "+line two", "+line three"].join("\n");
   const { touchedByPath } = parseDiffTouched(diff);
   assert.deepEqual(touchedByPath.get("new.js"), [[1, 1], [2, 2], [3, 3]], "all three inserted lines touched at 1,2,3");
+});
+
+// ============================================================================================
+// FAFF-928 — retained raw adversarial-review response bodies (per lens × backend × round).
+// A spy writeFn records every capture so CI does no real disk IO (AC7). The chain is driven with a
+// stubbed runReviewFn (host → canned result), the same injection the FAFF-232 chain tests use.
+// ============================================================================================
+
+function captureSpy() {
+  const writes = [];
+  const writeFn = (path, content) => writes.push({ path, content });
+  return { writes, writeFn, byToken: (t) => writes.filter((w) => w.path.endsWith(`.${t}.txt`)) };
+}
+const bodyOf = (content) => content.slice(content.indexOf("# ---\n") + "# ---\n".length); // preamble ends with the "# ---\n" line; the body follows
+
+test("FAFF-928 AC1: a non-findings backend then a findings winner both write distinct raw artifacts", async () => {
+  const chain = [
+    { provider: "openrouter", model: "deepseek-v4", host: "https://a/v1", hostSource: "config" },
+    { provider: "gemini", model: "gemma-31b", host: "https://b/v1", hostSource: "config" },
+  ];
+  const { writes, byToken } = captureSpy();
+  const spy = { writeFn: (p, c) => writes.push({ path: p, content: c }) };
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    rawDir: "/scratch/raw", lens: "architectural", round: 1, writeFn: spy.writeFn,
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "ok", content: "this is prose with no finding section at all" }, // garbled → malformed
+      "https://b/v1": { status: "ok", content: "### critical: real issue\n\nbody" },              // findings winner
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1);
+  assert.equal(writes.length, 2, "one artifact per backend the chain touched");
+  const mal = byToken("malformed");
+  const fnd = byToken("findings");
+  assert.equal(mal.length, 1, "backend 0 classified malformed");
+  assert.equal(fnd.length, 1, "backend 1 classified findings");
+  assert.match(mal[0].path, /\/scratch\/raw\/round-1\.architectural\.0-openrouter-deepseek-v4\.malformed\.txt$/);
+  assert.match(fnd[0].path, /\/scratch\/raw\/round-1\.architectural\.1-gemini-gemma-31b\.findings\.txt$/);
+  assert.match(mal[0].content, /this is prose with no finding section at all/, "malformed body retained verbatim");
+  assert.match(fnd[0].content, /### critical: real issue/, "findings body retained verbatim");
+  assert.match(mal[0].content, /# classification: malformed/);
+  assert.match(fnd[0].content, /# sha256: [0-9a-f]{64}/);
+});
+
+test("FAFF-928 AC2: clean, malformed, empty, and refusal bodies are each captured with the matching token", async () => {
+  const chain = [
+    { provider: "p", model: "empty-m", host: "https://e/v1", hostSource: "config" },
+    { provider: "p", model: "refuse-m", host: "https://r/v1", hostSource: "config" },
+    { provider: "p", model: "garble-m", host: "https://g/v1", hostSource: "config" },
+    { provider: "p", model: "clean-m", host: "https://c/v1", hostSource: "config" },
+  ];
+  const { writes, byToken } = captureSpy();
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    rawDir: "/raw", lens: "infosec", round: 2, writeFn: (p, c) => writes.push({ path: p, content: c }),
+    runReviewFn: scriptedRunReview({
+      "https://e/v1": { status: "ok", content: "   " },                        // empty → advances
+      "https://r/v1": { status: "ok", content: "I cannot help with that." },   // refusal → advances
+      "https://g/v1": { status: "ok", content: "just some prose, no sections" }, // garbled → malformed → advances
+      "https://c/v1": { status: "ok", content: "No infosec objection." },       // clean → normalised → winner
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK, "the clean refutation is accepted as the winner");
+  assert.equal(res.winnerIndex, 3);
+  assert.equal(writes.length, 4);
+  for (const [token, model] of [["empty", "empty-m"], ["refusal", "refuse-m"], ["malformed", "garble-m"], ["clean", "clean-m"]]) {
+    const hits = byToken(token);
+    assert.equal(hits.length, 1, `exactly one ${token} artifact`);
+    assert.ok(hits[0].path.includes(`-p-${model}.${token}.txt`), `${token} filename names ${model}`);
+  }
+});
+
+test("FAFF-928 AC3: a body over RAW_BODY_MAX_BYTES is truncated with a marker and never written unbounded", async () => {
+  const big = "### critical: big\n\n" + "x".repeat(RAW_BODY_MAX_BYTES + 50_000);
+  const chain = [{ provider: "p", model: "m", host: "https://a/v1", hostSource: "config" }];
+  const { writes } = captureSpy();
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    rawDir: "/raw", lens: "QA", round: 1, writeFn: (p, c) => writes.push({ path: p, content: c }),
+    runReviewFn: scriptedRunReview({ "https://a/v1": { status: "ok", content: big } }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(writes.length, 1);
+  const { content } = writes[0];
+  assert.match(content, /…\[truncated \d+ bytes\]/, "explicit truncation marker with the dropped byte count");
+  assert.match(content, /# byte_length: /, "metadata records the original byte length");
+  const body = bodyOf(content);
+  // the retained body is the cap plus the short marker — never the whole oversized body
+  assert.ok(Buffer.byteLength(body, "utf8") <= RAW_BODY_MAX_BYTES + 64, "body body is capped + marker, not unbounded");
+  assert.ok(Buffer.byteLength(content, "utf8") < Buffer.byteLength(big, "utf8"), "written artifact is smaller than the raw body");
+});
+
+test("FAFF-928 AC4: with no --raw-dir the chain writes NOTHING and behaves byte-for-byte as today", async () => {
+  const chain = [
+    { provider: "p", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "p", model: "m2", host: "https://b/v1", hostSource: "config" },
+  ];
+  let calls = 0;
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    writeFn: () => { calls++; },   // injected but must NEVER be called when rawDir is absent
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "unreachable", note: "down" },
+      "https://b/v1": { status: "ok", content: "### major: found" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1, "unchanged advance-then-win behaviour");
+  assert.equal(calls, 0, "the injected writeFn is never called without --raw-dir");
+});
+
+test("FAFF-928 AC5: a no-content backend failure writes a metadata-only stub (empty body, token in the name)", async () => {
+  const chain = [
+    { provider: "p", model: "down-m", host: "https://a/v1", hostSource: "config" },
+    { provider: "p", model: "ok-m", host: "https://b/v1", hostSource: "config" },
+  ];
+  const { writes, byToken } = captureSpy();
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    rawDir: "/raw", lens: "methodology", round: 3, writeFn: (p, c) => writes.push({ path: p, content: c }),
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "unreachable", note: "ECONNREFUSED" },
+      "https://b/v1": { status: "ok", content: "### minor: ok" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  const stub = byToken("unreachable");
+  assert.equal(stub.length, 1, "the unreachable backend still leaves a stub");
+  assert.match(stub[0].path, /\.0-p-down-m\.unreachable\.txt$/);
+  assert.match(stub[0].content, /# byte_length: 0/, "stub records an empty body");
+  assert.equal(bodyOf(stub[0].content), "", "stub body is empty");
+});
+
+test("FAFF-928 AC5: an unset-api-key backend (pre-dispatch) also leaves an auth stub", async () => {
+  const chain = [
+    { provider: "spark", model: "qwen", host: "https://a/v1", hostSource: "config", apiKeyEnv: "DUMMY_API_KEY", apiKeyMissing: true },
+    { provider: "p", model: "ok-m", host: "https://b/v1", hostSource: "config" },
+  ];
+  const { writes, byToken } = captureSpy();
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    rawDir: "/raw", lens: "architectural", round: 1, writeFn: (p, c) => writes.push({ path: p, content: c }),
+    runReviewFn: scriptedRunReview({ "https://b/v1": { status: "ok", content: "### critical: x" } }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(byToken("auth").length, 1, "the unset-key first backend (the FAFF-927 case) leaves a stub");
+});
+
+test("FAFF-928: classifyCapturedResult maps each result to the expected token", () => {
+  assert.deepEqual(classifyCapturedResult({ status: "ok", content: "### critical: x" }, "config", false).token, "findings");
+  assert.deepEqual(classifyCapturedResult({ status: "ok", content: "No QA objection." }, "config", false).token, "clean");
+  assert.deepEqual(classifyCapturedResult({ status: "ok", content: "" }, "config", false).token, "empty");
+  assert.deepEqual(classifyCapturedResult({ status: "ok", content: "I cannot do that." }, "config", false).token, "refusal");
+  assert.deepEqual(classifyCapturedResult({ status: "ok", content: "rambling prose" }, "config", false).token, "malformed");
+  assert.deepEqual(classifyCapturedResult({ status: "unreachable" }, "config", false).token, "unreachable");
+  assert.deepEqual(classifyCapturedResult({ status: "auth-failed" }, "config", false).token, "auth");
+  assert.deepEqual(classifyCapturedResult({ status: "model-not-served" }, "config", false).token, "not-served");
+  assert.deepEqual(classifyCapturedResult({ status: "transport-failed" }, "config", false).token, "transport-failed");
+  assert.deepEqual(classifyCapturedResult({ status: "ok", content: "{\"verdict\":\"x\"}" }, "config", true).token, "contract");
+});
+
+test("FAFF-928 AC7: captureRawResponseBody is a no-op without rawDir and never touches a real fs", () => {
+  let called = 0;
+  captureRawResponseBody({ writeFn: () => { called++; } }, { chainIndex: 0, backend: {}, result: { content: "x" }, token: "findings", exit: 0 });
+  assert.equal(called, 0, "no rawDir ⇒ writeFn never called");
+  assert.equal(typeof realWrite, "function", "the default write path is exported for injection");
 });

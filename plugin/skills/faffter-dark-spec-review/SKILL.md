@@ -59,6 +59,7 @@ Each refuter pass is made by the bundled adversarial-review transport, **`review
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 FANOUT=<.../skills/faffter-dark-adversarial-review/fan-out.mjs>
+BUILD_REQUESTS=<.../skills/faffter-dark-spec-review/build-lens-requests.mjs>
 backends_json=$(mktemp)
 # $pin_dir is the per-spec spec-review scratch dir prep passes (`faff spec-review-dir`).
 # `spec-review-pin --resolve` prefers the round-1 pinned backend and falls back to the rest of the
@@ -91,12 +92,22 @@ case "$backends_exit" in
         && mv "$backends_json.elig" "$backends_json"
     fi
     # Build the full LensRequest[] in ONE pass over $enabled_lenses (never a per-lens loop that
-    # calls fan-out.mjs once per lens — the array is what fans out, not the assembly loop) — every
-    # argv field byte-identical to the old per-lens call except --system, which is the lens's own
-    # refute-<lens>.md. Written to one temp JSON file, e.g.:
-    #   [{"lens":"architectural","argv":["--backends-json","...","--system","refute-architectural.md",...]}, ...]
+    # calls fan-out.mjs once per lens — the array is what fans out, not the assembly loop) via the
+    # bundled deterministic assembler `build-lens-requests.mjs` (reused verbatim, never hand-rolled
+    # inline — the same discipline as review-call.mjs / parse-refutation.mjs). Every argv field is
+    # byte-identical to the old per-lens call except --system (the lens's own refute-<lens>.md) plus
+    # the raw-body flags below.
+    # Raw-body capture: retain each backend's raw response body under <scratch>/raw, keyed per lens × backend ×
+    # round. $pin_dir is the spec-review scratch dir; $n is this round (same number prep names the round
+    # record with — reading it here before the fan-out is idempotent, disk is unchanged until prep writes).
+    raw_dir="$pin_dir/raw"
+    n=$("$faff" spec-review-window --next-round --dir "$pin_dir")
     requests_json=$(mktemp)
-    node -e 'const lenses = process.argv.slice(1); const reqs = lenses.map((lens) => ({ lens, argv: [/* --backends-json, --timeout, --max-tokens, --system refute-<lens>.md, --context..., --diff */] })); process.stdout.write(JSON.stringify(reqs));' "${enabled_lenses[@]}" > "$requests_json"
+    node "$BUILD_REQUESTS" --lenses "$(IFS=,; echo "${enabled_lenses[*]}")" \
+      --backends-json "$backends_json" --timeout "$timeout" --max-tokens "$max_tokens" \
+      --system-dir <dir holding refute-<lens>.md> --diff <spec-file> \
+      $(for c in <each file the spec names> [$pin_dir/ratified-scope.md when present]; do printf ' --context %s' "$c"; done) \
+      --raw-dir "$raw_dir" --round "$n" > "$requests_json"
     node "$FANOUT" --requests "$requests_json"   # ONE call — spawns every lens concurrently, waits for all
     ;;
   3) : ;; # unconfigured — the resolver found no chain; every lens's outcome is unavailable/config-fault, below
@@ -106,7 +117,9 @@ esac
 
 **Pin capture (after aggregation, round 1 only in effect).** Once the round's lens results are in hand, capture the round-1 serving backend as the pin so rounds ≥ 2 hold this reviewer. From each **exit-0** lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`) parse the `chain[<i>]` index; take `winner_index = min(i)` across the served lenses (the lowest chain index that served any lens — the strongest reachable reviewer). Then `"$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index <winner_index>` — idempotent, so it writes the pin only on round 1 and is a no-op on rounds ≥ 2. If **no** lens served (empty exit-0 set) skip capture (nothing to pin; the round is `needs-human` via the transport floor anyway, and no stale pin is left behind). prep reads the served header vs the pin to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
 
-Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received, plus the resolved output-token cap (assembled once, identical across every lens in the pass — like `$timeout`, not per lens): `--backends-json "$backends_json" --timeout "$timeout" --max-tokens "$max_tokens" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file>`.
+Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received, plus the resolved output-token cap (assembled once, identical across every lens in the pass — like `$timeout`, not per lens), plus the raw-body flags: `--backends-json "$backends_json" --timeout "$timeout" --max-tokens "$max_tokens" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file> --raw-dir "$pin_dir/raw" --lens <lens> --round <n>`.
+
+- **Raw-body capture.** `--raw-dir "$pin_dir/raw" --lens <lens> --round <n>` make `review-call.mjs` retain each backend's raw response body (per lens × backend × round) under `<scratch>/raw`, regardless of classification — the corpus for debugging a misclassification and calibrating the clean-vs-malformed classifier. `$pin_dir` is the scratch dir prep resolves via `faff spec-review-dir`; `<n>` is this round (`faff spec-review-window --next-round --dir "$pin_dir"`, the same number prep names the round record with). The bodies live in a sibling `raw/` subdir of the round record (`round-<n>.json`), never beside it as a same-name file — so the `^round-(\d+)\.json$` round scan is untouched.
 
 - The **spec** is supplied as `--diff` (the thing under scrutiny); the files the spec names as `--context`; the lens refutation prompt as `--system`.
 - **Ratified-scope block (when prep assembled one).** If `$pin_dir/ratified-scope.md` exists (prep wrote it at loop entry from `faff ratified-scope --assemble`), append it as one extra `--context` file to **all four** lenses' `argv`, byte-identical across them — so it rides the shared-prefix cache and the design lenses can defer to it (the methodology lens receives it but does not act on it). Absent the file, the `--context` list is exactly the files the spec names, and no lens defers (behaviour is exactly as today).

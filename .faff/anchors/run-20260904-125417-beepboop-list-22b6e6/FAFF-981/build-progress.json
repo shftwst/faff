@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-981",
+  "build": {
+    "status": "complete",
+    "diff_hash": "79779362d47ce7351a80a734b9eb11d92e53a3dcfc647de572bf2c5f64c71455",
+    "branch": "faff-981-faff-gates-run-rung-stdout-over-1-mb-overflows-spawnsync",
+    "pushed_at": "2026-09-04T13:33:05.825Z"
+  },
+  "updated_at": "2026-09-04T13:33:05.825Z"
+}

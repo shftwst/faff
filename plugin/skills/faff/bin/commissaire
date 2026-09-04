@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+// commissaire — the standalone Commissaire governance CLI (FAFF-999).
+//
+// The "eventual standalone binary" ADR-0123 (fact 2) names, and the standalone `commissaire CLI`
+// the V5 architecture diagrams draw (sections 3.4 / 4.6). It exposes the ADR-0123 noun-verb grammar
+// (`commissaire <object> <action>`: contract admit; effect declare|authorize|observe|reconcile;
+// verdict conclude; audit seal|verify) by dispatching straight into cmdCommissaire — the SAME handler
+// `faff commissaire …` reaches, so both entrypoints are one implementation with two doors.
+//
+// It deliberately does NOT require ./faff: that launcher pulls in ~100 orchestration modules
+// (tracker, harness, engine, scheduling) at load time. This binary requires only the governance
+// facade (lib/commissaire.js) and the two shared CLI-entry helpers (lib/shared-infra.js) — nothing
+// that reaches scheduling, skills, or the tracker. That static-import independence is asserted by
+// test/commissaire-standalone.test.mjs. (The `verdict conclude` / `audit seal` boundary stubs still
+// spawn the `faff` bin at RUNTIME; dropping that spawn dependency is FAFF-1000, out of scope here.)
+const { cmdCommissaire } = require("./lib/commissaire");
+const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
+
+function main(argv) {
+  if (cliPosixGuard()) { process.exitCode = 1; return; }
+  // cmdCommissaire is synchronous (every COMMISSAIRE_DISPATCH handler returns a plain number),
+  // so — unlike bin/faff's async `engine call` arm — no Promise handling is needed here.
+  process.exitCode = runGovernedDispatch("commissaire", cmdCommissaire, argv);
+}
+
+if (require.main === module) main(process.argv.slice(2));
+
+module.exports = { main };

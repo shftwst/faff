@@ -1,6 +1,6 @@
 # ADR 0123 — Commissaire's CLI is a noun-verb object grammar, grammar-first over the existing handlers
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-09-02
 - **Issue:** FAFF-977
@@ -62,4 +62,4 @@ Sub-decisions:
 - **FAFF-980 carries the grammar re-grouping** of the remaining objects, with FAFF-977 landing the `audit` object first and sitting on top of it. FAFF-978 (facade hardening) is in review on this same surface, so FAFF-980 is sequenced after it (recorded as a blocked-by relation) to avoid collision.
 - **The design's original nouns are reconciled.** `evidence register` and `observation append` are recognised as effect actions (`effect declare`, `effect observe`), not separate top-level objects, matching what the code actually writes. The design text should be updated to the object set `contract` / `effect` / `verdict` / `audit`.
 - **Two untracked follow-ons now have a grammar to land under:** the standalone `commissaire` CLI front-end (the diagrams' "commissaire CLI, Phase 2A") and `audit export` (the ninth design operation, still unbuilt).
-- **This ADR sits at `Status: Proposed`.** It records the grammar decision; it builds nothing on its own. FAFF-977 and the restructure ticket are where the grammar is first materialised.
+- **This ADR was accepted by the FAFF-999 standalone-`commissaire`-CLI delivery decision (human, 2026-09-04).** It records the grammar decision; FAFF-977 and FAFF-980 materialised the grammar over the existing handlers, and FAFF-999 ships it as the standalone `commissaire` binary this ADR anticipated (the "commissaire CLI front-end" consequence above).

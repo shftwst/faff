@@ -31,6 +31,7 @@ const { cmdClaimVerdict } = require("./lib/claim-verdict");
 const { cmdParkVerdict } = require("./lib/park-verdict");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdCommissaire } = require("./lib/commissaire");
+const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
 const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
@@ -282,35 +283,10 @@ function main(argv) {
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
   const handler = COMMANDS[sub];
   if (handler) {
-    // FAFF-362: a bad $FAFF_GOVERNANCE_PROFILE override (missing/malformed/shape-
-    // invalid) is a GovernanceProfileError thrown by governance-profile.js's
-    // activeProfile() — caught HERE, uniformly, for every subcommand (present or
-    // future) that resolves the active governance profile, converting it to a
-    // loud stderr line + exit 2. Never a silent fallback to the delivery profile.
-    // Any other thrown error is a genuine bug — rethrown unchanged.
-    try { return handler(rest); }
-    catch (e) {
-      if (e && e.faffGovernanceProfileError) { process.stderr.write(`faff: ${e.message}\n`); return 2; }
-      // FAFF-577: a strict base-config failure surfacing from any subcommand that
-      // did not handle it itself (governance entries, factory readers alike) is a
-      // clean loud exit 2 — the chokepoint warning (file, detail, remedy, hatch)
-      // already fired on stderr, so this line is just the command-level exit.
-      if (e && e.message === "base-parse-error") {
-        process.stderr.write(`faff ${sub}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
-        return 2;
-      }
-      // FAFF-627: readGovernanceConfig now rethrows "legacy-config-name" (was an
-      // in-lib process.exit(2)) instead of exiting directly — the detailed
-      // governance-flavoured message already fired on stderr from the lib before
-      // this throw, mirroring the base-parse-error arm above; this is just the
-      // command-level exit.
-      if (e && e.message === "legacy-config-name") {
-        const names = (e.legacy || []).join(", ");
-        process.stderr.write(`faff ${sub}: cannot proceed — legacy config filename (${names}); rename to .faffrc.yaml.\n`);
-        return 2;
-      }
-      throw e;
-    }
+    // FAFF-999: the governance-profile / strict-base-config / legacy-config-name catch
+    // (FAFF-362/577/627) is extracted to shared-infra.js's runGovernedDispatch, shared
+    // verbatim with the standalone `commissaire` binary — same stderr text, same exit codes.
+    return runGovernedDispatch(sub, handler, rest);
   }
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
@@ -320,20 +296,12 @@ function main(argv) {
 // `require`/ESM `import` of this file for its exported pure functions (the FAFF-373
 // corrective-integrity tests) does NOT execute a subcommand.
 if (require.main === module) {
-  // FAFF-580: faff's stated floor is POSIX (macOS/Linux) + Node >= 20 (ADR 0086) — native
-  // Windows is a separate, future decision, not implied by anything here. Refuse a CLI
-  // invocation on win32 with a clear message rather than letting it limp through with
-  // mis-resolved paths. Deliberately inside this block, not at module top level: it must
-  // fire only on an actual CLI invocation, never on a `require` of this file for its
-  // exported pure functions (the FAFF-373 corrective-integrity tests import it on POSIX CI).
-  if (process.platform === "win32") {
-    process.stderr.write(
-      "faff is POSIX-only (macOS/Linux). Native Windows is not supported — " +
-      "run faff under WSL2. See the Requirements section in the README.\n"
-    );
-    process.exitCode = 1;
-    return;
-  }
+  // FAFF-580 (extracted to shared-infra.js's cliPosixGuard, FAFF-999): faff's stated floor is
+  // POSIX (macOS/Linux) + Node >= 20 (ADR 0086); refuse a win32 CLI invocation with a clear
+  // message rather than limping through with mis-resolved paths. Inside this block, not at module
+  // top level, so it fires only on an actual CLI invocation, never on a `require` of this file for
+  // its exported pure functions (the FAFF-373 corrective-integrity tests import it on POSIX CI).
+  if (cliPosixGuard()) { process.exitCode = 1; return; }
 
   // FAFF-422: `engine call` is the first async handler (network one-shot) — a returned
   // Promise resolves to the exit code; every other handler stays a plain synchronous int.

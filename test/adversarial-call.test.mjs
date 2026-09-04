@@ -2012,11 +2012,12 @@ test("FAFF-927 normaliseCleanRefutation: a severity-worded heading at a non-cano
   }
 });
 
-test("FAFF-927 normaliseCleanRefutation: a near-miss spelling of the reserved Refutation namespace (wrong hash count or a plain hyphen) still stays rejected", () => {
+test("FAFF-927 normaliseCleanRefutation: a near-miss spelling of the reserved Refutation namespace (wrong hash count, a plain hyphen, or lower-case) still stays rejected", () => {
   const rejected = [
     "### Refutation — architectural\nNo QA objection.",
     "## Refutation - architectural\nNo QA objection.",
     "# Refutation — architectural\nNo QA objection.",
+    "## refutation — architectural\nNo QA objection.",
   ];
   for (const content of rejected) {
     assert.deepEqual(

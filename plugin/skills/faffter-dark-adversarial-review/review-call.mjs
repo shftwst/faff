@@ -513,15 +513,16 @@ export const CLEAN_REFUTATIONS = Object.freeze([
 // without touching SEVERITY_HEADING_RE's own (unrelated) job of parsing genuine finding sections.
 //
 // FAFF-927 self-review fix: REFUTATION_NAMESPACE_RE originally matched only the exact 2-hash,
-// em-dash-only canonical spelling. A near-miss spelling — `### Refutation — architectural` (3 hashes)
-// or `## Refutation - architectural` (plain hyphen) — fell outside the namespace and was accepted as
-// decorative, letting a lens-mismatched clean sentence (e.g. paired with `No QA objection.`) through
-// as `header-wrapped` instead of staying rejected like the exact-spelling FAFF-746 fixtures. Widened to
-// any heading level and either dash form so the namespace exclusion holds under punctuation/heading-
-// level drift, not just the one canonical spelling.
+// em-dash-only, exact-case canonical spelling. A near-miss spelling — `### Refutation — architectural`
+// (3 hashes), `## Refutation - architectural` (plain hyphen), or `## refutation — architectural`
+// (lower-case) — fell outside the namespace and was accepted as decorative, letting a lens-mismatched
+// clean sentence (e.g. paired with `No QA objection.`) through as `header-wrapped` instead of staying
+// rejected like the exact-spelling FAFF-746 fixtures. Widened to any heading level, either dash form,
+// and case-insensitive matching so the namespace exclusion holds under punctuation/case/heading-level
+// drift, not just the one canonical spelling.
 const ATX_HEADING_RE = /^#{1,6}\s+\S/;
 const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
-const REFUTATION_NAMESPACE_RE = /^#{1,6}\s+Refutation\s+[—-]/;
+const REFUTATION_NAMESPACE_RE = /^#{1,6}\s+Refutation\s+[—-]/i;
 
 function isDecorativeHeader(line) {
   if (!ATX_HEADING_RE.test(line)) return false;

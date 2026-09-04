@@ -497,6 +497,40 @@ export const CLEAN_REFUTATIONS = Object.freeze([
   Object.freeze({ lens: "QA", heading: "## Refutation — QA", sentence: "No QA objection." }),
 ]);
 
+// FAFF-927: a decorative header is any single ATX heading line that is NEITHER a severity-worded
+// heading (that would make the content genuinely findings-shaped — swallowing it as clean would hide a
+// real finding) NOR inside the reserved `## Refutation — <lens>` namespace (whose lens-consistency is
+// already enforced by the `headed` arm below — a mismatched pair like `## Refutation — architectural` +
+// `No QA objection.` must stay rejected). Every other decorative wrapper a model realistically emits
+// (`# Code review`, `## Second opinion`, `### Assessment`) is accepted.
+//
+// FAFF-927 self-review fix: SEVERITY_HEADING_RE only matches the CANONICAL 3-hash `### <severity>:`
+// form splitFindings itself parses. A backend can still state a real finding inside a severity-worded
+// heading at a DIFFERENT ATX level — `## Critical: null check removed in parseDiff` followed by
+// `No QA objection.` — which SEVERITY_HEADING_RE does not match, so it would have been accepted as
+// decorative and the stated finding silently swallowed. SEVERITY_LIKE_HEADING_RE is level-agnostic
+// (any of 1-6 hashes) so a severity-worded heading is excluded regardless of level, closing that gap
+// without touching SEVERITY_HEADING_RE's own (unrelated) job of parsing genuine finding sections.
+//
+// FAFF-927 self-review fix: REFUTATION_NAMESPACE_RE originally matched only the exact 2-hash,
+// em-dash-only, exact-case canonical spelling. A near-miss spelling — `### Refutation — architectural`
+// (3 hashes), `## Refutation - architectural` (plain hyphen), or `## refutation — architectural`
+// (lower-case) — fell outside the namespace and was accepted as decorative, letting a lens-mismatched
+// clean sentence (e.g. paired with `No QA objection.`) through as `header-wrapped` instead of staying
+// rejected like the exact-spelling FAFF-746 fixtures. Widened to any heading level, either dash form,
+// and case-insensitive matching so the namespace exclusion holds under punctuation/case/heading-level
+// drift, not just the one canonical spelling.
+const ATX_HEADING_RE = /^#{1,6}\s+\S/;
+const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
+const REFUTATION_NAMESPACE_RE = /^#{1,6}\s+Refutation\s+[—-]/i;
+
+function isDecorativeHeader(line) {
+  if (!ATX_HEADING_RE.test(line)) return false;
+  if (SEVERITY_LIKE_HEADING_RE.test(line)) return false;
+  if (REFUTATION_NAMESPACE_RE.test(line)) return false;
+  return true;
+}
+
 export function normaliseCleanRefutation(content) {
   const original = String(content == null ? "" : content);
   const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
@@ -512,6 +546,16 @@ export function normaliseCleanRefutation(content) {
     // `signal`, and only that exact middle line, ever matches this arm.
     if (entry.signal != null && lines.length === 3 && lines[0] === entry.heading && lines[1] === entry.signal && lines[2] === entry.sentence) {
       return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed+signal" };
+    }
+  }
+  // FAFF-927: any single decorative header wrapping a byte-exact affirmation sentence. Tried only after
+  // every exact per-entry arm above has failed to match, so a body that also satisfies `headed` or
+  // `headed+signal` keeps that more specific label — no existing form regresses to `header-wrapped`.
+  if (lines.length === 2 && isDecorativeHeader(lines[0])) {
+    for (const entry of CLEAN_REFUTATIONS) {
+      if (lines[1] === entry.sentence) {
+        return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "header-wrapped" };
+      }
     }
   }
   return { content: original, normalised: false, lens: null, form: null };

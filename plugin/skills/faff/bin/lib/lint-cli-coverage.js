@@ -52,6 +52,11 @@ const TEST_FILE_COVERAGE = {
   // over two JSON inputs, no standalone `--selftest`; its level-aware floor + fail-closed
   // directions are exercised through the real CLI entrypoint here.
   "spec-judge-accept-bar": "test/spec-judge-accept-bar.test.mjs",
+  // judge-history — FAFF-994: the durable judge-trail reader core. No standalone
+  // `--selftest` (its logic is exercised transitively by judge-trail's own
+  // --selftest fixtures); the git-plumbing enumerate/read/witness-recompute/
+  // filter behaviour is exercised through the real CLI entrypoint here.
+  "judge-history": "test/judge-trail.test.mjs",
 };
 
 // A command is selftest-covered iff its allowlist entry is a runnable argv array

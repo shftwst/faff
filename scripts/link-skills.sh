@@ -221,6 +221,11 @@ fi
 SKILLS_ROOT="$SRC_ROOT/plugin/skills"
 SRC_DIR="$SKILLS_ROOT"
 BIN_SRC="$SRC_DIR/faff/bin/faff"     # the bundled faff CLI executable (re-derived post-retarget)
+# FAFF-999: the CLI binaries symlinked onto PATH — faff plus the standalone commissaire. For each,
+# src is "$SRC_DIR/faff/bin/<name>" and dst is "$HOME/.local/bin/<name>"; the --status / --unlink /
+# create-symlink blocks loop over this list so a second binary never triples them. BIN_SRC/BIN_DST
+# stay the canonical faff pair the config-read section above shells.
+CLI_BIN_NAMES="faff commissaire"
 
 # FAFF-684: build TARGET_DIRS here, now that BIN_SRC/SRC_ROOT are resolved — the config read
 # needs BIN_SRC to shell the bundled CLI, and for a worktree --global install SRC_ROOT must
@@ -315,11 +320,14 @@ if [ "$STATUS" -eq 1 ]; then
   printf "  dangling symlinks:  %d\n" "$dangling_ct"
   printf "  real blocking:      %d\n" "$real_ct"
   echo
-  if [ -L "$BIN_DST" ] && [ "$(readlink "$BIN_DST")" = "$BIN_SRC" ]; then
-    echo "CLI: faff → $BIN_DST (linked)"
-  else
-    echo "CLI: faff not linked into $(dirname "$BIN_DST")"
-  fi
+  for _cli in $CLI_BIN_NAMES; do
+    _src="$SRC_DIR/faff/bin/$_cli"; _dst="${HOME}/.local/bin/$_cli"
+    if [ -L "$_dst" ] && [ "$(readlink "$_dst")" = "$_src" ]; then
+      echo "CLI: $_cli → $_dst (linked)"
+    else
+      echo "CLI: $_cli not linked into $(dirname "$_dst")"
+    fi
+  done
   exit 0
 fi
 
@@ -373,12 +381,15 @@ if [ "$UNLINK" -eq 1 ]; then
     echo
   done
 
-  # also remove the ~/.local/bin/faff symlink if it points into this repo — ONCE, after the loop
-  if [ -L "$BIN_DST" ] && [ "$(readlink "$BIN_DST")" = "$BIN_SRC" ]; then
-    printf "  - %-30s (unlinking → %s)\n" "faff (CLI)" "$BIN_SRC"
-    [ "$DRY_RUN" -eq 0 ] && rm "$BIN_DST"
-    unlinked=$((unlinked + 1))
-  fi
+  # also remove the ~/.local/bin/<cli> symlinks that point into this repo — ONCE, after the loop
+  for _cli in $CLI_BIN_NAMES; do
+    _src="$SRC_DIR/faff/bin/$_cli"; _dst="${HOME}/.local/bin/$_cli"
+    if [ -L "$_dst" ] && [ "$(readlink "$_dst")" = "$_src" ]; then
+      printf "  - %-30s (unlinking → %s)\n" "$_cli (CLI)" "$_src"
+      [ "$DRY_RUN" -eq 0 ] && rm "$_dst"
+      unlinked=$((unlinked + 1))
+    fi
+  done
 
   echo
   echo "Summary:"
@@ -495,17 +506,22 @@ if [ "$PRUNE" -eq 1 ]; then
   echo
 fi
 
-# Symlink the bundled faff CLI onto PATH so `faff …` works bare. Single-location, once.
-if [ -f "$BIN_SRC" ]; then
+# Symlink the bundled CLI binaries onto PATH so `faff …` / `commissaire …` work bare (FAFF-999).
+# One src/dst pair per name; the PATH warning fires once after the loop (both share ~/.local/bin).
+for _cli in $CLI_BIN_NAMES; do
+  _src="$SRC_DIR/faff/bin/$_cli"; _dst="${HOME}/.local/bin/$_cli"
+  [ -f "$_src" ] || continue
   if [ "$DRY_RUN" -eq 0 ]; then
-    mkdir -p "$(dirname "$BIN_DST")"
-    ln -sfn "$BIN_SRC" "$BIN_DST"
+    mkdir -p "$(dirname "$_dst")"
+    ln -sfn "$_src" "$_dst"
   fi
-  echo "CLI: $BIN_DST → $BIN_SRC"
+  echo "CLI: $_dst → $_src"
+done
+if [ -f "$BIN_SRC" ]; then
   case ":$PATH:" in
     *":$(dirname "$BIN_DST"):"*) ;;
     *)
-      echo "  ⚠  $(dirname "$BIN_DST") is not on your PATH — add it so \`faff\` resolves bare:"
+      echo "  ⚠  $(dirname "$BIN_DST") is not on your PATH — add it so \`faff\` / \`commissaire\` resolve bare:"
       echo "       export PATH=\"\$HOME/.local/bin:\$PATH\""
       ;;
   esac

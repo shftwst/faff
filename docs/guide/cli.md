@@ -201,3 +201,14 @@ export PATH="$HOME/.local/bin:$PATH"
 ```
 
 Or just call it by that full path. (Inside skills and hooks it's resolved automatically — `command -v faff` first, then the install-relative path — so you never have to set this up for normal use.)
+
+### Commissaire as its own CLI
+
+Commissaire — SuperDomestique's governance system — is also reachable as its own `commissaire` binary, not only as `faff commissaire …`. `scripts/link-skills.sh` symlinks it beside `faff`; to locate and symlink it by hand:
+
+```
+cmsrbin=$(find ~/.claude -path '*/skills/faff/bin/commissaire' -type f 2>/dev/null | head -1)
+ln -s "$cmsrbin" ~/.local/bin/commissaire   # the same ~/.local/bin as faff
+```
+
+It exposes the noun-verb grammar `commissaire <object> <action>` (e.g. `commissaire contract admit`, `commissaire effect authorize`, `commissaire audit verify`) — dispatching into the same handler `faff commissaire …` reaches, so both forms behave identically.

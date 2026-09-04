@@ -669,4 +669,38 @@ function readBaseConfigStrict(filePath, env = process.env) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, resolveRunDir, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+// FAFF-999: the two CLI-entry helpers extracted verbatim from bin/faff's main()/require.main
+// block, so the bundled `faff` launcher and the standalone `commissaire` binary share one copy
+// rather than diverging. cliPosixGuard is the win32 refusal (FAFF-580); runGovernedDispatch is the
+// governance-profile / strict-base-config catch (FAFF-362/577/627). Neither adds behaviour — the
+// byte-for-byte output (including punctuation) is the contract both entrypoints must preserve.
+function cliPosixGuard() {
+  if (process.platform === "win32") {
+    process.stderr.write(
+      "faff is POSIX-only (macOS/Linux). Native Windows is not supported — " +
+      "run faff under WSL2. See the Requirements section in the README.\n"
+    );
+    return true;
+  }
+  return false;
+}
+
+function runGovernedDispatch(label, handler, args) {
+  try { return handler(args); }
+  catch (e) {
+    if (e && e.faffGovernanceProfileError) { process.stderr.write(`faff: ${e.message}\n`); return 2; }
+    if (e && e.message === "base-parse-error") {
+      process.stderr.write(`faff ${label}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
+      return 2;
+    }
+    if (e && e.message === "legacy-config-name") {
+      const names = (e.legacy || []).join(", ");
+      process.stderr.write(`faff ${label}: cannot proceed — legacy config filename (${names}); rename to .faffrc.yaml.\n`);
+      return 2;
+    }
+    throw e;
+  }
+}
+
+
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

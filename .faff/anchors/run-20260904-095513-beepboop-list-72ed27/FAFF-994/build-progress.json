@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-994",
+  "build": {
+    "status": "complete",
+    "diff_hash": "72cc1eecff2fe66153ce0b59776e6c55c1ad7486fe8ef0e8b50cc12dcff60d41",
+    "branch": "faff-994-durable-interrogatable-spec-review-judgement-trail",
+    "pushed_at": "2026-09-04T12:02:24.221Z"
+  },
+  "updated_at": "2026-09-04T12:02:24.221Z"
+}

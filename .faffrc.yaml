@@ -118,11 +118,11 @@ adversarial:
     - openrouter-deepseek-v4-flash
     #- spark-glimmer
   code_review:
-    max_tokens: 12000
+    max_tokens: 15000
   spec_review:
-    max_tokens: 12000
+    max_tokens: 15000
   spec_judge:
-    max-tokens: 12000
+    max-tokens: 15000
     refs:
       - openrouter-glm-5-3-flash
       - openrouter-gemma

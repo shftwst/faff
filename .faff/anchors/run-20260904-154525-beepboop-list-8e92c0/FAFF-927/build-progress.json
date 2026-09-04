@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-927",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d1ff0f4eab053e7990be59c7efd146365f177fb82a0bc77cbebf7f7dc0b36636",
+    "branch": "faff-927-live-adversarial-review-chain-misclassifies-a-clean-no",
+    "pushed_at": "2026-09-04T17:01:43.780Z"
+  },
+  "updated_at": "2026-09-04T17:01:43.780Z"
+}

@@ -1864,6 +1864,176 @@ test("FAFF-942 normaliseCleanRefutation: a non-methodology lens gets NO 3-line a
   assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
 });
 
+// ── FAFF-927: a decorative header wrapping a byte-exact affirmation sentence is a clean pass ──
+
+test("FAFF-927 normaliseCleanRefutation: a decorative header over each byte-exact sentence normalises to header-wrapped", () => {
+  for (const entry of CLEAN_REFUTATIONS) {
+    for (const header of ["# Code review", "## Second opinion", "### Assessment", "## Notes"]) {
+      assert.deepEqual(
+        normaliseCleanRefutation(`${header}\n${entry.sentence}`),
+        { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "header-wrapped" },
+        `${entry.lens}: ${header}`,
+      );
+    }
+  }
+});
+
+test("FAFF-927 normaliseCleanRefutation: tolerates outer whitespace, blank separators, and CRLF for the new arm", () => {
+  assert.deepEqual(
+    normaliseCleanRefutation(" \r\n## Second opinion\r\n\r\nNo infosec objection.\r\n "),
+    { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "infosec", form: "header-wrapped" },
+  );
+});
+
+test("FAFF-927 normaliseCleanRefutation: the exact-arm forms keep their own label, never regressing to header-wrapped", () => {
+  for (const entry of CLEAN_REFUTATIONS) {
+    assert.equal(normaliseCleanRefutation(entry.sentence).form, "bare");
+    assert.equal(normaliseCleanRefutation(`${entry.heading}\n${entry.sentence}`).form, "headed");
+  }
+  assert.equal(
+    normaliseCleanRefutation("## Refutation — methodology\nno methodology signal available.\nNo methodology objection.").form,
+    "headed+signal",
+  );
+});
+
+test("FAFF-927 normaliseCleanRefutation: the FAFF-746 reserved-namespace fixtures stay rejected (the Refutation namespace is not decorative)", () => {
+  const rejected = [
+    "## Refutation — architectural\nNo QA objection.",
+    "## Refutation — unknown\nNo architectural objection.",
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      JSON.stringify(content),
+    );
+  }
+});
+
+test("FAFF-927 normaliseCleanRefutation: a severity heading over an affirmation sentence stays rejected (findings-shaped, never swallowed)", () => {
+  const content = "### major: real bug\nNo QA objection.";
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+  // and it is genuinely findings-shaped — validateFindingsShape must see it as ok, not garbled
+  assert.equal(validateFindingsShape(content).ok, true);
+});
+
+test("FAFF-927 normaliseCleanRefutation: stacked sentences under one decorative header stay rejected (holdout)", () => {
+  const content = "## Summary\nNo architectural objection.\nNo QA objection.";
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+});
+
+test("FAFF-927 normaliseCleanRefutation: a decorative header over a non-affirmation body is not normalised (AC #2 de-risking)", () => {
+  const content = "## Notes\nThe diff removes the null check in parseDiff.";
+  const result = normaliseCleanRefutation(content);
+  assert.equal(result.normalised, false);
+  assert.equal(result.content, content);
+  const shape = validateFindingsShape(content);
+  assert.equal(shape.ok, false);
+  assert.equal(shape.kind, "garbled");
+});
+
+test("FAFF-927 runReviewChain: a decorative header over a non-affirmation body is classified MALFORMED and the chain advances (AC #2)", async () => {
+  const trace = [];
+  const res = await runReviewChain(
+    [
+      { provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+    ],
+    {
+      system: "S", user: "U", log: (message) => trace.push(message),
+      runReviewFn: scriptedRunReview({
+        "https://primary/v1": { status: "ok", content: "## Notes\nThe diff removes the null check in parseDiff." },
+        "http://fallback:11434": { status: "ok", content: CANONICAL_NO_FINDINGS },
+      }),
+    },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1, "the malformed primary did not terminate the chain — it advanced");
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.ok(trace.some((l) => /\[chain\] gemini\/primary malformed/.test(l) && /→ advancing/.test(l)));
+});
+
+test("FAFF-927 runReviewChain: a real finding stated in a non-canonical severity-worded heading is NOT swallowed -- the primary advances as MALFORMED (self-review fix)", async () => {
+  const trace = [];
+  const res = await runReviewChain(
+    [
+      { provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+    ],
+    {
+      system: "S", user: "U", log: (message) => trace.push(message),
+      runReviewFn: scriptedRunReview({
+        "https://primary/v1": { status: "ok", content: "## Critical: null check removed in parseDiff\nNo QA objection." },
+        "http://fallback:11434": { status: "ok", content: CANONICAL_NO_FINDINGS },
+      }),
+    },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1, "the primary stating a real finding under a 2-hash heading must NOT terminate the chain");
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.ok(trace.some((l) => /\[chain\] gemini\/primary malformed/.test(l) && /→ advancing/.test(l)));
+});
+
+test("FAFF-927 runReviewChain: a decorative header over a clean sentence terminates on the serving backend (scenario 3)", async () => {
+  const res = await runReviewChain(
+    [
+      { provider: "nvidia", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+    ],
+    {
+      system: "S", user: "U",
+      runReviewFn: scriptedRunReview({
+        "https://primary/v1": { status: "unreachable", note: "ECONNREFUSED" },
+        "http://fallback:11434": { status: "ok", content: "## Review\nNo infosec objection." },
+      }),
+    },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1);
+  assert.equal(res.content, CANONICAL_NO_FINDINGS);
+});
+
+// ── FAFF-927 self-review fixes: a severity-worded heading at a NON-canonical ATX level, and a
+// near-miss spelling of the reserved Refutation namespace, must both stay excluded from "decorative" ──
+
+test("FAFF-927 normaliseCleanRefutation: a severity-worded heading at a non-canonical ATX level (1 or 2 hashes) stays rejected -- a real finding in the heading text is never swallowed", () => {
+  const rejected = [
+    "## Critical: null check removed in parseDiff\nNo QA objection.",
+    "# Major: something bad\nNo infosec objection.",
+    "## observation: worth noting\nNo architectural objection.",
+    "## [minor]: a small thing\nNo QA objection.",
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      JSON.stringify(content),
+    );
+  }
+});
+
+test("FAFF-927 normaliseCleanRefutation: a near-miss spelling of the reserved Refutation namespace (wrong hash count, a plain hyphen, or lower-case) still stays rejected", () => {
+  const rejected = [
+    "### Refutation — architectural\nNo QA objection.",
+    "## Refutation - architectural\nNo QA objection.",
+    "# Refutation — architectural\nNo QA objection.",
+    "## refutation — architectural\nNo QA objection.",
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      JSON.stringify(content),
+    );
+  }
+});
+
+test("FAFF-927 normaliseCleanRefutation: a genuinely decorative heading with no severity wording and no Refutation-namespace collision is unaffected by the tightened exclusions", () => {
+  for (const header of ["## Second opinion", "# Code review", "### Assessment", "## Notes"]) {
+    assert.equal(normaliseCleanRefutation(`${header}\nNo QA objection.`).form, "header-wrapped", header);
+  }
+});
+
 test("FAFF-746/706 spec-review command contract supplies non-empty system, diff, and context paths", () => {
   // FAFF-706: the per-lens `node "$REVIEW_CALL" ...` case-block invocation was replaced by a single
   // fan-out.mjs dispatch (see the "Backend call" section) — the --system/--diff/--context argv

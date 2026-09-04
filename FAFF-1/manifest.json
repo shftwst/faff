@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1",
+  "run_id": "run-smoketest-000001",
+  "built_spec_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "spec_blob": null,
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": "admit-result.json",
+  "outcome": "no-judge",
+  "lenses": [
+    "infosec"
+  ],
+  "witness_sha": "bf4ed04f28e2dfcfdc79ab81b9518a90d53ba05fd3d44cba222a6e2d9909e902"
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "claim": "leak",
+    "evidence": "see config.txt",
+    "predicted_consequence": "exfiltration",
+    "spec_anchor": "the-guard",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  }
+]

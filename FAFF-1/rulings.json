@@ -1,0 +1,14 @@
+[
+  {
+    "proposition_id": "p-01",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "the spec already covers this",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": "",
+    "lens": "infosec",
+    "severity": "major",
+    "conformant": true,
+    "violations": []
+  }
+]

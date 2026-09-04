@@ -415,16 +415,35 @@ function discoverRungs(root) {
 // Execution target = the worktree sandbox (cwd) — the single FAFF-12 seam (Q1 interim default).
 // Runs the rung's command and classifies pass/fail/errored. A 127 (command-not-found) is `errored`
 // (tool missing) not `fail` — we can't conclude the code is bad.
+// FAFF-984: the spawnSync `timeout` is resolved from gates.rung_timeout_ms (default 30 min, was a
+// hardcoded 600s) so a slow-but-green whole-suite rung isn't killed prematurely. A timeout kill is
+// detected BEFORE the general res.error/127 branch (mirrors classifySentryConsult in
+// sentrycheck.js) and tagged with an internal `reason: "timed-out"` + a timeout-shaped `detail` —
+// still `status: "errored"` at the faff-contract:quality-gates boundary (the enum stays closed),
+// but now diagnosable as "could not conclude" rather than indistinguishable from a genuine crash.
 function runRung(rung, root) {
+  const { rung_timeout_ms } = readGatesConfig(root);
   const started = Date.now();
   let res;
   try {
-    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: 10 * 60 * 1000 });
+    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: rung_timeout_ms });
   } catch (e) {
     return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", duration_ms: Date.now() - started, detail: String(e && e.message || e).slice(-500) };
   }
   const duration_ms = Date.now() - started;
   const tail = ((res.stderr || "") + (res.stdout || "")).slice(-500);
+  // Node's timeout path: either res.error.code === "ETIMEDOUT", or a set res.signal with no
+  // res.error (no runRung caller sets its own killSignal, so a bare signal is our own timeout kill
+  // — same assumption sentrycheck.js documents for its own module). Must be checked BEFORE the
+  // general res.error branch below, since ETIMEDOUT also sets res.error and would otherwise lose
+  // its distinct reason.
+  const timedOut = (res.error && res.error.code === "ETIMEDOUT") || (res.signal && !res.error);
+  if (timedOut) {
+    return {
+      kind: rung.kind, name: rung.name, command: rung.command, status: "errored", reason: "timed-out",
+      duration_ms, detail: `timed out after ${duration_ms}ms (limit ${rung_timeout_ms}ms); ${tail}`,
+    };
+  }
   let status;
   if (res.error || res.status === 127) status = "errored";       // tool missing / spawn error
   else if (res.status === 0) status = "pass";
@@ -450,7 +469,7 @@ function gatesFallbackPolicy(root) {
 // partial-coverage policy. See records/specs/2026-08-27-faff-849-…-design.md.
 // ===========================================================================
 
-// Read the five gates.* config knobs via the loadConfig + dig idiom (mirrors gatesFallbackPolicy),
+// Read the gates.* config knobs via the loadConfig + dig idiom (mirrors gatesFallbackPolicy),
 // each defaulting on absent/malformed. gates.exclude is a list read via dig (not a DEFAULTS scalar).
 function readGatesConfig(root) {
   let data = {};
@@ -469,7 +488,12 @@ function readGatesConfig(root) {
   if (Number.isFinite(pt) && pt >= 0 && pt <= 1) partial_threshold = pt;
   const rawExclude = get("gates.exclude");
   const exclude = Array.isArray(rawExclude) ? rawExclude.filter((x) => typeof x === "string") : [];
-  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold };
+  // FAFF-984: per-rung spawnSync timeout, raised from a hardcoded 600s to a configurable 30-minute
+  // default so a slow-but-green whole-suite UNIT rung isn't killed before it can finish.
+  let rung_timeout_ms = 1_800_000;
+  const rt = Math.floor(num("gates.rung_timeout_ms"));
+  if (Number.isFinite(rt) && rt >= 1) rung_timeout_ms = rt;
+  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms };
 }
 
 // The local host OS family (process.platform → the runs-on families we compare against).
@@ -773,6 +797,46 @@ function gatesSelftest() {
   const dErr = mk("err", { "package.json": JSON.stringify({ scripts: { lint: "this-command-does-not-exist-xyz" } }) });
   const out6 = runLadder(dErr);
   cases.push(["errored rung → needs-human not fail", out6.signal === "needs-human" && out6.rungs[0].status === "errored"]);
+
+  // 5b. FAFF-984: a rung killed by the configured spawnSync timeout is classified with a distinct
+  // reason:"timed-out" (not a bare crash) and a timeout-shaped detail — never confused with a
+  // genuine tool-missing/spawn-error case (still status: "errored" at the contract boundary).
+  // Drive runRung directly (not through npm's own script indirection) so the kill lands on the
+  // exact process spawnSync is timing, per the spec's fixture shape.
+  const dTimeout = mk("timeout", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: 500\n" });
+  const timeoutRung = runRung({ kind: "UNIT", name: "unit (sleep)", command: "sleep 5" }, dTimeout);
+  cases.push(["timeout: rung status errored", timeoutRung.status === "errored"]);
+  cases.push(["timeout: reason timed-out", timeoutRung.reason === "timed-out"]);
+  cases.push(["timeout: detail names the timeout + limit", /timed out after \d+ms \(limit 500ms\)/.test(timeoutRung.detail)]);
+  cases.push(["timeout: contract extraction stays within the closed enum", ["pass", "fail", "skipped", "errored"].includes(gatesContractExtraction({ signal: "needs-human", rungs: [timeoutRung] }).rungs[0].status)]);
+
+  // Confirm the ladder itself still folds a timed-out rung to needs-human (an unfinished suite
+  // never reads as green) — same fixture shape as case 5's errored-rung ladder check.
+  const dTimeoutLadder = mk("timeout-ladder", {
+    "package.json": JSON.stringify({ scripts: { lint: "sleep 5" } }),
+    ".faffrc.yaml": "gates:\n  rung_timeout_ms: 500\n",
+  });
+  const outTimeoutLadder = runLadder(dTimeoutLadder);
+  cases.push(["timeout: ladder signal needs-human (unfinished suite never reads as green)", outTimeoutLadder.signal === "needs-human" && outTimeoutLadder.rungs[0].reason === "timed-out"]);
+
+  // 5c. Companion: a fast command under a generous configured timeout still passes (raising/
+  // threading the timeout doesn't change ordinary pass behaviour), and carries no `reason`.
+  const dTimeoutOk = mk("timeout-ok", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: 60000\n" });
+  const okRung = runRung({ kind: "UNIT", name: "unit (fast)", command: "true" }, dTimeoutOk);
+  cases.push(["timeout: fast command under generous timeout still passes", okRung.status === "pass" && !okRung.reason]);
+
+  // 5e. Unchanged: genuine command-not-found (127) still classifies errored with NO reason — the
+  // timeout branch must never swallow a real spawn error.
+  const notFoundRung = runRung({ kind: "LINT", name: "lint (missing)", command: "this-command-does-not-exist-xyz" }, dTimeoutOk);
+  cases.push(["timeout: genuine command-not-found stays errored with no reason", notFoundRung.status === "errored" && !notFoundRung.reason]);
+
+  // 5d. readGatesConfig: absent/empty/non-numeric/zero/negative rung_timeout_ms all fall back to
+  // the 30-minute default; a positive override is honoured.
+  cases.push(["config: absent rung_timeout_ms defaults to 1_800_000", readGatesConfig(mk("rt-absent", { "README.md": "hi" })).rung_timeout_ms === 1_800_000]);
+  cases.push(["config: non-numeric rung_timeout_ms defaults", readGatesConfig(mk("rt-nan", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: not-a-number\n" })).rung_timeout_ms === 1_800_000]);
+  cases.push(["config: zero rung_timeout_ms defaults", readGatesConfig(mk("rt-zero", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: 0\n" })).rung_timeout_ms === 1_800_000]);
+  cases.push(["config: negative rung_timeout_ms defaults", readGatesConfig(mk("rt-neg", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: -5\n" })).rung_timeout_ms === 1_800_000]);
+  cases.push(["config: positive rung_timeout_ms honoured", readGatesConfig(mk("rt-ok", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: 42000\n" })).rung_timeout_ms === 42000]);
 
   // 6. Makefile target discovery.
   const dMk = mk("mk", { "Makefile": "lint:\n\ttrue\nbuild:\n\ttrue\n" });

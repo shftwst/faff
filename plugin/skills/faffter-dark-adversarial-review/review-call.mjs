@@ -497,6 +497,22 @@ export const CLEAN_REFUTATIONS = Object.freeze([
   Object.freeze({ lens: "QA", heading: "## Refutation — QA", sentence: "No QA objection." }),
 ]);
 
+// FAFF-927: a decorative header is any single ATX heading line that is NEITHER a severity finding
+// heading (that would make the content genuinely findings-shaped — swallowing it as clean would hide a
+// real finding) NOR inside the reserved `## Refutation — <lens>` namespace (whose lens-consistency is
+// already enforced by the `headed` arm below — a mismatched pair like `## Refutation — architectural` +
+// `No QA objection.` must stay rejected). Every other decorative wrapper a model realistically emits
+// (`# Code review`, `## Second opinion`, `### Assessment`) is accepted.
+const ATX_HEADING_RE = /^#{1,6}\s+\S/;
+const REFUTATION_NAMESPACE_RE = /^##\s+Refutation\s+—/;
+
+function isDecorativeHeader(line) {
+  if (!ATX_HEADING_RE.test(line)) return false;
+  if (SEVERITY_HEADING_RE.test(line)) return false;
+  if (REFUTATION_NAMESPACE_RE.test(line)) return false;
+  return true;
+}
+
 export function normaliseCleanRefutation(content) {
   const original = String(content == null ? "" : content);
   const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
@@ -512,6 +528,16 @@ export function normaliseCleanRefutation(content) {
     // `signal`, and only that exact middle line, ever matches this arm.
     if (entry.signal != null && lines.length === 3 && lines[0] === entry.heading && lines[1] === entry.signal && lines[2] === entry.sentence) {
       return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed+signal" };
+    }
+  }
+  // FAFF-927: any single decorative header wrapping a byte-exact affirmation sentence. Tried only after
+  // every exact per-entry arm above has failed to match, so a body that also satisfies `headed` or
+  // `headed+signal` keeps that more specific label — no existing form regresses to `header-wrapped`.
+  if (lines.length === 2 && isDecorativeHeader(lines[0])) {
+    for (const entry of CLEAN_REFUTATIONS) {
+      if (lines[1] === entry.sentence) {
+        return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "header-wrapped" };
+      }
     }
   }
   return { content: original, normalised: false, lens: null, form: null };

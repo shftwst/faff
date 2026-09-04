@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1001",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2539c4f72c601aec70a09ee83637707dfbe816920ddb682c89c76bbfd3dbb345",
+    "branch": "faff-1001-interactive-graft-a-crash-between-pr-open-step-9b-and-the",
+    "pushed_at": "2026-09-04T20:47:16.349Z"
+  },
+  "updated_at": "2026-09-04T20:47:16.349Z"
+}

@@ -412,6 +412,12 @@ function discoverRungs(root) {
   return { rungs, discovery };
 }
 
+// FAFF-981: spawnSync's default maxBuffer (1 MB) is far below what a noisy-but-passing rung (the
+// UNIT rung's node --test TAP stream, easily several MB) can emit. A finite ceiling well above any
+// real rung's output bounds worst-case per-rung memory while stopping legitimate rungs from
+// overflowing into a false `errored` classification. See the ENOBUFS branch in runRung below.
+const MAX_RUNG_STDOUT_BYTES = 64 * 1024 * 1024; // 64 MiB
+
 // Execution target = the worktree sandbox (cwd) — the single FAFF-12 seam (Q1 interim default).
 // Runs the rung's command and classifies pass/fail/errored. A 127 (command-not-found) is `errored`
 // (tool missing) not `fail` — we can't conclude the code is bad.
@@ -421,12 +427,16 @@ function discoverRungs(root) {
 // sentrycheck.js) and tagged with an internal `reason: "timed-out"` + a timeout-shaped `detail` —
 // still `status: "errored"` at the faff-contract:quality-gates boundary (the enum stays closed),
 // but now diagnosable as "could not conclude" rather than indistinguishable from a genuine crash.
+// FAFF-981: a rung whose stdout/stderr exceeds MAX_RUNG_STDOUT_BYTES is also killed by Node (ENOBUFS,
+// res.status === null) before it can exit, so it too is peeled off BEFORE the general res.error/127
+// branch — same shape as the ETIMEDOUT check above, and orthogonal to it (ENOBUFS vs ETIMEDOUT key
+// off distinct res.error.code values; neither branch's ordering affects the other).
 function runRung(rung, root) {
   const { rung_timeout_ms } = readGatesConfig(root);
   const started = Date.now();
   let res;
   try {
-    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: rung_timeout_ms });
+    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: rung_timeout_ms, maxBuffer: MAX_RUNG_STDOUT_BYTES });
   } catch (e) {
     return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", duration_ms: Date.now() - started, detail: String(e && e.message || e).slice(-500) };
   }
@@ -442,6 +452,17 @@ function runRung(rung, root) {
     return {
       kind: rung.kind, name: rung.name, command: rung.command, status: "errored", reason: "timed-out",
       duration_ms, detail: `timed out after ${duration_ms}ms (limit ${rung_timeout_ms}ms); ${tail}`,
+    };
+  }
+  // FAFF-981: buffer overflow — Node kills the child before it exits, so res.status is null and
+  // there is no exit status left to classify on. Still `errored` (we genuinely cannot conclude
+  // pass/fail), but distinguished from a generic spawn error/127 by a dedicated detail message so a
+  // human reviewing the park sees "output overflow", not a misleading command tail.
+  const overflow = res.error && res.error.code === "ENOBUFS";
+  if (overflow) {
+    return {
+      kind: rung.kind, name: rung.name, command: rung.command, status: "errored", reason: "stdout-overflow",
+      duration_ms, detail: `rung stdout exceeded the ${MAX_RUNG_STDOUT_BYTES / (1024 * 1024)} MiB ceiling; cannot classify on exit status\n${tail}`,
     };
   }
   let status;
@@ -829,6 +850,25 @@ function gatesSelftest() {
   // timeout branch must never swallow a real spawn error.
   const notFoundRung = runRung({ kind: "LINT", name: "lint (missing)", command: "this-command-does-not-exist-xyz" }, dTimeoutOk);
   cases.push(["timeout: genuine command-not-found stays errored with no reason", notFoundRung.status === "errored" && !notFoundRung.reason]);
+
+  // 5f. FAFF-981: a rung that prints well over 1 MB of stdout and exits 0 must classify "pass", not
+  // "errored" — the false-park class this fix eliminates. Node's default spawnSync maxBuffer is 1
+  // MB; MAX_RUNG_STDOUT_BYTES (64 MiB) clears that comfortably for a real ~4 MB burst.
+  const dOverflowOk = mk("overflow-ok", {});
+  const noisyPassCmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n')\"";
+  const noisyPassRung = runRung({ kind: "UNIT", name: "unit (noisy pass)", command: noisyPassCmd }, dOverflowOk);
+  cases.push(["overflow: >1 MB stdout + exit 0 classifies pass, not errored", noisyPassRung.status === "pass" && !noisyPassRung.reason]);
+
+  // 5g. Companion: the same high-output rung exiting non-zero classifies "fail", not "errored" —
+  // output volume alone must never manufacture (or erase) a failure verdict.
+  const noisyFailCmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n');process.exit(1)\"";
+  const noisyFailRung = runRung({ kind: "UNIT", name: "unit (noisy fail)", command: noisyFailCmd }, dOverflowOk);
+  cases.push(["overflow: >1 MB stdout + exit 1 classifies fail, not errored", noisyFailRung.status === "fail" && !noisyFailRung.reason]);
+
+  // 5h. The ENOBUFS-past-the-ceiling branch (reason:"stdout-overflow") needs a real write past the
+  // 64 MiB MAX_RUNG_STDOUT_BYTES ceiling to trigger — too slow to run on every `--selftest` /
+  // gate-ladder invocation, so it is covered instead by the dedicated regression test
+  // test/gates-rung-stdout-overflow.test.mjs (asserted directly against runRung).
 
   // 5d. readGatesConfig: absent/empty/non-numeric/zero/negative rung_timeout_ms all fall back to
   // the 30-minute default; a positive override is honoured.
@@ -1595,4 +1635,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory, selectRunnableRungs };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory, selectRunnableRungs };

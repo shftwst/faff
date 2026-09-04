@@ -141,6 +141,33 @@ test("E2E: standalone mint → Step-9b anchor → resolveAnchorLevel returns {le
   rmSync(repo, { recursive: true, force: true });
 });
 
+// --- FAFF-1001: crash-timing — the anchor-before-PR order makes a review-passed PR mergeable
+// even when the session dies right after `gh pr create`, before Step 10's terminal record-outcome.
+// The committed anchor (captured as the PR head sha) must still resolve {level:L2, status:ok}
+// while the LIVE ledger is left owner.status:"running" with outcomes:{} — the un-closed "build
+// left half-done" backstop that is exactly what stranded PR #856 under the OLD (PR-first) order. ---
+
+test("FAFF-1001 crash-timing: anchor committed before the PR, no terminal record-outcome → resolveAnchorLevel ok while the live ledger stays running/outcomes:{}", () => {
+  const repo = mkGitRepo();
+  const runDir = mint(repo);
+  seedFloor(runDir); // review-verdict.json pass + ac-checklist all_verified (Steps 8/9 already ran)
+  // Step 9b in the new order: anchor + commit + push, THEN gh pr create. Capture the anchor commit
+  // as the PR head sha. Deliberately run NO record-outcome (the crash happens before Step 10).
+  const { sha } = anchorAndCommit(repo, runDir);
+  const res = resolveAnchorLevel(repo, null, runDir, ISSUE, sha);
+  assert.deepEqual({ level: res.level, status: res.status }, { level: "L2", status: "ok" },
+    "the PR head already carries its anchor, so merge-gate resolves ok — no anchor-missing, no manual surgery");
+  // the crash left the live ledger un-closed: owner still running, no terminal outcome recorded.
+  const led = JSON.parse(readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+  assert.equal(led.owner.status, "running", "no terminal record-outcome ran; the owning-session backstop is live");
+  assert.deepEqual(led.outcomes, {}, "live ledger carries no terminal outcome");
+  // the committed anchor is an outcomes:{} PRE-MERGE snapshot (record-outcome never folds into it).
+  const anchored = JSON.parse(readFileSync(
+    path.join(repo, ".faff", "anchors", path.basename(runDir), ISSUE, "run-ledger.json"), "utf8"));
+  assert.deepEqual(anchored.outcomes, {}, "committed anchor is a pre-merge outcomes:{} snapshot");
+  rmSync(repo, { recursive: true, force: true });
+});
+
 // --- Negative / fail-closed: a missing or malformed committed anchor still refuses (exit 2) ---
 
 test("fail-closed: a corrupted anchor (level removed) → anchor-malformed → merge-gate refuses", () => {

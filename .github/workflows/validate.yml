@@ -12,7 +12,27 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # FAFF-987: `validate` is the branch-protection-required check, and the node:test suite now lives
+    # in the sharded `unit` matrix job below rather than inside `validate`. To keep the suite a
+    # REQUIRED gate without adding four brittle `unit (N)` names to branch protection, `validate`
+    # depends on `unit` and fails if any shard failed — so the single existing required check
+    # transitively gates the whole sharded suite. `if: !cancelled()` makes `validate` RUN (and its
+    # guard step below fail it) even when a shard is red, rather than being skipped (a skipped
+    # required check is ambiguous to branch protection). Cost: `validate`'s own fast gate steps run
+    # after `unit` completes (~40s serialized behind the ~170s shards), still far below the ~517s
+    # single-run baseline.
+    needs: [unit]
+    if: ${{ !cancelled() }}
     steps:
+      - name: Require every unit test shard to have passed (gate the sharded suite through this required check)
+        run: |
+          result='${{ needs.unit.result }}'
+          if [ "$result" != "success" ]; then
+            echo "::error::the sharded node:test suite did not all pass (unit matrix result: $result) — see the unit (N) jobs"
+            exit 1
+          fi
+          echo "all unit test shards passed"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-984",
+  "build": {
+    "status": "complete",
+    "diff_hash": "724fdf588f01a219f77bd4ce43ef35bfd6a67769ce81753101c442086a3b68ae",
+    "branch": "faff-984-faff-gates-run-whole-suite-unit-rung-times-out-and",
+    "pushed_at": "2026-09-04T00:35:19.889Z"
+  },
+  "updated_at": "2026-09-04T00:35:19.889Z"
+}

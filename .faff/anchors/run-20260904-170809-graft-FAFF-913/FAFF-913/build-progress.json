@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-913",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9721326709ba13f19dab2baa0dcc4030e6ced96f962e1fb6f33603beb6343a19",
+    "branch": "faff-913-surface-governance-check-failures-as-sanitized-github",
+    "pushed_at": "2026-09-04T17:33:05.413Z"
+  },
+  "updated_at": "2026-09-04T17:33:05.413Z"
+}

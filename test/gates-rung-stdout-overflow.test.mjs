@@ -6,7 +6,7 @@
 //
 // Sibling ticket FAFF-984 fixed the adjacent ETIMEDOUT branch of the same classifier (a distinct
 // reason:"timed-out"); this file covers ENOBUFS only and never touches the timeout path.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -17,6 +17,7 @@ const require = createRequire(import.meta.url);
 const { runRung, MAX_RUNG_STDOUT_BYTES } = require("../plugin/skills/faff/bin/lib/gates.js");
 
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-gates-overflow-"));
+after(() => fs.rmSync(tmpRoot, { recursive: true, force: true }));
 
 test("MAX_RUNG_STDOUT_BYTES is a finite 64 MiB ceiling (never Infinity — bounds worst-case memory)", () => {
   assert.equal(MAX_RUNG_STDOUT_BYTES, 64 * 1024 * 1024);
@@ -49,12 +50,15 @@ test("a rung whose stdout exceeds the 64 MiB ceiling is killed (ENOBUFS) and cla
   // exit (res.status becomes null) and sets res.error.code === "ENOBUFS". This is the one case that
   // must generate real bytes past the production ceiling, so it is deliberately isolated to this
   // dedicated file rather than run on every `faff gates --selftest` pass.
+  // Uses the `yes`/`head` coreutils (Unix-only) rather than a portable node -e writer — the same
+  // convention this classifier's own FAFF-984 timeout case already relies on ("sleep 5" below, and
+  // in gatesSelftest), and faff's CI matrix (validate + validate-macos) never runs Windows.
   const bytes = 70 * 1024 * 1024;
   const cmd = `yes | head -c ${bytes}`;
   const r = runRung({ kind: "UNIT", name: "over-ceiling", command: cmd }, tmpRoot);
   assert.equal(r.status, "errored");
   assert.equal(r.reason, "stdout-overflow");
-  assert.match(r.detail, /exceeded the 64 MiB ceiling/);
+  assert.match(r.detail, /exceeded the 64 MiB per-stream ceiling/);
 });
 
 test("a genuine spawn timeout (ETIMEDOUT) is unaffected — stays errored with reason timed-out, never stdout-overflow", () => {

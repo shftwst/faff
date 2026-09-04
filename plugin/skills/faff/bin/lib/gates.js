@@ -414,9 +414,11 @@ function discoverRungs(root) {
 
 // FAFF-981: spawnSync's default maxBuffer (1 MB) is far below what a noisy-but-passing rung (the
 // UNIT rung's node --test TAP stream, easily several MB) can emit. A finite ceiling well above any
-// real rung's output bounds worst-case per-rung memory while stopping legitimate rungs from
-// overflowing into a false `errored` classification. See the ENOBUFS branch in runRung below.
-const MAX_RUNG_STDOUT_BYTES = 64 * 1024 * 1024; // 64 MiB
+// real rung's output bounds worst-case per-rung memory (spawnSync applies maxBuffer per stream, so
+// stdout and stderr are each capped at this value independently — worst case ~2x this constant)
+// while stopping legitimate rungs from overflowing into a false `errored` classification. See the
+// ENOBUFS branch in runRung below.
+const MAX_RUNG_STDOUT_BYTES = 64 * 1024 * 1024; // 64 MiB per stream
 
 // Execution target = the worktree sandbox (cwd) — the single FAFF-12 seam (Q1 interim default).
 // Runs the rung's command and classifies pass/fail/errored. A 127 (command-not-found) is `errored`
@@ -462,7 +464,7 @@ function runRung(rung, root) {
   if (overflow) {
     return {
       kind: rung.kind, name: rung.name, command: rung.command, status: "errored", reason: "stdout-overflow",
-      duration_ms, detail: `rung stdout exceeded the ${MAX_RUNG_STDOUT_BYTES / (1024 * 1024)} MiB ceiling; cannot classify on exit status\n${tail}`,
+      duration_ms, detail: `rung output (stdout or stderr) exceeded the ${MAX_RUNG_STDOUT_BYTES / (1024 * 1024)} MiB per-stream ceiling; cannot classify on exit status\n${tail}`,
     };
   }
   let status;

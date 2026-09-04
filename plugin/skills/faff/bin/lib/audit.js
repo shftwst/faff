@@ -14,6 +14,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const { auditLedger } = require("./runcheck");
 // FAFF-673: the PR-path human-merge landing check reuses the SAME escape core `faff effects check`
 // uses (governance→governance import; the require-graph invariant only forbids governance→factory).
@@ -24,7 +25,7 @@ const AUDIT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }
 // computed the original verdict with — sourced from shared-infra (not contain.js
 // directly), since governance (this file) may reference shared-infra only, never a
 // factory module like contain.js (ADR 0042; `faff regions check` enforces this).
-const { CONTAIN_ROOT, decideSelfIntake, findRoot, parseAncestry, readLedger, subtreeContains } = require("./shared-infra");
+const { CONTAIN_ROOT, decideSelfIntake, findRoot, parseAncestry, readLedger, subtreeContains, ENTRYPOINT } = require("./shared-infra");
 // FAFF-700: the dispatch-observability recompute reads the SAME child-transcript
 // primitives budget.js's own attribution walk uses (transcriptBaseDir/
 // childOwningSession — the FAFF-229 ownership gate). budget.js is governance, same
@@ -487,6 +488,50 @@ function renderAuditText(recon) {
       console.log(`  human-merge unexplained: ${c.human_merge_unexplained.map((m) => `${m.issue} (reason ${m.reason_present ? "ok" : "missing"}, declaration ${m.declare_present ? "ok" : "missing"}, landing ${m.landing_covered ? "ok" : "missing"})`).join(", ")}`);
     }
   }
+
+  // FAFF-994: the durable judge-trail SECOND source — additive, never gating; its absence
+  // just means the second source note below, the single-run reconstruction above is
+  // unaffected either way.
+  if (recon.durable_judge_trail) {
+    const dj = recon.durable_judge_trail;
+    if (!dj.available) {
+      console.log(`durable judge-trail: unavailable (${dj.reason})`);
+    } else if (!dj.records.length) {
+      console.log("durable judge-trail: (no records for this run)");
+    } else {
+      console.log(`durable judge-trail (${dj.records.length}):`);
+      for (const rec of dj.records) {
+        const flag = rec.tamper_suspect ? " TAMPER-SUSPECT" : "";
+        console.log(`  ${rec.issue}  outcome=${rec.outcome ?? "?"}  lenses=${(rec.lenses || []).join(",")}${flag}`);
+      }
+    }
+  }
+}
+
+// FAFF-994: the durable judge-trail SECOND source (mirrors ADR-0109/FAFF-623/796's
+// deriveAnchorDirs second-source precedent). `judge-history.js`'s reader core lives in the
+// FACTORY region (`refs/faff/judge-trail/*` git-ref plumbing); this file is
+// region:governance and per ADR-0042's require-graph direction lint (`faff regions check`)
+// must never `require()` a factory module. So this reaches it ONLY across a PROCESS
+// boundary — a spawnSync self-spawn of the same `faff` binary, invisible to the
+// require-graph lint by design — the exact precedent events.js's `cmdEventsAnchorRun` uses
+// to reach `governance-check`. Additive: absence (spawn failure, non-zero exit, unparseable
+// stdout) never fails `faff audit` itself — it just notes the second source unavailable and
+// the single-run reconstruction renders alone, unchanged.
+function readDurableJudgeTrail(runId, root) {
+  let r;
+  try {
+    r = spawnSync(process.execPath, [ENTRYPOINT, "judge-history", "--run", runId, "--json", "--root", root], { encoding: "utf8" });
+  } catch (e) {
+    return { available: false, reason: `spawn failed: ${e.message}`, records: [] };
+  }
+  if (!r || r.error) return { available: false, reason: `spawn failed: ${(r && r.error && r.error.message) || "unknown"}`, records: [] };
+  if (r.status !== 0) return { available: false, reason: `judge-history exited ${r.status}: ${(r.stderr || "").trim()}`, records: [] };
+  let records;
+  try { records = JSON.parse(r.stdout); }
+  catch (e) { return { available: false, reason: `judge-history stdout unparseable: ${e.message}`, records: [] }; }
+  if (!Array.isArray(records)) return { available: false, reason: "judge-history stdout was not a JSON array", records: [] };
+  return { available: true, records };
 }
 
 function cmdAudit(args) {
@@ -544,11 +589,20 @@ function cmdAudit(args) {
   const dispatchSubstrate = readDispatchSubstrate(root, process.env);
   const recon = buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap, humanMerge, dispatchSubstrate);
 
+  // FAFF-994: fold in the durable refs/faff/judge-trail/<run_id> ref as a SECOND source —
+  // additive, never gating; see readDurableJudgeTrail's banner for the region-boundary
+  // rationale (a spawnSync self-spawn, never a require edge).
+  const durable = readDurableJudgeTrail(runId, root);
+  recon.durable_judge_trail = durable.available
+    ? { available: true, records: durable.records }
+    : { available: false, reason: durable.reason };
+
   if (issue) {
     const match = recon.issues.find((r) => r.issue === issue);
     if (!match) { process.stderr.write(`faff audit: ${runId} has no admitted or evented issue ${issue}\n`); return 3; }
     recon.issues = [match];
     recon.filtered_to = issue;
+    if (durable.available) recon.durable_judge_trail.records = durable.records.filter((rec) => rec.issue === issue);
   }
 
   if (json) { console.log(JSON.stringify(recon)); return 0; }
@@ -1038,4 +1092,4 @@ function auditSelftest() {
 }
 
 
-module.exports = { accountHumanMerge, auditSelftest, buildReconstruction, cmdAudit, computeDispatchObservability, readDispatchSubstrate, readEvents, readProvenance, renderAuditText };
+module.exports = { accountHumanMerge, auditSelftest, buildReconstruction, cmdAudit, computeDispatchObservability, readDispatchSubstrate, readDurableJudgeTrail, readEvents, readProvenance, renderAuditText };

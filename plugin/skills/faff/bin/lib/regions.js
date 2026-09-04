@@ -148,6 +148,13 @@ const REGION_MAP = {
   // layer → factory.
   "run-start": "factory",
   "hooks-ensure": "factory",
+  // judge-trail / judge-history — FAFF-994: the durable spec-review judgement trail writer
+  // + reader core over refs/faff/judge-trail/*. Factory (git-ref plumbing over
+  // run-dir scratch material, mirrors bundle.js). audit.js (governance) reaches
+  // judge-history ONLY via a spawnSync self-spawn — never a require edge (see judge-trail.js
+  // banner + audit.js's durable-second-source call site).
+  "judge-trail": "factory",
+  "judge-history": "factory",
   "merge-fence": "factory",
   // FAFF-491: the self-backgrounded-gate PreToolUse fence — same family as merge-fence
   // (a pure matcher + --hook stdin shell + --selftest), factory for the identical reason.
@@ -412,6 +419,11 @@ const REGION_SELFTEST_ARGV = {
   "run-record-prd": ["run-record-prd", "--selftest"],
   "run-start": ["run-start", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
+  "judge-trail": ["judge-trail", "--selftest"],
+  // judge-history's reader-core logic is exercised transitively by judge-trail's own
+  // --selftest fixtures (collectObjections) plus test/judge-trail.test.mjs's full mint ->
+  // read git round trip; no separate standalone selftest (non-fatal for factory).
+  "judge-history": null,
   "merge-fence": ["merge-fence", "--selftest"],
   "background-fence": ["background-fence", "--selftest"],
   "validate-adapters": null,

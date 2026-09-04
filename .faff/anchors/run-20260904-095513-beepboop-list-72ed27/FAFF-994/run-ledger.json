@@ -1,0 +1,65 @@
+{
+  "level": "L3",
+  "run_id": "run-20260904-095513-beepboop-list-72ed27",
+  "admitted": [
+    "FAFF-995",
+    "FAFF-994"
+  ],
+  "outcomes": {
+    "FAFF-995": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_session_id": "6f8903d7-1b5d-434f-b7e4-9aeac103ec7e",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 105,
+        "output": 89357,
+        "cache_write_5m": 0,
+        "cache_write_1h": 719395,
+        "cache_read": 9333648
+      }
+    },
+    "tokens_at_start": 10142505,
+    "tokens_at_last_event": {
+      "input": 204,
+      "output": 224407,
+      "cache_write_5m": 0,
+      "cache_write_1h": 991388,
+      "cache_read": 22669112
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 600,
+    "session_id": "6f8903d7-1b5d-434f-b7e4-9aeac103ec7e",
+    "started_at": "2026-09-04T10:02:05Z",
+    "last_heartbeat": "2026-09-04T10:02:05Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "outcome_details": {
+    "FAFF-995": {
+      "gate": "adversarial",
+      "review_verdict": "needs-human",
+      "branch": "faff-995-judge-aware-l4-infosec-floor-veto-only-on-a-post-judge",
+      "pr": null,
+      "note": "adversarial critical false-positive escalation; UNIT rung hit FAFF-981 ENOBUFS but not the park cause"
+    }
+  }
+}

@@ -61,6 +61,7 @@ const { cmdProfiles } = require("./lib/governance-profile");
 const { cmdHarness } = require("./lib/harness");
 const { cmdHeartbeat } = require("./lib/heartbeat");
 const { cmdHooksEnsure } = require("./lib/hooks-ensure");
+const { cmdJudgeTrail, cmdJudgeHistory } = require("./lib/judge-trail");
 const { cmdIntakeRecord, cmdIntakecheck } = require("./lib/intake-provenance");
 const { cmdLabel } = require("./lib/label");
 const { cmdLabels } = require("./lib/labels");
@@ -160,6 +161,8 @@ const COMMANDS = {
   "run-record-prd": cmdRunRecordPrd,
   "run-start": cmdRunStart,
   "hooks-ensure": cmdHooksEnsure,
+  "judge-trail": cmdJudgeTrail,
+  "judge-history": cmdJudgeHistory,
   "merge-fence": cmdMergeFence,
   "background-fence": cmdBackgroundFence,
   "validate-adapters": cmdValidateAdapters,

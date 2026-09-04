@@ -601,6 +601,12 @@ function cmdAdmit(values) {
     if (e && e.failLoud) { process.stderr.write(`faff spec-judge-evidence --admit: ${e.failLoud}\n`); return 2; }
     throw e;
   }
+  // FAFF-994: persist the AdmitResult verbatim to <scratch>/judge/admit-result.json (outDir
+  // IS <scratch>/judge — see the --out/--dir resolution above) so `faff judge-trail mint`
+  // can read it byte-identical rather than re-deriving a judgement. Best-effort: a write
+  // failure is logged but never blocks the unchanged stdout contract below.
+  try { fs.writeFileSync(path.join(outDir, "admit-result.json"), JSON.stringify(result, null, 2) + "\n"); }
+  catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: warning — could not write admit-result.json: ${e.message}\n`); }
   console.log(JSON.stringify(result));
   return 0;
 }

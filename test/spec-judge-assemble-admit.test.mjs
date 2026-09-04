@@ -89,6 +89,21 @@ test("--admit: all resolved -> admit true at L3; a missing ruling for a listed p
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("FAFF-994: --admit persists admit-result.json verbatim (byte-identical to stdout) to <out>/admit-result.json, stdout AdmitResult contract unchanged", () => {
+  const dir = seedScratch([{ lens: "architectural", severity: "major", claim: "x", evidence: "", predicted_consequence: "y", spec_anchor: "empty-dir-handling" }]);
+  try {
+    const out = join(dir, "scratch", "judge");
+    runCli(["spec-judge-evidence", "--assemble", "--dir", join(dir, "scratch"), "--window-start", "1", "--spec", join(dir, "spec.md"), "--issue", "FAFF-930", "--repo-root", repoRoot, "--out", out]);
+    writeFileSync(join(out, "ruling-p-01.json"), JSON.stringify({ proposition_id: "p-01", outcome: "AFFIRM_SPEC", correction: null, synthesis_sources: [], prd_gap_citation: "" }));
+    const r = runCli(["spec-judge-evidence", "--admit", "--level", "L3", "--out", out, "--spec", join(dir, "spec.md"), "--dir", join(dir, "scratch"), "--window-start", "1"]);
+    assert.equal(r.code, 0, r.stderr);
+    const stdoutResult = JSON.parse(r.stdout);
+    assert.equal(stdoutResult.admit, true, "stdout AdmitResult contract is unchanged");
+    const persisted = JSON.parse(readFileSync(join(out, "admit-result.json"), "utf8"));
+    assert.deepEqual(persisted, stdoutResult, "the persisted admit-result.json is byte-identical (verbatim) to the emitted AdmitResult");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("--admit: a malformed ledger.json is fail-loud exit 2", () => {
   const dir = seedScratch([]);
   try {

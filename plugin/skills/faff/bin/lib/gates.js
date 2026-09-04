@@ -382,9 +382,13 @@ function discoverCiWorkflows(root) {
   for (const f of files) {
     let text;
     try { text = fs.readFileSync(path.join(dir, f), "utf8"); } catch { continue; } // skip unreadable
-    for (const command of extractRunCommands(text)) {
-      const kind = ciRunnerKind(command);
+    for (const raw of extractRunCommands(text)) {
+      const kind = ciRunnerKind(raw);
       if (!kind) continue;                 // unrecognised → not a gate, drop it
+      // FAFF-987: derive the runnable LOCAL rung — strip --test-shard so a sharded CI node --test
+      // line runs the whole suite unsharded here too (this legacy discoverRungs path feeds
+      // post-merge-check's re-run). No-op for a command without --test-shard.
+      const command = normaliseLocalRungCommand(raw);
       rungs.push({ kind, name: `${kind.toLowerCase()} (ci-workflow: ${command})`, command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true });
     }
   }
@@ -550,6 +554,22 @@ function exclusionReason(rec, cfg, localOsVal) {
   return null;
 }
 
+// FAFF-987: a sharded CI UNIT command — `node … --test --test-shard=<i>/<N> test/` — is not
+// runnable as-is on a dev box: there is no matrix, so an unexpanded `${{ matrix.shard }}` is a
+// bash bad-substitution and an unset `$SHARD/$SHARD_TOTAL` env-var form resolves to an invalid
+// shard (`/`). Strip the `--test-shard=<value>` token when deriving the LOCAL rung so it runs the
+// whole suite unsharded, exactly once. The value runs to the next TOP-LEVEL whitespace; whitespace
+// INSIDE a `${{ … }}` expression does not terminate it (so the unexpanded matrix form is removed
+// whole). Only the `--test-shard` token is removed — any OTHER `${{ … }}` in the command survives,
+// so it still trips the github-context exclusion below. A command without `--test-shard` is returned
+// byte-identical, so this is a no-op for every non-sharded rung.
+function normaliseLocalRungCommand(command) {
+  return String(command)
+    .replace(/\s*--test-shard=(?:\$\{\{[^}]*\}\}|\S)+/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 // Runnable variant of discoverCiWorkflowsReporting: applies the exclusion filter at step
 // granularity (a step is subtracted from eligible_steps only when EVERY one of its command
 // records is excluded — matching 848's per-step counting), emits a rung per recognised, runnable
@@ -578,6 +598,10 @@ function discoverCiWorkflowsRunnable(root, cfg) {
       byStep.get(rec.step_index).push(rec);
     }
     for (const [idx, recs] of byStep) {
+      // FAFF-987: derive the LOCAL rung command before exclusion/kind resolution, so a sharded CI
+      // node --test line runs the whole suite unsharded locally AND its `${{ matrix.shard }}` no
+      // longer trips the github-context exclusion below. No-op for a command without --test-shard.
+      for (const rec of recs) rec.command = normaliseLocalRungCommand(rec.command);
       const reasons = recs.map((r) => exclusionReason(r, cfg, localOsVal));
       const allExcluded = reasons.every((x) => x !== null);
       if (allExcluded) {                             // whole step subtracted from eligible + never a rung
@@ -1637,4 +1661,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory, selectRunnableRungs };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory, selectRunnableRungs };

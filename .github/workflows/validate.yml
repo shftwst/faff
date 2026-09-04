@@ -12,7 +12,27 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # FAFF-987: `validate` is the branch-protection-required check, and the node:test suite now lives
+    # in the sharded `unit` matrix job below rather than inside `validate`. To keep the suite a
+    # REQUIRED gate without adding four brittle `unit (N)` names to branch protection, `validate`
+    # depends on `unit` and fails if any shard failed — so the single existing required check
+    # transitively gates the whole sharded suite. `if: !cancelled()` makes `validate` RUN (and its
+    # guard step below fail it) even when a shard is red, rather than being skipped (a skipped
+    # required check is ambiguous to branch protection). Cost: `validate`'s own fast gate steps run
+    # after `unit` completes (~40s serialized behind the ~170s shards), still far below the ~517s
+    # single-run baseline.
+    needs: [unit]
+    if: ${{ !cancelled() }}
     steps:
+      - name: Require every unit test shard to have passed (gate the sharded suite through this required check)
+        run: |
+          result='${{ needs.unit.result }}'
+          if [ "$result" != "success" ]; then
+            echo "::error::the sharded node:test suite did not all pass (unit matrix result: $result) — see the unit (N) jobs"
+            exit 1
+          fi
+          echo "all unit test shards passed"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -113,34 +133,79 @@ jobs:
           # flip to enforcing once the post-lean floor is calibrated:
           #   node eval/size-census.mjs --gate --against eval/baselines/prompt-size.json --enforce
 
-      - name: Assert docker present (env integration test must not silently skip — FAFF-274)
-        run: |
-          docker info >/dev/null 2>&1 || {
-            echo "::error::docker unavailable on a lane that must run the env integration test (FAFF-274)"
-            exit 1
-          }
+  # FAFF-987: the node:test suite is split off the `validate` job (above) into its own matrixed
+  # `unit` job, sharded 4-way via `--test-shard` so it runs across 4 parallel runners instead of at
+  # the tail of the validate gate steps. The invocation is PATHLESS (Node's default test-file
+  # discovery) — deliberately NOT `--test test/`: a bare `test/` directory positional works on the
+  # pinned Node 20 but FAILS on Node 22 (it tries to import the directory as a module), and a
+  # `test/**/*.test.mjs` glob is the exact opposite (works on Node 22, matches nothing on Node 20),
+  # so pathless is the sole form that is cross-version safe AND shardable. Docker is made unreachable
+  # here (dead DOCKER_HOST, FAFF_REQUIRE_DOCKER unset) so the two real-container files self-skip —
+  # env-rootless below is the SOLE required home of real stand-ups, keeping the FAFF-274 fail-loud
+  # guarantee. The `validate` job no longer runs the suite, nor asserts docker present (no remaining
+  # validate step needs it — the assert existed only for the suite step). The two archived spike test
+  # files under records/spikes/2026-07-10-faff-411/ were renamed to *.spike.mjs so pathless discovery
+  # no longer sweeps them in (they are not maintained suite members).
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false          # one red shard must not cancel the other shards' signal
+      matrix:
+        shard: [1, 2, 3, 4]     # N = 4 (matches the 4-vCPU ubuntu-latest standard runner)
+    steps:
+      - uses: actions/checkout@v4
 
-      # FAFF-581 change 4: coverage measurement, PUBLISH-ONLY. NODE_V8_COVERAGE is folded into
-      # this one required `node --test` run (no second full-suite pass): every spawned bin/faff
-      # child dumps V8 coverage into the shared dir via the single runCli() seam. The number is
-      # published in the next step; nothing gates on it (the enforcement-floor flip is a separate
-      # QA decision — FAFF-581 §7 Punt).
-      - name: Run skill/CLI behaviour tests (node:test) — with coverage capture (FAFF-581)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run the node:test suite (shard ${{ matrix.shard }}/4) — with coverage capture
         env:
-          FAFF_REQUIRE_DOCKER: "1"
-          NODE_V8_COVERAGE: ${{ runner.temp }}/v8-coverage
+          # Docker unreachable: env.test.mjs / holdout-evaluate-integration.test.mjs gate on
+          # `docker info` succeeding, so a dead socket makes them self-skip here (the ~73s sink
+          # leaves the critical path). FAFF_REQUIRE_DOCKER is intentionally NOT set — the real
+          # container stand-ups run for real on the env-rootless lane below.
+          DOCKER_HOST: "unix:///nonexistent/faff987.sock"
+          NODE_V8_COVERAGE: ${{ runner.temp }}/v8-coverage-shard-${{ matrix.shard }}
         run: |
           mkdir -p "$NODE_V8_COVERAGE"
-          # FAFF-785: --import the hermetic-env preload so the suite is invariant to any ambient
-          # FAFF_*/CLAUDE_* the runner carries (the self-hosting-checkout non-hermeticity fix). A
-          # no-op on clean CI; FAFF_REQUIRE_DOCKER is EXEMPT so the FAFF-274 fail-loud guard holds.
-          node --import ./test/hermetic-env.mjs --test
+          # Keep the invocation below on ONE physical line: faff gates' extractRunCommands discovers
+          # per `run:` body line, and a backslash-continued command would be seen in fragments. The
+          # derived local gates UNIT rung strips the shard flag (gates.js normaliseLocalRungCommand)
+          # to run the whole suite unsharded. --import the hermetic-env preload as before (FAFF-785).
+          node --import ./test/hermetic-env.mjs --test --test-shard=${{ matrix.shard }}/4
 
-      - name: Publish CLI coverage number (advisory — never gates — FAFF-581)
+      - name: Upload this shard's V8 coverage
         if: always()
-        env:
-          NODE_V8_COVERAGE: ${{ runner.temp }}/v8-coverage
-        run: node scripts/coverage-aggregate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/v8-coverage-shard-${{ matrix.shard }}
+          if-no-files-found: ignore
+
+  # FAFF-987: aggregate the per-shard V8 coverage dirs into the single advisory number FAFF-581
+  # published (scripts/coverage-aggregate.mjs already rolls up a whole directory of V8 JSONs, so the
+  # shards compose cleanly). Advisory only — never gates; runs even if a shard failed (if: always()).
+  coverage-report:
+    runs-on: ubuntu-latest
+    needs: unit
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download all shard coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-shard-*
+          path: ${{ runner.temp }}/v8-coverage-all
+          merge-multiple: true
+
+      - name: Publish CLI coverage number (advisory — never gates — FAFF-581/FAFF-987)
+        run: node scripts/coverage-aggregate.mjs --dir "${{ runner.temp }}/v8-coverage-all" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # FAFF-762: re-targeted at the IMPURE, OS-divergent surface — real `git worktree`
   # provisioning, path resolution, and the bundled bash scripts calling POSIX utils, the

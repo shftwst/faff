@@ -1,6 +1,6 @@
 # ADR 0122 — Adopt declared effects as the first V5 cutover slice
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-31
 - **Issue:** FAFF-944
@@ -33,4 +33,4 @@ This decision fixes the first slice Phase 2A (FAFF-828) builds against. It const
 
 The span trace found no `broken` invariant: the only intentionally-changed invariant family (Effect) carries a cited test, a migration rule (translated), and a rollback path (rule 7), so nothing escalates to FAFF-827 on the broken-invariant axis ahead of the ordinary acceptance review. Two questions are carried forward as unknowns in the selection document: whether the effect-stream readers (`merge-gate.js` `requireWitness`, `governance-check.js`) need code changes at cutover or are insulated by a transparent compatibility reader (U2, routed to FAFF-828), and whether the facade's two compound verbs should be split before Phase 2A implements them (U1, routed to FAFF-827 and the Phase-2A facade design).
 
-This ADR sits at `Status: Proposed`. FAFF-827, the Phase-1 acceptance gate, is where the human accepts Phase 1's evidence as a whole and flips it to `Accepted`; it is not accepted by this ticket closing.
+This ADR was accepted by the FAFF-999 standalone-`commissaire`-CLI delivery decision (human, 2026-09-04), which ships the facade this slice targets. The Phase-1 acceptance gate FAFF-827 that would otherwise flip it is parked (`paused`) pending a second Commissaire consumer; for the purpose of this cutover the delivery decision stands in for it.

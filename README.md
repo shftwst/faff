@@ -53,7 +53,8 @@ git-only mode works without one.
 Contributors working on faff itself use a development install instead:
 `scripts/link-skills.sh` symlinks the skills straight into `~/.claude/skills`,
 which registers them under bare names (`/faff-onboard`) rather than the
-plugin-namespaced names below. See [CONTRIBUTING](CONTRIBUTING.md).
+plugin-namespaced names below. The same script also symlinks Commissaire's own
+`commissaire` CLI onto your `PATH` beside `faff`. See [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Harness support
 

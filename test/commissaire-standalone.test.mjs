@@ -151,6 +151,93 @@ test("the standalone commissaire require graph never reaches an orchestration mo
   assert.deepEqual(outside, [], `files resolved outside plugin/skills/faff/bin/: ${outside.join(", ")}`);
 });
 
+// --- FAFF-1000: runtime spawn-guard --------------------------------------------------------------
+// The static walk proves commissaire.js never REQUIRES the faff bin's graph; this proves the
+// depth'd `verdict conclude` / `audit seal` never EXEC it either (a require-graph guard cannot catch
+// a dynamically-constructed spawn). A fresh child node process patches child_process.spawnSync to
+// record every call BEFORE requiring lib/commissaire.js, sets up a governed run + a directly-minted
+// run-close anchor, drives the two verbs through COMMISSAIRE_DISPATCH in-process, and exits non-zero
+// if any recorded spawn names the faff ENTRYPOINT. commissaireSelftest's own legitimate faff-bin
+// spawns are never reached — the harness calls the dispatch table directly, never --selftest.
+test("FAFF-1000 runtime spawn-guard: neither `verdict conclude` nor `audit seal` spawns the faff bin", () => {
+  const harness = join(tmpdir(), `commissaire-spawnguard-${process.pid}.cjs`);
+  const body = `
+const cp = require("node:child_process");
+const realSpawnSync = cp.spawnSync;
+const calls = [];
+// Record every call, then DELEGATE to the real spawnSync so any legitimate non-faff tool (git for a
+// manifest hash, say) still behaves — the assertion is specifically "no spawn names the faff bin".
+cp.spawnSync = function (command, args, options) { calls.push({ command, args: args || [] }); return realSpawnSync.call(cp, command, args, options); };
+
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const LIB = ${JSON.stringify(LIB)};
+const { ENTRYPOINT } = require(path.join(LIB, "shared-infra.js"));
+// Requiring commissaire.js AFTER the patch: its own \`const { spawnSync } = require("node:child_process")\`
+// destructures the patched function out of the fresh child's module cache.
+const { COMMISSAIRE_DISPATCH } = require(path.join(LIB, "commissaire.js"));
+const { mintIssueAnchor } = require(path.join(LIB, "events.js"));
+
+// Feed the stdin-reading verbs (declare/authorize/observe) their payloads without a real pipe: a
+// queue drained through a targeted fs.readFileSync(0, ...) override.
+let stdinQueue = [];
+const realReadFileSync = fs.readFileSync;
+fs.readFileSync = function (p, ...rest) { if (p === 0) return stdinQueue.length ? stdinQueue.shift() : ""; return realReadFileSync.call(fs, p, ...rest); };
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "cmsr-spawnguard-"));
+const runId = "RUN-GUARD";
+const runDir = path.join(root, ".faff", "runs", runId);
+fs.mkdirSync(runDir, { recursive: true });
+const D = (key, flags) => COMMISSAIRE_DISPATCH[key](flags);
+
+let rc = 0;
+try {
+  if (D("contract admit", { "--run-dir": runDir, "--producer": "P1", "--contract-revision": "r1", "--scope": "merge" }) !== 0) throw new Error("admit");
+  stdinQueue.push(JSON.stringify([{ kind: "merge", target: "main" }]));
+  if (D("effect declare", { "--run-dir": runDir, "--producer": "P1", "--issue": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("declare");
+  stdinQueue.push(JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+  if (D("effect authorize", { "--run-dir": runDir, "--producer": "P1", "--issue": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("authorize");
+  stdinQueue.push(JSON.stringify([{ kind: "merge", target: "main" }]));
+  if (D("effect observe", { "--run-dir": runDir, "--producer": "P1", "--issue": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("observe");
+
+  // run-ledger + a directly-minted run-close anchor (fs writes under root/.faff/anchors/<run_id>/) —
+  // never via \`faff events anchor-run\`; the guard's whole point is a path with no faff-bin call.
+  fs.writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" } }));
+  fs.writeFileSync(path.join(runDir, "events.jsonl"), '{"schema":1,"run_id":"' + runId + '","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\\n');
+  fs.mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
+  const anchorRoot = path.join(root, ".faff", "anchors", runId);
+  const mint = mintIssueAnchor(runDir, "FAFF-1", path.join(anchorRoot, "FAFF-1"));
+  if (!mint.ok) throw new Error("anchor mint");
+  fs.mkdirSync(anchorRoot, { recursive: true });
+  fs.writeFileSync(path.join(anchorRoot, "summary.md"), "# run\\n");
+
+  // Measure ONLY the two verbs under test.
+  calls.length = 0;
+  const vc = D("verdict conclude", { "--run-dir": runDir, "--issue": "FAFF-1" });
+  const seal = D("audit seal", { "--run-dir": runDir, "--root": root });
+  if (vc !== 0) throw new Error("verdict conclude exit " + vc);
+  if (seal !== 0) throw new Error("audit seal exit " + seal);
+
+  const faffSpawns = calls.filter((c) => c.command === ENTRYPOINT || (c.args || []).some((a) => a === ENTRYPOINT));
+  if (faffSpawns.length !== 0) { process.stderr.write("faff-bin spawn detected: " + JSON.stringify(faffSpawns) + "\\n"); rc = 3; }
+} catch (e) {
+  process.stderr.write("spawn-guard setup error: " + (e && e.stack || e) + "\\n");
+  rc = 2;
+} finally {
+  try { fs.rmSync(root, { recursive: true, force: true }); } catch { /* best-effort */ }
+}
+process.exit(rc);
+`;
+  try {
+    writeFileSync(harness, body);
+    const r = spawnSync("node", [harness], { cwd: REPO, encoding: "utf8" });
+    assert.equal(r.status, 0, `spawn-guard child exited ${r.status}: ${r.stderr}`);
+  } finally {
+    rmSync(harness, { force: true });
+  }
+});
+
 test("the independence guard fires against a tainted fixture (proves it is not vacuous)", () => {
   // Copy commissaire.js into bin/lib as a temp sibling and inject one denylisted require, so
   // `./tracker` resolves EXACTLY as a real edge would. The real commissaire.js is never touched.

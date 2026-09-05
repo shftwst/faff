@@ -1,0 +1,2 @@
+{"schema":2,"run_id":"run-20260905-084243-graft-FAFF-979","seq":0,"ts":"2026-09-05T08:42:43.241Z","prev":"7f35302fb41eda9dc41ae9e25c8d5fd04ea4b5a851467add27ce2f418c72b137","phase":"run","type":"ledger-write","data":{"ledger_sha256":"bcda3aca75fb2e8ab07b26dbb6484f969b514f09dc17146da4d21bcfd63c5995"}}
+{"schema":2,"run_id":"run-20260905-084243-graft-FAFF-979","seq":1,"ts":"2026-09-05T08:42:43.234Z","prev":"292e4db3a901a76313b694835ef84a8f0cc390f77ee2ccc11bd0bacc108696c6","phase":"run","type":"run-start"}

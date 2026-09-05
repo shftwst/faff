@@ -494,9 +494,30 @@ const EVENTS_CFG = { ledgerFile: "events.jsonl", lock: { code: "EVENTS_LOCKED", 
 // — so the verifier re-hashing physical lines re-derives exactly these values. The
 // torn-tail "\n" repair is applied ONCE at batch head only (the records inside the batch are
 // newline-joined by this same writer, so no torn tail exists between them).
-function appendRecordsUnderLock(dir, cfg, mintCount, mintOne) {
+// FAFF-979: the shared JSONL parser — split on "\n", drop blank lines, JSON.parse each,
+// drop nulls. This is exactly readLedgerEntries' current parse body, so the lock-held
+// snapshot (below) and the unlocked reader produce byte-identical entries.
+function parseJsonlEntries(text) {
+  return text.split("\n").filter((l) => l.trim() !== "").map((l) => {
+    try { return JSON.parse(l); } catch { return null; }
+  }).filter(Boolean);
+}
+
+// FAFF-979: opt-in `opts.withSnapshot` returns { minted, snapshot } where snapshot is the
+// full ledger parsed INSIDE the lock, AFTER the append. Every existing caller passes no opts,
+// so the return shape stays the raw `minted`/`null` byte-for-byte. This closes the
+// request-append/evaluation TOCTOU: the append and the read the decision depends on become one
+// critical section.
+function appendRecordsUnderLock(dir, cfg, mintCount, mintOne, opts) {
   const ledgerPath = path.join(dir, cfg.ledgerFile);
   const lockPath = ledgerPath + ".lock";
+  const withSnapshot = !!(opts && opts.withSnapshot);
+  const readSnapshot = () => {
+    let text = "";
+    try { text = fs.readFileSync(ledgerPath, "utf8"); }
+    catch (e) { if (!e || e.code !== "ENOENT") throw e; }
+    return parseJsonlEntries(text);
+  };
   return withFileLock(lockPath, () => {
     const { seq, prevRecord, prevLineBuf } = tailReadState(ledgerPath); // ONE tail read
     let curPrevRecord = prevRecord;
@@ -504,7 +525,7 @@ function appendRecordsUnderLock(dir, cfg, mintCount, mintOne) {
     const minted = [];
     for (let index = 0; index < mintCount; index++) {
       const record = mintOne(index, seq + index, curPrevRecord, prevHash);
-      if (record === null || record === undefined) return null; // abort the WHOLE batch — nothing written
+      if (record === null || record === undefined) return withSnapshot ? { minted: null, snapshot: readSnapshot() } : null; // abort the WHOLE batch — nothing written
       if (record.seq !== seq + index || record.prev !== prevHash) {
         throw new Error(`append core: minted record must carry the supplied seq/prev (want seq ${seq + index} prev ${prevHash}, got seq ${record.seq} prev ${record.prev})`);
       }
@@ -512,7 +533,7 @@ function appendRecordsUnderLock(dir, cfg, mintCount, mintOne) {
       curPrevRecord = record;
       prevHash = sha256Hex(Buffer.from(JSON.stringify(record), "utf8")); // next link = THIS serialised line's bytes
     }
-    if (minted.length === 0) return minted; // empty batch — never append a stray newline
+    if (minted.length === 0) return withSnapshot ? { minted, snapshot: readSnapshot() } : minted; // empty batch — never append a stray newline
     let prefix = "";
     try {
       const st = fs.statSync(ledgerPath);
@@ -525,7 +546,7 @@ function appendRecordsUnderLock(dir, cfg, mintCount, mintOne) {
       }
     } catch (e) { if (!e || e.code !== "ENOENT") throw e; }
     fs.appendFileSync(ledgerPath, prefix + minted.map((r) => JSON.stringify(r)).join("\n") + "\n"); // ONE atomic append
-    return minted;
+    return withSnapshot ? { minted, snapshot: readSnapshot() } : minted; // snapshot read after the append, still inside the lock
   }, cfg.lock);
 }
 
@@ -1996,4 +2017,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

@@ -19,7 +19,7 @@ import {
   deriveKey, signRecord, verifyRecord, mintGovernorKeypair, signDecision, verifyDecision,
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
-  evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, appendProducerRecords,
+  evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, appendProducerRecords, readLedgerEntries,
   governorFileOf, producerFileOf, pkFileOf, governorDirOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { mintGovernorKeypair as _mintKp } from "../plugin/skills/faff/bin/lib/producer-auth.js";
@@ -652,6 +652,112 @@ test("FAFF-1000 verdict conclude: a second call for an already-concluded issue r
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// === FAFF-1008: harden verdict conclude (ledger-derived revision, pk_fingerprint cross-check, no-evidence detail) ===
+
+test("FAFF-1008 verdict conclude: a named producer with zero ledger entries refuses no-evidence with the producer_id detail (exit 0, no terminal record)", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-ghost-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    const before = records(ledger).length;
+    // GHOST is not in producerIds, so this hits the named-but-absent branch (item 3), NOT producer-not-admitted.
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1", "--producer", "GHOST"]);
+    assert.equal(vc.code, 0);
+    const out = JSON.parse(vc.stdout.trim());
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "no-evidence");
+    assert.equal(out.producer_id, "GHOST");
+    assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
+    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1008 verdict conclude: labels the terminal record from the ledger, not a re-admitted admission — evidence under r1, admission re-admitted to r2 -> record is r1; audit verify verified", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-readmit-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+
+    // The admission now names r2 while the issue's ledger entries stay r1 (the divergence item 1
+    // handles). Overwrite ONLY the admission file's contract_revision, NOT `admit --force`: --force
+    // would rotate the governor keypair + master_secret and orphan the r1 evidence at audit,
+    // conflating this test's property (ledger-derived label) with key rotation. With keys left in
+    // step the pk_fingerprint gate passes AND the WHOLE run still re-authenticates at audit.
+    const admPath = producerFileOf(producerDirOf(runDir, undefined), "P1");
+    const adm = JSON.parse(readFileSync(admPath, "utf8"));
+    adm.contract_revision = "r2";
+    writeFileSync(admPath, JSON.stringify(adm, null, 2) + "\n");
+
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    assert.equal(vc.code, 0, `conclude failed: ${vc.stderr}`);
+    assert.equal(JSON.parse(vc.stdout.trim()).verdict, "accepted_under_contract");
+
+    const accepted = records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract");
+    assert.equal(accepted.length, 1);
+    assert.equal(accepted[0].payload.contract_revision, "r1", "payload.contract_revision is the ledger value, not the re-admitted r2");
+    assert.equal(accepted[0].contract_revision, "r1", "the record envelope's contract_revision is the ledger value too");
+
+    // The whole run re-authenticates (exit 0) because no key was rotated, so "verified" here is not
+    // a partial/false-confidence claim about only the terminal record.
+    const avRun = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(avRun.code, 0, "the whole run re-authenticates at audit (no key rotation)");
+    const av = JSON.parse(avRun.stdout.trim());
+    const rec = av.records.find((x) => x.kind_of_entry === "accepted_under_contract");
+    assert.equal(rec.classification, "verified", "audit verify classifies the terminal record verified");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1008 verdict conclude: the issue's ledger entries spanning two revisions refuse ambiguous-contract-revision (sorted set, exit 0, no terminal record)", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-ambrev-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    // A second entry for the SAME issue/producer under a distinct contract_revision (r2), minted
+    // through the REAL append path (chained + HMAC'd under the r2-derived key), not a raw
+    // unauthenticated line — so the ledger genuinely spans two revisions and the fixture stays valid
+    // even if conclude later gains chain/auth verification before deriving revs.
+    const gov = JSON.parse(readFileSync(governorFileOf(governorDirOf(runDir, undefined)), "utf8"));
+    const r2key = deriveKey(gov.master_secret, "P1", "r2");
+    appendProducerRecords(runDir, r2key, "P1", "r2", [{ kind_of_entry: "declare", issue: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main" } }], "t2");
+    const before = records(ledger).length;
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    assert.equal(vc.code, 0);
+    const out = JSON.parse(vc.stdout.trim());
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "ambiguous-contract-revision");
+    assert.deepEqual(out.contract_revisions, ["r1", "r2"]);
+    assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
+    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1008 verdict conclude: an admission whose pk_fingerprint differs from the governor's refuses pk-fingerprint-mismatch before signing (exit 0, no terminal record)", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-pkmis-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    // Tamper the admission file so its pk_fingerprint no longer matches the governor's.
+    const admFile = producerFileOf(producerDirOf(runDir, undefined), "P1");
+    const adm = JSON.parse(readFileSync(admFile, "utf8"));
+    const govFingerprint = adm.pk_fingerprint;
+    adm.pk_fingerprint = "0".repeat(64);
+    writeFileSync(admFile, JSON.stringify(adm));
+    const before = records(ledger).length;
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    assert.equal(vc.code, 0);
+    const out = JSON.parse(vc.stdout.trim());
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "pk-fingerprint-mismatch");
+    assert.equal(out.producer_id, "P1");
+    assert.equal(out.producer_pk_fingerprint, "0".repeat(64));
+    assert.equal(out.governor_pk_fingerprint, govFingerprint);
+    assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
+    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("FAFF-1000 audit seal: seals the run-close bundle in-process; bundle_manifest_digest matches a direct buildBundle over the same run dir; re-seal is idempotent", () => {
   const { root, runDir } = mkRun("com-seal-");
   try {
@@ -802,4 +908,65 @@ test("FAFF-976 secret-material guard: a pk.json carrying an sk field fails the m
     assert.equal(bad.ok, false, "the mint refuses an unreadable/malformed pk.json");
     assert.equal(bad.code, "pk-unreadable");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- Fixture: snapshot-pinning-unit (FAFF-979 — the strongest deterministic proof) ------
+test("snapshot-pinning-unit: appendProducerRecords({withSnapshot}) pins the ledger under the lock — a later on-disk mutation is excluded, the request record is included", () => {
+  const { runDir, ledger } = mkRun("com-snap-");
+  try {
+    const key = deriveKey("m", "P1", "r1");
+    const requestBody = { kind_of_entry: "effect-decision-request", issue: "FAFF-1", step: "merge", payload: { effect: { kind: "merge", target: "main" } } };
+    const { minted, snapshot } = appendProducerRecords(runDir, key, "P1", "r1", [requestBody], "t", { withSnapshot: true });
+    const requestRecord = minted[0];
+    // mutate the on-disk ledger AFTER the snapshot was captured inside the lock
+    const bogus = { schema: 3, author: "producer", kind_of_entry: "observe", issue: "FAFF-1", step: "merge", seq: 999 };
+    writeFileSync(ledger, readFileSync(ledger, "utf8") + JSON.stringify(bogus) + "\n");
+    // (a) the pinned snapshot excludes the mutation; a fresh unlocked read sees it
+    assert.ok(!snapshot.some((e) => e.seq === 999), "the pinned snapshot excludes the post-lock mutation");
+    assert.ok(readLedgerEntries(runDir).some((e) => e.seq === 999), "the unlocked reader sees the mutation on disk");
+    // (b) the pinned snapshot includes the just-appended request record at its seq
+    assert.ok(snapshot.some((e) => e.kind_of_entry === "effect-decision-request" && e.seq === requestRecord.seq), "the pinned snapshot includes the request record");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- Fixture: interleave-ignored (FAFF-979 — the env-seam CLI proof) ---------------------
+test("interleave-ignored: an append landing in the post-request window cannot change the verdict — the pinned snapshot grants all-legs-pass while the interleave lands on disk unread", () => {
+  const { runDir, ledger } = mkRun("com-interleave-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    // the request rests on the pre-request observe's seq; the interleave observe carries a HIGHER
+    // seq, so were it read (unpinned) the freshness leg would flip to stale-evidence (deny).
+    const preObserve = records(ledger).filter((r) => r.kind_of_entry === "observe").pop();
+    const interleaveFile = join(runDir, "interleave.jsonl");
+    const interleave = { schema: 3, author: "producer", kind_of_entry: "observe", issue: "FAFF-1", step: "merge", seq: 999, effect: { kind: "merge", target: "main" } };
+    writeFileSync(interleaveFile, JSON.stringify(interleave) + "\n");
+    const rd = runCli(["commissaire", "request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"],
+      { input: JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: preObserve.seq }),
+        env: { ...process.env, FAFF_TEST_LEDGER_INTERLEAVE: interleaveFile } });
+    assert.equal(rd.code, 0);
+    const out = JSON.parse(rd.stdout.trim());
+    assert.equal(out.verdict, "grant");
+    assert.equal(out.reason, "all-legs-pass");
+    // the interleave really landed on disk (it was appended, just excluded from the pinned snapshot)
+    assert.ok(records(ledger).some((r) => r.seq === 999), "the interleave line is present on disk afterward");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- Fixture: transparency-no-interleave (FAFF-979) -------------------------------------
+test("transparency-no-interleave: with no interleave, the same request grants all-legs-pass (pinning is invisible on the honest path)", () => {
+  const { runDir, ledger } = mkRun("com-transparent-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const preObserve = records(ledger).filter((r) => r.kind_of_entry === "observe").pop();
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"],
+      JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: preObserve.seq }));
+    assert.equal(rd.code, 0);
+    const out = JSON.parse(rd.stdout.trim());
+    assert.equal(out.verdict, "grant");
+    assert.equal(out.reason, "all-legs-pass");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
 });

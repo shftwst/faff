@@ -39,7 +39,7 @@ const {
   mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision,
   producerAuthSelftest,
 } = require("./producer-auth");
-const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex } = require("./events");
+const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries } = require("./events");
 const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes } = require("./effects");
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 // FAFF-1000 — `audit seal`/`export` build and read the run-close recovery bundle IN-PROCESS via the
@@ -78,8 +78,7 @@ const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true 
 const readLedgerEntries = (runDir) => {
   const p = path.join(runDir, LEDGER_CFG.ledgerFile);
   if (!fs.existsSync(p)) return [];
-  return fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "")
-    .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  return parseJsonlEntries(fs.readFileSync(p, "utf8"));
 };
 
 // --- Ledger append: mint schema:3 records, signing each inside the lock -------------------
@@ -98,13 +97,13 @@ function buildEnvelope(runId, seq, prevHash, author, producerId, contractRevisio
 }
 
 // Append N producer-authored records (HMAC'd under K_producer) as one atomic chained batch.
-function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts) {
+function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts, opts) {
   const runId = path.basename(runDir);
   return appendRecordsUnderLock(runDir, LEDGER_CFG, bodies.length, (index, seq, _prev, prevHash) => {
     const rec = buildEnvelope(runId, seq, prevHash, "producer", producerId, contractRevision, bodies[index], ts);
     rec.producer_hmac = signRecord(rec, key);
     return rec;
-  });
+  }, opts);
 }
 
 // Append one Commissaire-authored record (Ed25519-signed under SK) as a chained record.
@@ -448,10 +447,21 @@ function cmdRequestDecision(flags) {
   const contractRevision = loaded.admission.contract_revision;
   // Producer half: build + HMAC the request record, append it (author = producer).
   const requestBody = { kind_of_entry: "effect-decision-request", issue, step, payload: { effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq } };
-  const [requestRecord] = appendProducerRecords(runDir, loaded.key, producerId, contractRevision, [requestBody], flags["--ts"]);
+  // FAFF-979: read the full-ledger snapshot INSIDE the same append lock as the request record,
+  // so the freshness/coverage legs evaluate exactly the ledger as it stood the instant the
+  // request was chained (no unlocked re-read that a concurrent append could slip into).
+  const { minted, snapshot } = appendProducerRecords(runDir, loaded.key, producerId, contractRevision, [requestBody], flags["--ts"], { withSnapshot: true });
+  const requestRecord = minted[0];
+  // FAFF-979 test seam: FAFF_TEST_LEDGER_INTERLEAVE names a file whose raw bytes are appended
+  // to the ledger AFTER the lock released, simulating a concurrent append landing in the old
+  // interleave window. Because evaluation uses the pinned `snapshot` (captured under the lock,
+  // excluding this append), the verdict is unaffected. Test-only; a no-op unless the env is set.
+  if (process.env.FAFF_TEST_LEDGER_INTERLEAVE) {
+    try { fs.appendFileSync(path.join(runDir, LEDGER_CFG.ledgerFile), fs.readFileSync(process.env.FAFF_TEST_LEDGER_INTERLEAVE)); } catch { /* seam is best-effort */ }
+  }
   // Commissaire half: re-derive the key from master, authenticate, evaluate, sign the verdict.
   const key = deriveKey(gov.master_secret, producerId, contractRevision);
-  const decision = evaluateDecisionRequest(loaded.admission, requestRecord, key, readLedgerEntries(runDir));
+  const decision = evaluateDecisionRequest(loaded.admission, requestRecord, key, snapshot);
   const verdictBody = {
     kind_of_entry: "effect-decision-verdict", issue, step,
     payload: { request_seq: requestRecord.seq, verdict: decision.verdict, reason: decision.reason, effect: req.effect },
@@ -498,7 +508,7 @@ function cmdTerminalVerdict(flags) {
   const producerIds = [...new Set(entries.map((e) => e.producer_id).filter((x) => x != null && x !== "-"))];
   let producerId;
   if (flags["--producer"]) {
-    if (!producerIds.includes(flags["--producer"])) return refuseVerdict("no-evidence", issue);
+    if (!producerIds.includes(flags["--producer"])) return refuseVerdict("no-evidence", issue, { producer_id: flags["--producer"] });
     producerId = flags["--producer"];
   } else if (producerIds.length === 1) {
     producerId = producerIds[0];
@@ -511,15 +521,34 @@ function cmdTerminalVerdict(flags) {
   if (escapeResult.any_escape) return refuseVerdict("unreconciled-escape", issue, { escapes: escapeResult.escapes });
   const gov = readJson(governorFileOf(governorDirOf(runDir, flags["--governor-dir"])));
   if (!gov) return refuseVerdict("no-governor", issue); // setup error — exit 2, not a governed refusal
+  // FAFF-1008 item 2: fail closed at conclude time when the admission and governor custodians
+  // disagree on the public-key fingerprint (a missing fingerprint on either side counts as a
+  // mismatch). The audit-leg check in verifyAuthLeg stays the authority; this catches the common
+  // mismatched-dirs case before the record is signed rather than at audit.
+  if (admission.pk_fingerprint == null || gov.pk_fingerprint == null || admission.pk_fingerprint !== gov.pk_fingerprint) {
+    return refuseVerdict("pk-fingerprint-mismatch", issue, {
+      producer_id: producerId,
+      producer_pk_fingerprint: admission.pk_fingerprint ?? null,
+      governor_pk_fingerprint: gov.pk_fingerprint ?? null,
+    });
+  }
+  // FAFF-1008 item 1: label the terminal record from the signed ledger, not the live admission
+  // file. A single distinct revision over the issue's entries is the honest label; more than one
+  // means the evidence spans revisions and there is no honest label to stamp — refuse rather than
+  // guess. The `> 1` guard (not `!= 1`) lets an empty set fall back to the admission's revision so a
+  // non-governed edge (no entry carries a revision) cannot crash conclude.
+  const revs = [...new Set(entries.map((e) => e.contract_revision).filter((x) => x != null))];
+  if (revs.length > 1) return refuseVerdict("ambiguous-contract-revision", issue, { contract_revisions: revs.slice().sort() });
+  const concludedRevision = revs.length === 1 ? revs[0] : admission.contract_revision;
   const seqs = entries.map((e) => e.seq).filter((s) => Number.isInteger(s));
   const body = {
     kind_of_entry: "accepted_under_contract", issue, step: "conclude",
     payload: {
-      producer_id: producerId, contract_revision: admission.contract_revision,
+      producer_id: producerId, contract_revision: concludedRevision,
       evidence_seq_range: [Math.min(...seqs), Math.max(...seqs)], escapes_checked: true,
     },
   };
-  const record = appendCommissaireRecord(runDir, gov.sk, producerId, admission.contract_revision, body, flags["--ts"]);
+  const record = appendCommissaireRecord(runDir, gov.sk, producerId, concludedRevision, body, flags["--ts"]);
   console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, producer_id: producerId, seq: record.seq }));
   return 0;
 }

@@ -858,3 +858,21 @@ test("recoveryClaimStore: local bundle store — resolveBundleStoreName defaults
     assert.equal(resolveName(dir), "local", "no bundle_store config -> 'local', the guard lights-out.js keys `claims = null` off");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// FAFF-1000: pin the contract_schema_versions source-of-truth swap. bundle-seal-core.js's buildBundle
+// enumerates contract schemas from a `contracts/*.schema.json` directory read (so the denylist-clean
+// facade never requires contract-defs.js) INSTEAD OF Object.keys(CONTRACTS). The two are verified
+// identical today (26/26); this guard fails loudly the moment they drift — a schema file added without
+// its CONTRACTS entry (or vice versa) would otherwise silently change the bundle fingerprint and break
+// cross-version re-seal idempotency against any bundle sealed by the pre-extraction code.
+test("FAFF-1000: contracts/*.schema.json basenames match Object.keys(CONTRACTS) exactly (contract_schema_versions drift guard)", () => {
+  const { readdirSync } = require("node:fs");
+  const contractsDir = path.resolve(HERE, "..", "contracts");
+  const fromDisk = readdirSync(contractsDir)
+    .filter((f) => f.endsWith(".schema.json"))
+    .map((f) => f.slice(0, -".schema.json".length))
+    .sort();
+  const fromContracts = Object.keys(CONTRACTS).sort();
+  assert.deepEqual(fromDisk, fromContracts,
+    "the contracts/ directory and CONTRACTS must stay in lockstep — bundle-seal-core.js's fingerprint reads the directory");
+});

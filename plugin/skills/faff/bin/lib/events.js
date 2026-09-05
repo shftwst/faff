@@ -1369,6 +1369,35 @@ function mintIssueAnchor(runDir, issue, destDir) {
     const src = path.join(issueDir, f);
     if (fs.existsSync(src)) { fs.copyFileSync(src, path.join(destDir, f)); copiedFloorFiles.push(f); }
   }
+  // FAFF-976: byte-copy the PUBLIC producer key into the anchor, preserving the
+  // commissaire/producer/ nesting, so the CI re-verification (verifyAuthLeg, invoked by
+  // governance-check's integrity leg over a committed anchor where governor.json is deliberately
+  // absent) can verify each committed schema:3 Commissaire decision under the pinned public key.
+  // The governor file (sk + master_secret) is NEVER copied — this targets one explicit public file,
+  // never a directory sweep, so commissaire/governor/ is structurally out of reach. Best-effort-
+  // present like the optional floor files above: an ungoverned run has no pk.json, copies nothing,
+  // and the anchor stays byte-for-byte unchanged. A pk.json that is unreadable/malformed, or that
+  // carries secret fields (a writer regression), fails the mint LOUD rather than committing an
+  // unverifiable key or leaking a secret into git.
+  const pkSrc = path.join(runDir, "commissaire", "producer", "pk.json");
+  if (fs.existsSync(pkSrc)) {
+    let pkRec;
+    try { pkRec = JSON.parse(fs.readFileSync(pkSrc, "utf8")); }
+    catch (e) { return { ok: false, code: "pk-unreadable", message: `commissaire/producer/pk.json present but unreadable/malformed in ${runDir}: ${e.message}` }; }
+    // Allowlist, not a denylist: the anchored key must carry EXACTLY { pk, pk_fingerprint } (spec DoD).
+    // A top-level sk/master_secret denylist would miss a nested ({ key: { sk } }) or renamed ({ sk_hex })
+    // secret; rejecting any unexpected field fails closed on a secret boundary — a leaked Ed25519 SK or
+    // HMAC master committed into an anchor is the worst case, so an unrecognised field refuses the mint.
+    const isPlainObj = pkRec !== null && typeof pkRec === "object" && !Array.isArray(pkRec);
+    const extraKeys = isPlainObj ? Object.keys(pkRec).filter((k) => k !== "pk" && k !== "pk_fingerprint") : ["<not-a-json-object>"];
+    if (extraKeys.length > 0) {
+      return { ok: false, code: "pk-secret-material", message: `refusing to anchor commissaire/producer/pk.json — the anchored public key must carry EXACTLY { pk, pk_fingerprint }; unexpected field(s): ${extraKeys.join(", ")} (a secret must never be committed into an anchor)` };
+    }
+    const destProducerDir = path.join(destDir, "commissaire", "producer");
+    fs.mkdirSync(destProducerDir, { recursive: true });
+    fs.copyFileSync(pkSrc, path.join(destProducerDir, "pk.json")); // verbatim byte-copy, nested layout (parse above is only the secret-material guard)
+    copiedFloorFiles.push("commissaire/producer/pk.json");
+  }
   const head = computeChainHead(eventsBuf, path.basename(runDir), issue);
   fs.writeFileSync(path.join(destDir, "chain-head.json"), JSON.stringify(head, null, 2) + "\n");
   return { ok: true, head, copiedFloorFiles, effectsAnchored };

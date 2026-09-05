@@ -84,12 +84,19 @@ function classifyReEnterable(ledger, opts) {
 //   buildComplete  — a build-progress.json with build.status complete
 //   branchExists   — the recorded pushed branch resolves on the forge
 //   wipCommit      — the ledger.abort.wip_commit names this issue (informational)
+//   reEntry        — FAFF-993: for an admitted `parked` outcome, the precomputed
+//                    park-reconsider verdict `{ reconsider, reason }` the impure shell
+//                    got from `classifyReEntry` (this governance module must not require
+//                    the factory `park-reconsider.js`, ADR-0042 — the shell runs the pure
+//                    classify and hands the verdict in). `reconsider:true` routes the
+//                    admitted `parked` outcome to `plan.reconsider` (git-only re-entry via
+//                    the spec-review-resume hold) instead of the inert `plan.terminal`.
 // Returns the ResumePlan record.
 function reconstructResumePlan(ledger, evidenceByIssue) {
   const admitted = Array.isArray(ledger && ledger.admitted) ? ledger.admitted : [];
   const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes)) ? ledger.outcomes : {};
   const ev = evidenceByIssue || {};
-  const plan = { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], terminal: [], drain_remainder: true };
+  const plan = { skip: [], continue_review: [], continue_from_push: [], redispatch: [], park: [], reconsider: [], terminal: [], drain_remainder: true };
 
   for (const issue of admitted) {
     const outcome = outcomes[issue];
@@ -102,6 +109,12 @@ function reconstructResumePlan(ledger, evidenceByIssue) {
       else plan.park.push({ issue, divergence });
       continue;
     }
+    // FAFF-993: an admitted `parked` outcome whose cited machine-checkable input has
+    // demonstrably changed (the pure `classifyReEntry` verdict the shell precomputed and
+    // handed in as `e.reEntry`) re-enters through the spec-review-resume hold rather than
+    // resting inert in `plan.terminal`. Every other `parked` (human park, unchanged input,
+    // absent/legacy record ⇒ no reEntry or reconsider:false) keeps the terminal routing.
+    if (outcome === "parked" && e.reEntry && e.reEntry.reconsider === true) { plan.reconsider.push(issue); continue; }
     if (TERMINAL_NON_SHIPPED.has(outcome)) { plan.terminal.push(issue); continue; }
     // No terminal outcome recorded: the issue was in flight when the run died.
     if (e.resumeStore || e.awaitingReview) { plan.continue_review.push(issue); continue; }
@@ -211,6 +224,7 @@ function renderResumeBanner(runId, priorState, epoch, plan, wipCommit) {
   L.push(`  continue @ pushed-branch:     ${plan.continue_from_push.length ? plan.continue_from_push.join(", ") : "—"}`);
   L.push(`  re-dispatch (coarse rebuild): ${plan.redispatch.length ? plan.redispatch.join(", ") : "—"}`);
   L.push(`  park (divergent, needs-human):${plan.park.length ? " " + plan.park.map((p) => `${p.issue} [${p.divergence && p.divergence.class}]`).join(", ") : " —"}`);
+  if (plan.reconsider && plan.reconsider.length) L.push(`  reconsider (input changed, re-enter): ${plan.reconsider.join(", ")}`);
   if (plan.terminal && plan.terminal.length) L.push(`  terminal (kept, not touched): ${plan.terminal.join(", ")}`);
   if (plan.redispatch.length) L.push(`  ⚠ coarse rebuild: ${plan.redispatch.length} in-flight issue(s) died pre-push and re-dispatch from scratch (unpushed WIP is not recoverable — never durable).`);
   if (wipCommit) L.push(`  ⓘ Sentry wip_commit ${wipCommit} is surfaced only — never auto-applied to any worktree.`);
@@ -271,6 +285,19 @@ function resumeSelftest() {
   const plan2 = reconstructResumePlan(led2, { G: {} });
   check("admitted, no checkpoint → redispatch (coarse)", plan2.redispatch.includes("G"));
   check("shipped, no evidence → fail-closed park", plan2.park.some((p) => p.issue === "H" && p.divergence.class === "claimed-shipped-unmerged"));
+
+  // FAFF-993: an admitted `parked` outcome routes to `plan.reconsider` ONLY when the shell
+  // handed in a `reconsider:true` verdict (the pure classifyReEntry decision); every other
+  // parked outcome — no verdict, or reconsider:false — keeps the inert `plan.terminal`.
+  const ledR = { admitted: ["R", "S", "T"], outcomes: { R: "parked", S: "parked", T: "parked" } };
+  const planR = reconstructResumePlan(ledR, {
+    R: { reEntry: { reconsider: true, reason: "input-changed" } },   // input changed → reconsider
+    S: { reEntry: { reconsider: false, reason: "input-unchanged" } }, // unchanged → terminal
+    // T: no reEntry (human/legacy park) → terminal
+  });
+  check("admitted parked + reEntry.reconsider:true → plan.reconsider", planR.reconsider.includes("R") && !planR.terminal.includes("R"));
+  check("admitted parked + reEntry.reconsider:false → plan.terminal", planR.terminal.includes("S") && !planR.reconsider.includes("S"));
+  check("admitted parked + no reEntry → plan.terminal (human/legacy park)", planR.terminal.includes("T") && !planR.reconsider.includes("T"));
 
   // reconcile derived from recorded/observed (sha match vs phantom)
   const plan3 = reconstructResumePlan({ admitted: ["S"], outcomes: { S: "shipped" } },

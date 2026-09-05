@@ -250,6 +250,20 @@ function prepcheckIssue(root, issueId, runDir) {
   return classifyPrepIssue(issueId, readPrepIssueFile(root, issueId), runDir);
 }
 
+// FAFF-993 — the git-only awaiting-spec-review derivation. In tracker mode the FAFF-900 hold is
+// carried by the `faff-awaiting-spec-review` label (a tracker no-op in git-only mode); in git-only
+// mode the hold's only durable trace is `.faff/resume/<issue>/spec-review-hold.json`. Its PRESENCE
+// is the git-only `awaitingSpecReview` signal the prep-queue membership consult maps to
+// `faff next --awaiting-spec-review`, so a reconsidered (autonomous) or resolved (interactive) park
+// re-enters at the spec-review gate rather than routing straight to graft. Deterministic, network-
+// free (a local stat), fail-safe false on any read error. Surfaced on the impure `--issue --json`
+// payload only — `classifyPrepIssue` stays filesystem-free and byte-unchanged.
+function specReviewHoldPresent(root, issueId) {
+  if (typeof root !== "string" || typeof issueId !== "string" || issueId.length === 0) return false;
+  try { return fs.existsSync(path.join(root, ".faff", "resume", issueId, "spec-review-hold.json")); }
+  catch { return false; }
+}
+
 // [name, read, runDir, wantState, wantExitCode, wantOwnerMatchesRun?] — filesystem-free,
 // drives classifyPrepIssue directly. wantOwnerMatchesRun is checked only when present
 // (some cases care only about state/exit).
@@ -331,8 +345,12 @@ function cmdPrepcheck(args) {
   if (issue) {
     const runDir = get("--run-dir");
     const { payload, exitCode } = prepcheckIssue(root, issue, runDir);
+    // FAFF-993: surface the git-only awaiting-spec-review derivation (hold-file presence) on the
+    // orchestrator-consumed payload, so beep-boop's git-only prep-queue membership can map it to
+    // `faff next --awaiting-spec-review` (the label being a tracker no-op in git-only mode).
+    payload.awaiting_spec_review = specReviewHoldPresent(root, issue);
     if (asJson) console.log(JSON.stringify(payload, null, 2));
-    else console.log(`${payload.state}: ${issue}`);
+    else console.log(`${payload.state}: ${issue}${payload.awaiting_spec_review ? " (awaiting spec-review)" : ""}`);
     return exitCode;
   }
 
@@ -444,4 +462,4 @@ function prepcheckSelftest() {
 }
 
 
-module.exports = { PREPCHECK_HOOK_SELFTEST_CASES, PREPCHECK_ISSUE_SELFTEST_CASES, PREPCHECK_NOW, PREPCHECK_SELFTEST_CASES, PREP_MARKER_STALE_SECS_DEFAULT, PREP_OWN_RUN_DIR, auditPrepMarkers, classifyPrepIssue, cmdPrepcheck, isPrepMarkerOpen, openM, prepIsHeld, prepIsOwned, prepMarkerStaleSecs, prepMtAgo, prepReason, prepcheckHookDecision, prepcheckHookSelftest, prepcheckIssue, prepcheckIssueSelftest, prepcheckSelftest, readParkCause, readPrepIssueFile, readPrepMarkers, tryReadLedger };
+module.exports = { PREPCHECK_HOOK_SELFTEST_CASES, PREPCHECK_ISSUE_SELFTEST_CASES, PREPCHECK_NOW, PREPCHECK_SELFTEST_CASES, PREP_MARKER_STALE_SECS_DEFAULT, PREP_OWN_RUN_DIR, auditPrepMarkers, classifyPrepIssue, cmdPrepcheck, isPrepMarkerOpen, openM, prepIsHeld, prepIsOwned, prepMarkerStaleSecs, prepMtAgo, prepReason, prepcheckHookDecision, prepcheckHookSelftest, prepcheckIssue, prepcheckIssueSelftest, prepcheckSelftest, readParkCause, readPrepIssueFile, readPrepMarkers, specReviewHoldPresent, tryReadLedger };

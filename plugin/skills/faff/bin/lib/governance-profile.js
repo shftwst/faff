@@ -84,6 +84,12 @@ const DELIVERY_PROFILE = {
     // (NOT issue-scoped, carries no ledger outcome), so it stays out of issue_scoped_types /
     // outcome_required_types / sentry.progress.forward_types (parity with run-resume).
     "run-claim-abandoned",
+    // FAFF-993: one run-scoped event per git-only Unpark (data.{issue,cause_class,via,ledger_cleared,
+    // ledger_note,cited_input_ref,prev_fingerprint,new_fingerprint}). The autonomous seam appends it to
+    // its OWN run's events.jsonl; the interactive seam records the same fields to its prep log instead.
+    // Run-scoped like run-resume (NOT issue-scoped, carries no ledger outcome), so it stays out of
+    // issue_scoped_types / outcome_required_types / sentry.progress.forward_types (parity with run-resume).
+    "park-reconsidered",
     // FAFF-564: one run-scoped event per run-ledger.json write (data.ledger_sha256 =
     // SHA-256 of the post-write ledger bytes, always CLI-computed) — how the mutable
     // ledger's history joins the events tamper-evidence chain. Emitted by

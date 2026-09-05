@@ -508,7 +508,7 @@ function cmdTerminalVerdict(flags) {
   const producerIds = [...new Set(entries.map((e) => e.producer_id).filter((x) => x != null && x !== "-"))];
   let producerId;
   if (flags["--producer"]) {
-    if (!producerIds.includes(flags["--producer"])) return refuseVerdict("no-evidence", issue);
+    if (!producerIds.includes(flags["--producer"])) return refuseVerdict("no-evidence", issue, { producer_id: flags["--producer"] });
     producerId = flags["--producer"];
   } else if (producerIds.length === 1) {
     producerId = producerIds[0];
@@ -521,15 +521,34 @@ function cmdTerminalVerdict(flags) {
   if (escapeResult.any_escape) return refuseVerdict("unreconciled-escape", issue, { escapes: escapeResult.escapes });
   const gov = readJson(governorFileOf(governorDirOf(runDir, flags["--governor-dir"])));
   if (!gov) return refuseVerdict("no-governor", issue); // setup error — exit 2, not a governed refusal
+  // FAFF-1008 item 2: fail closed at conclude time when the admission and governor custodians
+  // disagree on the public-key fingerprint (a missing fingerprint on either side counts as a
+  // mismatch). The audit-leg check in verifyAuthLeg stays the authority; this catches the common
+  // mismatched-dirs case before the record is signed rather than at audit.
+  if (admission.pk_fingerprint == null || gov.pk_fingerprint == null || admission.pk_fingerprint !== gov.pk_fingerprint) {
+    return refuseVerdict("pk-fingerprint-mismatch", issue, {
+      producer_id: producerId,
+      producer_pk_fingerprint: admission.pk_fingerprint ?? null,
+      governor_pk_fingerprint: gov.pk_fingerprint ?? null,
+    });
+  }
+  // FAFF-1008 item 1: label the terminal record from the signed ledger, not the live admission
+  // file. A single distinct revision over the issue's entries is the honest label; more than one
+  // means the evidence spans revisions and there is no honest label to stamp — refuse rather than
+  // guess. The `> 1` guard (not `!= 1`) lets an empty set fall back to the admission's revision so a
+  // non-governed edge (no entry carries a revision) cannot crash conclude.
+  const revs = [...new Set(entries.map((e) => e.contract_revision).filter((x) => x != null))];
+  if (revs.length > 1) return refuseVerdict("ambiguous-contract-revision", issue, { contract_revisions: revs.slice().sort() });
+  const concludedRevision = revs.length === 1 ? revs[0] : admission.contract_revision;
   const seqs = entries.map((e) => e.seq).filter((s) => Number.isInteger(s));
   const body = {
     kind_of_entry: "accepted_under_contract", issue, step: "conclude",
     payload: {
-      producer_id: producerId, contract_revision: admission.contract_revision,
+      producer_id: producerId, contract_revision: concludedRevision,
       evidence_seq_range: [Math.min(...seqs), Math.max(...seqs)], escapes_checked: true,
     },
   };
-  const record = appendCommissaireRecord(runDir, gov.sk, producerId, admission.contract_revision, body, flags["--ts"]);
+  const record = appendCommissaireRecord(runDir, gov.sk, producerId, concludedRevision, body, flags["--ts"]);
   console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, producer_id: producerId, seq: record.seq }));
   return 0;
 }

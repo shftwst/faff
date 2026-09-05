@@ -1,40 +1,146 @@
 {
   "version": 1,
-  "_comment": "FAFF-280 — seam→KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter↔registry reconciliation). Keys are exactly the 34 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet; calibrated — a `covered` kind whose committed frontier accuracy clears `policy.calibration_floor` (default 0.85); enforced by validate-adapters C3 (FAFF-616). `cases_present` is NOT stored — it is derived live from eval/cases/ so it cannot go stale. NOTE (FAFF-286): a surface declared `judgement_seam: none` (e.g. faffter-noon-env-compose — deterministically-tested provisioning, no load-bearing judgement) owns NO registry row and is NOT a KIND key; only covered/designed KINDs are keys, keeping KINDS === registry-keys.",
+  "_comment": "FAFF-280 \u2014 seam\u2192KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter\u2194registry reconciliation). Keys are exactly the 34 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet; calibrated \u2014 a `covered` kind whose committed frontier accuracy clears `policy.calibration_floor` (default 0.85); enforced by validate-adapters C3 (FAFF-616). `cases_present` is NOT stored \u2014 it is derived live from eval/cases/ so it cannot go stale. NOTE (FAFF-286): a surface declared `judgement_seam: none` (e.g. faffter-noon-env-compose \u2014 deterministically-tested provisioning, no load-bearing judgement) owns NO registry row and is NOT a KIND key; only covered/designed KINDs are keys, keeping KINDS === registry-keys.",
   "kinds": {
-    "dupe": { "surface": "faff-tidy", "status": "covered" },
-    "vague": { "surface": "faff-tidy", "status": "covered" },
-    "stale": { "surface": "faff-tidy", "status": "covered" },
-    "superseded": { "surface": "faff-tidy", "status": "covered" },
-    "splittable": { "surface": "faff-tidy", "status": "covered" },
-    "chain-gap": { "surface": "faff-tidy", "status": "covered" },
-    "ordering": { "surface": "faffter-noon-methodology-thematic", "status": "covered" },
-    "gloss": { "surface": "faffidavit-rendering", "status": "covered" },
-    "explanatory-order": { "surface": "faffidavit-rendering", "status": "covered" },
-    "routing": { "surface": "faffidavit-routing", "status": "covered" },
-    "confidence": { "surface": "faffter-noon-spec", "status": "covered" },
-    "marker": { "surface": "faffter-noon-spec", "status": "covered" },
-    "reconciliation": { "surface": "faff-prep", "status": "designed" },
-    "modedetect": { "surface": "faffter-noon-intake", "status": "covered" },
-    "shaping": { "surface": "faff-jot", "status": "covered" },
-    "decomposition": { "surface": "faff-plot", "status": "covered" },
-    "verdict-revert": { "surface": "faffter-noon-review", "status": "covered" },
-    "verdict-build": { "surface": "faffter-noon-review", "status": "designed" },
-    "architecture": { "surface": "faffter-noon-architecture", "status": "covered" },
-    "specqual": { "surface": "faffter-noon-spec", "status": "covered" },
-    "holdout": { "surface": "faffter-noon-evaluate", "status": "covered" },
-    "holdout-exercise": { "surface": "faffter-noon-evaluate", "status": "covered" },
-    "holdout-live": { "surface": "faffter-noon-evaluate", "status": "designed" },
-    "spec-verdict": { "surface": "faffter-noon-spec-review", "status": "covered" },
-    "roadmap": { "surface": "faff-map", "status": "covered" },
-    "adr-gloss": { "surface": "faffter-noon-adr", "status": "covered" },
-    "refutation-spec": { "surface": "faffter-dark-spec-review", "status": "covered" },
-    "refutation-code": { "surface": "faffter-dark-adversarial-review", "status": "covered" },
-    "prd-readiness": { "surface": "faffter-noon-prd", "status": "designed" },
-    "prep-architecture-trigger": { "surface": "faff-prep", "status": "covered" },
-    "grouping": { "surface": "faffter-dark-methodology-agile-delivery", "status": "covered" },
-    "adr-drift": { "surface": "faffter-dark-adversarial-review", "status": "covered" },
-    "prdr-yagni": { "surface": "faffter-dark-adversarial-review", "status": "covered" },
-    "resolved-elsewhere": { "surface": "faff-tidy", "status": "covered" }
+    "dupe": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "vague": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "stale": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "superseded": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "splittable": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "chain-gap": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "ordering": {
+      "surface": "faffter-noon-methodology-thematic",
+      "status": "covered"
+    },
+    "gloss": {
+      "surface": "faffidavit-rendering",
+      "status": "covered"
+    },
+    "explanatory-order": {
+      "surface": "faffidavit-rendering",
+      "status": "covered"
+    },
+    "routing": {
+      "surface": "faffidavit-routing",
+      "status": "covered"
+    },
+    "confidence": {
+      "surface": "faffter-noon-spec",
+      "status": "covered"
+    },
+    "marker": {
+      "surface": "faffter-noon-spec",
+      "status": "covered"
+    },
+    "reconciliation": {
+      "surface": "faff-prep",
+      "status": "designed"
+    },
+    "modedetect": {
+      "surface": "faffter-noon-intake",
+      "status": "covered"
+    },
+    "shaping": {
+      "surface": "faff-jot",
+      "status": "covered"
+    },
+    "decomposition": {
+      "surface": "faff-plot",
+      "status": "covered"
+    },
+    "verdict-revert": {
+      "surface": "faffter-noon-review",
+      "status": "covered"
+    },
+    "verdict-build": {
+      "surface": "faffter-noon-review",
+      "status": "designed"
+    },
+    "architecture": {
+      "surface": "faffter-noon-architecture",
+      "status": "covered"
+    },
+    "specqual": {
+      "surface": "faffter-noon-spec",
+      "status": "covered"
+    },
+    "holdout": {
+      "surface": "faffter-noon-evaluate",
+      "status": "covered"
+    },
+    "holdout-exercise": {
+      "surface": "faffter-noon-evaluate",
+      "status": "covered"
+    },
+    "holdout-live": {
+      "surface": "faffter-noon-evaluate",
+      "status": "designed"
+    },
+    "spec-verdict": {
+      "surface": "faffter-noon-spec-review",
+      "status": "covered"
+    },
+    "roadmap": {
+      "surface": "faff-map",
+      "status": "covered"
+    },
+    "adr-gloss": {
+      "surface": "faffter-noon-adr",
+      "status": "covered"
+    },
+    "refutation-spec": {
+      "surface": "faffter-dark-spec-review",
+      "status": "covered"
+    },
+    "refutation-code": {
+      "surface": "faffter-dark-adversarial-review",
+      "status": "covered"
+    },
+    "prd-readiness": {
+      "surface": "faffter-noon-prd",
+      "status": "designed"
+    },
+    "prep-architecture-trigger": {
+      "surface": "faff-prep",
+      "status": "covered"
+    },
+    "grouping": {
+      "surface": "faffter-dark-methodology-agile-delivery",
+      "status": "covered"
+    },
+    "adr-drift": {
+      "surface": "faffter-dark-adversarial-review",
+      "status": "covered"
+    },
+    "prdr-yagni": {
+      "surface": "faffter-dark-adversarial-review",
+      "status": "covered"
+    },
+    "resolved-elsewhere": {
+      "surface": "faff-tidy",
+      "status": "covered"
+    },
+    "park-reconsider-classification": {
+      "surface": "faff-prep",
+      "status": "designed"
+    }
   }
 }

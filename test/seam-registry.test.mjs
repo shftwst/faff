@@ -21,10 +21,10 @@ test("grader loads — the on-load registry-consistency assertion passes (no thr
   assert.ok(assertRegistryConsistent(registry));
 });
 
-test("registry keys are EXACTLY the 34 grader KINDS (total equality)", () => {
+test("registry keys are EXACTLY the 35 grader KINDS (total equality)", () => {
   const rk = Object.keys(registry.kinds);
-  assert.equal(rk.length, 34);
-  assert.equal(KINDS.length, 34);
+  assert.equal(rk.length, 35);   // FAFF-992: +park-reconsider-classification
+  assert.equal(KINDS.length, 35);
   assert.deepEqual(new Set(rk), new Set(KINDS));
 });
 
@@ -47,7 +47,7 @@ test("seed is truthful: status:covered ⇔ ≥1 case in eval/cases/; designed ar
     assert.ok(entry.surface && typeof entry.surface === "string", `${kind} has a surface`);
   }
   const designed = Object.entries(registry.kinds).filter(([, e]) => e.status === "designed").map(([k]) => k);
-  assert.deepEqual(new Set(designed), new Set(["reconciliation", "verdict-build", "holdout-live", "prd-readiness"]));
+  assert.deepEqual(new Set(designed), new Set(["reconciliation", "verdict-build", "holdout-live", "prd-readiness", "park-reconsider-classification"]));
 });
 
 // ---- validate-adapters reconciliation ----

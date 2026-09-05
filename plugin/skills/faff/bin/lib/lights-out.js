@@ -1449,18 +1449,29 @@ function reconsiderParkedItems(runDir, root, nowIso, runId) {
 
   const changed = [];
   for (const issue of parked) {
-    const { verdict, marker, cause, observedFp } = reEntryInputs(root, issue, nowIso);
-    if (!verdict.reconsider) continue;                                   // human / unchanged / fail-closed → leave parked
-    const prevFp = (cause.cited_input && typeof cause.cited_input.fingerprint === "string") ? cause.cited_input.fingerprint : null;
-    const res = apply_git_only_unpark(root, marker, issue, cause, "resume-reconsider", prevFp, observedFp, "own-live-run", nowMs);
-    if (!res.unparked) continue;                                         // busy/corrupt ledger → retry next drain, park stands
-    // Append the run-scoped park-reconsidered event to THIS run's events.jsonl (authorised: own cut).
-    // Phase "run" + no top-level issue field, parity with run-resume (the issue rides in data).
-    if (res.event) appendEventRecord(runDir, runId, { phase: "run", type: res.event.type, data: res.event.data }, nowIso);
-    // Transition into the FAFF-900 spec-review-resume hold so the prep-queue drain re-enters it at
-    // the spec-review gate (NOT graft — a cleared-park high-confidence Backlog spec would route graft).
-    writeSpecReviewResumeHold(root, issue, nowIso, prevFp, observedFp);
-    changed.push(issue);
+    // FAIL-SOFT per issue: any throw (a lock-contended events.jsonl → EVENTS_LOCKED, an unexpected
+    // marker/ledger shape, a filesystem fault) leaves THIS park standing and continues — a single
+    // issue's failure must never crash the whole lights-out resume. The pure gates already fail
+    // closed; this catch is the belt for the impure writes (`appendEventRecord`, the hold write).
+    try {
+      const { verdict, marker, cause, observedFp } = reEntryInputs(root, issue, nowIso);
+      if (!verdict.reconsider) continue;                                 // human / unchanged / fail-closed → leave parked
+      const prevFp = (cause.cited_input && typeof cause.cited_input.fingerprint === "string") ? cause.cited_input.fingerprint : null;
+      const res = apply_git_only_unpark(root, marker, issue, cause, "resume-reconsider", prevFp, observedFp, "own-live-run", nowMs);
+      if (!res.unparked) continue;                                       // busy/corrupt ledger, marker-write fail → retry next drain, park stands
+      // Append the run-scoped park-reconsidered event to THIS run's events.jsonl (authorised: own cut).
+      // Phase "run" + no top-level issue field, parity with run-resume (the issue rides in data).
+      if (res.event) appendEventRecord(runDir, runId, { phase: "run", type: res.event.type, data: res.event.data }, nowIso);
+      // Transition into the FAFF-900 spec-review-resume hold so the prep-queue drain re-enters it at
+      // the spec-review gate (NOT graft — a cleared-park high-confidence Backlog spec would route graft).
+      writeSpecReviewResumeHold(root, issue, nowIso, prevFp, observedFp);
+      changed.push(issue);
+    } catch (e) {
+      // Best-effort: the reconsider pass is not load-bearing for the resume; a failed issue simply
+      // stays parked and is retried on the next drain. Never rethrow (would abort the resume). Logged
+      // to STDERR so it never pollutes the STEP-6 JSON stdout emitted by the caller.
+      process.stderr.write(`reconsider skipped ${issue}: ${(e && e.message) || e} (park left standing, retry next drain)\n`);
+    }
   }
   return changed;
 }

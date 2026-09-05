@@ -27,7 +27,7 @@ const { findRoot } = require("./shared-infra");
 // The closed set of re-entry reasons `classifyReEntry` returns. Exactly one `reconsider:true` reason
 // (`input-changed`); every other is a fail-closed `false`.
 const REENTRY_REASONS = new Set([
-  "human-park", "no-cited-input", "no-stored-fingerprint", "ref-outside-repo-root",
+  "human-park", "no-cited-input", "not-config-file", "no-stored-fingerprint", "ref-outside-repo-root",
   "fingerprint-unreadable", "clock-not-advanced", "input-unchanged", "input-changed",
 ]);
 
@@ -60,6 +60,12 @@ function classifyReEntry(cause, observed_fp, ref_in_root, now) {
   }
   const ci = cause.cited_input;
   if (!ci || typeof ci !== "object") return { reconsider: false, reason: "no-cited-input" };
+  // The shipped autonomous licence is a single fingerprintable repo-root CONFIG FILE only; a
+  // `backend`/multi-file/env-var cause is recorded `reconsider:"human"` at park time (FAFF-992
+  // downgrade) and never reaches here as `machine`. This gate makes the PURE function self-guarding
+  // (the impure caller already fingerprints config-file only), so an exported/hand-rolled caller that
+  // supplies an observed_fp for a non-config-file cited input cannot widen the licence past the spec.
+  if (ci.kind !== "config-file") return { reconsider: false, reason: "not-config-file" };   // fail-closed
   if (typeof ci.fingerprint !== "string" || ci.fingerprint.length === 0) {
     return { reconsider: false, reason: "no-stored-fingerprint" };
   }
@@ -92,18 +98,24 @@ function parkReconsideredRecord(key, cause, via, ledger_cleared, ledger_note, pr
   };
 }
 
-// Rewrite .faff/prep/<key>.json: remove disposition "parked" and drop the `park` sub-object. Returns
-// true on a rewrite, false when the marker is unreadable/absent (nothing to clear). NEVER a bare
-// disposition strip on its own — only the ledger-settled callers below invoke it.
+// Rewrite .faff/prep/<key>.json: remove disposition "parked" and drop the `park` sub-object. FAIL-SOFT
+// (never throws — a throw here would crash the whole lights-out resume, not just this issue): returns
+// `true` when the marker ends up not-parked (rewritten, or already absent/unreadable — nothing stale
+// left), and `false` ONLY when the rewrite itself fails (disk-full / permission), i.e. the marker may
+// still read `parked`. The caller refuses on `false` so the ledger-cleared-but-marker-stale window is
+// surfaced, never silently left (it self-heals on the next drain: the ledger outcome is already gone,
+// the marker is re-enumerated and the rewrite retried). NEVER a bare disposition strip on its own —
+// only the ledger-settled callers below invoke it.
 function clearParkMarker(root, key) {
   const markerPath = path.join(root, ".faff", "prep", `${key}.json`);
   let m;
   try { m = JSON.parse(fs.readFileSync(markerPath, "utf8")); }
-  catch { return false; }
-  if (!m || typeof m !== "object") return false;
+  catch { return true; }                          // absent/unreadable → no stale park marker remains
+  if (!m || typeof m !== "object") return true;
   delete m.park;
   if (m.disposition === "parked") delete m.disposition;
-  fs.writeFileSync(markerPath, JSON.stringify(m, null, 2) + "\n");
+  try { fs.writeFileSync(markerPath, JSON.stringify(m, null, 2) + "\n"); }
+  catch { return false; }                          // rewrite failed → marker may still read parked
   return true;
 }
 
@@ -146,7 +158,12 @@ function apply_git_only_unpark(root, marker, key, cause, via, prev_fp, new_fp, l
       if (res && res.yielded) {
         return { unparked: false, reason: "own-run-ledger-yielded; a newer resume owns it, park left standing" };
       }
-      ledger_cleared = true; ledger_note = null;
+      // ledger_cleared reflects whether an outcome was ACTUALLY deleted (res.written): a genuine clear
+      // is true; an idempotent no-op (outcome already moved, or a prep-queue park with no outcome in
+      // this run's ledger) is false with an honest note, so the audit trail never claims a clear that
+      // did not happen. `unparked` stays true either way — the marker clear below is the real unpark.
+      ledger_cleared = !!(res && res.written);
+      ledger_note = ledger_cleared ? null : "already-clear-or-no-outcome";
     } else {
       ledger_cleared = false; ledger_note = "absent-run"; // own run always present in practice; defensive
     }
@@ -168,8 +185,14 @@ function apply_git_only_unpark(root, marker, key, cause, via, prev_fp, new_fp, l
     return { unparked: false, reason: `unknown ledger authority ${ledger_authority}` };
   }
 
-  // Only AFTER the ledger step settled: clear the marker (Sensor/resume class; both authorities may write it).
-  clearParkMarker(root, key);
+  // Only AFTER the ledger step settled: clear the marker (Sensor/resume class; both authorities may
+  // write it). A rewrite failure (disk-full / permission) refuses rather than reporting a false
+  // unpark: for own-live-run the ledger outcome is already cleared, so the issue is momentarily
+  // ledger-clear-but-marker-stale — surfaced here and self-healed on the next drain (the ledger no
+  // longer enumerates it as parked; the marker is re-enumerated and the rewrite retried).
+  if (!clearParkMarker(root, key)) {
+    return { unparked: false, reason: "marker-rewrite-failed after the ledger step; reconcile next drain", ledger_cleared, ledger_note };
+  }
   const event = parkReconsideredRecord(key, cause, via, ledger_cleared, ledger_note, prev_fp, new_fp);
   return { unparked: true, ledger_cleared, ledger_note, event };
 }
@@ -186,6 +209,7 @@ const PARK_RECONSIDER_SELFTEST_CASES = [
   ["human park is never reconsidered", { reconsider: "human", cause_class: "punt-not-closed", parked_at: BEFORE, cited_input: null }, "sha256:x", true, false, "human-park"],
   ["legacy record (no reconsider) reads human", { cause_class: "other", parked_at: BEFORE }, "sha256:x", true, false, "human-park"],
   ["machine with no cited input", { reconsider: "machine", cause_class: "other", parked_at: BEFORE, cited_input: null }, "sha256:x", true, false, "no-cited-input"],
+  ["machine with a non-config-file cited input fails closed", { reconsider: "machine", cause_class: "other", parked_at: BEFORE, cited_input: { kind: "backend", ref: "spark", fingerprint: "sha256:a" } }, "sha256:b", true, false, "not-config-file"],
   ["machine with empty stored fingerprint", machine(BEFORE, ""), "sha256:x", true, false, "no-stored-fingerprint"],
   ["ref outside repo root fails closed", machine(BEFORE, "sha256:a"), "sha256:b", false, false, "ref-outside-repo-root"],
   ["unreadable current fingerprint fails closed", machine(BEFORE, "sha256:a"), null, true, false, "fingerprint-unreadable"],

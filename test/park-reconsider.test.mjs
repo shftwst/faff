@@ -62,6 +62,10 @@ test("classifyReEntry: fail-closed table (human / unchanged / out-of-root / unre
   assert.equal(pr.classifyReEntry({ reconsider: "human", cited_input: null }, "sha256:x", true, NOW).reason, "human-park");
   assert.equal(pr.classifyReEntry({ cause_class: "x", parked_at: BEFORE }, "sha256:x", true, NOW).reason, "human-park"); // legacy record
   assert.equal(pr.classifyReEntry(m("sha256:a"), "sha256:a", true, NOW).reason, "input-unchanged");
+  // a non-config-file cited input fails closed on the PURE function, even with a changed observed_fp
+  // supplied — the shipped licence is a single fingerprintable repo-root config file only.
+  const backendCause = { reconsider: "machine", parked_at: BEFORE, cited_input: { kind: "backend", ref: "spark", fingerprint: "sha256:a" } };
+  assert.equal(pr.classifyReEntry(backendCause, "sha256:b", true, NOW).reason, "not-config-file");
   assert.equal(pr.classifyReEntry(m("sha256:a"), "sha256:b", false, NOW).reason, "ref-outside-repo-root"); // fail-closed
   assert.equal(pr.classifyReEntry(m("sha256:a"), null, true, NOW).reason, "fingerprint-unreadable");       // fail-closed
   for (const r of ["human-park", "input-unchanged", "ref-outside-repo-root", "fingerprint-unreadable", "input-changed"]) assert.ok(pr.REENTRY_REASONS.has(r));
@@ -113,6 +117,8 @@ test("own-live-run concurrency/idempotency: a second clear is a no-op; ledger + 
   // Re-run on the SAME (already-cleared) state — the outcome is already gone → idempotent no-op, still unparked.
   const again = pr.apply_git_only_unpark(root, marker, "FAFF-1", marker.park, "resume-reconsider", "sha256:old", "sha256:new", "own-live-run", NOW_MS);
   assert.equal(again.unparked, true, "second clear is idempotent, never a double-clear failure");
+  assert.equal(again.ledger_cleared, false, "the no-op reports ledger_cleared:false — the audit trail never claims a clear that did not happen");
+  assert.equal(again.ledger_note, "already-clear-or-no-outcome");
   const led = JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(led.outcomes["FAFF-1"], undefined);
   assert.equal(readMarker(root, "FAFF-1").disposition, undefined);

@@ -10,7 +10,7 @@
 // marking withheld them from the builder-view spec, not from the test suite.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -703,5 +703,103 @@ test("FAFF-1000 audit export: copies a sealed bundle's manifest + every required
     const again = JSON.parse(runCom(["audit", "export", "--run-dir", runDir, "--dest", dest, "--root", root]).stdout.trim());
     assert.equal(again.exported, false);
     assert.equal(again.reason, "dest-not-empty");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// === FAFF-976: the merge chokepoint's PREVENTION property on the committed-anchor / CI path ===
+// FAFF-828 proved the chokepoint on the live run dir; the anchor / CI path re-verifies the committed
+// Commissaire decision through verifyAuthLeg (governance-check's integrity auth sub-leg), which needs
+// the PUBLIC pk.json present in the anchor. mintIssueAnchor now byte-copies commissaire/producer/pk.json
+// (nested, public-only) so a genuinely-governed merge PERMITS from a committed anchor and a forged one
+// still REFUSES — without ever anchoring the governor SK/master.
+
+// Build a governed run (admit -> declare -> request-decision granting a merge) with a minimal
+// events.jsonl, then mint its committed anchor. Returns { root, runDir, anchorDir, mint }.
+function mintGovernedAnchor(prefix, runId = "RUN-976") {
+  const { root, runDir } = mkRun(prefix, runId);
+  assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+  assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+  assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
+  writeFileSync(join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${runId}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+  const anchorDir = join(root, ".faff", "anchors", runId, "FAFF-1");
+  const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDir);
+  assert.equal(mint.ok, true, `governed anchor mint must succeed (${JSON.stringify(mint)})`);
+  return { root, runDir, anchorDir, mint };
+}
+
+test("FAFF-976 anchor-path PERMIT: a committed anchor carries the PUBLIC pk.json (only) and verifyAuthLeg passes over it — never the governor secret", () => {
+  const { root, anchorDir, mint } = mintGovernedAnchor("com-976-permit-");
+  try {
+    const pk = JSON.parse(readFileSync(join(anchorDir, "commissaire", "producer", "pk.json"), "utf8"));
+    assert.deepEqual(Object.keys(pk).sort(), ["pk", "pk_fingerprint"], "the anchored pk.json carries ONLY the public key + fingerprint");
+    assert.ok(mint.copiedFloorFiles.includes("commissaire/producer/pk.json"), "the mint reports the copied public key");
+    // the governor secret is NEVER in the anchor
+    assert.equal(existsSync(join(anchorDir, "commissaire", "governor", "governor.json")), false, "the governor file is never anchored");
+    // the CI re-verification leg PERMITS: verifyAuthLeg over the anchor dir passes (governor absent -> public-key fallback)
+    const auth = verifyAuthLeg(anchorDir);
+    assert.ok(auth.pass, `verifyAuthLeg PERMITS the governed anchor (${JSON.stringify(auth.failures)})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-976 anchor-path REFUSE (forged): a producer-HMAC'd verdict in the committed anchor fails verifyAuthLeg", () => {
+  const { root, anchorDir } = mintGovernedAnchor("com-976-forge-");
+  try {
+    const ledgerPath = join(anchorDir, "declared-effects.jsonl");
+    const key = deriveKey("master", "P1", "r1"); // a producer-held HMAC key, NOT the Ed25519 SK
+    const forged = records(ledgerPath).map((r) => {
+      if (r.kind_of_entry !== "effect-decision-verdict") return r;
+      const f = { ...r };
+      delete f.commissaire_sig;
+      f.commissaire_sig = signRecord(f, key); // producer HMAC masquerading as a Commissaire decision
+      return f;
+    });
+    writeFileSync(ledgerPath, forged.map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const auth = verifyAuthLeg(anchorDir);
+    assert.equal(auth.pass, false, "verifyAuthLeg REFUSES a forged decision even from a committed anchor");
+    assert.ok(auth.failures.some((x) => x.reason === "commissaire-sig-invalid"), "the failure is a commissaire-sig-invalid");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-976 ungoverned run: the anchor writes no commissaire/ dir and reports no copied key", () => {
+  const { root, runDir } = mkRun("com-976-ungov-", "RUN-976-UNGOV");
+  try {
+    writeFileSync(join(runDir, "events.jsonl"), `{"schema":1,"run_id":"RUN-976-UNGOV","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+    const anchorDir = join(root, ".faff", "anchors", "RUN-976-UNGOV", "FAFF-1");
+    const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDir);
+    assert.equal(mint.ok, true);
+    assert.equal(existsSync(join(anchorDir, "commissaire")), false, "no commissaire/ dir is written for an ungoverned run");
+    assert.equal(mint.copiedFloorFiles.includes("commissaire/producer/pk.json"), false, "no public key is reported copied");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-976 secret-material guard: a pk.json carrying an sk field fails the mint LOUD rather than committing a secret", () => {
+  const { root, runDir } = mkRun("com-976-secret-", "RUN-976-SEC");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    writeFileSync(join(runDir, "events.jsonl"), `{"schema":1,"run_id":"RUN-976-SEC","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+    // a writer regression leaks a secret into the public key file
+    const pkPath = join(runDir, "commissaire", "producer", "pk.json");
+    const pk = JSON.parse(readFileSync(pkPath, "utf8"));
+    writeFileSync(pkPath, JSON.stringify({ ...pk, sk: "LEAKED-SECRET" }));
+    const anchorDir = join(root, ".faff", "anchors", "RUN-976-SEC", "FAFF-1");
+    const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDir);
+    assert.equal(mint.ok, false, "the mint refuses a pk.json carrying secret material");
+    assert.equal(mint.code, "pk-secret-material");
+    assert.equal(existsSync(join(anchorDir, "commissaire", "producer", "pk.json")), false, "no secret-bearing key was written to the anchor");
+
+    // the guard is an allowlist, not a top-level sk/master_secret denylist: a NESTED or RENAMED secret
+    // (a writer regression the denylist would miss) is refused because it is an unexpected field.
+    for (const leak of [{ ...pk, key: { sk: "NESTED" } }, { ...pk, sk_hex: "RENAMED" }, { ...pk, master: "X" }]) {
+      writeFileSync(pkPath, JSON.stringify(leak));
+      const m = mintIssueAnchor(runDir, "FAFF-1", join(root, ".faff", "anchors", `SEC-${Object.keys(leak).length}-${Object.keys(leak)[2]}`, "FAFF-1"));
+      assert.equal(m.ok, false, `the allowlist guard refuses an unexpected field: ${Object.keys(leak).join(",")}`);
+      assert.equal(m.code, "pk-secret-material");
+    }
+
+    // a present-but-malformed pk.json also fails the mint LOUD (never a governed anchor with no key)
+    writeFileSync(pkPath, "{ not json");
+    const bad = mintIssueAnchor(runDir, "FAFF-1", join(root, ".faff", "anchors", "RUN-976-SEC-2", "FAFF-1"));
+    assert.equal(bad.ok, false, "the mint refuses an unreadable/malformed pk.json");
+    assert.equal(bad.code, "pk-unreadable");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

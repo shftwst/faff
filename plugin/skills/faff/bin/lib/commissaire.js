@@ -39,7 +39,7 @@ const {
   mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision,
   producerAuthSelftest,
 } = require("./producer-auth");
-const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex } = require("./events");
+const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries } = require("./events");
 const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes } = require("./effects");
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 // FAFF-1000 — `audit seal`/`export` build and read the run-close recovery bundle IN-PROCESS via the
@@ -78,8 +78,7 @@ const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true 
 const readLedgerEntries = (runDir) => {
   const p = path.join(runDir, LEDGER_CFG.ledgerFile);
   if (!fs.existsSync(p)) return [];
-  return fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "")
-    .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  return parseJsonlEntries(fs.readFileSync(p, "utf8"));
 };
 
 // --- Ledger append: mint schema:3 records, signing each inside the lock -------------------
@@ -98,13 +97,13 @@ function buildEnvelope(runId, seq, prevHash, author, producerId, contractRevisio
 }
 
 // Append N producer-authored records (HMAC'd under K_producer) as one atomic chained batch.
-function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts) {
+function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts, opts) {
   const runId = path.basename(runDir);
   return appendRecordsUnderLock(runDir, LEDGER_CFG, bodies.length, (index, seq, _prev, prevHash) => {
     const rec = buildEnvelope(runId, seq, prevHash, "producer", producerId, contractRevision, bodies[index], ts);
     rec.producer_hmac = signRecord(rec, key);
     return rec;
-  });
+  }, opts);
 }
 
 // Append one Commissaire-authored record (Ed25519-signed under SK) as a chained record.
@@ -448,10 +447,21 @@ function cmdRequestDecision(flags) {
   const contractRevision = loaded.admission.contract_revision;
   // Producer half: build + HMAC the request record, append it (author = producer).
   const requestBody = { kind_of_entry: "effect-decision-request", issue, step, payload: { effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq } };
-  const [requestRecord] = appendProducerRecords(runDir, loaded.key, producerId, contractRevision, [requestBody], flags["--ts"]);
+  // FAFF-979: read the full-ledger snapshot INSIDE the same append lock as the request record,
+  // so the freshness/coverage legs evaluate exactly the ledger as it stood the instant the
+  // request was chained (no unlocked re-read that a concurrent append could slip into).
+  const { minted, snapshot } = appendProducerRecords(runDir, loaded.key, producerId, contractRevision, [requestBody], flags["--ts"], { withSnapshot: true });
+  const requestRecord = minted[0];
+  // FAFF-979 test seam: FAFF_TEST_LEDGER_INTERLEAVE names a file whose raw bytes are appended
+  // to the ledger AFTER the lock released, simulating a concurrent append landing in the old
+  // interleave window. Because evaluation uses the pinned `snapshot` (captured under the lock,
+  // excluding this append), the verdict is unaffected. Test-only; a no-op unless the env is set.
+  if (process.env.FAFF_TEST_LEDGER_INTERLEAVE) {
+    try { fs.appendFileSync(path.join(runDir, LEDGER_CFG.ledgerFile), fs.readFileSync(process.env.FAFF_TEST_LEDGER_INTERLEAVE)); } catch { /* seam is best-effort */ }
+  }
   // Commissaire half: re-derive the key from master, authenticate, evaluate, sign the verdict.
   const key = deriveKey(gov.master_secret, producerId, contractRevision);
-  const decision = evaluateDecisionRequest(loaded.admission, requestRecord, key, readLedgerEntries(runDir));
+  const decision = evaluateDecisionRequest(loaded.admission, requestRecord, key, snapshot);
   const verdictBody = {
     kind_of_entry: "effect-decision-verdict", issue, step,
     payload: { request_seq: requestRecord.seq, verdict: decision.verdict, reason: decision.reason, effect: req.effect },

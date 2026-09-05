@@ -19,7 +19,7 @@ import {
   deriveKey, signRecord, verifyRecord, mintGovernorKeypair, signDecision, verifyDecision,
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
-  evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, appendProducerRecords,
+  evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, appendProducerRecords, readLedgerEntries,
   governorFileOf, producerFileOf, pkFileOf, governorDirOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { mintGovernorKeypair as _mintKp } from "../plugin/skills/faff/bin/lib/producer-auth.js";
@@ -802,4 +802,65 @@ test("FAFF-976 secret-material guard: a pk.json carrying an sk field fails the m
     assert.equal(bad.ok, false, "the mint refuses an unreadable/malformed pk.json");
     assert.equal(bad.code, "pk-unreadable");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- Fixture: snapshot-pinning-unit (FAFF-979 — the strongest deterministic proof) ------
+test("snapshot-pinning-unit: appendProducerRecords({withSnapshot}) pins the ledger under the lock — a later on-disk mutation is excluded, the request record is included", () => {
+  const { runDir, ledger } = mkRun("com-snap-");
+  try {
+    const key = deriveKey("m", "P1", "r1");
+    const requestBody = { kind_of_entry: "effect-decision-request", issue: "FAFF-1", step: "merge", payload: { effect: { kind: "merge", target: "main" } } };
+    const { minted, snapshot } = appendProducerRecords(runDir, key, "P1", "r1", [requestBody], "t", { withSnapshot: true });
+    const requestRecord = minted[0];
+    // mutate the on-disk ledger AFTER the snapshot was captured inside the lock
+    const bogus = { schema: 3, author: "producer", kind_of_entry: "observe", issue: "FAFF-1", step: "merge", seq: 999 };
+    writeFileSync(ledger, readFileSync(ledger, "utf8") + JSON.stringify(bogus) + "\n");
+    // (a) the pinned snapshot excludes the mutation; a fresh unlocked read sees it
+    assert.ok(!snapshot.some((e) => e.seq === 999), "the pinned snapshot excludes the post-lock mutation");
+    assert.ok(readLedgerEntries(runDir).some((e) => e.seq === 999), "the unlocked reader sees the mutation on disk");
+    // (b) the pinned snapshot includes the just-appended request record at its seq
+    assert.ok(snapshot.some((e) => e.kind_of_entry === "effect-decision-request" && e.seq === requestRecord.seq), "the pinned snapshot includes the request record");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- Fixture: interleave-ignored (FAFF-979 — the env-seam CLI proof) ---------------------
+test("interleave-ignored: an append landing in the post-request window cannot change the verdict — the pinned snapshot grants all-legs-pass while the interleave lands on disk unread", () => {
+  const { runDir, ledger } = mkRun("com-interleave-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    // the request rests on the pre-request observe's seq; the interleave observe carries a HIGHER
+    // seq, so were it read (unpinned) the freshness leg would flip to stale-evidence (deny).
+    const preObserve = records(ledger).filter((r) => r.kind_of_entry === "observe").pop();
+    const interleaveFile = join(runDir, "interleave.jsonl");
+    const interleave = { schema: 3, author: "producer", kind_of_entry: "observe", issue: "FAFF-1", step: "merge", seq: 999, effect: { kind: "merge", target: "main" } };
+    writeFileSync(interleaveFile, JSON.stringify(interleave) + "\n");
+    const rd = runCli(["commissaire", "request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"],
+      { input: JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: preObserve.seq }),
+        env: { ...process.env, FAFF_TEST_LEDGER_INTERLEAVE: interleaveFile } });
+    assert.equal(rd.code, 0);
+    const out = JSON.parse(rd.stdout.trim());
+    assert.equal(out.verdict, "grant");
+    assert.equal(out.reason, "all-legs-pass");
+    // the interleave really landed on disk (it was appended, just excluded from the pinned snapshot)
+    assert.ok(records(ledger).some((r) => r.seq === 999), "the interleave line is present on disk afterward");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- Fixture: transparency-no-interleave (FAFF-979) -------------------------------------
+test("transparency-no-interleave: with no interleave, the same request grants all-legs-pass (pinning is invisible on the honest path)", () => {
+  const { runDir, ledger } = mkRun("com-transparent-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const preObserve = records(ledger).filter((r) => r.kind_of_entry === "observe").pop();
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"],
+      JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: preObserve.seq }));
+    assert.equal(rd.code, 0);
+    const out = JSON.parse(rd.stdout.trim());
+    assert.equal(out.verdict, "grant");
+    assert.equal(out.reason, "all-legs-pass");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
 });

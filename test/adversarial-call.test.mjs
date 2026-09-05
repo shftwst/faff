@@ -17,7 +17,7 @@ import {
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   RAW_BODY_MAX_BYTES, classifyCapturedResult, captureRawResponseBody, realWrite,
   ledgerMandatory, budgetWarnings,
-  splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS,
+  splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS, TRUNCATION_SIGNAL,
   attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
@@ -770,6 +770,44 @@ function writeMainFixtures() {
   writeFileSync(sys, "REVIEW LENS"); writeFileSync(diff, "DIFF");
   return { sys, diff };
 }
+
+// FAFF-990: main() emits a standalone TRUNCATION_SIGNAL stderr line on a served-but-truncated exit-0
+// response (the machine contract fan-out reads), and no such line when the response was not truncated.
+// Drives the exported main() with an injected runReviewFn (no live model), capturing both streams.
+async function runMainCapture(argv, injected) {
+  const outW = process.stdout.write.bind(process.stdout);
+  const errW = process.stderr.write.bind(process.stderr);
+  let out = "", err = "";
+  process.stdout.write = (s) => { out += s; return true; };
+  process.stderr.write = (s) => { err += s; return true; };
+  let code;
+  try { code = await main(argv, injected); } finally { process.stdout.write = outW; process.stderr.write = errW; }
+  return { code, out, err };
+}
+
+test("FAFF-990 main(): a truncated exit-0 response emits a standalone TRUNCATION_SIGNAL stderr line", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const findings = "### major: oversized increment\n- claim: the plan bundles two epics\n- evidence: AC-04 double-claims";
+  const { code, err } = await runMainCapture(
+    ["--host", "https://h/v1", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "config"],
+    { runReviewFn: async () => ({ status: "ok", content: findings, truncated: true }) },
+  );
+  assert.equal(code, EXIT.OK, err);
+  const lines = err.split("\n").map((l) => l.trim());
+  assert.ok(lines.includes(TRUNCATION_SIGNAL), `expected a standalone ${TRUNCATION_SIGNAL} line in stderr; got:\n${err}`);
+});
+
+test("FAFF-990 main(): a NON-truncated exit-0 response emits no TRUNCATION_SIGNAL line", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const findings = "### major: oversized increment\n- claim: the plan bundles two epics\n- evidence: AC-04 double-claims";
+  const { code, err } = await runMainCapture(
+    ["--host", "https://h/v1", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "config"],
+    { runReviewFn: async () => ({ status: "ok", content: findings, truncated: false }) },
+  );
+  assert.equal(code, EXIT.OK, err);
+  const lines = err.split("\n").map((l) => l.trim());
+  assert.ok(!lines.includes(TRUNCATION_SIGNAL), `expected NO ${TRUNCATION_SIGNAL} line; got:\n${err}`);
+});
 
 test("main(): persistent transport-failed with --host-source config → EXIT.UNREACHABLE (5), never OTHER (1)", async () => {
   const { sys, diff } = writeMainFixtures();

@@ -11,8 +11,12 @@ import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import {
-  validateRequests, fanOut, main, REVIEW_CALL_PATH, selftest, entrypoint_href,
+  validateRequests, fanOut, main, REVIEW_CALL_PATH, selftest, entrypoint_href, stderrTruncated,
 } from "../plugin/skills/faffter-dark-adversarial-review/fan-out.mjs";
+// FAFF-990: import the marker from its SINGLE SOURCE — the transport. Building the marker line from
+// this exact constant is the drift oracle: a rename on either side breaks the shared import (or the
+// assertions built from it) in CI, before any spec run, never silently in production.
+import { TRUNCATION_SIGNAL } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FANOUT = join(HERE, "..", "plugin", "skills", "faffter-dark-adversarial-review", "fan-out.mjs");
@@ -127,7 +131,46 @@ test("fanOut: N=1 degenerates to a single child, resolves with its LensResult", 
   };
   const outcome = await fanOut([{ lens: "architectural", argv: ["--system", "s.md"] }], { spawnFn });
   assert.equal(outcome.ok, true);
-  assert.deepEqual(outcome.results, [{ lens: "architectural", exit: 0, stdout: "### observation: no findings", stderr: "" }]);
+  assert.deepEqual(outcome.results, [{ lens: "architectural", exit: 0, stdout: "### observation: no findings", stderr: "", truncated: false }]);
+});
+
+// ── FAFF-990: the truncation marker field ──
+
+test("FAFF-990: stderrTruncated is a whole-line equality against the exported TRUNCATION_SIGNAL", () => {
+  // (a) a standalone marker line (possibly among other lines) → true
+  assert.equal(stderrTruncated(`[note] response truncated…\n${TRUNCATION_SIGNAL}\n`), true);
+  assert.equal(stderrTruncated(`  ${TRUNCATION_SIGNAL}  `), true, "surrounding whitespace on the line is trimmed");
+  // (b) no marker line at all → false
+  assert.equal(stderrTruncated("boom\n[note] something else\n"), false);
+  assert.equal(stderrTruncated(""), false);
+  // (c) the marker string only as a SUBSTRING of a refuter-influenced `refuted: "…"` line → false (unforgeable)
+  assert.equal(stderrTruncated(`refuted: "response ${TRUNCATION_SIGNAL} at token budget" — node --check passed\n`), false,
+    "a refuter cannot force the recoverable hold path by embedding the marker inside a refuted: line");
+});
+
+test("FAFF-990: fanOut sets LensResult.truncated true iff the child emitted a standalone marker line", async () => {
+  const spawnFn = (nodePath, args) => {
+    const lens = args[args.length - 1];
+    const child = fakeChild();
+    queueMicrotask(() => {
+      child.stdout.emit("data", "### major: x\n- claim: c");
+      if (lens === "trunc.md") child.stderr.emit("data", `[note] truncated…\n${TRUNCATION_SIGNAL}\n`);
+      else if (lens === "spoof.md") child.stderr.emit("data", `refuted: "the ${TRUNCATION_SIGNAL} thing" — checked\n`);
+      // "clean.md" emits no stderr
+      child.emit("close", 0);
+    });
+    return child;
+  };
+  const requests = [
+    { lens: "trunc", argv: ["trunc.md"] },
+    { lens: "clean", argv: ["clean.md"] },
+    { lens: "spoof", argv: ["spoof.md"] },
+  ];
+  const outcome = await fanOut(requests, { spawnFn });
+  const byLens = Object.fromEntries(outcome.results.map((r) => [r.lens, r]));
+  assert.equal(byLens.trunc.truncated, true, "a standalone marker line sets truncated");
+  assert.equal(byLens.clean.truncated, false, "no marker → false");
+  assert.equal(byLens.spoof.truncated, false, "marker only inside a refuted: line → false (whole-line equality)");
 });
 
 test("fanOut: all children are started before any settles — a slow first child never delays a fast second child's spawn", async () => {

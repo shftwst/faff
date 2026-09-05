@@ -486,6 +486,14 @@ export function validateFindingsShape(content) {
 // token. Matching is provider-neutral and deliberately strict: line endings, outer whitespace, and
 // blank separator lines are formatting; every substantive byte remains case- and punctuation-sensitive.
 export const CANONICAL_NO_FINDINGS = "### observation: no findings";
+// FAFF-990: the exported truncation marker — a dedicated machine string emitted on its OWN stderr line
+// (never a substring of the human "[note] response truncated…" sentence) when a served exit-0 response
+// hit its token budget (`res.truncated`). `fan-out.mjs` imports THIS constant and sets
+// `LensResult.truncated = true` iff a trimmed stderr line equals it exactly, so the truncation fact
+// crosses to the spec-review classifier as a structured, unforgeable, single-sourced signal. The shared
+// import is the single source of truth — a rename on either side breaks CI (the fan-out drift test),
+// never production. Consumed structurally, never re-derived or prose-matched.
+export const TRUNCATION_SIGNAL = "[faff:truncated]";
 // FAFF-942: a lens may carry an optional `signal` — a lens-specific no-signal diagnostic line the
 // refuter emits alongside its no-objection sentence. Only methodology has one (the no-critique case).
 // It extends the closed grammar by exactly one recognised three-line `heading` + `signal` + `sentence`
@@ -1884,7 +1892,17 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs, expectContract: a.expectContract, rawDir: a.rawDir, lens: a.lens, round: a.round });
 
   if (res.exit === EXIT.OK) {
-    if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
+    if (res.truncated) {
+      // Human note (audit trail; wording is NOT a contract — reword freely).
+      process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
+      // FAFF-990: the MACHINE contract — a dedicated, exported constant on its own stderr line. The
+      // shared fan-out layer resolves it into a `LensResult.truncated` boolean (line-anchored equality,
+      // never a substring of the human note), so a spec-review-only downstream can distinguish a
+      // truncation transient from a config fault WITHOUT re-deriving res.truncated or substring-matching
+      // prose. Additive stderr only — no control-flow, exit-code, stdout, or chain-behaviour change, so
+      // the code-review consumer and the transport's golden tests are unaffected.
+      process.stderr.write(TRUNCATION_SIGNAL + "\n");
+    }
     // FAFF-940: contract-output mode emits the winning backend's block verbatim. The findings-only
     // refutation pass and the `## Adversarial findings` header prepend below both assume findings-shaped
     // content, so they would corrupt a contract block (e.g. a JSON verdict) — skip them entirely.

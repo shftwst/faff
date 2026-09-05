@@ -1,0 +1,15 @@
+{
+  "id": "park-reconsider-classification-002",
+  "kind": "park-reconsider-classification",
+  "fixture": {
+    "version": 1,
+    "issue": { "id": "PROJ-302", "title": "Add multi-tenant billing", "status": "Backlog" },
+    "park": {
+      "root_cause_class": "gap",
+      "reason": "The ticket's scope balloons into multi-tenant billing, which is out of the current milestone. Whether to keep or defer this scope is a product decision, not a machine-fixable condition.",
+      "cited_input_candidate": null
+    }
+  },
+  "question": "Classify this park's reconsider disposition. Answer `machine` ONLY if the cause is machine-checkable and cites a single external config file whose content change would resolve it; answer `human` for a scope, taste, or architecture judgement call.",
+  "oracle": { "closed_set": ["human"] }
+}

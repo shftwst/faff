@@ -227,6 +227,25 @@ function classifyPrepIssue(issueId, read, runDir) {
   return { payload: { ...payload, state: "missing" }, exitCode: 2 }; // spec_produced not true → produced nothing yet
 }
 
+// FAFF-992 — read the `park` ParkCause sub-object off a git-only prep marker. Deliberately SEPARATE
+// from classifyPrepIssue (which stays byte-unchanged and never surfaces `park`, so the five-state
+// classifier and its exit codes are untouched); FAFF-993's reconsider seam is the consumer. FAIL-SAFE:
+// a parked marker with no `park` sub-object (legacy / hand-written) reads as a human park. The
+// authoritative machine-checkability of the cited_input is applied by park-history.readReconsider;
+// this surfaces the recorded fields faithfully with human fallbacks.
+function readParkCause(marker) {
+  const p = marker && typeof marker === "object" ? marker.park : null;
+  if (!p || typeof p !== "object") {
+    return { reconsider: "human", cause_class: null, parked_at: null, cited_input: null };
+  }
+  return {
+    reconsider: p.reconsider === "machine" ? "machine" : "human",
+    cause_class: typeof p.cause_class === "string" ? p.cause_class : null,
+    parked_at: typeof p.parked_at === "string" ? p.parked_at : null,
+    cited_input: (p.cited_input && typeof p.cited_input === "object") ? p.cited_input : null,
+  };
+}
+
 function prepcheckIssue(root, issueId, runDir) {
   return classifyPrepIssue(issueId, readPrepIssueFile(root, issueId), runDir);
 }
@@ -240,6 +259,10 @@ const PREPCHECK_ISSUE_SELFTEST_CASES = [
     null, "attached", 0],
   ["parked marker (attach not expected, by-design non-attach) → parked, exit 0",
     { exists: true, parseOk: true, marker: { issue: "FAFF-2", spec_produced: true, attached: false, disposition: "parked" } },
+    null, "parked", 0],
+  ["FAFF-992: a park-bearing parked marker (new `park` sub-object) still classifies parked, exit 0",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-92", spec_produced: true, attached: false, disposition: "parked",
+      park: { reconsider: "machine", cause_class: "spec-ambiguous-external", parked_at: "2026-09-05T00:00:00Z", cited_input: { kind: "config-file", ref: ".faffrc.yaml", keys: ["adversarial.spec_review.max_tokens"], fingerprint: "sha256:abc" } } } },
     null, "parked", 0],
   ["produced-but-unattached, no park disposition → open, exit 1 (the FAFF-258 drop)",
     { exists: true, parseOk: true, marker: { issue: "FAFF-3", spec_produced: true, attached: false } },
@@ -421,4 +444,4 @@ function prepcheckSelftest() {
 }
 
 
-module.exports = { PREPCHECK_HOOK_SELFTEST_CASES, PREPCHECK_ISSUE_SELFTEST_CASES, PREPCHECK_NOW, PREPCHECK_SELFTEST_CASES, PREP_MARKER_STALE_SECS_DEFAULT, PREP_OWN_RUN_DIR, auditPrepMarkers, classifyPrepIssue, cmdPrepcheck, isPrepMarkerOpen, openM, prepIsHeld, prepIsOwned, prepMarkerStaleSecs, prepMtAgo, prepReason, prepcheckHookDecision, prepcheckHookSelftest, prepcheckIssue, prepcheckIssueSelftest, prepcheckSelftest, readPrepIssueFile, readPrepMarkers, tryReadLedger };
+module.exports = { PREPCHECK_HOOK_SELFTEST_CASES, PREPCHECK_ISSUE_SELFTEST_CASES, PREPCHECK_NOW, PREPCHECK_SELFTEST_CASES, PREP_MARKER_STALE_SECS_DEFAULT, PREP_OWN_RUN_DIR, auditPrepMarkers, classifyPrepIssue, cmdPrepcheck, isPrepMarkerOpen, openM, prepIsHeld, prepIsOwned, prepMarkerStaleSecs, prepMtAgo, prepReason, prepcheckHookDecision, prepcheckHookSelftest, prepcheckIssue, prepcheckIssueSelftest, prepcheckSelftest, readParkCause, readPrepIssueFile, readPrepMarkers, tryReadLedger };

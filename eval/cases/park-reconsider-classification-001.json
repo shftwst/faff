@@ -1,0 +1,15 @@
+{
+  "id": "park-reconsider-classification-001",
+  "kind": "park-reconsider-classification",
+  "fixture": {
+    "version": 1,
+    "issue": { "id": "PROJ-301", "title": "Choose the storage engine for the v1 ledger", "status": "Backlog" },
+    "park": {
+      "root_cause_class": "punt-not-closed",
+      "reason": "The spec leaves the storage-engine choice (postgres vs sqlite) open as an architectural tradeoff. There is no config file whose change would settle it; a human must make the call.",
+      "cited_input_candidate": null
+    }
+  },
+  "question": "Classify this park's reconsider disposition. Answer `machine` ONLY if the cause is machine-checkable and cites a single external config file whose content change would resolve it; answer `human` for a scope, taste, or architecture judgement call.",
+  "oracle": { "closed_set": ["human"] }
+}

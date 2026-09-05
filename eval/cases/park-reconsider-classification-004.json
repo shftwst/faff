@@ -1,0 +1,15 @@
+{
+  "id": "park-reconsider-classification-004",
+  "kind": "park-reconsider-classification",
+  "fixture": {
+    "version": 1,
+    "issue": { "id": "PROJ-304", "title": "Prep the spec for the resume-reconsider feature", "status": "Backlog" },
+    "park": {
+      "root_cause_class": "other",
+      "reason": "The spec-review gate parked needs-human because the adversarial reviewer's `max_tokens` budget in the committed review config was too low, truncating every lens. The fix is an operator edit to that single repo-root config file; once its content changes, the gate can run.",
+      "cited_input_candidate": { "kind": "config-file", "ref": ".faffrc.yaml", "keys": ["adversarial.spec_review.max_tokens"] }
+    }
+  },
+  "question": "Classify this park's reconsider disposition. Answer `machine` ONLY if the cause is machine-checkable and cites a single external config file whose content change would resolve it; answer `human` for a scope, taste, or architecture judgement call.",
+  "oracle": { "closed_set": ["machine"] }
+}

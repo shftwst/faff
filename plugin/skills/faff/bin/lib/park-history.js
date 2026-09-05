@@ -23,6 +23,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");   // FAFF-992: cited-input content fingerprint
 const { findRoot } = require("./shared-infra");
 
 const PARK_WINDOW_DAYS = 21;          // rolling window (gateway default)
@@ -31,6 +32,16 @@ const PARK_HISTORY_SCAN = 50;         // newest N run summaries scanned
 const ROOT_CAUSE_CLASSES = new Set([  // the fixed five (gateway root-cause enum)
   "punt-not-closed", "gap", "cycle", "spec-ambiguous-external", "other",
 ]);
+
+// FAFF-992: the reconsider axis — ORTHOGONAL to the closed five root-cause classes. A park is
+// `human` (a scope/taste/architecture call, never auto-reconsidered) unless the park-time classifier
+// positively proved the cause machine-checkable AND named the single config file it cited. `machine`
+// is the only disposition FAFF-993's autonomous re-open is licensed to reconsider.
+const RECONSIDER_DISPOSITIONS = new Set(["machine", "human"]);
+// The schema ships both kinds so a record can NAME a backend cause, but only `config-file` is a
+// fingerprintable single-file input a `machine` record may cite (a backend/multi-file cause is
+// recorded `human` at park time — the write-side downgrade in park.md / faff-prep).
+const CITED_INPUT_KINDS = new Set(["config-file", "backend"]);
 
 // Extract the single ```faff-parks fenced JSON block from a summary.md body, if present.
 // Returns the parsed array, or null when no block exists (a run with no parks). Throws
@@ -78,6 +89,47 @@ function addParkRecord(records, record) {
 function renderParksBlock(records) {
   const list = Array.isArray(records) ? records : [];
   return "```faff-parks\n" + JSON.stringify(list, null, 2) + "\n```";
+}
+
+// FAFF-992 — the reconsider read + cited-input helpers. The park record round-trips `reconsider` and
+// `cited_input` as opaque payload above (addParkRecord/renderParksBlock/extractParksBlock and the
+// counting reader all ignore them), so these are the ONLY places that interpret the new axis.
+
+// A well-formed MACHINE cited input: a config-file kind with a non-empty ref and a non-empty
+// fingerprint. A `backend` kind, a missing ref/fingerprint, or a non-object is NOT machine-checkable
+// (backend/multi-file detection is punted) — its record reads `human`.
+function isWellFormedMachineCitedInput(ci) {
+  return !!ci && typeof ci === "object"
+    && ci.kind === "config-file"
+    && typeof ci.ref === "string" && ci.ref.length > 0
+    && typeof ci.fingerprint === "string" && ci.fingerprint.length > 0;
+}
+
+// readReconsider(record) -> "machine" | "human". FAIL-SAFE: an absent field, a legacy/hand-written
+// record, a `human` disposition, or a `machine` disposition whose cited_input is not a well-formed
+// config-file input all read `human`. Only a `machine` record naming a fingerprintable config file
+// reads `machine`. This is the single reader FAFF-993's autonomous seam consults.
+function readReconsider(record) {
+  if (!record || typeof record !== "object") return "human";
+  if (record.reconsider !== "machine") return "human";
+  return isWellFormedMachineCitedInput(record.cited_input) ? "machine" : "human";
+}
+
+// fingerprintFile(root, ref) -> "sha256:<hex>" | null. The SHARED content-hash helper captured at
+// park time and recomputed at reconsider time (FAFF-993). Repo-root-confined and symlink-safe
+// (realpath, then strict containment), fail-CLOSED: an unreadable, non-existent, or out-of-root ref
+// returns null (the caller downgrades that cause to `human`) — never a partial or spoofable hash.
+function fingerprintFile(root, ref) {
+  if (typeof root !== "string" || typeof ref !== "string" || ref.length === 0) return null;
+  let real, rootReal;
+  try {
+    rootReal = fs.realpathSync(root);
+    real = fs.realpathSync(path.resolve(root, ref));   // resolves symlinks; throws on a non-existent leaf
+  } catch { return null; }
+  if (real !== rootReal && !real.startsWith(rootReal + path.sep)) return null;   // escaped the repo root
+  let bytes;
+  try { bytes = fs.readFileSync(real); } catch { return null; }
+  return "sha256:" + crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
 // Pure core: given a flat list of park records + the now-instant, count parks per
@@ -171,6 +223,13 @@ const PARK_HISTORY_SELFTEST_CASES = [
     { issue_id: "ISS-X", root_cause_class: "not-a-real-class", timestamp: "2026-06-08T09:00:00Z" },
     { issue_id: "ISS-X", root_cause_class: "not-a-real-class", timestamp: "2026-06-15T09:00:00Z" },
   ], "2026-06-16T00:00:00Z", null, []],
+  // FAFF-992: records carrying the new reconsider/cited_input fields count IDENTICALLY — the reader
+  // keys only on issue_id/root_cause_class/timestamp, so the orthogonal axis never perturbs counting.
+  [[
+    { issue_id: "ISS-RC", root_cause_class: "punt-not-closed", timestamp: "2026-06-01T09:00:00Z", reconsider: "human", cited_input: null },
+    { issue_id: "ISS-RC", root_cause_class: "punt-not-closed", timestamp: "2026-06-08T09:00:00Z", reconsider: "machine", cited_input: { kind: "config-file", ref: "docs/x.md", keys: ["k"], fingerprint: "sha256:abc" } },
+    { issue_id: "ISS-RC", root_cause_class: "punt-not-closed", timestamp: "2026-06-15T09:00:00Z", reconsider: "machine", cited_input: { kind: "backend", ref: "spark", fingerprint: "" } },
+  ], "2026-06-16T00:00:00Z", null, ["ISS-RC"]],
 ];
 
 function parkHistorySelftest() {
@@ -213,4 +272,4 @@ function cmdParkHistory(args) {
 }
 
 
-module.exports = { PARK_HISTORY_SCAN, PARK_HISTORY_SELFTEST_CASES, PARK_WINDOW_DAYS, REPEAT_PARK_THRESHOLD, ROOT_CAUSE_CLASSES, addParkRecord, cmdParkHistory, computeParkHistory, extractParksBlock, gatherParks, parkHistorySelftest, renderParksBlock };
+module.exports = { CITED_INPUT_KINDS, PARK_HISTORY_SCAN, PARK_HISTORY_SELFTEST_CASES, PARK_WINDOW_DAYS, RECONSIDER_DISPOSITIONS, REPEAT_PARK_THRESHOLD, ROOT_CAUSE_CLASSES, addParkRecord, cmdParkHistory, computeParkHistory, extractParksBlock, fingerprintFile, gatherParks, isWellFormedMachineCitedInput, parkHistorySelftest, readReconsider, renderParksBlock };

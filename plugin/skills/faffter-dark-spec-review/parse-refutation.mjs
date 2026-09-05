@@ -124,7 +124,7 @@ function headerModel(content) {
 // RefutationEntry: { lens, outcome: "refuted"|"clear", objections: [Objection], model?: string }
 // Objection:       { severity, claim, evidence, predicted_consequence, spec_anchor? }  (gating)
 //                   { severity, claim?, evidence?, predicted_consequence?, spec_anchor? }  (observation)
-// ParseFault:       { lens, severity, title, missing_field: "claim"|"evidence"|"predicted_consequence"|null, reason? }
+// ParseFault:       { lens, severity, title, missing_field: "claim"|null, reason? }  (FAFF-990: only `claim` gates)
 export function parseRefutation(content, lens) {
   const text = String(content == null ? "" : content);
   const sections = splitSections(text);
@@ -162,15 +162,20 @@ export function parseRefutation(content, lens) {
     const fields = parseBullets(s.body);
     const gating = GATING_SEVERITIES.has(s.severity);
     if (gating) {
-      for (const field of ["claim", "evidence", "predicted_consequence"]) {
-        const v = fields[field];
-        if (typeof v !== "string" || v.trim() === "") {
-          return { ok: false, fault: { lens, severity: s.severity, title: s.title, missing_field: field } };
-        }
+      // FAFF-990: `claim` is the ONLY identifying field a gating objection must carry. `evidence`
+      // and `predicted_consequence` are enrichment — carried when present+non-empty (below), omitted
+      // otherwise, NEVER a fault. A backend that truncated mid-objection (spending its token budget
+      // before finishing the triple) still served a usable claim; voiding the whole lens over a
+      // clipped enrichment field mis-attributed a per-response model transient to config-fault/park.
+      // A gating section with no non-empty `claim` is the one residual fault (missing_field:"claim").
+      const claim = fields.claim;
+      if (typeof claim !== "string" || claim.trim() === "") {
+        return { ok: false, fault: { lens, severity: s.severity, title: s.title, missing_field: "claim" } };
       }
     }
-    // Carry whatever triple/anchor fields are present as non-empty strings — required (and
-    // therefore guaranteed present) on a gating section, best-effort/unchecked on an observation.
+    // Carry whatever triple/anchor fields are present as non-empty strings — `claim` is required (and
+    // therefore guaranteed present) on a gating section; `evidence`/`predicted_consequence` are
+    // enrichment, omitted when absent (never sentinel-filled), best-effort/unchecked on an observation.
     const obj = { severity: s.severity };
     for (const field of ["claim", "evidence", "predicted_consequence"]) {
       if (typeof fields[field] === "string" && fields[field].trim() !== "") obj[field] = fields[field].trim();
@@ -186,15 +191,25 @@ export function parseRefutation(content, lens) {
 }
 
 // ---- CLI ------------------------------------------------------------------------------------
-// `parse-refutation.mjs --lens <lens>` reads one refuter's raw exit-0 stdout on stdin.
-//   exit 0      -> the RefutationEntry JSON on stdout.
-//   non-zero    -> a ParseFault diagnostic on stderr, naming lens+severity+title+missing field;
-//                  stdout is empty. The caller treats any non-zero exit as a parse fault — never a
-//                  silent clear/approve.
-function faultMessage(f) {
+// `parse-refutation.mjs --lens <lens> [--truncated]` reads one refuter's raw exit-0 stdout on stdin.
+//   exit 0      -> the RefutationEntry JSON on stdout (objections may be degraded — claim-only).
+//   exit 1      -> a RESIDUAL parse fault (a gating section with no usable `claim`) WITHOUT --truncated:
+//                  `{lens, outcome:"unavailable", kind:"config-fault", objections:[]}` on stdout, a human
+//                  diagnostic on stderr. The transport floor routes config-fault -> needs-human (park).
+//   exit 3      -> the same residual fault WITH --truncated (the served response carried a truncation
+//                  signal): `{lens, outcome:"unavailable", kind:"infra-configured", objections:[]}` on
+//                  stdout. `infra-configured` is swing-capable -> the `unavailable` verdict + a
+//                  resumable `faff-awaiting-spec-review` hold (FAFF-900), never a park.
+//   exit 2      -> usage (missing --lens, unreadable stdin) — a real fault, empty stdout.
+// FAFF-990: the config-fault-vs-availability decision is deterministic, so the parser NAMES the `kind`
+// on stdout (chosen from --truncated) and the occupant records that stdout verbatim — the exit code and
+// the stdout `kind` are one decision surfaced twice, both code-emitted and both fixture-testable. The
+// occupant performs no exit-to-kind judgement of its own.
+function faultMessage(f, truncated) {
   const parts = [`lens=${f.lens}`, `severity=${f.severity}`, `title=${JSON.stringify(f.title)}`];
   if (f.missing_field) parts.push(`missing_field=${f.missing_field}`);
   if (f.reason) parts.push(`reason=${f.reason}`);
+  parts.push(`truncated=${!!truncated}`);
   return `parse-refutation: parse fault — ${parts.join(" ")}`;
 }
 
@@ -202,6 +217,7 @@ function main(argv) {
   const args = argv.slice(2);
   const li = args.indexOf("--lens");
   const lens = li !== -1 ? args[li + 1] : undefined;
+  const truncated = args.includes("--truncated");   // FAFF-990: a transport property, applied at the CLI seam
   if (!lens) {
     process.stderr.write("parse-refutation: --lens <lens> is required\n");
     return 2;
@@ -215,8 +231,12 @@ function main(argv) {
   }
   const result = parseRefutation(content, lens);
   if (!result.ok) {
-    process.stderr.write(faultMessage(result.fault) + "\n");
-    return 1;
+    // Residual fault: emit the machine record on STDOUT (the occupant records it verbatim) and the
+    // human diagnostic on STDERR (the audit trail). `kind`/exit are the same decision, keyed on --truncated.
+    const kind = truncated ? "infra-configured" : "config-fault";
+    process.stdout.write(JSON.stringify({ lens, outcome: "unavailable", kind, objections: [] }) + "\n");
+    process.stderr.write(faultMessage(result.fault, truncated) + "\n");
+    return truncated ? 3 : 1;
   }
   process.stdout.write(JSON.stringify(result.entry) + "\n");
   return 0;

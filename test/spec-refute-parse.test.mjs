@@ -50,7 +50,7 @@ test("a complete gating objection parses with the full triple + anchor, outcome 
   }]);
 });
 
-test("a gating objection missing predicted_consequence fails loud, naming the field", () => {
+test("FAFF-990: a gating objection missing predicted_consequence DEGRADES (exit-0), carried without the key", () => {
   const section = [
     "### major: loop cannot terminate",
     "- claim: the retry loop has no bound.",
@@ -58,10 +58,32 @@ test("a gating objection missing predicted_consequence fails loud, naming the fi
     "- spec_anchor: how-the-loop",
   ].join("\n");
   const r = parseRefutation(fixture(section), "architectural");
+  assert.equal(r.ok, true, "an absent enrichment field no longer voids the lens");
+  assert.equal(r.entry.outcome, "refuted", "a degraded gating objection still gates");
+  assert.deepEqual(r.entry.objections, [{
+    severity: "major",
+    claim: "the retry loop has no bound.",
+    evidence: "How, step 3.",
+    spec_anchor: "how-the-loop",
+  }], "the present fields are carried; predicted_consequence is OMITTED, not sentinel-filled");
+  assert.ok(!("predicted_consequence" in r.entry.objections[0]));
+});
+
+test("FAFF-990: a claim-ONLY gating objection (no evidence, no predicted_consequence) still gates, refuted", () => {
+  const section = ["### major: oversized increment", "- claim: the plan bundles two epics"].join("\n");
+  const r = parseRefutation(fixture(section), "methodology");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.outcome, "refuted");
+  assert.deepEqual(r.entry.objections, [{ severity: "major", claim: "the plan bundles two epics" }]);
+});
+
+test("FAFF-990: a gating objection with NO claim is the one residual fault (missing_field:claim)", () => {
+  const section = ["### major: something", "- evidence: only evidence, no claim"].join("\n");
+  const r = parseRefutation(fixture(section), "architectural");
   assert.equal(r.ok, false);
   assert.equal(r.fault.lens, "architectural");
   assert.equal(r.fault.severity, "major");
-  assert.equal(r.fault.missing_field, "predicted_consequence");
+  assert.equal(r.fault.missing_field, "claim");
 });
 
 test("a gating objection with an empty (whitespace-only) claim fails loud, same as absent", () => {
@@ -190,13 +212,13 @@ test("a repeated bullet key: last one wins", () => {
   assert.equal(r.entry.objections[0].claim, "second version");
 });
 
-test("two gating objections, one malformed: the whole lens fails loud (not a partial pass)", () => {
+test("two gating objections, one with no claim: the whole lens fails loud (not a partial pass)", () => {
   const good = majorSection("first");
-  const bad = ["### critical: second", "- claim: c", "- evidence: e"].join("\n");
+  const bad = ["### critical: second", "- evidence: e", "- predicted_consequence: p"].join("\n");  // no claim
   const r = parseRefutation(fixture(good, bad), "architectural");
   assert.equal(r.ok, false);
   assert.equal(r.fault.title, "second");
-  assert.equal(r.fault.missing_field, "predicted_consequence");
+  assert.equal(r.fault.missing_field, "claim");
 });
 
 test("a heading naming no recognised severity fails loud (defensive — the shape-gate should already reject it)", () => {
@@ -250,13 +272,37 @@ test("CLI: exit 0, emits the RefutationEntry JSON on stdout for a complete objec
   assert.equal(entry.model, "openai/gpt-4");
 });
 
-test("CLI: exit non-zero and stderr names the missing field when predicted_consequence is absent", () => {
+test("FAFF-990 CLI: predicted_consequence absent now DEGRADES to exit 0 with the claim carried", () => {
   const section = ["### major: loop cannot terminate", "- claim: c", "- evidence: e"].join("\n");
   const res = spawnSync(process.execPath, [PARSE, "--lens", "architectural"], { input: fixture(section), encoding: "utf8" });
-  assert.notEqual(res.status, 0);
-  assert.equal(res.stdout, "");
-  assert.match(res.stderr, /predicted_consequence/);
-  assert.match(res.stderr, /lens=architectural/);
+  assert.equal(res.status, 0, res.stderr);
+  const entry = JSON.parse(res.stdout);
+  assert.equal(entry.outcome, "refuted");
+  assert.equal(entry.objections[0].claim, "c");
+  assert.ok(!("predicted_consequence" in entry.objections[0]));
+});
+
+test("FAFF-990 CLI: a residual fault (no claim) WITHOUT --truncated -> exit 1, stdout kind config-fault", () => {
+  const section = ["### major: something", "- evidence: e"].join("\n");  // no claim
+  const res = spawnSync(process.execPath, [PARSE, "--lens", "qa"], { input: fixture(section), encoding: "utf8" });
+  assert.equal(res.status, 1);
+  assert.deepEqual(JSON.parse(res.stdout), { lens: "qa", outcome: "unavailable", kind: "config-fault", objections: [] });
+  assert.match(res.stderr, /missing_field=claim/);
+  assert.match(res.stderr, /truncated=false/);
+});
+
+test("FAFF-990 CLI: the same residual fault WITH --truncated -> exit 3, stdout kind infra-configured", () => {
+  const section = ["### major: something", "- evidence: e"].join("\n");  // no claim
+  const res = spawnSync(process.execPath, [PARSE, "--lens", "qa", "--truncated"], { input: fixture(section), encoding: "utf8" });
+  assert.equal(res.status, 3);
+  assert.deepEqual(JSON.parse(res.stdout), { lens: "qa", outcome: "unavailable", kind: "infra-configured", objections: [] });
+  assert.match(res.stderr, /truncated=true/);
+});
+
+test("FAFF-990 CLI: a truncated-but-complete gating objection parses exit 0 refuted (no hold, --truncated irrelevant)", () => {
+  const res = spawnSync(process.execPath, [PARSE, "--lens", "architectural", "--truncated"], { input: fixture(majorSection()), encoding: "utf8" });
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(JSON.parse(res.stdout).outcome, "refuted");
 });
 
 test("CLI: the canonical clean token exits 0 with outcome clear and empty objections", () => {

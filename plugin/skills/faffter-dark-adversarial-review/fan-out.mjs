@@ -28,6 +28,21 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // relative to this file so the CLI works regardless of the caller's cwd.
 export const REVIEW_CALL_PATH = pathJoin(HERE, "review-call.mjs");
 
+// FAFF-990: import the transport's exported truncation marker as the SINGLE SOURCE OF TRUTH. The
+// shared import is what makes a rename on either side a CI failure (the fan-out drift test), never a
+// silent revert to config-fault/park in production.
+import { TRUNCATION_SIGNAL } from "./review-call.mjs";
+
+// PURE: did the child's stderr carry the truncation marker? A LINE-ANCHORED EQUALITY — some trimmed
+// stderr line must equal TRUNCATION_SIGNAL exactly — never a substring scan of the whole blob. Every
+// refuter-influenced stderr line is emitted after a transport-authored prefix (e.g. `refuted: "<title>"
+// — …`) and a finding title is single-line, so refuter content can never appear as a standalone marker
+// line: a compromised/adversarial refuter cannot forge the recoverable hold path. `fan-out.mjs` stays a
+// transport concern — it surfaces a transport fact, it maps no per-lens outcome.
+export function stderrTruncated(stderr) {
+  return String(stderr == null ? "" : stderr).split("\n").some((line) => line.trim() === TRUNCATION_SIGNAL);
+}
+
 // PURE: is `requests` a non-empty array of well-shaped LensRequest entries ({lens: string, argv:
 // string[]})? Mirrors aggregate.mjs's "refuses to vote on an absent or inconsistent set" discipline —
 // fan-out never silently produces fewer than N results, so a malformed/empty input is refused up
@@ -94,7 +109,9 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
     child.on("close", (code) => {
       if (settled) return;
       settled = true;
-      resolve({ lens: request.lens, exit: code == null ? 1 : code, stdout, stderr });
+      // FAFF-990: `truncated` is the ONE new derived field — additive; the four existing fields are
+      // untouched. It surfaces the transport's own truncation fact to the spec-review classifier.
+      resolve({ lens: request.lens, exit: code == null ? 1 : code, stdout, stderr, truncated: stderrTruncated(stderr) });
     });
   });
 }

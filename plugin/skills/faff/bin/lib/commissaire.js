@@ -539,9 +539,12 @@ function resolveFacadeStore(flags, verb) {
 
 // A monotonic boundary_seq scoped to (run_id, run_segment_id), resolved from the store's own listing
 // — the same rule publishBundle's nextBoundarySeq applies (a re-seal of the SAME boundary_key gets
-// back its OWN seq so the idempotent-no-op digest holds; for run-close, which has exactly one bundle
-// per segment, this is always 0). Inlined rather than imported: nextBoundarySeq lives in the
-// denylisted bundle.js, and this is a trivial store-listing helper, not forked integrity logic.
+// back its OWN seq so the idempotent-no-op digest holds). The seq is one past the max over ALL
+// boundaries in the segment, so run-close is 0 only in an otherwise-empty segment — it is max+1 when
+// issue-merge-floor siblings coexist, exactly as publishBundle produces (the store keys the bundle
+// dir by boundary_key, not boundary_seq, so headDigest/member still find it at any seq — see
+// cmdAuditExport). Inlined rather than imported: nextBoundarySeq lives in the denylisted bundle.js,
+// and this is a trivial store-listing helper, not forked integrity logic.
 function facadeNextBoundarySeq(store, run_id, run_segment_id, boundary_key) {
   const existing = store.listBoundaries(run_id, run_segment_id) || [];
   const mine = existing.find((b) => b.boundary_key === boundary_key);

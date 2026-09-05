@@ -41,7 +41,13 @@ const {
 } = require("./producer-auth");
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex } = require("./events");
 const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes } = require("./effects");
-const { ENTRYPOINT } = require("./shared-infra");
+const { ENTRYPOINT, findRoot } = require("./shared-infra");
+// FAFF-1000 — `audit seal`/`export` build and read the run-close recovery bundle IN-PROCESS via the
+// denylist-clean sealing core (never `faff bundle publish`, never `./bundle`, `./config`, or
+// `./contract-defs`, all of which reach the standalone-commissaire DENYLIST). This is the ONLY new
+// require the seal/export depth adds; its whole transitive graph is proven clean by FAFF-999's
+// import-independence walk (test/commissaire-standalone.test.mjs).
+const { buildBundle, localBundleStore, requiredMembersFor } = require("./bundle-seal-core");
 
 // The verb-typed record kinds the schema:3 envelope carries, and which author writes each.
 const KIND_AUTHOR = {
@@ -318,15 +324,16 @@ function usage() {
     "  effect authorize  --run-dir DIR --producer ID --issue I --step S   (stdin: {effect, evidence_seq?})   (alias: request-decision)\n" +
     "  effect observe    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
     "  effect reconcile  --run-dir DIR --issue I   (alias: reconcile)\n" +
-    "  verdict conclude  --run-dir DIR --issue I   (boundary stub over `faff events anchor`)   (alias: terminal-verdict)\n" +
-    "  audit seal        --run-dir DIR             (boundary stub over `faff bundle`)   (alias: seal-bundle)\n" +
+    "  verdict conclude  --run-dir DIR --issue I [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed accepted_under_contract record, or a refusal; alias: terminal-verdict)\n" +
+    "  audit seal        --run-dir DIR [--root R] [--bundle-store local]   (build + write the run-close recovery bundle in-process; alias: seal-bundle)\n" +
+    "  audit export      --run-dir DIR --dest DIR [--root R] [--bundle-store local]   (copy an already-sealed bundle's manifest + members to DIR)\n" +
     "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n");
 }
 
 function parseCommissaireArgs(args) {
   const flags = {};
   const rest = [];
-  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts"]);
+  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store"]);
   for (let i = 0; i < args.length; i++) {
     if (single.has(args[i])) flags[args[i]] = args[++i];
     else if (args[i] === "--json") flags["--json"] = true;
@@ -463,31 +470,161 @@ function cmdReconcile(flags) {
   return 0;
 }
 
-// Verbs 5/6 — boundary stubs that delegate to the existing anchor/bundle handlers via a child
-// spawn of this same bin (a process boundary, invisible to the region lint by design). Built
-// only at the facade boundary this slice; NOT to depth (ADR-0122 scopes Phase 2A to verb 3).
-function cmdBoundaryStub(flags, verb, childArgs) {
-  const runDir = requireRunDir(flags, verb);
-  if (!runDir) return 3;
-  const r = spawnSync(process.execPath, [ENTRYPOINT, ...childArgs], { encoding: "utf8", stdio: "inherit" });
-  if (r.status === 0) return 0;
-  process.stderr.write(`faff commissaire ${verb}: boundary stub delegated to \`faff ${childArgs.join(" ")}\` (exit ${r.status === null ? "error" : r.status})\n`);
-  return r.status === null ? 1 : r.status;
+// --- verb 5: `verdict conclude` (in-process, FAFF-1000) ----------------------------------
+// A refusal is a COMPLETED evaluation that concluded "not yet", not an error: it is printed and
+// exits 0 (mirroring evaluateDecisionRequest's grant/deny-is-not-an-error convention) and writes
+// NOTHING to the ledger (a negative `outcome_rejected` record is out of scope — spec §2). The one
+// setup error, `no-governor` (admit was never run), exits 2, matching cmdRequestDecision.
+function refuseVerdict(reason, issue, detail) {
+  console.log(JSON.stringify({ verdict: "refused", reason, issue, ...(detail || {}) }));
+  return reason === "no-governor" ? 2 : 0;
 }
 
-// --- boundary-stub handlers (extracted verbatim from the old switch) ---------------------
-// `verdict conclude` / `audit seal` (and their flat aliases terminal-verdict / seal-bundle) each
-// reach ONE handler. The stderr labels stay as today (stderr text only, never JSON or exit code),
-// which is what keeps the handler bodies untouched under an object-verb invocation.
+// `verdict conclude` — the record only Commissaire may issue (V5 master doc). Validate the run dir
+// and governor, resolve which producer's contract this concludes, check the three preconditions the
+// issue names against the EXISTING ledger (producer admitted, no unreconciled escape, evidence
+// present), and — only if all three pass — append one signed schema:3 `accepted_under_contract`
+// record. Idempotent: a repeat call for an already-concluded issue returns the existing seq.
 function cmdTerminalVerdict(flags) {
-  const runDir = flags["--run-dir"], issue = flags["--issue"];
-  if (!runDir || !issue) { process.stderr.write("faff commissaire terminal-verdict: --run-dir and --issue are required\n"); return 2; }
-  return cmdBoundaryStub(flags, "terminal-verdict", ["events", "anchor", "--run-dir", runDir, "--issue", issue]);
+  const runDir = requireRunDir(flags, "verdict conclude");
+  if (!runDir) return 3;
+  const issue = flags["--issue"];
+  if (!issue) { process.stderr.write("faff commissaire verdict conclude: --issue is required\n"); return 2; }
+  const entries = readLedgerEntries(runDir).filter((e) => e.issue === issue);
+  if (entries.length === 0) return refuseVerdict("no-evidence", issue);
+  // Idempotent re-conclude: a prior `accepted_under_contract` for this issue is returned, never doubled.
+  const existing = entries.find((e) => e.kind_of_entry === "accepted_under_contract");
+  if (existing) { console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, idempotent: true, seq: existing.seq })); return 0; }
+  const producerIds = [...new Set(entries.map((e) => e.producer_id).filter((x) => x != null && x !== "-"))];
+  let producerId;
+  if (flags["--producer"]) {
+    if (!producerIds.includes(flags["--producer"])) return refuseVerdict("no-evidence", issue);
+    producerId = flags["--producer"];
+  } else if (producerIds.length === 1) {
+    producerId = producerIds[0];
+  } else {
+    return refuseVerdict("ambiguous-producer", issue, { producers: producerIds });
+  }
+  const admission = readJson(producerFileOf(producerDirOf(runDir, flags["--producer-dir"]), producerId));
+  if (!admission || admission.status === "revoked") return refuseVerdict("producer-not-admitted", issue, { producer_id: producerId });
+  const escapeResult = computeEscapes(entries, issue);
+  if (escapeResult.any_escape) return refuseVerdict("unreconciled-escape", issue, { escapes: escapeResult.escapes });
+  const gov = readJson(governorFileOf(governorDirOf(runDir, flags["--governor-dir"])));
+  if (!gov) return refuseVerdict("no-governor", issue); // setup error — exit 2, not a governed refusal
+  const seqs = entries.map((e) => e.seq).filter((s) => Number.isInteger(s));
+  const body = {
+    kind_of_entry: "accepted_under_contract", issue, step: "conclude",
+    payload: {
+      producer_id: producerId, contract_revision: admission.contract_revision,
+      evidence_seq_range: [Math.min(...seqs), Math.max(...seqs)], escapes_checked: true,
+    },
+  };
+  const record = appendCommissaireRecord(runDir, gov.sk, producerId, admission.contract_revision, body, flags["--ts"]);
+  console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, producer_id: producerId, seq: record.seq }));
+  return 0;
 }
+
+// The facade reaches only the LOCAL BundleStore occupant in-process. The git-remote occupant lives
+// in bundle.js (it needs node:child_process + config.js), which the denylist-clean facade must never
+// require — so `--bundle-store git-remote` is refused here, never silently downgraded to local.
+function resolveFacadeStore(flags, verb) {
+  const name = flags["--bundle-store"] || "local";
+  if (name !== "local") {
+    process.stderr.write(`faff commissaire ${verb}: --bundle-store ${name} is not reachable from the standalone facade — only the local occupant runs in-process (the git-remote occupant requires the config-coupled bundle path FAFF-999's import independence excludes)\n`);
+    return null;
+  }
+  const root = flags["--root"] || findRoot();
+  return { store: localBundleStore(root), root };
+}
+
+// A monotonic boundary_seq scoped to (run_id, run_segment_id), resolved from the store's own listing
+// — the same rule publishBundle's nextBoundarySeq applies (a re-seal of the SAME boundary_key gets
+// back its OWN seq so the idempotent-no-op digest holds; for run-close, which has exactly one bundle
+// per segment, this is always 0). Inlined rather than imported: nextBoundarySeq lives in the
+// denylisted bundle.js, and this is a trivial store-listing helper, not forked integrity logic.
+function facadeNextBoundarySeq(store, run_id, run_segment_id, boundary_key) {
+  const existing = store.listBoundaries(run_id, run_segment_id) || [];
+  const mine = existing.find((b) => b.boundary_key === boundary_key);
+  if (mine && Number.isInteger(mine.boundary_seq)) return mine.boundary_seq;
+  return existing.reduce((max, b) => Math.max(max, Number.isInteger(b.boundary_seq) ? b.boundary_seq : -1), -1) + 1;
+}
+
+// --- verb 6: `audit seal` (in-process, FAFF-1000) ----------------------------------------
+// Build the run-close bundle from the run dir's own ledger/anchor bytes and write it to the local
+// store — the same bytes `faff bundle publish --boundary-kind run-close` would produce, without
+// spawning it. boundary_key is the LITERAL constant "run-close" (NOT basename(runDir): buildBundle
+// requires boundary_key === "run-close" for a run-close bundle, so the old stub's basename always
+// threw and `audit seal` never once sealed a bundle — the reproduced pre-existing bug).
 function cmdSealBundle(flags) {
-  const runDir = flags["--run-dir"];
-  if (!runDir) { process.stderr.write("faff commissaire seal-bundle: --run-dir is required\n"); return 2; }
-  return cmdBoundaryStub(flags, "seal-bundle", ["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "run-close", "--boundary-key", path.basename(runDir)]);
+  const runDir = requireRunDir(flags, "audit seal");
+  if (!runDir) return 3;
+  const resolved = resolveFacadeStore(flags, "audit seal");
+  if (!resolved) return 2;
+  const { store, root } = resolved;
+  const run_id = path.basename(runDir);
+  const buildAt = (boundary_seq) => buildBundle(runDir, { run_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq }, root);
+  let built;
+  try {
+    built = buildAt(0); // probe build — learns run_segment_id from buildBundle's own single ledger read
+    const seq = facadeNextBoundarySeq(store, run_id, built.manifest.identity.run_segment_id, "run-close");
+    if (seq !== 0) built = buildAt(seq);
+  } catch (e) {
+    process.stderr.write(`faff commissaire audit seal: ${e.message}\n`);
+    return 1;
+  }
+  const { manifest, memberBytes } = built;
+  const result = store.put(manifest.identity, memberBytes, manifest);
+  console.log(JSON.stringify({
+    sealed: result.ok !== false, idempotent: !!result.idempotent,
+    identity: manifest.identity, bundle_manifest_digest: manifest.bundle_manifest_digest,
+  }));
+  // ok (including store_unavailable, which never fails the run — same rule as `bundle publish`) -> 0;
+  // a genuine failure (e.g. identity-conflict) -> 1.
+  if (result.ok === false && result.reason !== "store_unavailable") return 1;
+  return 0;
+}
+
+// --- `audit export` (new, FAFF-1000) -----------------------------------------------------
+// Copy an ALREADY-sealed run-close bundle's manifest + member bytes to --dest. Never seals
+// implicitly (that is `audit seal`'s job): a bundle the store cannot head is `not-sealed`. Refuses a
+// non-empty --dest rather than merge/overwrite — an export is a clean, verifiable copy.
+function cmdAuditExport(flags) {
+  const runDir = requireRunDir(flags, "audit export");
+  if (!runDir) return 3;
+  const dest = flags["--dest"];
+  if (!dest) { process.stderr.write("faff commissaire audit export: --dest <dir> is required\n"); return 2; }
+  const resolved = resolveFacadeStore(flags, "audit export");
+  if (!resolved) return 2;
+  const { store } = resolved;
+  const run_id = path.basename(runDir);
+  // run_segment_id — the SAME read buildBundle does (owner.epoch off run-ledger.json).
+  let run_segment_id;
+  try {
+    const ledgerObj = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+    run_segment_id = Number((ledgerObj.owner && ledgerObj.owner.epoch) || 0);
+  } catch (e) {
+    process.stderr.write(`faff commissaire audit export: cannot read run-ledger.json (${e.message})\n`);
+    return 1;
+  }
+  const identity = { run_id, run_segment_id, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 };
+  const head = store.headDigest(identity);
+  if (head.status !== "ok") { console.log(JSON.stringify({ exported: false, reason: "not-sealed" })); return 1; }
+  // --dest must be absent or empty — never blend a partial prior export with a new one.
+  if (fs.existsSync(dest)) {
+    let names;
+    try { names = fs.readdirSync(dest); } catch { names = ["<unreadable>"]; }
+    if (names.length > 0) { console.log(JSON.stringify({ exported: false, reason: "dest-not-empty" })); return 1; }
+  }
+  fs.mkdirSync(dest, { recursive: true });
+  const manifest = { version: head.version, identity: head.identity, members: head.memberRefs, bundle_manifest_digest: head.digest };
+  fs.writeFileSync(path.join(dest, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+  for (const name of requiredMembersFor(head.version)) {
+    const member = store.member(identity, name);
+    if (member.status !== "ok") { console.log(JSON.stringify({ exported: false, reason: "not-sealed", member: name })); return 1; }
+    fs.writeFileSync(path.join(dest, `${name}.bin`), member.bytes);
+  }
+  console.log(JSON.stringify({ exported: true, dest, identity: head.identity, bundle_manifest_digest: head.digest }));
+  return 0;
 }
 
 // === ADR-0123 noun-verb object grammar (FAFF-980) =======================================
@@ -509,6 +646,7 @@ const COMMISSAIRE_DISPATCH = {
   "effect reconcile": (flags) => cmdReconcile(flags),
   "verdict conclude": (flags) => cmdTerminalVerdict(flags),
   "audit seal": (flags) => cmdSealBundle(flags),
+  "audit export": (flags) => cmdAuditExport(flags), // FAFF-1000
   "audit verify": (flags) => cmdAuditVerify(flags), // FAFF-977, retained (not this ticket's key)
 };
 
@@ -535,6 +673,7 @@ const REQUIRED_FLAGS_BY_CANONICAL = {
   "effect reconcile": ["--issue"],
   "verdict conclude": ["--issue"],
   "audit seal": [],
+  "audit export": ["--dest"], // FAFF-1000
   "audit verify": ["--run-dir"], // FAFF-977, retained
 };
 
@@ -561,7 +700,9 @@ function cmdCommissaire(args) {
 const COMMISSAIRE_SPEC = { flags: {
   "--run-dir": { arity: 1 }, "--run": { arity: 1 }, "--producer": { arity: 1 }, "--contract-revision": { arity: 1 },
   "--scope": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--governor-dir": { arity: 1 },
-  "--producer-dir": { arity: 1 }, "--ts": { arity: 1 }, "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
+  "--producer-dir": { arity: 1 }, "--ts": { arity: 1 },
+  "--root": { arity: 1 }, "--dest": { arity: 1 }, "--bundle-store": { arity: 1 }, // FAFF-1000 (audit seal/export)
+  "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
 } };
 // Derive the declared surface from the single source (REQUIRED_FLAGS_BY_CANONICAL +
 // COMMISSAIRE_ALIASES): every canonical compound key plus every flat alias key, each alias carrying

@@ -24,8 +24,10 @@ import {
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { mintGovernorKeypair as _mintKp } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import { appendEffectEntries, computeEscapes } from "../plugin/skills/faff/bin/lib/effects.js";
-import { verifyEffectsChain } from "../plugin/skills/faff/bin/lib/events.js";
+import { verifyEffectsChain, mintIssueAnchor } from "../plugin/skills/faff/bin/lib/events.js";
 import { decideFloor } from "../plugin/skills/faff/bin/lib/contract-defs.js";
+import { buildBundle } from "../plugin/skills/faff/bin/lib/bundle-seal-core.js";
+import { sha256 } from "../plugin/skills/faff/bin/lib/integrity-digest.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const COMMISSAIRE_JS = join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "commissaire.js");
@@ -268,7 +270,9 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   }
   // it requires only the governance cores + node builtins + shared-infra
   const localRequires = requires.filter((r) => r.startsWith("."));
-  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra"]);
+  // FAFF-1000 — `audit seal`/`export` require the denylist-clean sealing core (buildBundle /
+  // localBundleStore / requiredMembersFor). It is NOT ./bundle, ./config, or ./contract-defs.
+  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
 });
 
@@ -543,4 +547,161 @@ test("grammar: all seven flat aliases and their object-verb forms dispatch to th
     const rf = runCom(flatArgs), ro = runCom(objArgs);
     assert.equal(rf.code, ro.code, `${flatArgs[0]} alias exit == ${objArgs[0]} ${objArgs[1]} exit (got ${rf.code} vs ${ro.code})`);
   }
+});
+
+// === FAFF-1000: verdict conclude (in-process) + audit seal (in-process) + audit export ===
+// The depth pass over verbs 5/6 and the new `audit export` action. A run minted through the real
+// bin; the run-close anchor + run-ledger minted directly (never `faff events anchor-run`) so the
+// seal/export path is exercised with no faff-bin dependency, exactly as the standalone runtime
+// spawn-guard test asserts.
+
+// Mint a run-close anchor tree (summary.md + one per-issue subdir) directly under
+// <root>/.faff/anchors/<run_id>/, plus the run-ledger.json buildBundle reads — the same shape
+// `faff events anchor-run` produces, without spawning it.
+function mintRunCloseAnchor(root, runDir, runId) {
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" } }));
+  writeFileSync(join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${runId}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
+  mkdirSync(join(runDir, "FAFF-1"), { recursive: true });
+  const anchorRoot = join(root, ".faff", "anchors", runId);
+  const mint = mintIssueAnchor(runDir, "FAFF-1", join(anchorRoot, "FAFF-1"));
+  assert.equal(mint.ok, true, "fixture: run-close anchor mint must succeed");
+  mkdirSync(anchorRoot, { recursive: true });
+  writeFileSync(join(anchorRoot, "summary.md"), "# run\n");
+}
+
+test("FAFF-1000 verdict conclude: a clean covered run appends one signed accepted_under_contract record; audit verify classifies it verified", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-ok-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    assert.equal(vc.code, 0);
+    const out = JSON.parse(vc.stdout.trim());
+    assert.equal(out.verdict, "accepted_under_contract");
+    assert.equal(out.producer_id, "P1");
+
+    const accepted = records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract");
+    assert.equal(accepted.length, 1, "exactly one accepted_under_contract record");
+    assert.equal(accepted[0].author, "commissaire");
+    assert.equal(accepted[0].schema, 3);
+    assert.equal(accepted[0].step, "conclude");
+    assert.equal(accepted[0].payload.escapes_checked, true);
+    assert.ok(accepted[0].commissaire_sig, "the record is signed under the governor SK");
+
+    const av = JSON.parse(runCom(["audit", "verify", "--run-dir", runDir]).stdout.trim());
+    assert.equal(av.result, "pass");
+    const rec = av.records.find((x) => x.kind_of_entry === "accepted_under_contract");
+    assert.equal(rec.classification, "verified", "audit verify classifies the terminal record verified");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1000 verdict conclude: an unreconciled escape refuses (exit 0) and writes nothing to the ledger", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-escape-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge,registry-publish"]);
+    // observe an effect that was never declared -> an escape for FAFF-1
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "build"], JSON.stringify([{ kind: "registry-publish", target: "pkg@1.0.0" }]));
+    const before = records(ledger).length;
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    assert.equal(vc.code, 0, "a completed refusal exits 0");
+    const out = JSON.parse(vc.stdout.trim());
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "unreconciled-escape");
+    assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
+    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1000 verdict conclude: no-evidence on a bare issue; ambiguous-producer when two producers touched the issue and --producer is absent", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-refuse-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    // no-evidence: an issue with zero ledger entries
+    const ne = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-NONE"]).stdout.trim());
+    assert.equal(ne.verdict, "refused");
+    assert.equal(ne.reason, "no-evidence");
+    // ambiguous-producer: a second distinct producer_id on the same issue (the ambiguity check reads
+    // producer_id off the ledger, never the HMAC), --producer absent
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    writeFileSync(ledger, readFileSync(ledger, "utf8") + JSON.stringify({ schema: 3, run_id: runDir.split("/").pop(), seq: 999, author: "producer", producer_id: "P2", contract_revision: "r1", kind_of_entry: "declare", issue: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main" } }) + "\n");
+    const amb = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]).stdout.trim());
+    assert.equal(amb.verdict, "refused");
+    assert.equal(amb.reason, "ambiguous-producer");
+    // naming an unknown producer is a producer-not-admitted refusal (still exit 0, still no write)
+    const named = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1", "--producer", "P2"]).stdout.trim());
+    assert.equal(named.reason, "producer-not-admitted");
+    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0, "no refusal wrote a terminal record");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1000 verdict conclude: a second call for an already-concluded issue returns the existing seq (idempotent) and appends no second record", () => {
+  const { root, runDir, ledger } = mkRun("com-vc-idem-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    const first = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]).stdout.trim());
+    assert.equal(first.verdict, "accepted_under_contract");
+    const second = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]).stdout.trim());
+    assert.equal(second.verdict, "accepted_under_contract");
+    assert.equal(second.idempotent, true);
+    assert.equal(second.seq, first.seq, "the idempotent re-conclude returns the existing record's seq");
+    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 1, "no second accepted_under_contract record");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1000 audit seal: seals the run-close bundle in-process; bundle_manifest_digest matches a direct buildBundle over the same run dir; re-seal is idempotent", () => {
+  const { root, runDir } = mkRun("com-seal-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    const runId = runDir.split("/").pop();
+    mintRunCloseAnchor(root, runDir, runId);
+
+    const seal = runCom(["audit", "seal", "--run-dir", runDir, "--root", root]);
+    assert.equal(seal.code, 0, `seal failed: ${seal.stderr}`);
+    const out = JSON.parse(seal.stdout.trim());
+    assert.equal(out.sealed, true);
+    assert.equal(out.identity.boundary_kind, "run-close");
+    assert.equal(out.identity.boundary_key, "run-close", "the LITERAL run-close boundary_key (not basename(runDir))");
+    // digest matches a direct buildBundle computed with the literal run-close boundary_key
+    const direct = buildBundle(runDir, { run_id: runId, boundary_kind: "run-close", boundary_key: "run-close", boundary_seq: 0 }, root);
+    assert.equal(out.bundle_manifest_digest, direct.manifest.bundle_manifest_digest);
+    // re-seal is an idempotent no-op (same digest)
+    const reseal = JSON.parse(runCom(["audit", "seal", "--run-dir", runDir, "--root", root]).stdout.trim());
+    assert.equal(reseal.idempotent, true);
+    assert.equal(reseal.bundle_manifest_digest, out.bundle_manifest_digest);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1000 audit export: copies a sealed bundle's manifest + every required member to --dest (sha256 matches); refuses not-sealed and dest-not-empty", () => {
+  const { root, runDir } = mkRun("com-export-");
+  try {
+    runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
+    const runId = runDir.split("/").pop();
+    mintRunCloseAnchor(root, runDir, runId);
+    const dest = join(root, "export-out");
+
+    // not-sealed: export before any seal refuses (export never seals implicitly)
+    const pre = JSON.parse(runCom(["audit", "export", "--run-dir", runDir, "--dest", dest, "--root", root]).stdout.trim());
+    assert.equal(pre.exported, false);
+    assert.equal(pre.reason, "not-sealed");
+
+    // seal, then export copies the manifest + every member; each member's sha256 matches the manifest
+    runCom(["audit", "seal", "--run-dir", runDir, "--root", root]);
+    const exp = runCom(["audit", "export", "--run-dir", runDir, "--dest", dest, "--root", root]);
+    assert.equal(exp.code, 0, `export failed: ${exp.stderr}`);
+    assert.equal(JSON.parse(exp.stdout.trim()).exported, true);
+    const man = JSON.parse(readFileSync(join(dest, "manifest.json"), "utf8"));
+    assert.ok(Object.keys(man.members).length > 0, "manifest carries members");
+    for (const [name, ref] of Object.entries(man.members)) {
+      assert.equal(sha256(readFileSync(join(dest, `${name}.bin`))), ref.sha256, `member ${name} sha256 matches the manifest`);
+    }
+    // dest-not-empty: a second export into the same populated dir refuses rather than merge/overwrite
+    const again = JSON.parse(runCom(["audit", "export", "--run-dir", runDir, "--dest", dest, "--root", root]).stdout.trim());
+    assert.equal(again.exported, false);
+    assert.equal(again.reason, "dest-not-empty");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

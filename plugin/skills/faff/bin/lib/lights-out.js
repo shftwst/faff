@@ -44,7 +44,7 @@ const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
-const { appendRecordUnderLock } = require("./events");
+const { appendEventRecord, appendRecordUnderLock } = require("./events");
 const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
@@ -1190,7 +1190,11 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   }
 
   // STEP 4 (pre-write): gather forge/artifact evidence and reconstruct the plan (pure).
-  const evidence = gatherResumeEvidence(runDir, root, ledger, binPath);
+  // `nowIso` is the resume wall-clock instant (arbitrary operator time has elapsed since the
+  // park) — the FAFF-993 reconsider verdict needs it, so it is resolved here, before the
+  // gatherer, and reused unchanged for the STEP-3 budget re-baseline / STEP-5 ledger write.
+  const nowIso = new Date().toISOString();
+  const evidence = gatherResumeEvidence(runDir, root, ledger, binPath, nowIso);
   const plan = reconstructResumePlan(ledger, evidence);
   const priorEpoch = Number((ledger.owner && ledger.owner.epoch) || 0);
   const wipCommit = ledger.abort && ledger.abort.wip_commit ? ledger.abort.wip_commit : null;
@@ -1205,7 +1209,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
 
   // STEP 3: budget close-out + re-baseline (shape (a)) — close the prior open span into a
   // measured delta, open a new span baselined at the resume instant. Never closes at zero.
-  const nowIso = new Date().toISOString();
+  // (`nowIso` was resolved above at STEP 4 for the reconsider verdict; reused here verbatim.)
   const sessionId = process.env.FAFF_SESSION_ID || null;
   const budgetSessions = closeAndOpenBudgetSessions(ledger, runDir, root, nowIso);
 
@@ -1290,6 +1294,15 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // the lock; run-resume carries its extra fields via runResumeEvent(id, seq, …).
   appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch }, prevHash));
 
+  // STEP 5b (FAFF-993): the autonomous reconsider pass. AFTER the epoch-bump ledger write (so it
+  // never races the STEP-5 mutateLedgerUnderLock) and BEFORE the hand-off. Each parked item in this
+  // run whose cited machine-checkable input demonstrably changed is unparked through the shared
+  // own-live-run contract (this run's own ledger + events, cleared under the lock) and transitioned
+  // into the FAFF-900 spec-review-resume hold, so the hand-off prep-queue drain re-enters it at the
+  // spec-review gate. A human park, an unchanged input, or any indeterminate read leaves the park.
+  const reconsidered = reconsiderParkedItems(runDir, root, nowIso, resumeId);
+  if (reconsidered.length && !json) console.log(`  reconsidered (input changed → spec-review re-entry): ${reconsidered.join(", ")}`);
+
   // STEP 6: HAND OFF exactly as mint does. FAFF-679: the before/after ledger digest
   // pair (Class A of the gateway's mid-bracket write rule).
   if (json) {
@@ -1336,10 +1349,11 @@ function resumeBudgetStillOverCeiling(binPath, runDir, envelope) {
 // pure reconstructResumePlan can classify. Fail-closed by construction: a shipped claim we
 // cannot prove merged (no gh, no merge-record) reconciles to `claimed-shipped-unmerged`
 // and parks; never a silent skip.
-function gatherResumeEvidence(runDir, root, ledger, binPath) {
+function gatherResumeEvidence(runDir, root, ledger, binPath, nowIso) {
   const ev = {};
   const admitted = Array.isArray(ledger.admitted) ? ledger.admitted : [];
   const outcomes = (ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
+  const now = typeof nowIso === "string" ? nowIso : new Date().toISOString();
   for (const issue of admitted) {
     const e = {};
     const issueDir = path.join(runDir, issue);
@@ -1347,6 +1361,14 @@ function gatherResumeEvidence(runDir, root, ledger, binPath) {
       const recorded = readJsonSafe(path.join(issueDir, "merge-record.json"));
       e.recorded = recorded && recorded.head_sha ? { pr: recorded.pr ?? null, head_sha: recorded.head_sha, merged: true } : null;
       e.observed = observeForgeMerge(recorded);
+    } else if (outcomes[issue] === "parked") {
+      // FAFF-993: an admitted mid-run park. Impurely gather the reconsider inputs and run the
+      // PURE `classifyReEntry` here (this factory shell may read the filesystem; the governance
+      // `reconstructResumePlan` may not require this factory module, so it takes the verdict in
+      // via `e.reEntry`). Only a `machine` park whose repo-root-confined cited config-file has a
+      // changed content fingerprint reconsiders; every other input fails closed to the terminal
+      // routing. The confinement + fingerprint precede any read of the target.
+      e.reEntry = reEntryVerdictForParked(root, issue, now);
     } else if (outcomes[issue] === undefined) {
       // in-flight when the run died — is it at a resumable boundary? The review-hold signal
       // is the ON-DISK twin of the `faff-awaiting-review` label: FAFF-403 writes the
@@ -1366,6 +1388,104 @@ function gatherResumeEvidence(runDir, root, ledger, binPath) {
     ev[issue] = e;
   }
   return ev;
+}
+
+// FAFF-993: the reconsider verdict for ONE admitted parked issue, as the pure
+// `classifyReEntry` result `{ reconsider, reason }`. The impure gather (marker read, repo-root
+// confinement, content fingerprint) happens here in the factory shell; the governance
+// `reconstructResumePlan` consumes only the returned verdict via `e.reEntry` (it may not require
+// this factory module — ADR-0042). Only a `machine` park whose repo-root-confined config-file
+// cited input has a changed fingerprint reconsiders; a `backend` cited input (or any unreadable /
+// out-of-root ref) fails closed to `null` observed-fp and stays terminal (the section-7 punt).
+function reEntryInputs(root, issue, nowIso) {
+  const { readParkCause } = require("./prepcheck");
+  const { fingerprintFile } = require("./park-history");
+  const { classifyReEntry, confine } = require("./park-reconsider");
+  const marker = readJsonSafe(path.join(root, ".faff", "prep", `${issue}.json`));
+  const cause = readParkCause(marker);
+  const ref = (cause && cause.cited_input && typeof cause.cited_input.ref === "string") ? cause.cited_input.ref : null;
+  const refInRoot = confine(root, ref);
+  const kind = (cause && cause.cited_input) ? cause.cited_input.kind : null;
+  const observedFp = (refInRoot && kind === "config-file") ? fingerprintFile(root, ref) : null;
+  const verdict = classifyReEntry(cause, observedFp, refInRoot, nowIso);
+  return { verdict, marker, cause, observedFp };
+}
+
+function reEntryVerdictForParked(root, issue, nowIso) {
+  return reEntryInputs(root, issue, nowIso).verdict;
+}
+
+// FAFF-993 autonomous seam — the resume-time reconsider pass. Runs in `resumeLightsOut` AFTER the
+// STEP-5 epoch-bump ledger write and BEFORE the STEP-6 beep-boop hand-off. For each parked item in
+// THIS run (ledger outcome == "parked" OR prep marker disposition == "parked") whose cited input
+// demonstrably changed, it clears the git-only park through the shared `apply_git_only_unpark`
+// (own-live-run authority — this run's own ledger, cleared under the lock FIRST, then the marker),
+// appends the returned run-scoped `park-reconsidered` event to this run's events.jsonl, and writes
+// the FAFF-900 spec-review-resume hold so the existing prep-queue drain re-enters the issue at the
+// spec-review gate. It never re-reviews the spec and never invents a new autonomous prep mode.
+function reconsiderParkedItems(runDir, root, nowIso, runId) {
+  const { readPrepMarkers } = require("./prepcheck");
+  const { readOutcomes } = require("./queue-state");
+  const { apply_git_only_unpark } = require("./park-reconsider");
+  const nowMs = Date.parse(nowIso);
+
+  // Enumerate parked items in THIS run, from BOTH surfacers, deduped: ledger `parked` outcomes
+  // (admitted mid-run parks, inherently this run's) and prep markers carrying `disposition:"parked"`
+  // WHOSE `owner.run_dir` is this run (the git-only prep-queue park twin). The marker scan is scoped
+  // to this run's own cut on purpose: `apply_git_only_unpark` (own-live-run) reads the marker's
+  // `owner.run_dir` as the ledger it clears, so an unscoped scan would grant own-run authority over a
+  // DIFFERENT run's Evidence ledger — the exact cross-run write the interactive seam is forbidden.
+  const runDirReal = path.resolve(runDir);
+  const parked = new Set();
+  const probe = readOutcomes(runDir);
+  if (!probe.malformed) for (const [issue, outcome] of Object.entries(probe.outcomes || {})) { if (outcome === "parked") parked.add(issue); }
+  let markers = [];
+  try { markers = readPrepMarkers(root) || []; } catch { markers = []; }
+  for (const m of markers) {
+    if (!m || m.disposition !== "parked" || typeof m.issue !== "string") continue;
+    const ownRun = m.owner && typeof m.owner.run_dir === "string" ? path.resolve(m.owner.run_dir) : null;
+    if (ownRun === runDirReal) parked.add(m.issue);            // only this run's own parks
+  }
+
+  const changed = [];
+  for (const issue of parked) {
+    // FAIL-SOFT per issue: any throw (a lock-contended events.jsonl → EVENTS_LOCKED, an unexpected
+    // marker/ledger shape, a filesystem fault) leaves THIS park standing and continues — a single
+    // issue's failure must never crash the whole lights-out resume. The pure gates already fail
+    // closed; this catch is the belt for the impure writes (`appendEventRecord`, the hold write).
+    try {
+      const { verdict, marker, cause, observedFp } = reEntryInputs(root, issue, nowIso);
+      if (!verdict.reconsider) continue;                                 // human / unchanged / fail-closed → leave parked
+      const prevFp = (cause.cited_input && typeof cause.cited_input.fingerprint === "string") ? cause.cited_input.fingerprint : null;
+      const res = apply_git_only_unpark(root, marker, issue, cause, "resume-reconsider", prevFp, observedFp, "own-live-run", nowMs);
+      if (!res.unparked) continue;                                       // busy/corrupt ledger, marker-write fail → retry next drain, park stands
+      // Append the run-scoped park-reconsidered event to THIS run's events.jsonl (authorised: own cut).
+      // Phase "run" + no top-level issue field, parity with run-resume (the issue rides in data).
+      if (res.event) appendEventRecord(runDir, runId, { phase: "run", type: res.event.type, data: res.event.data }, nowIso);
+      // Transition into the FAFF-900 spec-review-resume hold so the prep-queue drain re-enters it at
+      // the spec-review gate (NOT graft — a cleared-park high-confidence Backlog spec would route graft).
+      writeSpecReviewResumeHold(root, issue, nowIso, prevFp, observedFp);
+      changed.push(issue);
+    } catch (e) {
+      // Best-effort: the reconsider pass is not load-bearing for the resume; a failed issue simply
+      // stays parked and is retried on the next drain. Never rethrow (would abort the resume). Logged
+      // to STDERR so it never pollutes the STEP-6 JSON stdout emitted by the caller.
+      process.stderr.write(`reconsider skipped ${issue}: ${(e && e.message) || e} (park left standing, retry next drain)\n`);
+    }
+  }
+  return changed;
+}
+
+// Write the FAFF-900 spec-review-resume hold with the FAFF-993 `cause:"reconsider-input-changed"`
+// discriminator. Its PRESENCE (with no cleared marker) is the git-only awaiting-spec-review signal
+// the prep-queue build derives membership from (the label being a tracker no-op in git-only mode).
+function writeSpecReviewResumeHold(root, issue, nowIso, prevFp, newFp) {
+  const dir = path.join(root, ".faff", "resume", issue);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "spec-review-hold.json"),
+      JSON.stringify({ cause: "reconsider-input-changed", reconsidered_at: nowIso, prev_fingerprint: prevFp || null, new_fingerprint: newFp || null }, null, 2) + "\n");
+  } catch { /* best-effort; a failed hold write leaves the cleared park to re-admit via faff next on the next drain */ }
 }
 
 // Observe a PR's live merge state from the forge (best-effort). Returns the reconcile
@@ -1986,4 +2106,4 @@ function lightsOutSelftest() {
 // resumeLightsOut uses, rather than fork a second read of build-progress.json/
 // merge-record.json/the forge. observeForgeMerge/branchExistsOnForge stay private —
 // gatherResumeEvidence is the one call-site that needs them.
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, guardrailReachable, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, guardrailReachable, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, reEntryVerdictForParked, reconsiderParkedItems, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

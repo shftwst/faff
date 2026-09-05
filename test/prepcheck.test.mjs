@@ -298,7 +298,22 @@ test("prepcheck --issue: attached marker → state=attached, exit 0", () => {
     assert.deepEqual(payload, {
       issue: "FAFF-501", spec_produced: true, attached: true, disposition: null,
       owner: null, ts: "2026-07-10T00:00:00Z", owner_matches_run: null, state: "attached",
+      awaiting_spec_review: false, // FAFF-993: git-only awaiting-spec-review derivation (no hold file → false)
     });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-993: prepcheck --issue surfaces awaiting_spec_review:true from a git-only spec-review-resume hold", () => {
+  const root = rootWith({
+    "FAFF-993": { issue: "FAFF-993", spec_produced: true, attached: false, mode: "tracker" },
+  });
+  try {
+    // no hold file yet → false
+    assert.equal(JSON.parse(run(["prepcheck", "--issue", "FAFF-993", "--json", "--root", root]).out.trim()).awaiting_spec_review, false);
+    // the reconsider/interactive seam wrote the FAFF-900 hold → the git-only awaiting-spec-review signal
+    mkdirSync(join(root, ".faff", "resume", "FAFF-993"), { recursive: true });
+    writeFileSync(join(root, ".faff", "resume", "FAFF-993", "spec-review-hold.json"), JSON.stringify({ cause: "reconsider-input-changed" }));
+    assert.equal(JSON.parse(run(["prepcheck", "--issue", "FAFF-993", "--json", "--root", root]).out.trim()).awaiting_spec_review, true);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

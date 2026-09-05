@@ -220,6 +220,11 @@ const REGION_MAP = {
   // a pure computation command, sibling of next/contain → factory.
   "findings-reconcile": "factory",
   "park-history": "factory",
+  // FAFF-993: the git-only Unpark decision + write contract. Load-time requires
+  // are queue-state/heartbeat/runcheck (ledger seams) + argv/shared-infra — a
+  // pure classify (classifyReEntry) plus a ledger-authority-parameterised write
+  // helper; the compute core is factory, sibling of park-history's file-read shape.
+  "park-reconsider": "factory",
   "gitignore-ensure": "factory",
   // FAFF-483: the harness-abstraction seam register + its lint. Requires only
   // argv + shared-infra at load time (sibling modules lazily), owns CURRENT_HARNESS
@@ -455,6 +460,7 @@ const REGION_SELFTEST_ARGV = {
   "queue-state": ["queue-state", "--selftest"],
   "findings-reconcile": ["findings-reconcile", "--selftest"],
   "park-history": ["park-history", "--selftest"],
+  "park-reconsider": ["park-reconsider", "--selftest"], // FAFF-993: reason-table + confine fixtures (no operator unpark side effect)
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "harness": ["harness", "--selftest"],
   "adr": ["adr", "--selftest"],

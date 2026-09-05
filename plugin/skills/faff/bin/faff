@@ -74,6 +74,7 @@ const { cmdMergeFence } = require("./lib/merge-fence");
 const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate } = require("./lib/merge-gate");
 const { cmdNext } = require("./lib/next");
 const { cmdParkHistory } = require("./lib/park-history");
+const { cmdParkReconsider } = require("./lib/park-reconsider");
 const { cmdPostMergeCheck } = require("./lib/post-merge");
 const { cmdPrBody } = require("./lib/pr-body");
 const { cmdPrd } = require("./lib/prd");
@@ -203,6 +204,7 @@ const COMMANDS = {
   "queue-state": cmdQueueState,
   "findings-reconcile": cmdFindingsReconcile,
   "park-history": cmdParkHistory,
+  "park-reconsider": cmdParkReconsider,
   "gitignore-ensure": cmdGitignoreEnsure,
   "adr": cmdAdr,
   "decisions": cmdDecisions,

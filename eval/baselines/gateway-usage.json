@@ -491,6 +491,16 @@
    "tokens": 470
   },
   {
+   "title": "The git-only Unpark contract (FAFF-993)",
+   "consumers": [
+    "faff-prep",
+    "faff-beep-boop"
+   ],
+   "keep": false,
+   "source": "verified",
+   "tokens": 1014
+  },
+  {
    "title": "Unpark protocol (shared)",
    "consumers": [
     "faff-tidy",

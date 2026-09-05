@@ -42,13 +42,36 @@ const WRONG = `# faff-graft fixture
 `;
 
 function runOnFaffGraft(body) {
+  return runOnNamed("faff-graft", body);
+}
+// FAFF-1004: same harness, arbitrary skill dir name — for the faff-graft-scoped fail-closed tests
+// (a non-faff-graft skill without a Step 9b section must raise no finding).
+function runOnNamed(name, body) {
   const dir = mkdtempSync(join(tmpdir(), "faff-1001-order-"));
-  mkdirSync(join(dir, "faff-graft"));
-  writeFileSync(join(dir, "faff-graft", "SKILL.md"), body);
+  mkdirSync(join(dir, name));
+  writeFileSync(join(dir, name, "SKILL.md"), body);
   const r = spawnSync(process.execPath, [BIN, "validate-adapters", "--skills-dir", dir], { encoding: "utf8" });
   rmSync(dir, { recursive: true, force: true });
   return r;
 }
+// A faff-graft fixture whose Step 9b heading is renamed away (no `**Step 9b:` bound → scoped:false).
+const RENAMED = `# faff-graft fixture
+
+**Step 9x: Open the PR**
+
+4. \`faff events anchor --run-dir "$run_dir"\` then git commit + push the branch head.
+5. \`gh pr create --body-file safe.md\`
+
+**Step 10: Merge-confidence gate**
+`;
+// A faff-graft fixture with `**Step 9b:` but no `**Step 10:` bound (partial section → scoped:false).
+const PARTIAL = `# faff-graft fixture
+
+**Step 9b: Open the PR**
+
+4. \`faff events anchor --run-dir "$run_dir"\` then git commit + push the branch head.
+5. \`gh pr create --body-file safe.md\`
+`;
 
 // --- the pure helper (unit) ---
 
@@ -66,7 +89,10 @@ test("helper: a Step 9b missing either phrase → not ok (fail-closed, never a s
   assert.equal(checkAnchorBeforePrOrder("**Step 9b:** nothing here\n**Step 10:** x").ok, false);
 });
 
-test("helper: no Step 9b section → scoped:false, ok:true (never false-fails a skill without Step 9b)", () => {
+test("helper: no Step 9b section → scoped:false, ok:true (the pure reporter; the faff-graft fail-closed policy lives at the CLI, FAFF-1004)", () => {
+  // The helper stays a pure skill-agnostic reporter: an absent section is scoped:false/ok:true.
+  // The "an absent Step 9b section FAILs faff-graft" policy is the call site's (see the FAFF-1004
+  // CLI tests below); a NON-faff-graft skill without a Step 9b section still raises no finding.
   const r = checkAnchorBeforePrOrder("# some other skill\n\nno step nine-bee here");
   assert.equal(r.scoped, false);
   assert.equal(r.ok, true);
@@ -96,4 +122,25 @@ test("CLI: a faff-graft fixture with the anchor BEFORE gh pr create raises no or
 test("CLI: the shipped tree carries no anchor-before-PR order finding", () => {
   const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
   assert.doesNotMatch(r.stdout, /anchor-before-PR order/, "the post-FAFF-1001 tree must be in the correct order");
+});
+
+// --- FAFF-1004: fail-closed on a renamed/absent or partial Step 9b section (faff-graft only) ---
+
+test("FAFF-1004 CLI: a faff-graft fixture whose Step 9b heading is renamed/absent FAILs (fail-closed)", () => {
+  const r = runOnFaffGraft(RENAMED);
+  assert.match(r.stdout, /anchor-before-PR order/);
+  assert.match(r.stdout, /FAFF-1004/);
+  assert.notEqual(r.status, 0);
+});
+
+test("FAFF-1004 CLI: a faff-graft fixture with a partial Step 9b section (no `**Step 10:`) FAILs (fail-closed)", () => {
+  const r = runOnFaffGraft(PARTIAL);
+  assert.match(r.stdout, /anchor-before-PR order/);
+  assert.match(r.stdout, /FAFF-1004/);
+  assert.notEqual(r.status, 0);
+});
+
+test("FAFF-1004 CLI: a NON-faff-graft skill with no Step 9b section raises no finding (the guard stays faff-graft-scoped)", () => {
+  const r = runOnNamed("faffter-noon-spec", "# some other skill\n\nno step nine-bee section here at all");
+  assert.doesNotMatch(r.stdout, /anchor-before-PR order/);
 });

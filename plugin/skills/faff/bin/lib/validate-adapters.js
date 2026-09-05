@@ -958,9 +958,18 @@ function cmdValidateAdapters(args) {
     }
 
     // FAFF-1001: anchor-before-PR order lint (faff-graft's Step 9b only). See checkAnchorBeforePrOrder.
+    // FAFF-1004: fail-CLOSED — for faff-graft, an absent OR partial Step 9b section (scoped:false) is
+    // a FAIL too, not the silent pass it was. A renamed/renumbered heading would otherwise disable the
+    // guard while validate-adapters still exits 0. The helper stays a pure skill-agnostic reporter; the
+    // faff-graft-must-carry-a-bounded-Step-9b-section policy lives here at the call site. Other skills
+    // without a Step 9b section are unaffected (this branch is gated on name === "faff-graft").
     if (name === "faff-graft") {
       const order = checkAnchorBeforePrOrder(text);
-      if (order.scoped && !order.ok) {
+      if (!order.scoped) {
+        failed = true;
+        console.log(`FAIL  ${name} (anchor-before-PR order)`);
+        console.log(`        ✗ faff-graft must carry a bounded Step 9b section (the \`**Step 9b:\` … \`**Step 10:\` headings that fence the anchor commit before \`gh pr create\`); none found — a renamed or renumbered heading silently disables the anchor-before-PR guard (FAFF-1004)`);
+      } else if (!order.ok) {
         failed = true;
         console.log(`FAIL  ${name} (anchor-before-PR order)`);
         console.log(`        ✗ Step 9b must commit + push the anchor before \`gh pr create\` — first \`faff events anchor\` (idx ${order.anchorIdx}) must precede first \`gh pr create\` (idx ${order.prIdx}); a crash between PR-open and the anchor commit strands a review-passed PR as anchor-missing (FAFF-1001)`);

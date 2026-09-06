@@ -83,7 +83,7 @@ function seedRunDir(runDir, issue, { ac = true, review = "pass", holdout = null,
 }
 
 const ISSUE = "FAFF-566";
-const localArgs = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--json", ...extra];
+const localArgs = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--json", "--execute", ...extra];
 
 // FAFF-690 (F1): `merge-gate --local` now sources the governing level from the COMMITTED anchor at
 // the branch head (git-show, local object store), not the live run-ledger.json. So the probes commit

@@ -116,7 +116,7 @@ function writeCustodyVerdict(runDir, issue, over = {}) {
 const custodyArgs = ({ file, sha256 } = {}) => (file ? ["--custody-verdict", file, "--custody-verdict-sha256", sha256] : []);
 
 const prArgsL4 = (runDir, extra = []) =>
-  ["merge-gate", "--pr", "9", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--repo", REPO, "--json", "--squash", ...extra];
+  ["merge-gate", "--pr", "9", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--repo", REPO, "--json", "--squash", "--execute", ...extra];
 
 test("FAFF-895 gap-confirm: L4 --pr, clean floor + fresh holdout, NO custody flags → refuses (unasserted integrity) — the gap this ticket found", () => {
   const runDir = seedL4RunDir();

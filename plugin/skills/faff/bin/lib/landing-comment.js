@@ -93,7 +93,7 @@ function renderBody(opts) {
       `    [{"kind":"merge","target":"pr:${pr}","reversible":true}]`,
       "    EOF",
       `    faff merge-gate --pr ${pr} --issue ${issue} \\`,
-      '      --human-override --interactive --override-reason "<what merged + why no floor applies>" \\',
+      '      --execute --human-override --interactive --override-reason "<what merged + why no floor applies>" \\',
       '      --merge-args "--squash --delete-branch"',
     ].join("\n");
   } else if (verdict === "merge-ok") {

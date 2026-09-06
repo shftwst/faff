@@ -84,18 +84,18 @@ for (const [label, over, want] of floorCases) {
 
 // --- merge-gate arg validation (fail-loud before any gh call) ---
 test("merge-gate: missing required flags → exit 2", () => {
-  const { code } = runCli(["merge-gate", "--pr", "1"]);
+  const { code } = runCli(["merge-gate", "--pr", "1", "--execute"]);
   assert.equal(code, 2);
 });
 
 test("merge-gate: an unrecognised --merge-args token → exit 2 (no untrusted free-text reaches the shell)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--merge-args", "--squash; rm -rf /"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--execute", "--merge-args", "--squash; rm -rf /"]);
   assert.equal(code, 2);
   assert.match(stderr, /unrecognised --merge-args/);
 });
 
 test("merge-gate: a bad --level → exit 2", () => {
-  const { code } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L9"]);
+  const { code } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L9", "--execute"]);
   assert.equal(code, 2);
 });
 
@@ -126,6 +126,16 @@ test("merge-gate: --execute --check-only together → exit 2 naming the mutual e
   assert.match(stderr, /--execute and --check-only are mutually exclusive/);
 });
 
+// --- FAFF-1013: a merge is irreversible, so intent is mandatory — neither --execute nor
+// --check-only is a caller bug that must error (exit 2) before any gh observation, never a silent
+// merge off the removed default. This fires at the shared mode-resolution site, before the --local
+// dispatch, so it covers the PR path (here) and --local alike.
+test("merge-gate: neither --execute nor --check-only → exit 2 naming the fix (FAFF-1013)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /pass --execute to merge or --check-only to preview/);
+});
+
 // --- FAFF-690 (F1): the trust root for the autonomy level moved from the LIVE, build-lane-writable
 // run-ledger.json to the HEAD-SHA-PINNED committed anchor. The two old "forged-ledger-level" tests
 // here (FAFF-325/FAFF-424: a forged live run-ledger.json level, guarded only by the --level mismatch
@@ -140,21 +150,21 @@ test("merge-gate: --execute --check-only together → exit 2 naming the mutual e
 // runCli spawns a child with piped stdio (non-TTY by construction), so these exercise the exact
 // autonomous-lane refusal; the fence returns before any gh call, so no network is reached.
 test("merge-gate: --merge-args \"--admin\" → exit 2 naming the rejected token (FAFF-375)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--merge-args", "--admin"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--merge-args", "--admin"]);
   assert.equal(code, 2);
   assert.match(stderr, /unrecognised --merge-args/);
   assert.match(stderr, /--admin/);
 });
 
 test("merge-gate: non-TTY --interactive --human-override → exit 2 naming the TTY fence (FAFF-375)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--human-override"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--interactive", "--human-override"]);
   assert.equal(code, 2);
   assert.match(stderr, /--human-override is human-only/);
   assert.match(stderr, /real terminal/);
 });
 
 test("merge-gate: non-TTY --interactive --allow-no-ci → exit 2 naming the TTY fence (FAFF-375)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--allow-no-ci"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--interactive", "--allow-no-ci"]);
   assert.equal(code, 2);
   assert.match(stderr, /--allow-no-ci is human-only/);
 });
@@ -163,7 +173,7 @@ test("merge-gate: non-TTY --interactive --allow-no-ci → exit 2 naming the TTY 
 // runCli spawns a child with piped stdio (non-TTY by construction), so these exercise the exact
 // fence refusal before any gh call — no network, no mocking.
 test("merge-gate: --accept-review-unavailable is accepted by MERGE_GATE_SPEC (not rejected as unknown-flag)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L9", "--accept-review-unavailable"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L9", "--execute", "--accept-review-unavailable"]);
   // hits the pre-existing bad-level check (exit 2) — proves argv parsing proceeded PAST
   // --accept-review-unavailable rather than rejecting it as an unrecognised flag.
   assert.equal(code, 2);
@@ -172,26 +182,26 @@ test("merge-gate: --accept-review-unavailable is accepted by MERGE_GATE_SPEC (no
 });
 
 test("merge-gate: non-TTY --interactive --accept-review-unavailable → exit 2 naming the TTY fence (FAFF-912)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--interactive", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]);
   assert.equal(code, 2);
   assert.match(stderr, /--accept-review-unavailable is human-only/);
   assert.match(stderr, /real terminal/);
 });
 
 test("merge-gate: --accept-review-unavailable without --interactive → exit 2 (fenced)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]);
   assert.equal(code, 2);
   assert.match(stderr, /--accept-review-unavailable requires --interactive/);
 });
 
 test("merge-gate: --accept-review-unavailable with an empty --override-reason → exit 2 naming the reason fence", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--accept-review-unavailable"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--interactive", "--accept-review-unavailable"]);
   assert.equal(code, 2);
   assert.match(stderr, /--accept-review-unavailable requires --override-reason/);
 });
 
 test("merge-gate: --human-override + --accept-review-unavailable together → exit 2 naming the mutual exclusion (FAFF-912)", () => {
-  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--human-override", "--accept-review-unavailable", "--override-reason", "x"]);
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--interactive", "--human-override", "--accept-review-unavailable", "--override-reason", "x"]);
   assert.equal(code, 2);
   assert.match(stderr, /mutually exclusive/);
 });

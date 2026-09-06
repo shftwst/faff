@@ -832,8 +832,18 @@ function consultRe(kernel) {
   return new RegExp(`\\bfaff\\s+${esc}(?![\\w-])`);
 }
 
-// For a derived kernel set, return the kernels with no `decide ... --kernel <k> ... --export` line
-// within CAPTURE_WIRING_WINDOW lines of a `faff <k>` consult in any plugin/skills/*/SKILL.md.
+// FAFF-1014: order-aware capture-wiring test. A kernel <k> is wired in a SKILL.md file iff EITHER
+// (a) a `decide ... --kernel <k> ... --export` driver line states, on that same line, that the export
+//     runs `before` the consult (the word "before", case-insensitive — one real note capitalises it —
+//     plus a "consult" reference or a literal `faff <k>` on the line); OR
+// (b) a driver line at index d precedes a `faff <k>` consult at index c in the same file, with d < c
+//     and (c - d) <= CAPTURE_WIRING_WINDOW.
+// Predicate (a) matches the eight same-sentence capture notes (driver and consult on one line, d == c);
+// predicate (b) matches project-next's genuine distinct driver line and any future correctly-separated
+// site. The old order-agnostic `Math.abs(d - c)` pairing is gone: a driver that sits after its consult
+// with no same-line "before" assertion no longer counts as wired.
+const beforeRe = /\bbefore\b/i;
+const consultWordRe = /\bconsult/i;
 function captureWiringUnwired(skillsDir, kernels) {
   const skillDirs = fs.readdirSync(skillsDir)
     .filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md"))).sort();
@@ -852,9 +862,17 @@ function captureWiringUnwired(skillsDir, kernels) {
         if (cRe.test(lines[i])) consults.push(i);
         if (isDecideExport(lines[i])) decides.push(i);
       }
-      for (const c of consults) {
-        for (const d of decides) {
-          if (Math.abs(d - c) <= CAPTURE_WIRING_WINDOW) { wired = true; break outer; }
+      // (a) same-line order assertion: a driver line that says the export runs "before" the consult.
+      for (const d of decides) {
+        if (beforeRe.test(lines[d]) && (consultWordRe.test(lines[d]) || cRe.test(lines[d]))) {
+          wired = true;
+          break outer;
+        }
+      }
+      // (b) distinct-line driver precedes a nearby consult (d < c, within the window).
+      for (const d of decides) {
+        for (const c of consults) {
+          if (d < c && (c - d) <= CAPTURE_WIRING_WINDOW) { wired = true; break outer; }
         }
       }
     }
@@ -1422,7 +1440,7 @@ function cmdValidateAdapters(args) {
       failed = true;
       console.log(`FAIL  capture-wiring (FAFF-1009)`);
       for (const k of unwired) {
-        console.log(`        ✗ kernel "${k}" mints a base in-kernel but no SKILL.md carries a \`decide --kernel ${k} --export\` within ${CAPTURE_WIRING_WINDOW} lines of a \`faff ${k}\` consult — its base reads an empty correlation_id and grades nothing (FAFF-1009)`);
+        console.log(`        ✗ kernel "${k}" mints a base in-kernel but no SKILL.md states its \`decide --kernel ${k} --export\` runs before the \`faff ${k}\` consult — either same-line ("before ... consult" / "before ... faff ${k}") or as a distinct driver line preceding the consult within ${CAPTURE_WIRING_WINDOW} lines — so its base reads an empty correlation_id and grades nothing (FAFF-1009/FAFF-1014)`);
       }
     } else {
       console.log(`pass  capture-wiring — all ${kernels.length} captureDecision kernels have an adjacent \`decide --export\` (FAFF-1009)`);

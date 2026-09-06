@@ -68,7 +68,53 @@ test("fail: removing the `decide --export` leaves the consult unwired (fail-clos
   ].join("\n");
   const r = runOnFixture({ kernelSrc: KERNEL_SRC, skillBody: skill });
   assert.match(r.stdout, /FAIL\s+capture-wiring/);
-  assert.match(r.stdout, /kernel "fixkernel" mints a base in-kernel but no SKILL\.md carries a `decide --kernel fixkernel --export`/);
+  assert.match(r.stdout, /kernel "fixkernel" mints a base in-kernel but no SKILL\.md states its `decide --kernel fixkernel --export` runs before the `faff fixkernel` consult/);
+  assert.equal(r.status, 1);
+});
+
+// FAFF-1014 — order-aware predicate cases.
+
+test("fail: a same-line driver+consult with no `before` order assertion is UNWIRED (exit 1)", () => {
+  // The one capture line is both the driver and the consult (d == c), so predicate (b) (d < c) can
+  // never fire; without the word "before" plus a consult reference, predicate (a) also fails.
+  const skill = [
+    "The fixkernel wiring on one line:",
+    "run `faff fixkernel` via `eval \"$(faff decision-capture decide --kernel fixkernel --export)\"`.",
+    "",
+  ].join("\n");
+  const r = runOnFixture({ kernelSrc: KERNEL_SRC, skillBody: skill });
+  assert.match(r.stdout, /FAIL\s+capture-wiring/);
+  assert.match(r.stdout, /kernel "fixkernel" mints a base in-kernel but no SKILL\.md states its `decide --kernel fixkernel --export` runs before the `faff fixkernel` consult/);
+  assert.equal(r.status, 1);
+});
+
+test("pass: a distinct driver line preceding its consult within the window is wired via predicate (b)", () => {
+  // project-next-shaped: driver at index d, consult at a later index c, d < c and (c - d) <= 15, and
+  // NO "before" assertion on the driver line — so only predicate (b) can carry it.
+  const skill = [
+    "Mint the driver first:",
+    "`eval \"$(faff decision-capture decide --kernel fixkernel --export)\"`",
+    "then later in the flow",
+    "run `faff fixkernel --json` and read the verdict.",
+    "",
+  ].join("\n");
+  const r = runOnFixture({ kernelSrc: KERNEL_SRC, skillBody: skill });
+  assert.match(r.stdout, /pass\s+capture-wiring/);
+  assert.doesNotMatch(r.stdout, /FAIL\s+capture-wiring/);
+});
+
+test("fail: a driver placed AFTER its consult (d > c) with no `before` assertion is UNWIRED (exit 1)", () => {
+  // Consult first, driver later: predicate (b) requires d < c, and the driver line has no "before"
+  // assertion, so predicate (a) cannot rescue it. This is the ordering defect the change closes.
+  const skill = [
+    "run `faff fixkernel --json` and read the verdict,",
+    "then afterwards",
+    "`eval \"$(faff decision-capture decide --kernel fixkernel --export)\"`.",
+    "",
+  ].join("\n");
+  const r = runOnFixture({ kernelSrc: KERNEL_SRC, skillBody: skill });
+  assert.match(r.stdout, /FAIL\s+capture-wiring/);
+  assert.match(r.stdout, /kernel "fixkernel"/);
   assert.equal(r.status, 1);
 });
 

@@ -1144,12 +1144,18 @@ function cmdMergeGate(args) {
   const issue = get("--issue");
   const runDir = get("--run-dir");
   const flagLevel = get("--level");
-  // FAFF-630: --execute is the documented, accepted way to say the (unchanged) default mode.
-  // Both flags together is a caller bug, surfaced loudly before any gh call — never a silent
-  // --check-only precedence, which would let a caller who asked to execute read exit 0
-  // merge-ok off a run that merged nothing.
+  // FAFF-1013: --execute is the required affirmative for a merge, not a no-op alias for a default.
+  // A merge is irreversible, so intent must be explicit: pass --execute to merge or --check-only
+  // to preview. Both flags together is a caller bug, surfaced loudly before any gh call — never a
+  // silent --check-only precedence, which would let a caller who asked to execute read exit 0
+  // merge-ok off a run that merged nothing. Neither flag is likewise a caller bug: the merge no
+  // longer happens by omission.
   if (args.includes("--execute") && args.includes("--check-only")) {
     process.stderr.write("faff merge-gate: --execute and --check-only are mutually exclusive\n");
+    return 2;
+  }
+  if (!args.includes("--execute") && !args.includes("--check-only")) {
+    process.stderr.write("faff merge-gate: pass --execute to merge or --check-only to preview\n");
     return 2;
   }
   const mode = args.includes("--check-only") ? "check-only" : "execute";

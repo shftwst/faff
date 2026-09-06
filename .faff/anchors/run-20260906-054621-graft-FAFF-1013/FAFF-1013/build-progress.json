@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1013",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4e8ef63bd03e6d0bb0cd115940e771fa2a6e0b87a13605c8762b06c24887303c",
+    "branch": "faff-1013-merge-gate-defaults-to-execute-the-irreversible-merge-when",
+    "pushed_at": "2026-09-06T06:16:13.400Z"
+  },
+  "updated_at": "2026-09-06T06:16:13.400Z"
+}

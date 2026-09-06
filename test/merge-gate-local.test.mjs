@@ -227,6 +227,18 @@ test("CLI: --local requires --issue and --run-dir (usage exit 2)", () => {
   assert.match(stderr, /--issue and --run-dir are required/);
 });
 
+test("FAFF-1013: --local with neither --execute nor --check-only → exit 2 naming the fix (the guard precedes the --local dispatch)", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
+  // A fully-valid --local invocation (issue + run-dir + anchor) EXCEPT the mode flag:
+  // the neither-flag guard resolves once, before the --local dispatch, so it fires here too.
+  const { code, stderr } = runCli(["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--json"], { cwd: repo });
+  assert.equal(code, 2);
+  assert.match(stderr, /pass --execute to merge or --check-only to preview/);
+});
+
 test("CLI: --local ignores/does not require --pr (no PR flag passed, still dispatches to the local branch)", () => {
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");

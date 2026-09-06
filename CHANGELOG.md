@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.32.0](https://github.com/shftwst/faff/compare/faff--v0.31.0...faff--v0.32.0) (2026-09-06)
+
+
+### Features
+
+* **FAFF-1000:** build the Commissaire facade to depth (verdict conclude + audit seal + audit export) ([#862](https://github.com/shftwst/faff/issues/862)) ([714c113](https://github.com/shftwst/faff/commit/714c113b67d9d60e2bc7453516905e39dbf543e0))
+* **FAFF-1001:** reorder Step 9b to anchor before opening the PR ([#859](https://github.com/shftwst/faff/issues/859)) ([134e975](https://github.com/shftwst/faff/commit/134e97520cce2b95bd3d4d2fc7f7a77161f5e18e))
+* **FAFF-1004:** fail-closed the anchor-before-PR order lint on a renamed/absent Step 9b heading ([#860](https://github.com/shftwst/faff/issues/860)) ([3c12169](https://github.com/shftwst/faff/commit/3c12169783871fa2391a4ddd670aa94af1d005b0))
+* **FAFF-1005:** lint a broad error-swallow adjacent to the Step 9b anchor commit ([#869](https://github.com/shftwst/faff/issues/869)) ([b28dbe0](https://github.com/shftwst/faff/commit/b28dbe07c3a6ad131e72aeb8bad0a3af7f0c1afd))
+* **FAFF-1008:** harden Commissaire verdict conclude (ledger-derived revision, pk_fingerprint cross-check, no-evidence detail) ([#866](https://github.com/shftwst/faff/issues/866)) ([8495c70](https://github.com/shftwst/faff/commit/8495c708cc17c1793fec2896923ec7c2e990b3da))
+* **FAFF-1012:** merge-gate self-declares the merge effect it performs ([#871](https://github.com/shftwst/faff/issues/871)) ([fc95e8c](https://github.com/shftwst/faff/commit/fc95e8c68a721a249a8f762aa6133e1763240888))
+* **FAFF-1013:** require an explicit --execute or --check-only on faff merge-gate ([#872](https://github.com/shftwst/faff/issues/872)) ([3910417](https://github.com/shftwst/faff/commit/3910417c4086e76c0e68e29cee84fa5f9c3ea71d))
+* **FAFF-360:** CI-provable harness for the bare Claude Code Commissaire consumer ([#874](https://github.com/shftwst/faff/issues/874)) ([84f378d](https://github.com/shftwst/faff/commit/84f378dcbde436830b996cc9abfcae8d16e67f33))
+* **FAFF-913:** surface governance-check failures as sanitized GitHub Actions annotations ([#856](https://github.com/shftwst/faff/issues/856)) ([7df1b97](https://github.com/shftwst/faff/commit/7df1b973068eec687d48900b7cf0037c4f9588fe))
+* **FAFF-928:** retain raw adversarial-review response bodies (per lens / backend / round) ([#852](https://github.com/shftwst/faff/issues/852)) ([ceda956](https://github.com/shftwst/faff/commit/ceda956040a8ca6d8edfef1dd5a6f4d7e2b646e9))
+* **FAFF-959:** add spec-judge-evidence --restamp seam for per-proposition pre_ruling_* re-stamp ([#848](https://github.com/shftwst/faff/issues/848)) ([65724b7](https://github.com/shftwst/faff/commit/65724b7ac6d4b10fdf46e33e7080efa29fd239bc))
+* **FAFF-976:** anchor the public Commissaire key so the merge chokepoint verifies from a committed anchor ([#864](https://github.com/shftwst/faff/issues/864)) ([ebc00ee](https://github.com/shftwst/faff/commit/ebc00ee7348a6c5e9794c90fd0cefa186c2529ef))
+* **FAFF-979:** lock-pin the Commissaire request-decision ledger snapshot (close the TOCTOU) ([#865](https://github.com/shftwst/faff/issues/865)) ([27e5db6](https://github.com/shftwst/faff/commit/27e5db602a1184eb6afa8996e100ee9f8d471637))
+* **FAFF-987:** shard the node:test suite into a 4-way matrixed unit job ([#857](https://github.com/shftwst/faff/issues/857)) ([158e76c](https://github.com/shftwst/faff/commit/158e76c4f350bd503ee64ee17bda1c8850937561))
+* **FAFF-990:** a truncated refuter objection holds and retries, not parks as config-fault ([#868](https://github.com/shftwst/faff/issues/868)) ([73ea68f](https://github.com/shftwst/faff/commit/73ea68f5167ab288a3de9c989dfa46b0f903fa77))
+* **FAFF-992:** scoped classified park record + park-versus-hold boundary ([#863](https://github.com/shftwst/faff/issues/863)) ([5d8d8f7](https://github.com/shftwst/faff/commit/5d8d8f7346917a5a6069bb0349b8bc42bb0c11bf))
+* **FAFF-993:** autonomous re-entry + the shared git-only Unpark contract ([#867](https://github.com/shftwst/faff/issues/867)) ([d197d1f](https://github.com/shftwst/faff/commit/d197d1f9db944a5faef0ec14786f56c5089b2a2f))
+* **FAFF-994:** durable spec-review judgement trail (judge-trail mint/judge-history + audit second source) ([#850](https://github.com/shftwst/faff/issues/850)) ([1515b7b](https://github.com/shftwst/faff/commit/1515b7b7cb086f3c84f77da0bf925e7c7b8bed7f))
+* **FAFF-998:** spec-review lenses defer to human ratifications in tracker comments ([#861](https://github.com/shftwst/faff/issues/861)) ([4a08fcb](https://github.com/shftwst/faff/commit/4a08fcb70531a2eeb43faf422a52c936d97ad7fa))
+* **FAFF-999:** promote Commissaire to a standalone commissaire CLI ([#858](https://github.com/shftwst/faff/issues/858)) ([43a4806](https://github.com/shftwst/faff/commit/43a4806e52f87aa97329577efd8d550d7640e2c8))
+* **review-bench:** --reasoning-extra passthrough + adversarial backend tuning ([#845](https://github.com/shftwst/faff/issues/845)) ([c9e92d2](https://github.com/shftwst/faff/commit/c9e92d25a74837817f366c6c93de6daf8fd012df))
+
+
+### Bug Fixes
+
+* **FAFF-1009:** wire the seven un-wired decision-capture kernels in two tiers ([#870](https://github.com/shftwst/faff/issues/870)) ([c5e6bc1](https://github.com/shftwst/faff/commit/c5e6bc1e329480caeaab9b3f3a27e04344a07d51))
+* **FAFF-1014:** make the capture-wiring lint order-aware ([#873](https://github.com/shftwst/faff/issues/873)) ([fd1e978](https://github.com/shftwst/faff/commit/fd1e9788a44860ee8804bdb775e33fb5dfd3f057))
+* **FAFF-927:** accept a clean refutation under any single decorative header ([#855](https://github.com/shftwst/faff/issues/855)) ([1f99afd](https://github.com/shftwst/faff/commit/1f99afdb2a2cedc1b43d75702577a8efcc7abfb1))
+* **FAFF-981:** classify rung stdout overflow on exit status, not errored ([#851](https://github.com/shftwst/faff/issues/851)) ([acb8a28](https://github.com/shftwst/faff/commit/acb8a284c8dc1ce0807b165ca79909dc17eac759))
+* **FAFF-984:** configurable UNIT rung timeout + distinct timed-out classification ([#849](https://github.com/shftwst/faff/issues/849)) ([e56c7cf](https://github.com/shftwst/faff/commit/e56c7cfc7e84e9402ed131c05eaa24280986903e))
+* **FAFF-989:** emit and join the decision-capture-action marker at runtime ([#846](https://github.com/shftwst/faff/issues/846)) ([e5b1edd](https://github.com/shftwst/faff/commit/e5b1edd19f4d8114e5c75d7af9804d304d664489))
+* **FAFF-995:** judge-aware L4 infosec floor — veto only on a post-judge standing infosec major ([#854](https://github.com/shftwst/faff/issues/854)) ([f788125](https://github.com/shftwst/faff/commit/f788125ce18d9d52c3c16062ff8a15ca147c0c57))
+
 ## [0.31.0](https://github.com/shftwst/faff/compare/faff--v0.30.0...faff--v0.31.0) (2026-09-03)
 
 

@@ -506,7 +506,13 @@ function landingProgressSelftest() {
 // minted inside the lock that assigns the seq. One batch = one lock = one atomic, gap-free run,
 // so only tampering (never honest concurrent traffic) can break the chain. The batch core is
 // the SAME primitive `events append` drives at N=1 — no forked hashing rule.
-function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, ts) {
+// FAFF-1012: `recordFields` is an optional trailing bag of NON-reserved record-level fields
+// (e.g. `{ origin: "merge-gate-auto" }`) spread into each minted record BEFORE the reserved
+// envelope keys, so the reserved keys (schema, run_id, seq, ts, kind_of_entry, issue, step,
+// effect, prev) always win and a caller can only ADD fields, never override the chain shape.
+// Absent (default {}) → the spread is a no-op → records are byte-identical to before, so the
+// hash chain and every existing caller are unchanged.
+function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, ts, recordFields) {
   const violations = [];
   for (let i = 0; i < effects.length; i++) {
     const viol = effectDescriptorViolations(effects[i]);
@@ -521,6 +527,7 @@ function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, t
     { ledgerFile: "declared-effects.jsonl", lock: { code: "EFFECTS_LOCKED", label: "effects lock" } },
     effects.length,
     (index, seq, _prevRecord, prevHash) => ({
+      ...(recordFields || {}),
       schema: 2, run_id: runId, seq, ts: ts || new Date().toISOString(),
       kind_of_entry: kindOfEntry, issue, step, effect: normEffect(effects[index]), prev: prevHash,
     }),

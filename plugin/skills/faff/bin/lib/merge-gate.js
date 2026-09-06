@@ -44,7 +44,7 @@ const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arit
 const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
-const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
+const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches } = require("./effects");
 const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir } = require("./commissaire");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
@@ -696,14 +696,20 @@ function readHoldout(runDir, issue) {
   return res.reason === "missing" ? "missing" : "blocked";
 }
 
-// === FAFF-383: mechanical observe — the merge chokepoint's half of the effects ledger =====
-// Detection-only, per ADR-0064's authority split: the OBSERVE is written only by the mechanical
-// actor that performed the effect (this module, after `gh pr merge` is confirmed to have landed),
-// never by the orchestrating step (graft Step 10 owns the DECLARE, before invoking this CLI at
-// all — never here). Nothing in this region may change merge-gate's verdict, exit code, or
-// emitted JSON — every call site below is reached strictly AFTER the verdict is already decided,
-// and every failure inside this region is swallowed to a stderr line, never a thrown/propagated
-// error, never a schema-2 effects[] on the result object.
+// === FAFF-383 / FAFF-1012: the merge chokepoint is declarer AND observer for the merge ======
+// Per ADR-0126 (which amends ADR-0064's authority split for the merge chokepoint only): merge-gate
+// is the single component that both performs the merge and holds the (issue, step="merge",
+// target=pr:N) tuple, so for the effect it is about to observe it also mints the covering DECLARE.
+// The declare is an idempotent top-up: it re-reads the ledger and writes only the uncovered subset,
+// so an already-present operator/orchestrator declare (graft Step 10, or a landing-comment template)
+// is left alone and no redundant line is chained. Each auto-minted declare carries a record-level
+// `origin: "merge-gate-auto"` marker so an audit consumer can still tell a genuine pre-merge declare
+// (no origin) from a mechanical top-up; every coverage check ignores it. ADR-0064's
+// declare-outside-the-actor rule still binds every other chokepoint (label-write, tracker-write,
+// worktree-prune) — the self-declare carve-out is merge-only. Preserved invariants: the declare and
+// the observe both run strictly AFTER the verdict is decided; every failure is swallowed to a stderr
+// line, never a thrown/propagated error and never a schema-2 effects[] on the result object; nothing
+// here changes merge-gate's verdict, exit code, or emitted JSON.
 
 // Build the effect descriptors THIS invocation is about to observe. `deleteBranch` gates the
 // branch-delete leg — only the clean-success tail may pass true; the classifyPostMerge "merged"
@@ -715,23 +721,28 @@ function mergeEffectsFor(pr, deleteBranch, headRefName) {
   return effects;
 }
 
-// Read declared-effects.jsonl and warn — never refuse — for each about-to-be-observed effect with
-// no covering declaration at (issue, step "merge"): same kind, and target either an exact match or
-// covered by a "*" wildcard declaration (effectTargetMatches, the same match rule `effects check`
-// uses). This is advisory-only: it never blocks, and any read/parse failure degrades to "treat as
-// uncovered" (an unreadable ledger looks identical to an empty one — the caller still gets the
-// warning, never a silent skip).
-function warnUncoveredMergeObserves(runDir, issue, effects) {
-  let declared = [];
+// Read declared-effects.jsonl and return the declared merge-step effect descriptors for `issue`
+// (kind_of_entry "declare", step "merge"). Any read/parse failure degrades to [] (an unreadable
+// ledger looks identical to an empty one). Shared by warnUncoveredMergeObserves and the FAFF-1012
+// auto-declare, so both read the ledger and apply the covered-rule the same way, once.
+function readDeclaredMergeEffects(runDir, issue) {
   try {
     const ledgerPath = path.join(runDir, "declared-effects.jsonl");
-    if (fs.existsSync(ledgerPath)) {
-      declared = fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")
-        .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
-        .filter((e) => e.kind_of_entry === "declare" && e.issue === issue && e.step === "merge")
-        .map((e) => e.effect);
-    }
-  } catch (e) { /* unreadable ledger => declared stays [] => every effect below reads as uncovered */ }
+    if (!fs.existsSync(ledgerPath)) return [];
+    return fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
+      .filter((e) => e.kind_of_entry === "declare" && e.issue === issue && e.step === "merge")
+      .map((e) => e.effect);
+  } catch (e) { return []; /* unreadable ledger => [] => every effect reads as uncovered */ }
+}
+
+// Warn — never refuse — for each about-to-be-observed effect with no covering declaration at
+// (issue, step "merge"): same kind, and target either an exact match or covered by a "*" wildcard
+// declaration (effectTargetMatches, the same match rule `effects check` uses). Advisory-only: it
+// never blocks. On success the FAFF-1012 auto-declare has already covered everything, so this stays
+// silent; it fires only when the auto-declare could not run (e.g. an unwritable/unreadable ledger).
+function warnUncoveredMergeObserves(runDir, issue, effects) {
+  const declared = readDeclaredMergeEffects(runDir, issue);
   for (const eff of effects) {
     const covered = declared.some((d) => d && d.kind === eff.kind && effectTargetMatches(d.target, eff.target));
     if (!covered) {
@@ -740,11 +751,37 @@ function warnUncoveredMergeObserves(runDir, issue, effects) {
   }
 }
 
+// FAFF-1012: mint the covering DECLARE for the effect set this invocation is about to observe.
+// Idempotent top-up: re-read the ledger and declare only the effects with no covering declaration
+// already present (effectTargetMatches, the same rule the observe warn and `effects check` use), so
+// an already-declared effect (graft Step 10, or a landing-comment template) writes nothing. An empty
+// uncovered set touches the ledger not at all. The auto-minted declare carries the record-level
+// `origin: "merge-gate-auto"` marker (see the region header / ADR-0126) so an audit consumer can
+// distinguish a mechanical top-up from a genuine pre-merge operator/orchestrator declare.
+function autoDeclareMergeEffects(runDir, issue, effects) {
+  const declared = readDeclaredMergeEffects(runDir, issue);
+  const uncovered = effects.filter((eff) =>
+    !declared.some((d) => d && d.kind === eff.kind && effectTargetMatches(d.target, eff.target)));
+  if (uncovered.length === 0) return; // already covered — no duplicate declare
+  const result = appendEffectEntries(runDir, "declare", issue, "merge", uncovered, undefined, { origin: "merge-gate-auto" });
+  if (result.violations) {
+    // Should not happen for internally-built descriptors (kind/target/reversible are all
+    // faff-constructed, never derived from untrusted input) — surfaced loudly if it ever does.
+    process.stderr.write(`faff merge-gate: effects ledger declare rejected internally-built descriptors: ${JSON.stringify(result.violations)}\n`);
+  }
+}
+
 // Observe what THIS invocation actually did. Called at exactly two points, both AFTER a
-// confirmed merge: the clean-success tail, and the classifyPostMerge "merged" path. Any failure
-// anywhere in this function (unreadable ledger, append error) is swallowed to one stderr warning —
-// the merge outcome this function is called from is already final by the time it runs.
+// confirmed merge: the clean-success tail, and the classifyPostMerge "merged" path. The auto-declare
+// runs first, in its OWN try/catch, so a declare failure never skips the observe that follows. Any
+// failure anywhere in this function (unreadable ledger, append error) is swallowed to one stderr
+// line — the merge outcome this function is called from is already final by the time it runs.
 function observeMergeEffects(runDir, issue, effects) {
+  try {
+    autoDeclareMergeEffects(runDir, issue, effects);
+  } catch (e) {
+    process.stderr.write(`faff merge-gate: effects ledger auto-declare failed (merge outcome unaffected): ${e.message}\n`);
+  }
   try {
     warnUncoveredMergeObserves(runDir, issue, effects);
     const result = appendEffectEntries(runDir, "observe", issue, "merge", effects);
@@ -1724,16 +1761,58 @@ function mergeGateSelftest() {
     const e = mergeEffectsFor(7, true, null);
     return e.length === 1 && e[0].kind === "merge";
   })());
-  check("observeMergeEffects: appends an observe record covering (issue, step=merge) that check() reads as covered", (() => {
+  // FAFF-1012: observeMergeEffects now auto-declares the uncovered subset before observing.
+  check("observeMergeEffects: with NO prior declare, auto-declares (origin=merge-gate-auto) then observes; computeEscapes reports no merge escape", (() => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-"));
+    try {
+      observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null));
+      const lines = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+      const declares = lines.filter((l) => l.kind_of_entry === "declare");
+      const observes = lines.filter((l) => l.kind_of_entry === "observe");
+      const escaped = computeEscapes(lines, "FAFF-9").escapes.some((s) => s.step === "merge");
+      return declares.length === 1 && declares[0].origin === "merge-gate-auto" && declares[0].effect.target === "pr:9"
+        && observes.length === 1 && observes[0].effect.target === "pr:9" && !escaped;
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("observeMergeEffects: a pre-existing operator declare is an idempotent top-up (no 2nd declare, sole declare carries no origin)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-idem-"));
     try {
       appendEffectEntries(tmp, "declare", "FAFF-9", "merge", [{ kind: "merge", target: "pr:9" }]);
       observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null));
       const lines = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
-      return lines.length === 2 && lines[1].kind_of_entry === "observe" && lines[1].effect.target === "pr:9";
+      const declares = lines.filter((l) => l.kind_of_entry === "declare");
+      const observes = lines.filter((l) => l.kind_of_entry === "observe");
+      return declares.length === 1 && !("origin" in declares[0]) && observes.length === 1 && observes[0].effect.target === "pr:9";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
-  check("observeMergeEffects: an unwritable run dir never throws AND emits the stderr warning (adversarial review: a prior version of this test only checked no-throw, which would still pass under a silent double-swallow)", (() => {
+  check("observeMergeEffects: branch-delete symmetry — declare (origin) AND observe cover both merge pr:9 and branch-delete; no escape", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-bd-"));
+    try {
+      observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, true, "faff-9-x"));
+      const lines = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+      const declares = lines.filter((l) => l.kind_of_entry === "declare");
+      const observes = lines.filter((l) => l.kind_of_entry === "observe");
+      const has = (arr, kind, target) => arr.some((l) => l.effect.kind === kind && l.effect.target === target);
+      const escaped = computeEscapes(lines, "FAFF-9").escapes.some((s) => s.step === "merge");
+      return declares.length === 2 && declares.every((d) => d.origin === "merge-gate-auto")
+        && has(declares, "merge", "pr:9") && has(declares, "branch-delete", "faff-9-x")
+        && has(observes, "merge", "pr:9") && has(observes, "branch-delete", "faff-9-x") && !escaped;
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("observeMergeEffects: on a writable empty-ledger dir the uncovered warning stays SILENT (auto-declare covered it) and the ledger ends covered", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-quiet-"));
+    const origWrite = process.stderr.write;
+    let captured = "";
+    process.stderr.write = (chunk) => { captured += chunk; return true; };
+    try { observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null)); }
+    finally { process.stderr.write = origWrite; }
+    try {
+      const lines = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+      const escaped = computeEscapes(lines, "FAFF-9").escapes.some((s) => s.step === "merge");
+      return !/no covering declaration/.test(captured) && !escaped;
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("observeMergeEffects: an unwritable run dir never throws; auto-declare-failed + the uncovered warning + observe-failed all reach stderr (declare failure does not skip the observe)", (() => {
     const origWrite = process.stderr.write;
     let captured = "";
     process.stderr.write = (chunk) => { captured += chunk; return true; };
@@ -1741,16 +1820,10 @@ function mergeGateSelftest() {
     try { observeMergeEffects("/nonexistent/definitely-not-a-real-path", "FAFF-9", mergeEffectsFor(9, false, null)); }
     catch (e) { threw = true; }
     finally { process.stderr.write = origWrite; }
-    return !threw && /effects ledger observe failed/.test(captured);
-  })());
-  check("observeMergeEffects: an uncovered effect emits exactly the documented stderr warning (adversarial review: assert the actual warning text, not just its absence of a throw)", (() => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-warn-"));
-    const origWrite = process.stderr.write;
-    let captured = "";
-    process.stderr.write = (chunk) => { captured += chunk; return true; };
-    try { observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null)); }
-    finally { process.stderr.write = origWrite; fs.rmSync(tmp, { recursive: true, force: true }); }
-    return /observed merge pr:9 with no covering declaration — declare it at graft Step 10/.test(captured);
+    return !threw
+      && /effects ledger auto-declare failed/.test(captured)
+      && /observed merge pr:9 with no covering declaration — declare it at graft Step 10/.test(captured)
+      && /effects ledger observe failed/.test(captured);
   })());
   // === FAFF-526: git-only `--local` branch — pure + integration coverage ===================
   // gatesSignalToCiState: the WHOLE CI-equivalent substitution table (spec §3 WHAT).

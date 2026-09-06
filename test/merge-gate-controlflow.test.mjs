@@ -744,28 +744,28 @@ test("FAFF-383 integration: a covering declare + merge-gate execute → the obse
   assert.equal(j.escapes.length, 0);
 });
 
-test("FAFF-383 integration: NO declare + merge-gate execute → the merge still lands, one stderr warning fires, and effects check reports the escape", () => {
+test("FAFF-1012 integration: NO prior declare + merge-gate execute → merge-gate auto-declares (origin=merge-gate-auto) then observes, no warning, effects check any_escape:false", () => {
   const { root, runId, runDir } = seedEffectsRunDir("merge-ok"); // no declare written at all
 
   const { env, sentinel } = stubGhEnv({ headRefName: "faff-9-x" });
   const { code, stdout, stderr } = runCli(effArgs(runDir), { env });
-  assert.equal(code, 0, "an uncovered observe must WARN, never refuse the merge");
+  assert.equal(code, 0, "the auto-declare must never affect the merge outcome");
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), true);
-  assert.match(stderr, /observed merge pr:9 with no covering declaration/, "the warning names the exact effect and the remedy");
-  assert.match(stderr, /declare it at graft Step 10/);
+  assert.doesNotMatch(stderr, /no covering declaration/, "merge-gate covered its own observe — the nag must be silent");
 
   const lines = ledgerLines(runDir);
-  assert.equal(lines.length, 1, "an observe with nothing declared is still recorded — detection needs the record to exist");
-  assert.equal(lines[0].kind_of_entry, "observe");
+  assert.equal(lines.length, 2, "merge-gate auto-declares the uncovered effect, then observes it");
+  assert.equal(lines[0].kind_of_entry, "declare");
+  assert.equal(lines[0].origin, "merge-gate-auto", "the mechanical top-up is provenance-marked");
+  assert.deepEqual(lines[0].effect, { kind: "merge", target: `pr:${EFFECTS_PR}`, reversible: true });
+  assert.equal(lines[1].kind_of_entry, "observe");
+  assert.deepEqual(lines[1].effect, { kind: "merge", target: `pr:${EFFECTS_PR}`, reversible: true });
 
   const check = runCli(["effects", "check", "--root", root, "--run", runId, "--json"]);
   const j = JSON.parse(check.stdout);
-  assert.equal(j.any_escape, true);
-  assert.equal(j.escapes.length, 1);
-  assert.equal(j.escapes[0].issue, EFFECTS_ISSUE);
-  assert.equal(j.escapes[0].step, "merge");
-  assert.deepEqual(j.escapes[0].escaped, [{ kind: "merge", target: `pr:${EFFECTS_PR}`, reversible: true }]);
+  assert.equal(j.any_escape, false, "an auto-covered observe must never read as an escape");
+  assert.equal(j.escapes.length, 0);
 });
 
 test("FAFF-383 integration: a covering declare including branch-delete + --merge-args \"--squash --delete-branch\" → both merge and branch-delete observed, check clean", () => {

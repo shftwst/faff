@@ -61,7 +61,7 @@ function seedRunDir(runDir, issue, { acVerified = true, reviewSignal = "pass" } 
 }
 
 const ISSUE = "FAFF-526";
-const baseArgs = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--json", ...extra];
+const baseArgs = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--json", ...(extra.includes("--check-only") ? [] : ["--execute"]), ...extra];
 
 // FAFF-690 (F1): --local now sources the governing level from the committed anchor at the branch head
 // (git-show, local object store only — no forge fallback). Commit
@@ -222,9 +222,21 @@ test("FAFF-690: --local with a committed anchor carrying no usable level → exi
 
 test("CLI: --local requires --issue and --run-dir (usage exit 2)", () => {
   const repo = scaffoldRepo();
-  const { code, stderr } = runCli(["merge-gate", "--local", "--json"], { cwd: repo });
+  const { code, stderr } = runCli(["merge-gate", "--local", "--execute", "--json"], { cwd: repo });
   assert.equal(code, 2);
   assert.match(stderr, /--issue and --run-dir are required/);
+});
+
+test("FAFF-1013: --local with neither --execute nor --check-only → exit 2 naming the fix (the guard precedes the --local dispatch)", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
+  // A fully-valid --local invocation (issue + run-dir + anchor) EXCEPT the mode flag:
+  // the neither-flag guard resolves once, before the --local dispatch, so it fires here too.
+  const { code, stderr } = runCli(["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--json"], { cwd: repo });
+  assert.equal(code, 2);
+  assert.match(stderr, /pass --execute to merge or --check-only to preview/);
 });
 
 test("CLI: --local ignores/does not require --pr (no PR flag passed, still dispatches to the local branch)", () => {
@@ -590,7 +602,7 @@ function writeCleanCustodyVerdict(runDir, issue) {
   return { path: p, sha: createHash("sha256").update(record, "utf8").digest("hex") };
 }
 
-const l4Args = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--json", ...extra];
+const l4Args = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--json", "--execute", ...extra];
 
 test("FAFF-892: L4 --local, honest-absence + clean per-issue custody verdict → integrity GRANTS (custody-trusted), merge-ok", () => {
   const repo = scaffoldRepo();

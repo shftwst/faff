@@ -175,7 +175,8 @@ function seedRunDir(kind) {
 // dedupes; a distinct modifier like --delete-branch is preserved). check-only/refuse/fence paths
 // return before the guard, so the extra flag is inert there.
 const baseArgs = (runDir, extra = []) =>
-  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--squash", ...extra];
+  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--squash",
+    ...(extra.includes("--check-only") ? [] : ["--execute"]), ...extra];
 
 const overrideFile = (runDir) => join(runDir, ISSUE, "merge-gate-override.json");
 
@@ -227,7 +228,7 @@ test("FAFF-537: execute with NO merge method → exit 2 with merge-gate's own er
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv();
   // Manual args WITHOUT the bare --squash baseArgs supplies — the reported no-method invocation.
-  const args = ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json"];
+  const args = ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--execute"];
   const { code, stderr } = runCli(args, { env });
   assert.equal(code, 2);
   assert.match(stderr, /no merge method/);
@@ -386,7 +387,7 @@ test("--human-override + --accept-review-unavailable together (PR path) → exit
 // the PRIMARY git-show path against a real committed anchor. ---
 
 const argsNoLevel = (runDir, extra = []) =>
-  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--repo", REPO, "--json", ...extra];
+  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--repo", REPO, "--json", "--execute", ...extra];
 
 test("F1: L4 committed anchor + no --level + no holdout artifact → exit 1, refuse names the L4 holdout (level derived from the anchor, not defaulted)", () => {
   const runDir = seedRunDir("merge-ok"); // AC + review pass; only the (absent) holdout should block
@@ -595,7 +596,7 @@ test("F1 SMOKE: real committed L4 anchor + fresh meets-spec holdout → level re
 // merge-ok overall verdict here means the holdout floor itself passed, not that other legs are lax.
 
 const argsL4 = (runDir, extra = []) =>
-  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--repo", REPO, "--json", ...extra];
+  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--repo", REPO, "--json", "--execute", ...extra];
 
 const MEETS_SPEC_BLOCK = JSON.stringify({
   aggregate: "meets-spec",
@@ -714,7 +715,8 @@ const ledgerLines = (runDir) => {
 };
 
 const effArgs = (runDir, extra = []) =>
-  ["merge-gate", "--pr", String(EFFECTS_PR), "--issue", EFFECTS_ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--squash", ...extra];
+  ["merge-gate", "--pr", String(EFFECTS_PR), "--issue", EFFECTS_ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--squash",
+    ...(extra.includes("--check-only") ? [] : ["--execute"]), ...extra];
 
 test("FAFF-383 integration: a covering declare + merge-gate execute → the observe pair lands → effects check reports any_escape:false", () => {
   const { root, runId, runDir } = seedEffectsRunDir("merge-ok");

@@ -47,6 +47,21 @@ this repo, and the scaffold *copies* the committed PRD into the SUT rather than 
 score is **"did the real deliverable ship"**, not just "did the behaviour occur". See
 [`faff-lab/README.md`](faff-lab/README.md).
 
+## The config-free second consumer
+
+Distinct from the six rungs above (which score faff's architecture/env/evaluate lanes), one more SUT
+proves the extracted governance layer from the OTHER direction:
+
+| Script | SUT | What it proves | Tracker |
+|---|---|---|---|
+| `scaffold-commissaire-bare-claude.sh` | commissaire-bare-claude (config-free second consumer) | A bare Claude Code session on an ordinary repo, with NO SuperDomestique skills installed, drives the shipped `commissaire` + `faff` governance CLI through the whole governed workflow: founded refusal, denial then grant, signed terminal verdict, sealed bundle, secret-free replay, and forgery rejection | git-only, no remote |
+
+Unlike the rungs, this SUT installs no factory surface: its only integration is a hand-written Stop
+hook and one verifier script (`commissaire-bare-claude/verify-commissaire.mjs`). The harness is
+CI-provable end to end (`node scripts/verify-commissaire.mjs ci`, exercised by
+`test/impure/commissaire-bare-claude.test.mjs`); FAFF-1018 drives the same harness under a real
+two-turn session for the operator-attested capture.
+
 ## How to run
 
 Each script is self-contained. `SUT_ROOT` defaults to a **sibling `faff-suts/<slug>` directory

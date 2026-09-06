@@ -62,6 +62,12 @@ const CANONICAL_SIX = [
 ];
 const SCAFFOLDERS = fs.readdirSync(EV_DIR).filter((f) => /^scaffold-.*\.sh$/.test(f)).sort();
 
+// CONFIG-FREE scaffolders (FAFF-360): a member deliberately writes NO `.faffrc.yaml` here-doc (its
+// SUT installs no factory config), so for it the guard asserts that here-doc is ABSENT rather than
+// present, while still requiring its `RUNBOOK.md` here-doc and linting every embedded `faff` gesture
+// exactly as for the config-bearing rungs.
+const CONFIG_FREE = new Set(["scaffold-commissaire-bare-claude.sh"]);
+
 function readScript(name) {
   return fs.readFileSync(path.join(EV_DIR, name), "utf8");
 }
@@ -251,6 +257,11 @@ for (const name of SCAFFOLDERS) {
   test(`${name}: .faffrc.yaml slot keys/occupants/scalars are valid against config.js`, () => {
     const script = readScript(name);
     const body = extractHeredoc(script, ".faffrc.yaml");
+    if (CONFIG_FREE.has(name)) {
+      // a config-free scaffolder must NOT embed a `.faffrc.yaml` here-doc.
+      assert.strictEqual(body, null, `${name}: config-free scaffolder must not embed a .faffrc.yaml here-doc`);
+      return;
+    }
     assert.notStrictEqual(body, null, `${name}: no .faffrc.yaml here-doc (fail loud, never skip)`);
     const findings = faffrcFindings(body, name);
     assert.deepStrictEqual(findings, [], "\n" + findings.join("\n"));

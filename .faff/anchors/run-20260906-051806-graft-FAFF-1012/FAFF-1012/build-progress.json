@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1012",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4259193a8acab0de0249080ba43b88a94b94647282abcd4d98878eccfeec0b8b",
+    "branch": "faff-1012-merge-gate-performs-a-gated-merge-without-a-covering-effect",
+    "pushed_at": "2026-09-06T05:35:43.099Z"
+  },
+  "updated_at": "2026-09-06T05:35:43.099Z"
+}

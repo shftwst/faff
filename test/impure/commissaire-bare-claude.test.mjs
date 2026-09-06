@@ -452,6 +452,21 @@ test("Runcheck spawn failure: a FAFF_BIN that exits non-zero without a decision 
   assert.strictEqual(JSON.parse(r.stdout).reason, "runcheck-spawn-failed");
 });
 
+test("Runcheck malformed exit-0: a FAFF_BIN that exits 0 with non-JSON stdout blocks naming runcheck-malformed-output", () => {
+  const driver = provisionDriver(EXPECTED);
+  const sut = scaffold(driver);
+  assert.strictEqual(runPhase(sut, ["prepare"], { driver, rev: EXPECTED }).status, 0);
+  const stub = path.join(sut, "stub-faff");
+  fs.writeFileSync(stub, "#!/bin/sh\necho 'garbled not json'\nexit 0\n");
+  fs.chmodSync(stub, 0o755);
+  const hook = path.join(sut, "scripts", "commissaire-stop-hook.mjs");
+  const src = fs.readFileSync(hook, "utf8").replace(/const FAFF_BIN = "[^"]*";/, `const FAFF_BIN = "${stub}";`);
+  fs.writeFileSync(hook, src);
+  const r = runWrapper(sut, { hook_event_name: "Stop" });
+  assert.strictEqual(r.status, 0);
+  assert.strictEqual(JSON.parse(r.stdout).reason, "runcheck-malformed-output");
+});
+
 test("Denied file pre-created: protected-output.txt present before complete exits 1", () => {
   const driver = provisionDriver(EXPECTED);
   const sut = scaffold(driver);

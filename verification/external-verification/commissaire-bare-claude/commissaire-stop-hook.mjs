@@ -6,7 +6,8 @@
 // absolute constant (no PATH, no inherited env), runs `faff runcheck --hook` to decide block/allow,
 // derives a provenance label from the stdin SHAPE (never a caller-supplied value), and appends a
 // secret-free HookObservation. It fails CLOSED: a malformed stdin, a non-Stop event, an escaping or
-// malformed pointer, an unresolvable FAFF_BIN, or a runcheck spawn failure all emit a block JSON.
+// malformed pointer, an unresolvable FAFF_BIN, a runcheck spawn failure, or a garbled runcheck exit-0
+// (non-empty unparseable stdout) all emit a block JSON.
 // The wrapper always exits 0; blocking is communicated through Claude Code's stdout JSON contract.
 
 import fs from "node:fs";
@@ -108,6 +109,10 @@ function main() {
     }
   }
   if (rc.status !== 0 && !rcDecision) return blockAndExit("runcheck-spawn-failed");
+  // Fail closed on a garbled exit-0. runcheck's hook contract is exit 0 with EITHER a block
+  // decision JSON OR nothing (silent allow). Non-empty, unparseable stdout on exit 0 is a
+  // contract violation we cannot read as a founded allow, so block rather than fall through to it.
+  if (rc.status === 0 && rcOut && !rcDecision) return blockAndExit("runcheck-malformed-output");
 
   // 7. derive the source label from the stdin shape (never caller-supplied).
   let source = "ci-fixture";
@@ -158,8 +163,16 @@ function main() {
     run_id: runId,
     result,
   };
-  fs.mkdirSync(path.dirname(HOOK_STORE), { recursive: true });
-  fs.appendFileSync(HOOK_STORE, JSON.stringify(observation) + "\n");
+  // A failed observation write must never swallow a pending block: guard the write so a throw
+  // here (an unwritable .faff) falls through to the decision emission below rather than crashing
+  // the hook and losing the block. A missing observation is caught downstream by verify's
+  // two-observation gate, so the allow path stays fail-closed at the verify layer too.
+  try {
+    fs.mkdirSync(path.dirname(HOOK_STORE), { recursive: true });
+    fs.appendFileSync(HOOK_STORE, JSON.stringify(observation) + "\n");
+  } catch {
+    /* keep going to the block/allow emission below */
+  }
 
   // 9-11. forward a block unchanged; otherwise stay silent.
   if (rcDecision && rcDecision.decision === "block") {

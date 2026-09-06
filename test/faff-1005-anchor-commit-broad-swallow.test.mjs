@@ -53,6 +53,21 @@ const PROHIBITIVE = `# faff-graft fixture
 
 **Step 10: Merge-confidence gate**
 `;
+// A malformed section: a fence opens and never closes before Step 10, and prohibitive prose that
+// merely names \`git commit\` and \`|| true\` follows it. A naive collector left in-fence would turn
+// that prose into a whole-line span and raise a false FAIL — the exact false-positive class the
+// design forbids. The buffered collector discards a never-closed fence, so this stays clean.
+const UNTERMINATED_FENCE = `# faff-graft fixture
+
+**Step 9b: Open the PR**
+
+\`\`\`
+faff events anchor --run-dir "$run_dir"
+
+the anchor commit tolerates only nothing-to-commit, never a blanket git commit ... || true that masks a real failure
+
+**Step 10: Merge-confidence gate**
+`;
 
 function runOnNamed(name, body) {
   const dir = mkdtempSync(join(tmpdir(), "faff-1005-swallow-"));
@@ -78,6 +93,12 @@ test("helper: a fenced `git add -A || :` line → not ok", () => {
 
 test("helper: prohibitive prose (git command and `|| true` in SEPARATE spans) → ok (not flagged)", () => {
   const r = checkAnchorCommitNoBroadSwallow(PROHIBITIVE);
+  assert.equal(r.scoped, true);
+  assert.equal(r.ok, true);
+});
+
+test("helper: an unterminated fence does not turn trailing prohibitive prose into a false FAIL", () => {
+  const r = checkAnchorCommitNoBroadSwallow(UNTERMINATED_FENCE);
   assert.equal(r.scoped, true);
   assert.equal(r.ok, true);
 });

@@ -91,16 +91,22 @@ PROCEDURE collect_code_spans(section):
   spans = []
   # fenced code blocks: lines between a ``` fence open and its close
   in_fence = false
+  fenced = []               # buffer the current fenced block; commit only when it closes
   FOR each line in section.split_lines():
      IF line trimmed starts with "```":
+        IF in_fence:        # closing fence: the block is well-formed, commit its lines
+           spans.extend(fenced)
+        fenced = []
         in_fence = NOT in_fence
         CONTINUE            # the fence marker line itself is not a span
      IF in_fence:
-        spans.append(line)  # each fenced line is one span
+        fenced.append(line) # buffered, not yet a span
         CONTINUE
      # inline code: every run of text between single backticks on this line
      FOR each match of /`([^`]+)`/ in line:
         spans.append(match.group(1))
+  # an unterminated fence leaves `fenced` uncommitted: malformed markdown contributes no spans,
+  # so trailing prohibitive prose is never turned into a false FAIL (fail-open on malformed input).
   RETURN spans
 ```
 
@@ -151,6 +157,8 @@ Failure modes.
 
 - **The same-span rule is too narrow and misses a real swallow authored across two adjacent spans, or across a fenced backslash-continuation.** How you would know: a reviewer plants `` `git commit …` `` immediately followed by `` … || true `` as two touching spans, or a multi-line fenced `git commit -m msg \` with `|| true` on the *next* fenced line, and the lint passes. What it means: narrow, not abandon. The realistic single-line anti-pattern is one command written as one span or one fenced line, which the CLI-clean tests pin; the split-span and backslash-continued-fenced variants are the documented honest limit, not a silent hole. Cheap future mitigation (out of scope here): join backslash-continued fenced lines into one logical span before the git-and-swallow test.
 - **The swallow regex over-matches and re-flags the prohibitive prose.** How you would know: the shipped-tree-clean test fails. What it means: the same-span requirement is not being honoured; the regex is being run against the whole line or the whole section instead of per span.
+- **An unterminated fence inside the section over-matches trailing prose.** A fence that opens within the Step 9b slice and never closes before Step 10 would, under a naive collector, leave every following line treated as a whole-line span, so a bare-prose line naming `` `git commit` `` and `` `|| true` `` would raise a false FAIL — the very prohibitive-prose false positive this lint forbids, and one the shipped-tree-clean test would NOT catch (the shipped tree has no unterminated fence). Handled: `collectStep9bCodeSpans` buffers fenced lines and commits them only on the closing fence, so a never-closed fence contributes no spans. Erring toward a miss on malformed markdown is the fail-open direction, consistent with the absent-section posture. Pinned by the unterminated-fence helper test.
+- **A blanket swallow written with `;` sequencing rather than `||`.** `git commit; true` (or `git commit &>/dev/null; true`) masks a failure just as effectively but is not `|| true` / `|| :`, so it is not matched. Out of scope by the same reasoning as bare-prose commands: the ticket forbids the two `||` no-op successes it names, and the FAIL message names them; a `;`-sequenced form is a separate, less idiomatic shape a future ticket can add if it ever appears.
 
 ## 5. Scenarios — born-verifiable main objectives
 

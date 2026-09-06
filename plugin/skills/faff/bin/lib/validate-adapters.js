@@ -739,11 +739,21 @@ function checkAnchorBeforePrOrder(text) {
 function collectStep9bCodeSpans(section) {
   const spans = [];
   let inFence = false;
+  let fenced = [];
   for (const line of section.split("\n")) {
-    if (line.trim().startsWith("```")) { inFence = !inFence; continue; }
-    if (inFence) { spans.push(line); continue; }
+    if (line.trim().startsWith("```")) {
+      if (inFence) { for (const l of fenced) spans.push(l); }   // closing fence: commit the buffered block
+      fenced = [];
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) { fenced.push(line); continue; }
     for (const m of line.matchAll(/`([^`]+)`/g)) spans.push(m[1]);
   }
+  // An unterminated fence leaves `inFence` true with lines still buffered, uncommitted: malformed
+  // markdown must NOT turn trailing prohibitive prose into whole-line spans and raise a false FAIL
+  // (the false-positive class this lint forbids). Erring toward a miss on a never-closed fence is
+  // the fail-open direction, consistent with the absent-section posture (FAFF-1005).
   return spans;
 }
 function checkAnchorCommitNoBroadSwallow(text) {

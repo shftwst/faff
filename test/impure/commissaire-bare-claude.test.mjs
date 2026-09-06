@@ -54,6 +54,17 @@ function provisionDriver(sha) {
       if (fetched2.status !== 0) throw new Error(`cannot materialise driver revision ${sha}: ${fetched.stderr}${fetched2.stderr}`);
     }
   }
+  // The harness preflight requires the FAFF-828 facade commit to be an ancestor of the driver
+  // revision (a lineage sanity check). A shallow CI checkout lacks that deep history, so the driver
+  // worktree it shares objects with cannot resolve the ancestor and preflight dies. Unshallow once
+  // when the ancestor object is absent, giving the worktree the full lineage the check verifies;
+  // git refuses --unshallow on a complete repo, so gate it on the repo actually being shallow.
+  const FAFF828 = "881f4a2555aa919947ec7e52a15b093478ed8110";
+  if (git(REPO_ROOT, "cat-file", "-e", `${FAFF828}^{commit}`).status !== 0) {
+    const shallow = (git(REPO_ROOT, "rev-parse", "--is-shallow-repository").stdout || "").trim() === "true";
+    if (shallow) git(REPO_ROOT, "fetch", "--unshallow", "origin");
+    if (git(REPO_ROOT, "cat-file", "-e", `${FAFF828}^{commit}`).status !== 0) git(REPO_ROOT, "fetch", "origin", FAFF828);
+  }
   const dir = mkdtemp("cbc-driver-");
   fs.rmSync(dir, { recursive: true, force: true });
   const add = git(REPO_ROOT, "worktree", "add", "--detach", dir, sha);

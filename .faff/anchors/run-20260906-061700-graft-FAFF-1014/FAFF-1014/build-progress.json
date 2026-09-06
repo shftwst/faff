@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1014",
+  "build": {
+    "status": "complete",
+    "diff_hash": "624e35ff29fc4296bf79a03709bf0d56a5d3147505e46de39ef0949fa1ebe367",
+    "branch": "faff-1014-make-the-capture-wiring-lint-order-aware-require-decide",
+    "pushed_at": "2026-09-06T06:22:49.144Z"
+  },
+  "updated_at": "2026-09-06T06:22:49.144Z"
+}

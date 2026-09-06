@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1009",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ad671f4a626710cd4cb2934ec777ef3cbc7641b6d2a04ae92e3791e6f5eaefff",
+    "branch": "faff-1009-seven-of-nine-decision-capture-kernels-ship-un-wired",
+    "pushed_at": "2026-09-06T02:35:07.146Z"
+  },
+  "updated_at": "2026-09-06T02:35:07.146Z"
+}

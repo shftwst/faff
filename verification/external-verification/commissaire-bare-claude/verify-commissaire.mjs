@@ -1087,12 +1087,12 @@ function main() {
   const phase = opts._[0];
   try {
     if (phase === "prepare") {
-      process.stdout.write(JSON.stringify(prepare(), null, 2) + "\n");
+      fs.writeSync(1,JSON.stringify(prepare(), null, 2) + "\n");
     } else if (phase === "complete") {
-      process.stdout.write(JSON.stringify(complete(), null, 2) + "\n");
+      fs.writeSync(1,JSON.stringify(complete(), null, 2) + "\n");
     } else if (phase === "verify") {
       const v = verify({ capture: opts.capture || null });
-      process.stdout.write(v.capture + "\n");
+      fs.writeSync(1,v.capture + "\n");
     } else if (phase === "curate") {
       // curate <dir> [--run-dir D]
       const dir = opts._[1];
@@ -1101,10 +1101,10 @@ function main() {
       const liveDir = opts.runDir ? path.resolve(opts.runDir) : undefined;
       const r = curate(path.resolve(dir), liveDir);
       if (r.code === 0) {
-        process.stdout.write(JSON.stringify({ clean: true, ...r.report }, null, 2) + "\n");
+        fs.writeSync(1,JSON.stringify({ clean: true, ...r.report }, null, 2) + "\n");
         process.exit(0);
       } else if (r.code === 3) {
-        process.stdout.write(JSON.stringify(r.report, null, 2) + "\n");
+        fs.writeSync(1,JSON.stringify(r.report, null, 2) + "\n");
         process.exit(3);
       } else {
         process.stderr.write(r.findings.join("\n") + "\n");
@@ -1112,7 +1112,7 @@ function main() {
       }
     } else if (phase === "ci") {
       const r = ci();
-      process.stdout.write(JSON.stringify(r.result, null, 2) + "\n");
+      fs.writeSync(1,JSON.stringify(r.result, null, 2) + "\n");
     } else {
       die(2, "usage: verify-commissaire.mjs prepare|complete|verify [--capture DIR]|curate DIR [--run-dir D]|ci");
     }

@@ -155,6 +155,7 @@ test("Full ci: end-to-end pinned run exits 0 with the integration-smoke shape", 
   const sut = scaffold(driver);
   const r = runPhase(sut, ["ci"], { driver, rev: EXPECTED });
   assert.strictEqual(r.status, 0, `ci: ${r.stderr}`);
+  assert.ok(r.stdout && r.stdout.trim().length > 0, `ci exit ${r.status} (signal=${r.signal}) but empty stdout; stderr=[${(r.stderr || "").slice(0, 600)}]`);
   const d = JSON.parse(r.stdout);
   const o = d.observations;
   assert.strictEqual(d.counts_pinned, true);

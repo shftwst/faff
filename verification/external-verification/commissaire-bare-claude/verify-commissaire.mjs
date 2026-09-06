@@ -1122,5 +1122,14 @@ function main() {
 }
 
 // Run only when executed directly (the SUT's scripts/verify-commissaire.mjs), not when imported by
-// the impure test to drive exported helpers like driftShapeFindings.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+// the impure test to drive exported helpers like driftShapeFindings. Compare REAL paths: Node
+// realpaths import.meta.url for the main module, but process.argv[1] is not realpathed, so on macOS
+// (where os.tmpdir() /var/folders is a symlink to /private/var/folders) a naive URL compare misses,
+// main() never runs, and the phase exits 0 with empty output. Realpath argv[1] before comparing.
+let invokedPath = process.argv[1] || "";
+try {
+  if (invokedPath) invokedPath = fs.realpathSync(invokedPath);
+} catch {
+  /* keep the un-realpathed path; the compare below still holds on a filesystem without symlinks */
+}
+if (invokedPath && import.meta.url === pathToFileURL(invokedPath).href) main();

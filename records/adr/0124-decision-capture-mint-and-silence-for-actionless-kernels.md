@@ -1,6 +1,6 @@
 # ADR 0124 — Decision-capture mint-and-silence for actionless kernels
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-09-06
 - **Issue:** FAFF-1009

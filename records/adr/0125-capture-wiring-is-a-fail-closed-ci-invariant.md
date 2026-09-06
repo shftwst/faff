@@ -1,6 +1,6 @@
 # ADR 0125 — Capture-wiring is a fail-closed CI invariant
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-09-06
 - **Issue:** FAFF-1009

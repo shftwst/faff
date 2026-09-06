@@ -1,0 +1,21 @@
+{
+  "run_id": "run-20260906-182615-graft-FAFF-360",
+  "level": "L2",
+  "admitted": [
+    "FAFF-360"
+  ],
+  "outcomes": {},
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop"
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260906-182615-graft-FAFF-360",
+    "pid": 58377,
+    "started_at": "2026-09-06T18:26:15.904Z",
+    "last_heartbeat": "2026-09-06T18:26:15.904Z"
+  }
+}

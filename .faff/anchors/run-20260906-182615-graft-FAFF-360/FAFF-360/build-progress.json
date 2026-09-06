@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-360",
+  "build": {
+    "status": "complete",
+    "diff_hash": "00a916cd2512768b864b3fe8c185419ef5730140a73fac8cfa856ba825aa711c",
+    "branch": "faff-360-second-consumer-demo-bare-claude-code-governance-layer-on-a",
+    "pushed_at": "2026-09-06T19:43:58.272Z"
+  },
+  "updated_at": "2026-09-06T19:43:58.272Z"
+}

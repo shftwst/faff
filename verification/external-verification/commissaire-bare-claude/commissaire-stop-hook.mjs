@@ -129,7 +129,16 @@ function main() {
     } catch {
       transcriptExists = false;
     }
-    const cwdMatched = path.resolve(stdin.cwd) === SUT_ROOT;
+    // Compare REAL paths: on macOS SUT_ROOT resolves under /private/var (Node realpaths
+    // import.meta.url) while Claude Code reports cwd under the /var symlink, so a lexical compare
+    // would wrongly miss and never derive claude-code-observed. Fall back to a lexical compare when
+    // realpath cannot resolve a side (a not-yet-existing path).
+    let cwdMatched;
+    try {
+      cwdMatched = fs.realpathSync(stdin.cwd) === fs.realpathSync(SUT_ROOT);
+    } catch {
+      cwdMatched = path.resolve(stdin.cwd) === SUT_ROOT;
+    }
     if (transcriptExists && cwdMatched) {
       source = "claude-code-observed";
       provenance = {

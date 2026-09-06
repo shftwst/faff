@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1005",
+  "build": {
+    "status": "complete",
+    "diff_hash": "eec1eb0fb0fdda6a8918a3e37ea4e37ee4aad9704109c14d906b8d038a8e1616",
+    "branch": "faff-1005-lint-rejecting-true-broad-swallow-adjacent-to-the-step-9b",
+    "pushed_at": "2026-09-04T23:58:25.577Z"
+  },
+  "updated_at": "2026-09-04T23:58:25.577Z"
+}

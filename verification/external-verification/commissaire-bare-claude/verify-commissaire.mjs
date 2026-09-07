@@ -1104,7 +1104,7 @@ export function validateAttestedName(raw) {
 // fallback; the impure test injects a readLine stub instead, so this never runs under test.
 function readLineFromTty() {
   const buf = Buffer.alloc(1);
-  let acc = "";
+  const bytes = [];
   while (true) {
     let n;
     try {
@@ -1114,11 +1114,12 @@ function readLineFromTty() {
       break;
     }
     if (n === 0) break;
-    const ch = buf.toString("utf8");
-    if (ch === "\n") break;
-    acc += ch;
+    if (buf[0] === 0x0a) break; // newline ends the line
+    bytes.push(buf[0]);
   }
-  return acc;
+  // Decode the whole line once, so a multi-byte UTF-8 name (e.g. an accented one) is not corrupted
+  // by per-byte decoding.
+  return Buffer.from(bytes).toString("utf8");
 }
 
 // Resolve the attestation name: an explicit --attested-by (validated, present-but-blank rejected),

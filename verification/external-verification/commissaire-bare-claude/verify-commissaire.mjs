@@ -831,7 +831,7 @@ function verify(opts) {
   }
   members.sort((a, b) => a.path.localeCompare(b.path));
 
-  writeReadme(captureDir, { runId, identity });
+  writeReadme(captureDir, { runId, identity, attestedBy: opts.attestedBy || null });
 
   // README.md is a published member; re-hash the whole set now that it exists (it was written after
   // the walk above), so members includes README.md.
@@ -849,6 +849,10 @@ function verify(opts) {
     commissaire_revision: pf.revision, expected_commissaire_revision: EXPECTED_COMMISSAIRE_REVISION,
     counts_pinned: pf.countsPinned, sut_revision: sutRevision, source,
     ...(source === "claude-code-observed" ? { session_id_sha256: h1.provenance.session_id_sha256 } : {}),
+    // FAFF-1018: the operator attestation name, written only when one resolved (the ci path never
+    // supplies one, so it stays absent there). demo-result.json is EXCLUDED from members[] re-hash,
+    // so this field is operator-attested by design, never covered by a member digest.
+    ...(opts.attestedBy ? { attested_by: opts.attestedBy } : {}),
     platform: process.platform === "darwin" ? "darwin" : "linux",
     run_id: runId, bundle_identity: identity.bundle_identity,
     observations: {
@@ -991,11 +995,18 @@ function crossCheckAnchorsBin(exportDest, capAnchor) {
 // ---------------------------------------------------------------------------------------------
 // README generation (bounded claims; every required sentence, no forbidden phrase)
 
-function writeReadme(captureDir, { runId, identity }) {
+function writeReadme(captureDir, { runId, identity, attestedBy }) {
   const template = fs.readFileSync(path.join(SCRIPT_DIR, "README.md"), "utf8");
+  // FAFF-1018: the signed attested line. Present only when the operator supplied a name; otherwise
+  // the not-attested fallback. Substitute @@ATTESTED_BY@@ LAST and treat the name as a literal, so a
+  // name that happens to contain another placeholder token is never itself re-expanded.
+  const attestedLine = attestedBy
+    ? `Ran and inspected two real Claude Code turns. attested_by: ${attestedBy}`
+    : "Not operator-attested (ci-fixture run); source: ci-fixture";
   const body = template
     .replaceAll("@@PINNED_REVISION@@", EXPECTED_COMMISSAIRE_REVISION)
-    .replaceAll("@@RUN_ID@@", runId);
+    .replaceAll("@@RUN_ID@@", runId)
+    .replaceAll("@@ATTESTED_BY@@", attestedLine);
   fs.writeFileSync(path.join(captureDir, "README.md"), body);
 }
 
@@ -1069,6 +1080,70 @@ export function driftShapeFindings(records, liveBuckets, replayBuckets) {
 // ---------------------------------------------------------------------------------------------
 // entrypoint
 
+// ---------------------------------------------------------------------------------------------
+// FAFF-1018: the operator attestation name (--attested-by).
+//
+// The name is the residual human oracle recorded in demo-result.json (excluded from members[]) and
+// the README's signed attested line. It never influences the `source` label or session_id_sha256 —
+// the machine derives those; the human signs only the name. Exported so the impure test can drive
+// validateAttestedName + the TTY-prompt fallback directly without a real terminal.
+
+// Validate a candidate name. Pure: returns {ok, name} or {ok:false, reason}; never exits. The name
+// flows into two curated authored files, so it must be a single clean line.
+export function validateAttestedName(raw) {
+  if (typeof raw !== "string") return { ok: false, reason: "no name value supplied" };
+  const name = raw.trim();
+  if (name.length === 0) return { ok: false, reason: "empty after trim" };
+  if (name.length > 120) return { ok: false, reason: "longer than 120 characters" };
+  // reject any C0 control char (incl. newline/tab) or DEL — a name is one printable line.
+  if (/[\u0000-\u001f\u007f]/.test(name)) return { ok: false, reason: "contains a newline or control character" };
+  return { ok: true, name };
+}
+
+// Read one line synchronously from the real terminal (fd 0). Only reached on the interactive TTY
+// fallback; the impure test injects a readLine stub instead, so this never runs under test.
+function readLineFromTty() {
+  const buf = Buffer.alloc(1);
+  let acc = "";
+  while (true) {
+    let n;
+    try {
+      n = fs.readSync(0, buf, 0, 1, null);
+    } catch (e) {
+      if (e && e.code === "EAGAIN") continue;
+      break;
+    }
+    if (n === 0) break;
+    const ch = buf.toString("utf8");
+    if (ch === "\n") break;
+    acc += ch;
+  }
+  return acc;
+}
+
+// Resolve the attestation name: an explicit --attested-by (validated, present-but-blank rejected),
+// else an interactive TTY prompt, else null. On an invalid name it exits 2 BEFORE any capture is
+// written (the caller resolves this before verify() creates the capture dir). `deps` injects
+// {isTTY, readLine} for the test.
+export function resolveAttestedBy(opts, deps = {}) {
+  // A present flag key is always validated — a blank or value-less --attested-by is an error, never
+  // a silent fall-through to the prompt.
+  if (Object.prototype.hasOwnProperty.call(opts, "attested-by")) {
+    const v = validateAttestedName(opts["attested-by"]);
+    if (!v.ok) die(2, `verify: --attested-by name invalid: ${v.reason}`);
+    return v.name;
+  }
+  const isTTY = deps.isTTY !== undefined ? deps.isTTY : Boolean(process.stdin && process.stdin.isTTY);
+  if (isTTY) {
+    const readLine = deps.readLine || readLineFromTty;
+    process.stderr.write("attested_by (operator who ran and inspected two real Claude Code turns): ");
+    const v = validateAttestedName(readLine());
+    if (!v.ok) die(2, `verify: attested_by prompt input invalid: ${v.reason}`);
+    return v.name;
+  }
+  return null;
+}
+
 function parseArgs(argv) {
   const opts = { _: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -1091,7 +1166,10 @@ function main() {
     } else if (phase === "complete") {
       fs.writeSync(1,JSON.stringify(complete(), null, 2) + "\n");
     } else if (phase === "verify") {
-      const v = verify({ capture: opts.capture || null });
+      // Resolve + validate the attestation name BEFORE verify() creates any capture (an invalid
+      // name exits 2 with nothing written). The ci path never reaches here, so it stays absent.
+      const attestedBy = resolveAttestedBy(opts);
+      const v = verify({ capture: opts.capture || null, attestedBy });
       fs.writeSync(1,v.capture + "\n");
     } else if (phase === "curate") {
       // curate <dir> [--run-dir D]

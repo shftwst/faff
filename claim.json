@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-1018",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": null,
+    "pid": 446807,
+    "started_at": "2026-09-07T03:36:15.611Z",
+    "last_heartbeat": "2026-09-07T03:36:15.611Z"
+  },
+  "machine_id": "96d8b6491a7cbec24e8cace0481980d28c8e4116c09325783226d5cef5c62c73",
+  "heartbeating": false,
+  "claim_epoch": 0,
+  "claimed_at": "2026-09-07T03:36:15.923Z"
+}

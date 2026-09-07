@@ -843,10 +843,17 @@ export function buildOpenAiPayload({ model, system, user, maxTokens = DEFAULT_NU
 }
 
 // PURE: is the configured model in the host's /v1/models set? Reads the {data:[{id}]} shape.
+// Mirror of engine.js modelServedOpenAi (kept in sync by hand; a CI drift test guards it). Honours
+// a LiteLLM-style namespace wildcard ("openrouter/*") — the gateway's own assertion that it serves
+// the whole namespace. Closed grammar: only a trailing "/*" entry matching "<prefix>/<non-empty
+// rest>"; no general globbing, bare "*" never matches. Exact membership wins first. Trades preflight
+// precision for the namespace (a typo'd id passes preflight, fails at the POST) — acceptable: the
+// probe changes error quality, not outcome.
 export function modelServedOpenAi(modelsJson, model) {
   const obj = typeof modelsJson === "string" ? JSON.parse(modelsJson) : modelsJson;
   const ids = (obj?.data ?? []).map((m) => m.id ?? m.name).filter(Boolean);
-  return { served: ids.includes(model), names: ids };
+  const served = ids.includes(model) || ids.some((n) => n.endsWith("/*") && model.startsWith(n.slice(0, -1)) && model.length > n.length - 1);
+  return { served, names: ids };
 }
 
 // PURE: fold an SSE stream (data: {json}\n\n … data: [DONE]) into the assistant text. Reads

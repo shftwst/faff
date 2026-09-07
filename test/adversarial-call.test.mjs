@@ -280,6 +280,18 @@ test("modelServedOpenAi reads the {data:[{id}]} shape and matches exactly", () =
   assert.deepEqual(miss.names, ["deepseek-ai/deepseek-v4-pro", "meta/llama-3.1-70b"]);
 });
 
+test("modelServedOpenAi honours a LiteLLM-style namespace wildcard (closed grammar)", () => {
+  const wild = { data: [{ id: "openrouter/*" }] };
+  assert.equal(modelServedOpenAi(wild, "openrouter/deepseek/deepseek-v4-flash-0731").served, true, "openrouter/* serves the namespace");
+  assert.equal(modelServedOpenAi({ data: [{ id: "together/*" }] }, "together/qwen/x").served, true, "any prefix, not just openrouter");
+  assert.equal(modelServedOpenAi({ data: [{ id: "m1" }] }, "m1").served, true, "exact id still wins");
+  assert.equal(modelServedOpenAi({ data: [{ id: "openrouter/" }] }, "openrouter/x").served, false, "bare prefix/ (no *) does not match");
+  assert.equal(modelServedOpenAi({ data: [{ id: "*" }] }, "anything").served, false, "bare * matches nothing");
+  assert.equal(modelServedOpenAi(wild, "openrouter/").served, false, "the wildcard requires a non-empty rest");
+  // the "available: ..." diagnostic (names) is unchanged by the wildcard match
+  assert.deepEqual(modelServedOpenAi(wild, "openrouter/x").names, ["openrouter/*"]);
+});
+
 test("accumulateSse folds delta.content, flags length-truncation, honours [DONE], tolerates a bad frame", () => {
   const sse = [
     `data: ${JSON.stringify({ choices: [{ delta: { content: "Hello " } }] })}`,

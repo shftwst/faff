@@ -1,7 +1,7 @@
 {
-  "record_count": 0,
-  "null_result": true,
-  "null_reason": "no captured decisions: capture was off or sparse for the observation window",
+  "record_count": 64,
+  "null_result": false,
+  "null_reason": null,
   "in_scope_kernels": [
     "claim-verdict",
     "eligible",
@@ -14,9 +14,9 @@
     "run-start"
   ],
   "coverage": {
-    "replayable": 0,
+    "replayable": 58,
     "uncovered": 0,
-    "missing_input": 0
+    "missing_input": 5
   },
   "matrix": {
     "claim-verdict": {
@@ -27,11 +27,11 @@
       "denominator": 0
     },
     "eligible": {
-      "agreement": 0,
+      "agreement": 6,
       "harmless": 0,
       "wasteful": 0,
       "wrong": 0,
-      "denominator": 0
+      "denominator": 6
     },
     "next": {
       "agreement": 0,
@@ -90,10 +90,378 @@
     "replay_error": [],
     "verdict_skew": []
   },
-  "missing_input_records": [],
+  "missing_input_records": [
+    {
+      "kernel": "next",
+      "missing_inputs": [
+        "spec",
+        "parked",
+        "blocked",
+        "ifEligible"
+      ],
+      "run_id": "run-20260901-062241-beepboop-list-0221b8",
+      "seq": 10
+    },
+    {
+      "kernel": "next",
+      "missing_inputs": [
+        "spec",
+        "ifEligible"
+      ],
+      "run_id": "run-20260901-065306-beepboop-list-18c980",
+      "seq": 18
+    },
+    {
+      "kernel": "next",
+      "missing_inputs": [
+        "status",
+        "spec",
+        "eligible",
+        "parked",
+        "blocked",
+        "ifEligible"
+      ],
+      "run_id": "run-20260901-071649-fly-l3",
+      "seq": 40
+    },
+    {
+      "kernel": "next",
+      "missing_inputs": [
+        "eligible"
+      ],
+      "run_id": "run-20260901-142026-fly-l3",
+      "seq": 21
+    },
+    {
+      "kernel": "next",
+      "missing_inputs": [
+        "status",
+        "spec",
+        "eligible",
+        "parked",
+        "blocked",
+        "ifEligible"
+      ],
+      "run_id": "run-20260901-150826-beepboop-list-22197e",
+      "seq": 16
+    }
+  ],
   "uncovered_records": [],
   "out_of_scope_records": [],
-  "action_uncaptured": [],
+  "action_uncaptured": [
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-002627-beepboop-list-e60b30",
+      "seq": 4
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-002627-beepboop-list-e60b30",
+      "seq": 7
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-013326-fly-l3",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-030328-fly-l3",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-030328-fly-l3",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-071314-beepboop-list-3ab2c4",
+      "seq": 3
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-071314-beepboop-list-3ab2c4",
+      "seq": 4
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-071314-beepboop-list-3ab2c4",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-071314-beepboop-list-3ab2c4",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-071314-beepboop-list-3ab2c4",
+      "seq": 7
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-071314-beepboop-list-3ab2c4",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 3
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 7
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 9
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 10
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 11
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 12
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 13
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 14
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 20
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 21
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 22
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 23
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 24
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 47
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 48
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 49
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 50
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 64
+    },
+    {
+      "kernel": "run-done",
+      "correlation_id": "",
+      "run_id": "run-20260903-074200-fly-l3",
+      "seq": 69
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 12
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 13
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 14
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 3
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 6
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 7
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 12
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 13
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260904-095513-beepboop-list-72ed27",
+      "seq": 6
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260904-095513-beepboop-list-72ed27",
+      "seq": 7
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260904-095513-beepboop-list-72ed27",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260904-095513-beepboop-list-72ed27",
+      "seq": 9
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260904-095513-beepboop-list-72ed27",
+      "seq": 21
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260904-095513-beepboop-list-72ed27",
+      "seq": 29
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260904-154525-beepboop-list-8e92c0",
+      "seq": 5
+    }
+  ],
   "set_aside": [
     {
       "command": "decision-capture",
@@ -129,8 +497,682 @@
   "map_source": "state-authority-map",
   "cost": {
     "note": "cost is a recorded observation joined to the corpus by run_id, NOT a content-addressed reproducible output; the corpus digest covers only the decision-capture records",
-    "artifacts_present": false,
-    "run_ids": [],
-    "runs": {}
+    "artifacts_present": true,
+    "run_ids": [
+      "run-20260901-062241-beepboop-list-0221b8",
+      "run-20260901-065306-beepboop-list-18c980",
+      "run-20260901-071649-fly-l3",
+      "run-20260901-142026-fly-l3",
+      "run-20260901-150826-beepboop-list-22197e",
+      "run-20260903-002627-beepboop-list-e60b30",
+      "run-20260903-013326-fly-l3",
+      "run-20260903-030328-fly-l3",
+      "run-20260903-071314-beepboop-list-3ab2c4",
+      "run-20260903-074200-fly-l3",
+      "run-20260903-203823-fly-l3",
+      "run-20260903-213310-fly-l3",
+      "run-20260904-095513-beepboop-list-72ed27",
+      "run-20260904-154525-beepboop-list-8e92c0"
+    ],
+    "runs": {
+      "run-20260901-062241-beepboop-list-0221b8": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 2,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 12,
+          "elapsed_ms": 531882,
+          "max_seq": 11
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260901-065306-beepboop-list-18c980": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 7,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 20,
+          "elapsed_ms": 604775,
+          "max_seq": 19
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260901-071649-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 1,
+          "needs_human": 0
+        },
+        "retry": 3,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 42,
+          "elapsed_ms": 17222317,
+          "max_seq": 41
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260901-142026-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 8,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 23,
+          "elapsed_ms": 597011,
+          "max_seq": 22
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260901-150826-beepboop-list-22197e": {
+        "available": true,
+        "intervention": {
+          "parked": 1,
+          "needs_human": 0
+        },
+        "retry": 4,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 35,
+          "elapsed_ms": 8525678,
+          "max_seq": 34
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-002627-beepboop-list-e60b30": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 2,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 10,
+          "elapsed_ms": 10560964,
+          "max_seq": 9
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-013326-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 1,
+          "needs_human": 0
+        },
+        "retry": 1,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 15,
+          "elapsed_ms": 3817324,
+          "max_seq": 14
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-030328-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 0,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 9,
+          "elapsed_ms": 398364,
+          "max_seq": 8
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-071314-beepboop-list-3ab2c4": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 0,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 9,
+          "elapsed_ms": 1049845,
+          "max_seq": 8
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-074200-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 3,
+          "needs_human": 0
+        },
+        "retry": 5,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 75,
+          "elapsed_ms": 13013149,
+          "max_seq": 74
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-203823-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 0,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 21,
+          "elapsed_ms": 1907710,
+          "max_seq": 20
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260903-213310-fly-l3": {
+        "available": true,
+        "intervention": {
+          "parked": 2,
+          "needs_human": 0
+        },
+        "retry": 2,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 16,
+          "elapsed_ms": 5926082,
+          "max_seq": 15
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260904-095513-beepboop-list-72ed27": {
+        "available": true,
+        "intervention": {
+          "parked": 1,
+          "needs_human": 0
+        },
+        "retry": 2,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 39,
+          "elapsed_ms": 9492546,
+          "max_seq": 38
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      },
+      "run-20260904-154525-beepboop-list-8e92c0": {
+        "available": true,
+        "intervention": {
+          "parked": 0,
+          "needs_human": 0
+        },
+        "retry": 1,
+        "resume": {
+          "run_segments": 0
+        },
+        "latency": {
+          "events": 14,
+          "elapsed_ms": 7137237,
+          "max_seq": 13
+        },
+        "token_cost": {
+          "transcript": {
+            "source": "estimate"
+          },
+          "engine_spend": {
+            "totals": {
+              "input": 0,
+              "output": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0,
+              "cache_read": 0
+            },
+            "by_model": {},
+            "by_model_effort": {},
+            "by_day": {},
+            "engines": [],
+            "records": 0,
+            "malformed": 0
+          },
+          "totals": {
+            "input": 0,
+            "output": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0,
+            "cache_read": 0
+          },
+          "by_model": {},
+          "tokens_source": "estimate",
+          "sources": [],
+          "unmetered_engines": []
+        }
+      }
+    }
   }
 }

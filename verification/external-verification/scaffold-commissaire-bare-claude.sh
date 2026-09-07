@@ -42,7 +42,7 @@ cd "$SUT_ROOT"
 # verify-commissaire.mjs: re-substitute the pinned revision (idempotent; keeps scaffolder + verifier
 # in sync). commissaire-stop-hook.mjs: fill the absolute FAFF_BIN constant (machine-specific).
 # replay.sh + README.md: copied verbatim; the verifier reads them from scripts/ and substitutes the
-# README's @@PINNED_REVISION@@ / @@RUN_ID@@ placeholders when it writes each capture.
+# README's @@PINNED_REVISION@@ / @@RUN_ID@@ / @@ATTESTED_BY@@ placeholders when it writes each capture.
 sed "s|const EXPECTED_COMMISSAIRE_REVISION = \"[0-9a-f]*\"|const EXPECTED_COMMISSAIRE_REVISION = \"$EXPECTED_COMMISSAIRE_REVISION\"|" \
   "$SRC_DIR/verify-commissaire.mjs" > scripts/verify-commissaire.mjs
 sed "s|__FAFF_BIN__|$FAFF_BIN|" "$SRC_DIR/commissaire-stop-hook.mjs" > scripts/commissaire-stop-hook.mjs

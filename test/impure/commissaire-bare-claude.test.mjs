@@ -620,6 +620,64 @@ test("README claims: the generated capture README carries every required sentenc
   }
 });
 
+// FAFF-1018 — the --attested-by operator-attestation seam (half (a), the CI-gated code slice).
+test("Attested-by: --attested-by records the name in demo-result.json and the README attested line, uncovered by members[]", () => {
+  const { sut, runId, driver } = completedSut();
+  // Hand-craft a valid claude-code-observed [block, allow] pair with EQUAL session hashes over this
+  // genuinely completed run (same overwrite the Session-mismatch case uses), so verify's step-3
+  // checks pass and every downstream leg runs for real against the completed run dir + anchor.
+  const store = path.join(sut, ".faff", "hook-observations.jsonl");
+  const hash = "c".repeat(64);
+  const mk = (ordinal, result) => ({ schema: 2, ordinal, hook_event_name: "Stop", input_shape_validated: true, source: "claude-code-observed", provenance: { session_id_sha256: hash, transcript_existed: true, cwd_matched: true }, run_id: runId, result });
+  fs.writeFileSync(store, [mk(1, "block"), mk(2, "allow")].map((o) => JSON.stringify(o)).join("\n") + "\n");
+  const capture = freshCap();
+  const r = runPhase(sut, ["verify", "--capture", capture, "--attested-by", "  Alec Hill  "], { driver, rev: EXPECTED });
+  assert.strictEqual(r.status, 0, `verify: ${r.stderr}`);
+  const result = readResult(capture);
+  assert.strictEqual(result.source, "claude-code-observed");
+  assert.strictEqual(result.attested_by, "Alec Hill"); // trimmed
+  // the field is not covered by any member digest — demo-result.json is excluded from members[].
+  assert.ok(!result.members.some((m) => m.path === "demo-result.json"), "demo-result.json must not be a member");
+  const readme = fs.readFileSync(path.join(capture, "README.md"), "utf8");
+  assert.ok(readme.includes("Ran and inspected two real Claude Code turns. attested_by: Alec Hill"), "README attested line missing");
+});
+
+for (const [label, name] of [["blank", "   "], ["too long", "x".repeat(121)], ["newline", "Alec\nHill"]]) {
+  test(`Attested-by invalid (${label}): verify exits 2 and writes no capture`, () => {
+    const driver = provisionDriver(EXPECTED);
+    const sut = scaffold(driver);
+    const capture = freshCap();
+    const r = runPhase(sut, ["verify", "--capture", capture, "--attested-by", name], { driver, rev: EXPECTED });
+    assert.strictEqual(r.status, 2, `expected exit 2, got ${r.status}: ${r.stderr}`);
+    assert.ok(!fs.existsSync(capture) || fs.readdirSync(capture).length === 0, "no capture may be written on an invalid name");
+  });
+}
+
+test("Attested-by ci path: a verify run with no --attested-by leaves attested_by absent", () => {
+  const { capture } = sharedFixture();
+  const result = readResult(capture);
+  assert.strictEqual(result.source, "ci-fixture");
+  assert.ok(!("attested_by" in result), "attested_by must be absent on the no-flag ci-fixture path");
+  const readme = fs.readFileSync(path.join(capture, "README.md"), "utf8");
+  assert.ok(readme.includes("Not operator-attested (ci-fixture run); source: ci-fixture"), "not-attested fallback line missing");
+});
+
+test("Attested-by resolution: flag, TTY-prompt fallback, and non-TTY null via the exported resolver", async () => {
+  const mod = await import(pathToFileURL(path.join(SRC_DIR, "verify-commissaire.mjs")).href);
+  // the pure validator
+  assert.strictEqual(mod.validateAttestedName("Alec Hill").ok, true);
+  assert.strictEqual(mod.validateAttestedName("  ").ok, false);
+  assert.strictEqual(mod.validateAttestedName("x".repeat(121)).ok, false);
+  assert.strictEqual(mod.validateAttestedName("a\nb").ok, false);
+  assert.strictEqual(mod.validateAttestedName(undefined).ok, false);
+  // flag path (trimmed)
+  assert.strictEqual(mod.resolveAttestedBy({ "attested-by": "  Alec Hill  " }, { isTTY: false }), "Alec Hill");
+  // TTY-prompt fallback: no flag + a TTY + an injected one-line reader stands in for the terminal
+  assert.strictEqual(mod.resolveAttestedBy({}, { isTTY: true, readLine: () => "Prompted Name" }), "Prompted Name");
+  // non-TTY, no flag -> null (the ci path leaves attested_by absent)
+  assert.strictEqual(mod.resolveAttestedBy({}, { isTTY: false }), null);
+});
+
 test("Gitignore content: the scaffolded SUT .gitignore is exactly the two lines and never scripts/", () => {
   const driver = provisionDriver(EXPECTED);
   const sut = scaffold(driver);

@@ -43,11 +43,22 @@ operator can hand-craft a Stop-shaped stdin to produce it, so it is checkable pr
 cryptographic identity claim. In this capture the label may read `ci-fixture` (a deterministic CI
 firing) or `claude-code-observed` (a real session, attested separately under FAFF-1018).
 
+## Operator attestation
+
+The machine checks only Stop-shape, an equal `session_id_sha256`, and block-then-allow ordering. It
+cannot check that the two Stop firings came from two real Claude Code turns rather than two
+hand-crafted Stop-shaped stdins. That single fact is the **residual human oracle**: an operator runs
+the two turns and signs the result out of band via `verify --attested-by "<name>"`, which records
+the name in `demo-result.json`. That file is excluded from the published `members[]` re-hash, so the
+attestation rests on the operator, never on a digest; the tool does not vouch for the name.
+
+@@ATTESTED_BY@@
+
 ## FAFF-829 evidence mapping
 
 | FAFF-829 bullet | What supplies it |
 |---|---|
-| 1. A real producer outside current scheduling and skills completed the governed workflow | FAFF-1018, under a real two-turn session with the operator attestation |
+| 1. A real producer outside current scheduling and skills completed the governed workflow | This capture (FAFF-1018): a real two-turn `claude-code-observed` session, driven outside the factory and signed by the operator in the attestation above |
 | 2. Forged / out-of-scope records could not satisfy obligations | The in-repo unit fixtures, and here in the external consumer: the FR-1 tampered governor signature (rejected from public material alone) and the FR-2 tampered producer authentication code (rejected with the secret present), both through `commissaire audit verify` |
 | 8. Integration cost materially smaller than whole-workflow adoption | This capture: one hook file, one verifier script, one pointer file, zero config, two binaries from one checkout |
 | 9. Claims limited to mechanisms actually proved | This section, the `source` and `provenance` fields, and the cited gaps below |

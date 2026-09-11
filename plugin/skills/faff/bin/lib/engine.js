@@ -96,10 +96,18 @@ function modelServedOllama(body, model) {
     return { served: names.some((n) => n === model || n === `${model}:latest`), names };
   } catch { return { served: false, names: [] }; }
 }
+// A LiteLLM-style passthrough gateway advertises a namespace wildcard ("openrouter/*") in
+// /v1/models instead of concrete ids — its own assertion that it serves that whole namespace, so
+// honour it. Closed grammar: only a trailing "/*" entry, matching "<prefix>/<non-empty rest>"; no
+// general globbing, and a bare "*" never matches ("*".endsWith("/*") is false). Exact membership
+// wins first. This trades away preflight precision for a wildcard namespace — a typo'd id under it
+// now passes preflight and fails at the POST — which is acceptable: the probe changes error
+// QUALITY, never outcome (the completion call is the final arbiter).
 function modelServedOpenAi(body, model) {
   try {
     const names = (JSON.parse(body).data || []).map((m) => m && m.id).filter((n) => typeof n === "string");
-    return { served: names.includes(model), names };
+    const served = names.includes(model) || names.some((n) => n.endsWith("/*") && model.startsWith(n.slice(0, -1)) && model.length > n.length - 1);
+    return { served, names };
   } catch { return { served: false, names: [] }; }
 }
 
@@ -444,6 +452,16 @@ async function engineSelftest() {
   {
     const pf = await preflightEngine({ family: "openai", host: "http://h/v1", model: "m1", getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }) });
     ok("openai model present → served", pf.served === true);
+  }
+  // FAFF: a LiteLLM-style namespace wildcard in /v1/models serves the whole namespace (closed grammar).
+  {
+    const served = async (model, ids) => (await preflightEngine({ family: "openai", host: "http://h/v1", model, getFn: async () => JSON.stringify({ data: ids.map((id) => ({ id })) }) })).served;
+    ok("openai wildcard: openrouter/* serves openrouter/deepseek/x", (await served("openrouter/deepseek/x", ["openrouter/*"])) === true);
+    ok("openai wildcard: any prefix, not just openrouter (together/* serves together/qwen/x)", (await served("together/qwen/x", ["together/*"])) === true);
+    ok("openai wildcard: exact id still wins", (await served("m1", ["m1"])) === true);
+    ok("openai wildcard: bare prefix/ (no *) does not match", (await served("openrouter/x", ["openrouter/"])) === false);
+    ok("openai wildcard: bare * matches nothing", (await served("anything", ["*"])) === false);
+    ok("openai wildcard: prefix requires a non-empty rest", (await served("openrouter/", ["openrouter/*"])) === false);
   }
 
   // one-shot orchestration — exactly one completion call, no retry

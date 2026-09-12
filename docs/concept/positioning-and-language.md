@@ -28,9 +28,20 @@ After that introduction, use SuperDomestique for the product, Commissaire for
 the governance system, and `faff` for literal technical names. There is no need
 to repeat the transition on every page.
 
-Commissaire currently lives as a logical code region in the `faff` repository.
-It is not a separate package, process, service, or security boundary. A future
-change to packaging or technical identifiers needs its own compatibility plan.
+Commissaire has two halves, and they differ in exactly this respect.
+
+Its governance region is a logical code region in the `faff` repository. It is
+not a separate package, process, service, or security boundary.
+
+Its facade is. The facade holds a private signing key a producer never sees,
+signs protected-effect decisions a producer cannot forge, and ships as a
+standalone `commissaire` command. It is a key and trust boundary, and an
+adopter's chokepoint turns a verified decision into prevention. What it is not
+yet is in force for SuperDomestique's own runs: faff's runner does not drive
+the facade, so its own work is recorded but not governed by it.
+
+A future change to packaging or technical identifiers needs its own
+compatibility plan.
 
 ## Product position
 

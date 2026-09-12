@@ -32,7 +32,12 @@ export function buildLensRequests({
       "--backends-json", String(backendsJson),
       "--timeout", String(timeout),
       "--max-tokens", String(maxTokens),
-      "--system", pathJoin(systemDir, `refute-${lens}.md`),
+      // The brief filenames are lowercase (refute-{architectural,infosec,methodology,qa}.md) but the
+      // lens vocabulary carries `QA` uppercase, because that token is the spec-review-verdict contract
+      // enum (contract-defs.js SPEC_REVIEW_LENSES) and rides in every objection's `lens` field. Lowercase
+      // here rather than moving the enum: on a case-sensitive filesystem `refute-QA.md` is ENOENT, the QA
+      // lens records a config-fault, and one config-fault floors the whole aggregate to needs-human.
+      "--system", pathJoin(systemDir, `refute-${lens.toLowerCase()}.md`),
     ];
     for (const p of contextPaths) argv.push("--context", String(p));
     argv.push("--diff", String(diffPath));

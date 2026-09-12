@@ -135,7 +135,7 @@ test("compose-gen: minio provisions (service) with command: + object-upload seed
   const dir = tmp();
   try {
     const { plan, out } = composeGen(dir, { schema: 1, datastores: [{ kind: "minio", evidence: "x" }], deploy_targets: [] });
-    assert.ok(plan.services.some((s) => s.name === "minio" && s.image === "minio/minio"));
+    assert.ok(plan.services.some((s) => s.name === "minio" && s.image === "quay.io/minio/minio"));
     assert.ok(plan.seed_targets.some((t) => t.kind === "minio" && t.strategy === "object-upload"));
     assert.equal(plan.unprovisionable.length, 0);
     assert.equal(plan.endpoints.minio, "http://localhost:9000");   // S3 API is HTTP, not raw tcp
@@ -341,7 +341,7 @@ test("integration: minio env stands up, object-upload-seeds, and tears down [doc
       assert.equal(seed.code, 0, `seed failed: ${seed.err}`);
       // the born-verifiable AC: the bucket "users" landed 2 objects, counted via an `mc ls` sidecar.
       const count = execFileSync("docker", ["run", "--rm", "--network", `${project}_default`,
-        "-e", "MC_HOST_local=http://faffdev:faffdevsecret@minio:9000", "minio/mc", "ls", "--recursive", "local/users"],
+        "-e", "MC_HOST_local=http://faffdev:faffdevsecret@minio:9000", "quay.io/minio/mc", "ls", "--recursive", "local/users"],
         { cwd: dir, encoding: "utf8" }).split("\n").filter((l) => /\.json/.test(l)).length;
       assert.equal(count, 2, `expected 2 objects in bucket users, got: ${count}`);
     } finally {

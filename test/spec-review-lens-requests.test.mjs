@@ -3,7 +3,7 @@
 // under <scratch>/raw, and that an absent rawDir leaves the argv byte-for-byte as it was before.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildLensRequests, parseArgs } from "../plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs";
@@ -36,7 +36,7 @@ test("FAFF-928 AC6: each lens's argv carries --raw-dir <scratch>/raw --lens <len
     assert.equal(argFor(req.argv, "--lens"), req.lens, `${req.lens}: --lens names the lens`);
     assert.equal(argFor(req.argv, "--round"), "2", `${req.lens}: --round names the round`);
     // the pre-existing argv fields are still present and per-lens correct
-    assert.equal(argFor(req.argv, "--system"), `plugin/skills/faffter-dark-spec-review/refute-${req.lens}.md`);
+    assert.equal(argFor(req.argv, "--system"), `plugin/skills/faffter-dark-spec-review/refute-${req.lens.toLowerCase()}.md`);
     assert.equal(argFor(req.argv, "--diff"), join(scratch, "spec.md"));
     assert.equal(argFor(req.argv, "--max-tokens"), "2000");
     assert.equal(req.argv.filter((a) => a === "--context").length, 2, "both context files carried");
@@ -53,6 +53,23 @@ test("FAFF-928 AC6: absent rawDir omits the three raw-body flags (byte-for-byte 
   assert.ok(!req.argv.includes("--raw-dir"), "no --raw-dir without a scratch dir");
   assert.ok(!req.argv.includes("--lens"), "no --lens without a scratch dir");
   assert.ok(!req.argv.includes("--round"), "no --round without a scratch dir");
+});
+
+// Regression: the lens vocabulary carries `QA` uppercase (the spec-review-verdict contract enum) while
+// the briefs ship lowercase, so a bare `refute-${lens}.md` is ENOENT on a case-sensitive filesystem and
+// the QA lens records a config-fault — and one config-fault floors the aggregate to needs-human. This
+// asserts the resolved path exists on disk, so the bug cannot come back on a case-insensitive dev box.
+test("every lens's --system brief exists on disk (case-sensitive-safe)", () => {
+  const systemDir = join(import.meta.dirname, "..", "plugin", "skills", "faffter-dark-spec-review");
+  const reqs = buildLensRequests({
+    lenses: LENSES,
+    backendsJson: "b.json", timeout: 120, maxTokens: 2000,
+    systemDir, contextPaths: [], diffPath: "spec.md",
+  });
+  for (const req of reqs) {
+    const brief = argFor(req.argv, "--system");
+    assert.ok(existsSync(brief), `${req.lens}: --system brief must exist on disk, got ${brief}`);
+  }
 });
 
 test("FAFF-928 AC6: the CLI arg parser round-trips --lenses / --raw-dir / --round", () => {

@@ -1,0 +1,42 @@
+{
+  "level": "L3",
+  "run_id": "run-20260913-134745-fly-l3",
+  "admitted": ["FAFF-1044", "FAFF-1042", "FAFF-1041", "FAFF-1021", "FAFF-1035", "FAFF-1038", "FAFF-1029", "FAFF-1024", "FAFF-1017", "FAFF-1002", "FAFF-997"],
+  "outcomes": {},
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "spec_review_turn_budget_pending": ["FAFF-1019", "FAFF-1016"],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop",
+      "price_per_mtok": 0,
+      "pricing": "map"
+    },
+    "measure_session_id": "a8e6b74f-2669-4995-a513-40899dc6d47c",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 65,
+        "output": 26896,
+        "cache_write_5m": 0,
+        "cache_write_1h": 436847,
+        "cache_read": 5091633
+      }
+    },
+    "tokens_at_start": 5555441
+  },
+  "owner": {
+    "status": "running",
+    "pid": 522,
+    "session_id": "run-20260913-134745-fly-l3",
+    "started_at": "2026-09-13T13:49:59Z",
+    "last_heartbeat": "2026-09-13T13:49:59Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  }
+}

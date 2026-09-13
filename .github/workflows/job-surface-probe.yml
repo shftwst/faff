@@ -50,6 +50,7 @@ jobs:
   hosted-direct:
     if: inputs.shape == 'hosted-direct'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       # Before checkout, so the transcript can show whether the measurement
       # itself changed the answer. Its own committed file — the probe runs after
@@ -143,6 +144,7 @@ jobs:
   hosted-container:
     if: inputs.shape == 'hosted-container'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     container:
       image: ${{ inputs.image }}
     steps:

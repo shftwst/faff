@@ -1,0 +1,261 @@
+# Make the control-label prefix configurable (tracking.label_prefix)
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1044.
+
+This spec addresses FAFF-1044. Its audience is the build agent implementing the change and the human reviewers who gate the PR. It defines a single configuration seam — `tracking.label_prefix` — that lets an adopter rename faff's nine control labels off the `faff-` prefix, plus the manifest and read-site refactor that makes those names derived rather than literal.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing idea:** faff's nine control labels are the only faff artifact that lands, unnegotiably, on someone else's tracker board. Everywhere else `faff` is a private technical identifier (repo paths, CLI, config keys); a label on a shared board is closer to product surface. This change adds one config value the label *names* are derived from, and converts the code that reads those names from literal-string comparison to lookup by a stable **role** key — so the rendered name becomes presentation and the prefix becomes a knob.
+
+**Problem statement.** Today `CONTROL_LABELS` in `plugin/skills/faff/bin/lib/labels.js` holds nine hardcoded `faff-`-prefixed names, and read-sites compare against those literals; there is no prefix seam (`grep -n prefix labels.js` returns nothing). An adopter who wants `sd-automate` / `commissaire-automate`, or who must fit faff into an existing house label scheme, cannot. This change makes the prefix a config value (default `faff`, so zero-config behaviour is byte-identical) and derives the manifest names from it.
+
+**Design principles.**
+
+- **Behaviour keys off manifest metadata, never off the literal string.** The precedent already exists: the CLI's refusal to mutate the two eligibility labels reads the `tracker_owned` flag, not a hardcoded name set (`labels.js` header). Extend that discipline everywhere — a read-site identifies a label by its stable `role`, and the prefixed name is rendered only for display or tracker I/O.
+- **Zero-config is byte-identical.** Every default-prefix path — selftests, existing tickets, the emitted manifest — must produce exactly today's `faff-*` strings. The default is the safety net; the seam is inert until an adopter sets it.
+- **Fail loud, never silently degrade.** The prefix becomes part of a tracker label name. A malformed value must fail at read (the same fail-loud discipline `validateGitHostValue` applies), never limp on with a half-valid label.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/labels.js` | Node | The `CONTROL_LABELS` manifest + `cmdLabels`; the single source of truth to make prefix-derived. |
+| `plugin/skills/faff/bin/lib/config.js` | Node | `DEFAULTS`, `TRACKING_KEYS`, the `validate*Lane`/`validateGitHostValue` validator chain, `configSetSelftest`'s example-drift check. |
+| `plugin/skills/faff/bin/lib/label.js` | Node | `labelOp` — the one behavioural manifest read-site (`CONTROL_LABELS.find(l => l.name === label)`) and the `tracker_owned` refusal. |
+| `plugin/skills/faff/bin/lib/eligible.js` | Node | `automationEligible(labels, automationDefault, trackerPresent)` — `set.has("faff-automation-hold")` / `set.has("faff-automate")`; role-lookup conversion. |
+| `plugin/skills/faff/bin/lib/intake-provenance.js` | Node | `intakeVerdict` — `labelSet.has("faff-jot-intake")` / `labelSet.has("faff-automate")`; role-lookup conversion (FAFF-223 eligibility-gesture basis). |
+| `plugin/skills/faff/bin/lib/bundle.js` | Node | The landing claim store's `provenance: "faff-claimed"` sentinel — an on-disk value, deliberately **not** prefixed (see decision below). |
+| `.faffrc.example.yaml` | YAML | The documented `tracking:` block; the new row satisfies the example-drift check. |
+
+**Scope statement.** This sits at the config + control-label layer that every autonomous chokepoint (prep, tidy, graft, beep-boop) consults when it tags or reads a control label; it changes how those names are produced, not what any label means.
+
+## 2. OUT OF SCOPE
+
+- **Renaming the repo, CLI, config keys, or `.faff/` paths.** — `AGENTS.md` keeps `faff` as the technical name; this is only about labels on someone else's board. Extension point: none — deliberately excluded.
+- **Changing any label's meaning or the eligibility precedence** (`hold` > `automate` > `automation_default`). — Semantics are unchanged; only the rendered name varies. Extension point: `eligible.js` / the eligibility model, untouched here.
+- **A live-repo prefix-migration mechanism** (a read-both transition window, or a `faff labels migrate` helper). — v1 ships the seam, not a migration story; see the migration decision in §6. Extension point: a new `faff labels migrate` subcommand in `labels.js`, and a two-prefix accept-set in the role-lookup helper.
+- **Retiring `faff-jot-intake` / `faff-chain-gap-fill`** (the two migration-bridge labels). — Owned by the related FAFF-1043; the two tickets are independent and neither blocks the other. If FAFF-1043 lands first, this ticket derives two fewer names — no coupling either way. Extension point: `CONTROL_LABELS` entries + `intakeVerdict` branch, per FAFF-1043.
+- **The `faff-claimed` on-disk claim-store provenance sentinel.** — It shares the string by coincidence but is not a tracker label; see the decoupling decision in §6. Extension point: `bundle.js` claim store, untouched.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| **role** | The stable, prefix-independent identifier of a control label — `automate`, `automation-hold`, `parked`, `jot-intake`, `chain-gap-fill`, `awaiting-review`, `awaiting-spec-review`, `repeat-parked`, `claimed`. The name is `<prefix>-<role>`. |
+| **prefix** | The resolved value of `tracking.label_prefix` (default `faff`). Rendered into every control-label name. |
+| **rendered name** | `<prefix>-<role>` — the actual string on the tracker board and in `faff labels` output. Presentation, never an identity key inside the code. |
+
+**Config key.**
+
+```
+tracking.label_prefix : String   # default "faff"
+  CONSTRAINT matches /^[A-Za-z0-9]([A-Za-z0-9_-]*[A-Za-z0-9])?$/   # non-empty, no whitespace, conservative charset, no leading/trailing separator
+```
+
+**Manifest shape.** Each `CONTROL_LABELS` entry gains a `role`; `name` is no longer stored literally but derived. The exported surface becomes a factory over the prefix:
+
+```
+RECORD ControlLabel:
+  role: String          # stable identity, prefix-independent (the new key)
+  color: String         # unchanged per entry
+  tracker_owned: Bool   # unchanged per entry (default false); the CLI refusal predicate reads THIS, not the name
+  description: String    # unchanged per entry
+
+FUNCTION controlLabels(prefix = "faff") -> ControlLabel-with-name[]
+  # returns each entry with name := `${prefix}-${role}` computed; pure, no config read
+```
+
+**Validator (mirrors `validateGitHostValue`).**
+
+```
+FUNCTION validateLabelPrefix(key, value) -> null | errorString
+  # returns null for any key != "tracking.label_prefix" (not this validator's key)
+  # returns null when value matches the CONSTRAINT regex
+  # returns a fail-loud message naming the value + the rule otherwise
+```
+
+## 4. HOW — Behavior
+
+**Architecture and approach.** One config default, one manifest factory, one validator, three behavioural read-site conversions, and a documentation sweep. The prefix is resolved **fresh on every read** from `faff config get tracking.label_prefix` — faff persists no prior prefix and mediates no "change" event (this is what makes the migration decision in §6 a documentation matter, not a code mechanism).
+
+**Config wiring.** Add `tracking.label_prefix: "faff"` to `DEFAULTS` (`config.js`), add `"tracking.label_prefix"` to `TRACKING_KEYS` (so `config init` / `config set tracking.label_prefix` round-trips), and add a row to the `tracking:` block of `.faffrc.example.yaml` (the example-drift check requires a documented writable key to appear there — FAFF-794 known-key lint). Chain `validateLabelPrefix` into the same three sites the existing validators use: the `config get` read path (`config.js` ~2308), the `config set` write path (~1135), and `config init` (~836) — so a bad value fails loud (exit 2) at read *and* write, never a write/read parity gap.
+
+**Manifest conversion.** Replace the static `CONTROL_LABELS` array's literal `name` fields with `role` fields, and export `controlLabels(prefix)`. `cmdLabels` resolves the prefix via config and renders: `faff labels` emits the prefixed names, `faff labels --names` the prefixed bare names. Preserve `color` / `tracker_owned` / `description` verbatim per entry.
+
+```
+PROCEDURE cmdLabels(args):
+  1. prefix := resolve tracking.label_prefix from config (default "faff")
+  2. labels := controlLabels(prefix)
+  3. IF --names: print each label.name; ELSE print JSON of labels
+```
+
+**Read-site conversions (behavioural — the three that compare literals).**
+
+```
+PROCEDURE labelOp(args):            # label.js — the one manifest .find() site
+  1. prefix := resolve tracking.label_prefix from config
+  2. entry := controlLabels(prefix).find(l => l.name === label)   # was CONTROL_LABELS.find on a literal name
+  3. rest unchanged — refusal still reads entry.tracker_owned (never the name), ensure_first / descriptor unchanged
+```
+
+```
+FUNCTION automationEligible(labels, automationDefault, trackerPresent, prefix = "faff"):   # eligible.js
+  set := Set(labels)
+  IF set.has(`${prefix}-automation-hold`): return false      # was "faff-automation-hold"
+  IF set.has(`${prefix}-automate`): return true              # was "faff-automate"
+  ... default branch unchanged
+  # the CLI command layer resolves the prefix and passes it; the pure function stays pure with the default preserving byte-identical selftests
+```
+
+```
+FUNCTION intakeVerdict(marker, labels, mode, prefix = "faff"):    # intake-provenance.js (prefix appended)
+  set := Set(labels)
+  IF set.has(`${prefix}-jot-intake`): ... grandfathered-label basis (unchanged semantics)
+  IF set.has(`${prefix}-automate`): ... eligibility-gesture basis (FAFF-223, unchanged semantics)
+  # prefix threaded from the CLI command layer; default "faff" keeps selftests byte-identical
+```
+
+The `next.js` reason string `"...faff-automate..."` is **presentation**, not a comparison — render the resolved name there; it gates nothing.
+
+**Threading the prefix.** The pure functions (`automationEligible`, `intakeVerdict`) take the resolved prefix as a new trailing parameter defaulting to `"faff"`. The command layer (`cmdEligible`, the intake command) resolves `tracking.label_prefix` once and passes it. `labelOp` and `cmdLabels`, being CLI commands with config access, resolve it themselves. No pure function reads config directly.
+
+**Anti-pattern:** having a pure function read config to learn the prefix. Why: it breaks the pure-function-over-typed-flags invariant these commands rely on and makes selftests config-dependent. Thread the resolved prefix as an argument instead.
+
+**Anti-pattern:** deriving the `bundle.js` claim-store `provenance: "faff-claimed"` sentinel from the prefix. Why: it is an on-disk value in `.faff/` claim records, not a board label; coupling it to the prefix would strand every in-flight claim the moment the prefix changed (old records read `faff-claimed`, new code would look for `<prefix>-claimed`) and it gains nothing — no one sees it on a board.
+
+**Documentation sweep.** The gateway/skill prose that names control labels (the `faff/SKILL.md` Control-label-provisioning section and the ~8–12 sibling `SKILL.md` files that mention a label) is updated so it either names the label by **role/concept** or shows the **default** `faff-<role>` with a note that the prefix is `tracking.label_prefix`. The canonical manifest reference (gateway Control-label provisioning) gains the `tracking.label_prefix` documentation. Prose need not mechanically de-prefix every mention — showing the default with the config pointer is sufficient and matches the ticket's "show the default" instruction.
+
+**Failure modes.**
+
+- **The failure:** an adopter changes `label_prefix` on a repo with live tickets. Every open ticket carrying the old `faff-automate` silently becomes *not eligible* the moment the resolver looks for `<newprefix>-automate`, and its FAFF-223 intake-provenance basis (which rests on the same `faff-automate` label) is invalidated. **How you'd know:** work that was eligible stops being picked up with no park and no error — a silent mass eligibility change. **What it means:** this is a fail-*safe* direction (work stops rather than runs unbidden), but it is silent, so it must be a *stated* policy, not an accident. §6 resolves this: v1 does not manage the change; the documentation states that changing the prefix on a live repo is a coordinated human relabel.
+- **The failure:** a validator gap lets a whitespace/empty prefix through at one seam (e.g. write) but not another (read), so a value writes and then fails loud on the next read. **How you'd know:** `config set tracking.label_prefix=<bad>` succeeds but `config get tracking.label_prefix` exits 2. **What it means:** wire the validator into read *and* write *and* init (the exact parity the git_host validator already enforces).
+
+## 5. SCENARIOS — born-verifiable main objectives
+
+```
+Given no tracking.label_prefix is set (zero-config)
+When `faff labels --names` runs
+Then it emits exactly the nine "faff-*" names, byte-identical to today
+```
+
+```
+Given tracking.label_prefix: "sd" in config
+When `faff labels --names` runs
+Then it emits the nine "sd-*" names (sd-automate, sd-automation-hold, sd-parked, …, sd-claimed)
+```
+
+```
+Given tracking.label_prefix: "sd"
+When an issue carries the label "sd-automation-hold" and `faff eligible` is computed
+Then automationEligible returns false (hard exclude wins) — the role lookup resolves against the configured prefix, not "faff-"
+```
+
+```
+Given tracking.label_prefix is set to an invalid value (empty, or containing whitespace)
+When `faff config get tracking.label_prefix` (or `config set` / `config init`) runs
+Then it fails loud with exit 2 naming the value and the charset rule — never a silent default
+```
+
+```
+Given a repo whose in-flight claim record on disk carries provenance "faff-claimed" and tracking.label_prefix: "sd"
+When the landing claim store's stale-claim fence runs
+Then it still matches "faff-claimed" (the sentinel is prefix-independent) and claim fencing is unaffected
+```
+
+## 6. DESIGN DECISION RATIONALE
+
+**How does the manifest learn the prefix without every read-site reading config?**
+Options: (a) a `controlLabels(prefix)` factory plus a `role` key, prefix threaded from the command layer; (b) each read-site reads config itself; (c) match labels by stripping any prefix and comparing the suffix. (b) breaks the pure-function invariant and makes selftests config-dependent; (c) is ambiguous (a house label could collide with a role suffix) and loses the fail-loud guarantee.
+**Chosen:** (a) — a `controlLabels(prefix = "faff")` factory over `role`-keyed entries, with the resolved prefix threaded into the pure functions as a defaulted argument. Stable identity by role, presentation by rendered name, config read only at the command layer.
+
+**How is the prefix validated?**
+**Chosen:** a pure `validateLabelPrefix(key, value)` mirroring `validateGitHostValue`, chained into the get, set, and init paths, enforcing `/^[A-Za-z0-9]([A-Za-z0-9_-]*[A-Za-z0-9])?$/` (non-empty, no whitespace, no leading/trailing separator, conservative charset for a tracker label name) and failing loud (exit 2) at read and write. Rationale: a tracker label name must be well-formed; the existing validator chain is the single, tested place to enforce it.
+
+**Does the `faff-claimed` claim-store provenance sentinel become prefix-derived?**
+**Chosen:** no — the on-disk `provenance: "faff-claimed"` sentinel in `bundle.js` stays a fixed literal, decoupled from the tracker-label prefix. Rationale: it is an internal `.faff/` value, not board surface, and is compared only against itself; coupling it to the prefix would strand in-flight claims across a prefix change for zero adopter benefit. (The `claimed`-role *tracker* label still derives from the prefix; the two merely share a string today.)
+
+**What is the v1 migration story for changing the prefix on a live repo?**
+Options weighed: (i) a read-both transition window (accept old and new prefix for a release); (ii) a `faff labels migrate` helper printing the exact relabel steps; (iii) treat the prefix as set-at-adoption and ship no migration tooling.
+**Chosen:** (iii) for v1 — the prefix is resolved fresh on every read, faff persists no prior prefix and provides no migration mechanism, and the documentation states plainly that changing the prefix on a repo with live tickets is a coordinated human relabel (relabel the affected tickets in the tracker; the direction is fail-safe — work stops rather than runs unbidden). Rationale: it is the cheapest option, the ticket author's stated lean, and lands via a reviewable PR; (i) and (ii) are named out-of-scope extension points for a follow-up if adopter demand appears. This is a *stated* decision satisfying the ticket's "not an accident" requirement, not a mechanically-enforced lock (faff has no tracker access to detect live tickets, so a hard lock is not implementable in the CLI).
+
+**How far does the documentation sweep go?**
+**Chosen:** update the canonical manifest reference (gateway Control-label provisioning) to document `tracking.label_prefix`, and update sibling `SKILL.md` prose to name labels by role/concept or show the default `faff-<role>` with the config pointer — not a mechanical de-prefixing of every mention. Rationale: matches the ticket's "show the default" instruction; the load-bearing correctness is in code, prose is documentation.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions:** none — every decision above is closed.
+
+**Assumptions:**
+
+- **Assumes:** the `tracking` namespace is already a member of `WRITABLE_NAMESPACES` in `config.js`, so adding a `tracking.label_prefix` row to `.faffrc.example.yaml` satisfies the namespace-drift check without a namespace addition. *Validation:* confirm `WRITABLE_NAMESPACES` contains `"tracking"` (it does — `tracking.git_host` / `tracking.spec_docs_path` are already writable) before adding the example row.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] With no `tracking.label_prefix` set, `faff labels` and `faff labels --names` emit exactly today's nine `faff-*` names (byte-identical zero-config).
+
+### From WHAT (config + types)
+- [ ] `tracking.label_prefix` is in `DEFAULTS` with value `"faff"` and in `TRACKING_KEYS`.
+- [ ] A `tracking.label_prefix` row exists in the `tracking:` block of `.faffrc.example.yaml`.
+- [ ] Each `CONTROL_LABELS` entry carries a `role` key; `color` / `tracker_owned` / `description` are unchanged per entry.
+- [ ] `controlLabels(prefix = "faff")` is exported and returns each entry with `name === \`${prefix}-${role}\``.
+
+### From HOW (behaviour)
+- [ ] `faff config get tracking.label_prefix` returns `faff` by default and the configured value when set.
+- [ ] `automationEligible` resolves `automation-hold` / `automate` by role against the configured prefix; with prefix `sd`, `sd-automation-hold` forces not-eligible and `sd-automate` forces eligible.
+- [ ] `intakeVerdict` resolves `jot-intake` / `automate` by role against the configured prefix, with unchanged basis semantics (grandfathered-label warn; eligibility-gesture no-warn per FAFF-223).
+- [ ] `labelOp` resolves the manifest by the configured prefix and still refuses `tracker_owned` labels by reading the flag (not the name); a non-manifest label is still rejected.
+- [ ] The `next.js` reason string renders the resolved `automate` name (presentation), gating nothing.
+
+### From HOW (validation)
+- [ ] `validateLabelPrefix` rejects empty / whitespace / out-of-charset values with exit 2 naming the value and rule, at `config get`, `config set`, and `config init`.
+- [ ] A valid custom prefix (e.g. `sd`, `commissaire`) passes all three seams.
+
+### From HOW (decoupling)
+- [ ] The `bundle.js` claim-store `provenance` sentinel remains the fixed literal `"faff-claimed"` and is unaffected by `tracking.label_prefix`; claim fencing selftests pass unchanged.
+
+### From HOW (migration policy)
+- [ ] Documentation states that changing `tracking.label_prefix` on a repo with live tickets is a coordinated human relabel (no faff migration mechanism in v1), and the read-both window / `faff labels migrate` are noted as deferred.
+
+### From HOW (docs sweep)
+- [ ] The gateway Control-label-provisioning section documents `tracking.label_prefix`; sibling `SKILL.md` control-label mentions name the label by role/concept or show the default with the config pointer.
+
+### Selftests
+- [ ] `configSetSelftest` (namespace/example-drift), `config` get/set/init selftests, and the `labels`, `eligible`, and `intake-provenance` selftests pass — the default-prefix cases byte-identical, new cases covering a non-default prefix.
+
+**Integration smoke test:**
+
+```
+1. `faff labels --names`                                   → nine faff-* names
+2. `faff config set tracking.label_prefix sd` (in a temp repo) ; `faff labels --names` → nine sd-* names
+3. `faff eligible --label sd-automate --tracker present`    → true
+4. `faff config set tracking.label_prefix "bad prefix"`    → exit 2, names the value + rule
+```
+
+## Methodology critique
+
+_Methodology: faffter-dark-methodology-agile-delivery (issue-critique)._
+
+- **Right-sized?** One cohesive 1–3 day unit. The pieces — config default, manifest factory, validator, three read-site conversions, docs sweep — are not independent concerns; each is meaningless without the others and they always ship together. Do **not** split. The docs sweep is the softest slice but rides the same PR as the code it documents.
+- **Workstream fit?** Fits the adoptability outcome (making faff land cleanly on someone else's board). Outcome-named and cohesive.
+- **Deps surfaced?** No hard blocker. FAFF-1043 (retire the bridge labels) and FAFF-223 (intake provenance) are `relatedTo`, not blocking, and the ticket states independence explicitly. One coordination note: FAFF-1043 edits the same files (`labels.js`, `intake-provenance.js`), so whichever lands second rebases onto the other — a merge-order consideration for conflict analysis, not a dependency edge.
+- **Risk profile?** Low. The change mirrors established patterns (the `validateGitHostValue` validator, the `tracker_owned`-flag-not-name precedent). The one real risk — a silent mass eligibility flip when the prefix changes on a live repo — is addressed by the migration decision (§6) as documentation, not code. No de-risking spike needed.
+
+confidence: high
+spec-review: approve
+build-tier: complex
+
+```faff-contract:spec-readiness
+{ "confidence": "high",
+  "decisions": [
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "assumes" }
+  ] }
+```

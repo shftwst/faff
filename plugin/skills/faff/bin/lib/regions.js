@@ -432,7 +432,7 @@ const REGION_SELFTEST_ARGV = {
   "merge-fence": ["merge-fence", "--selftest"],
   "background-fence": ["background-fence", "--selftest"],
   "validate-adapters": null,
-  "labels": null,
+  "labels": ["labels", "--selftest"],
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
   "claim-verdict": ["claim-verdict", "--selftest"],

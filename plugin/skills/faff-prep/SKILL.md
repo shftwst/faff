@@ -404,6 +404,14 @@ The explore subagent's dispatch resolves the per-lane model: `faff config get mo
 
 **Step 1b: Architecture proposal (conditional).** Run the shared **Architecture proposal step** (above) on the issue + explore findings. On most issues the trigger does not fire and prep proceeds exactly as today; when it fires, the validated proposal block becomes spec-producer input carried verbatim into the spec.
 
+**Step 1c: Premise scan.** Run the shared **already-shipped scan + premise-superseded gate** subroutine (below), substituting the issue + Step 1 explore findings for "the candidate spec" as the surface-area source — no spec exists yet at this point. Route on the gate's outcome:
+
+- **Premise still holds** — proceed to Step 2 with no prompt and no gate (the common path stays frictionless); carry forward any related-but-not-superseding findings so the produced spec still gets its `## Already shipped against this surface` section.
+- **Substantially delivered** — surface the matched surface area and at least one cited Done ticket ID, then apply the **Interactive park resolution (surface, don't settle)** rule: require an explicit human choice of **scrap** (on confirm, close the issue as superseded, citing the Done tickets — never auto-close), **narrow** (continue to Step 2 on the reduced scope), or **proceed** (continue to Step 2 unchanged).
+- **Partially delivered** — surface the finding + cited Done IDs with a narrow-to-the-delta recommendation, offering the same scrap / narrow / proceed choice.
+
+A narrow or proceed choice carries the findings section forward into the Step-2 spec. This is the interactive third call site of the subroutine below, alongside autonomous Path 1 / Path 2 — the same scan, never a second one; only the disposition differs (human-confirm here, auto-park there).
+
 **Step 2: Spec** (delegated to the `spec` slot)
 
 **Dispatch the configured `spec` slot** (resolve `faff config get slots.spec`) **as a producer subagent** (gateway → **Sibling-skill invocation → Producer dispatch**, resolving `models.spec`) with the issue context and explore findings. The producer runs its own clean-context self-review (in-context when it is itself a subagent — single-level nesting) and returns the spec body, that review's findings, and a `confidence:` self-rating as its **tool result**. Read its returned output, attach the content to the issue as a comment, and clean up any local file the producer wrote.
@@ -517,7 +525,7 @@ Two allowed auto-spec paths. Both invoke the shared subroutine documented immedi
 
 ### Shared subroutine: already-shipped scan + premise-superseded gate
 
-Both autonomous paths invoke this subroutine at the explicit step boundary documented in their sections. The subroutine asks: *given Done sibling tickets in the same project, is this spec's premise still load-bearing?* The answer routes the spec down park / narrow / proceed.
+Both autonomous paths, plus interactive Scenario A's Step 1c, invoke this subroutine at the explicit step boundary documented in their sections. The subroutine asks: *given Done sibling tickets in the same project, is this ticket's premise still load-bearing?* The answer routes down park / narrow / proceed — each caller supplies its own surface-area source (a produced spec autonomously, explore findings + issue interactively) and its own disposition per outcome (auto-park autonomously, human-confirm interactively per Scenario A's Step 1c above).
 
 **1. Already-shipped scan.** Four steps:
 

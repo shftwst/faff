@@ -12,6 +12,7 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       # Open the release PR under a PAT, not the default GITHUB_TOKEN. Events
       # raised by GITHUB_TOKEN never trigger other workflows (GitHub's recursion

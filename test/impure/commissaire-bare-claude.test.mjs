@@ -498,6 +498,59 @@ test("Complete without block: zero prior hook observations exits 1", () => {
   assert.strictEqual(r.status, 1);
 });
 
+// FAFF-1029 — Claude Code's stop-hook continuation loop re-fires Stop on every `decision: block`
+// until an internal cap, so one real incomplete turn drives this wrapper many times for the same
+// block decision. Simulate that loop directly against a prepared (incomplete) run and assert the
+// fold: at most one observation per (run_id, result), the first firing forwards the real decision,
+// and every later duplicate firing is silent (no stdout, no new line) — which is what lets the
+// wrapper produce an honest [block, allow] pair from a real multi-firing session.
+test("Fold: repeated block firings for one run_id collapse to a single observation, and complete() accepts it", () => {
+  const driver = provisionDriver(EXPECTED);
+  const sut = scaffold(driver);
+  assert.strictEqual(runPhase(sut, ["prepare"], { driver, rev: EXPECTED }).status, 0);
+  const runId = pointer(sut).run_id;
+
+  // First firing: real, forwards the block, records ordinal 1.
+  const first = runWrapper(sut, { hook_event_name: "Stop" });
+  assert.strictEqual(first.status, 0);
+  const firstDecision = JSON.parse(first.stdout);
+  assert.strictEqual(firstDecision.decision, "block");
+
+  // Simulate the continuation loop: several more Stop firings for the same incomplete run.
+  for (let i = 0; i < 4; i++) {
+    const dup = runWrapper(sut, { hook_event_name: "Stop" });
+    assert.strictEqual(dup.status, 0);
+    assert.strictEqual(dup.stdout, "", "a folded duplicate block firing must emit no stdout (loop broken)");
+  }
+
+  const blockLines = hookLines(sut).filter((l) => l.run_id === runId);
+  assert.strictEqual(blockLines.length, 1, "exactly one block observation for the run_id");
+  assert.strictEqual(blockLines[0].result, "block");
+  assert.strictEqual(blockLines[0].ordinal, 1);
+
+  // complete()'s one-prior-block gate accepts the single recorded block.
+  const c = runPhase(sut, ["complete"], { driver, rev: EXPECTED });
+  assert.strictEqual(c.status, 0, `complete: ${c.stderr}`);
+
+  // After complete(), the first allow firing records ordinal 2; a further duplicate allow firing
+  // folds the same way, leaving the store at exactly [block, allow] for the run_id.
+  const allow1 = runWrapper(sut, { hook_event_name: "Stop" });
+  assert.strictEqual(allow1.status, 0);
+  assert.strictEqual(allow1.stdout, "");
+  const allow2 = runWrapper(sut, { hook_event_name: "Stop" });
+  assert.strictEqual(allow2.status, 0);
+  assert.strictEqual(allow2.stdout, "");
+
+  const finalLines = hookLines(sut).filter((l) => l.run_id === runId);
+  assert.strictEqual(finalLines.length, 2, "store holds exactly [block, allow] for the run_id");
+  assert.deepStrictEqual(finalLines.map((l) => l.result), ["block", "allow"]);
+  assert.deepStrictEqual(finalLines.map((l) => l.ordinal), [1, 2]);
+
+  // The fold-produced pair passes verify exactly as a two-firing pair would.
+  const v = runPhase(sut, ["verify", "--capture", freshCap()], { driver, rev: EXPECTED });
+  assert.strictEqual(v.status, 0, `verify: ${v.stderr}`);
+});
+
 test("Stale hook store: a stale ordinal-1 block line before prepare is truncated; full ci still exits 0", () => {
   const driver = provisionDriver(EXPECTED);
   const sut = scaffold(driver);

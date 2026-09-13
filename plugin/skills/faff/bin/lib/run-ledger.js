@@ -83,7 +83,14 @@ function applyTerminalOutcome(ledger, issue, outcome, nowIso) {
   ledger.outcomes[issue] = outcome;
   ledger.owner = (ledger.owner && typeof ledger.owner === "object") ? ledger.owner : {};
   const admitted = Array.isArray(ledger.admitted) ? [...new Set(ledger.admitted)] : [];
-  const undispatched = admitted.filter((i) => !(i in ledger.outcomes));
+  // Object.hasOwn (NOT the `in` operator, and NOT runcheck.js's own `!(i in outcomes)` —
+  // a pre-existing, separately-tracked defect there, out of scope for this fix) — `in`
+  // walks the prototype chain, so an admitted id that collides with an inherited
+  // Object.prototype key ("constructor", "toString", "hasOwnProperty", …) would read as
+  // already-dispatched even with zero recorded outcomes for it, wrongly draining the
+  // queue and flipping owner.status to "done" while that item was never actually
+  // recorded (caught by adversarial review, FAFF-1024).
+  const undispatched = admitted.filter((i) => !Object.hasOwn(ledger.outcomes, i));
   const drained = undispatched.length === 0;
   if (drained) {
     ledger.owner.status = "done"; // last outcome / queue complete — never invented otherwise
@@ -398,6 +405,14 @@ function runLedgerSelftest() {
   ok("duplicate admitted entry does not miscount drain state (still running — B outstanding)", dupedAdmitted.owner.status === "running");
   const dupedAdmittedDrained = applyTerminalOutcome({ admitted: ["A", "A", "B"], outcomes: { A: "shipped" }, owner: { status: "running" } }, "B", "shipped", nowIso);
   ok("duplicate admitted entry: draining the deduped set flips owner to done", dupedAdmittedDrained.owner.status === "done");
+
+  // --- FAFF-1024 (adversarial finding): an admitted id colliding with an inherited
+  // Object.prototype key must NOT read as already-dispatched via the `in` operator's
+  // prototype-chain walk — own-key check only (Object.hasOwn).
+  const protoCollision = applyTerminalOutcome({ admitted: ["A", "constructor"], outcomes: {}, owner: { status: "running" } }, "A", "shipped", nowIso);
+  ok("admitted id 'constructor' (Object.prototype key) is NOT treated as already-dispatched — owner stays running", protoCollision.owner.status === "running");
+  const protoCollisionDrained = applyTerminalOutcome({ admitted: ["A", "constructor"], outcomes: { A: "shipped" }, owner: { status: "running" } }, "constructor", "shipped", nowIso);
+  ok("recording the 'constructor' id itself correctly drains the queue", protoCollisionDrained.owner.status === "done" && Object.hasOwn(protoCollisionDrained.outcomes, "constructor"));
 
   // --- real mint into a tmp dir → genesis chain verifies (basename==run_id ⇒ prev=SHA256(run_id)) ---
   let tmp = null;

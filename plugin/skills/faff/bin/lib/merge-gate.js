@@ -1601,6 +1601,11 @@ function mergeGateSelftest() {
   check("head checks: mixed success + skipped → ci-green (FAFF-366)", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }, { status: "completed", conclusion: "skipped" }], null, 0) === "ci-green");
   // real legacy status still honoured when it genuinely exists (count>0)
   check("head checks: legacy pending with count>0 → indeterminate", classifyHeadShaChecks([], "pending", 2) === "indeterminate");
+  // FAFF-1035 (AC6): a job ended by its own timeout-minutes bound is TERMINAL for the merge
+  // observer, not another pending row — cancelled/timed_out are already in the FAIL set above;
+  // these two are a regression-lock, not a code change.
+  check("head checks: completed/cancelled → ci-red (FAFF-1035)", classifyHeadShaChecks([{ status: "completed", conclusion: "cancelled" }], null, 0) === "ci-red");
+  check("head checks: completed/timed_out → ci-red (FAFF-1035)", classifyHeadShaChecks([{ status: "completed", conclusion: "timed_out" }], null, 0) === "ci-red");
   // parseMergeArgs
   check("merge-args: allowed pass through", (() => { const p = parseMergeArgs("--squash --delete-branch"); return p.flags.length === 2 && p.rejected.length === 0; })());
   check("merge-args: unknown token rejected", parseMergeArgs("--squash; rm -rf /").rejected.length > 0);

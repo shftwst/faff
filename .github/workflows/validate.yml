@@ -23,6 +23,7 @@ jobs:
     # single-run baseline.
     needs: [unit]
     if: ${{ !cancelled() }}
+    timeout-minutes: 15
     steps:
       - name: Require every unit test shard to have passed (gate the sharded suite through this required check)
         run: |
@@ -148,6 +149,7 @@ jobs:
   # no longer sweeps them in (they are not maintained suite members).
   unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false          # one red shard must not cancel the other shards' signal
       matrix:
@@ -190,6 +192,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     if: always()
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -228,6 +231,7 @@ jobs:
   # can't see (the glob can still match a file whose tests all bail out).
   validate-macos:
     runs-on: macos-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -270,6 +274,7 @@ jobs:
   # a rootless-setup failure fails the job loudly (setup fault, distinct from a test failure).
   env-rootless:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 

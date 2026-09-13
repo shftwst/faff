@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1027",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f554d243807b13ce750d9db1afe287b3452a555e36fa95cf20393a5d8fa540a9",
+    "branch": "faff-1027-governed-pipeline-delegation-is-unenforceable-a-hand-rolled",
+    "pushed_at": "2026-09-13T04:58:23.917Z"
+  },
+  "updated_at": "2026-09-13T04:58:23.917Z"
+}

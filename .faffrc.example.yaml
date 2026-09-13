@@ -256,7 +256,8 @@ gates:
 # already enforces the convention (gate beats style, never re-inferred) > history-inferred
 # (above history_dominance, over a >=20-sample floor) > the faff default shown below. All keys
 # optional — set only to force a value the discovery pass would not otherwise reach; a repo
-# with no docs and no clear history behaves byte-identically to today with this block absent.
+# with no docs and no clear history resolves every convention to the same value as today's
+# hardcoded default (with this block absent) — no regression to what actually gets built.
 conventions:
   branch_naming: issue-slug        # issue-slug (default, "<issue>-<slug>") | slash-scoped | tracker-hint
   commit_subject: conventional     # conventional (default, "<type>(<scope>): <subject>") | bare-imperative

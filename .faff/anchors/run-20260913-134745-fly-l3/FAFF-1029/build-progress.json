@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1029",
+  "build": {
+    "status": "complete",
+    "diff_hash": "627b2c57be873d3ac6c43be873bff22db8543ca0e4315620ebe6a6fc90babfd3",
+    "branch": "faff-1029-bare-claude-harness-fold-multiple-same-turn-stop-firings-to",
+    "pushed_at": "2026-09-13T17:42:55.339Z"
+  },
+  "updated_at": "2026-09-13T17:42:55.339Z"
+}

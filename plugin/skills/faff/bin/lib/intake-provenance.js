@@ -25,7 +25,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { DEFAULTS, loadConfig } = require("./config");
+const { DEFAULTS, loadConfig, resolveLabelPrefix } = require("./config");
 const { dig, findRoot } = require("./shared-infra");
 
 const PROVENANCE_SCHEMA = 2;            // FAFF-220: bump 1→2 — record gains the optional `initiated` audit field.
@@ -62,15 +62,18 @@ const INTAKE_GATE_MODES = new Set(["warn", "block", "off"]);
 // NO warn — FAFF-218 makes it trustworthy by construction. TRUST DEPENDENCY: this basis is
 // sound ONLY while FAFF-218's write-abstention holds; if `faff-automate` ever became CLI-
 // writable again, it would be agent-spoofable (the FAFF-209 failure the marker was built for).
-function intakeVerdict(marker, labels, mode) {
+// FAFF-1044: `prefix` is the resolved tracking.label_prefix, threaded as a trailing
+// defaulted argument — intakeVerdict stays PURE (no config read); the command layer
+// (cmdIntakecheck below) resolves the prefix once and passes it.
+function intakeVerdict(marker, labels, mode, prefix = "faff") {
   if (mode === "off") return { satisfied: true, basis: "gate-off" };
   const via = marker && marker.intake && marker.intake.via;
   if (INTAKE_VIA.has(via)) return { satisfied: true, basis: via };
   const labelSet = new Set(labels);
-  if (labelSet.has("faff-jot-intake")) {
+  if (labelSet.has(`${prefix}-jot-intake`)) {
     return { satisfied: true, basis: "grandfathered-label", warn: true };
   }
-  if (labelSet.has("faff-automate")) {
+  if (labelSet.has(`${prefix}-automate`)) {
     return { satisfied: true, basis: "eligibility-gesture" };
   }
   return { satisfied: false, basis: "no-provenance" };
@@ -198,8 +201,13 @@ function cmdIntakecheck(args) {
   const labelsArg = flags["--labels"];
   const labels = typeof labelsArg === "string" ? labelsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const mode = resolveIntakeGate(root);
+  // FAFF-1044: cmdIntakecheck is the command layer — resolve the configured prefix once
+  // (fail loud on a malformed value, same as `config get`) and thread it into the pure
+  // intakeVerdict. Unset config ⇒ "faff", byte-identical zero-config.
+  const resolvedPrefix = resolveLabelPrefix(root);
+  if (resolvedPrefix.error) { process.stderr.write(resolvedPrefix.error + "\n"); return 2; }
   const { marker, malformed } = readProvenanceMarker(root, issue);
-  const v = intakeVerdict(marker, labels, mode);
+  const v = intakeVerdict(marker, labels, mode, resolvedPrefix.prefix);
   // The interactive bypass only ever changes the block-mode unsatisfied case — model it as a
   // single exit decision so the [warn] notice and exit code can never disagree (intakeExit
   // is the shared truth, also driven by the paired selftest).
@@ -347,6 +355,16 @@ function intakeExit(v, mode, interactive = false) {
   return mode === "block" ? 3 : 0;
 }
 
+// FAFF-1044: a configured non-default prefix resolves jot-intake/automate by role against
+// THAT prefix — a default-prefix "faff-jot-intake"/"faff-automate" label does NOT satisfy
+// under a custom prefix (no cross-prefix fallback), matching eligible.js's identical rule.
+// Tuple: [labels, prefix, want-basis].
+const INTAKE_PREFIX_SELFTEST_CASES = [
+  [["sd-jot-intake"], "sd", "grandfathered-label"],
+  [["sd-automate"], "sd", "eligibility-gesture"],
+  [["faff-jot-intake"], "sd", "no-provenance"],   // default-prefix label doesn't satisfy under "sd"
+];
+
 function intakecheckSelftest() {
   let fail = 0;
   for (const [marker, labels, mode, want, interactive = false] of INTAKECHECK_SELFTEST_CASES) {
@@ -357,7 +375,14 @@ function intakecheckSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} via=${marker && marker.intake && marker.intake.via} labels=[${labels.join(",")}] mode=${mode}${interactive ? " --interactive" : ""} → ${JSON.stringify(got)}${ok ? "" : ` (want ${JSON.stringify(want)})`}`);
   }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${INTAKECHECK_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  for (const [labels, prefix, wantBasis] of INTAKE_PREFIX_SELFTEST_CASES) {
+    const v = intakeVerdict(null, labels, "block", prefix);
+    const ok = v.basis === wantBasis;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} labels=[${labels.join(",")}] prefix=${prefix} → basis=${v.basis}${ok ? "" : ` (want ${wantBasis})`}`);
+  }
+  const total = INTAKECHECK_SELFTEST_CASES.length + INTAKE_PREFIX_SELFTEST_CASES.length;
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -428,4 +453,4 @@ function initiatedOfSelftest() {
 }
 
 
-module.exports = { INITIATED_MODE, INITIATED_OF_SELFTEST_CASES, INTAKECHECK_SELFTEST_CASES, INTAKE_GATE_MODES, INTAKE_RECORD_SELFTEST_CASES, INTAKE_VALUE_FLAGS, INTAKE_VIA, PROVENANCE_SCHEMA, cmdIntakeRecord, cmdIntakecheck, initiatedOf, initiatedOfSelftest, intakeExit, intakeGuidance, intakeRecordSelftest, intakeVerdict, intakecheckSelftest, interactiveBypassNotice, parseIntakeArgs, provenancePath, readProvenanceMarker, resolveIntakeGate, validateIntakeRecord };
+module.exports = { INITIATED_MODE, INITIATED_OF_SELFTEST_CASES, INTAKECHECK_SELFTEST_CASES, INTAKE_GATE_MODES, INTAKE_PREFIX_SELFTEST_CASES, INTAKE_RECORD_SELFTEST_CASES, INTAKE_VALUE_FLAGS, INTAKE_VIA, PROVENANCE_SCHEMA, cmdIntakeRecord, cmdIntakecheck, initiatedOf, initiatedOfSelftest, intakeExit, intakeGuidance, intakeRecordSelftest, intakeVerdict, intakecheckSelftest, interactiveBypassNotice, parseIntakeArgs, provenancePath, readProvenanceMarker, resolveIntakeGate, validateIntakeRecord };

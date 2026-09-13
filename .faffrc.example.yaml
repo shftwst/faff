@@ -32,6 +32,15 @@ tracking:
   repo: org/repo # org/repo slug
   git_host: github # github — the only supported host (the merge gate is GitHub-only; may be left unset)
 
+  # The prefix rendered onto every faff control label (faff-automate, faff-parked, …
+  # see gateway -> Control-label provisioning for the full set). Default "faff" keeps
+  # zero-config behaviour byte-identical; set this to fit an existing house label
+  # scheme (e.g. "sd", "commissaire"). Non-empty, no whitespace, conservative charset —
+  # a bad value fails loud at read/write/init. Changing it on a repo with LIVE tickets
+  # is a coordinated human relabel (faff persists no prior value, ships no migration
+  # tooling in v1) — see the FAFF-1044 ADR.
+  label_prefix: faff
+
   # Repository record stores. Each path is relative to the repo root. Defaults stay under
   # docs/ (or doc/ when that is the repository's established documentation directory).
   spec_docs_path: docs/specs/ # where /faff-graft commits the build spec

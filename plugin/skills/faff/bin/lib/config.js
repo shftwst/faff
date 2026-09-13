@@ -92,6 +92,14 @@ const DEFAULTS = {
   // yanks live work; 6h sits well above a typical build while clearing a genuinely crashed
   // claim within a working session. Operators raise it above their longest observed build.
   "claim_ttl_hours": "6",
+  // FAFF-1044: the control-label prefix. Every control label's rendered name is
+  // `<label_prefix>-<role>` (see `controlLabels` in labels.js) — the default keeps
+  // zero-config behaviour byte-identical to the historical hardcoded `faff-*` names.
+  // Validated by validateLabelPrefix at get/set/init (a bad value fails loud, never a
+  // half-valid label). Changing this on a repo with live tickets is a coordinated
+  // human relabel — faff persists no prior value and ships no migration tooling (ADR
+  // "Control-label prefix is set-at-adoption").
+  "tracking.label_prefix": "faff",
   "appetite": "high",
   // FAFF-877: the bounded milestone-tick cadence a dispatched producer subagent (plot
   // decompose, a prep spec producer) MUST honour when ticking `faff heartbeat <run_dir>`
@@ -517,6 +525,31 @@ function validateGitHostValue(key, value) {
   return `config get ${key}: invalid host "${value}" — faff's merge floor is GitHub-only; legal set: ${GIT_HOST_ALLOWLIST.join(" | ")} (or leave it unset)`;
 }
 
+// FAFF-1044: `tracking.label_prefix` becomes part of every control-label's rendered
+// tracker name, so it is constrained to a conservative charset — non-empty, no
+// whitespace, no leading/trailing separator — and fails LOUD (never a silent
+// half-valid label), mirroring validateGitHostValue's exact shape/chain-sites.
+const LABEL_PREFIX_RE = /^[A-Za-z0-9]([A-Za-z0-9_-]*[A-Za-z0-9])?$/;
+function validateLabelPrefix(key, value) {
+  if (key !== "tracking.label_prefix") return null;
+  if (LABEL_PREFIX_RE.test(value)) return null;
+  return `config get ${key}: invalid label prefix "${value}" — must be non-empty, no whitespace, and match ${LABEL_PREFIX_RE} (or leave it unset)`;
+}
+
+// FAFF-1044: the single resolver every control-label read-site's command layer calls
+// (labels.js's cmdLabels, label.js's cmdLabel, eligible.js's cmdEligible, next.js's
+// cmdNext, intake-provenance.js's cmdIntakecheck) — never a hand-rolled `dig` + default
+// per site. Returns { prefix } on a valid (or unset→default) value, or { error } on a
+// malformed configured value (the caller surfaces it and exits 2, same as `config get`).
+function resolveLabelPrefix(root, data) {
+  const cfg = data || loadConfig(root)[0];
+  const raw = dig(cfg, "tracking.label_prefix");
+  const value = raw === null || raw === undefined ? DEFAULTS["tracking.label_prefix"] : fmt(raw);
+  const err = validateLabelPrefix("tracking.label_prefix", value);
+  if (err) return { error: err };
+  return { prefix: value };
+}
+
 // FAFF-859: closed value vocabulary for the two lane-isolation DECLARED-field axes. The two axes
 // are ORTHOGONAL (container = containment, host = locality); each is its own closed-vocab scalar,
 // keyed on the full dotted path — the models.<lane> / effort.<lane> shape, not a co-constrained
@@ -673,6 +706,7 @@ const TRACKING_KEYS = [
   "tracking.prdr_docs_path",
   "tracking.adr_docs_path",
   "tracking.spike_docs_path",
+  "tracking.label_prefix",
 ];
 const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
 
@@ -833,7 +867,10 @@ function cmdConfigInit(args, root) {
     // refuse reading it back (adversarial review finding, FAFF-430) — a write/read parity gap
     // would otherwise let `--set tracking.git_host=` succeed and then immediately fail loud on
     // the very next `config get`.
-    const hostErr = validateGitHostValue(fq, value);
+    // FAFF-1044: same read⇒write parity belt as git_host — a label-prefix value that would
+    // fail loud at read is refused at write, so `--set tracking.label_prefix=` (or any
+    // out-of-charset value) can never write-then-fail-on-next-read.
+    const hostErr = validateGitHostValue(fq, value) || validateLabelPrefix(fq, value);
     if (hostErr) { process.stderr.write(hostErr + "\n"); return 2; }
     const leaf = fq.slice("tracking.".length);
     if (leaf in seen && seen[leaf] !== value) {
@@ -1132,7 +1169,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateIsolationLane(key, value);
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const canonicalPath = path.join(root, CANONICAL_CONFIG);
@@ -2305,7 +2342,7 @@ function cmdConfig(args) {
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
       // fails loud here too, never a silently GitHub-shaped merge gate.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateIsolationLane(key, fmt(value));
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateIsolationLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
@@ -2748,4 +2785,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };

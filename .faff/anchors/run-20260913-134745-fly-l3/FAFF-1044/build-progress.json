@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1044",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e2c05d19629327f73df291f11dedaa3b719d354a382c4e2b3162c5a359fa4a8f",
+    "branch": "faff-1044-make-the-control-label-prefix-configurable",
+    "pushed_at": "2026-09-13T16:53:26.644Z"
+  },
+  "updated_at": "2026-09-13T16:53:26.644Z"
+}

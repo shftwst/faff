@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1021",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0a8e56d4045eeff386ca1c5c64ad88c16f840adfa71f107d2c4aef3884dec088",
+    "branch": "faff-1021-run-the-already-shipped-premise-superseded-scan-in",
+    "pushed_at": "2026-09-13T23:33:09.336Z"
+  },
+  "updated_at": "2026-09-13T23:33:09.336Z"
+}

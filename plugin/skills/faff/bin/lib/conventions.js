@@ -363,9 +363,14 @@ function resolveConvention(root, key, cfg) {
 
 // Pure, deterministic, read-only mine — the default `conventions` acquirer. Writes no files;
 // the orchestrator (faff-graft) validates the emitted block and persists .faff/conventions.json.
+// Resolves commit_subject once and hands its result straight to resolvePrTitle rather than
+// going through resolveConvention("pr_title", …) — which would independently re-resolve
+// commit_subject a second time (a duplicate doc scan + `git log` subprocess per `mine` call).
 function mineConventions(root, cfg) {
   const set = { schema: 1, generated_at: new Date().toISOString() };
-  for (const key of CONVENTIONS_KEYS) set[key] = resolveConvention(root, key, cfg);
+  set.branch_naming = resolveConvention(root, "branch_naming", cfg);
+  set.commit_subject = resolveConvention(root, "commit_subject", cfg);
+  set.pr_title = resolvePrTitle(root, cfg, set.commit_subject);
   return set;
 }
 

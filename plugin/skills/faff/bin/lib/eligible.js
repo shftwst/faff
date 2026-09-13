@@ -124,7 +124,7 @@ const ELIGIBLE_SPEC = {
     "--root": { arity: 1 },
   },
 };
-const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default opt-in|opt-out] [--tracker present|absent]";
+const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default opt-in|opt-out] [--tracker present|absent] [--root DIR]";
 
 function cmdEligible(args) {
   if (args.includes("--selftest")) return eligibleSelftest();

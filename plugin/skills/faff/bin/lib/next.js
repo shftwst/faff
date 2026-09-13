@@ -22,7 +22,7 @@ const NEXT_SPEC = {
     "--root": { arity: 1 },
   },
 };
-const NEXT_USAGE = "usage: faff next --status STATUS --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible] [--awaiting-spec-review]";
+const NEXT_USAGE = "usage: faff next --status STATUS --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible] [--awaiting-spec-review] [--root DIR]";
 
 const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
 // FAFF-484: the single terminal-state set (the one definition of "terminal" in the normalised-status

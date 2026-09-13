@@ -46,13 +46,50 @@ function controlLabels(prefix = "faff") {
   return CONTROL_LABEL_DEFS.map((l) => ({ ...l, name: `${prefix}-${l.role}` }));
 }
 
+// FAFF-1044: a direct unit test for controlLabels(prefix) itself — the default-prefix
+// case must be byte-identical to the historical nine faff-* names (zero-config), and a
+// custom prefix must derive the role-mapped rendered name while color/tracker_owned/
+// description pass through unchanged per entry.
+const LABELS_SELFTEST_CASES = [
+  // [prefix, expectedNames] — role/color/tracker_owned/description checked structurally below
+  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-jot-intake", "faff-chain-gap-fill", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed"]],
+  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-jot-intake", "sd-chain-gap-fill", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed"]],
+];
+
+function labelsSelftest() {
+  let fail = 0;
+  for (const [prefix, wantNames] of LABELS_SELFTEST_CASES) {
+    const labels = controlLabels(prefix);
+    const gotNames = labels.map((l) => l.name);
+    const namesOk = JSON.stringify(gotNames) === JSON.stringify(wantNames);
+    if (!namesOk) fail++;
+    console.log(`${namesOk ? "ok  " : "FAIL"} controlLabels(${JSON.stringify(prefix)}) names → ${JSON.stringify(gotNames)}${namesOk ? "" : ` (want ${JSON.stringify(wantNames)})`}`);
+    // role/color/tracker_owned/description pass through unchanged per entry, and role is
+    // present and prefix-independent (name === `${prefix}-${role}` for every entry).
+    let entriesOk = true;
+    for (let i = 0; i < labels.length; i++) {
+      const l = labels[i];
+      const def = CONTROL_LABEL_DEFS[i];
+      if (l.role !== def.role || l.color !== def.color || !!l.tracker_owned !== !!def.tracker_owned || l.description !== def.description || l.name !== `${prefix}-${l.role}`) {
+        entriesOk = false;
+      }
+    }
+    if (!entriesOk) fail++;
+    console.log(`${entriesOk ? "ok  " : "FAIL"} controlLabels(${JSON.stringify(prefix)}) role/color/tracker_owned/description pass through unchanged, name === \`\${prefix}-\${role}\``);
+  }
+  const total = LABELS_SELFTEST_CASES.length * 2;
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 const { parseArgs, usageError } = require("./argv");
 const { findRoot } = require("./shared-infra");
-const LABELS_SPEC = { flags: { "--names": { arity: 0 }, "--root": { arity: 1 } } };
+const LABELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--names": { arity: 0 }, "--root": { arity: 1 } } };
 
 function cmdLabels(args) {
+  if (args.includes("--selftest")) return labelsSelftest();
   const { values, errors } = parseArgs(args, LABELS_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff labels [--names]");
+  if (errors.length) return usageError(errors, "usage: faff labels [--names] [--root DIR]");
   // FAFF-1044: cmdLabels is the CLI command layer — it resolves the configured prefix
   // itself (config.js's resolveLabelPrefix is the single resolver every control-label
   // command layer calls). A malformed configured prefix fails loud, same as `config get`.
@@ -70,4 +107,4 @@ function cmdLabels(args) {
 }
 
 
-module.exports = { CONTROL_LABEL_DEFS, cmdLabels, controlLabels };
+module.exports = { CONTROL_LABEL_DEFS, LABELS_SELFTEST_CASES, cmdLabels, controlLabels, labelsSelftest };

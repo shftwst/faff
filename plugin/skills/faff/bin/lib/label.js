@@ -128,7 +128,7 @@ function labelSelftest() {
 function cmdLabel(args) {
   if (args.includes("--selftest")) return labelSelftest();
   const { values, positionals, errors } = parseArgs(args, LABEL_SPEC);
-  if (errors.length) return usageError(errors, "faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...]");
+  if (errors.length) return usageError(errors, "faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...] [--root DIR]");
   const action = positionals[0];
   if (action !== "add" && action !== "remove") {
     process.stderr.write("faff label: action must be add|remove\n");
@@ -137,7 +137,7 @@ function cmdLabel(args) {
   const issue = positionals[1];
   const label = positionals[2];
   if (!issue || !label) {
-    process.stderr.write("faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...]\n");
+    process.stderr.write("faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...] [--root DIR]\n");
     return 2;
   }
   // FAFF-1044: cmdLabel is the CLI command layer — resolve the configured prefix (fail

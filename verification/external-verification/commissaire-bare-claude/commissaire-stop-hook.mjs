@@ -149,18 +149,39 @@ function main() {
     }
   }
 
-  // 8. derive the per-run_id ordinal and append the observation (never into the run directory).
+  // 8. derive the per-run_id ordinal and fold: at most one observation per (run_id, result).
+  //
+  // Claude Code's stop-hook continuation loop re-fires Stop on every `decision: block` until an
+  // internal cap, so one real turn can drive this wrapper ~10 times for the same block decision.
+  // Without folding, that writes ~10 duplicate "block" observations instead of one and the
+  // verifier's exactly-two-observations gate can never be satisfied by a real session (FAFF-1029).
+  // The pointer state machine (prepared -> completed, one-way) guarantees every pre-complete()
+  // firing is "block" and every post-complete() firing is "allow", so (run_id, result) is exactly
+  // (session, turn) here — a firing whose (run_id, result) already exists in the store is a
+  // duplicate firing of the same turn, not a new observation.
   const result = rcDecision && rcDecision.decision === "block" ? "block" : "allow";
   let existing = 0;
+  let resultAlreadyRecorded = false;
   if (fs.existsSync(HOOK_STORE)) {
     for (const line of fs.readFileSync(HOOK_STORE, "utf8").split("\n")) {
       if (!line.trim()) continue;
       try {
-        if (JSON.parse(line).run_id === runId) existing++;
+        const parsed = JSON.parse(line);
+        if (parsed.run_id === runId) {
+          existing++;
+          if (parsed.result === result) resultAlreadyRecorded = true;
+        }
       } catch {
         /* ignore */
       }
     }
+  }
+  if (resultAlreadyRecorded) {
+    // Duplicate firing of the same turn: record nothing, and never re-forward a duplicate block —
+    // a silent allow here breaks Claude Code's continuation loop right after the first real block.
+    // The first, real firing of this turn already recorded the observation and forwarded the
+    // decision (below, on an earlier invocation); this fold is honest, not a downgrade of it.
+    return silentAllow();
   }
   const observation = {
     schema: 2,

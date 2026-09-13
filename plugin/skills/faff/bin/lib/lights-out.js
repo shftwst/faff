@@ -50,15 +50,42 @@ const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
 const { dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
 
+// FAFF-1027 — TWO static axes, not one. `enforced` says a shipped pipeline step INVOKES this
+// guardrail's contract. `rechecked` says a DETERMINISTIC GATE INDEPENDENTLY REFUSES when this
+// guardrail's evidence is absent or unreadable. Both are properties of the shipped source, true
+// before a run starts and equally true of a run that did no work; NEITHER is evidence that a
+// guardrail ran. They differ because a guardrail can be genuinely invoked and still leave nothing
+// any later gate re-reads — which is the asymmetry the banner used to hide behind one word.
+// Every `rechecked: true` names the call site that earns it; every `false` names what is missing.
+// The map is 2 of 8, and that number is the honest headline: six guardrails the banner calls
+// `enforced` have no deterministic gate that refuses when their evidence is missing.
 const LIGHTS_OUT_GUARDRAILS = [
-  { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible", enforced: true },
-  { id: "spec_review",   contract: "faff contract spec-review-verdict",     probe: "contract",   enforced: true },
-  { id: "terminating",   contract: "faff run-done",                         probe: "run-done",   enforced: true },
-  { id: "budget",        contract: "faff budget check",                     probe: "budget",     enforced: true },
-  { id: "observability", contract: "faff events",                           probe: "events",     enforced: true },
-  { id: "kill_switch",   contract: "faff sentry check",                     probe: "sentry",     enforced: true },
-  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout",    enforced: true },
-  { id: "container",     contract: "faff container-check",                  probe: null,         enforced: true },
+  // No artifact a later gate re-reads: `faff admissible --lights-out` gates ADMISSION at
+  // beep-boop step 4 (graft Step-2 backstop) and persists nothing to refuse on afterwards.
+  { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible", enforced: true,  rechecked: false },
+  // No downstream mechanical re-check exists anywhere. Its only durable trace is a MUTABLE
+  // `spec-review: approve` text line on the spec body — prose, not a gate input.
+  { id: "spec_review",   contract: "faff contract spec-review-verdict",     probe: "contract",   enforced: true,  rechecked: false },
+  // Consulted at the wave boundary, persists no artifact; run-done.js's omitted-input branch
+  // silently SKIPS the product floor rather than refusing, so absence reads as fine.
+  { id: "terminating",   contract: "faff run-done",                         probe: "run-done",   enforced: true,  rechecked: false },
+  // Reads the ledger and emits a state; no gate refuses when its evidence is absent.
+  { id: "budget",        contract: "faff budget check",                     probe: "budget",     enforced: true,  rechecked: false },
+  // EARNED: `governance-check` is a REQUIRED status check on the default branch and fail-closes
+  // on anchor-missing / anchor-malformed (governance-check.js:156-157) over an anchor derived
+  // from events.jsonl — this guardrail's evidence. merge-gate.js carries the sibling anchorRefusal.
+  { id: "observability", contract: "faff events",                           probe: "events",     enforced: true,  rechecked: true  },
+  // A pure evaluator consumed at checkpoints; no downstream gate refuses on absent sentry
+  // evidence, and a cooperative consult appends no event at all (FAFF-1025).
+  { id: "kill_switch",   contract: "faff sentry check",                     probe: "sentry",     enforced: true,  rechecked: false },
+  // EARNED, with a stated limit: merge-gate.js:675-696 re-reads holdout.json, checks freshness
+  // against the build checkpoint and the spawner attestation, and refuses without it. That is the
+  // PER-UNIT L4 holdout ONLY — the run-level holdout phase (beep-boop step 10b) has no equivalent
+  // artifact and no re-check, so this `true` must not be read as covering both halves.
+  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout",    enforced: true,  rechecked: true  },
+  // Assert-only at autonomous entry under a warn/block knob, and faff implements no sandbox of
+  // its own; nothing re-reads it at a later gate.
+  { id: "container",     contract: "faff container-check",                  probe: null,         enforced: true,  rechecked: false },
 ];
 const LIGHTS_OUT_GUARDRAIL_IDS = LIGHTS_OUT_GUARDRAILS.map((g) => g.id);
 const GUARDRAIL_STATES = new Set(["live", "degraded", "absent"]);
@@ -302,6 +329,33 @@ function lightsOutEnforced(guardrails = LIGHTS_OUT_GUARDRAILS) {
   return enforced;
 }
 
+// FAFF-1027 — the SECOND static axis, mirroring lightsOutEnforced byte for byte in shape and
+// discipline: pure, probe-free, and fail-closed via strict === true, so a missing or
+// truthy-but-not-`true` flag (1, "true") reads false and a new guardrail added without an
+// explicit rechecked:true is never silently counted. Reported by the banner + ledger, NEVER
+// gated on — this says what the shipped pipeline would refuse without, not what ran.
+function lightsOutRechecked(guardrails = LIGHTS_OUT_GUARDRAILS) {
+  const rechecked = {};
+  for (const g of guardrails) rechecked[g.id] = g.rechecked === true;
+  return rechecked;
+}
+
+// FAFF-1027 — pure: the genesis guardrail-claim stamp the ledger carries beside the two maps.
+// Metadata ONLY — what KIND of claim `enforced`/`rechecked` are, when it was stamped, and which
+// fields it governs. It deliberately carries NO evidence pointer: an `evidence_field` naming a
+// key nothing in this build ever writes would be a genesis-stamped promise about evidence that
+// may never appear, which is precisely the unfalsifiable-claim shape this ticket removes. The
+// per-unit firing record (FAFF-1037) adds that pointer back additively when it ships a writer.
+// Extracted as a pure function so the selftest can assert the exact shape — including the
+// ABSENCE of those keys — without minting a run.
+function guardrailClaim(stampedAt) {
+  return {
+    kind: "static-pipeline-property",
+    stamped_at: stampedAt,
+    applies_to: ["enforced", "rechecked"],
+  };
+}
+
 // FAFF-333 — resolve the operator's host-socket boundedness attestation from config,
 // FAIL-CLOSED: only an explicit affirmative attests; every other value (false, "false",
 // "yes", "1", a typo, unset) leaves the host-socket refuse in force. A bare `=== true`
@@ -325,6 +379,7 @@ function engineBoundedFromConfig(cfg) {
 function lightsOutPreflight(probes) {
   const armed = lightsOutArmed(probes);
   const enforced = lightsOutEnforced();
+  const rechecked = lightsOutRechecked();
   const floor = (probes && probes.floor) || {};
   const refusals = [];
   const degrades = [];
@@ -485,8 +540,8 @@ function lightsOutPreflight(probes) {
   }
 
   const proceed = refusals.length === 0;
-  const banner = renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades);
-  return { proceed, refusals, armed, enforced, banner, floor, degrades };
+  const banner = renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades, rechecked);
+  return { proceed, refusals, armed, enforced, rechecked, banner, floor, degrades };
 }
 
 // Pure: render the human-facing banner — the trust contract. Derivable 1:1 from
@@ -497,9 +552,13 @@ function lightsOutPreflight(probes) {
 // fail-closed {id: boolean} map from lightsOutEnforced(); a 4-arg call leaves it
 // undefined and every line degrades to "reachable-only" (the documented failure
 // mode the selftest catches), never throwing.
-function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades = []) {
+function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades = [], rechecked = {}) {
   const mark = (s) => (s === "live" ? "●" : s === "degraded" ? "◐" : "○");
   const enf = enforced || {};
+  // FAFF-1027: a further TRAILING DEFAULTED parameter, mirroring how `enforced` was added. An
+  // older-arity (6-arg) call leaves it undefined, so every line degrades to `rechecked:no` and
+  // the count reads 0/8 — the documented failure mode, never a throw.
+  const rec = rechecked || {};
   const lines = [];
   // FAFF-351 — L4 is shipped-and-reachable but not yet proven on a real end-to-end
   // holdout run, so the banner carries a "(preview)" caveat on the runtime surface an
@@ -515,7 +574,8 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
   for (const g of LIGHTS_OUT_GUARDRAILS) {
     const st = armed[g.id];
     const enfTok = enf[g.id] === true ? "enforced" : "reachable-only";
-    lines.push(`    ${mark(st)} ${g.id.padEnd(14)} reachable:${String(st).padEnd(9)} ${enfTok.padEnd(14)} (${g.contract})`);
+    const recTok = rec[g.id] === true ? "rechecked:yes" : "rechecked:no";
+    lines.push(`    ${mark(st)} ${g.id.padEnd(14)} reachable:${String(st).padEnd(9)} ${enfTok.padEnd(14)} ${recTok.padEnd(14)} (${g.contract})`);
   }
   const fl = floor || {};
   // FAFF-379: each floor entry carries its honesty mode (checked vs static) so the
@@ -526,10 +586,15 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
     const total = LIGHTS_OUT_GUARDRAILS.length;
     const enforcedN = LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => enf[id] === true).length;
     const notEnforced = LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => enf[id] !== true);
+    // FAFF-1027: the existing `base` string is built UNCHANGED and the rechecked count is
+    // appended to it, so the shipped `includes("ARMED — N/N enforced")` assertion still holds;
+    // the reachable-but-not-enforced clause then follows exactly as it did before.
+    const recheckedN = LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => rec[id] === true).length;
     const base = `ARMED — ${enforcedN}/${total} enforced`;
+    const withRechecked = `${base}; ${recheckedN}/${total} independently rechecked`;
     const status = notEnforced.length
-      ? `${base}; ${notEnforced.length} reachable-but-not-enforced: ${notEnforced.join(", ")}`
-      : base;
+      ? `${withRechecked}; ${notEnforced.length} reachable-but-not-enforced: ${notEnforced.join(", ")}`
+      : withRechecked;
     lines.push(`  status: ${status}`);
     // FAFF-428 — a warn-posture proceed still surfaces its metering degrade loudly,
     // mirroring the REFUSED list's rendering (gate: detail), one line per entry.
@@ -541,6 +606,13 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
     const allLive = LIGHTS_OUT_GUARDRAIL_IDS.every((id) => armed[id] === "live");
     lines.push(`  status: REFUSED — preflight not satisfied${allLive ? "" : " (a guardrail is not live)"}`);
   }
+  // FAFF-1027 — the claim block: unconditional on BOTH paths, because a refused run's banner
+  // makes exactly the same static claim as a proceeding one. It states what the two counts are
+  // and, more importantly, what they are NOT. It deliberately names no command: the per-unit
+  // firing record is FAFF-1037 and does not exist yet, and pointing at an unbuilt command would
+  // be a genesis-stamped promise — the very shape this ticket removes.
+  lines.push(`  claim: enforced and rechecked are STATIC properties of the shipped pipeline, stamped at genesis;`);
+  lines.push(`         neither is evidence that any guardrail ran in this run.`);
   return lines.join("\n");
 }
 
@@ -1076,6 +1148,17 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
     level: "L4",
     armed: pf.armed,
     enforced: pf.enforced,
+    // FAFF-1027 — two additive siblings. `armed` / `enforced` / `banner` keep their keys, shapes
+    // and values, so every existing reader is unaffected and no migration is needed; auditLedger
+    // reads only `admitted` + `outcomes`, so runcheck is byte-identical with or without these.
+    rechecked: pf.rechecked,
+    // The claim's own provenance, stamped from the SAME nowIso the owner stamp uses. Metadata
+    // ONLY: what kind of claim the maps beside it are, when it was stamped, which fields it
+    // governs. It makes NO statement about evidence, because this build produces none — an
+    // `evidence_field` pointing at a key nothing writes would be exactly the unfalsifiable
+    // promise FAFF-1027 exists to remove. FAFF-1037 adds that pointer back, additively, when
+    // there is finally a writer.
+    guardrail_claim: guardrailClaim(nowIso),
     banner: pf.banner,
     budget: budgetBlock,
     budget_ceiling: envelope.ceilings,
@@ -1673,9 +1756,75 @@ function lightsOutSelftest() {
   // Status line generalises: an all-enforced table yields N/N with no trailing clause.
   const allEnf = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) allEnf[id] = true;
   const allEnfBanner = renderLightsOutBanner(happy.armed, okFloor, true, armedProbes(), allEnf);
-  check("all-enforced status line reads N/N with no trailing clause",
+  check("all-enforced status line reads N/N enforced with no reachable-but-not-enforced clause",
     allEnfBanner.includes(`ARMED — ${LIGHTS_OUT_GUARDRAIL_IDS.length}/${LIGHTS_OUT_GUARDRAIL_IDS.length} enforced`) &&
     !allEnfBanner.includes("reachable-but-not-enforced"));
+
+  // ---- FAFF-1027: the `rechecked` second axis + the genesis claim stamp -----------------------
+  // The whole point of the ticket is that a PUBLISHED count nobody can check against the spec is
+  // the defect. So the map is pinned here as a COMPLETE LITERAL: every value is an assertion, and
+  // a later flip without its earning call site is a red test rather than a quiet banner change.
+  const RECHECKED_EXPECTED = {
+    admissibility: false, spec_review: false, terminating: false, budget: false,
+    observability: true, kill_switch: false, holdout: true, container: false,
+  };
+  const recMap = lightsOutRechecked();
+  check("rechecked map covers exactly the 8 guardrails",
+    Object.keys(recMap).length === LIGHTS_OUT_GUARDRAIL_IDS.length &&
+    LIGHTS_OUT_GUARDRAIL_IDS.every((id) => typeof recMap[id] === "boolean"));
+  check("rechecked map matches the pinned 8-key literal (2 of 8)",
+    JSON.stringify(recMap) === JSON.stringify(RECHECKED_EXPECTED) &&
+    Object.values(recMap).filter(Boolean).length === 2);
+  check("rechecked.spec_review is false — invoked but never re-checked", recMap.spec_review === false);
+  check("rechecked.holdout and rechecked.observability are the two earned trues",
+    recMap.holdout === true && recMap.observability === true);
+  // Fail-closed exactly as lightsOutEnforced: only an exact `true` counts.
+  const recStrict = lightsOutRechecked([
+    { id: "t", rechecked: true }, { id: "one", rechecked: 1 },
+    { id: "str", rechecked: "true" }, { id: "missing" },
+  ]);
+  check("rechecked derives strictly on === true (1 / \"true\" / missing all read false)",
+    recStrict.t === true && recStrict.one === false && recStrict.str === false && recStrict.missing === false);
+  check("preflight returns a rechecked map alongside enforced",
+    happy.rechecked && typeof happy.rechecked === "object" &&
+    JSON.stringify(happy.rechecked) === JSON.stringify(RECHECKED_EXPECTED));
+
+  // Banner rendering — the token on every line, the count on the status line, the claim block.
+  const bannerGuardrailLines = (b) => b.split("\n").filter((l) => /^ {4}[●◐○] /.test(l));
+  check("every per-guardrail line carries a rechecked token",
+    bannerGuardrailLines(happy.banner).length === LIGHTS_OUT_GUARDRAIL_IDS.length &&
+    bannerGuardrailLines(happy.banner).every((l) => /\brechecked:(yes|no)\b/.test(l)));
+  check("proceed-path status line carries the independently-rechecked count",
+    happy.banner.includes(`ARMED — ${LIGHTS_OUT_GUARDRAIL_IDS.length}/${LIGHTS_OUT_GUARDRAIL_IDS.length} enforced; 2/${LIGHTS_OUT_GUARDRAIL_IDS.length} independently rechecked`));
+  const claimL1 = "claim: enforced and rechecked are STATIC properties of the shipped pipeline, stamped at genesis;";
+  const claimL2 = "neither is evidence that any guardrail ran in this run.";
+  check("proceed-path banner carries the claim block",
+    happy.banner.includes(claimL1) && happy.banner.includes(claimL2));
+  // The claim is the same on a refusal — a refused run's banner makes the identical static claim.
+  const refusedBanner = renderLightsOutBanner(happy.armed, okFloor, false, armedProbes(), allEnf, [], lightsOutRechecked());
+  check("REFUSED-path banner carries the claim block too",
+    refusedBanner.includes(claimL1) && refusedBanner.includes(claimL2));
+  check("refuse-path guardrail lines carry the rechecked token too",
+    bannerGuardrailLines(refusedBanner).every((l) => /\brechecked:(yes|no)\b/.test(l)));
+  // The banner must name NO command: `faff gate-trace` is FAFF-1037 and does not exist, and a
+  // pointer at an unbuilt command is the promise this ticket exists to remove.
+  check("banner names no gate-trace command on either path",
+    !happy.banner.includes("gate-trace") && !refusedBanner.includes("gate-trace"));
+  // Older-arity (6-arg) call: degrades, never throws.
+  const oldArity = renderLightsOutBanner(happy.armed, okFloor, true, armedProbes(), allEnf, []);
+  check("older-arity banner degrades every line to rechecked:no and reads 0/N, never throws",
+    bannerGuardrailLines(oldArity).every((l) => /\brechecked:no\b/.test(l)) &&
+    oldArity.includes(`0/${LIGHTS_OUT_GUARDRAIL_IDS.length} independently rechecked`));
+
+  // The genesis claim stamp — asserted EXACTLY, including the absence of the evidence keys.
+  const claim = guardrailClaim("2026-01-01T00:00:00.000Z");
+  check("guardrailClaim carries kind/stamped_at/applies_to and nothing else",
+    JSON.stringify(Object.keys(claim).sort()) === JSON.stringify(["applies_to", "kind", "stamped_at"]) &&
+    claim.kind === "static-pipeline-property" &&
+    claim.stamped_at === "2026-01-01T00:00:00.000Z" &&
+    JSON.stringify(claim.applies_to) === JSON.stringify(["enforced", "rechecked"]));
+  check("guardrailClaim carries NO evidence pointer (FAFF-1037 adds it additively)",
+    !("evidence_field" in claim) && !("evidence_written" in claim) && !("gate_trace" in claim));
 
   // Container not_confirmed → refuse, container guardrail absent, banner REFUSED.
   const bare = lightsOutPreflight(armedProbes({ container: "not_confirmed", reachable: { ...allReach(), container: false } }));
@@ -2106,4 +2255,4 @@ function lightsOutSelftest() {
 // resumeLightsOut uses, rather than fork a second read of build-progress.json/
 // merge-record.json/the forge. observeForgeMerge/branchExistsOnForge stay private —
 // gatherResumeEvidence is the one call-site that needs them.
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, guardrailReachable, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, reEntryVerdictForParked, reconsiderParkedItems, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, guardrailReachable, isAdversarial, isStrictlyUnderRoot, guardrailClaim, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutRechecked, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, reEntryVerdictForParked, reconsiderParkedItems, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

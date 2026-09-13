@@ -253,11 +253,27 @@ jobs:
 
           unset FAFF_REQUIRE_DOCKER
           set +e
-          node --import ./test/hermetic-env.mjs --test "${matched[@]}" | tee /tmp/impure-macos.log
+          node --import ./test/hermetic-env.mjs --test-reporter=tap --test "${matched[@]}" | tee /tmp/impure-macos.log
           test_status=${PIPESTATUS[0]}
           set -e
 
-          tests_ran=$(grep -oE '^# tests [0-9]+' /tmp/impure-macos.log | tail -1 | grep -oE '[0-9]+$')
+          # `|| true` neutralises the pipefail-derived non-zero from an empty grep match (no
+          # "# tests N" line — node died before the runner emitted its summary), so the assignment
+          # itself never trips errexit and every line below stays reachable [FAFF-1038].
+          summary_line=$(grep -oE '^# tests [0-9]+' /tmp/impure-macos.log | tail -1 || true)
+          if [ -z "$summary_line" ]; then
+            # No summary line at all — a crash/kill/truncation, not a mass-skip. Diagnose it as
+            # such and carry node's own exit status (floored so a summary-less log is never
+            # reported green).
+            code="$test_status"
+            if [ "$code" -eq 0 ]; then
+              code=1
+            fi
+            echo "::error::validate-macos: node exited before the test runner emitted its summary line (no '# tests N' line in the log) — not a mass-skip; node exit status ${test_status}; see the log above"
+            exit "$code"
+          fi
+
+          tests_ran=$(printf '%s' "$summary_line" | grep -oE '[0-9]+$' || true)
           tests_ran=${tests_ran:-0}
           test_floor=50
           if [ "$tests_ran" -lt "$test_floor" ]; then

@@ -133,7 +133,7 @@ function emit(result, asJson) {
   console.log(`reconcile-recover: ${bits.join(" ")}`);
 }
 
-function cmdReconcileRecover(args) {
+async function cmdReconcileRecover(args) {
   if (args.includes("--selftest")) return reconcileRecoverSelftest();
   const { values, errors } = parseArgs(args, RECONCILE_RECOVER_SPEC);
   if (errors.length) return usageError(errors, USAGE);
@@ -190,7 +190,7 @@ function cmdReconcileRecover(args) {
   // "never a second sha observation" invariant) unless --sha explicitly overrides it.
   const details = readMergedDetails(runDir, issue);
   const pr = details && details.pr != null ? details.pr : null;
-  const { record, exit: pmExit, failLoud } = verifyPostMerge({ issue, pr, runDir, shaOverride, root });
+  const { record, exit: pmExit, failLoud } = await verifyPostMerge({ issue, pr, runDir, shaOverride, root });
   if (failLoud) {
     process.stderr.write(`faff reconcile-recover: post-merge-check could not resolve a merge sha: ${failLoud}\n`);
     const result = { ...base, recovered: false, post_merge_check: "unverified", pr, merge_sha: null, wrote: null };
@@ -259,7 +259,7 @@ const RECOVERY_SELFTEST_CASES = [
     "not-unclosed"],
 ];
 
-function reconcileRecoverSelftest() {
+async function reconcileRecoverSelftest() {
   let fail = 0;
   for (const [name, input, want] of RECOVERY_SELFTEST_CASES) {
     let ok = true;
@@ -291,13 +291,13 @@ function reconcileRecoverSelftest() {
   if (!c3) fail++;
 
   // cmdReconcileRecover usage-level fail-loud paths (no filesystem needed).
-  const usageExit = cmdReconcileRecover(["--issue", "FAFF-1"]);
+  const usageExit = await cmdReconcileRecover(["--issue", "FAFF-1"]);
   const u1 = usageExit === 2;
   console.log(`${u1 ? "ok  " : "FAIL"} cmd: missing --run-dir/--level → exit 2 usage`); if (!u1) fail++;
-  const badIdExit = cmdReconcileRecover(["--run-dir", "/nonexistent-faff-selftest", "--issue", "not-an-id!", "--level", "L3"]);
+  const badIdExit = await cmdReconcileRecover(["--run-dir", "/nonexistent-faff-selftest", "--issue", "not-an-id!", "--level", "L3"]);
   const u2 = badIdExit === 2;
   console.log(`${u2 ? "ok  " : "FAIL"} cmd: invalid --issue → exit 2 usage`); if (!u2) fail++;
-  const noRunDirExit = cmdReconcileRecover(["--run-dir", "/nonexistent-faff-selftest-dir", "--issue", "FAFF-1", "--level", "L3"]);
+  const noRunDirExit = await cmdReconcileRecover(["--run-dir", "/nonexistent-faff-selftest-dir", "--issue", "FAFF-1", "--level", "L3"]);
   const u3 = noRunDirExit === 2;
   console.log(`${u3 ? "ok  " : "FAIL"} cmd: --run-dir with no run-ledger.json → exit 2`); if (!u3) fail++;
 

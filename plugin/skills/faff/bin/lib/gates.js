@@ -21,7 +21,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { spawnSync } = require("node:child_process");
+const { spawnSync, spawn } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "action" } };
 // FAFF-628 — declared grammar. Neither `discover` nor `run` unconditionally requires a flag
@@ -437,22 +437,16 @@ const MAX_RUNG_STDOUT_BYTES = 64 * 1024 * 1024; // 64 MiB per stream
 // res.status === null) before it can exit, so it too is peeled off BEFORE the general res.error/127
 // branch — same shape as the ETIMEDOUT check above, and orthogonal to it (ENOBUFS vs ETIMEDOUT key
 // off distinct res.error.code values; neither branch's ordering affects the other).
-function runRung(rung, root) {
-  const { rung_timeout_ms } = readGatesConfig(root);
-  const started = Date.now();
-  let res;
-  try {
-    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: rung_timeout_ms, maxBuffer: MAX_RUNG_STDOUT_BYTES });
-  } catch (e) {
-    return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", duration_ms: Date.now() - started, detail: String(e && e.message || e).slice(-500) };
-  }
-  const duration_ms = Date.now() - started;
+// The shared classification core — given a completed child's {error, status, signal, stdout,
+// stderr} shape (spawnSync's own res object, or the equivalent object spawnAsync below resolves
+// to for a single async shard), applies the SAME fail-safe rules the pre-FAFF-1002 runRung always
+// applied: timeout BEFORE the general error branch (ETIMEDOUT, or a bare signal with no res.error
+// — no caller sets its own killSignal, so a bare signal is our own timeout kill), then ENOBUFS
+// overflow, then tool-missing/127/exit-status. Factored out so the non-sharded path (run_single)
+// and each individual shard (runShardedRung) classify identically — one rule set, never a forked
+// copy that could drift.
+function classifyRungResult(rung, res, duration_ms, rung_timeout_ms) {
   const tail = ((res.stderr || "") + (res.stdout || "")).slice(-500);
-  // Node's timeout path: either res.error.code === "ETIMEDOUT", or a set res.signal with no
-  // res.error (no runRung caller sets its own killSignal, so a bare signal is our own timeout kill
-  // — same assumption sentrycheck.js documents for its own module). Must be checked BEFORE the
-  // general res.error branch below, since ETIMEDOUT also sets res.error and would otherwise lose
-  // its distinct reason.
   const timedOut = (res.error && res.error.code === "ETIMEDOUT") || (res.signal && !res.error);
   if (timedOut) {
     return {
@@ -476,6 +470,174 @@ function runRung(rung, root) {
   else if (res.status === 0) status = "pass";
   else status = "fail";
   return { kind: rung.kind, name: rung.name, command: rung.command, status, duration_ms, detail: tail };
+}
+
+// Today's exact single-process path (byte-identical to the pre-FAFF-1002 runRung) — the fallback
+// for a non-shard-capable command and for local_shards<=1 hosts.
+function runSingleSpawnSync(rung, root, rung_timeout_ms) {
+  const started = Date.now();
+  let res;
+  try {
+    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: rung_timeout_ms, maxBuffer: MAX_RUNG_STDOUT_BYTES });
+  } catch (e) {
+    return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", duration_ms: Date.now() - started, detail: String(e && e.message || e).slice(-500) };
+  }
+  const duration_ms = Date.now() - started;
+  return classifyRungResult(rung, res, duration_ms, rung_timeout_ms);
+}
+
+// FAFF-1002: a Node test invocation (`node … --test`) carrying NO existing `--test-shard` token —
+// the only command class Node can partition with `--test-shard=<i>/<N>`. Deterministic from the
+// command string alone (tokenised on whitespace) — no timing measurement, no size heuristic. A
+// command already carrying `--test-shard` (defensive — normaliseLocalRungCommand already strips it
+// for the LOCAL rung upstream) or lacking a bare `node`/`--test` token is never shard-capable.
+function shardCapable(command) {
+  const tokens = String(command).trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return false;
+  const hasNode = tokens.some((t) => t === "node" || /(?:^|[\\/])node$/.test(t));
+  if (!hasNode) return false;
+  if (!tokens.includes("--test")) return false;
+  if (tokens.some((t) => t.startsWith("--test-shard"))) return false;
+  return true;
+}
+
+// FAFF-1002: async single-child spawn used ONLY by the shard-concurrent path — collects stdout ⁄
+// stderr up to maxBufferBytes PER STREAM (killing the child past the ceiling, mirroring spawnSync's
+// own maxBuffer/ENOBUFS behaviour), and enforces timeoutMs by killing the child and tagging the
+// result exactly like spawnSync's own timeout does. Resolves to the SAME {error, status, signal,
+// stdout, stderr} shape classifyRungResult already consumes — one classifier, two producers.
+function spawnAsync(command, { cwd, timeoutMs, maxBufferBytes }) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      // `detached: true` makes the spawned shell the leader of its OWN process group (POSIX),
+      // rather than sharing this process's group — the prerequisite for the group-kill below.
+      // Required because `shell: true` spawns an intermediate `/bin/sh -c …`: for a command with
+      // shell metacharacters (a pipe, `node -e "…"`), the shell forks real work as a CHILD of
+      // itself rather than exec-replacing itself, so signalling the shell's own pid alone can
+      // leave that grandchild (e.g. a slow `node --test` run) alive well past the deadline.
+      // Strip NODE_TEST_CONTEXT — Node's OWN test runner sets this in its process env (observed:
+      // "child-v8") when it is itself running under `node --test`; inherited by a spawned shard
+      // child it makes a nested `node --test` invocation believe it is a worker of that OUTER
+      // runner (expecting its private IPC/serialisation protocol) rather than a standalone run,
+      // which silently short-circuits it. This matters beyond this repo's own test suite: ANY
+      // caller of `faff gates run`/`runRung` from inside a `node --test` process (an integration
+      // test that shells the CLI, for instance) would otherwise leak this into every real shard.
+      const shardEnv = { ...process.env };
+      delete shardEnv.NODE_TEST_CONTEXT;
+      child = spawn(command, { cwd, shell: true, detached: true, env: shardEnv });
+    } catch (e) {
+      resolve({ error: e, status: null, signal: null, stdout: "", stderr: "" });
+      return;
+    }
+    let stdout = "";
+    let stderr = "";
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    let settled = false;
+    let timer = null;
+    let overflowed = false;
+    let timedOut = false;
+
+    // Kill the WHOLE process group (negative pid), not just the shell — see the detached comment
+    // above. Falls back to a direct child.kill on any failure (e.g. pid unresolved, or a platform
+    // where process groups behave differently) so a kill attempt is never silently dropped.
+    const killGroup = (signal) => {
+      try {
+        if (typeof child.pid === "number") { process.kill(-child.pid, signal); return; }
+      } catch { /* fall through to the direct kill below */ }
+      try { child.kill(signal); } catch { /* best-effort — the close/error handlers still settle */ }
+    };
+
+    const settle = (result) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+
+    if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+      timer = setTimeout(() => { timedOut = true; killGroup("SIGTERM"); }, timeoutMs);
+    }
+
+    const onChunk = (isStdout) => (chunk) => {
+      const len = chunk.length;
+      if (isStdout) { stdoutBytes += len; stdout = (stdout + chunk.toString("utf8")).slice(-2000); }
+      else { stderrBytes += len; stderr = (stderr + chunk.toString("utf8")).slice(-2000); }
+      if (!overflowed && (stdoutBytes > maxBufferBytes || stderrBytes > maxBufferBytes)) {
+        overflowed = true;
+        killGroup("SIGTERM");
+      }
+    };
+    if (child.stdout) child.stdout.on("data", onChunk(true));
+    if (child.stderr) child.stderr.on("data", onChunk(false));
+    child.on("error", (err) => settle({ error: err, status: null, signal: null, stdout, stderr }));
+    child.on("close", (code, signal) => {
+      if (overflowed) settle({ error: { code: "ENOBUFS" }, status: null, signal, stdout, stderr });
+      else if (timedOut) settle({ error: { code: "ETIMEDOUT" }, status: null, signal, stdout, stderr });
+      else settle({ error: null, status: code, signal, stdout, stderr });
+    });
+  });
+}
+
+// FAFF-1002: worst-wins aggregation — errored > fail > pass (errored is least-conclusive, so it is
+// never masked by a sibling shard's clean fail; a fail is never masked by a passing sibling). The
+// carried `reason` (if any) is the FIRST errored shard's own reason, in shard-index order.
+function aggregateShardResults(rung, shardResults, n, wall_ms) {
+  let status = "pass";
+  let reason;
+  const firstErrored = shardResults.find((r) => r.status === "errored");
+  if (firstErrored) {
+    status = "errored";
+    reason = firstErrored.reason;
+  } else if (shardResults.some((r) => r.status === "fail")) {
+    status = "fail";
+  }
+  const nonPass = shardResults.filter((r) => r.status !== "pass");
+  let detail;
+  if (!nonPass.length) {
+    detail = `all ${n} shards passed`;
+  } else {
+    const totalBudget = 500;
+    const perShardBudget = Math.max(20, Math.floor(totalBudget / nonPass.length));
+    detail = nonPass.map((r) => `shard ${r.index}/${n}: ${String(r.detail || "").slice(-perShardBudget)}`).join(" | ").slice(-totalBudget);
+  }
+  const out = { kind: rung.kind, name: rung.name, command: rung.command, status, duration_ms: wall_ms, detail };
+  if (status === "errored" && reason) out.reason = reason;
+  return out;
+}
+
+// FAFF-1002: run a shard-capable rung as N `--test-shard=<i>/<n>` children, bounded-parallel at
+// concurrency n (== the shard count, so a host with >= n cores runs them in one wave), then fold
+// the per-shard results into one aggregate RungResult whose duration_ms is the WALL-CLOCK of the
+// whole batch (≈ the slowest shard), not the sum. `command` on the returned result stays the
+// LOGICAL unsharded command — callers never see the per-shard `--test-shard=` forms.
+async function runShardedRung(rung, root, rung_timeout_ms, n) {
+  const started = Date.now();
+  const shardResults = await Promise.all(
+    Array.from({ length: n }, (_, i) => i + 1).map(async (i) => {
+      const shardStarted = Date.now();
+      const res = await spawnAsync(`${rung.command} --test-shard=${i}/${n}`, { cwd: root, timeoutMs: rung_timeout_ms, maxBufferBytes: MAX_RUNG_STDOUT_BYTES });
+      const classified = classifyRungResult(rung, res, Date.now() - shardStarted, rung_timeout_ms);
+      return { index: i, ...classified };
+    })
+  );
+  return aggregateShardResults(rung, shardResults, n, Date.now() - started);
+}
+
+// FAFF-1002: runRung is shard-aware — shard-capable commands (the local UNIT rung, once
+// normaliseLocalRungCommand's stripped CI shard is re-derived HERE, sized to this host) run as N
+// bounded-parallel shards so a >600s whole-suite process fits a foreground turn; every other rung
+// (lint/static/type, or a UNIT rung with no `--test` token) runs the unchanged single-spawnSync
+// path, byte-identical to before this ticket. Both existing callers (runLadder below, and
+// post-merge.js's verifyPostMerge) inherit this with no change to their own calling logic — an
+// async runRung is simply awaited.
+async function runRung(rung, root) {
+  const { rung_timeout_ms, local_shards } = readGatesConfig(root);
+  if (!shardCapable(rung.command)) return runSingleSpawnSync(rung, root, rung_timeout_ms);
+  const n = local_shards;
+  if (!(n > 1)) return runSingleSpawnSync(rung, root, rung_timeout_ms);   // 1-core host: no benefit
+  return runShardedRung(rung, root, rung_timeout_ms, n);
 }
 
 // Resolve the fallback policy for `discovery: none` from config: fail-closed (default) | advisory.
@@ -520,7 +682,31 @@ function readGatesConfig(root) {
   let rung_timeout_ms = 1_800_000;
   const rt = Math.floor(num("gates.rung_timeout_ms"));
   if (Number.isFinite(rt) && rt >= 1) rung_timeout_ms = rt;
-  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms };
+  // FAFF-1002: gates.local_shards — the shard count (== max concurrency) for a shard-capable local
+  // rung. Present-ness-before-coerce, mirroring the other gates.* guards above: an absent/malformed/
+  // non-numeric/<2 value falls back to the DEFAULT (os.availableParallelism()), never to a spurious
+  // literal like 1 or 0.
+  let local_shards = safeAvailableParallelism();
+  const ls = Math.floor(num("gates.local_shards"));
+  if (Number.isFinite(ls) && ls >= 2) local_shards = ls;
+  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards };
+}
+
+// os.availableParallelism() is the FAFF-1002 default shard count (mirrors CI's own "N=4 matches the
+// 4-vCPU runner" reasoning, adapted to the actual host). Defensive fallback for an older/unusual
+// Node build where the function is absent or throws: os.cpus().length, or 1 as the final floor.
+function safeAvailableParallelism() {
+  try {
+    if (typeof os.availableParallelism === "function") {
+      const n = os.availableParallelism();
+      if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+    }
+  } catch { /* fall through */ }
+  try {
+    const n = os.cpus().length;
+    if (Number.isFinite(n) && n >= 1) return n;
+  } catch { /* fall through */ }
+  return 1;
 }
 
 // The local host OS family (process.platform → the runs-on families we compare against).
@@ -720,13 +906,13 @@ function applyPartialPolicy(signal, discovery, coverage, cfg) {
 // FAFF-849 (639b): rungs now come from selectRunnableRungs (the filtered/bounded reporting set),
 // and a runnable-coverage-below-threshold `partial` verdict consults gates.partial via
 // applyPartialPolicy as a final, never-lowering signal adjustment.
-function runLadder(root) {
+async function runLadder(root) {
   const cfg = readGatesConfig(root);
   const { rungs, discovery, coverage, exclusions } = selectRunnableRungs(root, cfg);
   const results = [];
   let needsHuman = false;
   for (const rung of rungs) {
-    const r = runRung(rung, root);
+    const r = await runRung(rung, root);
     results.push(r);
     if (r.status === "errored") { needsHuman = true; continue; }   // surface, don't gate as fail
     if (rung.required && r.status === "fail") {
@@ -748,7 +934,7 @@ function gatesContractExtraction(outcome) {
   return { signal: outcome.signal, rungs: outcome.rungs.map((r) => ({ kind: r.kind, status: r.status })) };
 }
 
-function cmdGates(args) {
+async function cmdGates(args) {
   if (args.includes("--selftest")) return gatesSelftest();
   const { values, positionals, errors } = parseArgs(args, GATES_SPEC);
   if (errors.length) return usageError(errors, "usage: faff gates <discover|run> [--json] [--root DIR]");
@@ -771,7 +957,7 @@ function cmdGates(args) {
   }
 
   if (action === "run") {
-    const outcome = runLadder(root);
+    const outcome = await runLadder(root);
     const extraction = gatesContractExtraction(outcome);
     // Emit the contract block in the SAME fenced-code-block form every faff producer uses
     // (```faff-contract:<name> … ```), so Step 7.5's "locate that block" matches the identical
@@ -796,7 +982,7 @@ function cmdGates(args) {
   return 2;
 }
 
-function gatesSelftest() {
+async function gatesSelftest() {
   const cases = [];
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-gates-"));
   const mk = (name, files) => {
@@ -817,32 +1003,32 @@ function gatesSelftest() {
   cases.push(["pkg: cost_rank ascending (LINT<UNIT)", dis1.rungs[0].cost_rank < dis1.rungs[1].cost_rank]);
 
   // 2. run ladder all-pass → signal pass, rungs both pass, ordered LINT before UNIT.
-  const out2 = runLadder(dPkg);
+  const out2 = await runLadder(dPkg);
   cases.push(["pkg run: signal pass", out2.signal === "pass"]);
   cases.push(["pkg run: LINT then UNIT", out2.rungs[0].kind === "LINT" && out2.rungs[1].kind === "UNIT"]);
   cases.push(["pkg run: both pass", out2.rungs.every((r) => r.status === "pass")]);
 
   // 3. lint fails (exit 1) → fail-fast: signal fail, stops BEFORE the test rung (only 1 result).
   const dFail = mk("fail", { "package.json": JSON.stringify({ scripts: { lint: "false", test: "true" } }) });
-  const out3 = runLadder(dFail);
+  const out3 = await runLadder(dFail);
   cases.push(["fail-fast: signal fail", out3.signal === "fail"]);
   cases.push(["fail-fast: stopped before UNIT (1 result)", out3.rungs.length === 1 && out3.rungs[0].kind === "LINT" && out3.rungs[0].status === "fail"]);
 
   // 4. no declared checks → discovery none; fail-closed default → needs-human; explicit advisory → pass.
   const dNone = mk("none", { "README.md": "hi" });
-  const out4 = runLadder(dNone);
+  const out4 = await runLadder(dNone);
   cases.push(["none: discovery none", out4.discovery === "none"]);
   cases.push(["none: fail-closed default → needs-human", out4.signal === "needs-human"]);
   const dAdvisory = mk("advisory", { "README.md": "hi", ".faffrc.yaml": "gates:\n  fallback: advisory\n" });
-  const outAdvisory = runLadder(dAdvisory);
+  const outAdvisory = await runLadder(dAdvisory);
   cases.push(["none: explicit advisory opt-out → pass", outAdvisory.signal === "pass"]);
   const dClosed = mk("closed", { "README.md": "hi", ".faffrc.yaml": "gates:\n  fallback: fail-closed\n" });
-  const out5 = runLadder(dClosed);
+  const out5 = await runLadder(dClosed);
   cases.push(["none: explicit fail-closed config → needs-human", out5.signal === "needs-human"]);
 
   // 5. errored rung (command not found) → needs-human, not fail.
   const dErr = mk("err", { "package.json": JSON.stringify({ scripts: { lint: "this-command-does-not-exist-xyz" } }) });
-  const out6 = runLadder(dErr);
+  const out6 = await runLadder(dErr);
   cases.push(["errored rung → needs-human not fail", out6.signal === "needs-human" && out6.rungs[0].status === "errored"]);
 
   // 5b. FAFF-984: a rung killed by the configured spawnSync timeout is classified with a distinct
@@ -851,7 +1037,7 @@ function gatesSelftest() {
   // Drive runRung directly (not through npm's own script indirection) so the kill lands on the
   // exact process spawnSync is timing, per the spec's fixture shape.
   const dTimeout = mk("timeout", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: 500\n" });
-  const timeoutRung = runRung({ kind: "UNIT", name: "unit (sleep)", command: "sleep 5" }, dTimeout);
+  const timeoutRung = await runRung({ kind: "UNIT", name: "unit (sleep)", command: "sleep 5" }, dTimeout);
   cases.push(["timeout: rung status errored", timeoutRung.status === "errored"]);
   cases.push(["timeout: reason timed-out", timeoutRung.reason === "timed-out"]);
   cases.push(["timeout: detail names the timeout + limit", /timed out after \d+ms \(limit 500ms\)/.test(timeoutRung.detail)]);
@@ -863,18 +1049,18 @@ function gatesSelftest() {
     "package.json": JSON.stringify({ scripts: { lint: "sleep 5" } }),
     ".faffrc.yaml": "gates:\n  rung_timeout_ms: 500\n",
   });
-  const outTimeoutLadder = runLadder(dTimeoutLadder);
+  const outTimeoutLadder = await runLadder(dTimeoutLadder);
   cases.push(["timeout: ladder signal needs-human (unfinished suite never reads as green)", outTimeoutLadder.signal === "needs-human" && outTimeoutLadder.rungs[0].reason === "timed-out"]);
 
   // 5c. Companion: a fast command under a generous configured timeout still passes (raising/
   // threading the timeout doesn't change ordinary pass behaviour), and carries no `reason`.
   const dTimeoutOk = mk("timeout-ok", { ".faffrc.yaml": "gates:\n  rung_timeout_ms: 60000\n" });
-  const okRung = runRung({ kind: "UNIT", name: "unit (fast)", command: "true" }, dTimeoutOk);
+  const okRung = await runRung({ kind: "UNIT", name: "unit (fast)", command: "true" }, dTimeoutOk);
   cases.push(["timeout: fast command under generous timeout still passes", okRung.status === "pass" && !okRung.reason]);
 
   // 5e. Unchanged: genuine command-not-found (127) still classifies errored with NO reason — the
   // timeout branch must never swallow a real spawn error.
-  const notFoundRung = runRung({ kind: "LINT", name: "lint (missing)", command: "this-command-does-not-exist-xyz" }, dTimeoutOk);
+  const notFoundRung = await runRung({ kind: "LINT", name: "lint (missing)", command: "this-command-does-not-exist-xyz" }, dTimeoutOk);
   cases.push(["timeout: genuine command-not-found stays errored with no reason", notFoundRung.status === "errored" && !notFoundRung.reason]);
 
   // 5f. FAFF-981: a rung that prints well over 1 MB of stdout and exits 0 must classify "pass", not
@@ -882,14 +1068,68 @@ function gatesSelftest() {
   // MB; MAX_RUNG_STDOUT_BYTES (64 MiB) clears that comfortably for a real ~4 MB burst.
   const dOverflowOk = mk("overflow-ok", {});
   const noisyPassCmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n')\"";
-  const noisyPassRung = runRung({ kind: "UNIT", name: "unit (noisy pass)", command: noisyPassCmd }, dOverflowOk);
+  const noisyPassRung = await runRung({ kind: "UNIT", name: "unit (noisy pass)", command: noisyPassCmd }, dOverflowOk);
   cases.push(["overflow: >1 MB stdout + exit 0 classifies pass, not errored", noisyPassRung.status === "pass" && !noisyPassRung.reason]);
 
   // 5g. Companion: the same high-output rung exiting non-zero classifies "fail", not "errored" —
   // output volume alone must never manufacture (or erase) a failure verdict.
   const noisyFailCmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n');process.exit(1)\"";
-  const noisyFailRung = runRung({ kind: "UNIT", name: "unit (noisy fail)", command: noisyFailCmd }, dOverflowOk);
+  const noisyFailRung = await runRung({ kind: "UNIT", name: "unit (noisy fail)", command: noisyFailCmd }, dOverflowOk);
   cases.push(["overflow: >1 MB stdout + exit 1 classifies fail, not errored", noisyFailRung.status === "fail" && !noisyFailRung.reason]);
+
+  // 5i. FAFF-1002: shard-capability predicate — deterministic from the command string alone.
+  cases.push(["shard: node --test with no shard token is shard-capable", shardCapable("node --import ./test/hermetic-env.mjs --test test/") === true]);
+  cases.push(["shard: node --test WITH an existing --test-shard is NOT shard-capable (defensive)", shardCapable("node --test --test-shard=1/4 test/") === false]);
+  cases.push(["shard: lint/static (no node/--test) is NOT shard-capable", shardCapable("eslint .") === false]);
+  cases.push(["shard: a non-`--test` node command is NOT shard-capable", shardCapable("node scripts/build.js") === false]);
+  cases.push(["shard: true/sleep selftest fixtures are NOT shard-capable", shardCapable("true") === false && shardCapable("sleep 5") === false]);
+
+  // 5j. FAFF-1002: gates.local_shards config resolution — present-ness-before-coerce, mirroring
+  // rung_timeout_ms's own guard (case 5d below).
+  cases.push(["config: absent local_shards defaults to availableParallelism", readGatesConfig(mk("ls-absent", { "README.md": "hi" })).local_shards === safeAvailableParallelism()]);
+  cases.push(["config: non-numeric local_shards defaults", readGatesConfig(mk("ls-nan", { ".faffrc.yaml": "gates:\n  local_shards: not-a-number\n" })).local_shards === safeAvailableParallelism()]);
+  cases.push(["config: local_shards=1 defaults (no sharding benefit)", readGatesConfig(mk("ls-one", { ".faffrc.yaml": "gates:\n  local_shards: 1\n" })).local_shards === safeAvailableParallelism()]);
+  cases.push(["config: local_shards=0 defaults", readGatesConfig(mk("ls-zero", { ".faffrc.yaml": "gates:\n  local_shards: 0\n" })).local_shards === safeAvailableParallelism()]);
+  cases.push(["config: positive local_shards>=2 honoured", readGatesConfig(mk("ls-ok", { ".faffrc.yaml": "gates:\n  local_shards: 3\n" })).local_shards === 3]);
+
+  // 5k. FAFF-1002: end-to-end sharded run — a real `node --test` fixture, forced to 2 shards via
+  // gates.local_shards, must produce ONE aggregate RungResult whose command is the logical
+  // (unsharded) command, and must fold a real per-shard failure into an aggregate `fail` (worst-wins,
+  // never masked by the passing shard). Small fixture files keep this well inside --selftest's 2min
+  // subprocess budget (regions.js's own selftest-runner timeout).
+  const dShardPass = mk("shard-pass", {
+    "test/a.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.ok(true));\n",
+    "test/b.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('b', () => assert.ok(true));\n",
+    ".faffrc.yaml": "gates:\n  local_shards: 2\n",
+  });
+  const shardPassRung = await runRung({ kind: "UNIT", name: "unit (sharded pass)", command: "node --test" }, dShardPass);
+  cases.push(["shard: sharded pass → aggregate status pass", shardPassRung.status === "pass"]);
+  cases.push(["shard: sharded aggregate command stays the LOGICAL unsharded command (no --test-shard leak)", shardPassRung.command === "node --test"]);
+
+  const dShardFail = mk("shard-fail", {
+    "test/a.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.ok(true));\n",
+    "test/b.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('b', () => assert.ok(false));\n",
+    ".faffrc.yaml": "gates:\n  local_shards: 2\n",
+  });
+  const shardFailRung = await runRung({ kind: "UNIT", name: "unit (sharded fail)", command: "node --test" }, dShardFail);
+  cases.push(["shard: one real failing shard → aggregate status fail (never masked by the passing sibling)", shardFailRung.status === "fail"]);
+
+  // 5l. FAFF-1002: aggregateShardResults itself — worst-wins precedence and reason carry, driven
+  // directly against fabricated per-shard results (no real process spawn needed for the pure logic).
+  const rFixture = { kind: "UNIT", name: "unit", command: "node --test" };
+  cases.push(["aggregate: errored beats fail (worst-wins)", aggregateShardResults(rFixture, [
+    { index: 1, status: "fail", detail: "boom" },
+    { index: 2, status: "errored", reason: "timed-out", detail: "slow" },
+  ], 2, 1000).status === "errored"]);
+  cases.push(["aggregate: carries the FIRST errored shard's reason (index order)", aggregateShardResults(rFixture, [
+    { index: 1, status: "errored", reason: "timed-out", detail: "slow" },
+    { index: 2, status: "errored", reason: "stdout-overflow", detail: "noisy" },
+  ], 2, 1000).reason === "timed-out"]);
+  cases.push(["aggregate: all pass → pass, no reason", (() => {
+    const a = aggregateShardResults(rFixture, [{ index: 1, status: "pass", detail: "" }, { index: 2, status: "pass", detail: "" }], 2, 1000);
+    return a.status === "pass" && !a.reason;
+  })()]);
+  cases.push(["aggregate: duration_ms is the passed wall-clock, never a sum", aggregateShardResults(rFixture, [{ index: 1, status: "pass", detail: "" }], 1, 4242).duration_ms === 4242]);
 
   // 5h. The ENOBUFS-past-the-ceiling branch (reason:"stdout-overflow") needs a real write past the
   // 64 MiB MAX_RUNG_STDOUT_BYTES ceiling to trigger — too slow to run on every `--selftest` /
@@ -926,13 +1166,13 @@ function gatesSelftest() {
   cases.push(["pre-commit: recognised hook swept, unknown dropped", dis9.rungs.length === 1 && dis9.rungs[0].kind === "LINT" && dis9.rungs[0].source === "pre_commit"]);
 
   // 10. discover exit code via the cmd path (--root, --json arg handling — the observation gap).
-  const exitDiscover = cmdGates(["discover", "--root", dPkg, "--json"]);
+  const exitDiscover = await cmdGates(["discover", "--root", dPkg, "--json"]);
   cases.push(["cmd discover --root --json exit 0", exitDiscover === 0]);
-  const exitBad = cmdGates(["bogus-action", "--root", dPkg]);
+  const exitBad = await cmdGates(["bogus-action", "--root", dPkg]);
   cases.push(["cmd unknown-action exit 2 (usage)", exitBad === 2]);
-  const exitRunPass = cmdGates(["run", "--root", dPkg, "--json"]);
+  const exitRunPass = await cmdGates(["run", "--root", dPkg, "--json"]);
   cases.push(["cmd run all-pass exit 0", exitRunPass === 0]);
-  const exitRunFail = cmdGates(["run", "--root", dFail, "--json"]);
+  const exitRunFail = await cmdGates(["run", "--root", dFail, "--json"]);
   cases.push(["cmd run with fail exit 1", exitRunFail === 1]);
 
   // 11. ciRunnerKind: recognised runners map to the right kind; unrecognised → null.
@@ -1092,7 +1332,7 @@ function gatesSelftest() {
   cases.push(["execution (639b): runnable coverage counts all 19 eligible + 9 recognised steps",
     selWide.coverage.eligible_steps === 19 && selWide.coverage.recognised_steps === 9]);
   cases.push(["execution (639b): runLadder now sources from selectRunnableRungs — discovery reflects runnable coverage",
-    runLadder(dWide).discovery === "partial"]);
+    (await runLadder(dWide)).discovery === "partial"]);
 
   // 26. selftest aggregation — the two per-region selftest commands collapse to ONE
   //     `regions selftest --region all` rung, consuming a single STATIC_ANALYSIS slot; the other
@@ -1661,4 +1901,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory, selectRunnableRungs };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, aggregateShardResults, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };

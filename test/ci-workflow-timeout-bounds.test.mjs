@@ -45,7 +45,10 @@ function parseWorkflowJobs(text) {
     const timeoutMatch = /^\s*timeout-minutes:\s*(.+)$/.exec(line);
     if (timeoutMatch && indentOf(line) === 4) {
       current.hasTimeout = true;
-      current.raw = timeoutMatch[1].trim();
+      // Strip a trailing YAML comment (`timeout-minutes: 30  # bumped for FAFF-XXX`) before the
+      // numeric check runs, so a legitimate inline comment never reads as a non-integer violation
+      // (adversarial review finding: `Number("5 # comment")` is NaN without this).
+      current.raw = timeoutMatch[1].replace(/\s+#.*$/, "").trim();
     }
   }
   return jobs;
@@ -113,7 +116,10 @@ test("guard: deleting a job's timeout-minutes reddens the guard; restoring it gr
   const { violations: cleanViolations } = guardWorkflowBounds([{ name: dco.name, text: original }]);
   assert.deepEqual(cleanViolations, [], "precondition: dco.yml is clean before mutation");
 
-  const deletedLine = original.split(/\r?\n/).filter((l) => !/^\s*timeout-minutes:\s*5\s*$/.test(l)).join("\n");
+  // Matches the key, not the current value, so this fixture survives a legitimate future edit to
+  // dco's bound (e.g. raising it from 5) instead of erroring on its own "line not found" precondition
+  // (adversarial review finding).
+  const deletedLine = original.split(/\r?\n/).filter((l) => !/^\s*timeout-minutes:\s*\S/.test(l)).join("\n");
   assert.notEqual(deletedLine, original, "fixture precondition: the timeout-minutes line was actually found and removed");
   const { violations: redViolations } = guardWorkflowBounds([{ name: dco.name, text: deletedLine }]);
   assert.ok(
@@ -134,6 +140,13 @@ test("guard: a timeout-minutes value of 600 (above GitHub's 360 ceiling) reddens
     violations.some((v) => v.includes("dco") && v.includes("outside 1-360")),
     `expected an out-of-range violation for dco at 600, got: ${violations.join("; ")}`,
   );
+});
+
+test("guard: a trailing YAML comment on a valid timeout-minutes value does not false-positive (adversarial review finding)", () => {
+  const synthetic = "jobs:\n  ok-job:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30  # bumped for FAFF-XXX\n    steps:\n      - run: echo hi\n";
+  const { jobCount, violations } = guardWorkflowBounds([{ name: "synthetic.yml", text: synthetic }]);
+  assert.equal(jobCount, 1);
+  assert.deepEqual(violations, [], `a trailing comment on a valid value must not redden the guard, got: ${violations.join("; ")}`);
 });
 
 test("guard: a synthetic newly-added job with no timeout-minutes is caught (AC4's newly-added-job case, isolated from disk)", () => {

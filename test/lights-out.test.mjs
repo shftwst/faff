@@ -12,7 +12,7 @@ import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
 import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
-import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, cmdLightsOut, engineBoundedFromConfig, estimateOnlyPosture, guardrailReachable, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, cmdLightsOut, engineBoundedFromConfig, estimateOnlyPosture, guardrailClaim, guardrailReachable, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
 import { parseYamlSubset, sortRunDirsByMtimeDesc } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { appendRecordUnderLock, eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
@@ -59,7 +59,9 @@ function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}
   const ledger = {
     run_id: runId,
     level: "L4",
-    armed: pf.armed, enforced: pf.enforced, banner: pf.banner,
+    armed: pf.armed, enforced: pf.enforced, rechecked: pf.rechecked,
+    guardrail_claim: guardrailClaim(nowIso),
+    banner: pf.banner,
     budget: { envelope, metering: { source_at_mint: metering.source, degraded } },
     budget_ceiling: envelope.ceilings,
     dial_profile: { appetite: "full", slots: {}, gates: null },
@@ -1003,5 +1005,67 @@ test("lights-out: --resume + --id stays mutually exclusive (checked ahead of --i
   const out = JSON.parse(stdout);
   assert.equal(code, 2);
   assert.match(out.error, /mutually exclusive/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-1027 — the genesis ledger's two additive guardrail-claim fields, asserted against the
+// REAL minted ledger (the shipped mint code via the CLI's own run_dir), not the hand-reproduced
+// fixture. The point of the ticket is that a static claim was being persisted as if it were
+// evidence, so what matters is exactly what mint writes and what it does NOT.
+test("lights-out: the minted ledger carries the rechecked map (2 of 8) beside the unchanged enforced map", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  assert.equal(code, 0, stdout);
+  const ledger = JSON.parse(fs.readFileSync(path.join(JSON.parse(stdout).run_dir, "run-ledger.json"), "utf8"));
+
+  assert.deepEqual(ledger.rechecked, {
+    admissibility: false, spec_review: false, terminating: false, budget: false,
+    observability: true, kill_switch: false, holdout: true, container: false,
+  }, "the pinned 8-key map, 2 of 8");
+  // enforced is unchanged by this build — every guardrail still reports enforced:true.
+  assert.equal(Object.keys(ledger.enforced).length, LIGHTS_OUT_GUARDRAIL_IDS.length);
+  assert.ok(LIGHTS_OUT_GUARDRAIL_IDS.every((id) => ledger.enforced[id] === true), "enforced untouched");
+  assert.ok(typeof ledger.banner === "string" && ledger.banner.length > 0, "banner still persisted");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("lights-out: the minted ledger's guardrail_claim is metadata only — no evidence pointer, no gate_trace", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  assert.equal(code, 0, stdout);
+  const ledger = JSON.parse(fs.readFileSync(path.join(JSON.parse(stdout).run_dir, "run-ledger.json"), "utf8"));
+
+  assert.deepEqual(Object.keys(ledger.guardrail_claim).sort(), ["applies_to", "kind", "stamped_at"]);
+  assert.equal(ledger.guardrail_claim.kind, "static-pipeline-property");
+  assert.deepEqual(ledger.guardrail_claim.applies_to, ["enforced", "rechecked"]);
+  assert.ok(!Number.isNaN(Date.parse(ledger.guardrail_claim.stamped_at)), "stamped_at parses as a timestamp");
+  // The load-bearing negatives: a pointer at a key nothing writes is the promise this removes.
+  assert.ok(!("evidence_field" in ledger.guardrail_claim), "no evidence_field");
+  assert.ok(!("evidence_written" in ledger.guardrail_claim), "no evidence_written");
+  assert.ok(!("gate_trace" in ledger), "no gate_trace key on the ledger, in any form");
+  assert.ok(!ledger.banner.includes("gate-trace"), "the banner names no gate-trace command");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("lights-out: runcheck reads identically with and without the two new ledger fields", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  assert.equal(code, 0, stdout);
+  const runDir = JSON.parse(stdout).run_dir;
+  const ledgerPath = path.join(runDir, "run-ledger.json");
+  const ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8"));
+
+  // A deliberately undispatched admitted entry, so runcheck has a real verdict to report.
+  ledger.admitted = ["TEST-1"];
+  fs.writeFileSync(ledgerPath, JSON.stringify(ledger, null, 2));
+  const withFields = runCli(["runcheck", runDir]);
+
+  delete ledger.rechecked;
+  delete ledger.guardrail_claim;
+  fs.writeFileSync(ledgerPath, JSON.stringify(ledger, null, 2));
+  const withoutFields = runCli(["runcheck", runDir]);
+
+  assert.equal(withFields.code, withoutFields.code, "same exit code");
+  assert.equal(withFields.stdout, withoutFields.stdout, "byte-identical runcheck output");
   fs.rmSync(root, { recursive: true, force: true });
 });

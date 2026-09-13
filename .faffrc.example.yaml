@@ -316,6 +316,12 @@ andon:
 # always available regardless; this only gates the prep-time promotion offer.
 adr:
   mode: offer   # offer (default): surface candidates + human-gated y/n write · surface: list only · off: nothing
+  # FAFF-1042: on `faff adr supersede`, in-place (default, today's behaviour) leaves the superseded
+  # file where it is; move relocates it to <adr_docs_path>/superseded/ as part of the same write
+  # (never deletes — the append-not-delete audit trail is preserved). `prdr supersede` never reads
+  # this key. Readers (validate/renumber/next-number) span active ∪ superseded whenever the
+  # superseded dir exists, independent of this value.
+  on_supersede: in-place   # in-place (default) | move
   # ADR two-gate bound (FAFF-199) — the same thrash-ratchet shape as prdr.* below, ported to the ADR
   # axis: `faff adr admit` escalates (reject) a loop-provenance ADR lineage that accrues thrash_max
   # supersessions within thrash_window (days), even when each move individually passed the drift

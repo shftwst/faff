@@ -57,6 +57,10 @@ const ADR_FILE_RE = /^(\d{4})-(.+)\.md$/;
 
 function adrDir(root) { return path.join(root, resolveAdrDocsPath(root, loadConfig(root)[0], false)); }
 
+// FAFF-1042: the fixed relocation target for a superseded ADR — always a child of the active
+// ADR dir, so it is contained by construction (no traversal / containment check needed).
+function supersededDir(root) { return path.join(adrDir(root), "superseded"); }
+
 function adrSlug(title) {
   return String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "adr";
 }
@@ -117,9 +121,24 @@ function listAdrs(dir) {
   return out.sort((a, b) => a.number - b.number);
 }
 
-function adrNextNumber(dir) {
-  const max = listAdrs(dir).reduce((m, a) => Math.max(m, a.number), 0);
+// FAFF-1042: `root` is OPTIONAL — when supplied, the number space spans active ∪ superseded (a
+// moved superseded ADR's number is never reused); omitted (legacy call shape), it stays dir-only.
+function adrNextNumber(dir, root) {
+  const list = root ? listAdrsAcross([dir, supersededDir(root)]) : listAdrs(dir);
+  const max = list.reduce((m, a) => Math.max(m, a.number), 0);
   return String(max + 1).padStart(4, "0");
+}
+
+// FAFF-1042: concatenate `listAdrs` over each existing dir, tagging every entry with its
+// containing `dir` (absolute), sorted by (num, file) so numbering/gap logic stays stable
+// across the union. A non-existent dir (no superseded/ yet) contributes nothing — `listAdrs`
+// already returns [] for a missing directory.
+function listAdrsAcross(dirs) {
+  const out = [];
+  for (const d of dirs) {
+    for (const a of listAdrs(d)) out.push({ ...a, dir: d });
+  }
+  return out.sort((a, b) => (a.number - b.number) || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
 }
 
 // FAFF-197: canonical supersession refs. OLD carries `Status: Superseded by ADR-NNNN`;
@@ -172,7 +191,11 @@ function recordSupersessionProblems(records, texts, prefix) {
 // one idempotent Supersedes line). Parameterised by `prefix` so `adr` and `prdr` share it exactly
 // (mirror `adr supersede` verbatim — a pure mechanical linker, NO actor/authority concept). Pure
 // except the two fs.writeFileSync; returns { code, out, err } for the caller to surface.
-function recordSupersede(dir, root, records, oldTok, newTok, prefix) {
+// FAFF-1042: `supersededDir` is an OPTIONAL trailing param — absent/null/"" (the PRDR call path,
+// whose `records` never carry `.dir`) stays byte-identical to pre-change behaviour. When set (the
+// ADR `adr.on_supersede: move` path), the OLD file relocates into it as part of this same write,
+// AFTER both back-ref edits so the relocated file already carries its correct Status.
+function recordSupersede(dir, root, records, oldTok, newTok, prefix, supersededDir) {
   if (!oldTok || !newTok) return { code: 2, out: "", err: `usage: faff ${prefix.toLowerCase()} supersede <old> --by <new>\n` };
   const rel = path.relative(root, dir) || dir;
   const resolve = (tok) => {
@@ -187,13 +210,16 @@ function recordSupersede(dir, root, records, oldTok, newTok, prefix) {
   if (already) return { code: 1, out: "", err: `faff ${prefix.toLowerCase()} supersede: ${prefix}-${oldA.num} is already superseded by ${prefix}-${already}\n` };
 
   // OLD: replace the Status VALUE only (preserve the "- **Status:** " prefix); body untouched.
-  const oldPath = path.join(dir, oldA.file);
+  // Shared-primitive path-join fallback (load-bearing for PRDR parity): `a.dir || dir` resolves
+  // to the plain active-dir join whenever a record lacks `.dir` (every PRDR record, and every ADR
+  // record from `listAdrs` rather than `listAdrsAcross`) — never a regression on that path.
+  let oldPath = path.join(oldA.dir || dir, oldA.file);
   const oldText = fs.readFileSync(oldPath, "utf8")
     .replace(/^([\s>*-]*\*{0,2}Status[ \t*]*:[ \t*]*).*$/mi, `$1Superseded by ${prefix}-${newA.num}`);
   fs.writeFileSync(oldPath, oldText);
 
   // NEW: add "- **Supersedes:** <prefix>-<old>" once (idempotent), after the Status line.
-  const newPath = path.join(dir, newA.file);
+  const newPath = path.join(newA.dir || dir, newA.file);
   let newText = fs.readFileSync(newPath, "utf8");
   if (!recordSupersedesSet(newText, prefix).has(oldA.num)) {   // idempotent + supports multiple predecessors
     const supLine = `- **Supersedes:** ${prefix}-${oldA.num}`;
@@ -202,17 +228,36 @@ function recordSupersede(dir, root, records, oldTok, newTok, prefix) {
       : newText.replace(new RegExp(`^(#\\s*${prefix}.*)$`, "mi"), `$1\n\n${supLine}`);
     fs.writeFileSync(newPath, newText);
   }
+
+  // FAFF-1042: optional relocation — move the OLD file into `supersededDir`, never taken on the
+  // PRDR call path (which omits the argument). A no-op when the file is already there (re-superseding
+  // an already-moved chain) — never a self-move, never an overwrite attempt on its own current path.
+  if (supersededDir) {
+    const oldDir = oldA.dir || dir;
+    if (oldDir !== supersededDir) {
+      fs.mkdirSync(supersededDir, { recursive: true });
+      const target = path.join(supersededDir, oldA.file);
+      if (fs.existsSync(target)) return { code: 1, out: "", err: `faff ${prefix.toLowerCase()} supersede: ${target} already exists — refusing to overwrite (append-only)\n` };
+      fs.renameSync(oldPath, target);
+      oldPath = target;   // reported path reflects the move
+    }
+  }
   return { code: 0, out: `${oldPath}\n${newPath}\n`, err: "" };
 }
 
 // Returns a list of problem strings (empty = valid). Lenient by design so the existing
 // hand-written ADRs pass: a field must be PRESENT and Status must START WITH a known word.
-function adrValidate(dir) {
-  const adrs = listAdrs(dir);
+// FAFF-1042: `root` is OPTIONAL — when supplied, validation spans active ∪ superseded (whenever
+// the superseded dir exists, independent of the current `adr.on_supersede` value: the knob
+// governs the WRITE only, a repo holding moved records must still validate correctly whatever
+// the knob currently says). Omitted (legacy call shape), stays dir-only, byte-identical.
+function adrValidate(dir, root) {
+  const sdir = root ? supersededDir(root) : null;
+  const adrs = sdir ? listAdrsAcross([dir, sdir]) : listAdrs(dir);
   const problems = [];
   const texts = new Map();
   for (const a of adrs) {
-    const text = fs.readFileSync(path.join(dir, a.file), "utf8");
+    const text = fs.readFileSync(path.join(a.dir || dir, a.file), "utf8");
     texts.set(a.num, text);
     const titleM = text.match(/^#\s*ADR\s+(\d+)\s*[—\-]\s*.+$/mi);
     if (!titleM) problems.push(`${a.file}: missing '# ADR NNNN — Title' heading`);
@@ -304,8 +349,18 @@ function renumberRefsTo(text, oldNum, newNum, prefix) {
 //   target    a 1–4 digit number OR the literal "next" (→ adrNextNumber against the tree).
 //   refScope  filenames (basenames or repo-relative) within which back-refs to the moved
 //             number may be rewritten. The moved file is always in scope for its own heading.
-function adrRenumber(dir, selector, target, refScope) {
-  const adrs = listAdrs(dir);
+//
+// FAFF-1042: `root` is OPTIONAL (inserted before `selector` — legacy 4-arg callers keep working
+// by passing `undefined`/omitting it only if every downstream union-aware call also tolerates
+// that; this codebase's only callers are updated in the same change). When supplied, selector
+// resolution, occupied-target/contiguity checks, and back-ref rewriting all span active ∪
+// superseded — a move+renumber sequence must never assign a number a superseded ADR still holds,
+// and a superseded partner's back-ref must still be re-pointed when its active successor moves.
+// The moved file itself is always renumbered WITHIN its own directory (`source.dir`) — renumber
+// never relocates a file across the active/superseded boundary, only `supersede` does that.
+function adrRenumber(dir, root, selector, target, refScope) {
+  const sdir = root ? supersededDir(root) : null;
+  const adrs = sdir ? listAdrsAcross([dir, sdir]) : listAdrs(dir);
   // 1–2. resolve selector → source
   let source = adrs.find((a) => a.file === selector);
   if (!source) {
@@ -319,20 +374,21 @@ function adrRenumber(dir, selector, target, refScope) {
       return { code: 1, out: "", err: `faff adr renumber: no ADR matching "${selector}"\n` };
     }
   }
+  const sourceDir = source.dir || dir;
   // 3. resolve target
   let newNum;
-  if (target === "next") newNum = adrNextNumber(dir);
+  if (target === "next") newNum = adrNextNumber(dir, root);
   else if (/^\d{1,4}$/.test(String(target || ""))) newNum = String(target).padStart(4, "0");
   else return { code: 2, out: "", err: `faff adr renumber: --to must be a 4-digit number or "next"\n` };
   // 3c. never move onto an occupied slot (confirm free BEFORE any rename — no partial move)
   if (adrs.some((a) => a.file !== source.file && a.num === newNum)) return { code: 1, out: "", err: `faff adr renumber: target ADR ${newNum} is occupied\n` };
   // 3d. no-op
-  const oldPath = path.join(dir, source.file);
+  const oldPath = path.join(sourceDir, source.file);
   if (newNum === source.num) return { code: 0, out: `${oldPath} -> ${oldPath}\n`, err: "" };
 
   const oldNum = source.num;
   const newFile = `${newNum}-${source.slug}.md`;
-  const newPath = path.join(dir, newFile);
+  const newPath = path.join(sourceDir, newFile);   // stays within its own dir — renumber never crosses active/superseded
   // ref-scope: normalise to basenames and keep ONLY real ADR filenames (matching ADR_FILE_RE) —
   // never read/rewrite a non-ADR path handed in, so an arbitrary or traversed entry can neither
   // corrupt an unrelated file nor escape the configured ADR directory (basename + ADR-shape bound the blast radius to
@@ -348,17 +404,18 @@ function adrRenumber(dir, selector, target, refScope) {
   // 6. move: write the new file, then remove the old path (atomic-enough; target confirmed free above).
   fs.writeFileSync(newPath, srcText);
   fs.rmSync(oldPath);
-  // 7. rewrite in-scope OTHER files' back-refs that point at the moved number.
-  for (const f of scope) {
-    if (f === source.file) continue;
-    const p = path.join(dir, f);
+  // 7. rewrite in-scope OTHER files' back-refs that point at the moved number — resolved via the
+  // union list so a superseded-dir partner (or an active one) is found at its actual containing dir.
+  for (const a of adrs) {
+    if (!scope.has(a.file) || a.file === source.file) continue;
+    const p = path.join(a.dir || dir, a.file);
     if (!fs.existsSync(p)) continue;
     const before = fs.readFileSync(p, "utf8");
     const after = renumberRefsTo(before, oldNum, newNum, "ADR");
     if (after !== before) fs.writeFileSync(p, after);
   }
-  // 8–9. re-validate; never claim success on a red tree.
-  const problems = adrValidate(dir);
+  // 8–9. re-validate (over the same union); never claim success on a red tree.
+  const problems = adrValidate(dir, root);
   if (problems.length) return { code: 1, out: "", err: problems.map((p) => `FAIL  ${p}`).join("\n") + "\n" };
   // 10. success
   return { code: 0, out: `${oldPath} -> ${newPath}\n`, err: "" };
@@ -501,7 +558,7 @@ function cmdAdr(args) {
   const root = get("--root") || findRoot();
   const dir = adrDir(root);
 
-  if (action === "next-number") { process.stdout.write(adrNextNumber(dir) + "\n"); return 0; }
+  if (action === "next-number") { process.stdout.write(adrNextNumber(dir, root) + "\n"); return 0; }
 
   if (action === "list") {
     const adrs = listAdrs(dir);
@@ -525,12 +582,16 @@ function cmdAdr(args) {
   }
 
   if (action === "validate") {
-    const problems = adrValidate(dir);
+    // FAFF-1042: spans active ∪ superseded whenever the superseded dir exists, independent of
+    // the current adr.on_supersede value — see adrValidate's own doc comment.
+    const problems = adrValidate(dir, root);
     const { fails: gitFails, notes: gitNotes } = adrGitTier(dir, root, loadConfig(root)[0]); // FAFF-546: git-awareness tier
     const allProblems = problems.concat(gitFails);
     const advisories = adrAdvisories(dir); // FAFF-342: informational only — never gates the exit code
     if (!allProblems.length) {
-      console.log(`OK — ${listAdrs(dir).length} ADR(s) in ${path.relative(root, dir) || dir} valid.`);
+      const sdir = supersededDir(root);
+      const scanCount = fs.existsSync(sdir) ? listAdrsAcross([dir, sdir]).length : listAdrs(dir).length;
+      console.log(`OK — ${scanCount} ADR(s) in ${path.relative(root, dir) || dir} valid.`);
       for (const n of gitNotes) console.log(`NOTE  ${n}`);
       for (const adv of advisories) console.log(adv);
       return 0;
@@ -561,7 +622,7 @@ function cmdAdr(args) {
     const provenance = get("--provenance");
     if (provenance && !ADR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff adr new: --provenance must be one of ${ADR_PROVENANCES.join("|")}\n`); return 2; }
     const date = get("--date") || new Date().toISOString().slice(0, 10);
-    const num = adrNextNumber(dir);
+    const num = adrNextNumber(dir, root);   // FAFF-1042: never reuse a number a superseded ADR still holds
     const file = `${num}-${adrSlug(title)}.md`;
     const full = path.join(dir, file);
     if (fs.existsSync(full)) { process.stderr.write(`faff adr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
@@ -577,7 +638,15 @@ function cmdAdr(args) {
     // FAFF-245: the write is the shared, prefix-parameterised `recordSupersede` (no fork).
     const reqErr = requireFlags(parsed.values, ADR_SURFACE.subcommands.supersede, "adr", "supersede");
     if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
-    const r = recordSupersede(dir, root, listAdrs(dir), args[1], get("--by"), "ADR");
+    // FAFF-1042: adr.on_supersede: "move" relocates the OLD file into supersededDir as part of
+    // this write; any other value (including unset) stays in-place, byte-identical to today.
+    const cfg = loadConfig(root)[0];
+    const mode = dig(cfg, "adr.on_supersede") || DEFAULTS["adr.on_supersede"];
+    const sdir = mode === "move" ? supersededDir(root) : null;
+    // records resolved over the scan set so an already-moved ADR can still be named as the OLD
+    // target of a fresh supersession chain, and so NEW is found wherever it lives.
+    const records = listAdrsAcross([dir, supersededDir(root)]);
+    const r = recordSupersede(dir, root, records, args[1], get("--by"), "ADR", sdir);
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
     return r.code;
@@ -628,7 +697,7 @@ function cmdAdr(args) {
     const to = get("--to");
     const rsFlag = get("--ref-scope");
     const refScope = rsFlag ? rsFlag.split(/[,\s]+/).filter(Boolean) : [];
-    const r = adrRenumber(dir, selector, to, refScope);
+    const r = adrRenumber(dir, root, selector, to, refScope);
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
     return r.code;
@@ -840,18 +909,18 @@ function adrSelftest() {
   // happy path: two 0003s (peer + mine); renumber mine → next (0004), validate clean, peer byte-unchanged.
   rnmk("0001", "a"); rnmk("0002", "b"); rnmk("0003", "peer"); rnmk("0003", "mine");
   const peerBefore = fs.readFileSync(path.join(rndir, "0003-peer.md"), "utf8");
-  const rn1 = adrRenumber(rndir, "0003-mine.md", "next", []);
+  const rn1 = adrRenumber(rndir, undefined, "0003-mine.md", "next", []);
   t("renumber: happy path exits 0 with '<old> -> <new>'", rn1.code === 0 && /0003-mine\.md -> .*0004-mine\.md/.test(rn1.out));
   t("renumber: moved file now at 0004, heading updated", fs.existsSync(path.join(rndir, "0004-mine.md")) && !fs.existsSync(path.join(rndir, "0003-mine.md")) && /# ADR 0004 —/.test(fs.readFileSync(path.join(rndir, "0004-mine.md"), "utf8")));
   t("renumber: post-move tree validates clean", adrValidate(rndir).length === 0);
   t("renumber: the peer 0003 file is byte-unchanged", fs.readFileSync(path.join(rndir, "0003-peer.md"), "utf8") === peerBefore);
   // occupied-target refusal (no partial rename): move 0004 → 0001 (occupied).
-  const rn2 = adrRenumber(rndir, "0004-mine.md", "0001", []);
+  const rn2 = adrRenumber(rndir, undefined, "0004-mine.md", "0001", []);
   t("renumber: occupied target exits 1, names the slot", rn2.code === 1 && /target ADR 0001 is occupied/.test(rn2.err));
   t("renumber: occupied-target left tree unchanged (no partial move)", fs.existsSync(path.join(rndir, "0004-mine.md")) && !fs.existsSync(path.join(rndir, "0001-mine.md")));
   // ambiguous bare-number refusal.
   rnmk("0002", "dup2");   // reintroduce a duplicate 0002
-  const rn3 = adrRenumber(rndir, "0002", "next", []);
+  const rn3 = adrRenumber(rndir, undefined, "0002", "next", []);
   t("renumber: ambiguous bare number exits 1, asks for a filename", rn3.code === 1 && /ambiguous.*pass a filename/i.test(rn3.err));
   fs.rmSync(path.join(rndir, "0002-dup2.md"));
   // ref-scope-bounded back-ref rewrite (supersession sub-case): the incoming 0003-new supersedes the
@@ -864,7 +933,7 @@ function adrSelftest() {
   smk2("0002", "mid", `# ADR 0002 — mid\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
   smk2("0003", "peer", `# ADR 0003 — peer\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
   smk2("0003", "new", `# ADR 0003 — new\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
-  const rn4 = adrRenumber(sdir2, "0003-new.md", "next", ["0003-new.md", "0001-old.md"]);
+  const rn4 = adrRenumber(sdir2, undefined, "0003-new.md", "next", ["0003-new.md", "0001-old.md"]);
   t("renumber: supersession sub-case exits 0", rn4.code === 0);
   t("renumber: in-scope back-ref re-pointed to the new number", /Superseded by ADR-0004/.test(fs.readFileSync(path.join(sdir2, "0001-old.md"), "utf8")));
   t("renumber: supersession re-validates symmetric (clean)", adrValidate(sdir2).length === 0);
@@ -877,7 +946,7 @@ function adrSelftest() {
   omk("0002", "other", `# ADR 0002 — other\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // out-of-scope; its ref points at 0001-peer
   omk("0001", "mine", `# ADR 0001 — mine\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // the incoming collision at 0001
   const otherBefore = fs.readFileSync(path.join(odir, "0002-other.md"), "utf8");
-  const rn5 = adrRenumber(odir, "0001-mine.md", "next", ["0001-mine.md"]);
+  const rn5 = adrRenumber(odir, undefined, "0001-mine.md", "next", ["0001-mine.md"]);
   t("renumber: clean collision exits 0 (peer keeps tree contiguous)", rn5.code === 0);
   t("renumber: out-of-scope file is byte-identical (never rewritten)", fs.readFileSync(path.join(odir, "0002-other.md"), "utf8") === otherBefore);
   // AND a renumber that WOULD leave a dangling/asymmetric out-of-scope ref fails the step-6 re-validate → exit 1.
@@ -888,13 +957,13 @@ function adrSelftest() {
   amk("0002", "peer", `# ADR 0002 — peer\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
   amk("0002", "mine", `# ADR 0002 — mine\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // incoming collision at 0002
   amk("0003", "other", `# ADR 0003 — other\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0002\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // out-of-scope; symmetric with 0002-mine PRE-move
-  const rn6 = adrRenumber(adir, "0002-mine.md", "next", ["0002-mine.md"]);   // moves 0002-mine→0004, out-of-scope 0003-other left pointing at 0002-peer → asymmetric
+  const rn6 = adrRenumber(adir, undefined, "0002-mine.md", "next", ["0002-mine.md"]);   // moves 0002-mine→0004, out-of-scope 0003-other left pointing at 0002-peer → asymmetric
   t("renumber: an asymmetric out-of-scope ref makes re-validate red → exit 1 (never a silent green)", rn6.code === 1 && /FAIL/.test(rn6.err));
   // no-op: renumber to the same number exits 0.
   const ndir = path.join(tmp, "renum-noop", "docs", "adr");
   fs.mkdirSync(ndir, { recursive: true });
   fs.writeFileSync(path.join(ndir, "0001-a.md"), `# ADR 0001 — a\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
-  t("renumber: to the same number is a no-op exit 0", adrRenumber(ndir, "0001-a.md", "0001", []).code === 0);
+  t("renumber: to the same number is a no-op exit 0", adrRenumber(ndir, undefined, "0001-a.md", "0001", []).code === 0);
   // sharpened duplicate message names every colliding file.
   const ddir = path.join(tmp, "dupmsg", "docs", "adr");
   fs.mkdirSync(ddir, { recursive: true });
@@ -967,6 +1036,126 @@ function adrSelftest() {
       fs.rmSync(noGit, { recursive: true, force: true }); }
   }
 
+  // === FAFF-1042 — configurable ADR supersession relocation (adr.on_supersede: move) ===
+  {
+    // listAdrsAcross — concatenates + tags .dir, sorted by (num, file), tolerates a non-existent dir
+    const l42root = path.join(tmp, "l1042", "docs", "adr");
+    const l42sup = path.join(l42root, "superseded");
+    fs.mkdirSync(l42root, { recursive: true });
+    fs.writeFileSync(path.join(l42root, "0001-a.md"), "# ADR 0001 — a\n\n- **Status:** Accepted\n- **Date:** 2026-09-01\n\n## Context\nx\n");
+    t("listAdrsAcross: non-existent 2nd dir contributes nothing (no throw)", listAdrsAcross([l42root, l42sup]).length === 1);
+    fs.mkdirSync(l42sup, { recursive: true });
+    fs.writeFileSync(path.join(l42sup, "0002-b.md"), "# ADR 0002 — b\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-09-01\n\n## Context\nx\n");
+    const l42all = listAdrsAcross([l42root, l42sup]);
+    t("listAdrsAcross: spans both dirs, sorted by num", l42all.length === 2 && l42all[0].num === "0001" && l42all[1].num === "0002");
+    t("listAdrsAcross: tags each entry with its containing dir", l42all.find((a) => a.num === "0001").dir === l42root && l42all.find((a) => a.num === "0002").dir === l42sup);
+
+    t("config: adr.on_supersede default is in-place", DEFAULTS["adr.on_supersede"] === "in-place");
+
+    // recordSupersede WITHOUT supersededDir stays byte-identical (in-place) — the PRDR call shape
+    // (5 args, records without `.dir`) and the ADR-omitted-knob shape both land here.
+    {
+      const root = path.join(tmp, "1042-inplace");
+      const d = path.join(root, "docs", "adr");
+      fs.mkdirSync(d, { recursive: true });
+      const mk1 = (n, slug) => fs.writeFileSync(path.join(d, `${n}-${slug}.md`), `# ADR ${n} — ${slug}\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n`);
+      mk1("0001", "old"); mk1("0002", "new");
+      const recs = listAdrsAcross([d, supersededDir(root)]);   // superseded dir absent -> records still carry .dir === d
+      const r = recordSupersede(d, root, recs, "0001", "0002", "ADR");   // no 7th arg — in-place
+      t("FAFF-1042: recordSupersede with supersededDir omitted stays in-place", r.code === 0 && fs.existsSync(path.join(d, "0001-old.md")) && !fs.existsSync(path.join(d, "superseded", "0001-old.md")));
+      t("FAFF-1042: reported path is the in-place path", r.out.split("\n")[0] === path.join(d, "0001-old.md"));
+    }
+
+    // recordSupersede WITH supersededDir relocates the OLD file, both back-refs correct; readers
+    // (validate, next-number) span the union once `root` is supplied.
+    let moveRoot, moveDir, moveSup;
+    {
+      const root = path.join(tmp, "1042-move");
+      const d = path.join(root, "docs", "adr");
+      const sd = supersededDir(root);
+      fs.mkdirSync(d, { recursive: true });
+      const mk2 = (n, slug) => fs.writeFileSync(path.join(d, `${n}-${slug}.md`), `# ADR ${n} — ${slug}\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n`);
+      mk2("0001", "old"); mk2("0002", "new");
+      const recs = listAdrsAcross([d, sd]);
+      const r = recordSupersede(d, root, recs, "0001", "0002", "ADR", sd);
+      t("FAFF-1042: move relocates the OLD file to supersededDir, exit 0", r.code === 0 && fs.existsSync(path.join(sd, "0001-old.md")) && !fs.existsSync(path.join(d, "0001-old.md")));
+      t("FAFF-1042: relocated OLD file carries the Superseded-by back-ref", /Superseded by ADR-0002/.test(fs.readFileSync(path.join(sd, "0001-old.md"), "utf8")));
+      t("FAFF-1042: NEW (active) file carries Supersedes", /Supersedes:\*\* ADR-0001/.test(fs.readFileSync(path.join(d, "0002-new.md"), "utf8")));
+      t("FAFF-1042: reported output path reflects the relocated OLD path", r.out.split("\n")[0] === path.join(sd, "0001-old.md"));
+      t("FAFF-1042: faff adr validate spans active + superseded (union) and exits clean", adrValidate(d, root).length === 0);
+      t("FAFF-1042: faff adr next-number never reuses a superseded-dir number", adrNextNumber(d, root) === "0003");
+      moveRoot = root; moveDir = d; moveSup = sd;
+    }
+
+    // legacy dir-only call shape (root omitted) stays dir-only — proves the union-spanning is
+    // gated on `root` being supplied, never implicit.
+    t("FAFF-1042: legacy dir-only adrValidate(dir) (root omitted) does NOT span the superseded dir", adrValidate(moveDir).length > 0);
+    t("FAFF-1042: adrValidate(dir, root) unions the same tree back to clean", adrValidate(moveDir, moveRoot).length === 0);
+
+    // pre-existing target file in the superseded dir is refused, never overwritten (append-only)
+    {
+      const root = path.join(tmp, "1042-collide");
+      const d = path.join(root, "docs", "adr");
+      const sd = supersededDir(root);
+      fs.mkdirSync(d, { recursive: true }); fs.mkdirSync(sd, { recursive: true });
+      const mk3 = (dd, n, slug, status) => fs.writeFileSync(path.join(dd, `${n}-${slug}.md`), `# ADR ${n} — ${slug}\n\n- **Status:** ${status}\n- **Date:** 2026-09-13\n\n## Context\nx\n`);
+      mk3(d, "0001", "old", "Accepted");
+      mk3(d, "0002", "new", "Accepted");
+      mk3(sd, "0001", "old", "Accepted");   // a stray pre-existing file at the target path
+      const recs = listAdrsAcross([d, sd]);
+      const r = recordSupersede(d, root, recs, "0001", "0002", "ADR", sd);
+      t("FAFF-1042: pre-existing target file is refused, never overwritten", r.code === 1 && /already exists — refusing to overwrite/.test(r.err));
+    }
+
+    // re-superseding an already-moved ADR is a no-op move (no self-move onto its own current path)
+    {
+      const root = path.join(tmp, "1042-noop");
+      const d = path.join(root, "docs", "adr");
+      const sd = supersededDir(root);
+      fs.mkdirSync(sd, { recursive: true });
+      fs.writeFileSync(path.join(sd, "0001-old.md"), "# ADR 0001 — old\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n");
+      fs.writeFileSync(path.join(d, "0002-new.md"), "# ADR 0002 — new\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n");
+      const recs = listAdrsAcross([d, sd]);
+      const before = fs.readFileSync(path.join(sd, "0001-old.md"), "utf8");
+      const r = recordSupersede(d, root, recs, "0001", "0002", "ADR", sd);
+      t("FAFF-1042: superseding a record already resident in supersededDir is a no-op move (exit 0)", r.code === 0 && fs.existsSync(path.join(sd, "0001-old.md")));
+      t("FAFF-1042: no self-move — file stays put, only its Status edited", fs.readFileSync(path.join(sd, "0001-old.md"), "utf8") !== before && /Superseded by ADR-0002/.test(fs.readFileSync(path.join(sd, "0001-old.md"), "utf8")));
+    }
+
+    // faff adr renumber resolves occupancy/contiguity/back-refs across the union — a move+renumber
+    // sequence re-validates symmetric (the merge-collision scenario: a superseded ADR's relocated
+    // back-ref must follow when its active successor is renumbered).
+    {
+      const root = path.join(tmp, "1042-renum");
+      const d = path.join(root, "docs", "adr");
+      const sd = supersededDir(root);
+      fs.mkdirSync(d, { recursive: true });
+      const mk4 = (n, slug) => fs.writeFileSync(path.join(d, `${n}-${slug}.md`), `# ADR ${n} — ${slug}\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n`);
+      mk4("0001", "old"); mk4("0002", "new");
+      const recs = listAdrsAcross([d, sd]);
+      const sup = recordSupersede(d, root, recs, "0001", "0002", "ADR", sd);
+      t("FAFF-1042 renumber-setup: move-supersede exits 0", sup.code === 0);
+      // simulate a merge collision: a peer ADR also claims 0002 — renumber the ORIGINAL 0002-new
+      // (the one that supersedes the relocated 0001) to a free slot; its cross-dir back-ref must follow.
+      fs.writeFileSync(path.join(d, "0002-peer.md"), "# ADR 0002 — peer\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n");
+      const rn = adrRenumber(d, root, "0002-new.md", "next", ["0002-new.md", "0001-old.md"]);
+      t("FAFF-1042: move+renumber sequence exits 0 (union-aware occupancy)", rn.code === 0);
+      t("FAFF-1042: the relocated superseded ADR's back-ref is re-pointed to the renumbered successor", /Superseded by ADR-0003/.test(fs.readFileSync(path.join(sd, "0001-old.md"), "utf8")));
+      t("FAFF-1042: post-renumber tree re-validates symmetric across the union (clean)", adrValidate(d, root).length === 0);
+    }
+
+    // non-existent superseded dir is treated as an empty scan-set contribution (no error)
+    {
+      const root = path.join(tmp, "1042-nosupdir");
+      const d = path.join(root, "docs", "adr");
+      fs.mkdirSync(d, { recursive: true });
+      fs.writeFileSync(path.join(d, "0001-a.md"), "# ADR 0001 — a\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n\n## Context\nx\n");
+      t("FAFF-1042: validate with root but no superseded dir yet -> no error, dir-only result", adrValidate(d, root).length === 0);
+      t("FAFF-1042: next-number with root but no superseded dir yet -> ordinary next", adrNextNumber(d, root) === "0002");
+      t("FAFF-1042: supersededDir is a fixed child of the active dir", supersededDir(root) === path.join(d, "superseded"));
+    }
+  }
+
   fs.rmSync(tmp, { recursive: true, force: true });
   let failed = 0;
   for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
@@ -975,4 +1164,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, supersededDir };

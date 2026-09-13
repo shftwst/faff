@@ -109,6 +109,11 @@ const DEFAULTS = {
   // back in-context (never fork to a supervised `faff engine call`).
   "producer_tick_max_secs": "600",
   "adr.mode": "offer",
+  // FAFF-1042: relocate a superseded ADR to a dedicated subdir on `faff adr supersede`.
+  // "in-place" (default, today's behaviour, byte-identical when unset) | "move" (relocate the
+  // OLD file to `<adr_docs_path>/superseded/` as part of the same supersession write). The
+  // `prdr supersede` write never reads this key — PRDR stays byte-identical regardless of value.
+  "adr.on_supersede": "in-place",
   "intake_gate": "warn",
   // FAFF-536: the self-hosting core-defect intake lane. Default false ⇒ the lane is off and the
   // filing chokepoint is byte-identical to today (an outward item is always outward-new-root). Set

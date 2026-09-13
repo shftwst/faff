@@ -19,6 +19,7 @@ const NEXT_SPEC = {
     "--blocked": { arity: 0 },
     "--if-eligible": { arity: 0 },
     "--awaiting-spec-review": { arity: 0 },
+    "--root": { arity: 1 },
   },
 };
 const NEXT_USAGE = "usage: faff next --status STATUS --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible] [--awaiting-spec-review]";
@@ -31,6 +32,14 @@ const TERMINAL_STATUSES = ["done", "cancelled", "duplicate"];
 const WORKABLE_STATUSES = NEXT_STATUSES.filter((s) => !TERMINAL_STATUSES.includes(s));
 const NEXT_SPECS = ["none", "low", "medium", "high"];
 
+// UNCHANGED signature (FAFF-1044): this options-object shape + its exact seven
+// destructured keys is decision-capture's KERNEL_REGISTRY "next" contract —
+// shadow-fidelity's `declaredInputKeys`/`optionalInputs` structurally introspects this
+// exact function, so adding an eighth key here would break its "optionalInputs empty
+// for every in-scope kernel" invariant (FAFF-826/956). The skip-ineligible reason still
+// names the literal default "faff-automate" here; `renderNextReason` below (called by
+// cmdNext, OUTSIDE the kernel) substitutes in the configured prefix as presentation only
+// — it changes no gating decision, just the string a human reads.
 function nextStep({ status, spec, eligible, parked, blocked, ifEligible, awaitingSpecReview }) {
   if (!NEXT_STATUSES.includes(status)) return ["error", `unknown --status '${status}'`];
   if (!NEXT_SPECS.includes(spec)) return ["error", `unknown --spec '${spec}'`];
@@ -55,6 +64,14 @@ function nextStep({ status, spec, eligible, parked, blocked, ifEligible, awaitin
   if (spec === "medium") return ["needs-human", "needs-decision-first (medium spec)"];
   if (blocked) return ["blocked", "external blocker unmet"];
   return ["graft", "build-eligible / resume"];
+}
+
+// FAFF-1044: presentation-only prefix substitution on nextStep's reason string, kept
+// OUTSIDE the kernel (see nextStep's comment above for why) — a pure, no-config-read
+// string transform cmdNext applies to its own already-decided output. A no-op for any
+// reason that doesn't mention the default automate label, and for the default prefix.
+function renderNextReason(reason, prefix = "faff") {
+  return prefix === "faff" ? reason : reason.replace("faff-automate", `${prefix}-automate`);
 }
 
 function nextSelftest() {
@@ -104,7 +121,22 @@ function nextSelftest() {
   // FAFF-61: the automation-eligibility truth table (hold > automate > default) feeding the --not-eligible flag.
   console.log("\n-- automation_eligible(labels, default) --");
   fail += runEligibleCases();
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} transition cases + eligibility table, ${fail} failed)`);
+  // FAFF-1044: `renderNextReason` (applied by cmdNext, OUTSIDE the kernel) is PRESENTATION
+  // — it renders the resolved prefix into the reason string, gating nothing (the `next`
+  // token above is already computed by nextStep from `eligible`). Default-prefix
+  // byte-identical; a custom prefix renders into the reason, not "faff-".
+  {
+    const [, rawReason] = nextStep(C("todo", "high", { eligible: false }));
+    const defaultReason = renderNextReason(rawReason, "faff");
+    const customReason = renderNextReason(rawReason, "sd");
+    const okDefault = defaultReason === "not automation-eligible — human cranks it up (faff-automate)";
+    const okCustom = customReason === "not automation-eligible — human cranks it up (sd-automate)";
+    if (!okDefault) fail++;
+    if (!okCustom) fail++;
+    console.log(`${okDefault ? "ok  " : "FAIL"} skip-ineligible reason (default prefix) → ${JSON.stringify(defaultReason)}`);
+    console.log(`${okCustom ? "ok  " : "FAIL"} skip-ineligible reason (prefix=sd) → ${JSON.stringify(customReason)}`);
+  }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} transition cases + eligibility table + 2 prefix-reason checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -125,8 +157,19 @@ function cmdNext(args) {
     ifEligible: !!values["--if-eligible"],   // FAFF-83: advisory hypothetical
     awaitingSpecReview: !!values["--awaiting-spec-review"],   // FAFF-900: spec-review-outage hold
   };
-  const [next, reason] = nextStep(state);
-  if (next === "error") { process.stderr.write(`faff next: ${reason}\n`); return 2; }
+  const [next, rawReason] = nextStep(state);
+  if (next === "error") { process.stderr.write(`faff next: ${rawReason}\n`); return 2; }
+  // FAFF-1044: cmdNext is the command layer — resolve the configured prefix once (fail
+  // loud on a malformed value) and render it into the ALREADY-DECIDED reason string via
+  // renderNextReason (presentation-only, applied OUTSIDE nextStep — see that function's
+  // comment for why: decision-capture's fixed seven-key "next" contract, FAFF-826/956).
+  // `state` (below, captureDecision's normalised_inputs) stays the unmodified seven keys.
+  const { resolveLabelPrefix } = require("./config");
+  const { findRoot } = require("./shared-infra");
+  const root = values["--root"] || findRoot();
+  const resolvedPrefix = resolveLabelPrefix(root);
+  if (resolvedPrefix.error) { process.stderr.write(resolvedPrefix.error + "\n"); return 2; }
+  const reason = renderNextReason(rawReason, resolvedPrefix.prefix);
   // would_be_eligible is set only when the hypothetical path was actually taken: the item is
   // not eligible, --if-eligible bypassed the short-circuit, and it wasn't a terminal short-circuit.
   const hypothetical = !state.eligible && state.ifEligible && !TERMINAL_STATUSES.includes(state.status);
@@ -139,4 +182,4 @@ function cmdNext(args) {
 }
 
 
-module.exports = { NEXT_SPECS, NEXT_STATUSES, TERMINAL_STATUSES, WORKABLE_STATUSES, cmdNext, nextSelftest, nextStep };
+module.exports = { NEXT_SPECS, NEXT_STATUSES, TERMINAL_STATUSES, WORKABLE_STATUSES, cmdNext, nextSelftest, nextStep, renderNextReason };

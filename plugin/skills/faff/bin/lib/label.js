@@ -9,12 +9,17 @@
 // from its own fresh fetch; the CLI never fetches current labels.
 // ===========================================================================
 
-const { CONTROL_LABELS } = require("./labels");
+const { controlLabels } = require("./labels");
 const { parseArgs, usageError } = require("./argv");
-const LABEL_SPEC = { flags: { "--selftest": { arity: 0 }, "--present-label": { arity: 1, repeatable: true } }, positionals: { min: 0, max: 3, name: "action issue label" } };
+const { findRoot } = require("./shared-infra");
+const LABEL_SPEC = { flags: { "--selftest": { arity: 0 }, "--present-label": { arity: 1, repeatable: true }, "--root": { arity: 1 } }, positionals: { min: 0, max: 3, name: "action issue label" } };
 
-function labelOp({ action, issue, label, present }) {
-  const entry = CONTROL_LABELS.find((l) => l.name === label);
+// FAFF-1044: `prefix` is threaded from the command layer (cmdLabel below resolves the
+// configured tracking.label_prefix and passes it), defaulting to "faff" — labelOp stays
+// a pure function over its args (no config read inside it), same thread pattern as
+// automationEligible / intakeVerdict.
+function labelOp({ action, issue, label, present, prefix = "faff" }) {
+  const entry = controlLabels(prefix).find((l) => l.name === label);
   if (!entry) return { rejected: true, label };
   // FAFF-218: the eligibility-throttle labels are tracker-human-only. Refuse to
   // add OR remove either, in any direction — no sanctioned faff path writes them,
@@ -80,9 +85,21 @@ const LABEL_SELFTEST_CASES = [
     { action: "remove", ensure_first: false, idempotent_noop: null, hasEntry: false, rejected: false }],
 ];
 
+// FAFF-1044: a non-default prefix resolves the manifest by role, not the literal "faff-"
+// string — a label carrying the DEFAULT prefix is rejected under a configured custom
+// prefix (no cross-prefix fallback), and the tracker_owned refusal still fires by role.
+const LABEL_PREFIX_SELFTEST_CASES = [
+  [{ action: "add", issue: "FAFF-99", label: "sd-parked", present: null, prefix: "sd" },
+    { action: "add", ensure_first: true, idempotent_noop: null, hasEntry: true, rejected: false }],
+  [{ action: "add", issue: "FAFF-99", label: "faff-parked", present: null, prefix: "sd" },
+    { rejected: true }],                                   // default-prefix name doesn't match under "sd"
+  [{ action: "add", issue: "FAFF-99", label: "sd-automate", present: null, prefix: "sd" },
+    { refused: true }],                                     // tracker_owned refusal still fires by role
+];
+
 function labelSelftest() {
   let fail = 0;
-  for (const [inp, want] of LABEL_SELFTEST_CASES) {
+  for (const [inp, want] of [...LABEL_SELFTEST_CASES, ...LABEL_PREFIX_SELFTEST_CASES]) {
     const got = labelOp(inp);
     let ok;
     if (want.refused) {
@@ -103,7 +120,8 @@ function labelSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} ${JSON.stringify(inp)} → ${JSON.stringify(got)}`);
   }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${LABEL_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  const total = LABEL_SELFTEST_CASES.length + LABEL_PREFIX_SELFTEST_CASES.length;
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -122,8 +140,14 @@ function cmdLabel(args) {
     process.stderr.write("faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...]\n");
     return 2;
   }
+  // FAFF-1044: cmdLabel is the CLI command layer — resolve the configured prefix (fail
+  // loud on a malformed value, same as `config get`) and thread it into the pure labelOp.
+  const { resolveLabelPrefix } = require("./config");
+  const root = values["--root"] || findRoot();
+  const resolvedPrefix = resolveLabelPrefix(root);
+  if (resolvedPrefix.error) { process.stderr.write(resolvedPrefix.error + "\n"); return 2; }
   const present = Array.isArray(values["--present-label"]) ? values["--present-label"] : (values["--present-label"] !== undefined ? [values["--present-label"]] : []);
-  const result = labelOp({ action, issue, label, present: present.length ? present : null });
+  const result = labelOp({ action, issue, label, present: present.length ? present : null, prefix: resolvedPrefix.prefix });
   if (result.rejected) {
     process.stderr.write(`faff label: '${label}' is not a faff control label (see \`faff labels --names\`)\n`);
     return 1;

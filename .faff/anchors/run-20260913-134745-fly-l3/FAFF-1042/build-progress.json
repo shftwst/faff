@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1042",
+  "build": {
+    "status": "complete",
+    "diff_hash": "47a1b24660ec743c41c199bc2b0bcac3e1ea994bea7815fc493ea9d1119fb1c0",
+    "branch": "faff-1042-configurable-adr-supersession-relocation-move-a-superseded",
+    "pushed_at": "2026-09-13T19:50:20.622Z"
+  },
+  "updated_at": "2026-09-13T19:50:20.622Z"
+}

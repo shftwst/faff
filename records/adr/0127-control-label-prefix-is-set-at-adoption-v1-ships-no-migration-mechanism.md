@@ -1,6 +1,6 @@
 # ADR 0127 — Control-label prefix is set-at-adoption; v1 ships no migration mechanism
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-09-13
 - **Issue:** FAFF-1044

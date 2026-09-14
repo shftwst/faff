@@ -208,33 +208,61 @@ export function fitsWindow(estimatedTokens, contextWindow, safety = DEFAULT_WIND
   return Number(estimatedTokens) <= Math.floor(w * safety);
 }
 
-// PURE: the byte budget for EVERYTHING IN THE PREFIX EXCEPT THE DIFF. The window has to accommodate
-// context + diff + a fixed brief reserve, and the diff is not reducible, so it is subtracted here and
-// what remains is what the trim has to work with. Callers must therefore compare this against
+// --- the window budget trio ---------------------------------------------------------------------
+//
+// SHARED CONTRACT: the budget is for EVERYTHING IN THE PREFIX EXCEPT THE DIFF. The window has to
+// accommodate context + diff + a fixed brief reserve, and the diff is not reducible, so it is
+// subtracted out and what remains is what the trim has to work with. Callers therefore compare against
 // `prefixBytes - diffBytes`, which is what `tightenToTarget` computes as `contextBytes`: that spelling
 // is exact by construction (assembleUserMessage emits the diff verbatim exactly once) and charges the
 // per-file `<file path=…>` wrappers and the `DIFF UNDER REVIEW:` header, which a bare sum of `f.text`
 // would silently omit — about 25 bytes plus the path per file, which on a 30-file payload is ~2.5KB,
 // more than the slack the brief reserve leaves. Comparing against the FULL assembled prefix instead
 // would charge the diff twice and undershoot by exactly its size, silently over-trimming every
-// diff-heavy review. Depends only on (contextWindow, diff), never on any lens brief, so the prefix it
-// governs stays byte-identical across lenses.
+// diff-heavy review. All three depend only on (contextWindow, diff), never on any lens brief, so the
+// prefix they govern stays byte-identical across lenses.
+//
+// The arithmetic lives in ONE place, `rawTrimBudgetBytes`. The floor and the was-it-floored question
+// are derived from it rather than re-spelled, because a second copy is how the note and the target
+// silently desynchronise.
+
+// PURE: the budget before the floor is applied. May be negative or null (no declared window).
+export function rawTrimBudgetBytes(contextWindow, diff = "") {
+  const w = normaliseContextWindow(contextWindow);
+  if (w === null) return null;
+  return Math.floor(w * DEFAULT_WINDOW_SAFETY * DEFAULT_BYTES_PER_TOKEN)
+    - Buffer.byteLength(String(diff == null ? "" : diff), "utf8")
+    - Math.floor(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN);
+}
+
+// PURE: the budget the search actually aims at — the raw budget, floored so it is never <= 0.
+export function trimTargetBytes(contextWindow, diff = "") {
+  const raw = rawTrimBudgetBytes(contextWindow, diff);
+  if (raw === null) return null;
+  return Math.max(MIN_TRIM_TARGET_BYTES, raw);
+}
+
+// PURE: was the budget driven below its floor by a large diff? When it was, `trimTargetBytes` returned
+// the floor rather than a window-derived budget, so HITTING that target says nothing about fitting the
+// window. The operator-facing note says so rather than implying a fit it cannot vouch for.
+export function trimTargetClamped(contextWindow, diff = "") {
+  const raw = rawTrimBudgetBytes(contextWindow, diff);
+  return raw !== null && raw < MIN_TRIM_TARGET_BYTES;
+}
+
 // PURE: does the tightened payload STILL exceed the primary's usable window? This is deliberately NOT
 // `tightenToTarget`'s `fitted`. `fitted` means "hit the byte target", and when a large diff drives the
 // budget below MIN_TRIM_TARGET_BYTES the target clamps to that floor, so hitting it says nothing about
 // fitting the window. Keying the operator-facing note off `fitted` would let it report a fit on a
 // payload still well over the window, which is the same dishonesty the note exists to remove.
+//
+// `fitted` is unsafe in BOTH regimes, which is worth stating because the tempting algebra says
+// otherwise: fitted gives contextBytes <= usableBytes - diffBytes - reserveBytes, which looks like it
+// implies est + reserve <= usable. It does not, because estimateTokens CEILINGS, so a maximally-fitted
+// payload can land a token over (w=65536, empty diff, demonstrated in the tests). And when the target
+// is clamped to the floor it bears no relation to the window at all. Hence: key off the window.
 export function stillOverWindow(estTokens, reserveTokens, usableTokens) {
   return Number(estTokens) + Number(reserveTokens) > Number(usableTokens);
-}
-
-export function trimTargetBytes(contextWindow, diff = "") {
-  const w = normaliseContextWindow(contextWindow);
-  if (w === null) return null;
-  const budget = Math.floor(w * DEFAULT_WINDOW_SAFETY * DEFAULT_BYTES_PER_TOKEN)
-    - Buffer.byteLength(String(diff == null ? "" : diff), "utf8")
-    - Math.floor(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN);
-  return Math.max(MIN_TRIM_TARGET_BYTES, budget);
 }
 
 // The descending trim-window ladder the search walks.
@@ -2056,12 +2084,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     const estWithReserve = estimateTokens(user) + DEFAULT_BRIEF_RESERVE_TOKENS;
     if (estWithReserve > usable) {
       const target = trimTargetBytes(primaryWindow, diff);
-      // Whether the budget was driven below its floor by a large diff. When it is, `target` is the floor
-      // rather than a real window-derived budget, and hitting it says nothing about fitting the window.
-      const targetClamped = target === MIN_TRIM_TARGET_BYTES
-        && Math.floor(primaryWindow * DEFAULT_WINDOW_SAFETY * DEFAULT_BYTES_PER_TOKEN)
-           - Buffer.byteLength(diff, "utf8")
-           - Math.floor(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN) < MIN_TRIM_TARGET_BYTES;
+      const targetClamped = trimTargetClamped(primaryWindow, diff);
       const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target });
       // Adopt the tightened prefix ONLY when it is genuinely smaller. This clamp is LOAD-BEARING, not
       // belt-and-braces, and min-tracking alone does not subsume it: the default trim above is gated on

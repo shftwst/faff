@@ -13,6 +13,7 @@ import { join } from "node:path";
 import {
   estimateTokens, fitsWindow, trimTargetBytes, normaliseContextWindow,
   tightenToTarget, primarySkipRecord, assembleUserMessage, runReviewChain, main, trimContextFiles, stillOverWindow,
+  rawTrimBudgetBytes, trimTargetClamped,
   PRIMARY_SKIP_SIGNAL, DEFAULT_BYTES_PER_TOKEN, DEFAULT_WINDOW_SAFETY, parseArgs,
   DEFAULT_BRIEF_RESERVE_TOKENS, MIN_TRIM_TARGET_BYTES, TRIM_WINDOW_LADDER, EXIT,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
@@ -49,11 +50,12 @@ test("fitsWindow: an absent window is unbounded (the opt-in guarantee)", () => {
 });
 
 test("fitsWindow: the boundary is floor(window * safety), inclusive", () => {
-  const w = 1000;
-  const usable = Math.floor(w * DEFAULT_WINDOW_SAFETY); // 900
-  assert.equal(fitsWindow(usable - 1, w), true);
-  assert.equal(fitsWindow(usable, w), true, "exactly on the boundary fits");
-  assert.equal(fitsWindow(usable + 1, w), false);
+  // HARDCODED on purpose. Deriving `usable` from DEFAULT_WINDOW_SAFETY makes the test move with the
+  // constant, so a safety fraction of 1.0 would pass unnoticed and the headroom would silently vanish.
+  assert.equal(DEFAULT_WINDOW_SAFETY, 0.9, "the guard's headroom is 10%; changing it is a deliberate act");
+  assert.equal(fitsWindow(899, 1000), true);
+  assert.equal(fitsWindow(900, 1000), true, "exactly on the boundary fits");
+  assert.equal(fitsWindow(901, 1000), false, "past floor(1000 * 0.9) does not");
 });
 
 test("trimTargetBytes depends only on (contextWindow, diff) — never on any lens brief", () => {
@@ -75,7 +77,8 @@ test("trimTargetBytes: absent window → null; a tiny window floors at MIN_TRIM_
   assert.equal(trimTargetBytes(null, "d"), null);
   assert.equal(trimTargetBytes(0, "d"), null);
   // a window so small the reserve alone overruns it must not yield a negative target
-  assert.equal(trimTargetBytes(1, "d".repeat(100000)), MIN_TRIM_TARGET_BYTES);
+  assert.equal(MIN_TRIM_TARGET_BYTES, 1024, "hardcoded: deriving it from the constant hides a change to it");
+  assert.equal(trimTargetBytes(1, "d".repeat(100000)), 1024);
 });
 
 test("normaliseContextWindow: positive integer, else null (a malformed knob is inert, never an error)", () => {
@@ -799,7 +802,7 @@ test("the window-targeted trim note never contradicts its own fit verdict", asyn
 
   const line = r.err.split("\n").find((l) => l.includes("window-targeted trim"));
   assert.ok(line, "the trim must fire on this fixture");
-  const m = line.match(/\((\d+) B vs (\d+) B target\)/);
+  const m = line.match(/\((\d+) B vs (\d+) B target(?:, clamped to floor)?\)/);
   assert.ok(m, `the note must carry a bytes-vs-target clause: ${line}`);
   const [, got, target] = m;
   const claimedStillOver = line.includes("STILL OVER");
@@ -807,6 +810,12 @@ test("the window-targeted trim note never contradicts its own fit verdict", asyn
     assert.ok(Number(got) <= Number(target),
       `a note reporting a fit must print bytes within the target: ${got} B vs ${target} B`);
   }
+  // The stronger contract: the suffix must track the WINDOW exactly, in both directions. The note
+  // prints both numbers, so the biconditional is checkable from the line itself.
+  const est = Number(line.match(/now est (\d+) tok/)[1]);
+  const usable = Number(line.match(/usable (\d+)/)[1]);
+  assert.equal(claimedStillOver, est > usable,
+    `the STILL-OVER suffix must appear exactly when est exceeds usable: est ${est}, usable ${usable}, suffix ${claimedStillOver}`);
 });
 
 // ---- regressions the fourth review round's adversarial pass found -------------------------------
@@ -827,4 +836,129 @@ test("the STILL-OVER suffix keys off the WINDOW, never off whether the byte targ
   // the reserve is part of the claim, never dropped
   assert.equal(stillOverWindow(3599, 0, usable), false);
   assert.equal(stillOverWindow(3599, 2, usable), true, "the brief reserve counts toward the window");
+});
+
+// ---- regressions the fifth review round found ---------------------------------------------------
+
+test("trimTargetClamped and trimTargetBytes share one spelling of the arithmetic", () => {
+  // Re-deriving the budget at the call site is how the note and the target silently desynchronise.
+  const diff = "d".repeat(40000);
+  assert.equal(trimTargetBytes(4000, diff), MIN_TRIM_TARGET_BYTES, "a huge diff floors the target");
+  assert.equal(trimTargetClamped(4000, diff), true, "and reports itself as clamped");
+  assert.ok(rawTrimBudgetBytes(4000, diff) < MIN_TRIM_TARGET_BYTES, "because the raw budget is below the floor");
+
+  assert.equal(trimTargetClamped(131072, "d".repeat(100)), false, "a roomy window is not clamped");
+  assert.equal(trimTargetBytes(131072, "d".repeat(100)), rawTrimBudgetBytes(131072, "d".repeat(100)),
+    "and the target is then the raw budget, unfloored");
+  assert.equal(trimTargetClamped(null, diff), false, "no window ⇒ nothing to clamp");
+  assert.equal(rawTrimBudgetBytes(null, diff), null);
+});
+
+test("main() reports STILL OVER and 'clamped to floor' when the target was floored but the window is not met", async () => {
+  // The CALL SITE, not the arithmetic. Round 4's bug was reintroducible verbatim with every test green,
+  // because the unit test pinned `stillOverWindow` while nothing pinned that main() actually used it.
+  // Shape: a diff large enough to floor the budget, plus a context the ladder CAN shrink, so `fitted`
+  // becomes true against the floored target while the payload still exceeds the usable window.
+  const d = mkdtempSync(join(tmpdir(), "cw-clamped-"));
+  const sys = join(d, "brief.md"); writeFileSync(sys, "B\n");
+  const ctx = join(d, "c.js");
+  writeFileSync(ctx, Array.from({ length: 1200 }, (_, i) => `const v${i} = ${i}; // ${"z".repeat(40)}`).join("\n"));
+  const hunks = ["--- a/c.js", "+++ b/c.js", "@@ -3,1 +3,2 @@", "+  use(v2);"];
+  for (let k = 0; k < 400; k++) hunks.push(`+// pad ${"w".repeat(24)}`);
+  const diff = join(d, "d.diff");
+  writeFileSync(diff, hunks.join("\n") + "\n");
+  const diffText = hunks.join("\n") + "\n";
+  assert.equal(trimTargetClamped(4000, diffText), true, "fixture precondition: the budget must be floored");
+
+  const bf = join(d, "b.json");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "openai", model: "p", host: "https://h/v1", context_window: 4000 },
+    { provider: "openai", model: "fb", host: "https://h2/v1" },
+  ]));
+  const r = await runMain(["--backends-json", bf, "--system", sys, "--diff", diff, "--context", ctx],
+    async () => ({ status: "ok", content: "### observation: no findings" }));
+
+  const line = r.err.split("\n").find((l) => l.includes("window-targeted trim"));
+  assert.ok(line, `the trim must fire on this fixture: ${r.err}`);
+  assert.match(line, /clamped to floor/, "the note must disclose that the target is a floor, not a window budget");
+  assert.match(line, /STILL OVER the usable window/,
+    "and must not report a fit merely because a FLOORED target was hit — that was the round-4 bug");
+});
+
+test("the window-targeted trim starts from the RAW context, never the already-trimmed set", async () => {
+  // Passing the default-trimmed `contextFiles` instead of `contextFilesRaw` double-trims: harmless when
+  // the 48KB gate did not fire (the two are identical), but on a large context it silently produces a
+  // different payload. denseFixture is ~240KB raw, so the gate DOES fire and the two diverge.
+  const f = denseFixture();
+  const bf = join(f.dir, "b.json");
+  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "primary", host: "https://h/v1", context_window: 15000 }]));
+  let sent = null;
+  await runMain(["--backends-json", bf, "--system", f.sys, "--diff", f.diff, "--context", f.ctx],
+    async ({ system }) => { sent = system; return { status: "ok", content: "### observation: no findings" }; });
+
+  const raw = [{ path: f.ctx, text: readFileSync(f.ctx, "utf8") }];
+  const diffText = readFileSync(f.diff, "utf8");
+  const expected = tightenToTarget({ contextFiles: raw, diff: diffText, targetBytes: trimTargetBytes(15000, diffText) });
+  assert.equal(sent, expected.prefix, "the sent prefix must be the ladder's output over the RAW context");
+});
+
+test("the per-backend guard uses the USABLE window, not the raw declared one", async () => {
+  // A payload between floor(W * 0.9) and W must be skipped: that headroom is the whole point of the
+  // safety fraction, and comparing against the raw window silently spends it.
+  const chain = [{ provider: "openai", model: "tight", host: "https://h/v1", contextWindow: 1000 },
+                 { provider: "openai", model: "fb", host: "https://h2/v1" }];
+  // ~950 tokens: inside the raw 1000 window, outside the 900 usable one.
+  const called = [];
+  const res = await runReviewChain(chain, {
+    system: "x".repeat(2850), user: "",
+    runReviewFn: async ({ model }) => { called.push(model); return { status: "ok", content: "### observation: no findings" }; },
+    log: () => {},
+  });
+  assert.ok(estimateTokens("x".repeat(2850)) > 900 && estimateTokens("x".repeat(2850)) <= 1000,
+    "fixture precondition: the payload must sit between usable and raw");
+  assert.deepEqual(called, ["fb"], "the tight backend must be skipped on the USABLE window");
+  assert.equal(res.exit, EXIT.OK);
+});
+
+test("tightenToTarget tracks the minimum on PREFIX bytes, as its comment says", () => {
+  // Tracking the min on contextBytes instead survives every other test, because the diff is constant
+  // across rungs and the two orderings coincide. Assert the returned field explicitly so the comment
+  // and the code cannot drift apart unnoticed.
+  const { contextFiles, diff } = nonMonotonicFixture();
+  const r = tightenToTarget({ contextFiles, diff, targetBytes: 1 });
+  assert.equal(r.fitted, false);
+  assert.equal(r.bytes, B(r.prefix), "`bytes` is the assembled PREFIX size, which is what gets sent");
+  assert.equal(r.contextBytes, r.bytes - B(diff), "`contextBytes` is prefix minus diff, what the budget covers");
+  // NOTE: tracking the min on contextBytes instead of bytes is an EQUIVALENT mutation, not a gap. The
+  // diff is constant across rungs, so bytes and contextBytes differ by a constant and the argmin is
+  // identical. Recorded so nobody spends effort trying to kill an unkillable mutant.
+});
+
+test("`fitted` is not a safe proxy for fitting the window, in EITHER regime", () => {
+  // The justification for stillOverWindow existing separately, demonstrated rather than asserted.
+  //
+  // I first believed the two coincided whenever the target was unclamped, on the algebra
+  //   fitted ⇒ prefixBytes <= usableBytes - reserveBytes ⇒ est + reserve <= usable.
+  // That is wrong: estimateTokens CEILINGS, so the division loses up to a token and a maximally-fitted
+  // payload can land a token over. This test is what caught it. So `fitted` is unsafe in both regimes:
+  // by a rounding edge when unclamped, and structurally when clamped (a floored target bears no
+  // relation to the window at all).
+  const over = (w, diffBytes) => {
+    const diff = "d".repeat(diffBytes);
+    const target = trimTargetBytes(w, diff);
+    const est = Math.ceil((target + diffBytes) / DEFAULT_BYTES_PER_TOKEN);   // a maximally-fitted payload
+    return stillOverWindow(est, DEFAULT_BRIEF_RESERVE_TOKENS, Math.floor(w * DEFAULT_WINDOW_SAFETY));
+  };
+
+  // unclamped, yet fitted-and-over by the ceiling
+  assert.equal(trimTargetClamped(65536, ""), false, "precondition: unclamped");
+  assert.equal(over(65536, 0), true, "a maximally-fitted payload can still exceed the window by rounding");
+
+  // clamped: the target is a floor, so hitting it says nothing about the window at all
+  const bigDiff = 40000;
+  assert.equal(trimTargetClamped(4000, "d".repeat(bigDiff)), true, "precondition: clamped");
+  assert.equal(over(4000, bigDiff), true, "and here it is over by a wide margin, not a rounding edge");
+
+  // the honest direction: a comfortably-sized payload is correctly reported as fitting
+  assert.equal(stillOverWindow(100, DEFAULT_BRIEF_RESERVE_TOKENS, Math.floor(131072 * DEFAULT_WINDOW_SAFETY)), false);
 });

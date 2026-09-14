@@ -20,8 +20,11 @@
 // All four functions below are PURE / fs-injected — zero tracker/network calls.
 // Labels are passed in via --labels (the agent already fetched them); the verdict
 // rests on two bases only — a recorded marker, then the tracker-owned automate label
-// as eligibility-gesture. Neither is agent-writable, so there is no label fallback to
-// outgrow (FAFF-1043 retired the one there was).
+// as eligibility-gesture. Neither is a silent sticker: the marker is CLI-written and
+// self-incriminating (its `via`/`reason` fields are the audit trail, per the guardrail
+// above), and the automate label is tracker_owned so the CLI refuses to write it at all.
+// That is what the retired legacy label was not, and why there is no longer a label
+// fallback to outgrow (FAFF-1043 retired the one there was).
 // ===========================================================================
 
 const fs = require("node:fs");

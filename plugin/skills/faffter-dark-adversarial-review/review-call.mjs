@@ -271,7 +271,10 @@ export function stillOverWindow(estTokens, reserveTokens, usableTokens) {
 // trim is an identity no-op — NOT a size target: the actual aggressiveness lives in `window` (lines kept
 // either side of each anchor) and `headLines`. Any payload large enough to overflow a real context
 // window is far above the 48KB default gate, so the default trim has ALREADY fired and re-running it
-// with a different threshold reduces nothing. To actually reach a byte target we have to tighten the
+// with a different threshold reduces nothing. (That gate measures CONTEXT bytes only, so a
+// small-context large-diff payload can overflow a window without it ever firing; the conclusion still
+// holds in the regime that matters, since a context small enough to slip the gate is not what the trim
+// is for, but the reason is narrower than it first reads.) To actually reach a byte target we have to tighten the
 // knob that governs how much is kept. Every rung keeps every diff-touched line (trimOneFile's
 // conservative guarantee), so the search never degrades to the diff-only view that produced confident
 // false criticals.
@@ -1435,10 +1438,11 @@ export function parseArgs(argv) {
       catch (e) { throw new Error(`--reasoning-extra: not valid JSON: ${e.message}`); }
     }
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
-    else if (k === "--context-window") a.contextWindow = argv[++i];   // FAFF-1039: single-backend window (chain form carries its own per element)
-    // NOTE: a declared context_window overrides --context-trim-bytes 0. The window-targeted search
-    // always trims, because a payload that cannot fit the window is worse than a trimmed one; disabling
-    // the byte-gated trim only turns off the UNCONDITIONAL pass, not the window-driven one.
+    // FAFF-1039: single-backend window (the chain form carries its own per element). A declared window
+    // OVERRIDES --context-trim-bytes 0: the window-targeted search always trims, because a payload that
+    // cannot fit the window is worse than a trimmed one, so disabling the byte-gated trim turns off the
+    // unconditional pass only, never the window-driven one.
+    else if (k === "--context-window") a.contextWindow = argv[++i];
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)

@@ -855,19 +855,26 @@ test("trimTargetClamped and trimTargetBytes share one spelling of the arithmetic
 });
 
 test("main() reports STILL OVER and 'clamped to floor' when the target was floored but the window is not met", async () => {
-  // The CALL SITE, not the arithmetic. Round 4's bug was reintroducible verbatim with every test green,
-  // because the unit test pinned `stillOverWindow` while nothing pinned that main() actually used it.
-  // Shape: a diff large enough to floor the budget, plus a context the ladder CAN shrink, so `fitted`
-  // becomes true against the floored target while the payload still exceeds the usable window.
+  // The CALL SITE, not the arithmetic. The unit test pins `stillOverWindow`; nothing pinned that main()
+  // actually uses it, so the round-4 bug was reintroducible verbatim with every test green.
+  //
+  // The fixture detail that matters, and that an earlier version of this test got wrong: the padding
+  // bulking out the diff must live in a DIFFERENT file from the context. `parseDiffTouched` marks padded
+  // lines as touched, touched lines are never dropped and are exempt from the retained ceiling, so
+  // padding inside the context file's own hunk makes the context un-shrinkable, `fitted` stays false,
+  // and the two predicates coincide. Putting the bulk in zz.txt leaves c.js freely trimmable, so the
+  // ladder gets contextBytes under the floored target (fitted true) while the payload is still over the
+  // window. That is the divergent regime, and it is the only place this assertion bites.
   const d = mkdtempSync(join(tmpdir(), "cw-clamped-"));
   const sys = join(d, "brief.md"); writeFileSync(sys, "B\n");
   const ctx = join(d, "c.js");
-  writeFileSync(ctx, Array.from({ length: 1200 }, (_, i) => `const v${i} = ${i}; // ${"z".repeat(40)}`).join("\n"));
-  const hunks = ["--- a/c.js", "+++ b/c.js", "@@ -3,1 +3,2 @@", "+  use(v2);"];
-  for (let k = 0; k < 400; k++) hunks.push(`+// pad ${"w".repeat(24)}`);
-  const diff = join(d, "d.diff");
-  writeFileSync(diff, hunks.join("\n") + "\n");
+  writeFileSync(ctx, Array.from({ length: 600 }, (_, i) => `${1000 + i};`).join("\n"));
+  const hunks = ["--- a/c.js", "+++ b/c.js", "@@ -300,1 +300,1 @@", "-1299;", "+1299;",
+                 "--- a/zz.txt", "+++ b/zz.txt", "@@ -1,1 +1,600 @@"];
+  for (let k = 0; k < 600; k++) hunks.push(`+${"1234567890"};`);
   const diffText = hunks.join("\n") + "\n";
+  const diff = join(d, "d.diff");
+  writeFileSync(diff, diffText);
   assert.equal(trimTargetClamped(4000, diffText), true, "fixture precondition: the budget must be floored");
 
   const bf = join(d, "b.json");
@@ -881,8 +888,9 @@ test("main() reports STILL OVER and 'clamped to floor' when the target was floor
   const line = r.err.split("\n").find((l) => l.includes("window-targeted trim"));
   assert.ok(line, `the trim must fire on this fixture: ${r.err}`);
   assert.match(line, /clamped to floor/, "the note must disclose that the target is a floor, not a window budget");
+  // the discriminating assertion: `fitted` is TRUE here, so a note keyed off it would omit this suffix
   assert.match(line, /STILL OVER the usable window/,
-    "and must not report a fit merely because a FLOORED target was hit — that was the round-4 bug");
+    "must not report a fit merely because a FLOORED target was hit — that was the round-4 bug");
 });
 
 test("the window-targeted trim starts from the RAW context, never the already-trimmed set", async () => {
@@ -961,4 +969,43 @@ test("`fitted` is not a safe proxy for fitting the window, in EITHER regime", ()
 
   // the honest direction: a comfortably-sized payload is correctly reported as fitting
   assert.equal(stillOverWindow(100, DEFAULT_BRIEF_RESERVE_TOKENS, Math.floor(131072 * DEFAULT_WINDOW_SAFETY)), false);
+});
+
+test("the pre-chain entry gate uses the USABLE window too, not the raw declared one", () => {
+  // `main()`'s "is the prefix over?" gate is a DIFFERENT site from the per-backend guard in
+  // runReviewChain, and has its own pin. Comparing against the raw window there would let a payload
+  // between 0.9W and W skip the trim entirely and then be guard-skipped instead: the trim would decline
+  // to help in exactly the band the safety fraction exists to protect.
+  const w = 10000;
+  const usable = Math.floor(w * DEFAULT_WINDOW_SAFETY);   // 9000
+  assert.ok(usable < w, "fixture precondition: there is a band between usable and raw");
+  // a payload whose est + reserve lands inside that band
+  const est = 7500;
+  assert.ok(est + DEFAULT_BRIEF_RESERVE_TOKENS > usable, "over the usable window");
+  assert.ok(est + DEFAULT_BRIEF_RESERVE_TOKENS <= w, "but under the raw one");
+  assert.equal(stillOverWindow(est, DEFAULT_BRIEF_RESERVE_TOKENS, usable), true,
+    "the gate must treat this band as over; comparing against the raw window would silently spend the headroom");
+});
+
+test("main()'s entry gate fires in the band between the usable window and the raw one", async () => {
+  // End-to-end counterpart of the check above, and the one that actually pins the CALL SITE. The
+  // window is chosen so the untrimmed payload sits above floor(W * 0.9) but below W: the trim must
+  // still fire. Comparing against the raw window there would skip the trim in precisely the band the
+  // safety fraction exists to protect, and the backend would then be guard-skipped instead of helped.
+  const f = denseFixture();
+  const bf = join(f.dir, "b.json");
+  const W = 19000;   // denseFixture estimates ~18.4k tok incl. reserve: over usable 17100, under raw 19000
+  writeFileSync(bf, JSON.stringify([
+    { provider: "openai", model: "primary", host: "https://h/v1", context_window: W },
+    { provider: "openai", model: "fb", host: "https://h2/v1" },
+  ]));
+  const r = await runMain(["--backends-json", bf, "--system", f.sys, "--diff", f.diff, "--context", f.ctx],
+    async () => ({ status: "ok", content: "### observation: no findings" }));
+
+  const line = r.err.split("\n").find((l) => l.includes("window-targeted trim"));
+  assert.ok(line, "the trim must fire for a payload in the usable-to-raw band");
+  const est = Number(line.match(/est (\d+) tok \(incl/)[1]);
+  const usable = Number(line.match(/usable (\d+)/)[1]);
+  assert.ok(est > usable, `fixture precondition: ${est} must exceed usable ${usable}`);
+  assert.ok(est <= W, `fixture precondition: ${est} must be under the raw window ${W}, or the band is not exercised`);
 });

@@ -1,0 +1,137 @@
+[
+  {
+    "claim": "The spec asserts in three places that the mint can never produce a blob the reader refuses, while §3 itself admits the write cap is \"not a hard guarantee\". In the acknowledged pathological case — a standing residue alone exceeding the caps — the mint writes a blob the reader permanently refuses, directly contradicting the DONE criterion and the failure-mode claim.",
+    "evidence": "§3 (\"Per-field / per-blob size caps\"): \"in the vanishingly rare case where the standing residue alone (already field-capped) exceeds the write cap, it is kept in full regardless — the write cap is a backstop, not a hard guarantee\". DONE (\"From WHAT\"): \"The mint never produces an objections.json blob larger than OBJECTIONS_BLOB_READ_CAP; the new OBJECTIONS_BLOB_WRITE_CAP (half the read cap) guarantees anything written stays readable.\" Failure modes: \"a completed write is always within the reader's threshold by construction\". The arithmetic is concrete: one field-capped objection is ~96 KB (three 32 KB fields), so ~87 such objections in the standing residue alone exceed the 8 MiB read cap; the spec forbids dropping the standing residue, so the mint writes an unreadable blob.",
+    "predicted_consequence": "the build agent implements §3's soft bound, then writes the DONE test \"mint never produces a blob > READ_CAP\" against a pathological standing-residue fixture and fails it with no sanctioned resolution — the spec's own §5 exercises the read-side oversized case but never the write-side standing-residue-over-cap case, so there is no scenario telling the agent what to do. The DONE item and failure-mode paragraph must be corrected to match §3's honest soft-bound statement.",
+    "spec_anchor": "from-what-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec argues judge-trail.js and spec-review-window.js \"now evolve independently\" because the trail reads `window.json` itself instead of importing the module. But the trail still couples to the *schema* of `window.json` — a `window_start` integer field owned by spec-review-window.js. A future change to that file's shape (rename, nesting, or a different default) silently degrades the annotation to `null` (or to a stale 1) with no trail-side test to catch it — exactly the silent-ripple failure the spec's own anti-pattern names, just moved from error handling to data shape.",
+    "evidence": "§6 (\"The window annotation — drop it, or isolate it?\"): \"judge-trail.js reads `<dir>/window.json`'s `window_start` field directly with its OWN frozen semantics … The two modules now evolve independently; a change to the gating path's absent/corrupt handling has zero effect on the trail.\" The spec never establishes that `window.json`'s shape is frozen; the referenced `spec-review-window.js` context file owns that file and its semantics.",
+    "predicted_consequence": "the first time spec-review-window.js changes `window.json`'s schema (a plausible gating-side refactor), every subsequently minted trail carries `window_start: null` / `in_final_window: null` — the annotation the spec's entire §6 rationale exists to preserve silently dies, and the \"informational annotation\" becomes noise indistinguishable from a corrupt file.",
+    "spec_anchor": "the-window-annotation-drop-it-or-isolate-it",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "§3 and DONE both say `--objections` adds exactly four fields (`rounds`, `window_start`, `all_round_lenses`, `objections_tamper_suspect`), and the byte-for-byte baseline is defined against that set. But §4's own reader procedure also sets `record.objections_note` (missing / over-cap / unparseable / legacy cases) and `record.rounds_dropped_for_size` — six fields total. The spec's own field inventory contradicts its own procedure.",
+    "evidence": "§3 reader interface: \"each record gains `rounds` …, `window_start`, `all_round_lenses`, and `objections_tamper_suspect` … All four fields are absent when `--objections` is not passed\". §4 step 2b: \"`record.objections_note := \"objections.json missing\"`\"; step 2d: \"`record.rounds_dropped_for_size := parsed.rounds_dropped_for_size ?? 0`\". DONE repeats the four-field list.",
+    "predicted_consequence": "the build agent's captured-baseline test compares only the four named fields, so `objections_note` / `rounds_dropped_for_size` leaking into the no-flag output (or being omitted from the flag output) passes the baseline test while violating the spec's own \"only ever adds\" claim — the baseline assertion is unverifiable as written.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The core problem (persist every round's objections) needs only the writer change plus a reader attach. The spec adds the window annotation (which §6 itself admits \"has no current gating consumer\" and exists for a hypothetical operator), a tri-state tamper flag plus a legacy-v1 reader path for a store the spec hedges as \"may have\" minted v1 refs, and write-cap round-dropping for a case the spec calls \"vanishingly rare\". Each is small, but together they triple the surface of a best-effort, off-accept-path seam whose entire value is audit fidelity — and the annotation's correctness depends on a schema the spec does not own (see above).",
+    "evidence": "§6: \"The annotation has no current gating consumer … its stated audience — a human or calibration reader … who wants to correlate 'did this review need a restart'\". §7/§6: \"Prior runs may have minted v1 refs\". §3: \"in the vanishingly rare case where the standing residue alone … exceeds the write cap\".",
+    "predicted_consequence": "the first real consumer of the annotation (or the first real v1 ref found in the store) discovers the feature was built against an unverified schema or an unverified store population, and the audit path carries three speculative mechanisms that a simpler \"persist all rounds, attach on read\" design would not.",
+    "spec_anchor": "6-design-decision-rationale",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The human `--objections` render prints objection text and `lenses` values verbatim, with no stated sanitisation of control characters or ANSI escape sequences. Objections are derived from untrusted spec/issue content, so an attacker who can influence that content can embed terminal control sequences that are later interpreted when a developer runs `faff judge-history --objections`.",
+    "evidence": "The spec says the trail “already stores objections verbatim” and the human render “prints one indented `round <n>…` line per round, ascending, using that round's own `lenses` field.” The only stated protection is a per-field byte cap and truncation marker; no escaping, stripping, or neutralisation of control characters is mentioned anywhere in the diff.",
+    "predicted_consequence": "A developer inspecting the trail in a terminal could have escape sequences executed by the terminal emulator, leading to output spoofing, prompt injection, or — in vulnerable emulators — command execution. This is a fail-open on the display path: the data is shown exactly as stored, and the risk is not acknowledged.",
+    "spec_anchor": "`from-how-behaviour`",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The change persists objections from every parseable round, not just the final standing residue. Earlier rounds may contain more raw context, internal paths, or secrets that were previously never written to the durable ref. The spec explicitly scopes out secret scanning/redaction, and the ref is a git ref that may be pushed to a shared remote.",
+    "evidence": "The spec says “per-round storage adds volume, not a new exposure class, and trail-wide redaction is a cross-cutting concern over every stored blob. **Chosen:** scope deeper secret-scanning/redaction out (§2) as pre-existing trail posture.” It also says the trail “propagates them via the ref (shipped in FAFF-994).” The new `--objections` reader exposes this additional data on demand.",
+    "predicted_consequence": "Secrets or sensitive internal details from earlier review rounds become durable and potentially public, expanding the exposure surface beyond the previous endpoint-only trail. A secret that was only present in a draft objection and would otherwise have been lost is now permanently stored in a git ref.",
+    "spec_anchor": "`1-why-problem-and-principles`",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "When the objections blob exceeds `OBJECTIONS_BLOB_READ_CAP`, the reader returns `rounds: []` and `objections_tamper_suspect: true` instead of erroring. If a consumer does not explicitly check the tamper flag, it will conclude there are no objections at all.",
+    "evidence": "The spec states: “An oversized objections blob (> `OBJECTIONS_BLOB_READ_CAP`) reads back `rounds: []`, a note, and `objections_tamper_suspect: true`, without crashing.” It also says a mutated blob “is still returned” with the tamper flag set.",
+    "predicted_consequence": "An audit tool or automated consumer that ignores `objections_tamper_suspect` will see an empty round list and may falsely believe the review raised no objections, masking a potentially critical finding. The failure mode is fail-open rather than fail-closed.",
+    "spec_anchor": "`from-how-edge-cases`",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The reader returns `objections_tamper_suspect: null` for legacy v1 records that lack `objections_sha`. A consumer may treat `null` as “not tampered” rather than “unknown,” which would accept an injected legacy record as clean.",
+    "evidence": "The spec says “An intact legacy v1 record reads back `objections_tamper_suspect: null` (never `true`)” and that such a record is “surfaced as a single endpoint round with a note, without error.” No guidance is given for how consumers should interpret `null`.",
+    "predicted_consequence": "A legacy-shaped record with attacker-injected objections could be accepted as untampered by a consumer that does not distinguish `null` from `false`, undermining the tamper-evidence guarantee for the older format.",
+    "spec_anchor": "`from-how-edge-cases`",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE requires that when the field-capped trail exceeds `OBJECTIONS_BLOB_WRITE_CAP`, the mint drops the oldest non-standing rounds (never the standing residue) and records `rounds_dropped_for_size`; it also requires the mint never produce a blob larger than `OBJECTIONS_BLOB_READ_CAP`. No scenario in §5 exercises the trim. The failure-mode prose says \"a fixture with many rounds/objections exercises the write-cap trim and asserts the resulting blob is under `OBJECTIONS_BLOB_READ_CAP`\" — but that is prose, not a scenario block, and the integration smoke test asserts only the non-triggering case (`rounds_dropped_for_size=0`). A build that drops the *newest* rounds, or drops the standing residue, or skips the `all_round_lenses` recomputation after trim (§4 step 9e), passes every scenario in the spec.",
+    "evidence": "DONE items \"The aggregate `objections.json` write is bounded by `OBJECTIONS_BLOB_WRITE_CAP` … when exceeded, the oldest non-standing rounds are dropped (never the standing residue) and `rounds_dropped_for_size` records the count\" and \"The mint never produces an `objections.json` blob larger than `OBJECTIONS_BLOB_READ_CAP`\"; failure-mode paragraph \"an unbounded aggregate `objections.json` grows past what the reader will ever accept\"; §5 has no trim scenario.",
+    "predicted_consequence": "done cannot be decided for the write-cap DONE items — the only observable that distinguishes a correct trim from an incorrect one (a fixture with `rounds_dropped_for_size > 0` and the standing residue preserved) is never specified.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "§4 step 2b specifies that an absent `objections.json` yields `rounds: []`, note `\"objections.json missing\"`, `objections_tamper_suspect: true`; step 2d's unparseable branch yields `rounds: []`, note `\"objections.json unparseable\"`, `true`. Neither branch appears in §5, and neither is named in §8. The spec's own edge-case list covers sha-mismatch and over-cap but omits these two. A build that crashes on a missing blob, or returns `null` tamper status for an unparseable schema-2 blob, satisfies every scenario and every DONE item.",
+    "evidence": "§4 step 2b and step 2d \"unparseable\" branch; §5 scenarios cover mutated, oversized, and legacy-v1 blobs but never a missing or invalid-JSON blob.",
+    "predicted_consequence": "the two most likely out-of-band corruption shapes (blob deleted, blob garbage) are unverified reader behaviour; a regression there ships green.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "the failure mode asserts \"the `objections_sha` field is witness-covered\" as part of the tamper-detection mechanism, and the DONE item requires `objections_sha` in the manifest core. But the only test the spec describes (mutate the blob, assert `objections_tamper_suspect: true`) passes via the *direct* `sha256(blob)` comparison even if `objections_sha` is excluded from the `witness_sha` computation. No scenario mutates `objections_sha` itself and asserts the witness flips. A build that computes `witness_sha` over a manifest core without `objections_sha` — so a coordinated blob+sha edit reads clean — satisfies every scenario.",
+    "evidence": "failure-mode \"the new per-round content sits outside the tamper envelope\" (\"How you'd know: the `objections_sha` field is witness-covered AND the reader recomputes `sha256(blob)` against it\"); §5 mutated-blob scenario mutates only the blob.",
+    "predicted_consequence": "the spec's own stated detection mechanism for the envelope failure is only half-asserted; the witness-coverage half is unverifiable as written.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "§4 step 5e says lens/severity come from the ledger entry `p-<i>` when `is_standing` and the ledger is present (\"the ledger may correct these\"), and DONE requires \"the only round carrying ledger-index-matched `contested_source`/`lens`/`severity`\". The holdout scenario asserts only `contested_source` (true on standing, null elsewhere); it never constructs a ledger whose lens/severity differ from the round file's own values and asserts the override. A build that ignores the ledger's lens/severity correction entirely passes every scenario.",
+    "evidence": "holdout scenario \"the standing-residue round's first objection has `contested_source = true`\"; DONE item \"the only round carrying ledger-index-matched `contested_source`/`lens`/`severity`\".",
+    "predicted_consequence": "the ledger-correction half of the standing-residue objection shape is unverified; a build that drops it ships green.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "§3 and DONE state that `--objections` adds exactly `rounds`, `window_start`, `all_round_lenses`, `objections_tamper_suspect` (\"those four fields appear ONLY when the flag is passed\"), and the byte-for-byte baseline scenario lists the same four. But §4 step 2b/2c/2d set `objections_note` in the missing, over-cap, and unparseable branches — a fifth field that also appears only under `--objections`. The baseline claim is incomplete, so a test asserting \"exactly these four fields are added\" would fail against the spec's own reader definition.",
+    "evidence": "§3 reader interface \"each record gains `rounds`, `window_start`, `all_round_lenses`, and `objections_tamper_suspect`\"; §4 step 2b `record.objections_note := \"objections.json missing\"`.",
+    "predicted_consequence": "the byte-for-byte baseline cannot be asserted as stated — the field set under `--objections` is five, not four, in the error branches.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE requires \"byte-for-byte identical otherwise within the same run, verified against a captured baseline\", and the scenario says \"compared against a captured same-run baseline\". What is captured — a checked-in fixture, or a fresh same-run invocation? The two readings differ: a checked-in fixture can drift from the mint under test, while a same-run comparison is self-consistent. The spec never says which, so the oracle for the baseline assertion is not concretely stateable.",
+    "evidence": "DONE item \"byte-for-byte identical otherwise within the same run, verified against a captured baseline\"; §5 bullet \"compared against a captured same-run baseline\".",
+    "predicted_consequence": "a reviewer cannot decide whether the baseline assertion passed without first resolving an ambiguity the spec leaves open.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "§4 step 5f says \"lenses := sorted unique union of THIS round's own objections[*].lens (non-empty)\". This could mean empty lens values are filtered out, or that the resulting set is constrained to be non-empty (with unspecified behaviour when every objection's lens is empty). The two readings produce different `lenses` values for a round whose objections all carry empty/absent lens strings, and no scenario covers that input.",
+    "evidence": "§4 step 5f; §3 `RoundObjections.lenses` \"sorted unique union of THIS round's own objections' lens values\".",
+    "predicted_consequence": "a build implementing one reading and a test asserting the other disagree with no spec text to settle it.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

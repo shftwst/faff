@@ -1,0 +1,56 @@
+[
+  {
+    "claim": "The spec's central decoupling claim (\"no config read for occupant selection\") holds only for the `local` occupant. For `git-remote`, the spec never establishes where the occupant obtains its remote URL when constructed via the flag, and its own DONE criterion is internally contradictory: \"parity with a `git-remote` config, minus the config read\" — if the config read is what supplies the remote, then \"minus the config read\" leaves the occupant with no remote; if the remote comes from elsewhere, the mechanism is never specified. The spec also asserts \"`--root` locates the files for both occupants already\" (§4), which is false for `git-remote` — its files come from a remote fetch, not from `root`. The git-remote branch is not a decoration: it is a stated DONE deliverable.",
+    "evidence": "§4 \"`--bundle-store git-remote` → constructs `gitRemoteBundleStore(root)` directly; identical to what a `git-remote` config would resolve, minus the config read\"; §8 DONE \"`--bundle-store git-remote --root <root>` constructs the git-remote occupant directly (parity with a `git-remote` config, minus the config read)\"; §4 \"`--root` locates the files for both occupants already\". Nowhere does the spec say where the remote URL comes from in the flag path.",
+    "predicted_consequence": "The git-remote DONE criterion cannot be verified as written — either the occupant silently reads config (contradicting the spec's \"no config read\" claim and re-introducing the exact coupling the flag is meant to bypass) or the flag is unusable for git-remote. The named extension point (§2: `--bundle-store` on `publish`, \"same flag, same helper\") inherits the same gap on first use.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec's anti-pattern (\"it must stay a single home (`bundleStoreByName`) so verify and config-driven resolution can never drift\") is only true within `bundle.js`. The system already has a second, deliberately divergent store-resolution site: `resolveFacadeStore` in `commissaire.js` refuses the git-remote occupant in-process. So the \"mirror the sibling verbs\" precedent (§1) is overstated — the sibling verbs' `--bundle-store` is effectively local-only in practice, and `--bundle-store git-remote` on `bundle verify` is genuinely new surface, not mirrored vocabulary. The spec acknowledges the facade's refusal in §6, so this is not a contradiction, but the \"one occupant-construction site\" claim is not system-wide.",
+    "evidence": "`commissaire.js` context: \"`resolveFacadeStore` already refuses the git-remote occupant in-process\"; §1 \"matching the one `audit seal` / `audit export` already carry\"; §4 anti-pattern \"it must stay a single home (`bundleStoreByName`) so verify and config-driven resolution can never drift\".",
+    "predicted_consequence": "An operator who knows the sibling verbs' flag learns a vocabulary the facade cannot honor for git-remote; the \"never drift\" guarantee is scoped to one file, so a future store-occupant change must still reconcile two resolution sites.",
+    "spec_anchor": "1-why-problem-and-principles",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "\"the config-resolved occupant is used\" is not a verdict. A test cannot observe *which occupant was used*; it can only observe the verdict and exit code. The scenario must pin the expected verdict (non-CLEAN — `MISSING` or `VERIFICATION_UNAVAILABLE`) and the exit code.",
+    "evidence": "The holdout scenario is the **only** guard for the absent-flag path, and it is also the only scenario that can establish the spec's WHY premise (\"a capture that returns `MISSING`/`VERIFICATION_UNAVAILABLE` today\"). The DONE item from WHY (\"returns `CLEAN` (exit 0) on a capture that returns `MISSING`/`VERIFICATION_UNAVAILABLE` today\") is only decidable if the pre-fix behaviour is independently established as non-CLEAN. As written, a build that (a) never had the bug, or (b) silently breaks the config walk-up (so the absent-flag path resolves `local` and returns `CLEAN`), still \"uses the config-resolved occupant\" under any reading — `local` is itself config-resolved by default. The smoke test's step 5 assertion (\"non-CLEAN or git-remote fetch attempted\") is equally uncheckable: \"fetch attempted\" is a side effect with no specified observation channel (log line? strace? network capture?), and the disjunction means the assertion passes even when the verdict is wrong. Additionally, the git-remote occupant may perform a real `git fetch` against a configured remote; the scenario does not specify how the test avoids a network hang, so the holdout's outcome is not deterministic as written.",
+    "predicted_consequence": "`done cannot be decided for the WHY DONE item and the absent-flag DONE item`: a build that satisfies scenario 1 and scenario 3 but regresses the walk-up (or that ships against a codebase where the bug never reproduced) passes every stated check, and the \"absent-flag behaviour unchanged\" criterion is unfalsifiable.",
+    "spec_anchor": "5-scenarios-born-verifiable-main-objectives",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "\"`--bundle-store git-remote --root <root>` constructs the git-remote occupant directly (parity with a `git-remote` config, minus the config read)\" is a DONE item with no corresponding scenario. The three scenarios cover `local`-override-on-git-remote-config, absent-flag, and invalid-value; none exercises the git-remote override.",
+    "evidence": "§5 scenarios list; §8 \"From HOW (edge cases)\" second bullet.",
+    "predicted_consequence": "a build that hard-codes `--bundle-store git-remote` to construct the local occupant (or that fails to construct any occupant) passes every scenario while the DONE item is false; the item is only checkable by code inspection, not by any stated test.",
+    "spec_anchor": "from-how-edge-cases",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "scenario 3's Then (\"no store is constructed\") and the matching edge-case DONE item assert a process-internal fact. Only the exit code 2 and the usage error naming `local, git-remote` are observable from outside.",
+    "evidence": "§5 scenario 3; §8 \"From HOW (edge cases)\" first bullet.",
+    "predicted_consequence": "a build that constructs the store and then exits 2 with the usage error satisfies every observable assertion while violating the DONE item; the item cannot be decided by the stated scenario.",
+    "spec_anchor": "from-how-edge-cases",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "the HOW DONE item (\"with no config read for occupant selection\") promises that the flag path is immune to the enclosing checkout's config. The natural edge case — a malformed or unreadable `.faffrc.yaml` in the enclosing checkout, which today would make config-driven resolution fail — is never scenario'd with `--bundle-store local`.",
+    "evidence": "§8 \"From HOW\" first bullet; §7 edge-case list names only unrecognised value, git-remote override, and absent flag.",
+    "predicted_consequence": "a build that reads config even when the flag is present (then overrides) passes scenario 1 (verdict still `CLEAN`) but fails the DONE item's \"no config read\" promise on a malformed config; the divergence is undetectable by any stated test.",
+    "spec_anchor": "from-how",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

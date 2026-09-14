@@ -228,8 +228,12 @@ test("round-trip: emitted keys are a subset of the fields review-call.mjs's mapp
   // The mapper (review-call.mjs, --backends-json handling) reads exactly:
   //   b.provider, b.model, b.host, b.api_key_env (|| b.apiKeyEnv), b.reasoning_off (?? b.reasoningOff ?? false),
   //   b.reasoning_effort (?? b.reasoningEffort), b.reasoning_extra (?? b.reasoningExtra), b.timeout, b.first_byte_timeout
-  //   plus (FAFF-481) b.auth + b.seat_token_env — the subscription-seat identity it resolves the seat token from.
-  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout"]);
+  //   plus (FAFF-481) b.auth + b.seat_token_env — the subscription-seat identity it resolves the seat token from,
+  //   plus (FAFF-1039) b.context_window — the per-backend token window the review preflight sizes against.
+  // This equality is the drift guard for the FAFF-1039 anti-pattern: a field read by the mapper but
+  // missing from BACKEND_KEYS is stripped by pickBackendKeys before the chain is emitted, so the mapper
+  // never sees it and the feature silently no-ops. Keep the two in lockstep here.
+  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout", "context_window"]);
   assert.deepEqual(new Set(BACKEND_KEYS), MAPPER_ACCEPTED_KEYS);
 
   const cfg = { adversarial: {

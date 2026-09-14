@@ -27,8 +27,18 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
   "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout",
-  "telemetry", "operation_deadline_secs",
+  "telemetry", "operation_deadline_secs", "context_window",
 ];
+
+// FAFF-1039: PURE — normalise an operator-declared token window to "positive integer, or absent".
+// A non-positive, non-numeric, or unparseable value reads as absent (window-unbounded, today's
+// behaviour) rather than erroring: a malformed knob must never break review dispatch, only fail to
+// narrow it. Floors a fractional value rather than rejecting it, so `1.31072e5` is usable.
+function positiveWindow(v) {
+  if (!present(v)) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
+}
 
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
 const EGRESS_VALUES = ["local", "external"];
@@ -180,6 +190,13 @@ function normalizeBackend(name, raw) {
   b.reasoning_extra = present(raw.reasoning_extra) ? raw.reasoning_extra : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.first_byte_timeout = present(raw.first_byte_timeout) ? Number(raw.first_byte_timeout) : undefined;
+  // FAFF-1039: the per-backend context window the review preflight sizes the shared prefix against.
+  // This explicit assignment is load-bearing and is NOT redundant with BACKEND_RECORD_KEYS: that list
+  // only DECLARES the field, while this function is what COPIES it on the refs path. Declaring without
+  // copying is precisely the silent-drop bug the FAFF-918 note above records (FAFF-914 declared
+  // reasoning_extra and never copied it here, so a refs-resolved backend lost it). Normalised at the
+  // boundary, so every downstream reader sees a positive integer or nothing at all.
+  b.context_window = positiveWindow(raw.context_window);
   // FAFF-877: the shared supervisor's TOTAL operation-budget override (seconds) — distinct
   // from `timeout` above (connection/request only). Resolved to a 3600s default downstream
   // in config.js's resolveEngineForLane, not here (normalize only carries the raw override).

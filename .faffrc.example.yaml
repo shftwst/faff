@@ -218,7 +218,7 @@ bundle_store: local          # local | git-remote
 # marker) rather than being retrofitted to satisfy the commit convention. A mechanism value (like
 # automation_default / adr.mode), NOT a prose preference. warn (default): print guidance, never
 # block (observe no-provenance counts before tightening) · block: refuse a ticket with no genuine
-# provenance (legacy faff-jot-intake-labelled tickets are grandfathered through with a warning) ·
+# provenance ·
 # off: disable the guard. Sanctioned override: faff intake-record <ISSUE> --via fast-track --reason "…".
 intake_gate: warn   # warn (default) | block | off
 

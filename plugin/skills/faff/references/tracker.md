@@ -101,7 +101,7 @@ During unattended runs (`/faff-beep-boop`) the **tracker is the complete human-l
 - **Park** — park comment + `faff-parked` label, via the shared **Park protocol**.
 - **Resolve-attempt-proceed** — the audit-trail comment when autonomous mode infers an answer and proceeds (**Resolve-attempt before park**).
 - **Appetite-override** — the `(appetite: …)` audit comment when an appetite-influenced decision ships.
-- **Discovered-scope / chain-gap filing** — the `Backlog` + `faff-chain-gap-fill` ticket with its provenance line (`faff-beep-boop` step 10; `faff-tidy` chain-gaps).
+- **Discovered-scope / chain-gap filing** — the `Backlog` ticket with its provenance line (`faff-beep-boop` step 10; `faff-tidy` chain-gaps).
 - **Terminal disposition** — *shipped* (PR + auto-merge status move), *routed-out* (verdict gate), *errored* — surfaced via the run-summary digest.
 - **The once-per-run run-summary digest** — posted to the tracker as a status update / project comment. One digest per run, not per step.
 

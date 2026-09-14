@@ -24,10 +24,6 @@ const CONTROL_LABEL_DEFS = [
     description: "Human-set hard exclude: NEVER automate this ticket, even if it also carries the automate label. Highest precedence in the eligibility model. Visible to read skills. Tracker-owned (FAFF-218): toggle in the tracker UI only — the faff CLI refuses to add/remove it." },
   { role: "parked", color: "#e8a33d",
     description: "Issue parked by an autonomous faff run. Check the issue comments for the park reason. Surfaced by /faff-wtf." },
-  { role: "jot-intake", color: "#4ea7fc",
-    description: "Cosmetic hint: work created by /faff-jot, picked up by the next /faff-prep pass. NOT provenance — the load-bearing intake signal is the .faff/provenance marker (FAFF-212) and the initiated audit field (FAFF-220); this label survives only as a grandfather bridge for legacy tickets (FAFF-209: the label alone is NOT provenance)." },
-  { role: "chain-gap-fill", color: "#4ea7fc",
-    description: "Cosmetic hint: an auto-filled chain-gap / execution-discovered ticket (faff-tidy / faff-beep-boop, or a methodology lens filing a surfaced prerequisite/follow-up dependency), picked up by the next /faff-prep pass. NOT provenance — the load-bearing initiation signal is the initiated: autonomous audit field (FAFF-220); this label survives only as a grandfather/migration hint." },
   { role: "awaiting-review", color: "#f2c94c",
     description: "Built work holding for review-provider recovery; the next drain resumes at review (no rebuild). Applied by faff-graft; cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear on state moves). NOT a park (the parked label, above) — a hold means automation is waiting on a machine, not a human (FAFF-403)." },
   { role: "awaiting-spec-review", color: "#f2c94c",
@@ -52,8 +48,8 @@ function controlLabels(prefix = "faff") {
 // description pass through unchanged per entry.
 const LABELS_SELFTEST_CASES = [
   // [prefix, expectedNames] — role/color/tracker_owned/description checked structurally below
-  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-jot-intake", "faff-chain-gap-fill", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed"]],
-  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-jot-intake", "sd-chain-gap-fill", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed"]],
+  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed"]],
+  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed"]],
 ];
 
 function labelsSelftest() {

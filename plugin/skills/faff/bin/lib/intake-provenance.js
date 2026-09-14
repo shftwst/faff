@@ -2,9 +2,9 @@
 // === region:factory — intake-provenance guard (FAFF-212) — make "new work entered through the front ===
 // door" a deterministic, checkable fact rather than a prose convention.
 //
-// Today the only signal a ticket came through /faff-jot is the `faff-jot-intake`
-// label — agent-applied, so an agent can stamp it without running intake (the
-// FAFF-209 bypass). This replaces "trust the label" with a CLI-written provenance
+// The original signal a ticket came through /faff-jot was an agent-applied label, which
+// an agent could stamp without running intake (the FAFF-209 bypass). That bridge was
+// retired in FAFF-1043. This replaces "trust the label" with a CLI-written provenance
 // marker (.faff/provenance/<ISSUE>.json, parallel to prepcheck's .faff/prep/) plus
 // a graft-time precondition that reads it. Provenance becomes a side effect of
 // RUNNING the flow, not a sticker.
@@ -42,7 +42,6 @@ const INTAKE_GATE_MODES = new Set(["warn", "block", "off"]);
 // (absent OR malformed — both gate as absent). Returns {satisfied, basis, warn?}.
 //   off                → always satisfied (gate disabled)
 //   marker present     → satisfied, basis = the recorded `via`
-//   faff-jot-intake    → satisfied, basis grandfathered-label, warn:true (spoofable migration bridge)
 //   faff-automate      → satisfied, basis eligibility-gesture, NO warn (FAFF-223; see below)
 //   neither            → unsatisfied, basis no-provenance
 //
@@ -57,8 +56,8 @@ const INTAKE_GATE_MODES = new Set(["warn", "block", "off"]);
 // the two axes stay separate (eligibility = "may auto-build?", intake = "front door?"), and
 // the distinct `eligibility-gesture` string keeps the audit trail legible (a reviewer can
 // tell label-derived intake from a real jot marker). Precedence is strongest-evidence-first:
-// a recorded marker wins, then grandfathered-label (which keeps its migration warn), then
-// eligibility-gesture. Unlike the spoofable grandfathered-label, eligibility-gesture carries
+// a recorded marker wins, then eligibility-gesture. (A third basis, grandfathered-label, keyed
+// off the retired jot-intake label and was removed with it in FAFF-1043.) eligibility-gesture carries
 // NO warn — FAFF-218 makes it trustworthy by construction. TRUST DEPENDENCY: this basis is
 // sound ONLY while FAFF-218's write-abstention holds; if `faff-automate` ever became CLI-
 // writable again, it would be agent-spoofable (the FAFF-209 failure the marker was built for).
@@ -70,9 +69,6 @@ function intakeVerdict(marker, labels, mode, prefix = "faff") {
   const via = marker && marker.intake && marker.intake.via;
   if (INTAKE_VIA.has(via)) return { satisfied: true, basis: via };
   const labelSet = new Set(labels);
-  if (labelSet.has(`${prefix}-jot-intake`)) {
-    return { satisfied: true, basis: "grandfathered-label", warn: true };
-  }
   if (labelSet.has(`${prefix}-automate`)) {
     return { satisfied: true, basis: "eligibility-gesture" };
   }
@@ -137,8 +133,7 @@ function intakeGuidance(issue, basis) {
     `${issue} in the tracker — a write-abstained human gesture that faff reads as intake ` +
     `provenance; or capture a genuinely new idea via \`/faff-jot\` (no issue id — the front ` +
     `door). (Migration / agent-orchestrator only: \`faff intake-record ${issue} --via backfill\` ` +
-    `for bulk legacy backfill, or \`--via fast-track --reason "<why>"\` for a recorded override. ` +
-    `Legacy tickets carrying the faff-jot-intake label are grandfathered through with a warning.)`
+    `for bulk legacy backfill, or \`--via fast-track --reason "<why>"\` for a recorded override. ` + `)`
   );
 }
 
@@ -321,13 +316,15 @@ const INTAKECHECK_SELFTEST_CASES = [
   [{ intake: { via: "backfill" } }, [], "block", { satisfied: true, basis: "backfill", exit: 0 }],
   [{ intake: { via: "fast_track", reason: "prod outage" } }, [], "block", { satisfied: true, basis: "fast_track", exit: 0 }],
   // grandfathered label only → satisfied + warn, exit 0
-  [null, ["faff-jot-intake"], "block", { satisfied: true, basis: "grandfathered-label", warn: true, exit: 0 }],
+  // FAFF-1043: the retired jot-intake label is inert — it satisfies nothing on its own.
+  [null, ["faff-jot-intake"], "block", { satisfied: false, basis: "no-provenance", exit: 3 }],
   // FAFF-223: faff-automate (write-abstained, human-set) → eligibility-gesture, NO warn, exit 0
   [null, ["faff-automate"], "block", { satisfied: true, basis: "eligibility-gesture", exit: 0 }],
   // FAFF-223: precedence — a recorded marker still wins over the eligibility-gesture label
   [{ intake: { via: "jot" } }, ["faff-automate"], "block", { satisfied: true, basis: "jot", exit: 0 }],
-  // FAFF-223: precedence — grandfathered-label wins over eligibility-gesture when both labels present
-  [null, ["faff-jot-intake", "faff-automate"], "block", { satisfied: true, basis: "grandfathered-label", warn: true, exit: 0 }],
+  // FAFF-1043: with the bridge gone, a ticket carrying the retired label plus automate resolves
+  // eligibility-gesture — satisfied, and WITHOUT the spurious warn the bridge used to add.
+  [null, ["faff-jot-intake", "faff-automate"], "block", { satisfied: true, basis: "eligibility-gesture", exit: 0 }],
   // neither, block → unsatisfied exit 3
   [null, [], "block", { satisfied: false, basis: "no-provenance", exit: 3 }],
   // FAFF-223: PAIRED bypass — same no-provenance block case, but --interactive → exit 0
@@ -343,7 +340,7 @@ const INTAKECHECK_SELFTEST_CASES = [
   // off → always satisfied, exit 0, even with no marker / no label
   [null, [], "off", { satisfied: true, basis: "gate-off", exit: 0 }],
   // malformed marker (null) + label → grandfathered (gates as absent)
-  [null, ["faff-jot-intake"], "warn", { satisfied: true, basis: "grandfathered-label", warn: true, exit: 0 }],
+  [null, ["faff-jot-intake"], "warn", { satisfied: false, basis: "no-provenance", exit: 0 }],
 ];
 
 // Exit decision over (verdict, mode, interactive). The interactive bypass (FAFF-223) only
@@ -355,14 +352,16 @@ function intakeExit(v, mode, interactive = false) {
   return mode === "block" ? 3 : 0;
 }
 
-// FAFF-1044: a configured non-default prefix resolves jot-intake/automate by role against
-// THAT prefix — a default-prefix "faff-jot-intake"/"faff-automate" label does NOT satisfy
-// under a custom prefix (no cross-prefix fallback), matching eligible.js's identical rule.
+// FAFF-1044: a configured non-default prefix resolves automate by role against THAT prefix —
+// a default-prefix "faff-automate" label does NOT satisfy under a custom prefix (no
+// cross-prefix fallback), matching eligible.js's identical rule.
+// FAFF-1043: the jot-intake rows are gone with the bridge; a retired-label row is kept under
+// the custom prefix to pin that it satisfies nothing at ANY prefix.
 // Tuple: [labels, prefix, want-basis].
 const INTAKE_PREFIX_SELFTEST_CASES = [
-  [["sd-jot-intake"], "sd", "grandfathered-label"],
+  [["sd-jot-intake"], "sd", "no-provenance"],     // retired: inert even at its own prefix
   [["sd-automate"], "sd", "eligibility-gesture"],
-  [["faff-jot-intake"], "sd", "no-provenance"],   // default-prefix label doesn't satisfy under "sd"
+  [["faff-automate"], "sd", "no-provenance"],     // default-prefix label doesn't satisfy under "sd"
 ];
 
 function intakecheckSelftest() {

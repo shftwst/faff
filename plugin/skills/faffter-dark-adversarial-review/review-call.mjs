@@ -208,13 +208,17 @@ export function fitsWindow(estimatedTokens, contextWindow, safety = DEFAULT_WIND
   return Number(estimatedTokens) <= Math.floor(w * safety);
 }
 
-// PURE: the byte budget the CONTEXT BUNDLE must fit — not the assembled prefix. The window has to
-// accommodate context + diff + a fixed brief reserve, and the diff is not reducible, so it is
-// subtracted here and what remains is what the trim has to work with. Callers must therefore compare
-// this against CONTEXT bytes; comparing it against the assembled prefix (which already contains the
-// diff) charges the diff twice and undershoots the target by exactly its size, which silently
-// over-trims every diff-heavy review. Depends only on (contextWindow, diff), never on any lens brief,
-// so the prefix it governs stays byte-identical across lenses.
+// PURE: the byte budget for EVERYTHING IN THE PREFIX EXCEPT THE DIFF. The window has to accommodate
+// context + diff + a fixed brief reserve, and the diff is not reducible, so it is subtracted here and
+// what remains is what the trim has to work with. Callers must therefore compare this against
+// `prefixBytes - diffBytes`, which is what `tightenToTarget` computes as `contextBytes`: that spelling
+// is exact by construction (assembleUserMessage emits the diff verbatim exactly once) and charges the
+// per-file `<file path=…>` wrappers and the `DIFF UNDER REVIEW:` header, which a bare sum of `f.text`
+// would silently omit — about 25 bytes plus the path per file, which on a 30-file payload is ~2.5KB,
+// more than the slack the brief reserve leaves. Comparing against the FULL assembled prefix instead
+// would charge the diff twice and undershoot by exactly its size, silently over-trimming every
+// diff-heavy review. Depends only on (contextWindow, diff), never on any lens brief, so the prefix it
+// governs stays byte-identical across lenses.
 export function trimTargetBytes(contextWindow, diff = "") {
   const w = normaliseContextWindow(contextWindow);
   if (w === null) return null;
@@ -252,14 +256,16 @@ export const TRIM_WINDOW_LADDER = Object.freeze([DEFAULT_TRIM_WINDOW, 16, 10, 6,
 // and the primary-skip surfacing handle it, and a smaller-but-still-over payload beats the un-narrowed
 // one. `assembleFn` is injected so the search is testable independently of the module-level assembler.
 export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, assembleFn = assembleUserMessage } = {}) {
+  const diffBytes = Buffer.byteLength(String(diff == null ? "" : diff), "utf8");
   let best = null;
   for (const window of TRIM_WINDOW_LADDER) {
     const { contextFiles: trimmed } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
     const prefix = assembleFn({ contextFiles: trimmed, diff });
     const bytes = Buffer.byteLength(prefix, "utf8");
-    // The fit is decided on CONTEXT bytes, because that is what trimTargetBytes budgets (it already
-    // subtracted the diff). Measuring the assembled prefix here would charge the diff a second time.
-    const contextBytes = trimmed.reduce((acc, f) => acc + Buffer.byteLength(String(f.text == null ? "" : f.text), "utf8"), 0);
+    // The fit is decided on everything-but-the-diff, because that is what trimTargetBytes budgets (it
+    // already subtracted the diff). Derived as prefix minus diff rather than summed from f.text: exact
+    // by construction, and it cannot drift if assembleUserMessage's framing ever changes.
+    const contextBytes = bytes - diffBytes;
     if (targetBytes == null || contextBytes <= targetBytes) {
       return { contextFiles: trimmed, prefix, bytes, contextBytes, window, fitted: true };
     }
@@ -2056,7 +2062,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
         `[note] FAFF-1039 window-targeted trim: est ${estWithReserve} tok (incl. ${DEFAULT_BRIEF_RESERVE_TOKENS} brief reserve) exceeded usable ${usable} `
         + `(primary window ${primaryWindow}); `
         + (adopted
-          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.bytes} B vs ${target} B target)`
+          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.contextBytes} B vs ${target} B target)`
             + `${tightened.fitted ? "" : " — STILL OVER, but smaller"}`
           : `no rung shrank it (best ${tightened.bytes} B vs ${beforeBytes} B already assembled) — KEEPING the untightened prefix`)
         + `\n`);

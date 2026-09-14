@@ -621,7 +621,9 @@ test("a fitting context is NOT dragged to the tightest rung by a large diff", ()
   const contextFiles = [{ path: "c.js", text: Array.from({ length: 300 }, (_, i) => `const v${i} = ${i}; // ${"z".repeat(20)}`).join("\n") }];
   const diff = `--- a/c.js\n+++ b/c.js\n@@ -5,1 +5,2 @@\n+  use(v5);\n${"+// padding\n".repeat(400)}`;
   const { contextFiles: firstRung } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window: TRIM_WINDOW_LADDER[0] });
-  const firstRungContextBytes = firstRung.reduce((a, f) => a + B(f.text), 0);
+  // Everything-but-the-diff, the same spelling tightenToTarget uses: prefix minus diff, so the per-file
+  // wrappers and the DIFF UNDER REVIEW header are charged here exactly as they are there.
+  const firstRungContextBytes = B(assembleUserMessage({ contextFiles: firstRung, diff })) - B(diff);
   assert.ok(B(diff) > 0, "the diff must be non-empty or the two readings coincide");
 
   const r = tightenToTarget({ contextFiles, diff, targetBytes: firstRungContextBytes });
@@ -753,4 +755,47 @@ test("the --context-window flag parses and drives the guard on the legacy single
   assert.deepEqual(called, [], "the flag alone is enough to guard-skip the only backend, pre-network");
   assert.ok(r.err.split("\n").some((l) => l.trim() === PRIMARY_SKIP_SIGNAL));
   assert.equal(r.code, EXIT.USAGE);
+});
+
+// ---- regressions the third review round found ---------------------------------------------------
+
+test("contextBytes charges the per-file framing, not just the raw text", () => {
+  // A bare sum of f.text omits assembleUserMessage's `<file path=…>` wrappers and the
+  // `DIFF UNDER REVIEW:` header — about 25 bytes plus the path per file, which on a many-file payload
+  // exceeds the slack the brief reserve leaves. Deriving it as prefix-minus-diff charges them exactly,
+  // and cannot drift if the framing ever changes.
+  const contextFiles = [
+    { path: "some/quite/long/path/alpha.js", text: "a".repeat(500) },
+    { path: "some/quite/long/path/beta.js", text: "b".repeat(500) },
+  ];
+  const diff = "--- a/alpha.js\n+++ b/alpha.js\n@@ -1,1 +1,2 @@\n+x\n";
+  const r = tightenToTarget({ contextFiles, diff, targetBytes: null });
+  const rawTextSum = r.contextFiles.reduce((a, f) => a + B(f.text), 0);
+
+  assert.equal(r.contextBytes, r.bytes - B(diff), "exact by construction: prefix minus diff");
+  assert.ok(r.contextBytes > rawTextSum, "and strictly more than the bare text sum, because framing is charged");
+  // the omission a bare sum would make, stated concretely
+  const framing = contextFiles.reduce((a, f) => a + 25 + B(f.path), 0) + 20;
+  assert.equal(r.contextBytes - rawTextSum, framing, `framing is ${framing} B for this payload`);
+});
+
+test("the window-targeted trim note never contradicts its own fit verdict", async () => {
+  // The note reported PREFIX bytes against a CONTEXT-byte target, so it could print numbers denying a
+  // fit it had just made — in the one diagnostic this feature exists to make honest.
+  const f = denseFixture();
+  const bf = join(f.dir, "b.json");
+  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "primary", host: "https://h/v1", context_window: 15000 }]));
+  const r = await runMain(["--backends-json", bf, "--system", f.sys, "--diff", f.diff, "--context", f.ctx],
+    async () => ({ status: "ok", content: "### observation: no findings" }));
+
+  const line = r.err.split("\n").find((l) => l.includes("window-targeted trim"));
+  assert.ok(line, "the trim must fire on this fixture");
+  const m = line.match(/\((\d+) B vs (\d+) B target\)/);
+  assert.ok(m, `the note must carry a bytes-vs-target clause: ${line}`);
+  const [, got, target] = m;
+  const claimedStillOver = line.includes("STILL OVER");
+  if (!claimedStillOver) {
+    assert.ok(Number(got) <= Number(target),
+      `a note reporting a fit must print bytes within the target: ${got} B vs ${target} B`);
+  }
 });

@@ -213,7 +213,7 @@ function cmdIntakecheck(args) {
   const exit = intakeExit(v, mode, interactive);
   const bypassed = !v.satisfied && mode === "block" && interactive; // exit 0 by the human-sanction rule
   const out = { issue, mode, ...v, ...(interactive ? { interactive: true } : {}), ...(bypassed ? { bypassed: true } : {}) };
-  if (malformed) out.warn = true; // a malformed marker surfaces a warning even when the label saves it
+  if (malformed) out.warn = true; // a malformed marker warns even when the automate label saves it
 
   if (asJson) {
     console.log(JSON.stringify(out, null, 2));

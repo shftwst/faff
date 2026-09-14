@@ -100,6 +100,17 @@ test("a malformed marker is treated as absent + warn, never crashes", () => {
     const r = run("intakecheck", "FAFF-1", "--labels", "", "--root", root);
     assert.equal(r.code, 3, "malformed gates as absent (block), does not crash");
     assert.match(r.out, /no genuine intake provenance/);
+
+    // ...and the `+ warn` half: when another basis DOES satisfy, the malformed marker still
+    // surfaces loudly rather than passing silently. FAFF-1043 retired the label this half used
+    // to ride on, so it rides the surviving eligibility-gesture basis instead. This is the only
+    // coverage of the malformed-warn pair in intake-provenance.js (`out.warn` / the `[warn]`
+    // branch) — without it that pair is reachable but untested.
+    const r2 = run("intakecheck", "FAFF-1", "--labels", "faff-automate", "--root", root);
+    assert.equal(r2.code, 0, "eligibility-gesture satisfies even with a malformed marker");
+    assert.match(r2.out, /\[warn\]/, "a malformed marker is never silent");
+    assert.match(r2.out, /marker malformed/);
+    assert.match(r2.out, /eligibility-gesture/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

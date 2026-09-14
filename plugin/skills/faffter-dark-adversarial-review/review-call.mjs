@@ -208,9 +208,13 @@ export function fitsWindow(estimatedTokens, contextWindow, safety = DEFAULT_WIND
   return Number(estimatedTokens) <= Math.floor(w * safety);
 }
 
-// PURE: the BYTE budget the shared context+diff block must fit to leave the primary's usable window
-// room for the response and a fixed per-lens brief reserve. Depends only on (contextWindow, diff) —
-// never on any lens brief — so the prefix it targets stays byte-identical across lenses.
+// PURE: the byte budget the CONTEXT BUNDLE must fit — not the assembled prefix. The window has to
+// accommodate context + diff + a fixed brief reserve, and the diff is not reducible, so it is
+// subtracted here and what remains is what the trim has to work with. Callers must therefore compare
+// this against CONTEXT bytes; comparing it against the assembled prefix (which already contains the
+// diff) charges the diff twice and undershoots the target by exactly its size, which silently
+// over-trims every diff-heavy review. Depends only on (contextWindow, diff), never on any lens brief,
+// so the prefix it governs stays byte-identical across lenses.
 export function trimTargetBytes(contextWindow, diff = "") {
   const w = normaliseContextWindow(contextWindow);
   if (w === null) return null;
@@ -253,8 +257,14 @@ export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, ass
     const { contextFiles: trimmed } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
     const prefix = assembleFn({ contextFiles: trimmed, diff });
     const bytes = Buffer.byteLength(prefix, "utf8");
-    if (targetBytes == null || bytes <= targetBytes) return { contextFiles: trimmed, prefix, bytes, window, fitted: true };
-    if (best === null || bytes < best.bytes) best = { contextFiles: trimmed, prefix, bytes, window };
+    // The fit is decided on CONTEXT bytes, because that is what trimTargetBytes budgets (it already
+    // subtracted the diff). Measuring the assembled prefix here would charge the diff a second time.
+    const contextBytes = trimmed.reduce((acc, f) => acc + Buffer.byteLength(String(f.text == null ? "" : f.text), "utf8"), 0);
+    if (targetBytes == null || contextBytes <= targetBytes) {
+      return { contextFiles: trimmed, prefix, bytes, contextBytes, window, fitted: true };
+    }
+    // The min is tracked on PREFIX bytes, because the prefix is what gets sent.
+    if (best === null || bytes < best.bytes) best = { contextFiles: trimmed, prefix, bytes, contextBytes, window };
   }
   return { ...best, fitted: false };
 }
@@ -700,7 +710,7 @@ const HEADER_LINE_RE = /^##[ \t]*Adversarial findings/i;
 // Locate an existing header line's index, searching ONLY the preamble (before the first `### ` finding
 // heading, exclusive) — never a finding body. Returns -1 when absent. Shared by ensureHeader (below) and
 // main()'s "was a header already present" check, so both use the identical scoped definition of "present".
-function findHeaderLineIdx(lines) {
+export function findHeaderLineIdx(lines) {
   const firstHeadingIdx = lines.findIndex((l) => HEADING_LINE_RE.test(l));
   const scopeEnd = firstHeadingIdx === -1 ? lines.length : firstHeadingIdx;
   for (let i = 0; i < scopeEnd; i++) if (HEADER_LINE_RE.test(lines[i])) return i;
@@ -1590,7 +1600,7 @@ async function safeCall(callFn) {
 //
 // chain element: { provider, model, host, hostSource, apiKey?, apiKeyEnv?, apiKeyMissing?, reasoningOff?, timeoutMs? }
 // shared:        { system, user, numPredict, runReviewFn?, getFn?, streamFn?, log? }
-// returns:       { exit, content?, truncated?, winner?, winnerIndex?, failureClasses }
+// returns:       { exit, content?, truncated?, winner?, winnerIndex?, failureClasses, primarySkipped? }
 //
 // FAFF-361: every per-skipped-backend log line below is reshaped to the greppable
 // `[chain] <provider>/<model> <reason> → advancing (exit <n>)` form ONLY when the chain is actually
@@ -2029,13 +2039,15 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     if (estWithReserve > usable) {
       const target = trimTargetBytes(primaryWindow, diff);
       const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target });
-      // Adopt the tightened prefix ONLY when it is genuinely smaller. tightenToTarget's min-tracking is
-      // what actually guarantees this today; the clamp is defence-in-depth against a future change to
-      // the ladder, to trimOneFile's retained-ceiling behaviour, or to the default trim's byte gate
-      // (which, unlike the ladder, can leave the prefix untrimmed entirely). Handing the chain a LARGER
-      // payload than it started with would push fallbacks over their own windows — the exact inverse of
-      // the point. Keeping the original is always safe: the per-backend guard and the primary-skip
-      // surfacing still handle the residual overflow.
+      // Adopt the tightened prefix ONLY when it is genuinely smaller. This clamp is LOAD-BEARING, not
+      // belt-and-braces, and min-tracking alone does not subsume it: the default trim above is gated on
+      // a 48KB byte threshold and is an identity no-op below it, so `user` may be the RAW assembly,
+      // while the ladder always trims (thresholdBytes: 1). On a file whose lines are shorter than an
+      // elision marker, every rung then pays more in markers than it saves, so even the smallest rung
+      // exceeds the untrimmed original. Without this clamp the payload grows and the note below
+      // misreports it as smaller. Handing the chain a LARGER payload would push fallbacks over their
+      // own windows, the exact inverse of the point; keeping the original is always safe, since the
+      // per-backend guard and the primary-skip surfacing still handle the residual overflow.
       const beforeBytes = Buffer.byteLength(user, "utf8");
       const adopted = tightened.bytes < beforeBytes;
       if (adopted) user = tightened.prefix;
@@ -2130,7 +2142,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     // operator reading the findings is told the strongest configured reviewer did not produce them.
     if (res.primarySkipped) {
       const lines = String(finalContent).split("\n");
-      const hdr = lines.findIndex((l) => /^##[ \t]*Adversarial findings/i.test(l));
+      const hdr = findHeaderLineIdx(lines);   // the module's own preamble-scoped locator — never a third copy of the literal
       const notice = `NOTE: primary reviewer ${res.primarySkipped.primary} was skipped; served by chain[${res.primarySkipped.servedIndex}] — ${res.primarySkipped.reason}.`;
       if (hdr === -1) lines.unshift(notice, "");
       else lines.splice(hdr + 1, 0, "", notice);

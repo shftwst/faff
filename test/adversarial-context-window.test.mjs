@@ -13,7 +13,7 @@ import { join } from "node:path";
 import {
   estimateTokens, fitsWindow, trimTargetBytes, normaliseContextWindow,
   tightenToTarget, primarySkipRecord, assembleUserMessage, runReviewChain, main, trimContextFiles,
-  PRIMARY_SKIP_SIGNAL, DEFAULT_BYTES_PER_TOKEN, DEFAULT_WINDOW_SAFETY,
+  PRIMARY_SKIP_SIGNAL, DEFAULT_BYTES_PER_TOKEN, DEFAULT_WINDOW_SAFETY, parseArgs,
   DEFAULT_BRIEF_RESERVE_TOKENS, MIN_TRIM_TARGET_BYTES, TRIM_WINDOW_LADDER, EXIT,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import { stderrPrimarySkipped } from "../plugin/skills/faffter-dark-adversarial-review/fan-out.mjs";
@@ -368,7 +368,15 @@ test("a primary that cannot fit even at the tightest rung is skipped loudly, on 
 test("the trimmed shared prefix is byte-identical across four different lens briefs (FAFF-903 invariance)", async () => {
   const f = denseFixture();
   const bf = join(f.dir, "b.json");
-  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "primary", host: "https://h/v1", context_window: 15000 }]));
+  // An unbounded fallback is required, not incidental: the per-backend GUARD includes the lens brief,
+  // so a deliberately huge brief can push that one lens past the primary's window while the others fit.
+  // That is correct behaviour, and it makes the test stronger: the prefix must be byte-identical even
+  // when different lenses take different paths through the chain, because the guard decides skips and
+  // never re-trims. With a single backend that lens would simply exhaust and never dispatch.
+  writeFileSync(bf, JSON.stringify([
+    { provider: "openai", model: "primary", host: "https://h/v1", context_window: 15000 },
+    { provider: "openai", model: "fallback", host: "https://h2/v1" },
+  ]));
 
   const prefixes = [];
   // The briefs must span WIDELY. A narrow spread (tens to a few thousand bytes) can leave every lens
@@ -587,4 +595,162 @@ test("an over-window skip counts as a CONFIG fault in terminal precedence, not a
     assert.equal(availabilityOnly.exit, EXIT.UNREACHABLE, "purely availability failures stay pass+skip (5)");
     assert.equal(withGuardSkip.exit, EXIT.USAGE, "an over-window skip escalates the terminal to needs-human (2)");
   });
+});
+
+// ---- regressions the second review round found -------------------------------------------------
+
+test("trimTargetBytes is a CONTEXT budget, so the diff is charged exactly once", () => {
+  // The budget subtracts the diff because the diff is not reducible; the search must therefore compare
+  // it against CONTEXT bytes. Comparing it against the assembled prefix (which contains the diff) would
+  // charge the diff twice and undershoot by exactly its size, over-trimming every diff-heavy review.
+  const w = 15000;
+  const usableBytes = Math.floor(w * DEFAULT_WINDOW_SAFETY * DEFAULT_BYTES_PER_TOKEN);
+  const reserveBytes = Math.floor(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN);
+  for (const diffBytes of [0, 5000, 20000]) {
+    const diff = "d".repeat(diffBytes);
+    assert.equal(trimTargetBytes(w, diff), Math.max(MIN_TRIM_TARGET_BYTES, usableBytes - diffBytes - reserveBytes));
+  }
+});
+
+test("a fitting context is NOT dragged to the tightest rung by a large diff", () => {
+  // The double-charge showed up here: with the diff counted twice the search never returned early and
+  // always walked to window=1, over-trimming context the window had room for.
+  // To DISCRIMINATE the two readings the target is set to exactly the context bytes the first rung
+  // produces. Correct reading: fits at rung 0. Double-charge reading: context + diff > target, so the
+  // search walks the whole ladder. A loosely-sized target fits under both and proves nothing.
+  const contextFiles = [{ path: "c.js", text: Array.from({ length: 300 }, (_, i) => `const v${i} = ${i}; // ${"z".repeat(20)}`).join("\n") }];
+  const diff = `--- a/c.js\n+++ b/c.js\n@@ -5,1 +5,2 @@\n+  use(v5);\n${"+// padding\n".repeat(400)}`;
+  const { contextFiles: firstRung } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window: TRIM_WINDOW_LADDER[0] });
+  const firstRungContextBytes = firstRung.reduce((a, f) => a + B(f.text), 0);
+  assert.ok(B(diff) > 0, "the diff must be non-empty or the two readings coincide");
+
+  const r = tightenToTarget({ contextFiles, diff, targetBytes: firstRungContextBytes });
+  assert.equal(r.fitted, true, "a context sized exactly to its budget must fit");
+  assert.equal(r.window, TRIM_WINDOW_LADDER[0], "at the FIRST rung — walking further means the diff was charged twice");
+  assert.equal(r.contextBytes, firstRungContextBytes, "the fit is decided on context bytes, matching the budget");
+});
+
+test("the main() never-enlarge clamp is load-bearing: every rung can exceed the untrimmed original", async () => {
+  // The default trim is gated on 48KB and is an identity no-op below it, so main may hold the RAW
+  // assembly, while the ladder always trims. On a file whose lines are shorter than an elision marker
+  // every rung pays more in markers than it saves, so even the smallest rung is larger. Min-tracking
+  // cannot save this; only the clamp can.
+  const d = mkdtempSync(join(tmpdir(), "cw-clamp-"));
+  const sys = join(d, "brief.md"); writeFileSync(sys, "BRIEF\n");
+  const ctx = join(d, "sparse.js");
+  const lines = [];
+  for (let i = 0; i < 1000; i++) lines.push(i % 50 === 0 ? `const marker${i} = ${i};` : "");
+  writeFileSync(ctx, lines.join("\n"));
+  const idents = Array.from({ length: 20 }, (_, k) => `+  use(marker${k * 50});`).join("\n");
+  const diff = join(d, "d.diff");
+  writeFileSync(diff, `--- a/sparse.js\n+++ b/sparse.js\n@@ -1,1 +1,21 @@\n${idents}\n`);
+  const bf = join(d, "b.json");
+  const seen = [];
+  const capture = async ({ system }) => { seen.push(system); return { status: "ok", content: "### observation: no findings" }; };
+
+  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "m", host: "https://h/v1" }]));
+  await runMain(["--backends-json", bf, "--system", sys, "--diff", diff, "--context", ctx], capture);
+  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "m", host: "https://h/v1", context_window: 2000 }]));
+  const r = await runMain(["--backends-json", bf, "--system", sys, "--diff", diff, "--context", ctx], capture);
+
+  assert.equal(seen.length, 2);
+  assert.equal(B(seen[1]), B(seen[0]), "the untightened prefix must be kept verbatim when no rung shrinks it");
+  assert.match(r.err, /KEEPING the untightened prefix/,
+    "and the note must say so, rather than reporting a tightening that made things worse");
+});
+
+test("every DEADLINE return carries the primary-skip record, not just the top-of-loop gate", async () => {
+  // Three distinct deadline returns exist. A test that exits via chain-exhaustion passes whether or not
+  // they carry the record, so each is reached deliberately here.
+
+  // Each sub-case asserts `deadlineExceeded` FIRST. Without that guard a chain that merely SERVES passes
+  // the primarySkipped assertion vacuously, which is exactly how an earlier version of this test slipped
+  // through while two of the three deadline returns were still unpinned.
+
+  // (a) last-backend slice exhaustion. Needs REAL timers: the slice race is a genuine setTimeout, so a
+  // mocked clock cannot fire it and the backend simply serves.
+  const lastSlice = await runReviewChain(chainOf(10, null), {
+    system: "x".repeat(9000), user: "brief", totalDeadlineMs: 30,
+    runReviewFn: async () => { await new Promise((r) => setTimeout(r, 120)); return { status: "ok", content: "### observation: no findings" }; },
+    log: () => {},
+  });
+  assert.equal(lastSlice.deadlineExceeded, true, "(a) must exit via the last-backend slice return");
+  assert.ok(lastSlice.primarySkipped, "(a) last-backend slice exhaustion must carry it");
+  assert.match(lastSlice.primarySkipped.reason, /over-window/);
+
+  // (b) slice underflow. sliceMs is floor(remaining / backendsLeft), so underflow needs
+  // remaining < backendsLeft: a THREE-element chain, not two, or floor(1/1) is 1 and it dispatches.
+  const underflow = await runReviewChain(chainOf(10, null, null), {
+    system: "x".repeat(9000), user: "brief", totalDeadlineMs: 1, nowFn: () => 0,
+    runReviewFn: async () => ({ status: "ok", content: "### observation: no findings" }),
+    log: () => {},
+  });
+  assert.equal(underflow.deadlineExceeded, true, "(b) must exit via the slice-underflow return");
+  assert.ok(underflow.primarySkipped, "(b) slice underflow must carry it");
+  assert.match(underflow.primarySkipped.reason, /over-window/);
+
+  // (c) top-of-loop total-budget gate
+  let n2 = 0;
+  const topOfLoop = await runReviewChain(chainOf(10, null, null), {
+    system: "x".repeat(9000), user: "brief", totalDeadlineMs: 1000, nowFn: () => n2,
+    runReviewFn: async () => { n2 += 5000; return { status: "unreachable" }; },
+    log: () => {},
+  });
+  assert.equal(topOfLoop.deadlineExceeded, true, "(c) must exit via the top-of-loop gate");
+  assert.ok(topOfLoop.primarySkipped, "(c) top-of-loop gate must carry it");
+});
+
+test("the recorded skip reason is the classified one, across every fault class a primary can hit", async () => {
+  // The DONE item names these explicitly ("the existing classified advance reason (400/auth/empty/deadline)").
+  // Only the over-window and generic-fault sites were pinned; the rest could be deleted with a green suite.
+  const ok = { status: "ok", content: "### observation: no findings" };
+
+  const invalid = await runReviewChain([{ provider: "openai", model: "", host: "" }, ...chainOf(null)], {
+    system: "s", user: "b", runReviewFn: async () => ok, log: () => {},
+  });
+  assert.match(invalid.primarySkipped.reason, /invalid \(missing model\/host\)/);
+
+  const auth = await runReviewChain([{ provider: "openai", model: "m", host: "h", apiKeyMissing: true, apiKeyEnv: "NOPE" }, ...chainOf(null)], {
+    system: "s", user: "b", runReviewFn: async () => ok, log: () => {},
+  });
+  assert.match(auth.primarySkipped.reason, /unset-key \(env 'NOPE'\)/);
+
+  const garbled = await runReviewChain(chainOf(null, null), {
+    system: "s", user: "b", log: () => {},
+    runReviewFn: async ({ model }) => (model === "m0" ? { status: "ok", content: "not findings shaped at all" } : ok),
+  });
+  assert.ok(garbled.primarySkipped, "a shape-rejected primary is still a primary skip");
+  assert.ok(garbled.primarySkipped.reason.length > 0);
+
+  const emptyContract = await runReviewChain(chainOf(null, null), {
+    system: "s", user: "b", expectContract: true, log: () => {},
+    runReviewFn: async ({ model }) => (model === "m0" ? { status: "ok", content: "   " } : { status: "ok", content: "{\"verdict\":\"x\"}" }),
+  });
+  assert.match(emptyContract.primarySkipped.reason, /empty \(contract mode: empty content\)/);
+
+  // Real timers here: the slice race is a genuine setTimeout, so a mocked clock cannot fire it. A
+  // never-resolving promise would leak the event loop, so the slow backend resolves, just too late.
+  const slice = await runReviewChain(chainOf(null, null, null), {
+    system: "s", user: "b", totalDeadlineMs: 30, log: () => {},
+    runReviewFn: async ({ model }) => {
+      if (model === "m0") { await new Promise((r) => setTimeout(r, 60)); return ok; }
+      return ok;
+    },
+  });
+  assert.ok(slice.primarySkipped, "a slice-exhausted primary is still a primary skip");
+  assert.match(slice.primarySkipped.reason, /slice .* exhausted/);
+});
+
+test("the --context-window flag parses and drives the guard on the legacy single-backend path", async () => {
+  const a = parseArgs(["--host", "https://h/v1", "--model", "m", "--system", "s", "--diff", "d", "--context-window", "12345"]);
+  assert.equal(a.contextWindow, "12345", "parsed off argv");
+
+  const f = denseFixture();
+  const called = [];
+  const r = await runMain(
+    ["--host", "https://h/v1", "--model", "solo", "--provider", "openai", "--system", f.sys, "--diff", f.diff, "--context", f.ctx, "--context-window", "50"],
+    async ({ model }) => { called.push(model); return { status: "ok", content: "### observation: no findings" }; });
+  assert.deepEqual(called, [], "the flag alone is enough to guard-skip the only backend, pre-network");
+  assert.ok(r.err.split("\n").some((l) => l.trim() === PRIMARY_SKIP_SIGNAL));
+  assert.equal(r.code, EXIT.USAGE);
 });

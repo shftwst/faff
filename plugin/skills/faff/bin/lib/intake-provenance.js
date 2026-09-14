@@ -19,8 +19,9 @@
 //
 // All four functions below are PURE / fs-injected — zero tracker/network calls.
 // Labels are passed in via --labels (the agent already fetched them); the verdict
-// is marker-plus-label-fallback so the legacy label is a migration bridge, never
-// trusted forever.
+// rests on two bases only — a recorded marker, then the tracker-owned automate label
+// as eligibility-gesture. Neither is agent-writable, so there is no label fallback to
+// outgrow (FAFF-1043 retired the one there was).
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -133,7 +134,7 @@ function intakeGuidance(issue, basis) {
     `${issue} in the tracker — a write-abstained human gesture that faff reads as intake ` +
     `provenance; or capture a genuinely new idea via \`/faff-jot\` (no issue id — the front ` +
     `door). (Migration / agent-orchestrator only: \`faff intake-record ${issue} --via backfill\` ` +
-    `for bulk legacy backfill, or \`--via fast-track --reason "<why>"\` for a recorded override. ` + `)`
+    `for bulk legacy backfill, or \`--via fast-track --reason "<why>"\` for a recorded override.)`
   );
 }
 
@@ -315,7 +316,6 @@ const INTAKECHECK_SELFTEST_CASES = [
   [{ intake: { via: "jot" } }, [], "block", { satisfied: true, basis: "jot", exit: 0 }],
   [{ intake: { via: "backfill" } }, [], "block", { satisfied: true, basis: "backfill", exit: 0 }],
   [{ intake: { via: "fast_track", reason: "prod outage" } }, [], "block", { satisfied: true, basis: "fast_track", exit: 0 }],
-  // grandfathered label only → satisfied + warn, exit 0
   // FAFF-1043: the retired jot-intake label is inert — it satisfies nothing on its own.
   [null, ["faff-jot-intake"], "block", { satisfied: false, basis: "no-provenance", exit: 3 }],
   // FAFF-223: faff-automate (write-abstained, human-set) → eligibility-gesture, NO warn, exit 0
@@ -339,7 +339,7 @@ const INTAKECHECK_SELFTEST_CASES = [
   [null, [], "warn", { satisfied: false, basis: "no-provenance", exit: 0 }],
   // off → always satisfied, exit 0, even with no marker / no label
   [null, [], "off", { satisfied: true, basis: "gate-off", exit: 0 }],
-  // malformed marker (null) + label → grandfathered (gates as absent)
+  // malformed marker (null) + the retired label → still gates as absent (no-provenance; warn mode, so exit 0)
   [null, ["faff-jot-intake"], "warn", { satisfied: false, basis: "no-provenance", exit: 0 }],
 ];
 

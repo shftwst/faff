@@ -43,7 +43,7 @@ function controlLabels(prefix = "faff") {
 }
 
 // FAFF-1044: a direct unit test for controlLabels(prefix) itself — the default-prefix
-// case must be byte-identical to the historical nine faff-* names (zero-config), and a
+// case must be byte-identical to the historical default-prefix faff-* names (zero-config), and a
 // custom prefix must derive the role-mapped rendered name while color/tracker_owned/
 // description pass through unchanged per entry.
 const LABELS_SELFTEST_CASES = [

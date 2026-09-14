@@ -1,0 +1,207 @@
+# Spec — FAFF-1024: record-outcome must not terminate a live multi-issue drain
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1024.
+
+This is the build spec for FAFF-1024. Audience: the build agent implementing the fix, and the human reviewer of its PR. It addresses a correctness bug in the single sanctioned run-ledger outcome-write path, `applyTerminalOutcome` in `plugin/skills/faff/bin/lib/run-ledger.js`.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** A run-ledger tracks a set of `admitted` work items and their per-item `outcomes`. The run's owner is *live* while `owner.status === "running"`; it is *complete* only once every admitted item has an outcome (runcheck's completeness core: `admitted − outcomes.keys() == ∅`). "The queue is drained" and "the owner may terminate" are the **same** condition — and today the code conflates "one item finished" with "the whole queue drained".
+
+**Problem statement.** In an autonomous L4 `lights-out` drain with several admitted issues, recording the *first* item's outcome via `faff run-ledger record-outcome` flips `owner.status` to the terminal `"done"` while admitted work is still queued. The owner is terminated prematurely; because record-outcome is the *only* sanctioned outcome write, the driver then falls back to direct ledger hand-edits for the remaining items — the exact anti-pattern the function's docstring exists to prevent, which bypasses the `atomicWriteLedger` chokepoint the evidence chain depends on. This change makes the owner-terminating flip fire only when the write actually drains the queue.
+
+**Design principles.**
+
+- **One outcome-write path, preserved.** `applyTerminalOutcome` is the sole assignment that writes `outcomes[issue]` anywhere in the CLI. The fix stays inside it; it must not introduce a second, forked writer or a parallel non-terminal subcommand — that would re-create the divergence this bug already caused. (This is why Option A below is chosen over the ticket's Option B.)
+- **Terminate on drain, not on item.** The owner-flip to `"done"` is reserved for the write that completes the queue (the last admitted outcome). Any earlier per-item write leaves the owner `"running"` and the run resumable.
+- **A per-item write is itself proof of life.** Recording any outcome refreshes `owner.last_heartbeat` unconditionally — a mid-drain write must keep the owner's liveness fresh, not just the final one.
+- **Never invent an owner status.** When the write does not drain the queue, the existing `owner.status` is left untouched; the function only ever *sets* `"done"`, and only on drain.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/run-ledger.js` | Node (dependency-free CLI) | Home of `applyTerminalOutcome` + the `record-outcome` subcommand — the file this change edits |
+| `plugin/skills/faff/bin/lib/runcheck.js` | Node | Owns the completeness core (`undispatched = admitted.filter(i => !(i in outcomes))`) and liveness (`owner.status === "running"`); defines what "drained" means |
+| `plugin/skills/faff/bin/lib/reconcile-recover.js` | Node | Calls `record-outcome --outcome shipped` per-issue as a subprocess (`writeRecovery`) — a multi-issue caller that trips this bug today |
+| `plugin/skills/faff/bin/lib/heartbeat.js` | Node | `mutateLedgerUnderLock` — the locked write core `record-outcome` routes through |
+
+**Scope statement.** A localized correctness fix to the interactive/recovery outcome-write path in the run-ledger CLI module; it does not change the ledger schema, the CLI grammar, or any caller's invocation.
+
+## 2. OUT OF SCOPE
+
+- **A new non-terminal per-issue outcome subcommand (the ticket's Option B).** Excluded — Option A (conditional flip) already gives record-outcome non-terminal behaviour until the last outcome, without a second API surface. *Extension point:* if a future need arises to record an outcome that must never affect owner status even on drain, add a flag to `record-outcome` in `run-ledger.js`.
+- **How the L4/beep-boop orchestrator sequences per-issue outcome writes.** Excluded — the fix makes the shared write path correct for any number of admitted items; the orchestrator's drain loop is unchanged. *Extension point:* `lights-out.js` drain loop.
+- **The `init-interactive` mint path and the L2-downgrade guard.** Excluded — untouched by this change. *Extension point:* `initInteractive` / `isLiveHigherLevel` in the same file.
+- **Reproducing the field observation as an integration fixture against a real forge.** Excluded — the behaviour is provable by the in-module selftest (see DONE); a full lights-out integration harness is separate. *Extension point:* `lights-out.js` selftest.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Drained | Every admitted item has an entry in `outcomes` — `admitted − outcomes.keys() == ∅`. Identical to runcheck's completeness core. |
+| Terminal flip | Setting `owner.status = "done"`. Clears runcheck's liveness and marks the run complete. |
+
+**The ledger shape the change reads (existing, unchanged):**
+
+```
+RECORD Ledger:
+  admitted: Array<IssueId>       # the queue; may contain >1 item on an L4 drain
+  outcomes: Map<IssueId, TerminalString>   # per-item outcomes; a member of EVENT_LEDGER_OUTCOMES
+  owner:
+    status: "running" | "done" | ...   # liveness = "running" + fresh heartbeat
+    last_heartbeat: Iso8601
+```
+
+**Function contract — `applyTerminalOutcome(ledger, issue, outcome, nowIso)` (revised):**
+
+```
+INTERFACE applyTerminalOutcome(ledger, issue, outcome, nowIso) -> ledger
+  # Records outcomes[issue] = outcome, refreshes owner.last_heartbeat,
+  # and flips owner.status to "done" ONLY when the write drains the queue.
+  # Pure in-place mutation of a copy under the lock (unchanged call convention).
+```
+
+**Design decision — fix direction.** The ticket offers Option A (record-outcome must not flip owner while admitted work remains — terminate only on the last outcome) or Option B (a distinct non-terminal per-issue write, terminal flip reserved for run end). **Chosen:** Option A — the conditional flip inside `applyTerminalOutcome`. Rationale: it preserves the single-sanctioned-write-path invariant, is backward-compatible for the L2 single-issue case (a lone admitted item drains on its one write, so it still flips to `"done"`), reuses the already-defined "drained" notion, and subsumes Option B's benefit (record-outcome is non-terminal until the last item) without adding a second API surface.
+
+## 4. HOW — Behavior
+
+**Approach.** The flip to `"done"` becomes conditional on the post-write queue state. After recording `outcomes[issue]`, compute whether every admitted item now has an outcome; flip to `"done"` only then. Always refresh `last_heartbeat`. Update the `record-outcome` reporting so its `--json` `owner_status` and bare-mode line report the *actual* resulting status rather than a hardcoded `"done"`. Extend the selftest to cover the multi-issue drain.
+
+**Revised `applyTerminalOutcome`:**
+
+```
+PROCEDURE applyTerminalOutcome(ledger, issue, outcome, nowIso):
+  1. IF ledger is not an object -> return ledger unchanged   # existing guard
+  2. ensure ledger.outcomes is an object (else {})
+  3. ledger.outcomes[issue] = outcome
+  4. ensure ledger.owner is an object (else {})
+  5. admitted    := unique(ledger.admitted if it is an array, else [])   # dedupe, mirroring runcheck's [...new Set(admitted)]
+     undispatched := admitted.filter(i => not (i in ledger.outcomes))
+     drained      := undispatched.length == 0
+  6. IF drained:
+        ledger.owner.status = "done"        # last outcome / queue complete
+     # ELSE: leave ledger.owner.status exactly as it was — never set, never invent
+  7. ledger.owner.last_heartbeat = nowIso   # ALWAYS — a per-item write is proof of life
+  8. return ledger
+```
+
+**Behaviour summary.** Recording an outcome always persists the outcome and refreshes liveness; it terminates the owner only when that write leaves no admitted item without an outcome.
+
+**Revised `record-outcome` reporting.** `mutateLedgerUnderLock` returns `{ written, yielded, before_sha256, after_sha256 }` — *not* the mutated ledger — so capture the resulting owner status inside the callback (into an outer variable set right after `applyTerminalOutcome`), then:
+
+```
+PROCEDURE report_record_outcome(resultingOwnerStatus):
+  IF --json:  emit { ..., owner_status: resultingOwnerStatus, ... }   # was hardcoded "done"
+  ELSE:       print "recorded <issue>=<outcome> (owner <resultingOwnerStatus>) in <runDir>"
+```
+
+**Consumer honesty — `reconcile-recover.js`.** `writeRecovery` (invokes `record-outcome … --json` as a subprocess) currently parses only `run_id` from the child JSON and its report hardcodes `wrote: { outcome: "shipped", owner_status: "done" }`. Once the flip is drain-gated, a recovery of one issue in a multi-issue drain leaves the owner `"running"`, so that hardcoded report would lie. Fix: `writeRecovery` also parses `owner_status` from the child JSON and returns it; the `wrote` report uses the returned value instead of the literal `"done"`.
+
+**Edge cases.**
+
+- **Empty or absent `admitted`.** `undispatched` over `[]` is empty → drained → flip to `"done"`. Matches runcheck's vacuous-completeness and preserves today's behaviour when a ledger carries no queue.
+- **`issue` not in `admitted`.** The outcome is still written; drained is computed over `admitted` only, so an out-of-queue write on a multi-item drain leaves the owner `"running"`. Acceptable and safe.
+- **Duplicate entry in `admitted`.** Deduped before the count so a repeated id never miscounts drain state (mirrors runcheck).
+- **`owner` missing entirely.** Created as `{}`; on a non-draining write no `status` is invented (liveness reads not-held, the fail-safe direction), on a draining write `status` becomes `"done"`.
+- **Non-shipped terminals (`parked`, `errored`, `routed-out`, …).** Treated identically — any member of `EVENT_LEDGER_OUTCOMES` counts toward drain.
+
+**Anti-pattern:** Adding a second outcome-writer or a "non-terminal" subcommand alongside record-outcome. Why: the divergence between two writers is exactly what produced the off-ledger hand-edits this ticket documents.
+
+**Anti-pattern:** Only refreshing `last_heartbeat` on the draining write. Why: mid-drain items would let the owner's heartbeat go stale, so runcheck/sentry could read the live drain as abandoned.
+
+## 5. SCENARIOS — main objectives
+
+```
+Given an L4 ledger with admitted = [A, B] and outcomes = {} and owner.status = "running"
+When record-outcome is called for A with a terminal outcome
+Then outcomes[A] is recorded, owner.status is still "running", owner.last_heartbeat is refreshed, and the run is resumable
+```
+
+```holdout
+Given that ledger after A has been recorded (admitted = [A, B], outcomes = {A}, owner.status = "running")
+When record-outcome is called for B
+Then outcomes[B] is recorded and owner.status flips to "done" (the queue is now drained)
+```
+
+```
+Given a standalone L2 ledger with admitted = [X] and outcomes = {} and owner.status = "running"
+When record-outcome is called for X
+Then owner.status flips to "done" on that single write (backward compatible with today)
+```
+
+- The `record-outcome --json` `owner_status` field MUST equal the actual resulting `owner.status`, never a hardcoded `"done"`.
+
+## Already shipped against this surface
+
+Related Done work on the run-ledger surface, none of which supersedes this fix (verified: `applyTerminalOutcome` line ~79 still flips `owner.status` unconditionally):
+
+- **FAFF-761** — created `run-ledger.js` (`init-interactive` + `record-outcome`); the origin of the code being fixed, not a fix of this bug.
+- **FAFF-782 / FAFF-797** — ledger auto-close for a merged-but-*unclosed* L3 run; the opposite failure (owner not closed), unrelated to the premature-close here.
+- **FAFF-554** (rich outcome values) and **FAFF-571 / FAFF-573** (`superseded` outcome) — other `outcomes`-shape/vocabulary bugs, none touching the owner-flip timing.
+- **FAFF-575** (owner-epoch write race) and **FAFF-233 / FAFF-205** (runcheck liveness/session) — adjacent write-path/liveness machinery, not the first-outcome termination.
+
+## 6. DESIGN DECISION RATIONALE
+
+**Which fix direction?** Option A (conditional flip in `applyTerminalOutcome`) vs Option B (new non-terminal per-issue write + terminal flip at run end). Option B adds API surface and a second concept for no gain; Option A is minimal, backward-compatible, and reuses the existing drained/completeness notion. **Chosen:** Option A. (A maintainer may still prefer B; it is documented as the rejected alternative so it is not re-proposed.)
+
+**How to compute "drained"?** Re-derive inline vs share runcheck's helper. Inline computation (`admitted.filter(i => !(i in outcomes))` over a deduped admitted) keeps `applyTerminalOutcome` a pure, dependency-light function and avoids importing runcheck's throwing `auditLedger` (which does more and raises on malformed input). **Chosen:** inline computation mirroring runcheck's completeness core exactly (same dedupe, same predicate), with a comment cross-referencing runcheck so the two cannot silently drift.
+
+**Refresh `last_heartbeat` always, or only on drain?** **Chosen:** always — a per-item write is proof of life; a stale heartbeat mid-drain would let liveness checks misread an active drain as abandoned.
+
+**Preserve or overwrite `owner.status` when not drained?** **Chosen:** preserve — the function only ever sets `"done"`, and only on drain; it never invents or downgrades a status on a non-draining write.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions:** none.
+
+**Assumptions:** none beyond the existing module contracts already verified in the explore pass (`applyTerminalOutcome` is the sole outcome-writer; `mutateLedgerUnderLock` returns `{ written, before_sha256, after_sha256 }` and writes the object the callback returns).
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] Recording one item's outcome on a multi-item admitted ledger no longer flips `owner.status` to `"done"`; the run stays `"running"` and resumable.
+
+### From WHAT / HOW (behaviour)
+- [ ] `applyTerminalOutcome` sets `owner.status = "done"` only when, after writing `outcomes[issue]`, every admitted item has an outcome (drained); otherwise `owner.status` is left unchanged.
+- [ ] `owner.last_heartbeat` is set to `nowIso` on every call, draining or not.
+- [ ] "Drained" is computed over a deduplicated `admitted` set with the predicate `!(i in outcomes)`, matching runcheck's completeness core, with a code comment cross-referencing runcheck.
+- [ ] The L2 single-issue path still flips to `"done"` on its one write (backward compatible).
+- [ ] `owner.status` is never invented on a non-draining write when `owner` was absent/malformed.
+
+### From HOW (reporting)
+- [ ] `record-outcome --json` emits `owner_status` equal to the actual resulting `owner.status` (not a hardcoded `"done"`).
+- [ ] `record-outcome` bare-mode output reports the actual resulting owner status.
+- [ ] `reconcile-recover.js` `writeRecovery` parses `owner_status` from the record-outcome child JSON and its `wrote` report uses that value instead of the hardcoded `"done"`.
+
+### From HOW (docs)
+- [ ] The `applyTerminalOutcome` docstring and the module/`record-outcome` header comments describe the conditional (drain-gated) flip, not an unconditional one.
+
+### Selftest (in `run-ledger.js` `runLedgerSelftest`)
+- [ ] Existing single-issue and parked assertions still pass.
+- [ ] New: multi-issue ledger, first outcome recorded → `outcomes[first]` set, `owner.status === "running"`, `last_heartbeat` refreshed.
+- [ ] New: multi-issue ledger, last outcome recorded → `owner.status === "done"`.
+- [ ] New: non-draining write leaves a pre-existing `owner.status` unchanged.
+- [ ] New: duplicate `admitted` entry does not miscount drain state.
+- [ ] `faff run-ledger --selftest` exits 0.
+
+**Integration smoke test:**
+
+```
+PROCEDURE smoke:
+  1. Mint (or fabricate in tmp) a ledger with admitted = [A, B], outcomes = {}, owner.status = "running".
+  2. faff run-ledger record-outcome --issue A --outcome shipped --run-dir <dir> --json
+  3. Assert JSON owner_status == "running" AND on-disk owner.status == "running".
+  4. faff run-ledger record-outcome --issue B --outcome shipped --run-dir <dir> --json
+  5. Assert JSON owner_status == "done" AND on-disk owner.status == "done".
+```
+
+confidence: high
+build-tier: complex
+
+```faff-contract:spec-readiness
+{ "confidence": "high",
+  "decisions": [ { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" } ] }
+```

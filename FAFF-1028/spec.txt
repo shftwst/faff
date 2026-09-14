@@ -1,0 +1,237 @@
+# Close the off-ledger protected-effect blind spot in `effects check`
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: medium. Full spec on Linear FAFF-1028.
+
+This spec addresses FAFF-1028 for the build agent and human reviewers. It closes the fail-open hole where a protected merge performed **entirely outside** the governed path is invisible to governance, and an empty declared-effects ledger reads as clean. Revision 2 folds in the spec-review round-1 refutations: the detector is now an **always-on, run-scoped git branch-advancement reconcile** (not a forge query), the forge is demoted to optional attribution, a recorded base anchor is made a hard input, and the residual "auditee can pre-declare" limitation is named as the boundary only the structural E-B fix closes.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** `faff effects check` is a *comparison* detector, not an *observation* detector. It groups the declared-effects ledger by `(issue, step)` and emits an escaped-side-effect signal only for effects **observed into the ledger** but not declared (`computeEscapes`, `plugin/skills/faff/bin/lib/effects.js:87-103`). An effect never observed into the ledger produces no group, no comparison, and no signal — the detector cannot see what never touched it.
+
+**Problem statement.** In a field run the orchestrator merged via direct `git` — a protected effect — with no declaration or observation, so the merge never entered the ledger. `effects check` reported clean (`any_escape:false`), beep-boop bridged that clean reading into Sentry every checkpoint (`plugin/skills/faff-beep-boop/SKILL.md:107`), and the ungoverned merge was invisible to the kill-switch. "No effects were governed" is today indistinguishable from "no effects happened."
+
+**Design principles.**
+
+- **Ground truth is the repository's own branch history, not the forge.** faff lands PRs with `--squash` (`faff merge-gate … --squash --execute`) and the field incident was a *direct git* merge; both advance the protected branch as ordinary commits, and a direct-git merge is never marked merged in the forge. So the detector must read **git commits that landed on the protected branch**, always — a forge (`gh`) query can neither see a direct-git merge nor is it always present. `git log --merges` is equally wrong: a squash landing is not a merge commit.
+- **Scope the reconcile to *this run*, by its admitted issue branches.** The question is "did *this run* land a merge its ledger doesn't cover," not "did *any* merge land on the shared branch." Attribute a landed merge to this run only when it corresponds to one of the run's admitted issues / issue branches (`run-ledger.json` `admitted`). A concurrent run's merge on the same protected branch is a different issue branch — not this run's escape — so shared-branch runs do not false-positive-kill each other.
+- **Fail closed on the detector's own read faults, but do not couple the kill-switch to the forge.** A failure of the **primary** (local git) read, or a missing base anchor, is a fault the checkpoint treats as non-clean (the FAFF-425 fail-closed posture). A failure of the **optional forge enrichment** is not a fault — it only degrades `pr:<N>` labels to raw commit refs — so a `gh` outage never trips the kill-switch.
+- **Interim detection raises the bar; it does not make off-ledger merge impossible.** A tamper-evident ledger chain (FAFF-621) plus an always-on branch reconcile mean an off-ledger merge is *detected* and a covering forgery must rewrite a hash chain. It does **not** stop an actor who declares-then-merges. Making the merge un-performable off-ledger is the structural E-B target (OUT OF SCOPE) — this slice is honest detection, not mediation.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/effects.js` | Node (pure) | The escape core + `check`/`verify`/`declare`/`observe`; the fail-open site (~87-103, ~624-635) |
+| `plugin/skills/faff/bin/lib/merge-gate.js` | Node | The governed merge path; FAFF-1012 auto-declare + observe (`autoDeclareMergeEffects`, ~754-772) — covers merges *through* merge-gate only |
+| `plugin/skills/faff/bin/lib/audit.js` | Node (impure) | Run forensics; already reads git via `spawnSync` (`audit.js:17`) and imports `computeEscapes` — the home for a git-grounded reconcile |
+| `plugin/skills/faff/bin/lib/effects.js` `verify` | Node | FAFF-621 declared-effects hash-chain verifier — reused to fault a tampered ledger |
+| run-ledger `admitted` | JSON | This run's admitted issues — the attribution scope; **note:** the ledger records no base sha today (see Assumptions) |
+| `plugin/skills/faff-beep-boop/SKILL.md:107` | prose | The checkpoint that runs `faff effects check` and bridges `any_escape` into `faff sentry check --forbidden-side-effect` |
+
+**Scope statement.** The detection-hardening half of the governed-effects layer (FAFF-43 / FAFF-106 lineage); it closes the direct-git bypass FAFF-1012 left open and feeds the existing `any_escape` → Sentry seam.
+
+## 2. OUT OF SCOPE
+
+- **Structural E-B mediation of merge (V5) — the real closure of the trust gap.** Making the merge *impossible* off-ledger (mediated so it "could not occur through the governed path unless the gateway allowed it") is the only thing that closes the "auditee declares-then-merges" bypass (see Open Questions). **Excluded:** a V5 architecture epic. **Extension point:** the Commissaire protected-effect decision path (`plugin/skills/faff/bin/lib/commissaire.js`) + the `merge-gate.js` chokepoint.
+- **Enforcing the governed pipeline against hand-rolled orchestrator loops.** The incident's direct-git merge came from an unenforced loop; making delegation enforceable is FAFF-1027 (related). **Extension point:** FAFF-1027.
+- **Non-merge protected effects (deploy, secret-rotation, registry-publish, force-push, prod-script).** Same blindness in principle, different ground-truth source each, no field incident yet. **Excluded:** keep the interim narrow. **Extension point:** per-kind ground-truth adapters behind the same reconcile.
+- **Changing the pure `computeEscapes` core or its `--selftest` cases.** **Excluded:** the pure comparison stays; `empty ledger => clean` remains correct *for the pure core*. **Extension point:** the reconcile layer wraps it.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Off-ledger effect | A real protected effect that never entered the declared-effects ledger (neither declared nor observed) |
+| Landed merge | A commit that landed on the protected branch within the run window and is attributable to one of this run's admitted issues |
+| Base anchor | The commit sha the protected branch pointed at when the run started — the reconcile's lower bound |
+| Attribution | Deciding a landed commit belongs to this run (via its admitted issue branch / issue key), so a concurrent run's merge is not this run's escape |
+| Reconcile | Comparing this run's landed merges against the ledger's declared/observed merge effects, emitting an escape for any uncovered landed merge |
+
+**Types.**
+
+```
+RECORD LandedMerge:
+  target: String               # canonical target key: "pr:<N>" when forge enrichment resolved one, else "commit:<sha>"
+  commit: String               # the landing commit sha (always present — the primary signal)
+  issue: String | null         # the admitted issue this landing is attributed to, else null
+  detail: String               # sanitised human-legible label (control chars collapsed, truncated); see sanitisation
+  landed_at: Timestamp | null
+
+RECORD ReconcileResult:
+  reconciled: Bool             # true iff the PRIMARY (git) read succeeded AND a base anchor resolved
+  uncovered: List<LandedMerge> # this run's landed merges with no covering ledger declaration/observation
+  any_escape: Bool             # uncovered.length > 0
+  fault: String | null         # set when the primary read failed or no base anchor; reconciled == false
+  forge_enriched: Bool         # false when the optional gh enrichment was unavailable (NOT a fault)
+```
+
+**Base anchor recording (a hard input this slice must add).** The run-ledger records no base sha today, so the reconcile has no trustworthy lower bound. **Chosen:** record `base_sha` (the protected branch's sha at run mint) into `run-ledger.json` at mint time, and have the reconcile read it. If `base_sha` is absent (a legacy/ungoverned ledger), the reconcile returns `reconciled:false, fault:"no base anchor"` — **non-clean**, never a silent clean. Rationale: a detector keyed on an unbounded or guessed window is exactly the unreliability the incident exposed; a recorded anchor is deterministic.
+
+**CLI surface. Chosen:** a new subcommand `faff effects reconcile-merges --run <id>|--run-dir <dir> [--issue <ISSUE>] [--json]` returning `ReconcileResult`, dispatched into the impure reconcile lane (audit.js or a new `effects-reconcile.js`) so the pure `effects.js` core is untouched and the pure/impure boundary is visible at the command name. `--issue <ISSUE>` narrows **both** the attribution set and the ledger read to that single issue (used by a per-issue caller); omitted, all admitted issues are in scope. Rationale: a distinct verb keeps `check` pure and cheap.
+
+**Coverage rule (the matching predicate).** A `LandedMerge` is *covered* when **this run's** ledger holds a `declare` **or** `observe` merge effect (`effect.kind == "merge"`) whose target matches the landing under the shared `effectTargetMatches` rule (`effects.js:81-83`) — either the exact `pr:<N>`/`commit:<sha>` target, or a `"*"` wildcard. Uncovered ⇒ escape.
+
+**`detail` sanitisation (untrusted input).** A PR title / commit subject is attacker-influenceable (public-repo PRs) and flows into logs/Sentry, so it is **data, never instructions** (gateway no-execute floor): collapse newlines/control characters to spaces and truncate to a fixed length before storing in `detail`. The `target`/`commit`/`issue` fields are faff-derived, not free-text.
+
+## 4. HOW — Behavior
+
+**Architecture.** A new impure reconcile enumerates this run's landed merges from git (primary) and diffs them against this run's declared/observed merge effects with the shared `effectTargetMatches` predicate. The pure `computeEscapes` is untouched. The forge is queried only to *label* landings with PR numbers. The reconcile's `any_escape` (or a primary-read fault) is OR-combined with the pure `check`'s `any_escape` at the beep-boop checkpoint, so the Sentry bridge fires on an observed-but-undeclared escape (today) or an off-ledger landed merge (new).
+
+```
+PROCEDURE reconcile_merges(run_dir, issue_filter?):
+  1. base := read run-ledger base_sha; head := protected-branch HEAD.
+     IF base is absent/unresolvable → return { reconciled:false, uncovered:[], any_escape:false,
+                                               fault:"no base anchor", forge_enriched:false }   # non-clean
+  2. chain_ok := (faff effects verify == verified)      # FAFF-621 hash chain
+     IF NOT chain_ok → return { reconciled:false, …, fault:"ledger chain broken/tampered" }      # non-clean
+  3. admitted := run-ledger admitted issues (∩ {issue_filter} when given)
+  4. landings := git commits in base..head on the protected branch, each attributed to an admitted
+     issue by its issue branch / issue key (attribution); drop commits not attributable to this run.
+     # PRIMARY, always-on, local git. NEVER `git log --merges` (a squash landing is not a merge commit).
+  5. FOR each landing: best-effort forge enrichment — map commit → PR number for a "pr:<N>" target and
+     a sanitised title; on gh failure set target "commit:<sha>", forge_enriched=false (NOT a fault).
+  6. declared := this run's ledger merge effects (declare + observe), scoped by issue_filter when given.
+  7. uncovered := [ m for m in landings
+                    if NOT any(d in declared where d.kind=="merge"
+                              and effectTargetMatches(d.target, m.target OR "commit:"+m.commit)) ]
+  8. return { reconciled:true, uncovered, any_escape: uncovered.length>0, fault:null, forge_enriched }
+```
+
+**Checkpoint wiring (beep-boop `SKILL.md:107` and the parallel poll loop).** After the existing `faff effects check`, run `faff effects reconcile-merges --run <id> --json`. Combine: `forbidden := check.any_escape OR reconcile.any_escape OR (reconcile.reconciled == false)`. Pass `--forbidden-side-effect` to `faff sentry check` iff `forbidden`; **always** pass it when `forbidden` (not merely log). A `reconciled == false` (primary-read fault or missing base anchor) is non-clean and logged. A `forge_enriched == false` is logged only — never contributes to `forbidden` (the kill-switch is not coupled to forge uptime).
+
+**Edge cases.**
+
+- **Empty ledger, no landings** → `check` clean, `reconcile.uncovered == []` → clean. The pure `empty ledger => clean` case (`effects.js:731`) is unchanged; only a real off-ledger landing breaks it.
+- **Merge through `merge-gate`** → FAFF-1012 auto-declared + observed it → the landing matches a declared merge effect → not uncovered. No double-flag.
+- **Concurrent run on the same protected branch** → its merge is a different (non-admitted-here) issue branch → not attributed to this run → not uncovered here.
+- **Covered by `observe` only, or `declare` only, or a `"*"` wildcard** → each independently covers per `effectTargetMatches`.
+
+**Failure modes.**
+
+- **The failure:** attribution mis-maps a landing to the wrong run (branch naming ambiguous). **How you'd know:** an `uncovered` entry whose `issue` is not in this run's `admitted`, or a known in-run merge missing from `landings`. **What it means:** narrow — tighten the branch/issue-key attribution; prefer under-attribution (miss) surfaced as a fault over cross-run false positives.
+- **The failure:** `base_sha` is recorded but stale (branch rebased), so `base..head` spans unrelated commits. **How you'd know:** implausibly many landings, many unattributed. **What it means:** the base-anchor recording (WHAT) must capture the sha at mint and not be rewritten mid-run.
+- **The failure:** the interim detector is bypassed by an actor who `declare`s the merge it is about to perform off-ledger (the ledger is writable by the merge authority). **How you'd know:** a covered merge with a declare whose provenance is the merge actor itself, no merge-gate `origin`. **What it means:** this is the accepted limitation of *detection* — abandon the idea that interim detection closes it; only the structural E-B mediation (OUT OF SCOPE) does. See Open Questions.
+
+**Anti-pattern:** coercing a primary-read fault or missing base anchor to `any_escape:false`. Why: recreates the fail-open. **Anti-pattern:** keying detection on `git log --merges` or on the forge query. Why: squash and direct-git landings are ordinary commits and a direct-git merge is never in the forge. **Anti-pattern:** letting a `gh` enrichment failure trip the kill-switch. Why: it couples run liveness to forge uptime for no detection gain.
+
+## 5. Scenarios
+
+```
+Given a run whose orchestrator merged an admitted issue's PR via direct git (no declare, no observe) and base_sha is recorded
+When faff effects reconcile-merges runs for that run
+Then the landing appears in uncovered (target "commit:<sha>" or "pr:<N>") and any_escape is true
+```
+
+```
+Given a run that merged the same PR through faff merge-gate (FAFF-1012 auto-declare + observe ran)
+When faff effects reconcile-merges runs
+Then uncovered is empty and any_escape is false (no double-flag)
+```
+
+```
+Given two runs sharing the protected branch, and run B merged its own admitted issue off-ledger
+When faff effects reconcile-merges runs for run A (which did not merge)
+Then run B's landing is not attributed to run A and run A's any_escape is false
+```
+
+```
+Given a landed merge covered by an observe-only entry, a declare-only entry, or a "*" wildcard declaration (three sub-cases)
+When faff effects reconcile-merges runs
+Then each is covered and any_escape is false
+```
+
+```
+Given a run-ledger with no base_sha (legacy/ungoverned)
+When faff effects reconcile-merges runs
+Then reconciled is false, fault names the missing base anchor, and the checkpoint treats the run as NON-clean
+```
+
+```holdout
+Given a run whose forge (gh) enrichment fails but the local git read succeeds and base_sha resolves
+When faff effects reconcile-merges runs
+Then reconciled is true, forge_enriched is false, targets fall back to "commit:<sha>", and forge failure alone does NOT set forbidden
+```
+
+```holdout
+Given a run whose declared-effects.jsonl hash chain is broken (tampered)
+When faff effects reconcile-merges runs
+Then reconciled is false, fault names the broken chain, and the checkpoint treats the run as NON-clean
+```
+
+- The reconcile MUST NOT mutate any ledger, run artifact, or git state (read-only, like `audit` / `effects check`).
+- `detail` MUST contain no raw newlines/control characters (sanitised, truncated).
+
+## 6. DESIGN DECISION RATIONALE
+
+**Primary ground truth: git branch-advancement vs forge merged-PR query.** A forge query cannot see a direct-git merge (never marked merged) and is not always present; `git log --merges` misses squash landings. **Chosen:** always-on local git branch-advancement over `base..head` as the primary detector; the forge is optional enrichment (commit → `pr:<N>` label) whose failure is not a fault. This directly closes the round-1 blocker that a forge-only adapter cannot see the incident it exists to catch.
+
+**Attribution scope: this run's admitted issues vs every PR on the branch.** Matching every merged PR on a shared protected branch against one run's ledger false-positive-kills concurrent runs. **Chosen:** attribute landings to this run via its admitted issue branches and reconcile only those; a concurrent run's merge is out of scope for this run.
+
+**Base anchor: recorded vs inferred.** The ledger records no base sha, so any window is guessed. **Chosen:** record `base_sha` at run mint and fault (non-clean) when it is absent — deterministic bound, no silent clean on the very ungoverned run this targets.
+
+**Where the impure read lives.** Options: inside `computeEscapes` (breaks purity + frozen selftest) vs the reconcile/audit lane. **Chosen:** the reconcile lane via a distinct `faff effects reconcile-merges` verb; the pure core is untouched.
+
+**Kill-switch coupling to the forge.** **Chosen:** only the primary git read / base anchor can set `forbidden`; a forge enrichment failure logs and degrades labels but never trips Sentry — the kill-switch stays decoupled from forge uptime.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions.**
+
+- **Punt:** Detection-only now, or also add a positive pre-merge declaration/consult obligation as a first step toward E-B — needs human (decides: architecture). Pure post-hoc detection (this spec) flags an off-ledger merge after it lands but cannot *prevent* an auditee who declares-then-merges (the accepted limitation in Failure modes). A positive obligation ("a merge with no prior gateway consult is itself an escape / is blocked") moves toward the structural E-B closure but is a larger change to the merge chokepoint. The reviewer flagged the auditee-writable-ledger trust gap as fundamental; whether the interim ships detection-only (accepting the documented residual until E-B) or takes the first mediation step is a human scope call.
+- **Punt:** Run live per-checkpoint vs run-end-only — needs human (decides: architecture). The primary detector is now cheap and local (git), and run-scoping removes the concurrent-run false-positive, so per-checkpoint (live, matching the field incident's kill-switch intent) is viable; a run-end final reconcile (aligned with FAFF-397) could be added as belt-and-braces. A human picks: live, run-end, or both.
+
+**Assumptions.**
+
+- **Assumes:** `run-ledger.json` will carry a `base_sha` after this slice adds it at mint (confirmed absent today). Validate: check the mint path writes it; the reconcile faults (non-clean) when it is missing.
+- **Assumes:** an admitted issue's landing is attributable from its issue branch name / issue key (faff's `gitBranchName` convention, e.g. `faff-1028-…`). Validate: confirm the branch → issue mapping is derivable for admitted issues before build.
+- **Assumes:** the protected/target branch is resolvable (config default branch or the run's recorded branch). Validate: resolve before build; a missing branch is a reconcile fault, not a clean.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] A direct-git (off-ledger) merge of an admitted issue during a run is detected as an escape by the reconcile, where `faff effects check` alone reported clean.
+- [ ] The pure `computeEscapes` core and its `--selftest` cases are unchanged (`empty ledger => clean` still passes).
+
+### From WHAT (types and interfaces)
+- [ ] `faff effects reconcile-merges --run <id>|--run-dir <dir> [--issue] [--json]` returns `{ reconciled, uncovered, any_escape, fault, forge_enriched }`.
+- [ ] `run-ledger.json` records `base_sha` at run mint; a ledger without it makes the reconcile return `reconciled:false, fault:"no base anchor"` (non-clean).
+- [ ] `--issue <ISSUE>` narrows both attribution and the ledger read to that issue.
+- [ ] Coverage uses `effectTargetMatches` (wildcard `"*"` covers) over `effect.kind == "merge"` across declare + observe, scoped to this run's ledger.
+- [ ] `detail` is sanitised (no raw newlines/control chars, truncated).
+
+### From HOW (behaviour)
+- [ ] Detection reads git commits over `base..head` (never `git log --merges`, never a forge-only query) and attributes them to this run's admitted issues.
+- [ ] A concurrent run's landing on the shared protected branch is not attributed to, or flagged by, this run.
+- [ ] A missing base anchor or a broken FAFF-621 chain yields `reconciled:false` and is treated as NON-clean by the checkpoint.
+- [ ] The checkpoint combines `check.any_escape OR reconcile.any_escape OR NOT reconcile.reconciled` into the `--forbidden-side-effect` decision.
+- [ ] A forge (`gh`) enrichment failure sets `forge_enriched:false`, degrades targets to `commit:<sha>`, and does NOT set `forbidden`.
+- [ ] A merge landed through `merge-gate` (FAFF-1012 covered) is not double-flagged.
+
+### From HOW (edge cases)
+- [ ] Empty ledger with no landings stays clean.
+- [ ] observe-only, declare-only, and `"*"` wildcard coverage each independently mark a landing covered.
+- [ ] The reconcile mutates nothing (verified by comparing ledger hash / `git status` before and after).
+
+### Eval coverage
+- [ ] No new LLM-judgement seam is introduced (the reconcile is deterministic).
+
+**Integration smoke test.**
+```
+1. Create a scratch run dir with an empty declared-effects.jsonl AND a run-ledger.json recording base_sha and one admitted issue.
+2. Land a commit on the protected branch attributable to that issue (git), no declare.
+3. Run `faff effects reconcile-merges --run-dir <dir> --json`; assert any_escape == true, uncovered names the commit/PR.
+4. Add a covering `faff effects declare --step merge` for that target; re-run; assert any_escape == false.
+5. Remove base_sha from the ledger; re-run; assert reconciled == false and fault names the missing anchor.
+```
+
+confidence: medium
+build-tier: complex
+
+## Methodology critique (agile-delivery)
+
+- **Right-sized?** Yes, once E-B is scoped out. The interim reconcile is a single 1–3 day unit: one CLI verb + a git branch-advancement adapter + `base_sha` recording at mint + checkpoint wiring. The two Punts (detection-only vs first-mediation-step; live vs run-end) are decisions, not extra concerns.
+- **Workstream fit?** Fits the governed-effects / lights-out-integrity workstream (FAFF-43/106/397/621/1012 lineage); outcome-named (off-ledger merges become visible to governance).
+- **Deps surfaced?** FAFF-1012 (Done, complementary — merge-gate path), FAFF-621 (Done, the chain verifier reused), FAFF-1027 (open, the enforcement sibling). None blocks this detection slice; all linked. The `base_sha`-at-mint addition is an internal dependency this slice carries, not a separate ticket.
+- **Risk profile?** The novel-integration risk is attribution (branch → admitted issue) and the base-anchor recording. Failure modes name the observable for each; the residual trust gap (auditee-writable ledger) is explicitly deferred to E-B. No de-risking spike needed — the risk is contained to one adapter with a git-native primary signal.

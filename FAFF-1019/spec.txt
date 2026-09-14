@@ -1,0 +1,317 @@
+# FAFF-1019 — Durable judge-trail carries per-round convergence history, not just the endpoint
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1019.
+
+This spec is for the build agent and human reviewers. It extends the durable spec-review judgement trail (`refs/faff/judge-trail`, minted by `faff judge-trail mint`, read by `faff judge-history`) so it retains the objections raised in **every** spec-review round, not only the final standing residue. It is audit and calibration material only; nothing on the accept path may come to depend on it.
+
+*(Round 2 — revised after spec-review round 1 `reject-approach`. Changes: persist ALL rounds rather than filtering by the gating window (the audit trail must keep cross-conversation history, not drop it); `contested_source` is `null` — not `false` — for non-standing rounds; the reader's tamper check is made explicit; cross-cutting secret-redaction scoped out as pre-existing trail posture with a bounded read guard added; QA scenarios added for the ledger branch, the flag-absent baseline, legacy v1 reads, a mid-run unparseable round, and a forced non-zero mint exit.)*
+
+## 1. WHY — Problem and Principles
+
+**Load-bearing model.** The judge-trail is a best-effort, run-close snapshot of spec-review judgement material copied verbatim into a git ref that outlives the swept run dir. Every round of a spec-review already writes a `round-<n>.json` record (`{verdict, objections}`) to the per-issue scratch dir. The trail packer already walks that dir; it just reads only the *last* round. The fix is to have it read **all** the round records it is already standing next to and store each round's objections.
+
+**Problem statement.** Today `collectObjections` in `plugin/skills/faff/bin/lib/judge-trail.js` persists only the latest `round-<n>.json`'s objections, so for a spec-review that took several rounds the trail shows where the spec landed but not how it got there. This loses the multi-round convergence history that FAFF-946 originally asked for ("every refuter objection per round, per lens, verbatim"). This change makes the trail carry the full per-round objection history.
+
+**Design principles.**
+
+- **Audit completeness over gating economy.** The trail is audit/calibration material whose entire value is "how the review got there". It must retain **every** round on disk, including rounds from a prior conversation before a sentry-kill or unpark (a fresh convergence window). The gating convergence signal (`spec-review-convergence` / `spec-review-churn`, which read `round-<n>.json` from the scratch dir and never read the trail) is a *different* concern with a *different* need (compare only within the current window); the trail must not inherit the window's history-dropping bound. The window is recorded as an **informational annotation**, never a filter.
+- **Never on the accept path.** The trail stays pure audit/calibration material. The mint stays best-effort at run close and never gates a run close, a merge, or a park. No accept-path code may `require` or read the trail. This principle would cause rejection of any implementation that wires the trail into a gate.
+- **Region boundary is sacrosanct.** `judge-trail.js` is `region:factory`; `audit.js` is `region:governance` and reaches this reader only via a `spawnSync` self-spawn of the `faff` binary — **never** a `require` edge (that fails `faff regions check`, the ADR-0042 direction lint). The reader extension here must not introduce any new cross-region require.
+- **Best-effort throughout.** Every new read (the window annotation, extra round files) must fail safe: a corrupt or absent input degrades the mint, never throws upward and never aborts the mint of other issues.
+- **Recompute-on-read trust.** The store's own claimed hashes are never trusted; `witness_sha` is recomputed over the manifest core on every read. New per-round content must fall inside that tamper-detection envelope, and the reader must verify it — not merely attach it.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/judge-trail.js` | Node (CJS) | The writer (`mint`) + reader core (`judge-history`) this change edits |
+| `plugin/skills/faff/bin/lib/spec-review-convergence.js` | Node (CJS) | Exports `roundFilesInDir(dir)` — already imported by judge-trail.js; enumerates every `round-<n>.json` |
+| `plugin/skills/faff/bin/lib/spec-review-window.js` | Node (CJS) | Exports `readWindowStart(dir)` — read best-effort for the informational `window_start` annotation only |
+| `plugin/skills/faff/bin/lib/spec-judge-casefile.js` | Node (CJS) | Exports `sha256Text`; the `p-<NN>` proposition-id scheme the ledger index-match uses |
+| `plugin/skills/faff-beep-boop/SKILL.md` | prose | The sole `faff judge-trail mint` call site (run-close, best-effort) |
+| `test/judge-trail.test.mjs` | Node test | Git round-trip coverage (scratch bare-repo remote) to extend |
+
+**Scope statement.** This sits at the run-close packing seam of the spec-review judgement pipeline — downstream of the review loop, upstream of `faff judge-history` / `faff audit`'s durable second source.
+
+## 2. OUT OF SCOPE
+
+- **Durable retention of FAFF-928's raw per-lens response bodies (`<scratch>/raw`).** — *Why excluded:* the acceptance criteria explicitly permit recording this as out of scope with a reason. The raw bodies are per lens × backend × round full response transcripts — the single largest storage-growth vector in the scratch dir — and the structured per-round objections this spec persists already recover the interrogatable "what was raised each round" history the ticket's value case rests on. Copying the raw corpus is a heavier, separable follow-up. *Extension point:* a future issue would add a `copyRawCorpus(specReviewDir, files)` step in `buildIssueSubtree` (judge-trail.js), staging `<scratch>/raw/**` under an `<issue>/raw/` subtree, gated on a size cap. **Reason recorded here per AC.**
+- **Secret-scanning / redaction of objection text across the trail.** — *Why excluded:* the durable trail **already** stores refuter objections verbatim and propagates them via the git ref (shipped in FAFF-994); storing them per-round adds volume, not a new exposure class. Redaction/secret-scanning is a cross-cutting concern over the *whole* trail (objections, rulings, and the `spec.txt` blob alike), not something this per-round slice can own coherently. This slice adds only a **bounded per-field/per-blob size cap** (below) as a cheap DoS + accidental-dump guard; deeper redaction is a separate follow-up. *Extension point:* a redaction pass in `buildIssueSubtree` before `stageIssueFiles`, applied uniformly to every stored blob.
+- **Bumping `faff audit`'s durable-second-source logic to consume per-round objections.** — *Why excluded:* `faff audit` reaches the reader via `judge-history` (self-spawn, `--json` without `--objections`) and treats trail absence as additive-absent; it reads manifest records, not per-round objections, and gains no dependency here. *Extension point:* `audit.js`'s second-source call site, which already self-spawns `faff judge-history`.
+- **Changing the `round-<n>.json` record shape or any gating read.** — *Why excluded:* `spec-review-churn` / `spec-review-convergence` read `round-<n>.json` and must stay untouched; this change only *reads* those files at mint time. *Extension point:* n/a — the record shape is frozen by its gating consumers.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Standing residue | The objection set of the *latest* round — the set the judge actually ruled on (ledger propositions map to it) |
+| Final convergence window | The round range `[window_start .. latest]` the gating convergence/churn checks compare over; here an informational annotation on the trail, never a filter |
+| Trail subtree | The per-issue `<issue>/…` file set the mint stages into the git ref |
+
+**Type definitions.** The per-issue `objections.json` blob changes from a flat objection array to a per-round structure (schema bump 1 → 2):
+
+```
+RECORD ObjectionsTrail:                 # objections.json content, schema_version 2
+  schema_version: 2
+  window_start: int | null              # INFORMATIONAL annotation: where the final gating window began
+                                        #   (best-effort from window.json; null when corrupt/unreadable)
+  rounds: List<RoundObjections>         # ALL round-<n>.json in the scratch dir, ascending by round — never filtered
+
+RECORD RoundObjections:
+  round: int                            # the round number n, from round-<n>.json
+  is_standing_residue: bool             # true for the latest round only
+  in_final_window: bool | null          # n >= window_start when window_start is known; null when it is unknown
+  objections: List<Objection>           # verbatim from that round's `objections` array
+
+RECORD Objection:                       # per-objection shape; verbatim triple UNCHANGED from today
+  claim: string                         # subject to the per-field byte cap (below)
+  evidence: string                      # subject to the per-field byte cap
+  predicted_consequence: string | null
+  spec_anchor: string
+  lens: string
+  severity: string
+  contested_source: bool | null         # ledger-carried on the standing residue ONLY; null (not false) elsewhere —
+                                        #   null = "not recorded for this round", distinct from false = "not contested"
+
+CONSTRAINT rounds is non-empty when any round-<n>.json exists in the scratch dir
+CONSTRAINT rounds[*].round strictly ascending, covering every round-<n>.json present
+```
+
+**Per-field / per-blob size cap.** Each stored objection string field (`claim`, `evidence`, `predicted_consequence`) is capped at `OBJECTION_FIELD_CAP` bytes (const, 32768); a field over the cap is stored truncated with a trailing ` …[truncated <N> bytes]` marker. This bounds the blob against a pathological or accidental huge dump (DoS + accidental-secret-dump guard) while keeping normal objections byte-verbatim. The cap never triggers on a well-formed objection.
+
+**Manifest core additions** (the object `witness_sha` is computed over):
+
+```
+RECORD ManifestCore:                    # additions only; existing fields unchanged
+  schema_version: 2                     # bumped from 1
+  objections_sha: string                # sha256 of the objections.json bytes (NEW; brings per-round content inside the witness envelope)
+  lenses: List<string>                  # NOW the sorted union of lenses across ALL persisted rounds (was: latest round only)
+  # ... built_spec_sha, spec_blob, objections, rulings, admit_result, outcome, run_id, issue unchanged
+```
+
+**Reader interface.** `faff judge-history` gains one flag:
+
+```
+faff judge-history [--issue ID] [--run RUN_ID] [--lens L] [--outcome O] [--objections] [--root DIR] [--json]
+```
+
+- `--objections` — for each matched record, read, **verify**, and attach the per-round objection history from the record's `objections.json` blob.
+- Under `--json`: each record gains a `rounds` field (the `ObjectionsTrail.rounds` array), `window_start`, and `objections_tamper_suspect` (below); all three absent when `--objections` is not passed (byte-for-byte today's output).
+- Human (non-`--json`) render with `--objections`: after each record's summary line, one indented line per round — `round <n>[ (standing residue)]: <k> objection(s) — lenses=<a,b>`.
+- `--issue` is an **equality filter** over the ref's own tree entries (`listTreeIssues`), never interpolated as an untrusted path segment: the blob path `<issue>/objections.json` is built from the tree-listed issue name, not from raw `--issue`. (Unchanged from today's reader; called out because the new blob read reuses the same tree-listed `issue`.)
+
+**Design decisions.** See §6 for full rationale; markers inline:
+
+- Persist every round, not a windowed subset. **Chosen:** all `round-<n>.json` in the scratch dir, ascending; `window_start` recorded as an informational annotation only.
+- `contested_source` on non-standing rounds. **Chosen:** `null` (not recorded), distinct from `false` (recorded, not contested).
+- Do not copy the FAFF-928 raw corpus; do not add trail-wide secret-scanning. **Chosen:** both out of scope, reasons recorded (see §2); a bounded per-field/per-blob size cap is added.
+- Storage bound. **Chosen:** per-round records are small and the per-field byte cap bounds each; no separate "last N rounds" cap.
+
+## 4. HOW — Behavior
+
+**Architecture and approach.** Two edits to `judge-trail.js`, both additive and best-effort:
+
+1. **Writer** — `collectObjections` (and its caller `buildIssueSubtree`) reads **all** round records and emits the per-round `ObjectionsTrail`; the manifest core gains `objections_sha` and a cross-round `lenses` union, and `schema_version` bumps to 2.
+2. **Reader** — `judge-history` / `readManifestRecord` gain an opt-in `--objections` path that reads back the `objections.json` blob, verifies its sha against the manifest, and attaches `rounds`.
+
+**Behavior summary.** At run close the mint, for each issue scratch dir, reads every `round-<n>.json` and stores each round's verbatim objections, so `faff judge-history --objections` can replay how the review converged — including rounds from before a sentry-kill/unpark.
+
+```
+PROCEDURE collectObjections(specReviewDir, ledger):     # replaces today's latest-only version
+  1. rounds := roundFilesInDir(specReviewDir)           # [{n, path}] ascending; [] on unreadable dir
+  2. IF rounds is empty: RETURN { schema_version: 2, window_start: null, rounds: [] }
+  3. window_start := readWindowAnnotation(specReviewDir) # informational only; NEVER throws (see below)
+  4. latest_n := rounds[last].n
+  5. FOR each {n, path} in rounds (ALL of them, ascending):     # NO window filter
+     a. parsed := JSON.parse(read path)   # on parse failure, skip THIS round, continue (best-effort)
+     b. raw := parsed.objections if array else []
+     c. is_standing := (n == latest_n)
+     d. in_window := (window_start != null) ? (n >= window_start) : null
+     e. objections := raw mapped to the Objection shape (verbatim triple + spec_anchor, each string field byte-capped):
+        - lens/severity: from ledger entry p-<i> ONLY when is_standing AND ledger present (index-matched
+          as today); otherwise from the objection's own lens/severity field
+        - contested_source: ledger entry's value ONLY when is_standing AND ledger present; else null
+     f. append { round: n, is_standing_residue: is_standing, in_final_window: in_window, objections }
+  6. RETURN { schema_version: 2, window_start, rounds: <accumulated> }
+
+PROCEDURE readWindowAnnotation(dir):                    # informational; best-effort; NEVER throws
+  1. TRY: RETURN readWindowStart(dir)   # spec-review-window.js: absent → 1 (documented fail-safe); corrupt → throws
+  2. CATCH WindowMarkerError: RETURN null   # corrupt marker → annotation unknown; still persist all rounds
+```
+
+```
+PROCEDURE buildIssueSubtree(...):                        # changed lines only
+  1. trail := collectObjections(specReviewDir, ledger)   # now an ObjectionsTrail, not a flat array
+  2. objectionsBytes := JSON.stringify(trail, null, 2) + "\n"
+  3. files["objections.json"] := objectionsBytes
+  4. lenses := sorted unique union of trail.rounds[*].objections[*].lens (non-empty)
+  5. manifestCore.schema_version := 2
+  6. manifestCore.objections_sha := sha256 of objectionsBytes
+  7. manifestCore.lenses := lenses
+  8. # manifest = { ...manifestCore, witness_sha: witnessSha(manifestCore) } unchanged
+```
+
+```
+PROCEDURE readManifestRecord(...) with objections flag:  # reader
+  1. Compute the existing record (manifest, outcome, lenses, tamper_suspect) unchanged.
+  2. IF opts.objections:
+     a. bytes := showBlob(root, commitSha, "<issue>/objections.json")   # <issue> from listTreeIssues; null if absent
+     b. IF bytes null: record.rounds := []; record.objections_note := "objections.json missing"; record.objections_tamper_suspect := true
+     c. ELSE IF bytes length > OBJECTIONS_BLOB_READ_CAP (const, e.g. 8 MiB):
+          record.rounds := []; record.objections_note := "objections.json exceeds read cap"; record.objections_tamper_suspect := true   # DoS guard
+     d. ELSE:
+        - objections_tamper_suspect := (manifest.objections_sha is a string) ? (sha256(bytes) != manifest.objections_sha) : true
+        - parse:
+          * schema_version 2 shape: record.window_start := parsed.window_start; record.rounds := parsed.rounds
+          * legacy flat-array shape (a v1 record): record.rounds := [{ round: null, is_standing_residue: true, in_final_window: null, objections: parsed }]; record.objections_note := "legacy v1 (flat, endpoint only)"
+          * unparseable: record.rounds := []; record.objections_note := "objections.json unparseable"; record.objections_tamper_suspect := true
+  3. RETURN record
+```
+
+**Edge cases and error handling.**
+
+- **Absent `window.json`** → `readWindowStart` returns 1 (documented fail-safe) → `window_start: 1`, all rounds `in_final_window: true`. All rounds persisted regardless.
+- **Corrupt `window.json`** → `readWindowStart` throws `WindowMarkerError`; `readWindowAnnotation` catches → `window_start: null`, every round's `in_final_window: null`. The mint does not surface this as a failure (best-effort); all rounds still persisted.
+- **A single unreadable/unparseable `round-<n>.json`** → skip that round, keep the others. Never abort the issue's subtree.
+- **Ledger absent** → every round's objections carry their own `lens`/`severity`, `contested_source: null` (mirrors today's no-ledger path, now with `null` rather than `false`).
+- **Legacy v1 trail already in the store** → the reader's `--objections` path handles the flat-array shape without error (single endpoint round, `round: null`, note recorded). Writer never emits v1 again.
+- **Objections blob fails its sha check** → the record is still returned with `objections_tamper_suspect: true` (retained, never dropped — mirrors the manifest `tamper_suspect` discipline).
+
+**Failure modes.**
+
+- **The failure:** filtering history to the gating window silently drops the cross-conversation rounds that are the most interesting convergence history. *How you'd know:* the round-1 spec-review objection that forced this revision — a resumed review would read back as "started at window_start". *What it means:* resolved — this revision persists **all** rounds and only annotates the window; the failure cannot recur by construction.
+- **The failure:** the new per-round content sits outside the tamper envelope, so a mutated `objections.json` reads clean. *How you'd know:* the `objections_sha` field is witness-covered *and* the reader recomputes `sha256(blob)` against it (step 2d), so a mutated blob flips `objections_tamper_suspect`; a test that mutates the blob without the manifest asserts this. *What it means:* proceed — `objections_sha` + the read-side verify close the envelope.
+- **The failure:** an objection field carries an enormous accidental dump, bloating the ref or exposing a pasted secret in bulk. *How you'd know:* the per-field byte cap truncates with a marker and the read cap rejects an oversized blob. *What it means:* proceed — the cap bounds blast radius; trail-wide redaction is a scoped-out follow-up (§2).
+
+**Anti-patterns.**
+
+- **Anti-pattern:** filtering the trail's persisted rounds to the convergence window. Why: the window exists for the *gating* convergence signal (which reads `round-<n>.json`, never the trail); the audit trail's value is the full history, so it persists every round and only annotates the window.
+- **Anti-pattern:** recording `contested_source: false` for a non-standing round. Why: the round file never carried that field, so `false` fabricates a "not contested" reading; use `null` to mean "not recorded".
+- **Anti-pattern:** attaching the objections blob without recomputing its sha. Why: the recompute-on-read discipline is what makes the witness meaningful; a bare attach trusts the store.
+- **Anti-pattern:** having `audit.js` (governance) `require` judge-trail.js. Why: it fails `faff regions check` (ADR-0042 direction lint); the process-boundary self-spawn of `faff judge-history` is the only sanctioned path.
+- **Anti-pattern:** letting a corrupt `window.json` or an unreadable round file abort the mint, or making any accept-path code read the trail. Why: the mint is best-effort and the trail is audit/calibration-only (ACs 2 and 3).
+
+## 5. Scenarios
+
+```
+Given a run dir with FAFF-XX/spec-review/ holding round-1.json, round-2.json, round-3.json
+  (each { verdict, objections:[…] }) and window.json with window_start = 2
+When faff judge-trail mint --run-dir <dir> runs, then faff judge-history --run <id> --issue FAFF-XX --objections --json
+Then the record's rounds array has ALL three entries (round 1, 2, 3) each with its verbatim objections,
+  round-1 has in_final_window = false, rounds 2 and 3 have in_final_window = true,
+  round-3 has is_standing_residue = true, and window_start = 2
+```
+
+```holdout
+Given the same run dir but with a judge/ledger.json present whose p-01 entry sets contested_source = true
+When mint runs and faff judge-history … --objections --json is read back
+Then the standing-residue round's first objection has contested_source = true,
+  and every non-standing round's objections have contested_source = null (never false)
+```
+
+```
+Given a run dir whose FAFF-XX/spec-review/window.json is corrupt (unparseable JSON)
+When faff judge-trail mint --run-dir <dir> runs
+Then the mint exits 0 (best-effort), persists ALL rounds, sets window_start = null and every round's in_final_window = null, and does not throw
+```
+
+```
+Given a minted objections.json blob that is then mutated in the ref without updating the manifest objections_sha
+When faff judge-history --objections --json reads it
+Then the record has objections_tamper_suspect = true and the record is still returned (not dropped)
+```
+
+```
+Given a judge-trail ref minted before this change (objections.json is a flat array, schema_version 1)
+When faff judge-history --objections --json reads it
+Then it returns one round { round: null, is_standing_residue: true, objections: <the flat array> } with a legacy note, without error
+```
+
+```
+Given faff judge-trail mint whose git push/update-ref step fails (e.g. an unreachable remote)
+When the beep-boop run-close mint step runs it
+Then mint returns a non-zero exit which the caller logs, and run close / merge / park proceed regardless (never gated)
+```
+
+- `faff judge-history` **without** `--objections` returns byte-for-byte the pre-change output — no `rounds`, `window_start`, or `objections_tamper_suspect` fields (assertion — compared against a captured baseline).
+- The manifest `lenses` field is the sorted union of lenses across **all** persisted rounds, not just the latest (assertion).
+- No accept-path module gains a `require`/read dependency on the trail (assertion — `faff regions check` stays green; no governance→factory edge added).
+- A single unparseable `round-<n>.json` mid-run is skipped and the surrounding rounds still persist (assertion).
+
+## 6. Design Decision Rationale
+
+**Persist every round, or filter to the gating convergence window?**
+Options: all rounds; only `[window_start .. latest]`. The window filter drops pre-window rounds — exactly the cross-conversation history (post sentry-kill/unpark) that is the richest convergence record, and it makes a resumed review read back as if it "started" at `window_start`. The "muddy the trend" rationale for a window applies to the *gating* convergence signal (`spec-review-convergence`/`churn`, which read `round-<n>.json` directly and never touch the trail), not to an audit record. **Chosen:** persist every `round-<n>.json`; record `window_start` and per-round `in_final_window` as an informational annotation so a calibration consumer can still see the gating window without losing history. This also deletes the window-filter path and the `window_start > latest_n` edge case — simpler *and* more complete. (This reverses the round-1 draft's window-bound decision after the spec-review architectural objection.)
+
+**`contested_source` on non-standing rounds — `false` or `null`?**
+The ledger index-match (`p-<NN>`) maps to the *standing residue* the judge ruled on, not to each historical round; earlier `round-<n>.json` files carry no `contested_source`. Recording `false` fabricates a "not contested" reading and makes the field appear to flip false→true at the final round as an enrichment artifact. **Chosen:** `null` for every non-standing round — "not recorded", distinct from `false` "recorded, not contested" — so a reader never mistakes a schema placeholder for a real status.
+
+**Cover the new per-round content with `witness_sha`, and verify on read?**
+**Chosen:** add `objections_sha` to the manifest core (so the per-round blob is inside the witness envelope) **and** have `readManifestRecord` recompute `sha256(blob)` against it, setting `objections_tamper_suspect`. Without the read-side recompute the witness field is inert; the round-1 draft asserted the tamper property in DONE but omitted the verify step from the procedure.
+
+**Which candidate direction — per-round objections (1) vs copy the raw corpus (2)?**
+**Chosen:** Direction 1 only; Direction 2 (raw bodies) out of scope with reason (§2). The structured per-round objections satisfy the interrogatable-history value case; the raw corpus is a heavier, separable follow-up, and the AC sanctions this split.
+
+**Secret exposure in the verbatim trail.**
+The durable trail already stores objections verbatim and propagates them via the ref (shipped in FAFF-994); per-round storage adds volume, not a new exposure class, and trail-wide redaction is a cross-cutting concern over every stored blob. **Chosen:** scope deeper secret-scanning/redaction out (§2) as pre-existing trail posture, and add only a bounded per-field byte cap + a read-side blob size cap as a cheap DoS + accidental-dump guard.
+
+**Schema versioning.** **Chosen:** bump `schema_version` 1 → 2 and have the reader tolerate a legacy v1 flat-array `objections.json` (endpoint-only, `round: null`, note recorded). Prior runs may have minted v1 refs; the reader must not error on them, and the writer never emits v1 again.
+
+## 7. Open Questions and Assumptions
+
+**Open Questions.** None — the two questions the ticket deferred to prep (which direction; storage bound) are resolved as Chosen decisions in §6.
+
+**Assumptions.**
+
+- **Assumes:** `spec-review-window.js` exports `readWindowStart(dir)` and it throws `WindowMarkerError` only on a present-but-corrupt marker (absent → returns 1). *Validation:* confirmed in the explore findings; the build agent re-reads `plugin/skills/faff/bin/lib/spec-review-window.js` before wiring the annotation read.
+- **Assumes:** `round-<n>.json` bodies are `{ verdict, objections }` with objections optionally carrying the enrichment triple `{claim, evidence, predicted_consequence}` + `spec_anchor`. *Validation:* the build agent checks `spec-review-convergence.js` and `faffter-dark-spec-review/SKILL.md` for the current record shape before mapping.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] For a spec-review that ran more than one round, `faff judge-history --objections` returns the objections raised in **every** round (including rounds before a sentry-kill/unpark), not only the final standing residue.
+- [ ] The trail persists all rounds regardless of the convergence window; `window_start`/`in_final_window` are informational annotations only, never a filter.
+- [ ] Nothing on the accept path reads or `require`s the trail; `faff regions check` stays green (no governance→factory edge added).
+- [ ] The mint stays best-effort: a non-zero mint exit never gates a run close, merge, or park.
+
+### From WHAT (types and interfaces)
+- [ ] `objections.json` is written in the schema-2 `ObjectionsTrail` shape (`schema_version`, `window_start`, `rounds[]` with `round`, `is_standing_residue`, `in_final_window`, `objections[]`).
+- [ ] `contested_source` is the ledger value on the standing-residue round only; `null` (never `false`) on every non-standing round.
+- [ ] Each objection string field is byte-capped at `OBJECTION_FIELD_CAP` with a truncation marker when exceeded; the cap does not trigger on a well-formed objection.
+- [ ] Manifest core gains `objections_sha` (sha256 of the objections.json bytes) and `schema_version: 2`; `lenses` is the sorted union across all persisted rounds.
+- [ ] `faff judge-history` accepts `--objections`; `--json` output gains `rounds` + `window_start` + `objections_tamper_suspect` only when the flag is passed (byte-for-byte identical otherwise, verified against a captured baseline).
+
+### From HOW (behaviour)
+- [ ] `collectObjections` persists **every** `round-<n>.json` in the scratch dir, ascending, never filtered by the window.
+- [ ] The latest round is `is_standing_residue: true` and is the only round carrying ledger-index-matched `contested_source`/`lens`/`severity`.
+- [ ] The reader's `--objections` path recomputes `sha256(blob)` against `manifest.objections_sha` and sets `objections_tamper_suspect`; a legacy v1 flat array is surfaced as a single endpoint round with a note, without error.
+
+### From HOW (edge cases)
+- [ ] Absent `window.json` → `window_start: 1`, all rounds `in_final_window: true`, all rounds persisted.
+- [ ] Corrupt `window.json` → mint exits 0, `window_start: null`, every round `in_final_window: null`, all rounds persisted, no throw.
+- [ ] A single unparseable `round-<n>.json` is skipped; the other rounds persist.
+- [ ] A mutated `objections.json` with a stale manifest `objections_sha` reads back `objections_tamper_suspect: true` and is still returned.
+- [ ] An oversized objections blob (> read cap) reads back with `objections_tamper_suspect: true` and an explanatory note, without crashing.
+
+### Integration smoke test
+```
+1. Build a scratch run dir: <dir>/FAFF-T/spec-review/{round-1.json,round-2.json,round-3.json,window.json(window_start=2)}
+2. faff judge-trail mint --run-dir <dir>        # exit 0, minted
+3. faff judge-history --run <basename dir> --issue FAFF-T --objections --json
+4. Assert: record.rounds has all 3 entries with their objections; round-1 in_final_window=false, rounds 2-3 true;
+   round-3 is_standing_residue=true; objections_tamper_suspect=false
+```
+
+confidence: high
+build-tier: complex
+
+## Methodology critique
+
+Methodology: faffter-dark-methodology-agile-delivery
+
+- **Right-sized? (principle 4).** No issues. Two cohesive edits to one module (`judge-trail.js` writer + `judge-history --objections` reader) plus a test extension — a single 1–3 day unit that always ships together. Direction 2 (raw corpus) correctly cut to out-of-scope.
+- **Workstream fit? (principles 1 + 5).** Minor. Project-less Backlog (deliberate default); the un-homed remainder of the FAFF-946 → FAFF-994/995 judge-trail lineage. Belongs with that stream if/when it is formed; loose is correct until then.
+- **Deps surfaced? (principle 6).** No issues. FAFF-994 (packer extended) and FAFF-928 (raw bodies, scoped out) are both Done — satisfied edges, correctly `relatedTo`, not open blockers.
+- **Risk profile? (principle 7).** No issues. Additive, off-accept-path, best-effort; the objections.json v1→v2 move carries a back-compatible reader path. No spike warranted.

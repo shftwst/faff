@@ -1,0 +1,164 @@
+[
+  {
+    "claim": "The detector's primary signal — attributing a landed commit to an admitted issue — is not guaranteed to be present in git history for a direct-git merge, which is the precise scenario the spec targets. The spec assumes a branch-name-to-issue mapping, but a direct `git merge` or `git cherry-pick` can produce a commit whose message and diff carry no parseable issue key. If attribution fails, the landing is silently dropped at step 4, `uncovered` stays empty, and `any_escape` is false — the detector reports clean on the very case it was built to flag.",
+    "evidence": "Spec section 4 step 4: \"landings := git commits in base..head on the protected branch, each attributed to an admitted issue by its issue branch / issue key\". Assumptions section: \"an admitted issue's landing is attributable from its issue branch name / issue key (faff's `gitBranchName` convention, e.g. `faff-1028-…`)\". The incident was a \"direct git\" merge (section 1), which does not necessarily preserve the source branch name in the commit metadata (e.g., a squashed commit with a generic message, or a merge of a branch named `hotfix`).",
+    "predicted_consequence": "A direct-git merge that lands a commit without the issue key in the message is dropped at step 4 (not attributed), `uncovered` is empty, and the checkpoint reports clean — the detector fails on the exact incident it was designed to surface, recreating the fail-open it claims to close.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "architectural",
+    "severity": "blocker",
+    "contested_source": false
+  },
+  {
+    "claim": "The ratified scope settles that a read-only verb \"adds no liveness machinery of its own\" and relies on the operator's killed-executor guarantee, with liveness machinery reserved for the write boundary. The spec wires the read-only reconcile into the live checkpoint to trigger the kill-switch (`--forbidden-side-effect`), effectively adding liveness machinery to a read-only verb and contradicting the settled boundary.",
+    "evidence": "Ratified scope: \"Cross-box liveness for a read-only recovery verb ... adds no liveness machinery of its own ... belongs at the continuation / owner-state-write boundary\". Spec section 4: \"Checkpoint wiring ... run `faff effects reconcile-merges --run <id> --json` ... Pass `--forbidden-side-effect` to `faff sentry check` iff `forbidden`\".",
+    "predicted_consequence": "The reconcile becomes a live kill-switch trigger, creating a second, ungoverned liveness path that can kill runs based on a read-only view. This contradicts the established architecture and introduces a spurious-kill vector that the precedent explicitly reserved for the write boundary.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "architectural",
+    "severity": "blocker",
+    "contested_source": false
+  },
+  {
+    "claim": "Making `base_sha` a hard input means any run minted before this slice ships (or any run where the mint path fails to write it) returns `reconciled:false, fault:\"no base anchor\"`, which the checkpoint treats as NON-clean and trips the kill-switch. This is a forced outage for all existing in-flight runs, with no migration or grace period defined.",
+    "evidence": "Spec section 3: \"If `base_sha` is absent (a legacy/ungoverned ledger), the reconcile returns `reconciled:false, fault:\"no base anchor\"` — **non-clean**, never a silent clean.\" Section 4: \"A `reconciled == false` ... is non-clean and logged.\"",
+    "predicted_consequence": "The first deployment of this slice kills every currently-running run that lacks `base_sha`, because the checkpoint OR-combines `NOT reconcile.reconciled` into `forbidden`. This is a severe operational blast radius the spec does not mitigate (no migration, no opt-out, no \"unknown\" state distinct from \"fault\").",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec names non-merge protected effects (deploy, secret-rotation) as extension points \"behind the same reconcile\". But the reconcile's core is `base..head` git branch-advancement, which is meaningless for deploys or secret rotations. The extension point does not hold; the first non-merge adapter requires a rewrite of the reconcile core, not just an adapter.",
+    "evidence": "Spec section 2: \"Non-merge protected effects ... per-kind ground-truth adapters behind the same reconcile.\" Spec section 4: \"landings := git commits in base..head on the protected branch\".",
+    "predicted_consequence": "When the first non-merge effect (e.g., deploy) is added, the `base..head` git diff logic is inapplicable, forcing a new top-level reconcile structure and a rewrite of the attribution/coverage logic, invalidating the \"same reconcile\" claim and making the interim slice a throwaway.",
+    "spec_anchor": "2-out-of-scope",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec acknowledges a stale `base_sha` (branch rebased) but doesn't define how the detector behaves when `base_sha` is not an ancestor of `head`. `base..head` on a rebased branch either spans unrelated commits or is empty, silently missing the escape or producing a false kill.",
+    "evidence": "Spec section 4 failure modes: \"`base_sha` is recorded but stale (branch rebased), so `base..head` spans unrelated commits.\" It says \"prefer under-attribution (miss) surfaced as a fault\" but provides no mechanism to detect the rebase itself.",
+    "predicted_consequence": "A rebase mid-run causes the reconcile to either fault (if the base is not an ancestor, git may error) or silently include/exclude commits, leading to a false clean or a false kill, with no defined recovery path.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The auditee/orchestrator who performs the off-ledger direct-git merge controls the branch name. The reconcile attributes landings to this run \"by its issue branch / issue key\" and **drops commits not attributable to this run** — with no fault, no log, and no count of dropped commits. Naming the merge branch outside the admitted-issue convention (e.g. `hotfix/x` instead of `faff-1028-…`) makes the landing silently vanish: `uncovered:[]`, `any_escape:false`, `reconciled:true`. The checkpoint then computes `forbidden := check.any_escape OR reconcile.any_escape OR NOT reconcile.reconciled` = false → clean. The spec's own failure-mode mitigation — \"prefer under-attribution (miss) surfaced as a fault\" — has **no mechanism anywhere in the design**: there is no code path that can distinguish \"no attributable landings\" from \"attacker evaded attribution,\" so the miss is never surfaced. The detector's primary filter is the attacker's own input.",
+    "evidence": "HOW step 4 \"landings := git commits in base..head … each attributed to an admitted issue by its issue branch / issue key (attribution); drop commits not attributable to this run\"; Failure modes \"prefer under-attribution (miss) surfaced as a fault over cross-run false positives\" (no fault path defined); checkpoint wiring \"forbidden := check.any_escape OR reconcile.any_escape OR (reconcile.reconciled == false)\" — an evaded reconcile returns `reconciled:true, any_escape:false`.",
+    "predicted_consequence": "A direct-git merge on a non-convention branch name is reported clean by the new detector — precisely the field incident this spec exists to catch — and the Done criterion \"a direct-git (off-ledger) merge of an admitted issue during a run is detected as an escape\" is unmet for the trivial case.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "infosec",
+    "severity": "blocker",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec acknowledges the declared-effects ledger is writable by the merge authority (Failure modes: \"the ledger is writable by the merge authority\"), and the FAFF-621 chain verification (PROCEDURE step 2) covers only `declared-effects.jsonl` — not `run-ledger.json`, which carries `base_sha`. The same orchestrator class that performs the off-ledger merge writes the run ledger. A **wrong-but-valid** `base_sha` (set to the parent of the attacker's own merge) makes `base..head` empty → no landings → clean. The fault path only fires on an *absent/unresolvable* base (\"IF base is absent/unresolvable → fault\"), never on a moved-but-valid one. The spec's \"must capture the sha at mint and not be rewritten mid-run\" is a requirement with no enforcement mechanism.",
+    "evidence": "WHAT \"Base anchor recording\" (\"record `base_sha` … at mint time\"); HOW step 1 \"IF base is absent/unresolvable → … fault\" (no check for a valid-but-moved base); PROCEDURE step 2 chain check scoped to the declared-effects ledger; Failure modes \"the ledger is writable by the merge authority.\"",
+    "predicted_consequence": "An auditee who can write `run-ledger.json` moves `base_sha` to just before their off-ledger merge; the reconcile sees an empty window and reports clean — the base anchor is not the deterministic hard bound the spec claims, and the fail-closed posture degrades to fail-open on a valid-looking anchor.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "`base_sha` is attacker-influenceable data (see above) and flows into the git read (\"git commits in base..head\"). The spec mandates sanitisation discipline for `detail` but states no equivalent for the git command inputs. If the implementation interpolates `base_sha` into a shell string rather than passing an argv array (the context shows `audit.js` uses `spawnSync`, but the spec does not require it), a crafted `base_sha` value is command injection on the reconcile host.",
+    "evidence": "HOW step 4 \"git commits in base..head\"; context `audit.js` \"already reads git via spawnSync\"; WHAT `detail` sanitisation (no stated equivalent for `base_sha`).",
+    "predicted_consequence": "not separately stated — depends on the un-specified git invocation; flagging the requirement that `base_sha`/`--run-dir` be passed as argv elements, never shell-interpolated.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE items 10 and 11 require the checkpoint to treat `reconciled:false` as NON-clean and to OR-combine `check.any_escape OR reconcile.any_escape OR NOT reconcile.reconciled` into `--forbidden-side-effect`. But no scenario or smoke-test step exercises the checkpoint; every scenario asserts the *reconcile command's* output, and the smoke test runs only `faff effects reconcile-merges`. Worse, the fault return is defined as `{ reconciled:false, uncovered:[], any_escape:false, fault:\"no base anchor\" }` — the existing beep-boop bridge reads `any_escape` (`SKILL.md:107`), so a natural implementation that ORs `reconcile.any_escape` into the existing read silently passes the fault case as clean. The only thing that saves it is the `NOT reconciled` term, and nothing verifies that term exists.",
+    "evidence": "DONE \"A missing base anchor or a broken FAFF-621 chain yields `reconciled:false` and is treated as NON-clean by the checkpoint\"; DONE \"The checkpoint combines `check.any_escape OR reconcile.any_escape OR NOT reconcile.reconciled`\"; scenario 5 and the broken-chain holdout both assert \"the checkpoint treats the run as NON-clean\" — but the integration smoke test (steps 1–5) never invokes the checkpoint or observes the `--forbidden-side-effect` flag.",
+    "predicted_consequence": "A build that wires the bridge to `reconcile.any_escape` only (ignoring `NOT reconciled`) passes every named scenario and the smoke test, yet the missing-base-anchor and tampered-chain cases report clean to Sentry — the exact fail-open the spec exists to close. \"Done\" cannot be decided for DONE 10/11.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE item 5 requires `--issue <ISSUE>` to narrow both attribution and the ledger read to that issue. The procedure (steps 3 and 6) implements it, but no scenario exercises it, and the integration smoke test never passes `--issue`. There is also no defined behavior for the interaction where a landing is attributed to a *different* admitted issue than the filter — is it dropped from scope or surfaced?",
+    "evidence": "DONE \"`--issue <ISSUE>` narrows both attribution and the ledger read to that issue\"; scenarios 1–5 and both holdouts never use `--issue`; smoke test steps 1–5 never pass it.",
+    "predicted_consequence": "A build that ignores `--issue` entirely (or narrows only the ledger read, not attribution) passes every named test. Done cannot be decided for DONE 5.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE item 4's first half — \"`run-ledger.json` records `base_sha` at run mint\" — is never exercised. The smoke test step 1 *creates* a run dir with a hand-written `run-ledger.json` recording `base_sha`; it never runs the mint path. The spec's own assumption flags this (\"Validate: check the mint path writes it\"), but no scenario or DONE item tests it.",
+    "evidence": "DONE \"`run-ledger.json` records `base_sha` at run mint\"; smoke test step 1 \"Create a scratch run dir with … a run-ledger.json recording base_sha\" (hand-written, not minted).",
+    "predicted_consequence": "A build whose reconcile correctly reads `base_sha` but whose mint path never writes it passes every test — every real run then faults \"no base anchor\" and is non-clean forever, or (if the fault is mis-wired per the first objection) silently clean. Done cannot be decided for the mint half of DONE 4.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The coverage rule matches a declared `pr:<N>` target against the landing's target or commit sha via `effectTargetMatches`. When the forge is down, the landing's target degrades to `commit:<sha>` (per the holdout), so a merge legitimately declared as `pr:<N>` no longer matches — it becomes `uncovered`, `any_escape:true`, and trips `forbidden`. The holdout scenario only covers forge failure with *no* declared merge (\"forge failure alone does NOT set forbidden\"); the interaction with an existing `pr:<N>` declaration is untested, so the DONE item \"forge failure … does NOT set `forbidden`\" is not born-verifiable in the case that matters.",
+    "evidence": "holdout \"Given a run whose forge (`gh`) enrichment fails but the local git read succeeds … Then … forge failure alone does NOT set forbidden\"; coverage rule \"either the exact `pr:<N>`/`commit:<sha>` target, or a `\"*\"` wildcard\"; procedure step 7 `effectTargetMatches(d.target, m.target OR \"commit:\"+m.commit)`.",
+    "predicted_consequence": "A build that implements exact-match-only coverage (as the spec describes) false-positives every declared-PR merge whenever `gh` is down — the kill-switch fires on a governed merge. No named test catches it because the holdout's precondition (no declaration) never triggers the interaction.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The methodology critique names attribution (branch → admitted issue) as the novel-integration risk, and the failure mode says \"prefer under-attribution (miss) surfaced as a fault over cross-run false positives.\" But there is no DONE item or scenario defining how a miss is *surfaced as a fault* — the \"How you'd know\" text (\"a known in-run merge missing from `landings`\") is a manual observation, not a testable pass/fail. The ambiguous-branch case (branch name not matching `faff-<issue>-…`, branch deleted after merge, admitted issue with no branch) has no scenario.",
+    "evidence": "Failure mode \"attribution mis-maps a landing to the wrong run (branch naming ambiguous)\"; assumption \"an admitted issue's landing is attributable from its issue branch name / issue key\"; scenario 3 covers only the happy attribution path (distinct branches, clean mapping).",
+    "predicted_consequence": "A build whose attribution silently drops a landing (under-attribution) passes every scenario — scenario 1's landing is unambiguous — and the \"surfaced as a fault\" promise is unverifiable. Done cannot be decided for the attribution behaviour.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The failure mode names \"`base_sha` is recorded but stale (branch rebased), so `base..head` spans unrelated commits\" and the mitigation \"must capture the sha at mint and not be rewritten mid-run.\" Neither the rebase case nor the \"not rewritten mid-run\" property has a scenario or DONE item, so a build that rewrites `base_sha` mid-run (or that mis-handles a rebased branch) ships green.",
+    "evidence": "Failure mode \"`base_sha` is recorded but stale (branch rebased)\"; no scenario or DONE item references rebase or mid-run rewriting.",
+    "predicted_consequence": "The rebase case produces implausibly many landings and false escapes, or a silent rewrite produces a clean reading over a wrong window — either way undetected by the named tests.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "`LandedMerge.landed_at: Timestamp | null` is in the type, but the reconcile procedure (steps 1–8) never sets it, and no scenario or DONE item asserts a non-null value. A build that always emits `landed_at:null` is indistinguishable from a correct one.",
+    "evidence": "`RECORD LandedMerge: … landed_at: Timestamp | null`; procedure steps 1–8 never assign `landed_at`.",
+    "predicted_consequence": "The field ships dead or always-null; no named test fails either way.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE item 7 requires `detail` sanitised (no raw newlines/control chars, truncated), and the spec explicitly calls PR titles / commit subjects attacker-influenceable. But no scenario feeds a hostile title/subject (newline, control char, over-length) and asserts the sanitised output; the smoke test's landing has no hostile subject.",
+    "evidence": "DONE \"`detail` is sanitised (no raw newlines/control chars, truncated)\"; scenario list contains no hostile-input case.",
+    "predicted_consequence": "A build that passes the raw title through (or truncates without collapsing control chars) passes every named test, shipping attacker-controlled bytes into logs/Sentry.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE 14 (empty ledger, no landings → clean) and DONE 16 (mutates nothing, \"verified by comparing ledger hash / `git status` before and after\") are asserted in the edge-case section, but no scenario block covers the no-landing case, and the smoke test never performs the before/after mutation check it names.",
+    "evidence": "Edge case \"Empty ledger, no landings → … clean\"; DONE \"The reconcile mutates nothing (verified by comparing ledger hash / `git status` before and after)\"; smoke test steps 1–5 contain no no-landing run and no before/after comparison.",
+    "predicted_consequence": "A build that mutates the ledger (or that flags a phantom landing on an empty run) passes every named test; the named verification method is never executed.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The reconcile's primary input is \"the protected branch's HEAD,\" but the run-ledger records no branch today (only `base_sha` is added), and the assumption says resolution comes from \"config default branch or the run's recorded branch\" — neither is specified. The assumption adds \"a missing branch is a reconcile fault, not a clean,\" but no DONE item or scenario covers the unresolvable-branch case.",
+    "evidence": "Assumption \"the protected/target branch is resolvable (config default branch or the run's recorded branch). Validate: resolve before build; a missing branch is a reconcile fault, not a clean\"; procedure step 1 reads \"protected-branch HEAD\" with no resolution rule.",
+    "predicted_consequence": "A build that resolves the wrong branch (or crashes on an unresolvable one) passes every scenario, since all scenarios assume a resolvable branch; the fault path for a missing branch is untested.",
+    "spec_anchor": "7-open-questions-and-assumptions",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

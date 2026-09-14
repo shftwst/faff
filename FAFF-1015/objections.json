@@ -1,0 +1,74 @@
+[
+  {
+    "claim": "The spec describes the anchor as a byte-copy of \"a run's evidence (`events.jsonl`, `run-ledger.json`, chain-head witness, and any merge-floor / public-key files present)\" and the DoD's anchor file list ends in an unexpanded `…`. The mint demonstrably *reads* key material — the `pk-secret-material` fixture proves `mintIssueAnchor` opens `commissaire/producer/pk.json` and inspects its fields. The spec never enumerates the complete copied set nor asserts that no private-key file (e.g. a producer `sk.json`, or a `pk.json` whose `pk` field itself carries a private key — the guard only rejects *extra fields*, not secret content smuggled into the allowed `pk` field) is copied into the anchor and onward into a consumer-sealed bundle. \"public-key files present\" is a category, not a closed list.",
+    "evidence": "§1 \"The load-bearing model\" (\"any merge-floor / public-key files present\"); §2 `From WHAT` anchor file list ending in `…`; §2 `From HOW (edge cases)` `pk-secret-material` fixture (guard is shape-based: \"carrying a field beyond `{ pk, pk_fingerprint }`\").",
+    "predicted_consequence": "a run dir whose producer key material is stored alongside the public key yields an anchor — and then a sealed, shared audit bundle — that carries the producer's private key. The spec as written does not rule this out; it must, in the file list, before build.",
+    "spec_anchor": "`1-why-problem-and-principles`",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The whole point of this action is to mint *without* the `governance-check` self-verify that `faff events anchor` runs, and the DoD makes that born-verifiable (a shipped issue with no floor files exits 0). But the output object (`minted`, `issue`, `dest`, `head`, `copied_floor_files`, `effects_anchored`) has no field recording that no verification was performed. A consumer who seals this anchor and presents the bundle cannot be distinguished — by any downstream verifier — from a bundle whose anchor went through `faff events anchor`'s governance check. The absence of floor files is visible in the anchor, but the *absence of the verification act itself* is not; a consumer who assumes the mint verified compliance (a reasonable reading of the `audit` verb family) will present an unverified bundle as checked.",
+    "evidence": "§1 \"No self-verify, no merge-floor gate\" (deliberate skip); §2 `AuditAnchorOutput` field list (no verification marker); §7 DoD \"A shipped issue with no merge-floor files still mints (exit 0)\".",
+    "predicted_consequence": "an unverified anchor is sealed and presented as governance-checked; the verifier has no output field to detect that the verification step never ran. Fixable in place by adding an explicit `self_verified:false` (or equivalent) field to the output.",
+    "spec_anchor": "`2-what`",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE list requires two distinct `--run-dir` validation behaviours — missing/non-directory → exit 3 via `requireRunDir`, and unsafe basename (`.`/`..`/empty/separator) with no `--dest` → exit 2 with a \"pass `--dest`\" diagnostic — but neither has a scenario, so a build can satisfy every scenario while mishandling both.",
+    "evidence": "DONE items \"Missing/non-directory `--run-dir` → exit 3 via `requireRunDir`\" and \"With no `--dest` and an unsafe `--run-dir` basename (`.`/`..`/empty/separator) → exit 2 with a 'pass `--dest`' diagnostic; nothing written.\" The eight scenarios cover: no-floor-files mint, `--root` default dest, holdout shipped-no-floor, no-root exit 2, findRoot leg, `--issue \"../escape\"`, no-events, pk-secret-material. None invokes a missing/non-directory `--run-dir` or a run-dir whose basename is `.`/`..`/empty/separator.",
+    "predicted_consequence": "A build that returns exit 0 (or crashes) on a missing `--run-dir`, or that resolves an unsafe basename into a path escaping `.faff/anchors/`, passes all eight scenarios and the selftest round-trip, so \"done\" cannot be decided for these two DONE items.",
+    "spec_anchor": "7-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item bundles three failure codes (`dest-mkdir` / `pk-unreadable` / `pk-secret-material` → exit 2 with the core's message surfaced), but only `pk-secret-material` has a scenario. The exit-code mapping and message-surfacing for the other two are unverified.",
+    "evidence": "DONE item \"`dest-mkdir` / `pk-unreadable` / `pk-secret-material` → exit 2 with the core's message surfaced; the `pk-secret-material` fixture is a `commissaire/producer/pk.json` carrying a field beyond `{ pk, pk_fingerprint }`.\" The only scenario in this family is the pk-secret-material one; §4 names `dest-mkdir` and `pk-unreadable` as edge cases with exit 2, but no scenario exercises an un-creatable dest path or an unreadable pk.json.",
+    "predicted_consequence": "A build that maps `dest-mkdir` or `pk-unreadable` to exit 3 (or swallows the core's message) passes every scenario and the selftest, so the DONE item's exit-code contract for two of its three named codes is undecidable.",
+    "spec_anchor": "7-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"An explicit `--dest` is used verbatim (bypasses both guards)\" is never tested in a configuration where the guards would otherwise fire — the only explicit-`--dest` scenario uses a safe basename and a resolvable context, so the bypass is not exercised.",
+    "evidence": "DONE item \"An explicit `--dest` is used verbatim (bypasses both guards).\" Scenario 1 uses `--dest OUT` with a run dir whose basename is safe and no guard-triggering condition; no scenario combines an explicit `--dest` with an unsafe basename or an unresolvable root.",
+    "predicted_consequence": "A build that applies the guards even when `--dest` is explicit (e.g. refusing an explicit `--dest` because `findRoot()` fails) passes all scenarios, so the bypass behaviour is unverified.",
+    "spec_anchor": "7-done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item requires stdout to carry all six fields (`minted`, `issue`, `dest`, `head`, `copied_floor_files`, `effects_anchored`), but the success scenario asserts only `minted:true` and `head.schema_floor` present, leaving the other four fields unverified.",
+    "evidence": "DONE item \"On success, one line of JSON matching `AuditAnchorOutput` (`minted`, `issue`, `dest`, `head`, `copied_floor_files`, `effects_anchored`) is printed to stdout; `head` carries `head_seq`, `head_sha256`, `line_count`, `schema_floor`.\" Scenario 1 asserts \"stdout parses as AuditAnchorOutput with minted:true and head.schema_floor present\" — nothing about `issue`, `dest`, `copied_floor_files`, `effects_anchored`, or the other three `head` fields.",
+    "predicted_consequence": "A build emitting `{minted:true, head:{schema_floor:…}}` and omitting `copied_floor_files`/`effects_anchored` passes the scenario while failing the DONE item; the DONE item is decidable only by a test the spec never specifies.",
+    "spec_anchor": "7-done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item requires `--issue` to be a required flag, and §4 names \"Missing or malformed `--issue` → 2\", but only the malformed case (`../escape`) has a scenario; the absent-flag case is untested.",
+    "evidence": "DONE item \"`commissaire audit anchor --run-dir DIR --issue ISSUE [--dest DIR] [--root R]` is accepted; `--run-dir` and `--issue` are required.\" Scenario 6 covers `--issue \"../escape\"`; no scenario omits `--issue` entirely.",
+    "predicted_consequence": "A build that treats a missing `--issue` as an error with a different exit code (or proceeds with an undefined issue) passes all scenarios, so the required-flag contract is undecidable.",
+    "spec_anchor": "7-done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "architectural",
+    "severity": "blocker",
+    "contested_source": false
+  }
+]

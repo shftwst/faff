@@ -1,0 +1,237 @@
+# Promote faff's own runner onto the Commissaire facade
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: medium · build-tier: complex · spec-review: approve. Full spec on Linear FAFF-1034.
+
+This is the buildable spec for FAFF-1034. Audience: the build agent that wires faff's orchestrator (`faff-beep-boop`) and implementor (`faff-graft`) into the already-shipped Commissaire producer facade, plus the human reviewers who must ratify the one security-posture decision this spec deliberately leaves open. It scopes a first, end-to-end increment — governing the **merge** effect — and names, rather than assumes away, the key-custody question that decides what security claim faff may honestly make.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** Commissaire is a producer/governor split: a *governor* holds the Ed25519 secret key `SK` and a `master_secret`, and signs `schema:3` decision records; a *producer* holds only a derived `K_producer` (HMAC key) and drives the effect protocol (`admit` → `declare` → `request-decision` → `observe` → `reconcile`). A verifying *chokepoint* refuses a protected effect unless a signed, covering decision exists and verifies against a pinned public key. faff ships all three parts and drives none of the producer half on its own runs, so the apparatus is inert.
+
+**Problem statement.** faff's merge chokepoint (`resolveCommissaireDecisionGrant`, `plugin/skills/faff/bin/lib/merge-gate.js:809`) is built and correct but has never fired, because faff's runner never emits a `schema:3` `effect-decision-verdict` for a merge step — every faff merge is the `not-applicable` no-op path. This spec makes faff's runner a first-class Commissaire producer so the chokepoint governs faff's own merges, at every level that causes the effect, not only L4.
+
+**Design principles.**
+
+- **Honesty of posture governs the whole design.** The security claim faff makes in code and docs must be exactly the claim the chosen key custody earns — no more. An in-process governor yields authenticated, author-bound, verifiable, hash-chained records; it does **not** yield prevention against a runner that can write the governor's key material. This spec must never let an authenticated-records posture be described as prevention (the exact confusion FAFF-1027 documents).
+- **Level scales policy, not record production.** Whether a governed record is produced is level-independent (produce at L1–L4 wherever faff causes a protected effect). Only the *decision policy* `request-decision` applies may differ by level. Skipping the record at lower levels is forbidden.
+- **Layer on the existing surface, do not fork it.** The facade CLI, key derivation, chokepoint, and the schema:2 effects ledger all exist. Add the schema:3 producer drive alongside the current schema:2 `declare`/`observe` call sites; do not duplicate the ledger, the lock, or the effect vocabulary.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/commissaire.js` | JS (CLI) | The producer/governor facade: `admit`, `declare`, `request-decision` (`effect authorize`), `observe`, `reconcile`, `verdict conclude`, `audit seal/verify`. Consumed as-is. |
+| `plugin/skills/faff/bin/lib/merge-gate.js:809` | JS | `resolveCommissaireDecisionGrant` — the verifying chokepoint. Already returns `valid-grant`/`absent-or-invalid`/`not-applicable`; `decideFloor` consumes it fail-closed. |
+| `plugin/skills/faff/bin/lib/effects.js` | JS | The schema:2 detection layer (`computeEscapes`) and the shared `declared-effects.jsonl` ledger the schema:3 records chain into. |
+| `plugin/skills/faff-graft/SKILL.md` (Step 10) | Prose skill | The implementor: already runs `faff effects declare` for the merge before the `ship` handoff via `faff merge-gate`. The schema:3 producer drive attaches here. |
+| `plugin/skills/faff-beep-boop/SKILL.md` | Prose skill | The orchestrator: mints the run substrate and runs run-start/run-close. `admit` and `reconcile` attach here. |
+
+**Scope statement.** This is the follow-through on FAFF-828 (which built the facade and named faff's runner as the ungoverned first producer): it moves faff's runner from an ungoverned E-C posture toward a governed one, one effect at a time, starting with merge.
+
+## Already shipped against this surface
+
+Related, but not superseding — these Done tickets built the surface this ticket consumes; the premise (faff's runner never drives the producer half, so the chokepoint is inert on faff's own runs) still holds:
+
+| Ticket | What it delivered | Why it does not supersede |
+|---|---|---|
+| FAFF-828 (Done) | Built the external Commissaire producer facade; named faff's runner as the ungoverned first producer | This is the named follow-through — it governs faff's own runner, which FAFF-828 explicitly excluded |
+| FAFF-999 / FAFF-1000 (Done) | Standalone `commissaire` CLI on PATH + facade depth (verdict conclude, audit seal/export) | Provides the surface; does not wire faff's runner into it |
+| FAFF-976 / FAFF-977 / FAFF-978 / FAFF-979 (Done) | Merge-chokepoint verification (committed-anchor/CI path), secret-free replay, admit/auth hardening, TOCTOU-pinned decision eval | Hardened the chokepoint that remains inert on faff runs until this ticket drives the producer |
+| FAFF-1036 (Done) | Front-door docs now name the signed facade | Docs describe the facade; this ticket must keep the posture claim honest for faff's own runs (custody Punt) |
+
+## 2. OUT OF SCOPE
+
+- **Governing effects other than `merge`** — Why excluded: `merge` is the effect with a chokepoint already built and is the highest-value target; enumerating and wiring push, PR-create, label/status writes, branch deletion, worktree removal, and tracker mutations is a separate slice with its own chokepoints. Extension point: each further effect adds a `declare`/`request-decision`/`observe` triple at its own call site in `faff-graft`/`faff-beep-boop` and (where prevention is wanted) a sibling of `resolveCommissaireDecisionGrant`. Tracked by the further-effects Punt below.
+- **A separate-process or separate-host governor (the full E-B prevention story)** — Why excluded: it is the largest piece of work and depends on the custody decision below; the merge-governance plumbing in this spec is identical whether the governor is in-process or out-of-process, so it need not block this increment. Extension point: the `--governor-dir` / custody-mint locus named in the custody Punt.
+- **FAFF-1027's `gate_trace` riding on a signed producer record** — Why excluded: FAFF-1027 owns that record; this ticket only makes the signed trail exist. Extension point: once this lands, `gate_trace` can chain onto the `schema:3` producer record instead of a plain run-dir file.
+- **Retrofitting past runs** — Why excluded: governance begins at the first governed run; historical `schema:2` runs are not rewritten.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Governor | The custodian of `SK` + `master_secret`; signs `schema:3` decision verdicts (`author: "commissaire"`). |
+| Producer | The party that drives `admit`/`declare`/`request-decision`/`observe`/`reconcile`; holds only `K_producer`. Here, faff's runner. |
+| Protected effect | An effect a chokepoint may refuse (this increment: `merge`). |
+| Decision verdict | A `schema:3` `effect-decision-verdict` record the chokepoint verifies. |
+| Grant | A decision verdict that permits a specific effect for a specific `(issue, step)`. |
+| E-C posture | After-the-fact detection (`computeEscapes` over declared-vs-observed); today's faff posture. |
+| E-B posture | Mediated prevention — the chokepoint refuses before the effect. |
+
+**Producer identity and admission.** faff's runner admits itself once per run as a named producer.
+
+```
+RECORD RunAdmission:
+  producer_id: string          # stable id for faff's runner, e.g. "faff-runner"
+  contract_revision: string    # the producer-contract revision admitted under
+  admitted_scope: Set<string>  # effect kinds the producer may drive; this increment includes "merge"
+  governor_dir: path           # custodian of SK + master (see custody Punt for WHERE)
+  producer_dir: path           # holds only K_producer + pinned PK; MUST differ from governor_dir
+  level: "L1"|"L2"|"L3"|"L4"   # a policy input to request-decision, NOT a gate on record production
+```
+
+**Decision policy input.** `request-decision` is called before each protected effect with the run level as a policy input. The policy that maps level → grant/deny is a decision the governor applies; the *record is always produced*.
+
+```
+RECORD DecisionRequest:
+  issue: string
+  step: "merge"                # this increment
+  effect: EffectDescriptor     # { kind: "merge", target: "pr:<n>" | <base-branch>, reversible: true }
+  evidence_seq?: integer       # the observe/declare seq the request cites, when applicable
+  level: "L1".."L4"            # policy input
+```
+
+**Design decisions** (each concludes with a canonical marker; collected in §6):
+
+- Wire merge governance end-to-end this increment. **Chosen** (§6).
+- Level scales policy, not record production. **Chosen** (§6).
+- Layer schema:3 producer drive onto the existing schema:2 `declare` call site. **Chosen** (§6).
+- Where `SK` lives when faff is its own producer, and therefore what posture ships. **Punt** (§7).
+- Which further protected effects to govern beyond merge. **Punt** (§7).
+- The facade + chokepoint exist and are correct. **Assumes** (§7).
+
+## 4. HOW — Behavior
+
+**Architecture and approach.** Three attach points, each level-independent:
+
+1. **Run start (`faff-beep-boop`, and the graft interactive-run mint for a top-level `/faff-graft`).** After the run substrate (`events.jsonl` / `run-ledger.json`) is minted, admit faff's runner: `faff commissaire admit --run-dir <run> --producer <producer_id> --contract-revision <rev> --scope merge --governor-dir <G> --producer-dir <P>`. The governor mints the keypair + master, writes them to `<G>`, derives and delivers `K_producer` to `<P>`, publishes the pinned PK, and appends a signed admission record. `<G>` and `<P>` MUST differ (the CLI already refuses otherwise). *Where `<G>` lives is the custody Punt.*
+
+2. **Per protected effect (`faff-graft` Step 10, the merge locus).** The existing code already `declare`s the merge effect at schema:2 before the `ship` handoff. Add the schema:3 producer drive at the same site, in order:
+   - `declare` the effect (retain the existing schema:2 declare; the schema:3 records chain into the same `declared-effects.jsonl`).
+   - `request-decision` (`faff commissaire effect authorize …`) with the level as policy input; the governor signs an `effect-decision-verdict`.
+   - Hand off to `ship`/`faff merge-gate`. The chokepoint (`resolveCommissaireDecisionGrant`) now finds a covering signed verdict for `(issue, "merge")` and returns `valid-grant`.
+   - After the merge, `observe` the actual effect.
+
+3. **Run close (`faff-beep-boop`).** `faff commissaire effect reconcile --run-dir <run> --issue …` over observed-minus-declared (`computeEscapes`), and surface any escape in the run summary, at every level.
+
+**Behavior summary.** The producer drive turns the chokepoint from a permanent `not-applicable` no-op into a live `valid-grant`/`absent-or-invalid` gate on faff's own merges, and leaves a signed, hash-chained, `audit verify`-checkable trail of admits, declares, decisions, observations, and reconciliations.
+
+```
+PROCEDURE govern_merge(run, issue, pr, base, level):
+  1. Precondition: producer admitted this run with "merge" in scope (from run-start admit).
+  2. declare  [{kind:"merge", target:"pr:"+pr, reversible:true}] for (issue, "merge")   # schema:2 retained + schema:3 chain
+  3. request-decision {effect:{kind:"merge",target:"pr:"+pr}, level} for (issue, "merge")
+     -> governor applies level policy, signs an effect-decision-verdict (grant | deny)
+  4. IF deny: do not merge; route per faff-graft's existing merge-refused handling (fail-closed).
+  5. hand off to ship -> faff merge-gate --execute
+     -> resolveCommissaireDecisionGrant finds the signed verdict, verifies vs pinned PK
+        -> "valid-grant"  => decideFloor proceeds
+        -> "absent-or-invalid" (missing/forged/deny/non-covering/unreadable PK) => refuse BEFORE merge
+  6. observe the actual merge effect for (issue, "merge").
+```
+
+**Level policy (the one place level matters).**
+
+```
+PROCEDURE level_policy(level, effect, floor_state):
+  L1/L2 (interactive/human-present): grant on human presence + the existing floor.
+  L3    : grant on the existing autonomous floor (AC + CI + review pass).
+  L4    : grant only on the full lights-out floor (adds holdout meets-spec), unchanged.
+  # In ALL cases a signed record is produced; only the grant/deny predicate differs.
+```
+
+**Edge cases and error handling.**
+
+- **Admit not run / producer not admitted** — `request-decision`/`declare` fail-closed at the CLI; the merge chokepoint sees no covering grant → `absent-or-invalid` → refused. Fallback precedence: a run that never admitted must never reach a governed merge that silently passes.
+- **Governor key material unreadable at chokepoint** — `resolveCommissaireDecisionGrant` already returns `absent-or-invalid` (fail-closed) on an unreadable pinned PK. Unchanged.
+- **A pre-existing ungoverned merge on a repo/run before this ships** — `not-applicable` remains a byte-for-byte no-op; only runs that admit + drive the producer are governed. No regression on legacy runs.
+- **`declare`/`observe` best-effort vs `request-decision` gating** — the schema:2 `declare` is observability (a failed declare is logged, never blocks). `request-decision` is different: it produces the grant the chokepoint requires, so a failed `request-decision` yields no grant → the merge is refused, not silently allowed.
+
+**Failure modes.**
+
+- **The failure:** an in-process governor is described as prevention. The runner holds (or can read) `SK`, so it could grant itself any decision — the signature proves integrity and authorship, not independence. **How you'd know:** the custody choice below resolves to an in-process governor, yet the README/docs or code comments claim prevention against the orchestrator. **What it means:** abandon that claim — ship the honest authenticated-records posture and keep prevention behind the custody Punt.
+- **The failure:** the chokepoint reports `valid-grant` but governance is vacuous because `request-decision` grants unconditionally at every level. **How you'd know:** a deny path that never fires; a merge that lands with a red floor still returning `valid-grant`. **What it means:** the level policy predicate must consume the real floor state, not a constant.
+- **The failure:** schema:3 records collide with or corrupt the schema:2 ledger. **How you'd know:** `computeEscapes`/`faff effects check` breaks on a governed run. **What it means:** the schema:3 records must chain into `declared-effects.jsonl` under the same lock (the facade already does this) — verify, do not fork.
+
+**Anti-pattern:** minting `<governor-dir>` and `<producer-dir>` both inside the run directory the runner freely writes and describing the result as prevention. Why: co-located, runner-writable key material is authenticated-records-only, never prevention — it must be labelled as such (custody Punt).
+
+**Anti-pattern:** gating record *production* on level (e.g. "only L4 produces a governed record"). Why: a protected effect is irreversible at every level; the record must exist wherever the effect occurs. Level scales only the grant/deny policy.
+
+## 5. Scenarios
+
+```
+Given a faff run that has admitted "faff-runner" with "merge" in scope
+When faff-graft drives declare -> request-decision -> ship for an issue's merge
+Then resolveCommissaireDecisionGrant returns "valid-grant" for that (issue, "merge")
+  and the merge proceeds through faff merge-gate
+```
+
+```
+Given a faff run that did NOT admit the producer (or request-decision failed)
+When faff-graft attempts the merge for an issue
+Then resolveCommissaireDecisionGrant returns "absent-or-invalid"
+  and decideFloor refuses the merge before it happens
+```
+
+```holdout
+Given a governed faff run at run close
+When faff commissaire effect reconcile runs over the run's declared-vs-observed effects
+Then any observed merge with no covering signed decision is surfaced as an escape in the run summary
+```
+
+- The signed trail for a governed merge MUST pass `faff commissaire audit verify` (secret-free replay of the auth leg) against the repo-pinned PK fingerprint.
+
+## 6. Design Decision Rationale
+
+**What is the first governed effect, and how far end-to-end?** Options: (a) merge only, full loop; (b) all candidate effects at once. (a) is far smaller, and merge is the only effect whose chokepoint already exists. **Chosen:** merge, end-to-end (admit → declare → request-decision → observe → reconcile), making `resolveCommissaireDecisionGrant` return `valid-grant` on a governed faff merge — rationale: highest value, smallest surface, reuses the built chokepoint.
+
+**Does level decide whether a governed record is produced?** Options: produce only at L4; produce at all levels. A protected effect is irreversible at every level. **Chosen:** produce the governed record at L1–L4 wherever faff causes the merge; the run level is a *policy input* to `request-decision` (grant predicate), never a switch on record production — rationale: effect governance is not a function of supervision, per the ticket.
+
+**Reuse the existing schema:2 declare site or add a parallel path?** **Chosen:** layer the schema:3 producer drive onto the existing `faff effects declare` call site in graft Step 10, chaining into the same `declared-effects.jsonl` under the same lock — rationale: the facade already chains schema:3 into that ledger; forking would break `computeEscapes`.
+
+**Where does `SK` live when the producer is faff itself?** See §7 Open Questions — **Punt (decides: security)**.
+
+**Which further effects beyond merge?** See §7 Open Questions — **Punt (decides: architecture)**.
+
+## 7. Open Questions and Assumptions
+
+**Open Questions.**
+
+- **Punt:** Key custody — where the governor's `SK` + `master_secret` live when faff is its own producer, and therefore the security posture faff may claim — needs human (decides: security). Three options the ticket names, none conflatable: (1) governor in a separate process/host, runner holds only `K_producer` — real E-B prevention, the most work; (2) governor key held outside the run directory with the PK fingerprint pinned in the committed repo — a forged grant is *detectable* after the fact by anyone running `audit verify`, but not prevented; (3) in-process governor — authenticated, author-bound, verifiable records, explicitly **not** prevention against the runner. The merge-governance plumbing in §4 is identical for all three; this decision selects the `--governor-dir` custody locus, who invokes `admit`, and — critically — the exact claim the README/docs and code comments may make. The build must not ship option 3 while describing it as option 1. A human security owner picks the posture (and, for option 1, its separate-custodian mechanism) before this can claim prevention.
+- **Punt:** Further protected effects to enumerate and govern beyond merge — candidates: push, PR create, label and status writes, branch deletion, worktree removal, tracker mutations — needs human (decides: architecture). Which of these warrant a chokepoint (prevention) vs declare/observe (detection), and in what order, is a design enumeration best done as its own slice once merge governance is proven.
+
+**Assumptions.**
+
+- **Assumes:** the Commissaire facade (`admit`/`declare`/`request-decision`/`observe`/`reconcile`/`chokepointPermit`) and the merge chokepoint (`resolveCommissaireDecisionGrant`, merge-gate.js:809) exist and are correct (FAFF-828, FAFF-999, FAFF-1000). Validation: `grep resolveCommissaireDecisionGrant plugin/skills/faff/bin/lib/merge-gate.js` and `faff commissaire audit verify --help` before starting; both are present in the current tree.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] `resolveCommissaireDecisionGrant` returns `valid-grant` (not `not-applicable`) on a governed faff merge — the chokepoint stops being inert.
+- [ ] The README/docs and any new code comments claim exactly the posture the resolved custody choice earns — no prevention claim under an in-process/co-located governor.
+
+### From WHAT (types and interfaces)
+- [ ] faff's runner is `admit`ted once per run as a named producer with `merge` in scope, holding only `K_producer`; `governor_dir` ≠ `producer_dir`.
+- [ ] `request-decision` is called before each governed merge with the run level as a policy input.
+
+### From HOW (behaviour)
+- [ ] `admit` runs at run start at L1–L4 wherever faff will cause a merge (orchestrator mint for beep-boop; interactive-run mint for top-level graft).
+- [ ] `declare` → `request-decision` → `ship` → `observe` wrap the merge in graft Step 10; the schema:3 records chain into `declared-effects.jsonl` (no fork, `computeEscapes` still works).
+- [ ] `reconcile` runs at run close and surfaces observed-minus-declared escapes in the run summary, at every level.
+- [ ] The level policy predicate consumes real floor state (grant/deny actually differs by floor), never a constant grant.
+
+### From HOW (edge cases)
+- [ ] A run that never admitted (or a failed `request-decision`) yields no covering grant → the merge is refused (`absent-or-invalid`), never silently allowed.
+- [ ] A legacy/ungoverned run remains a byte-for-byte `not-applicable` no-op (no regression).
+
+### From Scenarios
+- [ ] The two visible scenarios pass; the governed run's signed trail passes `faff commissaire audit verify`.
+
+### Human-gated (do not auto-close)
+- [ ] Key-custody posture chosen and recorded (the security Punt), with docs matching the claim it earns.
+- [ ] Further-effects enumeration scoped as a follow-up (the architecture Punt).
+
+**Integration smoke test:**
+
+```
+PROCEDURE smoke():
+  1. In a scratch run dir, faff commissaire admit --producer faff-runner --scope merge --governor-dir G --producer-dir P
+  2. declare + request-decision a {kind:"merge", target:"pr:1"} for (ISSUE, "merge") at level L3
+  3. Assert resolveCommissaireDecisionGrant(runDir, ISSUE, base) == "valid-grant"
+  4. faff commissaire audit verify --run-dir <run>  => exit 0
+```
+
+confidence: medium
+spec-review: approve

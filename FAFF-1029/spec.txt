@@ -1,0 +1,216 @@
+# Fold same-turn Stop firings to one observation in the bare-Claude Commissaire harness
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1029.
+
+This spec is the buildable design for FAFF-1029. Audience: the build agent implementing the fix, and the human reviewer of the resulting PR. It changes one hand-written Stop-hook wrapper in the external-verification harness so a real Claude Code session can produce the honest `[block, allow]` capture the verifier requires — today it cannot, because one real turn fires the Stop hook roughly ten times.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** Claude Code runs a *stop-hook continuation loop*: when a `Stop` hook returns `decision: block`, Claude Code re-prompts the model to keep working, lets it end the turn, fires `Stop` again, sees `block` again, and loops — up to an internal cap, then forces `end_turn`. The bare-Claude harness's wrapper (`commissaire-stop-hook.mjs`) appends one observation *per firing* and forwards the block on *every* firing, so one incomplete turn writes ~10 `block` observations instead of one. The fold this spec adds makes the wrapper record at most one observation per (run, result), so a real two-turn session yields exactly `[block, allow]`.
+
+**Problem statement.** The verifier hard-requires exactly two ordered observations `[block, allow]` for a run (`verify-commissaire.mjs` line 706, and `complete()` line 360 requires exactly one prior `block`). A real turn fires `Stop` ~10 times — all `block`, one session hash — so neither the scripted nor the interactive capture branch can produce a passing run. Hand-trimming `hook-observations.jsonl` to two lines is the forgery the FAFF-1018 runbook (§3) explicitly forbids, so the fix must live in the harness, not the operator's hands.
+
+**Design principles.**
+
+- **The store is the honest machine record — never hand-edited.** The fold must be a property of the wrapper so the recorded observations are what actually happened (deduplicated), not an operator's post-hoc trim. This is the whole reason the issue exists.
+- **The block-then-allow *decision surface* stays truthful.** Turn 1 must still surface a real `block` to Claude Code (the completeness gate genuinely fired on the incomplete run); turn 2 must still be a silent allow on the complete run. The fold changes *how many times a duplicate is recorded and re-forwarded*, never the first, real decision of each turn.
+- **CI must stay deterministic without a real `claude`.** The existing `ci` fixture path drives the wrapper directly and must stay green, and the fold itself must be provable by a deterministic test that simulates the continuation loop — the real-session AC is operator-attested and cannot run in CI.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `verification/external-verification/commissaire-bare-claude/commissaire-stop-hook.mjs` | Node ESM | The wrapper this change edits — the only file that must change for the fix |
+| `verification/external-verification/commissaire-bare-claude/verify-commissaire.mjs` | Node ESM | Reads the store; its `complete()` (line 360) and `verify()` (line 706) gates already require exactly one then exactly two observations — unchanged by this fix |
+| `verification/external-verification/scaffold-commissaire-bare-claude.sh` | bash | Re-substitutes the wrapper from source into the scaffolded SUT (line 48); picks up the edit with no scaffolder change |
+| `test/impure/commissaire-bare-claude.test.mjs` | Node test | The CI-provable harness; the new fold regression test is added here |
+| FAFF-1018 (Done) | — | Shipped the `--attested-by` seam + `CAPTURE-RUNBOOK.md`; the live capture was deferred to FAFF-1030 |
+| FAFF-1030 (Backlog, blocked by this) | — | The live operator-attested capture this fix unblocks |
+
+**Scope statement.** This is a localized correctness fix to the FAFF-360 bare-Claude second-consumer verification harness; it unblocks FAFF-1030 and touches nothing in the shipped `faff`/`commissaire` binaries.
+
+## 2. OUT OF SCOPE
+
+- **Changing the verifier's two-observation contract.** — The `[block, allow]` requirement at `verify()` line 706 and the one-prior-block requirement at `complete()` line 360 are the honest gate and stay as-is. Extension point: `verify-commissaire.mjs` if the contract ever needs to widen.
+- **Producing the real operator-attested capture.** — Running the two real turns and signing them is FAFF-1030's job (and the `CAPTURE-RUNBOOK.md` procedure). This spec only makes that capture *producible*. Extension point: `CAPTURE-RUNBOOK.md` + FAFF-1030.
+- **The shipped faff/commissaire runcheck Stop hooks.** — The session-agnostic fixes for faff's own `runcheck`/`prepcheck` hooks (FAFF-205/235/250, all Done) are a different surface — this wrapper is hand-written and independent. Extension point: `bin/lib/*` in the shipped CLI, not this harness.
+- **Eliminating Claude Code's continuation loop itself.** — That is Claude Code behaviour, not ours; we adapt to it. Extension point: none in this repo.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| firing | One invocation of `commissaire-stop-hook.mjs` for one `Stop` event |
+| turn | One logical Claude Code turn; the continuation loop makes one incomplete turn produce many firings |
+| fold | Recording at most one observation per (run_id, result), collapsing a turn's duplicate firings to one |
+| observation | One appended line in `.faff/hook-observations.jsonl` — `{ schema, ordinal, hook_event_name, input_shape_validated, source, provenance?, run_id, result }` |
+
+**The observation record (unchanged shape).**
+
+```
+RECORD HookObservation:
+  schema: 2
+  ordinal: int              # 1-based per run_id; first recorded = 1, second = 2
+  hook_event_name: "Stop"
+  input_shape_validated: true
+  source: "ci-fixture" | "claude-code-observed"   # derived from stdin shape, never caller-supplied
+  provenance?: { session_id_sha256, transcript_existed, cwd_matched }  # only when observed
+  run_id: string
+  result: "block" | "allow"
+```
+
+**Design decision — the fold key.** The fold must collapse a turn's duplicate firings without breaking the existing single-firing tests.
+
+- Option A — key on `stop_hook_active`: skip recording when `stop_hook_active === true`. Rejected: the existing test *"Label missing transcript"* (`test/impure/commissaire-bare-claude.test.mjs` line 365) drives a *single* firing with `stop_hook_active: true` and asserts an observation was appended; keying on it would drop that observation and break the test. It is also less robust — it trusts Claude Code to set the flag exactly.
+- Option B — key on (run_id, result): before appending, if an observation with the same `result` already exists for this `run_id`, do not append. Within this harness the pointer state machine (`prepared` → `completed`, one-way) guarantees every pre-`complete()` firing is `block` and every post-`complete()` firing is `allow`, so (run_id, result) is exactly (session, turn) here.
+
+**Chosen:** key the fold on (run_id, result) — dedup the append so at most one `block` and one `allow` are ever recorded per run. It is robust to firing-count variance and leaves every existing single-firing test green.
+
+**Design decision — the continuation loop.** A duplicate `block` firing can either still forward the block (loop runs to Claude Code's cap, ~10 firings, ~10 `runcheck` spawns, harmless but wasteful) or be answered with a silent allow (the loop breaks after the first block).
+
+**Chosen:** on a *would-be-duplicate* `block` firing (a `block` observation already exists for this `run_id`), emit a **silent allow** instead of re-forwarding the block. This breaks the continuation loop right after the first real block, directly addressing the WHY, and is honest: turn 1 already surfaced one real `block` (the completeness gate fired), and the run is still incomplete for `complete()` to finish. The first, real firing of each turn is untouched — it records and forwards exactly as today.
+
+## 4. HOW — Behavior
+
+**Architecture and approach.** The change is confined to step 8 (append) and step 9 (forward) of `main()` in `commissaire-stop-hook.mjs`. Steps 1–7 (parse, Stop-event check, pointer containment, `FAFF_BIN` resolution, `runcheck --hook` invocation, source/provenance derivation) are unchanged. The wrapper already reads the store once to compute the per-`run_id` ordinal; that same read is extended to detect a same-result prior observation.
+
+```
+PROCEDURE main(stdin):   # steps 1-7 unchanged; shown from the runcheck result onward
+  ...
+  rcBlock := (rcDecision AND rcDecision.decision == "block")   # step 6 result
+  ...derive source, provenance...                              # step 7 unchanged
+
+  # step 8 (fold): single pass over the store for this run_id.
+  existing := 0
+  resultAlreadyRecorded := false
+  FOR each parseable line in HOOK_STORE:
+    IF line.run_id == runId:
+      existing := existing + 1
+      thisResult := (rcBlock ? "block" : "allow")
+      IF line.result == thisResult: resultAlreadyRecorded := true
+
+  IF resultAlreadyRecorded:
+    # a duplicate firing of the same turn (same run, same result) -> FOLD.
+    # break the continuation loop on a duplicate block; stay silent on a duplicate allow.
+    process.exit(0)          # no append, no block re-forwarded
+
+  # first firing of this (run, result): record it exactly as today.
+  observation := { schema:2, ordinal: existing+1, hook_event_name:"Stop",
+                   input_shape_validated:true, source, ...(provenance?{provenance}:{}),
+                   run_id: runId, result: (rcBlock ? "block" : "allow") }
+  try { mkdir; appendFileSync(HOOK_STORE, JSON.stringify(observation)+"\n") } catch { /* keep going */ }
+
+  # step 9 unchanged: forward the block on the first real block firing; otherwise stay silent.
+  IF rcBlock: process.stdout.write(JSON.stringify(rcDecision)+"\n")
+  process.exit(0)
+```
+
+**Behavior summary.** The first `block` of an incomplete turn records one observation and forwards the block (Claude Code continues); every subsequent `block` firing for the same run is folded to a silent allow, so the loop ends and the store holds exactly one `block`. After `complete()`, the first `allow` firing records one `allow`; the run then holds exactly `[block, allow]`.
+
+**Edge cases and error handling.**
+
+- **`ci` fixture path.** `driveWrapper({ hook_event_name: "Stop" })` fires once per phase against distinct run states (`block` before `complete`, `allow` after), so `resultAlreadyRecorded` is never true and behaviour is byte-identical to today — `ci` stays green.
+- **Fold keeps the first firing's derived source/provenance.** In a real session the transcript exists from the first `Stop`, so the first firing derives `claude-code-observed` with the real session hash; folding later firings cannot downgrade it. The runbook §3 guard (inspect the store, discard-and-recapture if not clean) remains the operator's backstop.
+- **Early-exit paths unchanged.** Malformed stdin, non-Stop events, pointer-containment failures, unresolvable `FAFF_BIN`, and `runcheck` spawn/garble all still `blockAndExit` *before* step 8, so the fold never affects fail-closed behaviour.
+- **Write failure on append.** The existing guarded `try/catch` around the append is preserved; a folded firing simply exits 0 without writing.
+
+**Failure modes — how the approach could be wrong, and how you'd notice.**
+
+- **The failure:** a real turn fires `Stop` with a *different* `run_id` per firing (so the dedup key never matches) — the fold would not collapse anything. **How you'd know:** the fold regression test (below), which reuses one `run_id` across simulated firings, would still pass, but a real capture would show >2 lines; the runbook §3 guard catches it. **What it means:** the pointer (and thus `run_id`) is stable for a run by construction (`prepare()` mints it once), so this cannot happen in the harness — proceed.
+- **The failure:** breaking the loop on the first duplicate lets turn 1 end while incomplete, and Claude Code treats the session as finished so the scripted turn-2 `--resume` starts fresh. **How you'd know:** turn 2's `allow` observation would carry a *different* `session_id_sha256`, failing `verify()` line 715. **What it means:** `--resume <session_id>` reuses the session by contract; the interactive branch holds one session throughout — proceed, and the session-hash gate is the guard if it ever regresses.
+
+**Anti-pattern:** hand-editing `hook-observations.jsonl` to two lines. Why: it is the exact forgery the bounded claim admits a hostile operator could commit; the fold exists so the honest record is already two lines.
+
+**Anti-pattern:** keying the fold on `stop_hook_active`. Why: it breaks the existing single-firing *"Label missing transcript"* test and trusts a flag the harness need not depend on.
+
+## 5. SCENARIOS
+
+```
+Given a scaffolded bare-Claude SUT with a prepared (incomplete) run
+When the Stop wrapper fires repeatedly for that run_id while runcheck returns block (a simulated continuation loop)
+Then exactly one block observation is recorded for the run_id, the first firing forwards decision:block, and every later firing exits 0 with no stdout and no new line
+```
+
+```
+Given a prepared run whose first Stop firing recorded one block, then complete() has run
+When the Stop wrapper fires for that run_id and runcheck returns allow
+Then exactly one allow observation is appended and the store holds exactly [block, allow] for the run_id
+```
+
+```holdout
+Given a completed run whose store, produced only by real wrapper firings (no hand-edit), holds exactly [block, allow]
+When verify runs
+Then verify exits 0 and complete()'s one-prior-block gate and verify()'s exactly-two gate both pass
+```
+
+## 6. DESIGN DECISION RATIONALE
+
+**How should the fold be keyed?**
+- (run_id, result) — robust to firing count, maps to (session, turn) here, leaves single-firing tests green.
+- `stop_hook_active` — breaks the *"Label missing transcript"* test; trusts a Claude Code flag.
+- **Chosen:** (run_id, result) — the pointer state machine makes it exact and it needs no new stdin field.
+
+**Should a duplicate block still forward the block?**
+- Yes (record-only fold) — decision surface unchanged, but the loop runs to Claude Code's cap (~10 `runcheck` spawns) and relies on that cap to end turn 1.
+- No, silent-allow the duplicate — breaks the loop after the first real block.
+- **Chosen:** silent-allow the duplicate block — directly resolves the WHY (the loop), stays honest (one real block already surfaced), and is efficient. The first, real firing is untouched.
+
+**Where does the fix live?**
+- The wrapper only vs the wrapper + verifier.
+- **Chosen:** the wrapper (`commissaire-stop-hook.mjs`) only. The verifier's `complete()` and `verify()` gates already require exactly one then exactly two observations, so a store that is already `[block, allow]` passes them unchanged; no verifier edit is needed.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions:** none.
+
+**Assumptions:** none that block the build — every file named is present in-repo; the fold is CI-provable via the simulated-loop test without a real `claude`. Claude Code's continuation-loop behaviour (same `session_id` within a turn; loop terminates) is the measured premise from the FAFF-1018 spike and is guarded downstream by the session-hash gate — the fold is correct even if the firing count varies.
+
+## 8. Already shipped against this surface
+
+- **FAFF-1018 (Done)** — *Publish the operator-attested bare Claude Code capture.* Shipped the `--attested-by` seam and `CAPTURE-RUNBOOK.md`, but the live capture (half b) was re-homed to FAFF-1030; the code slice does not fold the Stop firings, so this issue's premise is untouched.
+- **FAFF-360 (Done)** — *Second-consumer demo — bare Claude Code + governance layer.* Built the harness (wrapper, verifier, scaffolder, `ci` test) this fix patches; it did not exercise a real multi-firing turn.
+- **FAFF-205 / FAFF-235 / FAFF-250 (Done)** — session-agnostic fixes for faff's *own* `runcheck`/`prepcheck` Stop hooks — a different, shipped-CLI surface, not this hand-written wrapper.
+
+No Done ticket implements the per-turn fold for the bare-Claude wrapper. **Premise holds → proceed.**
+
+## 9. DONE — Definition of Done
+
+### From WHY
+- [ ] A real two-turn Claude Code session (scripted or interactive) against the bare-Claude SUT yields exactly two observations, `block` then `allow`, and `verify` passes (operator-attested per `CAPTURE-RUNBOOK.md`; unblocks FAFF-1030).
+- [ ] No hand-edit of `hook-observations.jsonl` is required — the fold is a property of the wrapper.
+
+### From WHAT (fold key)
+- [ ] The wrapper appends at most one observation per (run_id, result); a firing whose (run_id, result) already exists is not appended.
+
+### From HOW (behavior)
+- [ ] The first `block` firing of an incomplete run records one observation (ordinal 1) and writes `{"decision":"block"}` to stdout.
+- [ ] A subsequent `block` firing for the same run_id exits 0 with no stdout and appends no line (loop broken).
+- [ ] The first `allow` firing after `complete()` appends one `allow` observation (ordinal 2); the store then holds exactly `[block, allow]`.
+- [ ] Steps 1–7 (parse, Stop check, pointer containment, `FAFF_BIN`, `runcheck`, source/provenance) and all fail-closed `blockAndExit` paths are unchanged.
+
+### From HOW (edge cases)
+- [ ] The `ci` fixture path (`verify-commissaire.mjs ci`) still exits 0 with the existing integration-smoke shape.
+- [ ] The FAFF-1018 `--attested-by` tests still pass (they hand-build the store and never invoke the fold).
+- [ ] The scaffolder re-substitutes the edited wrapper with no scaffolder change; `test/scaffolder-cli-surface-drift.test.mjs` stays green.
+
+### Regression test
+- [ ] `test/impure/commissaire-bare-claude.test.mjs` gains a test that, against a prepared run, drives the wrapper multiple times for one run_id (simulating the continuation loop) and asserts exactly one `block` observation, that the first firing forwarded `decision:block` and later firings did not, and that `complete()` then accepts the single prior block.
+
+**Integration smoke test:**
+```
+1. scaffold a fresh SUT; verify-commissaire.mjs prepare
+2. drive commissaire-stop-hook.mjs 5x with { hook_event_name: "Stop" } for the prepared run
+3. assert hook-observations.jsonl has exactly ONE line for the run_id, result "block"
+4. verify-commissaire.mjs complete   # its one-prior-block gate accepts
+5. drive the wrapper once more -> one "allow" line; verify-commissaire.mjs ci-equivalent path passes
+```
+
+confidence: high
+build-tier: complex
+
+```faff-contract:spec-readiness
+{ "confidence": "high",
+  "decisions": [ { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" } ] }
+```

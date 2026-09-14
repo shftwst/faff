@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1024",
+  "run_id": "run-20260913-134745-fly-l3",
+  "built_spec_sha": "66f36afa10c4d53f06094488160a5b938dbc3d96198c3c31f31fce6dd8db795d",
+  "spec_blob": "spec.txt",
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": null,
+  "outcome": "no-judge",
+  "lenses": [],
+  "witness_sha": "79ee19dedac8fb428db280bb8a4001d2ed1113400b229074dd7daa4e04d37872"
+}

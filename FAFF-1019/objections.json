@@ -1,0 +1,110 @@
+[
+  {
+    "claim": "The spec binds the durable trail's retention to the *gating* convergence window, which drops pre-window rounds exactly in the multi-conversation case (sentry kill / unpark) — the case the window mechanism exists for — so the trail under-delivers on the spec's own stated problem (\"every refuter objection per round, per lens, verbatim\") and reads back as if the review simply started at `window_start`. The §6 rationale (\"pre-window rounds … would muddy the trend\") is a convergence-*signal* rationale that applies to the gating checks (`spec-review-convergence`/`churn` read `round-<n>.json` from the scratch dir), which never read the trail; the trail is audit/calibration material whose whole value is \"how it got there.\" Binding an audit record to a gating window conflates the two concerns. The materially simpler design — persist *all* rounds `roundFilesInDir` already returns — meets the ticket's ask more completely and deletes the new `spec-review-window.js` dependency, the `readWindowStartSafe` fail-safe wrapper, and the `window_start > latest_n` edge case the spec adds.",
+    "evidence": "§1 problem statement (\"This loses the multi-round convergence history that FAFF-946 originally asked for\"); §6 \"Full per-round history vs a bounded 'last N rounds' window?\" (\"Pre-window rounds belong to a different conversation (post-swap/unpark) and would muddy the trend\"); §4 `collectObjections` steps 3–5 (window read + filter + ahead-of-disk fallback).",
+    "predicted_consequence": "a spec-review that crossed a sentry-kill/unpark boundary mints a trail whose `window_start` is, say, 6 and whose `rounds` begin at 6 — the durable audit record silently omits rounds 1–5 with no marker that they existed, so `faff judge-history --objections` reports a review that \"started\" mid-history; the first consumer who audits a resumed review gets a false picture of convergence.",
+    "spec_anchor": "full-per-round-history-vs-a-bounded-last-n-rounds-window",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "Only the standing residue is ledger-enriched; every non-standing round's `contested_source` is a placeholder `false` and its `lens`/`severity` come from the round file's own (unenriched) fields. The `Objection` RECORD presents `contested_source` as a uniform `bool` across rounds, but for all but the last round it is structurally false regardless of reality — the round files carry no `contested_source`. A reader replaying convergence therefore sees `contested_source` flip false→true at the final round as an artifact of the enrichment rule, not as a real change in the objection's status, and cannot distinguish \"not contested in round 2\" from \"not recorded for round 2.\" The spec's own value case (\"per lens, per round\" history) is partially defeated on exactly the ledger-carried dimension.",
+    "evidence": "§3 `RECORD Objection` (`contested_source: bool # ledger-carried`); §4 `collectObjections` step 6d (\"from ledger entry p-<i> ONLY when is_standing AND ledger present; … else false\"); §8 DONE (\"The latest round is the only round carrying ledger-index-matched contested_source/lens/severity\").",
+    "predicted_consequence": "a calibration consumer comparing an objection's `contested_source` across rounds reads a fabricated transition at the final round and cannot tell real status changes from schema placeholders; the per-round history is only trustworthy on the verbatim triple, not on the ledger dimension the ticket names.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec's tamper story (\"a mutated `objections.json` whose manifest `objections_sha` is unchanged reads back `tamper_suspect: true`\") requires the reader to recompute `sha256(blob)` and compare against `manifestCore.objections_sha`, but the `readManifestRecord` procedure in §4 only says \"read and attach the per-round objection history from the record's `objections.json` blob\" — no verification step. The recompute-on-read discipline the spec's own principles demand is asserted in DONE but absent from the procedure that implements it.",
+    "evidence": "§4 `readManifestRecord` step 2 (attach, no sha check); §8 DONE (\"A mutated objections.json with a stale manifest objections_sha reads back tamper_suspect: true\"); §1 principle \"Recompute-on-read trust.\"",
+    "predicted_consequence": "a build agent implementing strictly from the §4 procedure ships a reader that attaches the blob without verifying it, and the DONE tamper assertion fails its test until the verification step is reverse-engineered from the failure mode.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec mandates copying objection text \"verbatim\" into a durable git ref (`refs/faff/judge-trail`). Objections are free-text fields (`claim`, `evidence`, `predicted_consequence`) that a reviewer may populate with sensitive material — a connection string, an API token, a log snippet containing a credential, or a private key pasted as evidence. The spec introduces no redaction, no secret-scanning step, no size cap on individual objection fields, and no warning to the writer. Because the ref is explicitly designed to \"survive run-dir cleanup\" and is a git ref, it will be pushed to the repository's remote(s) as part of normal ref propagation, making the secret durable at rest in every clone.",
+    "evidence": "Spec §1 (\"copied verbatim\"), §3 `Objection` record (\"verbatim `claim`/`evidence`/`predicted_consequence`\"), §4 `collectObjections` step 6d (\"verbatim triple + spec_anchor\"), and §1 (\"a git ref that outlives the swept run dir\").",
+    "predicted_consequence": "A credential pasted into any round's objection is committed to a git ref and pushed to the remote, resulting in persistent, widely replicated secret exposure that standard secret-rotation cannot fully remediate (history rewrite required).",
+    "spec_anchor": "`4-how-behavior`",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The reader constructs the blob path as `<issue>/objections.json` and passes it to `showBlob(root, commitSha, ...)` without specifying any validation of the `--issue` argument (e.g., a strict `^[A-Z]+-\\d+$` pattern). If the ref's tree is maliciously crafted (or a legitimate issue ID is accidentally malformed), a value like `--issue ../other` or `--issue ..%2f..%2fsecret` could resolve to a different blob inside the same ref, allowing the reader to surface data from an unintended issue or subtree.",
+    "evidence": "Spec §4 `readManifestRecord` step 2a: `showBlob(root, commitSha, \"<issue>/objections.json\")`; §3 reader interface: `faff judge-history [--issue ID]`.",
+    "predicted_consequence": "A downstream tool or user-supplied issue ID that is not strictly validated can read arbitrary blobs within the judge-trail ref, leaking per-issue objection history or other stored data across issue boundaries.",
+    "spec_anchor": "`4-how-behavior`",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The mint parses `round-<n>.json` and `window.json` from the scratch dir, and the reader parses `objections.json` from the ref. These are untrusted inputs (scratch dirs can be written by a compromised build agent; the ref can be written by any actor with push access). The spec only handles the \"unparseable\" case as a skip/empty result, but does not mandate strict schema validation, a maximum nesting depth, or a maximum blob size. A maliciously crafted JSON payload (e.g., deeply nested arrays, a multi-gigabyte blob) could trigger prototype pollution in the Node process if the parsed object is spread/merged, or cause memory-exhaustion DoS in `faff judge-history`.",
+    "evidence": "Spec §4 `collectObjections` step 6a (\"JSON.parse(read path)\"), §4 `readManifestRecord` step 2c (\"parse\"), and §4 edge cases (\"unparseable: record.rounds := []\").",
+    "predicted_consequence": "A crafted JSON file in the scratch dir or ref causes unexpected process behavior (prototype pollution) or a memory-exhaustion crash of the mint/reader, which — while best-effort for the mint — could still disrupt the reader's availability for legitimate audit queries.",
+    "spec_anchor": "`4-how-behavior`",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The most intricate mapping rule — that only the standing residue carries ledger-index-matched `contested_source`/`lens`/`severity`, while earlier rounds carry their own fields — cannot be decided by any scenario, because no scenario includes a ledger.",
+    "evidence": "DONE item \"The latest round is marked `is_standing_residue: true` and is the only round carrying ledger-index-matched `contested_source`/`lens`/`severity`\"; HOW step 6d conditions the ledger mapping on `is_standing AND ledger present`; §5's three scenarios and the integration smoke test never mention a ledger, so every fixture exercises the no-ledger branch (`contested_source: false`, own lens/severity).",
+    "predicted_consequence": "A build that applies ledger-matched fields to *all* rounds, or to *none* of them, passes every scenario and the smoke test; done for DONE 9 cannot be decided. The ledger-absent branch is the only branch ever observed.",
+    "spec_anchor": "from-how-behaviour",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The property that a failing mint never gates run close/merge/park is stated as an assertion with no described observation; the only mint-failure scenario asserts the *opposite* direction (exit 0).",
+    "evidence": "DONE item \"The mint stays best-effort: a non-zero mint exit never gates a run close, merge, or park\"; §5 scenario \"The mint remains best-effort: a non-zero mint exit never gates a run close, a merge, or a park (assertion — `faff-beep-boop` run-close proceeds regardless)\"; the corrupt-`window.json` scenario asserts \"the mint exits 0\", which tests that the mint does *not* fail, not that a failure is non-gating.",
+    "predicted_consequence": "To decide DONE 3 you must force a non-zero mint exit and observe the run-close proceeding — but the spec's own design makes corrupt inputs degrade to exit 0, so no scenario in the spec can produce the non-zero exit it claims to assert. Done for DONE 3 cannot be decided from the spec as written.",
+    "spec_anchor": "from-why",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The negative case — that default `judge-history` output is unchanged when the flag is absent — is asserted in DONE but never tested; every scenario and the smoke test pass `--objections`.",
+    "evidence": "DONE item \"`faff judge-history` accepts `--objections`; `--json` output gains `rounds` + `window_start` only when the flag is passed (byte-for-byte identical otherwise)\"; §5 scenarios 1–3 and the integration smoke test all invoke `--objections`; no scenario runs `judge-history` without the flag and compares against a captured baseline.",
+    "predicted_consequence": "A build that adds `--objections` but accidentally leaks `rounds`/`window_start` into default output (or changes field ordering) passes every scenario; the byte-for-byte claim is unverified and there is no stated oracle (what baseline, captured when, compared how).",
+    "spec_anchor": "reader-interface",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec names three edge cases with concrete expected outputs but provides no scenario that exercises any of them, so a build can get each wrong and still pass.",
+    "evidence": "DONE items \"a legacy v1 flat array is surfaced as a single endpoint round with a note, without error\", \"`window_start` ahead of the latest round → only the latest round persisted, never empty when rounds exist\", \"A single unparseable `round-<n>.json` in the window is skipped; other rounds persist\"; §5's scenarios cover only window_start=1, window_start=2, and corrupt `window.json` — none covers a v1 flat-array blob, a marker ahead of disk, or a mid-window unparseable round file.",
+    "predicted_consequence": "A build that errors on a v1 blob, persists an empty `rounds` when the marker is ahead, or aborts the issue subtree on one bad round file passes every scenario; done for DONE 10, 13, 14 cannot be decided.",
+    "spec_anchor": "edge-cases-and-error-handling",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The WHAT section defines a concrete human render (\"one indented line per round — `round <n>[ (standing residue)]: <k> objection(s) — lenses=<a,b>`\") but no DONE criterion or scenario asserts it, so it is unverifiable.",
+    "evidence": "Reader interface section \"Human (non-`--json`) render with `--objections`\"; §8 DONE items mention only `--json` output; §5 scenarios all use `--json`.",
+    "predicted_consequence": "A build that renders the human form incorrectly (wrong indentation, missing standing-residue marker, wrong lens list) passes every scenario and every DONE item; the specified format is dead prose.",
+    "spec_anchor": "reader-interface",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE 6 requires `lenses` to be the sorted union across all persisted rounds, but no scenario checks the manifest's `lenses` field content.",
+    "evidence": "DONE item \"`lenses` is the sorted union across all persisted rounds\"; §5 scenario 1 asserts only the `rounds` array shape and `is_standing_residue`, never the manifest `lenses` value; the smoke test asserts `rounds` and `tamper_suspect` only.",
+    "predicted_consequence": "A build that computes `lenses` from only the latest round (the pre-change behavior) passes every scenario; the union requirement is undecidable.",
+    "spec_anchor": "manifest-core-additions",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

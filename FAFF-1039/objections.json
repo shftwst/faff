@@ -1,0 +1,11 @@
+[
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

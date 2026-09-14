@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1039",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ce18fce15216d8600b4f8dcec407d26cea2215f3c57f4df287c53e5a8c2671b0",
+    "branch": "faff-1039-adversarial-review-sends-whole-context-files-so-the-primary",
+    "pushed_at": "2026-09-14T20:14:59.223Z"
+  },
+  "updated_at": "2026-09-14T20:14:59.223Z"
+}

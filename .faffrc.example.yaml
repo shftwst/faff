@@ -116,6 +116,12 @@ models:
 #     provider: ollama    # an OpenAI-compatible ALIAS (FAFF-872) when referenced by an adversarial refs: list — no native transport
 #     model: qwen3-next:80b-a3b-instruct-q4_K_M
 #     host: http://studio.example.ts.net:11434/v1   # /v1 required; a bare host fails loud at preflight — auth: none, egress: local (both derived)
+#     context_window: 131072   # optional — this backend's token window. Absent (default) ⇒ unbounded,
+#                              # byte-for-byte today. Set it and adversarial review sizes the shared
+#                              # context to fit BEFORE dispatch, rather than discovering the overflow as
+#                              # a provider HTTP 400 and silently falling through to a weaker reviewer;
+#                              # any skip of the primary is then surfaced loudly. Non-positive or
+#                              # non-numeric reads as absent. Operator knowledge — faff never infers it.
 #   claude-sub:
 #     provider: anthropic
 #     model: claude-frontier

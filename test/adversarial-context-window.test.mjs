@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   estimateTokens, fitsWindow, trimTargetBytes, normaliseContextWindow,
-  tightenToTarget, primarySkipRecord, assembleUserMessage, runReviewChain, main,
+  tightenToTarget, primarySkipRecord, assembleUserMessage, runReviewChain, main, trimContextFiles,
   PRIMARY_SKIP_SIGNAL, DEFAULT_BYTES_PER_TOKEN, DEFAULT_WINDOW_SAFETY,
   DEFAULT_BRIEF_RESERVE_TOKENS, MIN_TRIM_TARGET_BYTES, TRIM_WINDOW_LADDER, EXIT,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
@@ -371,7 +371,11 @@ test("the trimmed shared prefix is byte-identical across four different lens bri
   writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "primary", host: "https://h/v1", context_window: 15000 }]));
 
   const prefixes = [];
-  for (const brief of ["architectural lens brief", "infosec lens brief " + "x".repeat(4000), "QA", "methodology " + "y".repeat(1500)]) {
+  // The briefs must span WIDELY. A narrow spread (tens to a few thousand bytes) can leave every lens
+  // landing on the same ladder rung, so a trim target that wrongly consumed the brief would still
+  // produce identical prefixes and the test would pass while the invariant was broken. 11 B vs 14 KB
+  // straddles a rung boundary, so a brief-consuming target genuinely diverges here.
+  for (const brief of ["arch brief", "x".repeat(14005), "QA", "methodology " + "y".repeat(1500)]) {
     const sysFile = join(f.dir, `b-${prefixes.length}.md`);
     writeFileSync(sysFile, brief);
     await runMain(["--backends-json", bf, "--system", sysFile, "--diff", f.diff, "--context", f.ctx],
@@ -452,4 +456,135 @@ test("an exhausted all-over-window chain surfaces the sentinel on stderr through
   assert.ok(r.err.split("\n").some((l) => l.trim() === PRIMARY_SKIP_SIGNAL),
     "the sentinel reaches stderr even though nothing served and there is no stdout to carry a notice");
   assert.match(r.err, /primary reviewer openai\/tiny1 was skipped/);
+});
+
+// ---- regressions the first review round found -------------------------------------------------
+
+// A file with identifier anchors but NO diff-touched lines: trimOneFile head-reduces it while its kept
+// fraction exceeds retainedCeiling, and a TIGHTER window can drop the fraction below the ceiling, so
+// the file stops being head-reduced and GROWS. This is why the ladder is not monotonic.
+function nonMonotonicFixture() {
+  const text = Array.from({ length: 400 }, (_, i) => `const anchor${i} = ${i}; // ${"q".repeat(30)}`).join("\n");
+  const idents = Array.from({ length: 40 }, (_, k) => `+  use(anchor${k * 10});`).join("\n");
+  return {
+    contextFiles: [{ path: "other.js", text }],
+    diff: `--- a/touched.js\n+++ b/touched.js\n@@ -1,1 +1,41 @@\n${idents}\n`,
+  };
+}
+
+test("the ladder is NOT monotonic in bytes — a tighter window can enlarge a head-reduced file", () => {
+  // Pins the premise the two fixes below rest on. If trimOneFile ever becomes monotonic this test
+  // fails loudly, and the min-tracking/clamp become belt-and-braces rather than load-bearing.
+  const { contextFiles, diff } = nonMonotonicFixture();
+  const sizes = TRIM_WINDOW_LADDER.map((window) => {
+    const { contextFiles: t } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
+    return B(assembleUserMessage({ contextFiles: t, diff }));
+  });
+  assert.ok(sizes.some((b, i) => i > 0 && b > sizes[i - 1]),
+    `expected at least one rung to grow; got ${sizes.join(", ")}`);
+});
+
+test("tightenToTarget returns the SMALLEST prefix across rungs, never merely the last rung tried", () => {
+  const { contextFiles, diff } = nonMonotonicFixture();
+  const sizes = TRIM_WINDOW_LADDER.map((window) => {
+    const { contextFiles: t } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
+    return B(assembleUserMessage({ contextFiles: t, diff }));
+  });
+  const smallest = Math.min(...sizes);
+  const last = sizes[sizes.length - 1];
+  assert.ok(smallest < last, "fixture must actually discriminate min-vs-last");
+
+  const r = tightenToTarget({ contextFiles, diff, targetBytes: 1 }); // unreachable ⇒ fitted:false path
+  assert.equal(r.fitted, false);
+  assert.equal(r.bytes, smallest,
+    "returning the last rung here would hand the chain a payload larger than the best one found");
+});
+
+test("the window-targeted trim NEVER enlarges the prefix end-to-end through main()", async () => {
+  // The end-to-end shape of the same bug: one diff-touched file plus one identifier-anchored file with
+  // no touched lines. Without the clamp in main this grew the payload several-fold while reporting it
+  // as a "window-targeted trim".
+  const d = mkdtempSync(join(tmpdir(), "cw-grow-"));
+  const sys = join(d, "brief.md"); writeFileSync(sys, "BRIEF\n");
+  const touched = join(d, "touched.js");
+  const other = join(d, "other.js");
+  writeFileSync(touched, Array.from({ length: 60 }, (_, i) => `const t${i} = ${i};`).join("\n"));
+  writeFileSync(other, Array.from({ length: 400 }, (_, i) => `const anchor${i} = ${i}; // ${"q".repeat(30)}`).join("\n"));
+  const idents = Array.from({ length: 40 }, (_, k) => `+  use(anchor${k * 10});`).join("\n");
+  const diff = join(d, "d.diff");
+  writeFileSync(diff, `--- a/touched.js\n+++ b/touched.js\n@@ -1,1 +1,41 @@\n${idents}\n`);
+  const bf = join(d, "b.json");
+
+  const seen = [];
+  const capture = async ({ system }) => { seen.push(system); return { status: "ok", content: "### observation: no findings" }; };
+
+  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "m", host: "https://h/v1" }]));
+  await runMain(["--backends-json", bf, "--system", sys, "--diff", diff, "--context", touched, "--context", other], capture);
+
+  writeFileSync(bf, JSON.stringify([{ provider: "openai", model: "m", host: "https://h/v1", context_window: 2000 }]));
+  const windowed = await runMain(["--backends-json", bf, "--system", sys, "--diff", diff, "--context", touched, "--context", other], capture);
+
+  assert.equal(seen.length, 2);
+  assert.ok(B(seen[1]) <= B(seen[0]),
+    `declaring a context_window must never ENLARGE the payload: ${B(seen[0])} B → ${B(seen[1])} B`);
+  if (B(seen[1]) === B(seen[0])) {
+    assert.match(windowed.err, /KEEPING the untightened prefix/,
+      "when no rung shrinks it, the note must say so rather than claim a tightening");
+  }
+});
+
+test("a primary skip survives the DEADLINE exhaustion paths, not only the served and exhausted returns", async () => {
+  // "Loud surfacing, always on" has to hold on every terminal path. Three deadline returns used to drop
+  // the record, so a guard-skipped primary followed by a budget exhaustion went out silently.
+  //
+  // Reaching a DEADLINE return specifically takes care: a chain that merely runs out of backends exits
+  // through the chain-exhausted return, which always carried the record, so such a test would pass
+  // whether or not the fix is present. Here backend 1 burns the whole budget, so the TOP-OF-LOOP
+  // deadline gate fires on iteration 2 and we exit through the deadline return under test.
+  let now = 0;
+  const res = await runReviewChain(chainOf(10, null, null), {
+    system: "x".repeat(9000), user: "brief",
+    totalDeadlineMs: 1000,
+    nowFn: () => now,
+    runReviewFn: async () => { now += 5000; return { status: "unreachable" }; },
+    log: () => {},
+  });
+  assert.equal(res.deadlineExceeded, true, "must exit through a DEADLINE return, not chain-exhaustion");
+  assert.ok(res.primarySkipped, "the guard-skipped primary must still be reported on a deadline exit");
+  assert.match(res.primarySkipped.reason, /over-window/);
+  assert.equal(res.primarySkipped.servedIndex, -1);
+});
+
+test("trimTargetBytes and tightenToTarget are independent of the lens brief, asserted directly", () => {
+  // The per-lens-invariance test drives main() and can be fooled by a narrow brief spread, so assert the
+  // invariant at its source too: neither function accepts or consults a brief.
+  const { contextFiles, diff } = nonMonotonicFixture();
+  const target = trimTargetBytes(30000, diff);
+  const a = tightenToTarget({ contextFiles, diff, targetBytes: target });
+  const b = tightenToTarget({ contextFiles, diff, targetBytes: target });
+  assert.equal(a.prefix, b.prefix, "pure in its declared inputs");
+  assert.equal(a.bytes, b.bytes);
+  // an injected assembler proves the seam is live, and that the search reads nothing but its inputs
+  let calls = 0;
+  const injected = tightenToTarget({
+    contextFiles, diff, targetBytes: target,
+    assembleFn: ({ contextFiles: cf, diff: df }) => { calls++; return assembleUserMessage({ contextFiles: cf, diff: df }); },
+  });
+  assert.ok(calls > 0, "assembleFn is genuinely used, not a dead parameter");
+  assert.equal(injected.prefix, a.prefix);
+});
+
+test("an over-window skip counts as a CONFIG fault in terminal precedence, not an availability one", () => {
+  // The no-silent-weakening rule: a config fault anywhere in a fully-failed chain surfaces needs-human,
+  // while a chain of purely availability failures is pass+skip. A declared window too small for your
+  // diffs is actionable config, so it belongs on the config side. This pins the resulting exit-class
+  // shift, which is the stricter direction and deliberate.
+  const unreachable = async () => ({ status: "unreachable" });
+  return Promise.all([
+    runReviewChain(chainOf(null, null), { system: "s", user: "b", runReviewFn: unreachable, log: () => {} }),
+    runReviewChain(chainOf(10, null), { system: "x".repeat(9000), user: "b", runReviewFn: unreachable, log: () => {} }),
+  ]).then(([availabilityOnly, withGuardSkip]) => {
+    assert.equal(availabilityOnly.exit, EXIT.UNREACHABLE, "purely availability failures stay pass+skip (5)");
+    assert.equal(withGuardSkip.exit, EXIT.USAGE, "an over-window skip escalates the terminal to needs-human (2)");
+  });
 });

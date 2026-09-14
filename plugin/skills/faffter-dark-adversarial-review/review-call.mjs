@@ -220,35 +220,43 @@ export function trimTargetBytes(contextWindow, diff = "") {
   return Math.max(MIN_TRIM_TARGET_BYTES, budget);
 }
 
-// The descending trim-aggressiveness ladder the window search walks.
+// The descending trim-window ladder the search walks.
 //
 // WHY A SEARCH, not a threshold. `trimContextFiles`'s `thresholdBytes` is an ON/OFF GATE — below it the
 // trim is an identity no-op — NOT a size target: the actual aggressiveness lives in `window` (lines kept
 // either side of each anchor) and `headLines`. Any payload large enough to overflow a real context
 // window is far above the 48KB default gate, so the default trim has ALREADY fired and re-running it
 // with a different threshold reduces nothing. To actually reach a byte target we have to tighten the
-// knob that governs how much is kept. Each rung keeps strictly less context than the one before, and
-// even the last rung keeps every diff-touched line (trimOneFile's conservative guarantee), so the
-// search never degrades to the diff-only view that produced confident false criticals.
+// knob that governs how much is kept. Every rung keeps every diff-touched line (trimOneFile's
+// conservative guarantee), so the search never degrades to the diff-only view that produced confident
+// false criticals.
+//
+// A SMALLER WINDOW DOES NOT ALWAYS YIELD A SMALLER PREFIX. `trimOneFile`'s retained-ceiling fallback
+// head-reduces a file whose kept fraction exceeds `retainedCeiling`; tightening the window can drop that
+// fraction BELOW the ceiling, so the file stops being head-reduced and grows instead. Measured on a
+// 400-line identifier-anchored file with no touched lines: rungs 24/16/10/6 give 1545 B and rung 3 gives
+// 18527 B. So the search must take the MINIMUM across rungs, never merely the last one tried — which is
+// what `tightenToTarget` does below, and what the monotonicity test pins.
 export const TRIM_WINDOW_LADDER = Object.freeze([DEFAULT_TRIM_WINDOW, 16, 10, 6, 3, 1]);
 
 // PURE: tighten the context bundle until the assembled prefix fits `targetBytes`, or the ladder is
-// exhausted. Returns the first rung that fits (`fitted: true`), else the tightest rung tried
-// (`fitted: false`) — a residual overflow is never an error here: the per-backend guard and the
-// primary-skip surfacing below are what handle it, and a smaller-but-still-over payload is strictly
-// better than the un-narrowed one. `assembleFn` is injected so the search is testable without the
-// module-level assembler.
+// exhausted. Returns the first rung that fits (`fitted: true`), else the SMALLEST prefix seen across
+// every rung (`fitted: false`) — never merely the last rung tried, because the ladder is not monotonic
+// (see the note above: a tighter window can enlarge a head-reduced file). Returning the last rung there
+// would let a "window-targeted trim" hand the chain a payload BIGGER than the one it started from,
+// which is the exact inverse of the point. A residual overflow is not an error: the per-backend guard
+// and the primary-skip surfacing handle it, and a smaller-but-still-over payload beats the un-narrowed
+// one. `assembleFn` is injected so the search is testable independently of the module-level assembler.
 export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, assembleFn = assembleUserMessage } = {}) {
-  const ladder = TRIM_WINDOW_LADDER;
-  let last = null;
-  for (const window of ladder) {
+  let best = null;
+  for (const window of TRIM_WINDOW_LADDER) {
     const { contextFiles: trimmed } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
     const prefix = assembleFn({ contextFiles: trimmed, diff });
     const bytes = Buffer.byteLength(prefix, "utf8");
-    last = { contextFiles: trimmed, prefix, bytes, window };
-    if (targetBytes == null || bytes <= targetBytes) return { ...last, fitted: true };
+    if (targetBytes == null || bytes <= targetBytes) return { contextFiles: trimmed, prefix, bytes, window, fitted: true };
+    if (best === null || bytes < best.bytes) best = { contextFiles: trimmed, prefix, bytes, window };
   }
-  return { ...last, fitted: false };
+  return { ...best, fitted: false };
 }
 
 // A whole-word identifier token: a run of JS identifier characters. Length >= 3 is applied by the caller.
@@ -1707,7 +1715,7 @@ export async function runReviewChain(chain = [], shared = {}) {
       const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
       const exit = nh != null ? nh : EXIT.DEADLINE;
       log(`deadline: Phase-2 total wall-clock budget ${Math.round(totalDeadlineMs / 1000)}s exceeded after ${i} backend(s) (exit ${exit})`);
-      return { exit, deadlineExceeded: true, failureClasses };
+      return { exit, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039: surfacing is "always on" — every exhaustion path carries it
     }
     const b = chain[i] || {};
     const tag = `${b.provider || "openai"}/${b.model || "?"}`;
@@ -1772,7 +1780,7 @@ export async function runReviewChain(chain = [], shared = {}) {
       // zero-window backend that would instantly time out.
       if (remaining <= 0 || sliceMs <= 0) {
         const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
-        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039
       }
       backendDeadline = now() + sliceMs;
     }
@@ -1814,7 +1822,7 @@ export async function runReviewChain(chain = [], shared = {}) {
           : `deadline: Phase-2 backend ${tag} exhausted its ${Math.round(sliceMs / 1000)}s slice, chain exhausted (exit ${EXIT.DEADLINE})`);
         if (i < n - 1) continue;
         const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
-        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039
       }
     } else {
       result = await safeCall(callReview);
@@ -2021,12 +2029,25 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     if (estWithReserve > usable) {
       const target = trimTargetBytes(primaryWindow, diff);
       const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target });
-      user = tightened.prefix;
+      // Adopt the tightened prefix ONLY when it is genuinely smaller. tightenToTarget's min-tracking is
+      // what actually guarantees this today; the clamp is defence-in-depth against a future change to
+      // the ladder, to trimOneFile's retained-ceiling behaviour, or to the default trim's byte gate
+      // (which, unlike the ladder, can leave the prefix untrimmed entirely). Handing the chain a LARGER
+      // payload than it started with would push fallbacks over their own windows — the exact inverse of
+      // the point. Keeping the original is always safe: the per-backend guard and the primary-skip
+      // surfacing still handle the residual overflow.
+      const beforeBytes = Buffer.byteLength(user, "utf8");
+      const adopted = tightened.bytes < beforeBytes;
+      if (adopted) user = tightened.prefix;
       const estAfter = estimateTokens(user);
       process.stderr.write(
         `[note] FAFF-1039 window-targeted trim: est ${estWithReserve} tok (incl. ${DEFAULT_BRIEF_RESERVE_TOKENS} brief reserve) exceeded usable ${usable} `
-        + `(primary window ${primaryWindow}); tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok `
-        + `(${tightened.bytes} B vs ${target} B target)${tightened.fitted ? "" : " — STILL OVER at the tightest rung"}\n`);
+        + `(primary window ${primaryWindow}); `
+        + (adopted
+          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.bytes} B vs ${target} B target)`
+            + `${tightened.fitted ? "" : " — STILL OVER, but smaller"}`
+          : `no rung shrank it (best ${tightened.bytes} B vs ${beforeBytes} B already assembled) — KEEPING the untightened prefix`)
+        + `\n`);
     }
   }
 

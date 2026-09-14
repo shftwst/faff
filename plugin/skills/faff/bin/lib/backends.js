@@ -191,10 +191,11 @@ function normalizeBackend(name, raw) {
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.first_byte_timeout = present(raw.first_byte_timeout) ? Number(raw.first_byte_timeout) : undefined;
   // FAFF-1039: the per-backend context window the review preflight sizes the shared prefix against.
-  // This explicit assignment is load-bearing and is NOT redundant with BACKEND_RECORD_KEYS: that list
-  // only DECLARES the field, while this function is what COPIES it on the refs path. Declaring without
-  // copying is precisely the silent-drop bug the FAFF-918 note above records (FAFF-914 declared
-  // reasoning_extra and never copied it here, so a refs-resolved backend lost it). Normalised at the
+  // THIS assignment is what actually copies the value on the refs path — the only gate that matters
+  // here. BACKEND_RECORD_KEYS is NOT a second gate on this path: its sole consumer is the
+  // `faff backends resolve --json` printer below, so it governs visibility, not survival. (Declaring
+  // without copying is the silent-drop bug the FAFF-918 note above records: FAFF-914 declared
+  // reasoning_extra and never copied it here, so a refs-resolved backend lost it.) Normalised at the
   // boundary, so every downstream reader sees a positive integer or nothing at all.
   b.context_window = positiveWindow(raw.context_window);
   // FAFF-877: the shared supervisor's TOTAL operation-budget override (seconds) — distinct
@@ -758,6 +759,12 @@ function backendsSelftest() {
   ok("normalizeBackend: seat_token_env carried onto the record",
     normalizeBackend("s", { provider: "anthropic", model: "claude", auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" }).backend.seat_token_env === "CLAUDE_SEAT_TOKEN");
   ok("BACKEND_RECORD_KEYS carries seat_token_env (so resolve prints it)", BACKEND_RECORD_KEYS.includes("seat_token_env"));
+  ok("BACKEND_RECORD_KEYS carries context_window (so `faff backends resolve` prints it)",
+    BACKEND_RECORD_KEYS.includes("context_window"));
+  ok("normalizeBackend COPIES context_window — the list alone never copies a value",
+    normalizeBackend("b", { provider: "openai", model: "m", host: "https://a/v1", context_window: 131072 }).backend.context_window === 131072);
+  ok("normalizeBackend normalises a non-positive context_window to absent, never an error",
+    normalizeBackend("b", { provider: "openai", model: "m", host: "https://a/v1", context_window: -5 }).backend.context_window === undefined);
   // --- FAFF-481: portable matrix — a handle-carrying seat admits headlessly ---
   ok("matrix: handle-less anthropic seat admits ONLY on the interactive harness",
     portableMatrixAdmits("claude-code", "anthropic", "subscription-seat", undefined) === true

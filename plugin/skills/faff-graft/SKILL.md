@@ -121,7 +121,7 @@ else  # autonomous — UNCHANGED, --interactive omitted so block stays in force
 fi
 ```
 
-- **exit 0** → proceed to Step 3. If the output carried a `[warn]` line (no-provenance under `warn`, or — interactive — the human-sanction bypass notice), **surface it** but continue. `warn`/`off` never block, and an interactive `[warn]` is the human-is-the-sanction notice.
+- **exit 0** → proceed to Step 3. If the output carried a `[warn]` line (no-provenance under `warn`, a satisfied basis whose marker was malformed, or — interactive — the human-sanction bypass notice), **surface it** but continue. `warn`/`off` never block, a malformed marker that some other basis already satisfied is a warning about the marker rather than a refusal, and an interactive `[warn]` is the human-is-the-sanction notice.
 - **exit 3** (autonomous, `intake_gate: block`, *and* no genuine provenance) → **refuse, pre-worktree** (Step 3 never runs, no spec committed). **Interactive never reaches this** — `--interactive` returns exit 0 with the bypass notice, so there is no block to remedy and no `intake-record` ceremony to send the human to (a human steady-state remedy is simply setting `faff-automate` in the tracker — zero-CLI). **Autonomous:** return the **`blocked`** disposition (a skip, like `ineligible` — not a build attempt, never `parked`); log the cause to `.faff/runs/<run-id>/ISSUE-XX/graft.md`. Either way graft **never** runs `intake-record` itself to pass its own check.
 
 (No Stop-hook: `intakecheck` deliberately does **not** join `FAFF_STOP_HOOKS` — a turn-end hook with no "which ticket" signal false-blocks unrelated sessions. The guard fires only here, where the issue ID is known.)

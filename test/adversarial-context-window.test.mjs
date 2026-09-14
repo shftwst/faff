@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   estimateTokens, fitsWindow, trimTargetBytes, normaliseContextWindow,
-  tightenToTarget, primarySkipRecord, assembleUserMessage, runReviewChain, main, trimContextFiles,
+  tightenToTarget, primarySkipRecord, assembleUserMessage, runReviewChain, main, trimContextFiles, stillOverWindow,
   PRIMARY_SKIP_SIGNAL, DEFAULT_BYTES_PER_TOKEN, DEFAULT_WINDOW_SAFETY, parseArgs,
   DEFAULT_BRIEF_RESERVE_TOKENS, MIN_TRIM_TARGET_BYTES, TRIM_WINDOW_LADDER, EXIT,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
@@ -379,6 +379,7 @@ test("the trimmed shared prefix is byte-identical across four different lens bri
   ]));
 
   const prefixes = [];
+  const servedBy = [];
   // The briefs must span WIDELY. A narrow spread (tens to a few thousand bytes) can leave every lens
   // landing on the same ladder rung, so a trim target that wrongly consumed the brief would still
   // produce identical prefixes and the test would pass while the invariant was broken. 11 B vs 14 KB
@@ -387,12 +388,20 @@ test("the trimmed shared prefix is byte-identical across four different lens bri
     const sysFile = join(f.dir, `b-${prefixes.length}.md`);
     writeFileSync(sysFile, brief);
     await runMain(["--backends-json", bf, "--system", sysFile, "--diff", f.diff, "--context", f.ctx],
-      async ({ system }) => { prefixes.push(system); return { status: "ok", content: "### observation: no findings" }; });
+      async ({ system, model }) => { prefixes.push(system); servedBy.push(model); return { status: "ok", content: "### observation: no findings" }; });
   }
   assert.equal(prefixes.length, 4);
   for (let i = 1; i < 4; i++) {
     assert.equal(prefixes[i], prefixes[0],
       "the shared prefix must not vary with the lens brief — a per-lens prefix kills the FAFF-903 cache");
+  }
+  // The other half of the same principle, and the one behaviour nothing else pins: the per-backend
+  // GUARD does include this lens's brief, so a per-lens SKIP decision may differ even though the prefix
+  // may not. The 14 KB brief is sized to push exactly that one lens past the primary's window.
+  assert.equal(servedBy[1], "fallback",
+    "the huge-brief lens must be guard-skipped off the primary — the guard counts the brief");
+  for (const i of [0, 2, 3]) {
+    assert.equal(servedBy[i], "primary", `lens ${i} fits and must be served by the primary`);
   }
 });
 
@@ -798,4 +807,24 @@ test("the window-targeted trim note never contradicts its own fit verdict", asyn
     assert.ok(Number(got) <= Number(target),
       `a note reporting a fit must print bytes within the target: ${got} B vs ${target} B`);
   }
+});
+
+// ---- regressions the fourth review round's adversarial pass found -------------------------------
+
+test("the STILL-OVER suffix keys off the WINDOW, never off whether the byte target was hit", () => {
+  // `tightenToTarget`'s `fitted` means "hit the byte target". When a large diff drives the budget below
+  // MIN_TRIM_TARGET_BYTES the target clamps to that floor, so hitting it no longer implies fitting the
+  // window, and a note keyed off `fitted` reports a fit on a payload still well over. Pinning the
+  // decision directly rather than through a fixture: the clamped case is awkward to provoke end-to-end,
+  // and an inline conditional is exactly what made the distinction invisible in the first place.
+  const usable = 3600;
+  assert.equal(stillOverWindow(1000, 2000, usable), false, "comfortably under");
+  assert.equal(stillOverWindow(1600, 2000, usable), false, "exactly on the boundary is not over");
+  assert.equal(stillOverWindow(1601, 2000, usable), true, "one token over is over");
+  // the reviewer's reproduction: target clamped to the floor and therefore "hit", yet 30% over the window
+  assert.equal(stillOverWindow(2699, 2000, usable), true,
+    "a clamped-and-hit target must still report STILL OVER when the window is exceeded");
+  // the reserve is part of the claim, never dropped
+  assert.equal(stillOverWindow(3599, 0, usable), false);
+  assert.equal(stillOverWindow(3599, 2, usable), true, "the brief reserve counts toward the window");
 });

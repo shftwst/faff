@@ -219,6 +219,15 @@ export function fitsWindow(estimatedTokens, contextWindow, safety = DEFAULT_WIND
 // would charge the diff twice and undershoot by exactly its size, silently over-trimming every
 // diff-heavy review. Depends only on (contextWindow, diff), never on any lens brief, so the prefix it
 // governs stays byte-identical across lenses.
+// PURE: does the tightened payload STILL exceed the primary's usable window? This is deliberately NOT
+// `tightenToTarget`'s `fitted`. `fitted` means "hit the byte target", and when a large diff drives the
+// budget below MIN_TRIM_TARGET_BYTES the target clamps to that floor, so hitting it says nothing about
+// fitting the window. Keying the operator-facing note off `fitted` would let it report a fit on a
+// payload still well over the window, which is the same dishonesty the note exists to remove.
+export function stillOverWindow(estTokens, reserveTokens, usableTokens) {
+  return Number(estTokens) + Number(reserveTokens) > Number(usableTokens);
+}
+
 export function trimTargetBytes(contextWindow, diff = "") {
   const w = normaliseContextWindow(contextWindow);
   if (w === null) return null;
@@ -1399,6 +1408,9 @@ export function parseArgs(argv) {
     }
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
     else if (k === "--context-window") a.contextWindow = argv[++i];   // FAFF-1039: single-backend window (chain form carries its own per element)
+    // NOTE: a declared context_window overrides --context-trim-bytes 0. The window-targeted search
+    // always trims, because a payload that cannot fit the window is worse than a trimmed one; disabling
+    // the byte-gated trim only turns off the UNCONDITIONAL pass, not the window-driven one.
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
@@ -2044,6 +2056,12 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     const estWithReserve = estimateTokens(user) + DEFAULT_BRIEF_RESERVE_TOKENS;
     if (estWithReserve > usable) {
       const target = trimTargetBytes(primaryWindow, diff);
+      // Whether the budget was driven below its floor by a large diff. When it is, `target` is the floor
+      // rather than a real window-derived budget, and hitting it says nothing about fitting the window.
+      const targetClamped = target === MIN_TRIM_TARGET_BYTES
+        && Math.floor(primaryWindow * DEFAULT_WINDOW_SAFETY * DEFAULT_BYTES_PER_TOKEN)
+           - Buffer.byteLength(diff, "utf8")
+           - Math.floor(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN) < MIN_TRIM_TARGET_BYTES;
       const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target });
       // Adopt the tightened prefix ONLY when it is genuinely smaller. This clamp is LOAD-BEARING, not
       // belt-and-braces, and min-tracking alone does not subsume it: the default trim above is gated on
@@ -2062,8 +2080,13 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
         `[note] FAFF-1039 window-targeted trim: est ${estWithReserve} tok (incl. ${DEFAULT_BRIEF_RESERVE_TOKENS} brief reserve) exceeded usable ${usable} `
         + `(primary window ${primaryWindow}); `
         + (adopted
-          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.contextBytes} B vs ${target} B target)`
-            + `${tightened.fitted ? "" : " — STILL OVER, but smaller"}`
+          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.contextBytes} B vs ${target} B target`
+            + `${targetClamped ? ", clamped to floor" : ""})`
+            // Keyed off the REAL window check, never `tightened.fitted`. `fitted` means "hit the byte
+            // target", and once a large diff drives the budget below MIN_TRIM_TARGET_BYTES the target
+            // clamps to that floor, so hitting it no longer implies fitting the window. Reporting a fit
+            // there would repeat the very dishonesty this note exists to prevent.
+            + `${stillOverWindow(estAfter, DEFAULT_BRIEF_RESERVE_TOKENS, usable) ? " — STILL OVER the usable window, but smaller" : ""}`
           : `no rung shrank it (best ${tightened.bytes} B vs ${beforeBytes} B already assembled) — KEEPING the untightened prefix`)
         + `\n`);
     }

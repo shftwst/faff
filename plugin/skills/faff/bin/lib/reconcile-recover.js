@@ -87,9 +87,12 @@ function isAlreadyClosed(ledger, issue) {
 // The write — delegated to `faff run-ledger record-outcome` as a subprocess (never a
 // second, forked writer). Mirrors the ENTRYPOINT self-invocation pattern already used
 // by sentry.js/sentrycheck.js/events.js (spawnSync(process.execPath, [ENTRYPOINT, ...])).
-// Returns { written, run_id } — a write failure (non-zero exit from the child) is
-// surfaced by the caller as a distinct fault, never silently coerced into any of the
-// admission/gate outcomes.
+// Returns { written, run_id, owner_status } — a write failure (non-zero exit from the
+// child) is surfaced by the caller as a distinct fault, never silently coerced into any
+// of the admission/gate outcomes. `owner_status` is parsed straight from the child's own
+// JSON (FAFF-1024: record-outcome's owner-flip is now drain-gated, so a recovery of one
+// issue in a multi-issue drain honestly leaves the owner "running", not "done" — this
+// caller must never assume/hardcode the terminal value).
 // ---------------------------------------------------------------------------
 function writeRecovery(runDir, issue) {
   const r = spawnSync(process.execPath, [
@@ -100,8 +103,13 @@ function writeRecovery(runDir, issue) {
     return { written: false, detail: ((r.stderr || "") + (r.stdout || "")).trim().slice(-500) };
   }
   let runId = null;
-  try { runId = JSON.parse(r.stdout).run_id ?? null; } catch { /* best-effort only */ }
-  return { written: true, run_id: runId };
+  let ownerStatus = null;
+  try {
+    const parsed = JSON.parse(r.stdout);
+    runId = parsed.run_id ?? null;
+    ownerStatus = parsed.owner_status ?? null;
+  } catch { /* best-effort only */ }
+  return { written: true, run_id: runId, owner_status: ownerStatus };
 }
 
 // ---------------------------------------------------------------------------
@@ -222,7 +230,7 @@ function cmdReconcileRecover(args) {
   const result = {
     ...base, recovered: true,
     post_merge_check: record.verdict, pr: record.pr, merge_sha: record.merge_sha,
-    wrote: { outcome: "shipped", owner_status: "done" },
+    wrote: { outcome: "shipped", owner_status: written.owner_status },
   };
   emit(result, asJson);
   return 0;

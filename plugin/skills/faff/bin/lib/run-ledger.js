@@ -68,7 +68,13 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid }) {
 }
 
 // PURE — the honest terminal-outcome edit (§4 step 6): records `outcomes[issue]` = the
-// terminal-state string and flips `owner.status` to "done" (clearing runcheck completeness).
+// terminal-state string, ALWAYS refreshes `owner.last_heartbeat` (a per-item write is proof of
+// life), and flips `owner.status` to "done" ONLY when this write DRAINS the queue — every
+// admitted item now has an outcome (FAFF-1024). "Drained" mirrors runcheck.js's own
+// completeness core (`admitted − outcomes.keys() == ∅`, deduped) exactly — the two must never
+// silently drift. A single-item ledger (the ordinary L2 interactive case) still drains on its
+// one write, so this is backward compatible. On a non-draining write, `owner.status` is left
+// exactly as it was — never invented, never overwritten to something other than "done".
 // Single-sourced here so the terminal shape is testable and graft prose never hand-edits the
 // ledger (the anti-pattern the spec forbids). Mutates a copy-in-place object under the lock.
 function applyTerminalOutcome(ledger, issue, outcome, nowIso) {
@@ -76,8 +82,20 @@ function applyTerminalOutcome(ledger, issue, outcome, nowIso) {
   ledger.outcomes = (ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
   ledger.outcomes[issue] = outcome;
   ledger.owner = (ledger.owner && typeof ledger.owner === "object") ? ledger.owner : {};
-  ledger.owner.status = "done";
-  ledger.owner.last_heartbeat = nowIso;
+  const admitted = Array.isArray(ledger.admitted) ? [...new Set(ledger.admitted)] : [];
+  // Object.hasOwn (NOT the `in` operator, and NOT runcheck.js's own `!(i in outcomes)` —
+  // a pre-existing, separately-tracked defect there, out of scope for this fix) — `in`
+  // walks the prototype chain, so an admitted id that collides with an inherited
+  // Object.prototype key ("constructor", "toString", "hasOwnProperty", …) would read as
+  // already-dispatched even with zero recorded outcomes for it, wrongly draining the
+  // queue and flipping owner.status to "done" while that item was never actually
+  // recorded (caught by adversarial review, FAFF-1024).
+  const undispatched = admitted.filter((i) => !Object.hasOwn(ledger.outcomes, i));
+  const drained = undispatched.length === 0;
+  if (drained) {
+    ledger.owner.status = "done"; // last outcome / queue complete — never invented otherwise
+  }
+  ledger.owner.last_heartbeat = nowIso; // ALWAYS — proof of life, draining or not
   return ledger;
 }
 
@@ -275,12 +293,15 @@ function initInteractive(values) {
   return 0;
 }
 
-// `record-outcome` — the honest terminal write (§4 step 6) on the interactive-minted LIVE
-// ledger, run at the graft terminal AFTER Step 9b already committed the immutable anchor (so
-// the anchor stays a pre-merge `outcomes:{}` snapshot; this write lands only on the live dir).
-// Sets outcomes[issue] + owner.status:"done" under the lock (which also folds a ledger-write
-// event — belt-and-braces chain honesty) and, on the shipped path, appends an issue-outcome
-// close event. Fail-closed: an absent/invalid run dir → exit 3; a bad --issue/--outcome → 2.
+// `record-outcome` — the honest per-item outcome write (§4 step 6) on the interactive- or
+// orchestrator-minted LIVE ledger, run at the graft terminal AFTER Step 9b already committed
+// the immutable anchor (so the anchor stays a pre-merge `outcomes:{}` snapshot; this write
+// lands only on the live dir). Always sets outcomes[issue] under the lock (which also folds a
+// ledger-write event — belt-and-braces chain honesty); owner.status flips to "done" ONLY when
+// this write drains the queue (FAFF-1024 — see applyTerminalOutcome) — a multi-issue L4 drain's
+// first outcome leaves the owner "running", not terminated early. On the shipped path, appends
+// an issue-outcome close event. Fail-closed: an absent/invalid run dir → exit 3; a bad
+// --issue/--outcome → 2.
 function recordOutcome(values) {
   const issue = values["--issue"];
   const outcome = values["--outcome"];
@@ -302,10 +323,17 @@ function recordOutcome(values) {
   }
   const nowIso = new Date().toISOString();
   let runId = path.basename(runDir);
+  // Captured from inside the lock callback — the actual resulting owner.status after the
+  // drain-gated flip (FAFF-1024), never assumed "done". mutateLedgerUnderLock returns only
+  // {written, yielded, before_sha256, after_sha256} — not the mutated ledger — so this is the
+  // only place the post-mutation status is observable.
+  let resultingOwnerStatus = null;
   const res = mutateLedgerUnderLock(runDir, (fresh) => {
     if (!fresh || typeof fresh !== "object") return null; // vanished/malformed → abort (no write)
     if (typeof fresh.run_id === "string") runId = fresh.run_id;
-    return applyTerminalOutcome(fresh, issue, outcome, nowIso);
+    const next = applyTerminalOutcome(fresh, issue, outcome, nowIso);
+    resultingOwnerStatus = next && next.owner && next.owner.status;
+    return next;
   });
   if (!res.written) {
     process.stderr.write(`faff run-ledger record-outcome: could not write ${path.join(runDir, "run-ledger.json")} (missing/locked/malformed)\n`);
@@ -321,9 +349,9 @@ function recordOutcome(values) {
     }
   }
   if (values["--json"]) {
-    process.stdout.write(JSON.stringify({ recorded: true, run_id: runId, run_dir: runDir, issue, outcome, owner_status: "done", ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
+    process.stdout.write(JSON.stringify({ recorded: true, run_id: runId, run_dir: runDir, issue, outcome, owner_status: resultingOwnerStatus, ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
   } else {
-    process.stdout.write(`recorded ${issue}=${outcome} (owner done) in ${runDir}\n`);
+    process.stdout.write(`recorded ${issue}=${outcome} (owner ${resultingOwnerStatus}) in ${runDir}\n`);
   }
   return 0;
 }
@@ -359,6 +387,32 @@ function runLedgerSelftest() {
   ok("terminal write keeps admitted intact (completeness: admitted ⊆ outcomes.keys)", term.admitted.every((i) => i in term.outcomes));
   const parkedTerm = applyTerminalOutcome({ admitted: ["X"], outcomes: {}, owner: { status: "running" } }, "X", "parked", nowIso);
   ok("terminal write works for a non-shipped terminal (parked)", parkedTerm.outcomes["X"] === "parked" && parkedTerm.owner.status === "done");
+
+  // --- FAFF-1024: drain-gated owner-flip on a multi-issue (L4-style) ledger ---
+  const midDrain = applyTerminalOutcome({ admitted: ["A", "B"], outcomes: {}, owner: { status: "running" } }, "A", "shipped", "2026-08-11T02:00:00.000Z");
+  ok("multi-issue first outcome: outcomes[A] recorded", midDrain.outcomes["A"] === "shipped");
+  ok("multi-issue first outcome: owner stays running (NOT drained — B is still queued)", midDrain.owner.status === "running");
+  ok("multi-issue first outcome: last_heartbeat still refreshed (proof of life)", midDrain.owner.last_heartbeat === "2026-08-11T02:00:00.000Z");
+
+  const fullDrain = applyTerminalOutcome({ admitted: ["A", "B"], outcomes: { A: "shipped" }, owner: { status: "running" } }, "B", "shipped", "2026-08-11T03:00:00.000Z");
+  ok("multi-issue last outcome: outcomes[B] recorded", fullDrain.outcomes["B"] === "shipped");
+  ok("multi-issue last outcome: owner flips to done (queue now drained)", fullDrain.owner.status === "done");
+
+  const preexistingStatus = applyTerminalOutcome({ admitted: ["A", "B"], outcomes: {}, owner: { status: "paused" } }, "A", "shipped", nowIso);
+  ok("non-draining write leaves a pre-existing owner.status untouched (never invented)", preexistingStatus.owner.status === "paused");
+
+  const dupedAdmitted = applyTerminalOutcome({ admitted: ["A", "A", "B"], outcomes: {}, owner: { status: "running" } }, "A", "shipped", nowIso);
+  ok("duplicate admitted entry does not miscount drain state (still running — B outstanding)", dupedAdmitted.owner.status === "running");
+  const dupedAdmittedDrained = applyTerminalOutcome({ admitted: ["A", "A", "B"], outcomes: { A: "shipped" }, owner: { status: "running" } }, "B", "shipped", nowIso);
+  ok("duplicate admitted entry: draining the deduped set flips owner to done", dupedAdmittedDrained.owner.status === "done");
+
+  // --- FAFF-1024 (adversarial finding): an admitted id colliding with an inherited
+  // Object.prototype key must NOT read as already-dispatched via the `in` operator's
+  // prototype-chain walk — own-key check only (Object.hasOwn).
+  const protoCollision = applyTerminalOutcome({ admitted: ["A", "constructor"], outcomes: {}, owner: { status: "running" } }, "A", "shipped", nowIso);
+  ok("admitted id 'constructor' (Object.prototype key) is NOT treated as already-dispatched — owner stays running", protoCollision.owner.status === "running");
+  const protoCollisionDrained = applyTerminalOutcome({ admitted: ["A", "constructor"], outcomes: { A: "shipped" }, owner: { status: "running" } }, "constructor", "shipped", nowIso);
+  ok("recording the 'constructor' id itself correctly drains the queue", protoCollisionDrained.owner.status === "done" && Object.hasOwn(protoCollisionDrained.outcomes, "constructor"));
 
   // --- real mint into a tmp dir → genesis chain verifies (basename==run_id ⇒ prev=SHA256(run_id)) ---
   let tmp = null;

@@ -248,6 +248,53 @@ test("terminal-state matrix: a genuinely abandoned mid-build leaves owner.status
   rmSync(root, { recursive: true, force: true });
 });
 
+// --- FAFF-1024: the CLI `record-outcome --json` reporting path over a REAL multi-issue drain ---
+// (raised by adversarial review as an uncovered path — the pure-function selftest asserted the
+// drain-gated owner-flip, but not that the CLI's own --json/bare reporting surfaces the actual
+// resulting status rather than a stale hardcoded "done"). `init-interactive` only ever mints a
+// single-issue ledger, so a second admitted id is hand-appended post-mint — the CLI/lock path
+// itself is otherwise exercised exactly as beep-boop's L4 drain would.
+test("FAFF-1024 CLI: record-outcome --json on a multi-issue drain reports the ACTUAL owner_status at each step (integration smoke test, spec §5)", () => {
+  const root = mkTmp("faff-761-root-");
+  const runDir = mint(root, "A");
+  const ledPath = path.join(runDir, "run-ledger.json");
+  const led = JSON.parse(readFileSync(ledPath, "utf8"));
+  led.admitted = ["A", "B"];
+  writeFileSync(ledPath, JSON.stringify(led));
+
+  const rA = runCli(["run-ledger", "record-outcome", "--issue", "A", "--outcome", "shipped", "--run-dir", runDir, "--json"], { env: cleanEnv() });
+  assert.equal(rA.code, 0, rA.stderr);
+  const outA = JSON.parse(rA.stdout);
+  assert.equal(outA.owner_status, "running", "first of two: NOT drained — owner_status must NOT be hardcoded 'done'");
+  const ledAfterA = JSON.parse(readFileSync(ledPath, "utf8"));
+  assert.equal(ledAfterA.owner.status, "running", "on-disk ledger agrees with the reported JSON");
+
+  const rB = runCli(["run-ledger", "record-outcome", "--issue", "B", "--outcome", "shipped", "--run-dir", runDir, "--json"], { env: cleanEnv() });
+  assert.equal(rB.code, 0, rB.stderr);
+  const outB = JSON.parse(rB.stdout);
+  assert.equal(outB.owner_status, "done", "second of two: drained — owner_status flips to done");
+  const ledAfterB = JSON.parse(readFileSync(ledPath, "utf8"));
+  assert.equal(ledAfterB.owner.status, "done", "on-disk ledger agrees with the reported JSON");
+
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("FAFF-1024 CLI: record-outcome bare-mode (no --json) reports the ACTUAL owner status, not a hardcoded 'done'", () => {
+  const root = mkTmp("faff-761-root-");
+  const runDir = mint(root, "A");
+  const ledPath = path.join(runDir, "run-ledger.json");
+  const led = JSON.parse(readFileSync(ledPath, "utf8"));
+  led.admitted = ["A", "B"];
+  writeFileSync(ledPath, JSON.stringify(led));
+
+  const rA = runCli(["run-ledger", "record-outcome", "--issue", "A", "--outcome", "shipped", "--run-dir", runDir], { env: cleanEnv() });
+  assert.equal(rA.code, 0, rA.stderr);
+  assert.match(rA.stdout, /\(owner running\)/, "bare-mode line must report the actual (non-drained) status");
+  assert.doesNotMatch(rA.stdout, /\(owner done\)/, "must not hardcode done while B is still outstanding");
+
+  rmSync(root, { recursive: true, force: true });
+});
+
 // --- CLI-level trust guard (infosec) ---
 
 function seedLiveRun(root, runId, level, status) {

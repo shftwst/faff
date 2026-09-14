@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1024",
+  "build": {
+    "status": "complete",
+    "diff_hash": "68ff03591aa5223fb9eac987906eefb5c08a4e04d7805989a997d69d6bfaf32f",
+    "branch": "faff-1024-record-outcome-terminates-a-live-multi-issue-l4-drain-owner",
+    "pushed_at": "2026-09-13T17:05:11.602Z"
+  },
+  "updated_at": "2026-09-13T17:05:11.602Z"
+}

@@ -1,6 +1,6 @@
 # ADR 0128 — Repo-convention discovery as a deterministic CLI + contract
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-09-13
 - **Issue:** FAFF-1041

@@ -1,6 +1,6 @@
 # ADR 0129 — Convention resolution precedence: explicit config over standards doc over history-inferred over faff default
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-09-13
 - **Issue:** FAFF-1041

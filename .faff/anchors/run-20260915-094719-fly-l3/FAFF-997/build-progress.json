@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-997",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c2a71c69ac4e3159876e2fb29cdc90fa92281735a1cdc8ba956485ea86cb817e",
+    "branch": "faff-997-regions-selftest-driver-discards-a-failing-members-output-ci",
+    "pushed_at": "2026-09-15T13:09:56.470Z"
+  },
+  "updated_at": "2026-09-15T13:09:56.470Z"
+}

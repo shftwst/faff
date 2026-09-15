@@ -97,7 +97,7 @@ backends:
   spark-qwen-3-8:
       provider: openai
       model: unsloth/Qwen3.8-27B-NVFP4
-      context_window: 131072
+      context_window: 262144
       host: https://spark.longhair-escalator.ts.net/qwen-3-8/v1
       api_key_env: LOCAL_API_KEY
       first_byte_timeout: 180

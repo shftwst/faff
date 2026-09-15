@@ -57,6 +57,6 @@ The single canonical definition of the **type-appropriate templates** that `/faf
 - Override filename for an unknown type (`.faff-templates/foo.md`) → ignored; only the recognised type filenames + `default` are consulted.
 - **plot** container nodes (`shape-level` = `initiative` / `project`, or any node with children) resolve to the `epic` template; buildable first-slice nodes infer their own type per node.
 - **Git-only mode:** the fill step runs identically and the structured description is written into the `.faff/intake/…` file jot/plot already use; override files at `.faff-templates/` are read the same way.
-- Existing create-path behaviour is otherwise unchanged — the fill step only restructures the *description body*; the `faff-jot-intake` tag, blocker/blocked-by links, `Backlog` status, and plot's `planned by /faff-plot` provenance line all still apply.
+- Existing create-path behaviour is otherwise unchanged — the fill step only restructures the *description body*; blocker/blocked-by links, `Backlog` status, and plot's `planned by /faff-plot` provenance line all still apply.
 
 **Out-of-scope seams (documented, not built here):** the native-template resolution slot (idea G); persisting type as a `faff-type-<type>` control label (a later ticket, via **Control-label provisioning**, reading the type the fill step already determined); and a configurable `tracking.templates_path` key (mirroring `spec_docs_path` — a clean follow-up that touches the CLI allowlist).

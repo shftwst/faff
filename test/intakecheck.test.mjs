@@ -1,7 +1,7 @@
 // FAFF-212 — `faff intakecheck` / `faff intake-record`: the intake-provenance guard
 // that makes "new work entered through /faff-jot" a deterministic, checkable fact
-// (CLI-written .faff/provenance/<ISSUE>.json marker + grandfather-label bridge) rather
-// than the spoofable faff-jot-intake label (the FAFF-209 bypass). Mirrors prepcheck:
+// (the CLI-written .faff/provenance/<ISSUE>.json marker) rather than a spoofable
+// agent-applied label (the FAFF-209 bypass; bridge retired in FAFF-1043). Mirrors prepcheck:
 // drives the real entrypoint against fixture roots; PURE (zero tracker/network calls).
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -54,13 +54,13 @@ test("a recorded jot marker satisfies the guard (basis jot, no warn, exit 0)", (
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("legacy faff-jot-intake label, no marker, block → grandfathered + warn, exit 0 (legacy not bricked)", () => {
+test("FAFF-1043: the retired jot-intake label is inert — satisfies nothing on its own", () => {
   const root = rootWith({ gate: "block" });
   try {
     const r = run("intakecheck", "FAFF-1", "--labels", "faff-jot-intake", "--root", root);
-    assert.equal(r.code, 0, "grandfathered legacy ticket passes during migration");
-    assert.match(r.out, /grandfathered-label/);
-    assert.match(r.out, /\[warn\]/);
+    assert.equal(r.code, 3, "the retired label is not a provenance basis");
+    assert.match(r.out, /no-provenance/);
+    assert.doesNotMatch(r.out, /grandfathered-label/, "the basis token is gone with the branch");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -100,10 +100,17 @@ test("a malformed marker is treated as absent + warn, never crashes", () => {
     const r = run("intakecheck", "FAFF-1", "--labels", "", "--root", root);
     assert.equal(r.code, 3, "malformed gates as absent (block), does not crash");
     assert.match(r.out, /no genuine intake provenance/);
-    // and with the grandfather label it still passes (with warn)
-    const r2 = run("intakecheck", "FAFF-1", "--labels", "faff-jot-intake", "--root", root);
-    assert.equal(r2.code, 0);
-    assert.match(r2.out, /grandfathered-label/);
+
+    // ...and the `+ warn` half: when another basis DOES satisfy, the malformed marker still
+    // surfaces loudly rather than passing silently. FAFF-1043 retired the label this half used
+    // to ride on, so it rides the surviving eligibility-gesture basis instead. This is the only
+    // coverage of the malformed-warn pair in intake-provenance.js (`out.warn` / the `[warn]`
+    // branch) — without it that pair is reachable but untested.
+    const r2 = run("intakecheck", "FAFF-1", "--labels", "faff-automate", "--root", root);
+    assert.equal(r2.code, 0, "eligibility-gesture satisfies even with a malformed marker");
+    assert.match(r2.out, /\[warn\]/, "a malformed marker is never silent");
+    assert.match(r2.out, /marker malformed/);
+    assert.match(r2.out, /eligibility-gesture/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -330,13 +337,13 @@ test("AC: precedence — a recorded marker still wins over the eligibility-gestu
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("AC: precedence — grandfathered-label (and its warn) wins over eligibility-gesture", () => {
+test("FAFF-1043: retired label + automate resolves eligibility-gesture, with no spurious warn", () => {
   const root = rootWith({ gate: "block" });
   try {
     const r = run("intakecheck", "FAFF-1", "--labels", "faff-jot-intake,faff-automate", "--root", root);
     assert.equal(r.code, 0);
-    assert.match(r.out, /grandfathered-label/, "grandfathered-label > eligibility-gesture — migration warn preserved");
-    assert.match(r.out, /\[warn\]/);
+    assert.match(r.out, /eligibility-gesture/, "the bridge no longer outranks the human gesture");
+    assert.doesNotMatch(r.out, /\[warn\]/, "the migration warn went with the bridge");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

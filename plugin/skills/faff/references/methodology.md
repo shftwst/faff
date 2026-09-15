@@ -22,7 +22,7 @@ neither                      → (automation_default == "opt-out" AND tracker ab
 
 Precedence: **hard-exclude > include > default.** Any `automation_default` value other than `opt-out` coerces to opt-in (fail-safe); `opt-out` itself coerces to opt-in whenever a tracker is present (so the only way it opens the surface is git-only). An omitted/garbage `--tracker` fails safe to *present* (opt-out inert).
 
-> **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automate`, `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
+> **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automate`, `faff-automation-hold`, `faff-parked`, `faff-claimed`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
 
 **Two-tier, not invisible — the key difference from cancelled/archived.** Cancelled/archived items are invisible everywhere. Not-automation-eligible items are the opposite on the read side: they remain **fully visible** to read/report skills (`/faff-wtf`, `/faff-map`, counts, diagnostics) — they are only **skipped by autonomous action**.
 

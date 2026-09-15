@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1043",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4ce7ef2dc45163559ad246ef1dcc052c078d82ea8e38a18ee424047e1e419ad5",
+    "branch": "faff-1043-retire-the-faff-jot-intake-grandfather-bridge-and-decide-the",
+    "pushed_at": "2026-09-14T13:55:51.591Z"
+  },
+  "updated_at": "2026-09-14T13:55:51.591Z"
+}

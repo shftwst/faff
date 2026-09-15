@@ -118,7 +118,7 @@ const DEFAULTS = {
   // FAFF-536: the self-hosting core-defect intake lane. Default false ⇒ the lane is off and the
   // filing chokepoint is byte-identical to today (an outward item is always outward-new-root). Set
   // true ONLY in the self-hosting repo (faff building faff) to let a concrete same-tracker-team
-  // outward defect reclassify as `outward-self-intake` and file to the Backlog `faff-jot-intake`
+  // outward defect reclassify as `outward-self-intake` and file to the Backlog self-intake lane
   // bucket — a NEW classification computed at the chokepoint, never a floor edit (ADR-0079). Both
   // this opt-in AND the same-team structural check must hold; each is fail-closed to outward-new-root.
   "containment.self_hosting_intake": "false",

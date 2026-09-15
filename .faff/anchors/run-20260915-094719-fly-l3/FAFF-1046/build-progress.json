@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1046",
+  "build": {
+    "status": "complete",
+    "diff_hash": "591a1c5058a8a38d19fad3c8751b1e2715410158b55543bdcafed24513772dba",
+    "branch": "faff-1046-cisandbox-image-missing-jq-breaks-5-impure-worktree-tests",
+    "pushed_at": "2026-09-15T13:41:07.086Z"
+  },
+  "updated_at": "2026-09-15T13:41:07.086Z"
+}

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.33.0](https://github.com/shftwst/faff/compare/faff--v0.32.0...faff--v0.33.0) (2026-09-15)
+
+
+### Features
+
+* **FAFF-1039:** size the review payload to the primary backend's context window ([#892](https://github.com/shftwst/faff/issues/892)) ([ae38041](https://github.com/shftwst/faff/commit/ae38041b8c9d5962217676d96e5daaf02e5cd738))
+* **FAFF-1042:** make superseded ADRs relocatable to a superseded/ dir ([#888](https://github.com/shftwst/faff/issues/888)) ([7c2c2af](https://github.com/shftwst/faff/commit/7c2c2af88a8895cf09bdebc9065d641b35622e8d))
+* **FAFF-1044:** make the control-label prefix configurable ([#882](https://github.com/shftwst/faff/issues/882)) ([2962fd3](https://github.com/shftwst/faff/commit/2962fd3fefae9f70a649dce0d3ff4455ee60a6a1))
+
+
+### Bug Fixes
+
+* **FAFF-1024:** drain-gate the run-ledger owner-flip on record-outcome ([#883](https://github.com/shftwst/faff/issues/883)) ([39a3f0b](https://github.com/shftwst/faff/commit/39a3f0bd876907ac7dc5bb257f20d581c2ccd8c4))
+* **FAFF-1029:** fold same-turn Stop firings to one observation ([#886](https://github.com/shftwst/faff/issues/886)) ([9aca33a](https://github.com/shftwst/faff/commit/9aca33a0afba0499996d42dfb6b6582cd2617238))
+* **FAFF-1035:** bound every CI job with timeout-minutes and guard the omission ([#884](https://github.com/shftwst/faff/issues/884)) ([d1c449d](https://github.com/shftwst/faff/commit/d1c449d70a447f87bcf532c210efd5680c09d4ba))
+* **FAFF-1038:** keep the validate-macos test-count guard reachable when node dies before the TAP summary ([#889](https://github.com/shftwst/faff/issues/889)) ([86c66db](https://github.com/shftwst/faff/commit/86c66db2ff0101e100c0bc1866c9a725651962bb))
+
 ## [0.32.0](https://github.com/shftwst/faff/compare/faff--v0.31.0...faff--v0.32.0) (2026-09-13)
 
 

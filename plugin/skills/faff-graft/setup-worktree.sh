@@ -21,13 +21,15 @@ if [ "$#" -ge 1 ]; then
   CWD="${2:-$(pwd)}"
 else
   # Hook mode — JSON on stdin, parsed with the Node runtime (Claude Code guarantees the shape).
-  # FAFF-1046: each extraction reproduces the previous `.<field> // empty` semantics — a null/absent
-  # field yields the empty string (caught by the guard below); malformed stdin makes node exit
-  # non-zero, so under `set -euo pipefail` the command substitution fails and the script aborts,
-  # the same terminal outcome as before. node is already required here, so no dependency is added.
+  # FAFF-1046: each extraction reproduces the previous `.<field> // empty` semantics exactly — a
+  # null, absent, or false field yields the empty string (caught by the guard below), a string
+  # passes through unchanged, and any other JSON type is serialised; so an out-of-contract
+  # non-string field stays as fail-loud as before rather than silently provisioning. Malformed
+  # stdin makes node exit non-zero, so under `set -euo pipefail` the command substitution fails
+  # and the script aborts — same terminal outcome as before. node is already required here.
   INPUT=$(cat)
-  NAME=$(printf '%s' "$INPUT" | node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")).name; process.stdout.write(v==null?"":String(v))')
-  CWD=$(printf '%s' "$INPUT" | node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")).cwd; process.stdout.write(v==null?"":String(v))')
+  NAME=$(printf '%s' "$INPUT" | node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")).name; process.stdout.write(v==null||v===false?"":typeof v==="string"?v:JSON.stringify(v))')
+  CWD=$(printf '%s' "$INPUT" | node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")).cwd; process.stdout.write(v==null||v===false?"":typeof v==="string"?v:JSON.stringify(v))')
 fi
 
 if [ -z "$NAME" ] || [ -z "$CWD" ]; then

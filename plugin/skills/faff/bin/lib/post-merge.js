@@ -77,7 +77,7 @@ function postMergeCheckEnabled(root) {
 // need to reason about it — spec-review build note) → classify → ALWAYS remove the worktree
 // (FINALLY, success or failure) → persist the artifact. Returns the PostMergeVerification record
 // plus the CLI exit code the caller (cmdPostMergeCheck) surfaces verbatim.
-function verifyPostMerge({ issue, pr, runDir, shaOverride, root }) {
+async function verifyPostMerge({ issue, pr, runDir, shaOverride, root }) {
   const repoRoot = root || findRoot();
   const merge_sha = shaOverride || readMergeSha(runDir, issue);
   if (!merge_sha) {
@@ -105,7 +105,7 @@ function verifyPostMerge({ issue, pr, runDir, shaOverride, root }) {
         verdict = "unverified";
         basis = `git worktree add --detach failed: ${((added.stderr || "") + (added.stdout || "")).trim().slice(-300)}`;
       } else {
-        const result = runRung(unitRung, tmp);
+        const result = await runRung(unitRung, tmp);
         if (result.status === "pass") { verdict = "verified-ok"; basis = `${command} exit 0`; }
         else if (result.status === "fail") { verdict = "verified-fail"; basis = `${command} failed: ${result.detail}`; }
         else { verdict = "unverified"; basis = `${command} errored: ${result.detail}`; }
@@ -143,7 +143,7 @@ const POST_MERGE_SPEC = { flags: {
   "--issue": { arity: 1 }, "--pr": { arity: 1 }, "--run-dir": { arity: 1 }, "--sha": { arity: 1 }, "--root": { arity: 1 },
 } };
 
-function cmdPostMergeCheck(args) {
+async function cmdPostMergeCheck(args) {
   if (args.includes("--selftest")) return postMergeSelftest();
   const { values, errors } = parseArgs(args, POST_MERGE_SPEC);
   if (errors.length) return usageError(errors, "faff post-merge-check: usage: --issue ID --pr N --run-dir DIR [--sha SHA] [--json]");
@@ -160,7 +160,7 @@ function cmdPostMergeCheck(args) {
     return 2;
   }
 
-  const { record, exit, failLoud } = verifyPostMerge({ issue, pr, runDir, shaOverride, root });
+  const { record, exit, failLoud } = await verifyPostMerge({ issue, pr, runDir, shaOverride, root });
   if (failLoud) {
     process.stderr.write(`faff post-merge-check: fail-loud: ${failLoud}\n`);
     return 2;
@@ -174,7 +174,7 @@ function cmdPostMergeCheck(args) {
   return exit;
 }
 
-function postMergeSelftest() {
+async function postMergeSelftest() {
   const cases = [];
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-post-merge-selftest-"));
 
@@ -221,7 +221,7 @@ function postMergeSelftest() {
 
   // 2. verified-ok path (against the green sha, via --sha override — no merge-record.json needed).
   const worktreesBefore = git(repo, "worktree", "list").stdout;
-  const okResult = verifyPostMerge({ issue: "FAFF-1", pr: 1, runDir, shaOverride: greenSha, root: repo });
+  const okResult = await verifyPostMerge({ issue: "FAFF-1", pr: 1, runDir, shaOverride: greenSha, root: repo });
   cases.push(["verified-ok: exit 0", okResult.exit === 0]);
   cases.push(["verified-ok: verdict", okResult.record.verdict === "verified-ok"]);
   cases.push(["verified-ok: command captured", okResult.record.command === "npm run test"]);
@@ -230,7 +230,7 @@ function postMergeSelftest() {
   cases.push(["verified-ok: ephemeral worktree cleaned up (no leftover)", worktreesAfterOk === worktreesBefore]);
 
   // 3. verified-fail path (against the red sha).
-  const failResult = verifyPostMerge({ issue: "FAFF-2", pr: 2, runDir, shaOverride: redSha, root: repo });
+  const failResult = await verifyPostMerge({ issue: "FAFF-2", pr: 2, runDir, shaOverride: redSha, root: repo });
   cases.push(["verified-fail: exit 1", failResult.exit === 1]);
   cases.push(["verified-fail: verdict", failResult.record.verdict === "verified-fail"]);
   cases.push(["verified-fail: discovered_scope_ref left null (graft's job, not the CLI's)", failResult.record.discovered_scope_ref === null]);
@@ -238,7 +238,7 @@ function postMergeSelftest() {
   cases.push(["verified-fail: ephemeral worktree cleaned up even on a failing rung", worktreesAfterFail === worktreesBefore]);
 
   // 4. unverified path — no UNIT rung discoverable at all (a separate repo with no declared checks).
-  const noRungResult = verifyPostMerge({ issue: "FAFF-3", pr: 3, runDir, shaOverride: noRungSha, root: repoNoRung });
+  const noRungResult = await verifyPostMerge({ issue: "FAFF-3", pr: 3, runDir, shaOverride: noRungSha, root: repoNoRung });
   cases.push(["unverified (no rung): exit 3", noRungResult.exit === 3]);
   cases.push(["unverified (no rung): verdict", noRungResult.record.verdict === "unverified"]);
   cases.push(["unverified (no rung): command null", noRungResult.record.command === null]);
@@ -247,19 +247,19 @@ function postMergeSelftest() {
   fs.mkdirSync(path.join(runDir, "FAFF-4"), { recursive: true });
   fs.writeFileSync(path.join(runDir, "FAFF-4", "merge-record.json"), JSON.stringify({ pr: 4, head_sha: greenSha, merged: true }));
   cases.push(["readMergeSha: reads merge-record.json's head_sha", readMergeSha(runDir, "FAFF-4") === greenSha]);
-  const viaRecord = verifyPostMerge({ issue: "FAFF-4", pr: 4, runDir, root: repo });
+  const viaRecord = await verifyPostMerge({ issue: "FAFF-4", pr: 4, runDir, root: repo });
   cases.push(["verified via merge-record.json (no --sha): exit 0", viaRecord.exit === 0]);
 
   // 6. fail-loud: no --sha and no merge-record.json → cannot resolve.
-  const noSha = verifyPostMerge({ issue: "FAFF-5", pr: 5, runDir, root: repo });
+  const noSha = await verifyPostMerge({ issue: "FAFF-5", pr: 5, runDir, root: repo });
   cases.push(["fail-loud: unresolvable sha", !!noSha.failLoud]);
 
   // 7. cmdPostMergeCheck usage exit 2 (missing required flags).
-  const usageExit = cmdPostMergeCheck(["--issue", "FAFF-1"]);
+  const usageExit = await cmdPostMergeCheck(["--issue", "FAFF-1"]);
   cases.push(["cmd: missing --run-dir/--pr → exit 2 usage", usageExit === 2]);
 
   // 8. cmdPostMergeCheck full path --json (green sha, via merge-record.json already written above).
-  const cmdExit = cmdPostMergeCheck(["--issue", "FAFF-4", "--pr", "4", "--run-dir", runDir, "--root", repo, "--json"]);
+  const cmdExit = await cmdPostMergeCheck(["--issue", "FAFF-4", "--pr", "4", "--run-dir", runDir, "--root", repo, "--json"]);
   cases.push(["cmd: full invocation via CLI → exit 0", cmdExit === 0]);
 
   // 9. postMergeCheckEnabled: default on (no config) — fail-safe true.

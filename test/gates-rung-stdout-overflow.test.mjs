@@ -24,28 +24,28 @@ test("MAX_RUNG_STDOUT_BYTES is a finite 64 MiB ceiling (never Infinity — bound
   assert.ok(Number.isFinite(MAX_RUNG_STDOUT_BYTES));
 });
 
-test("a rung emitting well over 1 MB of stdout and exiting 0 classifies pass, not errored", () => {
+test("a rung emitting well over 1 MB of stdout and exiting 0 classifies pass, not errored", async () => {
   // ~2.4 MB — comfortably over Node's 1 MB spawnSync default, comfortably under the 64 MiB ceiling.
   const cmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n')\"";
-  const r = runRung({ kind: "UNIT", name: "noisy pass", command: cmd }, tmpRoot);
+  const r = await runRung({ kind: "UNIT", name: "noisy pass", command: cmd }, tmpRoot);
   assert.equal(r.status, "pass");
   assert.equal(r.reason, undefined);
 });
 
-test("a rung emitting well over 1 MB of stdout and exiting non-zero classifies fail, not errored", () => {
+test("a rung emitting well over 1 MB of stdout and exiting non-zero classifies fail, not errored", async () => {
   const cmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n');process.exit(1)\"";
-  const r = runRung({ kind: "UNIT", name: "noisy fail", command: cmd }, tmpRoot);
+  const r = await runRung({ kind: "UNIT", name: "noisy fail", command: cmd }, tmpRoot);
   assert.equal(r.status, "fail");
   assert.equal(r.reason, undefined);
 });
 
-test("a command-not-found rung (exit 127) still classifies errored, unaffected by the overflow fix", () => {
-  const r = runRung({ kind: "LINT", name: "missing", command: "this-command-does-not-exist-xyz" }, tmpRoot);
+test("a command-not-found rung (exit 127) still classifies errored, unaffected by the overflow fix", async () => {
+  const r = await runRung({ kind: "LINT", name: "missing", command: "this-command-does-not-exist-xyz" }, tmpRoot);
   assert.equal(r.status, "errored");
   assert.equal(r.reason, undefined);
 });
 
-test("a rung whose stdout exceeds the 64 MiB ceiling is killed (ENOBUFS) and classifies errored with a distinct overflow reason + detail", () => {
+test("a rung whose stdout exceeds the 64 MiB ceiling is killed (ENOBUFS) and classifies errored with a distinct overflow reason + detail", async () => {
   // Write ~70 MiB in one burst — past MAX_RUNG_STDOUT_BYTES, so Node kills the child before it can
   // exit (res.status becomes null) and sets res.error.code === "ENOBUFS". This is the one case that
   // must generate real bytes past the production ceiling, so it is deliberately isolated to this
@@ -55,17 +55,17 @@ test("a rung whose stdout exceeds the 64 MiB ceiling is killed (ENOBUFS) and cla
   // in gatesSelftest), and faff's CI matrix (validate + validate-macos) never runs Windows.
   const bytes = 70 * 1024 * 1024;
   const cmd = `yes | head -c ${bytes}`;
-  const r = runRung({ kind: "UNIT", name: "over-ceiling", command: cmd }, tmpRoot);
+  const r = await runRung({ kind: "UNIT", name: "over-ceiling", command: cmd }, tmpRoot);
   assert.equal(r.status, "errored");
   assert.equal(r.reason, "stdout-overflow");
   assert.match(r.detail, /exceeded the 64 MiB per-stream ceiling/);
 });
 
-test("a genuine spawn timeout (ETIMEDOUT) is unaffected — stays errored with reason timed-out, never stdout-overflow", () => {
+test("a genuine spawn timeout (ETIMEDOUT) is unaffected — stays errored with reason timed-out, never stdout-overflow", async () => {
   const configDir = path.join(tmpRoot, "timeout-fixture");
   fs.mkdirSync(configDir, { recursive: true });
   fs.writeFileSync(path.join(configDir, ".faffrc.yaml"), "gates:\n  rung_timeout_ms: 500\n");
-  const r = runRung({ kind: "UNIT", name: "sleeper", command: "sleep 5" }, configDir);
+  const r = await runRung({ kind: "UNIT", name: "sleeper", command: "sleep 5" }, configDir);
   assert.equal(r.status, "errored");
   assert.equal(r.reason, "timed-out");
 });

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1028",
+  "run_id": "run-20260915-094719-fly-l3",
+  "built_spec_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "spec_blob": null,
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": null,
+  "outcome": "no-judge",
+  "lenses": [
+    "QA",
+    "architectural",
+    "infosec"
+  ],
+  "witness_sha": "a17e29a36f9d9fbc269785328bc5e6dcd236b0315b30409ca2fa7e291602aaa7"
+}

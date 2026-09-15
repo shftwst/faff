@@ -1,0 +1,47 @@
+[
+  {
+    "claim": "govern checks served_identity-absent -> exit 2 BEFORE the pin==null unpinnable-reset branch, so a FAFF-996 recurrence (occupant serves but dies before capture, no served-<n>.json) hits exit 2 instead of the promised unpinnable-reset fail-safe; prep has no defined disposition for a non-zero govern exit",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "served-<n>.json moves a value already derivable from --winner-index/--backends-json; a required-arg design (--served on --any-served) would avoid the new sidecar and its exit-2-on-missing fault",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "no non-holdout scenario pins the round-1-specific round1-capture-missed vs unpinnable distinction at n==1; a build emitting unpinnable at round 1 passes every scenario",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "no scenario exercises the occupant-written served-<n>.json path; every --govern scenario uses the --served override, so a build ignoring served-<n>.json passes all scenarios",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "no scenario exercises a served round where capture failed (empty/unreadable --backends-json) writing {failed} before exit 2, nor governance of a failed-marker unpinnable round",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

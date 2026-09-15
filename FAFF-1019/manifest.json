@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1019",
+  "run_id": "run-20260915-094719-fly-l3",
+  "built_spec_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "spec_blob": null,
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": null,
+  "outcome": "no-judge",
+  "lenses": [
+    "QA",
+    "architectural",
+    "methodology"
+  ],
+  "witness_sha": "3e02f1c49722170db3cf3815cad50012e3518fb5c4fccabfe96fcdfdcdc355b8"
+}

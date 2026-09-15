@@ -1,0 +1,92 @@
+[
+  {
+    "claim": "The spec's entire premise is that `adr.mode: off` gating recording caused `run-20260902-011341-lights-out` to identify two decisions and record zero. But the spec never establishes that run's actual config. Its own problem statement is internally inconsistent: it claims a repo that \"never consciously chose anything\" can silently record nothing — yet on the default config (`adr.mode: offer`), the spec's own model says recording happens. So either the run deliberately set `off` (in which case the \"never consciously chose\" framing is false), or it ran on default config (in which case the coupling was not the cause and the split changes nothing about that run's outcome). The spec asserts \"the premise holds and prep proceeds\" without evidence.",
+    "evidence": "Spec §1: \"a repo that only wanted to soften supersession — or that never consciously chose anything — can silently record nothing\"; \"The motivating failure (`run-20260902-011341-lights-out`: two decisions identified, zero recorded) is live and unaddressed by any Done ticket, so the premise holds and prep proceeds.\" No config of the run is supplied anywhere in the spec.",
+    "predicted_consequence": "The split ships, the DONE \"records on default path\" selftest passes, and the next lights-out run on the same (unexamined) config still records zero — the motivating failure recurs because the real gate (intent-emit, materialisation, or decision-identification) was never the `off` switch. The team discovers the actual cause only after build.",
+    "spec_anchor": "1-why-problem-and-principles",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec says the route's \"input narrowed to the `adr.supersession` domain\" *and* \"the `skip-detection` route is re-homed onto the `adr.record` predicate.\" These cannot both be true of the same pure function: either the route's signature gains `adr.record` (contradicting \"narrowed to the supersession domain\"), or the caller short-circuits on `adr.record: false` before invoking the route (contradicting \"re-homed onto `adr.record`\" inside the route, and silently deleting the `skip-detection` route the spec elsewhere retains). The caller/route boundary is underspecified.",
+    "evidence": "Spec §3, \"Design decision — `adrOfferRoute` shape post-split\": \"input narrowed to the `adr.supersession` domain (`surface`|`offer`); the `skip-detection` route is re-homed onto the `adr.record` predicate (detection-disabled when `adr.record: false`).\"",
+    "predicted_consequence": "The builder must guess which reading is intended; the two readings yield different selftest shapes and different purity boundaries, and the spec's emphasized \"stays PURE\" principle is satisfied under one reading and violated under the other. The DONE item \"skip-detection re-homed onto `adr.record`\" is ambiguous as written.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec's own refresh frames the migration warning as closing the `[major]` infosec objection (\"silent re-arm\" of a deliberately-set `adr.mode: off`). But the chosen mechanism is a `warn`-severity finding with \"check exit code is unchanged (advisory, never a hard fail)\". In any automated pipeline that runs `faff config check` and treats warnings as non-fatal — the normal CI posture — the re-arm is still silent. The \"loud\" signal is loud only to a human reading the output.",
+    "evidence": "Spec §3, migration decision: \"emits a `warn`-severity finding ... naming the replacement keys ... and stating that `adr.mode` is now ignored\"; \"The warning is a `warn` finding, so `config check`'s exit code is unchanged (advisory, never a hard fail).\"",
+    "predicted_consequence": "A repo that deliberately set `adr.mode: off` and runs CI on `config check` re-arms recording with no automated signal; the infosec objection the refresh claims to fold is closed for interactive use only.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec builds an entire fail-loud-at-read discipline around `adr.record` (a new `validateAdrRecord` validator in both the config-get read chain and the config-set write chain, rejecting any non-boolean spelling), but gives `adr.supersession` no parallel validator. The spec's own migration story makes the gap reachable: a user migrating from `adr.mode: off` who naturally writes `adr.supersession: off` (the exact parallel typo the spec worries about for `adr.record`) gets that value read, unvalidated, and passed into `adrOfferRoute`. The spec narrows the route's input to the `surface|offer` domain but never says *where* the narrowing is enforced or what the route does with an out-of-domain value once the legacy `off`/`skip-detection` branch is re-homed onto the `adr.record` predicate. If the route's fall-through defaults to `offer` (the most aggressive supersession posture), a user who believed they disabled supersession silently gets the most aggressive supersession prompts; if it defaults to `surface`/`no-conflict`, supersession is silently weakened. Either way it is a silent behaviour change on the one nearly-destructive axis the spec exists to keep explicit — the same class of silent-coercion surprise the strict-boolean contract closes for `adr.record`, left open for `adr.supersession`.",
+    "evidence": "Spec section 3, \"Design decision — parser-strictness contract for `adr.record`\" (validator added to read chain config.js:~2308 and write chain config.js:~1135, \"rejects any non-boolean `adr.record` loud\"); \"Design decision — `adrOfferRoute` shape post-split\" (\"input ... narrowed to the `adr.supersession` domain (`surface`|`offer`); the `skip-detection` route is re-homed onto the `adr.record` predicate\") — no `validateAdrSupersession` is named anywhere in the validator chain, and the DONE list only asserts `adr.supersession ∈ {surface, offer}` \"is implemented\" without a rejection contract; the anti-pattern \"re-introducing an `off`-style value on the `adr.supersession` dial\" is framed as an implementer warning, not a read-time rejection.",
+    "predicted_consequence": "A repo carrying `adr.supersession: off` (or any typo) passes `faff config get/set adr.supersession` silently, and `adrOfferRoute` routes on an unspecified value — either the most aggressive supersession posture is engaged against the operator's explicit intent, or supersession is silently disabled; neither is signalled, and no selftest in the spec's DONE list asserts the out-of-domain rejection (the `adr --selftest` additions cover default-path-records, opt-out detection-disabled, and hard-floor, but not an invalid `adr.supersession` value).",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE items for Gate 1, Gate 2, Gate 3, and the merged Step 4b gate are stated as prose-content assertions (\"keys off `adr.record`, not `adr.mode == off`\", \"the skip clause reads …\"), but no named test inspects the skill prose. The only named verification is the behavioral smoke test, whose ability to catch a stale prose depends on unspecified behavior of `faff config get adr.mode` after the key's default is removed (config.js:103 flips to `adr.supersession`). The spec never states what reading a removed key returns. If it returns a non-`off` value (or an error that the prose swallows), the smoke test's \"intent comment is written\" assertion passes while the prose still references `adr.mode` — i.e. the build satisfies every scenario and fails the gate DONE items undetected.",
+    "evidence": "DONE items \"Gate 1 (`faff-prep/SKILL.md` ADR tail step): intent-comment emission keys off `adr.record`…\", \"Gate 2 … materialisation precondition uses the recording-enabled predicate\", \"Gate 3 … the skip clause reads 'no intent … OR `adr.record: false`'\", \"Merged Step 4b gate is exactly `record_enabled AND (intent-from-comment OR spec-body-fallback)`\"; smoke step 1 only asserts a comment is written, not that the prose rekeyed.",
+    "predicted_consequence": "\"done\" cannot be decided for the four gate DONE items by any test the spec names; a build that fixes only the CLI and leaves the prose reading `adr.mode` passes the smoke test and ships, and the gate DONE items are only checkable by manual file reading the spec never mandates.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The headline DONE item asserts recording is not suppressed by *any* supersession setting, but the only full-flow test (smoke step 1–2) runs on the default `offer` dial. No named test runs the prep→graft flow under `adr.supersession: surface`. The `adr --selftest` \"default-path records\" assertion exercises only the pure `adrOfferRoute`, not the prose gates that decide whether materialisation happens.",
+    "evidence": "DONE \"On the default config (`adr.record: true`), a build that identifies a significant decision records an ADR in the PR — recording is no longer suppressed by any supersession setting\"; smoke step 1–2 run only on default config.",
+    "predicted_consequence": "a build that records under `offer` but silently suppresses under `surface` (e.g. a stale `if supersession == surface → skip` clause in Gate 2 prose) passes every named test; the \"any supersession setting\" clause is undecidable as written.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "Scenario coverage exercises the autonomous hard floor (route `record`) and the `surface` interactive path (route `surface`), but the default `offer` interactive path — where `offer_supersede` is true and the admit gate applies — has no scenario. The spec's own rationale (\"default `offer`, preserving today's supersession behaviour\") makes this the most important path to pin down.",
+    "evidence": "Scenarios 5 and 6 cover autonomous-full-appetite and `surface`-interactive; no scenario asserts the `offer`-interactive route.",
+    "predicted_consequence": "a regression in the `offer`-interactive route (e.g. `offer_supersede` never true, or the admit gate bypassed) passes all named scenarios and the selftest if the selftest also omits it; the default behaviour is the least-tested surface.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE \"`config check` passes under `adr.record: false` (the ADR-docs-path-writable assertion is carved out)\" has no corresponding scenario — scenario 2 asserts \"no ADR written AND contradiction-detection skipped\" but not the check result; only smoke step 3 covers it. Additionally, \"passes\" is ambiguous: does it mean exit 0, or merely that the writable finding is absent while other findings may remain? The spec elsewhere establishes `config check` has a defined exit code (the migration warning \"does not change the exit code\"), so the carve-out's expected exit code should be stated.",
+    "evidence": "DONE \"`config check` passes under `adr.record: false`\"; scenario 2 omits the check assertion.",
+    "predicted_consequence": "a build that carves out the writable assertion but leaves `config check` exiting non-zero for an unrelated reason (or vice versa) cannot be judged against the DONE item because the expected exit code is unspecified.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The selftest must assert \"default-path records (no legacy `off` skip)\", but the spec simultaneously narrows `adrOfferRoute`'s input to the `adr.supersession` domain (`surface`|`offer`), so `off` is no longer a valid input. The spec never states what `adrOfferRoute` does with an out-of-domain input, nor what the selftest passes to exercise \"no legacy `off` skip\" — if it passes `off` and asserts non-skip, that asserts behavior for an input the spec declares invalid; if it passes `offer`, the assertion is trivially the default-path case and does not guard the regression it names.",
+    "evidence": "DONE \"`adr --selftest` retains the existing routing assertions and adds: default-path records (no legacy `off` skip)…\"; Chosen \"input narrowed to the `adr.supersession` domain\".",
+    "predicted_consequence": "the selftest assertion's pass/fail line cannot be stated concretely until the out-of-domain-input contract is defined; as written, a build could satisfy the DONE item with a vacuous assertion.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "Scenario 3 and smoke step 4 assert `faff config get adr.record` exits 2 for a non-boolean value, but a config containing `adr.record: off` cannot be produced via `faff config set adr.record off` (that write fails by design). The get-side test therefore requires a hand-edited config fixture; the spec never states this, so the test's setup is unspecified and a build could claim the DONE item without a working get-side fixture.",
+    "evidence": "Scenario 3 \"When `faff config get adr.record` (or `faff config set adr.record off`) runs, it fails LOUD (exit 2)\"; DONE \"both `faff config get adr.record` and `faff config set adr.record <value>` exit non-zero\".",
+    "predicted_consequence": "the get-side assertion is not reproducible from the spec's own instructions; the test author must invent a fixture mechanism the spec neither names nor constrains.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

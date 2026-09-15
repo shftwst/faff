@@ -1,0 +1,74 @@
+[
+  {
+    "claim": "Step 4 of the procedure says \"drop commits not attributable to this run.\" A direct-git merge (the incident case) produces a commit whose message is whatever the orchestrator wrote — it does not structurally carry the issue branch name or issue key. The spec's attribution is a message-parsing heuristic it concedes is unreliable (accepted limit B). When attribution fails, the commit is dropped, not faulted. The detector is therefore blind to the very off-ledger merge it was built to detect, whenever the orchestrator's commit message lacks a recognizable issue marker. The failure-modes section says \"prefer under-attribution (a miss) surfaced as a fault,\" but the procedure never implements that distinction: it drops all unattributable commits silently.",
+    "evidence": "§4 HOW, PROCEDURE step 4: \"drop commits not attributable to this run\"; §4 Failure modes: \"prefer under-attribution (a miss) surfaced as a fault over cross-run false positives\"; §1a accepted limit B: \"branch→run attribution on a shared protected branch is heuristic (issue-branch / issue-key).\"",
+    "predicted_consequence": "The field incident recurs: the orchestrator merges via direct git with a commit message that does not contain the issue key or branch name; `reconcile-merges` drops the commit; `any_escape` is false; the Sentry bridge never fires. The spec ships a detector that is structurally blind to its own target case whenever attribution heuristics miss, which is the common case for ad-hoc orchestrator merges.",
+    "spec_anchor": "how-behavior",
+    "lens": "architectural",
+    "severity": "blocker",
+    "contested_source": false
+  },
+  {
+    "claim": "FAFF-1012 auto-declares merge effects with a `pr:<N>` target. When forge enrichment fails, the reconcile sets the landing's target to `commit:<sha>`. The coverage rule uses `effectTargetMatches`, which the spec describes as matching \"the exact `pr:<N>`/`commit:<sha>` target\" — i.e., form-exact, no cross-form matching. So `pr:42` in the ledger does not match `commit:abc123` in the reconcile. A fully governed merge-gate landing is flagged as an escape whenever `gh` is unavailable. This violates the spec's own anti-pattern: \"letting a `gh` enrichment failure trip the kill-switch. Why: it couples run liveness to forge uptime for no detection gain.\"",
+    "evidence": "§3 WHAT, Coverage rule: \"either the exact `pr:<N>`/`commit:<sha>` target, or a `'*'` wildcard\"; §4 HOW, PROCEDURE step 5: \"on gh failure set target `commit:<sha>`, `forge_enriched=false` (NOT a fault)\"; §4 Anti-pattern: \"letting a `gh` enrichment failure trip the kill-switch.\"",
+    "predicted_consequence": "On any `gh` outage during a beep-boop checkpoint, every run that merged through `merge-gate` (the governed path) produces a false `any_escape`, the checkpoint ORs it into `forbidden`, and Sentry fires the kill-switch on a clean, fully-governed run. The spec's own decoupling principle is violated by its own coverage predicate.",
+    "spec_anchor": "how-behavior",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The reconcile faults non-clean when `base_sha` is absent from `run-ledger.json`. Any run minted before this change ships has no `base_sha`. The beep-boop checkpoint runs `reconcile-merges` on every run it supervises and ORs `reconciled == false` into `forbidden`. So the moment the upgrade lands, every in-flight pre-upgrade run becomes non-clean and trips the Sentry kill-switch. The spec labels these \"legacy/ungoverned\" but provides no migration path, no grace period, and no distinction between \"run started before the feature existed\" and \"run is genuinely ungoverned.\"",
+    "evidence": "§3 WHAT, Base anchor recording: \"If `base_sha` is absent (a legacy/ungoverned ledger), the reconcile returns `reconciled:false, fault:'no base anchor'` — non-clean, never a silent clean\"; §4 HOW, Checkpoint wiring: \"A `reconciled == false` (primary-read fault or missing base anchor) is non-clean and logged\" and is ORed into `forbidden`.",
+    "predicted_consequence": "On deploy, every active run that was minted before the upgrade immediately trips the Sentry kill-switch at the next checkpoint, halting work that was clean and in progress. The upgrade itself is the incident.",
+    "spec_anchor": "how-behavior",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "Step 4 of the reconcile procedure says \"drop commits not attributable to this run.\" A commit that lands on the protected branch within `base..head` but whose branch name or commit subject does not match the issue-branch / issue-key heuristic for any admitted issue is silently excluded from `landings`, so it never reaches the coverage check and the run reads clean. This is a fail-open path: the very off-ledger merge the detector exists to catch becomes invisible whenever the attribution heuristic misses. The spec's own Failure-modes section states the intended posture is to \"prefer under-attribution (a miss) **surfaced as a fault** over cross-run false positives,\" but the procedure implements the miss as a silent drop, not a fault. The gap between the stated intent and the procedure is the defect: an off-ledger merge performed from a branch whose name does not carry the issue key (or a squash commit whose subject omits it) is dropped, `reconciled` stays `true`, `any_escape` stays `false`, and the checkpoint bridges a clean reading into Sentry.",
+    "evidence": "§4 HOW, PROCEDURE step 4: \"drop commits not attributable to this run\"; §4 Failure modes, first bullet: \"prefer under-attribution (a miss) surfaced as a fault over cross-run false positives\"; §1a Accepted limit B: \"branch→run attribution on a shared protected branch is heuristic (issue-branch / issue-key).\"",
+    "predicted_consequence": "An off-ledger merge whose branch or commit subject does not match the attribution heuristic is silently excluded from `landings`; `reconcile-merges` returns `reconciled:true, any_escape:false`; the beep-boop checkpoint treats the run as clean and does not trip the kill-switch — the exact fail-open the ticket exists to close, now gated on a heuristic the spec itself calls unreliable.",
+    "spec_anchor": "how-behavior",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec requires `detail` to be \"sanitised (no raw newlines/control chars, truncated)\" and defines sanitisation as \"collapse newlines/control characters to spaces and truncate to a fixed length.\" However, \"a fixed length\" is never given a concrete value, and the spec does not state whether the truncation is by bytes, characters, or graphemes. A PR title or commit subject from a public repository is attacker-influenceable; without a concrete byte cap, an implementation could choose a length that overflows log-line buffers, Sentry event size limits, or terminal rendering, or could truncate multi-byte UTF-8 mid-sequence producing replacement characters that mask the original content. The sanitisation is also applied only to `detail`; the `target` field is faff-derived and not free-text, so the risk is contained to `detail`, but the absence of a concrete bound means the \"truncated\" DONE criterion is unverifiable.",
+    "evidence": "§3 WHAT, `detail` sanitisation paragraph: \"collapse newlines/control characters to spaces and truncate to a fixed length before storing in `detail`\"; §8 DONE From WHAT: \"`detail` is sanitised (no raw newlines/control chars, truncated).\"",
+    "predicted_consequence": "An attacker-influenced PR title longer than the implementation's chosen (unspecified) truncation length could overflow downstream log/Sentry buffers or produce mid-UTF-8 truncation; the DONE criterion \"truncated\" is not checkable without a concrete bound.",
+    "spec_anchor": "what-vocabulary-types-and-interfaces",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The procedure (HOW step 4) says \"drop commits not attributable to this run,\" but the Failure-modes section says the design \"prefer[s] under-attribution (a miss) surfaced as a fault over cross-run false positives.\" These are contradictory: \"drop\" means the commit vanishes from `uncovered` (silent miss); \"surfaced as a fault\" implies it appears somewhere the operator can see it. No scenario exercises a landing that is on the protected branch within `base..head` but not attributable to any admitted issue, and no DONE criterion states what `ReconcileResult` looks like in that case. A builder cannot tell whether an unattributable landing should produce `reconciled:false` (fault set), an `uncovered` entry with `issue:null`, or be silently dropped.",
+    "evidence": "HOW step 4 (\"drop commits not attributable to this run\") vs. Failure-modes bullet 1 (\"prefer under-attribution (a miss) surfaced as a fault over cross-run false positives\"). No scenario covers this case. No DONE criterion in \"From HOW (behaviour)\" or \"From HOW (edge cases)\" addresses it.",
+    "predicted_consequence": "Two builds that both satisfy every named AC will diverge: one silently drops the unattributable commit (matching step 4's \"drop\"), the other sets `fault` or adds an `uncovered` entry (matching \"surfaced as a fault\"). The QA test for \"a concurrent run's landing is not flagged\" (scenario 3) passes in both, but the operator-facing behaviour for a genuinely ambiguous landing is undecidable. The integration smoke test (step 2: \"Land a commit … attributable to that issue\") only tests the attributable case.",
+    "spec_anchor": "how-behavior",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE criterion \"`--issue <ISSUE>` narrows both attribution and the ledger read to that issue\" requires that when `--issue FAFF-1028` is passed, the ledger is read only for that issue's entries. But no scenario exercises `--issue`, and the oracle is underspecified: if the ledger contains a `declare` merge effect for issue FAFF-1027 with target `\"*\"` (wildcard), does `--issue FAFF-1028` still see that wildcard as covering a FAFF-1028 landing? The spec says the ledger read is \"scoped by issue_filter when given\" (HOW step 6), which implies the wildcard is excluded, but this is the exact case where a wildcard's cross-issue coverage matters and no scenario pins it down.",
+    "evidence": "DONE \"From WHAT\" item \"`--issue <ISSUE>` narrows both attribution and the ledger read to that issue.\" HOW step 6: \"declared := this run's ledger merge effects (declare + observe), scoped by issue_filter when given.\" No scenario uses `--issue`. The wildcard scenario (scenario 4) does not specify whether it runs with or without `--issue`.",
+    "predicted_consequence": "A builder who scopes the ledger read by issue (excluding other issues' wildcards) and a builder who applies wildcards globally will both pass every named scenario. The `--issue` DONE criterion cannot be decided without a scenario that places a wildcard in a different issue's ledger entry and checks whether it covers the filtered issue's landing.",
+    "spec_anchor": "done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec names a failure mode: \"base_sha is recorded but stale (branch rebased), so base..head spans unrelated commits. How you'd know: implausibly many landings, many unattributed.\" But \"implausibly many\" is not a testable threshold, and no scenario exercises a stale base. The observable output is the same as a correct base with many legitimate landings: a long `uncovered` list. There is no DONE criterion that distinguishes \"base is stale\" from \"base is correct and the run genuinely landed many commits.\"",
+    "evidence": "Failure-modes bullet 2. No scenario. No DONE criterion mentions stale-base detection.",
+    "predicted_consequence": "A QA test cannot distinguish a correct reconcile with a large window from a stale-base reconcile. The failure mode is documented as \"how you'd know\" but the \"you'd know\" signal (implausible count) is not encoded in any output field or DONE criterion. This is a known-limit (accepted limit B) so it is not gating, but the spec's own \"How you'd know\" language implies an observable that does not exist in the `ReconcileResult` type.",
+    "spec_anchor": "how-behavior",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

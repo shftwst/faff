@@ -1,0 +1,56 @@
+[
+  {
+    "claim": "The spec's load-bearing architectural claim is \"reuse the proven path, do not fork it\" — that `budget check` \"already sums Σ closed spans + open span correctly and is covered by resume tests\" and that economics merely \"imports and calls the *same* pure helpers.\" That is true only for the **top-line scalar**. The `--by model` / `--by class` fold is **new** logic that `budget check` never had to write: `budget check` reports a scalar `spent.tokens` and has no `--by model`/`--by class` axis (those are `economics`'s FAFF-410 surface). So the spec is not reusing a proven per-axis fold — it is authoring one, and then asserting it reconciles to the new top-line. The reconcile guarantee therefore depends on an identity the spec never establishes: that the open-span per-model base rows (built from the single-session transcript walk) sum to exactly `max(0, openSessionTotal − openBaseline)` **per the same clamp the top-line uses**. If the walk's per-model rows are derived from the raw whole-session totals and the top-line clamp is applied only to the scalar (or applied per-model with a different baseline shape), the model/class rows will sum to `openSessionTotal + closedSpend.total` rather than `max(0, openSessionTotal − openBaseline) + closedSpend.total`, and the \"reconcile to `tokens_total`\" promise — which the spec itself calls \"load-bearing\" and which §6 says it is *revising the docs to keep true* — breaks on exactly the resumed runs this ticket targets. The spec's own disjointness argument (§4) only proves the fold does not *double-count* the open walk; it says nothing about whether the open walk's per-model rows already reflect the rebaselined clamp.",
+    "evidence": "§1 \"Reuse the proven path, do not fork it\" (\"`budget check` already sums Σ closed spans + open span correctly and is covered by resume tests\"); §3 \"`--by class` / `--by model` reconciliation\" (\"Only these two axes fold\"); §4 \"Both the `model` and `class` folds sum, in tokens, to the same closed-span contribution added to the top-line, so both axes reconcile to `tokens_total` after the fold (the reconcile test asserts each)\"; §6 \"the reconcile sentence … is now false for `day` on a resumed run … revise it to say `class`/`model` always reconcile.\"",
+    "predicted_consequence": "On a resumed run where the open span's `baseline_by_model_class` is non-zero (the spec's own §5 non-zero-baseline holdout), the `--by model`/`--by class` rows sum to more than `tokens_total` by exactly the open-span baseline that the top-line clamps away — the reconcile test the spec mandates (\"rows sum to EXACTLY `tokens_total`, never more\") fails, or the build agent is forced to invent a per-model clamp the spec never specified, forking the open-span methodology the spec forbids.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "§3/§4 say the `class` axis projects `closedSpend.byModel` onto classes by \"add (Σ over models: closedSpend.byModel[model][c]) into the row keyed by class `c`, priced per model×class before summing.\" But `closedSpend.byModel` is a **token** map (per the §3 helper signature: `byModel: Map<model, {input,output,…}>`), and the `class` axis rows are keyed by class with no model dimension. \"Priced per model×class before summing\" requires the fold to retain a per-model price for each class contribution and then sum the *costs* — yet the axis row is a single class row. The spec never states whether the class row carries a cost column, how a multi-model class row aggregates per-model prices into one cost figure, or whether the token-sum and the cost-sum are both stored. If the fold sums tokens into the class row but prices the row at a single (open-span) model rate, the class-axis **cost** will not reconcile to `cost_total` on a map-priced resumed run even though its tokens do — and the spec's reconcile test only asserts the token sum (\"rows sum (in tokens) to the top-line tokens_total\"), so the cost-side drift is untested and uncaught.",
+    "evidence": "§3 \"The `class` axis … add (Σ over models: closedSpend.byModel[model][c]) into the row keyed by class `c`, priced per model×class before summing, so map-priced runs stay correct\"; §5 holdout \"the --by class rows sum (in tokens) to the top-line tokens_total (== 600).\"",
+    "predicted_consequence": "On a map-priced resumed run, `--by class` token rows reconcile but the class-axis cost does not reconcile to `cost_total`, and no test the spec defines catches it — the \"map-priced runs stay correct\" claim is asserted, not established.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The fix routes the operator-supplied `--session-id` flag and the ambient `CLAUDE_CODE_SESSION_ID` into `effectiveEnv` and then into `sessionOwnedTranscriptFiles(base, sid, runStartMs)`, which admits `${sid}.jsonl` (plus `agent-*.jsonl` children) as the files to read. The spec's only stated gate on that selection is the attribution check `childOwningSession(f) === sid` applied to the *children* — it never states that `sid` itself is validated or that the resolved path is confined to the run's transcript directory. A session id carrying path-traversal (`../../…`) or an absolute component would let the walk read a transcript file outside the intended run dir. This is a *new* input surface for `economics`: today it meters a single ambient session via the weak `economics.js:1075` line; the change adopts the FAFF-560 precedence that elevates the `--session-id` flag to highest precedence, so the flag value now directly selects the file the tool reads.",
+    "evidence": "§3 WHAT — \"effectiveEnv via SESSION PRECEDENCE … `measureSessionId = sessionIdFlag || openSpanSid || …`\"; §4 HOW — \"the single-session walk … selects files through `sessionOwnedTranscriptFiles(base, sid, runStartMs)` … which admits exactly `${sid}.jsonl` plus the `agent-*.jsonl` children gated by the attribution check `childOwningSession(f) === sid`\"; §4 edge case — \"`--session-id` flag supplied. Highest precedence — overrides the open-span session\".",
+    "predicted_consequence": "A crafted `--session-id` (or ambient `CLAUDE_CODE_SESSION_ID`) resolves to a transcript path outside the run directory, so `faff economics` reads and folds an attacker-chosen file's token deltas into the reported run total — a path-traversal read that the spec's disjointness/reconcile reasoning does not bound, because it only proves disjointness *within* the admitted set, not that the admitted set stays inside the run dir.",
+    "spec_anchor": "how-behavior",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The new provenance warning interpolates ledger data into operator-facing output: \"close_source != transcript: <list>\" where the list is `degradedSpans` = `session_id ?? close_source` of each folded span. These values come from `run-ledger.json` (a persisted, third-party-writable artifact) and are emitted verbatim into the warning string with no stated escaping or length bound. If a span's `session_id`/`close_source` carries control characters or ANSI/terminal sequences, the warning becomes a log/terminal-injection vector in the very reporting surface this ticket adds.",
+    "evidence": "§3 WHAT — `degradedSpans = … .map(s => s.session_id ?? s.close_source)`; §3 warning — `push \"resumed run: N folded prior-epoch span(s) were measured with a degraded basis (close_source != transcript: <list>); …\"`; §8 DONE — \"A folded span with `close_source != \"transcript\"` surfaces a provenance warning, threaded via `degraded_close_sources`\".",
+    "predicted_consequence": "A ledger span whose `session_id`/`close_source` embeds escape sequences or newlines is reflected unescaped into the economics warning, enabling log/terminal injection in the report output.",
+    "spec_anchor": "what-vocabulary-types-and-interfaces",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"Map-pricing per-model delta folds `closedSpend.byModel` … so `cost_total` spans epochs\" is not decided by any scenario. Every `--by model` / `--by class` holdout asserts that the rows sum **in tokens** to `tokens_total` (== 600); none asserts that the emitted `cost_total` (or the per-row cost) includes the closed-span contribution. A build that folds the closed-span token counts into the per-model delta but prices only the open-span portion (or prices the pre-fold delta and appends the closed tokens unpriced) passes every token-reconcile scenario while shipping a `cost_total` that is still epoch-scoped — the exact defect the ticket exists to close, on the cost axis.",
+    "evidence": "DONE \"Map-pricing per-model delta folds `closedSpend.byModel` (mirror `budget.js:1052-1058`) so `cost_total` spans epochs\"; holdout scenarios `--by model` / `--by class` both assert \"rows sum (in tokens) to the top-line tokens_total (== 600)\" only; the main scenario asserts `tokens_total == 600` and `tokens_source == \"transcript\"` only.",
+    "predicted_consequence": "done cannot be decided for the cost axis: a build with a correct `tokens_total` (600) and a `cost_total` equal to the open-epoch cost only (e.g. pricing 100 tokens, not 600) satisfies every named scenario and every other DONE item, yet the \"cost-per-shipped-issue\" headline — the surface this ticket is about — still under-reports a resumed run.",
+    "spec_anchor": "scenarios-born-verifiable-main-objectives",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"`--by day|mcp|effort|phase` do NOT fold and emit a coverage warning naming them as resuming-epoch-only on a resumed run\" names four axes; the only scenario exercises `--by day`. `mcp`, `effort`, and `phase` have no scenario, so a build that emits the warning for `day` but not for the other three (or folds one of them) cannot be caught by the named acceptance set.",
+    "evidence": "DONE \"`--by day|mcp|effort|phase` do NOT fold and emit a coverage warning…\"; holdout scenario \"Given the resumed 2-epoch ledger → When `faff economics --by day` → a warning names the per-day breakdown as covering the resuming epoch only\" — `day` only.",
+    "predicted_consequence": "done cannot be decided for `--by mcp`, `--by effort`, `--by phase`: a build that warns on `day` but silently omits the warning (or silently folds) on the other three axes passes every named scenario.",
+    "spec_anchor": "scenarios-born-verifiable-main-objectives",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

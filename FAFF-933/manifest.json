@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-933",
+  "run_id": "run-20260915-094719-fly-l3",
+  "built_spec_sha": "f22ccfee326de47e2e022c2ad6829738d7598f80bb22bfe5d562c5319b12842e",
+  "spec_blob": "spec.txt",
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": "admit-result.json",
+  "outcome": "park",
+  "lenses": [
+    "QA",
+    "architectural",
+    "infosec"
+  ],
+  "witness_sha": "bc8106daa96bff55f076bf63ec57d0ea628006f2a25b3f6e29098247880688ad"
+}

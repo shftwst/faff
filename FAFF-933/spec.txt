@@ -1,0 +1,438 @@
+# Spec — FAFF-933: `faff economics` under-reports a resumed run's cost (drops earlier epochs)
+
+> Spec: faffter-dark-nlspec · 2026-09-03 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-933.
+> build-tier: complex
+
+> **Refresh 2026-09-03 (autonomous re-prep, run-20260903-203823-fly-l3).** Folded five in-place design-lens objections raised on the prior spec-review pass (the review parked on an adversarial-backend config-fault, now repaired; no architectural change): (1) the estimate branch now names its epoch-scoping and warns when closed spans exist instead of asserting `closedSpend.total==0`; (2) the `--by class` fold now names the model→class projection (the `class` axis groups by class, not model) so it is implementable; (3) the coverage warning is gated on the *presence* of closed spans, not on `closedSpend.total>0`, so a degraded/zero-delta prior epoch still warns; (4) a `close_source != "transcript"` provenance warning is threaded from each folded span into the warnings list; (5) the `docs/guide/cli.md` reconcile sentence is revised so the `class`/`model`/`day` reconcile promise stays true on resumed runs.
+
+> **Refresh 2026-09-15 (autonomous re-prep, run-20260915-094719-fly-l3, spec-review round 1 fold).** The now-healthy adversarial spec-review (spark-qwen primary) returned `reject-approach` on design-lens objections (architectural + QA, all in-place-fixable); folded here with no architectural change: (1) an **open-span parity** principle (§1) pins the open-span delta to `cmdBudget`'s exact `measureRunSpend` seam + `max(0, wholeSessionTotal − tokensAtStart)` clamp + rebaseline, so the two surfaces agree by shared code not coincidence; (2) the reconcile **disjointness guarantee** (§3/§4) now grounds no-double-count in `sessionOwnedTranscriptFiles`' attribution gate (`childOwningSession === sid`, `budget.js:581`) rather than a hand-wave, pinned by a disjoint-session-id reconcile test; (3) the **rebaseline continuity** assumption (§4) is stated + covered by a non-zero-baseline scenario; (4) a **`--session-id` override** scenario with a divergent ambient exercises the FAFF-488 contract; (5) a **`per_issue`** epoch-scoping-warning scenario closes the untested coverage-warning path.
+
+**Artifact.** A buildable spec for the coding agent that will fix `faff economics` so a run resumed across epochs reports whole-run spend, not just the final epoch's. **Audience:** the build agent (who needs the exact call sites and the mirror in `budget.js`), and human reviewers gating the scope calls made below. **Repo:** `/home/faff/app`; real source root `plugin/skills/faff/bin/lib/`. This is a dependency-free Node CLI; pseudocode below is language-agnostic and the agent translates it to the house JS style already in `economics.js`.
+
+## Already shipped against this surface
+
+The surrounding token-accounting machinery is built and shipped; this ticket is the explicitly-deferred unification slice, and none of the below supersedes its premise (economics still under-reports a resumed run — verified against the current code):
+
+| Done ticket | What it shipped | Relationship to FAFF-933 |
+|---|---|---|
+| FAFF-527 | L4 run re-entry / resume; writes `budget.sessions[]` closed spans on every resume | Produces the durable data this fix reads; not a fix of economics |
+| FAFF-560 | `budget check` honours the run's owning `session_id` over ambient | The reference implementation to mirror — **explicitly scoped economics OUT** ("A later slice may unify them; not this one"). FAFF-933 is that later slice |
+| FAFF-594 | 5h-window budget governor survives resume via `closedSessionsSpend` | Same accumulation helper economics will now reuse; proves it works across resumes |
+| FAFF-410 | `faff economics --by class\|model\|mcp` axes | The `--by` surface this fix folds (class/model) or explicitly warns (day/mcp/effort/phase) |
+| FAFF-357 | Run unit-economics from ledger + budget data | The reporting surface being corrected |
+| FAFF-552 / FAFF-558 | `tokens_at_start` baseline survives mid-run compaction | Adjacent baseline handling; the warning this fix refines lives here |
+
+**Premise-gate verdict: proceed.** The premise is load-bearing and not superseded — `economics.js` still never reads `ledger.budget.sessions[]` (grep: zero hits), so a resumed run is still epoch-scoped.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** A lights-out run that resumes across an operator-repair gap is one run made of several *sessions* (epochs), each with its own `CLAUDE_CODE_SESSION_ID` and its own transcript files. `faff budget check` already knows this: FAFF-527/FAFF-560 gave the ledger a `budget.sessions[]` array where every prior epoch is durably recorded as a *closed span* carrying its measured per-model token delta, and `cmdBudget` sums **Σ closed spans + the current open span** to get a cross-epoch total. `faff economics` was deliberately left out of that mechanism — it still measures exactly one session (the ambient/latest one, baselined at run start) and never reads `budget.sessions[]`. So on a resumed run it reports only the resuming epoch's spend and silently drops every earlier epoch. **The fix is to make `economics` consume the same already-on-disk accumulation `budget check` does** — no new bookkeeping, no new transcript-walking machinery.
+
+**Problem statement.** A resumed multi-epoch run's `faff economics` (and the run summary's "Unit economics" it feeds) reports whole-run spend as if only the final epoch existed, because `cmdEconomics` measures a single session baselined at `tokens_at_start` and never adds the closed prior-epoch spans that are already durable in `ledger.budget.sessions[]`. The number reads plausibly and passes unnoticed, while `faff budget check` on the same run reports the correct cross-epoch total — the two governance surfaces disagree by exactly the dropped epochs. This change teaches `economics` to reuse `budget check`'s exact session-precedence resolution and closed-span accumulation, so both surfaces agree and earlier epochs are never silently dropped.
+
+**Design principles.**
+
+- **Reuse the proven path, do not fork it.** `budget check` already sums Σ closed spans + open span correctly and is covered by resume tests (`test/budget.test.mjs:1581`). The fix imports and calls the *same* pure helpers (`closedSessionsSpend`, `currentOpenSpan`, `byModelClassTotal`) from `budget.js` — it does not reimplement the accumulation. An implementation that computes epoch spend a second, independent way is rejected: it reintroduces the exact drift this ticket exists to close.
+- **Open-span parity is shared code, not a parallel re-derivation (why the two surfaces agree by construction, not by coincidence).** The closed-span half is not the only shared surface: the *open-span* delta must be computed identically too, or the fold cancels and the surfaces disagree by exactly the open span. This spec pins the open-span half to `cmdBudget`'s exact three steps, each already in `budget.js`: (i) the **same session precedence** (`sessionIdFlag || openSpanSessionId || measure_session_id || ambient`, `budget.js:964-965`); (ii) the **same measurement seam** — the identical `measureRunSpend({ cwd, env: effectiveEnv, runStartMs, runDir, … })` combining call (`budget.js:1018`) whose FAFF-604 contract is explicitly *"budget and economics can never drift into two independent folds of the same data"* — economics does not call a different walk; (iii) the **same clamp against the same baseline** — `Math.max(0, wholeSessionTotal − tokensAtStart)` with `tokensAtStart` rebaselined to the open span's `baseline_by_model_class` (`budget.js:1024`, rebaseline `budget.js:1000-1006`). Because all three are the *same* code reused, not a parallel re-implementation, the open-span portions are equal by construction; the risk the ticket names ("open-span methodology drift") is closed by the reuse mandate above, and the economics-vs-budget-check agreement scenario (§5) pins it end-to-end on a resumed fixture where the open delta is non-trivial.
+- **Single-session runs stay byte-for-byte.** Absent a `budget.sessions[]` array, `closedSessionsSpend` returns `total: 0` and the open-span rebaseline is a no-op — every existing single-session economics output must be unchanged to the byte. This is the same invariant `budget.js` holds (`budget.js:993-994`); the economics change inherits it.
+- **Never silently drop; if you cannot span, say so — on EVERY path, gated on the PRESENCE of a prior epoch.** The top-line and the per-model axes can span epochs from ledger data. The finer `--by` axes (`day`/`mcp`/`effort`/`phase`) and `per_issue` attribution cannot (the closed-span record retains per-model×per-class deltas only — no per-tool/day/effort granularity). The **estimate path** likewise cannot fold a measured span sum into a per-attempt estimate. Where a surface cannot span epochs it must emit an explicit coverage warning **whenever a closed span exists** (not merely when its measured total is non-zero — a degraded or zero-delta prior epoch is still a dropped epoch), converting a silent drop into a named one. A silent epoch-scoped figure is the specific defect this ticket forbids.
+- **Reconcile invariant is load-bearing.** `docs/guide/cli.md` promises the `class`/`model`/`day` `--by` axes "reconcile to the top-line `tokens_total`". If the top-line grows to include closed spans but an axis does not, that promise breaks. The `class` and `model` axes MUST be folded to stay reconciled; the axes that provably cannot (`day`/`mcp`/`effort`/`phase`) are re-scoped with a warning rather than left to silently mismatch — and the documented sentence itself is revised (§6) so the promise it makes is the one the code keeps on a resumed run.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/economics.js` | Node (dep-free) | `cmdEconomics` (the surface being fixed) + `computeUnitEconomics` (pure core, warning) + `economicsBreakdown`/`BY_AXES` (the `--by` axes) + `attributePerIssueCosts` |
+| `plugin/skills/faff/bin/lib/budget.js` | Node (dep-free) | The reference implementation: `cmdBudget` (`budget.js:961-1068`) already does session-precedence + Σ closed-span accumulation. Exports the pure helpers `closedSessionsSpend`/`currentOpenSpan`/`byModelClassTotal`/`TOKEN_DELTA_CLASSES` this fix imports |
+| `plugin/skills/faff/bin/lib/resume.js` + `lights-out.js` (`~1150-1300`, `closeAndOpenBudgetSessions ~1410`) | Node | Writes `budget.sessions[]` on every resume — the durable data source. **Not edited by this ticket** (data already correct on disk) |
+| `test/budget.test.mjs:1581` (FAFF-594 window-survives-resume) | Node test | The fixture shape to mirror: a `budget.sessions` array of `[{closed span},{open span}]` |
+| `test/economics.test.mjs` (1356 lines) | Node test | Where the new regression tests live — extensive `tokens_at_start` coverage today, **zero** `budget.sessions`/resumed-run cases |
+| `records/specs/2026-07-19-faff-560-…-owning-session-design.md:62` | Doc | On-record scope boundary: FAFF-560 applied to `budget check` only, "A later slice may unify them; not this one." This ticket is that later slice |
+| `docs/guide/cli.md:110` | Doc | The `economics` CLI row claims economics "reuses budget's exact token path" AND that the `class`/`model`/`day` axes reconcile to the top-line — both revised here alongside the code |
+
+**Scope statement.** This sits in the run-economics reporting layer (`economics.js`), downstream of the resume/ledger writers and parallel to the budget governor — a reporting-surface fix that makes `economics` agree with the already-correct `budget check` on a resumed run.
+
+## 2. OUT OF SCOPE
+
+- **Cross-epoch `per_issue` attribution.** `attributePerIssueCosts` (`economics.js:129-150`) sums a single session's owned `agent-*.jsonl` children; the closed-span records carry per-model token totals, not per-issue transcript granularity, so prior-epoch per-issue costs are unrecoverable from the ledger. **Why excluded:** run-level figures explicitly never depend on `per_issue` (it is documented best-effort, `economics.js:127-128`), and spanning it would require the bigger transcript-enumeration-across-sessions work below. **Extension point:** a run-scoped multi-session enumerator in `budget.js` (a `runOwnedTranscriptFiles(base, sessionIds, runStartMs)` generalising `sessionOwnedTranscriptFiles`, `budget.js:562-591`, keyed on every `budget.sessions[].session_id`), consumed by `attributePerIssueCosts`.
+
+- **Cross-epoch `--by day|mcp|effort|phase` breakdowns.** These axes need per-record transcript granularity the closed-span deltas do not retain. **Why excluded:** same missing data as above — the fix instead makes their epoch-scoping *explicit* (a warning), not silent. **Extension point:** the same `runOwnedTranscriptFiles` enumerator, consumed by `economicsBreakdown` (`economics.js`, `BY_AXES` region from ~170) so the walk spans all sessions; the `class`/`model` axes are folded in-scope here and need no enumerator.
+
+- **A genuine transcript-derived "whole run" authoritative parse.** The ticket's own open question (ledger-derived vs transcript-authoritative). There is no run-id-scoped multi-session transcript enumeration anywhere in `bin/lib` today; the standalone `eval/tokenomics.mjs` (FAFF-932) is a separate, non-governed tool that shares no code with `economics.js`. **Why excluded:** the ledger-derived path is small, consistent with `budget check`, and uses data already exercised by tests; a transcript-authoritative rewrite is a larger, separate effort. **Extension point:** relates to FAFF-932's tokenomics eval suite — a future slice could reconcile `economics` against a whole-transcript parse; the enumerator named above is its foundation.
+
+- **The `budget.js:949-953` stale-`measure_session_id` comment / the mint-time resume plumbing (`resume.js`, `lights-out.js`).** `budget.sessions[]` is already written correctly on every resume. **Why excluded:** no data defect on the write side; this is a read-side reporting bug.
+
+- **`faff audit` raw-field reporting (`audit.js:276-290,452`).** It reports what is on disk without recompute and is "never recomputed" by design. **Why excluded:** different surface, different contract; not the disagreement this ticket resolves.
+
+- **The budget-governor `budget check` accounting.** Already correct across resumes (`budget.js:961-965` precedence + `budget.js:1068` Σ closed-span). **Why excluded:** it is the *reference*, not a defect. The ticket's "budget check vs economics disagreeing" is resolved by fixing economics *to match* budget check, not by touching budget check.
+
+- **Recovering the per-epoch spend of a DEGRADED closed span.** A closed span written with `close_source != "transcript"` (a degraded/rung-3 measurement) may carry an under- or zero-counted delta. **Why excluded:** that is a pre-existing write-side measurement limitation, not a read-side reporting defect. **What is in scope:** naming it — a folded degraded span raises a provenance warning (§3, §4) so the figure's basis is visible; correcting the write-side measurement is not.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Epoch | One session of a run, bounded by a resume. `owner.epoch` bumps each resume (`resume.js:143-144`). |
+| Session span | A `budget.sessions[]` entry for one epoch: `{ session_id, baseline_by_model_class, closed_delta_by_model_class, closed_at, close_source }`. |
+| Closed span | A span whose `closed_delta_by_model_class` is non-null — a *prior* epoch whose spend was measured and frozen at the next resume. **Its mere existence marks a prior epoch, independent of whether its measured delta is non-zero.** |
+| Open span | The current epoch's span; `closed_delta_by_model_class == null`. Exactly one, the last with a null delta (`currentOpenSpan`, `budget.js:834-840`). |
+| Epoch-scoped | A figure covering only the resuming (final) epoch — the bug. |
+| Run-scoped | A figure covering all epochs: Σ closed spans + open span. |
+| Session precedence | The FAFF-560 resolution order for *which* session to meter: `--session-id` flag > open-span `session_id` > `ledger.budget.measure_session_id` > ambient `CLAUDE_CODE_SESSION_ID` (`budget.js:961-965`). |
+| `hasClosedSpans` | `true` when `budget.sessions[]` is present and contains ≥1 closed span (a span with non-null `closed_delta_by_model_class`). The **presence** signal that gates every coverage/provenance warning — distinct from `closedSpend.total > 0`, which is a magnitude and can be 0 for a degraded/zero-delta prior epoch. |
+
+**The reused pure helpers (imported from `budget.js`, already exported — verified `budget.js:1956`).**
+
+```
+closedSessionsSpend(sessions) -> { total: int, byModel: Map<model, {input,output,cache_write_5m,cache_write_1h,cache_read}> }
+    # Σ per-model per-class deltas over CLOSED spans; open span contributes 0.
+    # sessions absent/[] -> { total: 0, byModel: empty } (byte-for-byte single-session).
+
+currentOpenSpan(sessions) -> span | null           # last span with closed_delta == null
+byModelClassTotal(byModelMap) -> int               # scalar sum over models×classes
+TOKEN_DELTA_CLASSES = ["input","output","cache_write_5m","cache_write_1h","cache_read"]
+```
+
+**`cmdEconomics` changes — the shape after this ticket (mirrors `budget.js:961-1068`).**
+
+```
+# 1. Session precedence — REPLACES the weak economics.js:1075 line.
+RECORD effectiveEnv resolution:
+  budgetSessions   = (ledger.budget.sessions is a non-empty array) ? ledger.budget.sessions : null
+  openSpanSid      = budgetSessions ? (currentOpenSpan(budgetSessions)?.session_id ?? null) : null
+  measureSessionId = sessionIdFlag || openSpanSid || ledger.budget.measure_session_id || null
+  effectiveEnv     = measureSessionId ? { ...process.env, CLAUDE_CODE_SESSION_ID: measureSessionId }
+                                       : process.env      # byte-for-byte fallback when null
+
+# 2. Closed-span accumulation + open-span rebaseline (mirror budget.js:995-1004).
+  closedSpend      = budgetSessions ? closedSessionsSpend(budgetSessions) : { total: 0, byModel: empty }
+  hasClosedSpans   = budgetSessions ? budgetSessions.some(s => s.closed_delta_by_model_class != null) : false
+  degradedSpans    = budgetSessions ? budgetSessions.filter(s => s.closed_delta_by_model_class != null
+                                        && s.close_source !== "transcript") : []   # provenance thread (fix 4)
+  IF budgetSessions AND currentOpenSpan(budgetSessions)?.baseline_by_model_class is a plain object:
+      tokensAtStartByModel = open.baseline_by_model_class
+      tokensAtStart        = byModelClassTotal(open.baseline_by_model_class)
+
+# 3. Top-line: add closed spans to the this-epoch delta (mirror budget.js:1068) — TRANSCRIPT branch only.
+  tokensTotal += closedSpend.total          # after the max(0, measuredTotal - tokensAtStart) delta
+
+# 4. Map-pricing per-model delta: fold closed spans (mirror budget.js:1052-1058)
+#    so cost_total spans epochs too. FOR (model, counts) in closedSpend.byModel: add to the per-model delta.
+```
+
+**`computeUnitEconomics` (pure core) — warning refinement.** The `tokens_at_start=0 — may be inflated by prior-session history` warning (`economics.js:99-101`) currently fires on the naive whole-session-sum interpretation. When a closed span exists the total is an explicit composition of measured spans (or, on the estimate path, a knowingly epoch-scoped estimate), not a naive sum, so that warning is misleading and is suppressed; distinct presence-gated warnings cover the residual epoch-scoped axes, the estimate path, and degraded provenance. **All three residual warnings gate on `has_closed_spans` (presence), never on `closed_span_total > 0` (magnitude)** — a degraded or zero-delta prior epoch is still a dropped epoch and must still warn.
+
+```
+INPUT (added): closed_span_total: int          # closedSpend.total, threaded through from cmdEconomics
+INPUT (added): has_closed_spans: bool          # ≥1 closed span exists — the presence gate (fix 3)
+INPUT (added): epoch_scoped_axes: bool         # true when has_closed_spans AND a --by day|mcp|effort|phase or per_issue surface is emitted
+INPUT (added): estimate_epoch_scoped: bool     # true when has_closed_spans AND tokens_source == "estimate" (fix 1)
+INPUT (added): degraded_close_sources: array   # session_id (or close_source) of each folded span with close_source != "transcript" (fix 4)
+
+warnings:
+  IF tokens_source == "transcript" AND tokens_at_start == 0 AND total > 0 AND NOT has_closed_spans:
+      push "tokens_at_start=0 — run total may be inflated by prior-session history"   # unchanged single-session case
+  IF epoch_scoped_axes:
+      push "resumed run: per-day/mcp/effort/phase and per-issue breakdowns cover the resuming epoch only (N prior epoch(s) not reconciled); top-line and per-model/class span all epochs"
+  IF estimate_epoch_scoped:
+      push "resumed run on the estimate fallback: this figure covers the resuming epoch only — N prior epoch(s) with recorded spend cannot be reconciled into a per-attempt estimate (run `faff budget check` for the cross-epoch total)"
+  IF degraded_close_sources is non-empty:
+      push "resumed run: N folded prior-epoch span(s) were measured with a degraded basis (close_source != transcript: <list>); the run-scoped figure may under-count those epochs"
+```
+
+**`--by class` / `--by model` reconciliation.** `economicsBreakdown` (the `BY_AXES` region) pivots the single-session walk. The two axes fold `closedSpend.byModel` differently because they group on different keys — `closedSpend.byModel` is keyed by model, so the `model` axis folds row-for-row while the `class` axis needs an explicit **model→class projection** (sum each token class across all models). Only these two axes fold (they retain enough granularity to stay reconciled to the new top-line); `day`/`mcp`/`effort`/`phase` do not.
+
+- **`model` axis** — for each `(model, counts)` in `closedSpend.byModel`, accumulate `counts` into (or create) that model's row, per `TOKEN_DELTA_CLASSES`, pricing per-model×per-class. A closed-span model absent from the open-span walk gets a new row.
+- **`class` axis** — rows are keyed by token class, not by model. Project `closedSpend.byModel` onto classes: for each class `c ∈ TOKEN_DELTA_CLASSES`, add `Σ over models closedSpend.byModel[model][c]` into class `c`'s row (priced per model×class before summing, so map-priced runs stay correct). There is no "model's row" on this axis — the fold is the per-class sum across models.
+
+**Decision — which fix.** **Chosen:** ledger-derived unification (see §6). Reuse `budget check`'s exact session precedence + `closedSessionsSpend` accumulation in `economics` so the two surfaces agree; do not build transcript-enumeration-across-sessions.
+
+**Decision — `per_issue` and `--by day|mcp|effort|phase` cross-epoch span.** **Chosen:** out of scope, made non-silent (see §2 and §6): fold only `class`/`model` (data available), warn on the rest, presence-gated.
+
+## 4. HOW — Behavior
+
+**Architecture and approach.** `cmdEconomics` (`economics.js:1063`) gains a handful of mechanical edits, each a mirror of a proven `cmdBudget` line, plus a warning refinement in the pure core and a fold in `economicsBreakdown`. The import line `economics.js:22` adds `closedSessionsSpend, currentOpenSpan, byModelClassTotal` (already exported from `budget.js`). No producer, no ledger write, no new file walk.
+
+**Behavior summary.** On a resumed run, `economics` now meters the owning (open-span) session baselined at the resume instant, adds the durable closed-span totals for every prior epoch, and prices the union — landing on the same run-scoped figure `budget check` reports; on a single-session run it is byte-for-byte unchanged. Where a surface cannot span epochs (the estimate path, the fine `--by` axes, `per_issue`) it names the epoch-scoping in a warning gated on the presence of a prior epoch, and a degraded prior epoch additionally raises a provenance warning.
+
+```
+PROCEDURE cmdEconomics(args):    # only the deltas vs today are shown
+  1. Resolve runDir, ledger, cfg, price (unchanged, economics.js:1085-1103).
+  2. budgetSessions = nonEmptyArray(ledger.budget.sessions) ? ledger.budget.sessions : null
+  3. effectiveEnv via SESSION PRECEDENCE (WHAT §1) — replaces economics.js:1075.
+  4. tokensAtStart / tokensAtStartByModel from ledger (economics.js:1107).
+     IF budgetSessions AND open := currentOpenSpan(budgetSessions) has baseline_by_model_class:
+        tokensAtStart        = byModelClassTotal(open.baseline_by_model_class)
+        tokensAtStartByModel = open.baseline_by_model_class          # rebaseline to resume instant
+  5. runSpend = measureRunSpend({ env: effectiveEnv, ... })          # unchanged call, now with the right session
+  6. closedSpend    = budgetSessions ? closedSessionsSpend(budgetSessions) : { total: 0, byModel: empty }
+     hasClosedSpans = budgetSessions ? budgetSessions.some(s => s.closed_delta_by_model_class != null) : false
+     degradedSpans  = budgetSessions ? budgetSessions.filter(s => s.closed_delta_by_model_class != null
+                                        && s.close_source !== "transcript").map(s => s.session_id ?? s.close_source) : []
+  7. IF measuredSource == "transcript":
+        transcriptPortion = max(0, measuredTotal - tokensAtStart)
+        tokensTotal       = transcriptPortion + closedSpend.total    # <-- the fix (mirror budget.js:1068)
+     ELSE:  # estimate branch — tokensTotal replaced entirely by attempts × est_per (economics.js:1128-1132).
+        # Do NOT add closedSpend.total (a measured span sum and a per-attempt estimate are different units).
+        # But closed spans may still exist (their transcripts are gone, not their durable ledger deltas),
+        # so the drop is NOT silent: set estimate_epoch_scoped = hasClosedSpans and warn (step 10). (fix 1)
+  8. Map pricing: after building the per-model this-epoch delta, FOR (model,counts) in closedSpend.byModel:
+        perModelDelta[model][cls] += counts[cls]   # mirror budget.js:1052-1058   (transcript branch only)
+  9. engineSpend fold (economics.js:1139-1143) unchanged, applied after closedSpend.
+ 10. computeUnitEconomics(... closed_span_total   = closedSpend.total,
+                               has_closed_spans    = hasClosedSpans,
+                               epoch_scoped_axes   = (hasClosedSpans AND (byAxis in {day,mcp,effort,phase} OR perIssue emitted)),
+                               estimate_epoch_scoped = (hasClosedSpans AND measuredSource == "estimate"),
+                               degraded_close_sources = degradedSpans)
+```
+
+**`--by class` / `--by model` reconciliation.** `economicsBreakdown` (the `BY_AXES` region) pivots the single-session walk. The `class` and `model` axes fold `closedSpend.byModel` — but on **different keys** (the `class` axis groups by token class, not by model), so each has its own fold. The other axes provably cannot fold and carry the coverage warning instead:
+
+```
+PROCEDURE economicsBreakdown(axis, walkRows, closedSpendByModel):
+  1. Build rows from the single-session transcript walk (unchanged).
+  2. IF axis == "model" AND closedSpendByModel non-empty:
+        FOR (model, counts) in closedSpendByModel:
+           accumulate counts into (or create) the row keyed by `model`, per TOKEN_DELTA_CLASSES,
+           pricing per-model×per-class.                       # row key = model
+  3. IF axis == "class" AND closedSpendByModel non-empty:
+        # The class axis groups by token class, NOT by model — project model→class:
+        FOR each class c in TOKEN_DELTA_CLASSES:
+           add (Σ over models: closedSpendByModel[model][c]) into the row keyed by class `c`,
+           priced per model×class before summing.             # row key = class, summed across models
+  4. IF axis in {"day","mcp","effort","phase"} AND closedSpendByModel non-empty:
+        do NOT fold (no per-day/tool granularity in a closed span);
+        the coverage warning from step 10 above (presence-gated) carries the epoch-scoping.
+```
+
+Both the `model` and `class` folds sum, in tokens, to the same closed-span contribution added to the top-line, so both axes reconcile to `tokens_total` after the fold (the reconcile test asserts each).
+
+**Why the fold cannot double-count (the disjointness guarantee, not a hand-wave).** The single-session walk that builds the base rows selects files through `sessionOwnedTranscriptFiles(base, sid, runStartMs)` (`budget.js:562-591`), which admits exactly `${sid}.jsonl` plus the `agent-*.jsonl` children gated by the **attribution check** `childOwningSession(f) === sid` (`budget.js:581`) — *not* by mtime. `sid` here is the open-span session (WHAT §1 precedence). A closed span is a **distinct prior epoch with a distinct `session_id`**, so its `${closed_sid}.jsonl` and its attributed children are never admitted by the open-span walk: the walked set and `closedSpend.byModel` are disjoint by session-id partition, and adding the closed deltas cannot re-count a walked token. The one way this could fail — an open-span `session_id` that *aliases* a closed span's id — is a ledger-writer invariant (each epoch is minted with a fresh sid on resume, `resume.js`), out of scope here (§2), and is pinned negatively by the disjoint-session-id reconcile test (§5): the `--by model`/`--by class` rows must sum to exactly `tokens_total`, never more.
+
+**Edge cases and error handling.**
+
+- **No `budget.sessions` (single-session run).** `budgetSessions == null` → `closedSpend = {total:0}`, `hasClosedSpans == false`, no rebaseline, precedence falls through to `ledger.budget.measure_session_id`/ambient, no warnings added. **Output byte-for-byte identical to today** (the FAFF-604 parity invariant, `test/budget.test.mjs:1635`).
+- **`budget.sessions` present, all spans open (no closed).** `hasClosedSpans == false`, `closedSpend.total == 0`; only the open-span rebaseline + session precedence apply. Correct: a run with one open span and no closed spans is a fresh single-epoch run recorded in the new shape — no warning, nothing dropped.
+- **`budget.sessions` present with a closed span whose measured delta is 0 (or degraded to 0).** `hasClosedSpans == true` but `closedSpend.total == 0`. The top-line is unchanged (nothing to add) yet the coverage/estimate warnings **still fire** (they gate on presence, not magnitude) — the prior epoch existed and the fine axes/estimate still cover only the resuming epoch. This is the exact case the presence gate exists for (fix 3).
+- **Estimate fallback (`tokens_source == "estimate"`, transcript gone).** The estimate path replaces `tokensTotal` entirely with `attempts × est_per` (`economics.js:1128-1132`); closed spans are a transcript-derived measure and the estimate path has no transcript basis, so `closedSpend.total` is **not** added (mixing a measured span sum into a per-attempt estimate is an incoherent unit). But closed spans can still be present (the current epoch's transcript is missing, not the durable prior-epoch ledger deltas), so `estimate_epoch_scoped = hasClosedSpans` and a coverage warning names the epoch-scoping — the drop is named, never silent (fix 1). This matches `budget.js`, which only folds `closedSpend` on the transcript branch but never loses sight of the prior epochs.
+- **Open span with a null/missing `baseline_by_model_class`.** Rebaseline guarded by the same plain-object check `budget.js:1000` uses; on failure keep the mint `tokensAtStart` (no worse than today).
+- **Open span with a NON-ZERO `baseline_by_model_class` (the rebaseline continuity assumption, stated).** The rebaseline (`tokensAtStart = byModelClassTotal(open.baseline_by_model_class)`) is correct **because** the open span's transcript running total is cumulative *from the resume instant's baseline* — the FAFF-427 window rule budget already relies on (`budget.js:996-1006`): the baseline was measured at the resume instant with the resuming session's sid, and the same session's `${sid}.jsonl` accumulates onward from there, so `wholeSessionTotal ≥ tokensAtStart` and `max(0, wholeSessionTotal − tokensAtStart)` yields the resuming epoch's own draw without clamping to 0. This is an *inherited* assumption, not a new one: because economics reuses budget's exact clamp+baseline (§1 open-span parity), whatever continuity budget assumes economics assumes identically — the two can never disagree here. Pinned by the non-zero-baseline scenario (§5): an open span whose `baseline_by_model_class` is non-zero and whose transcript total exceeds it yields the correct positive delta (the `max(0,·)` does not zero the resuming epoch), and economics still equals budget check.
+- **A folded closed span with `close_source != "transcript"` (degraded provenance).** Its delta is still folded into the top-line/per-model axes (it is the best available measure), and `degraded_close_sources` collects it so a provenance warning names the degraded basis (fix 4).
+- **`--session-id` flag supplied.** Highest precedence — overrides the open-span session (proves the FAFF-488 contract still holds, parity with `budget.js` acceptance #2).
+
+**Anti-pattern:** re-deriving epoch spend by re-walking transcripts across sessions inside `economics.js`. Why: that is the OUT-OF-SCOPE larger effort, it needs an enumerator that does not exist, and it would drift from `budget check`'s ledger-derived figure — reintroducing the disagreement this ticket closes.
+
+**Anti-pattern:** folding `closedSpend.total` into the `estimate` branch's `tokensTotal`. Why: a per-attempt estimate and a measured token sum are different units; `budget check` folds closed spans on the transcript branch only. (The estimate branch instead *names* the dropped epochs in a warning — it never silently omits them.)
+
+**Anti-pattern:** gating any coverage/provenance warning on `closedSpend.total > 0`. Why: a degraded or zero-delta prior epoch has a total of 0 yet is still a dropped epoch; gating on magnitude re-opens the silent-drop this ticket exists to close. Gate on `hasClosedSpans` (presence).
+
+**Anti-pattern:** silencing the epoch-scoping of `--by day|mcp|effort|phase` (or the estimate path) without a warning. Why: a silently epoch-scoped breakdown is the exact defect class this ticket exists to eliminate; the drop must be *named*, not hidden.
+
+**Failure modes.**
+
+- **The failure:** the ledger-derived total still disagrees with an honest whole-transcript parse beyond the known rate-methodology delta — e.g. a closed span was recorded `degraded` (rung 3, `close_source` not `transcript`) so its delta is under- or zero-counted. **How you'd know:** the synthetic-fixture test's asserted total is met, but a real resumed run's `economics` total sits far from `budget check`'s on the same run, or from `eval/tokenomics.mjs`'s whole-run figure by >~30%. **What it means:** proceed — the fix's contract is "agree with `budget check`", which is itself ledger-derived, so both move together; a degraded span is a *pre-existing* write-side measurement limitation (OUT OF SCOPE), not a regression this fix introduces. The `degraded_close_sources` provenance warning names it so the reader sees the basis (fix 4).
+- **The failure:** session precedence picks the wrong session on a run whose ambient `CLAUDE_CODE_SESSION_ID` differs from the open span (the over-scope symptom the ticket's "jot's economics: 680M" illustrates). **How you'd know:** after the fix, `economics --session-id <owning>` and bare `economics` agree on a resumed run; before, bare `economics` inflated on ambient prior-session history. **What it means:** proceed — adopting `budget.js:961-965` precedence is precisely what removes the ambient over-scope; the fixture test pins it.
+- **The failure:** the `class`/`model` fold double-counts because `measureRunSpend` already spanned multiple sessions. **How you'd know:** `--by model` or `--by class` sums to more than `tokens_total`, or the reconcile assertion fails. **What it means:** it cannot — `sessionOwnedTranscriptFiles` selects `${sid}.jsonl` plus children gated by `childOwningSession(f) === sid` (`budget.js:562-591`, attribution gate at `budget.js:581`), so the walk covers only the open-span session; closed spans carry distinct prior `session_id`s and are disjoint by session-id partition (see the disjointness guarantee in §3). The disjoint-session-id reconcile test (§5) pins the rows to sum to exactly `tokens_total`.
+- **The failure:** economics and budget check disagree on the *open-span* portion even after both fold the closed spans (open-span methodology drift). **How you'd know:** on a resumed fixture whose open span draws a non-trivial amount, `economics.tokens_total != budget check spent.tokens` while the closed-span totals match. **What it means:** it cannot if the reuse mandate (§1 "Open-span parity") is honoured — both compute the open-span delta through the identical `measureRunSpend` seam and the identical `Math.max(0, wholeSessionTotal − tokensAtStart)` clamp against the identical rebaselined baseline (`budget.js:1018,1024,1000-1006`); the §5 economics-vs-budget-check scenario pins equality end-to-end. A disagreement here means the build forked the open-span path instead of reusing it — the rejected implementation.
+
+## 5. Scenarios — born-verifiable main objectives
+
+Acceptance is defined against a **synthetic 2-epoch ledger fixture** (mirror `test/budget.test.mjs:1581`), not the ticket's illustrative dollar figures. Fixture skeleton:
+
+```
+ledger.budget = {
+  tokens_at_start: 0,
+  sessions: [
+    { session_id: "epoch-0", baseline_by_model_class: {}, close_source: "transcript",
+      closed_delta_by_model_class: { m1: { input: 400, output: 100, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 } } },  # prior epoch, closed
+    { session_id: "epoch-1", baseline_by_model_class: {}, closed_delta_by_model_class: null }                                    # resuming epoch, open
+  ]
+}
+# transcripts: epoch-1.jsonl carries the resuming epoch's own draw (e.g. input 80 / output 20 = 100)
+```
+
+```
+Given a resumed 2-epoch run ledger with a closed span of 500 tokens (epoch-0) and an open span whose transcript draws 100 (epoch-1)
+When `faff economics --run-dir <fixture> --json` is run with CLAUDE_CODE_SESSION_ID=epoch-1
+Then tokens_total == 600 (closed 500 + open 100), not 100 — the earlier epoch is included
+And tokens_source == "transcript"
+```
+
+```
+Given the same resumed 2-epoch ledger
+When `faff economics --run-dir <fixture> --json` is compared to `faff budget check --run-dir <fixture> --json` on the same run
+Then economics.tokens_total equals budget check's spent.tokens — the two surfaces agree across the resume boundary
+```
+
+```
+Given a single-session run ledger with NO budget.sessions array (or an all-open single span)
+When `faff economics --run-dir <fixture> --json` is run
+Then the output is byte-for-byte identical to the pre-change output (closedSpend.total == 0, hasClosedSpans == false, no rebaseline, no warnings, precedence falls through to ambient)
+```
+
+```holdout
+Given the resumed 2-epoch ledger under map pricing with per-model rates
+When `faff economics --by model --run-dir <fixture> --json` is run
+Then the --by model rows sum (in tokens) to the top-line tokens_total (== 600) — the model axis reconciles after the closed-span fold
+And the epoch-0 closed span's model (m1) appears in the rows, not only epoch-1's models
+```
+
+```holdout
+Given the resumed 2-epoch ledger under map pricing with per-model rates
+When `faff economics --by class --run-dir <fixture> --json` is run
+Then the --by class rows sum (in tokens) to the top-line tokens_total (== 600) — the class axis reconciles after the model→class projection fold
+And epoch-0's closed-span tokens appear in the per-class rows (e.g. input/output), summed across models
+```
+
+```holdout
+Given the resumed 2-epoch ledger
+When `faff economics --by day --run-dir <fixture> --json` is run
+Then a warning names the per-day breakdown as covering the resuming epoch only (N prior epoch(s) not reconciled) — the epoch-scoping is explicit, never silent
+```
+
+```holdout
+Given a resumed ledger with a closed prior-epoch span but the RESUMING epoch's transcript missing (tokens_source falls back to "estimate")
+When `faff economics --run-dir <fixture> --json` is run
+Then a warning names the estimate as covering the resuming epoch only, with N prior epoch(s) not reconcilable into a per-attempt estimate — the earlier epoch is named, not silently dropped
+```
+
+```holdout
+Given a resumed 2-epoch ledger whose ONLY closed span has closed_delta_by_model_class summing to 0 (a degraded/zero-delta prior epoch)
+When `faff economics --by day --run-dir <fixture> --json` is run
+Then the coverage warning still fires (it gates on the presence of a closed span, not on closedSpend.total > 0) — the zero-delta prior epoch does not suppress the warning
+```
+
+```holdout
+Given a resumed 2-epoch ledger whose OPEN span (epoch-1) carries a NON-ZERO baseline_by_model_class (e.g. m1: input 50) and whose epoch-1 transcript's cumulative total exceeds that baseline (e.g. input 130 = 50 baseline + 80 this-epoch)
+When `faff economics --run-dir <fixture> --json` is run with CLAUDE_CODE_SESSION_ID=epoch-1
+Then the resuming epoch's contribution is the positive delta (80, from max(0, 130 − 50)), NOT clamped to 0 — the rebaseline continuity holds for a non-zero baseline
+And economics.tokens_total equals `faff budget check`'s spent.tokens on the same fixture (open-span parity, not just closed-span parity)
+```
+
+```holdout
+Given a resumed 2-epoch ledger where the ambient CLAUDE_CODE_SESSION_ID is set to a DIFFERENT value from the owning open span (e.g. ambient=some-other-session, open span session_id=epoch-1)
+When `faff economics --session-id epoch-1 --run-dir <fixture> --json` is run
+Then the metered session is epoch-1 (the flag wins over both the ambient env var and the open-span default) and tokens_total spans all epochs — the FAFF-488 `--session-id` override contract is exercised by a value that differs from the ambient, so a build that ignored the flag would fail this scenario
+And with NO flag but the same divergent ambient, session precedence still meters the open span (epoch-1), not the ambient — bare economics no longer over-scopes on ambient prior-session history
+```
+
+```holdout
+Given the resumed 2-epoch ledger with per-issue attribution emitted (attributePerIssueCosts runs)
+When `faff economics --run-dir <fixture> --json` is run (or the summary that carries per_issue)
+Then the per_issue attribution block carries the epoch-scoping coverage warning (per_issue covers the resuming epoch only; N prior epoch(s) not reconciled) — epoch_scoped_axes is set whenever a per_issue surface is emitted with has_closed_spans, exactly as for the --by day|mcp|effort|phase axes, and the warning gates on presence not magnitude
+```
+
+- The refined `tokens_at_start=0` inflation warning is NOT emitted on any resumed fixture (a closed span exists, so the total is a measured composition / a knowingly epoch-scoped estimate, not a naive whole-session sum).
+- holdout: On a resumed run whose only span is closed via `close_source: "degraded"`, a warning names the span's measurement basis as degraded so the folded figure's provenance is visible.
+- holdout: A disjoint-session-id reconcile check — on the resumed 2-epoch fixture (distinct sids `epoch-0`/`epoch-1`), `--by model` and `--by class` rows sum to EXACTLY `tokens_total` (never more), pinning that the closed-span fold does not double-count the open-span walk.
+
+## 6. Design Decision Rationale
+
+**Which fix — ledger-derived unification vs transcript-enumeration-across-sessions?**
+- *Ledger-derived (reuse `closedSessionsSpend` + FAFF-560 precedence).* Pros: small (a handful of mirrored edits + one import); the data (`budget.sessions[]`) is already durable and already exercised by `budget check`'s resume tests; makes the two surfaces agree by construction. Cons: inherits any write-side degraded-span limitation; per-day/mcp/effort/phase/per_issue cannot span epochs from this data.
+- *Transcript-enumeration-across-sessions.* Pros: could make every axis and per_issue span epochs; closer to an authoritative whole-run parse. Cons: no such enumerator exists in `bin/lib`; would also need to extend `BY_AXES` and `attributePerIssueCosts`; larger, and would drift from `budget check` unless it too switched.
+- **Chosen:** ledger-derived unification — it is the minimal change that resolves the stated disagreement, reuses tested code, and keeps economics and budget check in lock-step; the enumeration path is named as a follow-up extension point in §2.
+
+**`per_issue` and `--by day|mcp|effort|phase` cross-epoch span — in scope or follow-up?**
+- *In scope (fully span).* Requires the non-existent enumerator; out of proportion to the headline defect.
+- *Follow-up but made non-silent.* Fold `class`/`model` (data available, keeps the reconcile promise) and emit an explicit coverage warning on the rest.
+- **Chosen:** follow-up, made non-silent — the ticket's "Done when" is about whole-run *spend* (the top-line) and about earlier epochs no longer being *silently* dropped; a named epoch-scoped breakdown satisfies both, while fully spanning the fine axes is deferred to the enumerator slice.
+
+**Coverage warning gate — magnitude (`closedSpend.total > 0`) or presence (`hasClosedSpans`)?**
+- *Magnitude.* Rejected: a degraded or zero-delta prior epoch has a total of 0 yet is still a dropped epoch. Gating the warning on magnitude leaves that resumed run silently epoch-scoped on the fine axes / estimate path — the exact defect this ticket forbids (the infosec objection folded on this refresh).
+- **Chosen:** presence (`hasClosedSpans`) — the existence of a prior epoch, however it was measured, is what makes a fine-axis/estimate figure epoch-scoped. Magnitude still governs what is *added* to the top-line (a 0-delta span adds nothing), but never whether the drop is *named*.
+
+**Estimate branch — leave untouched, fold, or warn?**
+- *Leave untouched (assert `closedSpend.total == 0`).* Rejected: false — closed spans are durable in `budget.sessions[]` even when the resuming epoch's transcript is gone, so a resumed estimate-path run drops earlier epochs with no signal (the architectural objection folded on this refresh).
+- *Fold `closedSpend.total` into the estimate.* Rejected: a measured token sum and a per-attempt estimate are different units; incoherent.
+- **Chosen:** do not fold, but name the epoch-scoping in a presence-gated warning — the estimate stays a coherent per-attempt unit while the dropped epochs are surfaced, never silent.
+
+**`--by class` fold — how, given the class axis groups by class, not model?**
+- *Merge into "the model's row" (as the pre-refresh draft said for both axes).* Rejected: unimplementable — the `class` axis has no model rows, and `closedSpend.byModel` is keyed by model with no model→class mapping named.
+- **Chosen:** name the projection explicitly — the `model` axis folds row-for-row by model; the `class` axis sums each token class across all models (`Σ over models closedSpend.byModel[model][c]`) into the per-class row. Both reconcile to the same top-line contribution (the architectural objection folded on this refresh).
+
+**Refine or keep the `tokens_at_start=0` warning?**
+- *Keep firing unconditionally.* After the fix it fires spuriously on every resumed run (whose total is now correct), training readers to ignore it. Rejected.
+- **Chosen:** suppress when a closed span is present (`has_closed_spans`); add the presence-gated coverage/estimate/provenance warnings for the residual — the warning regains a precise meaning (a genuinely baseline-absent single-session inflation risk), and the new warnings carry the resumed-run signal instead. Temporal note: at time of writing the resume writer always emits `budget.sessions[]` on resume, so a resumed run with `tokens_at_start=0` AND no sessions cannot arise; revisit if the writer changes.
+
+**`close_source != "transcript"` provenance — required by DONE; how is it threaded?**
+- **Chosen:** `cmdEconomics` collects `degraded_close_sources` (the `session_id`/`close_source` of each folded span whose `close_source != "transcript"`) and passes it into `computeUnitEconomics`, which emits a provenance warning when the list is non-empty. Without this thread the DONE provenance-warning item had no mechanism (the minor architectural objection folded on this refresh).
+
+**Fix `docs/guide/cli.md:110`?**
+- **Chosen:** yes — two sentences on the economics row are revised: (a) the "reuses budget's exact token path" claim is now literally true only after this change (before it, budget check's path included Σ closedSpend and economics' did not) — update it to state economics spans epochs via the ledger's closed session spans, matching budget check; (b) the reconcile sentence that promises the `class`/`model`/`day` `--by` axes reconcile to the top-line `tokens_total` is now false for `day` on a resumed run (only `class`/`model` fold; `day`/`mcp`/`effort`/`phase` are epoch-scoped with a warning) — revise it to say `class`/`model` always reconcile while `day`/`mcp`/`effort`/`phase` reconcile on single-session runs and are epoch-scoped-with-warning on resumed runs (the minor docs objection folded on this refresh).
+
+**Session-precedence resolution in economics — adopt budget's, or leave as-is?**
+- *Leave as-is (`economics.js:1075`).* On a resumed run economics measures the ambient session — typically the latest epoch, but can be an unrelated prior-session id (the over-scope symptom). Rejected: without precedence even the current-epoch measurement can meter the wrong session.
+- **Chosen:** adopt the FAFF-560 precedence — it is inseparable from "reuse budget check's exact path"; the open-span session is the correct meter target and the flag still wins (FAFF-488 preserved).
+
+## 7. Open Questions and Assumptions
+
+**Open Questions.** None blocking. The ticket's two open questions are resolved in-spec: run spend is **ledger-derived** (Chosen above, transcript-authoritative named as a follow-up in §2); the budget-governor relationship is resolved by making economics *match* the already-correct `budget check` (no governor change). No `**Punt:**` markers remain.
+
+**Assumptions.**
+
+- **Assumes:** `budget.js` exports `closedSessionsSpend`, `currentOpenSpan`, `byModelClassTotal`, and `TOKEN_DELTA_CLASSES`. *Validated:* confirmed at `budget.js:1956` (all four present in `module.exports`) — verified during authoring.
+- **Assumes:** a resumed run's ledger carries `budget.sessions[]` with the prior epoch(s) as closed spans (non-null `closed_delta_by_model_class`, with a `close_source`) and the resuming epoch as the open span. *Validated:* `resume.js:181-183` (`applyResumeToLedger` appends `budgetSessions`), `lights-out.js:~1210,1275` (`closeAndOpenBudgetSessions` closes prior + opens new before resume applies). Build agent confirms by reading a real `run-ledger.json` from a resumed run under `.faff/runs/` if one exists, else relies on the synthetic fixture.
+- **Assumes:** each `budget.sessions[]` closed span carries a `close_source` field the provenance thread reads. *Validated:* the span shape in §3 vocabulary and the FAFF-527 writer record it; a span missing `close_source` reads as non-`"transcript"` and simply raises the (safe-direction) provenance warning — never a crash.
+- **Assumes:** `economicsBreakdown` receives (or can be passed) `closedSpend.byModel` to fold the class/model axes. *Validated:* build agent confirms the call site in `cmdEconomics` where `--by` dispatches to `economicsBreakdown` and threads the map through; `closedSpend` is already computed in the same function scope.
+
+## 8. Done — Definition of Done
+
+### From WHY
+- [ ] On a resumed multi-epoch run, `faff economics` reports a run-scoped total (Σ closed spans + open span), not the resuming epoch alone — the earlier-epoch drop is gone.
+- [ ] `faff economics` and `faff budget check` report the same `tokens_total`/`spent.tokens` on the same resumed-run fixture.
+
+### From WHAT (types / interfaces)
+- [ ] `economics.js` import line adds `closedSessionsSpend, currentOpenSpan, byModelClassTotal` from `./budget` (no reimplementation).
+- [ ] `cmdEconomics` resolves `effectiveEnv` by FAFF-560 precedence: `--session-id` > open-span `session_id` > `ledger.budget.measure_session_id` > ambient (replaces the `economics.js:1075` line).
+- [ ] When `budget.sessions[]` is present, the open span's `baseline_by_model_class` rebaselines `tokensAtStart`/`tokensAtStartByModel` (guarded plain-object check, mirror `budget.js:1000`).
+- [ ] `cmdEconomics` computes `hasClosedSpans` (≥1 closed span present) and `degradedSpans` (folded spans with `close_source != "transcript"`) and threads both into `computeUnitEconomics`.
+- [ ] `computeUnitEconomics` accepts `closed_span_total`, `has_closed_spans`, `epoch_scoped_axes`, `estimate_epoch_scoped`, and `degraded_close_sources`, and adjusts warnings per §3.
+
+### From HOW (behaviour)
+- [ ] Transcript branch: `tokensTotal = max(0, measuredTotal - tokensAtStart) + closedSpend.total`.
+- [ ] Map-pricing per-model delta folds `closedSpend.byModel` (mirror `budget.js:1052-1058`) so `cost_total` spans epochs.
+- [ ] Estimate branch does NOT add `closedSpend.total` to the per-attempt estimate, AND emits a coverage warning (`estimate_epoch_scoped`) whenever a closed span is present — the drop is named, not silent.
+- [ ] `--by model` folds `closedSpend.byModel` row-for-row by model; `--by class` folds via the model→class projection (`Σ over models` per token class); both reconcile (in tokens) to the new `tokens_total`.
+- [ ] `--by day|mcp|effort|phase` do NOT fold and emit a coverage warning naming them as resuming-epoch-only on a resumed run.
+- [ ] Every coverage/estimate/provenance warning gates on `has_closed_spans` (presence), NOT on `closed_span_total > 0` (magnitude) — a degraded/zero-delta prior epoch still warns.
+- [ ] A folded span with `close_source != "transcript"` surfaces a provenance warning, threaded via `degraded_close_sources`.
+- [ ] The `tokens_at_start=0` inflation warning is suppressed when `has_closed_spans` is true; the single-session case still emits it.
+
+### From HOW (edge cases)
+- [ ] A ledger with no `budget.sessions[]` (or an all-open single span) produces byte-for-byte-identical economics output to pre-change (parity, mirror `test/budget.test.mjs:1635`).
+- [ ] A closed span with a zero (or degraded-to-zero) delta still fires the coverage/estimate warning (presence gate), while adding nothing to the top-line.
+- [ ] `--session-id <flag>` overrides the open-span session (FAFF-488 contract preserved) — exercised by a fixture whose ambient `CLAUDE_CODE_SESSION_ID` differs from the flagged/open-span session, so a build ignoring the flag fails.
+- [ ] An open span with a NON-ZERO `baseline_by_model_class` whose transcript total exceeds the baseline yields the positive resuming-epoch delta (not clamped to 0), and economics still equals budget check (open-span parity, rebaseline continuity).
+
+### From docs
+- [ ] `docs/guide/cli.md:110` economics row updated: (a) states economics spans epochs via the ledger's closed session spans, matching `budget check`; (b) the `class`/`model`/`day` reconcile sentence revised so `class`/`model` always reconcile while `day`/`mcp`/`effort`/`phase` are single-session-only and epoch-scoped-with-warning on resumed runs.
+
+### From tests
+- [ ] New regression tests in `test/economics.test.mjs` using a synthetic 2-epoch `budget.sessions` fixture (mirror `test/budget.test.mjs:1581`): the run-scoped total (600), the economics-vs-budget-check agreement, the single-session parity, the `--by model` reconcile, the `--by class` reconcile, the `--by day` coverage warning, the estimate-path coverage warning, and the zero-delta-closed-span presence-gated warning.
+- [ ] Additional regression tests: the non-zero-open-span-baseline delta + open-span parity case; the `--session-id` override with a divergent ambient (flag wins) plus the no-flag precedence case (open span wins over ambient); the `per_issue` epoch-scoping warning on a resumed run; and the disjoint-session-id reconcile check pinning `--by model`/`--by class` to sum to exactly `tokens_total` (no double-count).
+
+**Eval coverage.** No LLM-judgement seam is introduced or changed (pure token accounting) — no grader/eval-case DONE item required.
+
+**Integration smoke test.**
+
+```
+PROCEDURE smoke():
+  1. Build a run dir with run-ledger.json carrying budget.sessions=[{closed epoch-0: 500},{open epoch-1}]
+     and an epoch-1 transcript drawing 100 tokens.
+  2. Run: faff economics --run-dir <dir> --json   (env CLAUDE_CODE_SESSION_ID=epoch-1)
+  3. Assert JSON.tokens_total == 600 and tokens_source == "transcript".
+  4. Run: faff budget check --run-dir <dir> --json (same env); assert spent.tokens == 600.
+  # If this passes, session precedence + closed-span fold are wired and the two surfaces agree.
+```
+
+---
+
+confidence: high
+build-tier: complex
+
+> **Judge correction (p-05, UPHOLD_REVIEW):** In §5 and §8 'From tests', extend the map-priced resumed-fixture coverage to the cost axis: add a scenario/regression test asserting that economics' cost_total on the 2-epoch fixture equals the map-priced sum of the closed-span cost (500 tokens) plus the open-span cost (100 tokens) — i.e. all 600 tokens are priced, not only the open span — and name this cost_total-spans-epochs test in the From tests DONE list alongside the --by model/--by class reconcile tests.
+>
+> And the map-priced cost_total equals the priced sum over all 600 tokens (closed 500 + open 100) — a build that prices only the open span's cost fails this assertion

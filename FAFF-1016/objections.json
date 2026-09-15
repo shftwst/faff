@@ -1,0 +1,74 @@
+[
+  {
+    "claim": "The spec's falsifiable promise — \"the malformed config is never read on this path\" (Scenario 5, first run) — is grounded only for *occupant selection*; nothing in the spec establishes that occupant selection is the **only** config-touching step in the verify path, so the claim can fail without any config read in the section the spec actually controls.",
+    "evidence": "§4's HOW pins the override to \"no config read for occupant selection\" and §8's done-item repeats \"no config read for occupant selection\" — but Scenario 5's first `Then` asserts the stronger \"the malformed config is never read on this path\" against a `CLEAN`/0 outcome. The spec never enumerates the rest of `verifyBundleIdentity`'s reads (identity flag interpretation, boundary validation, conformance checks, anchor discovery) or shows they are config-free; the `--root` walk-up machinery (`findConfig`/`mainWorktreeRoot`) it exempts in §2 is still live in the same invocation.",
+    "predicted_consequence": "any other verify sub-step that reaches `readBaseConfigStrict` turns Scenario 5's first run into exit 2 with `base-parse-error`, silently invalidating the run pair that is the spec's own primary falsifiable asymmetry — the malformed-config-enclosing capture case is exactly where \"config walk-up is correct for in-repo cases\" and \"override is config-blind\" most plausibly collide.",
+    "spec_anchor": "5-scenarios-born-verifiable-main-objectives",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE requirements put `--bundle-store` in `BUNDLE_SPEC.flags` (arity 1, enum) with no per-action carve-out, while §2 explicitly excludes the flag from `bundle publish` — so if `publish` parses the same spec, it now accepts a *recognised*, enum-legal flag it never reads, a silent no-op exactly in the class of fail-open-on-flags hole `argv.js`'s fail-closed parser (FAFF-576) was built to close.",
+    "evidence": "§3 \"CLI surface\" and §8 \"`BUNDLE_SPEC.flags` includes `--bundle-store`\" place the flag in the shared spec; §2 \"Out of scope\" reserves it from `publish`; the spec's own framing (\"an unknown flag is never looked for… a typo is a silent no-op\", per `argv.js` context) shows the parser closes the *unknown*-flag hole, not the known-but-action-ignored hole this registration opens for `publish`.",
+    "predicted_consequence": "the first `faff bundle publish --bundle-store local` in an operator script exits 0 with the flag silently discarded — and, worse, `faff bundle publish --bundle-store s3` exits 2 at parse time for an action that never uses the flag, a confusing verdict for a value the action cannot honour.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The override makes `bundle verify` perform a live network fetch (`ls-remote`/`fetch`) against the `origin` remote resolved by git's *own* upward discovery from `--root`. For an attacker-supplied capture, that discovery is attacker-influenced: a capture directory that contains its own `.git/config` (or sits inside a checkout the attacker controls) names the `origin` URL, so the operator's verify command fetches from an attacker-chosen host. The operator believes they are verifying against \"a known git-remote checkout\" (the spec's own framing), but the source being verified against is named by the artifact being verified — a trust-boundary inversion. Concretely: (a) network egress from the operator's machine to an attacker host, (b) git may invoke the checkout's configured `credential.helper` during the fetch, and (c) in git-remote mode the remote *is* the trust root — an attacker-controlled origin can serve a bundle whose own digests verify `CLEAN`, so the operator receives a clean verdict from a source they did not intend to trust.",
+    "evidence": "§1 \"Where `--bundle-store git-remote`'s remote comes from\": \"Every git operation it performs (`ls-remote`, `fetch`, `push`, `show`) runs as `git -C root <op> origin ...`; the remote named `origin` is resolved by **git's own native config discovery** — the `.git/config` of whichever checkout `git -C root` lands in, via git's ordinary upward search from `root`.\" §5 Scenario 3: \"`--bundle-store git-remote` constructs the git-remote occupant (parity with config)… the verdict is CLEAN.\" §1: \"`--bundle-store git-remote` on `bundle verify` remains coherent as a direct-construction mirror… useful for an operator who wants that exact construction without the config file's involvement.\"",
+    "predicted_consequence": "An operator running `faff bundle verify --root <attacker-capture> --bundle-store git-remote` triggers a network fetch to a host chosen by the capture's own git config, may invoke the credential helper, and can receive a `CLEAN`/0 verdict sourced from an attacker-controlled remote — with no spec-level warning that the capture itself can name the fetch target.",
+    "spec_anchor": "where-bundle-store-git-remotes-remote-comes-from-resolves-the-round-1-architectural-objection",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec refactors `resolveBundleStore` to route through `bundleStoreByName` (a change to the default path), yet no scenario exercises the absent-flag path with a valid local config — the case every ordinary repo hits. Scenario 2 (absent flag) uses a `git-remote` config; Scenario 5's second run (absent flag) uses a *malformed* config that throws before occupant construction. Neither reaches the refactored occupant construction for the local occupant. The spec's own falsifiability claim for the absent-flag path (\"Falsifiable directly: Scenario 5's second run\") is false in the relevant sense — that run never constructs an occupant.",
+    "evidence": "DONE item \"When `--bundle-store` is absent, the verify action performs no store construction and `verifyBundleIdentity` resolves the store via `resolveBundleStore(root)` exactly as before (byte-for-byte). Falsifiable directly: Scenario 5's second run\"; §1 principle \"Zero-config behaviour is unchanged\"; §3 \"refactor `resolveBundleStore` to route through the same helper\".",
+    "predicted_consequence": "A build that breaks `resolveBundleStore` for the local-config case (e.g., `bundleStoreByName(\"local\", root)` mis-keys the segment dir, or `resolveBundleStoreName` mis-resolves a valid `bundle_store: local`) passes all five scenarios and the smoke test, because no scenario runs the absent-flag path against a valid local config. The \"byte-for-byte unchanged\" DONE item is undecidable by the supplied tests.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "Scenario 5's first run pins `CLEAN`/0 against a malformed enclosing `.faffrc.yaml`, which requires that *nothing* in the verify path reads config — identity construction, conformance check, anchor resolution, anything. The spec's grounding covers only occupant selection (\"no `loadConfig`, no `mainWorktreeRoot` walk-up\" for the local occupant; DONE item \"no config read for occupant selection\"). The rest of the verify path is asserted config-free (\"the malformed config is never read on this path\") without being enumerated or grounded.",
+    "evidence": "Scenario 5 first run `Then the verdict is CLEAN and the exit code is 0 — the malformed config is never read on this path`; DONE item \"no config read for occupant selection\"; §4 procedure step 7 \"Conformance-check + print verdict … all unchanged\" (conformance check's config behaviour unspecified).",
+    "predicted_consequence": "If any step in the verify path other than occupant selection reads config (e.g., the conformance check or identity construction calls `loadConfig`), Scenario 5's first run fails on a build that is correct per every grounded requirement. The expected `CLEAN`/0 is undecidable because the spec grounds only the occupant-selection slice of the path.",
+    "spec_anchor": "5-scenarios-born-verifiable-main-objectives",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The regression-guard run's expected outcome — `VERIFICATION_UNAVAILABLE`/2 for a failed `git ls-remote origin <ref>` against a nonexistent local path — is asserted (\"store-unreachable -> VERIFICATION_UNAVAILABLE, bundle.js classifyBundle\") but never demonstrated. The verdict ladder also contains `MISSING` (exit 1); the spec provides no test or line showing a failed `ls-remote` classifies as store-unreachable rather than missing. The same ungrounded expectation is baked into smoke-test step 6.",
+    "evidence": "Scenario 2 `Then the verdict is VERIFICATION_UNAVAILABLE and the exit code is 2 — because … its `git ls-remote origin <ref>` fails immediately … (store-unreachable -> VERIFICATION_UNAVAILABLE, bundle.js classifyBundle)`; DONE item \"regression-guard absent-flag run … yields `VERIFICATION_UNAVAILABLE`/2\"; smoke step 6.",
+    "predicted_consequence": "If `classifyBundle` actually maps a failed `ls-remote` to `MISSING`/1, Scenario 2 and smoke step 6 fail on a correct build, and the regression-guard DONE item's expected value is wrong — the build agent cannot tell whether to fix the code or the scenario's expectation.",
+    "spec_anchor": "5-scenarios-born-verifiable-main-objectives",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The scenario's `Then` requires stderr to contain \"readBaseConfigStrict's loud warning naming the file as malformed, immediately followed by 'faff bundle verify: base-parse-error'\" — exact content and ordering. The spec cites `readBaseConfigStrict`'s throwing behaviour but never grounds the warning's exact text or the catch message's exact text. Meanwhile the corresponding DONE item is looser (\"exits 2 with the config-fault stderr\"). Scenario and DONE disagree in precision.",
+    "evidence": "Scenario 5 second run `Then it exits 2, and stderr surfaces the config fault (readBaseConfigStrict's loud warning naming the file as malformed, immediately followed by \"faff bundle verify: base-parse-error\")`; DONE item \"exits 2 with the config-fault stderr\".",
+    "predicted_consequence": "If the actual warning or catch text differs (file not named, different message), the scenario fails while the DONE item passes — a correct build is marked failed by a scenario that over-specifies beyond what the spec grounds.",
+    "spec_anchor": "5-scenarios-born-verifiable-main-objectives",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE requires \"The `verify` usage string lists `[--bundle-store local|git-remote]`\", but no scenario, selftest case, or smoke step checks `--help` output. The selftest requirement covers only the five §5 scenarios, none of which inspect the usage string.",
+    "evidence": "DONE item \"The `verify` usage string lists `[--bundle-store local|git-remote]`\"; DONE \"A `bundle --selftest` case block covers all five scenarios in §5 1:1\".",
+    "predicted_consequence": "A build that omits the flag from the usage string passes every scenario and the smoke test; the DONE item is decidable only by an unscripted manual `--help` inspection that no test enforces.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

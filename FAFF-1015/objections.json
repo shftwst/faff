@@ -1,0 +1,47 @@
+[
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "",
+    "lens": "QA",
+    "severity": "blocker",
+    "contested_source": false
+  }
+]

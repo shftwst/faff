@@ -1,0 +1,38 @@
+[
+  {
+    "claim": "The spec's central born-verifiability claim (refresh log 2026-09-15 QA-major fold; section 4 \"The born-verifiable test\"; section 5 scenario 5; section 8 \"From HOW (the fold is born-verifiable)\") is that the new test \"grades the committed pair, not a copy\" and that \"flipping a committed oracle (e.g. case-defect's outcome_not to UPHOLD_REVIEW) or renaming a case_file makes it FAIL.\" This is false as written. The test's `FOR each case IN reg.cases` loop reads only `case.oracle` — it never reads `case.case_file`, and it never loads `case-defect.json` / `case-taste.json`. The two case files are therefore dead weight in the test: the test's assertions are a pure function of `oracles.json` alone.",
+    "evidence": "Section 4 pseudocode — `FOR each case IN reg.cases: o := case.oracle` (the only field of `case` ever read); the loop body asserts `grade({kind:K, oracle:o}, {ruling:...})` with `o` sourced solely from `reg.cases[i].oracle`. The committed `oracles.json` (supplied) shows each entry is `{ \"case_file\": \"case-defect.json\", \"oracle\": { \"outcome_not\": \"AFFIRM_SPEC\" } }` — `case_file` is present but never consumed by the test. Section 5 scenario 5 asserts \"a build that flips a committed oracle (e.g. case-defect's outcome_not to UPHOLD_REVIEW) or renames a case_file FAILS this test.\"",
+    "predicted_consequence": "Two concrete, checkable failures ship green. (1) Rename `case-defect.json` → `case-defect2.json` (or delete it): the test still passes, because `case_file` is never read — the spec's own section-5 \"renames a case_file FAILS this test\" assertion is false. (2) Flip `case-defect`'s oracle to `outcome_not: \"UPHOLD_REVIEW\"`: the loop now derives `pass_ruling = AFFIRM_SPEC` (first enum member ≠ UPHOLD_REVIEW) and `fail_ruling = UPHOLD_REVIEW`, and `grade()` still returns 1/0 — the test passes, so the \"flipping a committed oracle turns the build red\" guarantee does not hold. The test is an internally-consistent tautology (it re-derives its pass/fail rulings from the same oracle it grades against), which is exactly the \"self-referential literal\" defect the 2026-09-15 architectural-major fold claimed to close. The enum-gate regression guard (`\"NOT_AN_OUTCOME\"` → 0) is the only assertion that is genuinely non-tautological, and it is independent of the corpus; the \"corpus-bound\" framing is therefore over-claimed.",
+    "spec_anchor": "4-how-behaviour",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "Section 4's `assert reg.grader_kind === \"spec-judge-discrimination\"` is presented as a \"corpus↔KIND drift guard,\" but it compares the file's `grader_kind` field to the same literal the test hardcodes as `K`. It cannot detect any drift: the only way it fails is if the committed `oracles.json` itself is edited, which is not a build-time regression the test is positioned to catch.",
+    "evidence": "Section 4 pseudocode: `K := \"spec-judge-discrimination\"` immediately followed by `assert reg.grader_kind === \"spec-judge-discrimination\"` (the identical literal). Supplied `oracles.json` has `\"grader_kind\": \"spec-judge-discrimination\"`.",
+    "predicted_consequence": "A future build that changes the grader KIND (e.g. renames it in `grader.mjs` `KINDS` and the registry) but forgets to update the test's `K` constant will still pass this assertion, because both sides of the comparison move together or the test's `K` is the stale one — the assertion provides no independent signal. The guard is decorative; the real KIND↔registry equality is already enforced by `assertRegistryConsistent` at load, so this line adds nothing and misleads a reader into thinking the test cross-checks the corpus against the grader.",
+    "spec_anchor": "4-how-behaviour",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec's central born-verifiability claim — that the test \"grades the committed pair, not a copy\" and that \"flipping a committed oracle … or renaming a `case_file` … makes it FAIL\" — is false as written. The test procedure reads only `reg.grader_kind` and `reg.cases[i].oracle` from `oracles.json`; it never reads `case_file`, and it never reads `case-defect.json` / `case-taste.json` at all. The `case_file` field is load-bearing only in the live-driver lane (the deferred FAFF-1007 sibling), which this ticket explicitly does not build.",
+    "evidence": "Section 4 \"The born-verifiable test\" procedure (`reg := JSON.parse(read(\"…/oracles.json\"))`; `FOR each case IN reg.cases: o := case.oracle`); Section 5 scenario \"Given test/grader-spec-judge-discrimination.test.mjs is present\" (\"a build that … renames a case_file FAILS this test\"); DONE \"From HOW (the fold is born-verifiable)\" (\"flipping a committed oracle … or renaming a `case_file` makes it FAIL — the grading is verified against the committed pair, not a copy\").",
+    "predicted_consequence": "A build that renames `case-defect.json` → `case-defect2.json` (or deletes both case files entirely) while leaving `oracles.json` intact passes every named AC and the entire section-8 smoke (steps 1–4), yet the seam's committed corpus is silently broken: the live-driver lane that later consumes `case_file` points at a missing file, and the \"committed pair\" the spec says it is verifying no longer exists. The spec's own headline guarantee (\"grading is bound to the committed corpus, not a copy\") cannot be decided by any test it ships.",
+    "spec_anchor": "how-behaviour",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The grade-branch pseudocode returns `signature: JSON.stringify(ruling)`, and the edge-case prose promises a \"distinct `signature`\" for the null / out-of-enum fail-safe, but no scenario and no test assertion ever observes `signature`. The test asserts only `.score`.",
+    "evidence": "Section 4 pseudocode step 6 (`RETURN { graded: …, score: …, tokens, signature: JSON.stringify(ruling) }`); Section 4 \"Edge cases and error handling\" (\"Null / non-string / out-of-enum `env.ruling` → clean FAIL with a distinct `signature`\"); Section 5 scenarios and the Section 4 test procedure (assert only `.score === 0/1`).",
+    "predicted_consequence": "A build that returns `signature: \"FAIL\"` (or omits it, or returns the raw `env.ruling` instead of the collapsed `ruling`) satisfies every scenario and every DONE item, yet the per-case signature-stability metric the harness is built around (the grader header: \"we measure per-case *signature* stability across reps\") is silently wrong for this kind. The \"distinct signature\" claim is unverifiable as written.",
+    "spec_anchor": "how-behaviour",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

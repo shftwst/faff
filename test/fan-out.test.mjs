@@ -131,7 +131,7 @@ test("fanOut: N=1 degenerates to a single child, resolves with its LensResult", 
   };
   const outcome = await fanOut([{ lens: "architectural", argv: ["--system", "s.md"] }], { spawnFn });
   assert.equal(outcome.ok, true);
-  assert.deepEqual(outcome.results, [{ lens: "architectural", exit: 0, stdout: "### observation: no findings", stderr: "", truncated: false }]);
+  assert.deepEqual(outcome.results, [{ lens: "architectural", exit: 0, stdout: "### observation: no findings", stderr: "", truncated: false, primarySkipped: false }]);
 });
 
 // ── FAFF-990: the truncation marker field ──

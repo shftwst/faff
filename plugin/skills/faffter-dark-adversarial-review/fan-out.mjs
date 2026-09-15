@@ -31,7 +31,7 @@ export const REVIEW_CALL_PATH = pathJoin(HERE, "review-call.mjs");
 // FAFF-990: import the transport's exported truncation marker as the SINGLE SOURCE OF TRUTH. The
 // shared import is what makes a rename on either side a CI failure (the fan-out drift test), never a
 // silent revert to config-fault/park in production.
-import { TRUNCATION_SIGNAL } from "./review-call.mjs";
+import { TRUNCATION_SIGNAL, PRIMARY_SKIP_SIGNAL } from "./review-call.mjs";
 
 // PURE: did the child's stderr carry the truncation marker? A LINE-ANCHORED EQUALITY — some trimmed
 // stderr line must equal TRUNCATION_SIGNAL exactly — never a substring scan of the whole blob. Every
@@ -41,6 +41,14 @@ import { TRUNCATION_SIGNAL } from "./review-call.mjs";
 // transport concern — it surfaces a transport fact, it maps no per-lens outcome.
 export function stderrTruncated(stderr) {
   return String(stderr == null ? "" : stderr).split("\n").some((line) => line.trim() === TRUNCATION_SIGNAL);
+}
+
+// PURE (FAFF-1039): did the child's stderr carry the primary-skip marker? Same line-anchored EQUALITY
+// as stderrTruncated — never a substring scan — so untrusted diff/context echoed into findings cannot
+// forge it. Surfaces a transport fact (the strongest configured reviewer did not serve this lens); it
+// maps no per-lens outcome and gates nothing.
+export function stderrPrimarySkipped(stderr) {
+  return String(stderr == null ? "" : stderr).split("\n").some((line) => line.trim() === PRIMARY_SKIP_SIGNAL);
 }
 
 // PURE: is `requests` a non-empty array of well-shaped LensRequest entries ({lens: string, argv:
@@ -111,7 +119,7 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
       settled = true;
       // FAFF-990: `truncated` is the ONE new derived field — additive; the four existing fields are
       // untouched. It surfaces the transport's own truncation fact to the spec-review classifier.
-      resolve({ lens: request.lens, exit: code == null ? 1 : code, stdout, stderr, truncated: stderrTruncated(stderr) });
+      resolve({ lens: request.lens, exit: code == null ? 1 : code, stdout, stderr, truncated: stderrTruncated(stderr), primarySkipped: stderrPrimarySkipped(stderr) });
     });
   });
 }

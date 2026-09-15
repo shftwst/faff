@@ -148,6 +148,173 @@ export const DEFAULT_TRIM_HEAD_LINES = 12;         // leading lines kept when a 
 export const DEFAULT_MAX_ANCHOR_LINES = 40;        // a diff token anchoring more lines than this in a file is too common to anchor
 export const DEFAULT_RETAINED_CEILING = 0.8;       // if a trimmed file still retains more than this fraction, head-reduce it instead
 
+// --- FAFF-1039: per-backend context-window preflight ---------------------------------------------
+//
+// The fallback chain is tried strongest-first, but the decision to advance past a backend was made
+// REACTIVELY — only once that backend threw an HTTP 400 for an over-window payload. Because the
+// payload is sized against nothing but the coarse 5MB byte ceiling above, the strongest backend is
+// dispatched into a guaranteed 400 whenever the diff touches a large module, and the review is served
+// by a weaker fallback, visible only in one stderr line on an otherwise-green pass. So the strongest
+// reviewer is silently unavailable for exactly the diffs most worth reviewing. These constants make
+// the advance-decision PROACTIVE and window-aware, and make every primary skip loud.
+//
+// Opt-in and back-compatible: a backend with no declared context_window behaves exactly as before, so
+// no existing review changes a single assembled byte.
+
+export const DEFAULT_BYTES_PER_TOKEN = 3.0;      // conservative divisor: OVER-estimates tokens so the guard trips
+                                                 //   early rather than late. Code averages ~3.5-4 utf8 bytes/token;
+                                                 //   3.0 biases the estimate high on purpose.
+export const DEFAULT_WINDOW_SAFETY = 0.9;        // usable fraction of a declared window (response + estimate-error headroom)
+// Fixed token budget reserved for the per-lens --system brief when computing the trim target, so the
+// target never depends on the ACTUAL brief length and the trimmed shared prefix stays byte-identical
+// across the four spec-review lenses (the FAFF-903 cacheable prefix). MEASURED 2026-09-14 @ 3.0 B/tok:
+//   refute-infosec.md 4817 B ~1605 tok  <- binding   refute-architectural.md 4630 B ~1543 tok
+//   refute-qa.md      4452 B ~1484 tok             refute-methodology.md   3132 B ~1044 tok
+//   code-review "## Review lens" section 2020 B ~673 tok
+// 2000 clears the 1605 binding constraint with ~25% headroom.
+export const DEFAULT_BRIEF_RESERVE_TOKENS = 2000;
+export const MIN_TRIM_TARGET_BYTES = 1024;       // trimTargetBytes never returns <= 0; this is its floor
+
+// The machine-only, line-anchored primary-skip marker, mirroring TRUNCATION_SIGNAL exactly. Emitted on
+// its own stderr line whenever the backend that served was not chain[0]. `fan-out.mjs` recognises it by
+// line-anchored EQUALITY, never a substring scan, so untrusted diff/context echoed into findings can
+// never forge it (the same unforgeability argument TRUNCATION_SIGNAL rests on).
+export const PRIMARY_SKIP_SIGNAL = "[faff:primary-skipped]";
+
+// PURE: normalise an operator-declared window to a positive integer, or null when absent/malformed.
+// Every chain-assembly form converges on the review-call mapper, but only TWO of the four pass through
+// backends.js's normalizeBackend (the `refs:` forms); the native `backends:` array and the legacy
+// primary+fallbacks forms reach pickBackendKeys directly and carry the raw authored value. So the
+// consumer boundary normalises too, and a malformed knob is inert on every path rather than only on
+// the refs path.
+export function normaliseContextWindow(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+}
+
+// PURE: conservative token estimate. Never returns fewer than utf8Bytes/bytesPerToken (ceil), which is
+// the MUST invariant the guard's fail-early bias rests on.
+export function estimateTokens(text, bytesPerToken = DEFAULT_BYTES_PER_TOKEN) {
+  const bpt = Number(bytesPerToken) > 0 ? Number(bytesPerToken) : DEFAULT_BYTES_PER_TOKEN;
+  return Math.ceil(Buffer.byteLength(String(text == null ? "" : text), "utf8") / bpt);
+}
+
+// PURE: does an estimated payload fit a declared window? An absent window is unbounded (true) — the
+// opt-in guarantee: an un-annotated backend is never guard-skipped.
+export function fitsWindow(estimatedTokens, contextWindow, safety = DEFAULT_WINDOW_SAFETY) {
+  const w = normaliseContextWindow(contextWindow);
+  if (w === null) return true;
+  return Number(estimatedTokens) <= Math.floor(w * safety);
+}
+
+// --- the window budget trio ---------------------------------------------------------------------
+//
+// SHARED CONTRACT: the budget is for EVERYTHING IN THE PREFIX EXCEPT THE DIFF. The window has to
+// accommodate context + diff + a fixed brief reserve, and the diff is not reducible, so it is
+// subtracted out and what remains is what the trim has to work with. Callers therefore compare against
+// `prefixBytes - diffBytes`, which is what `tightenToTarget` computes as `contextBytes`: that spelling
+// is exact by construction (assembleUserMessage emits the diff verbatim exactly once) and charges the
+// per-file `<file path=…>` wrappers and the `DIFF UNDER REVIEW:` header, which a bare sum of `f.text`
+// would silently omit — about 25 bytes plus the path per file, which on a 30-file payload is ~2.5KB,
+// more than the slack the brief reserve leaves. Comparing against the FULL assembled prefix instead
+// would charge the diff twice and undershoot by exactly its size, silently over-trimming every
+// diff-heavy review. All three depend only on (contextWindow, diff), never on any lens brief, so the
+// prefix they govern stays byte-identical across lenses.
+//
+// The arithmetic lives in ONE place, `rawTrimBudgetBytes`. The floor and the was-it-floored question
+// are derived from it rather than re-spelled, because a second copy is how the note and the target
+// silently desynchronise.
+
+// PURE: the budget before the floor is applied. May be negative or null (no declared window).
+export function rawTrimBudgetBytes(contextWindow, diff = "") {
+  const w = normaliseContextWindow(contextWindow);
+  if (w === null) return null;
+  return Math.floor(w * DEFAULT_WINDOW_SAFETY * DEFAULT_BYTES_PER_TOKEN)
+    - Buffer.byteLength(String(diff == null ? "" : diff), "utf8")
+    - Math.floor(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN);
+}
+
+// PURE: the budget the search actually aims at — the raw budget, floored so it is never <= 0.
+export function trimTargetBytes(contextWindow, diff = "") {
+  const raw = rawTrimBudgetBytes(contextWindow, diff);
+  if (raw === null) return null;
+  return Math.max(MIN_TRIM_TARGET_BYTES, raw);
+}
+
+// PURE: was the budget driven below its floor by a large diff? When it was, `trimTargetBytes` returned
+// the floor rather than a window-derived budget, so HITTING that target says nothing about fitting the
+// window. The operator-facing note says so rather than implying a fit it cannot vouch for.
+export function trimTargetClamped(contextWindow, diff = "") {
+  const raw = rawTrimBudgetBytes(contextWindow, diff);
+  return raw !== null && raw < MIN_TRIM_TARGET_BYTES;
+}
+
+// PURE: does the tightened payload STILL exceed the primary's usable window? This is deliberately NOT
+// `tightenToTarget`'s `fitted`. `fitted` means "hit the byte target", and when a large diff drives the
+// budget below MIN_TRIM_TARGET_BYTES the target clamps to that floor, so hitting it says nothing about
+// fitting the window. Keying the operator-facing note off `fitted` would let it report a fit on a
+// payload still well over the window, which is the same dishonesty the note exists to remove.
+//
+// `fitted` is unsafe in BOTH regimes, which is worth stating because the tempting algebra says
+// otherwise: fitted gives contextBytes <= usableBytes - diffBytes - reserveBytes, which looks like it
+// implies est + reserve <= usable. It does not, because estimateTokens CEILINGS, so a maximally-fitted
+// payload can land a token over (w=65536, empty diff, demonstrated in the tests). And when the target
+// is clamped to the floor it bears no relation to the window at all. Hence: key off the window.
+export function stillOverWindow(estTokens, reserveTokens, usableTokens) {
+  return Number(estTokens) + Number(reserveTokens) > Number(usableTokens);
+}
+
+// The descending trim-window ladder the search walks.
+//
+// WHY A SEARCH, not a threshold. `trimContextFiles`'s `thresholdBytes` is an ON/OFF GATE — below it the
+// trim is an identity no-op — NOT a size target: the actual aggressiveness lives in `window` (lines kept
+// either side of each anchor) and `headLines`. Any payload large enough to overflow a real context
+// window is far above the 48KB default gate, so the default trim has ALREADY fired and re-running it
+// with a different threshold reduces nothing. (That gate measures CONTEXT bytes only, so a
+// small-context large-diff payload can overflow a window without it ever firing; the conclusion still
+// holds in the regime that matters, since a context small enough to slip the gate is not what the trim
+// is for, but the reason is narrower than it first reads.) To actually reach a byte target we have to tighten the
+// knob that governs how much is kept. Every rung keeps every diff-touched line (trimOneFile's
+// conservative guarantee), so the search never degrades to the diff-only view that produced confident
+// false criticals.
+//
+// A SMALLER WINDOW DOES NOT ALWAYS YIELD A SMALLER PREFIX. `trimOneFile`'s retained-ceiling fallback
+// head-reduces a file whose kept fraction exceeds `retainedCeiling`; tightening the window can drop that
+// fraction BELOW the ceiling, so the file stops being head-reduced and grows instead. Measured on a
+// 400-line identifier-anchored file with no touched lines: rungs 24/16/10/6 give 1545 B and rung 3 gives
+// 18527 B. So the search must take the MINIMUM across rungs, never merely the last one tried — which is
+// what `tightenToTarget` does below, and what the monotonicity test pins.
+export const TRIM_WINDOW_LADDER = Object.freeze([DEFAULT_TRIM_WINDOW, 16, 10, 6, 3, 1]);
+
+// PURE: tighten the context bundle until the assembled prefix fits `targetBytes`, or the ladder is
+// exhausted. Returns the first rung that fits (`fitted: true`), else the SMALLEST prefix seen across
+// every rung (`fitted: false`) — never merely the last rung tried, because the ladder is not monotonic
+// (see the note above: a tighter window can enlarge a head-reduced file). Returning the last rung there
+// would let a "window-targeted trim" hand the chain a payload BIGGER than the one it started from,
+// which is the exact inverse of the point. A residual overflow is not an error: the per-backend guard
+// and the primary-skip surfacing handle it, and a smaller-but-still-over payload beats the un-narrowed
+// one. `assembleFn` is injected so the search is testable independently of the module-level assembler.
+export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, assembleFn = assembleUserMessage } = {}) {
+  const diffBytes = Buffer.byteLength(String(diff == null ? "" : diff), "utf8");
+  let best = null;
+  for (const window of TRIM_WINDOW_LADDER) {
+    const { contextFiles: trimmed } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
+    const prefix = assembleFn({ contextFiles: trimmed, diff });
+    const bytes = Buffer.byteLength(prefix, "utf8");
+    // The fit is decided on everything-but-the-diff, because that is what trimTargetBytes budgets (it
+    // already subtracted the diff). Derived as prefix minus diff rather than summed from f.text: exact
+    // by construction, and it cannot drift if assembleUserMessage's framing ever changes.
+    const contextBytes = bytes - diffBytes;
+    if (targetBytes == null || contextBytes <= targetBytes) {
+      return { contextFiles: trimmed, prefix, bytes, contextBytes, window, fitted: true };
+    }
+    // The min is tracked on PREFIX bytes, because the prefix is what gets sent.
+    if (best === null || bytes < best.bytes) best = { contextFiles: trimmed, prefix, bytes, contextBytes, window };
+  }
+  return { ...best, fitted: false };
+}
+
 // A whole-word identifier token: a run of JS identifier characters. Length >= 3 is applied by the caller.
 const IDENT_RE = /[A-Za-z_$][A-Za-z0-9_$]*/g;
 // Closed stoplist (no "and similar"): common JS keywords too generic to be a relevance signal.
@@ -589,7 +756,7 @@ const HEADER_LINE_RE = /^##[ \t]*Adversarial findings/i;
 // Locate an existing header line's index, searching ONLY the preamble (before the first `### ` finding
 // heading, exclusive) — never a finding body. Returns -1 when absent. Shared by ensureHeader (below) and
 // main()'s "was a header already present" check, so both use the identical scoped definition of "present".
-function findHeaderLineIdx(lines) {
+export function findHeaderLineIdx(lines) {
   const firstHeadingIdx = lines.findIndex((l) => HEADING_LINE_RE.test(l));
   const scopeEnd = firstHeadingIdx === -1 ? lines.length : firstHeadingIdx;
   for (let i = 0; i < scopeEnd; i++) if (HEADER_LINE_RE.test(lines[i])) return i;
@@ -1271,6 +1438,11 @@ export function parseArgs(argv) {
       catch (e) { throw new Error(`--reasoning-extra: not valid JSON: ${e.message}`); }
     }
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
+    // FAFF-1039: single-backend window (the chain form carries its own per element). A declared window
+    // OVERRIDES --context-trim-bytes 0: the window-targeted search always trims, because a payload that
+    // cannot fit the window is worse than a trimmed one, so disabling the byte-gated trim turns off the
+    // unconditional pass only, never the window-driven one.
+    else if (k === "--context-window") a.contextWindow = argv[++i];
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
@@ -1478,7 +1650,7 @@ async function safeCall(callFn) {
 //
 // chain element: { provider, model, host, hostSource, apiKey?, apiKeyEnv?, apiKeyMissing?, reasoningOff?, timeoutMs? }
 // shared:        { system, user, numPredict, runReviewFn?, getFn?, streamFn?, log? }
-// returns:       { exit, content?, truncated?, winner?, winnerIndex?, failureClasses }
+// returns:       { exit, content?, truncated?, winner?, winnerIndex?, failureClasses, primarySkipped? }
 //
 // FAFF-361: every per-skipped-backend log line below is reshaped to the greppable
 // `[chain] <provider>/<model> <reason> → advancing (exit <n>)` form ONLY when the chain is actually
@@ -1592,6 +1764,9 @@ export async function runReviewChain(chain = [], shared = {}) {
   const start = now();
   const n = chain.length;
   const failureClasses = [];
+  // FAFF-1039: why chain[0] was skipped, whatever the cause (over-window guard, 400, auth, empty,
+  // deadline). Recorded so a served-by-fallback result can name the reason the primary was not used.
+  let firstSkipReason = null;
   for (let i = 0; i < n; i++) {
     // FAFF-329 deadline gate — checked at the TOP of the loop so no NEW backend starts past the budget.
     // On a hit: a needs-human-class fault seen on an earlier backend DOMINATES (no-silent-weakening); else
@@ -1600,7 +1775,7 @@ export async function runReviewChain(chain = [], shared = {}) {
       const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
       const exit = nh != null ? nh : EXIT.DEADLINE;
       log(`deadline: Phase-2 total wall-clock budget ${Math.round(totalDeadlineMs / 1000)}s exceeded after ${i} backend(s) (exit ${exit})`);
-      return { exit, deadlineExceeded: true, failureClasses };
+      return { exit, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039: surfacing is "always on" — every exhaustion path carries it
     }
     const b = chain[i] || {};
     const tag = `${b.provider || "openai"}/${b.model || "?"}`;
@@ -1610,6 +1785,7 @@ export async function runReviewChain(chain = [], shared = {}) {
     // legacy single-backend path where callers never passed --provider.
     if (!b.model || !b.host) {
       failureClasses.push(EXIT.USAGE);
+      if (i === 0) firstSkipReason = "invalid (missing model/host)";   // FAFF-1039
       if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "invalid", exit: EXIT.USAGE });   // FAFF-928: no-body stub — the record of this round stays complete
       log(verb === "advancing"
         ? `[chain] ${tag} invalid (missing model/host) → advancing (exit ${EXIT.USAGE})`
@@ -1619,11 +1795,31 @@ export async function runReviewChain(chain = [], shared = {}) {
     // A declared-but-unset api key env is that backend's auth fault — no point calling, advance.
     if (b.apiKeyMissing) {
       failureClasses.push(EXIT.AUTH);
+      if (i === 0) firstSkipReason = `unset-key (env '${b.apiKeyEnv}')`;   // FAFF-1039
       if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "auth", exit: EXIT.AUTH });   // FAFF-928: no-body stub (the FAFF-927 unset-key first-backend case)
       log(verb === "advancing"
         ? `[chain] ${tag} unset-key (env '${b.apiKeyEnv}') → advancing (exit ${EXIT.AUTH})`
         : `${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
       continue;
+    }
+    // FAFF-1039: per-backend context-window guard. Advance DELIBERATELY, before any network call,
+    // rather than dispatching into a provider 400 we can already predict. Only ever decides a skip: it
+    // never re-trims and never alters the shared prefix, so the FAFF-903 cross-lens byte-identity is
+    // untouched. The estimate includes THIS lens's brief (a per-lens skip decision is allowed to differ;
+    // a per-lens PREFIX is not). A backend declaring no window is never guard-skipped.
+    if (b.contextWindow) {
+      const est = estimateTokens(shared.system) + estimateTokens(shared.user);
+      if (!fitsWindow(est, b.contextWindow)) {
+        const usable = Math.floor(b.contextWindow * DEFAULT_WINDOW_SAFETY);
+        const reason = `over-window (est ${est} tok > ${usable} usable window)`;
+        failureClasses.push(EXIT.USAGE);
+        if (i === 0) firstSkipReason = reason;
+        if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "over-window", exit: EXIT.USAGE });   // FAFF-928: the round's record stays complete
+        log(verb === "advancing"
+          ? `[chain] ${tag} ${reason} → advancing (exit ${EXIT.USAGE})`
+          : `${verb}: ${tag} ${reason} (exit ${EXIT.USAGE})`);
+        continue;
+      }
     }
     // FAFF-617: PER-BACKEND SLICE. The whole chain shares one total budget (totalDeadlineMs), but each
     // backend is granted only an EQUAL SHARE of what REMAINS — divided by how many backends are still to
@@ -1644,7 +1840,7 @@ export async function runReviewChain(chain = [], shared = {}) {
       // zero-window backend that would instantly time out.
       if (remaining <= 0 || sliceMs <= 0) {
         const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
-        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039
       }
       backendDeadline = now() + sliceMs;
     }
@@ -1679,13 +1875,14 @@ export async function runReviewChain(chain = [], shared = {}) {
         // EXIT.DEADLINE thus still occurs ONLY via the top-of-loop total-budget gate or this last-backend
         // exhaustion — never mid-chain.
         failureClasses.push(EXIT.DEADLINE);
+        if (i === 0) firstSkipReason = `slice ${Math.round(sliceMs / 1000)}s exhausted`;   // FAFF-1039
         if (shared.rawDir) captureRawResponseBody(shared, { chainIndex: i, backend: b, result: null, token: "deadline", exit: EXIT.DEADLINE });   // FAFF-928: dispatched-then-abandoned backend — no-body stub
         log(verb === "advancing"
           ? `[chain] ${tag} slice ${Math.round(sliceMs / 1000)}s exhausted → advancing (exit ${EXIT.DEADLINE})`
           : `deadline: Phase-2 backend ${tag} exhausted its ${Math.round(sliceMs / 1000)}s slice, chain exhausted (exit ${EXIT.DEADLINE})`);
         if (i < n - 1) continue;
         const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
-        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039
       }
     } else {
       result = await safeCall(callReview);
@@ -1722,13 +1919,14 @@ export async function runReviewChain(chain = [], shared = {}) {
       if (shared.expectContract) {
         if (!originalContent.trim()) {
           failureClasses.push(EXIT.NO_FINDINGS_CONTENT);
+          if (i === 0) firstSkipReason = "empty (contract mode: empty content)";   // FAFF-1039
           log(verb === "advancing"
             ? `[chain] ${tag} empty (contract mode: empty content) → advancing (exit ${EXIT.NO_FINDINGS_CONTENT})`
             : `${verb}: ${tag} produced empty output (contract mode) (exit ${EXIT.NO_FINDINGS_CONTENT})`);
           continue;
         }
         if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced contract output (after ${i} skipped)`);
-        return { exit: EXIT.OK, content: originalContent, truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses };
+        return { exit: EXIT.OK, content: originalContent, truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses, primarySkipped: primarySkipRecord(chain, i, firstSkipReason) };
       }
       const shape = validateFindingsShape(originalContent);
       const normalisation = normaliseCleanRefutation(originalContent);
@@ -1736,6 +1934,7 @@ export async function runReviewChain(chain = [], shared = {}) {
         const cls = (shape.kind === "empty" || shape.kind === "refusal") ? EXIT.NO_FINDINGS_CONTENT : EXIT.MALFORMED;
         const label = shape.kind === "garbled" ? "malformed" : shape.kind;
         failureClasses.push(cls);
+        if (i === 0) firstSkipReason = `${label} (${shape.reason})`;   // FAFF-1039
         log(verb === "advancing"
           ? `[chain] ${tag} ${label} (${shape.reason}) → advancing (exit ${cls})`
           : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${cls})`);
@@ -1746,15 +1945,25 @@ export async function runReviewChain(chain = [], shared = {}) {
         log(`normalized: clean refutation backend=${tag} lens=${normalisation.lens} form=${normalisation.form} response_sha256=${responseSha256}`);
       }
       if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);
-      return { exit: EXIT.OK, content: normalisation.content, truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses };
+      return { exit: EXIT.OK, content: normalisation.content, truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses, primarySkipped: primarySkipRecord(chain, i, firstSkipReason) };
     }
     failureClasses.push(exit);
     const detail = (result && result.note) || (result && result.names ? `available: ${result.names.join(", ")}` : "");
+    if (i === 0) firstSkipReason = `${(result && CHAIN_ADVANCE_REASON[result.status]) || (result && result.status) || "failed"}${detail ? ` (${detail})` : ""}`;   // FAFF-1039
     log(verb === "advancing"
       ? `[chain] ${tag} ${(result && CHAIN_ADVANCE_REASON[result.status]) || (result && result.status) || "failed"}${detail ? ` (${detail})` : ""} → advancing (exit ${exit})`
       : `${verb}: ${tag} failed (${result && result.status}${detail ? ": " + detail : ""}) (exit ${exit})`);
   }
-  return { exit: chainTerminalExit(failureClasses), failureClasses };
+  return { exit: chainTerminalExit(failureClasses), failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };
+}
+
+// PURE (FAFF-1039): the primary-skip record for a result, or null when chain[0] served. `servedIndex`
+// is -1 for an exhausted chain (nothing served, but the primary was still skipped for a reason worth
+// surfacing in the needs-human diagnostic).
+export function primarySkipRecord(chain, servedIndex, reason) {
+  if (servedIndex === 0 || !reason) return null;
+  const p = (chain && chain[0]) || {};
+  return { primary: `${p.provider || "openai"}/${p.model || "?"}`, servedIndex, reason };
 }
 
 // `runReviewFn` is injectable so the CLI exit-mapping (notably the FAFF-227 transport-failed → 5/6 path)
@@ -1776,7 +1985,7 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--expect contract] [--raw-dir DIR --lens NAME --round N]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--context-window N] [--expect contract] [--raw-dir DIR --lens NAME --round N]\n");
     return EXIT.USAGE;
   }
 
@@ -1807,6 +2016,10 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       reasoningExtra: b.reasoning_extra ?? b.reasoningExtra ?? null,   // FAFF-914: per-model reasoning-control passthrough (snake_case config / camelCase tolerated)
       timeoutMs: (b.timeout != null) ? Number(b.timeout) * 1000 : a.timeoutMs,
       firstByteMs: resolveFirstByteMs(b.first_byte_timeout ?? b.firstByteTimeout, a.firstByteMs),   // FAFF-885
+      // FAFF-1039: the operator-declared token window, normalised HERE because this mapper is the one
+      // point every chain-assembly form converges on (only the two `refs:` forms pass through
+      // backends.js's normalizeBackend; the native array and legacy forms do not). null ⇒ unbounded.
+      contextWindow: normaliseContextWindow(b.context_window ?? b.contextWindow),
     }));
   } else {
     if (!a.host || !a.model) {
@@ -1817,6 +2030,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       provider: a.provider, model: a.model, host: a.host, hostSource: a.hostSource,
       apiKeyEnv: a.apiKeyEnv, reasoningOff: a.reasoningOff, reasoningEffort: a.reasoningEffort, reasoningExtra: a.reasoningExtra, timeoutMs: a.timeoutMs,
       firstByteMs: resolveFirstByteMs(undefined, a.firstByteMs),   // FAFF-885
+      contextWindow: normaliseContextWindow(a.contextWindow),        // FAFF-1039: --context-window, else unbounded
     }];
   }
 
@@ -1859,7 +2073,51 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   if (trimReport.trimmed) {
     process.stderr.write(`[note] FAFF-915 context trim: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes (diff-relevant regions kept)\n`);
   }
-  const user = assembleUserMessage({ contextFiles, diff });
+  let user = assembleUserMessage({ contextFiles, diff });
+
+  // FAFF-1039: window-targeted trim of the SHARED PREFIX, once, pre-chain, targeting the PRIMARY
+  // backend's usable window. Sizing to the strongest reviewer is the availability that matters; the
+  // weaker backends are honoured by the per-backend guard in runReviewChain, which only ever decides
+  // skips and never re-trims, so the prefix stays one set of bytes for the whole chain. The target
+  // reserves a FIXED brief allowance rather than the actual per-lens brief, so the trimmed prefix is a
+  // pure function of (context, diff, primary window) and byte-identical across the four spec-review
+  // lenses — the FAFF-903 shared-prefix cache survives. Inert when the primary declares no window.
+  const primaryWindow = chain.length ? chain[0].contextWindow : null;
+  if (primaryWindow) {
+    const usable = Math.floor(primaryWindow * DEFAULT_WINDOW_SAFETY);
+    const estWithReserve = estimateTokens(user) + DEFAULT_BRIEF_RESERVE_TOKENS;
+    if (estWithReserve > usable) {
+      const target = trimTargetBytes(primaryWindow, diff);
+      const targetClamped = trimTargetClamped(primaryWindow, diff);
+      const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target });
+      // Adopt the tightened prefix ONLY when it is genuinely smaller. This clamp is LOAD-BEARING, not
+      // belt-and-braces, and min-tracking alone does not subsume it: the default trim above is gated on
+      // a 48KB byte threshold and is an identity no-op below it, so `user` may be the RAW assembly,
+      // while the ladder always trims (thresholdBytes: 1). On a file whose lines are shorter than an
+      // elision marker, every rung then pays more in markers than it saves, so even the smallest rung
+      // exceeds the untrimmed original. Without this clamp the payload grows and the note below
+      // misreports it as smaller. Handing the chain a LARGER payload would push fallbacks over their
+      // own windows, the exact inverse of the point; keeping the original is always safe, since the
+      // per-backend guard and the primary-skip surfacing still handle the residual overflow.
+      const beforeBytes = Buffer.byteLength(user, "utf8");
+      const adopted = tightened.bytes < beforeBytes;
+      if (adopted) user = tightened.prefix;
+      const estAfter = estimateTokens(user);
+      process.stderr.write(
+        `[note] FAFF-1039 window-targeted trim: est ${estWithReserve} tok (incl. ${DEFAULT_BRIEF_RESERVE_TOKENS} brief reserve) exceeded usable ${usable} `
+        + `(primary window ${primaryWindow}); `
+        + (adopted
+          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.contextBytes} B vs ${target} B target`
+            + `${targetClamped ? ", clamped to floor" : ""})`
+            // Keyed off the REAL window check, never `tightened.fitted`. `fitted` means "hit the byte
+            // target", and once a large diff drives the budget below MIN_TRIM_TARGET_BYTES the target
+            // clamps to that floor, so hitting it no longer implies fitting the window. Reporting a fit
+            // there would repeat the very dishonesty this note exists to prevent.
+            + `${stillOverWindow(estAfter, DEFAULT_BRIEF_RESERVE_TOKENS, usable) ? " — STILL OVER the usable window, but smaller" : ""}`
+          : `no rung shrank it (best ${tightened.bytes} B vs ${beforeBytes} B already assembled) — KEEPING the untightened prefix`)
+        + `\n`);
+    }
+  }
 
   // FAFF-445: oversized-diff preflight — size-check the assembled payload BEFORE any chain element is
   // dispatched (before mandatory-ness is even resolved, before runReviewChain is called). An oversized
@@ -1898,6 +2156,14 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   const lensBrief = system;   // the --system refuter brief — the only per-lens-differing part
   const res = await runReviewChain(chain, { system: sharedBlock, user: lensBrief, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs, expectContract: a.expectContract, rawDir: a.rawDir, lens: a.lens, round: a.round });
 
+  // FAFF-1039 (fix-direction 4, always on): whenever the backend that served was NOT the primary, say
+  // so loudly. A silent downgrade to a weaker reviewer was previously visible only as one stderr line
+  // on an otherwise-green pass. The machine sentinel goes on its own stderr line for fan-out.mjs; the
+  // human notice rides stdout with the findings, where the operator actually reads the review.
+  if (res.primarySkipped) {
+    process.stderr.write(PRIMARY_SKIP_SIGNAL + "\n");
+    process.stderr.write(`[note] FAFF-1039 primary reviewer ${res.primarySkipped.primary} was skipped — ${res.primarySkipped.reason}\n`);
+  }
   if (res.exit === EXIT.OK) {
     if (res.truncated) {
       // Human note (audit trail; wording is NOT a contract — reword freely).
@@ -1914,6 +2180,8 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     // refutation pass and the `## Adversarial findings` header prepend below both assume findings-shaped
     // content, so they would corrupt a contract block (e.g. a JSON verdict) — skip them entirely.
     if (a.expectContract) {
+      // The primary-skip stderr sentinel + note above already fired; stdout stays the verbatim
+      // contract block (splicing a human notice in would corrupt the JSON the consumer parses).
       process.stdout.write((res.content || "").trim() + "\n");
       return EXIT.OK;
     }
@@ -1924,8 +2192,18 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       process.stderr.write(`refuted: "${r.title}" — node --check clean on ${r.files.join(", ")}; ${r.from} → observation\n`);
     }
     const hadHeader = hasHeader(refuted);
-    const finalContent = ensureHeader(refuted, res.winner, res.winnerIndex);
+    let finalContent = ensureHeader(refuted, res.winner, res.winnerIndex);
     if (!hadHeader) process.stderr.write("normalized: findings header missing — prepended canonical provenance\n");
+    // FAFF-1039: the human notice, immediately after the harness-authored attribution header, so the
+    // operator reading the findings is told the strongest configured reviewer did not produce them.
+    if (res.primarySkipped) {
+      const lines = String(finalContent).split("\n");
+      const hdr = findHeaderLineIdx(lines);   // the module's own preamble-scoped locator — never a third copy of the literal
+      const notice = `NOTE: primary reviewer ${res.primarySkipped.primary} was skipped; served by chain[${res.primarySkipped.servedIndex}] — ${res.primarySkipped.reason}.`;
+      if (hdr === -1) lines.unshift(notice, "");
+      else lines.splice(hdr + 1, 0, "", notice);
+      finalContent = lines.join("\n");
+    }
     process.stdout.write((finalContent || "").trim() + "\n");
     return EXIT.OK;
   }

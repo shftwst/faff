@@ -27,8 +27,18 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
   "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "reasoning_effort", "reasoning_extra", "timeout", "first_byte_timeout",
-  "telemetry", "operation_deadline_secs",
+  "telemetry", "operation_deadline_secs", "context_window",
 ];
+
+// FAFF-1039: PURE — normalise an operator-declared token window to "positive integer, or absent".
+// A non-positive, non-numeric, or unparseable value reads as absent (window-unbounded, today's
+// behaviour) rather than erroring: a malformed knob must never break review dispatch, only fail to
+// narrow it. Floors a fractional value rather than rejecting it, so `1.31072e5` is usable.
+function positiveWindow(v) {
+  if (!present(v)) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
+}
 
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
 const EGRESS_VALUES = ["local", "external"];
@@ -180,6 +190,14 @@ function normalizeBackend(name, raw) {
   b.reasoning_extra = present(raw.reasoning_extra) ? raw.reasoning_extra : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.first_byte_timeout = present(raw.first_byte_timeout) ? Number(raw.first_byte_timeout) : undefined;
+  // FAFF-1039: the per-backend context window the review preflight sizes the shared prefix against.
+  // THIS assignment is what actually copies the value on the refs path — the only gate that matters
+  // here. BACKEND_RECORD_KEYS is NOT a second gate on this path: its sole consumer is the
+  // `faff backends resolve --json` printer below, so it governs visibility, not survival. (Declaring
+  // without copying is the silent-drop bug the FAFF-918 note above records: FAFF-914 declared
+  // reasoning_extra and never copied it here, so a refs-resolved backend lost it.) Normalised at the
+  // boundary, so every downstream reader sees a positive integer or nothing at all.
+  b.context_window = positiveWindow(raw.context_window);
   // FAFF-877: the shared supervisor's TOTAL operation-budget override (seconds) — distinct
   // from `timeout` above (connection/request only). Resolved to a 3600s default downstream
   // in config.js's resolveEngineForLane, not here (normalize only carries the raw override).
@@ -741,6 +759,12 @@ function backendsSelftest() {
   ok("normalizeBackend: seat_token_env carried onto the record",
     normalizeBackend("s", { provider: "anthropic", model: "claude", auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" }).backend.seat_token_env === "CLAUDE_SEAT_TOKEN");
   ok("BACKEND_RECORD_KEYS carries seat_token_env (so resolve prints it)", BACKEND_RECORD_KEYS.includes("seat_token_env"));
+  ok("BACKEND_RECORD_KEYS carries context_window (so `faff backends resolve` prints it)",
+    BACKEND_RECORD_KEYS.includes("context_window"));
+  ok("normalizeBackend COPIES context_window — the list alone never copies a value",
+    normalizeBackend("b", { provider: "openai", model: "m", host: "https://a/v1", context_window: 131072 }).backend.context_window === 131072);
+  ok("normalizeBackend normalises a non-positive context_window to absent, never an error",
+    normalizeBackend("b", { provider: "openai", model: "m", host: "https://a/v1", context_window: -5 }).backend.context_window === undefined);
   // --- FAFF-481: portable matrix — a handle-carrying seat admits headlessly ---
   ok("matrix: handle-less anthropic seat admits ONLY on the interactive harness",
     portableMatrixAdmits("claude-code", "anthropic", "subscription-seat", undefined) === true

@@ -49,3 +49,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: any future gateway kernel/reference leaning (FAFF-970, FAFF-487, and later passes); the prefix-planner + tokenomics measurement confirms the real per-lane move.
 - Matches: relocation lemma; kernel leaning; move block to reference; consumers subset of readers; kernel/reference placement
 - Date: 2026-09-02
+
+## Born-verifiable DONE means decidable, not one dedicated scenario per DONE item
+
+- Chosen: A DONE criterion satisfies the born-verifiable bar when a test or an observation can decide it and the spec names what would be run and what the pass condition is. It does not additionally require its own dedicated Given/When/Then scenario. Grouped fixtures that each assert one branch with no OR-escape, plus scenarios covering the main behaviours and the named edge cases, satisfy the bar. A QA objection that a decidable DONE item merely lacks a 1:1 scenario is taste-level, not a defect, and is raised at minor severity or not at all.
+- Rationale: The QA lens brief itself draws this line. `refute-qa.md:29` reserves full severity for a goal with no born-verifiable scenario, or a DONE item that cannot be decided, and `:50` says an objection with no nameable `predicted_consequence` is the honest signal that it is taste-level rather than a defect. Decidable-but-grouped is not undecidable. Requiring 1:1 turns a testability floor into a scenario-count quota, which inflates every complex spec without changing what a verifier can actually decide, and it is what drove the round-1 to round-2 objection count up on FAFF-1039 rather than toward convergence.
+- Scope: The `QA` lens of `faffter-dark-spec-review` when judging a spec's DONE section against its Scenarios section. Does not relax the born-verifiable requirement itself, does not apply to a DONE item that is genuinely undecidable as written, and does not affect the holdout evaluator's own classification (`faff dod classify`), which reads criteria individually regardless of how scenarios are grouped.
+- Matches: born-verifiable DONE; one scenario per DONE item; scenario coverage quota; acceptance gap; grouped fixtures vs dedicated scenarios; QA testability bar
+- Date: 2026-09-13

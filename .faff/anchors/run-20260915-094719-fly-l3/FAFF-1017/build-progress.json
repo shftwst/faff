@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1017",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ffcd912bb639699f58c5a5f393a5eabe30f5539c94b12137e354177382ab9c59",
+    "branch": "faff-1017-docsguideclimd-and-two-header-comments-still-describe",
+    "pushed_at": "2026-09-15T15:05:22.621Z"
+  },
+  "updated_at": "2026-09-15T15:05:22.621Z"
+}

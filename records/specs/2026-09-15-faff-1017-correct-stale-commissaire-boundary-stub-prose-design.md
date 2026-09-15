@@ -1,0 +1,179 @@
+# Correct the stale Commissaire "boundary stub" prose and list `audit export`
+
+> Spec: faffter-dark-nlspec · 2026-09-13 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1017.
+
+This spec addresses **FAFF-1017**. Audience: the build agent making the change and the human reviewer confirming it. It is a documentation-and-comment-only correction — no runtime behaviour changes.
+
+## 1. WHY — Problem and Principles
+
+**Load-bearing model.** `verdict conclude`, `audit seal`, and `audit export` are the Commissaire facade's terminal verbs. FAFF-1000 built all three to depth **in-process**, and FAFF-1008 hardened `verdict conclude`. Three pieces of prose (one guide row, two source-file header comments) were written before that landed and still describe the first two as "boundary stubs" that shell out, and never mention `audit export`. The prose now contradicts the code it documents.
+
+**Problem statement.** After FAFF-1000/FAFF-1008 shipped, the CLI usage text and handlers are correct, but the guide's `commissaire` grammar row and two file-header comments still call `verdict conclude` / `audit seal` boundary stubs over `events anchor` / `bundle` and omit `audit export` entirely. An external reader of the guide — the exact audience FAFF-360 targets — would conclude the terminal verbs are not real. This change rewrites those three sites to match the shipped in-process behaviour.
+
+**Design principles.**
+
+- **Describe the shipped code, nothing more.** This is a drift correction, not a redesign. Each edit must be verifiable against the current handler it describes; do not add forward-looking or speculative prose.
+- **Preserve accurate structure.** The alias list, the split-key trust paragraph, and every other accurate sentence at each site stay verbatim. Touch only the stale clauses and the missing-verb omission.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `docs/guide/cli.md` (the `commissaire <object> <action>` grammar row, ~line 184) | Markdown | Site 1 — the guide row with the stale "boundary stubs" sentence and the missing `audit export`. |
+| `plugin/skills/faff/bin/lib/commissaire.js` (file-header comment, lines ~6-8 and 17-18) | JavaScript | Site 2 — the facade module header still annotating verbs 5/6 as boundary stubs. |
+| `plugin/skills/faff/bin/commissaire` (file-header comment, lines ~13-14) | JavaScript | Site 3 — the standalone-binary header claiming the two verbs still spawn `faff` at runtime. |
+| `plugin/skills/faff/bin/lib/commissaire.js` handlers (`cmdTerminalVerdict` ~493, `cmdSealBundle` ~584, `audit export` ~619) | JavaScript | Ground truth — the real in-process handlers the prose must match. |
+
+**Scope statement.** A localised documentation/comment fix within the Commissaire facade surface; it changes no dispatch, handler, or test.
+
+## 2. OUT OF SCOPE
+
+- **Runtime/behaviour changes** — Why: the handlers are already correct (FAFF-1000/FAFF-1008). Extension point: none needed.
+- **A `lint-cli-doc` rule that flags the literal word "stub" beside a verb with a real handler** — Why: the ticket's RCA raises it as a *consideration*, but it is a new lint capability, not a docs fix, and would need its own tests and design. Extension point: `plugin/skills/faff/bin/lib/lint-cli-doc.js`.
+- **The "Commissaire as its own CLI" narrative section (`docs/guide/cli.md` ~line 206)** — Why: its examples (`contract admit`, `effect authorize`, `audit verify`) are illustrative and accurate, not an exhaustive grammar listing, so it carries no stub/omission drift. Extension point: same file, if a future change makes that section authoritative.
+
+## 3. WHAT — the three edit sites
+
+Each site has a **stale claim to remove** and, at two sites, a **missing `audit export`** to add. The target end-state is factual parity with the shipped handlers.
+
+**Ground-truth facts the prose must reflect:**
+
+- `verdict conclude` (alias `terminal-verdict`) is built in-process: `cmdTerminalVerdict` appends the Ed25519-signed `accepted_under_contract` record (or a refusal) via `appendCommissaireRecord`; it does not shell out to the `faff` bin.
+- `audit seal` (alias `seal-bundle`) is built in-process: `cmdSealBundle` builds and writes the run-close recovery bundle via `bundle-seal-core` (`buildBundle` / `localBundleStore`); the module comment at `commissaire.js:45-49` states it never calls `faff bundle publish`.
+- `audit export` is a real handler (`commissaire.js:619-643`): it copies an already-sealed bundle's manifest + members to `--dest`.
+- The only `spawnSync` in `commissaire.js` (line ~833) is inside the `--selftest` arm, not any runtime handler path — so "still spawn the `faff` bin at RUNTIME" is false for the terminal verbs.
+
+**Site 1 — `docs/guide/cli.md`, the `commissaire` grammar row (~line 184):**
+- Add `audit export` to the enumerated object-verb list (currently `… verdict conclude`, `audit seal`, `audit verify`).
+- Replace the clause "`verdict conclude` / `audit seal` (aliases `terminal-verdict` / `seal-bundle`) are boundary stubs over `events anchor` / `bundle`" with an accurate statement that both are built to depth in-process (FAFF-1000), and that `audit export` copies an already-sealed bundle to a destination directory.
+- Leave the seven-alias sentence intact — `audit export` and `audit verify` are object-verb-only ops with no flat alias, so the "seven original flat verbs are retained as aliases" statement stays correct.
+
+**Site 2 — `plugin/skills/faff/bin/lib/commissaire.js` header comment:**
+- Lines ~6-8: drop "via boundary stubs" and "verbs 5/6 delegate to existing anchor/bundle handlers"; state that verbs 3, 5, and 6 are all built to depth in-process (FAFF-1000; conclude hardened by FAFF-1008).
+- Lines 17-18: remove the two `(boundary stub)` annotations on `terminal-verdict` and `seal-bundle`.
+- Correct the "Six conceptual facade verbs → SEVEN CLI subcommands" count so it matches the actual dispatch, and reflect the `audit` object's additional operations (`audit export`, `audit verify`) in the mapping so the header is internally consistent with the usage text and `COMMISSAIRE_DISPATCH`.
+
+**Site 3 — `plugin/skills/faff/bin/commissaire` header comment:**
+- Line ~6: add `export` to the audit-verb list (`audit seal|verify` → `audit seal|export|verify`).
+- Lines ~13-14: replace the parenthetical "The `verdict conclude` / `audit seal` boundary stubs still spawn the `faff` bin at RUNTIME; dropping that spawn dependency is FAFF-1000, out of scope here" with an accurate statement that FAFF-1000 shipped and those verbs now build in-process, so the standalone binary requires only `lib/commissaire.js` + `lib/shared-infra.js` and reaches no runtime `faff`-bin spawn.
+
+**Design decision — how far to extend the Site 2 header fix.**
+The ticket names lines 17-18 specifically, but the same header's narrative (lines 6-8) and its "SEVEN CLI subcommands" count are the same drift from the same cause. Fixing only 17-18 would leave the header self-contradictory.
+**Chosen:** correct all stale clauses in the Site 2 header together (narrative, the two annotations, and the subcommand count/mapping) — the edit stays docs/comment-only and leaves the header internally consistent, which is the ticket's actual intent ("would conclude the terminal verbs are not real").
+
+**Design decision — exact replacement wording.**
+The three sites are prose; there is no single canonical sentence they must adopt.
+**Chosen:** the build agent authors concise replacement wording that (a) states in-process/built-to-depth for `verdict conclude` and `audit seal`, (b) names `audit export` where the site enumerates audit ops, and (c) preserves every accurate surrounding sentence verbatim. Rationale: the requirement is factual accuracy against the handlers, not a fixed string; over-specifying the prose here would be brittle.
+
+## 4. HOW — Behavior
+
+This is a text-substitution change at three known locations. No control flow, no pseudocode of runtime behaviour. The procedure:
+
+```
+PROCEDURE fix_commissaire_stub_drift:
+  1. For each of the three sites, locate the stale clause(s) named in WHAT.
+  2. Rewrite in place to match the ground-truth facts (Section 3), preserving surrounding accurate text.
+  3. Add `audit export` to the enumerations at Site 1 and Site 3 (and to the Site 2 mapping).
+  4. Verify no residual "boundary stub" / "still spawn the faff bin at RUNTIME" language remains at these sites.
+  5. Run the doc lint (`faff lint-cli-doc`) — it must still pass (it checks subcommand presence, not this prose, so a pass is a no-regression signal, not proof of the fix).
+```
+
+**Anti-pattern:** rewording accurate sentences (the split-key trust paragraph, the alias list, the region:factory note) while here. Why: it enlarges the diff and the review surface for no gain; touch only the stale clauses and the missing-verb omission.
+
+**Anti-pattern:** treating a `faff lint-cli-doc` pass as proof the drift is fixed. Why: the lint checks that every dispatched subcommand is *mentioned*, not that the prose describing it is accurate — that gap is exactly why this drift reached `main`. The fix is verified by grep (below), not by the lint.
+
+## 5. SCENARIOS
+
+The behavioural objective is born-verifiable by text search over the three files.
+
+```
+Given the working tree after this change
+When grep -rn "boundary stub" runs over docs/guide/cli.md, plugin/skills/faff/bin/lib/commissaire.js, and plugin/skills/faff/bin/commissaire
+Then it returns no matches
+```
+
+```
+Given the working tree after this change
+When grep -n "audit export" runs over docs/guide/cli.md and plugin/skills/faff/bin/commissaire
+Then each file contains at least one match
+```
+
+```
+Given the working tree after this change
+When grep -n "still spawn the .faff. bin at RUNTIME" runs over plugin/skills/faff/bin/commissaire
+Then it returns no matches
+```
+
+- The usage text already lists `audit export` (`commissaire.js` ~line 328) and must remain unchanged.
+
+## 6. DESIGN DECISION RATIONALE
+
+**How far to extend the Site 2 header fix?**
+- Option A — fix only lines 17-18 (the exact lines the ticket cites). Pro: minimal. Con: leaves lines 6-8 and the "SEVEN subcommands" count contradicting the corrected annotations in the same comment block.
+- Option B — fix every stale clause in the Site 2 header together. Pro: the header ends internally consistent and matches the ticket's intent; still docs/comment-only. Con: a slightly larger diff.
+- **Chosen:** Option B — the ticket's goal is that a reader not conclude the verbs are unreal; a half-corrected header still does that.
+
+**Fixed replacement string vs author-at-build-time?**
+- **Chosen:** author at build time against the named facts. Rationale: the sites are prose with no canonical wording; pinning exact strings in the spec would be brittle and add no correctness the grep checks don't already give.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions:** none. The fix is a matter of fact (the handlers are in-process; `audit export` exists), not a design choice.
+
+**Assumptions:**
+
+- **Assumes:** the current working tree still carries the three drift sites as described. Validation: before editing, `grep -n "boundary stub" plugin/skills/faff/bin/lib/commissaire.js` and `grep -n "audit seal.*boundary stubs" docs/guide/cli.md` and `grep -n "still spawn the .faff. bin at RUNTIME" plugin/skills/faff/bin/commissaire` each return the cited line; if any is already fixed, narrow the change to the sites that remain.
+- **Assumes:** the handlers remain in-process at build time (no later ticket reverted FAFF-1000). Validation: confirm the only `spawnSync` in `commissaire.js` is in the `--selftest` arm and that `cmdSealBundle` still requires `bundle-seal-core`.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] No file among the three sites describes `verdict conclude` or `audit seal` as a "boundary stub".
+
+### From WHAT (Site 1 — cli.md grammar row)
+- [ ] The `commissaire` grammar row (~line 184) lists `audit export` among the object-verb operations.
+- [ ] The "boundary stubs over `events anchor` / `bundle`" clause is replaced with an accurate in-process description of `verdict conclude` and `audit seal`.
+- [ ] The seven-alias sentence is unchanged and still correct.
+
+### From WHAT (Site 2 — commissaire.js header)
+- [ ] Lines ~6-8 no longer say "via boundary stubs" or "verbs 5/6 delegate to existing anchor/bundle handlers"; they state verbs 3/5/6 are built to depth in-process.
+- [ ] Neither `terminal-verdict` nor `seal-bundle` carries a `(boundary stub)` annotation.
+- [ ] The subcommand count/mapping reflects the actual dispatch, including `audit export` and `audit verify`.
+
+### From WHAT (Site 3 — bin/commissaire header)
+- [ ] The audit-verb list includes `export`.
+- [ ] The parenthetical no longer claims the verbs "still spawn the `faff` bin at RUNTIME"; it states FAFF-1000 shipped and the verbs build in-process.
+
+### From HOW (verification)
+- [ ] `grep -rn "boundary stub"` over the three files returns no matches.
+- [ ] `grep -n "audit export"` matches in both `docs/guide/cli.md` and `plugin/skills/faff/bin/commissaire`.
+- [ ] `faff lint-cli-doc` still passes (no-regression signal).
+
+**Integration smoke test:**
+
+```
+grep -rn "boundary stub" docs/guide/cli.md plugin/skills/faff/bin/lib/commissaire.js plugin/skills/faff/bin/commissaire   # expect: no output
+grep -n "audit export" docs/guide/cli.md plugin/skills/faff/bin/commissaire                                              # expect: >=1 match each
+faff lint-cli-doc                                                                                                        # expect: pass
+```
+
+## Methodology critique
+
+Methodology: faffter-dark-methodology-agile-delivery
+
+- **Right-sized?** Yes. A single, sub-day docs/comment edit across three named sites — one concern (correct the stale terminal-verb prose), no independent second concern to split out, no always-ships-together sibling to merge.
+- **Workstream fit?** Yes. Corrects external-consumer-facing documentation of the Commissaire facade (the FAFF-360 audience), cohesive with the Commissaire-facade workstream that FAFF-1000/999/1008 delivered.
+- **Deps surfaced?** No open deps. The drift source (FAFF-1000, FAFF-1008) is Done; there is no implicit blocker.
+- **Risk profile?** Low. No novel integration, no external dependency, fully reversible via `git revert`. No de-risking spike warranted.
+
+## Already shipped against this surface
+
+Related Done work on this surface — none supersedes this ticket; they are the *cause* of the drift, not a delivery of the correction (this fix is precisely what they left undone):
+
+- **FAFF-1000** (Done 2026-09-05, PR #862) — built `verdict conclude` + `audit seal` to depth in-process and added `audit export`, but updated only the CLI usage text, not the guide grammar row or the two header comments. This is the drift source.
+- **FAFF-1008** (Done 2026-09-05, PR #866) — hardened `cmdTerminalVerdict`; no doc/comment change.
+- **FAFF-1036** (Done 2026-09-13) — corrected *front-door* positioning docs about Commissaire's boundary; did not touch `cli.md`'s grammar row or the header comments (verified: the drift still stands in the working tree at `8f6c19b5`, which already includes FAFF-1036).
+
+confidence: high
+build-tier: complex
+spec-review: approve

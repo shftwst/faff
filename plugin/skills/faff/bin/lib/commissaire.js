@@ -3,19 +3,24 @@
 //
 // The minimal external governance facade a SECOND producer (not faff's own runner)
 // drives to produce authenticated governed facts, request a Commissaire-signed
-// protected-effect decision, reconcile observed-minus-declared, and — via boundary
-// stubs — request a terminal verdict and a sealed bundle. Verb 3 (request-decision)
-// is built to depth; verbs 5/6 delegate to existing anchor/bundle handlers.
+// protected-effect decision, reconcile observed-minus-declared, conclude a terminal
+// verdict, and seal a run-close recovery bundle. Verbs 3, 5, and 6 (request-decision,
+// terminal-verdict, seal-bundle) are all built to depth in-process (FAFF-1000; the
+// terminal verdict hardened by FAFF-1008) — none shells out to the faff bin.
 //
-// Six conceptual facade verbs → SEVEN CLI subcommands: verb 4 ("Observe + reconcile") is
+// Six conceptual facade verbs → seven core CLI subcommands: verb 4 ("Observe + reconcile") is
 // exposed as two atomic ops (`observe` + `reconcile`) rather than one compound command — the
-// compound-verb split the spec's U1 defers (decides: architecture). The mapping:
+// compound-verb split the spec's U1 defers (decides: architecture). The `audit` object then
+// adds two more read/export operations (`audit export`, FAFF-1000; `audit verify`, FAFF-977),
+// for NINE dispatched subcommands in all. The mapping:
 //   1 Admission        -> admit
 //   2 Declare          -> declare
 //   3 Request decision -> request-decision   (built to depth)
 //   4 Observe+reconcile-> observe, reconcile  (two atomic ops)
-//   5 Terminal verdict -> terminal-verdict    (boundary stub)
-//   6 Seal+bundle      -> seal-bundle         (boundary stub)
+//   5 Terminal verdict -> terminal-verdict    (built to depth, in-process)
+//   6 Seal+bundle      -> seal-bundle         (built to depth, in-process)
+//   + audit export     -> audit export        (copy a sealed bundle to --dest; FAFF-1000)
+//   + audit verify     -> audit verify        (secret-free replay of the auth leg; FAFF-977)
 //
 // The facade delivers a DECISION, not an enforcement: it makes a grant unforgeable
 // and verifiable (Commissaire signs with Ed25519; a producer holds only a symmetric

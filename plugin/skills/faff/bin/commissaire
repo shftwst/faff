@@ -4,15 +4,16 @@
 // The "eventual standalone binary" ADR-0123 (fact 2) names, and the standalone `commissaire CLI`
 // the V5 architecture diagrams draw (sections 3.4 / 4.6). It exposes the ADR-0123 noun-verb grammar
 // (`commissaire <object> <action>`: contract admit; effect declare|authorize|observe|reconcile;
-// verdict conclude; audit seal|verify) by dispatching straight into cmdCommissaire — the SAME handler
+// verdict conclude; audit seal|export|verify) by dispatching straight into cmdCommissaire — the SAME handler
 // `faff commissaire …` reaches, so both entrypoints are one implementation with two doors.
 //
 // It deliberately does NOT require ./faff: that launcher pulls in ~100 orchestration modules
 // (tracker, harness, engine, scheduling) at load time. This binary requires only the governance
 // facade (lib/commissaire.js) and the two shared CLI-entry helpers (lib/shared-infra.js) — nothing
 // that reaches scheduling, skills, or the tracker. That static-import independence is asserted by
-// test/commissaire-standalone.test.mjs. (The `verdict conclude` / `audit seal` boundary stubs still
-// spawn the `faff` bin at RUNTIME; dropping that spawn dependency is FAFF-1000, out of scope here.)
+// test/commissaire-standalone.test.mjs. (FAFF-1000 shipped: `verdict conclude` and `audit seal`
+// now build to depth in-process, so this binary requires only lib/commissaire.js + lib/shared-infra.js
+// and reaches no runtime `faff`-bin spawn.)
 const { cmdCommissaire } = require("./lib/commissaire");
 const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
 

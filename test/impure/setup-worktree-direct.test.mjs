@@ -171,6 +171,50 @@ test("direct mode succeeds with jq absent from PATH — the direct path never in
   }
 });
 
+// FAFF-1046 — the hook-mode counterpart to the direct-mode jq-absence test above. Hook mode used to
+// parse stdin JSON with jq; it now parses with node, so it must succeed on a PATH from which jq is
+// removed but node remains — the exact fly.io-sandbox condition that broke the five impure hook
+// assertions and reddened `faff gates run` on an unmodified tree.
+test("hook mode succeeds with jq absent from PATH — hook mode parses stdin JSON with node, not jq (FAFF-1046)", () => {
+  const { parent, repo } = setupRepo("faff_base: A\n", "faff_base: B\n");
+  const wtRoot = path.join(parent, "wt");
+  // Build a sandbox bin with every command the script's body needs EXCEPT jq, then pin PATH to it —
+  // the same 17-binary checklist the direct-mode jq-absence test uses (jq deliberately excluded).
+  const sandboxBin = path.join(parent, "bin");
+  mkdirSync(sandboxBin);
+  const needed = [
+    "bash", "git", "node", "env", "sh",
+    "basename", "dirname", "tr", "date", "mkdir", "cp", "cat", "grep",
+    "rm", "head", "find", "sed", "uname",
+  ];
+  for (const cmd of needed) {
+    const found = spawnSync("bash", ["-c", `command -v ${cmd}`], { encoding: "utf8" }).stdout.trim();
+    if (found) symlinkSync(found, path.join(sandboxBin, cmd));
+  }
+  // Sanity: jq must NOT be resolvable through the sandbox PATH.
+  const jqProbe = spawnSync("bash", ["-c", "command -v jq || true"], {
+    encoding: "utf8",
+    env: { PATH: sandboxBin },
+  });
+  assert.equal(jqProbe.stdout.trim(), "", "test setup invalid: jq is still reachable via the sandbox PATH");
+
+  try {
+    // HOOK mode: JSON on stdin, no args, PATH pinned to the jq-less sandbox.
+    const r = spawnSync("bash", [SCRIPT], {
+      input: JSON.stringify({ name: "feat-x", cwd: repo }),
+      encoding: "utf8",
+      env: { ...process.env, ...BASE_ENV, FAFF_WORKTREE_ROOT: wtRoot, PATH: sandboxBin },
+    });
+    assert.equal(r.status, 0, `hook mode with no jq exited non-zero: ${r.stderr}`);
+    const wt = lastLine(r.stdout);
+    assert.ok(wt.startsWith(wtRoot) && existsSync(wt), `must print an existing worktree path; got: ${wt}`);
+    assertConfigParity(wt);
+  } finally {
+    git(repo, "worktree", "prune");
+    rmParent(parent);
+  }
+});
+
 function rmParent(parent) {
   spawnSync("rm", ["-rf", parent]);
 }

@@ -931,7 +931,22 @@ function regionsSelftest(COMMANDS) {
   const staleOk = staleGot.length === 1 && staleGot[0] === "foo";
   report("stale-null detection (quoted \"--selftest\" in a null's handler)",
     staleOk, staleOk ? "" : `got [${staleGot.join(", ")}]`);
-  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${Object.keys(fixtures).length + 4} cases, ${failed} failed)`);
+  // regionsFailDetail (FAFF-997) — a failed member's captured stdout/stderr
+  // must surface, indented, beneath its FAIL summary line; an empty result
+  // must render no stray labels; a timeout/spawn-error result must name its
+  // cause. Exercised against synthetic spawnSync-shaped results, never a real
+  // child process — the helper is pure.
+  const detailBoth = regionsFailDetail({ status: 1, stdout: "ok 1\nnot ok 2 - boom\n", stderr: "warning: flaky\n", error: null, signal: null });
+  const detailBothOk = detailBoth.includes("not ok 2 - boom") && detailBoth.includes("warning: flaky")
+    && detailBoth.split("\n").every((l) => l === "" || /^\s/.test(l));
+  report("regionsFailDetail surfaces failing stdout + stderr, indented", detailBothOk, detailBoth);
+  const detailEmpty = regionsFailDetail({ status: 1, stdout: "", stderr: "", error: null, signal: null });
+  report("regionsFailDetail returns \"\" when nothing to show", detailEmpty === "", JSON.stringify(detailEmpty));
+  const detailTimeout = regionsFailDetail({ status: null, stdout: "", stderr: "", error: new Error("spawn ETIMEDOUT"), signal: "SIGTERM" });
+  const detailTimeoutOk = detailTimeout.includes("spawn ETIMEDOUT") && detailTimeout.includes("SIGTERM");
+  report("regionsFailDetail surfaces error message + signal on a timeout/spawn-error result",
+    detailTimeoutOk, detailTimeout);
+  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${Object.keys(fixtures).length + 7} cases, ${failed} failed)`);
   return failed ? 1 : 0;
 }
 
@@ -1002,6 +1017,7 @@ function regionsSelftestRun(regionArg, COMMANDS) {
   for (const cmd of members) {
     const argv = REGION_SELFTEST_ARGV[cmd];
     let status;
+    let detail = "";
     if (argv === null) {
       const fatal = REGION_MAP[cmd] === "governance";
       if (fatal) failed++;
@@ -1010,11 +1026,42 @@ function regionsSelftestRun(regionArg, COMMANDS) {
       const r = spawnSync(process.execPath, [ENTRYPOINT, ...argv], { encoding: "utf8", timeout: 120000 });
       if (r.status !== 0) failed++;
       status = r.status === 0 ? "PASS" : `FAIL (exit ${r.status === null ? "timeout/error" : r.status})`;
+      if (r.status !== 0) detail = regionsFailDetail(r);
     }
     console.log(`${cmd.padEnd(width)}  ${REGION_MAP[cmd].padEnd(10)}  ${status}`);
+    if (detail) console.log(detail);
   }
   console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${members.length} members, ${failed} failed)`);
   return failed ? 1 : 0;
+}
+
+// Render a failed member's captured spawnSync output as an indented detail
+// block, printed beneath its FAIL summary line by regionsSelftestRun. Pure
+// function of the spawn result — no I/O, no spawning — so a synthetic failing
+// result exercises it directly without a real child process (FAFF-997). Only
+// the failure path calls this; the happy path (PASS / no-selftest / the
+// governance no-selftest FAIL) never does, so passing output stays untouched.
+function regionsFailDetail(r) {
+  const lines = [];
+  const addBlock = (label, text) => {
+    if (text === null || text === undefined) return;
+    const trimmed = String(text).replace(/\s+$/, "");
+    if (!trimmed) return;
+    lines.push(`  ${label}:`);
+    for (const line of trimmed.split("\n")) lines.push(`    ${line}`);
+  };
+  // status === null means spawnSync itself didn't get a normal exit (timeout or
+  // spawn error) — the summary line already says "FAIL (exit timeout/error)",
+  // so name the cause here rather than leaving it opaque.
+  if (r.status === null) {
+    const bits = [];
+    if (r.error && r.error.message) bits.push(r.error.message);
+    if (r.signal) bits.push(`signal ${r.signal}`);
+    if (bits.length) addBlock("error", bits.join(" — "));
+  }
+  addBlock("stdout", r.stdout);
+  addBlock("stderr", r.stderr);
+  return lines.join("\n");
 }
 
 const REGIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--region": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
@@ -1070,4 +1117,4 @@ function cmdRegions(args, COMMANDS) {
 }
 
 
-module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsExitFor, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };
+module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsExitFor, regionsFailDetail, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };

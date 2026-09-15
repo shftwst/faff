@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.34.0](https://github.com/shftwst/faff/compare/faff--v0.33.0...faff--v0.34.0) (2026-09-15)
+
+
+### Features
+
+* **FAFF-1041:** discover repo conventions from standards docs + git history ([#895](https://github.com/shftwst/faff/issues/895)) ([50c658c](https://github.com/shftwst/faff/commit/50c658c0501b04c33ef990ec60f7dae72cfb19e2))
+
+
+### Bug Fixes
+
+* **FAFF-997:** surface a failing member's captured output in the regions selftest driver ([#894](https://github.com/shftwst/faff/issues/894)) ([f17b046](https://github.com/shftwst/faff/commit/f17b0464741cefc2c6b62dd8042e1b9d73c1a162))
+
 ## [0.33.0](https://github.com/shftwst/faff/compare/faff--v0.32.0...faff--v0.33.0) (2026-09-15)
 
 

@@ -262,6 +262,11 @@ const REGION_MAP = {
   "ratified-scope": "factory",
   "prdr": "factory",
   "profile": "factory",
+  // conventions — FAFF-1041: read-only repo-convention discovery (branch naming / commit-subject
+  // / PR-title grammar), the third "repo archaeology" leaf beside profile/gates. Requires only
+  // config (dig/loadConfig), argv, shared-infra (dig/findRoot) — a pure acquirer + resolver,
+  // sibling of profile → factory.
+  "conventions": "factory",
   "fixtures": "factory",
   "env": "factory",
   // eval — FAFF-752: the advisory touched-surface→affected-KIND-subset deriver. Reuses
@@ -473,6 +478,7 @@ const REGION_SELFTEST_ARGV = {
   "ratified-scope": ["ratified-scope", "--selftest"],
   "prdr": ["prdr", "--selftest"],
   "profile": ["profile", "--selftest"],
+  "conventions": ["conventions", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
   "scenario-matrix": ["scenario-matrix", "--selftest"],

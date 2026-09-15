@@ -36,6 +36,7 @@ const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
 const { cmdContract } = require("./lib/contract-defs");
+const { cmdConventions } = require("./lib/conventions");
 const { CORRECTIVE_OPS, cmdCorrective, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput } = require("./lib/corrective");
 const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./lib/corrective-integrity");
 const { cmdIntegrityDigest } = require("./lib/integrity-digest");
@@ -217,6 +218,7 @@ const COMMANDS = {
   "ratified-scope": cmdRatifiedScope,
   "profile": cmdProfile,
   "profiles": cmdProfiles,
+  "conventions": cmdConventions,
   "fixtures": cmdFixtures,
   "env": cmdEnv,
   "eval": cmdEval,

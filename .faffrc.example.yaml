@@ -245,6 +245,26 @@ gates:
   exclude: []                  # per-repo opt-out: commands whose text contains any entry are never run
                                #   (case-sensitive substring; e.g. ["regions selftest"] until FAFF-561 clears)
 
+# Repo-convention discovery (FAFF-1041) — faff learns a repo's stylistic conventions (branch
+# naming, commit-subject grammar, PR-title grammar) the same way it learns infra (`faff profile
+# mine`) and CI gates (`faff gates discover`): a deterministic, read-only pass over standards
+# docs (CONTRIBUTING*/AGENTS.md/CONVENTIONS*/.github templates/docs) then git history. `faff
+# conventions get <key>` is the single resolver every faff-graft consumption site (branch
+# naming at Step 3; commit-subject grammar at Steps 4/4c/the merge-time ADR renumber; the PR
+# title, which mirrors commit-subject unless independently documented) calls in place of a
+# hardcoded string. Precedence: explicit config (below) > a repo standards doc > a CI gate that
+# already enforces the convention (gate beats style, never re-inferred) > history-inferred
+# (above history_dominance, over a >=20-sample floor) > the faff default shown below. All keys
+# optional — set only to force a value the discovery pass would not otherwise reach; a repo
+# with no docs and no clear history resolves every convention to the same value as today's
+# hardcoded default (with this block absent) — no regression to what actually gets built.
+conventions:
+  branch_naming: issue-slug        # issue-slug (default, "<issue>-<slug>") | slash-scoped | tracker-hint
+  commit_subject: conventional     # conventional (default, "<type>(<scope>): <subject>") | bare-imperative
+  pr_title: conventional           # conventional (default; mirrors commit_subject unless a doc says otherwise) | bare-imperative
+  history_window: 200              # commits scanned for inference (default 200)
+  history_dominance: 0.7           # min fraction for one grammar to win inference (default 0.7); below it, falls to the default above with confidence "low" — never a guessed adoption
+
 # Within-run convergence (FAFF-87), /faff-beep-boop. On by default: beep-boop folds execution-discovered
 # scope into the SAME run — file → narrow-prep → re-assemble → loop — and delegates each wave-boundary
 # stop to `faff run-done` (genuine dryness + budget + non-convergence backstop) instead of plain

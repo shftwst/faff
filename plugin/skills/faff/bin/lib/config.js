@@ -108,6 +108,17 @@ const DEFAULTS = {
   // the LOAD-BEARING liveness defence for a nested producer whose own sub-calls fall
   // back in-context (never fork to a supervised `faff engine call`).
   "producer_tick_max_secs": "600",
+  // FAFF-1041: repo-convention discovery (branch naming / commit-subject / PR-title grammar) —
+  // the DEFAULT tier only. `conventions.js`'s own resolver reads these via `dig` directly (raw,
+  // undefined when genuinely unset) rather than through `config get`'s DEFAULTS-applying `get`
+  // verb, so registering these here affects ONLY `faff config get conventions.*` / `config
+  // resolved` / `config check` — never the precedence tiering inside `faff conventions get`
+  // itself (explicit > documented > a discovered CI gate > history-inferred > this default).
+  "conventions.branch_naming": "issue-slug",
+  "conventions.commit_subject": "conventional",
+  "conventions.pr_title": "conventional",
+  "conventions.history_window": "200",
+  "conventions.history_dominance": "0.7",
   "adr.mode": "offer",
   // FAFF-1042: relocate a superseded ADR to a dedicated subdir on `faff adr supersede`.
   // "in-place" (default, today's behaviour, byte-identical when unset) | "move" (relocate the
@@ -986,7 +997,7 @@ const WRITABLE_NAMESPACES = new Set([
   "concurrency_max", "worktree_root", "logging", "automation_default",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
-  "bundle_store", "install", "lanes", "producer_tick_max_secs",
+  "bundle_store", "install", "lanes", "producer_tick_max_secs", "conventions",
 ]);
 
 // Top-level namespaces faff genuinely READS (via dig(config, "<ns>.…")) but that `config set`

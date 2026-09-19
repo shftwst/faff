@@ -300,6 +300,23 @@ function reconcileMerges({ root, runDir, issueFilter }) {
   }
   const head = headRes.stdout;
 
+  // Robustness guard (adversarial review finding, code review round 1): `git log base..head` is
+  // only a well-defined "what landed since base" range when `base` is actually an ancestor of
+  // `head`. A STALE base_sha (the branch legitimately rebased since mint — the spec's own
+  // Failure-modes entry names this exact case) makes the range span unrelated history, flooding
+  // `uncovered` with false escapes instead of the clean, actionable fault the spec's whole "never
+  // coerce a read fault to clean" posture calls for. This check is a defensive improvement for
+  // that BENIGN staleness case ONLY — it is NOT, and cannot be, a defense against a privileged
+  // actor deliberately rewriting the protected branch to erase evidence of an off-ledger merge
+  // (a history-rewrite that keeps `base` reachable, e.g. dropping one commit via interactive
+  // rebase, defeats an ancestor check identically to a git log range) — that remains part of the
+  // accepted Limit-A trust boundary (an actor with sufficient repo access can defeat a
+  // git-history-based detector; only structural mediation, out of scope, truly closes it), named
+  // in the honesty docs alongside the existing ledger-writability residual.
+  if (!gitRunLocal(root, ["merge-base", "--is-ancestor", base, head], 5000).ok) {
+    return { reconciled: false, uncovered: [], any_escape: false, fault: "base_sha is not an ancestor of the protected branch HEAD (stale anchor or rewritten history)", forge_enriched: false, legacy_exempt: false };
+  }
+
   // Step 5 — the raw first-parent advancement set (PRIMARY, always-on, local git).
   const fp = readFirstParentAdvancement(root, base, head);
   if (!fp.ok) {
@@ -327,11 +344,15 @@ function reconcileMerges({ root, runDir, issueFilter }) {
   // admitted belongs to a CONCURRENT run sharing the protected branch — out of scope, silently
   // excluded (not this run's escape, and NOT surfaced as unattributable either — it IS
   // attributed, just to somebody else). Only a segment with NO extractable key at all
-  // (`issue === null`) is genuinely unattributable, and that one is always surfaced (fail-safe —
-  // the incident's own shape). When --issue narrows the call, only that one issue's own segments
-  // are in scope; every other segment (foreign-issue OR key-less) is not this caller's concern.
+  // (`issue === null`) is genuinely unattributable, and that one is ALWAYS surfaced (fail-safe —
+  // the incident's own shape) — including under `--issue`, per the unconditional "never dropped"
+  // floor (spec §3 vocabulary / Failure-modes): a per-issue caller cannot itself tell whether a
+  // key-less landing was theirs, so the safe direction is to always include it rather than let a
+  // narrowing flag silently exclude the incident's own shape (adversarial review finding, code
+  // review round 1). `--issue` therefore narrows to "this issue's own segments, plus every
+  // genuinely-unattributable one" — a foreign-but-extracted issue is still excluded either way.
   const inScope = issueFilter != null
-    ? segmentsWithBase.filter((s) => s.issue === issueFilter)
+    ? segmentsWithBase.filter((s) => s.issue === issueFilter || s.issue === null)
     : segmentsWithBase.filter((s) => s.issue === null || admittedAll.includes(s.issue));
 
   const mergeRecords = readMergeRecordsByHeadSha(runDir, admittedAll);
@@ -395,9 +416,32 @@ What this does NOT catch (accepted limits, documented -- not defects to engineer
     merge-record.json.head_sha are trusted reconcile inputs OUTSIDE the FAFF-621 declared-effects
     hash chain. An actor with ledger write can strip the marker, advance the anchor, or forge a
     merge-record to spoof coverage.
+  - Limit A (history-rewrite residual) -- this is a git-history-based detector: an actor with
+    force-push rights to the protected branch can rewrite history to drop the off-ledger commit
+    while keeping base_sha reachable (an interactive-rebase drop), which no ancestor check can
+    catch. A base_sha that is NOT an ancestor of the current HEAD at all (a bulk rewrite, or a
+    genuinely stale anchor) is refused as a fault (reconciled:false), but a surgical erasure that
+    preserves ancestry defeats detection identically to Limit A above -- only structural mediation
+    closes this too.
+  - Limit A (target-match spoof surface) -- coverage's target-match branch matches a declared
+    pr:<N>/commit:<sha> regardless of WHICH issue declared it, per the coverage rule (spec's own
+    design, not an implementation gap). An actor need not even forge a declaration for the right
+    issue -- naming a branch whose extracted PR number matches any OTHER issue's real declaration
+    is enough to spoof coverage.
   - Limit B -- attribution (branch name / issue-key matching) is heuristic. An unattributable
     landing is surfaced (issue:null), never dropped, but a MIS-attributed landing is a documented
     reliability boundary, not a defect.
+  - Limit B (local-ref staleness) -- the primary detector reads the LOCAL protected-branch ref,
+    never fetches (by design, so it is never coupled to forge/network uptime). A merge landed
+    directly on the remote by an actor who never touches this process's own checkout (e.g. a human
+    merging via a forge web UI) is invisible until the next fetch.
+  - Limit B (permanent fault on an unresolvable mint) -- a post-feature run whose environment could
+    never resolve a local main/master at mint (e.g. a shallow/single-branch clone) carries
+    base_sha:null for its entire lifetime, so EVERY checkpoint returns reconciled:false and trips
+    the kill-switch, indistinguishable from a genuinely ungoverned run. This is the spec's own
+    Chosen behaviour (a missing base anchor on a post-feature run is always non-clean), not an
+    oversight -- but it is a real operational consequence worth knowing before deploying into such
+    an environment.
   - Non-merge protected effects (deploy, secret-rotation, registry-publish, force-push,
     prod-script) -- out of scope for this slice.
 `;

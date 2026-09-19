@@ -317,6 +317,43 @@ test("--issue narrows attribution and the ledger read to a single issue", () => 
   assert.equal(out.uncovered[0].issue, "FAFF-1");
 });
 
+test("--issue mode still surfaces a genuinely-unattributable landing — the incident's own shape is never dropped by the narrowing flag", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  const runDir = join(dir, ".faff", "runs", "run-1028-issue-null");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], base_sha: base, base_sha_required: true }));
+
+  writeFileSync(join(dir, "f.txt"), "1\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "direct-git, no issue key");
+
+  const r = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--issue", "FAFF-1", "--json"], { cwd: dir });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.uncovered.length, 1, "a per-issue caller cannot itself tell whether the key-less landing was theirs, so it must still surface");
+  assert.equal(out.uncovered[0].issue, null);
+});
+
+test("a base_sha that is not an ancestor of the protected branch HEAD (stale anchor) is a non-clean fault, never a flood of false escapes", () => {
+  const { dir, git } = gitRepo();
+  const runDir = join(dir, ".faff", "runs", "run-1028-nonancestor");
+  mkdirSync(runDir, { recursive: true });
+  // A base_sha from a totally disjoint history (an orphan branch) can never be an ancestor of main.
+  git("checkout", "-q", "--orphan", "unrelated-history");
+  writeFileSync(join(dir, "other.txt"), "unrelated\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "chore: unrelated root commit");
+  const disjointSha = git("rev-parse", "HEAD").trim();
+  git("checkout", "-q", "main");
+
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], base_sha: disjointSha, base_sha_required: true }));
+  const r = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--json"], { cwd: dir });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.reconciled, false);
+  assert.match(out.fault, /ancestor/);
+  assert.equal(out.any_escape, false, "a stale/rewritten anchor is a named fault, never a flood of false uncovered escapes");
+});
+
 test("run-ledger init-interactive stamps base_sha + the post-feature mint marker (the real CLI mint path)", () => {
   const { dir } = gitRepo();
   const mint = runCli(["run-ledger", "init-interactive", "--issue", "FAFF-1028-MINT", "--json"], { cwd: dir });

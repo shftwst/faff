@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1051",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ea00432c6ec50df5483e69bde24061af429ed08de56a98a47dae2005beecf055",
+    "branch": "faff-1051-declare-diff-kind-context-trim",
+    "pushed_at": "2026-09-19T08:24:35.388Z"
+  },
+  "updated_at": "2026-09-19T08:24:35.388Z"
+}

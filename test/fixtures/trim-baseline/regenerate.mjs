@@ -7,25 +7,26 @@
 // ticket's DONE list asserts but cannot check against a live oracle, because the pre-change function is
 // gone once the module is edited. Run this ONCE, before editing review-call.mjs, against
 // `git show <merge-base>:plugin/skills/faffter-dark-adversarial-review/review-call.mjs`. The post-change
-// module is then asserted to reproduce these bytes exactly (test/trim-baseline.test.mjs).
+// module is then asserted to reproduce these bytes exactly (test/faff-1051-diff-kind.test.mjs).
 //
 // Deliberately dependency-free and deterministic: every fixture below is fixed text, no randomness, no
 // clock, no filesystem state beyond what this script itself writes.
+//
+// Guarded behind the entrypoint check (mirrors build-lens-requests.mjs / parse-refutation.mjs) AND a
+// no-args no-op: this file lives under test/, so `node --test`'s default recursive discovery SPAWNS
+// every .mjs file it finds there as its own `node <file>` child process — indistinguishable from a
+// direct, argument-less invocation, so the entrypoint check alone cannot tell the two apart. A file
+// with no `node:test` registrations that exits 0 is silently treated as "ran clean, nothing to report"
+// (the same shape test/hermetic-env.mjs already relies on); exiting non-zero on a missing argv[2] would
+// instead register the whole file as ONE failed test. So a bare `node regenerate.mjs` — argument-less,
+// exactly node --test's spawn shape — prints the usage line and exits 0 (a no-op, not an error); only a
+// genuinely bad argument (an unreadable/unparseable module path) is left to throw and exit non-zero.
 
-import { writeFileSync } from "node:fs";
+import { writeFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const modulePath = process.argv[2];
-if (!modulePath) {
-  process.stderr.write("usage: node regenerate.mjs <path-to-review-call.mjs>\n");
-  process.exit(2);
-}
-
-const mod = await import(pathToFileURL(resolve(modulePath)).href);
-const { trimContextFiles, tightenToTarget, assembleUserMessage } = mod;
 
 // ---- fixture builders (fixed content, no randomness) ---------------------------------------------
 
@@ -103,9 +104,9 @@ function tightenUnifiedFixture() {
 
 // ---- run each case through the given module and record its byte-relevant outputs -----------------
 
-function runTrimCase(name) {
+function runTrimCase(mod, name) {
   const { contextFiles, diff } = name === "addition" ? additionFixture() : deletionOnlyFixture();
-  const { contextFiles: out, report } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1000 });
+  const { contextFiles: out, report } = mod.trimContextFiles({ contextFiles, diff, thresholdBytes: 1000 });
   return {
     diff,
     inputPaths: contextFiles.map((f) => f.path),
@@ -116,13 +117,13 @@ function runTrimCase(name) {
   };
 }
 
-function runTightenCase() {
+function runTightenCase(mod) {
   const { contextFiles, diff } = tightenUnifiedFixture();
   // A target well below the untrimmed size AND below what the loosest rung reaches, so the ladder has
   // to descend more than one rung before it fits — the case the monotonicity/minimum-tracking guarantee
   // actually exercises, not the trivial first-rung-fits case.
   const targetBytes = 15000;
-  const r = tightenToTarget({ contextFiles, diff, targetBytes });
+  const r = mod.tightenToTarget({ contextFiles, diff, targetBytes });
   return {
     diff,
     inputPaths: contextFiles.map((f) => f.path),
@@ -135,13 +136,38 @@ function runTightenCase() {
   };
 }
 
-const goldens = {
-  "unified-addition": runTrimCase("addition"),
-  "unified-deletion-only": runTrimCase("deletionOnly"),
-  "tighten-unified": runTightenCase(),
-};
+async function main(argv) {
+  const modulePath = argv[2];
+  if (!modulePath) {
+    // A no-op, not an error — see the file-header note on why this can't exit non-zero.
+    process.stderr.write("usage: node regenerate.mjs <path-to-review-call.mjs>\n");
+    return 0;
+  }
+  const mod = await import(pathToFileURL(resolve(modulePath)).href);
+  const goldens = {
+    "unified-addition": runTrimCase(mod, "addition"),
+    "unified-deletion-only": runTrimCase(mod, "deletionOnly"),
+    "tighten-unified": runTightenCase(mod),
+  };
+  for (const [name, golden] of Object.entries(goldens)) {
+    writeFileSync(join(__dirname, `${name}.json`), JSON.stringify(golden, null, 2) + "\n");
+    process.stdout.write(`wrote ${name}.json\n`);
+  }
+  return 0;
+}
 
-for (const [name, golden] of Object.entries(goldens)) {
-  writeFileSync(join(__dirname, `${name}.json`), JSON.stringify(golden, null, 2) + "\n");
-  process.stdout.write(`wrote ${name}.json\n`);
+// Run as CLI only when invoked directly (not when imported by `node --test`'s recursive discovery) —
+// mirrors build-lens-requests.mjs / parse-refutation.mjs: canonicalise argv[1] through realpathSync so
+// a symlinked install path matches.
+export function entrypoint_href(argv1) {
+  if (!argv1) return null;
+  try {
+    return pathToFileURL(realpathSync(argv1)).href;
+  } catch {
+    return pathToFileURL(argv1).href;
+  }
+}
+
+if (import.meta.url === entrypoint_href(process.argv[1])) {
+  main(process.argv).then((code) => process.exit(code));
 }

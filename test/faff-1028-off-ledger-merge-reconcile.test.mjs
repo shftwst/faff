@@ -173,6 +173,28 @@ test("a commit on a feature branch that never landed on the protected branch is 
   assert.equal(out.uncovered.length, 0);
 });
 
+test("an ordinary technical token never false-extracts as a fake issue id once this run has an admitted tracker family", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  const runDir = join(dir, ".faff", "runs", "run-1028-falsepositive");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], base_sha: base, base_sha_required: true }));
+
+  // "utf-8" and "iso-8601" both match the bare generic issue-id shape (alpha prefix + hyphen +
+  // digits) — they must NOT be mistaken for a foreign issue key and silently excluded as "some
+  // other run's business". A wrongly-excluded off-ledger landing is exactly the fail-open this
+  // ticket exists to close.
+  writeFileSync(join(dir, "f.txt"), "1\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "chore: bump dependency to utf-8 and iso-8601 support");
+
+  const r = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--json"], { cwd: dir });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.any_escape, true, "the landing must still surface — 'utf-8'/'iso-8601' are not real issue ids");
+  assert.equal(out.uncovered.length, 1);
+  assert.equal(out.uncovered[0].issue, null, "no fake issue id extracted — this is the genuinely-unattributable case");
+});
+
 test("a concurrent run's own off-ledger landing is attributed to it and excluded — never this run's escape, never folded into unattributable", () => {
   const { dir, git } = gitRepo();
   const base = git("rev-parse", "HEAD").trim();

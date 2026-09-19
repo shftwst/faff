@@ -56,28 +56,53 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// A generic tracker-issue-id shape ("FAFF-1028", "ABC-123", …) — a short alpha prefix, a hyphen,
-// digits. Deliberately NOT scoped to this run's admitted issues (spec §6 "Attribution scope: this
-// run's admitted issues vs every PR on the branch" is a SEPARATE, later decision from extraction
-// itself) — extraction must see EVERY issue-shaped key on the branch, admitted or not, so the
-// caller can tell "this is a CONCURRENT run's landing" (extracted, but not in this run's admitted
-// set — out of scope, silently excluded) apart from "this landing carries no issue key at all"
-// (extraction failed — genuinely unattributable, surfaced as `issue:null`, never dropped). An
-// extraction scoped to admittedIssues could never make that distinction: a foreign issue id would
-// extract to null exactly like a truly key-less commit, and the caller would wrongly surface a
-// concurrent run's own landing as THIS run's escape.
+// A generic, UNBOUNDED tracker-issue-id shape ("FAFF-1028", "ABC-123", …) — a short alpha prefix, a
+// hyphen, digits. Deliberately loose: plenty of ordinary technical tokens match it too ("utf-8",
+// "iso-8601", "v2-1"), so it is a FALLBACK ONLY (see attributeCommit) — used verbatim would risk the
+// exact failure the spec's own Failure-modes section warns against ("prefer under-attribution
+// surfaced as a fault/uncovered over cross-run false positives"): a commit merely mentioning
+// "utf-8" could wrongly extract as a fake issue id, get excluded as "some other run's business",
+// and a genuinely off-ledger landing would silently vanish from the report instead of surfacing.
 const GENERIC_ISSUE_RE = /\b[A-Za-z][A-Za-z0-9]{1,9}-\d+\b/;
 
-// Attribute a commit subject to an issue key via a case-insensitive WHOLE-WORD match on the
-// generic shape above. Covers both faff's own conventional commit subjects ("feat(FAFF-1028): …")
-// and a GitHub merge-commit subject naming the source branch ("Merge pull request #7 from
-// org/faff-1028-effects-…") — faff's branch-naming convention embeds the issue id as a substring
-// immediately followed by a non-word character ("-"), which IS a \b boundary, so one regex covers
-// both shapes. PURE. Returns the extracted key UPPERCASED (normalising "faff-1028" and "FAFF-1028"
-// to one canonical form) or null on no match — the incident's own shape.
-function attributeCommit(subject) {
+// Derive the acceptable tracker-prefix family from this run's OWN admitted issue ids (e.g.
+// ["FAFF-500"] -> {"FAFF"}). Scoping extraction to this family is what closes the false-positive
+// gap above: a same-tracker CONCURRENT run's issue ("FAFF-999") still extracts and correctly
+// excludes, while an unrelated technical token ("utf-8") never matches at all, because its
+// "prefix" ("UTF") is not a family this run has ever seen itself use. PURE.
+function issuePrefixes(admittedIssues) {
+  const set = new Set();
+  for (const id of admittedIssues || []) {
+    if (typeof id !== "string") continue;
+    const m = /^([A-Za-z][A-Za-z0-9]*)-\d+$/.exec(id);
+    if (m) set.add(m[1].toUpperCase());
+  }
+  return set;
+}
+
+// Attribute a commit subject to an issue key via a case-insensitive WHOLE-WORD match. Covers both
+// faff's own conventional commit subjects ("feat(FAFF-1028): …") and a GitHub merge-commit subject
+// naming the source branch ("Merge pull request #7 from org/faff-1028-effects-…") — faff's
+// branch-naming convention embeds the issue id as a substring immediately followed by a
+// non-word character ("-"), which IS a \b boundary, so one regex covers both shapes.
+//
+// Prefers a PREFIX-FAMILY-SCOPED match (derived from `admittedIssues`, via issuePrefixes) over the
+// unbounded GENERIC_ISSUE_RE fallback: with a non-empty admitted set, only a key sharing one of
+// THIS run's own tracker prefixes can extract at all — a same-family concurrent-run issue
+// ("FAFF-999" when this run admits "FAFF-500") still extracts correctly (spec §5 "two runs sharing
+// the protected branch"), while an ordinary technical token never does. The unbounded fallback
+// fires only when there is no admitted-issue signal to derive a family from at all (e.g. a
+// self-test calling this in isolation) — the same permissive, riskier shape the false-positive
+// note above warns about, but with nothing safer available. PURE. Returns the extracted key
+// UPPERCASED (normalising "faff-1028" and "FAFF-1028" to one canonical form) or null on no match —
+// the incident's own shape.
+function attributeCommit(subject, admittedIssues) {
   if (!subject) return null;
-  const m = GENERIC_ISSUE_RE.exec(subject);
+  const prefixes = issuePrefixes(admittedIssues);
+  const re = prefixes.size > 0
+    ? new RegExp(`\\b(${[...prefixes].map(escapeRegex).join("|")})-\\d+\\b`, "i")
+    : GENERIC_ISSUE_RE;
+  const m = re.exec(subject);
   return m ? m[0].toUpperCase() : null;
 }
 
@@ -114,16 +139,16 @@ function sanitizeDetail(raw) {
 // fallback grouping the spec's Assumption 5 sanctions when a governed landing's merge-record.json
 // carries no explicit base bound — in the common case (every commit in a governed multi-commit
 // rebase/ff-only landing mentions its own issue id, per repo convention) it already coalesces the
-// landing into one segment, which is what the coverage rule (attribution match) needs. Attribution
-// here is UNSCOPED (any issue-shaped key, not just this run's admitted ones) — the caller (spec §6
-// "Attribution scope") classifies each segment's key against its own admitted set afterward, which
-// is what lets a concurrent run's landing be recognised and excluded rather than mis-read as
-// unattributable. PURE.
-function partitionSegments(commits) {
+// landing into one segment, which is what the coverage rule (attribution match) needs. Extraction
+// is scoped to THIS run's own tracker-prefix family (via attributeCommit/issuePrefixes) — precise
+// enough to reject ordinary technical tokens ("utf-8") while still recognising a same-family
+// CONCURRENT run's issue id, which the caller (spec §6 "Attribution scope") then excludes rather
+// than mis-reading it as unattributable. PURE.
+function partitionSegments(commits, admittedIssues) {
   const segments = [];
   let cur = null;
   for (const c of commits) {
-    const issue = attributeCommit(c.subject);
+    const issue = attributeCommit(c.subject, admittedIssues);
     if (cur && cur.issue === issue) cur.commits.push(c);
     else { cur = { issue, commits: [c] }; segments.push(cur); }
   }
@@ -281,10 +306,12 @@ function reconcileMerges({ root, runDir, issueFilter }) {
     return { reconciled: false, uncovered: [], any_escape: false, fault: `git read failed: ${fp.error}`, forge_enriched: false, legacy_exempt: false };
   }
 
-  // Attribution is UNSCOPED (any issue-shaped key on the branch, admitted or not — see
-  // partitionSegments/attributeCommit) so the classification below can tell a concurrent run's
-  // landing apart from a genuinely key-less one.
-  const rawSegments = partitionSegments(fp.commits);
+  // Extraction is scoped to THIS run's own tracker-prefix family (derived from the FULL admitted
+  // set, never narrowed to a single --issue — the family question is "which tracker does this run
+  // belong to", independent of which one issue this call happens to report on) so the
+  // classification below can tell a same-family concurrent run's landing apart from a genuinely
+  // key-less one, without false-extracting an ordinary technical token as a fake issue id.
+  const rawSegments = partitionSegments(fp.commits, admittedAll);
 
   // segment_base for each segment is the previous segment's tip (or the overall base for the
   // first) — computed over the FULL ordered sequence, before any --issue/scope filtering, so it
@@ -424,13 +451,28 @@ function effectsReconcileSelftest() {
   let failed = 0;
   const fail = (m) => { process.stderr.write(`effects reconcile-merges --selftest FAIL: ${m}\n`); failed++; };
 
-  // --- attributeCommit (generic, unscoped extraction — see the function's own header comment) ---
+  // --- attributeCommit: no admitted-issue signal -> the unbounded generic-shape fallback ---
   if (attributeCommit("feat(FAFF-1028): add reconcile") !== "FAFF-1028") fail("attributeCommit: conventional subject");
   if (attributeCommit("Merge pull request #7 from org/faff-1028-effects-check") !== "FAFF-1028") fail("attributeCommit: branch-name-in-merge-subject");
   if (attributeCommit("chore: unrelated tidy") !== null) fail("attributeCommit: no match => null (unattributable)");
   if (attributeCommit("touches faff-1028 lowercase") !== "FAFF-1028") fail("attributeCommit: case-insensitive, normalised to uppercase");
-  if (attributeCommit("feat(ABC-99): a different tracker prefix") !== "ABC-99") fail("attributeCommit: not scoped to any particular admitted set — extracts ANY issue-shaped key");
+  if (attributeCommit("feat(ABC-99): a different tracker prefix") !== "ABC-99") fail("attributeCommit: no admitted signal — extracts ANY issue-shaped key");
   if (attributeCommit("touches FAFF-10289 only") !== "FAFF-10289") fail("attributeCommit: extracts the FULL digit run, never a truncated prefix of a longer id");
+
+  // --- attributeCommit: WITH an admitted-issue signal -> prefix-family-scoped (the false-positive
+  // fix — a bare technical token must never masquerade as an issue id) ---
+  if (attributeCommit("chore: bump to utf-8 encoding", ["FAFF-1"]) !== null) {
+    fail("attributeCommit: a non-tracker technical token ('utf-8') must NOT extract as a fake issue id once an admitted family is known");
+  }
+  if (attributeCommit("docs: switch to iso-8601 timestamps", ["FAFF-1"]) !== null) {
+    fail("attributeCommit: 'iso-8601' must not false-positive either");
+  }
+  if (attributeCommit("feat(FAFF-999): a concurrent run's own issue", ["FAFF-1"]) !== "FAFF-999") {
+    fail("attributeCommit: a SAME-FAMILY foreign issue id still extracts (needed so the caller can recognise and exclude it)");
+  }
+  if (attributeCommit("feat(FAFF-1): this run's own issue", ["FAFF-1", "FAFF-2"]) !== "FAFF-1") {
+    fail("attributeCommit: this run's own admitted issue still extracts under the family-scoped path");
+  }
 
   // --- extractPrNumberFromSubject ---
   if (extractPrNumberFromSubject("Merge pull request #42 from org/branch") !== 42) fail("extractPrNumberFromSubject: merge-commit style");

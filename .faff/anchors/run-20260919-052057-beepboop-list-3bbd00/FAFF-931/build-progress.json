@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-931",
+  "build": {
+    "status": "complete",
+    "diff_hash": "fe923198d646f5d0499e626de00c8751b0ee4da2b63642225e78c799a53fe78f",
+    "branch": "faff-931-spec-review-judge-register-the-llm-judgement-eval-seam",
+    "pushed_at": "2026-09-19T06:42:34.431Z"
+  },
+  "updated_at": "2026-09-19T06:42:34.431Z"
+}

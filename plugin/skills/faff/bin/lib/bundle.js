@@ -1157,10 +1157,14 @@ function bundleSelftest() {
       fs.mkdirSync(runDir2, { recursive: true });
       const ledger2 = { admitted: ["FAFF-9"], outcomes: {}, owner: { epoch: 0, status: "running" } };
       fs.writeFileSync(path.join(runDir2, "run-ledger.json"), JSON.stringify(ledger2));
-      fs.writeFileSync(path.join(runDir2, "events.jsonl"), "");
+      // A minimal but VALID genesis record — an empty file no longer anchors (the FAFF-966
+      // fail-closed genesis guard refuses a genesis-less run dir), so this fixture needs one,
+      // exactly like the local-store fixture above.
+      fs.writeFileSync(path.join(runDir2, "events.jsonl"), '{"schema":1,"run_id":"' + run_id2 + '","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
       const { mintIssueAnchor: mintFn } = require("./events");
       const anchorDest3 = path.join(workRoot, ".faff", "anchors", run_id2, "FAFF-9");
-      mintFn(runDir2, "FAFF-9", anchorDest3);
+      const mint3 = mintFn(runDir2, "FAFF-9", anchorDest3);
+      ok(mint3.ok === true, `selftest git-remote fixture: anchor minted cleanly (got ${JSON.stringify(mint3)})`);
 
       const gstore = gitRemoteBundleStore(workRoot, "origin");
       const gpub = publishBundle(runDir2, "issue-merge-floor", "FAFF-9", { root: workRoot, store: gstore, boundarySeq: 0 });
@@ -1194,9 +1198,11 @@ function bundleSelftest() {
       const runDirBad = path.join(badWorkRoot, ".faff", "runs", "run-bad");
       fs.mkdirSync(runDirBad, { recursive: true });
       fs.writeFileSync(path.join(runDirBad, "run-ledger.json"), JSON.stringify({ admitted: [], outcomes: {}, owner: { epoch: 0 } }));
-      fs.writeFileSync(path.join(runDirBad, "events.jsonl"), "");
+      // A valid minimal genesis (see the run_id2 fixture above for why an empty file no longer anchors).
+      fs.writeFileSync(path.join(runDirBad, "events.jsonl"), '{"schema":1,"run_id":"run-bad","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
       const anchorDestBad = path.join(badWorkRoot, ".faff", "anchors", "run-bad", "FAFF-1");
-      require("./events").mintIssueAnchor(runDirBad, "FAFF-1", anchorDestBad);
+      const mintBad = require("./events").mintIssueAnchor(runDirBad, "FAFF-1", anchorDestBad);
+      ok(mintBad.ok === true, `selftest store_unavailable fixture: anchor minted cleanly (got ${JSON.stringify(mintBad)})`);
       const badStore = gitRemoteBundleStore(badWorkRoot, "origin");
       const badPub = publishBundle(runDirBad, "issue-merge-floor", "FAFF-1", { root: badWorkRoot, store: badStore, boundarySeq: 0 });
       ok(badPub.ok === false && badPub.reason === "store_unavailable", `an unreachable remote reports store_unavailable, never throws (got ${JSON.stringify(badPub)})`);

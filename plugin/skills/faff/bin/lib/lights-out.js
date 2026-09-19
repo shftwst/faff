@@ -44,7 +44,7 @@ const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
-const { appendEventRecord, appendRecordUnderLock } = require("./events");
+const { appendEventRecord, appendRecordUnderLock, emitGenesisRunStart } = require("./events");
 const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
@@ -1192,7 +1192,9 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   // `level` against the from-genesis-verified events.jsonl chain. A run-ledger `level: L4` set by
   // a direct file edit that never went through this mint has no matching chain event, so the
   // roll-up coerces it down to L3 (`l4_chain_uncorroborated`).
-  appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start", data: { level: "L4" } }));
+  // FAFF-966: routed through the shared `emitGenesisRunStart` helper (never a hand-duplicated
+  // emit) — byte-identical shape to before the extraction (schema 2, `data.level:"L4"`).
+  emitGenesisRunStart(runDir, { level: "L4" });
 
   if (json) {
     // FAFF-679: ledger_sha256_before is always null on a mint (nothing existed to bracket

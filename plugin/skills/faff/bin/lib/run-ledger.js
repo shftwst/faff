@@ -28,18 +28,24 @@
 
 "use strict";
 
+const crypto = require("node:crypto");
 const fs = require("fs");
 const path = require("path");
 
 const { parseArgs, usageError } = require("./argv");
 const { findRoot, latestRunDir } = require("./shared-infra");
 const { mutateLedgerUnderLock } = require("./heartbeat");
-const { appendRecordUnderLock, appendEventRecord, computeChainHead, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
+const { appendRecordUnderLock, appendEventRecord, computeChainHead, emitGenesisRunStart, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
 
 // The one level this verb ever writes — a FLOOR_LEVELS member (contract-defs.js), read by
 // merge-gate's resolveAnchorLevel. A CONSTANT, never flag-derived (see the module header).
 const INTERACTIVE_LEVEL = "L2";
-// Levels ABOVE L2 that the guard refuses to silently downgrade when live.
+// FAFF-966 — the L3 sibling constant `init-self-drain` mints. Also a CONSTANT, never
+// flag-derived — no `--level` flag exists on either verb.
+const SELF_DRAIN_LEVEL = "L3";
+// Levels ABOVE L2 that the guard refuses to silently downgrade when live. Reused AS-IS
+// (identical shape, per the spec) for init-self-drain's own guard — an L3 self-drain mint
+// must not start alongside, or downgrade, an already-live L3 or L4 run either.
 const HIGHER_LEVELS = new Set(["L3", "L4"]);
 // The bare-issue-id shape merge-gate.js / `events anchor` --issue already enforce (a shared
 // floor, never a forked rule): reject anything that could walk a path outside the run dir.
@@ -59,6 +65,28 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid }) {
     budget: { envelope: { ceilings: {}, at_ceiling: "stop" } }, // minimal honest shape; no L4 governor
     owner: {
       status: "running", // → "done" at the graft terminal
+      session_id: sessionId || runId,
+      pid,
+      started_at: nowIso,
+      last_heartbeat: nowIso,
+    },
+  };
+}
+
+// FAFF-966 — PURE, the minimal honest L3 self-drain ledger object, mirroring
+// buildInteractiveLedger's shape/rationale. NOT issue-scoped (`admitted` starts empty — a
+// self-drain run admits issues over waves, at step 4, not at mint) and carries NO `budget`
+// block: beep-boop's own `faff budget baseline` call (unchanged, run right after this mint)
+// is what seeds `budget` — the new verb mints only the CORE shape (run dir, ledger, genesis),
+// never beep-boop's richer augmentation fields (see the ticket's OUT-OF-SCOPE list).
+function buildSelfDrainLedger({ runId, nowIso, sessionId, pid }) {
+  return {
+    run_id: runId,
+    level: SELF_DRAIN_LEVEL, // CONSTANT — never operator-settable
+    admitted: [],
+    outcomes: {},
+    owner: {
+      status: "running",
       session_id: sessionId || runId,
       pid,
       started_at: nowIso,
@@ -148,25 +176,30 @@ const RUN_LEDGER_SPEC = {
     "--root": { arity: 1 },
     "--run-dir": { arity: 1 },
     "--id": { arity: 1 },
+    "--mode": { arity: 1 },
     "--json": { arity: 0 },
     "--selftest": { arity: 0 },
   },
   positionals: { min: 0, max: 1, name: "subcommand" },
 };
 
-// The declared CLI grammar (FAFF-628). NB: there is deliberately NO --level flag; level is
-// the CONSTANT above. `record-outcome` is the honest terminal write on the interactive-minted
+// The declared CLI grammar (FAFF-628). NB: there is deliberately NO --level flag on
+// init-interactive/init-self-drain; each mints a CONSTANT level (L2 / L3 respectively).
+// `record-outcome` is the honest terminal write on the interactive- or orchestrator-minted
 // LIVE ledger (post-anchor) — the committed anchor is an immutable pre-merge snapshot.
+// `init-self-drain` (FAFF-966) is the L3 sibling of `init-interactive` — no required flags
+// (both `--mode` and `--id` are optional; it is not issue-scoped).
 const RUN_LEDGER_SURFACE = {
   kind: "subcommand_dispatch",
   spec: RUN_LEDGER_SPEC,
   subcommands: {
     "init-interactive": { required_flags: ["--issue"] },
+    "init-self-drain": { required_flags: [] },
     "record-outcome": { required_flags: ["--issue", "--outcome"] },
   },
 };
 
-const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR]> [--json] [--selftest]";
+const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR]> [--json] [--selftest]";
 
 function cmdRunLedger(args) {
   if (args.includes("--selftest")) return runLedgerSelftest();
@@ -175,8 +208,9 @@ function cmdRunLedger(args) {
 
   const sub = positionals[0];
   if (sub === "init-interactive") return initInteractive(values);
+  if (sub === "init-self-drain") return initSelfDrain(values);
   if (sub === "record-outcome") return recordOutcome(values);
-  process.stderr.write(`faff run-ledger: expected subcommand 'init-interactive' | 'record-outcome'${sub ? ` (got ${JSON.stringify(sub)})` : ""}\n${USAGE}\n`);
+  process.stderr.write(`faff run-ledger: expected subcommand 'init-interactive' | 'init-self-drain' | 'record-outcome'${sub ? ` (got ${JSON.stringify(sub)})` : ""}\n${USAGE}\n`);
   return 2;
 }
 
@@ -262,17 +296,11 @@ function initInteractive(values) {
     return 3;
   }
 
-  // Emit the genesis run-start onto the events chain — the caller supplies only the payload;
-  // the seq (0) and `prev` (SHA-256(run_id), for the empty log) are minted by the locked core.
-  appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => ({
-    schema: 2,
-    run_id: runId,
-    seq,
-    ts: nowIso,
-    prev: prevHash,
-    phase: "run",
-    type: "run-start",
-  }));
+  // Emit the genesis run-start onto the events chain via the shared FAFF-966 helper (never a
+  // hand-duplicated emit) — byte-identical to before the extraction: no `data.level` (this L2
+  // mint has never carried one; see the regression assertion in
+  // run-ledger-init-interactive.test.mjs).
+  emitGenesisRunStart(runDir);
 
   if (values["--json"]) {
     process.stdout.write(
@@ -288,6 +316,141 @@ function initInteractive(values) {
   } else {
     // The bare-mode stdout is JUST the absolute run dir path — so the caller can
     // `export FAFF_RUN_DIR="$(faff run-ledger init-interactive --issue …)"`.
+    process.stdout.write(runDir + "\n");
+  }
+  return 0;
+}
+
+// FAFF-966 — `faff run-ledger init-self-drain`: the L3 sibling of `init-interactive` (L2) and
+// `mintLightsOut` (L4). Mints ATOMICALLY (mirrors init-interactive's tail): a fresh run dir,
+// a minimal honest L3 `run-ledger.json`, and a genesis `events.jsonl` chain — so beep-boop's
+// ordinary self-drain mint gets the SAME anchor substrate the other two levels already have,
+// closing the provisioning gap this ticket exists to fix. NOT issue-scoped: a self-drain run
+// admits issues over waves, so no `--issue` is required and `admitted` starts empty.
+function initSelfDrain(values) {
+  // --mode / --id share the SAME bare-id allowlist init-interactive already applies to
+  // --issue/--id (reject "/" and ".."), validated BEFORE any dir is created — a bad value
+  // mints NOTHING (exit 2, no partial dir). `--mode` needs this guard too: unlike --id it was
+  // previously unvalidated in the prior (rejected) spec draft, but it lands in the run-dir path
+  // (`run-<stamp>-beepboop-<mode>-<entropy>`) exactly like --id does.
+  const modeArg = values["--mode"];
+  if (modeArg !== undefined && (!ISSUE_ID_RE.test(modeArg) || modeArg.includes(".."))) {
+    process.stderr.write(`faff run-ledger init-self-drain: --mode ${JSON.stringify(modeArg)} is not a valid mode\n`);
+    return 2;
+  }
+  const idArg = values["--id"];
+  if (idArg !== undefined && (!ISSUE_ID_RE.test(idArg) || idArg.includes(".."))) {
+    process.stderr.write(`faff run-ledger init-self-drain: --id ${JSON.stringify(idArg)} is not a valid run id\n`);
+    return 2;
+  }
+
+  const root = values["--root"] || findRoot();
+
+  // CLI-LEVEL trust guard — IDENTICAL shape to init-interactive's own guard above (same
+  // HIGHER_LEVELS set, same candidate resolution, same best-effort refusal observe): refuse
+  // (exit 3, no partial dir) when a LIVE L3/L4 run is already resolved, so a self-drain mint
+  // can never start alongside another live self-drain, or downgrade a live L4 lights-out run.
+  // Runs BEFORE any dir is created.
+  const candidate = guardCandidateDir(root, process.env);
+  if (candidate) {
+    const liveLedger = readLedgerSafe(candidate);
+    if (isLiveHigherLevel(liveLedger)) {
+      try {
+        appendRecordUnderLock(candidate, (seq, _prev, prevHash) => ({
+          schema: 2,
+          run_id: liveLedger.run_id || path.basename(candidate),
+          seq,
+          ts: new Date().toISOString(),
+          prev: prevHash,
+          phase: "run",
+          type: "sentry-trip",
+          data: {
+            guard: "run-ledger-init-self-drain-downgrade-refused",
+            live_level: liveLedger.level,
+          },
+        }));
+      } catch { /* observe is best-effort; the refusal below is unconditional */ }
+      process.stderr.write(
+        `faff run-ledger init-self-drain: refusing — a live ${liveLedger.level} run (${liveLedger.run_id || path.basename(candidate)}) is already resolved; ` +
+        `an L3 self-drain mint must not start alongside or downgrade a live higher-level run\n`
+      );
+      return 3;
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+  const runId = idArg || `run-${utcStamp(nowIso)}-beepboop-${modeArg || "full"}-${crypto.randomBytes(3).toString("hex")}`;
+  const runsParent = path.join(root, ".faff", "runs");
+  const runDir = path.join(runsParent, runId);
+
+  // Ensure the PARENT exists (idempotent, recursive — a fresh repo has no `.faff/runs/` yet),
+  // then exclusive-create the LEAF (non-recursive — throws EEXIST iff the leaf is taken). The
+  // run dir's basename IS the run_id (load-bearing for the genesis `prev` = SHA-256(run_id)).
+  // A leaf collision REFUSES rather than appends over a stale tail (a re-run with the same
+  // --id, or a dir a killed run left behind) — never the silent `{recursive:true}` mkdir
+  // init-interactive's OWN mint uses today (out of scope to change there; the spec asks for
+  // this guard on the new verb specifically).
+  fs.mkdirSync(runsParent, { recursive: true });
+  try {
+    fs.mkdirSync(runDir);
+  } catch (e) {
+    if (e && e.code === "EEXIST") {
+      process.stderr.write(`faff run-ledger init-self-drain: run dir already exists: ${runDir} — refusing to mint over it (nothing written into it)\n`);
+      return 3;
+    }
+    throw e;
+  }
+
+  const ledger = buildSelfDrainLedger({
+    runId,
+    nowIso,
+    sessionId: process.env.FAFF_SESSION_ID || null,
+    pid: process.pid,
+  });
+  // Unlike a non-throwing `written:false` (a null-mutate abort — never returned by the mutate
+  // above — or an owner-epoch-fence yield, never armed here), lock-ACQUISITION exhaustion
+  // THROWS a tagged LEDGER_LOCKED error (fs-lock.js) rather than returning. Catch it too — a
+  // fresh mint under contention is a real, testable fail-closed path this verb must not crash
+  // on (never a mint over an absent ledger, and never an unhandled stack trace where the DoD
+  // asks for a clean exit 3).
+  let mintWriteRes;
+  try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
+  catch (e) {
+    process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")}${e && e.code === "LEDGER_LOCKED" ? " (lock contention/abort)" : `: ${e && e.message}`} — no ledger minted\n`);
+    return 3;
+  }
+  if (!mintWriteRes.written) {
+    process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")} (lock contention/abort) — no ledger minted\n`);
+    return 3;
+  }
+
+  // The ledger write above and this genesis emit are TWO locked operations, not one critical
+  // section — fail-closed ACROSS the seam: report success (exit 0) only when BOTH landed.
+  // A crash/lock-exhaustion here leaves a half-minted dir (ledger written, no genesis) that
+  // the read-only anchor guard (`validateAnchorGenesis`) refuses fail-closed — this verb MUST
+  // NEVER exit 0 over that state, which is exactly the anchor-missing gap this ticket closes.
+  let genesisFailed = false, genesisErr = null;
+  try { emitGenesisRunStart(runDir, { level: SELF_DRAIN_LEVEL }); }
+  catch (e) { genesisFailed = true; genesisErr = e; }
+  if (genesisFailed) {
+    process.stderr.write(`faff run-ledger init-self-drain: could not append the genesis run-start event in ${runDir}${genesisErr ? `: ${genesisErr.message}` : ""} (ledger written, no chain) — mint NOT reported successful\n`);
+    return 3;
+  }
+
+  if (values["--json"]) {
+    process.stdout.write(
+      JSON.stringify({
+        proceed: true,
+        level: SELF_DRAIN_LEVEL,
+        run_id: runId,
+        run_dir: runDir,
+        ledger_sha256_before: mintWriteRes.before_sha256, // always null on a mint
+        ledger_sha256_after: mintWriteRes.after_sha256,
+      }) + "\n"
+    );
+  } else {
+    // Bare-mode stdout is JUST the absolute run dir path — so the caller can
+    // `export FAFF_RUN_DIR="$(faff run-ledger init-self-drain --mode full)"`.
     process.stdout.write(runDir + "\n");
   }
   return 0;
@@ -448,8 +611,10 @@ function runLedgerSelftest() {
 
 module.exports = {
   INTERACTIVE_LEVEL,
+  SELF_DRAIN_LEVEL,
   RUN_LEDGER_SURFACE,
   buildInteractiveLedger,
+  buildSelfDrainLedger,
   applyTerminalOutcome,
   isLiveHigherLevel,
   guardCandidateDir,

@@ -1,0 +1,26 @@
+{
+  "generated_from": "9cbfd9a122e191d3dc3eefc0eb77e9f0df030df8",
+  "diff": "--- a/touched.js\n+++ b/touched.js\n@@ -199,2 +199,2 @@\n-touched 199\n-touched 200\n+touched 199\n+touched 200 changed",
+  "inputPaths": [
+    "touched.js",
+    "unrelated_big.js",
+    "unrelated_small.js"
+  ],
+  "contextFiles": [
+    {
+      "path": "touched.js",
+      "text": "... 174 line(s) elided (FAFF-915 relevance trim) ...\ntouched 175\ntouched 176\ntouched 177\ntouched 178\ntouched 179\ntouched 180\ntouched 181\ntouched 182\ntouched 183\ntouched 184\ntouched 185\ntouched 186\ntouched 187\ntouched 188\ntouched 189\ntouched 190\ntouched 191\ntouched 192\ntouched 193\ntouched 194\ntouched 195\ntouched 196\ntouched 197\ntouched 198\ntouched 199\ntouched 200\ntouched 201\ntouched 202\ntouched 203\ntouched 204\ntouched 205\ntouched 206\ntouched 207\ntouched 208\ntouched 209\ntouched 210\ntouched 211\ntouched 212\ntouched 213\ntouched 214\ntouched 215\ntouched 216\ntouched 217\ntouched 218\ntouched 219\ntouched 220\ntouched 221\ntouched 222\ntouched 223\ntouched 224\n... 176 line(s) elided (FAFF-915 relevance trim) ..."
+    },
+    {
+      "path": "unrelated_big.js",
+      "text": "unrelated 001\nunrelated 002\nunrelated 003\nunrelated 004\nunrelated 005\nunrelated 006\nunrelated 007\nunrelated 008\nunrelated 009\nunrelated 010\nunrelated 011\nunrelated 012\n... 388 line(s) elided (FAFF-915 relevance trim) ..."
+    },
+    {
+      "path": "unrelated_small.js",
+      "text": "small file\nunder the per-file floor\n"
+    }
+  ],
+  "trimmed": true,
+  "bytesBefore": 10326,
+  "bytesAfter": 961
+}

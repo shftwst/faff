@@ -607,6 +607,31 @@ function appendEventRecord(dir, run, payload, ts) {
   });
 }
 
+// FAFF-966 — the shared genesis-emit helper: the ONE home for the `run-start` emit every
+// mint path calls (L4 `mintLightsOut`, L2 `init-interactive`, the new L3 `init-self-drain`),
+// so the L3 path can no longer hand-duplicate the shape and drift out of sync — the exact
+// drift that let beep-boop's self-drain mint skip the emit entirely. Always mints through
+// the locked chain core (`appendRecordUnderLock`): `seq`/`prev` are CLI-computed, never
+// caller-supplied. `run_id` is always `basename(runDir)` — load-bearing for the genesis
+// `prev` = SHA-256(run_id) invariant (ADR-0084). Carries no self-heal / `onlyIfEmpty` branch
+// (Option B, human decision 2026-09-13: prevention only, never a recovery-time mint) — every
+// call site uses it on a freshly-created run dir, where appending a first/next run-start is
+// always legitimate.
+//
+// `level` (optional): when supplied, stamped as `data.level` (the L4-ratification
+// corroboration field, FAFF-930) — `mintLightsOut` passes `"L4"`, the new `init-self-drain`
+// verb passes `"L3"`. `init-interactive`'s L2 mint omits it (byte-preserved: its shipped
+// genesis has never carried `data.level`, and this extraction changes no caller's emitted
+// bytes — see the regression assertions in run-ledger-init-interactive.test.mjs /
+// lights-out.test.mjs).
+function emitGenesisRunStart(runDir, { level } = {}) {
+  return appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => {
+    const record = { schema: 2, run_id: path.basename(runDir), seq, ts: new Date().toISOString(), prev: prevHash, phase: "run", type: "run-start" };
+    if (level !== undefined) record.data = { level };
+    return record;
+  });
+}
+
 // ===========================================================================
 // FAFF-568: post-hoc chain VERIFICATION — the read side of FAFF-564's write side.
 // Re-derives each link exactly as the writer minted it: split events.jsonl on
@@ -2017,4 +2042,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

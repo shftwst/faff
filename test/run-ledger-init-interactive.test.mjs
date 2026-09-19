@@ -91,6 +91,13 @@ test("mint writes an honest L2 ledger + genesis chain; bare stdout is the run di
   assert.equal(led.owner.status, "running");
   assert.ok(led.owner.pid && led.owner.started_at && led.owner.last_heartbeat);
   assert.equal(verifyExitCode(verifyChain(runDir), "fail"), 0, "genesis chain verifies");
+  // FAFF-966 regression assertion: the run-start's shape is BYTE-PRESERVED after the
+  // `emitGenesisRunStart` extraction — this L2 mint has never carried a `data.level` field
+  // (unlike L4's), and still doesn't, routed through the shared helper with no `level` arg.
+  const events = readFileSync(path.join(runDir, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const runStart = events.find((e) => e.type === "run-start");
+  assert.ok(runStart, "a run-start event is present");
+  assert.equal(runStart.data, undefined, "L2's genesis carries no data.level — byte-preserved");
   rmSync(root, { recursive: true, force: true });
 });
 

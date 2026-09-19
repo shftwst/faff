@@ -204,12 +204,20 @@ deadline=$("$faff" config get adversarial.deadline -d 480)   # global — not sp
 if [ -n "$consumer" ]; then max_tokens=$("$faff" config get "adversarial.$consumer.max_tokens"); fi
 [ -z "$max_tokens" ] && max_tokens=$("$faff" config get adversarial.max_tokens -d 2000)
 [ "$max_tokens" -gt 0 ] 2>/dev/null || max_tokens=2000
+# Trim toggle (code_review only): per-consumer scalar, default true. ONLY the per-consumer
+# `adversarial.code_review.trim` key is read (no global `adversarial.trim` fallback), so a global key
+# has no effect. Any value other than the literal "false" leaves trimming on (fail-safe to today's
+# behaviour). Same per-consumer two-read shape as timeout/max_tokens. false passes --no-trim, which
+# disables both context-trim passes; prose consumers never trim regardless (--diff-kind prose).
+trim=$("$faff" config get "adversarial.$consumer.trim")
+[ -z "$trim" ] && trim=true
+no_trim_flag=""; [ "$trim" = "false" ] && no_trim_flag="--no-trim"
 
 case "$backends_exit" in
   0)
     node "$REVIEW_SPAWN" --deadline "$deadline" -- \
     node "$REVIEW_CALL" --backends-json "$backends_json" --timeout "$timeout" --deadline "$deadline" \
-      --max-tokens "$max_tokens" \
+      --max-tokens "$max_tokens" $no_trim_flag \
       ${run_dir:+--run-dir "$run_dir"} \
       --system <review-lens-file> \
       --context <each file the diff touches> \

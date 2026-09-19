@@ -38,6 +38,9 @@ const EFFECTS_SPEC = { flags: {
   // `events verify`). --run-dir verifies a direct dir (a run or anchor dir); --legacy-policy
   // maps the schema-1 legacy/mixed disposition to the exit code, same vocabulary as events.
   "--run-dir": { arity: 1 }, "--legacy-policy": { arity: 1 },
+  // FAFF-1028: `effects reconcile-merges --describe` prints the honesty-condition text (what
+  // the off-ledger detector catches and does not) — see effects-reconcile.js DESCRIBE_TEXT.
+  "--describe": { arity: 0 },
 } };
 const EFFECTS_SURFACE = {
   kind: "subcommand_dispatch",
@@ -50,6 +53,11 @@ const EFFECTS_SURFACE = {
     observe: { required_flags: ["--issue", "--step"] },
     check: { required_flags: [] },
     verify: { required_flags: [] }, // one of --run / --run-dir (checked in the handler)
+    // FAFF-1028: the off-ledger landed-merge DETECTION verb — one of --run / --run-dir
+    // (checked in the handler, same shape as check/verify); --issue optionally narrows both
+    // attribution and the ledger read. Implemented in the sibling effects-reconcile.js module
+    // so the pure computeEscapes core above stays untouched (spec §3 "CLI surface").
+    "reconcile-merges": { required_flags: [] },
   },
 };
 
@@ -547,13 +555,26 @@ function cmdEffects(args) {
     else if (args[i] === "--ts") ts = args[++i];
     else rest.push(args[i]);
   }
-  if (rest.includes("--selftest")) return effectsSelftest();
+  const cmd = rest[0];
+  // FAFF-1028: reconcile-merges owns its own --selftest (the reconcile pure cores + a
+  // real-git integration pass, in effects-reconcile.js) — every OTHER subcommand keeps the
+  // pre-existing behaviour of routing any --selftest to the generic effectsSelftest() below,
+  // regardless of subcommand.
+  if (rest.includes("--selftest") && cmd !== "reconcile-merges") return effectsSelftest();
   // FAFF-591: an explicit --root is a strict escape hatch (no worktree fallback);
   // the default-from-findRoot() path may still resolve to the main checkout below.
   const rootExplicit = root !== null;
   root = root || findRoot();
-  const cmd = rest[0];
   const asJson = rest.includes("--json");
+
+  // FAFF-1028: dispatched to the sibling effects-reconcile.js module (lazy require — it is
+  // the one that requires ./effects back for effectTargetMatches/mergeRecordPath/gitRun, so
+  // this require must stay lazy here to avoid a load-time cycle) so the pure computeEscapes
+  // core above is never touched by the new detection verb.
+  if (cmd === "reconcile-merges") {
+    const { cmdEffectsReconcileMerges } = require("./effects-reconcile");
+    return cmdEffectsReconcileMerges(args);
+  }
 
   // FAFF-864: declare/observe/check resolve their ledger dir from EITHER --run (via
   // resolveRunDir → .faff/runs/<run>) OR --run-dir <dir> (verbatim — e.g. a committed

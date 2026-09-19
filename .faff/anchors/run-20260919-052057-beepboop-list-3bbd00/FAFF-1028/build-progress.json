@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1028",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8ca5281834119273d3261246df67034505850e1d95972ceb40bba43ee61f32d5",
+    "branch": "faff-1028-effects-check-is-blind-to-a-protected-effect-performed",
+    "pushed_at": "2026-09-19T09:31:31.193Z"
+  },
+  "updated_at": "2026-09-19T09:31:31.193Z"
+}

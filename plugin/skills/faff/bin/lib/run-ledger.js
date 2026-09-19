@@ -36,6 +36,11 @@ const { parseArgs, usageError } = require("./argv");
 const { findRoot, latestRunDir } = require("./shared-infra");
 const { mutateLedgerUnderLock } = require("./heartbeat");
 const { appendRecordUnderLock, appendEventRecord, computeChainHead, emitGenesisRunStart, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
+// FAFF-1028: lazy-resolved at mint time (not required at module top) — merge-gate.js is a much
+// heavier module (contract-defs/container-check/commissaire/gates/…) than run-ledger.js needs
+// for the rest of its own work, and there is no load-order hazard either way (merge-gate.js
+// never requires run-ledger.js), but keeping this require inside resolveMintBaseSha means a
+// module that only ever calls record-outcome pays nothing for it.
 
 // The one level this verb ever writes — a FLOOR_LEVELS member (contract-defs.js), read by
 // merge-gate's resolveAnchorLevel. A CONSTANT, never flag-derived (see the module header).
@@ -51,18 +56,58 @@ const HIGHER_LEVELS = new Set(["L3", "L4"]);
 // floor, never a forked rule): reject anything that could walk a path outside the run dir.
 const ISSUE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
+// FAFF-1028 — the post-feature mint marker: a run minted by a build that carries this field
+// (always `true`) is one whose ledger `faff effects reconcile-merges` (effects-reconcile.js)
+// MUST be able to trust `base_sha` on. A run minted before this slice shipped has neither key at
+// all, which is the DISCRIMINATOR the reconcile uses to treat it as legacy-exempt rather than a
+// fault — the marker is a MINT-TIME fact, never inferable from base_sha's mere absence (that
+// ambiguity is exactly what the field incident this ticket fixes lacked). Shared verbatim with
+// mintLightsOut's own L4 ledger object (lights-out.js) and effects-reconcile.js's own read of it
+// — one literal, one home, never independently retyped at each of the three mint sites/reader.
+const MINT_MARKER_KEY = "base_sha_required";
+
+// FAFF-1028 — resolve the protected branch's CURRENT local HEAD sha at mint time, for the
+// `base_sha` hard input the off-ledger reconcile needs (spec §3 "Base anchor recording"). Local
+// git only (never a forge query) — mirrors merge-gate.js's own `resolveLocalBase` exactly, so the
+// mint-time anchor and the reconcile-time base always name the same branch. Best-effort and
+// NEVER throws: an unresolvable branch/sha degrades to `null` (the reconcile then faults
+// "no base anchor" on this run rather than the mint itself failing over a detection feature).
+//
+// No mint/first-merge race (adversarial review, code review round 2): this call is the FIRST
+// write of a brand-new run dir at every call site (init-interactive/init-self-drain create the
+// run dir, then mint the ledger with this value) — nothing can land "as part of this run" before
+// the run itself exists, so there is no window in which a merge could precede the base_sha it is
+// meant to be measured against.
+function resolveMintBaseSha(root) {
+  try {
+    const { gitRun, resolveLocalBase } = require("./merge-gate");
+    const branch = resolveLocalBase(root, null);
+    if (!branch) return null;
+    const r = gitRun(root, ["rev-parse", "--verify", "--quiet", branch], 5000);
+    return r.ok && r.stdout ? r.stdout : null;
+  } catch {
+    return null;
+  }
+}
+
 // PURE — the minimal honest L2 ledger object. Single-sourced here so the shape, the `level`
 // constant, and the empty `outcomes` (the terminal is NOT yet known at mint — §4 sequencing)
 // are testable and cannot drift into graft prose. Mirrors the beep-boop/lights-out ledger
 // keys `runcheck` + the Stop hook already read (admitted/outcomes/owner/budget), so no reader
 // needs a new shape and resolveAnchorLevel reads only `level`.
-function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid }) {
+function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha }) {
   return {
     run_id: runId,
     level: INTERACTIVE_LEVEL, // CONSTANT — never operator-settable
     admitted: [issue], // exactly the one issue this graft builds
     outcomes: {}, // EMPTY at mint — written only at the genuine terminal (graft step 6)
     budget: { envelope: { ceilings: {}, at_ceiling: "stop" } }, // minimal honest shape; no L4 governor
+    // FAFF-1028: base_sha is the off-ledger reconcile's hard lower bound (null when the
+    // protected branch was unresolvable at mint — the reconcile then faults on THIS run, never
+    // silently reads clean); base_sha_required is the mint-time marker distinguishing a
+    // post-feature run (must carry a resolvable base_sha) from a pre-feature legacy one.
+    base_sha: baseSha === undefined ? null : baseSha,
+    [MINT_MARKER_KEY]: true,
     owner: {
       status: "running", // → "done" at the graft terminal
       session_id: sessionId || runId,
@@ -79,12 +124,15 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid }) {
 // block: beep-boop's own `faff budget baseline` call (unchanged, run right after this mint)
 // is what seeds `budget` — the new verb mints only the CORE shape (run dir, ledger, genesis),
 // never beep-boop's richer augmentation fields (see the ticket's OUT-OF-SCOPE list).
-function buildSelfDrainLedger({ runId, nowIso, sessionId, pid }) {
+function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha }) {
   return {
     run_id: runId,
     level: SELF_DRAIN_LEVEL, // CONSTANT — never operator-settable
     admitted: [],
     outcomes: {},
+    // FAFF-1028: see buildInteractiveLedger's own comment — identical rationale, additive here.
+    base_sha: baseSha === undefined ? null : baseSha,
+    [MINT_MARKER_KEY]: true,
     owner: {
       status: "running",
       session_id: sessionId || runId,
@@ -285,6 +333,7 @@ function initInteractive(values) {
     nowIso,
     sessionId: process.env.FAFF_SESSION_ID || null,
     pid: process.pid,
+    baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
   });
   // Route through the SAME locked core every ledger write uses (uniformity; a just-minted
   // dir cannot contend). The trivial mutate ignores the fresh read (initial creation).
@@ -406,6 +455,7 @@ function initSelfDrain(values) {
     nowIso,
     sessionId: process.env.FAFF_SESSION_ID || null,
     pid: process.pid,
+    baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
   });
   // Unlike a non-throwing `written:false` (a null-mutate abort — never returned by the mutate
   // above — or an owner-epoch-fence yield, never armed here), lock-ACQUISITION exhaustion
@@ -535,6 +585,14 @@ function runLedgerSelftest() {
   ok("ledger owner is running with the mint fields", led.owner && led.owner.status === "running" && led.owner.pid === 4242 && led.owner.started_at === nowIso && led.owner.last_heartbeat === nowIso);
   ok("ledger owner.session_id falls back to run_id when session unset", led.owner.session_id === "run-20260811-000000-graft-TEST-1");
   ok("ledger carries a minimal honest budget.envelope", led.budget && led.budget.envelope && typeof led.budget.envelope.ceilings === "object" && led.budget.envelope.at_ceiling === "stop");
+  // --- FAFF-1028: base_sha + the post-feature mint marker ---
+  ok("ledger stamps the post-feature mint marker unconditionally", led[MINT_MARKER_KEY] === true);
+  ok("ledger base_sha defaults to null when unresolved (never thrown, never omitted)", led.base_sha === null);
+  const ledWithBase = buildInteractiveLedger({ runId: "run-20260811-000000-graft-TEST-2", issue: "TEST-2", nowIso, sessionId: null, pid: 1, baseSha: "deadbeef" });
+  ok("ledger base_sha carries a resolved sha verbatim", ledWithBase.base_sha === "deadbeef");
+  const drainLed = buildSelfDrainLedger({ runId: "run-20260811-000000-beepboop-full-abc123", nowIso, sessionId: null, pid: 1 });
+  ok("self-drain ledger also stamps the mint marker", drainLed[MINT_MARKER_KEY] === true);
+  ok("self-drain ledger base_sha defaults to null when unresolved", drainLed.base_sha === null);
 
   // --- guard predicate ---
   ok("guard trips on a live L3 run", isLiveHigherLevel({ level: "L3", owner: { status: "running" } }) === true);
@@ -588,6 +646,7 @@ function runLedgerSelftest() {
     appendRecordUnderLock(runDir, (seq, _p, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start" }));
     const persisted = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
     ok("persisted ledger round-trips level L2", persisted.level === "L2");
+    ok("persisted ledger round-trips the FAFF-1028 mint marker", persisted[MINT_MARKER_KEY] === true);
     const lines = fs.readFileSync(path.join(runDir, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
     const genesis = lines[0];
     // The physical seq-0 record is the `ledger-write` the ledger fold emits (FAFF-564) —
@@ -612,12 +671,14 @@ function runLedgerSelftest() {
 module.exports = {
   INTERACTIVE_LEVEL,
   SELF_DRAIN_LEVEL,
+  MINT_MARKER_KEY,
   RUN_LEDGER_SURFACE,
   buildInteractiveLedger,
   buildSelfDrainLedger,
   applyTerminalOutcome,
   isLiveHigherLevel,
   guardCandidateDir,
+  resolveMintBaseSha,
   cmdRunLedger,
   runLedgerSelftest,
 };

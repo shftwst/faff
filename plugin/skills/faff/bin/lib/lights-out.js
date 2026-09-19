@@ -1143,6 +1143,15 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
     degraded: pf.degrades.some((d) => d.gate === "budget-metering"),
   };
 
+  // FAFF-1028 — the off-ledger landed-merge reconcile's hard input, resolved via the SAME
+  // single-sourced helper/marker run-ledger.js's L2/L3 mints stamp (required lazily — this
+  // module is required before run-ledger.js in bin/faff, but run-ledger.js never requires
+  // lights-out.js back, so a lazy require just defers to first-call time, never a cycle).
+  // `resolveMintBaseSha` never throws; a caught exception here is belt-and-braces.
+  const { resolveMintBaseSha, MINT_MARKER_KEY } = require("./run-ledger");
+  let mintBaseSha = null;
+  try { mintBaseSha = resolveMintBaseSha(root); } catch { /* stays null — the reconcile faults on THIS run, never the mint */ }
+
   const ledger = {
     run_id: runId,
     level: "L4",
@@ -1170,6 +1179,8 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
     floor,
     admitted: [],
     outcomes: {},
+    base_sha: mintBaseSha,
+    [MINT_MARKER_KEY]: true,
     owner: {
       status: "running",
       session_id: process.env.FAFF_SESSION_ID || null,

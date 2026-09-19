@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1048",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4b041da1243cb8cc9fd3f4bc8883f48f282ed9b48ab8ad35725ee93dea34365c",
+    "branch": "faff-1048-configurable-superseded-adr-location-an-explicit",
+    "pushed_at": "2026-09-19T16:01:04.190Z"
+  },
+  "updated_at": "2026-09-19T16:01:04.190Z"
+}

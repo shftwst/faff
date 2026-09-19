@@ -35,6 +35,7 @@ const CONFIG_SURFACE = {
     "prd-docs-path": { required_flags: [] },
     "prdr-docs-path": { required_flags: [] },
     "adr-docs-path": { required_flags: [] },
+    "adr-superseded-docs-path": { required_flags: [] },
     "spike-docs-path": { required_flags: [] },
     dump: { required_flags: [] },
     init: { required_flags: [] },
@@ -120,11 +121,10 @@ const DEFAULTS = {
   "conventions.history_window": "200",
   "conventions.history_dominance": "0.7",
   "adr.mode": "offer",
-  // FAFF-1042: relocate a superseded ADR to a dedicated subdir on `faff adr supersede`.
-  // "in-place" (default, today's behaviour, byte-identical when unset) | "move" (relocate the
-  // OLD file to `<adr_docs_path>/superseded/` as part of the same supersession write). The
-  // `prdr supersede` write never reads this key — PRDR stays byte-identical regardless of value.
-  "adr.on_supersede": "in-place",
+  // FAFF-1048: FAFF-1042's whether-to-relocate boolean under adr.* is retired. Where a superseded
+  // ADR lands is now the sole control — `tracking.adr_superseded_docs_path` (registered in
+  // TRACKING_KEYS below, read by adr.js's supersededDir); unset => the active ADR dir, so nothing
+  // relocates. Whether is derived from where, so the boolean had nothing left to decide.
   "intake_gate": "warn",
   // FAFF-536: the self-hosting core-defect intake lane. Default false ⇒ the lane is off and the
   // filing chokepoint is byte-identical to today (an outward item is always outward-new-root). Set
@@ -684,12 +684,18 @@ function loadConfig(root) {
 
 // One docs-path resolver for repository record stores (FAFF-252, FAFF-245, FAFF-754).
 // `configKey` is the tracking.* override; `subdir` is the leaf under docs/ (or
-// doc/ when only doc/ exists). An explicit override wins; otherwise prefer an
-// existing docs/, then doc/, defaulting to docs/<subdir>.
-function resolveDocsPath(root, data, create, configKey, subdir) {
+// doc/ when only doc/ exists). An explicit override wins; otherwise, when
+// `fallbackRel` is supplied it is the unset default (FAFF-1048 — used by the
+// superseded-ADR key so an unset key resolves to the RESOLVED ADR directory,
+// never a literal `docs/adr` that would diverge under a customised
+// tracking.adr_docs_path); otherwise prefer an existing docs/, then doc/,
+// defaulting to docs/<subdir>. The five pre-FAFF-1048 bindings pass no
+// `fallbackRel`, so their resolution is byte-identical.
+function resolveDocsPath(root, data, create, configKey, subdir, fallbackRel) {
   let rel;
   const val = dig(data, configKey);
   if (val) rel = String(val).trim().replace(/\/+$/, "");
+  else if (fallbackRel != null) rel = String(fallbackRel).replace(/\/+$/, "");
   else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/" + subdir;
   else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/" + subdir;
   else rel = "docs/" + subdir;
@@ -701,6 +707,14 @@ const resolvePrdDocsPath = (root, data, create) => resolveDocsPath(root, data, c
 const resolvePrdrDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prdr_docs_path", "prdr");
 const resolveAdrDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.adr_docs_path", "adr");
 const resolveSpikeDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.spike_docs_path", "spikes");
+// FAFF-1048: where a SUPERSEDED ADR comes to rest. Read by adr.js's supersededDir(); registered
+// in config.js beside its five docs-path siblings. UNSET => the resolved ADR directory itself
+// (the collapsed case — nothing to relocate to, so a supersession stays in-place), which is why
+// it passes `resolveAdrDocsPath(...)` as the explicit fallbackRel rather than a `docs/`-ladder
+// subdir. SET => that directory (trimmed, trailing slash stripped). The `subdir` arg is null:
+// the fallbackRel branch always fires when the key is unset, so the ladder is never reached.
+const resolveAdrSupersededDocsPath = (root, data, create) =>
+  resolveDocsPath(root, data, create, "tracking.adr_superseded_docs_path", null, resolveAdrDocsPath(root, data, false));
 
 // ---------------------------------------------------------------------------
 // config init — FAFF-5: the deterministic WRITE half of the config surface.
@@ -721,6 +735,7 @@ const TRACKING_KEYS = [
   "tracking.prd_docs_path",
   "tracking.prdr_docs_path",
   "tracking.adr_docs_path",
+  "tracking.adr_superseded_docs_path",   // FAFF-1048: where a superseded ADR lands; read by adr.js supersededDir()
   "tracking.spike_docs_path",
   "tracking.label_prefix",
 ];
@@ -1477,6 +1492,33 @@ function configInitSelftest() {
     typeof resolveSpikeDocsPath === "function" && resolveSpikeDocsPath("/tmp/no-doc-tree", {}, false) === "docs/spikes");
   check("docs paths: spike resolver honours tracking.spike_docs_path",
     typeof resolveSpikeDocsPath === "function" && resolveSpikeDocsPath("/tmp/no-doc-tree", { tracking: { spike_docs_path: "records/spikes/" } }, false) === "records/spikes");
+
+  // FAFF-1048: the superseded-ADR docs-path key + the resolveDocsPath fallbackRel branch.
+  check("allowlist: superseded-ADR docs path is writable", TRACKING_KEYS.includes("tracking.adr_superseded_docs_path"));
+  check("docs paths: superseded resolver is exported", typeof resolveAdrSupersededDocsPath === "function");
+  // unset => the RESOLVED active ADR dir (never a literal docs/adr) — the no-regression contract.
+  check("docs paths: superseded unset => resolved default ADR dir",
+    resolveAdrSupersededDocsPath("/tmp/no-doc-tree", {}, false) === "docs/adr");
+  check("docs paths: superseded unset => resolved CUSTOM ADR dir",
+    resolveAdrSupersededDocsPath("/tmp/no-doc-tree", { tracking: { adr_docs_path: "records/adr/" } }, false) === "records/adr");
+  check("docs paths: superseded set => trimmed value",
+    resolveAdrSupersededDocsPath("/tmp/no-doc-tree", { tracking: { adr_superseded_docs_path: "records/adr/retired/" } }, false) === "records/adr/retired");
+  // the fallbackRel branch must beat the docs/-then-doc/ ladder even when docs/ exists on disk:
+  // a real repo root with a docs/ dir present, adr_docs_path customised, superseded key unset,
+  // must still resolve to the ADR dir — the wrong-ladder failure mode this key's default guards.
+  {
+    const os = require("os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1048-"));
+    try {
+      fs.mkdirSync(path.join(tmp, "docs"), { recursive: true });
+      const data = { tracking: { adr_docs_path: "records/adr/" } };
+      check("docs paths: superseded default beats docs/ ladder (unset key, docs/ present)",
+        resolveAdrSupersededDocsPath(tmp, data, false) === "records/adr");
+      // the five pre-FAFF-1048 bindings pass no fallbackRel, so the ladder still fires for them.
+      check("docs paths: ADR resolver still uses docs/ ladder (no fallbackRel)",
+        resolveAdrDocsPath(tmp, {}, false) === "docs/adr");
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
 
   // empty tracking block (key with null body): inserts children.
   {
@@ -2492,6 +2534,11 @@ function cmdConfig(args) {
       console.log(resolveAdrDocsPath(root, data, rest.includes("--create")));
       return 0;
     }
+    if (cmd === "adr-superseded-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolveAdrSupersededDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
     if (cmd === "spike-docs-path") {
       const [data] = loadConfig(root);
       console.log(resolveSpikeDocsPath(root, data, rest.includes("--create")));
@@ -2801,4 +2848,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };

@@ -46,6 +46,8 @@ tracking:
 
 Paths are relative to the repository root. Existing repositories need no change; the `docs/*` defaults remain in place.
 
+A sixth location key, `tracking.adr_superseded_docs_path`, controls where a superseded ADR comes to rest. It defaults to the ADR directory itself, so `faff adr supersede` edits the record in place and moves nothing. Point it at a different directory and a supersession relocates the record there (never deleting it); readers such as `faff adr validate` and `faff adr next-number` span both directories once they differ. There is no separate "whether to move" switch — the location is the instruction. Resolve the current value with `faff config adr-superseded-docs-path`.
+
 ## Appetite
 
 ```yaml

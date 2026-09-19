@@ -357,6 +357,38 @@ test("with NO admitted issues at all, nothing can be confidently classified as f
   assert.equal(out.uncovered.length, 1);
 });
 
+test("a non-canonically-cased declared issue still covers via attribution match (case-insensitive on both operands)", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  const runDir = join(dir, ".faff", "runs", "run-1028-declarecase");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], base_sha: base, base_sha_required: true }));
+  // The declared entry's own `issue` field is lowercase — attributeCommit always extracts
+  // uppercase, so this only covers if the comparison is case-insensitive on BOTH sides.
+  writeFileSync(
+    join(runDir, "declared-effects.jsonl"),
+    JSON.stringify({ schema: 2, kind_of_entry: "declare", issue: "faff-1", step: "build", effect: { kind: "merge", target: "pr:1" } }) + "\n",
+  );
+  writeFileSync(join(dir, "f.txt"), "1\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "feat(FAFF-1): off-ledger");
+  const r = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--json"], { cwd: dir });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.any_escape, false, "a lowercase-cased declared issue must still cover via attribution match");
+});
+
+test("--run (not --run-dir) resolves via the same shared, worktree-aware run-dir resolver every effects subcommand uses", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  mkdirSync(join(dir, ".faff", "runs", "run-1028-viarun"), { recursive: true });
+  writeFileSync(join(dir, ".faff", "runs", "run-1028-viarun", "run-ledger.json"), JSON.stringify({ admitted: [], base_sha: base, base_sha_required: true }));
+  const r = runCli(["effects", "reconcile-merges", "--run", "run-1028-viarun", "--json"], { cwd: dir });
+  assert.equal(r.code, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.reconciled, true);
+  assert.equal(out.any_escape, false);
+});
+
 test("--issue mode still surfaces a genuinely-unattributable landing — the incident's own shape is never dropped by the narrowing flag", () => {
   const { dir, git } = gitRepo();
   const base = git("rev-parse", "HEAD").trim();

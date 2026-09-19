@@ -167,10 +167,12 @@ function partitionSegments(commits, admittedIssues) {
 //       strings into `candidateTargets` when an equivalence resolved).
 function segmentCovered(segment, admittedIssues, declaredMerge, candidateTargets) {
   const { effectTargetMatches } = require("./effects"); // lazy — breaks the require cycle noted above
-  // Case-insensitive membership (adversarial review finding, code review round 2): `segment.issue`
-  // is always UPPERCASED by attributeCommit; compare defensively rather than assume callers pass
-  // `admittedIssues` in that same canonical casing.
-  if (segment.issue && admittedIssues.some((a) => a.toUpperCase() === segment.issue) && declaredMerge.some((d) => d.issue === segment.issue)) {
+  // Case-insensitive on BOTH operands (adversarial review finding, code review round 3 —
+  // tightens round 2's fix, which normalised `admittedIssues` but still compared `declaredMerge`
+  // entries verbatim): `segment.issue` is always UPPERCASED by attributeCommit, but a declared
+  // ledger entry's own `issue` field carries whatever casing the declaring call used. Compare both
+  // sides uppercased so a non-canonically-cased declaration still covers.
+  if (segment.issue && admittedIssues.some((a) => a.toUpperCase() === segment.issue) && declaredMerge.some((d) => typeof d.issue === "string" && d.issue.toUpperCase() === segment.issue)) {
     return true;
   }
   return declaredMerge.some((d) => [...candidateTargets].some((t) => effectTargetMatches(d.target, t)));
@@ -269,6 +271,20 @@ function readFirstParentAdvancement(root, base, head) {
 
 // PROCEDURE reconcile_merges (spec §4) — the impure orchestrator. Read-only: MUST NOT mutate any
 // ledger, run artifact, or git state (spec §5 invariant).
+//
+// Two properties raised by adversarial review round 3, examined and NOT changed:
+//   - A commit subject is attacker-influenceable, so a landing crafted to NAME a foreign/real
+//     issue key in its own subject can be misclassified as "someone else's business" and
+//     excluded. This requires the SAME merge-authority Limit A already assumes (an actor who can
+//     land a commit on the protected branch can already write ANY subject text, no injection
+//     trick needed) — it is the target-match/attribution spoof surface already named in
+//     DESCRIBE_TEXT, not a distinct vulnerability with a lesser-privileged attacker.
+//   - The base-ancestor check, the git history read, and the ledger read are three separate,
+//     non-atomic reads — a landing between them can theoretically read as a transient false
+//     escape or a transient miss. The spec's own "live per-checkpoint" cadence (Chosen, §6) is
+//     itself non-atomic by design; a transient read self-corrects at the NEXT checkpoint, and no
+//     reordering of these three reads removes the underlying non-atomicity, only shifts which
+//     side wins a given race.
 function reconcileMerges({ root, runDir, issueFilter }) {
   root = root || findRoot();
   const ledger = readJsonSafe(path.join(runDir, "run-ledger.json"));

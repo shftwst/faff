@@ -545,10 +545,13 @@ test("bundle publish (git-remote occupant configured against an unreachable remo
     const runDir = path.join(root, ".faff", "runs", run_id);
     mkdirSync(runDir, { recursive: true });
     writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: {}, owner: { epoch: 0, status: "running" } }));
-    writeFileSync(path.join(runDir, "events.jsonl"), "");
+    // A valid minimal genesis — an empty file no longer anchors (the fail-closed genesis guard
+    // refuses a genesis-less run dir), so this fixture needs one.
+    writeFileSync(path.join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${run_id}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
     mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
     const anchorDest = path.join(root, ".faff", "anchors", run_id, "FAFF-1");
-    mintIssueAnchor(runDir, "FAFF-1", anchorDest);
+    const mintRes = mintIssueAnchor(runDir, "FAFF-1", anchorDest);
+    assert.equal(mintRes.ok, true, `fixture anchor mint must succeed: ${JSON.stringify(mintRes)}`);
 
     // A real git repo whose only remote is unreachable — the CLI resolves the top-level
     // bundle_store key via `.faffrc.yaml`, so write one selecting git-remote, and init git with a bogus origin.

@@ -1236,7 +1236,10 @@ function cmdEvents(args) {
     const result = mintIssueAnchor(dirArg, issueArg, destArg);
     if (!result.ok) {
       process.stderr.write(`faff events anchor: ${result.message}\n`);
-      return result.code === "no-events" ? 3 : 2;
+      // FAFF-966: "genesis-invalid" (a present-but-invalid genesis) is the sibling fail-closed
+      // refusal alongside "no-events" (absent) — both exit 3, matching the spec's scenarios;
+      // neither ever touches the run dir (validateAnchorGenesis is read-only).
+      return (result.code === "no-events" || result.code === "genesis-invalid") ? 3 : 2;
     }
     const { head, copiedFloorFiles, effectsAnchored } = result;
     const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
@@ -1312,7 +1315,8 @@ function cmdEvents(args) {
       if (!r.ok) {
         process.stderr.write(`faff events anchor-run: mint failed for ${issue}: ${r.message}\n`);
         try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup — the mint failure is the reported cause either way */ }
-        return r.code === "no-events" ? 3 : 2;
+        // FAFF-966: "genesis-invalid" is the sibling fail-closed refusal alongside "no-events" — both exit 3.
+        return (r.code === "no-events" || r.code === "genesis-invalid") ? 3 : 2;
       }
       mintedDirs.push(destSub);
     }
@@ -1362,6 +1366,70 @@ function cmdEvents(args) {
   return 2;
 }
 
+// FAFF-966 — the anchor-point genesis guard (Option B, human decision 2026-09-13:
+// prevention at the mint seam + fail-closed refusal here — NEVER a recovery-time repair).
+// Read-only against `runDir`: on any invalidity it refuses without truncating,
+// reconstructing, or emitting over `events.jsonl` — a mis-provisioned run is a human's call,
+// not something the anchor point papers over.
+//
+// "Valid genesis chain" here means the run's REAL, load-bearing shape — ADR-0084's `prev` ==
+// SHA-256(run_id) invariant for the seq-0 record, checked the SAME way `walkPhysicalChain`'s
+// own internal walk already checks it (against the record's OWN `run_id` field, never the
+// directory basename — the identical reasoning `walkPhysicalChain`'s header comment gives for
+// why a relocated `.faff/anchors/<run>/<issue>/` copy, whose basename is the ISSUE not the
+// run_id, still verifies: a synthetic/relocated dir's basename is never assumed to equal its
+// genesis's `run_id`, on the source side just as much as the anchored-copy side) — not a
+// hardcoded event TYPE at seq 0. Every genuine mint (L2/L4 today, L3 `init-self-drain` from
+// this ticket) writes its ledger through `mutateLedgerUnderLock` FIRST, whose
+// `atomicWriteLedger` fold (ADR-0085) unconditionally appends a `ledger-write` event before
+// the mint's own explicit `emitGenesisRunStart` call ever runs — so the PHYSICAL seq-0 record
+// of every real mint is `ledger-write`, and `run-start` lands at seq 1 (verified empirically
+// against the shipped L2/L4 mints). Requiring `type === "run-start"` at seq 0 literally would
+// refuse every genuine mint; checking well-formedness (existence, seq 0, a self-consistent
+// prev-hash) plus a full chain-verify — never a specific TYPE — is what this does instead.
+//
+// Delegates the actual hash re-derivation to `verifyChain` (never a second, forkable
+// prev-hash formula): a wrong/tampered seq-0 `prev`, or any later broken link, surfaces there
+// as `status: "broken"`. This function's OWN job is only to catch what `verifyChain` alone
+// treats as vacuously "verified" — an EMPTY log (nothing to check), or a torn/malformed seq-0
+// line (no parseable genesis record to walk from at all) — neither of which is a valid genesis
+// even though `verifyChain` reports no break.
+//
+// Returns `{ valid: true, eventsBuf }` (the buffer already read, so `mintIssueAnchor` never
+// re-reads/re-derives it) or `{ valid: false, code, message }` — `code: "no-events"` when
+// events.jsonl is absent/unreadable, `code: "genesis-invalid"` for every other invalidity
+// (empty/whitespace-only, a torn/malformed seq-0 line, a seq-0 record not carrying seq 0, or
+// a full chain-verify failure — wrong-prev / tampered / mis-linked).
+function validateAnchorGenesis(runDir) {
+  let buf;
+  try { buf = fs.readFileSync(path.join(runDir, "events.jsonl")); }
+  catch { return { valid: false, code: "no-events", message: `no events.jsonl in ${runDir} — nothing to anchor` }; }
+
+  const walk = walkPhysicalChain(buf);
+  if (walk.line_count === 0) {
+    return { valid: false, code: "genesis-invalid", message: `${runDir} has no valid genesis chain (events.jsonl is empty/whitespace-only) — refusing to anchor` };
+  }
+  const genesis = walk.records[0];
+  if (!genesis) {
+    return { valid: false, code: "genesis-invalid", message: `${runDir} has no valid genesis chain (the seq-0 line is malformed or a torn partial write) — refusing to anchor` };
+  }
+  if (genesis.seq !== 0) {
+    return { valid: false, code: "genesis-invalid", message: `${runDir} has no valid genesis chain (the first record does not carry seq 0) — refusing to anchor` };
+  }
+  // FAFF-568's OWN default policy everywhere else in this file (the CLI's `--legacy-policy`
+  // default, and the spawned self-verify's explicit `--legacy-policy pass`) is "pass": a
+  // legacy schema-1 chain (no `prev` anywhere — `legacy-unverifiable`) anchors CLEANLY, never
+  // a false refusal. "broken" / "witness-mismatch" fail regardless of policy (verifyExitCode's
+  // own unconditional branch) — only the legacy/mixed classes are policy-gated, so "pass" here
+  // costs nothing on the tamper-detection side while accepting the same legacy shape every
+  // other anchor/verify call site already does.
+  const verify = verifyChain(runDir);
+  if (verifyExitCode(verify, "pass") !== 0) {
+    return { valid: false, code: "genesis-invalid", message: `${runDir} has no valid genesis chain (${verify.detail}) — refusing to anchor` };
+  }
+  return { valid: true, eventsBuf: buf };
+}
+
 // FAFF-796: the shared per-issue anchor mint core — byte-copy events.jsonl + run-ledger.json
 // (+ optional declared-effects.jsonl/witness and merge-floor floor files) from runDir into
 // destDir, and write the CLI-computed chain-head.json witness. Extracted from `events anchor`'s
@@ -1371,12 +1439,14 @@ function cmdEvents(args) {
 // themselves (this function trusts its arguments — each call site keeps its own error text/exit
 // codes). Returns `{ ok: true, head, copiedFloorFiles, effectsAnchored }` on success, or
 // `{ ok: false, code, message }` — `code: "no-events"` mirrors the original "nothing to anchor"
-// case (exit 3 at the `anchor` call site), `code: "dest-mkdir"` mirrors the original
-// dest-creation failure (exit 2).
+// case (exit 3 at the `anchor` call site), `code: "genesis-invalid"` (FAFF-966) is the sibling
+// fail-closed refusal on a present-but-invalid genesis (also exit 3 at every call site — see
+// the two `code === "no-events" ? 3 : 2` mappings below, both widened), `code: "dest-mkdir"`
+// mirrors the original dest-creation failure (exit 2).
 function mintIssueAnchor(runDir, issue, destDir) {
-  let eventsBuf;
-  try { eventsBuf = fs.readFileSync(path.join(runDir, "events.jsonl")); }
-  catch { return { ok: false, code: "no-events", message: `no events.jsonl in ${runDir} — nothing to anchor` }; }
+  const genesisCheck = validateAnchorGenesis(runDir);
+  if (!genesisCheck.valid) return { ok: false, code: genesisCheck.code, message: genesisCheck.message };
+  const eventsBuf = genesisCheck.eventsBuf; // already read + validated above — never re-derive
   try { fs.mkdirSync(destDir, { recursive: true }); }
   catch (e) { return { ok: false, code: "dest-mkdir", message: `cannot create dest ${destDir}: ${e.message}` }; }
   fs.writeFileSync(path.join(destDir, "events.jsonl"), eventsBuf); // verbatim byte-copy
@@ -2042,4 +2112,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

@@ -20,11 +20,21 @@ a constant-`AFFIRM_SPEC` judge can pass the taste half on one draw, and a genuin
 judge can miss the defect half on one unlucky draw — so neither a mismatch nor an outage-skip gates
 the build. A transport outage retries (bounded); an exhausted outage records a skip.
 
+## Registered seam (FAFF-931)
+
+The grader `KIND` `spec-judge-discrimination` is wired into `eval/grader.mjs` and registered in
+`eval/seam-registry.json` as `status: "designed"` (surface `faffter-dark-spec-review`), so
+`faff validate-adapters` accounts for this seam with an honest `NEEDS-CASES` advisory. The grade
+branch's enum-membership gate (an out-of-enum/null ruling can never vacuously pass an `outcome_not`
+oracle) is exercised by a runnable test, `test/grader-spec-judge-discrimination.test.mjs`, which reads
+this pair's `oracles.json` directly and drives `grade()` over it — so a regression to the fail-open
+branch turns a green build red.
+
 ## Deferred: the gating grader
 
-The gating discrimination check — N samples with a calibrated pass-rate threshold over a case corpus,
-the grader `KIND` `spec-judge-discrimination` wired into `eval/grader.mjs`, and its
-`eval/seam-registry.json` row — is the sibling calibrated-corpus ticket's scope. This directory
-commits the seam's case pair and oracles so that ticket has a starting frontier; it does not add the
-grader `KIND` (only a calibrated corpus can certify a stochastic judge, and a `designed`-status KIND
-with no calibrated frontier would gate nothing).
+The **gating** discrimination check — N samples with a calibrated pass-rate threshold over a case
+corpus (flipping this row `designed` → `calibrated`, plus a `LIVE_KINDS["spec-judge-discrimination"]`
+live-driver adapter) — is still deferred, as the FAFF-1007-style sibling follow-up. Recording or
+accepting the baseline value is a separate, human-supervised step (certifying a stochastic judge
+cannot be automated). This directory's committed case pair and oracles remain that follow-up's
+starting frontier.

@@ -141,6 +141,10 @@
     "park-reconsider-classification": {
       "surface": "faff-prep",
       "status": "designed"
+    },
+    "spec-judge-discrimination": {
+      "surface": "faffter-dark-spec-review",
+      "status": "designed"
     }
   }
 }

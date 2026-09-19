@@ -11,6 +11,13 @@
 // module load — see assertRegistryConsistent below (FAFF-280).
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+// FAFF-931 — the spec-judge-discrimination grade branch's four-outcome enum-membership gate imports
+// this directly from the plugin's contract module (the single source `faff contract
+// spec-judge-verdict` also validates against), rather than re-hardcoding a second copy here. An ESM
+// named import of a CommonJS named export, resolved by Node via static analysis. Accepted cross-layer
+// coupling (documented minor, see the FAFF-931 spec §6): if contract-defs.js later moves, this import
+// path is a one-line fix.
+import { SPEC_JUDGE_OUTCOMES } from "../plugin/skills/faff/bin/lib/contract-defs.js";
 
 // FAFF-146 — prep's three judgement surfaces join tidy's six. confidence + marker are isolatable
 // (black-box lane); reconciliation is execution-entangled (live-driver lane). All three grade through
@@ -250,7 +257,23 @@ import { fileURLToPath } from "node:url";
 //                     rather than a fixed recording. Structurally identical to holdout-exercise (same
 //                     closed-set predictedSet extraction — env["holdout-exercise"] shape) but exercised
 //                     live, so it graded through run-live-evals.mjs's LIVE_KINDS, not the offline runner.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification"];
+// FAFF-931 — the spec-review adjudicator's (FAFF-930) terminal ruling adds one DESIGNED, own-branch
+// kind (own dispatch, like splittable/chain-gap/resolved-elsewhere — deliberately NOT in
+// CLOSED_SET_KINDS, since its oracle is `outcome`/`outcome_not` equality/inequality on a single
+// ruling, not a set `setEqual` can express):
+//   spec-judge-discrimination — DESIGNED. Grades the judge's single `env.ruling` against a case's
+//                     `oracle.outcome` (must equal) or `oracle.outcome_not` (must not equal, and must
+//                     be a real ruling — see the enum-membership gate below). `env.ruling` is gated on
+//                     membership of the four-outcome closed set SPEC_JUDGE_OUTCOMES (imported directly
+//                     from ../plugin/skills/faff/bin/lib/contract-defs.js, the single source `faff
+//                     contract spec-judge-verdict` also validates against) BEFORE the oracle test, so a
+//                     hallucinated/garbage/out-of-enum ruling collapses to null and cannot vacuously
+//                     PASS an `outcome_not` oracle. The committed discrimination case-pair + oracles
+//                     (plugin/skills/faffter-dark-spec-review/eval/spec-judge-discrimination/) stay in
+//                     the skill dir and are exercised by test/grader-spec-judge-discrimination.test.mjs,
+//                     not copied into eval/cases/ (which would falsely claim `covered`). Surface =
+//                     faffter-dark-spec-review.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni", "park-reconsider-classification"]);
 
 // FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
@@ -942,6 +965,29 @@ export function grade(c, env) {
   if (c.kind === "resolved-elsewhere") {
     const { graded, score, signature } = gradeSplittable(env.resolved_elsewhere, c.oracle.closed_set);
     return { graded, score, tokens, signature };
+  }
+  // FAFF-931 — spec-judge-discrimination: the spec-review adjudicator's (FAFF-930) terminal ruling
+  // against a case's outcome/outcome_not oracle. Deliberately NOT in CLOSED_SET_KINDS (own dispatch,
+  // like splittable/chain-gap/resolved-elsewhere above): `outcome_not` is a membership/inequality test
+  // over the other three enum members, which setEqual cannot express.
+  //
+  // Enum-membership gate FIRST: a null/non-string/out-of-enum ruling is not a real ruling and
+  // collapses to null, so it can never vacuously satisfy an `outcome_not` oracle by mere inequality
+  // (the fail-open path the spec-review lenses flagged). Only after that gate does the oracle's own
+  // outcome/outcome_not test run.
+  if (c.kind === "spec-judge-discrimination") {
+    const inEnum = typeof env.ruling === "string" && SPEC_JUDGE_OUTCOMES.includes(env.ruling);
+    const ruling = inEnum ? env.ruling : null;
+    const o = c.oracle || {};
+    let ok;
+    if (Object.prototype.hasOwnProperty.call(o, "outcome")) {
+      ok = ruling === o.outcome;
+    } else if (Object.prototype.hasOwnProperty.call(o, "outcome_not")) {
+      ok = ruling !== null && ruling !== o.outcome_not;
+    } else {
+      ok = false; // malformed oracle (neither key) → clean FAIL, never a throw
+    }
+    return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, tokens, signature: JSON.stringify(ruling) };
   }
   throw new CaseError(`grade: unknown kind ${c.kind}`);
 }

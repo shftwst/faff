@@ -72,6 +72,12 @@ const MINT_MARKER_KEY = "base_sha_required";
 // mint-time anchor and the reconcile-time base always name the same branch. Best-effort and
 // NEVER throws: an unresolvable branch/sha degrades to `null` (the reconcile then faults
 // "no base anchor" on this run rather than the mint itself failing over a detection feature).
+//
+// No mint/first-merge race (adversarial review, code review round 2): this call is the FIRST
+// write of a brand-new run dir at every call site (init-interactive/init-self-drain create the
+// run dir, then mint the ledger with this value) — nothing can land "as part of this run" before
+// the run itself exists, so there is no window in which a merge could precede the base_sha it is
+// meant to be measured against.
 function resolveMintBaseSha(root) {
   try {
     const { gitRun, resolveLocalBase } = require("./merge-gate");

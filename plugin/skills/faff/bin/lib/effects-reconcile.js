@@ -167,7 +167,10 @@ function partitionSegments(commits, admittedIssues) {
 //       strings into `candidateTargets` when an equivalence resolved).
 function segmentCovered(segment, admittedIssues, declaredMerge, candidateTargets) {
   const { effectTargetMatches } = require("./effects"); // lazy — breaks the require cycle noted above
-  if (segment.issue && admittedIssues.includes(segment.issue) && declaredMerge.some((d) => d.issue === segment.issue)) {
+  // Case-insensitive membership (adversarial review finding, code review round 2): `segment.issue`
+  // is always UPPERCASED by attributeCommit; compare defensively rather than assume callers pass
+  // `admittedIssues` in that same canonical casing.
+  if (segment.issue && admittedIssues.some((a) => a.toUpperCase() === segment.issue) && declaredMerge.some((d) => d.issue === segment.issue)) {
     return true;
   }
   return declaredMerge.some((d) => [...candidateTargets].some((t) => effectTargetMatches(d.target, t)));
@@ -205,9 +208,18 @@ function mergeRecordPathLocal(runDir, issue) {
 }
 
 // This run's declared+observed MERGE-kind effects (declare and observe both cover — spec §5 edge
-// case), scoped to `issueFilter` when given. Reads the same physical ledger `effects.js check`
-// reads, never a second parallel store.
-function readDeclaredMergeEffects(runDir, issueFilter) {
+// case). Reads the same physical ledger `effects.js check` reads, never a second parallel store.
+//
+// ALWAYS reads the FULL ledger, never filtered by `--issue` (adversarial review finding, code
+// review round 2): the coverage rule's target-match branch is issue-agnostic BY SPEC DESIGN (a
+// declared `pr:<N>`/`commit:<sha>` covers ANY segment resolving to that target, regardless of
+// which issue declared it — see segmentCovered's own header comment and the honesty docs'
+// "target-match spoof surface" note). Pre-filtering this read to `issueFilter` would silently
+// defeat that cross-issue match for a per-issue caller — the attribution-match branch needs no
+// such filter either, since its own `.some(d => d.issue === segment.issue)` check already narrows
+// correctly against the full set. `--issue` narrows the SEGMENT scope (see `inScope` in
+// reconcileMerges), never this read.
+function readDeclaredMergeEffects(runDir) {
   const p = path.join(runDir, "declared-effects.jsonl");
   if (!fs.existsSync(p)) return [];
   const lines = fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "");
@@ -217,7 +229,6 @@ function readDeclaredMergeEffects(runDir, issueFilter) {
     try { e = JSON.parse(line); } catch { continue; }
     if (!e || (e.kind_of_entry !== "declare" && e.kind_of_entry !== "observe")) continue;
     if (!e.effect || e.effect.kind !== "merge") continue;
-    if (issueFilter != null && e.issue !== issueFilter) continue;
     out.push({ issue: e.issue, target: e.effect.target });
   }
   return out;
@@ -351,12 +362,28 @@ function reconcileMerges({ root, runDir, issueFilter }) {
   // narrowing flag silently exclude the incident's own shape (adversarial review finding, code
   // review round 1). `--issue` therefore narrows to "this issue's own segments, plus every
   // genuinely-unattributable one" — a foreign-but-extracted issue is still excluded either way.
+  //
+  // Case-insensitive admitted-issue matching (adversarial review finding, code review round 2):
+  // `segment.issue` is always UPPERCASED by attributeCommit, but `ledger.admitted` is stored
+  // verbatim — a defensive comparison so a differently-cased admitted id (however unlikely given
+  // real tracker ids are already canonical) can never read a segment as "foreign" by casing alone.
+  const admittedUpper = new Set(admittedAll.map((i) => i.toUpperCase()));
+  // Empty-admitted degenerate case (adversarial review finding, code review round 2): with NO
+  // admitted-issue signal at all, `attributeCommit` falls back to the UNBOUNDED generic shape
+  // (see its own header comment), which can extract an ordinary technical token ("utf-8") as a
+  // fake issue id. Excluding that fake id as "foreign" (not in an empty admitted set) would
+  // silently drop a landing that is genuinely this run's business to report — the exact
+  // fail-open direction the false-positive fix above exists to prevent. With no admitted issues
+  // to derive a family from, nothing can be confidently classified as "someone else's" at all —
+  // fail-safe by surfacing every segment rather than risking a silent exclusion.
   const inScope = issueFilter != null
     ? segmentsWithBase.filter((s) => s.issue === issueFilter || s.issue === null)
-    : segmentsWithBase.filter((s) => s.issue === null || admittedAll.includes(s.issue));
+    : admittedAll.length === 0
+      ? segmentsWithBase
+      : segmentsWithBase.filter((s) => s.issue === null || admittedUpper.has(s.issue));
 
   const mergeRecords = readMergeRecordsByHeadSha(runDir, admittedAll);
-  const declaredMerge = readDeclaredMergeEffects(runDir, issueFilter);
+  const declaredMerge = readDeclaredMergeEffects(runDir);
 
   const uncovered = [];
   for (const seg of inScope) {
@@ -484,6 +511,11 @@ function cmdEffectsReconcileMerges(args) {
     console.log(`effects reconcile-merges: ${result.uncovered.length} uncovered landed merge(s) — any_escape: true`);
     for (const u of result.uncovered) console.log(`  - ${u.target} (issue: ${u.issue || "null (unattributable)"}) — ${u.detail}`);
   }
+  // Exit 0 regardless of any_escape/reconciled — DELIBERATE, matching the sibling `effects check`
+  // verb's own established convention (detection is content in the JSON payload, never encoded
+  // in the exit code; the beep-boop checkpoint always calls `--json` and parses the payload, never
+  // the exit code). Noted here since a shell caller checking `$?` instead of parsing JSON would
+  // otherwise be surprised (adversarial review observation, code review round 2).
   return 0;
 }
 

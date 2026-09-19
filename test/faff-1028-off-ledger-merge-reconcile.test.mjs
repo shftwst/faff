@@ -317,6 +317,46 @@ test("--issue narrows attribution and the ledger read to a single issue", () => 
   assert.equal(out.uncovered[0].issue, "FAFF-1");
 });
 
+test("--issue mode still honours a CROSS-issue target-match cover — the coverage rule's target branch is issue-agnostic by design", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  const runDir = join(dir, ".faff", "runs", "run-1028-crossissue");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1", "FAFF-2"], base_sha: base, base_sha_required: true }));
+  // FAFF-2 declared pr:77 — FAFF-1's own landing happens to resolve to the SAME pr number (an
+  // edge case, but the coverage rule's target-match branch does not require issue equality).
+  writeFileSync(
+    join(runDir, "declared-effects.jsonl"),
+    JSON.stringify({ schema: 2, kind_of_entry: "declare", issue: "FAFF-2", step: "build", effect: { kind: "merge", target: "pr:77" } }) + "\n",
+  );
+  writeFileSync(join(dir, "f.txt"), "1\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "feat(FAFF-1): squash landing (#77)");
+
+  const r = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--issue", "FAFF-1", "--json"], { cwd: dir });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.any_escape, false, "narrowing to --issue FAFF-1 must not defeat a target-match cover from a DIFFERENT issue's declaration — the coverage rule's own target branch is issue-agnostic");
+});
+
+test("with NO admitted issues at all, nothing can be confidently classified as foreign — every segment surfaces (fail-safe)", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  const runDir = join(dir, ".faff", "runs", "run-1028-noadmitted");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: [], base_sha: base, base_sha_required: true }));
+  // With an EMPTY admitted set, attributeCommit falls back to the unbounded generic shape and
+  // extracts "UTF-8" as a fake issue id. It must be surfaced, never silently excluded as
+  // "some other run's business" — with nothing admitted, nothing can be confidently foreign.
+  writeFileSync(join(dir, "f.txt"), "1\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "chore: bump to utf-8 encoding");
+
+  const r = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--json"], { cwd: dir });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.any_escape, true, "the landing must surface even though a fake issue id was extracted from an empty admitted set");
+  assert.equal(out.uncovered.length, 1);
+});
+
 test("--issue mode still surfaces a genuinely-unattributable landing — the incident's own shape is never dropped by the narrowing flag", () => {
   const { dir, git } = gitRepo();
   const base = git("rev-parse", "HEAD").trim();

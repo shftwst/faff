@@ -1,4 +1,5 @@
 {
+  "generated_from": "9cbfd9a122e191d3dc3eefc0eb77e9f0df030df8",
   "diff": "--- a/helpers.js\n+++ b/helpers.js\n@@ -500,3 +500,0 @@\n-function deadHelperXyz() {\n-  return legacyThingAbc();\n-}",
   "inputPaths": [
     "helpers.js",

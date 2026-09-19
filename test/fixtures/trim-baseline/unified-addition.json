@@ -1,4 +1,5 @@
 {
+  "generated_from": "9cbfd9a122e191d3dc3eefc0eb77e9f0df030df8",
   "diff": "--- a/touched.js\n+++ b/touched.js\n@@ -199,2 +199,2 @@\n-touched 199\n-touched 200\n+touched 199\n+touched 200 changed",
   "inputPaths": [
     "touched.js",

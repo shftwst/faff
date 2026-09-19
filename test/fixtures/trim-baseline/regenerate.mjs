@@ -140,14 +140,21 @@ async function main(argv) {
   const modulePath = argv[2];
   if (!modulePath) {
     // A no-op, not an error — see the file-header note on why this can't exit non-zero.
-    process.stderr.write("usage: node regenerate.mjs <path-to-review-call.mjs>\n");
+    process.stderr.write("usage: node regenerate.mjs <path-to-review-call.mjs> [<source-commit-sha>]\n");
     return 0;
   }
+  // Optional provenance stamp (adversarial review, FAFF-1051): the pre-change-module claim these goldens
+  // exist to check is otherwise untestable from the diff alone — a reviewer can't tell whether a golden
+  // was really generated from the merge-base module or from the post-change one (a self-fulfilling
+  // "byte-identical" test). This script stays git-free (deterministic, dependency-free per the file
+  // header), so the caller passes the commit sha it read the module from; the companion test asserts it
+  // names a real ancestor of HEAD via `git merge-base --is-ancestor`.
+  const generatedFrom = argv[3] || null;
   const mod = await import(pathToFileURL(resolve(modulePath)).href);
   const goldens = {
-    "unified-addition": runTrimCase(mod, "addition"),
-    "unified-deletion-only": runTrimCase(mod, "deletionOnly"),
-    "tighten-unified": runTightenCase(mod),
+    "unified-addition": { generated_from: generatedFrom, ...runTrimCase(mod, "addition") },
+    "unified-deletion-only": { generated_from: generatedFrom, ...runTrimCase(mod, "deletionOnly") },
+    "tighten-unified": { generated_from: generatedFrom, ...runTightenCase(mod) },
   };
   for (const [name, golden] of Object.entries(goldens)) {
     writeFileSync(join(__dirname, `${name}.json`), JSON.stringify(golden, null, 2) + "\n");

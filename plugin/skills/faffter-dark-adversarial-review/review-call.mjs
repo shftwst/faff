@@ -343,7 +343,15 @@ export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, ass
       rungWindow = rung;
       rungHead = DEFAULT_TRIM_HEAD_LINES;   // fixed in the anchored regime — never paired onto a rung (see anti-patterns)
     } else {
-      trimmed = headReduceBundle(contextFiles, rung, { minFileBytes: DEFAULT_MIN_FILE_TRIM_BYTES });
+      // The same full opts shape trimContextFiles' prose path hands headFit — window/maxAnchorLines/
+      // retainedCeiling are inert on trimOneFile's unanchored branch today, but a single-sourced bag
+      // (rather than a narrower ad hoc one) is what keeps the two "reduce this bundle to head lines"
+      // call sites from silently diverging if a future change makes that branch consult them
+      // (adversarial review, FAFF-1051).
+      trimmed = headReduceBundle(contextFiles, rung, {
+        window: DEFAULT_TRIM_WINDOW, minFileBytes: DEFAULT_MIN_FILE_TRIM_BYTES,
+        maxAnchorLines: DEFAULT_MAX_ANCHOR_LINES, retainedCeiling: DEFAULT_RETAINED_CEILING,
+      });
       rungWindow = null;   // no anchor window was applied in this regime — reporting one would be a lie
       rungHead = rung;
     }
@@ -604,6 +612,13 @@ export function headFit({ contextFiles = [], budgetBytes, opts = {} } = {}) {
   // The loop's last iteration already ran the floor rung (TRIM_HEAD_LADDER's last element), so `out`/
   // `bytes` already reflect it — naming DEFAULT_PROSE_HEAD_FLOOR here documents that rather than
   // recomputing it.
+  //
+  // Deliberately the floor rung BY NAME, never a tracked running minimum (adversarial review noted the
+  // trade-off, FAFF-1051): bundle bytes are not monotone in `h` at one boundary (a file whose trailing
+  // lines are shorter than an elision marker can be SMALLER at a larger head count), so a tracked min
+  // could in principle beat the floor rung on a pathological bundle. Adopting the floor by construction
+  // is what makes the "reason head-fit-floored implies headLines === DEFAULT_PROSE_HEAD_FLOOR" invariant
+  // hold unconditionally — do not "fix" this into a tracked minimum, which would break that invariant.
   return { contextFiles: out, headLines: DEFAULT_PROSE_HEAD_FLOOR, bytes, fitted: false };
 }
 
@@ -638,6 +653,13 @@ export function trimContextFiles({
   }
 
   if (diffKind === "prose") {
+    // A non-zero thresholdBytes has no further meaning under the prose kind: the gate above already
+    // consumed its only role (the disabled case), and every reduction decision from here is measured
+    // against the prose ceiling, never against `thresholdBytes` — a caller expecting a small non-zero
+    // threshold to trigger head reduction on a small bundle gets none until the bundle passes 576 KB.
+    // Deliberate, not an oversight (adversarial review, FAFF-1051): the unified byte gate and the prose
+    // ceiling are two different budgets serving two different relevance models, and the prose kind has
+    // its own dedicated override (`--context-prose-ceiling-bytes`) for exactly this tuning need.
     // No diff parse, no anchors — a document has none to find. Below the budget: identity no-op.
     if (bytesBefore <= contextBudgetBytes) {
       return { contextFiles, report: { trimmed: false, reason: "no-relevance-model", kind: "prose", hunks: 0,
@@ -2233,11 +2255,21 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       break;
     }
     case "head-fit":
-      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes, head-reduced to ${trimReport.headLines} lines per file against the ${trimReport.contextBudgetBytes} B context budget\n`);
+      // "at most" — a file already shorter than the rung (or below minFileBytes) is returned whole by
+      // headReduceBundle, so "head-reduced to N lines" would overstate the reduction on a mixed bundle
+      // (adversarial review, FAFF-1051).
+      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes, head-reduced to at most ${trimReport.headLines} lines per file (a file already shorter is untouched) against the ${trimReport.contextBudgetBytes} B context budget\n`);
       break;
-    case "head-fit-floored":
-      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes at the ${trimReport.headLines}-line retention floor, still ${trimReport.bytesAfter - trimReport.contextBudgetBytes} B over the ${trimReport.contextBudgetBytes} B context budget; the ladder does not cut below the floor. Reduce the --context set, shorten the --diff document, or declare context_window on the backend.\n`);
+    case "head-fit-floored": {
+      // A non-positive contextBudgetBytes (the --diff document alone exceeds the ceiling) reads as a
+      // confusing negative-over-negative sentence ("over the -100000 B budget"); phrase that case as an
+      // explicit overage instead (adversarial review, FAFF-1051).
+      const residual = trimReport.contextBudgetBytes < 0
+        ? `the --diff document alone exceeds the ceiling by ${Math.abs(trimReport.contextBudgetBytes)} B, so no context budget remains`
+        : `still ${trimReport.bytesAfter - trimReport.contextBudgetBytes} B over the ${trimReport.contextBudgetBytes} B context budget`;
+      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes at the ${trimReport.headLines}-line retention floor, ${residual}; the ladder does not cut below the floor. Reduce the --context set, shorten the --diff document, or declare context_window on the backend.\n`);
       break;
+    }
     case "head-fit-declined":
       process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} B is over the ${trimReport.contextBudgetBytes} B context budget but no head rung was smaller, KEEPING the untrimmed context\n`);
       break;

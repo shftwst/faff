@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import {
   trimContextFiles, tightenToTarget, headReduceBundle, headFit, parseDiffTouched, elisionMarker,
   assembleUserMessage, parseArgs, main, EXIT,
@@ -108,6 +109,23 @@ test("FAFF-1051 golden: tightenToTarget on a unified bundle reproduces the commi
   // additive fields only — the anchored regime is unchanged
   assert.equal(r.mode, "anchored");
   assert.equal(r.headLines, DEFAULT_TRIM_HEAD_LINES, "the anchored regime never tightens headLines onto a rung");
+});
+
+test("FAFF-1051 golden provenance: each golden's generated_from names a real ancestor commit of HEAD", () => {
+  // Adversarial-review finding (FAFF-1051): "byte-identical to the pre-change function" is otherwise
+  // unverifiable from the diff alone — a reviewer can't tell a golden generated from the merge-base
+  // module apart from one generated from the post-change module (a self-fulfilling pass). This makes
+  // the provenance claim mechanically checkable rather than a matter of trust.
+  for (const name of ["unified-addition.json", "unified-deletion-only.json", "tighten-unified.json"]) {
+    const g = readGolden(name);
+    assert.ok(g.generated_from && /^[0-9a-f]{7,40}$/.test(g.generated_from), `${name}: generated_from must be a commit sha`);
+    // Throws (non-zero exit) if the named sha is not an ancestor of HEAD — assert.doesNotThrow makes the
+    // failure mode explicit rather than an uncaught child_process error.
+    assert.doesNotThrow(
+      () => execFileSync("git", ["merge-base", "--is-ancestor", g.generated_from, "HEAD"], { cwd: join(__dirname, "..") }),
+      `${name}: generated_from (${g.generated_from}) must be an ancestor of HEAD`,
+    );
+  }
 });
 
 // ============================================================================================
@@ -372,7 +390,7 @@ test("FAFF-1051: main() with --diff-kind prose and a tight --context-prose-ceili
     async () => ({ status: "ok", content: "### observation: none" }),
   );
   assert.equal(r.code, EXIT.OK);
-  assert.match(r.err, /FAFF-1051 --diff-kind prose: \d+ → \d+ context bytes, head-reduced to \d+ lines/);
+  assert.match(r.err, /FAFF-1051 --diff-kind prose: \d+ → \d+ context bytes, head-reduced to at most \d+ lines/);
 });
 
 test("FAFF-1051: main() with a zero-hunk --diff and no --diff-kind writes both the FAFF-915 note and the zero-hunk advisory", async () => {

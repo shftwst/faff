@@ -1,0 +1,20 @@
+{
+  "diff": "--- a/helpers.js\n+++ b/helpers.js\n@@ -500,3 +500,0 @@\n-function deadHelperXyz() {\n-  return legacyThingAbc();\n-}",
+  "inputPaths": [
+    "helpers.js",
+    "unrelated_small.js"
+  ],
+  "contextFiles": [
+    {
+      "path": "helpers.js",
+      "text": "... 26 line(s) elided (FAFF-915 relevance trim) ...\n// filler 26\n// filler 27\n// filler 28\n// filler 29\n// filler 30\n// filler 31\n// filler 32\n// filler 33\n// filler 34\n// filler 35\n// filler 36\n// filler 37\n// filler 38\n// filler 39\n// filler 40\n// filler 41\n// filler 42\n// filler 43\n// filler 44\n// filler 45\n// filler 46\n// filler 47\n// filler 48\n// filler 49\nfunction deadHelperXyz() {\n  return legacyThingAbc();\n}\nconst pad0 = 0; // pppppppppppppppppppppppp\nconst pad1 = 1; // pppppppppppppppppppppppp\nconst pad2 = 2; // pppppppppppppppppppppppp\nconst pad3 = 3; // pppppppppppppppppppppppp\nconst pad4 = 4; // pppppppppppppppppppppppp\nconst pad5 = 5; // pppppppppppppppppppppppp\nconst pad6 = 6; // pppppppppppppppppppppppp\nconst pad7 = 7; // pppppppppppppppppppppppp\nconst pad8 = 8; // pppppppppppppppppppppppp\nconst pad9 = 9; // pppppppppppppppppppppppp\nconst pad10 = 10; // pppppppppppppppppppppppp\nconst pad11 = 11; // pppppppppppppppppppppppp\nconst pad12 = 12; // pppppppppppppppppppppppp\nconst pad13 = 13; // pppppppppppppppppppppppp\nconst pad14 = 14; // pppppppppppppppppppppppp\nconst pad15 = 15; // pppppppppppppppppppppppp\nconst pad16 = 16; // pppppppppppppppppppppppp\nconst pad17 = 17; // pppppppppppppppppppppppp\nconst pad18 = 18; // pppppppppppppppppppppppp\nconst pad19 = 19; // pppppppppppppppppppppppp\nconst pad20 = 20; // pppppppppppppppppppppppp\nconst pad21 = 21; // pppppppppppppppppppppppp\nconst pad22 = 22; // pppppppppppppppppppppppp\n... 253 line(s) elided (FAFF-915 relevance trim) ...\nconst pad276 = 276; // pppppppppppppppppppppppp\nconst pad277 = 277; // pppppppppppppppppppppppp\nconst pad278 = 278; // pppppppppppppppppppppppp\nconst pad279 = 279; // pppppppppppppppppppppppp\nconst pad280 = 280; // pppppppppppppppppppppppp\nconst pad281 = 281; // pppppppppppppppppppppppp\nconst pad282 = 282; // pppppppppppppppppppppppp\nconst pad283 = 283; // pppppppppppppppppppppppp\nconst pad284 = 284; // pppppppppppppppppppppppp\nconst pad285 = 285; // pppppppppppppppppppppppp\nconst pad286 = 286; // pppppppppppppppppppppppp\nconst pad287 = 287; // pppppppppppppppppppppppp\nconst pad288 = 288; // pppppppppppppppppppppppp\nconst pad289 = 289; // pppppppppppppppppppppppp\nconst pad290 = 290; // pppppppppppppppppppppppp\nconst pad291 = 291; // pppppppppppppppppppppppp\nconst pad292 = 292; // pppppppppppppppppppppppp\nconst pad293 = 293; // pppppppppppppppppppppppp\nconst pad294 = 294; // pppppppppppppppppppppppp\nconst pad295 = 295; // pppppppppppppppppppppppp\nconst pad296 = 296; // pppppppppppppppppppppppp\nconst pad297 = 297; // pppppppppppppppppppppppp\nconst pad298 = 298; // pppppppppppppppppppppppp\nconst pad299 = 299; // pppppppppppppppppppppppp\nfunction legacyThingAbc() {\n  return 42;\n}\n// tail filler 0\n// tail filler 1\n// tail filler 2\n// tail filler 3\n// tail filler 4\n// tail filler 5\n// tail filler 6\n// tail filler 7\n// tail filler 8\n// tail filler 9\n// tail filler 10\n// tail filler 11\n// tail filler 12\n// tail filler 13\n// tail filler 14\n// tail filler 15\n// tail filler 16\n// tail filler 17\n// tail filler 18\n// tail filler 19\n// tail filler 20\n// tail filler 21\n... 28 line(s) elided (FAFF-915 relevance trim) ..."
+    },
+    {
+      "path": "unrelated_small.js",
+      "text": "small file\nunder the per-file floor\n"
+    }
+  ],
+  "trimmed": true,
+  "bytesBefore": 15844,
+  "bytesAfter": 3179
+}

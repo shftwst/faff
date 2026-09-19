@@ -40,7 +40,18 @@ test("FAFF-928 AC6: each lens's argv carries --raw-dir <scratch>/raw --lens <len
     assert.equal(argFor(req.argv, "--diff"), join(scratch, "spec.md"));
     assert.equal(argFor(req.argv, "--max-tokens"), "2000");
     assert.equal(req.argv.filter((a) => a === "--context").length, 2, "both context files carried");
+    // FAFF-1051: the spec under scrutiny is a document, not a unified diff.
+    assert.equal(argFor(req.argv, "--diff-kind"), "prose", `${req.lens}: --diff-kind prose declared`);
   }
+});
+
+test("FAFF-1051: every lens's argv carries --diff-kind prose, even with no rawDir/round supplied", () => {
+  const [req] = buildLensRequests({
+    lenses: ["architectural"],
+    backendsJson: "b.json", timeout: 120, maxTokens: 2000,
+    systemDir: "d", contextPaths: ["a.js"], diffPath: "spec.md",
+  });
+  assert.equal(argFor(req.argv, "--diff-kind"), "prose");
 });
 
 test("FAFF-928 AC6: absent rawDir omits the three raw-body flags (byte-for-byte the old argv)", () => {

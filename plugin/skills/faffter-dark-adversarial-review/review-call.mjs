@@ -287,6 +287,35 @@ export function stillOverWindow(estTokens, reserveTokens, usableTokens) {
 // what `tightenToTarget` does below, and what the monotonicity test pins.
 export const TRIM_WINDOW_LADDER = Object.freeze([DEFAULT_TRIM_WINDOW, 16, 10, 6, 3, 1]);
 
+// --- FAFF-1051: the prose diff kind -------------------------------------------------------------
+//
+// The anchored trim above only means anything when `--diff` is a real unified diff. Three callers pass
+// a markdown document instead (spec-review's lenses, faff-prep's spec-judge), and `parseDiffTouched`
+// recovers no anchors from prose, so the anchored path answers by keeping the first 12 lines of every
+// file over 2KB — truncation, not relevance. The caller now DECLARES which kind of input it is passing
+// (`diffKind`, default "unified" — every silent caller keeps today's behaviour byte-for-byte); under
+// "prose" the trim applies a budget-driven head retention instead of a relevance model it cannot run.
+//
+// The head ladder is frozen at the same length as TRIM_WINDOW_LADDER so the window-targeted trim can
+// index either ladder by rung position, and it stops at DEFAULT_PROSE_HEAD_FLOOR (100 lines) rather than
+// DEFAULT_TRIM_HEAD_LINES (12) — the truncation this ticket exists to stop, arriving by a different
+// route. 100 lines carries a module's imports, its exported surface and its first function or two, which
+// is what the stale-reuse defect class this ticket names actually needs to see.
+export const TRIM_HEAD_LADDER = Object.freeze([800, 400, 300, 200, 150, 100]);
+export const DEFAULT_PROSE_HEAD_FLOOR = 100;
+
+// The prose ceiling bounds the WHOLE prompt (context + --diff + a fixed brief reserve), because what a
+// backend rejects is the whole request, not one component of it. 589824 (576 KB / ~196608 tok at the
+// module's conservative 3.0 B/tok) sits near the top of what a large declared-window backend accepts —
+// see the FAFF-1051 spec §6 for the measured sweep this altitude is checked against. An operator on a
+// small backend is served by the window-targeted trim below, which knows the real number; this ceiling's
+// only job is to bound the undeclared-window configuration, which is the default.
+export const DEFAULT_PROSE_CEILING_BYTES = 589824;
+// Composed from the same two constants `main` already reserves the per-lens brief with (line ~2148-ish,
+// the FAFF-903 prefix swap), never a third number — so the prose ceiling and the window-targeted budget
+// agree on what a lens brief costs. Rounded so a future fractional divisor still yields an integer.
+export const PROSE_BRIEF_RESERVE_BYTES = Math.round(DEFAULT_BRIEF_RESERVE_TOKENS * DEFAULT_BYTES_PER_TOKEN);
+
 // PURE: tighten the context bundle until the assembled prefix fits `targetBytes`, or the ladder is
 // exhausted. Returns the first rung that fits (`fitted: true`), else the SMALLEST prefix seen across
 // every rung (`fitted: false`) — never merely the last rung tried, because the ladder is not monotonic
@@ -295,11 +324,29 @@ export const TRIM_WINDOW_LADDER = Object.freeze([DEFAULT_TRIM_WINDOW, 16, 10, 6,
 // which is the exact inverse of the point. A residual overflow is not an error: the per-backend guard
 // and the primary-skip surfacing handle it, and a smaller-but-still-over payload beats the un-narrowed
 // one. `assembleFn` is injected so the search is testable independently of the module-level assembler.
-export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, assembleFn = assembleUserMessage } = {}) {
+// NEW (FAFF-1051): `diffKind` selects which ladder the search descends. Under "unified" (default) this
+// is BYTE-FOR-BYTE the pre-existing anchored search — every field, the first-fit rule and the min-across-
+// rungs tracking are unchanged, `headLines`/`mode` are additive. Under "prose" there are no anchors for a
+// window to expand, so the ladder tightens HEAD LINES over TRIM_HEAD_LADDER through headReduceBundle
+// instead — the two budgets compose in order: the byte-gated pass (trimContextFiles) bounds the bundle at
+// the prose ceiling with no window declaration needed, then this window-targeted pass tightens further
+// only when a declared window is narrower than the ceiling left room for.
+export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, assembleFn = assembleUserMessage, diffKind = "unified" } = {}) {
   const diffBytes = Buffer.byteLength(String(diff == null ? "" : diff), "utf8");
+  const mode = diffKind === "prose" ? "head-only" : "anchored";
+  const ladder = mode === "head-only" ? TRIM_HEAD_LADDER : TRIM_WINDOW_LADDER;
   let best = null;
-  for (const window of TRIM_WINDOW_LADDER) {
-    const { contextFiles: trimmed } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window });
+  for (const rung of ladder) {
+    let trimmed, rungWindow, rungHead;
+    if (mode === "anchored") {
+      ({ contextFiles: trimmed } = trimContextFiles({ contextFiles, diff, thresholdBytes: 1, window: rung, diffKind: "unified" }));
+      rungWindow = rung;
+      rungHead = DEFAULT_TRIM_HEAD_LINES;   // fixed in the anchored regime — never paired onto a rung (see anti-patterns)
+    } else {
+      trimmed = headReduceBundle(contextFiles, rung, { minFileBytes: DEFAULT_MIN_FILE_TRIM_BYTES });
+      rungWindow = null;   // no anchor window was applied in this regime — reporting one would be a lie
+      rungHead = rung;
+    }
     const prefix = assembleFn({ contextFiles: trimmed, diff });
     const bytes = Buffer.byteLength(prefix, "utf8");
     // The fit is decided on everything-but-the-diff, because that is what trimTargetBytes budgets (it
@@ -307,12 +354,12 @@ export function tightenToTarget({ contextFiles = [], diff = "", targetBytes, ass
     // by construction, and it cannot drift if assembleUserMessage's framing ever changes.
     const contextBytes = bytes - diffBytes;
     if (targetBytes == null || contextBytes <= targetBytes) {
-      return { contextFiles: trimmed, prefix, bytes, contextBytes, window, fitted: true };
+      return { contextFiles: trimmed, prefix, bytes, contextBytes, window: rungWindow, headLines: rungHead, mode, fitted: true };
     }
     // The min is tracked on PREFIX bytes, because the prefix is what gets sent.
-    if (best === null || bytes < best.bytes) best = { contextFiles: trimmed, prefix, bytes, contextBytes, window };
+    if (best === null || bytes < best.bytes) best = { contextFiles: trimmed, prefix, bytes, contextBytes, window: rungWindow, headLines: rungHead };
   }
-  return { ...best, fitted: false };
+  return { ...best, mode, fitted: false };
 }
 
 // A whole-word identifier token: a run of JS identifier characters. Length >= 3 is applied by the caller.
@@ -341,6 +388,8 @@ export function elisionMarker(n) {
 export function parseDiffTouched(diff) {
   const touchedByPath = new Map();
   const identifiers = new Set();
+  let hunks = 0;   // NEW (FAFF-1051): count of hunk headers parsed — 0 for a prose document with no
+                   // "@@" line, additive, no existing caller deep-equals this return.
   // Strip a trailing CR so a CRLF-terminated diff's blank context lines are recognised (a bare "\r"
   // would otherwise fall through and desync the new-file counter).
   const lines = String(diff == null ? "" : diff).split("\n").map((l) => l.replace(/\r$/, ""));
@@ -367,6 +416,7 @@ export function parseDiffTouched(diff) {
       }
       const m = line.match(/^@@\s+-\d+(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/);
       if (m) {
+        hunks += 1;   // NEW (FAFF-1051)
         oldRemain = m[1] === undefined ? 1 : Number(m[1]);   // b defaults to 1 when omitted
         newLine = Number(m[2]);
         newRemain = m[3] === undefined ? 1 : Number(m[3]);   // d defaults to 1 when omitted
@@ -393,7 +443,7 @@ export function parseDiffTouched(diff) {
       if (newRemain > 0) newRemain -= 1;
     }
   }
-  return { touchedByPath, identifiers };
+  return { touchedByPath, identifiers, hunks };
 }
 
 // PURE (FAFF-915): does a context-file path resolve to a touched diff path? Exact match, or either is
@@ -516,6 +566,47 @@ export function trimOneFile(text, touchedRanges, identifiers, opts) {
   return out.join("\n");
 }
 
+// A frozen empty identifier set — the "no anchors, ever" input headReduceBundle hands trimOneFile, named
+// once so it reads as deliberate rather than an inline `new Set()` at every call site.
+const EMPTY_IDENTIFIER_SET = new Set();
+
+// PURE (FAFF-1051): one rung of head retention over a WHOLE context bundle — the ONE home for "reduce
+// this bundle to head lines". Delegates per file to trimOneFile with empty ranges and no identifiers, so
+// the small-file protection (a file under minFileBytes passes through untouched), the elision marker and
+// the clamped head count are the EXISTING ones, not a second copy that can drift on the next change to
+// either. Both headFit and tightenToTarget's head-only branch reach head reduction only through here.
+export function headReduceBundle(contextFiles, headLines, opts = {}) {
+  return contextFiles.map((f) => ({
+    path: f.path,
+    text: trimOneFile(f.text, [], EMPTY_IDENTIFIER_SET, { ...opts, headLines }),
+  }));
+}
+
+// PURE (FAFF-1051): the ladder search over TRIM_HEAD_LADDER against a context budget — the prose-kind
+// counterpart of tightenToTarget's window search, but simpler: it never builds a TrimReport and never
+// applies the grew-instead-of-shrank clamp (trimContextFiles owns both). Returns the first rung that
+// fits (`fitted: true`), else the retention floor rung outright (`fitted: false`) — NEVER a tracked
+// minimum, because bundle bytes are not monotone in `h` at one boundary (a file whose trailing lines are
+// shorter than an elision marker can be smaller at a LARGER head count). Adopting the floor by name is
+// what makes "reason head-fit-floored implies headLines === DEFAULT_PROSE_HEAD_FLOOR" true by
+// construction, since TRIM_HEAD_LADDER's last rung IS the floor.
+export function headFit({ contextFiles = [], budgetBytes, opts = {} } = {}) {
+  const bytesOf = (s) => Buffer.byteLength(String(s == null ? "" : s), "utf8");
+  let out = contextFiles;
+  let bytes = out.reduce((acc, f) => acc + bytesOf(f.text), 0);
+  for (const h of TRIM_HEAD_LADDER) {
+    out = headReduceBundle(contextFiles, h, opts);
+    bytes = out.reduce((acc, f) => acc + bytesOf(f.text), 0);
+    if (bytes <= budgetBytes) {
+      return { contextFiles: out, headLines: h, bytes, fitted: true };
+    }
+  }
+  // The loop's last iteration already ran the floor rung (TRIM_HEAD_LADDER's last element), so `out`/
+  // `bytes` already reflect it — naming DEFAULT_PROSE_HEAD_FLOOR here documents that rather than
+  // recomputing it.
+  return { contextFiles: out, headLines: DEFAULT_PROSE_HEAD_FLOOR, bytes, fitted: false };
+}
+
 // PURE (FAFF-915): the relevance filter over the whole context bundle. Below the byte threshold it is
 // an identity no-op (byte-identical to today). thresholdBytes = 0 disables the trim entirely.
 export function trimContextFiles({
@@ -527,14 +618,52 @@ export function trimContextFiles({
   headLines = DEFAULT_TRIM_HEAD_LINES,
   maxAnchorLines = DEFAULT_MAX_ANCHOR_LINES,
   retainedCeiling = DEFAULT_RETAINED_CEILING,
+  diffKind = "unified",                                  // NEW (FAFF-1051): "unified" | "prose"
+  proseCeilingBytes = DEFAULT_PROSE_CEILING_BYTES,        // NEW (FAFF-1051): --context-prose-ceiling-bytes
 } = {}) {
   const bytesOf = (s) => Buffer.byteLength(String(s == null ? "" : s), "utf8");
   const bytesBefore = contextFiles.reduce((acc, f) => acc + bytesOf(f.text), 0);
-  // Gate: disabled (0), or the whole context is already under the threshold → identity no-op.
-  if (!(thresholdBytes > 0) || bytesBefore <= thresholdBytes) {
-    return { contextFiles, report: { trimmed: false, bytesBefore, bytesAfter: bytesBefore } };
+  const filesTotal = contextFiles.length;
+  // contextBudgetBytes is a fact about the KIND, not the reason — computed once, reused by every return
+  // below, so `contextBudgetBytes != null IFF kind == "prose"` holds even on the disabled short-circuit.
+  const contextBudgetBytes = diffKind === "prose"
+    ? (proseCeilingBytes - bytesOf(diff) - PROSE_BRIEF_RESERVE_BYTES)
+    : null;
+
+  // Gate: disabled (0) outranks everything, including the prose ceiling — the operator asked for no
+  // reduction at all, and that answer is checked BEFORE the kind, under both kinds.
+  if (!(thresholdBytes > 0)) {
+    return { contextFiles, report: { trimmed: false, reason: "disabled", kind: diffKind, hunks: 0,
+      headLines: null, contextBudgetBytes, filesTotal, bytesBefore, bytesAfter: bytesBefore } };
   }
-  const { touchedByPath, identifiers } = parseDiffTouched(diff);
+
+  if (diffKind === "prose") {
+    // No diff parse, no anchors — a document has none to find. Below the budget: identity no-op.
+    if (bytesBefore <= contextBudgetBytes) {
+      return { contextFiles, report: { trimmed: false, reason: "no-relevance-model", kind: "prose", hunks: 0,
+        headLines: null, contextBudgetBytes, filesTotal, bytesBefore, bytesAfter: bytesBefore } };
+    }
+    const opts = { window, minFileBytes, headLines, maxAnchorLines, retainedCeiling };
+    const fit = headFit({ contextFiles, budgetBytes: contextBudgetBytes, opts });
+    // The grew-instead-of-shrank clamp (checked BEFORE the floored case, per the spec): on a file whose
+    // lines are shorter than an elision marker, every rung can pay more in markers than it saves.
+    // Returning a bigger bundle while reporting a reduction is the one outcome worth its own reason.
+    if (fit.bytes >= bytesBefore) {
+      return { contextFiles, report: { trimmed: false, reason: "head-fit-declined", kind: "prose", hunks: 0,
+        headLines: null, contextBudgetBytes, filesTotal, bytesBefore, bytesAfter: bytesBefore } };
+    }
+    return { contextFiles: fit.contextFiles, report: {
+      trimmed: true, reason: fit.fitted ? "head-fit" : "head-fit-floored", kind: "prose", hunks: 0,
+      headLines: fit.headLines, contextBudgetBytes, filesTotal, bytesBefore, bytesAfter: fit.bytes,
+    } };
+  }
+
+  // kind === "unified" (default) — today's byte gate + anchored reduction, UNCHANGED.
+  if (bytesBefore <= thresholdBytes) {
+    return { contextFiles, report: { trimmed: false, reason: "under-threshold", kind: "unified", hunks: 0,
+      headLines: null, contextBudgetBytes: null, filesTotal, bytesBefore, bytesAfter: bytesBefore } };
+  }
+  const { touchedByPath, identifiers, hunks } = parseDiffTouched(diff);
   const opts = { window, minFileBytes, headLines, maxAnchorLines, retainedCeiling };
   const out = contextFiles.map((f) => {
     // Resolve this context file's touched ranges by full-path match (exact-or-suffix), so a shared
@@ -547,7 +676,8 @@ export function trimContextFiles({
     return { path: f.path, text: trimmedText };
   });
   const bytesAfter = out.reduce((acc, f) => acc + bytesOf(f.text), 0);
-  return { contextFiles: out, report: { trimmed: true, bytesBefore, bytesAfter } };
+  return { contextFiles: out, report: { trimmed: true, reason: "trimmed", kind: "unified", hunks,
+    headLines: null, contextBudgetBytes: null, filesTotal, bytesBefore, bytesAfter } };
 }
 
 // --- FAFF-194: deterministic guards for machine-checkable findings + output-format enforcement ---
@@ -1447,6 +1577,8 @@ export function parseArgs(argv) {
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
     else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
     else if (k === "--context-trim-bytes") a.contextTrimBytes = Number(argv[++i]);   // FAFF-915: relevance-trim threshold override; 0 disables the trim (default DEFAULT_CONTEXT_TRIM_BYTES applies when absent)
+    else if (k === "--diff-kind") a.diffKind = argv[++i];   // FAFF-1051: unified|prose — declares what --diff IS; validated in main() (default "unified" applies when absent)
+    else if (k === "--context-prose-ceiling-bytes") a.proseCeilingBytes = Number(argv[++i]);   // FAFF-1051: prose-ceiling override (test-only escape hatch; default DEFAULT_PROSE_CEILING_BYTES applies when absent)
     else if (k === "--first-byte-timeout") a.firstByteMs = Number(argv[++i]) * 1000;   // FAFF-885: per-attempt first-byte (TTFT) window override; 0 disables (pass-through)
     else if (k === "--expect") {   // FAFF-940: `--expect contract` opts into contract-output mode (skip the findings-shape gate; the consumer validates the block)
       const v = argv[++i];
@@ -1985,7 +2117,16 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--context-window N] [--expect contract] [--raw-dir DIR --lens NAME --round N]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--context-window N] [--expect contract] [--diff-kind unified|prose] [--context-prose-ceiling-bytes N] [--raw-dir DIR --lens NAME --round N]\n");
+    return EXIT.USAGE;
+  }
+  // FAFF-1051: the declared diff kind. An unrecognised value is a usage fault (EXIT.USAGE, 2) — the
+  // pattern every other argument fault in this function uses — never a throw (which would land on exit 1,
+  // a hole the spec-review occupant's per-lens outcome table has no row for) and never a silent coerce to
+  // the default (which would hand a prose caller today's 96% loss with no signal).
+  const diffKind = a.diffKind === undefined ? "unified" : a.diffKind;
+  if (diffKind !== "unified" && diffKind !== "prose") {
+    process.stderr.write(`usage: --diff-kind must be "unified" or "prose", got ${JSON.stringify(a.diffKind)}\n`);
     return EXIT.USAGE;
   }
 
@@ -2065,13 +2206,43 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   // byte threshold (byte-identical to today) and when --context-trim-bytes is 0. Only the winning
   // backend's content is affected via the assembled user message; the trim is pure and identical across
   // lenses, so the shared-prefix cache (FAFF-903) still holds.
+  // FAFF-1051: `diffKind` (resolved above) routes prose callers to the budget-driven head-fit path
+  // instead of the anchored one; a caller that passes nothing stays on "unified", byte-identical to today.
+  const proseCeilingResolved = a.proseCeilingBytes === undefined ? DEFAULT_PROSE_CEILING_BYTES : a.proseCeilingBytes;
   const { contextFiles, report: trimReport } = trimContextFiles({
     contextFiles: contextFilesRaw,
     diff,
     thresholdBytes: a.contextTrimBytes === undefined ? DEFAULT_CONTEXT_TRIM_BYTES : a.contextTrimBytes,
+    diffKind,
+    proseCeilingBytes: proseCeilingResolved,
   });
-  if (trimReport.trimmed) {
-    process.stderr.write(`[note] FAFF-915 context trim: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes (diff-relevant regions kept)\n`);
+  switch (trimReport.reason) {
+    case "trimmed":
+      process.stderr.write(`[note] FAFF-915 context trim: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes (diff-relevant regions kept)\n`);
+      // FAFF-1051 advisory: a zero-hunk parse under the unified default means the reduction above was
+      // head truncation dressed as relevance — the exact failure this ticket names. Observation only,
+      // never a gate: text inspection can honestly say the parse yielded no hunks, not what the caller
+      // meant to pass.
+      if (trimReport.hunks === 0) {
+        process.stderr.write(`[note] FAFF-1051 the --diff parsed as 0 unified-diff hunks, so the reduction above is head truncation, not relevance; if this input is not a unified diff, pass --diff-kind prose\n`);
+      }
+      break;
+    case "no-relevance-model": {
+      const diffBytesForNote = Buffer.byteLength(diff, "utf8");
+      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: no diff-relevance model applies; all ${trimReport.filesTotal} context files supplied intact (${trimReport.bytesBefore} B, under the ${trimReport.contextBudgetBytes} B context budget = ${proseCeilingResolved} B ceiling - ${diffBytesForNote} B diff - ${PROSE_BRIEF_RESERVE_BYTES} B brief reserve)\n`);
+      break;
+    }
+    case "head-fit":
+      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes, head-reduced to ${trimReport.headLines} lines per file against the ${trimReport.contextBudgetBytes} B context budget\n`);
+      break;
+    case "head-fit-floored":
+      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} → ${trimReport.bytesAfter} context bytes at the ${trimReport.headLines}-line retention floor, still ${trimReport.bytesAfter - trimReport.contextBudgetBytes} B over the ${trimReport.contextBudgetBytes} B context budget; the ladder does not cut below the floor. Reduce the --context set, shorten the --diff document, or declare context_window on the backend.\n`);
+      break;
+    case "head-fit-declined":
+      process.stderr.write(`[note] FAFF-1051 --diff-kind prose: ${trimReport.bytesBefore} B is over the ${trimReport.contextBudgetBytes} B context budget but no head rung was smaller, KEEPING the untrimmed context\n`);
+      break;
+    default:
+      break;   // "disabled" / "under-threshold" — no note, unchanged
   }
   let user = assembleUserMessage({ contextFiles, diff });
 
@@ -2089,7 +2260,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     if (estWithReserve > usable) {
       const target = trimTargetBytes(primaryWindow, diff);
       const targetClamped = trimTargetClamped(primaryWindow, diff);
-      const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target });
+      const tightened = tightenToTarget({ contextFiles: contextFilesRaw, diff, targetBytes: target, diffKind });
       // Adopt the tightened prefix ONLY when it is genuinely smaller. This clamp is LOAD-BEARING, not
       // belt-and-braces, and min-tracking alone does not subsume it: the default trim above is gated on
       // a 48KB byte threshold and is an identity no-op below it, so `user` may be the RAW assembly,
@@ -2103,11 +2274,14 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       const adopted = tightened.bytes < beforeBytes;
       if (adopted) user = tightened.prefix;
       const estAfter = estimateTokens(user);
+      // FAFF-1051: report the adopted rung by regime — "head-lines <n>" under the prose kind's head-only
+      // search (there is no anchor window to name), "trim-window <n>" under the unchanged anchored one.
+      const rungDesc = tightened.mode === "head-only" ? `head-lines ${tightened.headLines}` : `trim-window ${tightened.window}`;
       process.stderr.write(
         `[note] FAFF-1039 window-targeted trim: est ${estWithReserve} tok (incl. ${DEFAULT_BRIEF_RESERVE_TOKENS} brief reserve) exceeded usable ${usable} `
         + `(primary window ${primaryWindow}); `
         + (adopted
-          ? `tightened to trim-window ${tightened.window}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.contextBytes} B vs ${target} B target`
+          ? `tightened to ${rungDesc}, now est ${estAfter + DEFAULT_BRIEF_RESERVE_TOKENS} tok (${tightened.contextBytes} B vs ${target} B target`
             + `${targetClamped ? ", clamped to floor" : ""})`
             // Keyed off the REAL window check, never `tightened.fitted`. `fitted` means "hit the byte
             // target", and once a large diff drives the budget below MIN_TRIM_TARGET_BYTES the target

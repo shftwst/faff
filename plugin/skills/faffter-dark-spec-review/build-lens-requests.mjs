@@ -6,7 +6,11 @@
 // bundled helper makes the assembly a deterministic tool (the house pattern shared with
 // parse-refutation.mjs / aggregate.mjs), so the argv is unit-checkable and the new FAFF-928 raw-body
 // flags (`--raw-dir <scratch>/raw --lens <lens> --round <n>`) are carried per invocation. Every other
-// argv field is byte-identical to the old per-lens call. Zero-dependency: node:path/node:url only.
+// argv field is byte-identical to the old per-lens call, save for the one FAFF-1051 addition: `--diff`
+// here is a markdown spec, not a unified diff, so every lens's argv also carries `--diff-kind prose` —
+// the trim's anchored-relevance model has nothing to anchor against a document with no "@@" hunks, and
+// declaring the kind routes it to the budget-driven head retention instead of today's 12-line truncation.
+// Zero-dependency: node:path/node:url only.
 
 import { join as pathJoin } from "node:path";
 import { realpathSync } from "node:fs";
@@ -41,6 +45,9 @@ export function buildLensRequests({
     ];
     for (const p of contextPaths) argv.push("--context", String(p));
     argv.push("--diff", String(diffPath));
+    // FAFF-1051: the spec under scrutiny is a document, not a unified diff — declare the kind so the
+    // context trim stops truncating it to 12-line heads.
+    argv.push("--diff-kind", "prose");
     // FAFF-928: per lens × backend × round raw-response-body capture. Absent rawDir ⇒ no flags (today's argv).
     if (rawDir) argv.push("--raw-dir", String(rawDir), "--lens", String(lens), "--round", String(round));
     return { lens, argv };

@@ -1403,7 +1403,15 @@ function cmdEvents(args) {
 function validateAnchorGenesis(runDir) {
   let buf;
   try { buf = fs.readFileSync(path.join(runDir, "events.jsonl")); }
-  catch { return { valid: false, code: "no-events", message: `no events.jsonl in ${runDir} — nothing to anchor` }; }
+  catch (e) {
+    // Adversarial review (FAFF-966): only a genuinely ABSENT file (ENOENT) is "no-events" — any
+    // other read fault (EACCES, EISDIR, …) means the file EXISTS but couldn't be read, which is
+    // a materially different diagnosis. Collapsing both into "no events.jsonl" would send an
+    // operator staring at a present-but-unreadable file down the wrong remedy (a perms/ACL
+    // fix, not a re-mint) while the park comment insists it's absent.
+    if (e && e.code === "ENOENT") return { valid: false, code: "no-events", message: `no events.jsonl in ${runDir} — nothing to anchor` };
+    return { valid: false, code: "genesis-invalid", message: `${runDir}/events.jsonl exists but could not be read (${e && e.message}) — refusing to anchor` };
+  }
 
   const walk = walkPhysicalChain(buf);
   if (walk.line_count === 0) {

@@ -171,3 +171,38 @@ test("integration smoke test (spec §8): mint → anchor ok → simulate a genes
 
   rmSync(root, { recursive: true, force: true });
 });
+
+test("valid: a genesis chain whose ONLY record is a ledger-write (no run-start ever emitted) still anchors — the deliberate, regression-locked shape a genuine mint's own atomicWriteLedger fold produces before its explicit run-start emit runs", () => {
+  const root = mkTmp("faff-966-guard-");
+  const runDir = mkRunDir(root);
+  const runId = path.basename(runDir);
+  // A matching run-ledger.json (its sha256 recorded on the ledger-write) — otherwise the
+  // UNRELATED, pre-existing FAFF-958 ledger-fold precondition refuses first, masking the
+  // genesis check this test targets (see the tampered-chain test above for the same note).
+  const ledgerBytes = JSON.stringify({ run_id: runId, admitted: [], outcomes: {} });
+  writeFileSync(path.join(runDir, "run-ledger.json"), ledgerBytes);
+  const ledgerSha = require("node:crypto").createHash("sha256").update(ledgerBytes).digest("hex");
+  appendRecordUnderLock(runDir, (seq, _p, prevHash) => ({ schema: 2, run_id: runId, seq, ts: "t", prev: prevHash, phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } }));
+  const r = tryAnchor(runDir, root);
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(existsSync(path.join(root, "dest", "events.jsonl")), true);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("no-events vs genesis-invalid: an unreadable-but-present events.jsonl (EACCES) reports genesis-invalid, never the absent-file message", { skip: process.getuid && process.getuid() === 0 ? "root bypasses file permissions" : false }, () => {
+  const root = mkTmp("faff-966-guard-");
+  const runDir = mkRunDir(root);
+  const evPath = path.join(runDir, "events.jsonl");
+  writeFileSync(evPath, '{"schema":2,"run_id":"x","seq":0,"ts":"t","prev":"' + "a".repeat(64) + '","phase":"run","type":"run-start"}\n');
+  const fs = require("node:fs");
+  fs.chmodSync(evPath, 0o000);
+  try {
+    const r = tryAnchor(runDir, root);
+    assert.notEqual(r.code, 0);
+    assert.doesNotMatch(r.stderr, /no events\.jsonl/, "an unreadable-but-present file must not be reported as absent");
+    assert.match(r.stderr, /exists but could not be read/);
+  } finally {
+    fs.chmodSync(evPath, 0o644); // restore before rmSync can clean up
+    rmSync(root, { recursive: true, force: true });
+  }
+});

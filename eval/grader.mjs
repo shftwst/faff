@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 // named import of a CommonJS named export, resolved by Node via static analysis. Accepted cross-layer
 // coupling (documented minor, see the FAFF-931 spec §6): if contract-defs.js later moves, this import
 // path is a one-line fix.
-import { SPEC_JUDGE_OUTCOMES } from "../plugin/skills/faff/bin/lib/contract-defs.js";
+import { SPEC_JUDGE_OUTCOMES, BUILD_JUDGE_OUTCOMES } from "../plugin/skills/faff/bin/lib/contract-defs.js";
 
 // FAFF-146 — prep's three judgement surfaces join tidy's six. confidence + marker are isolatable
 // (black-box lane); reconciliation is execution-entangled (live-driver lane). All three grade through
@@ -273,7 +273,19 @@ import { SPEC_JUDGE_OUTCOMES } from "../plugin/skills/faff/bin/lib/contract-defs
 //                     the skill dir and are exercised by test/grader-spec-judge-discrimination.test.mjs,
 //                     not copied into eval/cases/ (which would falsely claim `covered`). Surface =
 //                     faffter-dark-spec-review.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination"];
+// FAFF-996 — the build-review adjudicator's terminal ruling adds a sibling DESIGNED, own-branch kind,
+// one altitude down from spec-judge-discrimination above (same outcome/outcome_not shape, the build
+// side's three-outcome BUILD_JUDGE_OUTCOMES in place of the spec side's four):
+//   build-adjudication — DESIGNED. Grades the judge's single `env.ruling` against a case's
+//                     `oracle.outcome` (must equal) or `oracle.outcome_not` (must not equal, and must
+//                     be a real ruling). `env.ruling` is gated on membership of BUILD_JUDGE_OUTCOMES
+//                     (imported from contract-defs.js, the source `faff contract build-judge-verdict`
+//                     also validates against) BEFORE the oracle test — same enum-membership fold as
+//                     spec-judge-discrimination. The committed discrimination case-pair + oracles
+//                     (plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/)
+//                     stay in the skill dir, exercised by test/grader-build-adjudication-discrimination
+//                     .test.mjs, not copied into eval/cases/. Surface = faffter-dark-adversarial-review.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination", "build-adjudication"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni", "park-reconsider-classification"]);
 
 // FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
@@ -977,6 +989,23 @@ export function grade(c, env) {
   // outcome/outcome_not test run.
   if (c.kind === "spec-judge-discrimination") {
     const inEnum = typeof env.ruling === "string" && SPEC_JUDGE_OUTCOMES.includes(env.ruling);
+    const ruling = inEnum ? env.ruling : null;
+    const o = c.oracle || {};
+    let ok;
+    if (Object.prototype.hasOwnProperty.call(o, "outcome")) {
+      ok = ruling === o.outcome;
+    } else if (Object.prototype.hasOwnProperty.call(o, "outcome_not")) {
+      ok = ruling !== null && ruling !== o.outcome_not;
+    } else {
+      ok = false; // malformed oracle (neither key) → clean FAIL, never a throw
+    }
+    return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, tokens, signature: JSON.stringify(ruling) };
+  }
+  // FAFF-996 — build-adjudication: the build-review adjudicator's terminal ruling against a case's
+  // outcome/outcome_not oracle. Sibling of spec-judge-discrimination above — same shape, same
+  // enum-membership-gate-first ordering, BUILD_JUDGE_OUTCOMES in place of SPEC_JUDGE_OUTCOMES.
+  if (c.kind === "build-adjudication") {
+    const inEnum = typeof env.ruling === "string" && BUILD_JUDGE_OUTCOMES.includes(env.ruling);
     const ruling = inEnum ? env.ruling : null;
     const o = c.oracle || {};
     let ok;

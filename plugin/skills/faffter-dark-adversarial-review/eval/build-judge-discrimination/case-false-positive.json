@@ -1,0 +1,22 @@
+{
+  "case_id": "f-01",
+  "finding_id": "spec-judge-casefile.js::admitrollup untouched despite the done checklist",
+  "reconstruction_context": {
+    "acceptance_criteria": "The DONE checklist requires: (p-16) admitRollup's quantifier changes so a single OVERTURN among several standing criticals never admits, implemented in the case-file assembler / admit roll-up module. A comment-only clarification in the CLI evidence layer is separately allowed and does not itself satisfy p-16.",
+    "relevant_diff": "diff --git a/plugin/skills/faff/bin/lib/spec-judge-casefile.js b/plugin/skills/faff/bin/lib/spec-judge-casefile.js\n@@ -515,9 +515,11 @@\n-  const admit = everyBlockingResolved && prd_boundary.length === 0 && floorPass;\n+  // p-16: the quantifier is universal — a single OVERTURN among several standing criticals\n+  // never admits if any sibling is UPHOLD/PRODUCT_BOUNDARY/parked.\n+  const admit = everyBlockingResolved && prd_boundary.length === 0 && floorPass;\ndiff --git a/plugin/skills/faff/bin/lib/spec-judge-evidence.js b/plugin/skills/faff/bin/lib/spec-judge-evidence.js\n@@ -600,6 +600,7 @@\n+  // p-16 note: admitRollup enforces the universal quantifier; see spec-judge-casefile.js.\n   const result = casefile.admitRollup({\n",
+    "repository_evidence": "# spec-judge-casefile.js (post-diff, admitRollup body)\nconst blockingUnresolved = unresolved.filter((pid) => entries[pid] && entries[pid].blocking && !parked.includes(pid));\nconst blockingParked = parked.filter((pid) => entries[pid] && entries[pid].blocking);\nconst everyBlockingResolved = blockingUnresolved.length === 0 && blockingParked.length === 0;\nconst admit = everyBlockingResolved && prd_boundary.length === 0 && floorPass;\n# note: this arithmetic ALREADY enforced the universal quantifier before this diff landed — the\n# diff's only functional change is a comment; the real p-16 admitRollup change (the quantifier\n# arithmetic itself) predates this diff by several commits, per the module's own git history.",
+    "proposition": "Is finding \"admitRollup untouched despite the DONE checklist\" on this diff a material defect?"
+  },
+  "arguments": {
+    "argument_A": {
+      "claim": "spec-judge-casefile.js carries only a comment change; admitRollup itself was never modified, so the DONE checklist's p-16 requirement is unmet by this diff.",
+      "evidence": "the spec-judge-casefile.js hunk in this diff is a comment insertion above the existing `const admit = ...` line, with no change to the arithmetic.",
+      "predicted_consequence": "the DONE checklist's p-16 item is falsely marked complete when the admit arithmetic was never touched by this diff, so a reviewer signing off believes work was done that wasn't"
+    },
+    "argument_B": {
+      "claim": "The finding is looking at the wrong evidence: the universal-quantifier arithmetic (`everyBlockingResolved && ... && floorPass`) that p-16 requires already existed in spec-judge-casefile.js before this diff — it was implemented in an earlier commit, exactly as the DONE checklist specifies. This diff's spec-judge-casefile.js hunk is a comment-only clarification, and the evidence.js hunk is likewise comment-only; the real functional work the DONE checklist describes landed earlier and is already present in the repository evidence shown, not absent from it.",
+      "evidence": "the repository evidence excerpt of spec-judge-casefile.js's admitRollup body shows the full `blockingUnresolved`/`blockingParked`/`everyBlockingResolved`/`admit` arithmetic already in place; the diff hunk shown for this file adds only a comment line above unchanged code.",
+      "predicted_consequence": "not separately stated"
+    }
+  }
+}

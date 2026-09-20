@@ -1,0 +1,16 @@
+{
+  "grader_kind": "build-adjudication",
+  "description": "The judge-quality discrimination seam for the build-review adjudicator (FAFF-996). A genuine-defect case, whose Argument A names a concrete evidence-backed predicted consequence a fix did not actually close, must NOT be ruled OVERTURN; a false-positive case (a FAFF-995-shaped wrong-file citation), whose Argument B shows the cited evidence already satisfies the requirement, must be ruled OVERTURN. The defect-half catches a constant-OVERTURN judge; the false-positive-half catches a constant-UPHOLD judge.",
+  "gating": false,
+  "advisory_note": "Mirrors the spec-judge-discrimination seam (FAFF-930/931): a single stochastic sample cannot certify a probabilistic judge, so this pair runs advisory and non-gating in-ticket. The GATING check — N samples with a calibrated pass-rate threshold over a case corpus — is deferred, same as the spec-side sibling.",
+  "cases": [
+    {
+      "case_file": "case-defect.json",
+      "oracle": { "outcome_not": "OVERTURN" }
+    },
+    {
+      "case_file": "case-false-positive.json",
+      "oracle": { "outcome": "OVERTURN" }
+    }
+  ]
+}

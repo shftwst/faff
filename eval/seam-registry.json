@@ -145,6 +145,10 @@
     "spec-judge-discrimination": {
       "surface": "faffter-dark-spec-review",
       "status": "designed"
+    },
+    "build-adjudication": {
+      "surface": "faffter-dark-adversarial-review",
+      "status": "designed"
     }
   }
 }

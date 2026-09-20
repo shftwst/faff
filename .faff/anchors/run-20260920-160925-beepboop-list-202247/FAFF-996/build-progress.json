@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-996",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2fabc6b14bb067ff65cd1faa67629ec3bd81252fc0f16f6433f0440bd9188cf3",
+    "branch": "faff-996-autonomous-adjudication-of-a-build-review-critical-bounded",
+    "pushed_at": "2026-09-20T20:27:39.871Z"
+  },
+  "updated_at": "2026-09-20T20:27:39.871Z"
+}

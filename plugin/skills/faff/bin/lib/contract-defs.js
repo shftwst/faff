@@ -586,6 +586,56 @@ function contractSpecJudgeVerdict(extraction) {
   return { contractData };
 }
 
+// --- build-judge-verdict (FAFF-996) ---
+// The build-review judge's per-finding ruling at the would-be-park point: a sibling of
+// spec-judge-verdict with a build-appropriate outcome vocabulary. No SYNTHESIZE (the code is
+// already written — the judge cannot compose a third code) and no `correction` field (unlike
+// spec-judge, a build judge never edits an artifact; a fix is the author's separate re-review
+// path, not a judge output). Fail-loud (exit 2) on an outcome outside the closed three (no safe
+// coerce target — faff's own producer emits it). Founded-outcome invariants (violations →
+// conformant:false, exit 1):
+//   OVERTURN         — no rationale requirement, empty product_gap_citation.
+//   UPHOLD           — non-empty rationale, empty product_gap_citation.
+//   PRODUCT_BOUNDARY — non-empty rationale AND non-empty product_gap_citation.
+const BUILD_JUDGE_OUTCOMES = ["OVERTURN", "UPHOLD", "PRODUCT_BOUNDARY"];
+function computeBuildJudgeVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!BUILD_JUDGE_OUTCOMES.includes(extraction.outcome)) {
+    return { contractData: null, failLoud: `outcome ${JSON.stringify(extraction.outcome)} not in {OVERTURN,UPHOLD,PRODUCT_BOUNDARY} — no safe coerce target` };
+  }
+  const outcome = extraction.outcome;
+  const violations = [];
+  const finding_id = typeof extraction.finding_id === "string" ? extraction.finding_id : "";
+  if (!finding_id.trim()) violations.push("finding_id is empty");
+  const rationale = typeof extraction.rationale === "string" ? extraction.rationale : "";
+  const product_gap_citation = typeof extraction.product_gap_citation === "string" ? extraction.product_gap_citation : "";
+
+  if (outcome === "OVERTURN") {
+    if (product_gap_citation.trim()) violations.push("OVERTURN carries a product_gap_citation — must be empty");
+  } else if (outcome === "UPHOLD") {
+    if (!rationale.trim()) violations.push("UPHOLD carries no rationale — a non-overturn ruling must state what stands and why");
+    if (product_gap_citation.trim()) violations.push("UPHOLD carries a product_gap_citation — must be empty");
+  } else if (outcome === "PRODUCT_BOUNDARY") {
+    if (!rationale.trim()) violations.push("PRODUCT_BOUNDARY carries no rationale");
+    if (!product_gap_citation.trim()) violations.push("PRODUCT_BOUNDARY carries no product_gap_citation — the specific product/policy gap must be cited");
+  }
+
+  return {
+    contractData: { finding_id, outcome, rationale, product_gap_citation, conformant: violations.length === 0, violations },
+    failLoud: null,
+  };
+}
+
+function contractBuildJudgeVerdict(extraction) {
+  const { contractData, failLoud } = computeBuildJudgeVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "build-judge-verdict");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- architecture-proposal (FAFF-27) ---
 // The proposal envelope FAFF-27's `architecture` slot producer (default faffter-noon-architecture)
 // emits: a best-fit, build-biased architecture proposal generated from the infra profile + brief.
@@ -2652,6 +2702,21 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "build-judge-verdict": {
+    run: contractBuildJudgeVerdict,
+    fixtures: [
+      { name: "conformant-overturn", in: { finding_id: "spec-judge-casefile.js::the admitrollup change is missing", outcome: "OVERTURN", rationale: "", product_gap_citation: "" }, wantExit: 0 },
+      { name: "conformant-uphold", in: { finding_id: "casefile.js::stale export", outcome: "UPHOLD", rationale: "the export list omits the new helper — a material defect", product_gap_citation: "" }, wantExit: 0 },
+      { name: "conformant-product-boundary", in: { finding_id: "config.js::default retry limit", outcome: "PRODUCT_BOUNDARY", rationale: "needs a product decision on the default", product_gap_citation: "the AC does not specify a default retry limit" }, wantExit: 0 },
+      { name: "uphold-missing-rationale", in: { finding_id: "a.js::x", outcome: "UPHOLD", rationale: "", product_gap_citation: "" }, wantExit: 1 },
+      { name: "product-boundary-missing-citation", in: { finding_id: "a.js::x", outcome: "PRODUCT_BOUNDARY", rationale: "needs a decision", product_gap_citation: "" }, wantExit: 1 },
+      { name: "product-boundary-missing-rationale", in: { finding_id: "a.js::x", outcome: "PRODUCT_BOUNDARY", rationale: "", product_gap_citation: "the AC is silent here" }, wantExit: 1 },
+      { name: "overturn-with-citation", in: { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "should be empty" }, wantExit: 1 },
+      { name: "fail-loud-bad-outcome", in: { finding_id: "a.js::x", outcome: "SYNTHESIZE" }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+      { name: "empty-finding-id", in: { finding_id: "", outcome: "OVERTURN", rationale: "", product_gap_citation: "" }, wantExit: 1 },
+    ],
+  },
   "architecture-proposal": {
     run: contractArchitectureProposal,
     fixtures: [
@@ -3128,6 +3193,14 @@ const CONTRACT_DESCRIBES = {
     coercions: ["an out-of-enum outcome → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "AFFIRM_SPEC with a correction/synthesis_sources/prd_gap_citation, UPHOLD_REVIEW/SYNTHESIZE missing a correction or a >=24-char verification literal, SYNTHESIZE with an empty synthesis_sources or a source outside {A,B}, or PRD_BOUNDARY with an empty prd_gap_citation → conformant:false", "an out-of-enum echoed lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
     producer_notes: [],
   },
+  "build-judge-verdict": {
+    purpose: "The build-review judge's per-finding ruling at the would-be-park point (FAFF-996): for ONE critical requiring adjudication, in a closed three-outcome vocabulary. No SYNTHESIZE (the code is already written) and no correction object (a build judge never edits an artifact — a fix is the author's separate re-review path). Admission is the deterministic admit roll-up over the resolved ledger, never asserted by the judge.",
+    values: [
+      { field: "outcome", enum: BUILD_JUDGE_OUTCOMES, semantics: { OVERTURN: "the finding is not a material defect — resolved, admits without a rationale requirement", UPHOLD: "the finding is a material defect and stands — parks to a human", PRODUCT_BOUNDARY: "resolution needs a product or policy decision not derivable from the AC — parks to a human, with a founded product_gap_citation" } },
+    ],
+    coercions: ["an out-of-enum outcome → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "UPHOLD with an empty rationale, PRODUCT_BOUNDARY with an empty rationale or product_gap_citation, or OVERTURN with a non-empty product_gap_citation → conformant:false", "an empty finding_id → conformant:false"],
+    producer_notes: [],
+  },
   "architecture-proposal": {
     purpose: "The best-fit, build-biased architecture proposal the `architecture` slot producer generates from an infra profile + brief — the generative counterpart to FAFF-9's architectural review lens, which only critiques a proposal already landed in a spec.",
     values: [
@@ -3386,4 +3459,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

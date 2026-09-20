@@ -1,0 +1,59 @@
+{
+  "run_id": "run-20260920-160925-beepboop-list-202247",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1053",
+    "FAFF-1016",
+    "FAFF-1015",
+    "FAFF-996",
+    "FAFF-1045",
+    "FAFF-1047",
+    "FAFF-1066",
+    "FAFF-1065",
+    "FAFF-1055",
+    "FAFF-1050",
+    "FAFF-1049"
+  ],
+  "outcomes": {},
+  "base_sha": "5d83f6d78ec0ebf15318e84a62ebf7a04e213153",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260920-160925-beepboop-list-202247",
+    "pid": 454,
+    "started_at": "2026-09-20T16:09:25.542Z",
+    "last_heartbeat": "2026-09-20T16:09:25.542Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "13b268ad-cd64-489f-91cb-5be6f75ad19c",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 70,
+        "output": 35862,
+        "cache_write_5m": 0,
+        "cache_write_1h": 178442,
+        "cache_read": 5046449
+      }
+    },
+    "tokens_at_start": 5260823,
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "tokens_at_last_event": {
+      "input": 182,
+      "output": 176450,
+      "cache_write_5m": 0,
+      "cache_write_1h": 987606,
+      "cache_read": 15484062
+    }
+  },
+  "outcome_details": {}
+}

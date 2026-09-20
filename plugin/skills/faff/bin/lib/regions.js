@@ -364,6 +364,14 @@ const REGION_MAP = {
   // faff-prep shells out to, same family as the other spec-review resolvers → factory.
   "spec-review-iteration-cap": "factory",
   "spec-judge-evidence": "factory",
+  // FAFF-996: build-review-churn/build-review-convergence are the build-review dialogue loop's
+  // siblings of spec-review-churn/spec-review-convergence (finding-identity comparator, not a
+  // lens-set) — same small-deterministic-CLI-resolver family → factory. build-judge-evidence
+  // shells the case-file assembler/roll-up + dispatches the two-phase judge — same family as
+  // spec-judge-evidence → factory.
+  "build-review-churn": "factory",
+  "build-review-convergence": "factory",
+  "build-judge-evidence": "factory",
   // FAFF-945: spec-judge-accept-bar is the deterministic accept-bar roll-up faff-prep's judge
   // step shells — a pure coercion over the evidence bundle + the judge verdict, same family as
   // the other small spec-review resolvers → factory.
@@ -522,6 +530,12 @@ const REGION_SELFTEST_ARGV = {
   // spec-judge-accept-bar has no standalone --selftest either — its coercion + fail-closed
   // seam is exercised by test/spec-judge-accept-bar.test.mjs (lint-cli-coverage TEST_FILE_COVERAGE).
   "spec-judge-accept-bar": null,
+  "build-review-churn": ["build-review-churn", "--selftest"],
+  "build-review-convergence": ["build-review-convergence", "--selftest"],
+  // build-judge-evidence has no standalone --selftest (--assemble/--admit only; its dispatch
+  // loop + admit roll-up are exercised through the real CLI entrypoint by
+  // test/build-judge-evidence.test.mjs, declared in lint-cli-coverage's TEST_FILE_COVERAGE).
+  "build-judge-evidence": null,
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
 };

@@ -1,0 +1,22 @@
+{
+  "case_id": "f-01",
+  "finding_id": "build-progress.js::checkpoint written before the claim lease is confirmed",
+  "reconstruction_context": {
+    "acceptance_criteria": "The build-progress checkpoint MUST be written only after the build-claim lease for the issue is confirmed held by the current session; a checkpoint written before the lease is confirmed can be read back by a second session that raced the claim, corrupting resume state.",
+    "relevant_diff": "diff --git a/plugin/skills/faff/bin/lib/effects.js b/plugin/skills/faff/bin/lib/effects.js\n@@ -40,10 +40,14 @@\n function cmdBuildProgress(args) {\n-  writeCheckpoint(dir, issue, sha, diffHash);\n-  const claim = buildClaimAcquire(issue);\n-  if (!claim.ok) return 2;\n+  const claim = buildClaimAcquire(issue);\n+  if (!claim.ok) return 2;\n+  writeCheckpoint(dir, issue, sha, diffHash);\n   return 0;\n }\n",
+    "repository_evidence": "# plugin/skills/faff/bin/lib/effects.js (post-diff)\nfunction cmdBuildProgress(args) {\n  const claim = buildClaimAcquire(issue);\n  if (!claim.ok) return 2;\n  writeCheckpoint(dir, issue, sha, diffHash);\n  return 0;\n}\n# note: buildClaimAcquire is a network round-trip; writeCheckpoint is a local fs write. The\n# diff fixed the ORDER (claim before checkpoint) but left no lock between the two calls, so a\n# second session's claim attempt can still interleave between the confirmed claim and the write.",
+    "proposition": "Is finding \"checkpoint written before the claim lease is confirmed\" on this diff a material defect?"
+  },
+  "arguments": {
+    "argument_A": {
+      "claim": "The checkpoint write still races a concurrent claim attempt: nothing holds a lock between buildClaimAcquire returning ok and writeCheckpoint executing, so two sessions racing the same claim can both pass the ok check before either writes its checkpoint.",
+      "evidence": "effects.js's cmdBuildProgress calls buildClaimAcquire then writeCheckpoint with no intervening lock or re-check; buildClaimAcquire is documented elsewhere in the repo as a network round-trip with no atomic combined claim-and-write primitive.",
+      "predicted_consequence": "a genuine second-session race still corrupts the resume checkpoint under concurrent build-progress writes, even though the ORDER was fixed; the fix addresses one race but not the interleaving window"
+    },
+    "argument_B": {
+      "claim": "The fix reorders the two calls so the claim is confirmed before any checkpoint write, which is exactly what the acceptance criteria required.",
+      "evidence": "the acceptance criteria's own wording: \"written only after the build-claim lease is confirmed\" — the diff satisfies the literal ordering requirement.",
+      "predicted_consequence": "not separately stated"
+    }
+  }
+}

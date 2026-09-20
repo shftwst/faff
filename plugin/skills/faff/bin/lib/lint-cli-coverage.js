@@ -57,6 +57,10 @@ const TEST_FILE_COVERAGE = {
   // --selftest fixtures); the git-plumbing enumerate/read/witness-recompute/
   // filter behaviour is exercised through the real CLI entrypoint here.
   "judge-history": "test/judge-trail.test.mjs",
+  // build-judge-evidence — FAFF-996: a shelling assembler + dispatch loop with no standalone
+  // `--selftest` (--assemble/--admit only); its degrade/fail-loud directions and dispatch-loop
+  // logic are exercised through the real CLI entrypoint here.
+  "build-judge-evidence": "test/build-judge-evidence.test.mjs",
 };
 
 // A command is selftest-covered iff its allowlist entry is a runnable argv array

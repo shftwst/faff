@@ -142,6 +142,15 @@ const fixedLines = extractDiscoverLines(actionText);
 const fixedBody = templateFill(fixedLines);
 const preFixBody = templateFill(toPreFixLines(fixedLines));
 
+// Harness precondition (adversarial review finding): confirm the extraction actually pulled a
+// structurally-complete step body — not just a non-empty one — so a future gates.js extractor
+// change that truncates/merges lines surfaces as THIS assertion (extractor broke), never as a
+// confusing failure in one of the behavioural tests below (step broke).
+test("fixture precondition: the extracted body carries both output-writing landmarks", () => {
+  assert.ok(fixedBody.includes("GOVDIRSEOF"), "extracted body missing the dirs<<GOVDIRSEOF heredoc marker");
+  assert.ok(fixedBody.includes("found="), "extracted body missing the found= output line");
+});
+
 test("trigger input: last-changed run dir deleted, one earlier dir exists -> exits 0, dirs excludes the deletion, found=true", () => {
   const sandbox = makeSandbox();
   const existingRun = join(sandbox.dir, ARTIFACTS_PATH, "aaa-run");

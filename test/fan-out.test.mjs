@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import {
   validateRequests, fanOut, main, REVIEW_CALL_PATH, selftest, entrypoint_href, stderrTruncated,
+  DISPATCH_STRATEGIES,
 } from "../plugin/skills/faffter-dark-adversarial-review/fan-out.mjs";
 // FAFF-990: import the marker from its SINGLE SOURCE — the transport. Building the marker line from
 // this exact constant is the drift oracle: a rename on either side breaks the shared import (or the
@@ -131,7 +132,12 @@ test("fanOut: N=1 degenerates to a single child, resolves with its LensResult", 
   };
   const outcome = await fanOut([{ lens: "architectural", argv: ["--system", "s.md"] }], { spawnFn });
   assert.equal(outcome.ok, true);
-  assert.deepEqual(outcome.results, [{ lens: "architectural", exit: 0, stdout: "### observation: no findings", stderr: "", truncated: false, primarySkipped: false }]);
+  const [result] = outcome.results;
+  // FAFF-1054: ttftMs is recorded (time to the child's first observed byte) whenever the child emits
+  // at least one byte before close: asserted separately from the otherwise-unchanged shape below.
+  assert.equal(typeof result.ttftMs, "number");
+  const { ttftMs, ...rest } = result;
+  assert.deepEqual(rest, { lens: "architectural", exit: 0, stdout: "### observation: no findings", stderr: "", truncated: false, primarySkipped: false });
 });
 
 // ── FAFF-990: the truncation marker field ──
@@ -300,6 +306,123 @@ test("fanOut: a null exit code (killed) is reported as exit 1, not left undefine
   assert.equal(outcome.results[0].exit, 1);
 });
 
+// ── FAFF-1054: --strategy dispatch shapes (parallel / serial / prime-then-parallel) ──
+// All pure, injected spawnFn: no real spawn.
+
+const clear = (child) => { child.stdout.emit("data", "### observation: no findings"); child.emit("close", 0); };
+const notServed = (child) => { child.stderr.emit("data", "boom"); child.emit("close", 4); };
+
+function orderedRequests(names) {
+  return names.map((lens) => ({ lens, argv: [lens] }));
+}
+
+test("fanOut: an unrecognised --strategy fails loud (ok:false), never silently coerced to parallel", async () => {
+  const spawnFn = () => { const c = fakeChild(); queueMicrotask(() => clear(c)); return c; };
+  const outcome = await fanOut(orderedRequests(["a", "b"]), { spawnFn, strategy: "bogus" });
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.fault, /unrecognised --strategy/);
+  assert.match(outcome.fault, /bogus/);
+});
+
+test("DISPATCH_STRATEGIES names exactly parallel | serial | prime-then-parallel", () => {
+  assert.deepEqual([...DISPATCH_STRATEGIES].sort(), ["parallel", "prime-then-parallel", "serial"]);
+});
+
+test("fanOut: strategy omitted defaults to parallel: byte-identical dispatch to today", async () => {
+  const spawnOrder = [];
+  const spawnFn = (nodePath, args) => {
+    spawnOrder.push(args[args.length - 1]);
+    const c = fakeChild();
+    queueMicrotask(() => clear(c));
+    return c;
+  };
+  const outcome = await fanOut(orderedRequests(["a", "b", "c"]), { spawnFn });
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(spawnOrder, ["a", "b", "c"], "all spawned up front, same as explicit parallel");
+  assert.deepEqual(outcome.results.map((r) => r.lens), ["a", "b", "c"]);
+});
+
+test("fanOut: serial dispatches one request at a time, each awaited before the next starts", async () => {
+  const spawnOrder = [];
+  const active = { count: 0, maxConcurrent: 0 };
+  const spawnFn = (nodePath, args) => {
+    const lens = args[args.length - 1];
+    spawnOrder.push(lens);
+    active.count += 1;
+    active.maxConcurrent = Math.max(active.maxConcurrent, active.count);
+    const c = fakeChild();
+    setTimeout(() => { active.count -= 1; clear(c); }, 5);
+    return c;
+  };
+  const outcome = await fanOut(orderedRequests(["a", "b", "c"]), { spawnFn, strategy: "serial" });
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(spawnOrder, ["a", "b", "c"], "dispatched strictly in input order");
+  assert.equal(active.maxConcurrent, 1, "never more than one child in flight at once under serial");
+  assert.deepEqual(outcome.results.map((r) => r.lens), ["a", "b", "c"], "results preserve input order");
+});
+
+test("fanOut: prime-then-parallel awaits requests[0] alone, then fans out requests[1..] together", async () => {
+  const spawnedAt = [];
+  const spawnFn = (nodePath, args) => {
+    const lens = args[args.length - 1];
+    spawnedAt.push(lens);
+    const c = fakeChild();
+    const delay = lens === "a" ? 10 : 0;
+    setTimeout(() => clear(c), delay);
+    return c;
+  };
+  const outcome = await fanOut(orderedRequests(["a", "b", "c"]), { spawnFn, strategy: "prime-then-parallel" });
+  assert.equal(outcome.ok, true);
+  // "a" (the prime) must have been dispatched, and fully settled, before "b"/"c" are even spawned.
+  assert.deepEqual(spawnedAt.slice(0, 1), ["a"]);
+  assert.deepEqual(spawnedAt.slice(1).sort(), ["b", "c"], "b and c spawned only after the prime settles");
+  assert.deepEqual(outcome.results.map((r) => r.lens), ["a", "b", "c"], "input order preserved regardless of settle order");
+});
+
+test("fanOut: prime-then-parallel: a priming LENS failure never aborts the batch; requests[1..] still dispatch", async () => {
+  const dispatched = [];
+  const spawnFn = (nodePath, args) => {
+    const lens = args[args.length - 1];
+    dispatched.push(lens);
+    const c = fakeChild();
+    queueMicrotask(() => (lens === "a" ? notServed(c) : clear(c)));
+    return c;
+  };
+  const outcome = await fanOut(orderedRequests(["a", "b", "c"]), { spawnFn, strategy: "prime-then-parallel" });
+  assert.equal(outcome.ok, true, "a priming lens failure is a normal close, not a spawn fault: the batch still succeeds");
+  assert.deepEqual(dispatched, ["a", "b", "c"], "b and c still dispatch after the prime's failure");
+  assert.equal(outcome.results[0].lens, "a");
+  assert.equal(outcome.results[0].exit, 4, "the primed slot carries its own (failed) exit code");
+  assert.equal(outcome.results[1].exit, 0);
+  assert.equal(outcome.results[2].exit, 0);
+});
+
+test("fanOut: prime-then-parallel: a priming SPAWN-level fault fails the whole batch (same as parallel), never dispatches the rest", async () => {
+  const dispatched = [];
+  const spawnFn = (nodePath, args) => {
+    const lens = args[args.length - 1];
+    dispatched.push(lens);
+    if (lens === "a") throw Object.assign(new Error("spawn node ENOENT"), { code: "ENOENT" });
+    const c = fakeChild();
+    queueMicrotask(() => clear(c));
+    return c;
+  };
+  const outcome = await fanOut(orderedRequests(["a", "b", "c"]), { spawnFn, strategy: "prime-then-parallel" });
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.fault, /ENOENT/);
+  assert.deepEqual(dispatched, ["a"], "b and c are never spawned after a priming spawn-level fault");
+});
+
+test("fanOut: N=1 degenerates to a single awaited call, identically, under every strategy", async () => {
+  for (const strategy of ["parallel", "serial", "prime-then-parallel"]) {
+    const spawnFn = () => { const c = fakeChild(); queueMicrotask(() => clear(c)); return c; };
+    const outcome = await fanOut([{ lens: "solo", argv: ["solo"] }], { spawnFn, strategy });
+    assert.equal(outcome.ok, true, strategy);
+    assert.equal(outcome.results.length, 1, strategy);
+    assert.equal(outcome.results[0].lens, "solo", strategy);
+  }
+});
+
 // ── main() CLI: --requests FILE / stdin, dual array-or-object shape, exit codes ──
 
 function tmpJson(obj) {
@@ -419,6 +542,64 @@ test("main(): a fan-out-level spawn fault → exit 1, no stdout", async () => {
   assert.equal(code, 1);
   assert.equal(out, "");
   assert.match(err, /ENOENT/);
+});
+
+// FAFF-1054: CLI --strategy surface.
+test("main(): an unrecognised --strategy → exit 1, no stdout, a clear diagnosis", async () => {
+  const f = tmpJson([{ lens: "x", argv: [] }]);
+  let out = "";
+  let err = "";
+  const origOut = process.stdout.write.bind(process.stdout);
+  const origErr = process.stderr.write.bind(process.stderr);
+  process.stdout.write = (s) => { out += s; return true; };
+  process.stderr.write = (s) => { err += s; return true; };
+  let code;
+  try { code = await main(["--requests", f, "--strategy", "bogus"], { spawnFn: () => fakeChild() }); }
+  finally { process.stdout.write = origOut; process.stderr.write = origErr; }
+  assert.equal(code, 1);
+  assert.equal(out, "");
+  assert.match(err, /unrecognised --strategy/);
+});
+
+test("main(): a trailing --strategy with no value → exit 1, a clear diagnosis", async () => {
+  let err = "";
+  const origErr = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (s) => { err += s; return true; };
+  let code;
+  try { code = await main(["--strategy"], { spawnFn: () => fakeChild() }); } finally { process.stderr.write = origErr; }
+  assert.equal(code, 1);
+  assert.match(err, /--strategy requires a value/);
+});
+
+test("main(): --strategy threads through to fanOut(): prime-then-parallel spawns b only after a's close fires", async () => {
+  // Microtask-only timing (no real setTimeout): proves the ordering without racing this test's
+  // process.stdout.write override against node:test's own concurrently-scheduled macrotasks.
+  const f = tmpJson([{ lens: "a", argv: ["a"] }, { lens: "b", argv: ["b"] }]);
+  let aClosed = false;
+  let bSpawnedAfterAClosed = null;
+  const spawnFn = (nodePath, args) => {
+    const lens = args[args.length - 1];
+    const c = fakeChild();
+    if (lens === "a") {
+      queueMicrotask(() => { c.stdout.emit("data", "ok"); c.emit("close", 0); aClosed = true; });
+    } else {
+      // Recorded at the moment b is SPAWNED: under "parallel" (the silent-fallback bug this test
+      // guards against) b would already be spawned here, before a's queued microtask ever fires.
+      bSpawnedAfterAClosed = aClosed;
+      queueMicrotask(() => { c.stdout.emit("data", "ok"); c.emit("close", 0); });
+    }
+    return c;
+  };
+  let out = "";
+  const origOut = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (s) => { out += s; return true; };
+  let code;
+  try { code = await main(["--requests", f, "--strategy", "prime-then-parallel"], { spawnFn }); }
+  finally { process.stdout.write = origOut; }
+  assert.equal(code, 0);
+  assert.equal(bSpawnedAfterAClosed, true, "b is spawned only after a's close fires: proves --strategy reached fanOut()");
+  const parsed = JSON.parse(out);
+  assert.deepEqual(parsed.map((r) => r.lens), ["a", "b"]);
 });
 
 // ── main() CLI via a REAL subprocess: stdin input (no --requests flag) ──

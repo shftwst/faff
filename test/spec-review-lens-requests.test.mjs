@@ -91,3 +91,60 @@ test("FAFF-928 AC6: the CLI arg parser round-trips --lenses / --raw-dir / --roun
   assert.equal(a.rawDir, "/r");
   assert.equal(a.round, "3");
 });
+
+// ── FAFF-1054: --deadline threading + the shared/prefix byte-identity invariant ──
+
+test("FAFF-1054: every lens's argv carries --deadline SECONDS, identical across lenses", () => {
+  const reqs = buildLensRequests({
+    lenses: LENSES,
+    backendsJson: "b.json", timeout: 120, maxTokens: 2000, deadline: 900,
+    systemDir: "d", contextPaths: ["a.js"], diffPath: "spec.md",
+  });
+  for (const req of reqs) assert.equal(argFor(req.argv, "--deadline"), "900", `${req.lens}: --deadline threaded`);
+});
+
+test("FAFF-1054: an absent deadline omits --deadline entirely (byte-for-byte the pre-1054 argv)", () => {
+  const [req] = buildLensRequests({
+    lenses: ["architectural"],
+    backendsJson: "b.json", timeout: 120, maxTokens: 2000,
+    systemDir: "d", contextPaths: ["a.js"], diffPath: "spec.md",
+    // no deadline supplied
+  });
+  assert.ok(!req.argv.includes("--deadline"), "no --deadline without a resolved value");
+});
+
+test("FAFF-1054: the CLI arg parser round-trips --deadline", () => {
+  const a = parseArgs(["--lenses", "architectural", "--backends-json", "b", "--system-dir", "d",
+    "--diff", "s", "--deadline", "900"]);
+  assert.equal(a.deadline, "900");
+});
+
+// The FAFF-903/915 prefix-cache invariant: review-call.mjs assembles the SHARED context+diff block
+// (byte-identical across lenses) into the cacheable wire prefix. At this builder's level that means
+// every argv field the shared block depends on (--context/--diff/--diff-kind/--backends-json/
+// --timeout/--max-tokens/--deadline) must be byte-identical across all N LensRequests: only --system
+// (the trailing per-lens refuter brief) is allowed to differ. A one-byte leak into any shared field
+// would invalidate the cache for every subsequent lens (exact-prefix matching).
+test("FAFF-1054: the shared/prefix argv is byte-identical across all N lens requests: only --system differs", () => {
+  const reqs = buildLensRequests({
+    lenses: LENSES,
+    backendsJson: "b.json", timeout: 120, maxTokens: 2000, deadline: 900,
+    systemDir: "plugin/skills/faffter-dark-spec-review",
+    contextPaths: ["a.js", "b.js"],
+    diffPath: "spec.md",
+  });
+  const withoutSystem = (argv) => {
+    const out = [...argv];
+    const i = out.indexOf("--system");
+    out.splice(i, 2);
+    return out;
+  };
+  const stripped = reqs.map((r) => withoutSystem(r.argv));
+  for (let i = 1; i < stripped.length; i++) {
+    assert.deepEqual(stripped[i], stripped[0],
+      `${reqs[i].lens}'s shared/prefix argv must be byte-identical to ${reqs[0].lens}'s (only --system may differ)`);
+  }
+  // Sanity: --system genuinely differs per lens: it's the one field allowed to vary.
+  const systems = new Set(reqs.map((r) => argFor(r.argv, "--system")));
+  assert.equal(systems.size, LENSES.length, "each lens's --system brief path is distinct");
+});

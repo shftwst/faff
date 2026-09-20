@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1047",
+  "build": {
+    "status": "complete",
+    "diff_hash": "296882f6b42100e1a1673f0dbd29f2d9870f0037deb89a31ffed57aeb1644895",
+    "branch": "FAFF-1047-audit-governance-check-discover-errexit",
+    "pushed_at": "2026-09-20T19:14:07.936Z"
+  },
+  "updated_at": "2026-09-20T19:14:07.936Z"
+}

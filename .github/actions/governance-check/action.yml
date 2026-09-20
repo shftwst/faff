@@ -147,7 +147,12 @@ runs:
         DIRS=""
         if [ -n "$BASE_SHA" ] && [ -n "$HEAD_SHA" ]; then
           CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "$ARTIFACTS_PATH" || true)"
-          DIRS="$(printf '%s\n' "$CHANGED" | awk -F/ -v p="$ARTIFACTS_PATH" 'NF>=2 {print p"/"$2}' | sort -u | while read -r d; do [ -n "$d" ] && [ -d "$d" ] && echo "$d"; done)"
+          # `|| true` neutralises the pipefail-derived non-zero from the while loop's final
+          # iteration failing `[ -d "$d" ]` (the alphabetically-last changed run dir was
+          # deleted by this PR), so the assignment itself never trips errexit and every line
+          # below stays reachable [FAFF-1047, same shape as FAFF-1038]. The `[ -d "$d" ]`
+          # filter itself is untouched — deleted run dirs still never reach DIRS.
+          DIRS="$(printf '%s\n' "$CHANGED" | awk -F/ -v p="$ARTIFACTS_PATH" 'NF>=2 {print p"/"$2}' | sort -u | while read -r d; do [ -n "$d" ] && [ -d "$d" ] && echo "$d"; done || true)"
         else
           echo "faff governance-check: not a pull_request event with base/head shas — skipping diff-based discovery"
         fi

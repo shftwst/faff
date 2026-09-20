@@ -90,6 +90,7 @@ export function validateRequests(requests) {
 function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
   return new Promise((resolve, reject) => {
     let child;
+    const spawnedAt = Date.now();
     try {
       child = spawnFn(nodePath, [reviewCallPath, ...request.argv], { stdio: ["ignore", "pipe", "pipe"] });
     } catch (e) {
@@ -98,6 +99,15 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
     }
     let stdout = "";
     let stderr = "";
+    // Best-effort time-to-first-byte, read by the occupant's post-prime/prime prefill-cache self-check
+    // under prime-then-parallel dispatch. review-call.mjs's CLI writes stdout only ONCE, after the full
+    // response is assembled, never per-token, so this is the time to the child's first observed byte on
+    // EITHER stream: on today's transport that approximates total completion time, not a true
+    // prefill-only TTFT. It becomes a true TTFT the moment review-call.mjs streams partial content to
+    // its own stdout; until then it is the most honest, non-fabricated signal this transport boundary
+    // can observe. Stays null when no byte arrived before close (a fully-silent child).
+    let ttftMs = null;
+    const markFirstByte = () => { if (ttftMs === null) ttftMs = Date.now() - spawnedAt; };
     // FAFF-706 adversarial review: `error` and `close` are not mutually exclusive on every platform
     // (a pipe-teardown fault can fire `error` after a normal `close` already resolved, or vice
     // versa) — `settled` is the single source of truth for "has this child's promise already
@@ -107,8 +117,8 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
     // but relying on that implicitly rather than checking `settled` explicitly would leave the
     // invariant undocumented for the next reader).
     let settled = false;
-    child.stdout.on("data", (c) => { stdout += c; });
-    child.stderr.on("data", (c) => { stderr += c; });
+    child.stdout.on("data", (c) => { markFirstByte(); stdout += c; });
+    child.stderr.on("data", (c) => { markFirstByte(); stderr += c; });
     child.on("error", (e) => {
       if (settled) return;
       settled = true;
@@ -117,27 +127,73 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
     child.on("close", (code) => {
       if (settled) return;
       settled = true;
-      // FAFF-990: `truncated` is the ONE new derived field — additive; the four existing fields are
-      // untouched. It surfaces the transport's own truncation fact to the spec-review classifier.
-      resolve({ lens: request.lens, exit: code == null ? 1 : code, stdout, stderr, truncated: stderrTruncated(stderr), primarySkipped: stderrPrimarySkipped(stderr) });
+      // FAFF-990: `truncated` is a derived field, additive; the earlier fields are untouched. It
+      // surfaces the transport's own truncation fact to the spec-review classifier. `ttftMs` is the
+      // same kind of additive surface, for the strategy self-check.
+      resolve({ lens: request.lens, exit: code == null ? 1 : code, stdout, stderr, truncated: stderrTruncated(stderr), primarySkipped: stderrPrimarySkipped(stderr), ttftMs });
     });
   });
 }
 
-// Fan every request out as its own child, starting ALL of them before awaiting ANY of them (the
-// `requests.map` below issues every spawn synchronously in one pass), then wait for all of them
-// TOGETHER via Promise.allSettled — turning what was N sequential full-length calls into one batch
-// bounded by the slowest single call. One lens's non-zero exit never delays or blocks sibling lenses'
-// results (Promise.allSettled never cancels or blocks the others on one settling).
+// Mirrors ONE element of Promise.allSettled's own result shape ({status, value} | {status, reason}), so
+// serial/prime-then-parallel's individually-awaited calls feed the SAME rejection-collecting logic
+// fanOut() already applies to parallel's Promise.allSettled batch: one code path handles "any child's
+// spawn faulted" for every strategy.
+function toSettled(promise) {
+  return promise.then(
+    (value) => ({ status: "fulfilled", value }),
+    (reason) => ({ status: "rejected", reason }),
+  );
+}
+
+// The dispatch shapes fanOut() implements. "parallel" is the CLI default (byte-identical to today when
+// --strategy is omitted); an unrecognised value is refused, never silently coerced to it.
+export const DISPATCH_STRATEGIES = new Set(["parallel", "serial", "prime-then-parallel"]);
+
+// Fan every request out under the chosen `strategy` (default "parallel", today's behaviour, byte-
+// identical when the caller omits it):
+//   parallel            : start ALL requests before awaiting ANY of them, then Promise.allSettled them
+//                          together, bounded by the slowest single call.
+//   serial              : dispatch one request at a time, each awaited before the next starts.
+//   prime-then-parallel : await requests[0] alone (populates the shared-prefix cache), then dispatch
+//                          requests[1..] together via Promise.allSettled. A priming LENS failure (a
+//                          normal close with a non-zero exit) never aborts the batch: requests[1..]
+//                          still dispatch and the primed slot carries its own exit. A priming
+//                          SPAWN-level fault is the same "any child's spawn faulted" case as parallel
+//                          below: the rest are skipped, since the same environmental fault (e.g. node
+//                          missing) would hit every remaining child identically.
+// Every strategy returns results in INPUT-REQUEST order; N=1 degenerates to a single awaited call
+// under all three.
 //
 // Returns { ok: true, results: LensResult[] } (same order as `requests`) on a clean fan-out, or
 // { ok: false, fault: string } when ANY child's spawn() itself faulted (distinct from a child that
-// started and exited non-zero) — a fan-out-level fault fails the WHOLE batch, the same fail-loud
-// posture aggregate.mjs already takes on an inconsistent input rather than silently returning fewer
-// results than requested.
-export async function fanOut(requests, { spawnFn = spawn, nodePath = "node", reviewCallPath = REVIEW_CALL_PATH } = {}) {
-  const promises = requests.map((r) => runOne(r, { spawnFn, nodePath, reviewCallPath }));
-  const settled = await Promise.allSettled(promises);
+// started and exited non-zero), or when `strategy` is unrecognised (fail loud, never silently coerced
+// to "parallel"). A fan-out-level fault fails the WHOLE batch, the same fail-loud posture
+// aggregate.mjs already takes on an inconsistent input rather than silently returning fewer results
+// than requested.
+export async function fanOut(requests, { spawnFn = spawn, nodePath = "node", reviewCallPath = REVIEW_CALL_PATH, strategy = "parallel" } = {}) {
+  if (!DISPATCH_STRATEGIES.has(strategy)) {
+    return { ok: false, fault: `unrecognised --strategy "${strategy}" (expected parallel | serial | prime-then-parallel)` };
+  }
+  const runOneReq = (r) => runOne(r, { spawnFn, nodePath, reviewCallPath });
+
+  let settled;
+  if (strategy === "serial") {
+    settled = [];
+    for (const r of requests) {
+      const s = await toSettled(runOneReq(r));
+      settled.push(s);
+      if (s.status === "rejected") break; // an environmental spawn fault would hit every remaining child identically
+    }
+  } else if (strategy === "prime-then-parallel") {
+    const primed = await toSettled(runOneReq(requests[0]));
+    settled = primed.status === "rejected"
+      ? [primed]
+      : [primed, ...await Promise.allSettled(requests.slice(1).map(runOneReq))];
+  } else {
+    settled = await Promise.allSettled(requests.map(runOneReq));
+  }
+
   const rejections = settled.filter((s) => s.status === "rejected");
   if (rejections.length > 0) {
     // FAFF-706 adversarial review: surface EVERY rejection, not just the first — a batch where two
@@ -154,6 +210,16 @@ export async function fanOut(requests, { spawnFn = spawn, nodePath = "node", rev
 }
 
 // ---- CLI ------------------------------------------------------------------
+// Reads `flag`'s value out of argv, or undefined when the flag is absent. Throws when the flag is the
+// trailing argument with no value: mirrors readRequestsInput's own "--requests requires a FILE
+// argument" diagnosis, so a mistyped invocation gets a clear message, not an opaque undefined downstream.
+function readFlagValue(argv, flag) {
+  const i = argv.indexOf(flag);
+  if (i === -1) return undefined;
+  if (i + 1 >= argv.length) throw new Error(`${flag} requires a value`);
+  return argv[i + 1];
+}
+
 // Input (stdin or --requests FILE) is JSON: either a bare array of LensRequest, or an object
 // { requests: [...] } — mirrors aggregate.mjs's dual-mode CLI shape.
 function readRequestsInput(argv) {
@@ -196,6 +262,13 @@ export async function main(argv, { spawnFn = spawn } = {}) {
   // Must run FIRST, before readRequestsInput — that call reads --requests FILE or stdin (fd 0), so
   // placed later an interactive --selftest with no piped input would block on stdin.
   if (argv.includes("--selftest")) return selftest();
+  let strategy;
+  try {
+    strategy = readFlagValue(argv, "--strategy") ?? "parallel";
+  } catch (e) {
+    process.stderr.write(`fan-out: ${e.message}\n`);
+    return 1;
+  }
   let requests;
   try {
     requests = readRequestsInput(argv);
@@ -208,9 +281,9 @@ export async function main(argv, { spawnFn = spawn } = {}) {
     process.stderr.write(`fan-out: ${v.reason}\n`);
     return 1;
   }
-  const outcome = await fanOut(requests, { spawnFn });
+  const outcome = await fanOut(requests, { spawnFn, strategy });
   if (!outcome.ok) {
-    process.stderr.write(`fan-out: spawn fault — ${outcome.fault}\n`);
+    process.stderr.write(`fan-out: ${outcome.fault}\n`);
     return 1;
   }
   process.stdout.write(JSON.stringify(outcome.results) + "\n");

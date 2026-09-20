@@ -308,6 +308,13 @@ const RUNCHECK_SELFTEST_CASES = [
   ["FAFF-1045: owned + admitted [\"constructor\"] + empty outcomes → block (own-key test, not `in`)",
     { run_id: "R", admitted: ["constructor"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
     { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, true, false],
+  // FAFF-1045: the paired "drained" direction — mirrors FAFF-1024's protoCollisionDrained.
+  // Recording the "constructor" id itself as its OWN outcome key must correctly drain the
+  // queue (own-key test says dispatched), pinning the fix against an over-correction that
+  // would treat every prototype-colliding id as perpetually undispatched.
+  ["FAFF-1045: owned + admitted [\"constructor\"] + outcomes {constructor: shipped} → silent (own-key test drains correctly)",
+    { run_id: "R", admitted: ["constructor"], outcomes: { constructor: "shipped" }, owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, false, false],
   ["owned + clean queue → silent",
     { run_id: "R", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "running", last_heartbeat: hbAgo(10) } },
     { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, false, false],

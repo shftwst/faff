@@ -116,9 +116,20 @@ function computeDisposition(ledger, parksMap, eventMap, mergedMap, runId, custod
   // (mergedMap/custodyMap above). A resumable pr-open is skipped here (not attention, the next drain
   // may land it); pr-open-for-human is NEVER added to the array, so it always falls through and reds.
   const landingResumable = Array.isArray(ledger.landing_resumable) ? new Set(ledger.landing_resumable) : new Set();
+  // FAFF-996: `built-but-not-admitted` — a build-review dialogue-or-judge pass mid-adjudication
+  // when the turn budget runs out — reuses the SAME `parked` outcome bucket `faff-parked`
+  // already writes to (the ratified "reuse the bucket, add an annotation array" decision — see
+  // the spec's HOW, "built-but-not-admitted: a Todo-side hold"). `ledger.build_review_dialogue_
+  // pending` is the additive disambiguator `hold_built_not_admitted` writes ONLY on the hold
+  // token (never on a genuine `faff-parked` human park), mirroring `landing_resumable` above
+  // exactly: a listed parked issue is skipped here (not attention, the next drain resumes the
+  // dialogue loop at its stashed round); an unlisted parked issue is a real human park and still
+  // reds.
+  const buildReviewDialoguePending = Array.isArray(ledger.build_review_dialogue_pending) ? new Set(ledger.build_review_dialogue_pending) : new Set();
   for (const [issue, outcome] of Object.entries(outcomes)) {
     if (!ATTENTION_OUTCOMES.has(outcome)) continue;
     if (outcome === "pr-open" && landingResumable.has(issue)) continue;
+    if (outcome === "parked" && buildReviewDialoguePending.has(issue)) continue;
     const cause = (issue in parksMap ? parksMap[issue] : null)
       ?? (eventMap[issue] ? eventCause(eventMap[issue].data) : null)
       ?? null;
@@ -535,6 +546,26 @@ const DISPOSITION_SELFTEST_CASES = [
     { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "parked" }, landing_resumable: ["FAFF-X"] },
     {}, {}, {}, "needs-attention",
     (a) => has(a, (i) => i.issue === "FAFF-X" && i.outcome === "parked")],
+  // FAFF-996 — build_review_dialogue_pending: a `built-but-not-admitted` hold reuses the
+  // `parked` bucket, disambiguated the same way landing_resumable disambiguates `pr-open`.
+  ["FAFF-996 Scenario: parked IN build_review_dialogue_pending → clean (a dialogue hold is not attention)",
+    { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "parked" }, build_review_dialogue_pending: ["FAFF-X"] },
+    {}, {}, {}, "clean", (a) => a.length === 0],
+  ["FAFF-996 Scenario: parked NOT in build_review_dialogue_pending → needs-attention (a genuine faff-parked human park still reds)",
+    { run_id: "R", admitted: ["FAFF-Y"], outcomes: { "FAFF-Y": "parked" } },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.kind === "issue-outcome" && i.issue === "FAFF-Y" && i.outcome === "parked")],
+  ["FAFF-996: build_review_dialogue_pending non-array (malformed) degrades to no pending issues, never throws",
+    { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "parked" }, build_review_dialogue_pending: "FAFF-X" },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.issue === "FAFF-X" && i.kind === "issue-outcome")],
+  ["FAFF-996: build_review_dialogue_pending is inert for a non-parked outcome (e.g. pr-open) even if the issue id is listed",
+    { run_id: "R", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "pr-open" }, build_review_dialogue_pending: ["FAFF-X"] },
+    {}, {}, {}, "needs-attention",
+    (a) => has(a, (i) => i.issue === "FAFF-X" && i.outcome === "pr-open")],
+  ["FAFF-996: a mixed run — one dialogue-pending parked skipped, one landing_resumable pr-open skipped, both distinct annotations respected",
+    { run_id: "R", admitted: ["FAFF-A", "FAFF-B"], outcomes: { "FAFF-A": "parked", "FAFF-B": "pr-open" }, build_review_dialogue_pending: ["FAFF-A"], landing_resumable: ["FAFF-B"] },
+    {}, {}, {}, "clean", (a) => a.length === 0],
 ];
 
 function dispositionSelftest() {

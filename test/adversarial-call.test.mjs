@@ -1884,19 +1884,12 @@ test("FAFF-942 normaliseCleanRefutation: the findings-shaped observation the ref
 
 test("FAFF-942 normaliseCleanRefutation: the new 3-line grammar stays CLOSED (negative cases)", () => {
   const rejected = [
-    // a trailing 4th line past the recognised no-op
+    // a trailing 4th line past the recognised no-op: the affirmation is no longer the final line
     "## Refutation — methodology\nno methodology signal available.\nNo methodology objection.\nAnd one more thing.",
-    // near-miss signal line: wrong casing
-    "## Refutation — methodology\nNo methodology signal available.\nNo methodology objection.",
-    // near-miss signal line: missing trailing period
-    "## Refutation — methodology\nno methodology signal available\nNo methodology objection.",
-    // a different lens's signal line (methodology signal under the wrong heading)
-    "## Refutation — architectural\nno methodology signal available.\nNo architectural objection.",
-    // 2-line signal-only form (no objection sentence)
+    // 2-line signal-only form (no objection sentence): the final line is not a canonical affirmation at all
     "## Refutation — methodology\nno methodology signal available.",
-    // signal + sentence without the heading
-    "no methodology signal available.\nNo methodology objection.",
-    // the objection sentence with unrelated trailing prose (the pre-existing openness guard)
+    // the objection sentence with unrelated trailing prose (the pre-existing openness guard): the
+    // affirmation is not the final line
     "No methodology objection.\nAdditional prose.",
   ];
   for (const content of rejected) {
@@ -1908,10 +1901,38 @@ test("FAFF-942 normaliseCleanRefutation: the new 3-line grammar stays CLOSED (ne
   }
 });
 
+test("FAFF-1053 normaliseCleanRefutation: a near-miss 3-line signal line never becomes `headed+signal` — it falls to tail-matched `bare`, never full rejection", () => {
+  // Before FAFF-1053, these bodies were rejected outright because the whole-body arms required an
+  // EXACT 3-line match. Tail matching folds everything above the affirmation that is neither a
+  // heading nor a severity-shaped line into tolerated preamble (AC1: "regardless of preceding
+  // prose") — so a near-miss signal line no longer defeats normalisation, it just never earns the
+  // more specific `headed+signal` label (the exact-signal-line gate from FAFF-942 stays closed).
+  const nowBare = [
+    // near-miss signal line: wrong casing
+    { content: "## Refutation — methodology\nNo methodology signal available.\nNo methodology objection.", lens: "methodology" },
+    // near-miss signal line: missing trailing period
+    { content: "## Refutation — methodology\nno methodology signal available\nNo methodology objection.", lens: "methodology" },
+    // a different lens's signal line under the wrong heading (methodology signal, architectural entry)
+    { content: "## Refutation — architectural\nno methodology signal available.\nNo architectural objection.", lens: "architectural" },
+    // signal + sentence without the heading
+    { content: "no methodology signal available.\nNo methodology objection.", lens: "methodology" },
+  ];
+  for (const { content, lens } of nowBare) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content: CANONICAL_NO_FINDINGS, normalised: true, lens, form: "bare" },
+      JSON.stringify(content),
+    );
+  }
+});
+
 test("FAFF-942 normaliseCleanRefutation: a non-methodology lens gets NO 3-line arm (signal is methodology-only)", () => {
-  // even if a model echoed a methodology-style signal line under the QA heading, QA carries no signal → not normalised
+  // even if a model echoed a methodology-style signal line under the QA heading, QA carries no signal,
+  // so this never matches the `headed+signal` arm. FAFF-1053: the mismatched middle line is now
+  // tolerated preamble (it is neither a heading nor severity-shaped), so the body still normalises —
+  // via the tail-matched `bare` arm, never `headed+signal`.
   const content = "## Refutation — QA\nno methodology signal available.\nNo QA objection.";
-  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+  assert.deepEqual(normaliseCleanRefutation(content), { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "QA", form: "bare" });
 });
 
 // ── FAFF-927: a decorative header wrapping a byte-exact affirmation sentence is a clean pass ──
@@ -1967,9 +1988,16 @@ test("FAFF-927 normaliseCleanRefutation: a severity heading over an affirmation 
   assert.equal(validateFindingsShape(content).ok, true);
 });
 
-test("FAFF-927 normaliseCleanRefutation: stacked sentences under one decorative header stay rejected (holdout)", () => {
+test("FAFF-927 normaliseCleanRefutation: stacked sentences under one decorative header normalise on the FINAL sentence (FAFF-1053: tail-matched, not whole-body)", () => {
+  // Pre-FAFF-1053 this was rejected outright because the whole-body arms required an exact 2-line
+  // match (`isDecorativeHeader(lines[0])` + `lines[1] === entry.sentence`), so three non-blank lines
+  // never matched any arm. Tail matching (AC1: "regardless of preceding prose") only inspects the
+  // FINAL non-blank line for the affirmation and the line directly above it for form — an earlier,
+  // non-adjacent sentence is tolerated preamble like any other non-heading, non-severity text, so the
+  // body now normalises on the QA lens (the one whose sentence terminates the body); the earlier
+  // architectural sentence is preamble, not a second verdict.
   const content = "## Summary\nNo architectural objection.\nNo QA objection.";
-  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+  assert.deepEqual(normaliseCleanRefutation(content), { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "QA", form: "bare" });
 });
 
 test("FAFF-927 normaliseCleanRefutation: a decorative header over a non-affirmation body is not normalised (AC #2 de-risking)", () => {
@@ -2082,6 +2110,123 @@ test("FAFF-927 normaliseCleanRefutation: a genuinely decorative heading with no 
   for (const header of ["## Second opinion", "# Code review", "### Assessment", "## Notes"]) {
     assert.equal(normaliseCleanRefutation(`${header}\nNo QA objection.`).form, "header-wrapped", header);
   }
+});
+
+// ── FAFF-1053: a clean refutation preceded by ANY preamble (a reasoning backend's visible
+// deliberation, emitted into the content channel) is recognised at the TAIL of the body, not only
+// when the affirmation is the whole body. Grammar (which sentences/headings count) is unchanged;
+// only WHERE the affirmation may sit is loosened. ──
+
+test("FAFF-1053 normaliseCleanRefutation: a canonical headed refutation preceded by ~80 lines of reasoning preamble normalises, keeping the `headed` label", () => {
+  const preamble = Array.from({ length: 80 }, (_, i) => `Reasoning line ${i + 1}: considering the diff further.`).join("\n");
+  for (const entry of CLEAN_REFUTATIONS) {
+    const content = `${preamble}\n\n${entry.heading}\n\n${entry.sentence}`;
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed" },
+      entry.lens,
+    );
+  }
+});
+
+test("FAFF-1053 normaliseCleanRefutation: a lens-mismatched pairing still rejects even with a long preamble ahead of it", () => {
+  const preamble = Array.from({ length: 40 }, (_, i) => `Deliberation ${i + 1}: weighing the tradeoffs.`).join("\n");
+  const content = `${preamble}\n\n## Refutation — architectural\n\nNo QA objection.`;
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+});
+
+test("FAFF-1053 normaliseCleanRefutation: a preamble containing a genuine severity-shaped heading is never swallowed, even when the body ends in a canonical affirmation (finding-swallow guard)", () => {
+  const content = [
+    "Let me walk through the diff carefully.",
+    "### critical: null check removed in parseDiff",
+    "That does look like a real bug worth flagging.",
+    "Actually, on reflection I'll defer to the architectural lens on this.",
+    "## Refutation — architectural",
+    "",
+    "No architectural objection.",
+  ].join("\n");
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+  // and the body is genuinely findings-shaped, so the caller's raw-bytes discriminator still sees the
+  // finding rather than reading it as empty/garbled
+  assert.equal(validateFindingsShape(content).ok, true);
+});
+
+test("FAFF-1053 normaliseCleanRefutation: a severity-shaped preamble line still blocks normalisation for the bare and header-wrapped forms too, not only headed", () => {
+  const severityLine = "## Major: a real concern buried in the reasoning";
+  assert.deepEqual(
+    normaliseCleanRefutation(`${severityLine}\nNo QA objection.`),
+    { content: `${severityLine}\nNo QA objection.`, normalised: false, lens: null, form: null },
+  );
+  assert.deepEqual(
+    normaliseCleanRefutation(`${severityLine}\n## Second opinion\nNo QA objection.`),
+    { content: `${severityLine}\n## Second opinion\nNo QA objection.`, normalised: false, lens: null, form: null },
+  );
+});
+
+test("FAFF-1053 normaliseCleanRefutation: the affirmation must be the FINAL non-blank line — a mid-body affirmation followed by more prose does not normalise", () => {
+  const content = "No architectural objection.\nActually, let me reconsider that once more.";
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+});
+
+test("FAFF-1053 normaliseCleanRefutation: a genuinely malformed preambled body (no canonical affirmation anywhere) still classifies malformed", () => {
+  const content = "Line one of reasoning.\nLine two of reasoning.\nI think this looks fine overall.";
+  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+  assert.equal(validateFindingsShape(content).kind, "garbled");
+});
+
+test("FAFF-1053 runReviewChain: a preamble-preceded clean refutation on the primary is served (winnerIndex 0, primary NOT skipped) — the reported incident, fixed", async () => {
+  const preamble = Array.from({ length: 80 }, (_, i) => `Reasoning line ${i + 1}: still thinking this through.`).join("\n");
+  const content = `${preamble}\n\n## Refutation — architectural\n\nNo architectural objection.`;
+  const res = await runReviewChain(
+    [
+      { provider: "openai", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "openai", model: "fallback", host: "https://fallback/v1", hostSource: "config" },
+    ],
+    { system: "S", user: "U", log: () => {}, runReviewFn: scriptedRunReview({ "https://primary/v1": { status: "ok", content } }) },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.content, CANONICAL_NO_FINDINGS);
+  assert.equal(res.winnerIndex, 0);
+  assert.equal(res.primarySkipped, null);
+});
+
+test("FAFF-1053 runReviewChain: a preamble-preceded MALFORMED body (no canonical affirmation) still advances the chain to the fallback (winnerIndex > 0)", async () => {
+  const preamble = Array.from({ length: 20 }, (_, i) => `Reasoning line ${i + 1}.`).join("\n");
+  const content = `${preamble}\nI think this is fine, no further comment.`;
+  const res = await runReviewChain(
+    [
+      { provider: "openai", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "openai", model: "fallback", host: "https://fallback/v1", hostSource: "config" },
+    ],
+    {
+      system: "S", user: "U", log: () => {},
+      runReviewFn: scriptedRunReview({
+        "https://primary/v1": { status: "ok", content },
+        "https://fallback/v1": { status: "ok", content: CANONICAL_NO_FINDINGS },
+      }),
+    },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.ok(res.winnerIndex > 0, "the malformed preambled primary must not terminate the chain");
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+});
+
+// Integration smoke test straight from the FAFF-1053 spec: an 80-line preamble ahead of a canonical
+// headed architectural refutation, served by chain[0], must terminate there with no primary-skip note.
+test("FAFF-1053 runReviewChain smoke test: the spec's own 80-line-preamble scenario serves on the primary", async () => {
+  const preambleLines = Array.from({ length: 80 }, (_, i) => `Wait, let me reconsider point ${i + 1} once more.`);
+  const content = `${preambleLines.join("\n")}\n\n## Refutation — architectural\n\nNo architectural objection.`;
+  const res = await runReviewChain(
+    [
+      { provider: "openai", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "openai", model: "fallback", host: "https://fallback/v1", hostSource: "config" },
+    ],
+    { system: "S", user: "U", log: () => {}, runReviewFn: scriptedRunReview({ "https://primary/v1": { status: "ok", content } }) },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.content, CANONICAL_NO_FINDINGS);
+  assert.equal(res.winnerIndex, 0);
+  assert.equal(res.primarySkipped, null);
 });
 
 test("FAFF-746/706 spec-review command contract supplies non-empty system, diff, and context paths", () => {

@@ -741,34 +741,70 @@ function isDecorativeHeader(line) {
   return true;
 }
 
+// FAFF-1053: a reasoning backend can stream its visible deliberation into the content channel before
+// emitting the canonical affirmation, so the whole-body, exact-line-count premise above (every arm
+// gated on `lines.length === 1/2/3`) fails any body with a preamble and falls through to `malformed`,
+// discarding a correct no-findings verdict on POSITION rather than content. Fixed by matching the
+// TAIL of the body instead of the whole body: the affirmation must be the final non-blank line, and
+// the line(s) directly above it (if any) decide the form via the same per-entry/decorative logic the
+// whole-body arms used, tried most-specific-first (`headed+signal` → `headed` → `header-wrapped`/
+// `bare`) so no no-preamble body relabels. A heading directly above the affirmation that is neither
+// this entry's own heading nor a decorative header (a wrong-lens `## Refutation —` namespace hit or a
+// severity-worded heading) stays rejected exactly as the whole-body `headed` arm did — never silently
+// falls through to `bare`. Finally, a preamble severity guard (`SEVERITY_LIKE_HEADING_RE` over every
+// line before the matched tail segment) stops a body that ALSO carries a genuine finding from being
+// swallowed as clean — the whole-body premise made this hazard impossible for free (a body with a
+// finding could never be 1–3 lines); tail matching removes that free guard, so it is re-added here.
 export function normaliseCleanRefutation(content) {
   const original = String(content == null ? "" : content);
   const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
-  for (const entry of CLEAN_REFUTATIONS) {
-    if (lines.length === 1 && lines[0] === entry.sentence) {
-      return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "bare" };
+  if (lines.length === 0) {
+    return { content: original, normalised: false, lens: null, form: null };
+  }
+
+  const lastIdx = lines.length - 1;
+  const last = lines[lastIdx];
+  const above1 = lastIdx - 1 >= 0 ? lines[lastIdx - 1] : null;
+  const above2 = lastIdx - 2 >= 0 ? lines[lastIdx - 2] : null;
+
+  const entry = CLEAN_REFUTATIONS.find((e) => e.sentence === last);
+  if (!entry) {
+    return { content: original, normalised: false, lens: null, form: null };
+  }
+
+  let form;
+  let start; // index of the tail segment's first line — everything before it is preamble
+  if (entry.signal != null && above1 === entry.signal && above2 === entry.heading) {
+    form = "headed+signal";
+    start = lastIdx - 2;
+  } else if (above1 === entry.heading) {
+    form = "headed";
+    start = lastIdx - 1;
+  } else if (above1 != null && ATX_HEADING_RE.test(above1)) {
+    // A heading sits directly above the affirmation but is NOT this lens's own heading: either a
+    // decorative wrapper (accept as header-wrapped) or a namespace/severity heading (a wrong-lens
+    // pairing like FAFF-746's `## Refutation — architectural` + `No QA objection.` — reject, never
+    // fall through to bare, with or without preceding preamble).
+    if (isDecorativeHeader(above1)) {
+      form = "header-wrapped";
+      start = lastIdx - 1;
+    } else {
+      return { content: original, normalised: false, lens: null, form: null };
     }
-    if (lines.length === 2 && lines[0] === entry.heading && lines[1] === entry.sentence) {
-      return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed" };
-    }
-    // FAFF-942: heading + the lens's own no-signal diagnostic line + sentence — the exact three-line
-    // no-op the methodology refuter emits when handed no critique. Closed: only an entry that declares a
-    // `signal`, and only that exact middle line, ever matches this arm.
-    if (entry.signal != null && lines.length === 3 && lines[0] === entry.heading && lines[1] === entry.signal && lines[2] === entry.sentence) {
-      return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed+signal" };
+  } else {
+    form = "bare";
+    start = lastIdx;
+  }
+
+  // Preamble severity guard (clean means clean): a real `### <severity>:`-shaped finding anywhere
+  // before the matched tail segment must never be discarded by a trailing clean affirmation.
+  for (let i = 0; i < start; i++) {
+    if (SEVERITY_LIKE_HEADING_RE.test(lines[i])) {
+      return { content: original, normalised: false, lens: null, form: null };
     }
   }
-  // FAFF-927: any single decorative header wrapping a byte-exact affirmation sentence. Tried only after
-  // every exact per-entry arm above has failed to match, so a body that also satisfies `headed` or
-  // `headed+signal` keeps that more specific label — no existing form regresses to `header-wrapped`.
-  if (lines.length === 2 && isDecorativeHeader(lines[0])) {
-    for (const entry of CLEAN_REFUTATIONS) {
-      if (lines[1] === entry.sentence) {
-        return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "header-wrapped" };
-      }
-    }
-  }
-  return { content: original, normalised: false, lens: null, form: null };
+
+  return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form };
 }
 
 // PURE (FAFF-361): the canonical, harness-authored findings header — provenance is harness data,

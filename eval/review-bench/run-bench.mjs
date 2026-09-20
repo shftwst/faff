@@ -192,8 +192,12 @@ const CLEAN_REFUTATIONS = [
 // preamble severity guard below is what stops a preceding genuine finding from being masked as a
 // clean-pass — shape() gives clean-pass precedence over SEV, so without the guard a preambled body
 // carrying a real finding would misclassify here exactly as it would in production without
-// normaliseCleanRefutation's own guard.
+// normaliseCleanRefutation's own guard. The guard reuses SEVERITY_LIKE_HEADING_RE below (level-agnostic,
+// #{1,6}) rather than the canonical-3-hash SEV — production's own preamble guard is level-agnostic (see
+// review-call.mjs's SEVERITY_LIKE_HEADING_RE), so a `## Critical: …` preamble line (2 hashes) must be
+// caught here too, not only the canonical `### critical:` form SEV parses for genuine finding sections.
 const BENCH_ATX_HEADING_RE = /^#{1,6}\s+\S/;
+const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
 function isCleanRefutation(content) {
   const lines = String(content == null ? "" : content)
     .replace(/\r\n?/g, "\n")
@@ -211,7 +215,7 @@ function isCleanRefutation(content) {
   else if (above1 != null && BENCH_ATX_HEADING_RE.test(above1)) return false; // a mismatched heading directly above — not mirrored, stays unrecognised
   else start = lastIdx; // bare form — above1 is null or non-heading preamble, tolerated
   for (let i = 0; i < start; i++) {
-    if (SEV.test(lines[i])) return false; // preamble severity guard — never mask a genuine finding
+    if (SEVERITY_LIKE_HEADING_RE.test(lines[i])) return false; // preamble severity guard — never mask a genuine finding
   }
   return true;
 }

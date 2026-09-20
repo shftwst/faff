@@ -27,8 +27,10 @@ import { pathToFileURL } from "node:url";
 //   diffPath    — the spec under scrutiny (--diff)
 //   rawDir      — <scratch>/raw for FAFF-928 raw-body capture; falsy ⇒ the three flags are omitted
 //   round       — spec-review round number for --round
+//   deadline    : total wall-clock --deadline seconds, identical across every lens (like timeout);
+//                 undefined/null/"" omits the flag, so a caller resolving no deadline is unaffected
 export function buildLensRequests({
-  lenses, backendsJson, timeout, maxTokens, systemDir, contextPaths = [], diffPath, rawDir, round,
+  lenses, backendsJson, timeout, maxTokens, systemDir, contextPaths = [], diffPath, rawDir, round, deadline,
 } = {}) {
   if (!Array.isArray(lenses)) throw new Error("buildLensRequests: lenses must be an array");
   return lenses.map((lens) => {
@@ -36,13 +38,19 @@ export function buildLensRequests({
       "--backends-json", String(backendsJson),
       "--timeout", String(timeout),
       "--max-tokens", String(maxTokens),
+    ];
+    // The total wall-clock ceiling across all attempts/fallbacks for THIS lens's review-call.mjs
+    // invocation; part of the shared/prefix-identical argv fields (order-independent of the wire's
+    // cacheable prefix, which review-call.mjs assembles from --context/--diff, not from argv order).
+    if (deadline !== undefined && deadline !== null && deadline !== "") argv.push("--deadline", String(deadline));
+    argv.push(
       // The brief filenames are lowercase (refute-{architectural,infosec,methodology,qa}.md) but the
       // lens vocabulary carries `QA` uppercase, because that token is the spec-review-verdict contract
       // enum (contract-defs.js SPEC_REVIEW_LENSES) and rides in every objection's `lens` field. Lowercase
       // here rather than moving the enum: on a case-sensitive filesystem `refute-QA.md` is ENOENT, the QA
       // lens records a config-fault, and one config-fault floors the whole aggregate to needs-human.
       "--system", pathJoin(systemDir, `refute-${lens.toLowerCase()}.md`),
-    ];
+    );
     for (const p of contextPaths) argv.push("--context", String(p));
     argv.push("--diff", String(diffPath));
     // FAFF-1051: the spec under scrutiny is a document, not a unified diff — declare the kind so the
@@ -56,7 +64,7 @@ export function buildLensRequests({
 
 // ---- CLI ------------------------------------------------------------------------------------
 // build-lens-requests.mjs --lenses a,b,c --backends-json F --timeout T --max-tokens M --system-dir DIR
-//   --diff SPEC [--context F]... [--raw-dir DIR --round N]
+//   --diff SPEC [--context F]... [--raw-dir DIR --round N] [--deadline SECONDS]
 // Prints the LensRequest[] JSON to stdout (drop-in for `fan-out.mjs --requests`).
 export function parseArgs(argv) {
   const a = { contextPaths: [] };
@@ -71,6 +79,7 @@ export function parseArgs(argv) {
     else if (k === "--diff") a.diffPath = argv[++i];
     else if (k === "--raw-dir") a.rawDir = argv[++i];
     else if (k === "--round") a.round = argv[++i];
+    else if (k === "--deadline") a.deadline = argv[++i];
   }
   return a;
 }

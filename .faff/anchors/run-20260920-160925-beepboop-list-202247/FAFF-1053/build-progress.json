@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1053",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4db1016c522e205d40be921cbe8404eb22cd314f3a15b3829a7a295c30100cf0",
+    "branch": "faff-1053-a-clean-refutation-preceded-by-any-preamble-is-classified",
+    "pushed_at": "2026-09-20T22:21:56.665Z"
+  },
+  "updated_at": "2026-09-20T22:21:56.665Z"
+}

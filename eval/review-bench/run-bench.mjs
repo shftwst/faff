@@ -181,17 +181,43 @@ const CLEAN_REFUTATIONS = [
   { heading: "## Refutation — methodology", sentence: "No methodology objection." },
   { heading: "## Refutation — QA", sentence: "No QA objection." },
 ];
+// FAFF-1053: tail-matched, mirroring production's normaliseCleanRefutation — the affirmation must be
+// the FINAL non-blank line (not the whole body), so a reasoning backend's preamble no longer defeats
+// this mirror either, and (mirroring production's "bare" arm) any non-heading text directly above the
+// affirmation is tolerated as preamble too, not just an entirely absent line. Still a subset mirror:
+// only the bare/headed forms move (this file never carried headed+signal/header-wrapped) — a heading
+// directly above the affirmation that isn't this entry's own heading stays unrecognised (production
+// would resolve it to either header-wrapped or a rejection; this mirror has no decorative-header
+// detection, so it conservatively stays "not clean" either way, exactly as before this change). The
+// preamble severity guard below is what stops a preceding genuine finding from being masked as a
+// clean-pass — shape() gives clean-pass precedence over SEV, so without the guard a preambled body
+// carrying a real finding would misclassify here exactly as it would in production without
+// normaliseCleanRefutation's own guard. The guard reuses SEVERITY_LIKE_HEADING_RE below (level-agnostic,
+// #{1,6}) rather than the canonical-3-hash SEV — production's own preamble guard is level-agnostic (see
+// review-call.mjs's SEVERITY_LIKE_HEADING_RE), so a `## Critical: …` preamble line (2 hashes) must be
+// caught here too, not only the canonical `### critical:` form SEV parses for genuine finding sections.
+const BENCH_ATX_HEADING_RE = /^#{1,6}\s+\S/;
+const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
 function isCleanRefutation(content) {
   const lines = String(content == null ? "" : content)
     .replace(/\r\n?/g, "\n")
     .trim()
     .split("\n")
     .filter((line) => line.trim() !== "");
-  for (const { heading, sentence } of CLEAN_REFUTATIONS) {
-    if (lines.length === 1 && lines[0] === sentence) return true;       // bare form
-    if (lines.length === 2 && lines[0] === heading && lines[1] === sentence) return true; // headed form
+  if (lines.length === 0) return false;
+  const lastIdx = lines.length - 1;
+  const last = lines[lastIdx];
+  const above1 = lastIdx - 1 >= 0 ? lines[lastIdx - 1] : null;
+  const entry = CLEAN_REFUTATIONS.find((e) => e.sentence === last);
+  if (!entry) return false;
+  let start;
+  if (above1 === entry.heading) start = lastIdx - 1; // headed form
+  else if (above1 != null && BENCH_ATX_HEADING_RE.test(above1)) return false; // a mismatched heading directly above — not mirrored, stays unrecognised
+  else start = lastIdx; // bare form — above1 is null or non-heading preamble, tolerated
+  for (let i = 0; i < start; i++) {
+    if (SEVERITY_LIKE_HEADING_RE.test(lines[i])) return false; // preamble severity guard — never mask a genuine finding
   }
-  return false;
+  return true;
 }
 function shape(content) {
   const t = (content || "").trim();

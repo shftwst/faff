@@ -249,9 +249,12 @@ async function dispatchJudgeRulings(ledger, caseFiles, judgeDir, deps) {
 
 // --- critical-free-latest floor (p-17) — computed HERE (CLI layer), never inside the pure
 // admitBuildRollup. Reads the last dialogue round record's standing criticals and checks every
-// one resolved to an OVERTURNed ledger entry. Missing/unreadable --dir or no rounds -> null
-// (degraded -> admitBuildRollup fails it CLOSED).
-function computeCriticalFreeLatestFloor(dir, ledger) {
+// one resolved to an OVERTURN ruling. Missing/unreadable --dir or no rounds -> null (degraded ->
+// admitBuildRollup fails it CLOSED). `rulings` (the SAME case_id -> BuildJudgeVerdict|null map
+// --admit already loaded) is the source of truth for "overturned" — never a possibly-stale
+// `ledger.entries[cid].resolution` field, so the floor can never disagree with admitBuildRollup's
+// own resolved/unresolved split over the identical ruling data.
+function computeCriticalFreeLatestFloor(dir, ledger, rulings) {
   let files;
   try { files = roundFilesInDir(dir); } catch { return null; }
   if (!files.length) return null;
@@ -260,11 +263,13 @@ function computeCriticalFreeLatestFloor(dir, ledger) {
   if (read.malformed || read.missing) return null;
   const standingIds = standingCriticalIds(read.record && read.record.findings);
   if (standingIds.length === 0) return true;
-  const overturnedIds = new Set(
-    Object.values((ledger && ledger.entries) || {})
-      .filter((e) => e && e.resolution === "overturned")
-      .map((e) => e.finding_id),
-  );
+  const entries = (ledger && ledger.entries) || {};
+  const overturnedIds = new Set();
+  for (const [cid, entry] of Object.entries(entries)) {
+    if (!entry) continue;
+    const ruling = (rulings || {})[cid];
+    if (ruling && ruling.outcome === "OVERTURN") overturnedIds.add(entry.finding_id);
+  }
   return standingIds.every((id) => overturnedIds.has(id));
 }
 
@@ -423,7 +428,7 @@ function cmdAdmit(values) {
     rulings[cid] = ruling;
   }
 
-  const criticalFreeLatest = dir ? computeCriticalFreeLatestFloor(dir, ledger) : null;
+  const criticalFreeLatest = dir ? computeCriticalFreeLatestFloor(dir, ledger, rulings) : null;
 
   let result;
   try {

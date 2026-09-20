@@ -32,6 +32,8 @@ const CONTROL_LABEL_DEFS = [
     description: "Cosmetic breadcrumb: an active issue demoted Todo->Backlog because faff park-history flagged it repeat-parked (3+ parks, same root-cause class, within the rolling window). Detection is seam-computed (faff park-history), NOT read from this label — the label only marks the demotion for /faff-wtf. Distinct from the repeat-parked routing verdict (contract-defs.js). CLI-writable (no tracker_owned flag)." },
   { role: "claimed", color: "#9b51e0",
     description: "faff set this issue's In Progress claim; eligible for stale-claim reclaim (FAFF-758). Applied by faff-graft at the Step-5 claim, cleared by faff-graft (on terminal disposition and the FAFF-403 retry-later release) or faff-tidy (state-driven stale-label sweep). Its presence is the PROVENANCE that lets tidy auto-reclaim a stale (past claim_ttl_hours) claim — a claim WITHOUT it is human-set or unprovable and is only surfaced, never reverted. Machine-writable like the parked/awaiting-review labels (no tracker_owned flag), NOT an eligibility throttle." },
+  { role: "awaiting-adjudication", color: "#f2c94c",
+    description: "Built work holding for a build-review dialogue-or-judge pass still pending across turns; the next drain resumes the dialogue loop at its stashed round (no rebuild). Applied by faff-graft, cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear). NOT a park (the parked label) and NOT the review-outage awaiting-review hold — a distinct build-review-dialogue hold (FAFF-996)." },
 ];
 
 // Pure factory: no config read, no fs. `name` is computed per entry; `role` / `color` /
@@ -48,8 +50,8 @@ function controlLabels(prefix = "faff") {
 // description pass through unchanged per entry.
 const LABELS_SELFTEST_CASES = [
   // [prefix, expectedNames] — role/color/tracker_owned/description checked structurally below
-  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed"]],
-  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed"]],
+  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed", "faff-awaiting-adjudication"]],
+  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed", "sd-awaiting-adjudication"]],
 ];
 
 function labelsSelftest() {

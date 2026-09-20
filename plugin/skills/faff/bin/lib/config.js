@@ -230,6 +230,29 @@ const DEFAULTS = {
   // EXIT.DEADLINE outage exhausting the judge chain) parks the whole pass to needs-human. A distinct
   // key keeps the reviewer and judge dispatches independently tunable.
   "prep.spec_review_judge_retry_limit": "2",
+  // FAFF-996: the build-review dialogue loop's config gate — default on for autonomous. `false`
+  // lets an operator disable the whole dialogue-loop-plus-judge port and fall back to today's
+  // unconditional critical->needs-human escalation. Interactive graft ignores this key entirely
+  // (the dialogue loop is skipped wholesale regardless).
+  "graft.build_review_judge": "true",
+  // FAFF-996: the REBUTTAL-ONLY round ceiling — deliberately tighter and INDEPENDENT of the
+  // appetite-scaled fix-round cap (review-iteration-cap). A rebuttal round changes only the
+  // argument, never the diff, so an unbounded stream of rebuttals is the exact vector for
+  // arguing the reviewer around; exceeding this cap routes the standing critical straight to the
+  // blind judge (p-01).
+  "graft.review_rebuttal_round_cap": "1",
+  // FAFF-996 (p-08): the author rebuttal length ceiling, enforced at round-record write. An
+  // over-length rebuttal is rejected (that finding parks, admit:false) rather than
+  // truncated-then-admitted.
+  "graft.rebuttal_max_chars": "4000",
+  // FAFF-996 (p-07): the built-but-not-admitted cross-turn hold's bound — a per-issue counter
+  // persisted in the resume stash. Hold N+1 fails safe to a human park instead of re-queueing
+  // forever, so a build that never produces a founded answer in budget cannot loop Todo<->hold.
+  "graft.build_review_hold_limit": "2",
+  // FAFF-996: the build-judge dispatch's IN-TURN transport-outage retry ceiling — the build-side
+  // twin of prep.spec_review_judge_retry_limit above. UNREACHABLE/DEADLINE exits retry up to this
+  // bound before that finding parks; every other non-OK exit parks directly (never retried).
+  "graft.build_judge_retry_limit": "2",
   // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
   // false (refuse on positive evidence of a mounted host socket). true is the operator taking
   // responsibility that a same-path socket is a BOUNDED nested engine, not the host daemon;
@@ -2452,6 +2475,9 @@ function cmdConfig(args) {
           "prep.spec_review_outage_retry_limit", "prep.spec_review_outage_hold_limit",
           // FAFF-941: the spec-review judge dispatch's in-turn transport-outage retry ceiling.
           "prep.spec_review_judge_retry_limit",
+          // FAFF-996: the build-review dialogue loop's config gate + its four bounding knobs.
+          "graft.build_review_judge", "graft.review_rebuttal_round_cap", "graft.rebuttal_max_chars",
+          "graft.build_review_hold_limit", "graft.build_judge_retry_limit",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
           // FAFF-717: the L3 Sentry-abort opt-in (default false) — retained alias.

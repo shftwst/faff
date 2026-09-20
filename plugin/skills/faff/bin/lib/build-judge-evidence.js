@@ -120,30 +120,51 @@ function latestRebuttalFor(findingId, rounds) {
 //   adjudicate := standing_criticals ∪ rebuttal_withdrawn_criticals(last_round) — the PROCEDURE
 //   build_judge input set (spec HOW section). `rounds` is ordered ascending, already read from
 //   disk by the caller.
+//
+// The rebuttal-withdrawn half scans the WHOLE round history, not just the immediately-prior
+// round: with multiple standing criticals, one can be rebutted-and-withdrawn in an early round
+// while a SIBLING critical keeps the loop going for several more (fix-only) rounds before the
+// standing set finally empties. p-05 is a per-finding invariant ("a finding that was cleared by
+// a rebuttal-driven withdrawal is judge-confirmed before admit"), not a "only the round
+// immediately before the stop mattered" one — narrowing the lookback to one round would let an
+// earlier rebuttal-withdrawal on a different finding slip through unconfirmed once the *last*
+// standing critical happens to resolve via a fresh-review fix (the judge-free p-15 path), which
+// is exactly the false-admit gap the round-trip's judge confirmation exists to close.
 function collectAdjudicationSet(rounds) {
   if (!rounds.length) return [];
   const latest = rounds[rounds.length - 1];
-  const standing = (Array.isArray(latest.findings) ? latest.findings : []).filter((f) => f && f.severity === "critical");
-  const out = standing.map((f) => ({
-    finding_id: f.finding_id,
-    location: f.location || "",
-    title: f.title || "",
-    rebuttal_text: latestRebuttalFor(f.finding_id, rounds),
-    requires_confirm: false,
-  }));
+  const standingNow = new Set(
+    (Array.isArray(latest.findings) ? latest.findings : [])
+      .filter((f) => f && f.severity === "critical")
+      .map((f) => f.finding_id),
+  );
+  const out = [...standingNow].map((id) => {
+    const info = findLastKnownFinding(id, rounds) || { location: "", title: "" };
+    return {
+      finding_id: id, location: info.location, title: info.title,
+      rebuttal_text: latestRebuttalFor(id, rounds), requires_confirm: false,
+    };
+  });
 
-  if (standing.length === 0 && rounds.length >= 2) {
-    const prev = rounds[rounds.length - 2];
-    const rebuttalReplies = (Array.isArray(prev.author_replies) ? prev.author_replies : []).filter((r) => r && r.kind === "rebuttal");
-    if (rebuttalReplies.length) {
-      const seen = new Set();
-      for (const r of rebuttalReplies) {
-        const id = r.finding_ref;
-        if (!id || seen.has(id)) continue;
-        seen.add(id);
-        const info = findLastKnownFinding(id, rounds) || { location: "", title: "" };
-        out.push({ finding_id: id, location: info.location, title: info.title, rebuttal_text: r.rebuttal_text, requires_confirm: true });
-      }
+  // For each round i's rebuttal reply, that finding is a rebuttal-driven withdrawal (needs
+  // confirming) iff it never appears as a standing critical in any round AFTER i (i.e. the
+  // reviewer genuinely dropped it, rather than re-raising it after all). A finding standing
+  // right now is already covered above via `standingNow`, never duplicated here.
+  const withdrawnSeen = new Set();
+  for (let i = 0; i < rounds.length - 1; i++) {
+    const repliesI = Array.isArray(rounds[i].author_replies) ? rounds[i].author_replies : [];
+    for (const r of repliesI) {
+      if (!r || r.kind !== "rebuttal") continue;
+      const id = r.finding_ref;
+      if (!id || withdrawnSeen.has(id) || standingNow.has(id)) continue;
+      const reappearedLater = rounds.slice(i + 1).some((round) =>
+        (Array.isArray(round.findings) ? round.findings : []).some(
+          (f) => f && f.finding_id === id && f.severity === "critical",
+        ));
+      if (reappearedLater) continue;
+      withdrawnSeen.add(id);
+      const info = findLastKnownFinding(id, rounds) || { location: "", title: "" };
+      out.push({ finding_id: id, location: info.location, title: info.title, rebuttal_text: r.rebuttal_text, requires_confirm: true });
     }
   }
   return out;

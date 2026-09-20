@@ -65,6 +65,54 @@ test("collectAdjudicationSet: no rounds -> empty set", () => {
   assert.deepEqual(bje.collectAdjudicationSet([]), []);
 });
 
+test("collectAdjudicationSet: a rebuttal-withdrawn critical from an EARLY round is still surfaced when a SIBLING critical keeps the loop going for several more (fix-only) rounds — the multi-critical p-05 gap", () => {
+  // round-1: two criticals raised, X and Y.
+  // round-2: author rebuts X, fixes Y (both replies land in round-1's author_replies).
+  // round-3: reviewer withdraws X (rebuttal-driven), Y still stands (the fix didn't land).
+  // round-4: author fixes Y again (round-3's author_replies).
+  // round-5: reviewer now shows nothing standing — Y resolved by a FRESH-REVIEW fix (p-15,
+  //   judge-free), but X's round-3 withdrawal was rebuttal-driven and was NEVER the
+  //   immediately-prior round by the time round-5 is reached — it must still be surfaced.
+  const rounds = [
+    { signal: "needs-human", findings: [
+      { finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" },
+      { finding_id: "b.js::y", severity: "critical", location: "b.js:1", title: "Y" },
+    ], author_replies: [] },
+    { signal: "needs-human", findings: [
+      { finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" },
+      { finding_id: "b.js::y", severity: "critical", location: "b.js:1", title: "Y" },
+    ], author_replies: [
+      { finding_ref: "a.js::x", kind: "rebuttal", rebuttal_text: "wrong file, see casefile.js" },
+      { finding_ref: "b.js::y", kind: "fix", fix_commit: "fix1" },
+    ] },
+    { signal: "needs-human", findings: [
+      { finding_id: "b.js::y", severity: "critical", location: "b.js:1", title: "Y" },
+    ], author_replies: [
+      { finding_ref: "b.js::y", kind: "fix", fix_commit: "fix2" },
+    ] },
+    { signal: "pass", findings: [], author_replies: [] },
+  ];
+  const set = bje.collectAdjudicationSet(rounds);
+  assert.equal(set.length, 1, "only X's rebuttal-driven withdrawal needs confirming — Y resolved via a fix-path admit with no judge pass");
+  assert.equal(set[0].finding_id, "a.js::x");
+  assert.equal(set[0].requires_confirm, true);
+  assert.equal(set[0].rebuttal_text, "wrong file, see casefile.js");
+});
+
+test("collectAdjudicationSet: a rebuttal-withdrawn finding that LATER reappears as standing is not treated as withdrawn (the reviewer re-raised it)", () => {
+  const rounds = [
+    { signal: "needs-human", findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }], author_replies: [] },
+    { signal: "needs-human", findings: [], author_replies: [{ finding_ref: "a.js::x", kind: "rebuttal", rebuttal_text: "wrong file" }] },
+    // The reviewer re-raises X later (e.g. a fresh diff reintroduced the same defect) — it is
+    // standing again, so it belongs to the CURRENT standing set, not the withdrawn one.
+    { signal: "needs-human", findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }], author_replies: [] },
+  ];
+  const set = bje.collectAdjudicationSet(rounds);
+  assert.equal(set.length, 1);
+  assert.equal(set[0].finding_id, "a.js::x");
+  assert.equal(set[0].requires_confirm, false, "standing-now findings are never requires_confirm, regardless of an earlier rebuttal in their history");
+});
+
 // --- computeCriticalFreeLatestFloor -------------------------------------------
 
 test("computeCriticalFreeLatestFloor: every standing critical has an OVERTURN ruling -> true", async () => {

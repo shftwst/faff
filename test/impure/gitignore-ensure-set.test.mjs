@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -112,7 +112,9 @@ test("idempotent: a second run is a byte-identical no-op", () => {
 // ---------------------------------------------------------------------------
 
 function gitSeed() {
-  const dir = seed();
+  // macOS: $TMPDIR (/var/folders) is a symlink to /private/var/folders; the CLI
+  // returns its resolved cwd, so canonicalise the seed dir to match res.path.
+  const dir = realpathSync(seed());
   execFileSync("git", ["init", "-q"], { cwd: dir });
   return dir;
 }

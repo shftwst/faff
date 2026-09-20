@@ -102,6 +102,24 @@ test("--hook BLOCKS the OWNING session's own in-flight run (backstop preserved)"
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// FAFF-1045: sibling of FAFF-1024's `run-ledger.js` `applyTerminalOutcome` fix — the
+// completeness predicate must use an own-key test, not `in` (which walks the prototype
+// chain). An admitted id equal to an inherited Object.prototype key ("constructor")
+// with an EMPTY outcomes object must still block as undispatched, driven through the
+// real entrypoint (not just the pure selftest).
+test("FAFF-1045: --hook BLOCKS the owning session on an admitted id colliding with Object.prototype (own-key test, not `in`)", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["constructor"], outcomes: {},
+    owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: runDir });
+    const payload = JSON.parse(r.out.trim());
+    assert.equal(payload.decision, "block", "a prototype-colliding admitted id with no own outcome entry must still block");
+    assert.match(payload.reason, /\bconstructor\b/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("--hook BLOCKS the owning session via the session_id fallback (env-pointer absent)", () => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: ["X"], outcomes: {},

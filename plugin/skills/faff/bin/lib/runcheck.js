@@ -33,7 +33,10 @@ function auditLedger(data, label, profile = activeProfile()) {
   const admitted = [...new Set(data.admitted ?? [])];
   const outcomes = data.outcomes ?? {};
   if (typeof outcomes !== "object" || Array.isArray(outcomes)) throw new Error("outcomes must be an object");
-  const undispatched = admitted.filter((i) => !(i in outcomes));
+  // Object.hasOwn, NOT 'in' — 'in' walks the prototype chain, so an admitted id equal
+  // to an inherited Object.prototype key ("constructor", …) would read as dispatched
+  // with zero recorded outcome (FAFF-1045; sibling fix run-ledger.js applyTerminalOutcome, FAFF-1024).
+  const undispatched = admitted.filter((i) => !Object.hasOwn(outcomes, i));
   const validStates = new Set(profile.terminal_states);
   // FAFF-554: outcomes[issue] MUST be a terminal-state string — rich per-issue detail
   // belongs in the additive outcome_details sidecar (never read here; it is not
@@ -298,6 +301,12 @@ function hbAgo(secs) { return new Date(RUNCHECK_NOW - secs * 1000).toISOString()
 const RUNCHECK_SELFTEST_CASES = [
   ["owned + undispatched → block (backstop preserved)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, true, false],
+  // FAFF-1045: sibling of FAFF-1024's protoCollision — an admitted id equal to an
+  // inherited Object.prototype key ("constructor") with an EMPTY outcomes object must
+  // still read as undispatched (own-key test), not as already-dispatched (the `in` bug).
+  ["FAFF-1045: owned + admitted [\"constructor\"] + empty outcomes → block (own-key test, not `in`)",
+    { run_id: "R", admitted: ["constructor"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
     { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, true, false],
   ["owned + clean queue → silent",
     { run_id: "R", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "running", last_heartbeat: hbAgo(10) } },

@@ -16,11 +16,13 @@
     "evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reruns_used", "main_head_sha", "main_ci_state", "fault_domain_source", "flaky_signatures"],
+      "required": ["reruns_used", "main_head_sha", "main_ci_state", "main_recent_window", "main_recent_failures", "fault_domain_source", "flaky_signatures"],
       "properties": {
         "reruns_used": { "type": "integer" },
         "main_head_sha": { "description": "String | null — the sha origin was judged against, or null when main's head was unreadable." },
         "main_ci_state": { "description": "String | null — classifyHeadShaChecks' reading of main's head, or null when unreadable." },
+        "main_recent_window": { "description": "FAFF-1050. Integer | null — the number of main's most-recent completed runs actually observed for the checks considered (<= MAIN_HISTORY_WINDOW), or null when recent history was unreadable." },
+        "main_recent_failures": { "description": "FAFF-1050. Object<string,integer> | null — per failing-check-name failing counts over main_recent_window, or null when recent history was unreadable." },
         "fault_domain_source": { "type": "string", "enum": ["metadata", "llm", "none"] },
         "flaky_signatures": { "type": "array", "items": { "type": "string" } }
       }

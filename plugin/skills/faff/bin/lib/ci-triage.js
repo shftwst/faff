@@ -53,13 +53,57 @@ function classifyFaultDomainFromMetadata(failingRuns) {
 }
 
 // PURE: origin is PER-CHECK (a main failure on a DIFFERENT check is still `mine` — main-was-red is
-// never a per-repo verdict). `mainRuns === null` means main's head was unreadable — fails CLOSED to
-// `unknown`, never silently "mine" (an unprovable origin must never let a merge-eligible action fall
-// out of it).
-function classifyOrigin(failingNames, mainRuns) {
-  if (mainRuns === null) return "unknown";
-  const mainFailing = new Set(failingCheckNames(mainRuns));
-  return failingNames.some((n) => mainFailing.has(n)) ? "main-was-red" : "mine";
+// never a per-repo verdict). `mainRuns === null` means main's head was unreadable. FAFF-1050 widens
+// the observation window from main's HEAD alone to a short RECENT HISTORY of each failing check on
+// main (`history`, a per-check-name `{failures, window}` map from `fetchMainHistory` — null when
+// history is unreadable), so an intermittently-flaky main check no longer reads `mine` just because
+// main's HEAD happens to be green at this instant. Composition is OR: a check reads `main-was-red`
+// when it is failing on main's HEAD *or* its recent-history failure count is at/above `threshold` —
+// this strictly WIDENS `main-was-red` and never narrows it, so a clean recent history never
+// manufactures `main-was-red` on its own. `unknown` only when BOTH the head read and the history
+// read are unreadable — never worse than today's HEAD-only fail-closed behaviour. `threshold` and
+// `history` are both optional (undefined reads as unreadable) so existing 2-arg callers are unchanged.
+function classifyOrigin(failingNames, mainRuns, history, threshold) {
+  const headReadable = mainRuns !== null && mainRuns !== undefined;
+  const historyReadable = history !== null && history !== undefined;
+  if (!headReadable && !historyReadable) return "unknown";
+  const mainFailing = headReadable ? new Set(failingCheckNames(mainRuns)) : new Set();
+  for (const name of failingNames) {
+    if (mainFailing.has(name)) return "main-was-red";
+    if (historyReadable && history[name] && history[name].failures >= threshold) return "main-was-red";
+  }
+  return "mine";
+}
+
+// FAFF-1050: how many of main's most-recent completed runs of a check to look back over, and how
+// many failures in that window read as `main-was-red`. Module constants (mirrors the existing
+// QUARANTINE_THRESHOLD pattern) — exported for the selftest, not yet a `.faffrc` knob (out of scope,
+// see the spec's named extension point).
+const MAIN_HISTORY_WINDOW = 10;
+const MAIN_HISTORY_FAIL_THRESHOLD = 2;
+
+// IMPURE (shell), best-effort: fetch the recent history of `checkNames` on `origin/main`, over the
+// last `N` commits. Bounded to N commits, skips an unreadable commit's read rather than failing the
+// whole fetch, and NEVER throws — any failure (no origin/main, git unavailable, every commit
+// unreadable) degrades to `null` so the caller falls back to today's HEAD-only classification.
+function fetchMainHistory(repo, checkNames, N, repoRoot) {
+  if (!Array.isArray(checkNames) || checkNames.length === 0) return null;
+  const lg = spawnSync("git", ["log", "origin/main", "-n", String(N), "--format=%H"], { cwd: repoRoot, encoding: "utf8" });
+  if (lg.status !== 0 || !lg.stdout) return null;
+  const shas = lg.stdout.split("\n").map((s) => s.trim()).filter(Boolean);
+  const counts = {};
+  for (const name of checkNames) counts[name] = { check_name: name, window: 0, failures: 0 };
+  for (const sha of shas) {
+    const r = ghJson(["api", `repos/${repo}/commits/${sha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
+    if (!r.ok || !Array.isArray(r.data)) continue; // skip an unreadable commit, keep going
+    const failingHere = new Set(failingCheckNames(r.data));
+    for (const name of checkNames) {
+      counts[name].window += 1;
+      if (failingHere.has(name)) counts[name].failures += 1;
+    }
+  }
+  const observedAny = checkNames.some((name) => counts[name].window > 0);
+  return observedAny ? counts : null;
 }
 
 // Flaky signature (FAFF-391 vocabulary): check-run name + best-effort failing-test identifier.
@@ -152,7 +196,21 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
     }
   }
 
-  const origin = classifyOrigin(failingNames, mainRuns);
+  // FAFF-1050: fetch recent main history for the failing checks ONLY (nothing to classify, and
+  // nothing to fetch, when failingNames is empty) — bounded, best-effort, never throws.
+  const history = failingNames.length > 0 ? fetchMainHistory(repo, failingNames, MAIN_HISTORY_WINDOW, repoRoot) : null;
+  const origin = classifyOrigin(failingNames, mainRuns, history, MAIN_HISTORY_FAIL_THRESHOLD);
+  let main_recent_window = null;
+  let main_recent_failures = null;
+  if (history) {
+    main_recent_failures = {};
+    for (const name of failingNames) {
+      const entry = history[name];
+      if (!entry) continue;
+      main_recent_failures[name] = entry.failures;
+      if (main_recent_window === null) main_recent_window = entry.window; // uniform across names in one fetch
+    }
+  }
 
   // fault_domain: an explicit --fault-domain (the skill-side LLM tiebreaker) governs when given —
   // validated against the closed enum; anything else (missing flag, malformed, out-of-enum) coerces
@@ -201,6 +259,8 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
                         // single-pass CLI never re-triggers a run, so it always reports 0 here.
       main_head_sha: mainHeadSha,
       main_ci_state: mainCiState,
+      main_recent_window,
+      main_recent_failures,
       fault_domain_source,
       flaky_signatures: flakySignatures,
     },
@@ -292,11 +352,40 @@ function ciTriageSelftest() {
   check("fault-domain metadata: plain failure -> unknown (never guesses code)", classifyFaultDomainFromMetadata([{ name: "build", conclusion: "failure" }]) === "unknown");
   check("fault-domain metadata: empty set -> unknown", classifyFaultDomainFromMetadata([]) === "unknown");
 
-  // classifyOrigin: per-check, fail-closed on unreadable main.
+  // classifyOrigin: per-check, fail-closed on unreadable main. (2-arg calls, no history/threshold —
+  // today's HEAD-only behaviour, unchanged.)
   check("origin: main unreadable (null) -> unknown, fail-closed", classifyOrigin(["build"], null) === "unknown");
   check("origin: main failing the SAME check -> main-was-red", classifyOrigin(["build"], [{ name: "build", status: "completed", conclusion: "failure" }]) === "main-was-red");
   check("origin: main failing a DIFFERENT check -> mine (per-check, not per-repo)", classifyOrigin(["build"], [{ name: "lint", status: "completed", conclusion: "failure" }]) === "mine");
   check("origin: main all-green -> mine", classifyOrigin(["build"], [{ name: "build", status: "completed", conclusion: "success" }]) === "mine");
+
+  // classifyOrigin (FAFF-1050): history-aware widening. All pure, no network — `history` is a
+  // caller-supplied per-check {failures, window} map, exactly as `fetchMainHistory` would return.
+  const greenHead = [{ name: "validate-macos", status: "completed", conclusion: "success" }];
+  check(
+    "origin+history: intermittent main flake (green HEAD, 3/8 recent failures >= threshold) -> main-was-red",
+    classifyOrigin(["validate-macos"], greenHead, { "validate-macos": { failures: 3, window: 8 } }, 2) === "main-was-red",
+  );
+  check(
+    "origin+history: clean recent history (green HEAD, 0/10) -> mine (a clean history never manufactures main-was-red)",
+    classifyOrigin(["validate-macos"], greenHead, { "validate-macos": { failures: 0, window: 10 } }, 2) === "mine",
+  );
+  check(
+    "origin+history: a single one-off (green HEAD, 1/10, below threshold) -> mine (not too eager)",
+    classifyOrigin(["unit"], [{ name: "unit", status: "completed", conclusion: "success" }], { unit: { failures: 1, window: 10 } }, 2) === "mine",
+  );
+  check(
+    "origin+history: red at HEAD still wins even with history unreadable (today's path preserved)",
+    classifyOrigin(["build"], [{ name: "build", status: "completed", conclusion: "failure" }], null, 2) === "main-was-red",
+  );
+  check(
+    "origin+history: both HEAD and history unreadable -> unknown (fail-closed, never worse than today)",
+    classifyOrigin(["build"], null, null, 2) === "unknown",
+  );
+  check(
+    "origin+history: a flake on a DIFFERENT check than the one failing here -> mine (per-check, not per-repo)",
+    classifyOrigin(["build"], greenHead, { "validate-macos": { failures: 5, window: 8 } }, 2) === "mine",
+  );
 
   // failingCheckNames: pending never reads as failing; unknown conclusions fail-closed.
   check("failingCheckNames: pending excluded", failingCheckNames([{ name: "build", status: "in_progress", conclusion: null }]).length === 0);
@@ -340,7 +429,8 @@ function ciTriageSelftest() {
 }
 
 module.exports = {
-  QUARANTINE_THRESHOLD, ciTriagePath, classifyFaultDomainFromMetadata, classifyOrigin, cmdCiTriage,
-  failingCheckNames, flakyRegisterPath, flakySignature, isFailingRun, readFlakyRegister, recordFlakyEvent,
+  MAIN_HISTORY_FAIL_THRESHOLD, MAIN_HISTORY_WINDOW, QUARANTINE_THRESHOLD, ciTriagePath,
+  classifyFaultDomainFromMetadata, classifyOrigin, cmdCiTriage, failingCheckNames, fetchMainHistory,
+  flakyRegisterPath, flakySignature, isFailingRun, readFlakyRegister, recordFlakyEvent,
   runCiTriage, writeCiTriageVerdict, writeFlakyRegister,
 };

@@ -7,21 +7,29 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 # Build-worktree provisioning script (ships with the faff skill). Two input modes, one shared body:
 #   Direct:  setup-worktree.sh <name> [<repo-root>]   — name from $1, repo root from $2 (else pwd).
-#            No stdin is read; jq is never invoked. This is how the faff-graft skill step calls it.
+#            No stdin is read. This is how the faff-graft skill step calls it.
 #   Hook:    setup-worktree.sh                         — zero args: read Claude Code WorktreeCreate
 #            JSON on stdin ({ session_id, transcript_path, cwd, hook_event_name, name }) and parse
-#            .name / .cwd with jq. Byte-compatible with the legacy hook contract.
+#            .name / .cwd with the Node runtime. Byte-compatible with the legacy hook contract.
 # Either way: call `git worktree add` and print the worktree path to stdout on success.
+# FAFF-1046: the whole script is free of any external JSON processor — hook mode parses stdin JSON
+# with node (already a hard requirement of this script, per the faff-binary call below).
 
 if [ "$#" -ge 1 ]; then
-  # Direct mode — positional args; never touch stdin, never call jq.
+  # Direct mode — positional args; never touch stdin.
   NAME="$1"
   CWD="${2:-$(pwd)}"
 else
-  # Hook mode — JSON on stdin, parsed with jq (Claude Code guarantees the shape).
+  # Hook mode — JSON on stdin, parsed with the Node runtime (Claude Code guarantees the shape).
+  # FAFF-1046: each extraction reproduces the previous `.<field> // empty` semantics exactly — a
+  # null, absent, or false field yields the empty string (caught by the guard below), a string
+  # passes through unchanged, and any other JSON type is serialised; so an out-of-contract
+  # non-string field stays as fail-loud as before rather than silently provisioning. Malformed
+  # stdin makes node exit non-zero, so under `set -euo pipefail` the command substitution fails
+  # and the script aborts — same terminal outcome as before. node is already required here.
   INPUT=$(cat)
-  NAME=$(printf '%s' "$INPUT" | jq -r '.name // empty')
-  CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty')
+  NAME=$(printf '%s' "$INPUT" | node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")).name; process.stdout.write(v==null||v===false?"":typeof v==="string"?v:JSON.stringify(v))')
+  CWD=$(printf '%s' "$INPUT" | node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")).cwd; process.stdout.write(v==null||v===false?"":typeof v==="string"?v:JSON.stringify(v))')
 fi
 
 if [ -z "$NAME" ] || [ -z "$CWD" ]; then

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/build-judge-verdict",
+  "title": "build-judge-verdict contract data",
+  "description": "The build-review judge's per-finding ruling at the would-be-park point (FAFF-996), a sibling of spec-judge-verdict with a build-appropriate three-outcome vocabulary OVERTURN|UPHOLD|PRODUCT_BOUNDARY. No SYNTHESIZE (the code is already written — the judge cannot compose a third code) and no correction object (a build judge never edits an artifact; a fix is the author's separate re-review path, not a judge output). Fail-loud on an outcome outside the enum (no safe coerce target — faff's own producer emits it). The founded-outcome invariants (UPHOLD/PRODUCT_BOUNDARY require a non-empty rationale; PRODUCT_BOUNDARY additionally requires a non-empty product_gap_citation; OVERTURN requires an empty product_gap_citation) are enforced in the compute fn via violations (exit 1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["finding_id", "outcome", "rationale", "product_gap_citation", "conformant", "violations"],
+  "properties": {
+    "finding_id": { "type": "string" },
+    "outcome": { "type": "string", "enum": ["OVERTURN", "UPHOLD", "PRODUCT_BOUNDARY"] },
+    "rationale": { "type": "string" },
+    "product_gap_citation": { "type": "string" },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

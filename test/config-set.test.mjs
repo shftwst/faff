@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -273,6 +273,74 @@ test("config set --root writes under the named directory regardless of cwd (the 
   assert.equal(run(cwdDir, "config", "get", "backends.cx.provider", "--root", targetDir).out, "codex");
   // nothing written under cwdDir itself
   assert.equal(run(cwdDir, "config", "path").code, 3);
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1062 — `--local` redirects the writer to the gitignored overlay
+// (.faffrc.local.yaml) instead of the committable base (.faffrc.yaml). Same
+// merge core, same round-trip guard; only the target + existing-file lookup differ.
+// ---------------------------------------------------------------------------
+
+test("config set --local writes .faffrc.local.yaml, never .faffrc.yaml", () => {
+  const dir = tmpDir();
+  const r = run(dir, "config", "set", "appetite", "high", "--local");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /\.faffrc\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faffrc.local.yaml"), "utf8").includes("appetite: high"), true);
+  assert.equal(existsSync(join(dir, ".faffrc.yaml")), false, "no base file must exist yet");
+  const p = run(dir, "config", "path");
+  assert.match(p.out, /\.faffrc\.local\.yaml$/);
+});
+
+test("config set without --local still writes .faffrc.yaml (regression)", () => {
+  const dir = tmpDir();
+  const r = run(dir, "config", "set", "appetite", "high");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /\.faffrc\.yaml/);
+  assert.doesNotMatch(r.out, /\.faffrc\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8").includes("appetite: high"), true);
+});
+
+test("config set --local merges into an existing overlay, base file untouched", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "slots:\n  spec: shared-spec\n");
+  writeFileSync(join(dir, ".faffrc.local.yaml"), "appetite: low\n");
+  const r = run(dir, "config", "set", "logging", "essential", "--local");
+  assert.equal(r.code, 0, r.err);
+  const overlay = readFileSync(join(dir, ".faffrc.local.yaml"), "utf8");
+  assert.match(overlay, /appetite: low/, "existing overlay key intact");
+  assert.match(overlay, /logging: essential/, "new overlay key written");
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), "slots:\n  spec: shared-spec\n", "base byte-unchanged");
+});
+
+test("config init --local writes .faffrc.local.yaml, never .faffrc.yaml", () => {
+  const dir = tmpDir();
+  const r = run(dir, "config", "init", "--set", "tracking.team_key=FAFF", "--local");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /\.faffrc\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faffrc.local.yaml"), "utf8").includes("team_key: FAFF"), true);
+  assert.equal(existsSync(join(dir, ".faffrc.yaml")), false, "no base file must exist yet");
+});
+
+test("config init without --local still writes .faffrc.yaml (regression)", () => {
+  const dir = tmpDir();
+  const r = run(dir, "config", "init", "--set", "tracking.team_key=FAFF");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /\.faffrc\.yaml/);
+  assert.doesNotMatch(r.out, /\.faffrc\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8").includes("team_key: FAFF"), true);
+});
+
+test("config init --local merges into an existing overlay, base file untouched", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "tracking:\n  tracker: linear\n");
+  writeFileSync(join(dir, ".faffrc.local.yaml"), "tracking:\n  team_key: EXISTING\n");
+  const r = run(dir, "config", "init", "--set", "tracking.repo=a/b", "--local");
+  assert.equal(r.code, 0, r.err);
+  const overlay = readFileSync(join(dir, ".faffrc.local.yaml"), "utf8");
+  assert.match(overlay, /team_key: EXISTING/, "existing overlay key intact");
+  assert.match(overlay, /repo: a\/b/, "new overlay key written");
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), "tracking:\n  tracker: linear\n", "base byte-unchanged");
 });
 
 // ---------------------------------------------------------------------------

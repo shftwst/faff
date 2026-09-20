@@ -50,6 +50,22 @@ const FAFF_GITIGNORE_PATTERNS = [
   ".faff/*",               // FAFF-568: the local artifacts dir CONTENTS (glob, not `.faff/` — see note above)
   "!.faff/anchors/",       // FAFF-568: carve-out — per-PR chain anchors are the one committed part of .faff/ (must follow the `.faff/*` glob)
 ];
+
+// FAFF-1062: the `--local` counterpart, targeting `.git/info/exclude` (a per-checkout,
+// never-committed ignore file every git repo already has) instead of the committable
+// `.gitignore`. Because THIS target is personal-only, it can be strictly wider than the
+// shared set above: `.faffrc.yaml` (the committable base — never ignored in `.gitignore`)
+// is ADDED here, and the `.faff/anchors/` carve-out is DROPPED — `.faff/` is ignored
+// wholesale, since a personal exclude file has no committed subtree to protect. Same
+// glob-before-negation ordering requirement as the shared set.
+const FAFF_GITIGNORE_PATTERNS_LOCAL = [
+  ".faffrc",
+  ".faffrc.yml",
+  ".faffrc.yaml",
+  ".faffrc.*.yaml",
+  "!.faffrc.example.yaml",
+  ".faff/",
+];
 const GITIGNORE_HEADER = "# faff local artifacts (added by `faff gitignore-ensure`)";
 
 function stripTrailingSlash(s) {
@@ -78,17 +94,25 @@ function buildGitignoreAppendBlock(raw, missing) {
   return parts.join("");
 }
 
-function gitignoreEnsure(root) {
-  const target = path.join(root, ".gitignore");
+// FAFF-1062: `local` switches the target (`.git/info/exclude` vs `.gitignore`) and the
+// pattern set (FAFF_GITIGNORE_PATTERNS_LOCAL vs FAFF_GITIGNORE_PATTERNS) — every other
+// step (existing-line detection, append-only block, idempotence) is the same core.
+function gitignoreEnsure(root, local = false) {
+  const target = local ? path.join(root, ".git", "info", "exclude") : path.join(root, ".gitignore");
+  const patterns = local ? FAFF_GITIGNORE_PATTERNS_LOCAL : FAFF_GITIGNORE_PATTERNS;
   const existed = fs.existsSync(target);
   const raw = existed ? fs.readFileSync(target, "utf8") : "";
   const lines = raw.split("\n");
-  const missing = FAFF_GITIGNORE_PATTERNS.filter((p) => !gitignoreHasPattern(p, lines));
-  const already = FAFF_GITIGNORE_PATTERNS.filter((p) => gitignoreHasPattern(p, lines));
+  const missing = patterns.filter((p) => !gitignoreHasPattern(p, lines));
+  const already = patterns.filter((p) => gitignoreHasPattern(p, lines));
   if (missing.length === 0) {
     return { path: target, created: false, added: [], already };
   }
   const block = buildGitignoreAppendBlock(raw, missing);
+  // `.git/info/` normally pre-exists (git creates it at init), but a mkdirSync guard costs
+  // nothing and keeps this robust against an odd repo layout — never a behaviour change for
+  // the standard `.gitignore` target, whose parent (root) already exists by construction.
+  fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, raw + block);
   return { path: target, created: !existed, added: missing, already };
 }
@@ -172,23 +196,84 @@ function gitignoreEnsureSelftest() {
     check("existing literal: `.faffrc.yaml` never appended", lineIndex(raw, ".faffrc.yaml") === -1);
   });
 
+  // FAFF-1062 — --local pattern-set contract ─────────────────────────────────────
+  check("local set contains `.faffrc.yaml` (never in the shared set)", FAFF_GITIGNORE_PATTERNS_LOCAL.includes(".faffrc.yaml"));
+  check("local set contains `.faff/` wholesale (not `.faff/*`)", FAFF_GITIGNORE_PATTERNS_LOCAL.includes(".faff/"));
+  check("local set does NOT carry the anchors carve-out negation", !FAFF_GITIGNORE_PATTERNS_LOCAL.includes("!.faff/anchors/"));
+  {
+    const lgi = FAFF_GITIGNORE_PATTERNS_LOCAL.indexOf(".faffrc.*.yaml");
+    const lni = FAFF_GITIGNORE_PATTERNS_LOCAL.indexOf("!.faffrc.example.yaml");
+    check("local set: glob is at a lower index than the negation", lgi !== -1 && lni !== -1 && lgi < lni);
+  }
+
+  // FAFF-1062 — --local writes .git/info/exclude, standard mode unaffected ──────
+  withTmp((dir) => {
+    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+    const res = gitignoreEnsure(dir, true);
+    check("local: target is .git/info/exclude", res.path === path.join(dir, ".git", "info", "exclude"));
+    const raw = fs.readFileSync(res.path, "utf8");
+    check("local: `.faffrc.yaml` appended", res.added.includes(".faffrc.yaml") && lineIndex(raw, ".faffrc.yaml") !== -1);
+    check("local: `.faff/` appended (not `.faff/*`)", res.added.includes(".faff/") && lineIndex(raw, ".faff/") !== -1);
+    check("local: no anchors carve-out negation written", lineIndex(raw, "!.faff/anchors/") === -1);
+    // .gitignore itself must be untouched by a --local run.
+    check("local: .gitignore not created by a --local run", !fs.existsSync(path.join(dir, ".gitignore")));
+  });
+
+  // FAFF-1062 — .git/info/exclude carrying only git's default comment preamble is
+  // treated the same as a populated .gitignore (append logic handles an all-comments file).
+  withTmp((dir) => {
+    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+    const preamble = "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n";
+    fs.writeFileSync(path.join(dir, ".git", "info", "exclude"), preamble);
+    const res = gitignoreEnsure(dir, true);
+    const raw = fs.readFileSync(res.path, "utf8");
+    check("local/all-comments: preamble preserved", raw.startsWith(preamble));
+    check("local/all-comments: patterns still appended", res.added.length === FAFF_GITIGNORE_PATTERNS_LOCAL.length);
+    check("local/all-comments: `.faffrc.yaml` present", lineIndex(raw, ".faffrc.yaml") !== -1);
+  });
+
+  // FAFF-1062 — idempotent re-run on .git/info/exclude.
+  withTmp((dir) => {
+    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+    gitignoreEnsure(dir, true);
+    const before = fs.readFileSync(path.join(dir, ".git", "info", "exclude"), "utf8");
+    const res2 = gitignoreEnsure(dir, true);
+    const after = fs.readFileSync(res2.path, "utf8");
+    check("local re-run: no lines added (idempotent)", res2.added.length === 0);
+    check("local re-run: file is byte-identical", before === after);
+  });
+
+  // FAFF-1062 — standard mode (no --local) still writes .gitignore with the anchors
+  // carve-out intact, even when a .git/info/exclude also exists (regression: the two
+  // targets are independent).
+  withTmp((dir) => {
+    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+    const res = gitignoreEnsure(dir, false);
+    check("standard mode: target is .gitignore", res.path === path.join(dir, ".gitignore"));
+    const raw = fs.readFileSync(res.path, "utf8");
+    check("standard mode: `.faffrc.yaml` never appended", lineIndex(raw, ".faffrc.yaml") === -1);
+    check("standard mode: anchors carve-out present", res.added.includes("!.faff/anchors/"));
+    check("standard mode: .git/info/exclude not written by a standard run", !fs.existsSync(path.join(dir, ".git", "info", "exclude")));
+  });
+
   console.log(fail ? `gitignore-ensure selftest: ${fail} FAILED` : `gitignore-ensure selftest: all checks passed`);
   return fail ? 1 : 0;
 }
 
 const { parseArgs, usageError } = require("./argv");
-const GITIGNORE_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 } } };
+const GITIGNORE_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--local": { arity: 0 } } };
 
 function cmdGitignoreEnsure(args) {
   if (args.includes("--selftest")) return gitignoreEnsureSelftest();
   const { values, errors } = parseArgs(args, GITIGNORE_ENSURE_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff gitignore-ensure [--root DIR] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff gitignore-ensure [--root DIR] [--local] [--json]");
   const root = values["--root"] || findRoot();
   const asJson = !!values["--json"];
+  const local = !!values["--local"];
 
   let result;
   try {
-    result = gitignoreEnsure(root);
+    result = gitignoreEnsure(root, local);
   } catch (e) {
     process.stderr.write(`faff gitignore-ensure: ${e.message}\n`);
     return 2;
@@ -206,4 +291,4 @@ function cmdGitignoreEnsure(args) {
 }
 
 
-module.exports = { FAFF_GITIGNORE_PATTERNS, GITIGNORE_HEADER, buildGitignoreAppendBlock, cmdGitignoreEnsure, gitignoreEnsure, gitignoreHasPattern, stripTrailingSlash };
+module.exports = { FAFF_GITIGNORE_PATTERNS, FAFF_GITIGNORE_PATTERNS_LOCAL, GITIGNORE_HEADER, buildGitignoreAppendBlock, cmdGitignoreEnsure, gitignoreEnsure, gitignoreHasPattern, stripTrailingSlash };

@@ -18,6 +18,10 @@ const MODELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 
 // rejects unknown flags / missing values; each sub-verb's own body reads the validated flags below.
 const CONFIG_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--force": { arity: 0 }, "--dry-run": { arity: 0 }, "--create": { arity: 0 },
+  // FAFF-1062: --local redirects `config init`/`config set` to the gitignored overlay
+  // (CANONICAL_OVERLAY_CONFIG) instead of the committable base (CANONICAL_CONFIG) — every
+  // other sub-verb ignores it (accepted at the shared gate, unread elsewhere).
+  "--local": { arity: 0 },
   "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] }, "--set": { arity: 1, repeatable: true },
 }, positionals: { min: 0, max: null, name: "verb key value" } };
 // FAFF-628 — declared grammar. Every sub-verb reads its "required" argument as a positional
@@ -870,6 +874,10 @@ function cmdConfigInit(args, root) {
   const seen = {};            // leafKey → first rawValue seen (dup-with-conflict guard)
   const force = args.includes("--force");
   const dryRun = args.includes("--dry-run");
+  // FAFF-1062: --local is the only thing that changes below — the target file and the
+  // existing-file lookup it's resolved through. Everything else (merge core, round-trip
+  // self-verify, conflict/legacy-name refusal) is unchanged.
+  const local = args.includes("--local");
   for (let i = 0; i < args.length; i++) {
     if (args[i] !== "--set") continue;
     const token = args[++i];
@@ -916,10 +924,11 @@ function cmdConfigInit(args, root) {
     return 2;
   }
 
-  // 2. Resolve target file. findConfig throws legacy-config-name → propagates to
+  // 2. Resolve target file. findConfig/findOverlay throws legacy-config-name → propagates to
   //    cmdConfig's catch (the refuse-second-file guarantee). Do NOT catch here.
-  const existingPath = findConfig(root);          // may throw; intentional
-  const canonicalPath = path.join(root, CANONICAL_CONFIG);
+  const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
+  const existingPath = local ? findOverlay(root) : findConfig(root);          // may throw; intentional
+  const canonicalPath = path.join(root, targetName);
 
   // 3. Compute merged text (surgical; never reserialise).
   let newText, conflicts = [], changed;
@@ -964,8 +973,8 @@ function cmdConfigInit(args, root) {
   fs.writeFileSync(canonicalPath, newText);
   const n = Object.keys(sets).length;
   console.log(existingPath === null
-    ? `config init: created ${CANONICAL_CONFIG} with ${n} key(s).`
-    : `config init: wrote ${n} key(s) to ${CANONICAL_CONFIG}.`);
+    ? `config init: created ${targetName} with ${n} key(s).`
+    : `config init: wrote ${n} key(s) to ${targetName}.`);
   return 0;
 }
 
@@ -1178,6 +1187,10 @@ function mergeConfigPath(rawText, segments, rawValue, force) {
 function cmdConfigSet(args, root) {
   const force = args.includes("--force");
   const dryRun = args.includes("--dry-run");
+  // FAFF-1062: same overlay-vs-base switch as cmdConfigInit — only the target + the
+  // existing-file lookup change; the merge core, round-trip self-verify, and every
+  // validator below are unchanged.
+  const local = args.includes("--local");
   const positionals = args.filter((a) => !a.startsWith("--"));
   const key = positionals[0];
   const value = positionals[1];
@@ -1203,8 +1216,9 @@ function cmdConfigSet(args, root) {
   const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
-  const canonicalPath = path.join(root, CANONICAL_CONFIG);
-  const existingPath = findConfig(root);   // may throw legacy-config-name etc.; propagate to cmdConfig's catch
+  const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
+  const canonicalPath = path.join(root, targetName);
+  const existingPath = local ? findOverlay(root) : findConfig(root);   // may throw legacy-config-name etc.; propagate to cmdConfig's catch
   let newText;
   if (existingPath === null) {
     newText = INIT_HEADER + emitChainBlock(segments, value);
@@ -1239,7 +1253,7 @@ function cmdConfigSet(args, root) {
     return 0;
   }
   fs.writeFileSync(canonicalPath, newText);
-  console.log(`config set: wrote ${key}=${value} to ${CANONICAL_CONFIG}.`);
+  console.log(`config set: wrote ${key}=${value} to ${targetName}.`);
   return 0;
 }
 
@@ -2331,7 +2345,7 @@ function cmdConfig(args) {
   // FAFF-576: fail-closed flag gate across all sub-verbs — an unknown flag / missing value exits 2
   // here; each sub-verb's body below reads validated flags via its own (positional-aware) scan.
   const gate = parseArgs(args, CONFIG_SPEC);
-  if (gate.errors.length) return usageError(gate.errors, `usage: faff config <${configVerbList()}> [KEY [VALUE]] [-d DEFAULT] [--json] [--set K=V] [--force] [--dry-run] [--root DIR]`);
+  if (gate.errors.length) return usageError(gate.errors, `usage: faff config <${configVerbList()}> [KEY [VALUE]] [-d DEFAULT] [--json] [--set K=V] [--force] [--dry-run] [--local] [--root DIR]`);
   let root = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {

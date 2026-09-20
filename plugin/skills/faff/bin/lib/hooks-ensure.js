@@ -275,24 +275,30 @@ function resolveHookBin(probeRoot) {
 }
 
 const { parseArgs, usageError } = require("./argv");
-const HOOKS_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--root": { arity: 1 } } };
+const HOOKS_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--root": { arity: 1 }, "--local": { arity: 0 } } };
 
 function cmdHooksEnsure(args) {
   if (args.includes("--selftest")) return hooksEnsureSelftest();
   const { values, errors } = parseArgs(args, HOOKS_ENSURE_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff hooks-ensure [--root DIR] [--dry-run] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff hooks-ensure [--root DIR] [--local] [--dry-run] [--json]");
   const root = values["--root"] || findRoot();
   const asJson = !!values["--json"];
   const dryRun = !!values["--dry-run"];
-  const target = path.join(root, ".claude", "settings.json");
-  const local = path.join(root, ".claude", "settings.local.json");
+  // FAFF-1062: --local flips the WRITE target to settings.local.json — presence is still
+  // read from BOTH files (unchanged), so a hook already registered in the other file is
+  // never duplicated into this one.
+  const isLocal = !!values["--local"];
+  const sharedPath = path.join(root, ".claude", "settings.json");
+  const localPath = path.join(root, ".claude", "settings.local.json");
+  const target = isLocal ? localPath : sharedPath;
+  const other = isLocal ? sharedPath : localPath;
   const existed = fs.existsSync(target);
 
-  let targetObj, localObj;
+  let targetObj, otherObj;
   try { targetObj = readJsonOrEmpty(target); }
   catch (e) { process.stderr.write(`faff hooks-ensure: malformed ${target}: ${e.message}\n`); return 2; }
-  try { localObj = readJsonOrEmpty(local); }
-  catch (e) { process.stderr.write(`faff hooks-ensure: malformed ${local}: ${e.message}\n`); return 2; }
+  try { otherObj = readJsonOrEmpty(other); }
+  catch (e) { process.stderr.write(`faff hooks-ensure: malformed ${other}: ${e.message}\n`); return 2; }
 
   const probeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-hooks-probe-"));
   let bin, served;
@@ -306,12 +312,12 @@ function cmdHooksEnsure(args) {
   // FAFF-434: two independent event arrays (Stop, PreToolUse), planned in sequence —
   // the PreToolUse plan is composed on TOP OF the Stop plan's nextSettings (not the
   // original targetObj), so a single write carries both sets of changes atomically.
-  const stopPresent = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
+  const stopPresent = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, otherObj));
   // FAFF-530: PreToolUse presence is per (matcher, sub) — a Set of "<matcher>::<sub>" keys.
   const preToolUsePresent = new Set();
   for (const { matcher, subs } of FAFF_PRE_TOOL_USE_MATCHER_GROUPS) {
     for (const sub of subs) {
-      if (isPresentInMatcher(sub, targetObj, matcher) || isPresentInMatcher(sub, localObj, matcher)) {
+      if (isPresentInMatcher(sub, targetObj, matcher) || isPresentInMatcher(sub, otherObj, matcher)) {
         preToolUsePresent.add(`${matcher}::${sub}`);
       }
     }

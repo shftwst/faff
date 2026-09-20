@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -101,5 +101,87 @@ test("idempotent: a second run is a byte-identical no-op", () => {
     const first = readFileSync(join(dir, ".gitignore"));
     run(dir, "gitignore-ensure");
     assert.deepEqual(readFileSync(join(dir, ".gitignore")), first, ".gitignore byte-identical after a re-run");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1062 — `--local` targets `.git/info/exclude` with a distinct pattern set:
+// the shared set PLUS `.faffrc.yaml`, MINUS the `!.faff/anchors/` carve-out
+// (`.faff/` is ignored wholesale — a personal exclude file has no committed
+// subtree to protect).
+// ---------------------------------------------------------------------------
+
+function gitSeed() {
+  // macOS: $TMPDIR (/var/folders) is a symlink to /private/var/folders; the CLI
+  // returns its resolved cwd, so canonicalise the seed dir to match res.path.
+  const dir = realpathSync(seed());
+  execFileSync("git", ["init", "-q"], { cwd: dir });
+  return dir;
+}
+
+test("--local writes .git/info/exclude with the local pattern set: .faffrc.yaml and .faff/ present, anchors carve-out absent", () => {
+  const dir = gitSeed();
+  try {
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--local", "--json"));
+    assert.equal(res.path, join(dir, ".git", "info", "exclude"));
+    const set = [...res.added, ...res.already];
+    assert.deepEqual(set.sort(), [".faffrc", ".faffrc.yml", ".faffrc.yaml", ".faffrc.*.yaml", "!.faffrc.example.yaml", ".faff/"].sort());
+    const raw = readFileSync(join(dir, ".git", "info", "exclude"), "utf8");
+    assert.match(raw, /^\.faffrc\.yaml$/m, "the base config is ignored in the local set");
+    assert.match(raw, /^\.faff\/$/m, "the whole .faff dir is ignored (not .faff/*)");
+    assert.doesNotMatch(raw, /^!\.faff\/anchors\/$/m, "the anchors carve-out is not written to the local set");
+    // .gitignore itself is untouched by a --local run.
+    assert.ok(!existsSync(join(dir, ".gitignore")), "--local must not create .gitignore");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("--local preserves git's default comment preamble in .git/info/exclude and appends after it", () => {
+  const dir = gitSeed();
+  try {
+    const before = readFileSync(join(dir, ".git", "info", "exclude"), "utf8");
+    assert.match(before, /^#/, "sanity: git seeded an all-comments preamble");
+    run(dir, "gitignore-ensure", "--local");
+    const after = readFileSync(join(dir, ".git", "info", "exclude"), "utf8");
+    assert.ok(after.startsWith(before), "the comment preamble is preserved byte-for-byte");
+    assert.match(after, /^\.faffrc\.yaml$/m);
+    assert.match(after, /^\.faff\/$/m);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("--local git semantics: check-ignore honours the local set (.faffrc.yaml ignored, .faff/ wholesale)", () => {
+  const dir = gitSeed();
+  try {
+    run(dir, "gitignore-ensure", "--local");
+    const ignored = (f) => {
+      try { execFileSync("git", ["check-ignore", "-q", f], { cwd: dir }); return true; }
+      catch (e) { if (e.status === 1) return false; throw e; }
+    };
+    assert.ok(ignored(".faffrc.yaml"), "the base config IS ignored locally (personal target, unlike .gitignore)");
+    assert.ok(ignored(".faffrc.dev.yaml"), "overlay variant ignored via the glob");
+    assert.ok(!ignored(".faffrc.example.yaml"), "the tracked template is still re-included by the negation");
+    assert.ok(ignored(".faff/anchors/run1/FAFF-1/events.jsonl"), "no anchors carve-out locally — .faff/ is ignored wholesale");
+    assert.ok(ignored(".faff/runs/run1/events.jsonl"), "run artifacts under .faff stay ignored");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("--local idempotent: a second run is a byte-identical no-op", () => {
+  const dir = gitSeed();
+  try {
+    run(dir, "gitignore-ensure", "--local");
+    const first = readFileSync(join(dir, ".git", "info", "exclude"));
+    run(dir, "gitignore-ensure", "--local");
+    assert.deepEqual(readFileSync(join(dir, ".git", "info", "exclude")), first, "exclude file byte-identical after a re-run");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("standard mode (no --local) still writes .gitignore with the carve-out intact (regression), even inside a git repo", () => {
+  const dir = gitSeed();
+  try {
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.equal(res.path, join(dir, ".gitignore"));
+    const set = [...res.added, ...res.already];
+    assert.ok(!set.includes(".faffrc.yaml"), "standard mode never ignores the committable base");
+    assert.ok(set.includes("!.faff/anchors/"), "standard mode keeps the anchors carve-out");
+    assert.ok(set.includes(".faff/*"), "standard mode keeps the contents-only glob, not .faff/");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

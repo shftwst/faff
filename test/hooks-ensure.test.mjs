@@ -31,7 +31,9 @@ function run(args, { allowFail = false } = {}) {
 }
 function mkroot() { return mkdtempSync(join(tmpdir(), "hooks-ensure-")); }
 function settingsPath(root) { return join(root, ".claude", "settings.json"); }
+function localSettingsPath(root) { return join(root, ".claude", "settings.local.json"); }
 function readSettings(root) { return JSON.parse(readFileSync(settingsPath(root), "utf8")); }
+function readLocalSettings(root) { return JSON.parse(readFileSync(localSettingsPath(root), "utf8")); }
 function stopCmds(s) { return (s.hooks?.Stop ?? []).flatMap((g) => (g.hooks ?? []).map((h) => h.command)); }
 function preToolUseCmds(s) { return (s.hooks?.PreToolUse ?? []).flatMap((g) => (g.hooks ?? []).map((h) => h.command)); }
 
@@ -249,5 +251,99 @@ test("normalizes a divergent merge-fence path, adds the missing background-fence
     // FAFF-530: the Monitor group was added carrying only background-fence
     const monitorG = s.hooks.PreToolUse.find((g) => g.matcher === "Monitor");
     assert.ok(monitorG && monitorG.hooks.length === 1 && /faff background-fence --hook/.test(monitorG.hooks[0].command), "Monitor group added with background-fence only");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1062 — `--local` redirects the WRITE target to settings.local.json.
+// Presence is still read from BOTH files (union-presence), so a hook already
+// registered in settings.json is never duplicated into settings.local.json.
+// ---------------------------------------------------------------------------
+
+test("--local creates settings.local.json (not settings.json) with all hooks when absent", () => {
+  const root = mkroot();
+  try {
+    const r = JSON.parse(run(["hooks-ensure", "--root", root, "--local", "--json"]).out);
+    assert.equal(r.path, localSettingsPath(root));
+    assert.equal(r.created, true);
+    assert.deepEqual(r.added, ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
+    assert.equal(existsSync(settingsPath(root)), false, "--local must not create settings.json");
+    const s = readLocalSettings(root);
+    const cmds = stopCmds(s);
+    assert.ok(cmds.some((c) => /faff runcheck --hook/.test(c)));
+    const preCmds = preToolUseCmds(s);
+    assert.ok(preCmds.some((c) => /faff merge-fence --hook/.test(c)));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--local: a hook already present in settings.json is NOT duplicated into settings.local.json (union-presence)", () => {
+  const root = mkroot();
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  writeFileSync(settingsPath(root), JSON.stringify({
+    hooks: {
+      Stop: [{ hooks: [
+        { type: "command", command: "faff runcheck --hook" },
+        { type: "command", command: "faff prepcheck --hook" },
+        { type: "command", command: "faff inflightcheck --hook" },
+        { type: "command", command: "faff resumecheck --hook" },
+        { type: "command", command: "faff sentrycheck --hook" },
+        { type: "command", command: "faff turncheck --hook" },
+      ] }],
+      PreToolUse: [
+        { matcher: "Bash", hooks: [
+          { type: "command", command: "faff merge-fence --hook" },
+          { type: "command", command: "faff background-fence --hook" },
+        ] },
+        { matcher: "Monitor", hooks: [
+          { type: "command", command: "faff background-fence --hook" },
+        ] },
+      ],
+    },
+  }, null, 2) + "\n");
+  try {
+    const r = JSON.parse(run(["hooks-ensure", "--root", root, "--local", "--json"]).out);
+    assert.deepEqual(r.added, [], "everything already present via the shared file → nothing to add locally");
+    assert.deepEqual(r.already, ["runcheck", "prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
+    assert.equal(existsSync(localSettingsPath(root)), false, "settings.local.json not created when nothing to add");
+    // settings.json (the shared file) is untouched by a --local run that adds nothing.
+    const s = readSettings(root);
+    assert.equal(stopCmds(s).filter((c) => /faff runcheck --hook/.test(c)).length, 1, "no duplicate runcheck written anywhere");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--local adds only the hooks missing from BOTH files, into settings.local.json, leaving settings.json byte-unchanged", () => {
+  const root = mkroot();
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  const before = JSON.stringify({
+    hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }] }] },
+  }, null, 2) + "\n";
+  writeFileSync(settingsPath(root), before);
+  try {
+    const r = JSON.parse(run(["hooks-ensure", "--root", root, "--local", "--json"]).out);
+    assert.deepEqual(r.already, ["runcheck"], "runcheck is present in the shared file, counted present");
+    assert.ok(r.added.includes("prepcheck"), "prepcheck missing from both → added locally");
+    assert.equal(readFileSync(settingsPath(root), "utf8"), before, "settings.json (shared) is byte-unchanged");
+    const local = readLocalSettings(root);
+    const cmds = stopCmds(local);
+    assert.ok(cmds.some((c) => /faff prepcheck --hook/.test(c)), "prepcheck landed in settings.local.json");
+    assert.ok(!cmds.some((c) => /faff runcheck --hook/.test(c)), "runcheck (already present in the shared file) is not duplicated locally");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("standard mode (no --local) still writes settings.json, unaffected by an existing settings.local.json (regression)", () => {
+  const root = mkroot();
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  writeFileSync(localSettingsPath(root), JSON.stringify({
+    hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }] }] },
+  }, null, 2) + "\n");
+  try {
+    const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
+    assert.equal(r.path, settingsPath(root));
+    assert.deepEqual(r.already, ["runcheck"], "runcheck present via the local file counts as present");
+    assert.ok(r.added.includes("prepcheck"));
+    const s = readSettings(root);
+    const cmds = stopCmds(s);
+    assert.ok(cmds.some((c) => /faff prepcheck --hook/.test(c)));
+    assert.ok(!cmds.some((c) => /faff runcheck --hook/.test(c)), "runcheck not duplicated into settings.json");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

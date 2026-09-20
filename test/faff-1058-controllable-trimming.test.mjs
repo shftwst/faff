@@ -86,6 +86,8 @@ test("FAFF-1058: --no-trim elides no bytes, pass 1 (FAFF-915) and pass 2 (FAFF-1
   assert.equal(withTrim.code, EXIT.OK);
   assert.match(withTrim.err, /FAFF-915 context trim/, "pass 1 fires without --no-trim");
   assert.ok(withTrim.captured.system.length < rawSystem.length, "the served payload is smaller than the raw assembly");
+  // FAFF-1066: the --no-trim confirmation note must never appear when --no-trim was not passed.
+  assert.ok(!withTrim.err.includes("--no-trim: context trimming disabled"), "no-trim confirmation note absent without --no-trim");
 
   // WITH --no-trim: pass 1 disabled, pass 2 skipped. The primary is over-window (untrimmed) so the guard
   // advances to the unbounded fallback, which serves the payload byte-identical to the raw assembly.
@@ -96,6 +98,9 @@ test("FAFF-1058: --no-trim elides no bytes, pass 1 (FAFF-915) and pass 2 (FAFF-1
   assert.ok(!noTrim.err.includes("FAFF-915 context trim"), "pass 1 did not fire");
   assert.ok(!noTrim.err.includes("FAFF-1039 window-targeted trim"), "pass 2 did not fire");
   assert.ok(noTrim.err.split("\n").includes(PRIMARY_SKIP_SIGNAL), "the over-window primary skip is surfaced");
+  // FAFF-1066: --no-trim now emits exactly one confirming note, gated on the noTrim flag itself.
+  const noTrimNoteLines = noTrim.err.split("\n").filter((l) => l.includes("--no-trim: context trimming disabled"));
+  assert.equal(noTrimNoteLines.length, 1, "exactly one no-trim confirmation note is emitted");
 });
 
 // ============================================================================================

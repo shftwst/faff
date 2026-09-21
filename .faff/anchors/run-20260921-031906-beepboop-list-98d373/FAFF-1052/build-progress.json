@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1052",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3a29720b0ab00713eabc5ccd35a16aa1dc328375b795b2be98161f6e0368b158",
+    "branch": "faff-1052-spec-review-round-1-pin-capture-can-silently-not-run-leaving",
+    "pushed_at": "2026-09-21T10:47:50.355Z"
+  },
+  "updated_at": "2026-09-21T10:47:50.355Z"
+}

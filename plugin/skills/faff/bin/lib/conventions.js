@@ -21,12 +21,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const { loadConfig } = require("./config");
 const { parseArgs, usageError } = require("./argv");
 const { dig, findRoot } = require("./shared-infra");
 
-const CONVENTIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] } }, positionals: { min: 0, max: null, name: "verb key" } };
+const CONVENTIONS_SCHEMA = 2;   // FAFF-1068: schema 1 (FAFF-1041) was mine-emitted-only; schema 2 is the persisted cache.
+const CONVENTIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--refresh": { arity: 0 }, "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] } }, positionals: { min: 0, max: null, name: "verb key" } };
 const CONVENTIONS_SURFACE = {
   kind: "subcommand_dispatch",
   spec: CONVENTIONS_SPEC,
@@ -361,17 +363,96 @@ function resolveConvention(root, key, cfg) {
   return resolveConventionCore(root, key, cfg, CONVENTIONS_DEFAULTS[key]);
 }
 
-// Pure, deterministic, read-only mine — the default `conventions` acquirer. Writes no files;
-// the orchestrator (faff-graft) validates the emitted block and persists .faff/conventions.json.
-// Resolves commit_subject once and hands its result straight to resolvePrTitle rather than
-// going through resolveConvention("pr_title", …) — which would independently re-resolve
-// commit_subject a second time (a duplicate doc scan + `git log` subprocess per `mine` call).
+// ---------------------------------------------------------------------------
+// FAFF-1068 cache — .faff/conventions.json (schema 2). The cache freezes the resolved
+// three-key set so `get` and graft don't re-derive (a doc scan + `git` subprocess) per call.
+//
+// source_fingerprint covers the BUILD-STABLE, human-controlled inputs — the standards-doc set
+// and the CI-gate workflow files (by stat metadata, not content, so a hit test needs no doc
+// content read) plus the `.faffrc conventions:` block (already loaded). It deliberately does
+// NOT recompute a live git head/branch-count on the hit path: doing so would be a `git`
+// subprocess on every `get` (the "no doc scan or git subprocess" contract) AND would drift the
+// instant graft creates its feature branch and commits (breaking "a single mine per run feeds
+// all graft reads"). The git head/branch-count is captured as diagnostic `git_signal` instead;
+// an explicit `mine --refresh` (or graft mining fresh at run start) is the history-change lever.
+// ---------------------------------------------------------------------------
+
+function conventionsCachePath(root) { return path.join(root, ".faff", "conventions.json"); }
+
+function statMeta(p) {
+  try { const s = fs.statSync(p); return [s.size, s.mtimeMs]; } catch { return null; }
+}
+
+function workflowFiles(root) {
+  const wfDir = path.join(root, ".github", "workflows");
+  try { return fs.readdirSync(wfDir).filter((f) => /\.ya?ml$/i.test(f)).sort().map((f) => `.github/workflows/${f}`); }
+  catch { return []; }
+}
+
+// A canonical, content-free digest of the inputs that determine the resolved conventions.
+// `get` recomputes this cheaply (stat + already-loaded config only — no file read, no git) to
+// decide a cache hit; a changed/added/removed standards doc or workflow changes size/mtime and
+// so misses.
+function computeSourceFingerprint(root, cfg) {
+  const docs = findStandardsDocs(root).map((rel) => [rel, statMeta(path.join(root, rel))]).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  const workflows = workflowFiles(root).map((rel) => [rel, statMeta(path.join(root, rel))]);
+  const config = dig(cfg, "conventions");
+  const canonical = JSON.stringify({ docs, workflows, config: config === undefined ? null : config });
+  return crypto.createHash("sha256").update(canonical).digest("hex");
+}
+
+// Diagnostic only — captured at mine time, never part of the hit test (see the region note).
+function cheapGitSignal(root) {
+  const head = safeGit(root, ["rev-parse", "HEAD"]).trim() || null;
+  const branches = readBranchNames(root).length;
+  return { head, branches };
+}
+
+function writeConventionsCacheAtomic(root, set) {
+  const dest = conventionsCachePath(root);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  const tmp = `${dest}.tmp-${process.pid}`;
+  fs.writeFileSync(tmp, `${JSON.stringify(set, null, 2)}\n`);
+  fs.renameSync(tmp, dest);   // atomic swap so a concurrent reader never sees a torn write
+}
+
+// null on absent / unreadable / invalid-JSON (torn) — every non-usable state reads as "no cache".
+function readConventionsCache(root) {
+  try { return JSON.parse(fs.readFileSync(conventionsCachePath(root), "utf8")); }
+  catch { return null; }
+}
+
+function isUsableCache(cache) {
+  return cache !== null && typeof cache === "object" && !Array.isArray(cache) && cache.schema === CONVENTIONS_SCHEMA;
+}
+
+// Pure, deterministic, read-only mine — the default `conventions` acquirer, now stamped with the
+// schema-2 cache metadata (source_fingerprint + diagnostic git_signal). The CLI `mine` verb
+// persists the returned set to .faff/conventions.json; the three style keys are byte-identical
+// to FAFF-1041. Resolves commit_subject once and hands its result straight to resolvePrTitle
+// rather than going through resolveConvention("pr_title", …) — which would independently
+// re-resolve commit_subject a second time (a duplicate doc scan + `git log` subprocess).
 function mineConventions(root, cfg) {
-  const set = { schema: 1, generated_at: new Date().toISOString() };
+  const set = { schema: CONVENTIONS_SCHEMA, generated_at: new Date().toISOString() };
+  set.source_fingerprint = computeSourceFingerprint(root, cfg);
+  set.git_signal = cheapGitSignal(root);
   set.branch_naming = resolveConvention(root, "branch_naming", cfg);
   set.commit_subject = resolveConvention(root, "commit_subject", cfg);
   set.pr_title = resolvePrTitle(root, cfg, set.commit_subject);
   return set;
+}
+
+// The cache-aware resolver behind `conventions get`: returns the cached entry on a schema-2
+// fingerprint match (no doc scan, no history git subprocess), else re-derives byte-identically
+// to today and refreshes the whole cache when the directory is writable. `{ entry, hit }`.
+function resolveConventionCached(root, key, cfg) {
+  const cache = readConventionsCache(root);
+  if (isUsableCache(cache) && cache[key] && cache.source_fingerprint === computeSourceFingerprint(root, cfg)) {
+    return { entry: cache[key], hit: true };
+  }
+  const entry = resolveConvention(root, key, cfg);
+  try { writeConventionsCacheAtomic(root, mineConventions(root, cfg)); } catch { /* read-only tree: re-derive every call, exactly as pre-cache */ }
+  return { entry, hit: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -384,7 +465,7 @@ const CONVENTIONS_CONFIDENCES = ["high", "medium", "low"];
 function validateConventionSet(obj) {
   if (obj === null || typeof obj !== "object" || Array.isArray(obj)) return ["conventions record must be a JSON object"];
   const v = [];
-  if (obj.schema !== 1) v.push("schema must be 1");
+  if (obj.schema !== CONVENTIONS_SCHEMA) v.push(`schema must be ${CONVENTIONS_SCHEMA}`);
   if (!obj.generated_at) v.push("missing required field: generated_at");
   for (const key of CONVENTIONS_KEYS) {
     const conv = obj[key];
@@ -437,6 +518,10 @@ function cmdConventions(args) {
     const cfg = loadCfg();
     if (cfg === null) return 2;
     const set = mineConventions(root, cfg);
+    // Persist the cache atomically. `--refresh` is intent-documenting: mine always rewrites, so
+    // `mine` and `mine --refresh` behave identically — the flag names the invalidation lever.
+    try { writeConventionsCacheAtomic(root, set); }
+    catch (e) { process.stderr.write(`faff conventions mine: could not persist .faff/conventions.json (${e.message})\n`); }
     const json = JSON.stringify(set, null, 2);
     if (rest.includes("--json")) { console.log(json); return 0; }
     console.log(CONVENTIONS_FENCE_OPEN);
@@ -450,7 +535,7 @@ function cmdConventions(args) {
     if (!key || !CONVENTIONS_KEYS.includes(key)) { process.stderr.write(`faff conventions get: <key> must be one of ${CONVENTIONS_KEYS.join("|")}\n`); return 2; }
     const cfg = loadCfg();
     if (cfg === null) return 2;
-    const resolved = resolveConvention(root, key, cfg);
+    const resolved = resolveConventionCached(root, key, cfg).entry;
     // exit 0 always resolves — the default IS the floor, so `get` never fails for "unset".
     // -d/--default (when given AND resolution genuinely fell to the "default" tier) overrides
     // the vocabulary default with the caller-supplied one — parity with `config get -d`.
@@ -462,11 +547,14 @@ function cmdConventions(args) {
   }
 
   if (cmd === "show") {
-    const cachePath = path.join(root, ".faff", "conventions.json");
+    const cachePath = conventionsCachePath(root);
     let stored = null;
     if (fs.existsSync(cachePath)) {
       try { stored = JSON.parse(fs.readFileSync(cachePath, "utf8")); }
       catch { process.stderr.write("faff conventions show: malformed .faff/conventions.json (invalid JSON)\n"); return 2; }
+      // A valid-JSON but non-schema-2 file (a schema-1 cache from before FAFF-1068) is stale, not
+      // malformed: treat it as absent so a mine re-derives it, never crash on it.
+      if (!isUsableCache(stored)) stored = null;
     }
     const cfg = loadCfg();
     if (cfg === null) return 2;
@@ -474,7 +562,7 @@ function cmdConventions(args) {
     const hasOverride = overrideBlock && typeof overrideBlock === "object" && !Array.isArray(overrideBlock)
       && CONVENTIONS_KEYS.some((k) => overrideBlock[k] !== undefined && overrideBlock[k] !== null && String(overrideBlock[k]).trim() !== "");
     if (!stored && !hasOverride) { process.stderr.write("faff conventions show: no conventions mined; run `faff conventions mine`\n"); return 3; }
-    const effective = stored && typeof stored === "object" && !Array.isArray(stored) ? JSON.parse(JSON.stringify(stored)) : { schema: 1, generated_at: null };
+    const effective = stored && typeof stored === "object" && !Array.isArray(stored) ? JSON.parse(JSON.stringify(stored)) : { schema: CONVENTIONS_SCHEMA, generated_at: null };
     for (const key of CONVENTIONS_KEYS) {
       const v = overrideBlock && overrideBlock[key];
       if (v !== undefined && v !== null && CONVENTIONS_VOCAB[key].includes(String(v))) {
@@ -524,9 +612,9 @@ function conventionsSelftest() {
 
   // --- validateConventionSet ---
   const validSet = mineConventions(os.tmpdir(), {});   // tmpdir has no docs/git signal -> pure defaults
-  check("validate: a freshly-mined (all-default) set is valid", validateConventionSet(validSet).length === 0);
-  check("validate: wrong schema is invalid", validateConventionSet({ ...validSet, schema: 2 }).length > 0);
-  check("validate: missing convention is invalid", validateConventionSet({ schema: 1, generated_at: "t", branch_naming: validSet.branch_naming, pr_title: validSet.pr_title }).length > 0);
+  check("validate: a freshly-mined (all-default) set is valid, schema 2", validSet.schema === CONVENTIONS_SCHEMA && validateConventionSet(validSet).length === 0);
+  check("validate: a schema-1 set is invalid (stale schema)", validateConventionSet({ ...validSet, schema: 1 }).length > 0);
+  check("validate: missing convention is invalid", validateConventionSet({ schema: CONVENTIONS_SCHEMA, generated_at: "t", branch_naming: validSet.branch_naming, pr_title: validSet.pr_title }).length > 0);
   check("validate: out-of-vocabulary value is invalid", validateConventionSet({ ...validSet, branch_naming: { ...validSet.branch_naming, value: "camelCase" } }).length > 0);
   check("validate: default source with non-low confidence is invalid", validateConventionSet({ ...validSet, branch_naming: { ...validSet.branch_naming, confidence: "high" } }).length > 0);
   check("validate: not an object is invalid", validateConventionSet([]).length > 0);
@@ -608,6 +696,51 @@ function conventionsSelftest() {
     if (tmp) fs.rmSync(tmp, { recursive: true, force: true });
   }
 
+  // --- FAFF-1068 cache round-trip (a fresh tmp dir, no git/docs -> pure-default resolution) ---
+  let ctmp;
+  try {
+    ctmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-conventions-cache-"));
+
+    // mine-writes-file: mine persists a valid schema-2 cache.
+    writeConventionsCacheAtomic(ctmp, mineConventions(ctmp, {}));
+    const onDisk = readConventionsCache(ctmp);
+    check("cache: mine writes a schema-2 .faff/conventions.json that validates",
+      fs.existsSync(conventionsCachePath(ctmp)) && onDisk && onDisk.schema === CONVENTIONS_SCHEMA && validateConventionSet(onDisk).length === 0);
+
+    // get-reads-cache: plant a DIFFERENT value under a MATCHING fingerprint -> get returns the
+    // planted value, proving it read the cache rather than re-deriving (re-derivation would give
+    // the default 'issue-slug').
+    const planted = mineConventions(ctmp, {});
+    planted.branch_naming = { key: "branch_naming", value: "slash-scoped", source: "documented", confidence: "high", evidence: [{ kind: "doc-file", ref: "planted", detail: "planted cache value" }] };
+    planted.source_fingerprint = computeSourceFingerprint(ctmp, {});   // matches current inputs
+    writeConventionsCacheAtomic(ctmp, planted);
+    const hitRes = resolveConventionCached(ctmp, "branch_naming", {});
+    check("cache: get returns the cached value on a fingerprint match (no re-derive)",
+      hitRes.hit === true && hitRes.entry.value === "slash-scoped");
+
+    // fingerprint-mismatch-re-derives: corrupt the stored fingerprint -> get ignores the cache and
+    // re-derives the real default value.
+    const stale = readConventionsCache(ctmp);
+    stale.source_fingerprint = "0".repeat(64);
+    writeConventionsCacheAtomic(ctmp, stale);
+    const missRes = resolveConventionCached(ctmp, "branch_naming", {});
+    check("cache: fingerprint mismatch re-derives (byte-identical default) and refreshes",
+      missRes.hit === false && missRes.entry.value === CONVENTIONS_DEFAULTS.branch_naming);
+    const refreshed = readConventionsCache(ctmp);
+    check("cache: a re-derive refreshes the cache with a matching fingerprint",
+      refreshed && refreshed.source_fingerprint === computeSourceFingerprint(ctmp, {}));
+
+    // torn-file-treated-as-absent: an invalid-JSON (torn) cache re-derives without crashing.
+    fs.writeFileSync(conventionsCachePath(ctmp), "{ not valid json");
+    const tornRes = resolveConventionCached(ctmp, "commit_subject", {});
+    check("cache: a torn (invalid-JSON) file is treated as absent -> re-derives, never crashes",
+      tornRes.hit === false && tornRes.entry.value === CONVENTIONS_DEFAULTS.commit_subject);
+  } catch (e) {
+    check(`cache round-trip threw unexpectedly: ${e.message}`, false);
+  } finally {
+    if (ctmp) fs.rmSync(ctmp, { recursive: true, force: true });
+  }
+
   if (failed) return 1;
   console.log("conventions --selftest: ok");
   return 0;
@@ -615,8 +748,9 @@ function conventionsSelftest() {
 
 module.exports = {
   CONVENTIONS_DEFAULTS, CONVENTIONS_FENCE_CLOSE, CONVENTIONS_FENCE_OPEN, CONVENTIONS_KEYS,
-  CONVENTIONS_SPEC, CONVENTIONS_SURFACE, CONVENTIONS_VOCAB,
-  classifyBranchName, classifyCommitSubject, cmdConventions, conventionsSelftest,
-  detectGateFixedValue, dominantScheme, findStandardsDocs, inferConvention, matchDocForKey,
-  mineConventions, resolveConvention, scanDocs, validateConventionSet,
+  CONVENTIONS_SCHEMA, CONVENTIONS_SPEC, CONVENTIONS_SURFACE, CONVENTIONS_VOCAB,
+  cheapGitSignal, classifyBranchName, classifyCommitSubject, cmdConventions, computeSourceFingerprint,
+  conventionsCachePath, conventionsSelftest, detectGateFixedValue, dominantScheme, findStandardsDocs,
+  inferConvention, matchDocForKey, mineConventions, readConventionsCache, resolveConvention,
+  resolveConventionCached, scanDocs, validateConventionSet, writeConventionsCacheAtomic,
 };

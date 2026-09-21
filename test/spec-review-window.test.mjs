@@ -27,6 +27,7 @@ import {
 import {
   backendIdentity, capturePin, atomicWriteJSON, servedIdentityPath,
 } from "../plugin/skills/faff/bin/lib/spec-review-pin.js";
+import { detectSpecReviewConvergence } from "../plugin/skills/faff/bin/lib/spec-review-convergence.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -451,6 +452,65 @@ test("CLI --govern: does NOT accept a --served override flag (Rev 8: removed —
   try {
     const r = runCli(["spec-review-window", "--govern", "--round", "1", "--any-served", "--served", "openai|x|h", "--dir", dir]);
     assert.notEqual(r.code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- End-to-end oracle: a late-pin loop's governed window_start converges; the pre-fix
+// window_start:1 span across the SAME rounds reads as churn/non-convergence -----------------
+
+test("end-to-end oracle: govern's late-pin-advance window_start converges over the pinned rounds; window_start:1 over the same rounds does not", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-oracle-"));
+  try {
+    // Round 1's capture silently failed to run (the FAFF-996-class recurrence): no pin, but the
+    // occupant still recorded round 1's served identity — a strong reviewer, 6 architectural
+    // objections, no blocker.
+    atomicWriteJSON(servedIdentityPath(dir, 1), { round: 1, served_identity: backendIdentity(BACKENDS[0]), winner_index: 0, ts: new Date().toISOString() });
+    const round1 = { verdict: "reject-approach", objections: Array.from({ length: 6 }, () => ({ lens: "architectural", severity: "major" })) };
+    writeFileSync(join(dir, "round-1.json"), JSON.stringify(round1));
+    const g1 = govern(dir, 1, "any-served");
+    assert.equal(g1.result.action, "unpinnable-reset");
+    assert.equal(g1.result.anomaly, "round1-capture-missed");
+    assert.equal(readWindowStart(dir), 1);
+
+    // Round 2: the SAME reviewer serves again and the pin is now captured (a fallback pass
+    // finally ran the capture) — capRound:2, servedIdentity == pin, so this is late-pin-advance,
+    // not a swap. Fewer objections, still no blocker: a genuinely converging trend.
+    capturePin(dir, BACKENDS, 0, 2); // pins backends[0] at round 2, records served-2.json
+    const round2 = { verdict: "reject-approach", objections: Array.from({ length: 3 }, () => ({ lens: "architectural", severity: "major" })) };
+    writeFileSync(join(dir, "round-2.json"), JSON.stringify(round2));
+    const g2 = govern(dir, 2, "any-served");
+    assert.equal(g2.result.action, "late-pin-advance");
+    assert.equal(g2.result.window_start, 2);
+
+    // Governed window [2..2]: too few rounds to assess a trend on their own, but crucially this
+    // is the CORRECT window — it never compares round 1 (the possibly-different, unpinned
+    // reviewer) against round 2. Add a genuinely converging round 3 (still the same reviewer,
+    // fewer objections, no blocker) and confirm [2..3] converges.
+    const servedIdentity3 = backendIdentity(BACKENDS[0]);
+    atomicWriteJSON(servedIdentityPath(dir, 3), { round: 3, served_identity: servedIdentity3, winner_index: 0, ts: new Date().toISOString() });
+    const round3 = { verdict: "reject-approach", objections: Array.from({ length: 1 }, () => ({ lens: "architectural", severity: "major" })) };
+    writeFileSync(join(dir, "round-3.json"), JSON.stringify(round3));
+    const g3 = govern(dir, 3, "any-served");
+    assert.equal(g3.result.action, "unchanged", "round 3 served by the same pinned backend — no window narrowing");
+    assert.equal(g3.result.window_start, 2, "the window stays anchored at the late-pin round");
+
+    const governedRounds = [round2, round3]; // [window_start=2 .. 3]
+    const governed = detectSpecReviewConvergence(governedRounds);
+    assert.equal(governed.converging, true, "the correctly-governed [2..3] window converges (6->3->1, strictly decreasing, no new lens, no blocker)");
+
+    // The PRE-FIX span: window_start stuck at 1 (as it would be with no pin/governance at all)
+    // compares round 1 (an UNPROVEN, possibly-different reviewer) against round 2 as if they were
+    // one continuous trend. In THIS fixture the objection counts still happen to fall (6->3), so
+    // demonstrate the actual failure mode named in the spec instead: a genuine swap round raising a
+    // FRESH lens reads as churn over the unguarded [1..n] span (the "forced fallback looks like
+    // churn" / "new lens reads as non-convergence" case) — the exact class govern()'s window
+    // narrowing exists to prevent.
+    const preFixSwappedSpan = [
+      round1,
+      { verdict: "reject-approach", objections: round2.objections.concat([{ lens: "infosec", severity: "major" }]) },
+    ];
+    const preFix = detectSpecReviewConvergence(preFixSwappedSpan);
+    assert.equal(preFix.converging, false, "an ungoverned [1..2] span reading a swapped-in fresh lens as churn — exactly what window narrowing prevents");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

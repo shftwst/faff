@@ -32,7 +32,7 @@ const { cmdParkVerdict } = require("./lib/park-verdict");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdCommissaire } = require("./lib/commissaire");
 const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
-const { cmdConfig, cmdModels } = require("./lib/config");
+const { cmdConfig, cmdModels, cmdVerification } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
 const { cmdContract } = require("./lib/contract-defs");
@@ -181,6 +181,7 @@ const COMMANDS = {
   "dod": cmdDod,
   "holdout": cmdHoldout,
   "spec-review-lenses": cmdSpecReviewLenses,
+  "verification": cmdVerification,
   "container-check": cmdContainerCheck,
   "evaluator-preflight": cmdEvaluatorPreflight,
   "lane-boundary": cmdLaneBoundary,

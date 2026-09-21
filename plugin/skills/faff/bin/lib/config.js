@@ -56,6 +56,12 @@ function configVerbList() {
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
+// FAFF-1061: reuse FAFF-717's attendedness READ half (declaredUnattendedFromConfig) and its
+// fail-closed boolean coercion (literalTrue) so the interactive-verification resolver keys off the
+// exact same unattended axis, never a parallel switch. factory→governance is a legal require edge
+// (ADR-0042); the verification resolver deliberately does NOT call actsOnSentryAbort (running a
+// verification leg is not acting on its floor — the spec anti-pattern).
+const { declaredUnattendedFromConfig, literalTrue } = require("./sentry");
 const {
   CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG,
   deepMergeConfig, dig, findConfig, findOverlay, findRoot, isPlainConfigMap, parseConfigMapStrict, readBaseConfigStrict,
@@ -306,6 +312,15 @@ const DEFAULTS = {
   // is the honest "runs locally with the repo present in its worktree" declaration.
   "lanes.build.isolation.container": "shared",
   "lanes.build.isolation.host": "local",
+  // FAFF-1061: opt-in interactive high-assurance verification. Three fail-closed boolean leaves,
+  // one per verification leg, resolved via literalTrue by resolveInteractiveVerification below.
+  // Default "false" so a config fault can never switch verification on, and — because the resolver
+  // short-circuits to all-false for any unattended run — an existing unattended (L3/L4) run never
+  // reads these. These are a VERIFICATION-confidence axis only; enabling a leg confers NO unattended
+  // acting authority (the FAFF-717 autonomous.* axis is untouched). DISPLAY value for `config get`.
+  "verification.holdout": "false",
+  "verification.spec_review": "false",
+  "verification.code_review": "false",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -682,6 +697,146 @@ function resolveConvergence(cfg, env = process.env) {
   return (v === null || v === undefined) ? DEFAULTS["convergence.enabled"] : fmt(v);
 }
 
+// FAFF-1061: the SINGLE interactive-verification resolver — "which high-assurance verification legs
+// run at this ATTENDED session?" It mirrors FAFF-717's read half (declaredUnattendedFromConfig +
+// literalTrue) but carries NO acting disjunct: an opted-in leg computes and SURFACES the floor, it
+// never auto-merges, auto-parks, or refuses. It is consulted at all three call sites (the holdout
+// gate, the spec-review lens-pin, the adversarial code-review) via `faff verification resolve`, so
+// the three surfaces cannot drift independently.
+//   1. UNATTENDED run (an L4-minted ledger OR a declared-unattended config) → all-false: the
+//      unattended path runs/gates its OWN floor (the merge-gate auto-merge interlock, the L4
+//      mandatory refuse) — never this resolver. This is the same attended-vs-unattended axis
+//      actsOnSentryAbort keys on, INLINED (deliberately NOT calling actsOnSentryAbort) so a future
+//      change to abort-ACTING semantics can never silently flip verification-RUNNING (spec
+//      anti-pattern). The `||` is lazy, so an L4 ledger short-circuits before any config read.
+//   2. no ledger / no attended run → all-false: an attended posture needs a minted run to attach to.
+//   3. otherwise (an attended, non-L4 ledger) → per-leg literalTrue(verification.<leg>), fail-closed.
+// Reads config only; never sets/escalates level, never flips autonomous/lights_out.
+function resolveInteractiveVerification(ledger, cfg) {
+  const allFalse = { holdout: false, spec_review: false, code_review: false };
+  if ((!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg)) return { ...allFalse };
+  if (!ledger) return { ...allFalse };
+  return {
+    holdout: literalTrue(dig(cfg, "verification.holdout")),
+    spec_review: literalTrue(dig(cfg, "verification.spec_review")),
+    code_review: literalTrue(dig(cfg, "verification.code_review")),
+  };
+}
+
+const VERIFICATION_SPEC = {
+  flags: {
+    "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--root": { arity: 1 },
+    "--holdout": { arity: 0 }, "--spec-review": { arity: 0 }, "--code-review": { arity: 0 },
+  },
+  positionals: { min: 0, max: 1, name: "subcommand" },
+};
+
+// FAFF-1061: the mechanical consult surface for the SKILL.md call sites (faff-graft's holdout gate,
+// spec-review lens-pin, and adversarial code-review). Prose never hand-reads .faffrc (CLI-only config
+// access), so it shells `faff verification resolve --json` and branches on the per-leg booleans.
+// The standing posture comes from the `verification.*` config leaves; the per-invocation opt-in
+// (graft's --verify / --verify-<leg>) is the optional `--holdout` / `--spec-review` / `--code-review`
+// flags, OR-ed over the config posture — but ONLY on an attended run, so a flag can never confer
+// verification on an unattended run (the acting axis stays unchanged).
+function cmdVerification(args) {
+  if (args.includes("--selftest")) return verificationSelftest();
+  const { values, positionals, errors } = parseArgs(args, VERIFICATION_SPEC);
+  const usage = "usage: faff verification resolve [--json] [--holdout] [--spec-review] [--code-review]";
+  if (errors.length) return usageError(errors, usage);
+  const sub = positionals[0] || "resolve";
+  if (sub !== "resolve") return usageError([`unknown subcommand '${sub}'`], usage);
+
+  const root = values["--root"] || findRoot();
+  const [cfg] = loadConfig(root);
+  const runDir = process.env.FAFF_RUN_DIR;
+  let ledger = null;
+  if (runDir) { try { ledger = readLedger(runDir); } catch { ledger = null; } }
+
+  const unattended = (!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg);
+  const attended = !!ledger && !unattended;
+  const base = resolveInteractiveVerification(ledger, cfg);
+  const legs = {
+    holdout: base.holdout || (attended && !!values["--holdout"]),
+    spec_review: base.spec_review || (attended && !!values["--spec-review"]),
+    code_review: base.code_review || (attended && !!values["--code-review"]),
+  };
+  const out = {
+    attended,
+    unattended,
+    level: ledger ? (ledger.level || null) : null,
+    legs,
+    any: legs.holdout || legs.spec_review || legs.code_review,
+  };
+  if (values["--json"]) { console.log(JSON.stringify(out)); return 0; }
+  if (unattended) {
+    console.log("verification: unattended run — interactive verification legs do not apply (the unattended floor runs its own gate)");
+    return 0;
+  }
+  if (!attended) {
+    console.log("verification: no attended run (no ledger) — interactive verification legs off");
+    return 0;
+  }
+  const on = Object.entries(legs).filter(([, v]) => v).map(([k]) => k);
+  console.log(`verification (attended ${out.level || "?"}): ${on.length ? on.join(", ") + " ON (advisory — computes + surfaces the floor, never acts)" : "all legs off"}`);
+  return 0;
+}
+
+function verificationSelftest() {
+  let failed = 0;
+  const check = (label, got, want) => {
+    if (got !== want) { process.stderr.write(`verification --selftest FAIL: ${label} (want ${want}, got ${got})\n`); failed++; }
+  };
+  const L2 = { level: "L2" }, L3 = { level: "L3" }, L4 = { level: "L4" };
+  // Config fixtures are NESTED maps (what dig traverses + what parseYamlSubset produces).
+  const allOn = { verification: { holdout: "true", spec_review: "true", code_review: "true" } };
+
+  // Attended L2, all legs opted in → all three true.
+  let r = resolveInteractiveVerification(L2, allOn);
+  check("attended L2 all-on → holdout", r.holdout, true);
+  check("attended L2 all-on → spec_review", r.spec_review, true);
+  check("attended L2 all-on → code_review", r.code_review, true);
+
+  // Attended L3 (standing posture) is level-independent within attended.
+  r = resolveInteractiveVerification(L3, { verification: { holdout: "true" } });
+  check("attended L3 holdout-only → holdout", r.holdout, true);
+  check("attended L3 holdout-only → spec_review off", r.spec_review, false);
+
+  // Typo / non-boolean resolves false (fail-closed literalTrue).
+  r = resolveInteractiveVerification(L2, { verification: { holdout: "yes", spec_review: "1", code_review: "TRUE" } });
+  check("typo 'yes' → false", r.holdout, false);
+  check("'1' → false", r.spec_review, false);
+  check("case-insensitive 'TRUE' → true", r.code_review, true);
+
+  // Unattended: an L4 ledger short-circuits to all-false regardless of config.
+  r = resolveInteractiveVerification(L4, allOn);
+  check("L4 ledger → holdout all-false", r.holdout, false);
+  check("L4 ledger → spec_review all-false", r.spec_review, false);
+  check("L4 ledger → code_review all-false", r.code_review, false);
+
+  // Unattended: declared-unattended config (FAFF-717 axis) short-circuits to all-false even at L2.
+  r = resolveInteractiveVerification(L2, { verification: allOn.verification, autonomous: { unattended: "true" } });
+  check("declared-unattended → all-false (holdout)", r.holdout, false);
+  check("declared-unattended → all-false (code_review)", r.code_review, false);
+  // The retained FAFF-717 alias (autonomous.sentry_acting) also short-circuits.
+  r = resolveInteractiveVerification(L2, { verification: allOn.verification, autonomous: { sentry_acting: "true" } });
+  check("sentry_acting alias → all-false", r.holdout || r.spec_review || r.code_review, false);
+
+  // No ledger → all-false (no attended run to attach the posture to).
+  r = resolveInteractiveVerification(null, allOn);
+  check("no ledger → holdout false", r.holdout, false);
+  check("no ledger → code_review false", r.code_review, false);
+
+  // Absent leaves → false (default fail-closed).
+  r = resolveInteractiveVerification(L2, {});
+  check("absent leaves → holdout false", r.holdout, false);
+  check("absent leaves → spec_review false", r.spec_review, false);
+  check("absent leaves → code_review false", r.code_review, false);
+
+  if (failed) return 1;
+  console.log("verification --selftest: ok");
+  return 0;
+}
+
 function fmt(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -1045,6 +1200,7 @@ const WRITABLE_NAMESPACES = new Set([
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
   "bundle_store", "install", "lanes", "producer_tick_max_secs", "conventions",
+  "verification",
 ]);
 
 // Top-level namespaces faff genuinely READS (via dig(config, "<ns>.…")) but that `config set`
@@ -2888,4 +3044,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };

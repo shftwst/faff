@@ -285,6 +285,19 @@ convergence:
   enabled: true    # true (default) | false (L3 opt-out only; inert at L4)
   max_waves: 6     # runaway backstop K — consecutive no-progress waves before non-convergence escalate
 
+# Opt-in interactive high-assurance verification (FAFF-1061). Independently enable faff's L4
+# confidence machinery on an ATTENDED (interactive) session, so a hands-on operator gets the real
+# floor verdict on their own work. VERIFICATION CONFIDENCE ONLY — enabling a leg confers NO
+# unattended acting authority: the floor is computed and SURFACED, never auto-merged/parked/refused
+# (that acting axis stays the FAFF-717 autonomous.* knobs). Each leaf defaults false, fail-closed;
+# the resolver (`faff verification resolve`) short-circuits to all-off for any unattended run
+# (a declared-unattended config, i.e. autonomous.unattended / autonomous.sentry_acting, or an L4
+# mint), so these are inert unless the run is genuinely attended.
+verification:
+  holdout: false      # run the code-blind holdout evaluator (env standup → evaluate → teardown), fold through decideFloor, surface (with a cage-trust stamp)
+  spec_review: false  # pin the full four-lens adversarial spec-review set (verdict advisory; contract unchanged)
+  code_review: false  # run the adversarial code-review second opinion (outage stays advisory, never the unattended hard-fail)
+
 # Run budget envelope (FAFF-36), /faff-beep-boop + `faff lights-out`. A set of ceilings across four
 # dimensions plus one at-ceiling outcome; any subset, an unset dimension is unbounded. Resolved once at
 # run start (--until / --max flags override). At L3 any ceiling is a legitimate cost idiom. At L4

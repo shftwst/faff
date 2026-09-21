@@ -3,9 +3,16 @@
 // sidecar read/write round-trip (readWindowStart / writeWindowStart), the malformed-marker
 // fail-loud path, the CLI subcommand (--next-round / --read / --set N + usage errors), the
 // --selftest, and the faff-prep/SKILL.md rewire (lines 122/165/167) this resolver plugs into.
+//
+// FAFF-1052 — `--govern`: the deterministic window-governance state machine that replaces
+// prep's hand-derived swap comparison. Covers every branch (no-lens / unpinnable-reset with
+// the round1-capture-missed vs unpinnable anomaly split / late-pin-advance / swap-reset /
+// unchanged / the soft pin-marker-missing+pin-marker-contradiction anomalies / the served-
+// path exit-2 faults with their governance-<n>.json record still written / the pre-read arg-
+// validation errors that write no record and leave window.json untouched).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,12 +21,21 @@ import {
   nextRoundNumber,
   readWindowStart,
   writeWindowStart,
+  govern,
   specReviewWindowSelftest,
 } from "../plugin/skills/faff/bin/lib/spec-review-window.js";
+import {
+  backendIdentity, capturePin, atomicWriteJSON, servedIdentityPath,
+} from "../plugin/skills/faff/bin/lib/spec-review-pin.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
 const PREP_SKILL = join(REPO, "plugin", "skills", "faff-prep", "SKILL.md");
+
+const BACKENDS = [
+  { provider: "openai", model: "mA", host: "https://a/v1" },
+  { provider: "nvidia", model: "mB", host: "https://b/v1" },
+];
 
 function mkRoundRecord(dir, n, total, lens = "architectural", blockers = 0) {
   const objections = [];
@@ -250,8 +266,201 @@ test("specReviewWindowSelftest() returns 0 in-process", () => {
 
 test("faff-prep/SKILL.md: the loop resolves the window + round number via the new CLI", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /spec-review-window --read --dir \$scratch/, "line 122 resolves window_start from --read");
-  assert.match(body, /spec-review-window --set \$n --dir \$scratch/, "line 122 persists the swap-round reset via --set");
-  assert.match(body, /spec-review-window --next-round --dir \$scratch/, "line 165 derives the round number from --next-round");
-  assert.match(body, /spec-review-convergence --dir \$scratch --window-start \$window_start/, "line 167 passes --window-start");
+  assert.match(body, /spec-review-window --read --dir \$scratch/, "loop entry resolves window_start from --read");
+  assert.match(body, /spec-review-window --govern --dir \$scratch --round \$n/, "per-round governance now runs via --govern, not a hand --set");
+  assert.match(body, /spec-review-window --next-round --dir \$scratch/, "the round number is derived from --next-round");
+  assert.match(body, /spec-review-convergence --dir \$scratch --window-start \$window_start/, "convergence reads pass --window-start");
+});
+
+// --- FAFF-1052: `--govern` deterministic window governance --------------------------------
+
+test("govern: no-lens is a legitimate no-op — governance written, window.json byte-unchanged", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    writeWindowStart(dir, 1);
+    const before = readFileSync(join(dir, "window.json"), "utf8");
+    const { code, result } = govern(dir, 1, "no-lens");
+    assert.equal(code, 0);
+    assert.equal(result.action, "no-lens");
+    assert.equal(result.served_identity, null);
+    assert.equal(readFileSync(join(dir, "window.json"), "utf8"), before, "window.json byte-unchanged");
+    assert.equal(existsSync(join(dir, "governance-1.json")), true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: served round 1 with no pin → unpinnable-reset, anomaly round1-capture-missed (distinct from round >=2's 'unpinnable')", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    const r1 = govern(dir, 1, "any-served");
+    assert.equal(r1.code, 0);
+    assert.equal(r1.result.action, "unpinnable-reset");
+    assert.equal(r1.result.anomaly, "round1-capture-missed");
+    assert.equal(r1.result.window_start, 1);
+
+    const r3 = govern(dir, 3, "any-served");
+    assert.equal(r3.result.action, "unpinnable-reset");
+    assert.equal(r3.result.anomaly, "unpinnable", "round >= 2 gets the generic anomaly, not round1-capture-missed");
+    assert.equal(r3.result.window_start, 3);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: late-pin-advance — the pin is first captured at round 2 (the FAFF-996 recovery case)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    capturePin(dir, BACKENDS, 0, 2); // pin-capture.json{captured, round:2}, served-2.json == pin
+    const { code, result } = govern(dir, 2, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.action, "late-pin-advance");
+    assert.equal(result.window_start, 2, "convergence over [2..2] never compares round 1 vs round 2");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: swap-reset fires from served-<n>.json even though the pin is still chain[0]", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    capturePin(dir, BACKENDS, 0, 1); // pins backends[0] at round 1
+    writeWindowStart(dir, 1);
+    // The OCCUPANT records round 2's served identity as a DIFFERENT backend — never a
+    // prep-side re-derivation from --resolve (which would return the pin first and miss this).
+    atomicWriteJSON(servedIdentityPath(dir, 2), { round: 2, served_identity: backendIdentity(BACKENDS[1]), winner_index: 1, ts: new Date().toISOString() });
+    const { code, result } = govern(dir, 2, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.action, "swap-reset");
+    assert.equal(result.window_start, 2);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: unchanged when round 2 is served by the SAME backend as the pin", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    capturePin(dir, BACKENDS, 0, 1);
+    capturePin(dir, BACKENDS, 0, 2); // idempotent pin write; served-2.json records backends[0] again
+    writeWindowStart(dir, 1);
+    const { code, result } = govern(dir, 2, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.action, "unchanged");
+    assert.equal(result.window_start, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: soft pin-marker-missing (legacy pin, no capture marker) — full GovernanceResult asserted", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "pinned-reviewer.json"), JSON.stringify(BACKENDS[0]));
+    atomicWriteJSON(servedIdentityPath(dir, 3), { round: 3, served_identity: backendIdentity(BACKENDS[0]), winner_index: 0, ts: new Date().toISOString() });
+    const { code, result } = govern(dir, 3, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.anomaly, "pin-marker-missing");
+    assert.equal(result.action, "unchanged");
+    assert.equal(result.capture_state, "absent");
+    assert.equal(result.capture_round, null);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: soft pin-marker-contradiction (pin present, capture marker state != captured) — full GovernanceResult asserted", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "pinned-reviewer.json"), JSON.stringify(BACKENDS[0]));
+    atomicWriteJSON(join(dir, "pin-capture.json"), { state: "failed", round: 1, reason: "x", ts: new Date().toISOString() });
+    atomicWriteJSON(servedIdentityPath(dir, 3), { round: 3, served_identity: backendIdentity(BACKENDS[0]), winner_index: 0, ts: new Date().toISOString() });
+    const { code, result } = govern(dir, 3, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.anomaly, "pin-marker-contradiction");
+    assert.equal(result.capture_state, "failed");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: pin present, no served identity for this round → exit 2 fault WITH a governance-<n>.json record + window_start := n", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    capturePin(dir, BACKENDS, 0, 1);
+    const { code, result } = govern(dir, 5, "any-served"); // round 5 never served -> no served-5.json
+    assert.equal(code, 2);
+    assert.equal(result.action, "fault");
+    assert.equal(result.anomaly, "served-identity-missing-or-malformed");
+    assert.equal(existsSync(join(dir, "governance-5.json")), true, "the fault path STILL writes an audit artifact");
+    assert.equal(readWindowStart(dir), 5, "unpinnable fail-safe: window_start narrows to n");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: a torn/malformed served-<n>.json → the same fault, never a silent compare", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    capturePin(dir, BACKENDS, 0, 1);
+    writeFileSync(servedIdentityPath(dir, 2), "{ broken");
+    const { code, result } = govern(dir, 2, "any-served");
+    assert.equal(code, 2);
+    assert.equal(result.anomaly, "served-identity-missing-or-malformed");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: a torn/field-stripped pinned-reviewer.json (degenerate '||') → pin-identity-malformed fault", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "pinned-reviewer.json"), "{ not json");
+    const { code, result } = govern(dir, 1, "any-served");
+    assert.equal(code, 2);
+    assert.equal(result.anomaly, "pin-identity-malformed");
+    assert.equal(existsSync(join(dir, "governance-1.json")), true, "the stored operand is gated symmetrically — still records");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: the pinned-round happens-before-violation path (pin exists, served-<n>.json for THIS round not yet written) degrades to the same safe fault", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    capturePin(dir, BACKENDS, 0, 1);
+    const { code, result } = govern(dir, 2, "any-served"); // governed before served-2.json exists
+    assert.equal(code, 2);
+    assert.equal(result.anomaly, "served-identity-missing-or-malformed", "never a false unchanged/silent compare on an ordering violation");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: every non-arg-error path writes governance-<n>.json with the full result shape", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    govern(dir, 1, "no-lens");
+    const g = JSON.parse(readFileSync(join(dir, "governance-1.json"), "utf8"));
+    for (const key of ["round", "window_start", "action", "anomaly", "served_identity", "capture_state", "capture_round", "ts"]) {
+      assert.ok(Object.prototype.hasOwnProperty.call(g, key), `governance record carries ${key}`);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI --govern: arg-validation combos (neither/both servedness, degenerate --round) → exit 2, NO record, window.json untouched", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-cli-"));
+  try {
+    writeWindowStart(dir, 1);
+    const before = readFileSync(join(dir, "window.json"), "utf8");
+    assert.equal(runCli(["spec-review-window", "--govern", "--round", "1", "--dir", dir]).code, 2, "neither servedness flag");
+    assert.equal(runCli(["spec-review-window", "--govern", "--round", "1", "--any-served", "--no-lens", "--dir", dir]).code, 2, "both servedness flags");
+    assert.equal(runCli(["spec-review-window", "--govern", "--round", "0", "--any-served", "--dir", dir]).code, 2, "--round 0");
+    assert.equal(runCli(["spec-review-window", "--govern", "--round", "-1", "--any-served", "--dir", dir]).code, 2, "--round -1");
+    assert.equal(runCli(["spec-review-window", "--govern", "--round", "1.5", "--any-served", "--dir", dir]).code, 2, "--round 1.5 (non-integer)");
+    assert.equal(runCli(["spec-review-window", "--govern", "--any-served", "--dir", dir]).code, 2, "missing --round");
+    assert.equal(existsSync(join(dir, "governance-1.json")), false, "no governance record from an arg-validation error");
+    assert.equal(existsSync(join(dir, "governance-0.json")), false);
+    assert.equal(readFileSync(join(dir, "window.json"), "utf8"), before, "window.json byte-unchanged");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI --govern: does NOT accept a --served override flag (Rev 8: removed — the occupant-written sidecar is the sole source)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-noserved-"));
+  try {
+    const r = runCli(["spec-review-window", "--govern", "--round", "1", "--any-served", "--served", "openai|x|h", "--dir", dir]);
+    assert.notEqual(r.code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI --govern: prints the GovernanceResult and persists window_start identically to the pure function", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-cli2-"));
+  try {
+    const r = runCli(["spec-review-window", "--govern", "--round", "1", "--no-lens", "--dir", dir]);
+    assert.equal(r.code, 0);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.action, "no-lens");
+    assert.equal(parsed.round, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

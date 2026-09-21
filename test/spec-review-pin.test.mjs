@@ -4,6 +4,14 @@
 // with-fallback pin-first chain + de-dup, the fail-loud/fail-safe directions, the CLI seam
 // (bare-array default == adversarial-backends, --json wrap, exit codes, flag-wins-over-env),
 // and the SKILL wiring (block-scoped occupant lint + prep's scratch-dir / swap-reset prose).
+//
+// FAFF-1052 — round-1 pin capture can silently not run, leaving rounds 2+ with no swap
+// detection: capture is now unconditional (served -> --winner-index, empty -> new
+// --no-lens-served) and every path writes a CLI-authored, disk-recorded outcome marker
+// (pin-capture.json) plus, on every SERVED round (round 1 and rounds >= 2 alike, even when
+// the pin write is a no-op), a per-round served-identity sidecar (served-<n>.json) that
+// `spec-review-window --govern` reads as the sole source of "who served this round" — no
+// caller override, no prep-side re-derivation from a pin-first --resolve.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
@@ -15,9 +23,14 @@ import {
   backendIdentity,
   resolvePinChain,
   capturePin,
+  captureNoLensServed,
   specReviewDir,
   specReviewPinSelftest,
   specReviewDirSelftest,
+  scrub,
+  isWellFormedIdentity,
+  readCaptureOutcome,
+  readServedIdentity,
 } from "../plugin/skills/faff/bin/lib/spec-review-pin.js";
 import { detectSpecReviewConvergence } from "../plugin/skills/faff/bin/lib/spec-review-convergence.js";
 
@@ -87,27 +100,6 @@ test("backendIdentity keys on provider|model|host and tolerates non-objects", ()
   assert.equal(backendIdentity(null), "|");
 });
 
-// --- capturePin ---
-
-test("capture is an idempotent first-write; rounds ≥ 2 never overwrite round 1's pin", () => {
-  const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
-  try {
-    assert.equal(capturePin(d, CFG.adversarial.backends, 0).written, true);
-    assert.equal(JSON.parse(readFileSync(join(d, "pinned-reviewer.json"), "utf8")).model, "mA");
-    assert.equal(capturePin(d, CFG.adversarial.backends, 1).written, false, "second write is a no-op");
-    assert.equal(JSON.parse(readFileSync(join(d, "pinned-reviewer.json"), "utf8")).model, "mA", "still round 1's pin");
-  } finally { rmSync(d, { recursive: true, force: true }); }
-});
-
-test("capture out-of-range / non-array is fail-loud and writes no pin", () => {
-  const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
-  try {
-    assert.equal(capturePin(d, CFG.adversarial.backends, 9).error, "bad-capture");
-    assert.equal(capturePin(d, "nope", 0).error, "bad-capture");
-    assert.equal(existsSync(join(d, "pinned-reviewer.json")), false, "no pin left behind");
-  } finally { rmSync(d, { recursive: true, force: true }); }
-});
-
 test("config edited mid-loop: a pin whose backend is no longer in config is emitted verbatim as the head", () => {
   const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
   try {
@@ -139,22 +131,132 @@ test("end-to-end oracle: single-reviewer round records converge; the pre-fix rev
   assert.equal(swapped.converging, false, "a swapped reviewer's fresh lens reads as churn → would park");
 });
 
-test("nothing served in round 1 → no pin file (capture never called with a winner)", () => {
-  // The occupant returns early on an empty exit-0 lens set, so capturePin is never invoked;
-  // the guarantee is that the scratch dir carries no pin afterwards and a later resolve is unpinned.
-  const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
-  try {
-    assert.equal(existsSync(join(d, "pinned-reviewer.json")), false);
-    assert.equal(resolvePinChain(CFG, d, undefined).pinned, false);
-  } finally { rmSync(d, { recursive: true, force: true }); }
-});
-
 // --- specReviewDir ---
 
 test("specReviewDir: run-dir → <run-dir>/<issue>/spec-review; none → .faff/spec-review/<issue>", () => {
   assert.equal(specReviewDir("FAFF-886", "/runs/r1"), join("/runs/r1", "FAFF-886", "spec-review"));
   assert.equal(specReviewDir("FAFF-886", null), join(".faff", "spec-review", "FAFF-886"));
   assert.ok(!specReviewDir("FAFF-886", null).includes(sep + sep));
+});
+
+// --- FAFF-1052: scrub / isWellFormedIdentity ---
+
+test("scrub: bounds to 200 chars and strips control characters, never claims more", () => {
+  assert.equal(scrub("hello\x00world\x1f!"), "helloworld!");
+  assert.equal(scrub("x".repeat(500)).length, 200);
+  assert.equal(scrub(null), "");
+  assert.equal(scrub(undefined), "");
+});
+
+test("isWellFormedIdentity: exactly three non-empty pipe-delimited segments", () => {
+  assert.equal(isWellFormedIdentity("openai|mA|https://a/v1"), true);
+  assert.equal(isWellFormedIdentity("||"), false, "degenerate torn identity rejected");
+  assert.equal(isWellFormedIdentity("|"), false, "backendIdentity(null)'s own degenerate signature rejected");
+  assert.equal(isWellFormedIdentity("a|b"), false, "only two segments rejected");
+  assert.equal(isWellFormedIdentity("a|b|c|d"), false, "four segments rejected");
+  assert.equal(isWellFormedIdentity(""), false);
+  assert.equal(isWellFormedIdentity(null), false);
+  assert.equal(isWellFormedIdentity(undefined), false);
+});
+
+test("scrub(backendIdentity()) format round-trip: a real backend identity stays well-formed after scrub", () => {
+  const id = scrub(backendIdentity({ provider: "openai", model: "mA", host: "https://a/v1" }));
+  assert.equal(isWellFormedIdentity(id), true);
+});
+
+// --- FAFF-1052: readCaptureOutcome / readServedIdentity — round-trip + tolerate absent/malformed ---
+
+test("readCaptureOutcome: null when absent or malformed, the parsed object otherwise", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-rco-"));
+  try {
+    assert.equal(readCaptureOutcome(d), null, "absent");
+    writeFileSync(join(d, "pin-capture.json"), "not json");
+    assert.equal(readCaptureOutcome(d), null, "malformed — never throws");
+    writeFileSync(join(d, "pin-capture.json"), JSON.stringify({ state: "captured", round: 1 }));
+    assert.deepEqual(readCaptureOutcome(d), { state: "captured", round: 1 });
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("readServedIdentity: null when absent or malformed, the parsed object otherwise", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-rsi-"));
+  try {
+    assert.equal(readServedIdentity(d, 1), null, "absent");
+    writeFileSync(join(d, "served-1.json"), "{ broken");
+    assert.equal(readServedIdentity(d, 1), null, "malformed — never throws");
+    writeFileSync(join(d, "served-2.json"), JSON.stringify({ round: 2, served_identity: "a|b|c" }));
+    assert.deepEqual(readServedIdentity(d, 2), { round: 2, served_identity: "a|b|c" });
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+// --- capturePin (round required; served-<n>.json on EVERY served round) ---
+
+test("capture is an idempotent first-write on the pin; rounds ≥ 2 never overwrite round 1's pin", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
+  try {
+    assert.equal(capturePin(d, CFG.adversarial.backends, 0, 1).written, true);
+    assert.equal(JSON.parse(readFileSync(join(d, "pinned-reviewer.json"), "utf8")).model, "mA");
+    assert.equal(capturePin(d, CFG.adversarial.backends, 1, 2).written, false, "second write is a no-op");
+    assert.equal(JSON.parse(readFileSync(join(d, "pinned-reviewer.json"), "utf8")).model, "mA", "still round 1's pin");
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("capture round 1 → pin-capture.json{captured} + served-1.json, both naming the served identity", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-cap1-"));
+  try {
+    capturePin(d, CFG.adversarial.backends, 0, 1);
+    const cap = readCaptureOutcome(d);
+    assert.equal(cap.state, "captured");
+    assert.equal(cap.round, 1);
+    assert.equal(cap.backend_identity, backendIdentity(CFG.adversarial.backends[0]));
+    const served = readServedIdentity(d, 1);
+    assert.equal(served.served_identity, backendIdentity(CFG.adversarial.backends[0]));
+    assert.equal(served.round, 1);
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("the round-2 regression fix: an idempotent no-op capture at round ≥ 2 STILL writes served-<n>.json", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-cap2-"));
+  try {
+    capturePin(d, CFG.adversarial.backends, 0, 1); // pins backends[0]
+    const r2 = capturePin(d, CFG.adversarial.backends, 1, 2); // a DIFFERENT backend serves round 2
+    assert.equal(r2.written, false, "the pin write is still a no-op");
+    const served2 = readServedIdentity(d, 2);
+    assert.ok(served2, "served-2.json exists even though the pin write was a no-op");
+    assert.equal(served2.served_identity, backendIdentity(CFG.adversarial.backends[1]), "records round 2's ACTUAL served backend");
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("capture out-of-range / non-array / non-object element is fail-loud, writes pin-capture.json{failed}, and leaves no pin", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-"));
+  try {
+    assert.equal(capturePin(d, CFG.adversarial.backends, 9, 1).error, "bad-capture");
+    let cap = readCaptureOutcome(d);
+    assert.equal(cap.state, "failed");
+    assert.equal(cap.round, 1);
+    assert.ok(typeof cap.reason === "string" && cap.reason.length > 0, "a failed capture is never silent");
+
+    const d2 = mkdtempSync(join(tmpdir(), "faff-srp-oor2-"));
+    try {
+      assert.equal(capturePin(d2, "nope", 0, 1).error, "bad-capture");
+      assert.equal(readCaptureOutcome(d2).state, "failed");
+    } finally { rmSync(d2, { recursive: true, force: true }); }
+
+    assert.equal(existsSync(join(d, "pinned-reviewer.json")), false, "no pin left behind");
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("captureNoLensServed: a legitimate no-op — no pin, no served-<n>.json, exit-0 recorded outcome", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-nolens-"));
+  try {
+    const r = captureNoLensServed(d, 1);
+    assert.equal(r.state, "skipped-no-lens");
+    assert.equal(existsSync(join(d, "pinned-reviewer.json")), false);
+    assert.equal(readServedIdentity(d, 1), null, "no served identity recorded");
+    const cap = readCaptureOutcome(d);
+    assert.equal(cap.state, "skipped-no-lens");
+    assert.equal(cap.round, 1);
+    assert.equal(resolvePinChain(CFG, d, undefined).pinned, false, "a subsequent resolve is a plain unpinned full chain");
+  } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
 // --- CLI seam ---
@@ -203,18 +305,82 @@ test("CLI resolve on a malformed pin → exit 2, never a chain on stdout", () =>
   } finally { rmSync(repo, { recursive: true, force: true }); }
 });
 
-test("CLI capture: idempotent first-write, exit-2 on out-of-range", () => {
+test("CLI capture: served path requires --round, idempotent first-write, exit-2 on out-of-range", () => {
   const scratch = mkdtempSync(join(tmpdir(), "faff-srp-scr-"));
   const bj = join(scratch, "backends.json");
   try {
     writeFileSync(bj, JSON.stringify(CFG.adversarial.backends));
-    const c1 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "0"]);
+    const c1 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "0", "--round", "1"]);
     assert.equal(c1.code, 0);
     assert.equal(JSON.parse(c1.stdout).written, true);
-    const c2 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "1"]);
+    const c2 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "1", "--round", "2"]);
     assert.equal(JSON.parse(c2.stdout).written, false, "idempotent no-op");
-    const oor = runCli(["spec-review-pin", "--capture", "--dir", join(scratch, "fresh"), "--backends-json", bj, "--winner-index", "9"]);
+    assert.ok(existsSync(join(scratch, "served-2.json")), "served-2.json written even on the idempotent no-op");
+    const oor = runCli(["spec-review-pin", "--capture", "--dir", join(scratch, "fresh"), "--backends-json", bj, "--winner-index", "9", "--round", "1"]);
     assert.equal(oor.code, 2);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("CLI capture: missing --round is a usage error (exit 2) on both the served and no-lens-served forms", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "faff-srp-noround-"));
+  const bj = join(scratch, "backends.json");
+  try {
+    writeFileSync(bj, JSON.stringify(CFG.adversarial.backends));
+    assert.equal(runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "0"]).code, 2);
+    assert.equal(runCli(["spec-review-pin", "--capture", "--dir", scratch, "--no-lens-served"]).code, 2);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("CLI capture: --no-lens-served writes the skip marker, exits 0, no pin, no served-<n>.json", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "faff-srp-nolens-cli-"));
+  try {
+    const r = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--no-lens-served", "--round", "1"]);
+    assert.equal(r.code, 0);
+    assert.equal(JSON.parse(r.stdout).state, "skipped-no-lens");
+    assert.equal(existsSync(join(scratch, "pinned-reviewer.json")), false);
+    assert.equal(existsSync(join(scratch, "served-1.json")), false);
+    const cap = JSON.parse(readFileSync(join(scratch, "pin-capture.json"), "utf8"));
+    assert.equal(cap.state, "skipped-no-lens");
+    assert.equal(cap.round, 1);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("CLI capture: --winner-index and --no-lens-served are mutually exclusive", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "faff-srp-mutex-"));
+  const bj = join(scratch, "backends.json");
+  try {
+    writeFileSync(bj, JSON.stringify(CFG.adversarial.backends));
+    const r = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--no-lens-served", "--backends-json", bj, "--winner-index", "0", "--round", "1"]);
+    assert.notEqual(r.code, 0);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("CLI capture: a hostile/oversize/newline-laden --backends-json is scrubbed on every persisted field", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "faff-srp-hostile-"));
+  const bj = join(scratch, "backends.json");
+  try {
+    const hostile = "x".repeat(500) + "\x00\x1f" + "\n\n\n";
+    writeFileSync(bj, JSON.stringify([{ provider: "openai", model: hostile, host: "https://a/v1" }]));
+    const r = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "0", "--round", "1"]);
+    assert.equal(r.code, 0);
+    const cap = JSON.parse(readFileSync(join(scratch, "pin-capture.json"), "utf8"));
+    // eslint-disable-next-line no-control-regex
+    assert.ok(!/[\x00-\x1f\x7f]/.test(cap.backend_identity), "backend_identity has no control chars");
+    assert.ok(cap.backend_identity.length <= 200, "backend_identity is bounded");
+    const served = JSON.parse(readFileSync(join(scratch, "served-1.json"), "utf8"));
+    // eslint-disable-next-line no-control-regex
+    assert.ok(!/[\x00-\x1f\x7f]/.test(served.served_identity), "served_identity has no control chars");
+    assert.ok(served.served_identity.length <= 200, "served_identity is bounded");
+
+    const bad = join(scratch, "bad.json");
+    writeFileSync(bad, "not json at all " + "y".repeat(400));
+    const r2 = runCli(["spec-review-pin", "--capture", "--dir", join(scratch, "fresh"), "--backends-json", bad, "--winner-index", "0", "--round", "1"]);
+    assert.equal(r2.code, 2);
+    const cap2 = JSON.parse(readFileSync(join(scratch, "fresh", "pin-capture.json"), "utf8"));
+    assert.equal(cap2.state, "failed");
+    assert.ok(cap2.reason.length <= 200, "reason is bounded even for an oversize parse-failure detail");
+    // eslint-disable-next-line no-control-regex
+    assert.ok(!/[\x00-\x1f\x7f]/.test(cap2.reason));
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 });
 
@@ -252,10 +418,18 @@ test("occupant SKILL chain-assembly block calls `spec-review-pin --resolve`, NOT
   assert.doesNotMatch(block, /adversarial-backends/, "the chain-assembly block no longer calls adversarial-backends directly");
 });
 
-test("occupant SKILL documents the round-1 pin capture step (min chain[<i>], idempotent)", () => {
+test("occupant SKILL documents UNCONDITIONAL round-1+ pin capture: served → --winner-index --round, empty → --no-lens-served --round", () => {
   const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  assert.match(body, /spec-review-pin --capture --dir "\$pin_dir" --backends-json "\$backends_json" --winner-index/);
+  assert.match(body, /spec-review-pin --capture --dir "\$pin_dir" --backends-json "\$backends_json" --winner-index "\$winner_index" --round "\$n"/);
+  assert.match(body, /spec-review-pin --capture --no-lens-served --dir "\$pin_dir" --round "\$n"/, "the empty-set path calls --no-lens-served, never a bare skip");
   assert.match(body, /min\(i\)|lowest chain index that served/);
+  assert.doesNotMatch(body, /skip capture \(nothing to pin;/, "the old unconditional-skip phrasing is gone");
+});
+
+test("occupant SKILL documents served-<n>.json is written on EVERY served round, not just round 1", () => {
+  const body = readFileSync(OCCUPANT_SKILL, "utf8");
+  assert.match(body, /served-<n>\.json.*every.*served round|writes.*served-<n>\.json.*on.*every.*served round/i);
+  assert.match(body, /round 1 and rounds ≥ 2 alike/);
 });
 
 test("prep SKILL resolves the scratch dir via `spec-review-dir` and points convergence/churn at it", () => {
@@ -266,9 +440,22 @@ test("prep SKILL resolves the scratch dir via `spec-review-dir` and points conve
   assert.doesNotMatch(body, /faff spec-review-convergence --dir <the run's spec-review dir>/, "no stale hardcoded-dir wording");
 });
 
-test("prep SKILL documents swap-round detection + convergence-window reset", () => {
+test("prep SKILL governs the window via `spec-review-window --govern`, never a hand-derived swap comparison", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /swap round/i);
-  assert.match(body, /window_start/);
+  assert.match(body, /spec-review-window --govern --dir \$scratch --round \$n/, "prep governs via the deterministic CLI");
+  assert.match(body, /--any-served/);
+  assert.match(body, /--no-lens/);
+  assert.doesNotMatch(body, /the served backend \(read from the occupant's.*header\) differs from the pinned backend/, "the old hand-derived swap-comparison prose is gone");
+  assert.doesNotMatch(body, /"\$faff" spec-review-window --set \$n --dir \$scratch/, "prep no longer hand-sets window_start on a swap — --govern owns that write");
+});
+
+test("prep SKILL asserts the governance step ran: re-reads governance-<n>.json, fails safe on absence", () => {
+  const body = readFileSync(PREP_SKILL, "utf8");
+  assert.match(body, /governance-<n>\.json/);
+  assert.match(body, /govern-record-missing/);
+});
+
+test("prep SKILL documents the convergence-window range [window_start .. n]", () => {
+  const body = readFileSync(PREP_SKILL, "utf8");
   assert.match(body, /\[window_start \.\. n\]/);
 });

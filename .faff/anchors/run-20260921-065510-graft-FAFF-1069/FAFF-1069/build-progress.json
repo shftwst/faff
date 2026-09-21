@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1069",
+  "build": {
+    "status": "complete",
+    "diff_hash": "be95bbaeefd95f2acad15f6c5402cb4a93bf92cceac348e317103d5ff67acdf9",
+    "branch": "faff-1069-record-location-scan-onboard-offer",
+    "pushed_at": "2026-09-21T07:15:27.059Z"
+  },
+  "updated_at": "2026-09-21T07:15:27.059Z"
+}

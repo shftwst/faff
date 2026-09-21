@@ -57,3 +57,12 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: The `QA` lens of `faffter-dark-spec-review` when judging a spec's DONE section against its Scenarios section. Does not relax the born-verifiable requirement itself, does not apply to a DONE item that is genuinely undecidable as written, and does not affect the holdout evaluator's own classification (`faff dod classify`), which reads criteria individually regardless of how scenarios are grouped.
 - Matches: born-verifiable DONE; one scenario per DONE item; scenario coverage quota; acceptance gap; grouped fixtures vs dedicated scenarios; QA testability bar
 - Date: 2026-09-13
+
+## faff git-ref storage location follows bundle_store
+
+- Chosen: All faff git refs (bundle, recovery, and build-claim) honour `bundle_store`. Under `bundle_store: local` they stay on-box and are never pushed to origin; under `git-remote` they push to origin. `buildClaimStore` is brought under the same `resolveBundleStoreName` resolution as the bundle and recovery stores, rather than being an origin-bound exception.
+- Rationale: On-box-ness of faff refs is one axis, governed by `bundle_store`. A `bundle_store: local` operator has opted into on-box-only coordination, so the build-claim leaking operator identity and `machine_id` to origin was the one inconsistency. The write-once `claimStoreCore` contract is unchanged; only the storage backend switches.
+- Trade-off (accepted): an on-box build-claim gives no cross-machine build lock, which a per-operator local repo does not need; teams needing cross-machine build coordination use `bundle_store: git-remote`.
+- Scope: faff ref storage in `bundle.js` (`buildClaimStore`, `resolveBundleStore*`); local mode (FAFF-1059). Does not change `git-remote` behaviour.
+- Matches: bundle_store; build-claim ref; refs/faff storage; on-box refs; buildClaimStore; ref storage location
+- Date: 2026-09-21

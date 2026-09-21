@@ -862,6 +862,115 @@ test("recoveryClaimStore: local bundle store — resolveBundleStoreName defaults
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// ---------------------------------------------------------------------------
+// FAFF-1064 — buildClaimStore's pluggable transport: the build claim FOLLOWS bundle_store. Under
+// bundle_store: local it stays on-box (git update-ref CAS, no push, no refs/remotes); under
+// git-remote it keeps today's origin push behaviour. Module-seam coverage complementing the in-file
+// buildClaimSelftest (run via `bundle --selftest`), per ADR 0002.
+// ---------------------------------------------------------------------------
+const { buildClaimStore, localRefTransport, buildClaimCommit } = require("../plugin/skills/faff/bin/lib/bundle.js");
+const { spawnSync: spawnGit } = require("node:child_process");
+
+function localClaimRepo(label) {
+  const root = mkdtempSync(path.join(tmpdir(), `faff-build-claim-local-${label}-`));
+  spawnGit("git", ["-C", root, "init", "-q"]);
+  spawnGit("git", ["-C", root, "config", "user.email", "faff-test@example.com"]);
+  spawnGit("git", ["-C", root, "config", "user.name", "faff-test"]);
+  // NO origin remote — the local transport must work on a repo with none.
+  writeFileSync(path.join(root, ".faffrc.yaml"), "bundle_store: local\n");
+  return root;
+}
+const buildOwnerArg = (sid, machineId = "M-test", heartbeating = true, hbAgeMs = 0) =>
+  ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date(Date.now() - hbAgeMs).toISOString(), machine_id: machineId, heartbeating });
+
+test("FAFF-1064 buildClaimStore: under bundle_store: local it selects the on-box local transport and acquires with NO origin remote", () => {
+  const root = localClaimRepo("select");
+  try {
+    const store = buildClaimStore(root);
+    assert.equal(store.name, "local-build-claim", "bundle_store: local -> the local-build-claim transport");
+    const acq = store.acquire({ issue: "FAFF-LOCAL-1" }, buildOwnerArg("s1"));
+    assert.equal(acq.acquired, true, `a local acquire succeeds on a remote-less repo (got ${JSON.stringify(acq)})`);
+    assert.equal(acq.claim.issue, "FAFF-LOCAL-1");
+    assert.equal(acq.claim.claim_epoch, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1064 buildClaimStore (local): an acquire/reclaim/release cycle issues NO git push and creates NO refs/remotes/* entry (the origin-leak fix)", () => {
+  const root = localClaimRepo("nopush");
+  try {
+    const storeA = buildClaimStore(root);
+    const storeB = buildClaimStore(root);
+    const id = { issue: "FAFF-LOCAL-2" };
+    const a = storeA.acquire(id, buildOwnerArg("sa", "M-A"));
+    assert.equal(a.acquired, true);
+    // reclaim path: acquire a stale one for a different issue, reclaim it
+    const idc = { issue: "FAFF-LOCAL-2C" };
+    const c = storeA.acquire(idc, buildOwnerArg("sc", "M-A", true, 2_000_000));
+    const re = storeB.reclaimIfStale(idc, buildOwnerArg("sc2", "M-A"), process.env);
+    assert.equal(re.reclaimed, true, `a stale local claim reclaims via lease-matched update-ref (got ${JSON.stringify(re)})`);
+    assert.equal(re.claim.claim_epoch, 1, "reclaim increments the epoch");
+    const rel = storeA.release(id, a.sha);
+    assert.equal(rel.released, true, "a lease-matched local release deletes the ref");
+    void c;
+    // No refs/remotes/* entry was ever created for the claim, and the reclaimed ref lives on-box.
+    const forEach = spawnGit("git", ["-C", root, "for-each-ref", "refs/remotes"], { encoding: "utf8" });
+    assert.equal((forEach.stdout || "").trim(), "", "no refs/remotes/* entry is created under the local transport");
+    const showRef = spawnGit("git", ["-C", root, "show-ref", "--verify", "refs/faff/build-claims/FAFF-LOCAL-2C"], { encoding: "utf8" });
+    assert.equal(showRef.status, 0, "the reclaimed claim ref exists on-box as a local ref");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1064 localRefTransport: two create-only CAS writes to the SAME ref — exactly one wins, the loser is cas_lost (the same-box mutex holds)", () => {
+  const root = localClaimRepo("race");
+  try {
+    const t = localRefTransport(root);
+    const ref = "refs/faff/build-claims/FAFF-LOCAL-3";
+    const shaX = buildClaimCommit(root, { issue: "FAFF-LOCAL-3", owner: { session_id: "x" }, claim_epoch: 0 }, "build-claim FAFF-LOCAL-3 epoch=0");
+    const shaY = buildClaimCommit(root, { issue: "FAFF-LOCAL-3", owner: { session_id: "y" }, claim_epoch: 0 }, "build-claim FAFF-LOCAL-3 epoch=0");
+    const wX = t.casWrite(ref, shaX, null);
+    const wY = t.casWrite(ref, shaY, null);
+    assert.notEqual(wX.ok, wY.ok, "exactly one create-only CAS write lands");
+    assert.equal(wX.ok ? wY.reason : wX.reason, "cas_lost", "the loser of a create-only race is cas_lost, never a second acquire");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1064 localRefTransport: a lock/io fault classifies as `error`, never `cas_lost` (so a transient lock never reads as superseded)", () => {
+  const root = localClaimRepo("lockfault");
+  try {
+    const t = localRefTransport(root);
+    // A ref path that collides with an existing ref's directory prefix forces a genuine lock/create
+    // fault (git cannot create refs/faff/build-claims/DIR/leaf when refs/faff/build-claims/DIR is a
+    // ref). This is an io/lock fault, NOT a CAS miss, so it must classify as `error`.
+    const seed = buildClaimCommit(root, { issue: "DIR", owner: { session_id: "z" }, claim_epoch: 0 }, "seed");
+    assert.equal(t.casWrite("refs/faff/build-claims/DIR", seed, null).ok, true);
+    const collide = t.casWrite("refs/faff/build-claims/DIR/leaf", seed, null);
+    assert.equal(collide.ok, false);
+    assert.equal(collide.reason, "error", `a directory/file ref collision is a lock fault -> error, never cas_lost (got ${JSON.stringify(collide)})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1064 buildClaimStore: under bundle_store: git-remote it keeps the origin-keyed git-remote transport (standard mode unchanged)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "faff-build-claim-gitremote-"));
+  const bare = path.join(root, "remote.git");
+  const work = path.join(root, "work");
+  mkdirSync(work, { recursive: true });
+  try {
+    assert.equal(spawnGit("git", ["init", "--bare", "-q", bare]).status, 0);
+    spawnGit("git", ["-C", work, "init", "-q"]);
+    spawnGit("git", ["-C", work, "config", "user.email", "faff-test@example.com"]);
+    spawnGit("git", ["-C", work, "config", "user.name", "faff-test"]);
+    spawnGit("git", ["-C", work, "remote", "add", "origin", bare]);
+    writeFileSync(path.join(work, ".faffrc.yaml"), "bundle_store: git-remote\n");
+    const store = buildClaimStore(work, "origin");
+    assert.equal(store.name, "git-remote-build-claim", "bundle_store: git-remote -> the git-remote-build-claim transport");
+    const acq = store.acquire({ issue: "FAFF-GR-1" }, buildOwnerArg("sg"));
+    assert.equal(acq.acquired, true, `the git-remote acquire pushes to the bare remote (got ${JSON.stringify(acq)})`);
+    // The claim ref landed on the remote (git-remote transport), unlike the local transport.
+    const ls = spawnGit("git", ["-C", work, "ls-remote", "origin", "refs/faff/build-claims/FAFF-GR-1"], { encoding: "utf8" });
+    assert.match(ls.stdout, /refs\/faff\/build-claims\/FAFF-GR-1/, "the git-remote transport publishes the claim ref to origin");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 // FAFF-1000: pin the contract_schema_versions source-of-truth swap. bundle-seal-core.js's buildBundle
 // enumerates contract schemas from a `contracts/*.schema.json` directory read (so the denylist-clean
 // facade never requires contract-defs.js) INSTEAD OF Object.keys(CONTRACTS). The two are verified

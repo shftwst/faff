@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1064",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4bf19f19c6f0ba693e1f06211e92273d96f18b4d46bf05e9af24f73f8ec7bf33",
+    "branch": "FAFF-1064-build-claim-on-box-pluggable-transport",
+    "pushed_at": "2026-09-21T01:35:29.174Z"
+  },
+  "updated_at": "2026-09-21T01:35:29.174Z"
+}

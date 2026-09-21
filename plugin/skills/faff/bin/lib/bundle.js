@@ -226,10 +226,18 @@ function bundleRefName(identity) {
 }
 const STORE_UNAVAILABLE_RE = /no such remote|does not appear to be a git repository|could not read from remote|permission denied|repository not found|timed out|could not resolve host|unable to access|connection (refused|timed out)|fatal: unable to connect/i;
 
+// FAFF-1064 argv-spy seam (test-only): when set to an array, every git subcommand's argv (the
+// portion AFTER `-C <root>`) is appended to it, so the build-claim selftest can pin the git-remote
+// transport's captured argv sequence byte-for-byte against the pre-refactor sequence. Null in normal
+// operation — a plain no-op, never consulted on the hot path beyond a single null check.
+let __gitArgvSpy = null;
+function setGitArgvSpy(arr) { __gitArgvSpy = arr || null; }
 function gitRun(root, args, input) {
+  if (__gitArgvSpy) __gitArgvSpy.push(args);
   return spawnSync("git", ["-C", root, ...args], { input });
 }
 function gitRunText(root, args, input) {
+  if (__gitArgvSpy) __gitArgvSpy.push(args);
   return spawnSync("git", ["-C", root, ...args], { input, encoding: "utf8" });
 }
 
@@ -388,7 +396,13 @@ function gitReadClaimManifest(root, remoteName, ref) {
 // bundle selftest's direct lease-race call) it defaults to the byte-identical FAFF-863 message, so
 // the recovery path is unchanged; the build-claim binding passes its own `build-claim <issue>
 // epoch=<n>` message. The claim object's own shape/order is the caller's concern (spec.buildClaim).
-function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec, commitMsg) {
+// FAFF-1064: the transport-agnostic commit-building half of pushClaimCommit — hash-object / mktree /
+// commit-tree over claim.json, returning the orphan commit sha. Every transport (git-remote and
+// local) builds the claim commit the SAME way locally; only publishing that sha to the ref differs.
+// claimStoreCore calls this and then hands the sha to `transport.casWrite`. pushClaimCommit (below)
+// still exists byte-for-byte for its direct callers (the selftest lease-race fixtures and the
+// recovery-claim FAFF-906 pushX/pushY fixtures), reusing this so there is one commit-building path.
+function buildClaimCommit(root, claimObj, commitMsg) {
   const bytes = Buffer.from(JSON.stringify(claimObj, null, 2) + "\n", "utf8");
   const h = gitRunText(root, ["hash-object", "-w", "--stdin"], bytes);
   if (h.status !== 0) throw new Error(`git hash-object failed for claim.json: ${h.stderr}`);
@@ -400,9 +414,133 @@ function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec, commitMsg
   const msg = commitMsg != null ? commitMsg : `recovery-claim ${claimObj.run_id}/seg-${claimObj.run_segment_id} epoch=${claimObj.claim_epoch}`;
   const commitTree = gitRunText(root, ["commit-tree", treeSha, "-m", msg]);
   if (commitTree.status !== 0) throw new Error(`git commit-tree failed: ${commitTree.stderr}`);
-  const commitSha = commitTree.stdout.trim();
+  return commitTree.stdout.trim();
+}
+
+function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec, commitMsg) {
+  const commitSha = buildClaimCommit(root, claimObj, commitMsg);
   const push = gitRunText(root, ["push", remoteName, ...pushArgSpec(commitSha)]);
   return { commitSha, push };
+}
+
+// ---------------------------------------------------------------------------
+// ClaimTransport (FAFF-1064) — the four-primitive seam claimStoreCore touches a claim ref through.
+// readHead: resolve the ref head sha ONLY (no fetch, no claim.json parse) — confirmHead's pin.
+// read: the full manifest read (head sha + parsed claim.json).
+// casWrite(ref, newSha, expectedOld): compare-and-swap publish — expectedOld===null is create-only,
+//   a sha is a lease-matched update. Returns { ok, reason?: store_unavailable|cas_lost|error }.
+// casDelete(ref, expectedSha): lease-matched delete. Two occupants: gitRemoteTransport (today's
+// origin push behaviour, byte-for-byte) and localRefTransport (a never-pushed local ref via
+// `git update-ref` CAS). The claim commit is built transport-agnostically by buildClaimCommit above;
+// a transport only publishes an already-built sha and reads a ref back.
+// ---------------------------------------------------------------------------
+
+// gitRemoteTransport — today's git-remote behaviour, extracted verbatim. read/readHead delegate to
+// the unchanged gitReadClaimManifest / bare ls-remote; casWrite/casDelete issue the exact push argv
+// pushClaimCommit / release / reclaim used pre-refactor. It is the default for every existing binding
+// (recovery / landing stay on it), so those paths are byte-for-byte unchanged.
+function gitRemoteTransport(root, remoteName) {
+  return {
+    name: `git-remote(${remoteName})`,
+    readHead(ref) {
+      const ls = gitRunText(root, ["ls-remote", remoteName, ref]);
+      if (ls.status !== 0 || ls.error) return { status: "unreachable" };
+      const line = ls.stdout.trim();
+      if (!line) return { status: "missing" };
+      return { status: "ok", sha: line.split(/\s+/)[0] };
+    },
+    read(ref) {
+      const r = gitReadClaimManifest(root, remoteName, ref);
+      switch (r.status) {
+        case "store-unreachable": return { status: "unreachable" };
+        case "claim-missing": return { status: "missing" };
+        case "claim-unreadable": return { status: "unreadable" };
+        case "claim-malformed": return { status: "malformed" };
+        case "ok": return { status: "ok", sha: r.sha, claim: r.claim };
+        default: return { status: "unreadable" };
+      }
+    },
+    casWrite(ref, newSha, expectedOld) {
+      const pushArgs = expectedOld == null
+        ? [`${newSha}:${ref}`]
+        : [`--force-with-lease=${ref}:${expectedOld}`, `${newSha}:${ref}`];
+      const push = gitRunText(root, ["push", remoteName, ...pushArgs]);
+      if (push.status === 0) return { ok: true };
+      const stderr = push.stderr || "";
+      if (STORE_UNAVAILABLE_RE.test(stderr) || push.error) return { ok: false, reason: "store_unavailable", detail: stderr.trim() || String(push.error) };
+      return { ok: false, reason: "cas_lost", detail: stderr.trim() };
+    },
+    casDelete(ref, expectedSha) {
+      const push = gitRunText(root, ["push", remoteName, `--force-with-lease=${ref}:${expectedSha}`, `:${ref}`]);
+      if (push.status === 0) return { ok: true };
+      const stderr = push.stderr || "";
+      if (STORE_UNAVAILABLE_RE.test(stderr) || push.error) return { ok: false, reason: "store_unavailable", detail: stderr.trim() || String(push.error) };
+      return { ok: false, reason: "cas_lost", detail: stderr.trim() };
+    },
+  };
+}
+
+// localRefTransport — the on-box occupant (FAFF-1064). A never-pushed local ref under
+// refs/faff/build-claims/<issue>, driven by `git update-ref`'s compare-and-swap: an empty old-value
+// is create-only (asserts the ref must not yet exist — the exact mirror of a non-force create push),
+// an old-value match is a lease update, and `-d <old>` is a lease-matched delete (the mirror of
+// --force-with-lease). read/readHead use `show-ref` / `show` on already-local objects — no ls-remote,
+// no fetch, no push — so nothing ever reaches a remote and no refs/remotes/* entry is created.
+function localRefTransport(root) {
+  // git update-ref exits non-zero for BOTH a genuine CAS miss and an unrelated lock/io fault, so the
+  // stderr must be classified. A create collision reports `cannot lock ref … reference already
+  // exists` and a lease miss reports `… is at <x> but expected <y>`; a bare `cannot lock ref` /
+  // `unable to …` with neither of those markers is a real lock/io fault. cas_lost markers are checked
+  // FIRST so the create-collision `cannot lock` line is never mis-read as a lock fault. Folding a lock
+  // fault into cas_lost would surface spuriously as `superseded` when the ref never actually moved.
+  // Exact git 2.x markers (verified against the local git): a create collision says `reference
+  // already exists`; a lease miss (update or delete) says `is at <x> but expected <y>`; a CAS against
+  // a now-absent ref says `unable to resolve reference`. A transient lock fault instead says `Unable
+  // to create '<ref>.lock'` (or another io error) — deliberately NOT matched here, so it maps to
+  // `error`, never a spurious `superseded`.
+  const CAS_LOST_RE = /reference already exists|but expected|unable to resolve reference/i;
+  const classify = (stderr) => (CAS_LOST_RE.test(stderr) ? "cas_lost" : "error");
+  return {
+    name: "local-ref",
+    readHead(ref) {
+      const r = gitRunText(root, ["show-ref", "--verify", ref]);
+      if (r.status !== 0) return { status: "missing" };
+      const line = r.stdout.trim();
+      if (!line) return { status: "missing" };
+      return { status: "ok", sha: line.split(/\s+/)[0] };
+    },
+    read(ref) {
+      const r = gitRunText(root, ["show-ref", "--verify", ref]);
+      if (r.status !== 0) return { status: "missing" };
+      const line = r.stdout.trim();
+      if (!line) return { status: "missing" };
+      const sha = line.split(/\s+/)[0];
+      const show = gitRun(root, ["show", `${sha}:claim.json`]);
+      if (show.status !== 0) return { status: "unreadable", sha };
+      let parsed;
+      try { parsed = JSON.parse(show.stdout.toString("utf8")); }
+      catch { return { status: "malformed", sha }; }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { status: "malformed", sha };
+      return { status: "ok", sha, claim: parsed };
+    },
+    casWrite(ref, newSha, expectedOld) {
+      const args = expectedOld == null
+        ? ["update-ref", ref, newSha, ""]
+        : ["update-ref", ref, newSha, expectedOld];
+      const r = gitRunText(root, args);
+      if (r.status === 0) return { ok: true };
+      const stderr = r.stderr || "";
+      if (r.error) return { ok: false, reason: "error", detail: String(r.error) };
+      return { ok: false, reason: classify(stderr), detail: stderr.trim() };
+    },
+    casDelete(ref, expectedSha) {
+      const r = gitRunText(root, ["update-ref", "-d", ref, expectedSha]);
+      if (r.status === 0) return { ok: true };
+      const stderr = r.stderr || "";
+      if (r.error) return { ok: false, reason: "error", detail: String(r.error) };
+      return { ok: false, reason: classify(stderr), detail: stderr.trim() };
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -421,14 +559,23 @@ function pushClaimCommit(root, remoteName, ref, claimObj, pushArgSpec, commitMsg
 // returned object (a run segment is monotonic and never released — FAFF-863), the build binding
 // keeps it (an issue legitimately returns to Todo and is rebuilt — FAFF-889 §4.2).
 // ---------------------------------------------------------------------------
-function claimStoreCore(root, remoteName, spec) {
-  // Write-once acquire: a non-force `git push <sha>:<ref>`. Git's server-side ref-update
-  // atomicity is the compare-and-swap — creating a ref that already exists is rejected as
-  // non-fast-forward, so of two racing pushes to the SAME ref exactly one wins.
+// FAFF-1064: the second arg is now a ClaimTransport (readHead/read/casWrite/casDelete). To keep
+// existing callers unchanged, a STRING (or unset) is wrapped as gitRemoteTransport(root, name||"origin")
+// — so recoveryClaimStore / landingClaimStore, which pass "origin", are byte-for-byte on git-remote.
+// buildClaimStore passes an explicit transport (local under bundle_store: local, else git-remote).
+function claimStoreCore(root, transportOrRemote, spec) {
+  const transport = (transportOrRemote && typeof transportOrRemote === "object")
+    ? transportOrRemote
+    : gitRemoteTransport(root, transportOrRemote || "origin");
+
+  // Write-once acquire: a create-only compare-and-swap through the transport (git-remote: a non-force
+  // `git push <sha>:<ref>`, rejected non-fast-forward if the ref exists; local: `git update-ref <ref>
+  // <sha> ""`, rejected if the ref exists). Either way, of two racing writes to the SAME ref exactly
+  // one wins.
   function acquire(identity, ownerSnapshot) {
     const ref = spec.refName(identity);
-    const existing = gitReadClaimManifest(root, remoteName, ref);
-    if (existing.status === "store-unreachable") return { acquired: false, reason: "store_unavailable", detail: "cannot reach the configured remote to check the claim ref" };
+    const existing = transport.read(ref);
+    if (existing.status === "unreachable") return { acquired: false, reason: "store_unavailable", detail: "cannot reach the configured remote to check the claim ref" };
     if (existing.status === "ok") {
       // Self-recognition idempotent re-acquire: the SAME session (identical, non-empty
       // session_id — the same identity proof runIsOwned uses elsewhere) already holds this exact
@@ -446,28 +593,27 @@ function claimStoreCore(root, remoteName, spec) {
       }
       return { acquired: false, reason: "exists", holder: existing.claim, sha: existing.sha };
     }
-    if (existing.status !== "claim-missing") return { acquired: false, reason: "store_unavailable", detail: `${ref} exists but its claim could not be read cleanly (${existing.status})` };
+    if (existing.status !== "missing") return { acquired: false, reason: "store_unavailable", detail: `${ref} exists but its claim could not be read cleanly (${existing.status})` };
 
     const claimObj = spec.buildClaim(identity, ownerSnapshot, 0);
-    let built;
-    try { built = pushClaimCommit(root, remoteName, ref, claimObj, (sha) => [`${sha}:${ref}`], spec.commitMessage(claimObj)); }
+    let commitSha;
+    try { commitSha = buildClaimCommit(root, claimObj, spec.commitMessage(claimObj)); }
     catch (e) { return { acquired: false, reason: "error", detail: e.message }; }
-    if (built.push.status !== 0) {
-      const stderr = built.push.stderr || "";
-      if (STORE_UNAVAILABLE_RE.test(stderr) || built.push.error) return { acquired: false, reason: "store_unavailable", detail: stderr.trim() || String(built.push.error) };
-      // Non-force push rejected: a racing executor's push landed first — re-read to surface the
-      // winning holder, never silently retry.
-      const reread = gitReadClaimManifest(root, remoteName, ref);
-      if (reread.status === "ok") return { acquired: false, reason: "exists", holder: reread.claim, sha: reread.sha };
-      return { acquired: false, reason: "store_unavailable", detail: stderr.trim() || "push rejected and the ref could not be re-read" };
-    }
-    return { acquired: true, sha: built.commitSha, claim: claimObj };
+    const w = transport.casWrite(ref, commitSha, null); // create-only
+    if (w.ok) return { acquired: true, sha: commitSha, claim: claimObj };
+    if (w.reason === "store_unavailable") return { acquired: false, reason: "store_unavailable", detail: w.detail };
+    // cas_lost (a racing writer landed first) or a local lock/io error — re-read to surface the
+    // winning holder, never silently retry, never build unguarded.
+    const reread = transport.read(ref);
+    if (reread.status === "ok") return { acquired: false, reason: "exists", holder: reread.claim, sha: reread.sha };
+    if (w.reason === "error") return { acquired: false, reason: "error", detail: w.detail || "claim write errored and the ref could not be re-read" };
+    return { acquired: false, reason: "store_unavailable", detail: w.detail || "push rejected and the ref could not be re-read" };
   }
 
   function readHolder(identity) {
-    const r = gitReadClaimManifest(root, remoteName, spec.refName(identity));
-    if (r.status === "store-unreachable") return { status: "store_unavailable" };
-    if (r.status === "claim-missing") return { status: "missing" };
+    const r = transport.read(spec.refName(identity));
+    if (r.status === "unreachable") return { status: "store_unavailable" };
+    if (r.status === "missing") return { status: "missing" };
     if (r.status !== "ok") return { status: "unreadable" };
     return { status: "ok", sha: r.sha, claim: r.claim };
   }
@@ -478,12 +624,11 @@ function claimStoreCore(root, remoteName, spec) {
   // means a reclaimer superseded the claim after acquisition.
   function confirmHead(identity, mySha) {
     const ref = spec.refName(identity);
-    const ls = gitRunText(root, ["ls-remote", remoteName, ref]);
-    if (ls.status !== 0 || ls.error) return { confirmed: false, reason: "store_unavailable" };
-    const line = ls.stdout.trim();
-    if (!line) return { confirmed: false, reason: "missing" };
-    const sha = line.split(/\s+/)[0];
-    return sha === mySha ? { confirmed: true, sha } : { confirmed: false, reason: "superseded", sha };
+    const head = transport.readHead(ref); // head-only: NO fetch, NO claim.json parse — a competitor
+    if (head.status === "unreachable" || head.status === "error") return { confirmed: false, reason: "store_unavailable" };
+    if (head.status === "missing") return { confirmed: false, reason: "missing" };
+    // head whose claim.json is malformed still reads superseded (head sha != mine), never store_unavailable.
+    return head.sha === mySha ? { confirmed: true, sha: head.sha } : { confirmed: false, reason: "superseded", sha: head.sha };
   }
 
   // Staleness judged by the spec's OWN predicate (recovery: runIsHeld / heartbeatStaleSecs from
@@ -502,9 +647,9 @@ function claimStoreCore(root, remoteName, spec) {
   // moved since I read it," never "the holder is actually dead."
   function reclaimIfStale(identity, ownerSnapshot, env) {
     const ref = spec.refName(identity);
-    const existing = gitReadClaimManifest(root, remoteName, ref);
-    if (existing.status === "store-unreachable") return { reclaimed: false, reason: "store_unavailable" };
-    if (existing.status === "claim-missing") {
+    const existing = transport.read(ref);
+    if (existing.status === "unreachable") return { reclaimed: false, reason: "store_unavailable" };
+    if (existing.status === "missing") {
       // The holder vanished between reads (or there never was one) — nothing stale to reclaim;
       // fall through to a fresh acquire so the caller still gets a claim once the coast is clear.
       const acq = acquire(identity, ownerSnapshot);
@@ -529,19 +674,18 @@ function claimStoreCore(root, remoteName, spec) {
 
     const priorClaimEpoch = Number(existing.claim.claim_epoch) || 0;
     const newClaim = spec.buildClaim(identity, ownerSnapshot, priorClaimEpoch + 1);
-    let built;
-    try { built = pushClaimCommit(root, remoteName, ref, newClaim, (sha) => [`--force-with-lease=${ref}:${existing.sha}`, `${sha}:${ref}`], spec.commitMessage(newClaim)); }
+    let commitSha;
+    try { commitSha = buildClaimCommit(root, newClaim, spec.commitMessage(newClaim)); }
     catch (e) { return { reclaimed: false, reason: "error", detail: e.message }; }
-    if (built.push.status !== 0) {
-      const stderr = built.push.stderr || "";
-      if (STORE_UNAVAILABLE_RE.test(stderr) || built.push.error) return { reclaimed: false, reason: "store_unavailable", detail: stderr.trim() || String(built.push.error) };
-      // Lease mismatch: a concurrent reclaimer (or re-acquirer) already moved the ref — re-read to
-      // surface the new holder, never a bare --force retry.
-      const reread = gitReadClaimManifest(root, remoteName, ref);
-      if (reread.status === "ok") return { reclaimed: false, reason: "lease-lost", holder: reread.claim, sha: reread.sha };
-      return { reclaimed: false, reason: "store_unavailable", detail: stderr.trim() || "force-with-lease rejected and the ref could not be re-read" };
-    }
-    return { reclaimed: true, sha: built.commitSha, claim: newClaim };
+    const w = transport.casWrite(ref, commitSha, existing.sha); // lease-matched against the stale sha
+    if (w.ok) return { reclaimed: true, sha: commitSha, claim: newClaim };
+    if (w.reason === "store_unavailable") return { reclaimed: false, reason: "store_unavailable", detail: w.detail };
+    // Lease mismatch (a concurrent reclaimer/re-acquirer already moved the ref) or a local lock/io
+    // error — re-read to surface the new holder, never a bare force retry.
+    const reread = transport.read(ref);
+    if (reread.status === "ok") return { reclaimed: false, reason: "lease-lost", holder: reread.claim, sha: reread.sha };
+    if (w.reason === "error") return { reclaimed: false, reason: "error", detail: w.detail || "claim write errored and the ref could not be re-read" };
+    return { reclaimed: false, reason: "store_unavailable", detail: w.detail || "force-with-lease rejected and the ref could not be re-read" };
   }
 
   // FAFF-889: the release verb the recovery claim never had. A lease-matched DELETE
@@ -553,16 +697,16 @@ function claimStoreCore(root, remoteName, spec) {
   // reclaimIfStale backstops a missed release either way.
   function release(identity, mySha) {
     const ref = spec.refName(identity);
-    const push = gitRunText(root, ["push", remoteName, `--force-with-lease=${ref}:${mySha}`, `:${ref}`]);
-    if (push.status === 0) return { released: true };
-    const stderr = push.stderr || "";
-    if (STORE_UNAVAILABLE_RE.test(stderr) || push.error) return { released: false, reason: "store_unavailable", detail: stderr.trim() || String(push.error) };
+    const d = transport.casDelete(ref, mySha); // lease-matched delete against the releaser's own sha
+    if (d.ok) return { released: true };
+    if (d.reason === "store_unavailable") return { released: false, reason: "store_unavailable", detail: d.detail };
     // Delete rejected: either the lease no longer matches (a reclaimer moved the ref) or the ref
-    // is already gone. Re-read to distinguish — never a bare --force retry.
-    const reread = gitReadClaimManifest(root, remoteName, ref);
+    // is already gone. Re-read to distinguish — never a bare force retry.
+    const reread = transport.read(ref);
     if (reread.status === "ok") return { released: false, reason: "superseded", holder: reread.claim, sha: reread.sha };
-    if (reread.status === "claim-missing") return { released: false, reason: "missing" };
-    return { released: false, reason: "store_unavailable", detail: stderr.trim() || "delete rejected and the ref could not be re-read" };
+    if (reread.status === "missing") return { released: false, reason: "missing" };
+    if (d.reason === "error") return { released: false, reason: "error", detail: d.detail || "delete errored and the ref could not be re-read" };
+    return { released: false, reason: "store_unavailable", detail: d.detail || "delete rejected and the ref could not be re-read" };
   }
 
   // FAFF-842: the HOLDER's own heartbeat tick — a lease-matched force-update of ITS OWN claim
@@ -574,25 +718,24 @@ function claimStoreCore(root, remoteName, spec) {
   // silent overwrite. No bare `--force` — same lease-matched CAS idiom as reclaimIfStale/release.
   function tickHeartbeat(identity, mySha, extraPatch) {
     const ref = spec.refName(identity);
-    const existing = gitReadClaimManifest(root, remoteName, ref);
-    if (existing.status === "store-unreachable") return { ticked: false, reason: "store_unavailable" };
+    const existing = transport.read(ref);
+    if (existing.status === "unreachable") return { ticked: false, reason: "store_unavailable" };
     if (existing.status !== "ok") return { ticked: false, reason: existing.status };
     if (existing.sha !== mySha) return { ticked: false, reason: "superseded", holder: existing.claim, sha: existing.sha };
     // last_heartbeat is ALWAYS freshly stamped here (never caller-supplied) — that is the one field
     // this verb exists to refresh; extraPatch is a narrow escape hatch for any other field a future
     // caller needs to carry forward changed (unused by every binding today).
     const newClaim = { ...existing.claim, ...(extraPatch || {}), last_heartbeat: new Date().toISOString() };
-    let built;
-    try { built = pushClaimCommit(root, remoteName, ref, newClaim, (sha) => [`--force-with-lease=${ref}:${mySha}`, `${sha}:${ref}`], spec.commitMessage(newClaim)); }
+    let commitSha;
+    try { commitSha = buildClaimCommit(root, newClaim, spec.commitMessage(newClaim)); }
     catch (e) { return { ticked: false, reason: "error", detail: e.message }; }
-    if (built.push.status !== 0) {
-      const stderr = built.push.stderr || "";
-      if (STORE_UNAVAILABLE_RE.test(stderr) || built.push.error) return { ticked: false, reason: "store_unavailable", detail: stderr.trim() || String(built.push.error) };
-      const reread = gitReadClaimManifest(root, remoteName, ref);
-      if (reread.status === "ok") return { ticked: false, reason: "superseded", holder: reread.claim, sha: reread.sha };
-      return { ticked: false, reason: "store_unavailable", detail: stderr.trim() || "heartbeat tick rejected and the ref could not be re-read" };
-    }
-    return { ticked: true, sha: built.commitSha, claim: newClaim };
+    const w = transport.casWrite(ref, commitSha, mySha); // lease-matched against the holder's own sha
+    if (w.ok) return { ticked: true, sha: commitSha, claim: newClaim };
+    if (w.reason === "store_unavailable") return { ticked: false, reason: "store_unavailable", detail: w.detail };
+    const reread = transport.read(ref);
+    if (reread.status === "ok") return { ticked: false, reason: "superseded", holder: reread.claim, sha: reread.sha };
+    if (w.reason === "error") return { ticked: false, reason: "error", detail: w.detail || "heartbeat tick errored and the ref could not be re-read" };
+    return { ticked: false, reason: "store_unavailable", detail: w.detail || "heartbeat tick rejected and the ref could not be re-read" };
   }
 
   return { name: spec.name, acquire, readHolder, confirmHead, reclaimIfStale, release, tickHeartbeat };
@@ -797,17 +940,24 @@ function buildClaimStaleAware(root, claim, nowMs, env, deps = {}) {
   return runIsHeld({ owner: claim.owner }, nowMs, env);
 }
 
-// FAFF-889 build-queue binding — a THIN binding over claimStoreCore. The claim ref lives on
-// `origin` (which graft always has), independent of `bundle_store`, so it works under
-// `bundle_store: local` and git-only mode alike (§4.1). claim.json adds `machine_id` (collision-
-// resistant, from FAFF-891 thisMachineId — gates only the same-box fast path) and `heartbeating`
-// (selects the staleness branch). `release` IS exposed — an issue returns to Todo and is rebuilt.
-// The second acquire arg is `{ ...ownerSnapshot, machine_id?, heartbeating }` (graft merges them
-// in per §4.4); buildClaim destructures the two extras out so `owner` stays the clean snapshot and
-// machine_id/heartbeating are its siblings.
+// FAFF-889 / FAFF-1064 build-queue binding — a THIN binding over claimStoreCore. The claim ref
+// `refs/faff/build-claims/<issue>` now FOLLOWS `bundle_store` (the human-ratified decisions-register
+// intent, 2026-09-19): under `bundle_store: local` (the default) it uses the on-box localRefTransport
+// (`git update-ref` CAS against a never-pushed local ref — nothing leaves the box); under
+// `git-remote` it uses gitRemoteTransport (today's origin push, byte-for-byte). The claim protocol,
+// staleness (buildClaimStaleAware), and claim.json shape are transport-independent, so only WHERE the
+// ref lives moves. recoveryClaimStore / landingClaimStore keep the git-remote default (they pass a
+// remoteName string, wrapped as gitRemoteTransport by claimStoreCore). claim.json adds `machine_id`
+// (collision-resistant, from FAFF-891 thisMachineId — gates only the same-box fast path) and
+// `heartbeating` (selects the staleness branch). `release` IS exposed — an issue returns to Todo and
+// is rebuilt. The second acquire arg is `{ ...ownerSnapshot, machine_id?, heartbeating }` (graft
+// merges them in per §4.4); buildClaim destructures the two extras out so `owner` stays the clean
+// snapshot and machine_id/heartbeating are its siblings.
 function buildClaimStore(root, remoteName = "origin") {
-  return claimStoreCore(root, remoteName, {
-    name: "git-remote-build-claim",
+  const isLocal = resolveBundleStoreName(root) === "local";
+  const transport = isLocal ? localRefTransport(root) : gitRemoteTransport(root, remoteName);
+  return claimStoreCore(root, transport, {
+    name: isLocal ? "local-build-claim" : "git-remote-build-claim",
     refName: (identity) => `refs/faff/build-claims/${identity.issue}`,
     buildClaim: (identity, arg, epoch) => {
       const a = arg || {};
@@ -1388,6 +1538,9 @@ function buildClaimSelftest() {
       spawnSync("git", ["-C", r, "config", "user.email", "faff-selftest@example.com"]);
       spawnSync("git", ["-C", r, "config", "user.name", "faff-selftest"]);
       spawnSync("git", ["-C", r, "remote", "add", "origin", bareRemote]);
+      // FAFF-1064: this fixture pins the GIT-REMOTE transport (the byte-for-byte-unchanged path), so
+      // select it explicitly rather than relying on the default (which is now `local` → on-box).
+      fs.writeFileSync(path.join(r, ".faffrc.yaml"), "bundle_store: git-remote\n");
     }
     if (initBare.status === 0) {
       const storeA = buildClaimStore(rootA, "origin");
@@ -1459,8 +1612,48 @@ function buildClaimSelftest() {
       ok(badAcq.acquired === false && badAcq.reason === "store_unavailable",
         `buildClaimStore: an unreachable remote refuses with store_unavailable, never builds unguarded (got ${JSON.stringify(badAcq)})`);
 
-      // git-only parity: the build claim lives on origin regardless of bundle_store.
-      ok(storeA.name === "git-remote-build-claim", "buildClaimStore: named store, origin-keyed (bundle_store-independent)");
+      // FAFF-1064: under bundle_store: git-remote the store is the git-remote-named, origin-keyed one.
+      ok(storeA.name === "git-remote-build-claim", "buildClaimStore: git-remote transport selected under bundle_store: git-remote");
+
+      // FAFF-1064 argv-spy oracle — pin the git-remote transport's captured git argv byte-for-byte
+      // against the pre-refactor behaviour for acquire / confirm / reclaim / release. The spy captures
+      // full argv (after `-C <root>`); a fresh scratch issue keeps each capture isolated to the claim
+      // path (no bundle-store git interleaves).
+      {
+        const spy = [];
+        const ref = "refs/faff/build-claims/FAFF-SPY";
+        const idSpy = { issue: "FAFF-SPY" };
+        const cap = (fn) => { spy.length = 0; setGitArgvSpy(spy); const r = fn(); setGitArgvSpy(null); return { r, seq: spy.map((a) => a.slice()) }; };
+
+        const acq = cap(() => storeA.acquire(idSpy, arg("sess-spy", "machine-A", true)));
+        const acqVerbs = acq.seq.map((a) => a[0]);
+        const acqPush = acq.seq.find((a) => a[0] === "push");
+        ok(JSON.stringify(acqVerbs) === JSON.stringify(["ls-remote", "hash-object", "mktree", "commit-tree", "push"]),
+          `buildClaimStore: git-remote acquire argv order is byte-for-byte pre-refactor (got ${JSON.stringify(acqVerbs)})`);
+        ok(acqPush && JSON.stringify(acqPush) === JSON.stringify(["push", "origin", `${acq.r.sha}:${ref}`]),
+          `buildClaimStore: git-remote acquire is a NON-force create push (got ${JSON.stringify(acqPush)})`);
+
+        const conf = cap(() => storeA.confirmHead(idSpy, acq.r.sha));
+        ok(JSON.stringify(conf.seq) === JSON.stringify([["ls-remote", "origin", ref]]),
+          `buildClaimStore: git-remote confirmHead is a bare ls-remote, no fetch/show (got ${JSON.stringify(conf.seq)})`);
+
+        const rel = cap(() => storeA.release(idSpy, acq.r.sha));
+        ok(JSON.stringify(rel.seq) === JSON.stringify([["push", "origin", `--force-with-lease=${ref}:${acq.r.sha}`, `:${ref}`]]),
+          `buildClaimStore: git-remote release is a single lease-matched delete push (got ${JSON.stringify(rel.seq)})`);
+
+        // reclaim of a cross-box stale claim: read (ls-remote, fetch, show) then a lease-matched
+        // force-with-lease push against the stale sha.
+        storeA.acquire(idSpy, arg("sess-spy-stale", "machine-A", true, 2000000)); // re-acquire, stale hb
+        const staleHead = storeA.readHolder(idSpy);
+        const rec = cap(() => storeB.reclaimIfStale(idSpy, arg("sess-spy-b", "machine-B", true), process.env));
+        const recVerbs = rec.seq.map((a) => a[0]);
+        const recPush = rec.seq.find((a) => a[0] === "push");
+        ok(JSON.stringify(recVerbs) === JSON.stringify(["ls-remote", "fetch", "show", "hash-object", "mktree", "commit-tree", "push"]),
+          `buildClaimStore: git-remote reclaim argv order is byte-for-byte pre-refactor (got ${JSON.stringify(recVerbs)})`);
+        ok(recPush && recPush[2] === `--force-with-lease=${ref}:${staleHead.sha}`,
+          `buildClaimStore: git-remote reclaim is a lease-matched force-with-lease push against the stale sha (got ${JSON.stringify(recPush)})`);
+        storeB.release(idSpy, rec.r.sha); // tidy the spy fixture's ref
+      }
 
       // release-if-stale gate (tidy's groom): a FRESH holder reads NOT-stale under the ref's own
       // buildClaimStaleAware (cross-machine_id here → frozen snapshot, fresh hb → held), so tidy
@@ -1533,6 +1726,98 @@ function buildClaimSelftest() {
     }
   } finally {
     fs.rmSync(buildClaimTmp, { recursive: true, force: true });
+  }
+
+  // --- localRefTransport (FAFF-1064): the on-box build claim. A git repo with NO origin remote +
+  // bundle_store: local → buildClaimStore selects the local transport. Covers race→one-winner (both
+  // via acquire and a direct create-only CAS collision), claim.json shape, confirmHead, reclaim
+  // epoch++, release→re-acquire, release-superseded no-op, same-session idempotence, and the
+  // non-functional no-push / no-refs/remotes assertion (§5 + §8 smoke). ---
+  const localClaimTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-local-claim-"));
+  try {
+    const root = path.join(localClaimTmp, "repo");
+    fs.mkdirSync(root, { recursive: true });
+    const gitInit = spawnSync("git", ["-C", root, "init", "-q"]);
+    spawnSync("git", ["-C", root, "config", "user.email", "faff-selftest@example.com"]);
+    spawnSync("git", ["-C", root, "config", "user.name", "faff-selftest"]);
+    // NO origin remote is added — the local transport must work on a repo with no remote at all.
+    fs.writeFileSync(path.join(root, ".faffrc.yaml"), "bundle_store: local\n");
+    if (gitInit.status === 0) {
+      const storeA = buildClaimStore(root);
+      const storeB = buildClaimStore(root);
+      const argL = (sid, machineId, heartbeating, hbAgeMs = 0) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date(Date.now() - hbAgeMs).toISOString(), machine_id: machineId, heartbeating });
+
+      ok(storeA.name === "local-build-claim", "localRefTransport: bundle_store: local selects the on-box local transport");
+
+      // Assert NO push is EVER issued across the whole local lifecycle — capture all git argv.
+      const gitSpy = [];
+      setGitArgvSpy(gitSpy);
+
+      // Race → exactly one same-box graft wins (both stores share the repo's ref store).
+      const idX = { issue: "FAFF-LX" };
+      const acqA = storeA.acquire(idX, argL("sess-la", "machine-A", true));
+      const acqB = storeB.acquire(idX, argL("sess-lb", "machine-A", true));
+      ok(acqA.acquired === true && acqB.acquired === false && acqB.reason === "exists",
+        `localRefTransport: exactly one of two racing same-box acquires wins (got A=${acqA.acquired}, B=${JSON.stringify([acqB.acquired, acqB.reason])})`);
+      ok(acqB.holder && acqB.holder.issue === "FAFF-LX" && acqB.holder.machine_id === "machine-A" && acqB.holder.heartbeating === true,
+        "localRefTransport: claim.json carries issue + machine_id + heartbeating under the local transport");
+      ok(acqA.claim.claim_epoch === 0 && acqA.claim.owner && acqA.claim.owner.session_id === "sess-la" && acqA.claim.owner.machine_id === undefined,
+        "localRefTransport: a fresh local acquire is epoch 0 with a clean owner snapshot (machine_id its sibling)");
+
+      // Direct create-only CAS collision — the mutex's heart: two create-only casWrites to the SAME
+      // ref, exactly one lands, the loser is cas_lost (the §4 failure mode "both acquire" must NOT happen).
+      const lt = localRefTransport(root);
+      const rref = "refs/faff/build-claims/FAFF-LRACE";
+      const shaX = buildClaimCommit(root, { issue: "FAFF-LRACE", owner: { session_id: "x" }, claim_epoch: 0 }, "build-claim FAFF-LRACE epoch=0");
+      const shaY = buildClaimCommit(root, { issue: "FAFF-LRACE", owner: { session_id: "y" }, claim_epoch: 0 }, "build-claim FAFF-LRACE epoch=0");
+      const wX = lt.casWrite(rref, shaX, null);
+      const wY = lt.casWrite(rref, shaY, null);
+      ok((wX.ok !== wY.ok) && ((wX.ok ? wY.reason : wX.reason) === "cas_lost"),
+        `localRefTransport: two create-only CAS writes to one ref — exactly one wins, loser cas_lost (got X=${JSON.stringify(wX)}, Y=${JSON.stringify(wY)})`);
+      lt.casDelete(rref, wX.ok ? shaX : shaY); // tidy the direct-CAS fixture ref
+
+      // confirmHead via the local head-only read (show-ref), no fetch/show.
+      ok(storeA.confirmHead(idX, acqA.sha).confirmed === true, "localRefTransport: confirmHead against the holder's own sha confirms");
+      const badC = storeB.confirmHead(idX, "0".repeat(40));
+      ok(badC.confirmed === false && badC.reason === "superseded", "localRefTransport: confirmHead against a wrong sha refuses (superseded)");
+
+      // Same-session idempotent re-acquire (no self-lockout).
+      const iAcq = storeA.acquire(idX, argL("sess-la", "machine-A", true));
+      ok(iAcq.acquired === true && iAcq.idempotent === true, "localRefTransport: a same-session re-acquire is idempotent (no self-lockout)");
+
+      // Release then re-acquire (the local ref was deleted by a lease-matched update-ref -d).
+      const rel = storeA.release(idX, acqA.sha);
+      ok(rel.released === true, `localRefTransport: lease-matched release deletes the local ref (got ${JSON.stringify(rel)})`);
+      const reAcq = storeB.acquire(idX, argL("sess-lb2", "machine-A", true));
+      ok(reAcq.acquired === true, "localRefTransport: a released local claim is re-acquirable");
+
+      // Reclaim a stale local claim, epoch++ (frozen-snapshot Row 3 — the fake machine_id never
+      // matches the real host id, so staleness is judged off the frozen 2000s-old heartbeat).
+      const idC = { issue: "FAFF-LC" };
+      const cAcq = storeA.acquire(idC, argL("sess-lc-a", "machine-A", true, 2000000));
+      const cRe = storeB.reclaimIfStale(idC, argL("sess-lc-b", "machine-A", true), process.env);
+      ok(cRe.reclaimed === true && cRe.claim.claim_epoch === 1,
+        `localRefTransport: a stale local claim is reclaimed via lease-matched update-ref, epoch++ (got ${JSON.stringify(cRe && cRe.claim && cRe.claim.claim_epoch)})`);
+
+      // release-superseded is a safe no-op: A's original sha is stale after B's reclaim.
+      const sRel = storeA.release(idC, cAcq.sha);
+      ok(sRel.released === false && sRel.reason === "superseded", `localRefTransport: release against a superseded sha is a safe no-op (got ${JSON.stringify(sRel)})`);
+      const stillHeld = storeB.readHolder(idC);
+      ok(stillHeld.status === "ok" && stillHeld.sha === cRe.sha, "localRefTransport: the reclaimer's claim is NOT deleted by the loser's release");
+
+      setGitArgvSpy(null);
+      // Non-functional: NO git push ever issued, and NO refs/remotes/* entry created for the claim.
+      const pushes = gitSpy.filter((a) => a[0] === "push");
+      ok(pushes.length === 0, `localRefTransport: no git push is EVER issued under the local transport (got ${pushes.length})`);
+      const forEach = spawnSync("git", ["-C", root, "for-each-ref", "refs/remotes"], { encoding: "utf8" });
+      ok((forEach.stdout || "").trim() === "", `localRefTransport: no refs/remotes/* entry is created for the claim (got '${(forEach.stdout || "").trim()}')`);
+      const showRef = spawnSync("git", ["-C", root, "show-ref", "--verify", "refs/faff/build-claims/FAFF-LC"], { encoding: "utf8" });
+      ok(showRef.status === 0 && showRef.stdout.includes(cRe.sha), "localRefTransport: the claim ref exists on-box (a local ref, never pushed)");
+    } else {
+      console.log("skip  localRefTransport checks (git init unavailable in this environment)");
+    }
+  } finally {
+    fs.rmSync(localClaimTmp, { recursive: true, force: true });
   }
 
   // --- buildClaimStaleAware: the three-row, heartbeat-only, machine-aware staleness predicate.
@@ -1893,7 +2178,8 @@ module.exports = {
   canonicalJSON, validateIdentityForHandle, buildBundle, classifyBundle, deriveSupersededBy,
   localBundleStore, gitRemoteBundleStore, bundleRefName, resolveBundleStoreName, resolveBundleStore,
   publishBundle, verifyBundleIdentity, bundleExitCode, cmdBundle, bundleSelftest,
-  recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, gitReadClaimManifest,
+  recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, buildClaimCommit, gitReadClaimManifest,
+  gitRemoteTransport, localRefTransport, setGitArgvSpy,
   claimStoreCore, buildClaimStore, buildClaimStaleAware, resolveClaimTtlHours, resolveClaimClockSkewToleranceSecs, defaultResolveClaimRunDir,
   cmdBuildClaim, buildClaimSelftest,
   landingClaimRefName, landingClaimStore, cmdLandingClaim, landingClaimSelftest,

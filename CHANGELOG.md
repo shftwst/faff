@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.34.0](https://github.com/shftwst/faff/compare/faff--v0.33.0...faff--v0.34.0) (2026-09-21)
+
+
+### Features
+
+* **FAFF-1015:** commissaire audit anchor — Commissaire-native per-issue anchor mint ([#919](https://github.com/shftwst/faff/issues/919)) ([dac76f8](https://github.com/shftwst/faff/commit/dac76f8a0a576753af189f200240a96e69151780))
+* **FAFF-1028:** detect off-ledger landed merges the declared-effects ledger can't see ([#902](https://github.com/shftwst/faff/issues/902)) ([2303a40](https://github.com/shftwst/faff/commit/2303a408b34e7bf6d85fc2c4521610303c2ebe80))
+* **FAFF-1041:** discover repo conventions from standards docs + git history ([#895](https://github.com/shftwst/faff/issues/895)) ([50c658c](https://github.com/shftwst/faff/commit/50c658c0501b04c33ef990ec60f7dae72cfb19e2))
+* **FAFF-1048:** configurable superseded-ADR location via tracking.adr_superseded_docs_path ([#903](https://github.com/shftwst/faff/issues/903)) ([2eb8a7f](https://github.com/shftwst/faff/commit/2eb8a7f50300b79c3dd82f075d068dda5c029da3))
+* **FAFF-1051:** declare the diff kind so the context trim stops truncating prose inputs ([#901](https://github.com/shftwst/faff/issues/901)) ([12ed94f](https://github.com/shftwst/faff/commit/12ed94f8b626f1dd8eb3a6cacbf5457a187a7d65))
+* **FAFF-1052:** make spec-review round-1 pin capture non-silent, asserted, and fail-safe ([#921](https://github.com/shftwst/faff/issues/921)) ([af1a6e1](https://github.com/shftwst/faff/commit/af1a6e134bbc106d0a4c81acf3f24f0afc056a5a))
+* **FAFF-1054:** configurable prime-then-parallel spec-review dispatch + per-lens deadline ([#906](https://github.com/shftwst/faff/issues/906)) ([7d0815a](https://github.com/shftwst/faff/commit/7d0815a27348c7ee21a781a30a4de302eb2d33b5))
+* **FAFF-1058:** controllable adversarial-review trimming — prose never trims; code_review toggle ([#904](https://github.com/shftwst/faff/issues/904)) ([d37508e](https://github.com/shftwst/faff/commit/d37508ece5f84d2f26de8df718a9f2f5b0da44e5))
+* **FAFF-1061:** opt-in interactive high-assurance verification ([#914](https://github.com/shftwst/faff/issues/914)) ([fce4c72](https://github.com/shftwst/faff/commit/fce4c722fcc9de8e4195e2814c727fd8791fcfd3))
+* **FAFF-1062:** --local targeting for config/gitignore/hooks writers ([#905](https://github.com/shftwst/faff/issues/905)) ([0663555](https://github.com/shftwst/faff/commit/0663555055b9e90d0d08f2f12192d64c7b5e9238))
+* **FAFF-1063:** opt-in local mode for faff-onboard ([#908](https://github.com/shftwst/faff/issues/908)) ([677007f](https://github.com/shftwst/faff/commit/677007f92a523b66b8eeb13882e71591d1c7e91d))
+* **FAFF-1064:** build-claim on-box under bundle_store (pluggable claim transport) ([#913](https://github.com/shftwst/faff/issues/913)) ([7353f45](https://github.com/shftwst/faff/commit/7353f45942c261605db5125eac40304ce7c05582))
+* **FAFF-1068:** persist the .faff/conventions.json conventions cache ([#916](https://github.com/shftwst/faff/issues/916)) ([eea5f52](https://github.com/shftwst/faff/commit/eea5f52012502d651da6758696adb484aa2ee852))
+* **FAFF-1069:** synonym-tolerant record-location scan + onboard offer ([#918](https://github.com/shftwst/faff/issues/918)) ([3b806ef](https://github.com/shftwst/faff/commit/3b806ef5fefe07e189806f70540c300f54b598fa))
+* **FAFF-931:** register the spec-review judge's weighing as a first-class eval seam ([#899](https://github.com/shftwst/faff/issues/899)) ([bcec063](https://github.com/shftwst/faff/commit/bcec0633994f50d18cf57ad3f55f040989782a09))
+* **FAFF-966:** mint the events.jsonl genesis atomically at every run-dir seam ([#900](https://github.com/shftwst/faff/issues/900)) ([97daf85](https://github.com/shftwst/faff/commit/97daf854b7a90e0bf1a8944017ed9ef837c7410b))
+* **FAFF-996:** autonomous adjudication of a build-review critical — bounded reviewer↔author round-trip, judge final say ([#909](https://github.com/shftwst/faff/issues/909)) ([e9e4278](https://github.com/shftwst/faff/commit/e9e42782dffae598af82f5c12b896e30ace89d99))
+
+
+### Bug Fixes
+
+* **FAFF-1045:** use Object.hasOwn, not `in`, in runcheck.js's completeness predicate ([#911](https://github.com/shftwst/faff/issues/911)) ([519d6dd](https://github.com/shftwst/faff/commit/519d6dd2c6251045d2f519afed882576827b8240))
+* **FAFF-1046:** drop the jq dependency from setup-worktree.sh hook mode ([#897](https://github.com/shftwst/faff/issues/897)) ([5d83f6d](https://github.com/shftwst/faff/commit/5d83f6d78ec0ebf15318e84a62ebf7a04e213153))
+* **FAFF-1047:** guard governance-check discover step against the FAFF-1038 errexit-abort shape ([#907](https://github.com/shftwst/faff/issues/907)) ([3a1c9f6](https://github.com/shftwst/faff/commit/3a1c9f640929277658c35d69ff349f6cec4e8a0a))
+* **FAFF-1049:** validate-macos per-file loop names a pre-first-test hang and fails fast ([#920](https://github.com/shftwst/faff/issues/920)) ([6647f57](https://github.com/shftwst/faff/commit/6647f57ce7635566b5bcd6f26371d2ce25808de8))
+* **FAFF-1050:** widen ci-triage origin to consider a check's recent history on main ([#923](https://github.com/shftwst/faff/issues/923)) ([4a7a1f9](https://github.com/shftwst/faff/commit/4a7a1f99235c65af71309f241eb2c2e17c34a067))
+* **FAFF-1053:** normalise a clean refutation preceded by any preamble ([#910](https://github.com/shftwst/faff/issues/910)) ([85834cf](https://github.com/shftwst/faff/commit/85834cf4a23ecf99a7210e4fa11d5a9a9f15bc73))
+* **FAFF-1055:** anchor SYNTAX_CLAIM_RE and remove the all-JS-files auto-refute fallback ([#922](https://github.com/shftwst/faff/issues/922)) ([da31d55](https://github.com/shftwst/faff/commit/da31d55fe06b29a6321318ee1db939c94adab455))
+* **FAFF-1066:** review-call.mjs --no-trim emits a stderr note confirming untrimmed mode ([#912](https://github.com/shftwst/faff/issues/912)) ([b5c49bf](https://github.com/shftwst/faff/commit/b5c49bf9f3012574185da61a369b4f585c668cf3))
+* **FAFF-939:** gate the standalone self-mint on a non-refuse run-start verdict ([#915](https://github.com/shftwst/faff/issues/915)) ([05b8f5c](https://github.com/shftwst/faff/commit/05b8f5c963b642a11049cdd6bdb8774ba5b3c95b))
+* **FAFF-997:** surface a failing member's captured output in the regions selftest driver ([#894](https://github.com/shftwst/faff/issues/894)) ([f17b046](https://github.com/shftwst/faff/commit/f17b0464741cefc2c6b62dd8042e1b9d73c1a162))
+
 ## [0.33.0](https://github.com/shftwst/faff/compare/faff--v0.32.0...faff--v0.33.0) (2026-09-15)
 
 

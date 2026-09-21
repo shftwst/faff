@@ -88,7 +88,12 @@ const MAIN_HISTORY_FAIL_THRESHOLD = 2;
 // unreadable) degrades to `null` so the caller falls back to today's HEAD-only classification.
 function fetchMainHistory(repo, checkNames, N, repoRoot) {
   if (!Array.isArray(checkNames) || checkNames.length === 0) return null;
-  const lg = spawnSync("git", ["log", "origin/main", "-n", String(N), "--format=%H"], { cwd: repoRoot, encoding: "utf8" });
+  let lg;
+  try {
+    lg = spawnSync("git", ["log", "origin/main", "-n", String(N), "--format=%H"], { cwd: repoRoot, encoding: "utf8" });
+  } catch {
+    return null; // git not spawnable (e.g. ENOENT) — degrade to HEAD-only, never throw
+  }
   if (lg.status !== 0 || !lg.stdout) return null;
   const shas = lg.stdout.split("\n").map((s) => s.trim()).filter(Boolean);
   const counts = {};
@@ -208,8 +213,14 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
       const entry = history[name];
       if (!entry) continue;
       main_recent_failures[name] = entry.failures;
-      if (main_recent_window === null) main_recent_window = entry.window; // uniform across names in one fetch
     }
+    // window is uniform across every name in one fetch (fetchMainHistory seeds every requested name
+    // to the same observed count) — read it from the history object itself, not from whichever
+    // failingNames entry happens to be present first. This keeps the "MUST carry window whenever
+    // history is readable" invariant true even if a future caller ever fetches history for a
+    // different name set than failingNames (today the two are always identical, by construction).
+    const anyEntry = Object.values(history)[0];
+    main_recent_window = anyEntry ? anyEntry.window : null;
   }
 
   // fault_domain: an explicit --fault-domain (the skill-side LLM tiebreaker) governs when given —

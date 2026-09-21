@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1049",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7652ea9b1f15b39ef8c4249f31eaadfe2955d5d755de693e296f553e8047da75",
+    "branch": "faff-1049-validate-macos-hangs-before-its-first-test-emits-dying-at",
+    "pushed_at": "2026-09-21T09:29:36.928Z"
+  },
+  "updated_at": "2026-09-21T09:29:36.928Z"
+}

@@ -1,0 +1,52 @@
+{
+  "run_id": "run-20260921-031906-beepboop-list-98d373",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1066",
+    "FAFF-1065",
+    "FAFF-1055",
+    "FAFF-1050",
+    "FAFF-1049",
+    "FAFF-1015",
+    "FAFF-1002",
+    "FAFF-939",
+    "FAFF-1052"
+  ],
+  "outcomes": {
+    "FAFF-1066": "shipped",
+    "FAFF-939": "shipped",
+    "FAFF-1065": "shipped",
+    "FAFF-1015": "shipped"
+  },
+  "base_sha": "7353f45942c261605db5125eac40304ce7c05582",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260921-031906-beepboop-list-98d373",
+    "pid": 484,
+    "started_at": "2026-09-21T03:19:06.240Z",
+    "last_heartbeat": "2026-09-21T08:47:58.342Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "e6d9c9a5-2022-4f53-baba-09cdb912dc74",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 72,
+        "output": 55104,
+        "cache_write_5m": 0,
+        "cache_write_1h": 576241,
+        "cache_read": 5240655
+      }
+    },
+    "tokens_at_start": 5872072,
+    "tokens_at_last_event": {
+      "input": 300,
+      "output": 407493,
+      "cache_write_5m": 0,
+      "cache_write_1h": 4671763,
+      "cache_read": 37988597
+    }
+  }
+}

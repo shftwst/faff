@@ -9,6 +9,10 @@
 // `git show <merge-base>:plugin/skills/faffter-dark-adversarial-review/review-call.mjs`. The post-change
 // module is then asserted to reproduce these bytes exactly (test/faff-1051-diff-kind.test.mjs).
 //
+// FAFF-1065: also writes default-code-review-payload.json (FAFF-1058's default unified code-review
+// baseline), captured live via default-code-review-fixture.mjs's captureDefaultCodeReviewPayload() and
+// stamped with the same generated_from sha — so run this before editing review-call.mjs too.
+//
 // Deliberately dependency-free and deterministic: every fixture below is fixed text, no randomness, no
 // clock, no filesystem state beyond what this script itself writes.
 //
@@ -151,10 +155,23 @@ async function main(argv) {
   // names a real ancestor of HEAD via `git merge-base --is-ancestor`.
   const generatedFrom = argv[3] || null;
   const mod = await import(pathToFileURL(resolve(modulePath)).href);
+  // FAFF-1065: the default-code-review payload golden (FAFF-1058) gets the same generated_from stamp as
+  // the three unified goldens above, mirroring their provenance convention. Unlike those three — built
+  // from the historical `mod` at modulePath — this one is captured via `captureDefaultCodeReviewPayload()`,
+  // which imports the LIVE review-call.mjs directly (see default-code-review-fixture.mjs), so it must be
+  // regenerated before editing review-call.mjs, exactly like the other three. Dynamic import, loaded only
+  // when modulePath is present, keeps main()'s no-args no-op path free of this module's own top-level cost.
+  const { captureDefaultCodeReviewPayload } = await import("./default-code-review-fixture.mjs");
+  const defaultCodeReviewCapture = await captureDefaultCodeReviewPayload();
   const goldens = {
     "unified-addition": { generated_from: generatedFrom, ...runTrimCase(mod, "addition") },
     "unified-deletion-only": { generated_from: generatedFrom, ...runTrimCase(mod, "deletionOnly") },
     "tighten-unified": { generated_from: generatedFrom, ...runTightenCase(mod) },
+    "default-code-review-payload": {
+      generated_from: generatedFrom,
+      system: defaultCodeReviewCapture.system,
+      user: defaultCodeReviewCapture.user,
+    },
   };
   for (const [name, golden] of Object.entries(goldens)) {
     writeFileSync(join(__dirname, `${name}.json`), JSON.stringify(golden, null, 2) + "\n");

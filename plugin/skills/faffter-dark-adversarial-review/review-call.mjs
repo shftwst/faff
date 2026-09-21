@@ -2171,6 +2171,15 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     default:
       break;   // "disabled" / "under-threshold" / "prose-passthrough": no note, unchanged
   }
+  // FAFF-1066: confirm --no-trim explicitly. Gated on the `noTrim` flag itself, never on
+  // `trimReport.reason` — reason "disabled" also arises from --context-trim-bytes 0 alone, which
+  // leaves the FAFF-1039 window pass below still running (a declared context-window overrides a
+  // bare zero byte-gate), so keying off "disabled" would both fire on the wrong condition and
+  // misreport "both passes off". `noTrim` is the only signal that is true exactly when both trim
+  // passes (this one and the FAFF-1039 window pass below) are disabled for this call.
+  if (noTrim) {
+    process.stderr.write(`[note] FAFF-1058 --no-trim: context trimming disabled for this call (both passes off)\n`);
+  }
   let user = assembleUserMessage({ contextFiles, diff });
 
   // FAFF-1039: window-targeted trim of the SHARED PREFIX, once, pre-chain, targeting the PRIMARY

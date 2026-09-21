@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1055",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2df66f1ae0ef0154c93eeec182abcda6ec8bc44e1bffff4629e263188538865c",
+    "branch": "faff-1055-the-auto-refute-syntax-claim-regex-matches-does-not-validate",
+    "pushed_at": "2026-09-21T11:57:55.415Z"
+  },
+  "updated_at": "2026-09-21T11:57:55.415Z"
+}

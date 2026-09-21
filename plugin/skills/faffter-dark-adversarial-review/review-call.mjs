@@ -856,7 +856,12 @@ export function ensureHeader(content, winner, index) {
 // PURE: recall-tuned WITHIN the syntax/parse claim class only (v1 scope) — a finding asserting code
 // "won't parse" / "is invalid syntax" / "fails to parse", etc. Crash/test-failure claims are OUT OF SCOPE
 // (a green suite doesn't refute an uncovered-path claim); this regex intentionally never matches those.
-const SYNTAX_CLAIM_RE = /syntax error|SyntaxError|won'?t parse|will not parse|fails? to parse|invalid (javascript|js|syntax)|not (valid|parseable|parsable)/i;
+// FAFF-1055: the last two alternatives are word-boundary-anchored — unanchored, "not (valid|…)" matched
+// inside ordinary review prose like "does not validate" / "is not validated" / "cannot validate" (the
+// leading \b additionally rejects "can·not valid·ate"), and "invalid (javascript|js|syntax)" matched as a
+// prefix of "invalid json" / "invalid jsx". The other alternatives (syntax error, SyntaxError, won't/will
+// not/fails to parse) were audited and don't prefix ordinary English, so they stay unanchored.
+const SYNTAX_CLAIM_RE = /syntax error|SyntaxError|won'?t parse|will not parse|fails? to parse|\binvalid (javascript|js|syntax)\b|\bnot (valid|parseable|parsable)\b/i;
 
 export function findSyntaxClaims(sectionText) {
   return SYNTAX_CLAIM_RE.test(String(sectionText == null ? "" : sectionText));
@@ -871,8 +876,10 @@ function isJsFamily(p) { return JS_FAMILY_RE.test(String(p == null ? "" : p)); }
 const PATH_TOKEN_CHAR_RE = /[A-Za-z0-9_./-]/;
 
 // PURE: is `path` named in `text` at a genuine path boundary (not merely a textual prefix of a longer
-// path that's the one actually mentioned)? Shared by claimTargets (below) and refuteFindings' "did this
-// claim name ANY context path at all" check, so both use the identical definition of "named".
+// path that's the one actually mentioned)? Used by claimTargets (below), the sole definition of "named"
+// a finding's targets are resolved against (FAFF-1055 removed refuteFindings' own separate
+// "named ANY context path at all" check — a section naming no JS-family path is untouched regardless of
+// whether it names a non-JS one, so claimTargets' JS-family filter is the only gate that matters now).
 function pathMentionedIn(text, path) {
   const idx = text.indexOf(path);
   if (idx === -1) return false;
@@ -909,10 +916,12 @@ export function realCheck(path) {
 // audit trail (what the reviewer got wrong) survives.
 //
 // Target resolution (contextPaths is the FULL context list, unfiltered — mirrors what the reviewer was
-// actually shown): claimTargets() already filters matches to JS-family. When a section names NO context
-// path at all (JS or otherwise), fall back to every JS-family context path (a generic "this code has a
-// syntax error" claim, uncommitted to one file) — but a claim that names ONLY a non-JS-family file (e.g.
-// SKILL.md) stays untouched: it named something, just nothing this pass can settle (precision bias).
+// actually shown): targets are exactly the JS-family context paths claimTargets() finds NAMED in the
+// section text. FAFF-1055: a section naming NO context path is left UNTOUCHED — there is deliberately no
+// fallback to sweeping every JS-family context path. A claim that cannot name a file is precisely the one
+// least likely to be a real, mechanically-checkable syntax fault, and on a healthy repo an all-files sweep
+// passes almost by construction, so the old fallback near-certainly demoted any syntax-shaped prose that
+// named no file — including ordinary non-syntax review prose the (now-anchored) detector still slips past.
 //
 // Reconstruction: edits are applied by SPLICING the original `content.split("\n")` array in place (heading
 // line rewritten, one evidence line inserted) rather than re-joining pre-computed section strings — the
@@ -924,7 +933,6 @@ export function realCheck(path) {
 export function refuteFindings(content, contextPaths, { checkFn = realCheck } = {}) {
   const text = String(content == null ? "" : content);
   const paths = contextPaths || [];
-  const jsPaths = paths.filter(isJsFamily);
   const { sections } = splitFindings(content);
   const refutations = [];
   const outLines = text.split("\n");
@@ -934,12 +942,8 @@ export function refuteFindings(content, contextPaths, { checkFn = realCheck } = 
     if (s.severity == null) continue;
     if (!findSyntaxClaims(s.raw)) continue;
 
-    let targets = claimTargets(s.raw, paths);
-    if (targets.length === 0) {
-      const namedAnyContextPath = paths.some((p) => pathMentionedIn(s.raw, p));
-      if (!namedAnyContextPath) targets = jsPaths;   // generic claim, no file named — check every JS file
-    }
-    if (targets.length === 0) continue;   // cannot tie the claim to a checkable file — untouched
+    const targets = claimTargets(s.raw, paths);
+    if (targets.length === 0) continue;   // named-path gate — no file named, no generic all-JS sweep
 
     const results = targets.map((t) => checkFn(t));
     if (!results.every((r) => r && r.ok)) continue;   // any check failure — the reviewer may be right

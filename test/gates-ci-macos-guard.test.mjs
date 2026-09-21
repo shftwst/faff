@@ -1,21 +1,31 @@
-// FAFF-1038 — negative fixture for the validate-macos test-count guard's TAP-summary fix.
+// FAFF-1049 — validate-macos: a pre-first-test hang now names its file and fails fast.
 //
-// Extracts the REAL `validate-macos` step body out of `.github/workflows/validate.yml` via
-// gates.js's `extractRunCommandsWithContext` (the same helper test/gates-ci-source.test.mjs
-// already reuses for the same file), then executes that body under `bash -e` — the runner's own
+// The prior whole-manifest single `node --test "${matched[@]}"` invocation buffered TAP output
+// until a test resolved, so a hang before the first test (module load, or the very first test's
+// setup) named no file — nothing to go on but `TAP version 13` and a 15-minute job-timeout cancel.
+// This file extracts the REAL `validate-macos` step body out of `.github/workflows/validate.yml`
+// via gates.js's `extractRunCommandsWithContext` (the same helper test/gates-ci-source.test.mjs and
+// the prior FAFF-1038 fixture reuse), then executes that body under `bash -e` — the runner's own
 // default shell for a step declaring no `shell:` — against a stub `node` on PATH and a synthetic
-// `test/impure/` manifest clearing the file-count floor. Anchoring to the real extracted text (not
-// a hand-copied script) means this fixture reads whatever validate.yml actually ships, so a future
-// edit to the step body is exercised here too.
+// `test/impure/` manifest. Anchoring to the real extracted text (not a hand-copied script) means
+// this fixture reads whatever validate.yml actually ships, so a future edit is exercised here too.
 //
-// AC1/AC2: a summary-less log (no "# tests N" line) must print exactly one pre-summary ::error::
-// and exit non-zero (node's own status, floored to 1 when node itself exited 0).
-// AC3: the existing mass-skip guard (a low "# tests N" count) is unchanged.
-// AC4/AC5: a summarised, at-or-above-floor run passes node's status through with no ::error::.
-// AC6: the node invocation carries --test-reporter=tap.
-// AC7: this file demonstrates BOTH directions — the fixed body passes AC1/AC2, and a
-// mechanically-reconstructed PRE-FIX body (today's shipped bug) reproduces the exact regression
-// the ticket reports: exit 1, no annotation, node's real 137 discarded.
+// AC1: the manifest runs PER FILE — one `node --test` invocation per matched file, in a loop, not
+//      a single whole-array invocation.
+// AC2: each per-file invocation carries --test-timeout=120000.
+// AC3: each per-file invocation is bounded by a portable wall-clock that SIGKILLs after the bound
+//      and uses no `timeout` binary (macOS runners don't ship GNU timeout) — asserted structurally,
+//      and behaviourally via a shortened bound (`PER_FILE_WALL_CLOCK_SECS`, override-only — the
+//      real job never sets it, so production always gets the literal 300s).
+// AC4: a synthetic file that hangs before emitting a subtest names itself in the log and the step
+//      exits non-zero (not a silent pass, not a bare cancel).
+// AC5: the aggregate test-count floor (>=50, summed across files) and file-count floor (>=8) still
+//      fire on their failure fixtures, and FAFF-1038's "died before its summary line" detection
+//      still fires — now per file, naming the specific file rather than the whole run.
+// AC6 (test/ci-workflow-timeout-bounds.test.mjs): unaffected by this change — this ticket touches
+//      the `validate-macos` step body only, never the job-level `timeout-minutes`.
+// AC7 (a healthy run still passes 138/138 within budget): verified by this change's own PR going
+//      green, not re-asserted here — no real macOS hang is reproduced by this suite.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -39,160 +49,248 @@ function extractValidateMacosLines(workflowText) {
   return lines;
 }
 
-// Splices the real (fixed) body back to today's shipped bug, for the AC7 "remove the branch, it
-// reddens" demonstration. Matches on the line's own text, not a line number, so this fixture
-// survives an unrelated future edit above the splice point instead of erroring on its own
-// precondition.
-function toPreFixBody(fixedLines, logPath, floorLine) {
-  const idx = fixedLines.findIndex((l) => l.startsWith("summary_line=$(grep"));
-  assert.ok(idx >= 0, "fixture precondition: the fixed no-summary branch must be present to splice out");
-  const prefix = fixedLines.slice(0, idx);
-  // `floorLine` (e.g. "test_floor=50") is extracted from the REAL fixed body, not hardcoded, so a
-  // future change to the floor value can't silently desync this reconstruction from the shipped
-  // guard (adversarial review finding).
-  const preFixTail = [
-    `tests_ran=$(grep -oE '^# tests [0-9]+' ${logPath} | tail -1 | grep -oE '[0-9]+$')`,
-    "tests_ran=${tests_ran:-0}",
-    floorLine,
-    'if [ "$tests_ran" -lt "$test_floor" ]; then',
-    '  echo "::error::only ${tests_ran} impure tests ran (expected at least ${test_floor}) — tests likely mass-skipped; see the log above"',
-    "  exit 1",
-    "fi",
-    'exit "$test_status"',
-  ];
-  return [...prefix, ...preFixTail].join("\n");
-}
+const workflowText = readFileSync(workflowPath, "utf8");
+const fixedLines = extractValidateMacosLines(workflowText);
+const fixedBody = fixedLines.join("\n");
+const nonCommentLines = fixedLines.filter((l) => !l.trim().startsWith("#"));
 
-// Sandbox: a cwd with >=8 stub test/impure/*.test.mjs (clears the file_floor=8 guard unrelated to
-// this fix) and a stub `node` on PATH driven by env vars, so each scenario controls exactly what
-// the "node --test | tee" pipeline writes/exits with, without running a real test suite. The stub
-// also records its own argv (`$dir/node-argv.txt`) so AC6 can assert the flag actually reaches the
-// invocation, not merely that the source text contains it (adversarial review finding).
-function makeSandbox() {
-  const dir = mkdtempSync(join(tmpdir(), "faff-1038-macos-guard-"));
-  const impureDir = join(dir, "test", "impure");
-  mkdirSync(impureDir, { recursive: true });
-  for (let i = 0; i < 8; i += 1) writeFileSync(join(impureDir, `stub-${i}.test.mjs`), "// stub\n");
-
-  const binDir = join(dir, "bin");
-  mkdirSync(binDir, { recursive: true });
+// A stub `node` driven entirely by per-target sidecar files (`<target>.stdout` / `.exit` / `.hang`),
+// so each scenario controls exactly what "node --test <file>" does without running a real test
+// suite. The stub also appends its own argv (one line per invocation) to a shared log, so a test can
+// assert invocation SHAPE (one file per call, the flag actually present) — not merely source-text
+// presence (adversarial review finding pattern carried over from the FAFF-1038 fixture).
+function writeNodeStub(binDir, argvLog) {
   const nodeStub = join(binDir, "node");
-  const argvLog = join(dir, "node-argv.txt");
   writeFileSync(
     nodeStub,
-    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${JSON.stringify(argvLog)}\nprintf '%b' "$NODE_STUB_STDOUT"\nexit "\${NODE_STUB_EXIT:-0}"\n`,
+    [
+      "#!/usr/bin/env bash",
+      `printf '%s\\n' "$*" >> ${JSON.stringify(argvLog)}`,
+      'target="${@: -1}"',
+      'if [ -f "${target}.hang" ]; then sleep 999; exit 0; fi',
+      'if [ -f "${target}.stdout" ]; then cat "${target}.stdout"; fi',
+      "ec=0",
+      '[ -f "${target}.exit" ] && ec=$(cat "${target}.exit")',
+      'exit "$ec"',
+      "",
+    ].join("\n"),
   );
   chmodSync(nodeStub, 0o755);
+}
+
+// Builds a sandbox cwd with `test/impure/<name>` for every entry in `files`, padded (with trivial
+// clean-passing stubs) to at least 8 so a scenario not aimed at the file-count floor never trips it
+// by accident. Each entry optionally carries `.stdout` / `.exit` / `.hang` sidecars the stub reads.
+function makeSandbox(files) {
+  const dir = mkdtempSync(join(tmpdir(), "faff-1049-macos-loop-"));
+  const impureDir = join(dir, "test", "impure");
+  mkdirSync(impureDir, { recursive: true });
+  const all = [...files];
+  let pad = 0;
+  while (all.length < 8) {
+    all.push({ name: `pad-${pad}.test.mjs`, stdout: "TAP version 13\n# tests 10\n", exit: 0 });
+    pad += 1;
+  }
+  for (const f of all) {
+    const target = join(impureDir, f.name);
+    writeFileSync(target, "// stub\n");
+    if (f.hang) writeFileSync(`${target}.hang`, "");
+    if (f.stdout !== undefined) writeFileSync(`${target}.stdout`, f.stdout);
+    if (f.exit !== undefined) writeFileSync(`${target}.exit`, String(f.exit));
+  }
+  const binDir = join(dir, "bin");
+  mkdirSync(binDir, { recursive: true });
+  const argvLog = join(dir, "node-argv.txt");
+  writeFileSync(argvLog, "");
+  writeNodeStub(binDir, argvLog);
   return { dir, binDir, argvLog };
 }
 
-// Runs an extracted step body under bash -e, with node stubbed to emit `stdout` and exit `exitCode`.
-// `logPath` (the real, extracted target — see below) is cleaned up before/after so runs never see a
-// stale file. Returns `argv` (the stub's own recorded argv) so a test can assert flag pass-through,
-// not just source-text presence (adversarial review finding).
-function run(body, stdout, exitCode, logPath) {
-  const { dir, binDir, argvLog } = makeSandbox();
-  rmSync(logPath, { force: true });
-  writeFileSync(join(dir, "step.sh"), body);
+// Runs the real extracted step body under `bash -e` in a fresh sandbox. `env` merges over the
+// sandboxed PATH (always the stub node) — used to shorten PER_FILE_WALL_CLOCK_SECS for the kill
+// fixtures, the one knob the production step never sets (it always gets the literal 300s default).
+function run(files, env = {}) {
+  const { dir, binDir, argvLog } = makeSandbox(files);
+  writeFileSync(join(dir, "step.sh"), fixedBody);
   try {
     const out = execFileSync("bash", ["-e", join(dir, "step.sh")], {
       cwd: dir,
-      env: { PATH: `${binDir}:${process.env.PATH}`, NODE_STUB_STDOUT: stdout, NODE_STUB_EXIT: String(exitCode) },
+      env: { ...process.env, PATH: `${binDir}:${process.env.PATH}`, ...env },
       stdio: ["ignore", "pipe", "pipe"],
+      timeout: 20000,
     });
     return { code: 0, stdout: out.toString(), argv: readFileSync(argvLog, "utf8") };
   } catch (err) {
     let argv = "";
-    try { argv = readFileSync(argvLog, "utf8"); } catch { /* node stub never ran (e.g. glob/file-floor exit) */ }
+    try { argv = readFileSync(argvLog, "utf8"); } catch { /* stub never ran (e.g. file-floor exit) */ }
     return { code: err.status, stdout: String(err.stdout || ""), argv };
   } finally {
     rmSync(dir, { recursive: true, force: true });
-    rmSync(logPath, { force: true });
   }
 }
 
-const workflowText = readFileSync(workflowPath, "utf8");
-const fixedLines = extractValidateMacosLines(workflowText);
-const fixedBody = fixedLines.join("\n");
-
-// Derived from the REAL extracted body, not hardcoded, so a future rename/edit can't desync the
-// fixture's own cleanup/reconstruction from what the step actually does (adversarial review finding).
-const teeLine = fixedLines.find((l) => l.includes("| tee "));
-assert.ok(teeLine, "fixture precondition: the node invocation must pipe through tee to a log path");
-const logPath = teeLine.match(/\|\s*tee\s+(\S+)/)[1];
-const floorLine = fixedLines.find((l) => l.startsWith("test_floor="));
-assert.ok(floorLine, "fixture precondition: the mass-skip test_floor= line must be present");
-
-test("AC1: summary-less log + node exit 137 -> exactly one pre-summary ::error:: (not mass-skip), exits 137", () => {
-  const result = run(fixedBody, "TAP version 13\n", 137, logPath);
-  assert.equal(result.code, 137);
-  const errorLines = result.stdout.split("\n").filter((l) => l.includes("::error::"));
-  assert.equal(errorLines.length, 1, `expected exactly one ::error:: line, got: ${JSON.stringify(errorLines)}`);
-  assert.ok(errorLines[0].includes("before the test runner emitted its summary line"), errorLines[0]);
-  assert.ok(!errorLines[0].includes("mass-skipped"), "must be distinguishable from the mass-skip annotation");
-});
-
-test("AC2 (holdout scenario, verified here too): summary-less log + node exit 0 -> same pre-summary ::error::, exits non-zero (floored)", () => {
-  const result = run(fixedBody, "TAP version 13\n", 0, logPath);
-  assert.notEqual(result.code, 0, "a summary-less log must never report green");
-  assert.equal(result.code, 1, "test_status of 0 is floored to 1");
-  const errorLines = result.stdout.split("\n").filter((l) => l.includes("::error::"));
-  assert.equal(errorLines.length, 1);
-  assert.ok(errorLines[0].includes("before the test runner emitted its summary line"), errorLines[0]);
-});
-
-test("AC3: mass-skip guard unchanged — '# tests 3' + node exit 1 -> mass-skip ::error::, exits 1", () => {
-  const result = run(fixedBody, "TAP version 13\n# tests 3\n", 1, logPath);
-  assert.equal(result.code, 1);
-  const errorLines = result.stdout.split("\n").filter((l) => l.includes("::error::"));
-  assert.equal(errorLines.length, 1);
-  assert.ok(errorLines[0].includes("only 3 impure tests ran (expected at least 50)"), errorLines[0]);
-});
-
 // Asserts no GitHub Actions workflow-command annotation of any kind (::error::/::warning::/
-// ::notice::) — not merely the absence of the "::error::" substring, so a future edit that changes
-// the annotation's severity/shape but still emits *something* is caught (adversarial review finding;
-// the spec's AC4/AC5 claim is "no annotation prints", which this checks directly).
+// ::notice::) — not merely the absence of the "::error::" substring (FAFF-1038 fixture pattern).
 function annotationLines(stdout) {
   return stdout.split("\n").filter((l) => /^::(error|warning|notice)::/.test(l));
 }
 
-test("AC4: summarised at-floor run + node exit 7 -> passes status through, no annotation", () => {
-  const result = run(fixedBody, "TAP version 13\n# tests 60\n", 7, logPath);
-  assert.equal(result.code, 7);
-  assert.deepEqual(annotationLines(result.stdout), [], result.stdout);
+// --- AC1: per-file invocation, not a single whole-array call ---
+
+test("AC1 (structural): the step loops over matched files, invoking node once per file via $f", () => {
+  assert.ok(
+    nonCommentLines.some((l) => l.trim() === 'for f in "${matched[@]}"; do'),
+    "expected a per-file for-loop over matched",
+  );
+  const invocation = nonCommentLines.find((l) => l.includes('--test "$f"'));
+  assert.ok(invocation, "expected the node invocation to target the loop variable $f, not the whole array");
+  assert.ok(
+    !nonCommentLines.some((l) => l.includes('--test "${matched[@]}"')),
+    "the old whole-array single invocation must be gone",
+  );
 });
 
-test("AC5: summarised at-floor run + node exit 0 -> exits 0, no annotation", () => {
-  const result = run(fixedBody, "TAP version 13\n# tests 60\n", 0, logPath);
-  assert.equal(result.code, 0);
-  assert.deepEqual(annotationLines(result.stdout), [], result.stdout);
+test("AC1 (behavioural): node is invoked once per matched file, each call naming exactly one file", () => {
+  const files = [
+    { name: "a.test.mjs", stdout: "TAP version 13\n# tests 10\n", exit: 0 },
+    { name: "b.test.mjs", stdout: "TAP version 13\n# tests 10\n", exit: 0 },
+  ];
+  const result = run(files);
+  assert.equal(result.code, 0, result.stdout);
+  const argvLines = result.argv.trim().split("\n").filter(Boolean);
+  assert.equal(argvLines.length, 8, "one node invocation per matched file (8, after floor padding)");
+  for (const line of argvLines) {
+    const fileArgs = line.split(/\s+/).filter((tok) => tok.includes(".test.mjs"));
+    assert.equal(fileArgs.length, 1, `each invocation must name exactly one file, got: ${line}`);
+  }
 });
 
-test("AC6: the node --test invocation carries --test-reporter=tap, AND the flag actually reaches node's argv", () => {
-  const invocation = fixedLines.find((l) => l.startsWith("node --import"));
-  assert.ok(invocation, "fixture precondition: the node --test invocation line must be present");
-  assert.ok(invocation.includes("--test-reporter=tap"), invocation);
-  // Source-text presence alone doesn't prove the flag survives bash -e execution (a future edit
-  // could move it into a variable, or wrap the invocation in a function that drops unknown flags) —
-  // so also execute the real body and assert the stub `node` actually received the flag on its own
-  // argv (adversarial review finding).
-  const result = run(fixedBody, "TAP version 13\n# tests 60\n", 0, logPath);
-  assert.equal(result.code, 0, "sandbox precondition: this run must reach the stub node");
-  assert.match(result.argv, /--test-reporter=tap/, `stub node's recorded argv did not carry the flag: ${JSON.stringify(result.argv)}`);
-  // The node-24 behavioural half of AC6 (docker node:24 writes "# tests N" with this flag, and
-  // does not without it) requires a docker runtime unavailable in this sandbox — verified manually
-  // per the spec's DESIGN DECISION RATIONALE; not re-asserted here.
+// --- AC2: --test-timeout=120000 on every per-file invocation ---
+
+test("AC2 (structural + behavioural): the node invocation carries --test-timeout=120000, and it reaches node's real argv", () => {
+  const invocation = nonCommentLines.find((l) => l.startsWith("node --import"));
+  assert.ok(invocation, "fixture precondition: the per-file node invocation line must be present");
+  assert.match(invocation, /--test-timeout=(\$\{test_timeout_ms\}|120000)/, invocation);
+  const files = [{ name: "a.test.mjs", stdout: "TAP version 13\n# tests 10\n", exit: 0 }];
+  const result = run(files);
+  assert.equal(result.code, 0, result.stdout);
+  const argvLines = result.argv.trim().split("\n").filter(Boolean);
+  assert.ok(argvLines.length > 0, "sandbox precondition: the stub must have run");
+  for (const line of argvLines) {
+    assert.match(line, /--test-timeout=120000/, `stub node's recorded argv did not carry the flag: ${line}`);
+  }
 });
 
-test("AC7: removing the no-summary branch reddens AC1's scenario exactly as the ticket reports (regression lock)", () => {
-  const preFixBody = toPreFixBody(fixedLines, logPath, floorLine);
+// --- AC3: portable wall-clock SIGKILL, no `timeout` binary ---
 
-  const preFix = run(preFixBody, "TAP version 13\n", 137, logPath);
-  assert.equal(preFix.code, 1, "today's shipped bug: node's real 137 is discarded, generic exit 1");
-  assert.ok(!preFix.stdout.includes("::error::"), "today's shipped bug: no annotation ever prints");
+test("AC3 (structural): no `timeout` binary is invoked as a command — a portable background+watchdog SIGKILL pattern only", () => {
+  const usesTimeoutBinary = nonCommentLines.some((l) => /(^|[|;&]|\s)timeout(\s|$)/.test(l));
+  assert.ok(!usesTimeoutBinary, "must not shell out to the `timeout` binary (unavailable on macos-latest)");
+  assert.ok(nonCommentLines.some((l) => l.includes("kill -9")), "expected a SIGKILL in the watchdog");
+  assert.ok(nonCommentLines.some((l) => l.trim().startsWith("sleep ")), "expected a sleep-based wall-clock");
+});
 
-  const fixed = run(fixedBody, "TAP version 13\n", 137, logPath);
-  assert.equal(fixed.code, 137, "restoring the fix: node's real status is preserved");
-  assert.ok(fixed.stdout.includes("::error::"), "restoring the fix: the pre-summary annotation prints");
+test("AC3 (behavioural): a hanging file is killed after the (shortened) wall-clock bound, not run unbounded", () => {
+  const files = [{ name: "hangs.test.mjs", hang: true }];
+  const start = Date.now();
+  const result = run(files, { PER_FILE_WALL_CLOCK_SECS: "1" });
+  const elapsedMs = Date.now() - start;
+  assert.notEqual(result.code, 0, "a killed file must not report green");
+  assert.ok(elapsedMs < 15000, `expected the watchdog to cap the wait well under the sandbox timeout, took ${elapsedMs}ms`);
+  assert.ok(result.stdout.includes("hangs.test.mjs"), "the killed file must be named in the log");
+  assert.match(result.stdout, /killed \(SIGKILL\)/, result.stdout);
+});
+
+// --- AC4: a pre-first-test hang names its file and fails fast (not silent, not a bare cancel) ---
+
+test("AC4: a synthetic file that hangs before emitting a subtest names itself and the step exits non-zero", () => {
+  const files = [{ name: "silent-hang.test.mjs", hang: true }];
+  const result = run(files, { PER_FILE_WALL_CLOCK_SECS: "1" });
+  assert.notEqual(result.code, 0);
+  const errorLines = annotationLines(result.stdout);
+  assert.ok(
+    errorLines.some((l) => l.includes("silent-hang.test.mjs") && l.includes("SIGKILL")),
+    result.stdout,
+  );
+});
+
+// --- AC5: aggregate floors + per-file FAFF-1038 pre-summary guard, unchanged in kind ---
+
+test("AC5a: the file-count floor (>=8) is unchanged and still fires below it", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-1049-floor-"));
+  const impureDir = join(dir, "test", "impure");
+  mkdirSync(impureDir, { recursive: true });
+  for (let i = 0; i < 3; i += 1) writeFileSync(join(impureDir, `stub-${i}.test.mjs`), "// stub\n");
+  writeFileSync(join(dir, "step.sh"), fixedBody);
+  try {
+    execFileSync("bash", ["-e", join(dir, "step.sh")], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    assert.fail("expected the file-count floor to fail the step");
+  } catch (err) {
+    assert.notEqual(err.status, 0);
+    assert.ok(String(err.stdout).includes("glob likely broke"), String(err.stdout));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("AC5b: the aggregate test-count floor (>=50, summed across files) still fires on a mass-skip", () => {
+  const files = Array.from({ length: 8 }, (_, i) => ({
+    name: `stub-${i}.test.mjs`,
+    stdout: "TAP version 13\n# tests 3\n",
+    exit: 0,
+  }));
+  const result = run(files);
+  assert.notEqual(result.code, 0);
+  assert.ok(
+    result.stdout.includes("only 24 impure tests ran across 8 files (expected at least 50)"),
+    result.stdout,
+  );
+});
+
+test("AC5c: a healthy run at/above both floors passes clean, no annotation", () => {
+  const files = Array.from({ length: 8 }, (_, i) => ({
+    name: `stub-${i}.test.mjs`,
+    stdout: "TAP version 13\n# tests 10\n",
+    exit: 0,
+  }));
+  const result = run(files);
+  assert.equal(result.code, 0, result.stdout);
+  assert.deepEqual(annotationLines(result.stdout), []);
+});
+
+test("AC5d: FAFF-1038's pre-summary-line guard now fires PER FILE — a crash with no '# tests N' line names that file, exits non-zero, distinguishable from mass-skip", () => {
+  const files = [
+    ...Array.from({ length: 7 }, (_, i) => ({
+      name: `ok-${i}.test.mjs`,
+      stdout: "TAP version 13\n# tests 10\n",
+      exit: 0,
+    })),
+    { name: "crashes.test.mjs", stdout: "TAP version 13\n", exit: 137 },
+  ];
+  const result = run(files);
+  assert.notEqual(result.code, 0);
+  const errorLines = annotationLines(result.stdout);
+  assert.ok(
+    errorLines.some(
+      (l) =>
+        l.includes("crashes.test.mjs") &&
+        l.includes("before the test runner emitted its summary line") &&
+        l.includes("node exit status 137"),
+    ),
+    result.stdout,
+  );
+  assert.ok(!errorLines.some((l) => l.includes("mass-skipped")), "a summary-less crash must not read as a mass-skip");
+});
+
+test("AC5e: a genuine per-file test failure (valid summary line, non-zero exit) fails the step", () => {
+  const files = [
+    ...Array.from({ length: 7 }, (_, i) => ({
+      name: `ok-${i}.test.mjs`,
+      stdout: "TAP version 13\n# tests 10\n",
+      exit: 0,
+    })),
+    { name: "fails.test.mjs", stdout: "TAP version 13\n# tests 10\n", exit: 1 },
+  ];
+  const result = run(files);
+  assert.notEqual(result.code, 0, result.stdout);
 });

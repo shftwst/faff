@@ -252,36 +252,79 @@ jobs:
           fi
 
           unset FAFF_REQUIRE_DOCKER
-          set +e
-          node --import ./test/hermetic-env.mjs --test-reporter=tap --test "${matched[@]}" | tee /tmp/impure-macos.log
-          test_status=${PIPESTATUS[0]}
-          set -e
-
-          # `|| true` neutralises the pipefail-derived non-zero from an empty grep match (no
-          # "# tests N" line — node died before the runner emitted its summary), so the assignment
-          # itself never trips errexit and every line below stays reachable [FAFF-1038].
-          summary_line=$(grep -oE '^# tests [0-9]+' /tmp/impure-macos.log | tail -1 || true)
-          if [ -z "$summary_line" ]; then
-            # No summary line at all — a crash/kill/truncation, not a mass-skip. Diagnose it as
-            # such and carry node's own exit status (floored so a summary-less log is never
-            # reported green).
-            code="$test_status"
-            if [ "$code" -eq 0 ]; then
-              code=1
-            fi
-            echo "::error::validate-macos: node exited before the test runner emitted its summary line (no '# tests N' line in the log) — not a mass-skip; node exit status ${test_status}; see the log above"
-            exit "$code"
-          fi
-
-          tests_ran=$(printf '%s' "$summary_line" | grep -oE '[0-9]+$' || true)
-          tests_ran=${tests_ran:-0}
+          # Per-file wall-clock bound [FAFF-1049]. Overridable only for test fixtures (the real job
+          # never sets this, so production always gets 300s); no `timeout` binary is used — macOS
+          # runners don't ship GNU timeout — so this is a background-process-plus-watchdog pattern.
+          : "${PER_FILE_WALL_CLOCK_SECS:=300}"
+          test_timeout_ms=120000
           test_floor=50
-          if [ "$tests_ran" -lt "$test_floor" ]; then
-            echo "::error::only ${tests_ran} impure tests ran (expected at least ${test_floor}) — tests likely mass-skipped; see the log above"
-            exit 1
+          tests_total=0
+          overall_status=0
+
+          # Per-file loop [FAFF-1049]: a single whole-manifest invocation buffers TAP output until a
+          # test resolves, so a hang before the first test names no file. Running the manifest one
+          # file per `node --test` invocation means a hang always has a "last file started, never
+          # finished" line in the job log, even when the hang is in module load.
+          for f in "${matched[@]}"; do
+            filelog=$(mktemp)
+            killflag=$(mktemp -u)
+
+            set +e
+            node --import ./test/hermetic-env.mjs --test-reporter=tap --test-timeout=${test_timeout_ms} --test "$f" > "$filelog" 2>&1 &
+            node_pid=$!
+            (
+              sleep "$PER_FILE_WALL_CLOCK_SECS"
+              if kill -0 "$node_pid" 2>/dev/null; then
+                kill -9 "$node_pid" 2>/dev/null
+                : > "$killflag"
+              fi
+            ) < /dev/null > /dev/null 2>&1 &
+            watchdog_pid=$!
+            wait "$node_pid"
+            file_status=$?
+            # Stop the watchdog cleanly when node finished on its own — it never fires, so no
+            # killflag is written and this file is judged on its own exit status below.
+            kill "$watchdog_pid" 2>/dev/null
+            wait "$watchdog_pid" 2>/dev/null
+            set -e
+
+            echo "===== ${f} ====="
+            cat "$filelog"
+
+            if [ -f "$killflag" ]; then
+              rm -f "$killflag" "$filelog"
+              echo "::error::validate-macos: ${f} exceeded the ${PER_FILE_WALL_CLOCK_SECS}s per-file wall-clock and was killed (SIGKILL) — likely hang in or before this file"
+              overall_status=1
+              continue
+            fi
+
+            # `|| true` neutralises the pipefail-derived non-zero from an empty grep match (no
+            # "# tests N" line — node died before the runner emitted its summary), so the assignment
+            # itself never trips errexit and every line below stays reachable [FAFF-1038, per file].
+            summary_line=$(grep -oE '^# tests [0-9]+' "$filelog" | tail -1 || true)
+            rm -f "$filelog"
+            if [ -z "$summary_line" ]; then
+              # No summary line at all for this file — a crash/kill/truncation, not a mass-skip.
+              echo "::error::validate-macos: ${f} — node exited before the test runner emitted its summary line (no '# tests N' line in the log) — not a mass-skip; node exit status ${file_status}; see the log above"
+              overall_status=1
+              continue
+            fi
+
+            tests_ran=$(printf '%s' "$summary_line" | grep -oE '[0-9]+$' || true)
+            tests_ran=${tests_ran:-0}
+            tests_total=$((tests_total + tests_ran))
+
+            if [ "$file_status" -ne 0 ]; then
+              overall_status=1
+            fi
+          done
+
+          if [ "$tests_total" -lt "$test_floor" ]; then
+            echo "::error::only ${tests_total} impure tests ran across ${count} files (expected at least ${test_floor}) — tests likely mass-skipped; see the log above"
+            overall_status=1
           fi
 
-          exit "$test_status"
+          exit "$overall_status"
 
   # FAFF-371: the env lifecycle must also hold against a ROOTLESS daemon reached via DOCKER_HOST —
   # the host-portable stand-in for the bounded nested engine ADR-0041 decision 3 mandates in the

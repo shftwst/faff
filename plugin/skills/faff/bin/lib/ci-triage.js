@@ -99,7 +99,12 @@ function fetchMainHistory(repo, checkNames, N, repoRoot) {
   const counts = {};
   for (const name of checkNames) counts[name] = { check_name: name, window: 0, failures: 0 };
   for (const sha of shas) {
-    const r = ghJson(["api", `repos/${repo}/commits/${sha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
+    let r;
+    try {
+      r = ghJson(["api", `repos/${repo}/commits/${sha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
+    } catch {
+      continue; // gh not spawnable / threw for this commit — skip it, keep going (never throw)
+    }
     if (!r.ok || !Array.isArray(r.data)) continue; // skip an unreadable commit, keep going
     const failingHere = new Set(failingCheckNames(r.data));
     for (const name of checkNames) {

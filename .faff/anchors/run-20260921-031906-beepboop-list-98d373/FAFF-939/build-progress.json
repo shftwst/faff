@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-939",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e96cbb8a3118619f504ea867cab2764be4af48f5cef05fa11a4ff1d317b0d827",
+    "branch": "faff-939-gate-standalone-self-mint-non-refuse-run-start",
+    "pushed_at": "2026-09-21T04:25:02.558Z"
+  },
+  "updated_at": "2026-09-21T04:25:02.558Z"
+}

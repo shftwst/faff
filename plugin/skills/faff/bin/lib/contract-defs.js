@@ -323,10 +323,22 @@ function computeCiTriage(extraction) {
     violations.push(`evidence.fault_domain_source ${JSON.stringify(fault_domain_source)} not in {${CI_TRIAGE_FAULT_DOMAIN_SOURCES.join(",")}} — coerced to none`);
     fault_domain_source = "none";
   }
+  // FAFF-1050: main_recent_window/main_recent_failures — the recent-history evidence behind the
+  // history-aware `origin` read. Int|null and {String:Int}|null respectively; coerce anything else
+  // (wrong shape, non-integer values) to null/filtered-out rather than fail-loud — this is
+  // observational evidence, not a routing input, so a malformed caller value degrades quietly.
+  const main_recent_window = Number.isInteger(ev.main_recent_window) ? ev.main_recent_window : null;
+  let main_recent_failures = null;
+  if (ev.main_recent_failures && typeof ev.main_recent_failures === "object" && !Array.isArray(ev.main_recent_failures)) {
+    main_recent_failures = {};
+    for (const [k, v] of Object.entries(ev.main_recent_failures)) if (Number.isInteger(v)) main_recent_failures[k] = v;
+  }
   const evidence = {
     reruns_used: Number.isInteger(ev.reruns_used) ? ev.reruns_used : 0,
     main_head_sha: typeof ev.main_head_sha === "string" ? ev.main_head_sha : null,
     main_ci_state: typeof ev.main_ci_state === "string" ? ev.main_ci_state : null,
+    main_recent_window,
+    main_recent_failures,
     fault_domain_source,
     flaky_signatures: Array.isArray(ev.flaky_signatures) ? ev.flaky_signatures.filter((s) => typeof s === "string") : [],
   };
@@ -2510,6 +2522,8 @@ const CONTRACTS = {
       { name: "persistent-code-mine-fix-attempt", in: { pr: 2, head_sha: "a2", transience: "persistent", fault_domain: "code", origin: "mine", action: "fix-attempt", evidence: { reruns_used: 1, main_head_sha: "m2", main_ci_state: "ci-green", fault_domain_source: "llm", flaky_signatures: [] } }, wantExit: 0 },
       { name: "persistent-infra-park-errored", in: { pr: 3, head_sha: "a3", transience: "persistent", fault_domain: "infra", origin: "mine", action: "park-errored", evidence: { reruns_used: 1, main_head_sha: "m3", main_ci_state: "ci-green", fault_domain_source: "metadata", flaky_signatures: [] } }, wantExit: 0 },
       { name: "main-was-red-wins-even-over-transient", in: { pr: 4, head_sha: "a4", transience: "transient", fault_domain: "code", origin: "main-was-red", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: "m4", main_ci_state: "ci-red", fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 0 },
+      { name: "main-was-red-via-history-carries-evidence", in: { pr: 11, head_sha: "a11", transience: "unknown", fault_domain: "unknown", origin: "main-was-red", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: "m11", main_ci_state: "ci-green", main_recent_window: 8, main_recent_failures: { "validate-macos": 3 }, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 0 },
+      { name: "history-unreadable-evidence-nulls", in: { pr: 12, head_sha: "a12", transience: "unknown", fault_domain: "unknown", origin: "mine", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: "m12", main_ci_state: "ci-green", main_recent_window: null, main_recent_failures: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 0 },
       { name: "all-unknown-fails-closed", in: { pr: 5, head_sha: "a5", transience: "unknown", fault_domain: "unknown", origin: "unknown", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 0 },
       { name: "coerce-bad-transience", in: { pr: 6, head_sha: "a6", transience: "flaky-ish", fault_domain: "code", origin: "mine", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 1 },
       { name: "coerce-bad-fault-domain", in: { pr: 7, head_sha: "a7", transience: "persistent", fault_domain: "vibes", origin: "mine", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 1 },
@@ -3076,8 +3090,13 @@ const CONTRACT_DESCRIBES = {
         "park-needs-human": "origin is main-was-red/unknown, or transience/fault_domain is unresolved — fail-closed park",
       } },
       { field: "evidence.fault_domain_source", enum: CI_TRIAGE_FAULT_DOMAIN_SOURCES, semantics: { metadata: "fault domain was decided from check-run metadata alone", llm: "metadata was inconclusive; an LLM read the failure log as a tiebreaker", none: "no fault-domain determination was attempted" } },
+      // evidence.main_recent_window / evidence.main_recent_failures (FAFF-1050) are free-form
+      // Int|null / Object|null fields, not closed enums — like evidence.main_head_sha/main_ci_state
+      // above them, they are documented in the schema (ci-triage.schema.json) and in ci-triage.js's
+      // own comments, not here (the describe self-test's enum-coverage checks apply only to
+      // enum-shaped fields).
     ],
-    coercions: ["action is ALWAYS a pure function of transience/fault_domain/origin (deriveTriageAction) — a caller-supplied action that disagrees with the derived one is flagged as a violation, the derived action always governs (a forged/stale action can never widen past what the axes justify)", "an out-of-enum transience/fault_domain/origin → coerced to unknown"],
+    coercions: ["action is ALWAYS a pure function of transience/fault_domain/origin (deriveTriageAction) — a caller-supplied action that disagrees with the derived one is flagged as a violation, the derived action always governs (a forged/stale action can never widen past what the axes justify)", "an out-of-enum transience/fault_domain/origin → coerced to unknown", "evidence.main_recent_window: non-integer → coerced to null", "evidence.main_recent_failures: non-object, or non-integer values → coerced to null / filtered out — observational evidence, never fail-loud"],
     producer_notes: [],
   },
   "prd-readiness": {

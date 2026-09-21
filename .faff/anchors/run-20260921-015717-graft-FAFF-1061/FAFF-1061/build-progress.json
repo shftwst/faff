@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1061",
+  "build": {
+    "status": "complete",
+    "diff_hash": "127190e0bf9235ce2c08dd082087fc843e3ab5f10af616f18fa910f6cd2a9238",
+    "branch": "FAFF-1061-opt-in-interactive-high-assurance-verification",
+    "pushed_at": "2026-09-21T02:21:13.048Z"
+  },
+  "updated_at": "2026-09-21T02:21:13.048Z"
+}

@@ -2342,6 +2342,36 @@ test("FAFF-194 findSyntaxClaims: does not match an unrelated (semantic/security/
   assert.ok(!findSyntaxClaims("this crashes on a null input"));
 });
 
+// FAFF-1055: SYNTAX_CLAIM_RE's last two alternatives gained word-boundary anchors. These fixtures pin
+// both directions of that narrowing — the true positives it must keep matching, and the ordinary review
+// prose it must no longer mis-match — so the tightening cannot silently drift either way undetected.
+test("FAFF-1055 findSyntaxClaims: still matches every true-positive syntax/parse phrasing (regression, DoD acceptance list)", () => {
+  for (const t of [
+    "throws a SyntaxError",
+    "will not parse",
+    "is not valid JavaScript",
+    "fails to parse",
+    "not valid syntax",
+  ]) {
+    assert.ok(findSyntaxClaims(t), `expected a syntax-claim match: "${t}"`);
+  }
+});
+
+test("FAFF-1055 findSyntaxClaims: rejects 'not validate' review prose the unanchored regex used to mis-match", () => {
+  for (const t of [
+    "the spec does not validate X",
+    "the loader is not validated anywhere",
+    "the guard does not validate the path",
+  ]) {
+    assert.ok(!findSyntaxClaims(t), `expected NO syntax-claim match: "${t}"`);
+  }
+});
+
+test("FAFF-1055 findSyntaxClaims: holdout — rejects the leading-boundary and 'invalid json/jsx' leak classes too", () => {
+  assert.ok(!findSyntaxClaims("cannot validate the input"), "leading \\b rejects can·not valid·ate");
+  assert.ok(!findSyntaxClaims("the payload is invalid json"), "invalid (…) is anchored, so it must not prefix-match invalid json");
+});
+
 // ── claimTargets ──
 
 test("FAFF-194 claimTargets: named JS-family paths in the text are returned; non-JS matches are filtered out", () => {
@@ -2393,15 +2423,64 @@ test("FAFF-194 refuteFindings: a claim naming ONLY a non-JS context file stays u
   assert.equal(out, content);
 });
 
-test("FAFF-194 refuteFindings: a generic claim naming no file falls back to checking ALL JS-family context files", () => {
+test("FAFF-1055 refuteFindings: a generic claim naming no file is left UNTOUCHED — no all-JS-files sweep (was: falls back to checking every JS-family context file)", () => {
   const a = tmpJsFile("a.mjs", "export const a = 1;\n");
   const b = tmpJsFile("b.mjs", "export const b = 2;\n");
   const content = "### major: this code contains invalid JavaScript syntax somewhere";
-  const seen = [];
-  const checkFn = (p) => { seen.push(p); return { ok: true, output: "" }; };
-  const { refutations } = refuteFindings(content, [a, b, "docs/SKILL.md"], { checkFn });
-  assert.equal(refutations.length, 1);
-  assert.deepEqual(seen.sort(), [a, b].sort(), "only the JS-family context files were checked, not SKILL.md");
+  const checkFn = () => { throw new Error("must not be called — named-path gate skips before any check"); };
+  const { content: out, refutations } = refuteFindings(content, [a, b, "docs/SKILL.md"], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content, "untouched — byte-identical");
+});
+
+test("FAFF-1055 refuteFindings: FAFF-1048 regression — a gating methodology objection naming no context path survives unchanged (both guards exercised)", () => {
+  // Reproduces the round-1 methodology body from the FAFF-1048 spec-review incident this ticket fixes:
+  // a legitimate documentation-drift objection, no file named, that the unanchored regex + the generic
+  // all-JS-files fallback conspired to mis-demote to a non-gating observation.
+  const content = [
+    "### minor: the ticket's key name and Containment constraint are stale",
+    "- claim: The slice ships a key (`tracking.adr_superseded_docs_path`) whose name and whose",
+    "  no-containment posture are both decided in the spec, but the Linear ticket still names",
+    "  `adr.superseded_dir` and objects that the spec does not validate containment (the ticket's own constraint)",
+  ].join("\n");
+  const a = tmpJsFile("adr.js", "export const adr = 1;\n");
+  const b = tmpJsFile("config.js", "export const config = 1;\n");
+  const checkFn = () => { throw new Error("must not be called — regex no longer matches, and the named-path gate would skip it anyway"); };
+  const { content: out, refutations } = refuteFindings(content, [a, b], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content, "untouched — byte-identical; the `minor` survives at its original severity");
+});
+
+test("FAFF-1055 refuteFindings: 'invalid json' naming a passing .js file is NOT auto-refuted (anchored invalid(…) alternative, independent of the sweep-gate)", () => {
+  const file = tmpJsFile("config.js", "export const config = 1;\n");
+  const content = `### major: \`${file}\` emits invalid json on this endpoint`;
+  const checkFn = () => { throw new Error("must not be called — findSyntaxClaims must not match 'invalid json'"); };
+  const { content: out, refutations } = refuteFindings(content, [file], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content, "untouched — byte-identical");
+});
+
+// FAFF-1055 (adversarial review, Phase 2): pin the "strictly precision-increasing" invariant as a
+// composed differential, not just at the detector and resolver in isolation. Same content shape, same
+// clean-parsing named file, two severities — DEMOTED when the (still-matching) syntax phrasing names the
+// file, UNTOUCHED when only the (now-anchored-away) prose phrasing names the same file. This is the
+// interaction case a regex-only or fallback-only fixture set can't distinguish: the named-path gate must
+// never suppress a genuine match, and the anchored regex must never let ordinary prose through even when
+// a checkable file happens to be named.
+test("FAFF-1055 refuteFindings: differential — a genuine syntax claim naming a clean file is still demoted; the same file named by non-syntax prose is not", () => {
+  const file = tmpJsFile("shared.mjs", "export const shared = 1;\n");
+  const checkFn = () => ({ ok: true, output: "" });
+
+  const syntaxClaim = `### critical: \`${file}\` is not valid JavaScript`;
+  const { content: syntaxOut, refutations: syntaxRefs } = refuteFindings(syntaxClaim, [file], { checkFn });
+  assert.equal(syntaxRefs.length, 1, "the true-positive phrasing still demotes a claim naming a clean file");
+  assert.match(syntaxOut, /^### observation: \[auto-refuted\]/);
+
+  const proseClaim = `### critical: \`${file}\` does not validate its input`;
+  const throwingCheckFn = () => { throw new Error("must not be called — findSyntaxClaims must not match 'does not validate'"); };
+  const { content: proseOut, refutations: proseRefs } = refuteFindings(proseClaim, [file], { checkFn: throwingCheckFn });
+  assert.equal(proseRefs.length, 0, "the anchored-away prose phrasing leaves the SAME named, clean file untouched");
+  assert.equal(proseOut, proseClaim, "untouched — byte-identical");
 });
 
 test("FAFF-194 refuteFindings: no JS-family context files at all → the whole pass is a no-op", () => {

@@ -44,7 +44,7 @@ const {
   mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision,
   producerAuthSelftest,
 } = require("./producer-auth");
-const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries } = require("./events");
+const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
 const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes } = require("./effects");
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 // FAFF-1000 — `audit seal`/`export` build and read the run-close recovery bundle IN-PROCESS via the
@@ -318,6 +318,59 @@ function cmdAuditVerify(flags) {
   return auth.pass ? 0 : 1;
 }
 
+// FAFF-1015: `audit anchor` — mints ONE per-issue anchor subdir through the standalone Commissaire
+// facade alone, closing the one governance leg (the anchor mint) that otherwise forces an external
+// consumer to shell out to the `faff` binary. Dispatches straight into `mintIssueAnchor` (the SAME
+// shared byte-copy core `faff events anchor` / `anchor-run` use — imported via the existing
+// `require("./events")` edge above, never a second byte-copy/witness) — deliberately WITHOUT
+// `anchor-run`'s self-verify or merge-floor assertion, because an external consumer legitimately has
+// no `ac-checklist.json` / `review-verdict.json` and must not forge them. This action is not a
+// run-close bundle builder: it writes one issue's subdir, never assembles or reads a whole anchor tree
+// (that is `audit seal`'s / the consumer's job — spec §2).
+function cmdAuditAnchor(flags) {
+  const runDir = requireRunDir(flags, "audit anchor");
+  if (!runDir) return 3;
+  const issue = flags["--issue"];
+  if (!issue) { process.stderr.write("faff commissaire audit anchor: --issue <id> is required\n"); return 2; }
+  // Mirrors `faff events anchor`'s --issue shape guard (defence-in-depth): a bare issue-id token
+  // only, so a malformed/malicious value can't walk the read path outside --run-dir via "..".
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) {
+    process.stderr.write(`faff commissaire audit anchor: --issue ${JSON.stringify(issue)} is not a valid issue id\n`);
+    return 2;
+  }
+  let dest = flags["--dest"];
+  if (!dest) {
+    const root = flags["--root"] || findRoot();
+    if (!root) {
+      process.stderr.write("faff commissaire audit anchor: cannot resolve a repo root for the default --dest; pass --dest explicitly\n");
+      return 2;
+    }
+    // The conventional per-issue placement WITHIN a run-close anchor tree (the exact path an
+    // external consumer would otherwise mint to by hand) — a convenience default, never an
+    // assertion that this single mint alone yields a sealable tree (spec §3).
+    const seg = path.basename(runDir);
+    if (seg === "" || seg === "." || seg === ".." || seg.includes(path.sep)) {
+      process.stderr.write("faff commissaire audit anchor: --run-dir basename is not a safe path segment; pass --dest explicitly\n");
+      return 2;
+    }
+    dest = path.join(root, ".faff", "anchors", seg, issue);
+  }
+  const result = mintIssueAnchor(runDir, issue, dest);
+  if (!result.ok) {
+    process.stderr.write(`faff commissaire audit anchor: ${result.message}\n`);
+    return result.code === "no-events" ? 3 : 2;
+  }
+  console.log(JSON.stringify({
+    minted: true,
+    issue,
+    dest,
+    head: result.head,
+    copied_floor_files: result.copiedFloorFiles,
+    effects_anchored: result.effectsAnchored,
+  }));
+  return 0;
+}
+
 // --- CLI shell --------------------------------------------------------------------------
 
 function usage() {
@@ -331,7 +384,8 @@ function usage() {
     "  verdict conclude  --run-dir DIR --issue I [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed accepted_under_contract record, or a refusal; alias: terminal-verdict)\n" +
     "  audit seal        --run-dir DIR [--root R] [--bundle-store local]   (build + write the run-close recovery bundle in-process; alias: seal-bundle)\n" +
     "  audit export      --run-dir DIR --dest DIR [--root R] [--bundle-store local]   (copy an already-sealed bundle's manifest + members to DIR)\n" +
-    "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n");
+    "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n" +
+    "  audit anchor      --run-dir DIR --issue ISSUE [--dest DIR] [--root R]   (mint ONE per-issue anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n");
 }
 
 function parseCommissaireArgs(args) {
@@ -685,6 +739,7 @@ const COMMISSAIRE_DISPATCH = {
   "audit seal": (flags) => cmdSealBundle(flags),
   "audit export": (flags) => cmdAuditExport(flags), // FAFF-1000
   "audit verify": (flags) => cmdAuditVerify(flags), // FAFF-977, retained (not this ticket's key)
+  "audit anchor": (flags) => cmdAuditAnchor(flags), // FAFF-1015
 };
 
 // Flat verb (FAFF-828 spelling) → canonical key. An alias never appears as a COMMISSAIRE_DISPATCH
@@ -712,6 +767,7 @@ const REQUIRED_FLAGS_BY_CANONICAL = {
   "audit seal": [],
   "audit export": ["--dest"], // FAFF-1000
   "audit verify": ["--run-dir"], // FAFF-977, retained
+  "audit anchor": ["--run-dir", "--issue"], // FAFF-1015
 };
 
 // Resolve one or two leading non-flag tokens to a canonical COMMISSAIRE_DISPATCH key, or null.
@@ -859,6 +915,40 @@ function commissaireSelftest() {
       // reconcile reports no escape on the fully-declared/observed-free run
       r = run([...tok.reconcile, "--run-dir", runDir, "--issue", "FAFF-1"]);
       if (r.status !== 0) fail(`[${label}] reconcile exited ${r.status}`);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+
+  // --- `audit anchor` mint round trip (FAFF-1015) ---
+  // A seeded run dir mints an anchor subdir with no self-verify / merge-floor gate: a "shipped"
+  // issue carrying NEITHER ac-checklist.json NOR review-verdict.json still mints exit 0 — the
+  // observable proxy for "this is not anchor-run" (spec DoD).
+  {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-commissaire-anchor-"));
+    try {
+      const runDir = path.join(tmp, "RUN-ANCHOR-1");
+      fs.mkdirSync(runDir, { recursive: true });
+      const eventsLine = JSON.stringify({ schema: 1, run_id: "RUN-ANCHOR-1", seq: 0, ts: new Date().toISOString(), phase: "run", type: "run-start" }) + "\n";
+      fs.writeFileSync(path.join(runDir, "events.jsonl"), eventsLine);
+      fs.writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } }) + "\n");
+      const dest = path.join(tmp, "anchor-out");
+      const run = (a) => spawnSync(process.execPath, [ENTRYPOINT, "commissaire", "audit", "anchor", ...a], { encoding: "utf8" });
+      const r = run(["--run-dir", runDir, "--issue", "FAFF-1", "--dest", dest]);
+      if (r.status !== 0) fail(`audit anchor: shipped-issue-no-floor-files mint exited ${r.status}: ${r.stderr}`);
+      if (!fs.existsSync(path.join(dest, "chain-head.json"))) fail("audit anchor: chain-head.json missing from the minted anchor");
+      let copiedEvents;
+      try { copiedEvents = fs.readFileSync(path.join(dest, "events.jsonl")); } catch { copiedEvents = null; }
+      if (!copiedEvents || !copiedEvents.equals(fs.readFileSync(path.join(runDir, "events.jsonl")))) fail("audit anchor: events.jsonl is not a byte-for-byte copy");
+      if (fs.existsSync(path.join(dest, "ac-checklist.json")) || fs.existsSync(path.join(dest, "review-verdict.json"))) fail("audit anchor: no self-verify — merge-floor files must not be required/forged");
+      let out = null; try { out = JSON.parse(r.stdout.trim()); } catch { /* */ }
+      if (!out || out.minted !== true || !out.head || !out.head.schema_floor) fail(`audit anchor: stdout did not parse as AuditAnchorOutput (got ${r.stdout.trim()})`);
+      // no-events → exit 3
+      const emptyRunDir = path.join(tmp, "RUN-ANCHOR-EMPTY");
+      fs.mkdirSync(emptyRunDir, { recursive: true });
+      const r2 = run(["--run-dir", emptyRunDir, "--issue", "FAFF-1", "--dest", path.join(tmp, "anchor-out-2")]);
+      if (r2.status !== 3) fail(`audit anchor: no-events should exit 3, got ${r2.status}`);
+      // malformed --issue → exit 2
+      const r3 = run(["--run-dir", runDir, "--issue", "../escape", "--dest", path.join(tmp, "anchor-out-3")]);
+      if (r3.status !== 2) fail(`audit anchor: invalid --issue should exit 2, got ${r3.status}`);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 

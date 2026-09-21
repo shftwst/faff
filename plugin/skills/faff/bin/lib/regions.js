@@ -176,6 +176,10 @@ const REGION_MAP = {
   "dod": "factory",
   "holdout": "factory",
   "spec-review-lenses": "factory",
+  // verification — FAFF-1061: the interactive high-assurance verification resolver. A pure
+  // config+ledger read (resolveInteractiveVerification in config.js) behind a thin resolve/selftest
+  // shell — same shape as eligible/spec-review-lenses → factory.
+  "verification": "factory",
   "container-check": "factory",
   // evaluator-preflight — FAFF-276: the ADR-0041 rung-2 assert-in probe; reuses
   // containerCheck/realFsq (factory) → factory, like its container-check sibling.
@@ -455,6 +459,7 @@ const REGION_SELFTEST_ARGV = {
   "dod": ["dod", "--selftest"],
   "holdout": ["holdout", "--selftest"],
   "spec-review-lenses": ["spec-review-lenses", "--selftest"],
+  "verification": ["verification", "--selftest"],
   "container-check": ["container-check", "--selftest"],
   "evaluator-preflight": ["evaluator-preflight", "--selftest"],
   "lane-boundary": ["lane-boundary", "--selftest"],

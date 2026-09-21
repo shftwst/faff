@@ -141,7 +141,24 @@ case "$backends_exit" in
 esac
 ```
 
-**Pin capture (after aggregation, round 1 only in effect).** Once the round's lens results are in hand, capture the round-1 serving backend as the pin so rounds ≥ 2 hold this reviewer. From each **exit-0** lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`) parse the `chain[<i>]` index; take `winner_index = min(i)` across the served lenses (the lowest chain index that served any lens — the strongest reachable reviewer). Then `"$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index <winner_index>` — idempotent, so it writes the pin only on round 1 and is a no-op on rounds ≥ 2. If **no** lens served (empty exit-0 set) skip capture (nothing to pin; the round is `needs-human` via the transport floor anyway, and no stale pin is left behind). prep reads the served header vs the pin to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
+**Pin capture (after aggregation, EVERY round, unconditional).** Once the round's lens results are in hand, capture this round's outcome — **unconditionally**, never a conditional skip: a conditional skip is exactly the branch that once let a round-1 capture silently not run, with no trace either way. From each **exit-0** lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`) parse the `chain[<i>]` index; take `winner_index = min(i)` across the served lenses (the lowest chain index that served any lens — the strongest reachable reviewer). `$n` is this round's number (`faff spec-review-window --next-round --dir "$pin_dir"`, already resolved above for the raw-body capture — reuse it, never re-derive). Then:
+
+- **Served (≥1 lens returned exit-0):** idempotent on the pin itself (it writes `pinned-reviewer.json` only on the first served round and is a no-op on every later served round), but writes `served-<n>.json` (this round's served identity) on **every** served round, round 1 and rounds ≥ 2 alike, **even when the pin write is a no-op** — the round-2+ recording the round-2 architectural fix depends on, so a later round always has a served identity for `--govern` to read. It also writes `pin-capture.json{state:"captured"|"failed", round, ...}` — a failed `--backends-json` read/parse is recorded `{failed}` before the CLI's existing exit 2, never silent.
+- **No lens served (empty exit-0 set):** writes **no** pin and **no** `served-<n>.json`, but records `pin-capture.json{state:"skipped-no-lens", round, reason:"empty exit-0 set"}`, exit 0. This is the legitimate no-op (nothing to pin; the round is `needs-human` via the transport floor anyway) — now a disk-recorded fact, distinguishable from a silent non-run rather than an unconditional skip that leaves no trace either way.
+
+```bash
+# The unconditional capture call — round 1 and every later round alike, served or not.
+# $winner_index = min(chain[<i>]) across served lenses (parsed from each exit-0 lens's
+# stdout header, above). $served_count is the size of that served-lens set. $n is this
+# round's number (already resolved above via `spec-review-window --next-round`).
+if [ "$served_count" -gt 0 ]; then
+  "$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index "$winner_index" --round "$n"
+else
+  "$faff" spec-review-pin --capture --no-lens-served --dir "$pin_dir" --round "$n"
+fi
+```
+
+prep reads the occupant-written `served-<n>.json` (never the stdout header, never a pin-first `--resolve` re-derivation) via `faff spec-review-window --govern` to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
 
 Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received, plus the resolved output-token cap and the resolved total-wall-clock `--deadline` (both assembled once, identical across every lens in the pass, like `$timeout`, not per lens), plus the raw-body flags, plus **`--diff-kind prose`** (the spec under scrutiny is a document, not a unified diff, declared once by `build-lens-requests.mjs` for every lens, never a per-caller choice): `--backends-json "$backends_json" --timeout "$timeout" --max-tokens "$max_tokens" --deadline "$deadline" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file> --diff-kind prose --raw-dir "$pin_dir/raw" --lens <lens> --round <n>`.
 

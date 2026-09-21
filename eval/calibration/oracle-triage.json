@@ -75,7 +75,7 @@
             "to": "eval/cases-pilot/holdout-seed-neg-working-but-off-spec-001.json"
           }
         ],
-        "origin_commit": "d8edd792df0f86f24ae5a6966268e8ae1ba0a967",
+        "origin_commit": "6c0f88fd89a84a40653f9fe8e55ad84ffe815e27",
         "note": "Relocated the five holdout-seed-* pilot fixtures out of eval/cases/ so the sweep's flat per-kind mean measures the two real holdout-exercise exercises, not a labelled false-pass-rate corpus, and triaged the seven never-reviewed oracles (all found sound bar grouping-001, held as needs-evidence)."
       },
       {

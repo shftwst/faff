@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-1069",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": "run-20260921-065510-graft-FAFF-1069",
+    "pid": 510054,
+    "started_at": "2026-09-21T06:55:58.182Z",
+    "last_heartbeat": "2026-09-21T06:55:58.182Z"
+  },
+  "machine_id": "e916e8a7a1787307129814170f5ecd35f73f152ecbef441a03501f694a0e5b14",
+  "heartbeating": true,
+  "claim_epoch": 0,
+  "claimed_at": "2026-09-21T06:55:58.555Z"
+}

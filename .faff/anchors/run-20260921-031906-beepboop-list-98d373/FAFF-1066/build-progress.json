@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1066",
+  "build": {
+    "status": "complete",
+    "diff_hash": "19db322ff93c95374f17829af704bc252faff71aadfaba2b101abfe91858aada",
+    "branch": "faff-1066-review-call-no-trim-stderr-note",
+    "pushed_at": "2026-09-20T23:34:14.192Z"
+  },
+  "updated_at": "2026-09-20T23:34:14.192Z"
+}

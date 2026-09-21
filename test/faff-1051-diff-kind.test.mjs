@@ -111,11 +111,12 @@ test("FAFF-1051 golden: tightenToTarget on a unified bundle reproduces the commi
   assert.equal(r.headLines, DEFAULT_TRIM_HEAD_LINES, "the anchored regime never tightens headLines onto a rung");
 });
 
-test("FAFF-1051 golden provenance: each golden's generated_from names a real ancestor commit of HEAD", () => {
+test("FAFF-1051/FAFF-1065 golden provenance: each golden's generated_from names a real ancestor commit of HEAD", () => {
   // Adversarial-review finding (FAFF-1051): "byte-identical to the pre-change function" is otherwise
   // unverifiable from the diff alone — a reviewer can't tell a golden generated from the merge-base
   // module apart from one generated from the post-change module (a self-fulfilling pass). This makes
-  // the provenance claim mechanically checkable rather than a matter of trust.
+  // the provenance claim mechanically checkable rather than a matter of trust. FAFF-1065 extends the
+  // same check to the FAFF-1058 default-code-review-payload golden, closing the same gap there.
   //
   // CI's default actions/checkout is a SHALLOW clone (fetch-depth 1, no `fetch-depth: 0` anywhere in
   // validate.yml), so the merge-base commit object this repo's own history genuinely contains is simply
@@ -133,7 +134,7 @@ test("FAFF-1051 golden provenance: each golden's generated_from names a real anc
       return false;
     }
   };
-  for (const name of ["unified-addition.json", "unified-deletion-only.json", "tighten-unified.json"]) {
+  for (const name of ["unified-addition.json", "unified-deletion-only.json", "tighten-unified.json", "default-code-review-payload.json"]) {
     const g = readGolden(name);
     assert.ok(g.generated_from && /^[0-9a-f]{7,40}$/.test(g.generated_from), `${name}: generated_from must be a commit sha`);
     if (!hasLocalObject(g.generated_from)) continue;   // shallow clone — cannot prove ancestry here

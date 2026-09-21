@@ -203,6 +203,8 @@ cur=$(git diff "$base...$fref" | sha256sum | cut -d' ' -f1)
 
 No label → never consulted; an ordinary fresh issue pays no extra read.
 
+**Mine the conventions once, here at the start of Step 3, so the three reads below reuse one derivation instead of re-scanning per call.** `"$faff" conventions mine >/dev/null` writes `.faff/conventions.json` (schema 2, atomic). The `branch_naming` read here and the `commit_subject` (Step 4) / `pr_title` (Step 9b) reads then hit that run-start cache on a `source_fingerprint` match — no doc scan or history `git` subprocess, and no mid-build re-derive against the branch/commits graft itself creates.
+
 **Resolve the branch name via the discovered convention — the single branch-naming resolution site, replacing the previously-hardcoded `<issue>-<slug>` string.** `scheme=$("$faff" conventions get branch_naming)`: `issue-slug` (the faff default — resolves on a repo with no doc/history signal, byte-identical to today) formats `<issue>-<slug>`; `tracker-hint` uses the tracker's own `gitBranchName` verbatim when Step 1's fetch supplied one (no hint, or git-only mode → fall back to `issue-slug` formatting); `slash-scoped` formats `feature/<issue>-<slug>` (a fixed `feature/` type prefix — no per-ticket type classification exists elsewhere in faff to draw from). This is the `<branch-name>` the provisioning script below receives as its first positional.
 
 Invoke the bundled provisioning script directly (no harness hook). Resolve it adjacent to the `"$faff"` binary (gateway → **Resolving the `faff` executable**), prefer a project wrapper when present, and capture its last stdout line — the worktree path:

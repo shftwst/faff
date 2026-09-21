@@ -23,7 +23,7 @@ const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
-const { loadConfig } = require("./config");
+const { loadConfig, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath } = require("./config");
 const { parseArgs, usageError } = require("./argv");
 const { dig, findRoot } = require("./shared-infra");
 
@@ -397,7 +397,8 @@ function computeSourceFingerprint(root, cfg) {
   const docs = findStandardsDocs(root).map((rel) => [rel, statMeta(path.join(root, rel))]).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
   const workflows = workflowFiles(root).map((rel) => [rel, statMeta(path.join(root, rel))]);
   const config = dig(cfg, "conventions");
-  const canonical = JSON.stringify({ docs, workflows, config: config === undefined ? null : config });
+  const record_dirs = recordDirCandidates(root, cfg);   // FAFF-1069: names-only record-dir signal so a moved record dir invalidates
+  const canonical = JSON.stringify({ docs, workflows, config: config === undefined ? null : config, record_dirs });
   return crypto.createHash("sha256").update(canonical).digest("hex");
 }
 
@@ -439,6 +440,7 @@ function mineConventions(root, cfg) {
   set.branch_naming = resolveConvention(root, "branch_naming", cfg);
   set.commit_subject = resolveConvention(root, "commit_subject", cfg);
   set.pr_title = resolvePrTitle(root, cfg, set.commit_subject);
+  set.record_locations = scanRecordLocations(root, cfg);   // FAFF-1069: synonym-tolerant record-store detection
   return set;
 }
 
@@ -453,6 +455,177 @@ function resolveConventionCached(root, key, cfg) {
   const entry = resolveConvention(root, key, cfg);
   try { writeConventionsCacheAtomic(root, mineConventions(root, cfg)); } catch { /* read-only tree: re-derive every call, exactly as pre-cache */ }
   return { entry, hit: false };
+}
+
+// ---------------------------------------------------------------------------
+// FAFF-1069 — synonym-tolerant record-location scan (Slice 2 of FAFF-1060).
+// Locates the six record stores (adr / superseded-adr / prd / prdr / spec /
+// spike) by matching directory basenames under docs//doc/ against a built-in
+// synonym floor, plus a term the ADR store's own README states, reusing the
+// ConventionSet { key, value, source, confidence, evidence } grammar. A
+// synonym-mapped hit is source "synonym-mapped", confidence "low"; a
+// README-stated hit is "documented", confidence "high" — onboard surfaces both
+// as a confirm and never auto-writes. Read-only, bounded (one level under
+// docs/, plus one level under the resolved current-ADR dir for the co-located
+// superseded store), no git subprocess.
+// ---------------------------------------------------------------------------
+const RECORD_LOCATION_KEYS = ["adr_docs_path", "adr_superseded_docs_path", "prd_docs_path", "prdr_docs_path", "spec_docs_path", "spike_docs_path"];
+const RECORD_SOURCES = ["explicit", "documented", "synonym-mapped", "default"];
+const RECORD_SYNONYMS = {
+  adr_docs_path: ["adr", "active", "accepted", "current", "decisions"],
+  adr_superseded_docs_path: ["superseded", "deprecated", "archived", "retired", "historical"],
+  prd_docs_path: ["prd"],
+  prdr_docs_path: ["prdr"],
+  spec_docs_path: ["spec", "specs"],
+  spike_docs_path: ["spike", "spikes"],
+};
+const RECORD_LADDER_RESOLVERS = {
+  adr_docs_path: resolveAdrDocsPath,
+  adr_superseded_docs_path: resolveAdrSupersededDocsPath,
+  prd_docs_path: resolvePrdDocsPath,
+  prdr_docs_path: resolvePrdrDocsPath,
+  spec_docs_path: resolveSpecDocsPath,
+  spike_docs_path: resolveSpikeDocsPath,
+};
+
+// Immediate child directory basenames of a repo-relative dir, sorted, symlinks skipped.
+function recordChildDirs(root, rel) {
+  let entries;
+  try { entries = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch { return []; }
+  return entries.filter((e) => e.isDirectory() && !e.isSymbolicLink()).map((e) => e.name).sort();
+}
+
+// The docs base actually present: docs/ preferred, else doc/, else null (matches the resolveDocsPath ladder).
+function recordDocsBase(root) {
+  if (fs.existsSync(path.join(root, "docs"))) return "docs";
+  if (fs.existsSync(path.join(root, "doc"))) return "doc";
+  return null;
+}
+
+// First child dir of baseRel whose lowercased basename is EXACTLY in synonyms
+// (exact equality, never substring — `prd` must never match `prdr`). null on miss.
+function matchSynonymChild(root, baseRel, synonyms) {
+  const set = new Set(synonyms.map((s) => s.toLowerCase()));
+  for (const name of recordChildDirs(root, baseRel)) if (set.has(name.toLowerCase())) return name;
+  return null;
+}
+
+// README-stated superseded directory terms for the resolved current-ADR store.
+// Deterministic + bounded: one README read, a fixed pattern. Each token is a
+// BASENAME match token only — never path-joined/resolved/followed — so a `../`
+// or absolute term matches no real child basename and directs nothing outside
+// the scanned tree.
+const SUPERSEDED_README_CONTEXT_RE = /superseded|deprecated|archived|retired|historical|no longer|moved?\s+to/i;
+function readmeSupersededTerms(root, currentAdrRel) {
+  if (!currentAdrRel) return [];
+  let names;
+  try { names = fs.readdirSync(path.join(root, currentAdrRel)); } catch { return []; }
+  const readme = names.filter((n) => /^README(\.|$)/i.test(n)).sort()[0];
+  if (!readme) return [];
+  const text = conventionsSafeRead(path.join(root, currentAdrRel, readme));
+  if (!text) return [];
+  const terms = new Set();
+  for (const line of text.split(/\r?\n/)) {
+    if (!SUPERSEDED_README_CONTEXT_RE.test(line)) continue;
+    const tokens = [];
+    for (const m of line.matchAll(/`([^`]+)`/g)) tokens.push(m[1]);
+    for (const m of line.matchAll(/([A-Za-z0-9._-]+)\/(?=\s|$|[).,;`])/g)) tokens.push(m[1]);
+    for (const t of tokens) {
+      const base = String(t).replace(/\/+$/, "").split("/").pop().trim().toLowerCase();
+      if (base && /^[a-z0-9._-]+$/.test(base)) terms.add(base);
+    }
+  }
+  return [...terms];
+}
+
+function recordDocEvidence(rel, detail) { return { kind: "doc-file", ref: rel, detail }; }
+
+function explicitRecordEntry(cfg, key) {
+  const raw = dig(cfg, `tracking.${key}`);
+  if (raw === null || raw === undefined || String(raw).trim() === "") return null;
+  const value = String(raw).trim().replace(/\/+$/, "");
+  return { key, value, source: "explicit", confidence: "high", evidence: [{ kind: "config-key", ref: `.faffrc:tracking.${key}`, detail: `explicit override: ${value}` }] };
+}
+
+// Current-ADR store — resolved first because the superseded scan scopes under it.
+function resolveCurrentAdrRecord(root, cfg, docsBase) {
+  const explicit = explicitRecordEntry(cfg, "adr_docs_path");
+  if (explicit) return explicit;
+  const dflt = RECORD_LADDER_RESOLVERS.adr_docs_path(root, cfg, false);
+  if (docsBase) {
+    const hit = matchSynonymChild(root, docsBase, RECORD_SYNONYMS.adr_docs_path);
+    if (hit) {
+      const rel = `${docsBase}/${hit}`;
+      if (rel !== dflt) return { key: "adr_docs_path", value: rel, source: "synonym-mapped", confidence: "low", evidence: [recordDocEvidence(rel, `directory basename '${hit}' matches an ADR-store synonym`)] };
+    }
+  }
+  return { key: "adr_docs_path", value: dflt, source: "default", confidence: "low", evidence: [] };
+}
+
+// Superseded-ADR store: scoped under the resolved current-ADR dir first (the
+// co-located case, e.g. docs/adr/archived), then a docs-level fallback. The
+// current-ADR match never claims its own superseded subdir because the current
+// scan only looks at docsBase children, and the two synonym sets are disjoint.
+function resolveSupersededAdrRecord(root, cfg, docsBase, currentAdrEntry) {
+  const explicit = explicitRecordEntry(cfg, "adr_superseded_docs_path");
+  if (explicit) return explicit;
+  const dflt = RECORD_LADDER_RESOLVERS.adr_superseded_docs_path(root, cfg, false);
+  const builtins = RECORD_SYNONYMS.adr_superseded_docs_path.map((s) => s.toLowerCase());
+  const readmeTerms = readmeSupersededTerms(root, currentAdrEntry && currentAdrEntry.value);
+  const synonymSet = [...builtins, ...readmeTerms];
+  const currentRel = currentAdrEntry && currentAdrEntry.value;
+  const build = (rel, hit) => {
+    const documented = readmeTerms.includes(hit.toLowerCase()) && !builtins.includes(hit.toLowerCase());
+    return documented
+      ? { key: "adr_superseded_docs_path", value: rel, source: "documented", confidence: "high", evidence: [recordDocEvidence(rel, `ADR store README names '${hit}' as the superseded store`)] }
+      : { key: "adr_superseded_docs_path", value: rel, source: "synonym-mapped", confidence: "low", evidence: [recordDocEvidence(rel, `directory basename '${hit}' matches a superseded-ADR synonym`)] };
+  };
+  if (currentRel && fs.existsSync(path.join(root, currentRel))) {
+    const hit = matchSynonymChild(root, currentRel, synonymSet);
+    if (hit) { const rel = `${currentRel}/${hit}`; if (rel !== dflt) return build(rel, hit); }
+  }
+  if (docsBase) {
+    const hit = matchSynonymChild(root, docsBase, synonymSet);
+    if (hit) { const rel = `${docsBase}/${hit}`; if (rel !== dflt && rel !== currentRel) return build(rel, hit); }
+  }
+  return { key: "adr_superseded_docs_path", value: dflt, source: "default", confidence: "low", evidence: [] };
+}
+
+function resolvePlainRecord(root, cfg, docsBase, key) {
+  const explicit = explicitRecordEntry(cfg, key);
+  if (explicit) return explicit;
+  const dflt = RECORD_LADDER_RESOLVERS[key](root, cfg, false);
+  if (docsBase) {
+    const hit = matchSynonymChild(root, docsBase, RECORD_SYNONYMS[key]);
+    if (hit) { const rel = `${docsBase}/${hit}`; if (rel !== dflt) return { key, value: rel, source: "synonym-mapped", confidence: "low", evidence: [recordDocEvidence(rel, `directory basename '${hit}' matches a ${key} synonym`)] }; }
+  }
+  return { key, value: dflt, source: "default", confidence: "low", evidence: [] };
+}
+
+// The six-key record_locations object mineConventions persists into the cache.
+function scanRecordLocations(root, cfg) {
+  const docsBase = recordDocsBase(root);
+  const out = {};
+  const currentAdr = resolveCurrentAdrRecord(root, cfg, docsBase);
+  out.adr_docs_path = currentAdr;
+  out.adr_superseded_docs_path = resolveSupersededAdrRecord(root, cfg, docsBase, currentAdr);
+  for (const key of ["prd_docs_path", "prdr_docs_path", "spec_docs_path", "spike_docs_path"]) out[key] = resolvePlainRecord(root, cfg, docsBase, key);
+  return out;
+}
+
+// Content-free record-directory candidate set folded into the cache fingerprint:
+// the immediate child dirs under docs//doc/, plus the immediate child dirs of
+// the resolved current-ADR dir (the nested co-located superseded location).
+// Names only — no file read, no git — so a moved/renamed record dir (including a
+// co-located superseded move) invalidates the cache without breaking the
+// get-hit "no doc scan or git subprocess" contract.
+function recordDirCandidates(root, cfg) {
+  const docsBase = recordDocsBase(root);
+  const out = [];
+  if (docsBase) for (const n of recordChildDirs(root, docsBase)) out.push(`${docsBase}/${n}`);
+  const currentRel = resolveCurrentAdrRecord(root, cfg, docsBase).value;
+  if (currentRel && fs.existsSync(path.join(root, currentRel))) for (const n of recordChildDirs(root, currentRel)) out.push(`${currentRel}/${n}`);
+  return [...new Set(out)].sort();
 }
 
 // ---------------------------------------------------------------------------
@@ -483,6 +656,35 @@ function validateConventionSet(obj) {
         if (!CONVENTIONS_EVIDENCE_KINDS.includes(e.kind)) v.push(`${key}.evidence[${i}].kind must be one of ${CONVENTIONS_EVIDENCE_KINDS.join("|")}`);
         if (!e.ref || String(e.ref).trim() === "") v.push(`${key}.evidence[${i}] missing ref`);
       });
+    }
+  }
+  // FAFF-1069 — record_locations is OPTIONAL (a pre-slice schema-2 cache omits it and stays valid);
+  // when present it must carry all six keys, each a well-formed entry.
+  if (obj.record_locations !== undefined) {
+    const rl = obj.record_locations;
+    if (rl === null || typeof rl !== "object" || Array.isArray(rl)) {
+      v.push("record_locations must be an object");
+    } else {
+      for (const k of Object.keys(rl)) if (!RECORD_LOCATION_KEYS.includes(k)) v.push(`record_locations has unknown key: ${k}`);
+      for (const rkey of RECORD_LOCATION_KEYS) {
+        const e = rl[rkey];
+        if (e === undefined) { v.push(`record_locations missing key: ${rkey}`); continue; }
+        if (e === null || typeof e !== "object" || Array.isArray(e)) { v.push(`record_locations.${rkey} must be an object`); continue; }
+        if (e.key !== rkey) v.push(`record_locations.${rkey}.key must equal '${rkey}'`);
+        if (typeof e.value !== "string" || e.value.trim() === "") v.push(`record_locations.${rkey}.value must be a non-empty string`);
+        if (!RECORD_SOURCES.includes(e.source)) v.push(`record_locations.${rkey}.source must be one of ${RECORD_SOURCES.join("|")}`);
+        if (!CONVENTIONS_CONFIDENCES.includes(e.confidence)) v.push(`record_locations.${rkey}.confidence must be one of ${CONVENTIONS_CONFIDENCES.join("|")}`);
+        if ((e.source === "synonym-mapped" || e.source === "default") && e.confidence !== "low") v.push(`record_locations.${rkey}: source '${e.source}' must carry confidence 'low'`);
+        if ((e.source === "documented" || e.source === "explicit") && e.confidence !== "high") v.push(`record_locations.${rkey}: source '${e.source}' must carry confidence 'high'`);
+        if (e.source !== "default" && (!Array.isArray(e.evidence) || e.evidence.length === 0)) v.push(`record_locations.${rkey}: non-default source '${e.source}' must cite evidence`);
+        if (Array.isArray(e.evidence)) {
+          e.evidence.forEach((ev, i) => {
+            if (ev === null || typeof ev !== "object" || Array.isArray(ev)) { v.push(`record_locations.${rkey}.evidence[${i}] must be an object`); return; }
+            if (!CONVENTIONS_EVIDENCE_KINDS.includes(ev.kind)) v.push(`record_locations.${rkey}.evidence[${i}].kind must be one of ${CONVENTIONS_EVIDENCE_KINDS.join("|")}`);
+            if (!ev.ref || String(ev.ref).trim() === "") v.push(`record_locations.${rkey}.evidence[${i}] missing ref`);
+          });
+        }
+      }
     }
   }
   return v;
@@ -741,6 +943,98 @@ function conventionsSelftest() {
     if (ctmp) fs.rmSync(ctmp, { recursive: true, force: true });
   }
 
+  // --- FAFF-1069 record-location scan (real tmp dirs; no git needed) ---
+  let rtmp;
+  try {
+    const mk = (base, subs) => {
+      const d = fs.mkdtempSync(path.join(os.tmpdir(), `faff-records-${base}-`));
+      for (const s of subs) fs.mkdirSync(path.join(d, s), { recursive: true });
+      return d;
+    };
+
+    // Co-located current + superseded: docs/adr + docs/adr/archived -> distinct keys, no collision.
+    rtmp = mk("adr", ["docs/adr", "docs/adr/archived"]);
+    let rl = scanRecordLocations(rtmp, {});
+    check("record: docs/adr resolves adr_docs_path to docs/adr (default)", rl.adr_docs_path.value === "docs/adr" && rl.adr_docs_path.source === "default");
+    check("record: co-located docs/adr/archived -> adr_superseded_docs_path synonym-mapped low",
+      rl.adr_superseded_docs_path.value === "docs/adr/archived" && rl.adr_superseded_docs_path.source === "synonym-mapped" && rl.adr_superseded_docs_path.confidence === "low");
+    check("record: co-located dirs map to DISTINCT keys (no collision)", rl.adr_docs_path.value !== rl.adr_superseded_docs_path.value);
+    check("record: a synonym-mapped hit cites doc-file evidence", rl.adr_superseded_docs_path.evidence[0] && rl.adr_superseded_docs_path.evidence[0].kind === "doc-file");
+    check("record: a freshly-mined set with record_locations validates", validateConventionSet(mineConventions(rtmp, {})).length === 0);
+    fs.rmSync(rtmp, { recursive: true, force: true });
+
+    // Current-ADR synonym, non-default: docs/decisions -> adr_docs_path synonym-mapped.
+    rtmp = mk("dec", ["docs/decisions"]);
+    rl = scanRecordLocations(rtmp, {});
+    check("record: docs/decisions -> adr_docs_path synonym-mapped low value docs/decisions",
+      rl.adr_docs_path.value === "docs/decisions" && rl.adr_docs_path.source === "synonym-mapped" && rl.adr_docs_path.confidence === "low");
+    fs.rmSync(rtmp, { recursive: true, force: true });
+
+    // README-stated CUSTOM superseded term (not in the built-in floor): docs/adr/README.md names
+    // graveyard/, docs/adr/graveyard exists -> documented, high (the README override earns 'documented').
+    rtmp = mk("readme", ["docs/adr", "docs/adr/graveyard"]);
+    fs.writeFileSync(path.join(rtmp, "docs/adr/README.md"), "Superseded ADRs: decisions are archived to `graveyard/`.\n");
+    rl = scanRecordLocations(rtmp, {});
+    check("record: README-stated custom 'graveyard' maps adr_superseded_docs_path documented high",
+      rl.adr_superseded_docs_path.value === "docs/adr/graveyard" && rl.adr_superseded_docs_path.source === "documented" && rl.adr_superseded_docs_path.confidence === "high");
+    fs.rmSync(rtmp, { recursive: true, force: true });
+
+    // README naming a nonexistent dir -> no false positive.
+    rtmp = mk("readme-absent", ["docs/adr"]);
+    fs.writeFileSync(path.join(rtmp, "docs/adr/README.md"), "Superseded ADRs move to `graveyard/`.\n");
+    rl = scanRecordLocations(rtmp, {});
+    check("record: README naming a nonexistent dir -> adr_superseded stays default (no false positive)", rl.adr_superseded_docs_path.source === "default");
+    fs.rmSync(rtmp, { recursive: true, force: true });
+
+    // doc/-only ladder: doc/decisions -> synonym-mapped value doc/decisions.
+    rtmp = mk("doconly", ["doc/decisions"]);
+    rl = scanRecordLocations(rtmp, {});
+    check("record: doc/-only ladder maps doc/decisions -> adr_docs_path synonym-mapped value doc/decisions",
+      rl.adr_docs_path.value === "doc/decisions" && rl.adr_docs_path.source === "synonym-mapped");
+    fs.rmSync(rtmp, { recursive: true, force: true });
+
+    // Exact-basename equality: docs/prdr must NOT bleed into prd_docs_path.
+    rtmp = mk("prdr", ["docs/prdr"]);
+    rl = scanRecordLocations(rtmp, {});
+    check("record: docs/prdr does not map to prd_docs_path (exact equality, not substring)", rl.prd_docs_path.value === "docs/prd" && rl.prd_docs_path.source === "default");
+    check("record: docs/prdr IS the prdr ladder default (source default, no offer)", rl.prdr_docs_path.value === "docs/prdr" && rl.prdr_docs_path.source === "default");
+    fs.rmSync(rtmp, { recursive: true, force: true });
+
+    // No-signal repo (no docs/doc at all) -> every key default, no synonym-mapped.
+    rtmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-records-none-"));
+    rl = scanRecordLocations(rtmp, {});
+    check("record: no-signal repo -> every record key source default", RECORD_LOCATION_KEYS.every((k) => rl[k].source === "default"));
+    check("record: no-signal repo -> no synonym-mapped entry", !RECORD_LOCATION_KEYS.some((k) => rl[k].source === "synonym-mapped"));
+    fs.rmSync(rtmp, { recursive: true, force: true });
+    rtmp = undefined;
+  } catch (e) {
+    check(`record-location scan threw unexpectedly: ${e.message}`, false);
+  } finally {
+    if (rtmp) fs.rmSync(rtmp, { recursive: true, force: true });
+  }
+
+  // --- FAFF-1069 record_locations validator (pure) ---
+  {
+    const styleDefault = (k, val) => ({ key: k, value: val, source: "default", confidence: "low", evidence: [] });
+    const base = { schema: CONVENTIONS_SCHEMA, generated_at: "t",
+      branch_naming: styleDefault("branch_naming", "issue-slug"),
+      commit_subject: styleDefault("commit_subject", "conventional"),
+      pr_title: styleDefault("pr_title", "conventional") };
+    const rlValid = {};
+    for (const k of RECORD_LOCATION_KEYS) rlValid[k] = { key: k, value: `docs/${k}`, source: "default", confidence: "low", evidence: [] };
+    check("record validate: a schema-2 set WITHOUT record_locations is valid (back-compat)", validateConventionSet(base).length === 0);
+    check("record validate: a well-formed record_locations passes", validateConventionSet({ ...base, record_locations: rlValid }).length === 0);
+    const badSource = JSON.parse(JSON.stringify(rlValid));
+    badSource.adr_docs_path = { key: "adr_docs_path", value: "docs/adr", source: "inferred", confidence: "high", evidence: [{ kind: "doc-file", ref: "docs/adr" }] };
+    check("record validate: an out-of-vocabulary record source is rejected", validateConventionSet({ ...base, record_locations: badSource }).length > 0);
+    const badConf = JSON.parse(JSON.stringify(rlValid));
+    badConf.adr_docs_path = { key: "adr_docs_path", value: "docs/decisions", source: "synonym-mapped", confidence: "high", evidence: [{ kind: "doc-file", ref: "docs/decisions" }] };
+    check("record validate: synonym-mapped with confidence != low is rejected", validateConventionSet({ ...base, record_locations: badConf }).length > 0);
+    const noEvidence = JSON.parse(JSON.stringify(rlValid));
+    noEvidence.adr_docs_path = { key: "adr_docs_path", value: "docs/decisions", source: "synonym-mapped", confidence: "low", evidence: [] };
+    check("record validate: a non-default record source with no evidence is rejected", validateConventionSet({ ...base, record_locations: noEvidence }).length > 0);
+  }
+
   if (failed) return 1;
   console.log("conventions --selftest: ok");
   return 0;
@@ -753,4 +1047,5 @@ module.exports = {
   conventionsCachePath, conventionsSelftest, detectGateFixedValue, dominantScheme, findStandardsDocs,
   inferConvention, matchDocForKey, mineConventions, readConventionsCache, resolveConvention,
   resolveConventionCached, scanDocs, validateConventionSet, writeConventionsCacheAtomic,
+  RECORD_LOCATION_KEYS, RECORD_SOURCES, RECORD_SYNONYMS, scanRecordLocations, recordDirCandidates,
 };

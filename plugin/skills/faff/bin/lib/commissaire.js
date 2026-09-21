@@ -340,10 +340,18 @@ function cmdAuditAnchor(flags) {
   }
   let dest = flags["--dest"];
   if (!dest) {
-    const root = flags["--root"] || findRoot();
+    let root = flags["--root"];
     if (!root) {
-      process.stderr.write("faff commissaire audit anchor: cannot resolve a repo root for the default --dest; pass --dest explicitly\n");
-      return 2;
+      root = findRoot();
+      // findRoot() never returns a falsy value — absent any discoverable .git/.faff marker it
+      // falls back to returning the starting (cwd) directory verbatim, never null. So the
+      // "no resolvable root" guard the spec calls for (an external consumer invoked outside any
+      // repo) must assert the marker itself, or it can never fire and the default --dest would
+      // silently anchor into whatever directory the consumer happened to be in.
+      if (!fs.existsSync(path.join(root, ".git")) && !fs.existsSync(path.join(root, ".faff"))) {
+        process.stderr.write("faff commissaire audit anchor: cannot resolve a repo root for the default --dest; pass --dest explicitly\n");
+        return 2;
+      }
     }
     // The conventional per-issue placement WITHIN a run-close anchor tree (the exact path an
     // external consumer would otherwise mint to by hand) — a convenience default, never an
@@ -949,6 +957,16 @@ function commissaireSelftest() {
       // malformed --issue → exit 2
       const r3 = run(["--run-dir", runDir, "--issue", "../escape", "--dest", path.join(tmp, "anchor-out-3")]);
       if (r3.status !== 2) fail(`audit anchor: invalid --issue should exit 2, got ${r3.status}`);
+      // no --dest, no --root, invoked from a cwd with no discoverable .git/.faff marker anywhere
+      // in its ancestry → exit 2, nothing written (spec §3 "no resolvable root" guard). findRoot()
+      // itself never returns falsy (it falls back to returning cwd verbatim), so this asserts the
+      // guard's OWN marker check, not a findRoot()-returns-null path that can never occur.
+      const noRepoCwd = path.join(tmp, "outside-any-repo");
+      fs.mkdirSync(noRepoCwd, { recursive: true });
+      const noRootDest = path.join(tmp, "anchor-out-4");
+      const r4 = spawnSync(process.execPath, [ENTRYPOINT, "commissaire", "audit", "anchor", "--run-dir", runDir, "--issue", "FAFF-1"], { encoding: "utf8", cwd: noRepoCwd });
+      if (r4.status !== 2) fail(`audit anchor: no resolvable root should exit 2, got ${r4.status}: ${r4.stderr}`);
+      if (fs.existsSync(noRootDest) || fs.existsSync(path.join(noRepoCwd, ".faff"))) fail("audit anchor: no resolvable root must write nothing");
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 

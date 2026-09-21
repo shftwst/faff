@@ -1,0 +1,19 @@
+{
+  "admit": true,
+  "level": "L3",
+  "resolved": [
+    "p-01",
+    "p-02",
+    "p-03",
+    "p-04",
+    "p-05"
+  ],
+  "unresolved": [],
+  "parked": [],
+  "prd_boundary": [],
+  "minor_corrections_applied": [
+    "p-03"
+  ],
+  "minor_corrections_unapplied": [],
+  "floor_veto": []
+}

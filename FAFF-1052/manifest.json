@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1052",
+  "run_id": "run-20260921-031906-beepboop-list-98d373",
+  "built_spec_sha": "8242794a6e12262a21f4b3403fa0da65c47d56bf456073b12b0c1daaac1f9808",
+  "spec_blob": "spec.txt",
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": "admit-result.json",
+  "outcome": "admit",
+  "lenses": [
+    "QA",
+    "architectural",
+    "infosec"
+  ],
+  "witness_sha": "079de687c5e5f1fd9c8309b8c5e08bf6c42cfc351ba5179694dfe30512d27f31"
+}

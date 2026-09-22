@@ -165,7 +165,7 @@ test("labels: faff-stacked is a machine-writable control label (no tracker_owned
 function scaffoldRepoWithRemote() {
   const dir = mkTmp("faff-1077-repo-");
   const bare = mkTmp("faff-1077-remote-");
-  git(mkTmp("faff-1077-bareinit-"), "init", "-q", "--bare", bare);
+  git(mkTmp("faff-1077-bareinit-"), "init", "-q", "-b", "main", "--bare", bare);
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "user.email", "t@t.t");
   git(dir, "config", "user.name", "t");

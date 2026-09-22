@@ -73,6 +73,7 @@ const { cmdLintCliDoc } = require("./lib/lint-cli-doc");
 const { cmdLintRefs } = require("./lib/lint-refs");
 const { cmdMergeFence } = require("./lib/merge-fence");
 const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate } = require("./lib/merge-gate");
+const { cmdNativeMap } = require("./lib/native-map");
 const { cmdNext } = require("./lib/next");
 const { cmdParkHistory } = require("./lib/park-history");
 const { cmdParkReconsider } = require("./lib/park-reconsider");
@@ -202,6 +203,7 @@ const COMMANDS = {
   "governance-check": cmdGovernanceCheck,
   "landing-comment": cmdLandingComment,
   "harness": (args) => cmdHarness(args, COMMANDS),
+  "native-map": cmdNativeMap,
   "next": cmdNext,
   "project-next": cmdProjectNext,
   "state": cmdState,

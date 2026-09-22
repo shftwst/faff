@@ -271,6 +271,10 @@ const REGION_MAP = {
   // config (dig/loadConfig), argv, shared-infra (dig/findRoot) — a pure acquirer + resolver,
   // sibling of profile → factory.
   "conventions": "factory",
+  // native-map — FAFF-1081: the pure faff-type→tracker-template-identity writer. Requires only
+  // config (emitScalar), argv, shared-infra (parseYamlSubset/dig/findRoot) — a persist-only
+  // writer with no MCP/env/network, sibling of config init/set → factory.
+  "native-map": "factory",
   "fixtures": "factory",
   "env": "factory",
   // eval — FAFF-752: the advisory touched-surface→affected-KIND-subset deriver. Reuses
@@ -492,6 +496,7 @@ const REGION_SELFTEST_ARGV = {
   "prdr": ["prdr", "--selftest"],
   "profile": ["profile", "--selftest"],
   "conventions": ["conventions", "--selftest"],
+  "native-map": ["native-map", "set", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
   "scenario-matrix": ["scenario-matrix", "--selftest"],

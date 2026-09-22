@@ -185,7 +185,7 @@ const overrideFile = (runDir) => join(runDir, ISSUE, "merge-gate-override.json")
 test("check-only on a merge-ok floor → exit 0, verdict merge-ok, merge sentinel ABSENT", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env, cwd: runDir });
   assert.equal(code, 0);
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), false, "check-only must never merge");
@@ -194,7 +194,7 @@ test("check-only on a merge-ok floor → exit 0, verdict merge-ok, merge sentine
 test("check-only on a refuse floor → exit 1, verdict refuse, merge sentinel ABSENT (refuse precedes the short-circuit)", () => {
   const runDir = seedRunDir("refuse");
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env, cwd: runDir });
   assert.equal(code, 1);
   assert.equal(JSON.parse(stdout).verdict, "refuse");
   assert.equal(existsSync(sentinel), false);
@@ -205,7 +205,7 @@ test("check-only on a refuse floor → exit 1, verdict refuse, merge sentinel AB
 test("execute on a merge-ok floor → exit 0, merged:true, merge sentinel PRESENT", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
@@ -218,7 +218,7 @@ test("execute on a merge-ok floor → exit 0, merged:true, merge sentinel PRESEN
 test("FAFF-537: a bare --squash (no --merge-args) is forwarded to gh pr merge, not dropped", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv();
-  const { code } = runCli(baseArgs(runDir), { env }); // baseArgs carries the bare --squash
+  const { code } = runCli(baseArgs(runDir), { env, cwd: runDir }); // baseArgs carries the bare --squash
   assert.equal(code, 0);
   assert.equal(existsSync(sentinel), true, "the merge must spawn");
   assert.match(readFileSync(sentinel, "utf8"), /--squash/, "the bare method reaches gh pr merge");
@@ -229,7 +229,7 @@ test("FAFF-537: execute with NO merge method → exit 2 with merge-gate's own er
   const { env, sentinel } = stubGhEnv();
   // Manual args WITHOUT the bare --squash baseArgs supplies — the reported no-method invocation.
   const args = ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--execute"];
-  const { code, stderr } = runCli(args, { env });
+  const { code, stderr } = runCli(args, { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /no merge method/);
   assert.match(stderr, /--merge-args/, "the actionable error names --merge-args");
@@ -239,7 +239,7 @@ test("FAFF-537: execute with NO merge method → exit 2 with merge-gate's own er
 test("FAFF-537: a bare --squash plus --merge-args \"--rebase\" (two methods) → exit 2 conflict, no merge", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv();
-  const { code, stderr } = runCli(baseArgs(runDir, ["--merge-args", "--rebase"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--merge-args", "--rebase"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /conflicting merge methods/);
   assert.equal(existsSync(sentinel), false);
@@ -248,7 +248,7 @@ test("FAFF-537: a bare --squash plus --merge-args \"--rebase\" (two methods) →
 test("execute on a refuse floor → exit 1, verdict refuse, merge sentinel ABSENT", () => {
   const runDir = seedRunDir("refuse");
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -268,7 +268,7 @@ const mergeRecordPath = (runDir) => join(runDir, ISSUE, "merge-record.json");
 test("F3: already-MERGED on an UNSATISFIED retrospective floor → exit 1 refuse, blockers name the legs, ci_state not-observed-already-merged, NO merge-record, no gh pr merge", () => {
   const runDir = seedRunDir("refuse"); // AC + review absent → the retrospective floor cannot be proven
   const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -282,7 +282,7 @@ test("F3: already-MERGED on an UNSATISFIED retrospective floor → exit 1 refuse
 test("F3: already-MERGED on a SATISFIED retrospective floor → exit 0 merge-ok (note 'already merged', ci_state not-observed-already-merged), merge-record written, no gh pr merge", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
@@ -296,7 +296,7 @@ test("F3: already-MERGED on a SATISFIED retrospective floor → exit 0 merge-ok 
 test("F3: already-MERGED at L4 with no fresh meets-spec holdout → exit 1 refuse (the retrospective floor re-derives the L4 holdout leg), NO merge-record", () => {
   const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact under the run dir
   const { env, sentinel } = stubGhEnv({ prState: "MERGED", anchorLevel: "L4" });
-  const { code, stdout } = runCli(argsNoLevel(runDir), { env });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -311,7 +311,7 @@ test("F3: already-MERGED whose live CI would read RED but whose retrospective fl
   // ci:"red" makes the stub's check-runs empty / status pending — a live observeCi() would refuse.
   // F3 must NOT consult CI on a merged PR, so this still merges-ok and the sentinel value proves it.
   const { env, sentinel } = stubGhEnv({ prState: "MERGED", ci: "red" });
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0, "CI is not re-observed on a merged PR — the forge gated it at merge time");
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
@@ -325,7 +325,7 @@ test("F3: already-MERGED whose live CI would read RED but whose retrospective fl
 test("--interactive --human-override (non-TTY) → exit 2 fence, NO override file, NO merge (before any gh call)", () => {
   const runDir = seedRunDir("refuse");
   const { env, sentinel } = stubGhEnv();
-  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--human-override"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--human-override"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /--human-override is human-only/);
   assert.match(stderr, /real terminal/);
@@ -336,7 +336,7 @@ test("--interactive --human-override (non-TTY) → exit 2 fence, NO override fil
 test("--human-override WITHOUT --interactive (non-TTY) → exit 2, NO override file", () => {
   const runDir = seedRunDir("refuse");
   const { env } = stubGhEnv();
-  const { code, stderr } = runCli(baseArgs(runDir, ["--human-override"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--human-override"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /--human-override/);
   assert.equal(existsSync(overrideFile(runDir)), false);
@@ -351,7 +351,7 @@ test("--human-override WITHOUT --interactive (non-TTY) → exit 2, NO override f
 test("--interactive --accept-review-unavailable (non-TTY) → exit 2 fence, NO override file, NO merge (before any gh call)", () => {
   const runDir = seedRunDir("refuse");
   const { env, sentinel } = stubGhEnv();
-  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--accept-review-unavailable", "--override-reason", "outage; clean graft"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /--accept-review-unavailable is human-only/);
   assert.match(stderr, /real terminal/);
@@ -362,7 +362,7 @@ test("--interactive --accept-review-unavailable (non-TTY) → exit 2 fence, NO o
 test("--accept-review-unavailable WITHOUT --interactive (non-TTY) → exit 2, NO override file, NO merge", () => {
   const runDir = seedRunDir("refuse");
   const { env, sentinel } = stubGhEnv();
-  const { code, stderr } = runCli(baseArgs(runDir, ["--accept-review-unavailable", "--override-reason", "outage; clean graft"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--accept-review-unavailable", "--override-reason", "outage; clean graft"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /--accept-review-unavailable/);
   assert.equal(existsSync(overrideFile(runDir)), false);
@@ -372,7 +372,7 @@ test("--accept-review-unavailable WITHOUT --interactive (non-TTY) → exit 2, NO
 test("--human-override + --accept-review-unavailable together (PR path) → exit 2 mutual exclusion, NO override file, NO merge (before any gh call)", () => {
   const runDir = seedRunDir("refuse");
   const { env, sentinel } = stubGhEnv();
-  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--human-override", "--accept-review-unavailable", "--override-reason", "x"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--interactive", "--human-override", "--accept-review-unavailable", "--override-reason", "x"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /mutually exclusive/);
   assert.equal(existsSync(overrideFile(runDir)), false);
@@ -392,7 +392,7 @@ const argsNoLevel = (runDir, extra = []) =>
 test("F1: L4 committed anchor + no --level + no holdout artifact → exit 1, refuse names the L4 holdout (level derived from the anchor, not defaulted)", () => {
   const runDir = seedRunDir("merge-ok"); // AC + review pass; only the (absent) holdout should block
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
-  const { code, stdout } = runCli(argsNoLevel(runDir), { env });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -403,7 +403,7 @@ test("F1: L4 committed anchor + no --level + no holdout artifact → exit 1, ref
 test("F1: L4 anchor + --level L3 → exit 2, mismatch error names the anchor level L4 (the anchor governs), no gh merge", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
-  const { code, stderr } = runCli(baseArgs(runDir), { env }); // baseArgs passes --level L3
+  const { code, stderr } = runCli(baseArgs(runDir), { env, cwd: runDir }); // baseArgs passes --level L3
   assert.equal(code, 2);
   assert.match(stderr, /--level "L3" contradicts the committed anchor level "L4"/);
   assert.equal(existsSync(sentinel), false, "a mismatch must be refused before any merge");
@@ -412,7 +412,7 @@ test("F1: L4 anchor + --level L3 → exit 2, mismatch error names the anchor lev
 test("F1: L4 anchor + --level L4 (agreement) → proceeds at L4, refuse still names the L4 holdout (no coercion to L3)", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
-  const { code, stdout } = runCli(argsNoLevel(runDir, ["--level", "L4"]), { env });
+  const { code, stdout } = runCli(argsNoLevel(runDir, ["--level", "L4"]), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)));
@@ -422,7 +422,7 @@ test("F1: L4 anchor + --level L4 (agreement) → proceeds at L4, refuse still na
 test("F1: L3 anchor + --level L3 (clean merge-ok floor) → exit 0 merges (no regression on a clean L3-anchored run)", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L3" });
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
@@ -435,7 +435,7 @@ test("F1: NO committed anchor at the head sha → exit 2 anchor-missing, NO live
   // A forged live ledger claiming L1 is present but IGNORED — the trust root is the committed anchor.
   writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "forged", level: "L1" }));
   const { env, sentinel } = stubGhEnv({ anchorMode: "missing" });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /no trusted committed anchor level/);
   assert.match(stderr, /anchor-missing/);
@@ -445,7 +445,7 @@ test("F1: NO committed anchor at the head sha → exit 2 anchor-missing, NO live
 test("F1: unreadable anchor blob (Contents-API 403 / narrow token) → exit 2 anchor-unreadable with a remedy naming both scope families", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorMode: "unreadable" });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-unreadable/);
   // FAFF-747: the remedy must name BOTH the classic-PAT scope and the fine-grained/App permission —
@@ -466,7 +466,7 @@ test("F1 FAFF-747: real HTTP status governs even when gh stderr wording looks li
     anchorHttpStatus: "403",
     anchorStderr: "gh: Not Found (HTTP 404)", // misleading — reads like a 404
   });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-unreadable/, "the real 403 status wins over 404-shaped stderr text");
   assert.equal(existsSync(sentinel), false);
@@ -479,7 +479,7 @@ test("F1 FAFF-747: real HTTP status governs even when gh stderr wording looks li
     anchorHttpStatus: "404",
     anchorStderr: "gh: Resource not accessible by integration (HTTP 403)", // misleading — reads like a 403
   });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-missing/, "the real 404 status wins over 403-shaped/forbidden stderr text — the exact old regex-driven misclassification this issue removes");
   assert.doesNotMatch(stderr, /anchor-unreadable/);
@@ -491,7 +491,7 @@ test("F1 FAFF-747: no HTTP status line from the probe (network error / unparseab
   // "none" hits the stub's `*)` fallback for the -I probe: no stdout at all, exit 1 — simulating a
   // probe that never got back a parseable status line.
   const { env, sentinel } = stubGhEnv({ anchorMode: "unreadable", anchorHttpStatus: "none" });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-missing/, "an absent/unparseable status line is indeterminate — never over-claim anchor-unreadable");
   assert.equal(existsSync(sentinel), false);
@@ -500,7 +500,7 @@ test("F1 FAFF-747: no HTTP status line from the probe (network error / unparseab
 test("F1: malformed anchor blob (bad JSON / no usable level) → exit 2 anchor-malformed", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorMode: "malformed" });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-malformed/);
   assert.equal(existsSync(sentinel), false);
@@ -509,7 +509,7 @@ test("F1: malformed anchor blob (bad JSON / no usable level) → exit 2 anchor-m
 test("F1: anchor with no `level` field → exit 2 anchor-malformed (level not in FLOOR_LEVELS)", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorMode: "no-level" });
-  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-malformed/);
   assert.equal(existsSync(sentinel), false);
@@ -523,7 +523,7 @@ test("F1: anchor with no `level` field → exit 2 anchor-malformed (level not in
 test("F1 FALLBACK: git-show miss + clean L3 anchor via the Contents-API fallback → exit 0 MERGES (the pre-fix bug wrongly refused this as anchor-missing)", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L3" });
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0, "a correctly-anchored pure-remote PR must MERGE via the fallback, not refuse anchor-missing");
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), true, "the fallback resolved a usable L3 level and the merge fired");
@@ -532,7 +532,7 @@ test("F1 FALLBACK: git-show miss + clean L3 anchor via the Contents-API fallback
 test("F1 FALLBACK: git-show miss + L4 anchor via the Contents-API fallback → level resolves L4 (L4 holdout refuse), proving the fallback returns the real level not a default", () => {
   const runDir = seedRunDir("merge-ok"); // no holdout → the L4 holdout is the sole blocker
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
-  const { code, stdout } = runCli(argsNoLevel(runDir), { env });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   assert.ok(JSON.parse(stdout).blockers.some((b) => /L4 holdout/.test(b)), "the L4 level came THROUGH the fallback (not defaulted, not anchor-missing)");
   assert.equal(existsSync(sentinel), false);
@@ -543,7 +543,7 @@ test("F1 FALLBACK: git-show miss + L4 anchor via the Contents-API fallback → l
 test("F1: L4 anchor + --level L3 + --check-only → still exit 2 mismatch (fires before the check-only short-circuit)", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
-  const { code, stderr } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  const { code, stderr } = runCli(baseArgs(runDir, ["--check-only"]), { env, cwd: runDir });
   assert.equal(code, 2);
   assert.match(stderr, /--level "L3" contradicts the committed anchor level "L4"/);
   assert.equal(existsSync(sentinel), false);
@@ -622,7 +622,7 @@ function writeHoldout(runDir, mtimeDate) {
 test("FAFF-420: no holdout artifact under the run-dir (foreign/absent) → refuse, blocker names L4 holdout missing", () => {
   const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout.json anywhere under this run-dir
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
-  const { code, stdout } = runCli(argsL4(runDir), { env });
+  const { code, stdout } = runCli(argsL4(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -637,7 +637,7 @@ test("FAFF-420: holdout mtime predates the build-complete checkpoint (stale) →
   writeCheckpoint(runDir, checkpointTime.toISOString());
   writeHoldout(runDir, staleHoldoutTime);
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
-  const { code, stdout } = runCli(argsL4(runDir), { env });
+  const { code, stdout } = runCli(argsL4(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -661,7 +661,7 @@ test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) �
   writeCheckpoint(runDir, checkpointTime.toISOString());
   writeHoldout(runDir, freshHoldoutTime);
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
-  const { code, stdout } = runCli(argsL4(runDir), { env });
+  const { code, stdout } = runCli(argsL4(runDir), { env, cwd: runDir });
   const out = JSON.parse(stdout);
   assert.ok(!out.blockers.some((b) => /L4 holdout/.test(b)), "the fresh, run-scoped meets-spec verdict must satisfy the holdout leg on its own");
   assert.equal(code, 1);
@@ -675,7 +675,7 @@ test("FAFF-420: holdout present but no build-complete checkpoint under the run-d
   const runDir = seedRunDir("merge-ok"); // no build-progress.json written
   writeHoldout(runDir, new Date("2026-07-10T13:00:00.000Z"));
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
-  const { code, stdout } = runCli(argsL4(runDir), { env });
+  const { code, stdout } = runCli(argsL4(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -727,7 +727,7 @@ test("FAFF-383 integration: a covering declare + merge-gate execute → the obse
   assert.equal(declared.code, 0, "the graft-side declare must succeed before the merge is attempted");
 
   const { env, sentinel } = stubGhEnv({ headRefName: "faff-9-x" });
-  const { code, stdout, stderr } = runCli(effArgs(runDir), { env });
+  const { code, stdout, stderr } = runCli(effArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0);
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), true, "the merge must actually have been attempted");
@@ -750,7 +750,7 @@ test("FAFF-1012 integration: NO prior declare + merge-gate execute → merge-gat
   const { root, runId, runDir } = seedEffectsRunDir("merge-ok"); // no declare written at all
 
   const { env, sentinel } = stubGhEnv({ headRefName: "faff-9-x" });
-  const { code, stdout, stderr } = runCli(effArgs(runDir), { env });
+  const { code, stdout, stderr } = runCli(effArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0, "the auto-declare must never affect the merge outcome");
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), true);
@@ -778,7 +778,7 @@ test("FAFF-383 integration: a covering declare including branch-delete + --merge
   );
 
   const { env } = stubGhEnv({ headRefName: "faff-9-x" });
-  const { code } = runCli(effArgs(runDir, ["--merge-args", "--squash --delete-branch"]), { env });
+  const { code } = runCli(effArgs(runDir, ["--merge-args", "--squash --delete-branch"]), { env, cwd: runDir });
   assert.equal(code, 0);
 
   const lines = ledgerLines(runDir);
@@ -798,7 +798,7 @@ test("FAFF-383: --merge-args without --delete-branch never observes a branch-del
     { input: JSON.stringify({ kind: "merge", target: `pr:${EFFECTS_PR}` }) },
   );
   const { env } = stubGhEnv({ headRefName: "faff-9-x" });
-  runCli(effArgs(runDir, ["--merge-args", "--squash"]), { env });
+  runCli(effArgs(runDir, ["--merge-args", "--squash"]), { env, cwd: runDir });
   const lines = ledgerLines(runDir);
   assert.equal(lines.filter((l) => l.kind_of_entry === "observe").length, 1, "no --delete-branch flag => no branch-delete observe, regardless of what was declared");
 });
@@ -806,21 +806,21 @@ test("FAFF-383: --merge-args without --delete-branch never observes a branch-del
 test("FAFF-383: --check-only writes ZERO ledger entries (the short-circuit precedes any observe)", () => {
   const { runDir } = seedEffectsRunDir("merge-ok");
   const { env } = stubGhEnv();
-  runCli(effArgs(runDir, ["--check-only"]), { env });
+  runCli(effArgs(runDir, ["--check-only"]), { env, cwd: runDir });
   assert.equal(ledgerLines(runDir).length, 0);
 });
 
 test("FAFF-383: a refuse verdict writes ZERO ledger entries", () => {
   const { runDir } = seedEffectsRunDir("refuse");
   const { env } = stubGhEnv();
-  runCli(effArgs(runDir), { env });
+  runCli(effArgs(runDir), { env, cwd: runDir });
   assert.equal(ledgerLines(runDir).length, 0);
 });
 
 test("FAFF-383: the already-MERGED idempotent no-op writes ZERO ledger entries (this invocation performed nothing)", () => {
   const { runDir } = seedEffectsRunDir("merge-ok");
   const { env } = stubGhEnv({ prState: "MERGED" });
-  const { code, stdout } = runCli(effArgs(runDir), { env });
+  const { code, stdout } = runCli(effArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0);
   assert.equal(JSON.parse(stdout).note, "already merged");
   assert.equal(ledgerLines(runDir).length, 0);
@@ -865,7 +865,7 @@ test("FAFF-784: dispatched (valid lane-boundary.json) + custody flags OMITTED on
   const runDir = seedRunDir("merge-ok");
   seedLaneBoundary(runDir);
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -878,7 +878,7 @@ test("FAFF-784: dispatched + a VALID exact clean custody verdict → custody pas
   seedLaneBoundary(runDir);
   const cv = writeCustodyVerdict(runDir, ISSUE);
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env, cwd: runDir });
   assert.equal(code, 0, stdout);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
@@ -892,7 +892,7 @@ test("FAFF-784: dispatched + retained digest MISMATCH (verdict replaced after re
   const original = writeCustodyVerdict(runDir, ISSUE); // sha256 the dispatcher would have retained
   writeCustodyVerdict(runDir, ISSUE, { detail: "replaced after recording" }); // same path, DIFFERENT bytes
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(original)), { env }); // stale retained digest
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(original)), { env, cwd: runDir }); // stale retained digest
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -905,7 +905,7 @@ test("FAFF-784: dispatched + a TAMPER custody verdict → exit 1 refuse, never m
   seedLaneBoundary(runDir);
   const cv = writeCustodyVerdict(runDir, ISSUE, { classification: "tamper", paths: ["run-ledger.json"], detail: "tampered — run-ledger.json" });
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env, cwd: runDir });
   assert.equal(code, 1);
   assert.equal(JSON.parse(stdout).verdict, "refuse");
   assert.equal(existsSync(sentinel), false);
@@ -916,7 +916,7 @@ test("FAFF-784: dispatched + a verification-unavailable custody verdict → exit
   seedLaneBoundary(runDir);
   const cv = writeCustodyVerdict(runDir, ISSUE, { classification: "verification-unavailable", detail: "no SHA-256 tool" });
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -929,7 +929,7 @@ test("FAFF-784: an INDETERMINATE (malformed) lane-boundary.json refuses UNCONDIT
   writeFileSync(join(runDir, "lane-boundary.json"), "{not valid json");
   const cv = writeCustodyVerdict(runDir, ISSUE);
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -941,7 +941,7 @@ test("FAFF-784: --check-only on a dispatched run with custody omitted → exit 1
   const runDir = seedRunDir("merge-ok");
   seedLaneBoundary(runDir);
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { env, cwd: runDir });
   assert.equal(code, 1);
   assert.equal(JSON.parse(stdout).verdict, "refuse");
   assert.equal(existsSync(sentinel), false);
@@ -950,7 +950,7 @@ test("FAFF-784: --check-only on a dispatched run with custody omitted → exit 1
 test("FAFF-784: NO lane-boundary.json (interactive / no-dispatch-cut) → existing behaviour is UNCHANGED — custody flags are neither required nor consulted", () => {
   const runDir = seedRunDir("merge-ok"); // deliberately no seedLaneBoundary — legacy/interactive posture
   const { env, sentinel } = stubGhEnv();
-  const { code, stdout } = runCli(baseArgs(runDir), { env }); // no custody args either
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir }); // no custody args either
   assert.equal(code, 0);
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), true);
@@ -960,7 +960,7 @@ test("FAFF-784: already-MERGED + custody OMITTED on a dispatched run → merged:
   const runDir = seedRunDir("merge-ok");
   seedLaneBoundary(runDir);
   const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
-  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -973,7 +973,7 @@ test("FAFF-784: already-MERGED + a TAMPER custody verdict → merged:true, refus
   seedLaneBoundary(runDir);
   const cv = writeCustodyVerdict(runDir, ISSUE, { classification: "tamper", paths: ["run-ledger.json"], detail: "tampered" });
   const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
@@ -986,7 +986,7 @@ test("FAFF-784: already-MERGED + a VALID clean custody verdict + a satisfied ret
   seedLaneBoundary(runDir);
   const cv = writeCustodyVerdict(runDir, ISSUE);
   const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
-  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env });
+  const { code, stdout } = runCli(baseArgs(runDir, custodyArgs(cv)), { env, cwd: runDir });
   assert.equal(code, 0, stdout);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");

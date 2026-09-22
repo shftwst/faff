@@ -28,8 +28,6 @@ const CONTROL_LABEL_DEFS = [
     description: "Built work holding for review-provider recovery; the next drain resumes at review (no rebuild). Applied by faff-graft; cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear on state moves). NOT a park (the parked label, above) — a hold means automation is waiting on a machine, not a human (FAFF-403)." },
   { role: "awaiting-spec-review", color: "#f2c94c",
     description: "A spec holding for spec-review-provider recovery; the next prep drain re-enters at the review gate (spec re-production skipped). Applied by faff-prep on a swing-capable spec-review outage past the in-turn retry ceiling; cleared by faff-prep (on terminal disposition) or faff-tidy (stale-label auto-clear on state moves). NOT a park (the parked label, above) and NOT the build-side awaiting-review — a distinct prep-altitude hold so the two stay separable in `faff disposition` / `/faff-wtf` (FAFF-900)." },
-  { role: "repeat-parked", color: "#d97706",
-    description: "Cosmetic breadcrumb: an active issue demoted Todo->Backlog because faff park-history flagged it repeat-parked (3+ parks, same root-cause class, within the rolling window). Detection is seam-computed (faff park-history), NOT read from this label — the label only marks the demotion for /faff-wtf. Distinct from the repeat-parked routing verdict (contract-defs.js). CLI-writable (no tracker_owned flag)." },
   { role: "claimed", color: "#9b51e0",
     description: "faff set this issue's In Progress claim; eligible for stale-claim reclaim (FAFF-758). Applied by faff-graft at the Step-5 claim, cleared by faff-graft (on terminal disposition and the FAFF-403 retry-later release) or faff-tidy (state-driven stale-label sweep). Its presence is the PROVENANCE that lets tidy auto-reclaim a stale (past claim_ttl_hours) claim — a claim WITHOUT it is human-set or unprovable and is only surfaced, never reverted. Machine-writable like the parked/awaiting-review labels (no tracker_owned flag), NOT an eligibility throttle." },
   { role: "awaiting-adjudication", color: "#f2c94c",
@@ -52,8 +50,8 @@ function controlLabels(prefix = "faff") {
 // description pass through unchanged per entry.
 const LABELS_SELFTEST_CASES = [
   // [prefix, expectedNames] — role/color/tracker_owned/description checked structurally below
-  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed", "faff-awaiting-adjudication", "faff-stacked"]],
-  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed", "sd-awaiting-adjudication", "sd-stacked"]],
+  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-claimed", "faff-awaiting-adjudication", "faff-stacked"]],
+  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-claimed", "sd-awaiting-adjudication", "sd-stacked"]],
 ];
 
 function labelsSelftest() {

@@ -41,7 +41,7 @@ const BRANCH_PROTECTION_SPEC = { flags: {
 } };
 // FAFF-728: the GitHub-auth preflight probe — user-scoped, so it needs no repo slug.
 const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
-const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
+const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, requiresSelfConsistencyStamp, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches } = require("./effects");
@@ -504,7 +504,13 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity) {
 // constructs via buildMergeFloorDigestVerify (below). Absent (no --custody-verdict flags) ⇒
 // the fold reaches branch 6 (unasserted) ⇒ the level-branch yields today's L4 unasserted-refuse
 // exactly — byte-for-byte no regression for runs where no digest bracket ran.
-function resolveIntegrity(runDir, issue, level, digestVerify) {
+// FAFF-1072: `cfg` (the merged .faffrc document) is threaded in so branch-6 can resolve the
+// UNATTENDED fact from the tamper-resistant committed anchor `level` PLUS live config. Interactive
+// runs (L1/L2) are attended by construction (a human drives the graft), so a repo-wide unattended
+// declaration never makes them unattended — only an automated run does (L4 always; L3 iff declared).
+// Absent cfg (the config-less selftest call sites, or any legacy caller) ⇒ declaredUnattendedFromConfig
+// is false, so an L4 run still resolves unattended via the level disjunct and below-L4 stays attended.
+function resolveIntegrity(runDir, issue, level, digestVerify, cfg) {
   const dirs = correctiveIntegrityDirs(runDir, issue);
   const probe = correctiveIntegrityProbe(process.env, realFsq(), dirs);
   const mountGate = integrityGate(probe, "merge-floor"); // UNCHANGED — classifies the mount probe
@@ -516,7 +522,20 @@ function resolveIntegrity(runDir, issue, level, digestVerify) {
   if (fold.disposition === "trusted") state = "asserted";
   else if (fold.disposition === "refuse") state = "violated";
   else if (fold.disposition === "custody-trusted") state = "custody-trusted"; // the digest-verified grant (non-blocking)
-  else state = level === "L4" ? "unasserted-refuse" : "unasserted-ok"; // fold.disposition === "unasserted"
+  else {
+    // fold.disposition === "unasserted" (no custody declaration). FAFF-1072: branch-6 keys on the
+    // run FACTS, not the L4 label — block (require a self-consistency stamp) exactly where the
+    // stamp fires: an UNATTENDED run merging in-session with NO dispatch cut above it to provide
+    // detective custody. `level` is the reconciled committed anchor level (tamper-resistant); the
+    // config disjunct (the ADR-0103 mix) applies only to the automated L3 level, so an interactive
+    // L1/L2 merge is never unattended even in a repo that declares unattended. An indeterminate
+    // dispatch-state is refused upstream by evaluateCustody, so requiresSelfConsistencyStamp's
+    // `=== "absent"` is the only case reachable here that blocks.
+    const { declaredUnattendedFromConfig } = require("./sentry"); // lazy — matches the file convention, avoids a load-time cycle
+    const unattended = level === "L4" || (level === "L3" && declaredUnattendedFromConfig(cfg));
+    const dispatchState = laneBoundaryDispatchState(runDir);
+    state = requiresSelfConsistencyStamp(unattended, dispatchState) ? "unasserted-refuse" : "unasserted-ok";
+  }
   const display =
     state === "asserted" ? "asserted"
     : state === "violated" ? "violated"
@@ -1035,7 +1054,8 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   }
 
   const mfDigestVerify = buildMergeFloorDigestVerify(runDir, issue, custodyPathArg, custodyShaArg);
-  const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify);
+  const cfg = require("./config").loadConfig(cwd)[0]; // FAFF-1072: for branch-6's unattended fact — the repo being merged, lazy require (file convention)
+  const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify, cfg);
 
   // Idempotent: a peer/earlier invocation that already landed this branch is a no-op, never a
   // double-merge (gateway → status monotonicity; mirrors the PR path's already-MERGED short-circuit).
@@ -1367,7 +1387,8 @@ function cmdMergeGate(args) {
   // Computed once, reused on EVERY path below (already-merged reconcile, refuse, merge-ok) — the merge
   // record + ledger banner ALWAYS annotate the integrity basis, on every decision path.
   const mfDigestVerify = buildMergeFloorDigestVerify(runDir, issue, get("--custody-verdict"), get("--custody-verdict-sha256"));
-  const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify);
+  const cfg = require("./config").loadConfig(cwd)[0]; // FAFF-1072: for branch-6's unattended fact — the repo being merged, lazy require (file convention)
+  const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify, cfg);
 
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status
   // monotonicity). FAFF-690 (F3): but success evidence is now conditional on the RETROSPECTIVE floor
@@ -1704,6 +1725,40 @@ function mergeGateSelftest() {
     try {
       const r = resolveIntegrity(tmp, "FAFF-1", "L4", { held: true, diffs: ["x"] });
       return r.state === "violated";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  // FAFF-1072: branch-6 keys on the run FACTS, not the L4 label. An UNATTENDED L3 top-level merge
+  // (declared-unattended config, no lane-boundary ⇒ dispatch "absent") with no custody declaration
+  // now refuses (the previously-uncovered cell); an ATTENDED L3 stays unasserted-ok (byte-for-byte).
+  check("resolveIntegrity: L3 + declared-unattended + no dispatch cut → unasserted-refuse (FAFF-1072 new cell)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L3", undefined, { autonomous: { unattended: true } });
+      return r.state === "unasserted-refuse";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("resolveIntegrity: L3 + attended (no config) + no dispatch cut → unasserted-ok (unchanged)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L3", undefined, {});
+      return r.state === "unasserted-ok";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  // FAFF-1072: an interactive L2 merge is attended by construction — a repo-wide unattended
+  // declaration never makes it require a custody stamp (only an automated run does).
+  check("resolveIntegrity: L2 + declared-unattended config → unasserted-ok (interactive is attended, never unattended)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L2", undefined, { autonomous: { unattended: true } });
+      return r.state === "unasserted-ok";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  // FAFF-1072: the legacy alias key (autonomous.sentry_acting) also asserts unattended (ADR-0103 mix).
+  check("resolveIntegrity: L3 + sentry_acting alias + no dispatch cut → unasserted-refuse", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L3", undefined, { autonomous: { sentry_acting: true } });
+      return r.state === "unasserted-refuse";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
   // resolveGateLevel (FAFF-424): ledger governs when present; flag/default path unchanged when absent

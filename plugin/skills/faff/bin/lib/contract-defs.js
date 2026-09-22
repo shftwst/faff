@@ -2254,6 +2254,22 @@ const NO_CI_POLICIES = ["needs-human", "allow"];
 // as its own value (ADR-0073 decision 5 distinctness) so the merge-record shows the truthful
 // basis rather than collapsing it into `unasserted`. Non-blocking, like `asserted`/`unasserted-ok`.
 const FLOOR_INTEGRITY = ["asserted", "custody-trusted", "unasserted-ok", "unasserted-refuse", "violated"];
+// FAFF-1072: dispatch-state fact for the merge floor's branch-6 (absent custody declaration).
+// Mirrors laneBoundaryDispatchState (merge-gate.js): a run merges either above a dispatch cut
+// (detective custody owns it), with no cut (the self-consistency stamp owns it), or with a
+// present-but-broken boundary (indeterminate — refused upstream by evaluateCustody before the
+// floor is folded, so it never reaches the predicate below as a merge-floor pass).
+const DISPATCH_STATES = ["dispatched", "absent", "indeterminate"];
+// FAFF-1072: the shared predicate the interactive custody stamp AND the merge-floor branch-6
+// consumer both key on — replacing the old `level === "L4"` activation with the run facts the
+// stamp actually protects: an UNATTENDED run merging in-session with NO dispatch cut above it to
+// provide detective custody. Pure: `unattended` is the attendedness fact (computed by the caller
+// from the committed anchor level + config, never here); `dispatchState` is the Fact-C value
+// above. A dispatched run is exempt (detective custody owns it); an indeterminate dispatch is
+// refused upstream (evaluateCustody), so `=== "absent"` is the only case that blocks.
+function requiresSelfConsistencyStamp(unattended, dispatchState) {
+  return !!unattended && dispatchState === "absent";
+}
 // FAFF-828: the Commissaire protected-effect decision leg — the worked chokepoint (merge-gate)
 // feeds a THREE-state signal, not two. "not-applicable" (the common case: an ordinary merge the
 // external Commissaire facade never governed — no admitted producer, no schema:3 decision context)
@@ -2333,8 +2349,22 @@ function computeIntegrityFloor(extraction) {
   // (blocks), below L4 → unasserted-ok (no-op) — the opposite polarity from a permissive default (which
   // was exactly finding F2). A present-but-out-of-enum value is a shell bug → fail-loud (exit 2), never
   // coerced. The value forwards into `f`, so decideFloor's `violated`/`unasserted-refuse` blockers reach.
+  // FAFF-1072: the new-fact inputs the absent-integrity default below keys on. Validated fail-loud
+  // when present (same posture as the other fields); when absent they default so every pre-1072
+  // extraction is byte-for-byte unaffected — `unattended` defaults L4-aware (L4 is unattended by
+  // construction), `dispatch_state` defaults fail-closed to "absent" (require the guard when the
+  // caller could not prove a dispatch cut). Only read on the absent-integrity branch.
+  if (e.unattended !== undefined && typeof e.unattended !== "boolean") return { contractData: null, failLoud: "unattended must be a boolean" };
+  if (e.dispatch_state !== undefined && !DISPATCH_STATES.includes(e.dispatch_state)) return { contractData: null, failLoud: `dispatch_state ${JSON.stringify(e.dispatch_state)} not in {${DISPATCH_STATES.join(",")}}` };
+  const unattended = e.unattended === undefined ? (e.level === "L4") : e.unattended;
+  const dispatch_state = e.dispatch_state === undefined ? "absent" : e.dispatch_state;
   let integrity = e.integrity;
-  if (integrity === undefined) integrity = e.level === "L4" ? "unasserted-refuse" : "unasserted-ok";
+  // FAFF-1072: the absent-integrity default keys on the run FACTS, not the L4 label — block
+  // (require a custody stamp) exactly where the interactive custody stamp fires: an unattended run
+  // merging with no dispatch cut. Byte-identical to the old `level === "L4"` default for every
+  // pre-1072 extraction (L4 ⇒ unattended:true + dispatch_state:"absent" ⇒ refuse; below-L4 ⇒
+  // unattended:false ⇒ ok), and now also covers the unattended top-level L3 cell.
+  if (integrity === undefined) integrity = requiresSelfConsistencyStamp(unattended, dispatch_state) ? "unasserted-refuse" : "unasserted-ok";
   else if (!FLOOR_INTEGRITY.includes(integrity)) return { contractData: null, failLoud: `integrity ${JSON.stringify(integrity)} not in {${FLOOR_INTEGRITY.join(",")}}` };
   // FAFF-828: the Commissaire decision leg. Absent → "not-applicable" (a plain no-op — an ordinary
   // ungoverned merge), so every extraction that never set it is byte-for-byte unaffected. A
@@ -2412,6 +2442,15 @@ const CONTRACTS = {
       { name: "fail-loud-bad-level", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L9", holdout: "not-applicable" }, wantExit: 2 },
       { name: "fail-loud-non-boolean-ac", in: { ac_complete: "yes", review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+      // FAFF-1072: the absent-integrity default now keys on the run facts (unattended ∧ not-dispatched),
+      // not the L4 label. All fixtures above are byte-for-byte unaffected (L4 ⇒ unattended:true +
+      // dispatch_state:"absent" ⇒ refuse; below-L4 ⇒ unattended:false ⇒ ok); these add the new cells.
+      { name: "l3-unattended-top-level-absent-integrity-refuses", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", unattended: true, dispatch_state: "absent" }, wantExit: 1 },
+      { name: "l3-unattended-dispatched-absent-integrity-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", unattended: true, dispatch_state: "dispatched" }, wantExit: 0 },
+      { name: "l3-attended-top-level-absent-integrity-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", unattended: false, dispatch_state: "absent" }, wantExit: 0 },
+      { name: "l4-dispatched-absent-integrity-ok-detective-owns-it", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "meets-spec", unattended: true, dispatch_state: "dispatched" }, wantExit: 0 },
+      { name: "fail-loud-bad-unattended", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", unattended: "yes" }, wantExit: 2 },
+      { name: "fail-loud-bad-dispatch-state", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", dispatch_state: "maybe" }, wantExit: 2 },
     ],
   },
   "spec-readiness": {
@@ -3510,4 +3549,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_DEPENDENCY_GATES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, DISPATCH_STATES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_DEPENDENCY_GATES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, requiresSelfConsistencyStamp, resolveGateLevel };

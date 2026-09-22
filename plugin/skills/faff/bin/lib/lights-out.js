@@ -45,6 +45,9 @@ const { containerCheck, hostSocketProbe, realFsq } = require("./container-check"
 const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendEventRecord, appendRecordUnderLock, emitGenesisRunStart } = require("./events");
+// FAFF-1077: observeForgeMerge is factored into the shared forge-merge module (imported by the
+// merge-order interlock in merge-gate.js too); lights-out's resume reconcile keeps calling it here.
+const { observeForgeMerge } = require("./forge-merge");
 const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
@@ -1584,20 +1587,6 @@ function writeSpecReviewResumeHold(root, issue, nowIso, prevFp, newFp) {
   } catch { /* best-effort; a failed hold write leaves the cleared park to re-admit via faff next on the next drain */ }
 }
 
-// Observe a PR's live merge state from the forge (best-effort). Returns the reconcile
-// `observed` shape { pr_merged, merged_head_sha }. No merge-record or no gh ⇒ not-merged
-// (fail-closed → the issue parks rather than skipping unproven).
-function observeForgeMerge(recorded) {
-  if (!recorded || recorded.pr == null) return { pr_merged: false, merged_head_sha: null };
-  try {
-    const r = spawnSync("gh", ["pr", "view", String(recorded.pr), "--json", "state,mergeCommit"], { encoding: "utf8" });
-    if (r.status !== 0 || !r.stdout) return { pr_merged: false, merged_head_sha: null };
-    const j = JSON.parse(r.stdout);
-    const merged = j.state === "MERGED";
-    return { pr_merged: merged, merged_head_sha: merged && j.mergeCommit ? j.mergeCommit.oid : null };
-  } catch { return { pr_merged: false, merged_head_sha: null }; }
-}
-
 // Does a build-complete-recorded branch still resolve on the forge? A gh/git failure is
 // fail-closed to "missing" (the issue parks rather than a silent duplicate rebuild).
 function branchExistsOnForge(branch) {
@@ -2266,6 +2255,6 @@ function lightsOutSelftest() {
 // FAFF-820: gatherResumeEvidence is exported (read-only — no ledger/owner-state write)
 // so bundle-recover.js's preview_resume can reuse the SAME evidence gatherer
 // resumeLightsOut uses, rather than fork a second read of build-progress.json/
-// merge-record.json/the forge. observeForgeMerge/branchExistsOnForge stay private —
-// gatherResumeEvidence is the one call-site that needs them.
+// merge-record.json/the forge. branchExistsOnForge stays private, and observeForgeMerge now
+// lives in the shared forge-merge module (FAFF-1077) — gatherResumeEvidence imports it.
 module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, VETTED_RECIPES, checkWorktreeIsolation, claimRunDir, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, gatherResumeEvidence, guardrailReachable, isAdversarial, isStrictlyUnderRoot, guardrailClaim, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutRechecked, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, prdRootContainerFromFlags, reEntryVerdictForParked, reconsiderParkedItems, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

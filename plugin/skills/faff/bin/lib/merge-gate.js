@@ -49,6 +49,9 @@ const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commis
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
+// FAFF-1077: the stacked-dependency merge-order interlock observes the dependency PR through the
+// shared forge-merge primitive (the SAME read lights-out's resume reconcile uses).
+const { observeForgeMerge } = require("./forge-merge");
 
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
 // untrusted free-text reaches the merge shell (the caller is always graft / the default ship
@@ -1134,6 +1137,98 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   return emit(result, 0);
 }
 
+// FAFF-1077 — read the branch-stacked dependent's HEAD-SHA-PINNED stack anchor via git-show on the
+// local object store (the committed-anchor pattern, same as resolveAnchorLevel's primary read). A
+// MISSING anchor is the common case and resolves { present:false } — the interlock then returns
+// dependency_gate "not-applicable", byte-identical to a non-stacked merge. A present-but-malformed
+// anchor or one missing parent_pr/parent_branch is a bug → the caller fails loud (a stack needs a
+// forge parent). No Contents-API fallback: the merge locus runs from D's build checkout, so the
+// pushed head object is always local; a pure-remote invocation with no local object is not stacking.
+function readStackAnchor(cwd, runDir, issue, headSha) {
+  const anchorPath = `.faff/anchors/${path.basename(runDir)}/${issue}/stack-parent.json`;
+  const r = gitRun(cwd, ["show", `${headSha}:${anchorPath}`]);
+  if (!r.ok) return { present: false };
+  let parsed;
+  try { parsed = JSON.parse(r.stdout); } catch { return { present: true, malformed: true }; }
+  if (!parsed || typeof parsed !== "object" || parsed.parent_pr == null || !parsed.parent_branch) {
+    return { present: true, malformed: true };
+  }
+  return { present: true, anchor: parsed };
+}
+
+// PURE (FAFF-1077) — map the stacked-dependency observation onto the dependency_gate leg plus an
+// optional owner-park intent. Keeping the DECISION pure makes the two owner-park outcomes (the
+// dependency PR closed-unmerged, and a rebase conflict) born-verifiable without a live forge/git.
+//   obsState: the forge PR state (OPEN | CLOSED | MERGED) or null (a transient/unreadable read)
+//   rebaseOutcome: null (dependency not merged, no rebase attempted) | "ok" | "conflict"
+// The gate is ADDITIVE by construction — every path returns "satisfied" or "blocked", never a leg
+// that could remove an existing floor blocker. merge-gate NEVER parks (it returns only refuse /
+// merge-ok), so a `park` intent is surfaced upward for the owning layer (the concurrency occupant /
+// faff-graft Step 10, via faffter-noon-ship's delivery-outcome vocabulary) to enact.
+function classifyDependencyGate(parentIssue, parentPr, obsState, rebaseOutcome) {
+  if (obsState === "MERGED") {
+    if (rebaseOutcome === "conflict") {
+      return { gate: "blocked", park: { cause: `stacked dependent rebase --onto main conflicted after dependency ${parentIssue} merged — a rebase conflict is not an obvious fix (FAFF-1077)`, reconsider: "human" } };
+    }
+    return { gate: "satisfied", park: null };
+  }
+  if (obsState === "CLOSED") {
+    return { gate: "blocked", park: { cause: `stacked dependency ${parentIssue} PR #${parentPr} closed without merging — the dependent's base is dead (FAFF-1077)`, reconsider: "human" } };
+  }
+  if (obsState === null) {
+    return { gate: "blocked", park: null, note: "stacked dependency PR state unreadable (forge blip) — refusing this attempt, retry later (no park)" };
+  }
+  return { gate: "blocked", park: null, note: "stacked dependency PR not yet merged — the dependent stays pr-open" };
+}
+
+// FAFF-1077 — the bounded rebase-on-merge. Once the dependency merged, the dependent's branch still
+// carries the dependency's original commits; replay ONLY the dependent's own commits (those after
+// the recorded pinned tip SHA) onto the true updated main, so its final diff is dependent-only and
+// correct even under squash-merge (where the dependency's originals are absent from main). ONE
+// attempt is the bound: a conflict aborts and returns "conflict" (the caller surfaces a park
+// intent), never retried. Success force-pushes with lease and returns the advanced head sha.
+function boundedRebaseOntoMain(cwd, anchor, headShaBefore) {
+  const base = resolveLocalBase(cwd, null);
+  if (!base) return { outcome: "conflict" };
+  const dBranchRes = gitRun(cwd, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  const branch = dBranchRes.ok && dBranchRes.stdout ? dBranchRes.stdout : "HEAD";
+  gitRun(cwd, ["fetch", "-q", "origin", base], 60000);
+  const rb = gitRun(cwd, ["rebase", "--onto", `origin/${base}`, anchor.parent_tip_sha, branch], 120000);
+  if (!rb.ok) { gitRun(cwd, ["rebase", "--abort"]); return { outcome: "conflict" }; }
+  const after = gitRun(cwd, ["rev-parse", "HEAD"]);
+  const headSha = after.ok && after.stdout ? after.stdout : headShaBefore;
+  if (headSha !== headShaBefore) {
+    const push = gitRun(cwd, ["push", "--force-with-lease", "origin", branch], 60000);
+    if (!push.ok) return { outcome: "conflict" };
+  }
+  return { outcome: "ok", headSha };
+}
+
+// FAFF-1077 — the merge-order interlock, wired into cmdMergeGate. Reads D's stack anchor, observes
+// the dependency's PR merge state, and (once the dependency merged) runs the bounded rebase before
+// contributing the dependency_gate leg. Returns { gate, park, note, headSha?, failLoud? }: `gate`
+// feeds decideFloor; `park` is the owner-park intent (never enacted here); `headSha` is the advanced
+// head after a successful rebase (the caller re-observes CI on it). ADDITIVE only — it can push the
+// blocker leg or the satisfied leg, never remove a floor blocker.
+function dependencyInterlock({ cwd, runDir, issue, headSha }) {
+  const st = readStackAnchor(cwd, runDir, issue, headSha);
+  if (!st.present) return { gate: "not-applicable", park: null };
+  if (st.malformed) {
+    return { failLoud: `faff merge-gate: stack anchor for ${issue} at head ${headSha} is malformed or missing parent_pr/parent_branch (FAFF-1077) — a stack needs a forge parent\n` };
+  }
+  const anchor = st.anchor;
+  const obs = observeForgeMerge({ pr: anchor.parent_pr });
+  let rebaseOutcome = null;
+  let newHead = null;
+  if (obs.state === "MERGED") {
+    const rb = boundedRebaseOntoMain(cwd, anchor, headSha);
+    rebaseOutcome = rb.outcome;
+    if (rb.outcome === "ok" && rb.headSha) newHead = rb.headSha;
+  }
+  const c = classifyDependencyGate(anchor.parent_issue, anchor.parent_pr, obs.state, rebaseOutcome);
+  return { gate: c.gate, park: c.park || null, note: c.note || null, headSha: newHead || null };
+}
+
 function cmdMergeGate(args) {
   if (args.includes("--selftest")) return mergeGateSelftest();
   const parsed = parseArgs(args, MERGE_GATE_SPEC);
@@ -1277,6 +1372,16 @@ function cmdMergeGate(args) {
     return alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity);
   }
 
+  // FAFF-1077: the stacked-dependency merge-order interlock. ADDITIVE — it can only push the
+  // dependency_gate blocker (the dependency's PR unmerged) or contribute the satisfied leg (the
+  // dependency merged → rebase D onto the true main). It NEVER parks; the two owner-park outcomes
+  // (dependency closed-unmerged, rebase conflict) ride out on result.dependency_park for the
+  // owning layer (concurrency occupant / faff-graft Step 10 via the delivery-outcome vocabulary)
+  // to enact. A missing stack anchor resolves not-applicable — byte-identical to today.
+  const interlock = dependencyInterlock({ cwd, runDir, issue, headSha });
+  if (interlock.failLoud) { process.stderr.write(interlock.failLoud); return 2; }
+  if (interlock.headSha) headSha = interlock.headSha; // a successful rebase advanced D's head
+
   const ci = observeCi(repo, pr, headSha);
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
@@ -1288,9 +1393,14 @@ function cmdMergeGate(args) {
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
     decision_grant: resolveCommissaireDecisionGrant(runDir, issue, null),
+    dependency_gate: interlock.gate,
   };
   const { verdict, blockers } = decideFloor(floor);
   const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display };
+  // FAFF-1077: surface the interlock's owner-park intent (never enacted here) and any transient
+  // note so the owning layer can escalate a "leave pr-open" refuse to a park at the merge locus.
+  if (interlock.park) { result.dependency_park = interlock.park; result.remedy = `park the dependent: ${interlock.park.cause}`; }
+  if (interlock.note) result.dependency_note = interlock.note;
 
   if (verdict === "refuse") {
     if (interactive && acceptReviewUnavailable) {
@@ -1545,6 +1655,19 @@ function mergeGateSelftest() {
   check("integrity: violated at L4 → refuse too", F({ level: "L4", holdout: "meets-spec", integrity: "violated" }).verdict === "refuse");
   check("integrity: violated names the FAFF-325 blocker", /corrective-artifact integrity violated/.test(F({ integrity: "violated" }).blockers.join(" ")));
   check("integrity: unasserted-refuse names the FAFF-325 blocker", /unasserted at L4/.test(F({ level: "L4", holdout: "meets-spec", integrity: "unasserted-refuse" }).blockers.join(" ")));
+  // FAFF-1077 dependency_gate leg: absent/not-applicable/satisfied never block; blocked refuses.
+  check("dependency_gate: undefined (unset) → no-op, all-green still merge-ok", F({}).verdict === "merge-ok");
+  check("dependency_gate: not-applicable → merge-ok", F({ dependency_gate: "not-applicable" }).verdict === "merge-ok");
+  check("dependency_gate: satisfied → merge-ok", F({ dependency_gate: "satisfied" }).verdict === "merge-ok");
+  check("dependency_gate: blocked → refuse", F({ dependency_gate: "blocked" }).verdict === "refuse");
+  check("dependency_gate: blocked names the FAFF-1077 blocker", /stacked dependency PR not yet merged/.test(F({ dependency_gate: "blocked" }).blockers.join(" ")));
+  // FAFF-1077 classifyDependencyGate (pure, born-verifiable): the two owner-park outcomes carry a
+  // park intent + reconsider:human; open/transient block without a park; merged+ok is satisfied.
+  check("classifyDependencyGate: dependency OPEN → blocked, no park", (() => { const c = classifyDependencyGate("B", 7, "OPEN", null); return c.gate === "blocked" && !c.park; })());
+  check("classifyDependencyGate: dependency MERGED + rebase ok → satisfied", (() => { const c = classifyDependencyGate("B", 7, "MERGED", "ok"); return c.gate === "satisfied" && !c.park; })());
+  check("classifyDependencyGate: dependency MERGED + rebase conflict → blocked + park:human", (() => { const c = classifyDependencyGate("B", 7, "MERGED", "conflict"); return c.gate === "blocked" && c.park && c.park.reconsider === "human"; })());
+  check("classifyDependencyGate: dependency CLOSED-unmerged → blocked + dead-base park:human", (() => { const c = classifyDependencyGate("B", 7, "CLOSED", null); return c.gate === "blocked" && c.park && /base is dead/.test(c.park.cause) && c.park.reconsider === "human"; })());
+  check("classifyDependencyGate: unreadable (null) → blocked, no park (transient)", (() => { const c = classifyDependencyGate("B", 7, null, null); return c.gate === "blocked" && !c.park && /forge blip/.test(c.note); })());
   // resolveIntegrity (FAFF-325): pure-enough to drive with a synthetic fsq (no real /proc/1/environ
   // dependency) — proves the L4 branch is keyed on the SAME reconciled `level` as holdout, never a
   // second, divergent source, and that a violation basis always yields "violated" regardless of level.
@@ -2161,4 +2284,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

@@ -41,7 +41,7 @@ The single canonical definition of the **type-appropriate templates** that `/faf
 ```
 resolve_native_template(type):        # → FieldSequence | MISS
   m := run `faff native-map get --type <type> --json`   # pure CLI; never errors on absence
-  IF m.mapping == null: RETURN MISS                      # no tier-1 entry → tier 2
+  IF m has no `id` (a miss prints {type, mapping:null}; a hit prints {type, id, name}): RETURN MISS   # no tier-1 entry → tier 2
   tmpl := get_template(id = m.id)                        # orchestrator-lane MCP read (jot/plot's MCP lane)
   IF tmpl empty / not found (stale id, renamed/deleted): # OR an MCP timeout/absent connector
      REPORT stale mapping naming type + m.id + m.name    # extends "log the skipped override" (below)

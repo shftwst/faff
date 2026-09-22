@@ -2263,6 +2263,15 @@ const FLOOR_INTEGRITY = ["asserted", "custody-trusted", "unasserted-ok", "unasse
 // "not-applicable" — a plain no-op, so every pre-existing caller/merge is byte-for-byte unaffected
 // (this is the E-B raise WITHOUT touching merges the facade never governed).
 const FLOOR_DECISION_GRANTS = ["not-applicable", "valid-grant", "absent-or-invalid"];
+// FAFF-1077: the stacked-dependency merge-order interlock leg — the additive gate that keeps a
+// branch-stacked dependent D from merging before its dependency B's PR merges. Three states,
+// mirroring decision_grant's polarity: "not-applicable" (ABSENT default — no stack anchor, an
+// ordinary merge, byte-for-byte unaffected) and "satisfied" (B's PR observed MERGED and D rebased
+// onto the true main) never block; only "blocked" (B's PR still open/unmerged, or closed without
+// merging) refuses D's merge. Absent from an extraction it defaults to "not-applicable", so every
+// pre-existing caller/merge that never set it is byte-for-byte unaffected. It only ever ADDS a
+// refusal — never removes one — so a stacked D is strictly MORE gated than today, never less.
+const FLOOR_DEPENDENCY_GATES = ["not-applicable", "satisfied", "blocked"];
 
 // PURE: FloorInputs -> { verdict, blockers }. Same inputs, same verdict — the whole point of the
 // ticket. Every failing leg is reported (never just the first) so a refuse names all its causes.
@@ -2287,6 +2296,7 @@ function decideFloor(f) {
   if (f.integrity === "violated") blockers.push("corrective-artifact integrity violated (FAFF-325): the FAFF_INTEGRITY_BOUNDARY attestation failed verification (forged/tampered) — refused at every level");
   if (f.integrity === "unasserted-refuse") blockers.push("corrective-artifact integrity unasserted at L4 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)");
   if (f.decision_grant === "absent-or-invalid") blockers.push("Commissaire protected-effect decision absent or invalid for a governed effect (FAFF-828): the chokepoint could not verify a covering Ed25519-signed grant — refused before the effect");
+  if (f.dependency_gate === "blocked") blockers.push("stacked dependency PR not yet merged (FAFF-1077): a branch-stacked dependent must not merge before its dependency's PR merges");
   return { verdict: blockers.length === 0 ? "merge-ok" : "refuse", blockers };
 }
 
@@ -2332,7 +2342,14 @@ function computeIntegrityFloor(extraction) {
   let decision_grant = e.decision_grant;
   if (decision_grant === undefined) decision_grant = "not-applicable";
   else if (!FLOOR_DECISION_GRANTS.includes(decision_grant)) return { contractData: null, failLoud: `decision_grant ${JSON.stringify(decision_grant)} not in {${FLOOR_DECISION_GRANTS.join(",")}}` };
-  const f = { ac_complete: e.ac_complete, review_verdict: e.review_verdict, ci_state: e.ci_state, head_sha_matches: e.head_sha_matches, level: e.level, holdout: e.holdout, no_ci_policy, integrity, decision_grant };
+  // FAFF-1077: the stacked-dependency interlock leg. Absent → "not-applicable" (a plain no-op — an
+  // ordinary non-stacked merge), so an extraction that never set it is byte-for-byte unaffected. A
+  // present-but-out-of-enum value is a shell bug → fail-loud (never coerced), same posture as the
+  // integrity/decision_grant siblings.
+  let dependency_gate = e.dependency_gate;
+  if (dependency_gate === undefined) dependency_gate = "not-applicable";
+  else if (!FLOOR_DEPENDENCY_GATES.includes(dependency_gate)) return { contractData: null, failLoud: `dependency_gate ${JSON.stringify(dependency_gate)} not in {${FLOOR_DEPENDENCY_GATES.join(",")}}` };
+  const f = { ac_complete: e.ac_complete, review_verdict: e.review_verdict, ci_state: e.ci_state, head_sha_matches: e.head_sha_matches, level: e.level, holdout: e.holdout, no_ci_policy, integrity, decision_grant, dependency_gate };
   const { verdict, blockers } = decideFloor(f);
   return { contractData: { verdict, ci_state: f.ci_state, level: f.level, conformant: verdict === "merge-ok", violations: blockers }, failLoud: null };
 }
@@ -2382,6 +2399,15 @@ const CONTRACTS = {
       { name: "decision-grant-valid-merge-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", decision_grant: "valid-grant" }, wantExit: 0 },
       { name: "decision-grant-absent-or-invalid-refuses", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", decision_grant: "absent-or-invalid" }, wantExit: 1 },
       { name: "fail-loud-bad-decision-grant", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", decision_grant: "maybe" }, wantExit: 2 },
+      // FAFF-1077: the stacked-dependency interlock leg. Absent defaults to not-applicable (a no-op —
+      // an ordinary non-stacked merge is byte-for-byte unaffected — the decidability property the
+      // byte-identical-when-absent DoD item pins); satisfied passes; only blocked refuses; an
+      // out-of-enum value fails loud.
+      { name: "dependency-gate-absent-is-a-no-op", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 0 },
+      { name: "dependency-gate-not-applicable-merge-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", dependency_gate: "not-applicable" }, wantExit: 0 },
+      { name: "dependency-gate-satisfied-merge-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", dependency_gate: "satisfied" }, wantExit: 0 },
+      { name: "dependency-gate-blocked-refuses", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", dependency_gate: "blocked" }, wantExit: 1 },
+      { name: "fail-loud-bad-dependency-gate", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", dependency_gate: "maybe" }, wantExit: 2 },
       { name: "fail-loud-bad-ci-state", in: { ac_complete: true, review_verdict: "pass", ci_state: "greenish", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 2 },
       { name: "fail-loud-bad-level", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L9", holdout: "not-applicable" }, wantExit: 2 },
       { name: "fail-loud-non-boolean-ac", in: { ac_complete: "yes", review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 2 },
@@ -2898,10 +2924,16 @@ const CONTRACT_DESCRIBES = {
         "valid-grant": "a chokepoint verified a genuine covering Ed25519-signed Commissaire decision — passes the decision leg",
         "absent-or-invalid": "governance applies but the grant is missing/forged/non-covering — blocks the effect before it happens",
       } },
+      { field: "dependency_gate", enum: FLOOR_DEPENDENCY_GATES, semantics: {
+        "not-applicable": "no stack anchor — an ordinary non-stacked merge (FAFF-1077); the decision leg is a no-op; the default when absent",
+        satisfied: "the branch-stacked dependent's dependency PR is MERGED and the dependent was rebased onto the true main — passes the interlock",
+        blocked: "the dependency PR is still open/unmerged (or closed without merging) — refuses the dependent's merge so it never lands before its dependency",
+      } },
     ],
     coercions: [
-      "an out-of-enum review_verdict, ci_state, level, holdout, no_ci_policy, or decision_grant → fail-loud (exit 2) — a shell bug producing an unrecognised state is never coerced into a decidable input",
+      "an out-of-enum review_verdict, ci_state, level, holdout, no_ci_policy, decision_grant, or dependency_gate → fail-loud (exit 2) — a shell bug producing an unrecognised state is never coerced into a decidable input",
       "an absent decision_grant defaults to not-applicable (a no-op) — an ordinary merge is byte-for-byte unaffected by the FAFF-828 decision leg",
+      "an absent dependency_gate defaults to not-applicable (a no-op) — a non-stacked merge is byte-for-byte unaffected by the FAFF-1077 interlock leg",
       "any blocker present → refuse (exit 1); zero blockers → merge-ok (exit 0)",
     ],
     producer_notes: ["`faff merge-gate` gathers FloorInputs impurely (observed CI, on-disk artifacts) and calls this PURE decision core (decideFloor) — the core itself never observes CI or reads a file."],
@@ -3478,4 +3510,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_DEPENDENCY_GATES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

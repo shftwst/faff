@@ -1,5 +1,9 @@
 // ===========================================================================
 // === region:factory — native-map — FAFF-1081: the pure faff-type→template-identity writer ===
+//   native-map get [--type <t>] [--json] [--root DIR]   (FAFF-1083: the pure, offline reader —
+//     returns { type, id, name } for a mapped type, { type, mapping:null } for an unmapped one,
+//     or the whole { tracker, team_key, mappings } map; absence/malformed → exit 0, never throws.
+//     The create-skill's MCP lane calls this for the id, then fetches the body via get_template.)
 //   native-map set --team <key> --tracker <token> [--dry-run] [--force] [--json] [--root DIR]
 //     confirmed pairs arrive as JSON on STDIN — deliberately NOT a `<type>=<id>:<name>`
 //     colon grammar (a tracker template name may contain colons/newlines, so a delimiter
@@ -48,6 +52,7 @@ const NATIVE_MAP_SPEC = {
   flags: {
     "--team": { arity: 1 },
     "--tracker": { arity: 1 },
+    "--type": { arity: 1 },
     "--dry-run": { arity: 0 },
     "--force": { arity: 0 },
     "--json": { arity: 0 },
@@ -57,10 +62,15 @@ const NATIVE_MAP_SPEC = {
   positionals: { min: 0, max: 1, name: "verb" },
 };
 
+// `--type` is a get-only flag: it lives in the shared spec so parseArgs accepts it before
+// dispatch, but `set` refuses it explicitly (cmdNativeMapSet) so it is never accepted-but-ignored.
 const NATIVE_MAP_SURFACE = {
   kind: "subcommand_dispatch",
   spec: NATIVE_MAP_SPEC,
-  subcommands: { set: { required_flags: ["--team", "--tracker"] } },
+  subcommands: {
+    set: { required_flags: ["--team", "--tracker"] },
+    get: { required_flags: [] },
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -191,6 +201,10 @@ function verifyRoundTrip(text, tracker, teamKey, mappings) {
 // ---------------------------------------------------------------------------
 
 function cmdNativeMapSet(values, root) {
+  if (values["--type"] !== undefined) {
+    process.stderr.write("faff native-map set: --type is a `get`-only flag and is not accepted by `set`\n");
+    return 2;
+  }
   const team = values["--team"];
   const tracker = values["--tracker"];
   if (!nonEmptyString(team)) { process.stderr.write("faff native-map set: --team <team_key> is required\n"); return 2; }
@@ -254,6 +268,74 @@ function cmdNativeMapSet(values, root) {
 }
 
 // ---------------------------------------------------------------------------
+// The `get` reader subcommand — PURE, offline: reads the committed map through the same
+// parseYamlSubset/dig the writer round-trip-verifies against. NO MCP, network, or git. Never
+// throws on absence: a missing / unreadable / malformed map, or a type with no entry, is a clean
+// "no mapping" at exit 0. Only a `--type` outside the closed taxonomy is a usageError (exit 2),
+// mirroring the writer's unknown-type refusal. The create-skill's MCP lane calls this for the id,
+// then fetches the body via get_template itself (create.md tier 1); the CLI stays MCP-free.
+// ---------------------------------------------------------------------------
+
+const NATIVE_MAP_GET_USAGE =
+  "usage: faff native-map get [--type <bug|feature|spike|chore|epic|default>] [--json] [--root DIR]";
+
+// Emit the "no tier-1 candidate" signal. With --type: { type, mapping: null }; without: the empty
+// whole-map shape { mappings: {} }. Non-json is a short human line. Always exit 0.
+function emitNativeMapGetMiss(type, json) {
+  if (type !== undefined) {
+    if (json) console.log(JSON.stringify({ type, mapping: null }));
+    else console.log(`${type}\tno mapping`);
+  } else if (json) {
+    console.log(JSON.stringify({ mappings: {} }));
+  } else {
+    console.log("no mapping");
+  }
+  return 0;
+}
+
+function cmdNativeMapGet(values, root) {
+  const json = !!values["--json"];
+  const type = values["--type"];
+  if (type !== undefined && !FAFF_TYPE_SET.has(type)) {
+    return usageError(
+      [{ code: "bad-enum", flag: "--type", detail: `unknown faff type '${type}'. Accepted: ${FAFF_TYPES.join(", ")}` }],
+      NATIVE_MAP_GET_USAGE,
+    );
+  }
+
+  const targetPath = path.join(root, NATIVE_MAP_REL);
+  let tree = null;
+  try {
+    if (fs.existsSync(targetPath)) tree = parseYamlSubset(fs.readFileSync(targetPath, "utf8"));
+  } catch {
+    tree = null; // unreadable → treated as absent, never a throw
+  }
+  if (tree === null || typeof tree !== "object" || Array.isArray(tree)) {
+    return emitNativeMapGetMiss(type, json);
+  }
+
+  if (type !== undefined) {
+    const id = dig(tree, `mappings.${type}.id`);
+    const name = dig(tree, `mappings.${type}.name`);
+    if (id === null || name === null) return emitNativeMapGetMiss(type, json);
+    if (json) console.log(JSON.stringify({ type, id, name }));
+    else console.log(`${id}\t${name}`);
+    return 0;
+  }
+
+  const rawMap = tree.mappings;
+  const mappings = rawMap !== null && typeof rawMap === "object" && !Array.isArray(rawMap) ? rawMap : {};
+  if (json) {
+    console.log(JSON.stringify({ tracker: dig(tree, "tracker"), team_key: dig(tree, "team_key"), mappings }));
+  } else {
+    const types = Object.keys(mappings);
+    if (!types.length) console.log("no mapping");
+    else for (const t of types) console.log(`${t}\t${dig(mappings, `${t}.id`)}\t${dig(mappings, `${t}.name`)}`);
+  }
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
 // In-memory self-test for the encoder + round-trip contract. Mirrors configSetSelftest's
 // shape: per-case ok/FAIL + a RESULT line, non-zero on any fail. The injection cases prove a
 // crafted name/id cannot inject a sibling key or corrupt the file structure.
@@ -305,19 +387,21 @@ function nativeMapSelftest() {
 function cmdNativeMap(args) {
   const gate = parseArgs(args, NATIVE_MAP_SPEC);
   if (gate.errors.length) {
-    return usageError(gate.errors, "usage: faff native-map set --team <team_key> --tracker <token> [--dry-run] [--force] [--json] [--root DIR]  (mappings JSON on stdin)");
+    return usageError(gate.errors, "usage: faff native-map set --team <team_key> --tracker <token> [--dry-run] [--force] [--json] [--root DIR]  (mappings JSON on stdin)\n       faff native-map get [--type <faff-type>] [--json] [--root DIR]");
   }
   if (gate.values["--selftest"]) return nativeMapSelftest();
 
   const root = gate.values["--root"] || findRoot();
   const verb = gate.positionals[0];
   if (verb === "set") return cmdNativeMapSet(gate.values, root);
+  if (verb === "get") return cmdNativeMapGet(gate.values, root);
 
-  process.stderr.write("faff native-map: expected the subcommand 'set' (or --selftest)\n");
+  process.stderr.write("faff native-map: expected the subcommand 'set' or 'get' (or --selftest)\n");
   return 2;
 }
 
 module.exports = {
   FAFF_TYPES, NATIVE_MAP_REL, NATIVE_MAP_SPEC, NATIVE_MAP_SURFACE,
-  cmdNativeMap, emitNativeMap, emitEntryLines, expectedReadback, validatePayload, verifyRoundTrip, nativeMapSelftest,
+  cmdNativeMap, cmdNativeMapGet, emitNativeMap, emitEntryLines, emitNativeMapGetMiss,
+  expectedReadback, validatePayload, verifyRoundTrip, nativeMapSelftest,
 };

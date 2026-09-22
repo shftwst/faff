@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -190,4 +190,107 @@ test("native-map set --selftest passes", () => {
   const r = run(dir, ["native-map", "set", "--selftest"]);
   assert.equal(r.code, 0, r.out + r.err);
   assert.match(r.out, /RESULT: PASS/);
+});
+
+// ===========================================================================
+// FAFF-1083 — the `get` reader verb: pure, offline, never-throws-on-absence reader over the
+// same map the `set` writer produced. Real-CLI black-box, mirroring the writer tests above.
+// ===========================================================================
+
+// Write a two-type map via the real writer, then exercise `get` against it.
+function writeMap(dir) {
+  const payload = JSON.stringify({ mappings: {
+    bug: { id: "tmpl_bug_123", name: "Bug Report" },
+    feature: { id: "tmpl_feat_456", name: "Feature Request" },
+  } });
+  const r = run(dir, ["native-map", "set", "--team", "FAFF", "--tracker", "linear"], payload);
+  assert.equal(r.code, 0, r.err);
+}
+
+test("get --type <mapped> --json → { type, id, name }, exit 0", () => {
+  const dir = tmpDir();
+  writeMap(dir);
+  const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), { type: "bug", id: "tmpl_bug_123", name: "Bug Report" });
+});
+
+test("get --type <unmapped> --json → { type, mapping:null }, exit 0", () => {
+  const dir = tmpDir();
+  writeMap(dir); // has bug + feature but NOT spike
+  const r = run(dir, ["native-map", "get", "--type", "spike", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), { type: "spike", mapping: null });
+});
+
+test("get (no --type) --json → { tracker, team_key, mappings }, exit 0", () => {
+  const dir = tmpDir();
+  writeMap(dir);
+  const r = run(dir, ["native-map", "get", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), {
+    tracker: "linear",
+    team_key: "FAFF",
+    mappings: {
+      bug: { id: "tmpl_bug_123", name: "Bug Report" },
+      feature: { id: "tmpl_feat_456", name: "Feature Request" },
+    },
+  });
+});
+
+test("get --type against an ABSENT map file → { type, mapping:null }, exit 0, no throw", () => {
+  const dir = tmpDir(); // no .faff-templates written at all
+  const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), { type: "bug", mapping: null });
+});
+
+test("get (no --type) against an ABSENT map file → { mappings:{} }, exit 0, no throw", () => {
+  const dir = tmpDir();
+  const r = run(dir, ["native-map", "get", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), { mappings: {} });
+});
+
+test("get against a MALFORMED/unreadable map → absent-shape, exit 0, no throw", () => {
+  const dir = tmpDir();
+  // A garbage file at the map path parses to no usable mappings → treated as absent.
+  mkdirSync(join(dir, ".faff-templates"), { recursive: true });
+  writeFileSync(join(dir, MAP_REL), ":\n\t- [not valid structure}\n::::\n");
+  const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), { type: "bug", mapping: null });
+
+  // An UNREADABLE map (a directory where the file is expected → readFileSync throws EISDIR)
+  // degrades identically, never a throw.
+  const dir2 = tmpDir();
+  mkdirSync(join(dir2, MAP_REL), { recursive: true });
+  const r2 = run(dir2, ["native-map", "get", "--json"]);
+  assert.equal(r2.code, 0, r2.err);
+  assert.deepEqual(JSON.parse(r2.out), { mappings: {} });
+});
+
+test("get --type outside the closed taxonomy → usageError, exit 2", () => {
+  const dir = tmpDir();
+  writeMap(dir);
+  const r = run(dir, ["native-map", "get", "--type", "banana", "--json"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /unknown faff type 'banana'/);
+});
+
+test("--type is get-only: `set` refuses it (never accepted-but-ignored)", () => {
+  const dir = tmpDir();
+  const r = run(dir, ["native-map", "set", "--team", "FAFF", "--tracker", "linear", "--type", "bug"],
+    JSON.stringify({ mappings: { bug: { id: "t1", name: "Bug" } } }));
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--type/);
+  assert.equal(existsSync(join(dir, MAP_REL)), false, "set must not write when it refuses --type");
+});
+
+test("get non-json hit prints a tab-separated id/name line", () => {
+  const dir = tmpDir();
+  writeMap(dir);
+  const r = run(dir, ["native-map", "get", "--type", "bug"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out.trim(), "tmpl_bug_123\tBug Report");
 });

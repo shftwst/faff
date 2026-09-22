@@ -34,6 +34,8 @@ const CONTROL_LABEL_DEFS = [
     description: "faff set this issue's In Progress claim; eligible for stale-claim reclaim (FAFF-758). Applied by faff-graft at the Step-5 claim, cleared by faff-graft (on terminal disposition and the FAFF-403 retry-later release) or faff-tidy (state-driven stale-label sweep). Its presence is the PROVENANCE that lets tidy auto-reclaim a stale (past claim_ttl_hours) claim — a claim WITHOUT it is human-set or unprovable and is only surfaced, never reverted. Machine-writable like the parked/awaiting-review labels (no tracker_owned flag), NOT an eligibility throttle." },
   { role: "awaiting-adjudication", color: "#f2c94c",
     description: "Built work holding for a build-review dialogue-or-judge pass still pending across turns; the next drain resumes the dialogue loop at its stashed round (no rebuild). Applied by faff-graft, cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear). NOT a park (the parked label) and NOT the review-outage awaiting-review hold — a distinct build-review-dialogue hold (FAFF-996)." },
+  { role: "stacked", color: "#56ccf2",
+    description: "faff built this dependent on an unmerged dependency's branch (FAFF-1077 branch-stacking) and its PR is open; the merge-order interlock holds its merge until the dependency's PR merges. Applied by the concurrency occupant when the dependent is stacked-and-open; cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear). Machine-writable (no tracker_owned flag), NOT an eligibility throttle. Surfaced by /faff-wtf so a stacked-pending dependent is legible." },
 ];
 
 // Pure factory: no config read, no fs. `name` is computed per entry; `role` / `color` /
@@ -50,8 +52,8 @@ function controlLabels(prefix = "faff") {
 // description pass through unchanged per entry.
 const LABELS_SELFTEST_CASES = [
   // [prefix, expectedNames] — role/color/tracker_owned/description checked structurally below
-  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed", "faff-awaiting-adjudication"]],
-  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed", "sd-awaiting-adjudication"]],
+  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-repeat-parked", "faff-claimed", "faff-awaiting-adjudication", "faff-stacked"]],
+  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-repeat-parked", "sd-claimed", "sd-awaiting-adjudication", "sd-stacked"]],
 ];
 
 function labelsSelftest() {

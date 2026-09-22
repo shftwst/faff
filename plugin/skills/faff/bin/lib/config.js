@@ -209,6 +209,14 @@ const DEFAULTS = {
   // adversarial.* configures the engine call, not loop policy). After this many held
   // drains still unavailable, the arm escalates to the standard needs-human park (never silent-forever).
   "graft.review_outage_retry_limit": "3",
+  // FAFF-1077: opt-in branch-stacking for an in-run dependent whose dependency landed pr-open.
+  // The concurrency occupant READS it (graft owns the worktree/rebase mechanics the knob drives),
+  // in graft's own namespace, mirroring graft.review_outage_retry_limit above. "off" (DEFAULT)
+  // parks the dependent exactly as today — byte-identical: no stack anchor, no faff-stacked label,
+  // no dependency_gate leg, worktrees off origin/<default>. "stack" builds the dependent on the
+  // dependency's branch and arms the merge-order interlock. Any value other than "stack" resolves
+  // to "off" at the reader (the occupant), so a typo fails safe to today's park behaviour.
+  "graft.dependency_wait": "off",
   // FAFF-900: prep's spec-review-outage disposition loop — the prep-altitude twin of
   // graft.review_outage_retry_limit above, in its OWN `prep.*` namespace (prep owns this loop, as
   // graft owns its own). Two SEPARATE ceilings bound two different time-scales:

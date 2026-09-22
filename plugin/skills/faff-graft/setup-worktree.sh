@@ -73,7 +73,23 @@ cd "$CWD" || exit 1
 # `git worktree add`, never a silent fall-back to stale HEAD. With no `origin` we keep the git-only
 # HEAD base here (a fresh branch off the invoking checkout) — remote-diff-base.sh's git-only
 # local-default output is for graft's diffs, not provisioning, so it is intentionally not used here.
-if git remote get-url origin >/dev/null 2>&1; then
+# FAFF-1077: a caller-supplied base override (branch-stacking). When FAFF_WORKTREE_BASE_REF is set
+# and non-empty the dependent's worktree branches off exactly that ref, verbatim — never re-resolved
+# via remote-diff-base.sh. The stacking occupant resolves the dependency's pinned tip commit SHA
+# ONCE and threads that same SHA into both the stack anchor and this base, so the later
+# `git rebase --onto <pinned-sha>` is provably correct (the tip-SHA-race fix). Fetch so a pushed
+# tip is present locally, verify the ref resolves to a commit, and fail loud otherwise — never a
+# silent fall-back to HEAD. This branch is consumed BEFORE the origin resolution below so an explicit
+# base is honoured without a wasted remote-diff-base.sh round-trip.
+if [ -n "${FAFF_WORKTREE_BASE_REF:-}" ]; then
+  BASE_REF="$FAFF_WORKTREE_BASE_REF"
+  git fetch -q origin >/dev/null 2>&1 || true
+  if ! git rev-parse --verify --quiet "${BASE_REF}^{commit}" >/dev/null 2>&1; then
+    echo "$(date '+%H:%M:%S') [worktree] FATAL: FAFF_WORKTREE_BASE_REF=${BASE_REF} does not resolve to a commit — refusing to branch (never falling back to HEAD)" >&2
+    exit 1
+  fi
+  echo "$(date '+%H:%M:%S') [worktree] basing new branch on ${BASE_REF} (caller-supplied stack base)" >&2
+elif git remote get-url origin >/dev/null 2>&1; then
   BASE_REF=$(bash "$SCRIPT_DIR/remote-diff-base.sh") || {
     echo "$(date '+%H:%M:%S') [worktree] FATAL: could not resolve the fetched remote default base (see remote-diff-base.sh error above) — refusing to branch off stale HEAD" >&2
     exit 1

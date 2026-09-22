@@ -1210,7 +1210,7 @@ function boundedRebaseOntoMain(cwd, anchor, headShaBefore) {
 // feeds decideFloor; `park` is the owner-park intent (never enacted here); `headSha` is the advanced
 // head after a successful rebase (the caller re-observes CI on it). ADDITIVE only — it can push the
 // blocker leg or the satisfied leg, never remove a floor blocker.
-function dependencyInterlock({ cwd, runDir, issue, headSha }) {
+function dependencyInterlock({ cwd, runDir, issue, headSha, mutate = true }) {
   const st = readStackAnchor(cwd, runDir, issue, headSha);
   if (!st.present) return { gate: "not-applicable", park: null };
   if (st.malformed) {
@@ -1220,10 +1220,15 @@ function dependencyInterlock({ cwd, runDir, issue, headSha }) {
   const obs = observeForgeMerge({ pr: anchor.parent_pr });
   let rebaseOutcome = null;
   let newHead = null;
-  if (obs.state === "MERGED") {
+  // The rebase + force-push is a mutation, so it runs only on the execute path. In check-only
+  // (preview) the dependency-merged observation reports "satisfied" without touching D's branch —
+  // a preview never rewrites a branch or force-pushes.
+  if (obs.state === "MERGED" && mutate) {
     const rb = boundedRebaseOntoMain(cwd, anchor, headSha);
     rebaseOutcome = rb.outcome;
     if (rb.outcome === "ok" && rb.headSha) newHead = rb.headSha;
+  } else if (obs.state === "MERGED") {
+    rebaseOutcome = "ok"; // preview: assume the rebase would apply cleanly
   }
   const c = classifyDependencyGate(anchor.parent_issue, anchor.parent_pr, obs.state, rebaseOutcome);
   return { gate: c.gate, park: c.park || null, note: c.note || null, headSha: newHead || null };
@@ -1378,7 +1383,7 @@ function cmdMergeGate(args) {
   // (dependency closed-unmerged, rebase conflict) ride out on result.dependency_park for the
   // owning layer (concurrency occupant / faff-graft Step 10 via the delivery-outcome vocabulary)
   // to enact. A missing stack anchor resolves not-applicable — byte-identical to today.
-  const interlock = dependencyInterlock({ cwd, runDir, issue, headSha });
+  const interlock = dependencyInterlock({ cwd, runDir, issue, headSha, mutate: mode === "execute" });
   if (interlock.failLoud) { process.stderr.write(interlock.failLoud); return 2; }
   if (interlock.headSha) headSha = interlock.headSha; // a successful rebase advanced D's head
 

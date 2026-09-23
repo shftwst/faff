@@ -1,0 +1,8 @@
+{
+  "run_id": "run-20260923-035604-fly-l3",
+  "issue": "FAFF-1092",
+  "head_seq": 18,
+  "head_sha256": "4499af4e3202e8deb61f2db2b2c1e158806304a2239f4da8191ea3324a4e78fe",
+  "line_count": 19,
+  "schema_floor": 2
+}

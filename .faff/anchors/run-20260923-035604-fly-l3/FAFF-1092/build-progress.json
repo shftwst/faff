@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1092",
+  "build": {
+    "status": "complete",
+    "diff_hash": "cc4a19cd171f028fac9af3936ca9fa29fb655f38bdb48b991aba5eae016c9115",
+    "branch": "faff-1092-retire-repeat-parked-label",
+    "pushed_at": "2026-09-23T05:09:06.906Z"
+  },
+  "updated_at": "2026-09-23T05:09:06.906Z"
+}

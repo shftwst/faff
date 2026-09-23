@@ -1,0 +1,65 @@
+[
+  {
+    "claim": "Tier 1 of `create.md` is defined as the *tracker-native* slot, whose load-bearing invariant is \"fill from the tracker's own template body (fetched live), **keeping the tracker as source of truth**.\" The GitHub leg inverts that invariant: its source of truth is the git working tree, not the tracker. The spec's \"asymmetric two-occupant / confirmed-tier vs heuristic-tier\" framing is a post-hoc rationalization that papers over the fact that the slot's own stated purpose no longer holds for one of its two occupants. This is not a naming nit — it changes what \"tier 1\" means for every future reader and for the named extension point (a third occupant), who will inherit a slot whose two occupants obey opposite source-of-truth rules.",
+    "evidence": "`create.md` tier-1 line: \"fill from the tracker's own template body (fetched live), keeping the tracker as source of truth.\" vs. spec WHAT → Design decisions → Detection axis: \"a filesystem check for `.github/ISSUE_TEMPLATE/*.md` … run against the working tree the fill step actually operates in — never gated on `tracking.tracker`'s value.\" The two are in direct tension: one says the tracker is the source of truth, the other says the repo is.",
+    "predicted_consequence": "The first extension (a third occupant, e.g. GitHub issue-forms YAML, which the spec itself names) must decide which source-of-truth rule it obeys, and the slot's own prose gives no answer because its two existing occupants obey opposite rules. The \"declare confirmed-tier or heuristic-tier\" guidance the spec offers addresses *precedence*, not *source-of-truth*, so the extension author is left to re-derive a distinction the slot's defining line already contradicts.",
+    "spec_anchor": "load-bearing-model",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec changes `resolve_native_template`'s signature from `(type)` to `(type, title, description, invocation_mode)`. The Linear leg (the only occupant that existed before this ticket) uses none of the three new parameters. The GitHub leg uses all three. This means the procedure now carries a parameter that is structurally dead for half its control flow. The spec acknowledges the Linear leg \"ignores the parameter entirely,\" but that is precisely the problem: a shared procedure with a parameter that is meaningful only to one branch is a coupling smell that will mislead the next author into thinking the parameter is relevant to both legs, or into threading it further (e.g. into the Linear leg's `get_template` call) when it has no business being there.",
+    "evidence": "spec HOW → Integration: \"PROCEDURE resolve_native_template(type, title, description, invocation_mode): … # --- Linear leg (FAFF-1083, behaviourally unchanged) --- … # --- GitHub leg (NEW, this ticket) ---\". The Linear-leg block reads `m := run faff native-map get --type <type> --json` and `get_template(id = m.id)` — neither call takes `title`, `description`, or `invocation_mode`.",
+    "predicted_consequence": "A future maintainer adding a third occupant (or refactoring the Linear leg) sees a four-argument procedure and must re-derive which arguments are relevant to which leg. The spec's own \"guidance for a future third occupant\" says to \"declare the new occupant as confirmed-tier or heuristic-tier before wiring it in\" — but says nothing about which of the four parameters the new occupant needs, so the parameter-relevance matrix is undocumented and will be guessed at.",
+    "spec_anchor": "integration-into-resolve_native_template-create-mds-tier-1-slot-the-only-control-flow-change-to-shipped-code-plus-one-new-parameter",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec's own Failure-modes section states: \"most real-world same-type template collisions will still have generic or absent `labels`, so the top-two scores will legitimately land at or near zero for every candidate alike\" and \"when the top-two scores are both exactly 0 … no threshold above 0 changes the outcome.\" This is an admission that the Jaccard scorer will, in the common case, produce a uniform zero-score distribution and route to `ambiguous`/defer. The spec then ships a 70/30 weighted Jaccard scorer, a `min_score`/`min_margin` threshold pair, a `--min-score`/`--min-margin` CLI flag, and a Punt on the threshold values — all of which are architecturally inert in the common case. The simpler design that meets the same DONE criteria is: skip scoring entirely, always defer on multiplicity, and let the interactive prompt / autonomous fall-through handle it. The scoring machinery is a speculative generalization that the spec's own analysis shows will not fire.",
+    "evidence": "spec Failure modes: \"when the top-two scores are both exactly 0 (the common boilerplate-vs-specific-text case), no threshold above 0 changes the outcome, so lowering `min_score` cannot rescue a mechanism with no signal to threshold.\" And: \"a low observed hit-rate under real corpora is an expected property of a conservative default, not evidence the mechanism is broken.\"",
+    "predicted_consequence": "The build agent implements a weighted Jaccard scorer, threshold flags, and a Punt-tracked tuning knob that will, in the majority of real invocations, produce a uniform zero and route to the same `ambiguous`/defer path that a no-scoring design would produce. The threshold Punt will remain open indefinitely because there is no signal to tune. The first extension (a \"structurally richer signal,\" which the spec names) will replace the Jaccard scorer entirely, making the current implementation throwaway.",
+    "spec_anchor": "failure-modes-how-the-approach-falls-over-and-how-youd-notice",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"A directory-form file whose front matter fails to classify stays `UNCLASSIFIED` (matches no type) — it never gets the universal `EVERY_TYPE` fallback, which is bare-file-only\" has no corresponding scenario. A build that accidentally promotes a directory-form unclassifiable file to `EVERY_TYPE` would pass every named scenario, because no scenario places a directory-form file with unclassifiable front matter and asserts a miss for a type it doesn't match.",
+    "evidence": "DONE → \"From WHAT\" → the `EVERY_TYPE`-exclusion bullet; Scenarios section (no scenario exercises this path); the edge-cases prose names it but provides no Given/When/Then.",
+    "predicted_consequence": "A build that sets `inferred_type: EVERY_TYPE` for any file whose `classify_type` returns `UNCLASSIFIED` (ignoring the `universal_eligible` gate) would pass all 13 scenarios and the 10-step smoke test, yet silently multiply candidates for every type on any parse miss in a directory-form repo — the exact failure the design decision explicitly rejects.",
+    "spec_anchor": "done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"Malformed front matter on one candidate degrades that candidate's `name`/`about`/`labels` to best-effort (filename stem, empty strings) without dropping it from consideration\" has no scenario. The `parse_front_matter` procedure defines two malformed-fence cases (no closing `---`, first line not `---`) and a YAML-parse-failure case, but no scenario exercises any of them. A build that drops a candidate on malformed front matter (or crashes) would pass every named scenario.",
+    "evidence": "DONE → \"From HOW (edge cases)\" → first bullet; `parse_front_matter` procedure in HOW; Scenarios section (no scenario with a malformed-fence or garbage-YAML file).",
+    "predicted_consequence": "A build that returns `[]` from `discover_candidates` when one file's front matter is malformed (instead of degrading that candidate to `{front: {}, body: file_text}`) would pass all scenarios, because no scenario contains a file with a broken fence. The \"it still participates in classification/scoring on a weaker signal, it is not dropped\" clause is undecidable by any named check.",
+    "spec_anchor": "done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"`.yml`/`.yaml` files under `.github/ISSUE_TEMPLATE/` are never treated as candidates\" has no scenario. The existing scenario only tests `config.yml` (which is excluded by name). A generic `bug_report.yml` in the directory is a different code path (excluded by the `*.md` glob, not by the config-name exclusion), and no scenario asserts it is ignored.",
+    "evidence": "DONE → \"From WHAT\" → the `.yml`/`.yaml` bullet; Scenarios → the `config.yml`-only scenario (which tests the config-name exclusion, not the extension exclusion).",
+    "predicted_consequence": "A build that matches `*.md` OR `*.yml` (or that accidentally includes `.yml` files in the candidate walk) would pass the `config.yml` scenario but silently treat issue-forms YAML files as candidates — the exact out-of-scope behaviour the spec forecloses. The gap is small because the `*.md` glob makes this unlikely, but the DONE item is undecidable without a fixture.",
+    "spec_anchor": "done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The DONE item \"Malformed/absent stdin JSON degrades to empty title/description without throwing or blocking\" has no scenario. The CLI verb's interface says \"Malformed/absent stdin JSON is non-fatal: treated as `{title:\"\", description:\"\"}`\", but no scenario pipes malformed JSON (or no stdin at all) and asserts a clean result.",
+    "evidence": "DONE → \"From HOW (edge cases)\" → second bullet; INTERFACE comment in WHAT; Scenarios section (no scenario with malformed stdin).",
+    "predicted_consequence": "A build that throws or exits non-zero on malformed stdin (instead of degrading to empty strings) would pass all scenarios, because every scenario pipes well-formed JSON. The \"never throws, never blocks\" clause is undecidable by any named check.",
+    "spec_anchor": "done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

@@ -1,0 +1,883 @@
+# Spec: FAFF-1070 — `faff jot`: GitHub-native issue-template occupant of tier 1, and live ambiguity resolution (narrowed, revised)
+
+> Spec: faffter-dark-nlspec · 2026-09-23 · autonomous · claude-code/unknown · confidence: medium. Full spec on Linear FAFF-1070. **Revision pass (round 5 — final permitted round)** — fixes every objection from this round's adversarial spec-review verdict (2 architectural major, 1 architectural minor, 2 QA major, 2 QA minor; **infosec fully clear again this round, 0 objections**); see each affected section for the fix and **Design Decision Rationale** for the reasoning behind each. The loop caps after this round — the ticket parks for human review regardless of outcome, so this pass prioritizes closing every objection cleanly (scenario additions, framing precision) over any further structural change. (Round 4 fixed 5 objections from round 3 but the count then rose to 7, breaking the prior 8→7→5 decreasing trend; round 3 fixed the round-2 pass's 7 objections, round 2 fixed 8 before that. Those fixes are carried forward unchanged except where this round's findings required touching the same section again.)
+
+This is the build contract for FAFF-1070, narrowed against a prep-time scan finding that FAFF-1083 and FAFF-1081 already shipped most of the ticket's original wording. Audience: the build agent implementing the remaining delta, and the human reviewers gating it. It does not re-spec the shipped Linear-tracker leg of tier 1 — it fills the one genuinely-unbuilt occupant (`.github/ISSUE_TEMPLATE*`) and the one genuinely-unbuilt mechanism (live ambiguity resolution across multiple same-type candidates) that the original ticket's acceptance criteria still name.
+
+## Already shipped against this surface
+
+None of the following is re-specced here; each is cited so the build agent doesn't re-verify or re-implement it. This ticket only touches `resolve_native_template`'s control flow to insert one new sub-step.
+
+| Ticket | State | What it shipped | Where |
+|---|---|---|---|
+| FAFF-1083 | Done (PR shftwst/faff#928, `78c1de5c`) | The tier-1 native-template slot's **Linear-tracker leg**: `faff native-map get --type <t> --json` (pure CLI, reads `.faff-templates/native-templates.yaml`) → `get_template(id)` (skill-lane MCP read) → extract the `## <Field>` heading sequence from `content.description` → hit, or fall through to tier 2/3 on any miss (no entry, stale id, opaque body). | `plugin/skills/faff/references/create.md:31-58`; `plugin/skills/faff/bin/lib/native-map.js` (`get` verb) |
+| FAFF-1081 | Done (PR shftwst/faff#925) | The onboard-time discovery + human-confirm flow that populates the Linear-leg's map: lists the resolved team's issue templates, proposes a faff-type mapping, resolves any type-collision to **at most one template per type** by human pick at onboard time, persists identity-only (`{id,name}`) via `faff native-map set`. | `plugin/skills/faff-onboard/SKILL.md` step 3b/4b; `plugin/skills/faff/bin/lib/native-map.js` (`set` verb) |
+
+**Live validation this session (informs, not blocks, this ticket).** FAFF-1083's own spec flagged `get_template`'s response shape as unverified (the dev workspace had zero templates at the time). This workspace now has one (`FAFF` team, "Bug Report"). A live call to `list_templates(team:"FAFF", type:"issue")` then `get_template(id)` confirmed the shape: `content.description` is exactly the assumed markdown, with `## <Field>` level-2 headings (`## Steps to reproduce`, `## Severity`, `## Environment`, `## What should happen`, `## What actually happens`). This doesn't change any FAFF-1083 code (that ticket is Done and out of scope here), but it confirms the heading-sequence convention this ticket's new GitHub leg deliberately mirrors is the house convention, not a guess.
+
+**Because of this shipped work, the following are already true and are regression-checked, not rebuilt, by this ticket** (see OUT OF SCOPE):
+
+- A form-type tracker template is already skipped, never applied as a form (the opaque-body-miss path).
+- An empty candidate set already falls through to the built-in field set (tier 3), preserving the never-block invariant.
+
+## WHY — Problem and Principles
+
+**Load-bearing model.** *(Revised — fixes the review's architectural-major "symmetric two-occupant slot" finding: the prior framing implied a two-peer race, which mischaracterizes how the slot actually behaves.)* Tier 1 of `create.md`'s template-resolution order is one *slot* with room for more than one *occupant*, but the relationship between occupants is **asymmetric, not a peer race**. Every occupant is one of two tiers:
+
+- **Confirmed-tier.** An occupant whose mapping a human onboard-confirmed for a given type (FAFF-1081's onboard step 3b, for the Linear leg). Once populated for a type, a confirmed-tier occupant is **unconditionally authoritative** for that type — it never competes probabilistically with anything else, because a human already resolved any collision once, at onboard time.
+- **Heuristic-tier.** An occupant that resolves live, per-fill, with no human confirmation step behind it (this ticket's GitHub leg). A heuristic-tier occupant only ever gets a turn for a type **no confirmed-tier occupant has claimed** — it is a fallback for a gap, never a competitor to a populated confirmed-tier answer.
+
+**"Tracker as source of truth," generalized.** *(New — fixes this round's architectural-major "tier-1's 'tracker is source of truth' framing doesn't fit the GitHub leg" finding.)* `create.md`'s original tier-1 line describes fetching "the tracker's own template body (fetched live), keeping the tracker as source of truth" — written when the slot had exactly one occupant, so "the tracker" and "the occupant's own origin" were the same thing and the line didn't need to distinguish them. The GitHub leg's source is the git working tree, not a tracker call, which can look like a tension in the slot's own stated purpose if that line is read as "only a tracker counts as authoritative." It isn't: the generalized invariant, true of both occupants, is that each tier-1 occupant treats its own native source as authoritative for its own templates — the tracker's persisted template store for the Linear leg, the repo's committed template files for the GitHub leg. "Tracker as source of truth" in `create.md`'s original, single-occupant framing meant "this occupant's origin, not a human override typed at fill time" — a claim both occupants satisfy, each in its own domain, not a claim that a tracker round-trip is what makes an answer authoritative.
+
+FAFF-1083 built the first, confirmed-tier occupant (Linear's `list_templates`/`get_template`, gated on an onboard-confirmed map). This ticket builds the second occupant — the slot's first heuristic-tier member: `.github/ISSUE_TEMPLATE/*.md` / `.github/ISSUE_TEMPLATE.md`, gated on the **repo** carrying that structure — not on which tracker `tracking.tracker` names. Those are two different axes: this very repo pins `tracking.tracker: linear` (`.faffrc.yaml`) while being hosted on GitHub (`tracking.repo: shftwst/faff`), so a `.github/ISSUE_TEMPLATE/` directory could exist here regardless of the configured tracker. Gating the new occupant on the tracker value would silently miss exactly this shape.
+
+**Guidance for a future third occupant** (e.g. GitHub issue-forms YAML, or any other channel this slot might someday grow) — named explicitly so this framing generalizes past today's two-occupant case: declare the new occupant as confirmed-tier or heuristic-tier before wiring it in. A confirmed-tier occupant needs its own onboard-time human-confirm step (mirroring FAFF-1081's) and, once populated for a type, is unconditionally authoritative for it — no scoring, no live disambiguation, because the human already resolved any collision once. A heuristic-tier occupant has no such step; it resolves live, per-fill, and only ever gets a turn for a type no confirmed-tier occupant has claimed. If the slot ever grows more than one heuristic-tier occupant, they stack **below all confirmed-tier occupants**, in an order this ticket leaves **unspecified** (first-built order, or whatever a future ticket sets) — heuristic-tier occupants are peers only among themselves, never with a confirmed-tier occupant.
+
+**Problem statement.** Status quo: a repo whose *issue tracking* runs through Linear (or anything else) but whose *GitHub-hosted issues feature* separately defines `.github/ISSUE_TEMPLATE/*` never gets those templates considered at create time — `create.md` never reads that path, so the fill step is blind to a whole class of maintained, human-authored field structures. Separately, once a repo can expose *multiple* same-type native templates (GitHub's directory form allows any number of files), the ticket's own acceptance criteria require a live disambiguation mechanism across those candidates — a mechanism that doesn't exist yet anywhere in the codebase (no keyword-overlap scorer, no ambiguity-prompt precedent in the fill step). This ticket builds both: the GitHub-file discovery/read occupant, and a **detect-and-defer** scorer — it surfaces a confident single-candidate hit when a genuine lexical anchor exists between a candidate and the ticket, and defers to an operator prompt (interactive) or a logged fall-through (autonomous) on any genuine multiplicity, including the common case where competing same-type templates differ only in boilerplate `name`/`about` captions with no distinguishing signal available. It is deliberately **not** a forced ranked pick — see Design Decision Rationale → **Does the overlap scorer select, or detect-and-defer?**
+
+**Design principles** (each would cause rejection of an otherwise-valid implementation):
+
+- **Repo-gated, not tracker-gated — two independent axes.** `.github/ISSUE_TEMPLATE*` is a property of the git repository, detected by its presence in the working tree the fill step actually runs against — never inferred from `tracking.tracker`. A repo can be GitHub-hosted under any configured tracker (this repo is the live counterexample). **This is not the same claim as "detected regardless of checkout state."** "No tracker connector" (git-only mode) and "no materialized working tree" (a shallow/detached/sparse checkout) are two different conditions; this principle only disclaims dependence on the first. See WHAT → Design decisions → **Working-tree materialization** for what this ticket assumes about the second, and why a repo that legitimately commits `.github/ISSUE_TEMPLATE/` failing this check would be a closed, safe miss rather than an open one.
+- **First-match-wins, extended not reordered.** The GitHub leg is a second sub-step *inside* tier 1, tried after the Linear leg and before tier 2. Either leg missing falls through exactly as today; neither leg can suppress the other's hit.
+- **Never both fire for one field-set.** A single fill resolves at most one tier-1 hit. When both legs could plausibly hit for the same type (this repo's own shape makes that possible), the confirmed-tier occupant (Linear, once populated for that type) is unconditionally authoritative — never a live comparison between the two, never a second silent overwrite. See WHY → Load-bearing model for the confirmed-vs-heuristic-tier framing this decides from.
+- **Untrusted input stays data.** Front matter and body text read from `.github/ISSUE_TEMPLATE/*` are treated exactly like a tracker's returned template body (gateway kernel → **Untrusted input (no-execute floor)**): only the `## <Field>` heading sequence (body) and a fixed set of front-matter scalar fields (`name`/`about`/`labels`, for matching only) are extracted; nothing in either is ever executed or interpreted as a directive, regardless of the fact that these are committed, presumably PR-reviewed files. **This governs the agent/CLI-facing path** — what the no-execute floor already means by "never executed." The **human-facing display** path (the ambiguity prompt) is a separate channel with its own principle, next.
+- **The ambiguity prompt neutralizes untrusted display text — it is a picker, not a dialogue.** *(New in round 2, fixing the infosec-minor review objection; the enforcement mechanism below is revised in round 3 — see WHAT → Design decisions → **Sanitization boundary**.)* `name`/`about` text reaching the interactive prompt is sourced from committed `.github/ISSUE_TEMPLATE/*` files — attacker-influenceable via a PR or fork, exactly as the untrusted-input floor above already flags. That floor's "never executed or interpreted as a directive" language was written for agent-side handling and says nothing about the **human-facing display channel**: a crafted `name:` rendered uncritically to an operator is a prompt-injection/social-engineering surface against the human, not the agent. The prompt therefore treats candidate text as **display data only**, and the neutralization is a property of the **CLI verb's own output**, not a separate rendering-layer behaviour left to `prompt_operator`'s discretion: `faff github-templates resolve --json`'s `ambiguous` result already carries each candidate's `name`/`about` truncated to a fixed length, stripped of control/ANSI characters, and wrapped in a fixed `[untrusted template text] "…"` demarcation convention — so the demarcated, sanitized string **is** the CLI's own testable output, and `prompt_operator` renders it exactly as given. The operator is asked only to choose a list index or decline — **never** free-text entry, **never** a "type X to confirm" pattern a spoofed candidate string could imitate. See HOW → `sanitize_for_display` (in `github-templates.js`) and Design Decision Rationale.
+- **No mid-run prompt outside interactive invocation.** The ambiguity-resolution prompt this ticket adds is scoped to a **genuinely interactive** create-fill (bare `/faff-jot`, bare `/faff-plot`, or `/faff-plot` without `--autonomous`). It **never** fires under `/faff-plot --autonomous` or any autonomous jot edge-case — `faff/references/autonomous.md`'s no-prompt invariant ("A mid-run interactive gate … is a contract violation … Genuine ambiguity resolves to park or route-out — never to asking") binds here exactly as everywhere else. A forced tie under autonomous invocation resolves the same way every other tier-1 miss does: fall through to tier 2/3, logged.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/references/create.md:31-58` | Markdown prose | The tier-1 slot this ticket adds a second sub-step to |
+| `plugin/skills/faff/bin/lib/native-map.js` | JavaScript | Precedent for a pure, offline, taxonomy-validated CLI verb over a committed store; exports `FAFF_TYPES`/`FAFF_TYPE_SET`, reused rather than redefined |
+| `plugin/skills/faff/bin/lib/shared-infra.js` (`parseYamlSubset`, `dig`, `findRoot`) | JavaScript | The one YAML-subset reader home; front-matter parsing reuses it |
+| `plugin/skills/faff/bin/lib/cli-surface.js` | JavaScript | Where a new verb's dispatch surface joins the bijection self-test |
+| `plugin/skills/faff-onboard/SKILL.md` step 3b (lines 93-100) | Markdown prose | The closest precedent for propose/confirm-shaped ambiguity resolution; this ticket's live prompt borrows its *presentation* shape, not its *persistence* |
+| `test/native-map.test.mjs` | Node test | The real-CLI black-box harness pattern the new verb's tests mirror; **it only covers the `native-map get`/`set` CLI verb, not `create.md`'s own control-flow prose** — see DONE → "Linear leg regression bar" |
+| `plugin/skills/faff-jot/SKILL.md` §"Autonomous mode" (lines 147-153); `plugin/skills/faff-plot/SKILL.md` §"Autonomous mode (`--autonomous`)" (Ignition, lines 190-202) and Step 5 (lines 77-81) | Markdown prose | **Corrected citation** (the prior draft's `SKILL.md:143-151` cite was wrong and unverified — see HOW → `invocation_mode` plumbing). jot's Autonomous-mode section shows the create/fill step is *unreachable* under a genuine autonomous jot invocation; plot's Ignition + Step 5 is the actual call site invoked under both interactive and `--autonomous` plot, and is where this ticket's one new parameter threads through. |
+| `plugin/skills/faff/references/kernel.md:177-190` (Agent Lanes → Orchestrator) | Markdown prose | **New, round 3.** Closest available citation for the lane jot/plot run in ("codebase, read-oriented" visibility) — cited honestly as *not itself* a non-shallow/non-detached-checkout guarantee. See WHAT → Design decisions → **Working-tree materialization** for the `**Assumes:**` this ticket rests on instead. |
+
+**Scope statement.** This is the second and (for the currently-named occupants) final piece of tier 1's native-template slot: a GitHub-repo-local read occupant, plus the live scoring mechanism the original ticket's acceptance criteria require once more than one same-type candidate can exist.
+
+## OUT OF SCOPE
+
+- **Form-type template skip (AC 3) and empty-candidate-set fallback (AC 4).** — Already shipped by FAFF-1083's opaque-body-miss path (a body with no `## <Field>` headings is a miss, not a form-fill) and by tier 3's unconditional built-in fallback. *Extension point:* none needed; regression-check only — confirm both still hold once the GitHub leg is inserted (a GitHub leg miss/ambiguous-with-no-pick must fall through exactly like a Linear leg miss does today).
+- **GitHub YAML issue-forms (`.github/ISSUE_TEMPLATE/*.yml` / `*.yaml`).** — GitHub's newer structured issue-forms feature defines fields as form widgets, not `## ` markdown headings — the same "form, not a fill target" shape FAFF-1083 already treats as an opaque miss for Linear. This ticket scopes the GitHub occupant to the `*.md` files the original ticket names; a `.yml`/`.yaml` file under `.github/ISSUE_TEMPLATE/` is never a candidate (treated as absent). *Extension point:* a follow-up could parse issue-forms YAML as a field-structure source, mirroring how a Linear form template could someday be treated the same way.
+- **An onboard-time human-curation step for GitHub templates** (mirroring FAFF-1081's step 3b for Linear). — Would resolve GitHub-side ambiguity once, at onboard, the same way Linear's is resolved — effectively promoting the GitHub leg from heuristic-tier to confirmed-tier (see WHY → Load-bearing model). Not built here: see the Design Decision Rationale for why live per-fill scoring is chosen for this narrowed ticket instead. *Extension point:* `faff-onboard` step 3b/4b, if live scoring proves too imprecise or too defer-heavy in practice (see Failure modes).
+- **Unifying `## <Field>` heading extraction into one shared module.** — Tier 2's read and the Linear leg's body-field extraction are currently skill-prose (Read + heading extraction), executed by the create-skill orchestrator with no dedicated code module (confirmed by exhaustive grep of `plugin/skills/faff/bin/lib/*.js` — nothing outside `native-map.js`'s identity-only writer/reader touches template *bodies*, and `fields.js` is an unrelated `- **Field:** value` metadata reader). This ticket's GitHub leg introduces its own pure-CLI extraction instead of retrofitting a shared module. *Extension point:* a future refactor could extract one shared heading-parser CLI verb all three tiers/legs call.
+- **Persisting type as a `faff-type-<type>` control label** (`create.md:62,83`). — Unchanged pointer, carried from FAFF-1083. *Extension point:* Control-label provisioning, a later ticket.
+- **A configurable `tracking.templates_path` key** (`create.md:62,83`). — Unchanged pointer. *Extension point:* a config-CLI-allowlist follow-up.
+- **Project/document-level GitHub templates, or workspace→team inheritance.** — Issue templates only, mirroring FAFF-1081's own scoping. *Extension point:* discovery could widen later.
+- **Writing back to GitHub** (creating/editing `.github/ISSUE_TEMPLATE/*`). — Read-only discovery, mirroring FAFF-1081's read-only principle for the Linear leg. *Extension point:* none intended.
+- **Replacing faff's six-type taxonomy with GitHub's vocabulary.** — The closed set (`bug/feature/spike/chore/epic/default`) stays the create-time taxonomy; GitHub templates are matched *onto* it. *Extension point:* none planned.
+- **A structurally richer disambiguation signal** (matching the template body's `## <Field>` heading text against ticket content, or an LLM-judged semantic match). — Named explicitly in Failure modes as the correct next lever *if* the labels-weighted Jaccard scorer's defer rate proves operationally too high under real usage; not built here because it needs real-corpus evidence this ticket doesn't yet have. *Extension point:* a follow-up ticket, gated on that evidence.
+
+## WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Linear leg | Tier 1's existing, shipped sub-step (FAFF-1083): `faff native-map get` + `get_template`. Unmodified by this ticket. |
+| GitHub leg | Tier 1's new sub-step (this ticket): a pure, offline scan of `.github/ISSUE_TEMPLATE/*.md` / `.github/ISSUE_TEMPLATE.md`. |
+| Candidate | One discovered `.md` file under `.github/ISSUE_TEMPLATE/` (or the bare `.github/ISSUE_TEMPLATE.md`), with its front matter parsed and its inferred faff-type computed. |
+| Front matter | The `---`-fenced YAML block at the top of a GitHub issue-template file (`name:`, `about:`, `title:`, `labels:`); used **only** for type-matching and overlap scoring, never as field content. |
+| Inferred type | A candidate's best-fit faff type, computed from its front matter (`name`+`about`+`labels` together — a type keyword can live in any of the three) by a fixed keyword heuristic; `UNCLASSIFIED` when no keyword matches anywhere. **A domain-flavored label alone is not a type keyword:** a candidate whose only signal is a domain label (e.g. `labels: security`, generic non-type `name`/`about`) stays `UNCLASSIFIED` — see WHAT → Design decisions → **Labels and the type gate**. **Universal promotion (`EVERY_TYPE`) is gated, not automatic:** only the bare legacy `.github/ISSUE_TEMPLATE.md` file — and only when it is itself `UNCLASSIFIED` — promotes to `EVERY_TYPE`. A directory-form file that comes back `UNCLASSIFIED` stays `UNCLASSIFIED` (matches no type); it never gets the universal fallback. *(Fixed — see build_candidate below and Design Decision Rationale; this closes the review's QA-major "direct contradiction" and architectural-minor "unconditional imposition" findings, which were the same root bug from two lenses.)* |
+| Overlap score | A weighted Jaccard similarity: a candidate's `name`+`about` tokens (30% weight) combined with its `labels` tokens (70% weight, when present) against the proposed ticket's title+description tokens. *(Fixed — labels are now part of the signal, not just type-matching; see below.)* It is a lightweight, **opportunistic** signal, and it only ever runs against candidates that already cleared the type gate (WHAT → Design decisions → **Labels and the type gate**): it produces a meaningful score only when such a candidate carries text that lexically anchors to the ticket — most often via curated `labels`. Near-identical same-type templates whose only difference is boilerplate `name`/`about` captions will typically score near zero for every candidate alike — that is the **expected, by-design** case for Ambiguous below, not a scorer defect. |
+| Ambiguous | Two or more same-type candidates whose top two overlap scores fail to clear the configured minimum score or margin. This is the **normal** outcome whenever no candidate carries a genuine lexical anchor to the ticket (the common case for boilerplate-only templates) — the mechanism **defers** (prompt on interactive, logged fall-through on autonomous). It never forces a ranked pick among candidates it can't confidently distinguish; see Design Decision Rationale → **Does the overlap scorer select, or detect-and-defer?** |
+
+**The new CLI verb (pure, offline — mirrors `native-map.js`'s discipline exactly).**
+
+```
+faff github-templates resolve --type <faff-type> [--min-score N] [--min-margin N] [--json] [--root DIR]
+  # stdin: JSON { "title": "<ticket title>", "description": "<ticket description text>" }
+  #   (title/description arrive on stdin, not argv — arbitrary ticket text may contain
+  #    anything argv can't safely carry, exactly the reasoning `native-map set` used for
+  #    template names)
+```
+
+- Pure, offline: reads only files under `<root>/.github/ISSUE_TEMPLATE*`. **NO MCP, no network, no git.**
+- Imports `FAFF_TYPES`/`FAFF_TYPE_SET` from `native-map.js` rather than redefining the closed taxonomy a second time.
+- `--type` outside the closed taxonomy → `usageError`, exit 2 (mirrors `native-map get`'s existing refusal).
+- Malformed/absent stdin JSON is **non-fatal**: treated as `{title:"", description:""}` (never throws, mirroring the "never error on absence" posture `native-map get` already established) — this only weakens the overlap score, it never blocks resolution.
+- `--min-score` / `--min-margin` default to conservative, overridable values (see **Punt**, below) so the AMBIGUOUS/HIT boundary is unit-testable independent of whatever number product eventually settles on.
+
+```
+INTERFACE github-templates resolve:
+  # a single same-type candidate, or no candidate needs disambiguation:
+  #   --json -> { "result": "hit", "type": <t>, "path": <relpath>, "name": <string>, "fields": [<string>, ...] }   exit 0
+  # zero candidates for <t> (no .github/ISSUE_TEMPLATE* at all, or none classify as <t>):
+  #   --json -> { "result": "miss", "type": <t> }                                                                  exit 0
+  # >=2 same-type candidates whose top-two scores don't clear the margin/minimum:
+  #   --json -> { "result": "ambiguous", "type": <t>,
+  #               "candidates": [ { "path": <relpath>, "name": <string>, "about": <string>,
+  #                                  "score": <number> }, ... ] }                                                   exit 0
+  #     `name`/`about` here are ALREADY sanitize_for_display'd -- truncated (80/160 chars), stripped of
+  #     control/ANSI characters, and wrapped in the fixed `[untrusted template text] "..."` demarcation
+  #     convention. This is the ONE sanitization pass (WHAT -> Design decisions -> Sanitization
+  #     boundary); nothing downstream re-derives or re-transforms them, and this makes the
+  #     display-neutralization contract directly assertable via --json rather than a
+  #     skill-lane-only behaviour with no test oracle.
+  # --type outside {bug,feature,spike,chore,epic,default}:
+  #   usageError -> exit 2
+  # non-json: a short human line carrying the same fact (result + path/candidate count)
+```
+
+**Type definitions.**
+
+```
+RECORD GithubTemplateCandidate:
+  path: String                    # relative, e.g. ".github/ISSUE_TEMPLATE/bug_report.md"
+  name: String                    # front matter `name:`, else the filename stem
+  about: String                   # front matter `about:`, "" if absent
+  labels: List<String>            # front matter `labels:` (best-effort; see Assumes), [] if absent/unparseable
+  body: String                    # markdown after the closing front-matter fence (or the whole file if none)
+  inferred_type: FaffType | UNCLASSIFIED | EVERY_TYPE   # (Fixed -- hygiene: EVERY_TYPE was a valid
+                                                          # build_candidate output missing from this union)
+
+ENUM FaffType: bug | feature | spike | chore | epic | default   # unchanged closed set, imported from native-map.js
+ENUM ResolveResult: hit | miss | ambiguous
+
+RECORD SanitizedCandidate:              # the shape inside an "ambiguous" result's candidates[] --
+  path:  String                         # see WHAT -> Design decisions -> Sanitization boundary
+  name:  String                         # sanitize_for_display(candidate.name): truncated(80), control-stripped, demarcated
+  about: String                         # sanitize_for_display(candidate.about): truncated(160), control-stripped, demarcated
+  score: Number
+```
+
+**Design decisions** (each concluded with a marker; collected in full in Design Decision Rationale):
+
+- **Detection axis.** **Chosen:** repo-gated — a filesystem check for `.github/ISSUE_TEMPLATE/*.md` (≥1 file, excluding `config.yml`/`config.yaml`) or a bare `.github/ISSUE_TEMPLATE.md`, run against the working tree the fill step actually operates in — never gated on `tracking.tracker`'s value. This disclaims dependence on the tracker axis only; the separate working-tree-materialization axis is the next decision. (decides: architecture)
+- **Working-tree materialization.** **Assumes:** the fill step's two call sites (`/faff-jot` Step 4, `/faff-plot` Step 5) always run against a real, checked-out local working tree — orthogonal to the git-only/no-tracker-connector axis above. No shipped reference states this as an explicit non-shallow/non-detached-checkout guarantee; the closest available citation, `kernel.md` → **Agent Lanes → Orchestrator** (the lane both skills run in), grants only "codebase (read-oriented)" visibility, which doesn't go that far. Named here as an assumption, not a proven invariant — with a **fails-closed, not open** consequence if it's ever wrong: a non-materialized checkout makes the GitHub leg read as a miss, never a false hit, so this is a missed-detection risk under the seed-never-constrain invariant, never a correctness risk. *Validate before relying on it:* see Open Questions and Assumptions.
+- **Slot shape.** **Chosen:** a second sub-step inside the same tier-1 slot (`resolve_native_template`), tried immediately after the Linear leg, before falling through to tier 2. Not a sibling function jot/plot call separately.
+- **Cross-leg precedence.** *(Revised — fixes the review's architectural-major "symmetric two-occupant slot" finding.)* **Chosen:** confirmed beats heuristic, always — not a peer race. The Linear leg is this slot's only confirmed-tier occupant today; whenever its onboard-confirmed map is populated for the requested type, it is unconditionally authoritative and the GitHub leg (heuristic-tier) is never even queried — see `resolve_native_template` below, where the Linear-leg block's hit `RETURN`s before the GitHub leg's line is ever reached. The GitHub leg only gets a turn for a type the Linear leg's map has no entry for. See WHY → Load-bearing model for the general confirmed-vs-heuristic-tier framing this generalizes from, and Design Decision Rationale for the specific two-occupant analysis.
+- **Lane placement.** **Chosen:** the GitHub leg is a new **pure CLI verb** (no MCP, unlike the Linear leg) — `.github/ISSUE_TEMPLATE/*` are committed repo files, reachable without any tracker call.
+- **Front matter vs body.** **Chosen:** front matter (`name`/`about`/`labels`) is the type-matching **and** overlap-scoring signal — `labels` now feeds both `classify_type` and `overlap_score` (previously type-matching only; see **Ambiguity-resolution shape** below) — the body is used **only** for `## <Field>` heading extraction, mirroring the Linear leg's identity-vs-body split.
+- **Labels and the type gate — what actually reaches the scorer.** *(New — fixes the review's architectural-major "structurally dead for its own headline case" finding: type-classification happens *before* scoring, via `same_type`'s filter on `inferred_type`, so a candidate that never clears that filter never reaches `overlap_score` at all — no worked example of the labels mechanism's value can rely on a candidate that doesn't survive the gate.)* **Chosen:** `classify_type`'s haystack already includes `labels` (`lowercase(name + " " + about + " " + join(labels," "))` — see Type classification below), so a type keyword living in a `labels:` entry (e.g. `bug`) satisfies the type gate exactly as one living in `name`/`about` would; labels were always eligible to supply the type-classifying keyword, not just the scoring signal. **Named explicitly, not left implicit:** a *domain-flavored* label with no type keyword anywhere in `name`/`about`/`labels` (e.g. a candidate whose only signal is `labels: security`, with a generic, non-type `name`/`about`) never clears the type gate — `classify_type` returns `UNCLASSIFIED` for it, and `resolve`'s `same_type` filter (`c.inferred_type == type OR c.inferred_type == EVERY_TYPE`) drops it before the scorer ever runs. **This means the labels-weighted scorer only ever evaluates candidates that already carry a type keyword somewhere on the file** — a domain label's disambiguating value is realized only once that precondition holds, typically because the type keyword lives in `name`/`about` (the common shape: `name: Bug Report` plus `labels: security`) or because a second, type-naming label co-occurs alongside the domain one (`labels: bug, security`). The worked example and the labels-anchored-hit scenario are corrected to this shape — see **Ambiguity-resolution shape** below and Scenarios → the labels-anchored-hit scenario, which now spells out exactly which signal does which job. **Rejected:** treating a domain word as if it could itself satisfy the type gate (e.g., special-casing `security` as an implicit alias for `bug`) — this would silently grow the closed six-type taxonomy's matching surface with product-undecided domain vocabulary, exactly what OUT OF SCOPE → **Replacing faff's six-type taxonomy with GitHub's vocabulary** already forecloses. (decides: architecture)
+- **Type-classification convention.** *(Revised — fixes the review's architectural-minor "false verbatim claim" finding.)* **Chosen:** `classify_type`'s regex keyword table is a **new, GitHub-leg-specific heuristic inspired by FAFF-1081's onboard-proposal shape** (`faff-onboard/SKILL.md` step 3b — propose a best-fit type from name/description, "no confident match → suggest **unmapped**") — **not** a verbatim reuse of it. Re-reading step 3b's actual language confirms it is a looser, prose-described suggestion with an explicit unmapped fallback, not a regex table; the two are not the same convention. **Accepted tradeoff, named explicitly:** the Linear leg's onboard-time classification (human-confirmed, persisted once) and the GitHub leg's live classification (an unattended regex match, per-fill) classify independently and are **not guaranteed to agree** on an ambiguous template name/description. Extracting FAFF-1081's onboard heuristic into one shared, code-level classifier both legs call was considered and rejected here: it is already-shipped, human-reviewed, prose-only logic with no dedicated code module — extracting it is a nontrivial refactor of shipped work, arguably scope creep beyond this ticket's narrowed delta. (decides: architecture)
+- **GitHub issue-forms (`.yml`/`.yaml`).** **Chosen:** excluded from candidates entirely this ticket (see OUT OF SCOPE).
+- **Legacy singular file — universal-candidate gating.** *(Revised — was the review's QA-major/architectural-minor "unconditional imposition" bug.)* **Chosen:** the bare `.github/ISSUE_TEMPLATE.md` is a candidate for **every** requested type only when its own front matter fails to classify (`classify_type` returns `UNCLASSIFIED` for it) — never unconditionally. A bare file that *does* carry classifiable front matter (e.g. `name: Bug Report`) is a normal single-type candidate for that classified type, exactly like a directory-form file. A directory-form file that fails to classify stays `UNCLASSIFIED` and matches **no** type — it never gets the universal fallback (the fallback is specific to the single-legacy-file shape, where "no signal" plausibly means "intended for everything"; a file sitting alongside other type-specific templates that fails to classify most plausibly means "doesn't apply to what was asked," not "applies to everything").
+- **Ambiguity-resolution shape.** *(Revised — was the review's "practically dead" architectural-major finding.)* **Chosen:** live type-then-overlap scoring across the GitHub leg's own multiple candidates only (Linear's ambiguity is structurally impossible post-FAFF-1081, since its map stores 0-or-1 per type). **Recharacterized as detect-and-defer, not forced selection:** `name`/`about` text is near-constant boilerplate across templates of a given type while ticket title/description is specific and per-ticket, so their token intersection is almost always empty — a Jaccard score over `name`+`about` alone essentially never clears a realistic threshold, making the "select via score" path practically dead as originally specified. The scorer now also weighs `labels` (curated, more likely to carry a lexical anchor to the ticket's actual domain) at 70% against `name`+`about`'s 30%, which gives it a real — if opportunistic — path to a confident hit. *(Corrected worked example — the prior draft's `labels: security` example doesn't survive its own type gate; see **Labels and the type gate** above.)* **Honest worked example:** two `bug`-inferred candidates both carrying `name: Bug Report` (satisfying the `bug` type gate via `name`, independent of labels) — one additionally labelled `labels: security`, the other `labels: performance` — against a ticket titled "SQL injection in login endpoint." The `security`-labelled candidate's label token overlaps the ticket's vocabulary; the `performance`-labelled one doesn't. Labels do the *disambiguating* work here; a type keyword elsewhere on the file (`name`, in this example) has already done the *gating* work. A domain-only label with no type keyword anywhere on the file (name, about, or another label) cannot reach the scorer at all — full stop; it never becomes a same-type candidate in the first place. This remains fundamentally an **opportunistic** signal, not a general disambiguator: two boilerplate templates with generic or absent labels will still, correctly, resolve to `ambiguous` and defer. See Design Decision Rationale for the full analysis. (decides: architecture)
+- **Empty-fields guard on the GitHub leg's single-candidate hit.** *(New — fixes the QA-major "no empty-fields guard, unlike the Linear leg" finding.)* **Chosen:** mirror the Linear leg's own guard (`create.md`'s `IF fields not empty: RETURN fields` / else `REPORT opaque` and fall through) inside `resolve`'s single-candidate branch. Before returning `hit`, extract `## ` headings from the candidate's body; if that list is empty (a same-type `.md` file written as plain prose, no headings at all — a ticket with zero structure, not "thin-but-structured"), don't return `hit` — `REPORT github_opaque(type, path, name)` (the GitHub leg's own reporting convention, mirroring the Linear leg's `REPORT opaque(type, id)` shape, wired into the same per-invocation narrative log the ambiguity report already uses) and return `miss` for `<type>` instead, since a single-candidate branch by definition has no other same-type candidate to fall to. **Rejected:** leaving the single-candidate branch unconditional, on the reasoning that "a template file with no headings is unlikely in practice" — the Linear leg already guards this exact case for tracker-hosted templates; there's no principled reason a committed `.md` file would be less likely to omit headings than a tracker template body, and the seed-never-constrain invariant doesn't get a carve-out for "unlikely." (decides: architecture)
+- **Sanitization boundary.** *(New — fixes the infosec-minor "quoting block not enforced by anything testable" finding and the QA-major "sanitization has no CLI-testable oracle" finding, the same root gap from two lenses.)* **Chosen:** `sanitize_for_display` lives in `github-templates.js` and runs **inside the CLI verb**, before JSON-encoding an `ambiguous` result — never as a separate skill-lane-only step `prompt_operator` might or might not honour. Its output already carries the fixed `[untrusted template text] "…"` demarcation convention, truncated and control-character-stripped, so `faff github-templates resolve --json`'s `candidates[].name`/`.about` **is** the sanitized, demarcated display string — directly assertable by a CLI test. `prompt_operator` is contractually required to render exactly that string with no further transformation, fetch, or re-derivation of raw front matter. (decides: architecture)
+- **Prompt shape and lifetime.** **Chosen:** the interactive prompt mirrors `faff-onboard` step 3b's presentation (a skimmable candidate list, human picks one or declines) but is **never persisted** — it is a per-fill, per-ticket decision, not a durable mapping (onboard-time ambiguity is per-repo/once; this is per-ticket/live, and the two are not the same shape). The prompt renders candidate text **exactly as the CLI already sanitized and demarcated it** (see **Sanitization boundary** above); index-pick or decline only — no free-text entry, no confirm-by-typing pattern.
+- **Autonomous scoping.** **Chosen:** AMBIGUOUS under any non-interactive invocation (`/faff-plot --autonomous`, or jot's defensive autonomous edge-case) is treated exactly like MISS — fall through, log, never prompt.
+- **Invocation-mode plumbing.** *(New — fixes the architectural-major "needs no new state" claim, which cited lines that don't say what was claimed.)* **Chosen:** `invocation_mode` is not free-standing new *state* but does need **one new parameter** threaded to `resolve_native_template`'s call site. jot's Step 4 fill call passes the **literal constant** `"interactive"` — jot's own Autonomous-mode section means the fill step is structurally unreachable under a genuine autonomous jot invocation (it bails to `.faff/intake/…` and surfaces for human review before ever reaching create/fill). plot's Step 5 fill call threads the **entry-mode value plot already resolves at Ignition** (bare `/faff-plot` → `"interactive"`; `/faff-plot --autonomous` → `"autonomous"`) — plot is the one caller where the *identical* fill call site is genuinely invoked both ways. This is one new parameter passed through an existing call, not a change to the Linear leg's own logic and not new persisted state. (decides: architecture)
+- **Front-matter parser.** **Assumes:** `parseYamlSubset` (`shared-infra.js`) sufficiently parses real-world GitHub template front matter, including a block-list `labels:` form. *Validate before relying on `labels`* (see Open Questions and Assumptions — a known gap: `parseYamlSubset`'s `scalar()` only accepts a flow-sequence via strict `JSON.parse`, so an unquoted `labels: [bug, triage]` does **not** parse as a list; a quoted `labels: ["bug","triage"]` or a block list (`labels:\n  - bug`) does). This assumption is now load-bearing for **both** `classify_type` and `overlap_score` (labels feed scoring at 70% weight, not just classification) — a `labels` parse failure degrades both for that candidate, though both already tolerate an empty `labels` list by design.
+- **Labels fixture form — pin it, don't leave it ambiguous.** *(New — fixes the QA-major "undecidable fixture form" finding.)* **Chosen: (a)** the labels-anchored-hit scenario's fixture MUST use the block-list `labels:` form (`labels:\n  - security`), the one form `parseYamlSubset` is confirmed to parse correctly today; a separate, explicit scenario (Scenarios → the unquoted-flow-form scenario) pins the known-gap case instead, asserting the *documented degraded* behaviour (labels silently empty, falls back to `name`/`about` scoring). **Rejected: (b)** fixing `parseYamlSubset`'s flow-sequence `scalar()` gap as part of this ticket — a small, contained change, but it's shared with `config.js`/`native-map.js` (a coordination cost beyond this ticket's narrowed delta), and the methodology critique already names this as an open finding for the human gate to weigh explicitly rather than something to fold into this build silently. Both the working case and the known-gap case are now named and testably distinct — no build can satisfy the labels mechanism's DONE items using only the form that happens to parse. (decides: architecture)
+- **Ambiguity threshold.** **Punt:** the exact `min_score`/`min_margin` values that separate a confident pick from a forced prompt — needs human tuning against real template corpora (decides: product). Carried forward from the parent ticket's own open question, narrowed to the leg where live ambiguity can actually occur. Non-blocking: the CLI ships defensible defaults (e.g. `min_score 0.15`, `min_margin 0.05`, mirroring the ticket's own suggested default) as overridable flags, so the HIT/AMBIGUOUS boundary is unit-testable today independent of the final numbers. Given the detect-and-defer recharacterization above, a low observed hit-rate under real corpora is an **expected property** of a conservative default, not evidence the mechanism is broken — product tuning here calibrates how eager the defer bias is, not whether the scorer "works."
+
+## HOW — Behaviour
+
+**Architecture and approach.** One new module (`github-templates.js`, mirroring `native-map.js`'s home and purity discipline) exposes the new CLI verb; `create.md`'s `resolve_native_template` gains one new sub-step calling it, plus one new parameter (`invocation_mode`, threaded per the plumbing decision above); jot's and plot's SKILL.md gain at most a one-line pointer plus the explicit parameter-pass at their respective call sites, exactly as they did for FAFF-1083.
+
+**Front-matter parsing (pure, reused across the module).**
+
+```
+PROCEDURE parse_front_matter(file_text):
+  IF the first non-blank line is not exactly "---": RETURN { front: {}, body: file_text }
+  find the next line that is exactly "---" (the closing fence)
+  IF no closing fence found: RETURN { front: {}, body: file_text }   # malformed fence -> no front-matter signal
+  front_text := the lines strictly between the two fences
+  body       := the lines strictly after the closing fence, rejoined
+  TRY tree := parseYamlSubset(front_text) CATCH: tree := {}          # never throw on malformed front matter
+  RETURN { front: tree, body }
+```
+
+**Candidate discovery.** *(Fixed — closes the review's QA-major "direct contradiction" and architectural-minor "unconditional imposition" findings, the same root bug from two lenses: the old `build_candidate(bare, universal: true)` set `inferred := universal ? EVERY_TYPE : classify_type(...)` unconditionally on `universal`, contradicting the DONE criterion's "only with no classifiable front matter." The rewrite below computes classification first and gates the fallback on `UNCLASSIFIED`, and restricts eligibility to the bare-legacy-file path only.)*
+
+```
+PROCEDURE discover_candidates(root):
+  dir := join(root, ".github/ISSUE_TEMPLATE")
+  IF dir exists AND contains >=1 file matching *.md (case-insensitive, excluding config.yml/config.yaml):
+     RETURN [ build_candidate(f, universal_eligible: false) for f in those files ]   # directory form: no file
+                                                                                       # here ever gets the universal fallback
+  # Housekeeping note: the "excluding config.yml/config.yaml" clause above is accurate documentation
+  # of intent, not live enforcement -- both names carry a .yml/.yaml extension and already fail the
+  # *.md glob on extension alone, so the clause never actually fires. Left in as harmless, readable
+  # intent-documentation rather than removed; see Scenarios -> the .yml-extension-vs-config-name
+  # scenario for the extension filter's own, independently-exercised test.
+  bare := join(root, ".github/ISSUE_TEMPLATE.md")
+  IF bare exists: RETURN [ build_candidate(bare, universal_eligible: true) ]   # ONLY the legacy singular file
+                                                                                 # is ever eligible for universal
+  RETURN []                                                                     # no GitHub template structure at all
+
+PROCEDURE build_candidate(path, universal_eligible):
+  { front, body } := parse_front_matter(read(path))
+  name       := front.name  OR filename_stem(path)
+  about      := front.about OR ""
+  labels     := front.labels IS a List ? front.labels : []          # best-effort; see Assumes
+  classified := classify_type(name, about, labels)
+  # Universal fallback fires ONLY for the eligible legacy file AND only when it has no classifiable
+  # front matter at all. A directory-form file that fails to classify stays UNCLASSIFIED (matches no
+  # type) -- it never becomes a candidate for every type. This is the literal implementation of the
+  # DONE criterion "a candidate for every type only with no classifiable front matter."
+  inferred := (universal_eligible AND classified == UNCLASSIFIED) ? EVERY_TYPE : classified
+  RETURN { path, name, about, labels, body, inferred_type: inferred }
+
+FUNCTION filename_stem(path):
+  # (Fixed -- QA-minor "no test oracle": precise, concrete rule for the `name:` fallback, previously
+  # unspecified. The basename of `path`, its `.md` extension stripped (case-insensitive), with every
+  # underscore or hyphen replaced by a space.
+  #   ".github/ISSUE_TEMPLATE/bug_report.md"      -> "bug report"
+  #   ".github/ISSUE_TEMPLATE/feature-request.md" -> "feature request"
+  #   ".github/ISSUE_TEMPLATE.md"                 -> "ISSUE_TEMPLATE" is never passed here --
+  #     the bare legacy file's stem is never computed, since front.name OR filename_stem(path) only
+  #     calls this when front.name is absent, and the bare file's own basename-minus-extension would
+  #     be "ISSUE_TEMPLATE" -> "ISSUE TEMPLATE" if it ever were (no scenario relies on this case)
+  base := the last path segment of path (the text after the final "/", or the whole path if none)
+  stem := base with a trailing ".md" (case-insensitive) removed
+  RETURN stem with every "_" or "-" character replaced by " "
+```
+
+**Type classification** (a GitHub-leg-specific heuristic inspired by FAFF-1081's onboard-proposal shape — not a verbatim reuse of it; see WHAT → Design decisions → **Type-classification convention**):
+
+```
+PROCEDURE classify_type(name, about, labels):
+  haystack := lowercase(name + " " + about + " " + join(labels, " "))
+  IF haystack matches /\b(bug|defect|broken|crash)\b/:                    RETURN bug
+  IF haystack matches /\b(feature|enhancement|request)\b/:                RETURN feature
+  IF haystack matches /\b(spike|investigation|research|question|rfc)\b/:  RETURN spike
+  IF haystack matches /\b(chore|maintenance|dependency|refactor|cleanup)\b/: RETURN chore
+  IF haystack matches /\b(epic|container|parent)\b/:                      RETURN epic
+  RETURN UNCLASSIFIED   # never resolves to `default` — no realistic template names itself that
+```
+
+**Overlap scoring.** *(Fixed — the "practically dead" architectural-major finding. `labels` now genuinely contributes to the score, weighted above the largely-boilerplate `name`/`about` text, giving the scorer a real — if opportunistic — path to a confident hit.)*
+
+**Behaviour summary:** produces a confident score only when a candidate's text — chiefly its curated `labels` — shares real vocabulary with the ticket; near-identical boilerplate templates correctly score near zero for all candidates alike, which routes to `ambiguous`/defer rather than a wrong pick (see WHAT → Ambiguity-resolution shape).
+
+```
+FUNCTION tokenize(text):
+  RETURN lowercase(text) stripped of punctuation, split on whitespace,
+         minus a small stopword set {a,an,the,and,or,to,of,in,for,is,it,this,that}, as a Set<String>
+
+FUNCTION jaccard(a, b):
+  IF a is empty OR b is empty: RETURN 0
+  RETURN |a ∩ b| / |a ∪ b|
+
+FUNCTION overlap_score(candidate, title, description):
+  target     := tokenize(title + " " + description)
+  name_about := tokenize(candidate.name + " " + candidate.about)
+  label_toks := tokenize(join(candidate.labels, " "))
+  score_na := jaccard(name_about, target)
+  IF label_toks is empty: RETURN score_na            # no labels signal available -- name/about is all there is
+  score_lb := jaccard(label_toks, target)
+  RETURN (0.3 * score_na) + (0.7 * score_lb)          # labels are curated, specific keywords, far more likely
+                                                       # to lexically anchor to a ticket than boilerplate
+                                                       # name/about caption text; weighted, not replaced, so
+                                                       # name/about still contributes when labels are thin
+```
+
+**Resolution (the CLI verb's body).**
+
+```
+PROCEDURE resolve(type, title, description, min_score, min_margin, root):
+  candidates := discover_candidates(root)
+  IF candidates is empty: RETURN { result: "miss", type }
+  same_type := [ c for c in candidates if c.inferred_type == type OR c.inferred_type == EVERY_TYPE ]
+  IF same_type is empty: RETURN { result: "miss", type }
+  IF same_type.length == 1:
+     f := same_type[0]
+     fields := extract_field_headings(f.body)
+     # Fixed -- QA-major "no empty-fields guard": mirrors the Linear leg's own
+     # `IF fields not empty: RETURN fields` / else REPORT-opaque-and-fall-through guard -- see
+     # WHAT -> Design decisions -> Empty-fields guard on the GitHub leg's single-candidate hit.
+     IF fields is empty:
+        REPORT github_opaque(type, f.path, f.name)   # this leg's own reporting convention,
+                                                       # mirroring the Linear leg's REPORT opaque(...)
+        RETURN { result: "miss", type }               # no other same-type candidate to fall to here
+     RETURN { result: "hit", type, path: f.path, name: f.name, fields: fields }
+  scored := [ { c, score: overlap_score(c, title, description) } for c in same_type ]
+  sort scored DESCENDING by score
+  top := scored[0]; second := scored[1]
+  # NOTE: the comparison is strict '<' -- a score/margin exactly AT min_score/min_margin clears the
+  # threshold (HIT), it does not trip "ambiguous"; only a value strictly below does. See Scenarios ->
+  # the boundary-condition scenario.
+  IF top.score < min_score OR (top.score - second.score) < min_margin:
+     RETURN { result: "ambiguous", type,
+              candidates: [ sanitize_for_display(s.c) merged with {score: s.score} for s in scored ] }
+  RETURN { result: "hit", type, path: top.c.path, name: top.c.name, fields: extract_field_headings(top.c.body) }
+
+PROCEDURE extract_field_headings(body):
+  RETURN [ heading text for each line in body matching /^##\s+(.+)$/ ]   # the SAME heading-sequence rule tier 2 / the Linear leg apply
+
+FUNCTION sanitize_for_display(candidate):
+  # The untrusted-display floor's enforcement point (WHY -> Design principles, prompt-neutralization
+  # bullet; fixes the infosec-minor "quoting block not enforced by anything testable" finding and the
+  # QA-major "sanitization has no CLI-testable oracle" finding). Demarcation is a property of THIS
+  # function's OUTPUT, not a separate, unspecified rendering-layer behaviour prompt_operator might or
+  # might not honour. This runs INSIDE the CLI verb, before JSON-encoding -- the ONE sanitization pass
+  # -- so its result is directly assertable via `faff github-templates resolve --json`.
+  RETURN { path: candidate.path,
+           name:  demarcate(truncate(strip_control_chars(candidate.name), 80)),
+           about: demarcate(truncate(strip_control_chars(candidate.about), 160)) }
+
+FUNCTION demarcate(text):
+  RETURN '[untrusted template text] "' + text + '"'   # the fixed quoting convention -- every
+                                                        # candidate's display text carries it, so a
+                                                        # plain, undemarcated rendering can no longer
+                                                        # satisfy the contract
+```
+
+**Integration into `resolve_native_template` (`create.md`'s tier-1 slot — the only control-flow change to shipped code, plus one new parameter).**
+
+```
+PROCEDURE resolve_native_template(type, title, description, invocation_mode):   # invocation_mode: interactive | autonomous
+  # Parameter usage differs by leg -- named explicitly so a future reader doesn't have to infer it
+  # by reading both blocks (fixes this round's architectural-major "signature carries parameters the
+  # Linear leg never uses" finding):
+  #   Linear leg: consumes only 'type' (the native-map lookup key).
+  #   GitHub leg: consumes all four -- 'type' for classification/matching, 'title'+'description' for
+  #     overlap scoring, 'invocation_mode' for the ambiguity-prompt branch below.
+  # Not split into two functions for this: one shared call site, one first-match-wins chain (WHAT ->
+  # Design decisions -> Slot shape) outweighs the marginal clarity of two narrower signatures.
+  # --- Linear leg (FAFF-1083, behaviourally unchanged -- see DONE -> "Linear leg regression bar") ---
+  m := run `faff native-map get --type <type> --json`
+  IF m has an `id`:
+     tmpl := get_template(id = m.id)
+     IF tmpl found:
+        fields := extract_field_headings(tmpl.content.description)
+        IF fields not empty: RETURN fields                       # Linear-leg HIT
+        REPORT opaque(type, m.id)
+     ELSE:
+        REPORT stale(type, m.id, m.name)
+     # falls through to the GitHub leg, NOT straight to tier 2 (precedence: Linear wins on a hit only)
+
+  # --- GitHub leg (NEW, this ticket) ---
+  r := run `faff github-templates resolve --type <type> --json` with stdin {title, description}
+  IF r.result == "hit":  RETURN r.fields                          # GitHub-leg HIT
+  IF r.result == "ambiguous":
+     IF invocation_mode == "interactive":
+        # r.candidates are ALREADY sanitized + demarcated by the CLI itself (github-templates.js's
+        # sanitize_for_display, run before JSON-encoding -- see WHAT -> Design decisions ->
+        # Sanitization boundary). prompt_operator renders them EXACTLY as given: no re-fetching raw
+        # name/about, no re-transformation, index-pick or decline only.
+        choice := prompt_operator(r.candidates)
+        IF choice is one of r.candidates: RETURN extract_field_headings(fetch(choice.path))
+        # human declines / "none of these" -> fall through
+     REPORT ambiguous(type, r.candidates)                         # autonomous, or a declined pick -> log + fall through
+                                                                   # (see Edge cases for the exact log target)
+
+  RETURN MISS   # -> tier 2 -> tier 3, unchanged
+```
+
+**`invocation_mode` plumbing — corrected.** *(Fixed — the prior draft's "needs no new state" claim cited `faff-jot/SKILL.md:143-151` and `faff-plot/SKILL.md` without having read either; both are now read in full and the claim is verified/corrected against their actual content.)* `invocation_mode` is not free-standing new *state* — but it does need **one new parameter** threaded to this call. jot's Step 4 fill call passes the **literal constant** `"interactive"`: per `faff-jot/SKILL.md` → **Autonomous mode** (lines 147-153), a genuinely autonomous jot invocation never reaches the create/fill step at all — it bails to `.faff/intake/…` and surfaces for human review "rather than creating tickets unattended," so jot's call site is always interactive when this procedure runs; no threading is needed there, only a hardcoded literal. plot is the one caller where the *identical* fill call site is genuinely invoked both ways: plot's Step 5 ("Write the skeleton") runs under both interactive `/faff-plot` and `/faff-plot --autonomous` — the fork plot resolves at its own Ignition (`faff-plot/SKILL.md` → **Autonomous mode (`--autonomous`)**, before recursion even begins). This ticket threads that already-known value one level further: Step 5's per-ticket fill call passes `invocation_mode` = plot's resolved entry mode, down into `resolve_native_template`. This is the one concrete addition to `create.md`'s fill-step signature and to plot's own Step 5 prose — a parameter passed through an existing call, never a change to the Linear leg's own logic (the Linear leg ignores the parameter entirely; only the new ambiguity-prompt branch reads it).
+
+**Wiring (mirrors `native-map.js` + `cli-surface.js` exactly).**
+
+- New file `plugin/skills/faff/bin/lib/github-templates.js`: exports `cmdGithubTemplates`, `GITHUB_TEMPLATES_SURFACE`; imports `FAFF_TYPES`/`FAFF_TYPE_SET` from `native-map.js`, `parseYamlSubset`/`findRoot` from `shared-infra.js`. Also houses `sanitize_for_display`/`demarcate` (WHAT → Design decisions → Sanitization boundary) — the CLI verb's own pre-JSON-encoding sanitization pass for an `ambiguous` result, not a separate skill-lane helper.
+- `bin/faff`'s `COMMANDS` gains `"github-templates": cmdGithubTemplates`.
+- `cli-surface.js` gains `"github-templates": GITHUB_TEMPLATES_SURFACE` so the bijection + required-flag self-test covers it.
+- `create.md`'s tier-1 prose (lines 31-58) gains the GitHub-leg sub-step and the updated `resolve_native_template` shown above (now with the `invocation_mode` parameter); the tier-order line (31-37) gains one clause noting tier 1 now has two sub-steps.
+- `faff-jot/SKILL.md:79` and `faff-plot/SKILL.md:79` each gain at most one clause: "…may also perform a local `.github/ISSUE_TEMPLATE` read (no tracker call) when the Linear leg misses; a genuine tie prompts interactively, never under `--autonomous`." jot's call site additionally passes the literal `invocation_mode: "interactive"`; plot's Step 5 call site additionally passes its Ignition-resolved entry mode as `invocation_mode`.
+
+**Edge cases and error handling.**
+
+- **No `.github/ISSUE_TEMPLATE*` in the working tree the fill step runs against** (git-only mode with no tracker connector, a tracker-connected repo that just doesn't have the directory, or — per the working-tree-materialization Assumes, WHAT → Design decisions — a non-materialized/shallow/detached checkout, if one is ever a real caller): GitHub leg misses; behaviour identical to pre-ticket in every case. The three causes are distinguishable in principle but not by this mechanism — a miss is a miss, and a miss never blocks, so no cause needs to be distinguished at fill time.
+- **`.github/ISSUE_TEMPLATE/config.yml` only, no `.md` files**: treated as "no `.md` candidates" → check the bare-file fallback → miss if that's also absent.
+- **A bare `.github/ISSUE_TEMPLATE.md` with classifiable front matter** (e.g. `name: Bug Report`): treated as a single-type candidate for its classified type only — **not** universal (see WHAT → Legacy singular file — universal-candidate gating).
+- **A directory-form file whose front matter fails to classify**: stays `UNCLASSIFIED`, matches no requested type — never falls back to `EVERY_TYPE` (universal is bare-file-only).
+- **Both legs would hit for the same type**: the Linear leg (confirmed-tier) is unconditionally authoritative; the GitHub leg is never even queried in that case (short-circuit on a Linear-leg hit) — not a scored comparison between the two, see WHY → Load-bearing model.
+- **A same-type GitHub-leg candidate whose body carries no `## ` headings at all (opaque body, empty `fields`)**: *(New — QA-major fix, Empty-fields guard.)* not returned as a `hit` — `resolve`'s single-candidate branch reports it (`REPORT github_opaque(type, path, name)`, mirroring the Linear leg's `REPORT opaque` shape, into the same per-invocation narrative log) and returns `miss` for that type instead. This mirrors the Linear leg's own existing opaque-body guard, which the GitHub leg's single-candidate branch previously lacked.
+- **Malformed front matter on one candidate among several**: that candidate's `front` degrades to `{}` (name falls back to filename stem, `about`/`labels` empty) — it still participates in classification/scoring on a weaker signal, it is not dropped.
+- **Malformed/absent stdin JSON**: treated as empty title/description — weakens overlap scores toward ambiguity, never throws, never blocks.
+- **Ambiguous with no interactive pick, or ambiguous under autonomous invocation**: falls through to tier 2/3 exactly like a Linear-leg miss. *(Fixed — was the review's QA-minor "log path/format undecidable" finding.)* Reported into the **same per-invocation narrative log** FAFF-1083's own `REPORT stale mapping`/`REPORT opaque mapping` lines already write to (`create.md:47,51`): the calling skill's `.faff/logs/YYYY-MM-DD/HHMMSS-jot.md` or `HHMMSS-plot.md` (kernel.md → **`.faff/` logging directory**, the "Decisions with reasoning" log-entry bullet — "what was expected, what was observed, what decision was taken, why"). The ambiguity entry names the type and every tied candidate's `path` + `name` + `score`, and the fall-through outcome — no new reporting channel, no new file.
+- **`--type` outside the closed taxonomy**: `usageError`, exit 2, mirroring `native-map get`.
+- **Error categories**: the `--type` argument error is terminal (exit 2); every miss/ambiguous/malformed-input condition is a non-error fall-through — none is retryable, none blocks creation.
+
+**Failure modes — how the approach falls over, and how you'd notice.**
+
+- **The failure:** `parseYamlSubset` doesn't parse a real-world front-matter `labels:` shape (the confirmed gap: an unquoted flow-list `labels: [bug, triage]` fails `scalar()`'s strict `JSON.parse` and is read as a plain string, not a list). **How you'd know:** the unquoted-flow-form scenario (Scenarios, and DONE → "From HOW (edge cases)") pins this exact degradation as a named, testable case — `labels` reads empty for that candidate; `classify_type` and `overlap_score` then rely on `name`/`about` alone (weaker on both axes now that `labels` also feeds scoring). **What it means:** proceed — `name`/`about` matching still functions (this is a *weaker signal*, not a broken one); narrow by extending `parseYamlSubset`'s flow-sequence handling only if real corpora show `labels` carrying signal `name`/`about` doesn't — a decision this ticket explicitly defers (WHAT → Design decisions → **Labels fixture form**, option (b) rejected for now).
+- **The failure — recharacterized, not papered over.** Even with `labels` folded into the scorer, Jaccard overlap over `name`/`about`/`labels` remains an **opportunistic** signal, not a general one: `name`/`about` text is near-constant boilerplate across templates of a given type while ticket title/description is specific and per-ticket, so their token intersection is typically empty regardless of weighting; most real-world same-type template collisions will still have generic or absent `labels`, so the top-two scores will legitimately land at or near zero for every candidate alike. **How you'd know:** a fixture/corpus pass shows the `ambiguous` path firing on the clear majority of genuine same-type multi-candidate cases, with `hit`-via-score reserved for the minority of templates carrying a distinguishing, ticket-relevant label (see Scenarios → the labels-anchored-hit scenario, which demonstrates the minority case working). **What it means:** proceed — this is the mechanism working as designed (detect-and-defer, not forced-pick), not a defect to fix by further threshold tuning: when the top-two scores are both exactly 0 (the common boilerplate-vs-specific-text case), no threshold above 0 changes the outcome, so lowering `min_score` cannot rescue a mechanism with no signal to threshold. If the observed defer rate under real usage proves operationally too high (too many interactive prompts / autonomous fall-throughs), the correct next lever is a **structurally richer signal** — matching the template body's `## <Field>` heading text against ticket content, or an LLM-judged semantic match (see OUT OF SCOPE) — or reopening the onboard-time human-curation extension point, not a stronger heuristic squeezed further out of `name`/`about`/`labels` Jaccard, which this analysis shows has a hard ceiling given what real templates typically contain.
+
+**Anti-patterns.**
+
+- **Anti-pattern:** treating the two legs as symmetric peers, each with independent odds of winning per fill. Why: the confirmed-tier occupant (Linear, once populated for a type) is unconditionally authoritative — the GitHub leg's code path isn't even reached in that case (WHY → Load-bearing model). Framing it as a race would mislead a future third-occupant author into building unnecessary tie-breaking logic between tiers that structurally never compete.
+- **Anti-pattern:** returning `hit` from the GitHub leg's single-candidate branch without checking `fields` is non-empty. Why: an opaque, headingless `.md` body would silently violate the seed-never-constrain invariant with a zero-field description — the Linear leg already guards this exact case; the GitHub leg's single-candidate branch must too (WHAT → Design decisions → Empty-fields guard).
+- **Anti-pattern:** gating the GitHub leg on `tracking.tracker == "github"`. Why: `.github/ISSUE_TEMPLATE*` is a repo-hosting property, not a tracker-of-record property; this repo is the counter-example.
+- **Anti-pattern:** letting the GitHub leg's discovery/scoring make an MCP call. Why: `.github/ISSUE_TEMPLATE/*` are local repo files — there is no tracker round-trip to make, and adding one would be a pointless lane violation.
+- **Anti-pattern:** persisting the live ambiguity resolution (e.g., writing a "GitHub native map" file mirroring `.faff-templates/native-templates.yaml`). Why: this ticket's ambiguity is per-ticket (title/description vary every fill); persisting a pick would silently mis-apply it to the next, unrelated ticket of the same type.
+- **Anti-pattern:** prompting under `/faff-plot --autonomous` "just this once" because the tie looks obvious. Why: `autonomous.md`'s no-prompt invariant has no severity carve-out; genuine ambiguity under autonomous invocation is a fall-through, not a judgment call for the agent to override.
+- **Anti-pattern:** treating front-matter `labels`/`name`/`about` text as anything but data for scoring. Why: kernel's untrusted-input no-execute floor applies to committed template files exactly as it does to tracker free text, per this ticket's own explicit instruction.
+- **Anti-pattern:** applying the bare-file's `EVERY_TYPE` universal fallback to a directory-form file that fails to classify. Why: a stray unclassifiable file sitting alongside type-specific siblings most plausibly means "doesn't apply here," not "applies to everything" — universal promotion is a property of the single-legacy-file shape, not of classification failure in general.
+- **Anti-pattern:** treating a low overlap-scorer hit-rate as a bug to fix by lowering `min_score` toward zero. Why: when top-two scores are both exactly 0 (the common case), no threshold above 0 changes the outcome — the correct escalation is a richer signal, not a lower number (see Failure modes).
+- **Anti-pattern:** rendering unsanitized template `name`/`about` text as prompt copy, or asking the operator to type the template's name back to confirm a pick. Why: both make a committed-but-attacker-influenceable string do double duty as an instruction to a human — exactly the display-channel injection surface the prompt-neutralization principle forecloses. (The CLI itself never emits raw `name`/`about` in an `ambiguous` result — see Sanitization boundary — so there is no raw text left for an implementer to accidentally wire up.)
+
+## Scenarios — born-verifiable main objectives
+
+```
+Given a repo with `.github/ISSUE_TEMPLATE/bug_report.md` (front matter `name: Bug Report`, `labels: bug`)
+  and no Linear native-map entry for `bug`
+When the fill step resolves a ticket determined to be `bug`
+Then the created ticket's description follows that file's `## <Field>` structure,
+     not faff's built-in Repro/Expected/Actual/Scope/Open-questions field set
+```
+
+```holdout
+Given `.github/ISSUE_TEMPLATE/` containing two `.md` files both inferred as `feature`
+  whose overlap scores against the ticket's title+description land within `min_margin` of each other
+When `/faff-jot` (a genuinely interactive invocation) resolves that ticket's template
+Then the operator is prompted with both candidates named and scored, rendered as the CLI's own
+     sanitize_for_display output (truncated, control-character-stripped, `[untrusted template text]
+     "..."`-demarcated -- see WHAT -> Design decisions -> Sanitization boundary) with an
+     index-pick-or-decline choice only
+ And no field sequence is applied until the operator picks one or declines
+ # Integration-level (holdout): that the prompt fires, blocks on a pick, and enforces
+ # index-pick-only is orchestration behaviour with no CLI surface a deterministic test can observe --
+ # verified by the build agent's PR description + human review at review time, not the automated
+ # suite. The candidate text's sanitization itself IS CLI-testable; see the plain (non-holdout)
+ # sanitization scenario below for that half.
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/` containing two same-type candidates, one with a `name:` containing
+  a control character and a 200-character `about:` string, tied closely enough to resolve "ambiguous"
+When `faff github-templates resolve --type <t> --json` runs (no orchestration, no skill lane)
+Then each candidate's `name`/`about` in the JSON output is already truncated (80/160 chars),
+     stripped of control characters, and wrapped in the fixed `[untrusted template text] "..."`
+     demarcation -- the sanitized, demarcated string IS the CLI's own output, directly assertable
+     without running any skill-lane orchestration
+```
+
+```
+Given the same two-candidate tie as above
+When the identical fill step runs inside `/faff-plot --autonomous`
+Then no prompt fires
+ And the fill falls through to tier 2 then tier 3, exactly as any other tier-1 miss
+ And the ambiguity is reported (type + both candidate names + scores) into that run's
+     `.faff/logs/YYYY-MM-DD/HHMMSS-plot.md` narrative log, the same convention FAFF-1083's own
+     stale/opaque reports already use
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/` containing two `.md` files, BOTH with front matter `name: Bug Report`
+  (satisfying `classify_type`'s `bug` keyword gate via `name` alone -- both are same-type `bug`
+  candidates independent of labels; see WHAT -> Design decisions -> Labels and the type gate) — one
+  ADDITIONALLY carrying `labels:\n  - security` (block-list form -- the one `labels:` shape
+  `parseYamlSubset` is confirmed to parse correctly today; see WHAT -> Design decisions -> Labels
+  fixture form), the other `labels:\n  - performance` — and a ticket titled "SQL injection in login
+  endpoint" (description mentioning "injection")
+  # Spelled out explicitly, per the fix to the architectural-major "structurally dead" finding:
+  # `name: Bug Report` does the TYPE-GATING job (identical on both files, so it contributes zero
+  # differential signal to the score); `security` vs `performance` is the ONLY differential signal
+  # reaching overlap_score, and does the DISAMBIGUATING job.
+When the fill step resolves that ticket's template
+Then the `security`-labelled candidate's overlap score (labels weighted at 70%) clears
+     `min_score`/`min_margin` against the `performance`-labelled candidate
+ And that candidate is used as the hit, with no prompt fired
+ # demonstrates the scorer's real, if opportunistic, hit path -- not just its defer path.
+ # Fixture form is pinned deliberately: the unquoted flow-sequence form has its own separate,
+ # explicit scenario below asserting the documented DEGRADED behaviour, so this scenario proves
+ # nothing about that case and isn't asked to -- the working case and the known-gap case are each
+ # named and testably distinct.
+ # A domain-only label with no type keyword anywhere on the file (e.g. a candidate whose only
+ # signal is `labels: security` with a generic, non-type name/about) would never reach this scorer
+ # at all -- classify_type returns UNCLASSIFIED for it and resolve()'s same_type filter drops it
+ # before scoring runs. That is a separate, MISS case, not this scenario's shape.
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/` containing a single `bug`-inferred candidate whose front matter uses
+  the unquoted flow-sequence form `labels: [security, urgent]` (the confirmed `parseYamlSubset` gap:
+  `scalar()`'s strict `JSON.parse` gate rejects unquoted flow-sequence elements)
+When `build_candidate` parses that file
+Then `front.labels` is not a List (`parseYamlSubset` returns the literal string
+     `"[security, urgent]"` for that value), so `candidate.labels` degrades to `[]` per the
+     `front.labels IS a List ? … : []` rule
+ And `classify_type`/`overlap_score` for that candidate fall back to `name`/`about` alone --
+     documented, silent-but-safe degradation, never a crash and never a corrupted score
+ # the named, testable counterpart to the labels-anchored-hit scenario above.
+```
+
+```
+Given a repo with only `.github/ISSUE_TEMPLATE/config.yml` (no `.md` files) under that directory
+When `faff github-templates resolve --type bug --json` runs
+Then it prints { "result": "miss", "type": "bug" } and exits 0 — config.yml is never a candidate
+```
+
+```
+Given both a confirmed Linear native-map entry for `feature` AND a `.github/ISSUE_TEMPLATE/feature_request.md`
+  inferred as `feature`, in the same repo
+When the fill step resolves `feature`
+Then the Linear leg's hit is used
+ And `faff github-templates resolve` is never invoked for that fill
+ # demonstrates the confirmed-beats-heuristic invariant directly: this isn't a scored tie-break, the
+ # GitHub leg's code path is never reached at all once the confirmed-tier map is populated for the
+ # type -- see WHY -> Load-bearing model.
+```
+
+```holdout
+Given a bare `.github/ISSUE_TEMPLATE.md` with no front matter and no `.github/ISSUE_TEMPLATE/` directory
+When the fill step resolves a ticket of any determined type
+Then that file is treated as a universal candidate and its `## <Field>` sequence is used
+```
+
+```
+Given a bare `.github/ISSUE_TEMPLATE.md` with classifiable front matter (`name: Bug Report`) and no
+  `.github/ISSUE_TEMPLATE/` directory
+When the fill step resolves a ticket determined to be `feature`
+Then that file is NOT treated as a universal candidate — it classifies as `bug` only, so it is not
+     a candidate for `feature`, and the GitHub leg misses for `feature`
+ # regression scenario for the universal-candidate-gating fix
+```
+
+```
+Given two same-type candidates whose top score exactly equals `min_score` and whose top-minus-second
+  margin exactly equals `min_margin` (neither threshold is exceeded — both are met exactly, at the boundary)
+When resolve() evaluates them
+Then the result is "hit" for the top-scoring candidate, not "ambiguous" — the comparison in the resolve
+     procedure is strict `<` (`top.score < min_score OR margin < min_margin`), so a value exactly at
+     either threshold clears it; only a value strictly below trips ambiguous
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/bug_report.md` is the ONLY `bug`-inferred candidate, and its body is
+  plain prose with no `## <Field>` headings at all (a same-type file with zero structure, not
+  "thin-but-structured")
+When `faff github-templates resolve --type bug --json` runs
+Then it does NOT return `{result: "hit", ...}` with `fields: []` — it reports the opaque body
+     (`REPORT github_opaque(type, path, name)`, mirroring the Linear leg's `REPORT opaque` shape) and
+     returns `{result: "miss", type: "bug"}`, exit 0
+ # the GitHub-leg counterpart to the Linear leg's existing opaque-body guard (create.md:47) -- closes
+ # the one asymmetry between the two legs' opaque-body handling (WHAT -> Design decisions -> Empty-
+ # fields guard on the GitHub leg's single-candidate hit)
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/feature_request.md` has front matter with `about:`/`labels:` but NO
+  `name:` key at all
+When `build_candidate` parses that file
+Then `candidate.name` is the `filename_stem` fallback: exactly `"feature request"` — the basename
+     with its `.md` extension stripped and every underscore/hyphen replaced with a space (WHAT -> HOW
+     -> `filename_stem`) — never the raw filename, never the full relative path
+ # the named test oracle for the previously-unspecified `name:`-missing fallback
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/mystery.md` whose front matter matches no `classify_type` keyword
+  anywhere (`name: Miscellaneous`, `about: general notes`, no `labels`), and no other file under
+  `.github/ISSUE_TEMPLATE/`
+When `faff github-templates resolve --type bug --json` runs
+Then it returns `{result: "miss", type: "bug"}`, exit 0 — `classify_type` returns `UNCLASSIFIED` for
+     `mystery.md`, and because it is a directory-form file (`discover_candidates` sets
+     `universal_eligible: false` for every file found this way), `build_candidate`'s
+     `universal_eligible AND classified == UNCLASSIFIED` gate never fires for it — it stays
+     `UNCLASSIFIED`, correctly excluded from the `bug` candidate set, and is never promoted to
+     `EVERY_TYPE`
+ # New this round -- QA-major: "no scenario for 'a directory-form file whose front matter fails to
+ # classify stays UNCLASSIFIED, never gets EVERY_TYPE.'" Universal promotion is bare-file-only
+ # (WHAT -> Design decisions -> Legacy singular file -- universal-candidate gating); this is the
+ # directory-form negative case that fix's own DONE item names but had no dedicated scenario for.
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/broken.md` whose front-matter fence never closes (the file opens with a
+  line that is exactly `---` but has no second `---` line anywhere before EOF), alongside a
+  well-formed same-type sibling `.github/ISSUE_TEMPLATE/bug_report.md` (`name: Bug Report`, a
+  `## Steps to reproduce` body heading), and stdin `{"title": "", "description": ""}`
+When `faff github-templates resolve --type bug --json` runs
+Then `broken.md` still participates as a `bug` candidate rather than being dropped or causing a
+     crash/miss — `parse_front_matter`'s malformed-fence path returns `{front: {}, body: file_text}`
+     (never throws), so `build_candidate` degrades `broken.md` to `name := filename_stem("broken.md")`
+     = `"broken"`, `about := ""`, `labels := []`; `"broken"` itself matches `classify_type`'s
+     `\b(bug|defect|broken|crash)\b` keyword, so `broken.md` classifies as `bug` on its degraded name
+     alone and joins `bug_report.md` as a second same-type candidate
+ And with both candidates scoring at or near zero against the empty stdin title/description, the
+     result is `{result: "ambiguous", type: "bug", candidates: [...]}` listing BOTH `broken.md` and
+     `bug_report.md` by path — not a `miss`, not a crash, not a silently-dropped candidate
+ # New this round -- QA-major: "no scenario for malformed front matter degrading gracefully rather
+ # than dropping the candidate." Distinct from the existing "malformed front matter on one candidate
+ # among several" edge-case bullet (HOW -> Edge cases) in that this scenario names a concrete fixture,
+ # runs it through the actual CLI, and asserts the specific observable outcome (ambiguous, both paths
+ # present) rather than describing the behaviour in prose only.
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/bug_report.yml` — a `.yml`-EXTENSIONED file, deliberately NOT named
+  `config.yml` or `config.yaml` (this scenario exercises the extension filter, not the name-exclusion
+  clause) — alongside a same-type `.github/ISSUE_TEMPLATE/bug_report.md` (`name: Bug Report`, a
+  `## Steps to reproduce` body heading)
+When `faff github-templates resolve --type bug --json` runs
+Then `bug_report.yml` is never treated as a candidate — `discover_candidates`'s glob is `*.md`
+     specifically (case-insensitive); a `.yml` file fails that glob on extension alone, regardless of
+     its filename, before the `config.yml`/`config.yaml` name-exclusion clause would ever have a
+     chance to matter
+ And the result is a clean single-candidate `{result: "hit", type: "bug", path:
+     ".github/ISSUE_TEMPLATE/bug_report.md", ...}` — proving the extension filter operates on its own,
+     independent of the (accurate but redundant) name-exclusion clause discussed in `discover_candidates`
+ # New this round -- QA-minor: "no scenario distinguishing the .yml/.yaml extension-exclusion from the
+ # config.yml name-exclusion." OUT OF SCOPE -> GitHub YAML issue-forms already states .yml/.yaml files
+ # are never candidates; this is that claim's own dedicated test oracle, isolated from the config-name
+ # case the earlier config.yml-only-directory scenario already covers.
+```
+
+```
+Given `.github/ISSUE_TEMPLATE/bug_report.md` — the ONLY candidate present, a well-formed `bug`
+  candidate (`name: Bug Report`, a `## Steps to reproduce` body heading) — and no other file under
+  `.github/ISSUE_TEMPLATE/`
+When `faff github-templates resolve --type bug --json` runs with NO stdin at all (stdin closed/empty),
+  and — as a separate invocation — with malformed, non-JSON stdin (the literal bytes `not json`)
+Then BOTH invocations exit 0 and print a well-formed `{result: "hit", type: "bug", path:
+     ".github/ISSUE_TEMPLATE/bug_report.md", name: "Bug Report", fields: ["Steps to reproduce"]}` --
+     never a crash, never a non-zero exit
+ # New this round -- QA-minor: "no scenario for malformed/absent stdin degrading cleanly." Matches the
+ # CLI's own stated stdin-handling rule (WHAT -> the new CLI verb: "Malformed/absent stdin JSON is
+ # non-fatal: treated as {title:"", description:""}... never throws"). A single-candidate fixture is
+ # deliberately chosen: resolve()'s single-candidate branch never reads title/description at all (only
+ # the >=2-candidate scoring branch does), so this scenario proves the stdin-handling guard holds even
+ # before scoring would ever consume the (degraded) title/description -- the CLI still has to parse
+ # stdin without throwing on the way in, regardless of whether the parsed value ends up used.
+```
+
+- **Assertion (non-functional):** `faff github-templates resolve` performs no MCP, network, or git access — pure and offline, same purity constraint as `native-map get`.
+- **Assertion (non-functional):** no GitHub-leg condition (miss, ambiguous-with-no-pick, malformed front matter, malformed stdin) blocks, warns-to-block, or errors a create; an unfilled field still stays placeholdered per the seed-never-constrain invariant.
+- **Assertion (non-functional, CLI-testable):** `faff github-templates resolve --json`'s `ambiguous` result never carries raw, unsanitized candidate `name`/`about` text — sanitization runs inside the CLI verb itself (WHAT → Design decisions → Sanitization boundary), so there is no code path back to raw front-matter text for an ambiguous result.
+- **Assertion (non-functional, integration-level):** the interactive ambiguity prompt accepts only a list-index pick or decline — never free-text entry, never a type-to-confirm pattern. This is a property of `prompt_operator`'s orchestration, not something the CLI or an automated test observes directly; verified by the build agent's PR description + human review at review time (see the integration-level DONE items below).
+
+## Design Decision Rationale
+
+**Repo-gated or tracker-gated?**
+- *Tracker-gated* (`tracking.tracker == "github"`) — simpler condition, but misses exactly this repo's own shape (Linear tracker, GitHub host) and any repo like it.
+- *Repo-gated* (filesystem presence of `.github/ISSUE_TEMPLATE*`) — matches what the feature actually is: a GitHub-hosting artifact, independent of backlog-tracker choice. **Chosen:** repo-gated. (decides: architecture)
+- **Named separately, not conflated:** repo-gated only settles the tracker axis. Whether the filesystem check runs against a fully-materialized working tree is a second, independent axis — this ticket assumes it does (see WHAT → Design decisions → **Working-tree materialization**) rather than claiming the detection is checkout-state-agnostic. Re-reading `faff-jot/SKILL.md` and `faff-plot/SKILL.md` in full found no language guaranteeing a non-shallow/non-detached checkout at the fill step's call sites, so this is named as an **Assumes**, not folded into the "repo-gated" claim as if it were proven.
+
+**Where does the GitHub leg sit relative to the Linear leg?**
+- *A sibling function jot/plot call independently* — duplicates the "try tier 1, then tier 2/3" control flow FAFF-1083 already wrote once.
+- *A second sub-step inside `resolve_native_template`* — one control-flow home, one first-match-wins chain. **Chosen:** the second sub-step, tried after the Linear leg.
+
+**When both legs could hit the same type, who wins? — and is this actually a competition?** *(Revised — fixes the review's architectural-major "symmetric two-occupant slot" finding: the round-3 framing below answered "who wins" as if it were a live tie-break, which mischaracterizes what actually happens.)*
+- *GitHub wins* — no basis: it's discovered fresh, uncurated, at fill time, with no human confirmation behind it.
+- *Frame it as two peers racing, tie-broken toward Linear* — the round-3 framing. Produces the identical runtime outcome, but mischaracterizes the invariant: once the Linear leg's map is populated for a type, the GitHub leg was never actually in contention — there is no live comparison happening at all. Look at `resolve_native_template` below: the Linear-leg block either `RETURN`s on a hit or falls through unconditionally; the GitHub leg's line is never even reached in the hit case. Calling that a "race, tie-broken toward Linear" implies a comparison this control flow doesn't perform, and would mislead whoever adds a third occupant into building unnecessary N-way tie-breaking logic between tiers that structurally never compete.
+- *Name the real relationship: confirmed beats heuristic, unconditionally, when populated* — the Linear leg's mapping passed a human confirm at onboard time (FAFF-1081 step 3b); that's not "a stronger score in a race," it's a categorically different kind of answer that a live, per-fill heuristic (no human in the loop) was never in a position to outrank. **Chosen:** this framing. The GitHub leg is consulted only for a type the Linear leg's map leaves unpopulated — it is the fallback for a gap, not a contestant. See WHY → Load-bearing model for how this generalizes to a future third occupant (declare confirmed-tier or heuristic-tier; heuristic-tier stacks below all confirmed-tier occupants, in an unspecified order among themselves).
+
+**Where does the GitHub leg's logic live — skill prose (like tier 2) or a CLI verb (like the Linear leg)?**
+- *Skill prose*, mirroring tier 2's current style — smallest footprint, but a multi-file scan + type classification + Jaccard scoring is materially more logic than tier 2's single-file Read, and none of it is unit-testable without a real CLI surface.
+- *A new pure CLI verb*, mirroring `native-map.js`'s precedent — testable via the same real-CLI black-box harness pattern (`test/native-map.test.mjs`), and there's no MCP dependency forcing it into the skill lane the way the Linear leg's `get_template` call does. **Chosen:** a new pure CLI verb (`github-templates resolve`). (decides: architecture)
+
+**How is a candidate's type inferred, and does it risk drifting from FAFF-1081's onboard heuristic?** *(Revised — fixes the review's architectural-minor "false verbatim claim" finding.)*
+- *Reuse FAFF-1081's onboard-proposal heuristic verbatim* — the prior draft's framing. Doesn't hold on inspection: `faff-onboard/SKILL.md` step 3b's actual heuristic (re-read in full for this revision) is a prose-described suggestion with a "no confident match → suggest unmapped" fallback, not a regex keyword table — there is no "verbatim" table to reuse without inventing the regex this ticket needs anyway.
+- *Extract FAFF-1081's onboard heuristic into a shared, code-level classifier both legs call* — would genuinely close the drift risk between the two legs, but FAFF-1081's heuristic is shipped, prose-only, human-reviewed logic with no dedicated code module; extracting it is a nontrivial refactor of already-shipped work, not a small addition — scope creep beyond this ticket's narrowed delta.
+- *A new, GitHub-leg-specific heuristic, honestly framed as inspired-by-not-identical-to FAFF-1081's proposal shape, with the drift risk named as an accepted tradeoff* — smallest footprint, ships today, and doesn't overstate what it guarantees. **Chosen.** The two legs' classifications are independent and may disagree on an ambiguous template name — an accepted, named tradeoff, not a hidden one. (decides: architecture)
+
+**Should the universal-candidate fallback apply to any file that fails to classify, or only to the bare legacy file?** *(New — fixes the review's QA-major "direct contradiction" and architectural-minor "unconditional imposition," the same root bug from two lenses.)*
+- *Apply to any unclassifiable file, directory-form or bare* — simpler rule, one code path — but a stray unclassifiable file sitting alongside type-specific siblings most plausibly means "doesn't apply here," not "applies to everything"; treating it as universal would silently multiply candidates for every type on a parse/classification miss.
+- *Restrict to the bare, single-legacy-file shape only, and only when it comes back `UNCLASSIFIED`* — matches the actual design intent (a repo with exactly one legacy template almost always intends it for everything) without over-applying the same logic to a directory that already has type-specific structure. **Chosen:** restrict to the bare-file path, gated on `UNCLASSIFIED`; `discover_candidates` passes `universal_eligible` explicitly so `build_candidate` never has to guess which shape it's in, and the procedure now literally matches the DONE criterion's own wording ("with no classifiable front matter").
+
+**How is ambiguity resolved once GitHub can expose multiple same-type candidates?**
+- *(i) Live type-then-keyword-overlap scoring across GitHub's candidates only* — Linear's ambiguity is already structurally closed (FAFF-1081's map stores 0-or-1 per type; there is nothing left to disambiguate there). This narrowed ticket's only genuine multi-candidate case is GitHub's directory form.
+- *(ii) Extend `faff-onboard` to add a GitHub-side onboard-time human-curation step*, mirroring step 3b for Linear — would resolve ambiguity once, per repo, at onboard, closing the gap the same way Linear's is closed. Rejected for this ticket: it's a materially larger surface (a new onboard step, a new persisted mapping file, a new writer verb with its own round-trip discipline) than the ticket's narrowed delta calls for, and per-fill scoring is still needed regardless (a repo's `.github/ISSUE_TEMPLATE/` can gain a new file between onboard runs, with no onboard re-run to catch it — onboard's own re-run rule is "never clobbers", not "re-scans").
+- **Chosen:** (i), live scoring, this ticket. (ii) is named as an explicit extension point if live scoring proves too imprecise or too defer-heavy in practice — not a rejection of the idea, a sequencing call. (decides: architecture)
+
+**Does a domain label alone (e.g. `security`) satisfy the type gate?** *(New — fixes the review's architectural-major "structurally dead for its own headline case" finding.)*
+- *Treat a domain word as an implicit type alias* (e.g. special-case `security` → `bug`) — would let a domain-only-labelled candidate reach the scorer, but silently grows the closed six-type taxonomy's matching surface with product-undecided domain vocabulary — exactly what OUT OF SCOPE → **Replacing faff's six-type taxonomy with GitHub's vocabulary** already forecloses, and it doesn't stop at `security`: any domain word anyone's `labels:` happens to use would need the same special-casing, with no principled stopping point.
+- *Leave the mechanism as originally specified and just soften the worked example's language* — doesn't hold: the underlying claim (labels give the scorer "a real path to a confident hit") would remain untrue for the case actually cited, because `classify_type`'s `same_type` gate runs *before* `overlap_score` ever does; no amount of caveat language changes that a domain-only-labelled candidate never reaches the function being described.
+- *Recognize that `classify_type`'s haystack already includes `labels` (it does — `lowercase(name + " " + about + " " + join(labels," "))`), and be honest about what that does and doesn't buy* — a type keyword living in a `labels:` entry (e.g. `labels: bug`) satisfies the gate exactly as one in `name`/`about` would; a domain-only label with no type keyword anywhere on the file does not, and cannot, by construction. **Chosen.** Pick a worked example (the labels-anchored-hit scenario) where a type keyword already satisfies the gate — via `name`, as the corrected example does — and let a co-occurring domain label do the real disambiguating work in `overlap_score`. This is honest about the mechanism's actual reach rather than describing a case the code can't produce. (decides: architecture)
+
+**Does the overlap scorer select among same-type candidates, or detect-and-defer?** *(New — fixes the review's architectural-major "practically dead" finding. Genuine analysis, not a caveat bolted on.)*
+- *Engineer a stronger selection heuristic* (weight `labels`, lower `min_score`, mine the template body) — this ticket does fold in weighted `labels` (a real, if partial, improvement over `name`+`about` alone), but that cannot close the gap for the common case: `name`/`about` is near-constant boilerplate ("Bug Report", "Describe the bug") while ticket title/description is specific and per-ticket, so their token intersection is typically **exactly** empty, not just below 0.15 — and lowering the threshold below a floor of zero intersection creates no signal that wasn't there. A stronger heuristic squeezed further out of the same three fields (`name`/`about`/`labels`) has a hard ceiling given what real GitHub issue templates typically contain.
+- *Recharacterize the mechanism honestly as detect-and-defer* — the scorer's real, achievable job is to catch the minority of cases where a genuine lexical anchor exists (chiefly via curated `labels` that happen to name the ticket's actual domain) and safely default to a human prompt or a logged fall-through otherwise. **Chosen:** detect-and-defer, with the labels-weighted scorer as a genuine (if partial) improvement over `name`+`about` alone — not a claim that the mechanism reliably picks among boilerplate-indistinguishable templates. The acceptance-criteria framing and the DONE items throughout this spec are written to this honest characterization (see WHAT → Ambiguity-resolution shape, and the labels-anchored-hit scenario demonstrating the real minority-case win). **Named as an accepted tradeoff, not glossed over** *(new this round — architectural-minor: "the scoring machinery is largely inert per the spec's own analysis")*: this scorer is deliberately kept simple despite a low expected hit-rate in the common case — it captures the minority of cases where a genuine lexical anchor exists (see Failure modes), and it is the natural extension point once a richer disambiguation signal (see OUT OF SCOPE → **A structurally richer disambiguation signal**) is available; building nothing here would mean re-adding a scoring mechanism later rather than incrementally improving one already in place and already tested. (decides: architecture)
+
+**How does the ambiguity prompt handle untrusted candidate text, and where does the neutralization actually happen?** *(Round 2 fixed the infosec-minor finding; round 3 fixes the follow-on infosec-minor finding that the neutralization wasn't enforced by anything testable.)*
+- *Render `name`/`about` as-authored* — simplest, but a crafted `name:`/`about:` (attacker-influenceable via a PR or fork, per the untrusted-input floor) becomes a prompt-injection/social-engineering surface against the human reading it, and the existing floor's "never executed" language was written for agent-side handling, not the display channel.
+- *Neutralize the display, restrict the interaction to an index-pick, but leave the demarcation to `prompt_operator`'s own rendering* — the round-2 shape. Doesn't hold up: `sanitize_for_display`'s literal contract (truncate + strip control characters) is satisfiable while still rendering the result in a plain, undemarcated list — `prompt_operator`'s demarcation obligation was unspecified prose with no test oracle.
+- *Make the demarcation a property of `sanitize_for_display`'s own output, moved into the CLI verb* — the truncated/stripped text is wrapped in a fixed `[untrusted template text] "…"` convention **before** it ever leaves `faff github-templates resolve --json`, so the sanitized-and-demarcated string is the CLI's own directly-assertable output. **Chosen.** `prompt_operator`'s only remaining obligation is to render that string verbatim and accept an index pick or decline — nothing left to under-specify. See WHAT → Design decisions → **Sanitization boundary**.
+
+**Does the live prompt mirror onboard step 3b's shape?**
+- Onboard step 3b's collision resolution is per-repo, once, and its outcome is **persisted** (a durable map entry).
+- This ticket's ambiguity is per-ticket, live, and its outcome must **never** be persisted (today's tie between two feature templates says nothing about tomorrow's unrelated feature ticket).
+- **Chosen:** borrow the *presentation* shape (a skimmable named-and-scored candidate list, confirm-not-interrogate — now additionally rendered as neutralized display data) but not the *persistence* — these are genuinely different shapes at the storage layer even though the human-facing gesture rhymes.
+
+**Does the prompt ever fire under autonomous invocation?**
+- *Fire it anyway when the tie "looks obvious"* — explicitly banned by `autonomous.md`'s no-prompt invariant; there is no severity carve-out for a judgment call that "feels safe."
+- *Never fire under autonomous invocation; treat as MISS* — consistent with every other tier-1 fall-through, and with `/faff-plot --autonomous`'s existing create-time fill step, which already tolerates a miss without blocking. **Chosen:** never fire under autonomous invocation.
+
+**How does `invocation_mode` reach `resolve_native_template`?** *(New — fixes the review's architectural-major finding that the "needs no new state" claim cited lines that were never read and don't say what was claimed.)*
+- *Assume it's already available with no new plumbing* (the original framing) — doesn't hold on inspection: `create.md` establishes no `invocation_mode` value anywhere today, and the originally-cited `faff-jot/SKILL.md:143-151` spans jot's tracker-less-mode item-keying and the start of its Autonomous-mode section — it describes tracker-presence branching (git-only vs tracker) and jot's own bail-to-`.faff/intake` behaviour, neither of which threads a mode value into a fill-step call.
+- *Thread one new parameter from each caller's own already-resolved value* — jot's call site is always `"interactive"` by construction (a genuinely autonomous jot invocation never reaches create/fill at all, per its Autonomous-mode section); plot's call site passes its Ignition-resolved entry mode, since plot's Step 5 ("Write the skeleton") is the one call site genuinely invoked both under interactive `/faff-plot` and `/faff-plot --autonomous`. **Chosen:** the latter — one new parameter through an existing call, added to `create.md`'s fill-step signature and to plot's Step 5 prose; it does not touch the Linear leg's own logic. (decides: architecture)
+
+**Should the GitHub leg's single-candidate branch return `hit` on an empty `fields` list?** *(New — fixes the review's QA-major "no empty-fields guard, unlike the Linear leg" finding.)*
+- *Return `hit` unconditionally, as originally specified* — simplest, one fewer branch, but a same-type `.md` file written as plain prose (no `## ` headings) would then produce `fields: []` — a ticket with zero structure, not "thin-but-structured" — silently violating the seed-never-constrain invariant, and inconsistently with the Linear leg, which already guards this exact case.
+- *Guard it, mirroring the Linear leg's own `IF fields not empty: RETURN fields` / else `REPORT opaque`-and-fall-through shape* — costs one more branch and one more reporting call (`REPORT github_opaque`), but closes an asymmetry that had no principled reason to exist: there's no basis for the GitHub leg's single-candidate path to be less careful about opaque bodies than the Linear leg is about opaque tracker templates. **Chosen.** See WHAT → Design decisions → **Empty-fields guard on the GitHub leg's single-candidate hit** for the exact mechanism. (decides: architecture)
+
+## Open Questions and Assumptions
+
+**Open Questions.**
+
+- **Punt (decides: product):** the exact `min_score` / `min_margin` values that separate a confident GitHub-leg pick from a forced ambiguity prompt. Carried forward from FAFF-1070's own original open question, narrowed to the one leg where live ambiguity can occur (Linear's is structurally closed by FAFF-1081). Non-blocking: `faff github-templates resolve` ships defensible defaults as overridable flags (suggested: `min_score 0.15`, `min_margin 0.05`, echoing the parent ticket's own suggested default), so the mechanism is buildable and testable today; product tunes the numbers against real template corpora without any further code change. Given the detect-and-defer recharacterization (Design Decision Rationale), the practical effect of these defaults is calibrating **how eager the mechanism is to defer** versus attempt an opportunistic labels-anchored hit — not whether ambiguity resolution "works" at all; a low observed hit-rate under real corpora is expected, not a signal the defaults are broken.
+
+**Assumptions.**
+
+- **Assumes:** `parseYamlSubset` (`shared-infra.js`) parses real-world GitHub issue-template front matter well enough for `name`/`about`/`labels` extraction, including a block-list `labels:` form. *Validation (build agent, before relying on `labels`):* feed `parseYamlSubset` 2-3 real front-matter fixtures (GitHub's own docs examples, or a few popular OSS repos' `.github/ISSUE_TEMPLATE/*.md`) covering `labels: bug` (bare scalar), `labels:\n  - bug\n  - triage` (block list), and `labels: [bug, triage]` (unquoted flow — **known to fail**, per `scalar()`'s strict-`JSON.parse` gate). If the unquoted-flow form shows up often in practice, either extend `parseYamlSubset`'s flow-sequence handling (coordinate — it's shared with `config.js`/`native-map.js`) or accept `labels` as a best-effort, sometimes-empty signal and rely on `name`/`about` as the primary matcher (already the design's fallback; nothing breaks if `labels` stays empty). This assumption is now load-bearing for **both** `classify_type` and `overlap_score` — see WHAT → Front-matter parser. The decidability gap this creates for the spec's own scenarios is resolved separately, not left implicit — see WHAT → Design decisions → **Labels fixture form**: the labels-anchored-hit scenario is pinned to the block-list form, and a second, explicit scenario pins the unquoted-flow form's degraded behaviour.
+- **Assumes:** `/faff-jot`'s Step 4 and `/faff-plot`'s Step 5 — the only two `resolve_native_template` call sites — always run against a real, checked-out local working tree when the fill step performs its filesystem check for `.github/ISSUE_TEMPLATE*`. *Validation (build agent, before relying on it):* re-read `faff-jot/SKILL.md` and `faff-plot/SKILL.md` in full at build time to confirm neither documents a shallow, sparse, or detached-HEAD invocation path (this revision's own re-read, and the closest available citation — `kernel.md` → **Agent Lanes → Orchestrator**'s "codebase, read-oriented" visibility grant — found none that goes as far as a guarantee). If a future caller ever adds one, the working-tree check silently reads as absent for that invocation — a **safe, closed failure** (the GitHub leg degrades to a miss, never a false hit, per the seed-never-constrain invariant), not a build-blocking one. This assumption is orthogonal to the git-only-mode axis (WHY → Design principles, **Repo-gated, not tracker-gated**): "no tracker connector" and "no materialized working tree" are two different conditions, and only the first is what repo-gating disclaims dependence on. See WHAT → Design decisions → **Working-tree materialization**.
+
+## DONE — Definition of Done
+
+### From WHY
+- [ ] `.github/ISSUE_TEMPLATE*` detection is repo-gated (a filesystem check against the working tree the fill step actually runs against), never keyed off `tracking.tracker` — the two axes ("no tracker connector" vs. "no materialized working tree") are independent; see WHY → Design principles and WHAT → Design decisions → **Working-tree materialization**.
+- [ ] **Linear leg regression bar (behavioural, not textual).** The Linear leg's hit / miss / opaque-mapping / stale-mapping outcomes for a given `native-map` entry are unchanged by this ticket — verified two ways, since `resolve_native_template`'s control-flow prose has no dedicated code module for a line-level regression test to run against (a literal "zero changed lines" bar is unsatisfiable here: every pre-ticket fall-through in the existing procedure is a `RETURN MISS` line *inside* the Linear-leg block itself, and inserting the GitHub-leg continuation necessarily touches those lines or restructures the block): (a) `test/native-map.test.mjs` — the only automated coverage of the Linear leg's mechanics (the `native-map get`/`set` CLI verb the leg calls; it does not exercise `resolve_native_template` itself, confirmed by reading the file) — continues to pass unmodified; (b) the **"both legs could hit" scenario** below (Scenarios → *Given both a confirmed Linear native-map entry for `feature` AND a `.github/ISSUE_TEMPLATE/feature_request.md`…*) demonstrates end-to-end that a Linear-leg hit is used and `faff github-templates resolve` is never invoked — the concrete regression evidence for "the Linear leg still behaves as FAFF-1083 shipped it," replacing the impossible line-diff claim.
+- [ ] No GitHub-leg condition (miss, ambiguous, malformed input) blocks, warns-to-block, or errors ticket creation.
+- [ ] **(Integration-level — see the note below the "From HOW (behaviour)" DONE items.)** The ambiguity prompt fires only under genuinely interactive invocation; it never fires under `/faff-plot --autonomous` or any autonomous jot path.
+- [ ] The GitHub-leg ambiguity mechanism behaves as detect-and-defer: it surfaces a confident hit only when a genuine lexical anchor exists (chiefly via `labels`), and defers (prompt/fall-through) on any genuine multiplicity — it never forces a ranked pick between boilerplate-indistinguishable same-type candidates (verified by the labels-anchored-hit scenario and the two-boilerplate-candidate holdout scenario together).
+- [ ] **CLI-testable half:** the interactive ambiguity prompt's candidate text — `name`/`about`, truncated, control-character-stripped, `[untrusted template text] "..."`-demarcated — is `faff github-templates resolve --json`'s own `ambiguous.candidates[]` output (WHAT → INTERFACE; the sanitization scenario), not a separate skill-lane transformation. **Integration-level half:** that the prompt accepts only a list-index pick or decline — never free text, never a type-to-confirm pattern — is a property of `prompt_operator`'s orchestration; see the integration-level note below.
+
+### From WHAT (the new CLI verb + interfaces)
+- [ ] `faff github-templates resolve --type <t> --json` (stdin `{title,description}`) returns `{result:"hit", type, path, name, fields}` for a single same-type candidate, exit 0.
+- [ ] Returns `{result:"miss", type}` when zero candidates exist for `<t>` (no structure at all, or none classify as `<t>`), exit 0.
+- [ ] Returns `{result:"ambiguous", type, candidates:[{path,name,about,score},...]}` when ≥2 same-type candidates fail to clear `min_score`/`min_margin`, exit 0 — `name`/`about` are already sanitize_for_display'd (truncated, control-stripped, demarcated; WHAT → Design decisions → Sanitization boundary), never raw front-matter text.
+- [ ] `--type` outside `{bug,feature,spike,chore,epic,default}` is a `usageError`, exit 2.
+- [ ] `.github/ISSUE_TEMPLATE/config.yml`/`config.yaml` is never treated as a candidate.
+- [ ] `.yml`/`.yaml` files under `.github/ISSUE_TEMPLATE/` are never treated as candidates.
+- [ ] **(New — Empty-fields guard.)** A same-type GitHub-leg candidate whose body carries no `## ` headings (empty `fields`) is never returned as a `hit` — `resolve`'s single-candidate branch reports it (`REPORT github_opaque`, mirroring the Linear leg's opaque-mapping report) and returns `miss` for that type instead, exactly as the Linear leg already refuses to treat a headingless body as a hit. Verified by the opaque-body scenario and smoke-test step 9.
+- [ ] **(New — `filename_stem` test oracle.)** A candidate file with no `name:` front-matter key resolves `name` to the exact `filename_stem(path)` rule: the basename with its `.md` extension stripped and every `_`/`-` replaced with a space (e.g. `bug_report.md` → `bug report`, `needs_triage.md` → `needs triage`) — not the raw filename, not the full path. Verified by the `filename_stem` scenario and smoke-test step 10.
+- [ ] A bare `.github/ISSUE_TEMPLATE.md` (no directory, or an empty one) is a candidate for every requested type **only when `classify_type` returns `UNCLASSIFIED` for it**; a bare file with classifiable front matter (e.g. `name: Bug Report`) is a single-type candidate for that type only, exactly like a directory-form file.
+- [ ] A directory-form file whose front matter fails to classify stays `UNCLASSIFIED` (matches no type) — it never gets the universal `EVERY_TYPE` fallback, which is bare-file-only. Verified by the `mystery.md` scenario (Scenarios).
+- [ ] **(New — extension-vs-name-exclusion.)** A `.yml`/`.yaml`-extensioned file under `.github/ISSUE_TEMPLATE/` is never a candidate regardless of its filename — the extension glob (`*.md`) excludes it before the `config.yml`/`config.yaml` name-exclusion clause is ever relevant. Verified by the `bug_report.yml`-vs-`.md`-sibling scenario (Scenarios), distinct from the `config.yml`-only-directory scenario.
+- [ ] `overlap_score` incorporates `labels` (weighted 70%) alongside `name`/`about` (weighted 30%); a candidate's `labels` provide the primary path to a confident hit among same-type candidates.
+- [ ] `github-templates.js` imports `FAFF_TYPES`/`FAFF_TYPE_SET` from `native-map.js` rather than redefining the taxonomy.
+- [ ] The verb performs no MCP/network/git access (pure), asserted like `native-map get`.
+- [ ] `github-templates` is registered in `bin/faff`'s `COMMANDS` and in `cli-surface.js`'s surface map; `cli-surface --selftest` stays green.
+
+### From HOW (behaviour)
+- [ ] `resolve_native_template` tries the Linear leg first; only on a Linear-leg miss does it call the GitHub leg — the Linear leg's populated map is unconditionally authoritative for a type, not one side of a scored comparison (WHY → Load-bearing model).
+- [ ] A GitHub-leg hit produces a description whose field structure is that file's `## <Field>` sequence, not the built-in field set.
+- [ ] `resolve_native_template`'s call sites pass `invocation_mode` explicitly: jot's Step 4 call passes the literal `"interactive"`; plot's Step 5 call passes plot's Ignition-resolved entry mode (`"interactive"` for bare `/faff-plot`, `"autonomous"` for `/faff-plot --autonomous`).
+- [ ] **(Integration-level.)** A same-type ambiguous result, under interactive invocation, prompts the operator with every tied candidate's name + score (rendered exactly as the CLI's own sanitize_for_display output) before any field sequence is applied; a decline falls through to tier 2/3.
+- [ ] **(Integration-level — the reporting target/format is decidable and smoke-testable; that a prompt is correctly suppressed is not.)** The identical ambiguous result, under autonomous invocation, never prompts — falls through to tier 2/3 and is reported into the calling skill's existing per-invocation narrative log (`.faff/logs/YYYY-MM-DD/HHMMSS-jot.md` or `HHMMSS-plot.md`, per kernel.md → `.faff/` logging directory — the same "Decisions with reasoning" entry shape FAFF-1083's own `REPORT stale`/`REPORT opaque` lines already write into, `create.md:47,51`), naming the type and every tied candidate's path/name/score.
+
+  **Integration-level DONE items, named honestly (fixes the QA-major "undecidable by any check the spec names" finding).** The items above marked integration-level share one root cause: the actual prompting/suppression/index-pick-only enforcement happens in `resolve_native_template`'s skill-prose orchestration (the `IF invocation_mode == "interactive"` branch and `prompt_operator`'s own behaviour), which no CLI surface and no automated test can observe — a build could ship a free-text-accepting or autonomous-firing prompt and still pass every CLI-level check this spec names. The CLI-testable half (sanitized, demarcated candidate text) is closed above — see WHAT → Design decisions → **Sanitization boundary**. The remaining orchestration half is honestly scoped as **integration-level**: verified by the build agent's PR description (a manual transcript — one interactive run producing a prompt with an index-pick/decline, one `--autonomous` run producing a silent fall-through + the named log entry) and confirmed by the human reviewer at review time, not the automated test suite. This is a legitimate spec pattern, not a gap papered over: not every requirement is unit-testable, and naming it so beats implying an independent test proves it when the architecture makes that impossible.
+- [ ] A top score exactly equal to `min_score`, and a margin exactly equal to `min_margin`, resolves to `hit` — the comparison is strict `<`; only a strictly lower score or margin resolves to `ambiguous`.
+- [ ] `faff-jot/SKILL.md:79` and `faff-plot/SKILL.md:79` each carry the one-line pointer to the GitHub leg + its autonomous-scoping rule.
+
+### From HOW (edge cases)
+- [ ] Malformed front matter on one candidate degrades that candidate's `name`/`about`/`labels` to best-effort (filename stem, empty strings) without dropping it from consideration. Verified by the `broken.md`-unclosed-fence scenario (Scenarios), which exercises this against the real CLI rather than describing it in prose only.
+- [ ] Malformed/absent stdin JSON degrades to empty title/description without throwing or blocking. Verified by the no-stdin/malformed-stdin scenario (Scenarios): both a closed-stdin and a non-JSON-stdin invocation exit 0 with a well-formed `{result: "hit", ...}` response.
+- [ ] Git-only mode, a repo with no `.github/ISSUE_TEMPLATE*` at all, or (per the working-tree-materialization Assumes) a non-materialized checkout: GitHub leg misses in every case, fill behaves identically to before this ticket.
+- [ ] The unquoted flow-sequence `labels:` form (e.g. `labels: [security, urgent]`) degrades that candidate's `labels` to `[]` (the confirmed `parseYamlSubset` gap — a documented, non-fatal degradation, not a crash) — verified by the unquoted-flow-form scenario; `classify_type`/`overlap_score` for that candidate then rely on `name`/`about` alone.
+
+### Eval coverage
+- [ ] No new LLM-judgement seam is introduced — `classify_type` and `overlap_score` are deterministic pure functions (regex + weighted Jaccard), not an LLM call. No grader registration required.
+- [ ] The integration-level DONE items above (ambiguity-prompt firing scoped to interactive invocation; index-pick-only enforcement) are human-verified at PR review — not LLM-graded and not requiring grader registration either; they are named integration-level because no CLI/code surface observes them at all, not because they need an LLM judge.
+
+### Integration smoke test
+
+```
+PROCEDURE smoke():
+  0. Confirm the Linear-leg regression bar (DONE -> "Linear leg regression bar"): run
+     `test/native-map.test.mjs` unmodified and assert it stays green; then execute the "both legs
+     could hit" scenario below end-to-end (a confirmed Linear native-map entry for `feature`
+     alongside a `.github/ISSUE_TEMPLATE/feature_request.md` inferred `feature`) and assert the
+     Linear leg's hit is returned with `faff github-templates resolve` never invoked. This is the
+     behavioural substitute for a code-level regression test -- `resolve_native_template`'s prose
+     has no line-diff-able module of its own, so a literal "zero changed lines" bar is unsatisfiable
+     (every pre-ticket fall-through in the procedure is a `RETURN MISS` line inside the Linear-leg
+     block itself).
+  1. In a temp repo, write .github/ISSUE_TEMPLATE/bug_report.md with front matter
+     `name: Bug Report` / `labels: bug` and a `## Steps to reproduce` body heading.
+  2. `faff github-templates resolve --type bug --json` (stdin {"title":"","description":""})
+     -> { result: "hit", type: "bug", path: ".github/ISSUE_TEMPLATE/bug_report.md",
+          name: "Bug Report", fields: ["Steps to reproduce", ...] }, exit 0.
+  3. `faff github-templates resolve --type feature --json` (same repo)
+     -> { result: "miss", type: "feature" }, exit 0.
+  4. Add a second bug_report_2.md with front matter `name: Bug Report (duplicate)` (also satisfies
+     the `bug` type gate via `name`, independent of labels -- same gating shape as the labels-anchored-
+     hit scenario) and unrelated `about`, no distinguishing `labels` -> two same-type candidates; with
+     stdin title/description matching neither closely, assert `result: "ambiguous"` with both paths
+     listed (the detect-and-defer path).
+  5. Re-run step 4's pair but give bug_report_2.md `labels:\n  - security` (block-list form -- the
+     pinned fixture form, WHAT -> Design decisions -> Labels fixture form) and pass stdin
+     {"title": "SQL injection in login", "description": "..."} -> assert `result: "hit"` on
+     bug_report_2.md (the labels-anchored opportunistic-hit path — demonstrates the scorer is not dead).
+  5b. Re-run step 5 but with bug_report_2.md's `labels:` written as the unquoted flow-sequence form
+     `labels: [security, urgent]` instead -> assert `labels` degrades to `[]` for that candidate
+     (the documented `parseYamlSubset` gap) and the result falls back to `name`/`about` scoring --
+     the named, testable counterpart to step 5's working case.
+  6. Remove all directory-form files, leaving a bare .github/ISSUE_TEMPLATE.md with no front matter ->
+     `faff github-templates resolve --type chore --json` -> { result: "hit", ... } (universal fallback,
+     UNCLASSIFIED-gated).
+  7. Give that same bare file `name: Bug Report` (classifiable) -> re-run for `--type chore` -> assert
+     `result: "miss"` (no longer universal; it now classifies as `bug` only).
+  8. Restore two same-type candidates (step 4's shape) but give one a `name:` containing a raw
+     control byte and a 200-character `about:` -> assert the JSON `ambiguous.candidates[]` entries
+     for `name`/`about` are already truncated (80/160), control-stripped, and wrapped in
+     `[untrusted template text] "..."` -- the CLI-level sanitization is directly assertable, no
+     skill-lane execution needed (WHAT -> Design decisions -> Sanitization boundary).
+  9. Replace bug_report.md's body with plain prose (no `## ` headings at all) as the sole
+     `bug`-inferred candidate -> `faff github-templates resolve --type bug --json` -> assert
+     `{result: "miss", type: "bug"}`, NOT a hit with `fields: []` -- the empty-fields guard
+     (WHAT -> Design decisions -> Empty-fields guard on the GitHub leg's single-candidate hit).
+  10. Add a candidate file `.github/ISSUE_TEMPLATE/needs_triage.md` with front matter carrying
+     `about:`/`labels:` but no `name:` key -> assert its resolved `name` (surfaced via its `hit` or
+     `ambiguous` result) is exactly `"needs triage"` (the `filename_stem` fallback rule), not the raw
+     filename and not the full path.
+  # If this connects, the discover -> classify -> score -> resolve seam is wired end to end,
+  # independent of the still-Punted min_score/min_margin defaults (pass them explicitly in the test).
+```
+
+## Methodology critique
+
+Methodology: faffter-dark-methodology-agile-delivery
+
+Critiquing the narrowed spec (GitHub-leg discovery/parsing + live ambiguity resolution + control-flow integration), not the original ticket wording — the split/narrow decisions already happened.
+
+**Right-sized? (principle 4)**
+
+What's there: the narrowed spec still bundles two structurally independent occupants into one ~13-decision, complex-tier build: (1) the GitHub-file discovery/parsing occupant — reading `.github/ISSUE_TEMPLATE/*.md` and `.github/ISSUE_TEMPLATE.md`, parsing frontmatter into candidate structures — and (2) the live ambiguity-scoring mechanism — a new `faff github-templates resolve` CLI verb, Jaccard keyword-overlap scoring, and an interactive-only operator-prompt path on a genuine tie, plus the `create.md` control-flow wiring and the two SKILL.md pointer edits.
+
+Why it's a problem: these two are separable and independently shippable. (1) can be built and selftested against static fixture files with no scoring logic at all (it just needs to produce a candidate list); (2) can be built and tested against synthetic candidate lists with no real GitHub repo needed. The project's own precedent one slice up treated exactly this discovery-vs-apply seam as two tickets — FAFF-1081 (discover the Linear mapping) and FAFF-1083 (fetch/apply it at create time) were split and shipped separately. This ticket re-merges the equivalent seam for the GitHub leg into a single unit, which is how a 1-3 day ticket becomes a multi-day one that sits "in progress" without visible partial progress.
+
+What to do about it: split into (a) GitHub-template discovery/parsing (walk `.github/ISSUE_TEMPLATE*`, parse frontmatter, return typed candidates — no scoring, no CLI verb) and (b) the `github-templates resolve` verb + Jaccard scoring + tie-prompt + `create.md`/SKILL.md wiring, which consumes (a)'s output. (a) can ship and be selftested on its own; (b) becomes a clean, independently reviewable unit that also isolates the interactive-prompt risk (see risk profile below) from the parsing risk.
+
+**Workstream fit? (principles 1+5)**
+
+No issues. FAFF-1060's outcome — "unified repo + tracker convention/template scan feeding onboard + jot's create path" — still covers this delta cleanly: it's the one remaining occupant of the tier-1 native-template slot the epic exists to populate. The scope shrinking doesn't create a cohesion problem, since what's left (GitHub-leg discovery + live resolution) is still squarely "template scan feeding jot's create path," not a drifted theme. One observational note, not a violation: once this ships, FAFF-1060 has no live children left (1068, 1069, 1081, 1083 all Done) — worth closing the epic in the same pass rather than leaving a drained-but-open parent.
+
+**Deps surfaced? (principle 6)**
+
+What's there: checked live tracker state directly. FAFF-1083 is Done (completed 2026-09-22, PR #928). FAFF-1081 is Done (completed 2026-09-22, PR #925/#929). FAFF-1069 is Done (completed 2026-09-21, PR #918). The spec's citations of all three as Done match live state — no discrepancy there. But FAFF-1070 itself currently carries no `blockedBy` link to either FAFF-1083 or FAFF-1081, and its only `relatedTo` link is to FAFF-1068. Its Linear description also still reads as the pre-narrowing ticket (it still describes building the Linear `list_templates`/`get_template` leg as part of this ticket's own scope) — it hasn't been updated to reflect that leg now lives in 1083/1081.
+
+Why it's a problem: this ticket's `create.md` control-flow work builds directly on top of the tier-1 resolution order and control flow that FAFF-1083 already wrote and shipped — that's a real code dependency, not just a conceptual one, and it's currently invisible in the graph. A future reader (or an automation pass sequencing off the blocker graph) has no tracker signal that FAFF-1070 must be read against FAFF-1083's actual merged implementation rather than the original design prose in FAFF-1060/1070's own descriptions.
+
+What to do about it: add explicit `relatedTo` links from FAFF-1070 to FAFF-1083 and FAFF-1081 (informational, since both are Done — not a blocker in the sequencing sense, but a "builds on this code" signal), and refresh FAFF-1070's description to reflect the narrowed scope so the raw issue doesn't contradict the attached spec.
+
+**Risk profile? (principle 7)**
+
+What's there: the spec's own `**Assumes:**` flags a gap in `parseYamlSubset`'s handling of flow-sequence YAML (`labels: [a, b]`). Direct inspection of `plugin/skills/faff/bin/lib/shared-infra.js`'s `scalar()` (lines 308-324) confirms it: a `[...]` value is only parsed as an array via `JSON.parse`, which requires double-quoted string elements. An unquoted flow sequence like `labels: [bug, needs-triage]` — the near-universal real-world style GitHub issue-template frontmatter uses — fails `JSON.parse` and silently falls through to being returned as the literal string `"[bug, needs-triage]"` rather than throwing.
+
+Why it's a problem: this isn't a rare edge case reachable only by unusual input — it's the common case for exactly the file format this greenfield leg is being built to parse. Because the failure mode is silent (a wrong-shaped string, not an exception), a bug here would corrupt type/keyword matching quietly rather than surfacing — the worst kind of risk to leave as a build-time footnote in decision 12 of 13. It's compounded by this repo's own tracker being Linear (per `.faffrc.yaml`): the GitHub-tracker leg can never be dogfooded live in this repo, so the only validation path is synthetic fixtures/selftest — meaning a quiet parsing bug here has no live usage to catch it before it ships to a consuming repo.
+
+What to do about it: don't fold this into the main build as an assumption. Either (a) fix `parseYamlSubset`'s flow-sequence scalar handling as a small precursor task that gates the GitHub-discovery occupant, or (b) if the resolve/scoring logic genuinely never needs `labels:` (only `name`/`about`/`title`/body for type + keyword matching), state that explicitly as a scoping decision in the spec and add a selftest fixture with an unquoted `labels: [a, b]` frontmatter line that asserts it's ignored/tolerated rather than silently corrupting a used field. Left as-is, "Assumes" undersells a confirmed, common-case, silent-failure gap.
+
+*(Revision-pass note: this critique predates the fix that made `labels` a 70%-weighted input to `overlap_score`, which makes the flow-sequence parsing gap named here strictly more load-bearing than when the critique was written — not less. The Risk profile finding's "don't fold this into the main build as an assumption" recommendation stands, and arguably strengthens, post-revision; it was not one of the review's 8 objections and is left as the methodology lens's own open finding for the human gate to weigh, not resolved by this pass.)*
+
+**Confidence rationale (re-derived, round 5 — final round; honest, not optimistic).** Held at **medium**, unchanged from rounds 3 and 4. This round's 7 objections (2 architectural major, 1 architectural minor, 2 QA major, 2 QA minor) were closed with the mix the loop's own instructions asked for — scenario additions and framing precision, deliberately not a redesign — and none of them was closed by softening a claim instead of fixing it: the tier-1 "tracker as source of truth" tension is resolved by stating the actual generalized invariant (each occupant is authoritative for its own native source), the shared-signature finding is closed by naming which parameters each leg consumes at the point a future reader would actually look, the "largely inert scorer" finding is closed by naming the tradeoff explicitly rather than continuing to imply the labels-anchored-hit example is the common case, and all four QA scenario gaps (UNCLASSIFIED-stays-UNCLASSIFIED, malformed-fence-degrades-not-drops, `.yml`-extension-vs-`config.yml`-name, malformed-stdin) now have a concrete fixture run through the actual CLI rather than a prose-only edge-case bullet. Re-checked against the pseudocode as written, not aspirationally: the `mystery.md` scenario's `UNCLASSIFIED` outcome, the `broken.md` scenario's fallback to `filename_stem` (and the fact that `"broken"` itself satisfies the `bug` keyword, which is what lets it join the same-type candidate set rather than just silently existing unobserved), the `.yml`-extension scenario's reliance on the glob rather than the name-exclusion clause, and the stdin scenario's single-candidate path (which never reads title/description at all) were each traced against `discover_candidates`, `build_candidate`, `classify_type`, `parse_front_matter`, and `resolve` as specified above before being written down — none of the four is aspirational.
+
+Two things still keep this from **high**, unchanged in kind from round 4 and not resolved by this round's fixes (they weren't in scope to resolve — the round's own brief was scenario/framing fixes, not a redesign): the same two `**Assumes:**` decisions carry real, if fail-closed, risk (`parseYamlSubset`'s flow-sequence gap, confirmed by direct inspection and now load-bearing for both `classify_type` and `overlap_score`; the working-tree-materialization assumption behind repo-gated detection), and the same two DONE items remain honestly scoped **integration-level** rather than automated-suite-provable (the ambiguity-prompt's firing/suppression and its index-pick-only enforcement) — properties of `resolve_native_template`'s skill-prose orchestration with no CLI surface to observe them. One `**Punt:**` remains open by design (`min_score`/`min_margin` tuning), unchanged since round 1. Naming this plainly rather than rounding up: this spec goes to a human review gate regardless of the loop's outcome (this is its last permitted automated round), so an honest **medium** — closed objections, but still-open assumptions and still-integration-level orchestration guarantees a human needs to actually look at — is more useful here than an optimistic **high** that would imply those gaps are smaller than they are. What keeps it from dropping to **low**: every one of this round's 7 objections, and every one of rounds 2-4's, was fixed with a real mechanism trace, a corrected worked example, a concrete new scenario, or an honest, explicit decision — never a caveat bolted onto an unchanged claim — and the objection count's 8→7→5→7 history (round 4's rise notwithstanding) reflects a review process finding real, fixable gaps each round, not a spec that's thrashing on the same unresolved issue.
+
+confidence: medium
+build-tier: complex
+
+```faff-contract:spec-readiness
+{ "confidence": "medium",
+  "decisions": [
+    { "marker": "chosen" },
+    { "marker": "assumes" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "chosen" },
+    { "marker": "assumes" },
+    { "marker": "chosen" },
+    { "marker": "punt" }
+  ] }
+```

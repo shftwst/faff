@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1070",
+  "run_id": "run-20260923-001758-beepboop-list-be8f85",
+  "built_spec_sha": "3c7410327b96583b34168d497a986d7ca5b31276da9b59f39ba4b8ef517b4e50",
+  "spec_blob": "spec.txt",
+  "objections": "objections.json",
+  "rulings": "rulings.json",
+  "admit_result": null,
+  "outcome": "no-judge",
+  "lenses": [
+    "QA",
+    "architectural"
+  ],
+  "witness_sha": "56ee53ea8c80de5203f2c22a2a41b1b7a91c58d3f4275a30af612d6064eedc71"
+}

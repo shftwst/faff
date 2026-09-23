@@ -1,0 +1,74 @@
+[
+  {
+    "claim": "The governed obligation-6 splice and the kernel.md ad-hoc obligation both invoke `faff graftcheck --issue <issue> [--run-dir <run_dir>] --json` with no `--ref`, so `graftcheckAnchor` runs `git ls-tree HEAD -- .faff/anchors/` against the dispatcher's checkout. The dispatcher is the orchestrator on `main`; the anchor is committed to the feature branch at Step 9b and only reaches `main` at merge. `git ls-tree HEAD` therefore never lists the anchor for a conformant build, and every legitimate build reports `anchor: \"absent\"` → `incomplete` → the obligation-6 park path fires and the ad-hoc obligation surfaces a false failure. The check as specified cannot distinguish a conformant build from the incident's failure — it inverts the incident into a false-positive on the happy path.",
+    "evidence": "Section 4(a): `verdict := shell(\"faff graftcheck --issue <issue> --run-dir <run_dir> --json\")`; section 4(b): \"the dispatcher runs `faff graftcheck --issue <ISSUE-ID> --json`\"; section 3's `--ref` flag doc: \"An orchestrator checking a build lane it doesn't have checked out passes the lane's known branch name or PR head ref explicitly\" — the exact scenario both call sites are in, and neither does it; Step 9b commits the anchor to the feature branch.",
+    "predicted_consequence": "every concurrency-executor build parks with cause `graft-floor-incomplete — anchor` before obligation 7's merge locus, and every legitimate ad-hoc dispatch is surfaced loudly as a false failure — the braces are broken in both dispatch shapes as written.",
+    "spec_anchor": "the-braces-orchestrator-side-receipt-checks",
+    "lens": "architectural",
+    "severity": "blocker",
+    "contested_source": false
+  },
+  {
+    "claim": "The placement prose says Step 11b runs \"immediately before the 'Return values to caller' bold-lead paragraph in the `## Autonomous Mode` section\" — that point is after Step 10's ship handoff, where the merge has already happened for `shipped`. The anti-pattern note then forbids exactly that: \"calling this procedure with `about_to_return := shipped` *after* the merge has already happened\" and says for `shipped` it must sit \"before the `ship` handoff at Step 10.\" The spec asserts \"Section 4's ordering is deliberate\" but the placement sentence does not reflect the shipped-specific placement, so a build agent implementing the literal placement produces the forbidden anti-pattern. Worse, the new validate-adapters lint (\"Step 11b's `graftcheck` invocation must textually precede every one of the four gated return-token bullets\") would *enforce* the wrong placement — the Return-values block is after Step 10, so the lint blesses a post-merge check for `shipped`.",
+    "evidence": "Section 4 belt placement paragraph; the anti-pattern note in the same section; the DONE item \"validate-adapters.js gains the Step-11b-precedes-Return-values ordering lint.\"",
+    "predicted_consequence": "the `shipped` self-verify fires after the merge, exactly the irreversible-state failure the spec names as its own anti-pattern, and the lint passes it.",
+    "spec_anchor": "the-belt-faff-graft-skill-md-s-terminal-self-verify",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The incident is a prose obligation being skipped (the Chaining-handoff bullet \"names only as prose, with nothing gating it\"). The fix for the ad-hoc shape adds one more prose sentence with no mechanical backing — no validate-adapters lint, no CLI enforcement, nothing that fires if the dispatcher omits the check. The spec's claim that the braces are \"independent of the build lane's cooperation entirely\" is true, but the ad-hoc braces depend on the *dispatcher's* cooperation, which is the same trust problem relocated to a different actor. A dispatcher sloppy enough to dispatch a chaining-handoff skill to a subagent in the wrong shape is not obviously good enough to run the receipt check faithfully — the exact reasoning the spec itself uses to dismiss the belt's sufficiency.",
+    "evidence": "Section 4(b) \"Add one sentence immediately after that bullet\"; the spec's own framing of the Chaining-handoff bullet as prose with \"nothing gating it\"; the validate-adapters lint covers only Step 11b, never the kernel.md obligation.",
+    "predicted_consequence": "the incident's actual dispatch shape remains protected only by the same class of unenforced prose that failed, so the fix's net protection for that shape is no stronger than before.",
+    "spec_anchor": "the-braces-orchestrator-side-receipt-checks",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The new `faff graftcheck` CLI accepts `--issue` as a required input and feeds it directly into `path.join(runDir, issue, \"ac-checklist.json\")` (via `readAcComplete`) and `path.join(runDir, issue, \"review-verdict.json\")` (via `readReviewVerdict`), and into the `resolveRunDirForIssue` scan. The spec's CLI surface section documents the flag but specifies no input validation for `--issue`. The existing `cmdMergeGate` validates issue with `/^[A-Za-z0-9][A-Za-z0-9._-]*$/` plus an explicit `..` rejection before any path operation; `graftcheck` is a new entry point that does not inherit that guard. A value like `../../.faff/runs/other-run/FAFF-9999` would cause `readAcComplete`/`readReviewVerdict` to read floor artifacts from an arbitrary sibling run dir, and `resolveRunDirForIssue`'s `admitted.includes(issue)` scan would match a ledger whose `admitted` array contains the traversal string, resolving to a run dir the caller did not intend.",
+    "evidence": "Spec §3 CLI surface: \"`--issue` (required) — the only required input; every other flag narrows or overrides an otherwise-derived default. Mirrors `prepcheck --issue`'s shape exactly.\" Spec §4 `graftcheck` procedure step 3: `readAcComplete(run_dir, issue) ? \"verified\" : \"incomplete\"` — no validation step between flag parse and path construction. Context: `merge-gate.js` `cmdMergeGate` line: `if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes(\"..\"))` — the guard that exists in the existing caller but is not carried into the new one.",
+    "predicted_consequence": "An orchestrator or ad-hoc dispatcher that passes a malformed or attacker-influenced issue string (e.g. from a tracker field it did not sanitise) gets a floor verdict computed against the wrong run dir's artifacts — a `complete` verdict for issue X that actually reflects issue Y's verified floor. The belt and braces both consume this verdict, so a cross-issue false `complete` lets a governance-skipped build proceed to merge under a different issue's evidence.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "infosec",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The belt procedure in §4 reads `result := shell(\"faff graftcheck … --json\")` then branches on `result.state == \"complete\"`. The spec defines exit codes 0/1/2 for the three verdict states but does not specify behaviour for an unexpected exit (unhandled exception, missing `git` binary, OOM) or for stdout that is not valid JSON. The prose says \"IF result.state == 'complete': RETURN … ELSE (incomplete OR no-substrate): … park.\" If the shell call produces no parseable payload, `result` is null/undefined and `result.state` is undefined — which is not `\"complete\"`, so the ELSE branch fires. This is accidentally fail-safe, but the spec does not state it as a requirement. A build agent implementing the step from the prose could reasonably treat \"CLI returned no JSON\" as \"check unavailable, skip it\" (the same rationalisation that produced the original FAFF-1071 incident: a step that is not explicitly mandatory gets skipped under execution-failure pressure).",
+    "evidence": "Spec §4 belt procedure: `1. result := shell(\"faff graftcheck --issue <issue> --run-dir <run_dir> --json\")` … `2. IF result.state == \"complete\": RETURN about_to_return UNCHANGED` … `3. ELSE (incomplete OR no-substrate): …`. No clause addresses \"CLI exited non-zero with no JSON\" or \"stdout is not parseable JSON.\"",
+    "predicted_consequence": "A build agent that encounters a `graftcheck` crash (e.g. `git` not on PATH in a minimal container) skips the self-verify entirely and returns the success token — the exact failure mode the spec exists to close, re-introduced through the error path of the check itself.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The AC test claims to assert \"that Step 11b's documented procedure (PR-to-draft + Park protocol + `needs-human` downgrade) is what a conformant graft implementation does in response, never the original success token.\" But the named test file is `test/faff-1071-graftcheck.test.mjs` — a Node test of the `graftcheck.js` CLI. A `.mjs` test cannot execute `faff-graft/SKILL.md` prose: the belt is an LLM agent that reads Step 11b, shells `faff graftcheck`, and *branches* (flip PR to draft, run Park protocol, downgrade the token). No test in the repo's test harness runs a SKILL.md, so the \"downgrade to `needs-human`\" half of the AC has no runnable oracle. The test can only decide the CLI half (`state: \"no-substrate\"`, exit 2).",
+    "evidence": "DONE \"Acceptance-criteria test (from the ticket's own Acceptance section)\" first bullet; DONE \"From HOW (behaviour)\" bullet \"On a non-`complete` verdict with a PR already open, Step 11b flips the PR to draft, runs the shared Park protocol … and downgrades the return to `needs-human`.\"",
+    "predicted_consequence": "A build can ship a `graftcheck.js` that passes every named test (no-substrate/exit 2, complete/exit 0, the smoke test) while Step 11b's prose omits the downgrade-to-`needs-human` branch entirely (or downgrades to the wrong token) — and no AC, scenario, or lint can detect it. The `validate-adapters.js` lint only checks *ordering* (Step 11b textually precedes the return-token bullets), not that the downgrade behaviour is present. Done cannot be decided for the belt's actual behaviour.",
+    "spec_anchor": "acceptance-criteria-test-from-the-tickets-own-acceptance-section",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec defines three states (`complete`/`incomplete`/`no-substrate`) with three distinct exit codes (0/1/2), but the scenarios and the AC test only exercise `no-substrate` (exit 2) and `complete` (exit 0). The `incomplete` state — \"at least one piece was found, but the set is not complete\" — is the exact shape of the FAFF-1071 incident (a build that *did* open a PR and *did* write some artifacts but skipped the anchor or the floor files), and it is the only state the smoke test's second half asserts (exit 1, `missing: [\"anchor\"]`). Yet no *scenario* (Given/When/Then) covers `incomplete`, and the AC test's negative case is `no-substrate`, not `incomplete`.",
+    "evidence": "`ENUM FloorState` (WHAT); Scenario 3 (the only one touching `incomplete`, but it is a *receipt-check* scenario, not a `graftcheck`-state scenario); \"Acceptance-criteria test\" (negative case is `no-substrate`); \"Integration smoke test\" (asserts `incomplete` but is a smoke test, not a scenario).",
+    "predicted_consequence": "The `incomplete` vs `no-substrate` boundary — `state == \"no-substrate\" IFF run_substrate == \"absent\" AND anchor == \"absent\"` — is the load-bearing classification that separates \"nothing was produced\" from \"something was produced but the floor is short.\" A build that mis-implements this boundary (e.g. returns `no-substrate` whenever *any* piece is missing, or returns `incomplete` when nothing exists) would pass both the AC test (which only checks `no-substrate`-from-empty and `complete`-from-full) and the smoke test (which only checks the anchor-removed case). The exit-code-1 path is asserted in exactly one smoke line and never in a scenario, so a regression that collapses `incomplete` into `no-substrate` (or vice-versa) is undetectable by the named scenarios.",
+    "spec_anchor": "scenarios",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE \"From HOW (behaviour)\" requires `resolveRunDirForIssue` to \"pick the most-mtime-recent match on multiple hits,\" and the spec adds a `holdout:` line (\"Given two run dirs … both name the same issue … MUST resolve to the run dir with the most recent mtime, never the first directory-listing match\"). But no Given/When/Then scenario covers the multi-run-dir-admitting-same-issue case, and the AC test's fixtures are single-run-dir. The `holdout:` line is a holdout-criterion, not a scenario, and the spec's own \"Eval coverage: Not applicable\" section says the spec \"introduces no LLM-judgement seam\" — so the holdout line is not backed by any eval either.",
+    "evidence": "DONE \"From HOW (behaviour)\" bullet on `resolveRunDirForIssue`; the `holdout:` line under Scenarios; \"Eval coverage: Not applicable.\"",
+    "predicted_consequence": "A build that resolves to the *first* directory-listing match (or the *oldest* mtime) instead of the most-recent would pass every named scenario and the AC test (all single-run-dir), and the tie-break regression would only be caught by the holdout line — which, per the spec's own \"Not applicable\" eval-coverage claim, has no eval to run it against. The DONE item is decidable in principle (a test could build two run dirs and assert the winner), but no scenario or AC test actually does, so done-ness for this specific DONE item rests on a holdout line the spec simultaneously declares out of eval scope.",
+    "spec_anchor": "scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

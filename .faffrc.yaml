@@ -126,6 +126,11 @@ adversarial:
     refs:
       - openrouter-glm-5-3-flash
       - openrouter-gemma
+  build_judge:
+    max-tokens: 15000
+    refs:
+      - openrouter-glm-5-3-flash
+      - openrouter-gemma
 models:
     build_by_confidence:
         default: inherit

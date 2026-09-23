@@ -40,7 +40,12 @@ const FAFF_670_KINDS = new Set([
 // adr-drift's binary shape). Widened the same way FAFF-670 widened FAFF-319: triaged immediately
 // (zero model reps, static prose triage), never left as a silent staleness-check gap.
 const FAFF_816_KINDS = new Set(["prdr-yagni"]);
-const TARGET_KINDS = new Set([...FAFF_319_KINDS, ...FAFF_670_KINDS, ...FAFF_816_KINDS]);
+// FAFF-1007 — the case-backed park-reconsider-classification grader adds one more ungated kind (its
+// frontier baseline + oracle triage are deferred to the FAFF-614 re-baseline). Declared here so the
+// not-stale check does not fire on a newly-covered-but-ungated kind; its deferral is priced in
+// meta.remaining_kinds + meta.follow_ups.remaining_kinds (the honest-scope + deferral tests).
+const FAFF_1007_KINDS = new Set(["park-reconsider-classification"]);
+const TARGET_KINDS = new Set([...FAFF_319_KINDS, ...FAFF_670_KINDS, ...FAFF_816_KINDS, ...FAFF_1007_KINDS]);
 
 const CLASSES = new Set(["oracle-defect", "needs-evidence", "suspected-genuine-miss", "sound"]);
 // The FAFF-321 deferral signature — a rationale must never read like a generic punt.

@@ -40,6 +40,7 @@ const ADR_SURFACE = {
     admit: { required_flags: [] },
     renumber: { required_flags: ["--to"] },
     "extract-intent": { required_flags: [] },
+    format: { required_flags: [] },
   },
 };
 // FAFF-199: PRDR_ACTORS/PRDR_SUPERSEDES are reused verbatim (aliased) — the actor/supersedes
@@ -451,15 +452,90 @@ function adrRenumber(dir, root, selector, target, refScope) {
   return { code: 0, out: `${oldPath} -> ${newPath}\n`, err: "" };
 }
 
-function adrTemplate({ num, title, date, issue, initiative, status, provenance }) {
+// === FAFF-1085: repo-specific ADR format resolution. One resolver both writers reach (ADR-0128 ===
+// — resolve via the CLI, never hand-read the file). Activation is FILE PRESENCE, mirroring the
+// committed `.faff-templates/<type>.md` ticket-template surface (create.md): a repo opts in by
+// committing `.faff-templates/adr.md`; absent resolves silently to Nygard (byte-identical, the
+// regression floor); present-but-empty/heading-less/unreadable degrades to Nygard and LOGS the
+// skip (never blocks). No `adr_format` convention key — the section list lives in exactly one
+// place, the template file itself.
+const ADR_TEMPLATE_REL_PATH = ".faff-templates/adr.md";
+const GENERIC_PLACEHOLDER = "_TODO: ..._";
+
+// The built-in default — reproduces adrTemplate()'s three verbatim per-section placeholders, so
+// a Nygard resolution scaffolds byte-identical to today's output by construction.
+function nygardDefault() {
+  return {
+    format: "nygard",
+    sections: [
+      { name: "Context", placeholder: "_TODO: what forces this decision._" },
+      { name: "Decision", placeholder: "_TODO: the decision, stated forward._" },
+      { name: "Consequences", placeholder: "_TODO: what this constrains downstream._" },
+    ],
+    decision_section: "Decision",
+    source: "default",
+    template_path: null,
+    degraded: false,
+    notes: null,
+  };
+}
+
+// Ordered level-2 (`## `) heading names — the SAME tier-2 heading-extraction rule create.md's
+// override-file reader uses: headings define the field/section list, in order; body text under
+// a heading is the repo's own author guidance and is ignored here.
+function extractLevel2Headings(text) {
+  const names = [];
+  const re = /^##[ \t]+(.+?)[ \t]*$/gm;
+  let m;
+  while ((m = re.exec(text))) names.push(m[1]);
+  return names;
+}
+
+const ADR_TEMPLATE_DEGRADE_MSG = `faff adr format: ${ADR_TEMPLATE_REL_PATH} is empty or has no level-2 headings; using the Nygard default`;
+const ADR_TEMPLATE_NO_DECISION_MSG = `faff adr format: ${ADR_TEMPLATE_REL_PATH} has no \`## Decision\` heading; L3 contradiction-detection disabled for this repo`;
+
+// Resolve the repo's ADR format — read-only, always returns a value (Nygard is the floor,
+// mirroring `faff conventions get`'s always-exit-0-with-a-value contract). No `root` (an internal
+// caller that never had one to thread, e.g. a bare `adrLiveDecisions(dir, excludeId)` selftest
+// call) resolves to Nygard directly rather than crashing on an unresolvable path.
+function resolveAdrFormat(root) {
+  if (!root) return nygardDefault();
+  const templatePath = path.join(root, ADR_TEMPLATE_REL_PATH);
+  let text;
+  try {
+    text = fs.readFileSync(templatePath, "utf8");
+  } catch (e) {
+    if (e && e.code === "ENOENT") return nygardDefault();   // absent — the clean silent default
+    process.stderr.write(ADR_TEMPLATE_DEGRADE_MSG + "\n");   // present but unreadable
+    return { ...nygardDefault(), degraded: true, notes: ADR_TEMPLATE_DEGRADE_MSG };
+  }
+  const names = extractLevel2Headings(text);
+  if (names.length === 0) {
+    process.stderr.write(ADR_TEMPLATE_DEGRADE_MSG + "\n");
+    return { ...nygardDefault(), degraded: true, notes: ADR_TEMPLATE_DEGRADE_MSG };
+  }
+  const sections = names.map((name) => ({ name, placeholder: GENERIC_PLACEHOLDER }));
+  const decision_section = names.includes("Decision") ? "Decision" : null;
+  let notes = null;
+  if (decision_section === null) {
+    process.stderr.write(ADR_TEMPLATE_NO_DECISION_MSG + "\n");
+    notes = ADR_TEMPLATE_NO_DECISION_MSG;
+  }
+  return { format: "template", sections, decision_section, source: "template", template_path: ADR_TEMPLATE_REL_PATH, degraded: false, notes };
+}
+
+function adrTemplate({ num, title, date, issue, initiative, status, provenance }, resolved_format = nygardDefault()) {
   // FAFF-199: mirror prdrTemplate's field order (Status, Provenance, Date) — default "human", the
   // harder-to-supersede tier (fail-safe direction; the loop passes --provenance loop explicitly).
   const lines = [`# ADR ${num} — ${title}`, "", `- **Status:** ${status || "Proposed"}`, `- **Provenance:** ${provenance || "human"}`, `- **Date:** ${date}`];
   if (issue) lines.push(`- **Issue:** ${issue}`);
   if (initiative) lines.push(`- **Initiative:** ${initiative}`);
-  lines.push("", "## Context", "", "_TODO: what forces this decision._", "",
-             "## Decision", "", "_TODO: the decision, stated forward._", "",
-             "## Consequences", "", "_TODO: what this constrains downstream._", "");
+  lines.push("");
+  // FAFF-1085: drive the section list from the resolved format (Nygard by default — byte-identical
+  // to the previous hardcoded three-section emit) instead of three literal Nygard strings.
+  for (const { name, placeholder } of resolved_format.sections) {
+    lines.push(`## ${name}`, "", placeholder, "");
+  }
   return lines.join("\n");
 }
 
@@ -531,20 +607,29 @@ function adrAccept(dir, selector) {
 // These are the plumbing the seam sits inside — input assembly + offer-routing — kept here so
 // they are unit-tested (`adr --selftest`) and the seam stays the only non-deterministic step.
 
-// The `## Decision` section body: everything from the "## Decision" heading to the next
-// "## " heading (or EOF). Trimmed. Returns "" when the heading is absent (the seam then sees
-// empty input for that ADR — never a crash). This is what the seam reads per-ADR.
-function adrDecisionBody(text) {
-  const m = text.match(/^##\s+Decision\s*$([\s\S]*?)(?=^##\s+)/mi)   // up to the next "## " heading
-    || text.match(/^##\s+Decision\s*$([\s\S]*)$/mi);                // …or to EOF when it is last
+// The decision section's body: everything from its heading to the next "## " heading (or EOF).
+// Trimmed. `decision_section` names the heading to read (default "Decision", the Nygard name);
+// FAFF-1085: a null `decision_section` (a template with no Decision-equivalent) returns "" without
+// even attempting a match — the seam then sees empty input for that ADR, never a crash. Returns ""
+// when the named heading is absent from the text. This is what the seam reads per-ADR.
+function adrDecisionBody(text, decision_section = "Decision") {
+  if (decision_section == null) return "";
+  const escaped = decision_section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = text.match(new RegExp(`^##\\s+${escaped}\\s*$([\\s\\S]*?)(?=^##\\s+)`, "mi"))   // up to the next "## " heading
+    || text.match(new RegExp(`^##\\s+${escaped}\\s*$([\\s\\S]*)$`, "mi"));                  // …or to EOF when it is last
   return m ? m[1].replace(/^\s+|\s+$/g, "") : "";
 }
 
 // Assemble `live_adr_decisions` — the candidate set the new ADR is checked against:
-// every LIVE (non-superseded) ADR except the new one, each with its `## Decision` body read.
+// every LIVE (non-superseded) ADR except the new one, each with its decision-section body read.
 // Pure read; no write, no seam call. `excludeId` is the just-created ADR's id (zero-padded).
-function adrLiveDecisions(dir, excludeId) {
+// FAFF-1085: `root` resolves the repo's ADR format ONCE (nygardDefault when absent — see
+// resolveAdrFormat) and threads its `decision_section` into every adrDecisionBody call, so a
+// template with no Decision-equivalent degrades every candidate to an empty seam input rather
+// than crashing (the seam already tolerates empty input — see adrDecisionBody above).
+function adrLiveDecisions(dir, excludeId, root) {
   const exclude = excludeId ? String(excludeId).match(/^(\d{1,4})/)?.[1].padStart(4, "0") : null;
+  const decision_section = resolveAdrFormat(root).decision_section;
   const out = [];
   for (const a of listAdrs(dir)) {
     if (adrSupersededBy(a.status)) continue;          // skip already-superseded (dead) ADRs
@@ -552,7 +637,7 @@ function adrLiveDecisions(dir, excludeId) {
     const text = fs.readFileSync(path.join(dir, a.file), "utf8");
     // FAFF-199: carry provenance in the candidate set too — the L4 caller (graft Step 3b) reads it
     // straight off this same call rather than a second `adr list` round trip.
-    out.push({ adr: a.num, title: a.title || a.slug || null, decision: adrDecisionBody(text), provenance: a.provenance });
+    out.push({ adr: a.num, title: a.title || a.slug || null, decision: adrDecisionBody(text, decision_section), provenance: a.provenance });
   }
   return out;
 }
@@ -582,7 +667,7 @@ function adrOfferRoute({ interactive, mode, contradicts, appetite }) {
 function cmdAdr(args) {
   if (args.includes("--selftest")) return adrSelftest();
   const parsed = parseArgs(args, ADR_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept|extract-intent> [flags]");
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept|extract-intent|format> [flags]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
   const root = get("--root") || findRoot();
@@ -605,9 +690,27 @@ function cmdAdr(args) {
 
   if (action === "live-decisions") {
     // FAFF-198: emit `live_adr_decisions` — the seam-input candidate set (non-superseded, exclude-new,
-    // each `## Decision` body read). Deterministic plumbing AROUND the LLM seam; never runs the seam.
-    const live = adrLiveDecisions(dir, get("--exclude"));
+    // each decision-section body read). Deterministic plumbing AROUND the LLM seam; never runs the seam.
+    // FAFF-1085: `root` is already in scope here — thread it so the resolved format's decision
+    // section (Nygard's `## Decision`, or a repo template's equivalent/none) is read once.
+    const live = adrLiveDecisions(dir, get("--exclude"), root);
     console.log(JSON.stringify(live, null, 2));
+    return 0;
+  }
+
+  if (action === "format") {
+    // FAFF-1085: the single read-only resolver both writers (`adr new` and the `adr` slot
+    // producer) reach — never a hand-read of `.faff-templates/adr.md` (ADR-0128). Always exits 0
+    // with a value (Nygard is the floor), mirroring `faff conventions get`.
+    const resolved = resolveAdrFormat(root);
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(resolved, null, 2));
+    } else {
+      const sectionNames = resolved.sections.map((s) => s.name).join("/");
+      let line = `adr format: ${resolved.format} (${resolved.source}; sections: ${sectionNames})`;
+      if (resolved.notes) line += `; note: ${resolved.notes}`;
+      console.log(line);
+    }
     return 0;
   }
 
@@ -657,7 +760,10 @@ function cmdAdr(args) {
     const full = path.join(dir, file);
     if (fs.existsSync(full)) { process.stderr.write(`faff adr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: get("--issue"), initiative: get("--initiative"), status: get("--status"), provenance: provenance || "human" }));
+    // FAFF-1085: resolve the repo's ADR format ONCE and scaffold against it — Nygard (byte-identical
+    // to before) when the repo commits no `.faff-templates/adr.md`, else the template's own sections.
+    const resolvedFormat = resolveAdrFormat(root);
+    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: get("--issue"), initiative: get("--initiative"), status: get("--status"), provenance: provenance || "human" }, resolvedFormat));
     process.stdout.write(full + "\n");
     return 0;
   }
@@ -757,7 +863,7 @@ function cmdAdr(args) {
     return 0;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber | accept | extract-intent (or --selftest)\n");
+  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber | accept | extract-intent | format (or --selftest)\n");
   return 2;
 }
 
@@ -917,6 +1023,68 @@ function adrSelftest() {
   t("live-decisions excludes superseded + the new ADR", live.length === 2 && live.every((d) => d.adr !== "0002" && d.adr !== "0004"));
   t("live-decisions reads each ## Decision body", live.find((d) => d.adr === "0001").decision === "use RPC everywhere");
   t("live-decisions keeps Proposed (non-superseded) when not the new one", adrLiveDecisions(l3dir, "0001").some((d) => d.adr === "0004"));
+
+  // FAFF-1085 — repo-specific ADR format resolution (resolveAdrFormat / adrTemplate / adrDecisionBody
+  // threading). File-presence activation mirroring create.md's `.faff-templates/<type>.md` model.
+  {
+    const noTplRoot = path.join(tmp, "fmt-none");
+    fs.mkdirSync(noTplRoot, { recursive: true });
+    const noTpl = resolveAdrFormat(noTplRoot);
+    t("format: no template → nygard/default, byte-identical section list", noTpl.format === "nygard" && noTpl.source === "default" && !noTpl.degraded && noTpl.notes === null
+      && noTpl.sections.map((s) => s.name).join("/") === "Context/Decision/Consequences" && noTpl.decision_section === "Decision");
+    t("format: no root at all → nygard (never crashes)", resolveAdrFormat(undefined).format === "nygard");
+
+    const tplRoot = path.join(tmp, "fmt-template");
+    fs.mkdirSync(path.join(tplRoot, ".faff-templates"), { recursive: true });
+    fs.writeFileSync(path.join(tplRoot, ".faff-templates", "adr.md"), "## Status\nguidance\n\n## Context\nguidance\n\n## Options\nguidance\n\n## Decision\nguidance\n\n## Consequences\nguidance\n");
+    const tplResolved = resolveAdrFormat(tplRoot);
+    t("format: committed template → its 5 headings, in order, source=template", tplResolved.format === "template" && tplResolved.source === "template"
+      && tplResolved.sections.map((s) => s.name).join("/") === "Status/Context/Options/Decision/Consequences" && tplResolved.decision_section === "Decision" && !tplResolved.degraded);
+    t("format: template sections carry the generic placeholder", tplResolved.sections.every((s) => s.placeholder === GENERIC_PLACEHOLDER));
+
+    const emptyRoot = path.join(tmp, "fmt-empty");
+    fs.mkdirSync(path.join(emptyRoot, ".faff-templates"), { recursive: true });
+    fs.writeFileSync(path.join(emptyRoot, ".faff-templates", "adr.md"), "");
+    const emptyResolved = resolveAdrFormat(emptyRoot);
+    t("format: present-but-empty template degrades to nygard, logged in notes", emptyResolved.format === "nygard" && emptyResolved.degraded === true && /empty or has no level-2 headings/.test(emptyResolved.notes || ""));
+
+    const headinglessRoot = path.join(tmp, "fmt-headingless");
+    fs.mkdirSync(path.join(headinglessRoot, ".faff-templates"), { recursive: true });
+    fs.writeFileSync(path.join(headinglessRoot, ".faff-templates", "adr.md"), "just some prose, no headings at all\n");
+    t("format: heading-less template degrades to nygard", resolveAdrFormat(headinglessRoot).degraded === true);
+
+    const noDecisionRoot = path.join(tmp, "fmt-no-decision");
+    fs.mkdirSync(path.join(noDecisionRoot, ".faff-templates"), { recursive: true });
+    fs.writeFileSync(path.join(noDecisionRoot, ".faff-templates", "adr.md"), "## Summary\nx\n\n## Rationale\ny\n");
+    const noDecisionResolved = resolveAdrFormat(noDecisionRoot);
+    t("format: template with no Decision heading → decision_section null, disablement noted, never degraded to nygard", noDecisionResolved.decision_section === null && noDecisionResolved.format === "template" && !noDecisionResolved.degraded && /L3 contradiction-detection disabled/.test(noDecisionResolved.notes || ""));
+
+    // adrTemplate driven by the resolved format: Nygard stays byte-identical; a template scaffolds
+    // exactly its own headings, each with the generic placeholder.
+    const nygardTpl = adrTemplate({ num: "0009", title: "T", date: "2026-06-21" });
+    const explicitNygardTpl = adrTemplate({ num: "0009", title: "T", date: "2026-06-21" }, nygardDefault());
+    t("adrTemplate: default resolved_format === explicit nygardDefault() (byte-identical)", nygardTpl === explicitNygardTpl);
+    const tplScaffold = adrTemplate({ num: "0010", title: "T", date: "2026-06-21" }, tplResolved);
+    t("adrTemplate: template format scaffolds its own 5 headings in order, each with the generic placeholder", (() => {
+      const order = ["Status", "Context", "Options", "Decision", "Consequences"];
+      let idx = 0;
+      for (const name of order) { const found = tplScaffold.indexOf(`## ${name}`, idx); if (found < 0) return false; idx = found; }
+      return tplScaffold.includes(GENERIC_PLACEHOLDER) && !tplScaffold.includes("_TODO: what forces this decision._");
+    })());
+
+    // adrDecisionBody: a null decision_section (the no-Decision-heading template) returns "" without
+    // even attempting a match — L3 sees empty input for every candidate, never crashes.
+    t("adrDecisionBody: null decision_section → empty string, no crash", adrDecisionBody("## Summary\nx\n\n## Rationale\ny\n", null) === "");
+    t("adrDecisionBody: non-Nygard decision_section name is honoured", adrDecisionBody("## Outcome\nchosen X\n\n## Other\nz\n", "Outcome") === "chosen X");
+
+    // adrLiveDecisions threads the resolved decision_section through every candidate.
+    const l3tplDir = path.join(tmp, "l3-tpl", "docs", "adr");
+    fs.mkdirSync(l3tplDir, { recursive: true });
+    fs.writeFileSync(path.join(l3tplDir, "0001-x.md"), "# ADR 0001 — x\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Summary\nno decision-equivalent heading here\n");
+    const liveNoDecision = adrLiveDecisions(l3tplDir, null, noDecisionRoot);
+    t("live-decisions: a repo whose format has no decision_section reads every candidate's decision as empty", liveNoDecision.length === 1 && liveNoDecision[0].decision === "");
+  }
+
   // offer-routing decision table — interactive × autonomous × adr.mode × contradicts
   const route = (o) => adrOfferRoute(o);
   t("route: adr.mode=off → skip-detection", route({ interactive: true, mode: "off", contradicts: true }).route === "skip-detection");
@@ -1262,4 +1430,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, supersededDir };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, nygardDefault, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, resolveAdrFormat, supersededDir };

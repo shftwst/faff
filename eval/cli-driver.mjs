@@ -645,6 +645,19 @@ export const PREP_ARCHITECTURE_TRIGGER_INSTRUCTION =
   '{ "case_id": "<ID>", "verdict": "fire|skip" } — exactly one of those two values, always present. ' +
   "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-1007 — park-reconsider-classification names the grader's exact read-field (env.reconsider). The
+// safety property the criteria states is one-directional: `machine` ONLY for a provably machine-checkable
+// cause citing a single repo-root config file; every scope/taste/architecture judgement, and any doubt,
+// is `human`. The grader fails the gate on a scope/taste/architecture park graded `machine`.
+export const PARK_RECONSIDER_CLASSIFICATION_INSTRUCTION =
+  "Classify the parked issue above per the reconsider-classification rubric in the criteria, then OUTPUT " +
+  "ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing " +
+  'JSON of the shape { "case_id": "<ID>", "reconsider": "human|machine" } — exactly one of those two ' +
+  "values, always present. Answer `machine` ONLY when the park's cause is machine-checkable and cites a " +
+  "single external repo-root config file whose content change would resolve it; answer `human` for a " +
+  "scope, taste, or architecture judgement call, or any cause you cannot positively prove machine-checkable. " +
+  "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
 // grouping is a coverage kind: gradeCoverage reads a flat array OR a {id: text} map, so ask for the
 // flat array. The control (--no-plugin) is expected to land in a band rather than on a single number
 // — see the interpretation note beside the grouping renderer arm.
@@ -723,6 +736,8 @@ function modeInstructionFor(kind) {
   if (kind === "resolved-elsewhere") return RESOLVED_ELSEWHERE_MODE_INSTRUCTION;
   // FAFF-816
   if (kind === "prdr-yagni") return PRDR_YAGNI_MODE_INSTRUCTION;
+  // FAFF-1007
+  if (kind === "park-reconsider-classification") return PARK_RECONSIDER_CLASSIFICATION_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -890,6 +905,14 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Issue:\n${JSON.stringify(c.fixture.issue, null, 2)}\n\nExplore findings:\n${c.fixture.explore_findings}`
     );
   }
+  // FAFF-1007 — park-reconsider-classification: render the parked issue and the park sub-object the
+  // classifier judges over (root_cause_class + reason + cited_input_candidate), not the tidy fallback.
+  if (c.kind === "park-reconsider-classification") {
+    return (
+      `${rubric}Classify the reconsider disposition of the following parked issue and answer: ${c.question}\n\n` +
+      `Issue:\n${JSON.stringify(c.fixture.issue, null, 2)}\n\nPark record:\n${JSON.stringify(c.fixture.park, null, 2)}`
+    );
+  }
   // The --no-plugin control on grouping-001 has no hard floor. Only two of its six gradeCoverage checks
   // are settled: the invoicing set is all over the fixture's own ticket titles (true), and the
   // leave-loose set is faff's idiolect with the loaded rubric as its only in-prompt source, so the
@@ -1020,6 +1043,14 @@ export function loadPrepArchitectureTriggerProse(pluginDir = DEFAULT_PLUGIN_DIR)
   const p = join(pluginDir, "skills", "faff-prep", "SKILL.md");
   return extractSection(p, PREP_ARCH_TRIGGER_PROSE_START, PREP_ARCH_TRIGGER_PROSE_END, "loadPrepArchitectureTriggerProse");
 }
+// FAFF-1007 — the reconsider-classification rubric lives in the shared park reference (park.md), not in
+// faff-prep's SKILL.md (which only declares the seam membership). Anchors verified unique at wiring time.
+const PARK_RECONSIDER_PROSE_START = "\n### Reconsider classification and the park-versus-hold boundary (FAFF-992)\n";
+const PARK_RECONSIDER_PROSE_END = "\n### The git-only Unpark contract (FAFF-993)\n";
+export function loadParkReconsiderProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faff", "references", "park.md");
+  return extractSection(p, PARK_RECONSIDER_PROSE_START, PARK_RECONSIDER_PROSE_END, "loadParkReconsiderProse");
+}
 const GROUPING_PROSE_START = "\n## Proposing outcome-led groupings for loose work\n";
 const GROUPING_PROSE_END = "\n## The seven principles\n";
 export function loadGroupingProse(pluginDir = DEFAULT_PLUGIN_DIR) {
@@ -1082,6 +1113,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "refutation-code") return loadRefutationCodeProse(pluginDir);
   // FAFF-669 — the last four kinds each load their own surface's rubric (never tidy's default).
   if (kind === "prep-architecture-trigger") return loadPrepArchitectureTriggerProse(pluginDir);
+  if (kind === "park-reconsider-classification") return loadParkReconsiderProse(pluginDir);
   if (kind === "grouping") return loadGroupingProse(pluginDir);
   if (kind === "adr-drift") return loadAdrDriftProse(pluginDir);
   if (kind === "resolved-elsewhere") return loadResolvedElsewhereProse(pluginDir);

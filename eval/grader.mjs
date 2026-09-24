@@ -387,6 +387,10 @@ const FIXTURE_SHAPE = {
   // the `explore_findings` prose the trigger judges over (new-runnable-surface vs established system).
   // validateCase asserts both; the single fire|skip verdict rides env.verdict (the routing arm).
   "prep-architecture-trigger": ["issue", "explore_findings"],
+  // FAFF-1007 — park-reconsider-classification: the fixture carries the parked `issue` and the `park`
+  // sub-object (root_cause_class + reason + cited_input_candidate) the classifier judges over.
+  // validateCase asserts both; the single human|machine disposition rides env.reconsider (its own arm).
+  "park-reconsider-classification": ["issue", "park"],
   // FAFF-240 — roadmap: the seeded tracker fixture (the ordering/dupe issues[] backlog shape, enriched
   // with blockedBy edges + trigger-gate markers) faff-map synthesises over. validateCase asserts the
   // `issues` field is present; the predicted synthesis rides env.roadmap.
@@ -695,6 +699,13 @@ function predictedSet(c, env) {
     case "prd-readiness":
     case "prep-architecture-trigger":
       return env.verdict == null ? [] : [String(env.verdict)];
+    // FAFF-1007 — park-reconsider-classification: the reconsider disposition of a park is ALSO one
+    // closed value → a single-element set (values "human" | "machine"), but it rides its OWN
+    // `env.reconsider` field rather than env.verdict, so it gets its own case. Same eval-side fail-safe
+    // as the routing arm: a missing `reconsider` → empty set → clean FAIL with signature "[]"; an
+    // out-of-enum value is passed through verbatim so setEqual fails it cleanly with a distinct signature.
+    case "park-reconsider-classification":
+      return env.reconsider == null ? [] : [String(env.reconsider)];
     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum
     // value (e.g. "feature") is passed through verbatim so setEqual fails it cleanly with a distinct

@@ -56,11 +56,28 @@ Local mode redirects every writer below to its personal, uncommitted target (`.f
 
 Run `"$faff" config path` and branch on the exit code **before doing anything else**:
 
-- **Exit 0** — a config already exists. **First distinguish a decline-stub from a real config.** A *decline-stub* is the minimal rc a declined first-run offer writes (gateway → **First run**): a config carrying **only** the one empty-value `tracking.spec_docs_path` leaf and nothing else. Read the config with existing `faff config get`; if it is a decline-stub (that one empty key is all there is), a *deliberate* `/faff-onboard` **proceeds to detection (step 2)** rather than bailing — the human declined once but is now opting in for real, and onboarding a decline-stub clobbers nothing. Otherwise a real config exists: print the resolved path, report that faff is already set up for this repo, and **stop**. Onboarding never overwrites a live config. (If the human wants to change a value, that's a targeted `faff config init --set …`, not a re-onboard.)
+- **Exit 0** — a config already exists. **First distinguish a decline-stub from a real config.** A *decline-stub* is the minimal rc a declined first-run offer writes (gateway → **First run**): a config carrying **only** the one empty-value `tracking.spec_docs_path` leaf and nothing else. Read the config with existing `faff config get`; if it is a decline-stub (that one empty key is all there is), a *deliberate* `/faff-onboard` **proceeds to detection (step 2)** rather than bailing — the human declined once but is now opting in for real, and onboarding a decline-stub clobbers nothing. Otherwise a real config exists: print the resolved path, report that faff is already set up for this repo, then **offer to re-discover**: "Re-discover and check for changes? (y/N)". Declining (including the empty-answer default) **stops here** — no detection, no read, no write; byte-identical to a bail. Accepting proceeds to the **Subsequent-run re-discover fork**, below. Onboarding never overwrites a live config without this explicit two-level gate (offer, then a per-field confirm).
 - **Exit 2** — a legacy-named config (`.faffrc` / `.faffrc.yml`) is present. **Surface the loud config-rename error verbatim** and stop — do **not** bootstrap a fresh config over it. The fix is to rename the file to `.faffrc.yaml`, not to write a second one.
 - **Exit 3** — no config. **Proceed** to detection.
 
-**Local-mode override (Exit 0 only).** The above three branches are the standard-mode bail table, unchanged. In local mode, an Exit 0 config does not stop the flow: if `.faffrc.yaml` is git-tracked (`git ls-files --error-unmatch .faffrc.yaml` exits 0), warn that a committed base is tracked and local mode adds a personal overlay on top of it without hiding it, then **proceed** to detection regardless. This is safe because every local-mode writer below targets `.faffrc.local.yaml` exclusively — the base is never read or modified by this proceed path. Exit 2 (legacy-named config) still stops in both modes.
+**Local-mode override (Exit 0 only).** The above three branches are the standard-mode bail table, unchanged. In local mode, an Exit 0 config does not stop the flow: if `.faffrc.yaml` is git-tracked (`git ls-files --error-unmatch .faffrc.yaml` exits 0), warn that a committed base is tracked and local mode adds a personal overlay on top of it without hiding it, then **proceed** to detection regardless. This is safe because every local-mode writer below targets `.faffrc.local.yaml` exclusively — the base is never read or modified by this proceed path. Exit 2 (legacy-named config) still stops in both modes. Local mode never sees the standard-mode re-discover offer below — it already proceeds past Exit 0 on its own override.
+
+### 1a. Subsequent-run re-discover fork (Exit 0, standard mode, accept only)
+
+Reached only when the operator accepted the re-discover offer above. It borrows Step 2's detection (plus Step 3's team-key tiering) and Step 4's preview/confirm/write machinery unchanged, adding one thing neither has on its own: a per-field diff against the **committed** config, gated field-by-field, so a re-run can refresh a genuinely drifted value without ever writing an unconfirmed byte.
+
+1. Run detection exactly as first-run does — Step 2's discovery plus, when a tracker MCP is connected, Step 3's team-key tiering — to produce a discovered value for every key that has a discovery source.
+2. Read the **committed base** `.faffrc.yaml` directly (the base path `loadConfig` returns alongside its merged data), never the merged base-plus-overlay view — an overlay-only personal override must never be offered for clobber against a base that never held it.
+3. **Build the field diff**, scoped to the keys detection can actually produce a value for: `tracker`, `team_key`, `repo`, `git_host`, and the record-location sextet (`spec_docs_path`, `adr_docs_path`, `adr_superseded_docs_path`, `prd_docs_path`, `prdr_docs_path`, `spike_docs_path`). Never `label_prefix` (Step 2 only ever confirms a fixed default for it — there is no discovered value to diff) and never an undetected or hand-added key such as `project_id`. For each key, compare the discovered value against the committed value using the **same normalised scalar compare `mergeTrackingBlock` already applies** at write time — never a raw string inequality, so a quoted-versus-bare scalar that is semantically equal never reads as drift. Keys that match are skipped entirely; the rest become a `CHANGED` diff (committed value present, differs) or a `NEW` diff (committed value absent).
+4. **No diffs** → report "no changes discovered" and stop. No `config init` call; the base stays byte-for-byte unchanged.
+5. **Diffs found** → show a one-glance summary of every diff (`key: current → discovered`), then confirm **each one individually**, never batched:
+   - `CHANGED`: "`team_key`: current `SHF`, discovered `SHFT` — update? (y/N)"
+   - `NEW`: "`git_host`: not set, discovered `github` — add it? (y/N)"
+   A declined field drops out of the confirmed-change set; its committed value (or absence) is untouched.
+6. **Confirmed-change set empty** (every field declined) → stop. No `config init` call; the base stays byte-for-byte unchanged.
+7. **Otherwise** → hand the confirmed keys straight to **Step 4**: one `--set` per confirmed key, dry-run preview, one confirm, one real write. Never `--force` — a confirmed key was, by construction, just agreed to; a conflict at this point means a key reached the writer unconfirmed (a logic bug to fix), not a case for forcing the write.
+
+This fork touches only the keys named in step 3 above and only the standard-mode committed base; first-run (Exit 3), the legacy-name error (Exit 2), and local mode's Exit-0 override are all unaffected.
 
 ### 2. Detect (discovery, not interrogation)
 
@@ -149,7 +166,7 @@ After the write succeeds, run two idempotent, non-destructive ensurers:
 
 ### 6. Re-run never clobbers
 
-Onboard relies on an idempotent, conflict-guarded writer: re-running `/faff-onboard` hits the **Exit 0** bail in step 1 and stops. Even if invoked past that, `config init` refuses to overwrite a **differing** existing value without `--force` (exits 2) — so a second pass never silently rewrites a value the human set. Onboard never passes `--force`.
+Onboard relies on an idempotent, conflict-guarded writer: re-running `/faff-onboard` hits the **Exit 0** offer in step 1, and a decline (there or at any later per-field confirm in step 1a) stops with the base untouched. An accept only ever reaches `config init` with keys the operator just confirmed, so it never trips the writer's own conflict refusal (differing value without `--force` exits 2) — that refusal exists as a backstop for a hand-run `config init`, not a path onboard's own re-discover fork takes. Onboard never passes `--force`.
 
 ### 7. Report and log
 
@@ -159,7 +176,8 @@ Close with a skimmable summary: the config path written, the keys set, the gitig
 
 ## Rules
 
-- **Bail before bootstrap.** Always run the `config path` exit-code check first; exit 0 → report+stop, exit 2 → loud rename error+stop, exit 3 → proceed. Never write over an existing or legacy-named config.
+- **Bail before bootstrap.** Always run the `config path` exit-code check first; exit 0 (standard mode) → report, then offer re-discovery — decline stops, accept enters the confirm-gated re-discover fork (step 1a); exit 2 → loud rename error+stop; exit 3 → proceed. Never write over an existing or legacy-named config without an explicit per-field confirm.
+- **Re-discovery never writes an unconfirmed byte.** Declining the re-discover offer, or declining every per-field diff it finds, leaves `.faffrc.yaml` byte-for-byte unchanged — no detection, no read, no write. A confirmed diff is written through the same gated `config init` path as first-run, still without `--force`.
 - **Persist only via `faff config init`.** Onboard **never** hand-writes the rc file — no shell redirect, no in-place stream edit, no `Read`-then-rewrite — the CLI is the only writer (gateway → **CLI-only config access**). This is what keeps the `validate-adapters` config-access lint green.
 - **Discovery, not interrogation.** Detected values are confirmed, not blank-prompted. `team_key` is the one genuinely-irreducible input.
 - **Detected keys only.** `tracker, team_key, repo, git_host, spec_docs_path, adr_docs_path, adr_superseded_docs_path, prd_docs_path, prdr_docs_path, spike_docs_path, label_prefix` — never `project_id` (config init exits 2 on it). The four newer record keys come from the record-location scan (`conventions mine --json` → `record_locations`), offered as confirms; a synonym-mapped store is never written without a confirm.

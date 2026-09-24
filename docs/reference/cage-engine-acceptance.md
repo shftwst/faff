@@ -41,8 +41,8 @@ faff env compose-gen --profile profile.json --out .faff/env/docker-compose.yml -
 faff env up --plan plan.json --project cage-accept
 ```
 
-This provisions a single `quay.io/minio/minio` service publishing `http://localhost:9000` with health
-route `/minio/health/ready` — a real HTTP port for point 2 to reach.
+This provisions a single `chainguard/minio` service (digest-pinned public mirror) publishing
+`http://localhost:9000` with health route `/minio/health/ready` — a real HTTP port for point 2 to reach.
 
 Alternative (a repo that actually has provisionable infra): `cd` into it and mine its profile
 instead —

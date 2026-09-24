@@ -42,6 +42,12 @@ const ENV_SURFACE = {
 };
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 
+// MinIO images (FAFF-1099): digest-pinned to the Chainguard public mirror after quay.io auth-walled
+// minio/minio + minio/mc. The minimal server image ships no curl/wget, so readiness uses bundled `mc ready`.
+const MINIO_SERVER_IMAGE = "chainguard/minio@sha256:bd014394a80898e68c149f2311fdf8d5a2c2f3bb2c33b9327ae6d02b4b065ae1";
+const MINIO_CLIENT_IMAGE = "chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338";
+const MINIO_READY_PROBE = "MC_HOST_local=http://faffdev:faffdevsecret@localhost:9000 mc ready local";
+
 const DATASTORE_TABLE = {
   postgres: { image: "postgres:16-alpine", port: 5432,  probe: "pg_isready -U postgres", seed_strategy: "sql-load", file_based: false, env: { POSTGRES_HOST_AUTH_METHOD: "trust" } },
   mysql:    { image: "mysql:8",            port: 3306,  probe: "mysqladmin ping -h 127.0.0.1", seed_strategy: "sql-load", file_based: false, env: { MYSQL_ALLOW_EMPTY_PASSWORD: "yes", MYSQL_DATABASE: "app" } },
@@ -50,9 +56,9 @@ const DATASTORE_TABLE = {
   mongo:    { image: "mongo:7",            port: 27017, probe: "mongosh --eval 'db.runCommand({ping:1})'", seed_strategy: "mongoimport", file_based: false },
   // S3-compatible object store (FAFF-273). MinIO refuses to boot without a `command:` (`server /data`)
   // — the one datastore that needs the renderCompose `command:` capability. Dev/test root creds are
-  // throwaway (never real, never persisted to tracker/PR — FAFF-30 §7). Probe via the image's own
-  // curl on the engine-native readiness endpoint. `s3` is accepted as an alias in composeGen.
-  minio:    { image: "quay.io/minio/minio", port: 9000, probe: "curl -f http://localhost:9000/minio/health/ready", seed_strategy: "object-upload", file_based: false, env: { MINIO_ROOT_USER: "faffdev", MINIO_ROOT_PASSWORD: "faffdevsecret" }, command: "server /data --console-address :9001" },
+  // throwaway (never real, never persisted to tracker/PR — FAFF-30 §7). Readiness via the bundled
+  // `mc ready` (the minimal mirror image ships no curl). `s3` is accepted as an alias in composeGen.
+  minio:    { image: MINIO_SERVER_IMAGE, port: 9000, probe: MINIO_READY_PROBE, seed_strategy: "object-upload", file_based: false, env: { MINIO_ROOT_USER: "faffdev", MINIO_ROOT_PASSWORD: "faffdevsecret" }, command: "server /data --console-address :9001" },
 };
 const ENV_APP_PORT = 8080;
 const ENV_DEFAULT_SLA_SECS = 60;
@@ -609,7 +615,7 @@ function envRedisLoad(root, project, target, datasetDir, composeFile) {
 
 // Deliver the realised dataset into the provisioned MinIO (S3-compatible) service via object-upload:
 // bucket-per-entity, one object per row keyed `<id-or-index>.json`, body = the row JSON. Transport is a
-// throwaway `quay.io/minio/mc` client sidecar joined to the compose network (`<project>_default`) — the
+// throwaway `mc` client sidecar (the Chainguard mirror) joined to the compose network (`<project>_default`) — the
 // server image is not a guaranteed `mc` host, so seeding runs from a dedicated client image
 // (this is why an object store is its own slice). `mc mb --ignore-existing local/<entity>` creates the
 // bucket, then one `mc pipe local/<entity>/<key>` per row streams the row JSON on stdin. Empty arrays are
@@ -622,7 +628,7 @@ function envObjectUpload(root, project, target, datasetDir, composeFile) {
   // Dev/test throwaway creds (match DATASTORE_TABLE.minio env) — runtime-only, never persisted.
   const mcHost = "http://faffdev:faffdevsecret@minio:9000";
   const mc = (mcArgs, input) => spawnSync("docker", ["run", "--rm", "-i", "--network", network,
-    "-e", `MC_HOST_local=${mcHost}`, "quay.io/minio/mc", ...mcArgs],
+    "-e", `MC_HOST_local=${mcHost}`, MINIO_CLIENT_IMAGE, ...mcArgs],
     input === undefined ? { encoding: "utf8" } : { input, encoding: "utf8" });
   for (const f of files) {
     let rows; try { rows = JSON.parse(fs.readFileSync(path.join(datasetDir, f), "utf8")); } catch { continue; }
@@ -838,7 +844,7 @@ function envSelftest() {
 
   // FAFF-273 — S3-compatible object store (MinIO): provision row + object-upload seed + command: line.
   const r5c = composeGen({ datastores: [{ kind: "minio", evidence: "x" }], deploy_targets: [] }, "p5c", "/tmp/x/dc.yml");
-  check("minio: has service (quay.io/minio/minio)", r5c.plan.services.some(s => s.name === "minio" && s.image === "quay.io/minio/minio"));
+  check("minio: has service (Chainguard mirror)", r5c.plan.services.some(s => s.name === "minio" && s.image === MINIO_SERVER_IMAGE));
   check("minio: object-upload seed strategy (not mount)", r5c.plan.seed_targets.some(t => t.kind === "minio" && t.strategy === "object-upload"));
   check("minio: no unseeded note", !r5c.plan.notes.some(n => /minio/.test(n)));
   check("minio: empty unprovisionable", r5c.plan.unprovisionable.length === 0);

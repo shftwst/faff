@@ -658,6 +658,16 @@ export const PARK_RECONSIDER_CLASSIFICATION_INSTRUCTION =
   "scope, taste, or architecture judgement call, or any cause you cannot positively prove machine-checkable. " +
   "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-1095 — prd-readiness names the grader's read-field (env.verdict, the shared closed-set arm). The
+// judge input is the PRD document and nothing else (faffter-noon-prd is code-blind). admissible = the
+// PRD's stop-conditions are machine-verifiable → admit; not-ready = they are vague or absent → refuse.
+export const PRD_READINESS_INSTRUCTION =
+  "Judge the PRD document above for admissibility per faffter-noon-prd's rubric in the criteria — do its " +
+  "stop-conditions verify machine-checkably? — and decide the verdict. Then OUTPUT ONLY one fenced code " +
+  "block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "verdict": "admissible|not-ready" } — exactly one of those two values, always ' +
+  "present. Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
 // grouping is a coverage kind: gradeCoverage reads a flat array OR a {id: text} map, so ask for the
 // flat array. The control (--no-plugin) is expected to land in a band rather than on a single number
 // — see the interpretation note beside the grouping renderer arm.
@@ -738,6 +748,8 @@ function modeInstructionFor(kind) {
   if (kind === "prdr-yagni") return PRDR_YAGNI_MODE_INSTRUCTION;
   // FAFF-1007
   if (kind === "park-reconsider-classification") return PARK_RECONSIDER_CLASSIFICATION_INSTRUCTION;
+  // FAFF-1095
+  if (kind === "prd-readiness") return PRD_READINESS_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -913,6 +925,14 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Issue:\n${JSON.stringify(c.fixture.issue, null, 2)}\n\nPark record:\n${JSON.stringify(c.fixture.park, null, 2)}`
     );
   }
+  // FAFF-1095 — prd-readiness: render the PRD document the code-blind judge reads (its only input),
+  // not the tidy fallback.
+  if (c.kind === "prd-readiness") {
+    return (
+      `${rubric}Judge the following PRD document's admissibility and answer: ${c.question}\n\n` +
+      `PRD document:\n${c.fixture.prd_body}`
+    );
+  }
   // The --no-plugin control on grouping-001 has no hard floor. Only two of its six gradeCoverage checks
   // are settled: the invoicing set is all over the fixture's own ticket titles (true), and the
   // leave-loose set is faff's idiolect with the loaded rubric as its only in-prompt source, so the
@@ -1051,6 +1071,14 @@ export function loadParkReconsiderProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faff", "references", "park.md");
   return extractSection(p, PARK_RECONSIDER_PROSE_START, PARK_RECONSIDER_PROSE_END, "loadParkReconsiderProse");
 }
+// FAFF-1095 — the prd-readiness rubric lives in faffter-noon-prd's own SKILL.md ("## The rubric" section).
+// Anchors verified unique at wiring time.
+const PRD_READINESS_PROSE_START = "\n## The rubric (the LLM applies this)\n";
+const PRD_READINESS_PROSE_END = "\n## Output (the contract artifact)\n";
+export function loadPrdReadinessProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-noon-prd", "SKILL.md");
+  return extractSection(p, PRD_READINESS_PROSE_START, PRD_READINESS_PROSE_END, "loadPrdReadinessProse");
+}
 const GROUPING_PROSE_START = "\n## Proposing outcome-led groupings for loose work\n";
 const GROUPING_PROSE_END = "\n## The seven principles\n";
 export function loadGroupingProse(pluginDir = DEFAULT_PLUGIN_DIR) {
@@ -1114,6 +1142,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   // FAFF-669 — the last four kinds each load their own surface's rubric (never tidy's default).
   if (kind === "prep-architecture-trigger") return loadPrepArchitectureTriggerProse(pluginDir);
   if (kind === "park-reconsider-classification") return loadParkReconsiderProse(pluginDir);
+  if (kind === "prd-readiness") return loadPrdReadinessProse(pluginDir);
   if (kind === "grouping") return loadGroupingProse(pluginDir);
   if (kind === "adr-drift") return loadAdrDriftProse(pluginDir);
   if (kind === "resolved-elsewhere") return loadResolvedElsewhereProse(pluginDir);

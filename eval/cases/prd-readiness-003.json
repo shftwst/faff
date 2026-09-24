@@ -1,0 +1,11 @@
+{
+  "id": "prd-readiness-003",
+  "kind": "prd-readiness",
+  "fixture": {
+    "version": 1,
+    "prd_body": "# PRD: Dashboard refresh\n\n## Goal\nWe want to modernise the analytics dashboard so it feels faster and more delightful, and better reflects the brand.\n\n## Context\nThe current dashboard is dated. Stakeholders have asked for a refresh that customers will love. The team should use good judgement on layout and polish.\n\n## Notes\nSee the design inspiration deck. Ship when it feels ready."
+  },
+  "question": "Is this PRD admissible for a lights-out run — verdict admissible or not-ready?",
+  "oracle": { "closed_set": ["not-ready"] },
+  "_comment": "Not-ready (no-stop-conditions): the PRD states goals and vibes but no verifiable stop-condition at all. An autonomous run cannot know when it is done."
+}

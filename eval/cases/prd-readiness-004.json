@@ -1,0 +1,11 @@
+{
+  "id": "prd-readiness-004",
+  "kind": "prd-readiness",
+  "fixture": {
+    "version": 1,
+    "prd_body": "# PRD: Search improvements\n\n## Goal\nMake search better.\n\n## Acceptance\n- Search should be fast enough for most users.\n- Results should be relevant and high quality.\n- The experience should handle typos gracefully in the common case.\n- Errors should be handled sensibly.\n\n## Out of scope\nRe-indexing pipeline changes."
+  },
+  "question": "Is this PRD admissible for a lights-out run — verdict admissible or not-ready?",
+  "oracle": { "closed_set": ["not-ready"] },
+  "_comment": "Not-ready (ambiguous-stop-conditions): the acceptance section exists but every criterion is vague prose ('fast enough', 'relevant', 'gracefully', 'sensibly') with no machine-checkable threshold. This is the boundary case that must still read not-ready."
+}

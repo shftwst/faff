@@ -27,7 +27,22 @@
 
 tracking:
   tracker: linear # linear | github | jira | … (autodetected from the available MCP if omitted)
-  team_key: ABC # tracker team / board key
+  team_key: ABC # LEGACY single team key — resolves to a one-element team-set (see `teams` below).
+  # FAFF-1080: a functional team-set — reads/creates fan across every listed team, and blocker
+  # edges crossing team boundaries render as ONE chain (never two disconnected views). Replaces
+  # `team_key` above when set (mutually exclusive in practice — `teams` wins if both are present).
+  # MUST be block form — `teams: [IDEAS, PRODUCT]` (bare inline flow) reads back as a plain string,
+  # not a list, and `faff config check` will refuse it loudly. `teams` and `team_routing` are
+  # sequence/map-valued, so `faff config set` refuses them by name (like `adversarial.refs`) —
+  # hand-edit this file. `default_team` is the one scalar leaf, writable via `config set`.
+  # teams:
+  #   - IDEAS
+  #   - PRODUCT
+  #   - RISKS
+  # default_team: PRODUCT   # required alongside `teams`; MUST be a member of `teams`
+  # team_routing:            # OPTIONAL — routes a jot/plot create by its determined type
+  #   spike: IDEAS           # every VALUE must be a member of `teams`; keys are free-form type
+  #   feature: PRODUCT       # tokens — an unmatched key simply falls through to `default_team`
   project_id: "abc-123" # tracker project / team id
   repo: org/repo # org/repo slug
   git_host: github # github — the only supported host (the merge gate is GitHub-only; may be left unset)

@@ -10,7 +10,8 @@
 // THE SELF SIDE IS NEVER CALLER-SUPPLIABLE. There is no `--self` flag (rejected
 // with usage exit 2 by name): the primitive re-derives the self side from the
 // merged committed config via the CLI's own loader — `containment.
-// self_hosting_intake` (the lane dial), `tracking.team_key`, `tracking.repo`.
+// self_hosting_intake` (the lane dial), the resolved team dimension (FAFF-1080's
+// `resolveTeams`: `tracking.teams` or the legacy `tracking.team_key`), `tracking.repo`.
 // Config is committed and PR-reviewed, which is what makes the re-derivation
 // independent of the agent being gated. This is the ONE deliberate divergence
 // from `contain`/`run-outward` purity (args-only): reading config IS the
@@ -36,26 +37,28 @@ const path = require("node:path");
 const {
   SELF_INTAKE_REASONS, decideSelfIntake, dig, findRoot, normalizeSelfIntakeTarget,
 } = require("./shared-infra");
-const { loadConfig } = require("./config");
+const { loadConfig, resolveTeams } = require("./config");
 const { isSafeRunId } = require("./contain");
 const { EVENT_PHASES, appendEventRecord, eventViolations } = require("./events");
 
 const SELF_INTAKE_VALUE_FLAGS = new Set(["--target", "--record", "--phase"]);
 
 // Derive the SelfIntakeSelf record from the merged config — the independence
-// property. Reads exactly three leaves: containment.self_hosting_intake (registry
-// default "false"), tracking.team_key, tracking.repo. Empty-string / absent /
-// non-string → null (an empty scalar must never strict-equal anything). The lane
-// dial accepts the YAML boolean true OR the string "true" (parseYamlSubset yields
-// a boolean for an unquoted scalar; `faff config get` prints both as "true" — the
-// same value the chokepoint's cheap early-exit compares against); anything else
-// is off. Throws whatever loadConfig throws (base/overlay parse failure, legacy
-// name) — the CLI wrapper converts that to a LOUD exit 2, never a silent
-// not-self with a wrong reason.
+// property. Reads containment.self_hosting_intake (registry default "false"),
+// tracking.repo, and the resolved team dimension via resolveTeams (FAFF-1080) —
+// tracking.teams / default_team / team_routing when a team-set is configured,
+// else the legacy tracking.team_key shimmed to a one-element set, else empty.
+// Empty-string / absent / non-string → null (an empty scalar must never
+// strict-equal anything). The lane dial accepts the YAML boolean true OR the
+// string "true" (parseYamlSubset yields a boolean for an unquoted scalar;
+// `faff config get` prints both as "true" — the same value the chokepoint's
+// cheap early-exit compares against); anything else is off. Throws whatever
+// loadConfig throws (base/overlay parse failure, legacy name) — the CLI
+// wrapper converts that to a LOUD exit 2, never a silent not-self with a
+// wrong reason.
 function deriveSelfFromConfig(root) {
   const [data] = loadConfig(root);
   const lane = dig(data, "containment.self_hosting_intake");
-  const team = dig(data, "tracking.team_key");
   const repo = dig(data, "tracking.repo");
   // Return the TRIMMED value, not just trim-for-the-emptiness-check: a quoted,
   // whitespace-padded config scalar (`repo: " acme/app"`) survives the YAML parser
@@ -67,8 +70,13 @@ function deriveSelfFromConfig(root) {
     const t = v.trim();
     return t === "" ? null : t;
   };
+  // FAFF-1080: `teams` replaces the singular `team` — derived via the single resolveTeams shim
+  // (team-set / legacy team_key / zero-config), cleaned with the SAME trim-then-empty-to-null
+  // rule as repo above so a legacy one-team config produces exactly today's one-element set.
+  const resolved = resolveTeams(data);
+  const teams = resolved.teams.map(clean).filter((t) => t !== null);
   return {
-    team: clean(team),
+    teams,
     repo: clean(repo),
     lane_on: lane === true || lane === "true",
   };
@@ -162,7 +170,7 @@ function cmdSelfIntake(args) {
       data: {
         mandate,
         target_raw: targetRaw, // the EXACT --target string — the audit recompute input
-        self: { team: self.team, repo: self.repo, lane_on: self.lane_on }, // the config snapshot used
+        self: { teams: self.teams, repo: self.repo, lane_on: self.lane_on }, // the config snapshot used
         verdict: decision.verdict, reason: decision.reason, exit,
       },
     };
@@ -191,7 +199,7 @@ function cmdSelfIntake(args) {
     console.log(JSON.stringify({
       mandate,
       target: decision.target,
-      self: { team: self.team, repo: self.repo, lane_on: self.lane_on },
+      self: { teams: self.teams, repo: self.repo, lane_on: self.lane_on },
       verdict: decision.verdict,
       reason: decision.reason,
     }, null, 2));
@@ -254,6 +262,15 @@ const SELF_INTAKE_SELFTEST_CASES = [
     "coercion: lane_on as a truthy non-boolean does NOT read as opted-in (strict === true)"],
   [{ team: "FAFF", repo: "shftwst/faff" }, "not-an-object", "not-self", "lane-off",
     "coercion: non-object self coerces to lane_on:false → lane-off"],
+  // --- FAFF-1080: team-SET membership (self.teams, a plural array) ---
+  [{ team: "RISKS", repo: "acme/app" }, { teams: ["IDEAS", "PRODUCT", "RISKS"], repo: "shftwst/faff", lane_on: true }, "self", "team-match",
+    "team-set: target.team is a member of a multi-element self.teams → self, team-match"],
+  [{ team: "OTHER", repo: "acme/app" }, { teams: ["IDEAS", "PRODUCT", "RISKS"], repo: "shftwst/faff", lane_on: true }, "not-self", "mismatch",
+    "team-set: target.team NOT a member of self.teams, and repo differs → not-self, mismatch"],
+  [{ team: "FAFF", repo: "shftwst/faff" }, { teams: [], repo: null, lane_on: true }, "not-self", "unresolved-self",
+    "team-set: an empty self.teams with no self.repo → unresolved-self (never a vacuous membership match)"],
+  [{ team: "FAFF", repo: "shftwst/faff" }, { teams: ["FAFF"], repo: "shftwst/faff", lane_on: true }, "self", "team-match",
+    "team-set: a one-element self.teams is EXACTLY the legacy strict === (byte-identical verdict/reason)"],
 ];
 
 function selfIntakeSelftest() {

@@ -37,6 +37,9 @@ const { roundFilesInDir } = require("./spec-review-convergence");
 const { standingCriticalIds } = require("./build-review-churn");
 const { assembleBuildCaseFiles, admitBuildRollup } = require("./build-judge-casefile");
 const { parseVerdictBlock, validateReconstruction, imperativeScrub } = require("./adversarial-judge-scrub");
+const { findRoot } = require("./shared-infra");
+const { loadConfig } = require("./config");
+const { assembleAdversarialBackends } = require("./adversarial-backends");
 
 const FAFF_BIN = path.resolve(__dirname, "..", "faff");
 const REVIEW_CALL_MJS = path.resolve(__dirname, "..", "..", "..", "faffter-dark-adversarial-review", "review-call.mjs");
@@ -77,6 +80,16 @@ function realRunReviewCall(args) {
       stderr: e.stderr != null ? String(e.stderr) : "",
     };
   }
+}
+
+// realResolveAdversarialBackends() -> { chain } | { error: "unset"|"malformed", detail? } — resolves
+// the adversarial backend chain for the `build_judge` consumer (per-consumer refs, shared refs,
+// native backends, or legacy host/model — all handled inside assembleAdversarialBackends). Injectable
+// via cmdAssemble's deps.resolveAdversarialBackends so the dispatch-loop tests stay hermetic.
+function realResolveAdversarialBackends() {
+  const root = findRoot();
+  const [cfg] = loadConfig(root);
+  return assembleAdversarialBackends(cfg, "build_judge");
 }
 
 // judgeDispatchDisposition lives in review-call.mjs (ESM) — dynamic `import()` is the only way
@@ -184,6 +197,7 @@ function writeTmp(tmpDir, name, content) {
 // reconstruction, Phase 2 (same bounded retry), returning a park cause on any other disposition.
 async function dispatchOne(caseId, caseFile, tmpDir, deps) {
   const { runReviewCall, judgeDispatchDisposition, retryLimit } = deps;
+  const backendsArgs = deps.backendsJsonPath ? ["--backends-json", deps.backendsJsonPath] : [];
   const diffFile = writeTmp(tmpDir, `${caseId}-diff.txt`, caseFile.reconstruction_context.relevant_diff || "");
 
   // Phase 1: blind reconstruction — --context is the reconstruction_context ONLY, never
@@ -198,6 +212,7 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
     phase1Res = runReviewCall([
       "--system", PHASE1_PROMPT, "--diff", diffFile, "--context", reconContextFile,
       "--expect", "contract",
+      ...backendsArgs,
     ]);
     const disp = await judgeDispatchDisposition(phase1Res.code);
     if (disp === "retry") continue;
@@ -226,6 +241,7 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
     phase2Res = runReviewCall([
       "--system", PHASE2_PROMPT, "--diff", diffFile, "--context", phase2ContextFile,
       "--expect", "contract",
+      ...backendsArgs,
     ]);
     const disp = await judgeDispatchDisposition(phase2Res.code);
     if (disp === "retry") continue;
@@ -250,11 +266,15 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
 async function dispatchJudgeRulings(ledger, caseFiles, judgeDir, deps) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-build-judge-dispatch-"));
   try {
+    // One file for the whole run — the chain is identical across every case and phase.
+    const backendsJsonPath = deps.backendsChain
+      ? writeTmp(tmpDir, "backends.json", JSON.stringify(deps.backendsChain))
+      : null;
     for (const cid of ledger.order) {
       const entry = ledger.entries[cid];
       if (!entry || entry.resolution === "parked") continue; // already parked at assemble
       const caseFile = caseFiles[cid];
-      const result = await dispatchOne(cid, caseFile, tmpDir, deps);
+      const result = await dispatchOne(cid, caseFile, tmpDir, { ...deps, backendsJsonPath });
       entry.ruling = result.ruling;
       entry.resolution = result.resolution;
       if (result.cause) entry.park_cause = result.cause;
@@ -405,12 +425,36 @@ function cmdAssemble(values, deps = {}) {
     return 0;
   }
 
+  // Resolve the adversarial backend chain ONCE, before any dispatch. review-call.mjs never reads
+  // .faffrc — it only knows its own argv — so without this the judge dispatch hits a bare USAGE(2)
+  // and parks on every repo (FAFF-1075). An unresolvable chain fails SAFE here (park every standing
+  // case with a diagnostic cause, never a call that cannot succeed), mirroring the unreadable-`--dir`
+  // park bundle above.
+  const resolveBackends = deps.resolveAdversarialBackends || realResolveAdversarialBackends;
+  const backendsResult = resolveBackends();
+  if (backendsResult.error) {
+    const cause = backendsResult.error === "unset"
+      ? "adversarial backend config unset — no adversarial.build_judge/.refs/.backends/.host+.model configured"
+      : `adversarial backend config malformed: ${backendsResult.detail}`;
+    for (const cid of ledger.order) {
+      const entry = ledger.entries[cid];
+      if (entry && entry.resolution !== "parked") {
+        entry.resolution = "parked";
+        entry.park_cause = cause;
+      }
+    }
+    writeLedger();
+    console.log(JSON.stringify({ assembled: ledger.order.length, dispatched: 0, out: outDir, cases: ledger.order }));
+    return 0;
+  }
+
   const rawRetryLimit = values["--retry-limit"];
   const retryLimit = rawRetryLimit != null && /^\d+$/.test(String(rawRetryLimit)) ? parseInt(rawRetryLimit, 10) : DEFAULT_BUILD_JUDGE_RETRY_LIMIT;
   const dispatchDeps = {
     runReviewCall: deps.runReviewCall || realRunReviewCall,
     judgeDispatchDisposition: deps.judgeDispatchDisposition || realJudgeDispatchDisposition,
     retryLimit,
+    backendsChain: backendsResult.chain,
   };
 
   return dispatchJudgeRulings(ledger, caseFiles, outDir, dispatchDeps).then((finalLedger) => {
@@ -477,4 +521,5 @@ module.exports = {
   computeCriticalFreeLatestFloor,
   realRunReviewCall,
   realJudgeDispatchDisposition,
+  realResolveAdversarialBackends,
 };

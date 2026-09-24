@@ -194,6 +194,8 @@ test("cmdAssemble: missing required flags is a usage error, exit 2", () => {
 const PAD = "this is filler text well past the forty non-whitespace character floor every single time. ";
 const RECON_STDOUT = `requirements_invariants: ${PAD}\nexisting_behaviour: ${PAD}\nvalid_solution_properties: ${PAD}\nundeterminable_facts: ${PAD}`;
 
+const FAKE_CHAIN = [{ provider: "openai", model: "m", host: "http://h" }];
+
 function fakeDepsAlwaysOverturn() {
   return {
     runReviewCall: (args) => {
@@ -206,6 +208,7 @@ function fakeDepsAlwaysOverturn() {
       };
     },
     judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : "park"),
+    resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
   };
 }
 
@@ -250,6 +253,7 @@ test("cmdAssemble: a Phase-1 reconstruction that fails validation parks the find
         return { code: 0, stdout: "unreachable", stderr: "" };
       },
       judgeDispatchDisposition: async () => "ruling",
+      resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
     assert.equal(code, 0);
@@ -274,6 +278,7 @@ test("cmdAssemble: judgeDispatchDisposition 'park' (a config-fault/malformed exi
     const deps = {
       runReviewCall: () => { callCount++; return { code: 1, stdout: "", stderr: "boom" }; },
       judgeDispatchDisposition: async () => "park",
+      resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir, "--retry-limit": "2" }, deps));
     assert.equal(code, 0);
@@ -297,12 +302,119 @@ test("cmdAssemble: judgeDispatchDisposition 'retry' (UNREACHABLE/DEADLINE) retri
     const deps = {
       runReviewCall: () => { callCount++; return { code: 5, stdout: "", stderr: "unreachable" }; },
       judgeDispatchDisposition: async () => "retry",
+      resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir, "--retry-limit": "2" }, deps));
     assert.equal(code, 0);
     assert.equal(callCount, 3, "retry-limit 2 means 1 initial attempt + 2 retries = 3 calls");
     const ledger = JSON.parse(readFileSync(join(judgeDir, "ledger.json"), "utf8"));
     assert.equal(ledger.entries["f-01"].resolution, "parked");
+  });
+});
+
+test("cmdAssemble: threads --backends-json (the resolved chain) into both phase dispatches", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({
+      signal: "needs-human",
+      findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }],
+      author_replies: [],
+    }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const judgeDir = join(tmp, "judge");
+    const seenBackends = [];
+    const deps = {
+      runReviewCall: (args) => {
+        // Read the backends file WHILE the dispatch tmpDir still exists (it is rm'd on loop exit).
+        const i = args.indexOf("--backends-json");
+        seenBackends.push(i >= 0 && typeof args[i + 1] === "string" ? JSON.parse(readFileSync(args[i + 1], "utf8")) : null);
+        const isPhase1 = args.some((a) => String(a).includes("adjudicate-build-phase1-reconstruct.md"));
+        if (isPhase1) return { code: 0, stdout: RECON_STDOUT, stderr: "" };
+        return { code: 0, stdout: "```faff-contract:build-judge-verdict\n" + JSON.stringify({ finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "" }) + "\n```", stderr: "" };
+      },
+      judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : "park"),
+      resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+    };
+    const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
+    assert.equal(code, 0);
+    assert.equal(seenBackends.length, 2, "one Phase-1 and one Phase-2 dispatch, each carrying the chain");
+    for (const chain of seenBackends) assert.deepEqual(chain, FAKE_CHAIN);
+    const ledger = JSON.parse(readFileSync(join(judgeDir, "ledger.json"), "utf8"));
+    assert.equal(ledger.entries["f-01"].resolution, "overturned");
+  });
+});
+
+test("cmdAssemble: an unresolvable (unset) backend chain parks every case with a diagnostic cause, never dispatches", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({
+      signal: "needs-human",
+      findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }],
+      author_replies: [],
+    }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const judgeDir = join(tmp, "judge");
+    let callCount = 0;
+    const deps = {
+      runReviewCall: () => { callCount++; return { code: 0, stdout: "", stderr: "" }; },
+      judgeDispatchDisposition: async () => "ruling",
+      resolveAdversarialBackends: () => ({ error: "unset" }),
+    };
+    const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
+    assert.equal(code, 0);
+    assert.equal(callCount, 0, "an unresolvable chain never spawns review-call.mjs");
+    const ledger = JSON.parse(readFileSync(join(judgeDir, "ledger.json"), "utf8"));
+    assert.equal(ledger.entries["f-01"].resolution, "parked");
+    assert.match(ledger.entries["f-01"].park_cause, /backend config unset/);
+  });
+});
+
+test("cmdAssemble: a malformed backend chain parks with the resolver detail folded into park_cause", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({
+      signal: "needs-human",
+      findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }],
+      author_replies: [],
+    }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const judgeDir = join(tmp, "judge");
+    let callCount = 0;
+    const deps = {
+      runReviewCall: () => { callCount++; return { code: 0, stdout: "", stderr: "" }; },
+      judgeDispatchDisposition: async () => "ruling",
+      resolveAdversarialBackends: () => ({ error: "malformed", detail: "adversarial.fallbacks is not valid JSON: boom" }),
+    };
+    const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
+    assert.equal(code, 0);
+    assert.equal(callCount, 0);
+    const ledger = JSON.parse(readFileSync(join(judgeDir, "ledger.json"), "utf8"));
+    assert.equal(ledger.entries["f-01"].resolution, "parked");
+    assert.match(ledger.entries["f-01"].park_cause, /malformed: adversarial\.fallbacks is not valid JSON: boom/);
+  });
+});
+
+test("cmdAssemble: resolves the backend chain exactly once per invocation, not per case", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({
+      signal: "needs-human",
+      findings: [
+        { finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" },
+        { finding_id: "b.js::y", severity: "critical", location: "b.js:2", title: "Y" },
+      ],
+      author_replies: [],
+    }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const judgeDir = join(tmp, "judge");
+    let resolveCount = 0;
+    const deps = {
+      ...fakeDepsAlwaysOverturn(),
+      resolveAdversarialBackends: () => { resolveCount++; return { chain: FAKE_CHAIN }; },
+    };
+    const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
+    assert.equal(code, 0);
+    assert.equal(resolveCount, 1, "the chain is resolved once for the whole --assemble, not per case");
   });
 });
 

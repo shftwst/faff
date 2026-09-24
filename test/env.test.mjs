@@ -135,13 +135,13 @@ test("compose-gen: minio provisions (service) with command: + object-upload seed
   const dir = tmp();
   try {
     const { plan, out } = composeGen(dir, { schema: 1, datastores: [{ kind: "minio", evidence: "x" }], deploy_targets: [] });
-    assert.ok(plan.services.some((s) => s.name === "minio" && s.image === "quay.io/minio/minio"));
+    assert.ok(plan.services.some((s) => s.name === "minio" && /^chainguard\/minio@sha256:/.test(s.image)));   // digest-pinned mirror (FAFF-1099)
     assert.ok(plan.seed_targets.some((t) => t.kind === "minio" && t.strategy === "object-upload"));
     assert.equal(plan.unprovisionable.length, 0);
     assert.equal(plan.endpoints.minio, "http://localhost:9000");   // S3 API is HTTP, not raw tcp
     const compose = readFileSync(out, "utf8");
     assert.match(compose, /command: "server \/data --console-address :9001"/);   // MinIO needs the server arg
-    assert.match(compose, /minio\/health\/ready/);                  // engine-native health probe
+    assert.match(compose, /mc ready local/);                        // bundled mc readiness probe (mirror ships no curl)
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -341,7 +341,10 @@ test("integration: minio env stands up, object-upload-seeds, and tears down [doc
       assert.equal(seed.code, 0, `seed failed: ${seed.err}`);
       // the born-verifiable AC: the bucket "users" landed 2 objects, counted via an `mc ls` sidecar.
       const count = execFileSync("docker", ["run", "--rm", "--network", `${project}_default`,
-        "-e", "MC_HOST_local=http://faffdev:faffdevsecret@minio:9000", "quay.io/minio/mc", "ls", "--recursive", "local/users"],
+        "-e", "MC_HOST_local=http://faffdev:faffdevsecret@minio:9000",
+        // keep in sync with MINIO_CLIENT_IMAGE in env.js on any digest re-pin (concrete literal — this is a real docker pull)
+        "chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338",
+        "ls", "--recursive", "local/users"],
         { cwd: dir, encoding: "utf8" }).split("\n").filter((l) => /\.json/.test(l)).length;
       assert.equal(count, 2, `expected 2 objects in bucket users, got: ${count}`);
     } finally {

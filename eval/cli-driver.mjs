@@ -41,6 +41,12 @@ import { fileURLToPath } from "node:url";
 // measures exactly the code path production runs.
 import { parseRefutation } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
 import { aggregate } from "../plugin/skills/faffter-dark-spec-review/aggregate.mjs";
+// FAFF-731 — parseRefutation consumes the transport's POST-normalisation stdout: production's
+// review-call.mjs runs normaliseCleanRefutation first, folding a lens's brief-instructed clean form
+// ("## Refutation — <lens>" + "No <lens> objection.") into the canonical "### observation: no findings"
+// token. The eval must run the same normalise→parse chain, or every clean lens (the common case) would
+// fail to parse and error the rep.
+import { normaliseCleanRefutation } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 // FAFF-138 — the isolated CLAUDE_CONFIG_DIR (ADR-0003) also strips the OAuth credential file, so a
 // frontier `claude -p` lands "Not logged in". Forward ONLY the credential file into the per-rep
@@ -1206,7 +1212,11 @@ export function fanRefutationSpec(evalCase, { spawnFn, systemDir, opts, cfgDir }
     if (res.error) throw new Error(`cli driver (${inv.bin}) refutation-spec lens=${lens}: ${res.error.message}`);
     const stdout = res.stdout ?? "";
     stdouts.push(stdout);
-    const parsed = parseRefutation(stdout, lens);
+    // Normalise first (production's normalise→parse chain): a brief-instructed clean pass becomes the
+    // canonical no-findings token before parseRefutation reads it. Genuinely-malformed output (after
+    // normalisation) still fails to parse and errors the rep — the rare real model failure, mirroring how
+    // the collapsed eval treats a malformed envelope.
+    const parsed = parseRefutation(normaliseCleanRefutation(stdout).content, lens);
     if (!parsed.ok) {
       const f = parsed.fault ?? {};
       const reason = f.reason ?? (f.missing_field ? `missing field ${f.missing_field}` : "unparseable refuter output");

@@ -490,12 +490,15 @@ test("FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merge
   const specText = "THE SPEC TO REFUTE\n## Methodology critique\nthe increment is fine";
   const c = { id: "rs-x", kind: "refutation-spec", question: "Refute this spec.", fixture: { spec: specText } };
   // Canned refuter markdown, one per lens in REFUTATION_SPEC_LENSES order: architectural objects (major),
-  // the other three are clean. No paid model reps — the spawn is injected.
+  // the other three are clean using the briefs' REAL clean form ("## Refutation — <lens>" + "No <lens>
+  // objection.") — the PRE-normalisation output the model actually emits under the brief, NOT the
+  // post-normalisation canonical token. This exercises the normalise->parse chain (a bare
+  // "### observation: no findings" fixture would mask a missing normalisation step). No paid model reps.
   const canned = [
-    "### major: coupling\n- claim: the modules are too tightly coupled\n",   // architectural
-    "### observation: no findings\n",                                          // infosec
-    "### observation: no findings\n",                                          // methodology
-    "### observation: no findings\n",                                          // QA
+    "### major: coupling\n- claim: the modules are too tightly coupled\n",   // architectural — objects
+    "## Refutation — infosec\nNo infosec objection.\n",                        // infosec — brief clean form
+    "## Refutation — methodology\nNo methodology objection.\n",                // methodology — brief clean form
+    "## Refutation — QA\nNo QA objection.\n",                                  // QA — brief clean form
   ];
   const calls = [];
   const spawnFn = (bin, args, o) => { const stdout = canned[calls.length]; calls.push({ bin, args, o }); return { stdout, status: 0 }; };

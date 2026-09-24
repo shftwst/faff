@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, PRD_READINESS_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, PRD_READINESS_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse, fanRefutationSpec, REFUTATION_SPEC_LENSES } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir, resolveEffort, EFFORT_LEVELS } from "../eval/run-evals.mjs";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -424,10 +424,11 @@ test("FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface ru
   assert.ok(criteriaFor("roadmap", DEFAULT_PLUGIN_DIR).startsWith("### 4. Dependency chain"));
   assert.ok(criteriaFor("adr-gloss", DEFAULT_PLUGIN_DIR).startsWith("## Output — the ADR body"));
   assert.ok(criteriaFor("spec-verdict", DEFAULT_PLUGIN_DIR).startsWith("## The four lenses"));
-  assert.ok(criteriaFor("refutation-spec", DEFAULT_PLUGIN_DIR).startsWith("## The lenses as independent refuters"));
+  // FAFF-731 — refutation-spec loads no criteria prose (its four passes carry the real refute-<lens>.md
+  // briefs inside fanRefutationSpec), so it is not asserted here.
   assert.ok(criteriaFor("refutation-code", DEFAULT_PLUGIN_DIR).startsWith("## Review lens"));
   // --no-plugin baseline → improvise (the control) for every one
-  for (const k of ["architecture", "specqual", "roadmap", "adr-gloss", "spec-verdict", "refutation-spec", "refutation-code"]) {
+  for (const k of ["architecture", "specqual", "roadmap", "adr-gloss", "spec-verdict", "refutation-code"]) {
     assert.equal(criteriaFor(k, null), null);
   }
 });
@@ -485,15 +486,50 @@ test("FAFF-319 buildEvalPrompt(spec-verdict) frames the review task + emits env.
   assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
 });
 
-test("FAFF-319 buildEvalPrompt(refutation-spec) frames the refute task + emits env.objections", () => {
-  const c = { id: "rs-x", kind: "refutation-spec", question: "Refute this spec across the enabled lenses.",
-    fixture: { spec: "THE SPEC TO REFUTE (may embed a ## Methodology critique block)" } };
-  const p = buildEvalPrompt(c, criteriaFor("refutation-spec", DEFAULT_PLUGIN_DIR));
-  assert.ok(p.includes("## The lenses as independent refuters"), "folds in the dark spec-review lens rubric");
-  assert.ok(p.includes("THE SPEC TO REFUTE"), "renders the spec verbatim (methodology block survives)");
-  assert.ok(p.includes('"objections"'), "asks for the objections envelope field");
-  assert.ok(p.includes("architectural|infosec|methodology|QA"), "states the lens vocabulary");
-  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+test("FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merges via production aggregate()", () => {
+  const specText = "THE SPEC TO REFUTE\n## Methodology critique\nthe increment is fine";
+  const c = { id: "rs-x", kind: "refutation-spec", question: "Refute this spec.", fixture: { spec: specText } };
+  // Canned refuter markdown, one per lens in REFUTATION_SPEC_LENSES order: architectural objects (major),
+  // the other three are clean using the briefs' REAL clean form ("## Refutation — <lens>" + "No <lens>
+  // objection.") — the PRE-normalisation output the model actually emits under the brief, NOT the
+  // post-normalisation canonical token. This exercises the normalise->parse chain (a bare
+  // "### observation: no findings" fixture would mask a missing normalisation step). No paid model reps.
+  const canned = [
+    "### major: coupling\n- claim: the modules are too tightly coupled\n",   // architectural — objects
+    "## Refutation — infosec\nNo infosec objection.\n",                        // infosec — brief clean form
+    "## Refutation — methodology\nNo methodology objection.\n",                // methodology — brief clean form
+    "## Refutation — QA\nNo QA objection.\n",                                  // QA — brief clean form
+  ];
+  const calls = [];
+  const spawnFn = (bin, args, o) => { const stdout = canned[calls.length]; calls.push({ bin, args, o }); return { stdout, status: 0 }; };
+  const systemDir = join(DEFAULT_PLUGIN_DIR, "skills", "faffter-dark-spec-review");
+  const out = fanRefutationSpec(c, { spawnFn, systemDir, opts: {}, cfgDir: "/tmp/faff-eval-rs-x" });
+
+  assert.equal(calls.length, 4, "one independent claude -p pass per enabled lens");
+  for (let i = 0; i < 4; i++) {
+    const lens = REFUTATION_SPEC_LENSES[i].toLowerCase();
+    const args = calls[i].args;
+    const prompt = args[args.indexOf("-p") + 1];
+    const brief = readFileSync(join(systemDir, `refute-${lens}.md`), "utf8");
+    assert.ok(prompt.startsWith(brief), `lens ${lens} pass carries its real refute-${lens}.md brief, not a summary`);
+    assert.ok(prompt.includes("THE SPEC TO REFUTE"), `the spec reaches the ${lens} sub-pass verbatim`);
+    assert.ok(prompt.includes("## Methodology critique"), `an embedded ## Methodology critique survives into the ${lens} sub-pass`);
+  }
+  // The merged envelope is the same shape the grader reads: one faff-eval:judgement block { case_id, objections }.
+  const m = out.rawText.match(/```faff-eval:judgement\n([\s\S]*?)\n```/);
+  assert.ok(m, "returns one faff-eval:judgement block");
+  const env = JSON.parse(m[1]);
+  assert.equal(env.case_id, "rs-x");
+  assert.equal(env.objections.length, 1, "aggregate() rolls the four passes into the objecting-lens set");
+  assert.equal(env.objections[0].lens, "architectural");
+  assert.equal(env.objections[0].severity, "major");
+});
+
+test("FAFF-731 fanRefutationSpec errors the rep when a lens produces unparseable output (never a silent drop)", () => {
+  const c = { id: "rs-bad", kind: "refutation-spec", question: "Refute.", fixture: { spec: "S" } };
+  const spawnFn = () => ({ stdout: "this is not refuter markdown, no ### sections", status: 0 });
+  const systemDir = join(DEFAULT_PLUGIN_DIR, "skills", "faffter-dark-spec-review");
+  assert.throws(() => fanRefutationSpec(c, { spawnFn, systemDir, opts: {}, cfgDir: "/tmp/x" }), /unparseable/);
 });
 
 test("FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings", () => {
@@ -666,6 +702,11 @@ const READ_FIELD = {
 // quoted key in EVAL_MODE_INSTRUCTION. Assertion (4) below is what makes this an exemption list rather
 // than a suppression list: pad it with a kind whose field is not really declared there and it fails.
 const TIDY_ENVELOPE_KINDS = new Set(["dupe", "vague", "stale", "superseded", "ordering", "gloss", "splittable"]);
+// FAFF-731 — refutation-spec is driven by fanRefutationSpec (four independent per-lens passes loading the
+// real refute-<lens>.md briefs), NOT the buildEvalPrompt/instructionFor/criteriaFor single-prompt path. Its
+// arming is asserted by the dedicated fanRefutationSpec structural test above, so it is exempt from the
+// single-prompt arming guards below (it still declares its grader read-field in READ_FIELD: "objections").
+const FANNED_KINDS = new Set(["refutation-spec"]);
 
 // Enumerated from the filesystem, not from the grader's KINDS: reconciliation and verdict-build are
 // registered with zero fixtures and are deliberately unarmed, and an arm with nothing to run it against
@@ -680,6 +721,9 @@ test("FAFF-669 every case-backed kind's instruction declares the key eval/grader
     // (1) No row is a hard failure, never a skip — this is what turns the suite red on the day a new
     //     kind's first case file lands, instead of it quietly scoring nothing for four tickets running.
     assert.ok(k in READ_FIELD, `kind ${k} has case files but no declared read field`);
+    // FAFF-731 — a fanned kind (refutation-spec) has no single instruction constant; its per-lens briefs
+    // are asserted by the fanRefutationSpec structural test. Its read-field is still declared (checked above).
+    if (FANNED_KINDS.has(k)) continue;
     // (2) Asserted against the INSTRUCTION, and on the JSON-QUOTED key. Both halves matter: the
     //     assembled prompt opens with the shipped rubric, which for grouping and
     //     prep-architecture-trigger contains the bare field name on its own — so a whole-prompt check
@@ -693,7 +737,7 @@ test("FAFF-669 every case-backed kind's instruction declares the key eval/grader
 test("FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through", () => {
   const tidyCriteria = loadJudgementCriteria(DEFAULT_PLUGIN_DIR);
   for (const k of caseBackedKinds) {
-    if (TIDY_ENVELOPE_KINDS.has(k)) continue;
+    if (TIDY_ENVELOPE_KINDS.has(k) || FANNED_KINDS.has(k)) continue;   // FAFF-731 — refutation-spec fans, not buildEvalPrompt
     const id = `guard-${k}`;
     // (3) Deliberately drives the assembled prompt — this is an assertion about composition, not about
     //     one constant's contents. Compared against the exported constant rather than a hand-typed tidy
@@ -799,7 +843,6 @@ const ANCHOR_REGISTRY = {
   ROADMAP_PROSE_START: { skill: "faff-map", end: "ROADMAP_PROSE_END" },
   ADR_GLOSS_PROSE_START: { skill: "faffter-noon-adr", end: "ADR_GLOSS_PROSE_END" },
   SPEC_VERDICT_PROSE_START: { skill: "faffter-noon-spec-review", end: "SPEC_VERDICT_PROSE_END" },
-  REFUTATION_SPEC_PROSE_START: { skill: "faffter-dark-spec-review", end: "REFUTATION_SPEC_PROSE_END" },
   REFUTATION_CODE_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "REFUTATION_CODE_PROSE_END" },
   // FAFF-669
   PREP_ARCH_TRIGGER_PROSE_START: { skill: "faff-prep", end: "PREP_ARCH_TRIGGER_PROSE_END" },
@@ -838,7 +881,7 @@ test("FAFF-669 every registered start anchor occurs exactly once in the file its
 // A hand-maintained registry with no forcing function is a list that goes stale on the next commit.
 test("FAFF-669 the anchor registry covers every start-anchor constant declared in the driver", () => {
   const declared = [...DRIVER_SRC.matchAll(/const (\w+_START) = /g)].map((m) => m[1]);
-  assert.equal(declared.length, 31, "30 pre-existing start anchors plus this ticket's one");
+  assert.equal(declared.length, 30, "FAFF-731 removed REFUTATION_SPEC_PROSE_START (the collapsed refutation-spec prose loader)");
   for (const name of declared) {
     assert.ok(name in ANCHOR_REGISTRY, `${name} is declared in the driver but missing from the anchor registry`);
   }
@@ -898,7 +941,7 @@ test("FAFF-687 a duplicate end-anchor spliced inside a section is caught (demons
 // the end-anchor mirror of the start-anchor coverage test above.
 test("FAFF-687 the anchor registry covers every end-anchor constant declared in the driver", () => {
   const declaredEnds = [...DRIVER_SRC.matchAll(/const (\w+_END) = /g)].map((m) => m[1]);
-  assert.equal(declaredEnds.length, 30, "one END const per START const, minus the sole extractSectionToEnd loader");
+  assert.equal(declaredEnds.length, 29, "one END const per START const, minus the sole extractSectionToEnd loader (FAFF-731 removed REFUTATION_SPEC_PROSE_END)");
   const registered = Object.values(ANCHOR_REGISTRY).map((row) => row.end).filter((end) => end !== null);
   assert.deepEqual(new Set(registered), new Set(declaredEnds),
     "every *_END const declared in the driver must be on exactly one registry row, and vice versa");

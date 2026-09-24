@@ -1,0 +1,129 @@
+{
+  "summary": {
+    "spike": "FAFF-1073",
+    "track": "2 — bounded live env-standup sample (fixture-derived)",
+    "generated_at": "2026-09-24",
+    "basis": "fixture-derived (faff env datastore matrix; not real external tickets — see spec Track-2 fallback)",
+    "matrix_size": 7,
+    "attempted_provisionings": 5,
+    "condition_b_fires": 1,
+    "condition_b_rate_of_attempted": 0.2,
+    "ready": 4,
+    "standup_fault_rate": 0.2,
+    "median_standup_wall_ms": 2636,
+    "standup_wall_ms_by_kind": {
+      "redis-backed": 2636,
+      "postgres-backed": 2613,
+      "mysql-backed": 18675,
+      "mongo-backed": 4667
+    }
+  },
+  "observations": [
+    {
+      "label": "redis-backed",
+      "source": "live-fixture",
+      "kinds": [
+        "redis"
+      ],
+      "plan_services": [
+        "redis"
+      ],
+      "unprovisionable": [],
+      "env_status": "ready",
+      "condition_b_fires": false,
+      "standup_wall_ms": 2636,
+      "teardown_wall_ms": 637,
+      "fault": null
+    },
+    {
+      "label": "postgres-backed",
+      "source": "live-fixture",
+      "kinds": [
+        "postgres"
+      ],
+      "plan_services": [
+        "postgres"
+      ],
+      "unprovisionable": [],
+      "env_status": "ready",
+      "condition_b_fires": false,
+      "standup_wall_ms": 2613,
+      "teardown_wall_ms": 604,
+      "fault": null
+    },
+    {
+      "label": "mysql-backed",
+      "source": "live-fixture",
+      "kinds": [
+        "mysql"
+      ],
+      "plan_services": [
+        "mysql"
+      ],
+      "unprovisionable": [],
+      "env_status": "ready",
+      "condition_b_fires": false,
+      "standup_wall_ms": 18675,
+      "teardown_wall_ms": 1445,
+      "fault": null
+    },
+    {
+      "label": "mongo-backed",
+      "source": "live-fixture",
+      "kinds": [
+        "mongo"
+      ],
+      "plan_services": [
+        "mongo"
+      ],
+      "unprovisionable": [],
+      "env_status": "ready",
+      "condition_b_fires": false,
+      "standup_wall_ms": 4667,
+      "teardown_wall_ms": 634,
+      "fault": null
+    },
+    {
+      "label": "sqlite-backed",
+      "source": "live-fixture",
+      "kinds": [
+        "sqlite"
+      ],
+      "plan_services": [],
+      "unprovisionable": [],
+      "env_status": "not-attempted",
+      "condition_b_fires": false,
+      "standup_wall_ms": null,
+      "teardown_wall_ms": null,
+      "fault": "no provisionable service (CLI/skills shape — no SUT to stand up)"
+    },
+    {
+      "label": "unknown-kind",
+      "source": "live-fixture",
+      "kinds": [
+        "cassandra"
+      ],
+      "plan_services": [],
+      "unprovisionable": [
+        "cassandra"
+      ],
+      "env_status": "failed",
+      "condition_b_fires": true,
+      "standup_wall_ms": null,
+      "teardown_wall_ms": null,
+      "fault": "unprovisionable: [\"cassandra\"]"
+    },
+    {
+      "label": "no-datastore",
+      "source": "live-fixture",
+      "kinds": [],
+      "plan_services": [],
+      "unprovisionable": [],
+      "env_status": "not-attempted",
+      "condition_b_fires": false,
+      "standup_wall_ms": null,
+      "teardown_wall_ms": null,
+      "fault": "no provisionable service (CLI/skills shape — no SUT to stand up)"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ condition_b_rate        : architecture-dependent (fixture-derived — see caveat
                           - unknown datastore kind      : fires (unprovisionable)
                           - CLI / skills / library repo : no SUT to stand up (not-attempted; the faff shape)
 condition_c_rate        : ~1.0       (self-attested today; 0 live `--lane evaluator` emit sites, cage unwired)
-median_standup_wall     : 2636 ms    (fixture-derived, warm-cache; range 2.6s redis/postgres .. 18.7s mysql)
+median_standup_wall     : 2681 ms    (fixture-derived, warm-cache docker 29.8.1; range 2.7s redis/postgres .. 6.7s mysql; +~300ms seed each)
 standup_fault_rate      : 1/5 attempted (the unknown-kind case; the 4 known datastores were fault-free)
 spec_fails_caught_pre_merge : n/a    (value side unmeasurable — see "Value side" below; 0 L4 ledgers ever ran holdout)
 spec_fails_left_to_review   : n/a
@@ -33,6 +33,8 @@ decision                : L3-lenient-only now; scoped-stricter viable as a follo
 
 ## Condition (a) — ticket unsuitable for holdout (no born-verifiable criteria)
 
+_(Corpus note: the spec's WHY/Assumptions state 753 committed specs; the mine measured **757** — the corpus grew by 4 between spec-authoring and the run, and the set includes the spike's own design doc. The delta is negligible at this n and does not move the rate; flagged here per the spec's own "report corpus size and flag any skew" validation step.)_
+
 `faff dod classify` over all 757 specs: **146 (19.3%)** have zero born-verifiable (scenario/assertion) criteria — the evaluator could only return all-`needs-human`, so holdout produces no verdict. Born-verifiable distribution:
 
 ```
@@ -48,24 +50,26 @@ _(Secondary cut attempted — "clears (a) but has only integration-tier born-ver
 
 Fixture-derived over the `faff env` datastore matrix (real `compose-gen → up → down`, live docker 29.8.1):
 
-| Shape | env_status | condition (b) | standup wall |
-|---|---|---|---|
-| redis-backed | ready | no | 2636 ms |
-| postgres-backed | ready | no | 2613 ms |
-| mysql-backed | ready | no | 18675 ms |
-| mongo-backed | ready | no | 4667 ms |
-| sqlite-backed | not-attempted | no | — (file-based; no container) |
-| unknown-kind (cassandra) | **failed** | **yes** | — (unprovisionable) |
-| no-datastore (CLI/skills shape) | not-attempted | no | — (**no SUT to stand up**) |
+(docker 29.8.1, warm cache — all images pre-pulled; times not comparable to a cold-pull run.)
+
+| Shape | env_status | condition (b) | standup wall | seed |
+|---|---|---|---|---|
+| redis-backed | ready | no | 2681 ms | ok (306 ms) |
+| postgres-backed | ready | no | 2681 ms | ok (283 ms) |
+| mysql-backed | ready | no | 6686 ms | ok (276 ms) |
+| mongo-backed | ready | no | 4646 ms | ok (319 ms) |
+| sqlite-backed | not-attempted | no | — (file-based; no container) | — |
+| unknown-kind (cassandra) | **failed** | **yes** | — (unprovisionable) | — |
+| no-datastore (CLI/skills shape) | not-attempted | no | — (**no SUT to stand up**) | — |
 
 Two distinct (b) shapes emerge, and they matter more than the raw rate:
 
-1. **Where a known datastore + app exists, standup is cheap and reliable** — 4/4 healthy, median ~2.6s (mysql the outlier at ~19s). The `faff env` seam works. On this subset (b) essentially does not fire.
+1. **Where a known datastore + app exists, standup is cheap and reliable** — 4/4 healthy, median ~2.7s (mysql the outlier at ~6.7s), plus ~300ms seed each. The `faff env` seam works end-to-end (compose-gen → up → seed → down). On this subset (b) essentially does not fire.
 2. **A large class of tickets has no SUT at all** — CLI, skills, library, config, and docs work (the faff shape itself, per FAFF-717) produces no provisionable service. This is *not* a fault (`not-attempted`, not `failed`), but it is a **pass-through**: holdout cannot run, so the lenient posture passes the merge through. For a self-hosting repo like faff, this is the *dominant* case.
 
 The honest reading: (b) rarely *fails* on a repo that has a standup target, but a **large fraction of real work has no standup target**, which is a pass-through under the lenient posture just the same.
 
-_Seam coverage: the full `compose-gen → up → seed → down` cycle was exercised end-to-end on postgres (seed exit 0, env torn down); the `env-sample.mjs` matrix run times the dominant `compose-gen → up → down` legs, and `env seed` was verified separately as clean. The synthetic fixture profiles declare no seed data, so seed is a clean no-op load — the seam runs, there is just nothing to load._
+_Seam coverage: `env-sample.mjs` exercises the **full** `compose-gen → up → seed → down` seam in-script — every ready datastore is seeded (all 4 `seed_status: ok`, ~300ms) and torn down, and `condition-b.json` records each seed observation. A failed seed is treated as condition (b). The synthetic fixture profiles declare no seed data, so seed is a clean no-op load — the seam runs, there is just nothing to load. The committed `condition-b.json` also records `docker_version` and `image_cache_state` so the standup times below are comparable only against a same-cache re-run._
 
 ## Condition (c) — env not provably code-blind
 

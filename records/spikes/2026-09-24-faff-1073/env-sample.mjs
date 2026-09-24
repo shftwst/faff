@@ -42,6 +42,21 @@ const ms = () => Number(process.hrtime.bigint() / 1000000n);
 const run = (a, opts = {}) =>
   execFileSync(faff, a, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024, ...opts });
 
+// Record the docker daemon version + image-cache state so the committed artifact is
+// self-describing: warm-cache standup times are NOT comparable to a cold-pull run, so a
+// re-runner must be able to see the environment the committed numbers were taken in.
+let dockerVersion = null;
+try {
+  dockerVersion = execFileSync("docker", ["version", "--format", "{{.Server.Version}}"], { encoding: "utf8" }).trim();
+} catch { dockerVersion = "unavailable"; }
+// Which datastore images are already pulled (warm) vs will pull on first up (cold).
+const wantImages = ["postgres:16-alpine", "mysql:8", "redis:7-alpine", "mongo:7"];
+let cached = [];
+try {
+  const have = execFileSync("docker", ["images", "--format", "{{.Repository}}:{{.Tag}}"], { encoding: "utf8" });
+  cached = wantImages.filter((i) => have.includes(i));
+} catch { /* leave empty */ }
+
 const observations = [];
 
 for (const m of MATRIX) {
@@ -53,7 +68,8 @@ for (const m of MATRIX) {
     label: m.label, source: "live-fixture", kinds: m.datastores.map((d) => d.kind),
     plan_services: null, unprovisionable: null,
     env_status: null, condition_b_fires: null,
-    standup_wall_ms: null, teardown_wall_ms: null, fault: null,
+    standup_wall_ms: null, seed_wall_ms: null, seed_status: null,
+    teardown_wall_ms: null, fault: null,
   };
 
   // compose-gen
@@ -96,6 +112,23 @@ for (const m of MATRIX) {
     obs.fault = `env up: ${String((e.stderr || e.message || e)).slice(0, 200)}`;
   }
 
+  // env seed (timed) — the named seam leg. condition (b) is defined to include a failed seed,
+  // so the sample must exercise it even when the fixture profile declares no seed data (a clean
+  // no-op load: the seam runs, there is just nothing to load). Only attempted on a ready env.
+  if (obs.env_status === "ready") {
+    const s0 = ms();
+    try {
+      run(["env", "seed", "--plan", planPath], { stdio: ["ignore", "pipe", "pipe"] });
+      obs.seed_wall_ms = ms() - s0;
+      obs.seed_status = "ok";
+    } catch (e) {
+      obs.seed_wall_ms = ms() - s0;
+      obs.seed_status = "failed";
+      obs.env_status = "failed"; obs.condition_b_fires = true; // a failed seed IS condition (b)
+      obs.fault = `env seed: ${String((e.stderr || e.message || e)).slice(0, 200)}`;
+    }
+  }
+
   // teardown on every path that provisioned (timed)
   const td0 = ms();
   try { run(["env", "down", "--project", project], { stdio: ["ignore", "pipe", "pipe"] }); }
@@ -116,6 +149,11 @@ const summary = {
   spike: "FAFF-1073", track: "2 — bounded live env-standup sample (fixture-derived)",
   generated_at: new Date().toISOString().slice(0, 10),
   basis: "fixture-derived (faff env datastore matrix; not real external tickets — see spec Track-2 fallback)",
+  docker_version: dockerVersion,
+  image_cache_state: cached.length === wantImages.length ? "warm (all images pre-pulled)"
+    : cached.length === 0 ? "cold (no images pre-pulled — standup times are pull-dominated)"
+    : `partial (warm: ${cached.join(", ") || "none"})`,
+  cache_caveat: "Standup wall times are NOT comparable across cache states — a cold run is pull-dominated. Compare only same-cache runs.",
   matrix_size: MATRIX.length,
   attempted_provisionings: attempted.length,
   condition_b_fires: bFires,

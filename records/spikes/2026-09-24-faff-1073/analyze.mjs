@@ -77,6 +77,16 @@ for (const f of specs) {
 
 const scored = observations.filter((o) => !o.error);
 const n = scored.length;
+
+// Fail loud on a total-failure run (e.g. `faff` unresolvable): every classify threw, so a
+// 0/0 = 0.0% headline would read as a real (zero) result. A zero-scored corpus is never a
+// valid measurement — refuse rather than emit a green-looking artifact.
+if (n === 0) {
+  console.error(
+    `FATAL: 0/${observations.length} specs classified (all reads failed — is '${faff}' on PATH?). Refusing to emit a 0.0% result.`
+  );
+  process.exit(1);
+}
 const aFires = scored.filter((o) => o.condition_a_fires).length;
 const rate = n ? aFires / n : 0;
 
@@ -108,6 +118,11 @@ const summary = {
   clears_a_but_no_running_stack_rate_of_scored: n
     ? Number((noRunningStack / n).toFixed(4))
     : 0,
+  clears_a_but_no_running_stack_CAVEAT:
+    "INCONCLUSIVE, not evidence of absence. verification_tier_counts tallies ALL criteria by tier, " +
+    "not born-verifiable ones only, so a spec with an integration-tier born-verifiable criterion plus " +
+    "any prose running-stack criterion still shows running_stack>=1. A true FAFF-961-shape cut (born-verifiable " +
+    "AND integration-only) needs a per-criterion pass; FAFF-961 itself proves the shape occurs. Do not read this 0 as 'absent'.",
 };
 
 writeFileSync(

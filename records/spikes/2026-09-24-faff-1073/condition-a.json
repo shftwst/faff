@@ -23,7 +23,8 @@
       "10+": 50
     },
     "clears_a_but_no_running_stack": 0,
-    "clears_a_but_no_running_stack_rate_of_scored": 0
+    "clears_a_but_no_running_stack_rate_of_scored": 0,
+    "clears_a_but_no_running_stack_CAVEAT": "INCONCLUSIVE, not evidence of absence. verification_tier_counts tallies ALL criteria by tier, not born-verifiable ones only, so a spec with an integration-tier born-verifiable criterion plus any prose running-stack criterion still shows running_stack>=1. A true FAFF-961-shape cut (born-verifiable AND integration-only) needs a per-criterion pass; FAFF-961 itself proves the shape occurs. Do not read this 0 as 'absent'."
   },
   "observations": [
     {

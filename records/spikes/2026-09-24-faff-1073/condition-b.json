@@ -4,18 +4,21 @@
     "track": "2 — bounded live env-standup sample (fixture-derived)",
     "generated_at": "2026-09-24",
     "basis": "fixture-derived (faff env datastore matrix; not real external tickets — see spec Track-2 fallback)",
+    "docker_version": "29.8.1",
+    "image_cache_state": "warm (all images pre-pulled)",
+    "cache_caveat": "Standup wall times are NOT comparable across cache states — a cold run is pull-dominated. Compare only same-cache runs.",
     "matrix_size": 7,
     "attempted_provisionings": 5,
     "condition_b_fires": 1,
     "condition_b_rate_of_attempted": 0.2,
     "ready": 4,
     "standup_fault_rate": 0.2,
-    "median_standup_wall_ms": 2636,
+    "median_standup_wall_ms": 2681,
     "standup_wall_ms_by_kind": {
-      "redis-backed": 2636,
-      "postgres-backed": 2613,
-      "mysql-backed": 18675,
-      "mongo-backed": 4667
+      "redis-backed": 2681,
+      "postgres-backed": 2681,
+      "mysql-backed": 6686,
+      "mongo-backed": 4646
     }
   },
   "observations": [
@@ -31,8 +34,10 @@
       "unprovisionable": [],
       "env_status": "ready",
       "condition_b_fires": false,
-      "standup_wall_ms": 2636,
-      "teardown_wall_ms": 637,
+      "standup_wall_ms": 2681,
+      "seed_wall_ms": 306,
+      "seed_status": "ok",
+      "teardown_wall_ms": 651,
       "fault": null
     },
     {
@@ -47,8 +52,10 @@
       "unprovisionable": [],
       "env_status": "ready",
       "condition_b_fires": false,
-      "standup_wall_ms": 2613,
-      "teardown_wall_ms": 604,
+      "standup_wall_ms": 2681,
+      "seed_wall_ms": 283,
+      "seed_status": "ok",
+      "teardown_wall_ms": 597,
       "fault": null
     },
     {
@@ -63,8 +70,10 @@
       "unprovisionable": [],
       "env_status": "ready",
       "condition_b_fires": false,
-      "standup_wall_ms": 18675,
-      "teardown_wall_ms": 1445,
+      "standup_wall_ms": 6686,
+      "seed_wall_ms": 276,
+      "seed_status": "ok",
+      "teardown_wall_ms": 1155,
       "fault": null
     },
     {
@@ -79,8 +88,10 @@
       "unprovisionable": [],
       "env_status": "ready",
       "condition_b_fires": false,
-      "standup_wall_ms": 4667,
-      "teardown_wall_ms": 634,
+      "standup_wall_ms": 4646,
+      "seed_wall_ms": 319,
+      "seed_status": "ok",
+      "teardown_wall_ms": 662,
       "fault": null
     },
     {
@@ -94,6 +105,8 @@
       "env_status": "not-attempted",
       "condition_b_fires": false,
       "standup_wall_ms": null,
+      "seed_wall_ms": null,
+      "seed_status": null,
       "teardown_wall_ms": null,
       "fault": "no provisionable service (CLI/skills shape — no SUT to stand up)"
     },
@@ -110,6 +123,8 @@
       "env_status": "failed",
       "condition_b_fires": true,
       "standup_wall_ms": null,
+      "seed_wall_ms": null,
+      "seed_status": null,
       "teardown_wall_ms": null,
       "fault": "unprovisionable: [\"cassandra\"]"
     },
@@ -122,6 +137,8 @@
       "env_status": "not-attempted",
       "condition_b_fires": false,
       "standup_wall_ms": null,
+      "seed_wall_ms": null,
+      "seed_status": null,
       "teardown_wall_ms": null,
       "fault": "no provisionable service (CLI/skills shape — no SUT to stand up)"
     }

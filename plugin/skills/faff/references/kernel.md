@@ -101,7 +101,7 @@ effort:            # optional per-lane reasoning-EFFORT selection; every key opt
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
 logging: full                # full | essential — full (default) writes the per-invocation narrative log; essential silences it (the machine-consumed hard floor is always written; see .faff/ logging directory)
-automation_default: opt-in   # opt-in (default, fail-safe) | opt-out — eligibility for an UNLABELLED ticket (see Automation eligibility). opt-in ⇒ nothing is automatable without an explicit faff-automate label. opt-out is git-only-only: inert under a tracker
+# Automation eligibility is a single tracker-owned signal — the faff-automate label present ⇒ eligible, absent ⇒ not. One opt-in model everywhere (FAFF-1097); no automation_default knob (see Automation eligibility).
 ```
 
 **Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
@@ -213,7 +213,7 @@ These rules apply to every faff sub-skill. Sub-skills point at this section rath
 
 ### Always pull fresh (never act on stale tracker state)
 
-Every read-and-synthesise pass re-fetches live tracker state on every invocation: issues, blocker links (both directions), status fields, **labels (in particular the eligibility-label set `faff-automate` / `faff-automation-hold`)**, the comments a pass classifies on, milestones, parent/ancestor relationships. Never reuse a fetch from earlier in the same conversation, never trust a snapshot written into `.faffrc` or any static file, never read a prior `.faff/logs/` file as a substitute for live data. The one exception is the per-run `automation-verdicts.md` cache, read *within* a single pass and recomputed across passes (see **`.faff/` logging directory**).
+Every read-and-synthesise pass re-fetches live tracker state on every invocation: issues, blocker links (both directions), status fields, **labels (in particular the eligibility label `faff-automate`)**, the comments a pass classifies on, milestones, parent/ancestor relationships. Never reuse a fetch from earlier in the same conversation, never trust a snapshot written into `.faffrc` or any static file, never read a prior `.faff/logs/` file as a substitute for live data. The one exception is the per-run `automation-verdicts.md` cache, read *within* a single pass and recomputed across passes (see **`.faff/` logging directory**).
 
 A pass that mixes fresh-now data with 30-minute-old data is **silently wrong**: the reader trusts the output as one coherent moment, so a status that changed, a PR that merged, or a blocker that resolved between partial fetches produces confidently incorrect output that a human or the queue then acts on. The failure escalates with how much the skill *acts*. A stale briefing misleads; a stale grooming pass (faff-tidy) or build-queue assembly (faff-beep-boop) mutates the tracker or ships code on bad data. Better slow-and-correct than fast-and-lying.
 

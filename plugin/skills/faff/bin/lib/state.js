@@ -157,7 +157,7 @@ function cmdState(args) {
     status: "unknown",        // tracker-only — agent fills authoritatively
     spec,
     spec_source,
-    eligible: "unknown",      // tracker-only — agent computes via `faff eligible` from labels (faff-automate / faff-automation-hold) + automation_default
+    eligible: "unknown",      // tracker-only — agent computes via `faff eligible` from the faff-automate label
     parked,
     parked_source,
     blocked: "unknown",       // tracker-only (blockedBy relation)

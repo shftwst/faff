@@ -53,15 +53,11 @@ const LABEL_SELFTEST_CASES = [
   // label not in manifest ⇒ rejected
   [{ action: "add", issue: "FAFF-99", label: "not-a-faff-label", present: null },
     { rejected: true }],
-  // FAFF-218: the two tracker-owned eligibility labels are REFUSED in all four directions
+  // FAFF-218: the tracker-owned eligibility label is REFUSED in both directions
   [{ action: "add", issue: "FAFF-99", label: "faff-automate", present: null },
     { refused: true }],                                  // crank up
   [{ action: "remove", issue: "FAFF-99", label: "faff-automate", present: null },
     { refused: true }],                                  // crank down
-  [{ action: "add", issue: "FAFF-99", label: "faff-automation-hold", present: null },
-    { refused: true }],                                  // hold
-  [{ action: "remove", issue: "FAFF-99", label: "faff-automation-hold", present: null },
-    { refused: true }],                                  // unhold
   // refusal precedes idempotency: present-flags are ignored on the refused path
   [{ action: "add", issue: "FAFF-99", label: "faff-automate", present: ["faff-automate"] },
     { refused: true }],

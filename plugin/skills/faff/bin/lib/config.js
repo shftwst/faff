@@ -615,6 +615,60 @@ function resolveLabelPrefix(root, data) {
   return { prefix: value };
 }
 
+// FAFF-1091: a per-role control-label full name (`tracking.control_labels.<role>`) may look
+// native to the tracker — `someprefix-some-value` or `Some group: name may contain-hyphens`
+// (spaces, colons, hyphens, underscores, digits, mixed case all allowed). This is a single
+// PERMISSIVE validator (operator decision 2026-09-24), deliberately NOT LABEL_PREFIX_RE (which
+// forbids spaces/colons and would reject `State: Parked`, the exact grouped form the feature
+// exists to allow). It rejects only the genuinely corrupting values — empty/whitespace-only and
+// control characters / newlines (which could corrupt tracker state) — and fails LOUD at both read
+// and write, never a silent fallback to `<prefix>-<role>`. Keyed on the dotted leaf shape and
+// returns null for any other key, so it composes into the get/set chains exactly like
+// validateLabelPrefix.
+const CONTROL_LABEL_NAME_KEY_RE = /^tracking\.control_labels\.[^.]+$/;
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHAR_RE = /[\u0000-\u001F\u007F]/;
+function validateControlLabelName(key, value) {
+  if (!CONTROL_LABEL_NAME_KEY_RE.test(key)) return null; // not this validator's key
+  if (value === null || value === undefined || value.trim() === "") {
+    return `config get ${key}: control-label name must be a non-empty string (spaces/colons/hyphens allowed, but not empty/whitespace-only)`;
+  }
+  if (CONTROL_CHAR_RE.test(value)) {
+    return `config get ${key}: control-label name contains an illegal control character or newline`;
+  }
+  return null;
+}
+
+// FAFF-1091: the single per-role override resolver (a sibling of resolveLabelPrefix) every
+// control-label command layer calls alongside it. Returns { names } (a `role -> full name` map,
+// only overridden roles present; {} when unset) on a valid config, or { error } on a non-map
+// value or a leaf that fails the permissive validator (the caller surfaces it and exits 2, same
+// as a malformed prefix). Keeps resolveLabelPrefix's single-responsibility { prefix } | { error }
+// contract untouched so a command layer that only needs the prefix stays unchanged.
+function resolveControlLabels(root, data) {
+  const cfg = data || loadConfig(root)[0];
+  const raw = dig(cfg, "tracking.control_labels");
+  if (raw === null || raw === undefined) return { names: {} };
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { error: "config get tracking.control_labels: must be a map of role -> name (a nested map of scalars)" };
+  }
+  const names = {};
+  for (const role of Object.keys(raw)) {
+    const leaf = raw[role];
+    // Per-leaf scalar-ness: the contract is a map of SCALARS. A nested map / sequence leaf would
+    // fmt() to a bogus name ("[object Object]" / "a,b") that slips past the charset validator, so
+    // reject it loud here rather than rendering a corrupt label name (fail-loud, never half-valid).
+    if (leaf !== null && typeof leaf === "object") {
+      return { error: `config get tracking.control_labels.${role}: control-label name must be a scalar, not a ${Array.isArray(leaf) ? "sequence" : "map"}` };
+    }
+    const value = fmt(leaf);
+    const err = validateControlLabelName(`tracking.control_labels.${role}`, value);
+    if (err) return { error: err };
+    names[role] = value;
+  }
+  return { names };
+}
+
 // FAFF-859: closed value vocabulary for the two lane-isolation DECLARED-field axes. The two axes
 // are ORTHOGONAL (container = containment, host = locality); each is its own closed-vocab scalar,
 // keyed on the full dotted path — the models.<lane> / effort.<lane> shape, not a co-constrained
@@ -1399,7 +1453,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateIsolationLane(key, value);
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
@@ -2510,7 +2564,7 @@ function cmdConfig(args) {
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
       // fails loud here too, never a silently GitHub-shaped merge gate.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateIsolationLane(key, fmt(value));
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
@@ -2961,4 +3015,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };

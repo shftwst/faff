@@ -36,12 +36,19 @@ function automationEligible(labels, automationDefault, trackerPresent) {
 // automationEligible's own unchanged literal check, silently reintroducing the "faff-"
 // prefix as a fallback the spec explicitly rules out (no cross-prefix fallback; §5
 // SCENARIOS "the role lookup resolves against the configured prefix, not faff-").
-function normalizeEligibilityLabels(labels, prefix = "faff") {
-  if (prefix === "faff") return labels;
-  const automate = `${prefix}-automate`;
+// FAFF-1091: keyed off the RESOLVED automate name, not the prefix alone — so a per-role
+// override (`tracking.control_labels.automate`) renamed even under the default prefix is
+// recognised. `automateName` is the resolved rendered name (`names.automate ?? \`${prefix}-automate\``),
+// threaded by cmdEligible. A resolved name of "faff-automate" (default prefix, no override) is a
+// byte-identical no-op. Otherwise the stale default literal "faff-automate" is stripped (never a
+// cross-prefix / override fallback — it must not leak past the translation and fail OPEN as
+// still-eligible against automationEligible's unchanged literal check).
+function normalizeEligibilityLabels(labels, prefix = "faff", automateName) {
+  const resolved = automateName || `${prefix}-automate`;
+  if (resolved === "faff-automate") return labels;
   return labels
     .filter((l) => l !== "faff-automate")
-    .map((l) => (l === automate ? "faff-automate" : l));
+    .map((l) => (l === resolved ? "faff-automate" : l));
 }
 
 // Cases: [[labels, default, trackerPresent], want]. FAFF-1097: only faff-automate
@@ -90,9 +97,31 @@ function runEligiblePrefixCases() {
   return fail;
 }
 
+// FAFF-1091: the OVERRIDE axis (a renamed automate under `tracking.control_labels.automate`),
+// mirroring the prefix axis above. [rawLabels, prefix, automateName, def, tracker] -> want.
+// Row 1: the override name resolves eligible. Row 2 (the fail-open mirror of the prefix-axis
+// row 2): with an override set, the STALE default literal "faff-automate" resolves NOT eligible —
+// it must never fail open as still-eligible.
+const ELIGIBLE_OVERRIDE_CASES = [
+  [["Some group: eligible"], "faff", "Some group: eligible", "opt-in", true, true],  // override recognised eligible
+  [["faff-automate"], "faff", "Some group: eligible", "opt-in", true, false],        // stale default literal NOT eligible
+];
+
+function runEligibleOverrideCases() {
+  let fail = 0;
+  for (const [rawLabels, prefix, automateName, def, tracker, want] of ELIGIBLE_OVERRIDE_CASES) {
+    const normLabels = normalizeEligibilityLabels(rawLabels, prefix, automateName);
+    const got = automationEligible(normLabels, def, tracker);
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} labels=[${rawLabels.join(",")}] prefix=${prefix} automateName=${JSON.stringify(automateName)} → ${got} (want ${want})`);
+  }
+  return fail;
+}
+
 function eligibleSelftest() {
-  const fail = runEligibleCases() + runEligiblePrefixCases();
-  const total = ELIGIBLE_CASES.length + ELIGIBLE_PREFIX_CASES.length;
+  const fail = runEligibleCases() + runEligiblePrefixCases() + runEligibleOverrideCases();
+  const total = ELIGIBLE_CASES.length + ELIGIBLE_PREFIX_CASES.length + ELIGIBLE_OVERRIDE_CASES.length;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -126,11 +155,15 @@ function cmdEligible(args) {
   // (kept OUT of automationEligible's own signature — see that function's comment on why:
   // decision-capture's KERNEL_REGISTRY "eligible" contract / shadow-fidelity's structural
   // signature introspection, FAFF-826/956). Unset config ⇒ "faff", byte-identical zero-config.
-  const { resolveLabelPrefix } = require("./config");
+  const { resolveLabelPrefix, resolveControlLabels } = require("./config");
   const root = values["--root"] || findRoot();
   const resolvedPrefix = resolveLabelPrefix(root);
   if (resolvedPrefix.error) { process.stderr.write(resolvedPrefix.error + "\n"); return 2; }
-  const normLabels = normalizeEligibilityLabels(labels, resolvedPrefix.prefix);
+  // FAFF-1091: also resolve the per-role override map — a renamed `automate` (even under the
+  // default prefix) must resolve eligible, and the stale default literal must NOT fail open.
+  const resolvedNames = resolveControlLabels(root);
+  if (resolvedNames.error) { process.stderr.write(resolvedNames.error + "\n"); return 2; }
+  const normLabels = normalizeEligibilityLabels(labels, resolvedPrefix.prefix, resolvedNames.names.automate);
   const verdict = automationEligible(normLabels, def, trackerPresent);
   console.log(String(verdict));
   // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
@@ -149,4 +182,4 @@ function cmdEligible(args) {
 }
 
 
-module.exports = { ELIGIBLE_CASES, ELIGIBLE_PREFIX_CASES, automationEligible, cmdEligible, eligibleSelftest, normalizeEligibilityLabels, runEligibleCases, runEligiblePrefixCases };
+module.exports = { ELIGIBLE_CASES, ELIGIBLE_PREFIX_CASES, ELIGIBLE_OVERRIDE_CASES, automationEligible, cmdEligible, eligibleSelftest, normalizeEligibilityLabels, runEligibleCases, runEligiblePrefixCases, runEligibleOverrideCases };

@@ -45,7 +45,11 @@ const FAFF_816_KINDS = new Set(["prdr-yagni"]);
 // not-stale check does not fire on a newly-covered-but-ungated kind; its deferral is priced in
 // meta.remaining_kinds + meta.follow_ups.remaining_kinds (the honest-scope + deferral tests).
 const FAFF_1007_KINDS = new Set(["park-reconsider-classification"]);
-const TARGET_KINDS = new Set([...FAFF_319_KINDS, ...FAFF_670_KINDS, ...FAFF_816_KINDS, ...FAFF_1007_KINDS]);
+// FAFF-1095 — the case-backed prd-readiness grader adds one more ungated kind (frontier baseline +
+// oracle triage deferred to FAFF-614, like FAFF-1007). Declared so the not-stale check does not fire on
+// a newly-covered-but-ungated kind; its deferral is priced in meta.remaining_kinds + follow_ups.
+const FAFF_1095_KINDS = new Set(["prd-readiness"]);
+const TARGET_KINDS = new Set([...FAFF_319_KINDS, ...FAFF_670_KINDS, ...FAFF_816_KINDS, ...FAFF_1007_KINDS, ...FAFF_1095_KINDS]);
 
 const CLASSES = new Set(["oracle-defect", "needs-evidence", "suspected-genuine-miss", "sound"]);
 // The FAFF-321 deferral signature — a rationale must never read like a generic punt.

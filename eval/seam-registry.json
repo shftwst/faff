@@ -116,7 +116,7 @@
     },
     "prd-readiness": {
       "surface": "faffter-noon-prd",
-      "status": "designed"
+      "status": "covered"
     },
     "prep-architecture-trigger": {
       "surface": "faff-prep",

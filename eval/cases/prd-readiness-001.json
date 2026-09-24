@@ -1,0 +1,11 @@
+{
+  "id": "prd-readiness-001",
+  "kind": "prd-readiness",
+  "fixture": {
+    "version": 1,
+    "prd_body": "# PRD: URL-shortener service\n\n## Goal\nShip a small HTTP service that shortens URLs.\n\n## Stop-conditions (Definition of Done)\n- **Given** a POST to `/shorten` with `{\"url\":\"https://example.com/x\"}`, **When** the request succeeds, **Then** the response is `201` with a JSON body `{\"code\":\"<7-char base62 code>\"}`.\n- **Given** a GET to `/{code}` for a known code, **When** the code exists, **Then** the response is a `302` redirect to the original URL.\n- **Given** a GET to `/{code}` for an unknown or expired code, **Then** the response is `404`.\n- **Given** the service is restarted, **When** a previously-created code is fetched, **Then** it still resolves (persistence)."
+  },
+  "question": "Is this PRD admissible for a lights-out run — verdict admissible or not-ready?",
+  "oracle": { "closed_set": ["admissible"] },
+  "_comment": "Admissible: every stop-condition is a machine-checkable Given/When/Then with concrete status codes and shapes."
+}

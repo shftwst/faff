@@ -391,6 +391,10 @@ const FIXTURE_SHAPE = {
   // sub-object (root_cause_class + reason + cited_input_candidate) the classifier judges over.
   // validateCase asserts both; the single human|machine disposition rides env.reconsider (its own arm).
   "park-reconsider-classification": ["issue", "park"],
+  // FAFF-1095 — prd-readiness: the fixture carries the `prd_body` document text the code-blind
+  // admissibility judge reads (the PRD, and nothing else — faffter-noon-prd's only input).
+  // validateCase asserts it is present; the admissible|not-ready verdict rides the shared env.verdict arm.
+  "prd-readiness": ["prd_body"],
   // FAFF-240 — roadmap: the seeded tracker fixture (the ordering/dupe issues[] backlog shape, enriched
   // with blockedBy edges + trigger-gate markers) faff-map synthesises over. validateCase asserts the
   // `issues` field is present; the predicted synthesis rides env.roadmap.

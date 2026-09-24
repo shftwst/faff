@@ -65,6 +65,8 @@ Two distinct (b) shapes emerge, and they matter more than the raw rate:
 
 The honest reading: (b) rarely *fails* on a repo that has a standup target, but a **large fraction of real work has no standup target**, which is a pass-through under the lenient posture just the same.
 
+_Seam coverage: the full `compose-gen → up → seed → down` cycle was exercised end-to-end on postgres (seed exit 0, env torn down); the `env-sample.mjs` matrix run times the dominant `compose-gen → up → down` legs, and `env seed` was verified separately as clean. The synthetic fixture profiles declare no seed data, so seed is a clean no-op load — the seam runs, there is just nothing to load._
+
 ## Condition (c) — env not provably code-blind
 
 **Fires ~always today.** Grepping every skill for `faff lane-boundary emit --lane evaluator` finds **0 live call sites** (only `--lane build` is emitted); `lane-boundary.js:28` marks the evaluator lane **SHIP-NOT-WIRE**, and ADR-0041 assigns the physical cage to an outer orchestration layer faff "asserts but never launches." So every holdout that runs in a run you would see today is **self-attested** (`code_blind: true` set by the evaluator, checked only for presence) — not physically established. In the strict physical sense condition (c) fires on 100% of live holdouts.

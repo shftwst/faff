@@ -715,7 +715,14 @@ function validateTeams(mergedDoc) {
     } else if (!teams.includes(defaultTeam)) {
       findings.push({ severity: "error", surface: "tracking.default_team", message: `tracking.default_team "${defaultTeam}" is not a member of tracking.teams [${teams.join(", ")}].` });
     }
-    if (routing !== null && routing !== undefined && typeof routing === "object" && !Array.isArray(routing)) {
+    const routingPresent = routing !== null && routing !== undefined;
+    const routingIsMap = routingPresent && typeof routing === "object" && !Array.isArray(routing);
+    if (routingPresent && !routingIsMap) {
+      // Adversarial review finding: a scalar/array team_routing silently skipped the loop below
+      // and passed `config check` clean, despite the schema declaring a map. Fail loud instead —
+      // every other malformed-shape case in this validator (empty teams, above) does the same.
+      findings.push({ severity: "error", surface: "tracking.team_routing", message: "tracking.team_routing is not a map — must be a nested map of type-token -> team-key (e.g. `spike: IDEAS`)." });
+    } else if (routingIsMap) {
       for (const k of Object.keys(routing)) {
         const v = routing[k];
         if (!teams.includes(v)) {
@@ -1318,8 +1325,14 @@ const SEQUENCE_VALUED_KEYS = new Set([
 // `adversarial.refs` (already in the set above) nor `adversarial.<consumer>.timeout`
 // (a legitimate writable scalar leaf). Bound to the schema by configSetSelftest.
 const PER_CONSUMER_REFS_KEY = /^adversarial\.[A-Za-z0-9_]+\.refs$/;
+// FAFF-1080 (adversarial review finding): `tracking.team_routing` is refused by exact-key match
+// above, but `config set` writes at ANY dotted depth, so `tracking.team_routing.spike IDEAS`
+// targets a LEAF under the refused key and would otherwise slip through as an ordinary nested-map
+// write — building the hand-edit-only map back up key-by-key through the writer it was routed
+// AROUND. Close the whole subtree, not just the exact key.
+const TEAM_ROUTING_LEAF_KEY = /^tracking\.team_routing\./;
 function isSequenceValuedKey(key) {
-  return SEQUENCE_VALUED_KEYS.has(key) || PER_CONSUMER_REFS_KEY.test(key);
+  return SEQUENCE_VALUED_KEYS.has(key) || PER_CONSUMER_REFS_KEY.test(key) || TEAM_ROUTING_LEAF_KEY.test(key);
 }
 
 // Recognised top-level config namespaces `config set` may write into — a cheap typo guard at

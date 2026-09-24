@@ -170,7 +170,7 @@ function cmdSelfIntake(args) {
       data: {
         mandate,
         target_raw: targetRaw, // the EXACT --target string — the audit recompute input
-        self: { teams: self.teams, repo: self.repo, lane_on: self.lane_on }, // the config snapshot used
+        self: { team: self.teams.length === 1 ? self.teams[0] : null, teams: self.teams, repo: self.repo, lane_on: self.lane_on }, // the config snapshot used (`team` is a back-compat alias, FAFF-1080 review finding)
         verdict: decision.verdict, reason: decision.reason, exit,
       },
     };
@@ -199,7 +199,7 @@ function cmdSelfIntake(args) {
     console.log(JSON.stringify({
       mandate,
       target: decision.target,
-      self: { teams: self.teams, repo: self.repo, lane_on: self.lane_on },
+      self: { team: self.teams.length === 1 ? self.teams[0] : null, teams: self.teams, repo: self.repo, lane_on: self.lane_on },
       verdict: decision.verdict,
       reason: decision.reason,
     }, null, 2));

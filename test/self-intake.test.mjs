@@ -131,7 +131,7 @@ test("--json emits { mandate, target, self, verdict, reason } with normalized va
   const j = JSON.parse(r.out);
   assert.equal(j.mandate, "M-1");
   assert.deepEqual(j.target, { team: null, repo: "acme/app" }); // wrong-typed team null-coerced
-  assert.deepEqual(j.self, { teams: [], repo: "acme/app", lane_on: true }); // FAFF-1080: teams (a set) replaces the singular team
+  assert.deepEqual(j.self, { team: null, teams: [], repo: "acme/app", lane_on: true }); // FAFF-1080: teams (a set) is now primary; `team` kept as a null/single-element back-compat alias (adversarial review finding)
   assert.equal(j.verdict, "self");
   assert.equal(j.reason, "repo-match");
 });
@@ -227,7 +227,7 @@ test("--record appends exactly one eventViolations-clean self-intake-check event
   assert.equal(ev.issue, "M-1");
   assert.equal(ev.phase, "run");
   assert.equal(ev.data.target_raw, targetRaw); // the EXACT --target string
-  assert.deepEqual(ev.data.self, { teams: [], repo: "acme/app", lane_on: true }); // FAFF-1080: teams (a set) replaces the singular team
+  assert.deepEqual(ev.data.self, { team: null, teams: [], repo: "acme/app", lane_on: true }); // FAFF-1080: teams (a set) is now primary; `team` kept as a null/single-element back-compat alias (adversarial review finding)
   assert.equal(ev.data.verdict, "self");
   assert.equal(ev.data.reason, "repo-match");
   assert.equal(ev.data.exit, 0);
@@ -283,8 +283,16 @@ test("team-set: a target in ANY configured team decides self (team-match), not j
   const r = runIn(root, "self-intake", "M-1", "--target", '{"team":"RISKS","repo":"other/app"}', "--json");
   assert.equal(r.code, 0);
   const j = JSON.parse(r.out);
-  assert.deepEqual(j.self, { teams: ["IDEAS", "PRODUCT", "RISKS"], repo: "acme/app", lane_on: true });
+  assert.deepEqual(j.self, { team: null, teams: ["IDEAS", "PRODUCT", "RISKS"], repo: "acme/app", lane_on: true }); // multi-element -> the `team` alias is null, never a guess
   assert.equal(j.reason, "team-match");
+});
+
+test("team-set: the legacy `team` alias round-trips a one-element team-set exactly like team_key (adversarial review finding)", () => {
+  const root = fixtureRoot("containment:\n  self_hosting_intake: true\ntracking:\n  team_key: FAFF\n  repo: acme/app\n");
+  const r = runIn(root, "self-intake", "M-1", "--target", '{"team":"FAFF","repo":null}', "--json");
+  assert.equal(r.code, 0);
+  const j = JSON.parse(r.out);
+  assert.deepEqual(j.self, { team: "FAFF", teams: ["FAFF"], repo: "acme/app", lane_on: true }); // `team` == the sole element, byte-identical to pre-FAFF-1080 output
 });
 
 test("team-set: a target in a team OUTSIDE the configured set is not-self (mismatch) even with a plausible team string", () => {

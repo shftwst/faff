@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1085",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8a271dd791296da2453395d0799221a21bf5e073a29ff02b7cd5a9984cba1f3f",
+    "branch": "FAFF-1085-adr-slot-default-to-nygard-honour-a-repo-specific-adr",
+    "pushed_at": "2026-09-24T08:36:23.450Z"
+  },
+  "updated_at": "2026-09-24T08:36:23.450Z"
+}

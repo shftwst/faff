@@ -36,6 +36,11 @@ import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync } from "node
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+// FAFF-731 — the refutation-spec eval fans a case into four INDEPENDENT lens passes and rolls them up
+// with production's OWN deterministic parse + aggregate code (imported, never reimplemented), so the eval
+// measures exactly the code path production runs.
+import { parseRefutation } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
+import { aggregate } from "../plugin/skills/faffter-dark-spec-review/aggregate.mjs";
 
 // FAFF-138 — the isolated CLAUDE_CONFIG_DIR (ADR-0003) also strips the OAuth credential file, so a
 // frontier `claude -p` lands "Not logged in". Forward ONLY the credential file into the per-rep
@@ -610,15 +615,9 @@ export const SPEC_VERDICT_MODE_INSTRUCTION =
   '"verdict": "approve|revise|reject-approach|needs-human" } — exactly one value from that closed set. ' +
   "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
-export const REFUTATION_SPEC_MODE_INSTRUCTION =
-  "Refute the spec above across the enabled lenses (architectural, infosec, methodology, QA): each lens is " +
-  "an independent refuter that either objects with a severity or stays silent. Then OUTPUT ONLY one fenced " +
-  "code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
-  '{ "case_id": "<ID>", "objections": [{ "lens": "architectural|infosec|methodology|QA", "severity": ' +
-  '"minor|major|blocker" }, ...] } — one entry per objecting lens, or an EMPTY array if the spec is sound ' +
-  "and you would approve. Only major/blocker objections count; do not manufacture an objection to seem " +
-  "thorough. Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing else.";
-
+// FAFF-731 — refutation-spec no longer uses a collapsed single-prompt envelope; the driver fans it into
+// four independent per-lens passes (see fanRefutationSpec), each loading the real refute-<lens>.md brief,
+// and reuses production's aggregate() for the merged objection set. There is no REFUTATION_SPEC_MODE_INSTRUCTION.
 export const REFUTATION_CODE_MODE_INSTRUCTION =
   "Adversarially review the diff above against its spec summary: raise a finding for any real defect " +
   "(correctness, security, scope creep, …), or report clean. Then OUTPUT ONLY one fenced code block tagged " +
@@ -737,7 +736,7 @@ function modeInstructionFor(kind) {
   if (kind === "roadmap") return ROADMAP_MODE_INSTRUCTION;
   if (kind === "adr-gloss") return ADR_GLOSS_MODE_INSTRUCTION;
   if (kind === "spec-verdict") return SPEC_VERDICT_MODE_INSTRUCTION;
-  if (kind === "refutation-spec") return REFUTATION_SPEC_MODE_INSTRUCTION;
+  // FAFF-731 — refutation-spec is driven by fanRefutationSpec (four independent passes), never a mode instruction here.
   if (kind === "refutation-code") return REFUTATION_CODE_MODE_INSTRUCTION;
   // FAFF-669 — the last four, each naming the grader's exact read-field.
   if (kind === "prep-architecture-trigger") return PREP_ARCHITECTURE_TRIGGER_INSTRUCTION;
@@ -892,15 +891,10 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Spec:\n${c.fixture.spec_body}`
     );
   }
-  // refutation-spec renders the spec verbatim — the fixture's `spec` string may EMBED a `## Methodology
-  // critique` block (refutation-spec-003), which the methodology lens consumes; passing it through
-  // verbatim is what keeps that lens from degrading to no-signal.
-  if (c.kind === "refutation-spec") {
-    return (
-      `${rubric}Refute the following spec across the enabled lenses and answer: ${c.question}\n\n` +
-      `Spec:\n${c.fixture.spec}`
-    );
-  }
+  // FAFF-731 — refutation-spec is not rendered here: the driver fans it into four independent per-lens
+  // passes (fanRefutationSpec), each prompt = the real refute-<lens>.md brief + the verbatim spec (which
+  // may embed a `## Methodology critique` block the methodology lens consumes). renderFixturePrompt has
+  // no refutation-spec branch.
   if (c.kind === "refutation-code") {
     return (
       `${rubric}Adversarially review the following diff against its spec summary and answer: ${c.question}\n\n` +
@@ -1038,12 +1032,8 @@ export function loadSpecVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faffter-noon-spec-review", "SKILL.md");
   return extractSection(p, SPEC_VERDICT_PROSE_START, SPEC_VERDICT_PROSE_END, "loadSpecVerdictProse");
 }
-const REFUTATION_SPEC_PROSE_START = "\n## The lenses as independent refuters\n";
-const REFUTATION_SPEC_PROSE_END = "## Backend call";
-export function loadRefutationSpecProse(pluginDir = DEFAULT_PLUGIN_DIR) {
-  const p = join(pluginDir, "skills", "faffter-dark-spec-review", "SKILL.md");
-  return extractSection(p, REFUTATION_SPEC_PROSE_START, REFUTATION_SPEC_PROSE_END, "loadRefutationSpecProse");
-}
+// FAFF-731 — refutation-spec loads no criteria prose: each of its four independent passes carries the
+// full real refute-<lens>.md brief (see fanRefutationSpec). No loadRefutationSpecProse / prose anchors.
 const REFUTATION_CODE_PROSE_START = "\n## Review lens\n";
 const REFUTATION_CODE_PROSE_END = "## LLM provider integration";
 export function loadRefutationCodeProse(pluginDir = DEFAULT_PLUGIN_DIR) {
@@ -1137,7 +1127,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "roadmap") return loadRoadmapProse(pluginDir);
   if (kind === "adr-gloss") return loadAdrGlossProse(pluginDir);
   if (kind === "spec-verdict") return loadSpecVerdictProse(pluginDir);
-  if (kind === "refutation-spec") return loadRefutationSpecProse(pluginDir);
+  // FAFF-731 — refutation-spec carries its per-lens briefs inside fanRefutationSpec, not via criteriaFor.
   if (kind === "refutation-code") return loadRefutationCodeProse(pluginDir);
   // FAFF-669 — the last four kinds each load their own surface's rubric (never tidy's default).
   if (kind === "prep-architecture-trigger") return loadPrepArchitectureTriggerProse(pluginDir);
@@ -1194,6 +1184,42 @@ export function buildInvocation(opts, prompt, cfgDir) {
   return { bin, args, env: { ...process.env, ...env, CLAUDE_CONFIG_DIR: cfgDir } };
 }
 
+// FAFF-731 — the four review lenses in fixed order, matching faffter-dark-spec-review's enabled set.
+export const REFUTATION_SPEC_LENSES = ["architectural", "infosec", "methodology", "QA"];
+
+// FAFF-731 — fan a refutation-spec case into four INDEPENDENT per-lens passes and roll them up with
+// production's own parse + aggregate (imported, never reimplemented), so the eval measures the exact
+// deterministic code production runs. `spawnFn` is injected so the structural test drives it with canned
+// stdout and zero paid model reps. Returns the same `{ rawText, tokens }` shape the collapsed path did:
+// one `faff-eval:judgement` block `{ case_id, objections:[{lens,severity}] }` that run-evals and the
+// grader read unchanged. A lens whose output does not parse ERRORS the rep (mirroring a malformed
+// collapsed envelope) rather than silently dropping a vote or injecting a spurious objection.
+export function fanRefutationSpec(evalCase, { spawnFn, systemDir, opts, cfgDir }) {
+  const spec = evalCase.fixture?.spec ?? "";
+  const refutations = [];
+  const stdouts = [];
+  for (const lens of REFUTATION_SPEC_LENSES) {
+    const brief = readFileSync(join(systemDir, `refute-${lens.toLowerCase()}.md`), "utf8");
+    const prompt = `${brief}\n\nSpec:\n${spec}`; // the real production brief drives the refuter markdown format
+    const inv = buildInvocation(opts, prompt, cfgDir);
+    const res = spawnFn(inv.bin, inv.args, { env: inv.env, cwd: cfgDir, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+    if (res.error) throw new Error(`cli driver (${inv.bin}) refutation-spec lens=${lens}: ${res.error.message}`);
+    const stdout = res.stdout ?? "";
+    stdouts.push(stdout);
+    const parsed = parseRefutation(stdout, lens);
+    if (!parsed.ok) {
+      const f = parsed.fault ?? {};
+      const reason = f.reason ?? (f.missing_field ? `missing field ${f.missing_field}` : "unparseable refuter output");
+      throw new Error(`refutation-spec eval: lens=${lens} produced unparseable output (${reason})`);
+    }
+    refutations.push(parsed.entry);
+  }
+  const rolled = aggregate(refutations, REFUTATION_SPEC_LENSES.length);
+  const envelope = { case_id: evalCase.id, objections: rolled.objections };
+  const rawText = "```faff-eval:judgement\n" + JSON.stringify(envelope) + "\n```";
+  return { rawText, tokens: estimateTokens(stdouts.join("\n")) };
+}
+
 // Generic factory. opts: { bin, model, baseUrl, env, bare, pluginDir }. The closure spawns;
 // importing this does not.
 export function makeCliDriver(opts = {}) {
@@ -1201,6 +1227,12 @@ export function makeCliDriver(opts = {}) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
     try {
       forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
+      // FAFF-731 — refutation-spec is fanned into four independent per-lens passes rather than one
+      // collapsed prompt; every other kind keeps the single-prompt path below.
+      if (evalCase.kind === "refutation-spec") {
+        const systemDir = join(opts.pluginDir ?? DEFAULT_PLUGIN_DIR, "skills", "faffter-dark-spec-review");
+        return fanRefutationSpec(evalCase, { spawnFn: spawnSync, systemDir, opts, cfgDir });
+      }
       // FAFF-146/148: criteria resolved per-case kind via the module-level criteriaFor
       // (tidy → combined; confidence/marker → prep rubric; verdict-revert → review-verdict rubric).
       const prompt = buildEvalPrompt(evalCase, criteriaFor(evalCase.kind, opts.pluginDir));

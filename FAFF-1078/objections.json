@@ -1,0 +1,74 @@
+[
+  {
+    "claim": "The spec's core defence against producer self-attestation is that the `routing_adaptor` \"independently re-verifies\" the tag's eligibility \"from the same spec text.\" But the routing_adaptor and the producer are both LLM passes over the *same document* — there is no context isolation between them, unlike the gateway's own independence precedent (the code-blind holdout evaluator, which is structurally isolated by *not seeing the codebase*). The re-check re-reads the `## OUT OF SCOPE` section the producer itself wrote; it is checking the producer's claim against the producer's own artifact, not against any independent source. The spec's own failure-mode section concedes this: \"the routing_adaptor's re-check passes on syntax it cannot fully refute\" when the producer writes a plausible-looking OUT OF SCOPE entry. The claim that a mis-tagged Punt \"now has to survive two independent readers\" (and \"three independent readers\" elsewhere) overstates the separation — all readers consume the same bytes.",
+    "evidence": "Spec §3 Design decisions: \"it re-derives the eligibility condition itself, from the same spec text\"; §4 Failure modes: \"the routing_adaptor's re-check passes on syntax it cannot fully refute\"; gateway Agent Lanes' independence precedent is the code-blind evaluator (structural context isolation), which this mechanism does not replicate.",
+    "predicted_consequence": "a producer under appetite pressure that writes a self-consistent OUT OF SCOPE entry plus the tag defeats both the self-review and the routing re-check, and the build proceeds on a Punt the spec's own contract says \"build can't proceed past\" — the exact failure the mechanism claims to close, caught only by the downstream review/holdout floor the spec already admits is the residual backstop.",
+    "spec_anchor": "design-decisions",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The standing-park fingerprint hashes the verbatim cited marker text, and the spec's stability argument is \"stable by construction as long as the spec itself hasn't changed.\" But the marker text is LLM-authored prose (written by the producer), and the unpark path for a spec-level park is re-running `/faff-prep` (gateway Unpark protocol), which re-generates the spec and re-authors the marker. LLM variance means the rephrased marker yields a different fingerprint, so the re-park is not standing and the tracker comment is posted again — the exact churn FAFF-1034 exhibits. The spec's own design decision rejects hashing the LLM-composed short reason line precisely because \"a wording drift... would silently defeat suppression\"; the marker text has the same property, just composed once and then copied. The edge case (\"even a rephrase... the park is never wrongly suppressed\") frames this as fail-safe, but it is also the mechanism failing in the scenario it was built for: suppression only fires when the spec is byte-identical between parks, which the unpark protocol's re-prep makes unlikely.",
+    "evidence": "Spec §6 Design Decision Rationale (\"Should the standing-park fingerprint hash the LLM-composed short reason line...\"); §4 Edge cases (\"If the edit changed the cited marker's verbatim text (even a rephrase), the fingerprint changes\"); gateway Unpark protocol: spec-level park → re-run `/faff-prep`, which re-rates and re-generates.",
+    "predicted_consequence": "in the park → unpark → re-park cycle the ticket cites as its repro, the third park's fingerprint (over the re-authored marker) differs from the first, the standing check reports not-standing, and the duplicate comment is posted — the ticket's stated Expected outcome (\"the churn is suppressed\") is not met for its own motivating case.",
+    "spec_anchor": "6-design-decision-rationale",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "`isStandingPark(sameClassPriorRecords, candidateFingerprint)` is defined as pure, but the spec never says how each park-capable call site (`faff-prep`, `faff-graft`, `faff-tidy`, beep-boop's backstop) obtains `prior_records`. The in-run `park_records` accumulator is owned in-memory by the orchestrator and rendered to `summary.md` only at run end, so a sub-skill performing a park cannot see same-run records via any specified path; the cross-run source (prior run summaries' `faff-parks` fences) is never named. The spec's determinism claim (\"mechanical, never LLM-composed\") depends on this gathering being uniform, but the spec leaves each call site to invent it — and different call sites gathering differently (one reading summaries, one reading a live accumulator) would produce inconsistent standing decisions for the same issue/class.",
+    "evidence": "Spec §4 pseudocode `maybe_suppress_park_comment(..., prior_records)` takes prior records as input with no sourcing; §3 \"Chosen: introduce a standing-park check... run immediately before step 2... for every park-capable skill\"; gateway Park protocol renders the accumulator only at run end; DONE items cover `isStandingPark`'s pure cases but no gathering path.",
+    "predicted_consequence": "the build agent invents the gathering per call site, the standing decision varies by where the park fires, and the \"exactly one tracker comment\" guarantee of the integration smoke test holds only for the call site whose invented gathering happens to work — the mechanism's core promise is not uniformly delivered.",
+    "spec_anchor": "pseudocode-the-standing-park-check-park-protocol-runs-before-step-2",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "If the `reason_fingerprint` cannot be computed (e.g. the cited marker text is missing from the spec, or a hashing error occurs),the standing-park check's behavior is unspecified — it could suppress a tracker comment for a genuinely new park cause, or crash the park protocol.",
+    "evidence": "Spec section \"Pseudocode — the standing-park check\" computes `fingerprint = sha256(root_cause_class + \"|\" + verbatim_marker_text)` with no error-handling branch. The Assumptions section states the marker text \"is available to the Park protocol at park time\", but does not specify behavior when that assumption fails. The spec's general fail-safe posture(e.g. \"A tag that fails this independent re-check is treated as **load-bearing**\") does not extend to this computation.",
+    "predicted_consequence": ": A missing or malformed marker text could cause the fingerprint to error, leading to either a suppressed comment (hiding a park from a human) or a crashed park protocol (no park at all). Both are fail-open in the sense that a human is not informed of the park cause先",
+    "spec_anchor": "how-behavior",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec's load-bearing premise is that the fingerprint is \"stable by construction\" because it hashes \"verbatim marker text copied from the spec — unmodified,\" never an LLM-composed sentence. But nothing in the spec makes the *extraction* mechanical. The routing_adaptor / Park protocol is an LLM; it must read the spec and reproduce the cited `**Punt:**` line byte-for-byte. The spec names no deterministic extraction rule (contrast the gateway's canonical `(decides:)` regex), and its assumption only asserts the text is \"a substring of the spec already in the caller's context\" — being in context does not make an LLM's copy byte-exact. LLM copying is not byte-stable: whitespace, punctuation, or fragment drift between runs on an unchanged spec changes the hash and silently defeats suppression; conversely, consistent normalisation (stripping a trailing period, lowercasing) can make two genuinely different markers hash identically and wrongly suppress a genuinely new park.",
+    "evidence": "DONE item \"Two consecutive parks with an identical cited marker text and the same root-cause class produce exactly one tracker comment (integration smoke test below)\"; the integration smoke test's \"re-run the park path unchanged\"; the design decision \"Should the standing-park fingerprint hash the LLM-composed short reason line, or a mechanically-derived value?\" whose rationale asserts stability \"by construction.\"",
+    "predicted_consequence": "The smoke test's pass condition depends on unverified LLM non-determinism: run #2's extraction of the marker text can differ from run #1's, the fingerprint differs, the comment is posted, and the DONE item fails — not from a code bug but from the untested input property the spec asserts as guaranteed. The spec's own edge case (\"a human edits the spec… the fingerprint changes\") is indistinguishable, at the mechanism level, from \"the LLM's copy of an unchanged spec varies,\" so the suppression's pass/fail is not decidable as specified.",
+    "spec_anchor": "6-design-decision-rationale",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec changes two LLM-judgement seams (the producers' confidence self-rating, `judgement_seam: confidence`; the routing_adaptor's verdict assignment, `judgement_seam: routing`) and introduces a third (the routing_adaptor's independent re-check of the tag). Per the gateway's spec-readiness contract, work that introduces or changes an LLM-judgement seam must carry a DONE item registering the grader `KIND` + ≥1 eval case + the seam-registry row. This spec has no such DONE item. Every DONE item verifies documentation presence or code behaviour (grep-able prose, byte-identical schemas, pure-function selftests) — none verifies the LLM behaviour the scenarios assert.",
+    "evidence": "Scenarios 1–3 and holdouts 1–2 (\"MUST self-rate `confidence: high`, not `medium`\"; \"assigns `fire-and-forget` or `likely-fire`, never `needs-decision-first`\"); DONE section 8, which contains no eval-coverage item.",
+    "predicted_consequence": "A build that satisfies every DONE item (kernel.md documents the suffix, both producer skills document the exclusion, routing SKILL.md row narrowed, selftests pass) can still fail the scenarios' behavioural claims — the producer still rates `medium` on a tagged Punt, the adaptor still routes `needs-decision-first` — and nothing in the spec's acceptance surface would catch it. \"done cannot be decided for scenario X\" holds for every behavioural scenario: the spec names no test or observation that decides them.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The re-check condition is \"does the Punt's own sentence state the deferral, or does it appear in / get cross-referenced from `## OUT OF SCOPE`?\" The spec never excludes the tag itself from satisfying the first disjunct. A Punt line `**Punt:** X or Y — needs human (non-load-bearing)` has the tag inside its own sentence, and the tag *is* a statement of deferral (\"non-load-bearing\"). An LLM performing the re-check can therefore read the tag's own presence as the self-stating sentence, making the re-check pass on the tag's own say-so. The fail-safe direction (\"a tag that fails the re-check is treated as load-bearing\") then never fires for the exact case it exists to catch — a bare tag with no content-level deferral and no OUT OF SCOPE entry.",
+    "evidence": "Design decision \"Should the `routing_adaptor` trust the producer's tag directly, or re-verify it?\"; the anti-pattern \"tagging a Punt `(non-load-bearing)` without it appearing in or being cross-referenced from `## OUT OF SCOPE` (or, absent that section, without its own sentence stating the deferral)\"; scenario 3's \"Then\" (tag fails re-check → `needs-decision-first`).",
+    "predicted_consequence": "The scenario \"tag fails the re-check → `needs-decision-first`\" is not reliably decidable: for a tag-only Punt, the re-check's pass condition is ambiguous, so the fail-safe outcome is not determined by the spec. The independence the spec claims as the answer to the self-attestation risk is vacuous in the boundary case, and the anti-pattern's enforcement (\"an unsupported tag… now also fails the routing_adaptor's independent re-check\") is unenforceable as written.",
+    "spec_anchor": "6-design-decision-rationale",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The standing check compares against \"the most recent record for this issue with the same `root_cause_class`,\" with no time bound and no stated provenance for `prior_records`. The repeat-parked counting seam has a fixed 21-day window (`PARK_WINDOW_DAYS` in `park-history.js`), but the standing check names no analogous window. A same-class record from months ago, with identical marker text, would suppress a fresh park's comment today. The scenarios only exercise \"last run\" adjacency; the stale-record boundary is untested and the DONE items do not specify it.",
+    "evidence": "The standing-park design decision and pseudocode (`same_class = prior_records.filter(...)`, `last = same_class.max_by(timestamp)`); DONE item \"park.md's Park protocol gains the standing-park check… specifying the mechanical (non-LLM) fingerprint input and the same-root-cause-class scoping\" — which specifies the fingerprint input and class scoping but not the window or source.",
+    "predicted_consequence": "A build may implement the standing check with or without a time window and satisfy every DONE item either way; the behaviour for a stale same-class record is undecidable from the spec, and a park whose cause was surfaced once, months ago, silently stops posting comments — a regression the spec neither names nor tests.",
+    "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

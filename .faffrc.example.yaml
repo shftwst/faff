@@ -41,6 +41,19 @@ tracking:
   # tooling in v1) — see the FAFF-1044 ADR.
   label_prefix: faff
 
+  # FAFF-1091: OPTIONAL per-role full-name overrides for faff's control labels — a nested map of
+  # scalars, keyed off the real role set (any role left unset falls back to <prefix>-<role>). Use
+  # it to make faff's labels look native to a tracker's own naming / grouping scheme (e.g. a
+  # Linear label under a "State" group). Written a leaf at a time via
+  # `faff config set tracking.control_labels.<role> "<name>"`. Permissive validation: spaces,
+  # colons, hyphens, underscores, digits, mixed case all allowed; empty/whitespace-only or a
+  # control character fails loud at read/write. `role` stays the sole identity — a renamed label
+  # is still matched/refused by role, never by the rendered name. Leave the whole block unset for
+  # byte-identical zero-config behaviour.
+  # control_labels:
+  #   automate: "someprefix-eligible"
+  #   parked: "State: Parked"
+
   # Repository record stores. Each path is relative to the repo root. Defaults stay under
   # docs/ (or doc/ when that is the repository's established documentation directory).
   spec_docs_path: docs/specs/ # where /faff-graft commits the build spec

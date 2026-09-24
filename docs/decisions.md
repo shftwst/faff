@@ -74,3 +74,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: faff eligibility model — `eligible.js`, the `automation_default` config key, and the git-only opt-out from FAFF-753.
 - Matches: git-only opt-out; automation_default; eligibility default
 - Date: 2026-09-24
+
+## control-label group membership and name validation
+
+- Chosen: `stacked` ungrouped; one permissive control-label-name validator; group membership built-in (not config-overridable). The only single-select group is `state` (`parked` + the four holds); `automate` is a standalone tracker-owned eligibility label and `stacked` stays ungrouped so it can coexist with a state label. A single permissive validator (letters, digits, spaces, colons, hyphens, underscores, mixed case; reject empty/whitespace/control chars) covers all trackers, not per-tracker rules.
+- Rationale: the only single-select group is `state`; `stacked` must coexist with state labels (a stacked-and-open dependent can also be awaiting-review), so grouping it into `state` would silently clear a legitimately co-existing label; keeping the config surface minimal (built-in grouping, one validator) avoids a dead `eligibility` group classification and per-tracker validation policy.
+- Scope: FAFF-1091 control-label naming/grouping — `labels.js` (`controlLabels`, `groupTransitionOps`, the `group` field on `CONTROL_LABEL_DEFS`), the new `resolveControlLabels`/`validateControlLabelName` in `config.js`, and the `faff label transition` verb. Does not make group membership config-overridable (out of scope) and does not introduce an `eligibility` group.
+- Matches: control-label groups; label name validation; stacked grouping; control_labels; single-select state group
+- Date: 2026-09-24

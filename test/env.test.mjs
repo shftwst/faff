@@ -342,6 +342,7 @@ test("integration: minio env stands up, object-upload-seeds, and tears down [doc
       // the born-verifiable AC: the bucket "users" landed 2 objects, counted via an `mc ls` sidecar.
       const count = execFileSync("docker", ["run", "--rm", "--network", `${project}_default`,
         "-e", "MC_HOST_local=http://faffdev:faffdevsecret@minio:9000",
+        // keep in sync with MINIO_CLIENT_IMAGE in env.js on any digest re-pin (concrete literal — this is a real docker pull)
         "chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338",
         "ls", "--recursive", "local/users"],
         { cwd: dir, encoding: "utf8" }).split("\n").filter((l) => /\.json/.test(l)).length;

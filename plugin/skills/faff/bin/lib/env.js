@@ -43,7 +43,9 @@ const ENV_SURFACE = {
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 
 // MinIO images (FAFF-1099): digest-pinned to the Chainguard public mirror after quay.io auth-walled
-// minio/minio + minio/mc. The minimal server image ships no curl/wget, so readiness uses bundled `mc ready`.
+// minio/minio + minio/mc. The minimal server image ships no curl/wget but does ship `mc` and `/bin/sh`
+// (verified 2026-09-24 for the pinned digest; the docker-gated integration test reds if a re-pin drops
+// either), so readiness uses the bundled `mc ready` run in-container as a CMD-SHELL healthcheck.
 const MINIO_SERVER_IMAGE = "chainguard/minio@sha256:bd014394a80898e68c149f2311fdf8d5a2c2f3bb2c33b9327ae6d02b4b065ae1";
 const MINIO_CLIENT_IMAGE = "chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338";
 const MINIO_READY_PROBE = "MC_HOST_local=http://faffdev:faffdevsecret@localhost:9000 mc ready local";

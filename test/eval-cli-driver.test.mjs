@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, PRD_READINESS_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir, resolveEffort, EFFORT_LEVELS } from "../eval/run-evals.mjs";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -659,6 +659,7 @@ const READ_FIELD = {
   grouping: "grouping", "adr-drift": "challenge_outcome", "resolved-elsewhere": "resolved_elsewhere",
   "prdr-yagni": "challenge_outcome",
   "park-reconsider-classification": "reconsider",
+  "prd-readiness": "verdict",
 };
 
 // The kinds that LEGITIMATELY ride the fall-through, because their read field genuinely appears as a
@@ -666,15 +667,15 @@ const READ_FIELD = {
 // than a suppression list: pad it with a kind whose field is not really declared there and it fails.
 const TIDY_ENVELOPE_KINDS = new Set(["dupe", "vague", "stale", "superseded", "ordering", "gloss", "splittable"]);
 
-// Enumerated from the filesystem, not from the grader's KINDS: reconciliation, verdict-build and
-// prd-readiness are registered with zero fixtures and are deliberately unarmed, and an arm with nothing
-// to run it against is unverifiable. A kind entering this set is exactly when an arm becomes required.
+// Enumerated from the filesystem, not from the grader's KINDS: reconciliation and verdict-build are
+// registered with zero fixtures and are deliberately unarmed, and an arm with nothing to run it against
+// is unverifiable. A kind entering this set is exactly when an arm becomes required.
 const caseBackedKinds = [...new Set(readdirSync(CASES_DIR)
   .filter((f) => f.endsWith(".json"))
   .map((f) => readCase(f).kind))].sort();
 
 test("FAFF-669 every case-backed kind's instruction declares the key eval/grader.mjs reads for it", () => {
-  assert.equal(caseBackedKinds.length, 31, "31 of the 37 registered kinds are case-backed");
+  assert.equal(caseBackedKinds.length, 32, "32 of the 37 registered kinds are case-backed");
   for (const k of caseBackedKinds) {
     // (1) No row is a hard failure, never a skip — this is what turns the suite red on the day a new
     //     kind's first case file lands, instead of it quietly scoring nothing for four tickets running.
@@ -731,6 +732,15 @@ test("FAFF-669 prep-architecture-trigger resolves to its OWN instruction, not a 
   assert.equal(instructionFor("prep-architecture-trigger"), PREP_ARCHITECTURE_TRIGGER_INSTRUCTION);
   assert.notEqual(PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, ROUTING_MODE_INSTRUCTION);
   assert.ok(PREP_ARCHITECTURE_TRIGGER_INSTRUCTION.includes('"verdict": "fire|skip"'),
+    "declares its own two-value vocabulary, not the closed six");
+});
+
+// FAFF-1095 — prd-readiness also rides the shared "verdict" field, so pin its identity too.
+test("FAFF-1095 prd-readiness resolves to its OWN instruction, not a verdict-sharing sibling", () => {
+  assert.equal(instructionFor("prd-readiness"), PRD_READINESS_INSTRUCTION);
+  assert.notEqual(PRD_READINESS_INSTRUCTION, ROUTING_MODE_INSTRUCTION);
+  assert.notEqual(PRD_READINESS_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION);
+  assert.ok(PRD_READINESS_INSTRUCTION.includes('"verdict": "admissible|not-ready"'),
     "declares its own two-value vocabulary, not the closed six");
 });
 
@@ -803,6 +813,8 @@ const ANCHOR_REGISTRY = {
   PRDR_YAGNI_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "PRDR_YAGNI_PROSE_END" },
   // FAFF-1007 — the reconsider-classification rubric lives in the shared park reference, not a SKILL.md.
   PARK_RECONSIDER_PROSE_START: { skill: "faff", file: "references/park.md", end: "PARK_RECONSIDER_PROSE_END" },
+  // FAFF-1095 — the prd-readiness rubric lives in faffter-noon-prd/SKILL.md's own "## The rubric" section.
+  PRD_READINESS_PROSE_START: { skill: "faffter-noon-prd", end: "PRD_READINESS_PROSE_END" },
 };
 const anchorValue = (name) => {
   const m = DRIVER_SRC.match(new RegExp(`const ${name} = ("(?:[^"\\\\]|\\\\.)*");`));
@@ -826,7 +838,7 @@ test("FAFF-669 every registered start anchor occurs exactly once in the file its
 // A hand-maintained registry with no forcing function is a list that goes stale on the next commit.
 test("FAFF-669 the anchor registry covers every start-anchor constant declared in the driver", () => {
   const declared = [...DRIVER_SRC.matchAll(/const (\w+_START) = /g)].map((m) => m[1]);
-  assert.equal(declared.length, 30, "29 pre-existing start anchors plus this ticket's one");
+  assert.equal(declared.length, 31, "30 pre-existing start anchors plus this ticket's one");
   for (const name of declared) {
     assert.ok(name in ANCHOR_REGISTRY, `${name} is declared in the driver but missing from the anchor registry`);
   }
@@ -886,7 +898,7 @@ test("FAFF-687 a duplicate end-anchor spliced inside a section is caught (demons
 // the end-anchor mirror of the start-anchor coverage test above.
 test("FAFF-687 the anchor registry covers every end-anchor constant declared in the driver", () => {
   const declaredEnds = [...DRIVER_SRC.matchAll(/const (\w+_END) = /g)].map((m) => m[1]);
-  assert.equal(declaredEnds.length, 29, "one END const per START const, minus the sole extractSectionToEnd loader");
+  assert.equal(declaredEnds.length, 30, "one END const per START const, minus the sole extractSectionToEnd loader");
   const registered = Object.values(ANCHOR_REGISTRY).map((row) => row.end).filter((end) => end !== null);
   assert.deepEqual(new Set(registered), new Set(declaredEnds),
     "every *_END const declared in the driver must be on exactly one registry row, and vice versa");

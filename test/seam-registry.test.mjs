@@ -47,7 +47,7 @@ test("seed is truthful: status:covered ⇔ ≥1 case in eval/cases/; designed ar
     assert.ok(entry.surface && typeof entry.surface === "string", `${kind} has a surface`);
   }
   const designed = Object.entries(registry.kinds).filter(([, e]) => e.status === "designed").map(([k]) => k);
-  assert.deepEqual(new Set(designed), new Set(["reconciliation", "verdict-build", "holdout-live", "prd-readiness", "spec-judge-discrimination", "build-adjudication"]));
+  assert.deepEqual(new Set(designed), new Set(["reconciliation", "verdict-build", "holdout-live", "spec-judge-discrimination", "build-adjudication"]));
 });
 
 // ---- validate-adapters reconciliation ----

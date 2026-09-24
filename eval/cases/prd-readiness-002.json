@@ -1,0 +1,11 @@
+{
+  "id": "prd-readiness-002",
+  "kind": "prd-readiness",
+  "fixture": {
+    "version": 1,
+    "prd_body": "# PRD: CSV export endpoint\n\n## Goal\nAdd a CSV export to the reporting API.\n\n## Requirements (MUST)\n- The endpoint MUST be `GET /reports/{id}/export.csv` and MUST return HTTP `200` with `Content-Type: text/csv`.\n- The first CSV row MUST be the header `id,name,created_at,total`.\n- Each data row MUST have exactly 4 comma-separated fields; `total` MUST be a decimal with two places.\n- A request for a non-existent report id MUST return HTTP `404` and MUST NOT emit a partial file.\n- The endpoint MUST reject an unauthenticated request with HTTP `401`."
+  },
+  "question": "Is this PRD admissible for a lights-out run — verdict admissible or not-ready?",
+  "oracle": { "closed_set": ["admissible"] },
+  "_comment": "Admissible: MUST-assertions are concrete and machine-checkable (status codes, header row, field count, auth)."
+}

@@ -37,9 +37,9 @@
       "empty_case_set_guard": "FAFF-691 (guard eval/run-evals.mjs against a zero-case frontier sweep — resolve the driver after the --only filter and refuse a zero-case run, so a stale --only can never silently sweep nothing and exit 0)",
       "chain_gap_resolved_elsewhere_tolerance": "FAFF-692 (chain-gap and resolved-elsewhere grade binary via set-equality yet sit outside CLOSED_SET_KINDS and get the 0.03 free-text tolerance — reconcile the incoherent fractional tolerance on a binary grade)",
       "fixture_widening": "FAFF-693 (widen the single- and two-case fixtures for grouping, resolved-elsewhere and holdout-exercise; also removes holdout-exercise from policy.warn_kinds once the row is wide enough and retires TARGET_KINDS after FAFF-614 re-baselines)",
-      "remaining_kinds": "FAFF-614 (park-reconsider-classification frontier baseline plus oracle triage deferred to the operator re-baseline sweep)"
+      "remaining_kinds": "FAFF-614 (park-reconsider-classification and prd-readiness frontier baseline plus oracle triage deferred to the operator re-baseline sweep)"
     },
-    "remaining_kinds": ["park-reconsider-classification"],
+    "remaining_kinds": ["park-reconsider-classification", "prd-readiness"],
     "paid_model_reps": 0,
     "extensions": [
       {

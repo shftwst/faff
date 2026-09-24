@@ -29,7 +29,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { DEFAULTS, loadConfig, resolveLabelPrefix } = require("./config");
+const { DEFAULTS, loadConfig, resolveLabelPrefix, resolveControlLabels } = require("./config");
 const { dig, findRoot } = require("./shared-infra");
 
 const PROVENANCE_SCHEMA = 2;            // FAFF-220: bump 1→2 — record gains the optional `initiated` audit field.
@@ -68,12 +68,17 @@ const INTAKE_GATE_MODES = new Set(["warn", "block", "off"]);
 // FAFF-1044: `prefix` is the resolved tracking.label_prefix, threaded as a trailing
 // defaulted argument — intakeVerdict stays PURE (no config read); the command layer
 // (cmdIntakecheck below) resolves the prefix once and passes it.
-function intakeVerdict(marker, labels, mode, prefix = "faff") {
+// FAFF-1091: `automateName` is the resolved rendered automate name (an override, else
+// `${prefix}-automate`), threaded by cmdIntakecheck — so a renamed `automate` (even under the
+// default prefix) still counts as the eligibility-gesture intake basis, checked by rendered name
+// but keyed off the automate role. intakeVerdict stays PURE (no config read).
+function intakeVerdict(marker, labels, mode, prefix = "faff", automateName) {
   if (mode === "off") return { satisfied: true, basis: "gate-off" };
   const via = marker && marker.intake && marker.intake.via;
   if (INTAKE_VIA.has(via)) return { satisfied: true, basis: via };
   const labelSet = new Set(labels);
-  if (labelSet.has(`${prefix}-automate`)) {
+  const automate = automateName || `${prefix}-automate`;
+  if (labelSet.has(automate)) {
     return { satisfied: true, basis: "eligibility-gesture" };
   }
   return { satisfied: false, basis: "no-provenance" };
@@ -205,8 +210,12 @@ function cmdIntakecheck(args) {
   // intakeVerdict. Unset config ⇒ "faff", byte-identical zero-config.
   const resolvedPrefix = resolveLabelPrefix(root);
   if (resolvedPrefix.error) { process.stderr.write(resolvedPrefix.error + "\n"); return 2; }
+  // FAFF-1091: also resolve the per-role override map so a renamed `automate` still counts as
+  // eligibility-gesture provenance.
+  const resolvedNames = resolveControlLabels(root);
+  if (resolvedNames.error) { process.stderr.write(resolvedNames.error + "\n"); return 2; }
   const { marker, malformed } = readProvenanceMarker(root, issue);
-  const v = intakeVerdict(marker, labels, mode, resolvedPrefix.prefix);
+  const v = intakeVerdict(marker, labels, mode, resolvedPrefix.prefix, resolvedNames.names.automate);
   // The interactive bypass only ever changes the block-mode unsatisfied case — model it as a
   // single exit decision so the [warn] notice and exit code can never disagree (intakeExit
   // is the shared truth, also driven by the paired selftest).
@@ -367,6 +376,14 @@ const INTAKE_PREFIX_SELFTEST_CASES = [
   [["faff-automate"], "sd", "no-provenance"],     // default-prefix label doesn't satisfy under "sd"
 ];
 
+// FAFF-1091: the OVERRIDE axis — a renamed automate (even under the default prefix) counts as
+// eligibility-gesture; the stale default literal no longer satisfies once the role is renamed.
+// Tuple: [labels, prefix, automateName, want-basis].
+const INTAKE_OVERRIDE_SELFTEST_CASES = [
+  [["Some group: eligible"], "faff", "Some group: eligible", "eligibility-gesture"],
+  [["faff-automate"], "faff", "Some group: eligible", "no-provenance"],
+];
+
 function intakecheckSelftest() {
   let fail = 0;
   for (const [marker, labels, mode, want, interactive = false] of INTAKECHECK_SELFTEST_CASES) {
@@ -383,7 +400,13 @@ function intakecheckSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} labels=[${labels.join(",")}] prefix=${prefix} → basis=${v.basis}${ok ? "" : ` (want ${wantBasis})`}`);
   }
-  const total = INTAKECHECK_SELFTEST_CASES.length + INTAKE_PREFIX_SELFTEST_CASES.length;
+  for (const [labels, prefix, automateName, wantBasis] of INTAKE_OVERRIDE_SELFTEST_CASES) {
+    const v = intakeVerdict(null, labels, "block", prefix, automateName);
+    const ok = v.basis === wantBasis;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} labels=[${labels.join(",")}] prefix=${prefix} automateName=${JSON.stringify(automateName)} → basis=${v.basis}${ok ? "" : ` (want ${wantBasis})`}`);
+  }
+  const total = INTAKECHECK_SELFTEST_CASES.length + INTAKE_PREFIX_SELFTEST_CASES.length + INTAKE_OVERRIDE_SELFTEST_CASES.length;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }

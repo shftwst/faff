@@ -70,8 +70,12 @@ function nextStep({ status, spec, eligible, parked, blocked, ifEligible, awaitin
 // OUTSIDE the kernel (see nextStep's comment above for why) — a pure, no-config-read
 // string transform cmdNext applies to its own already-decided output. A no-op for any
 // reason that doesn't mention the default automate label, and for the default prefix.
-function renderNextReason(reason, prefix = "faff") {
-  return prefix === "faff" ? reason : reason.replace("faff-automate", `${prefix}-automate`);
+// FAFF-1091: substitute the RESOLVED automate name (an override, else `${prefix}-automate`) into
+// the reason string, so a renamed `automate` reads natively. `automateName` is threaded by cmdNext.
+// A resolved name of "faff-automate" (default prefix, no override) is a byte-identical no-op.
+function renderNextReason(reason, prefix = "faff", automateName) {
+  const resolved = automateName || `${prefix}-automate`;
+  return resolved === "faff-automate" ? reason : reason.replace("faff-automate", resolved);
 }
 
 function nextSelftest() {
@@ -129,14 +133,19 @@ function nextSelftest() {
     const [, rawReason] = nextStep(C("todo", "high", { eligible: false }));
     const defaultReason = renderNextReason(rawReason, "faff");
     const customReason = renderNextReason(rawReason, "sd");
+    // FAFF-1091: an override name (even under the default prefix) renders into the reason.
+    const overrideReason = renderNextReason(rawReason, "faff", "Some group: eligible");
     const okDefault = defaultReason === "not automation-eligible — human cranks it up (faff-automate)";
     const okCustom = customReason === "not automation-eligible — human cranks it up (sd-automate)";
+    const okOverride = overrideReason === "not automation-eligible — human cranks it up (Some group: eligible)";
     if (!okDefault) fail++;
     if (!okCustom) fail++;
+    if (!okOverride) fail++;
     console.log(`${okDefault ? "ok  " : "FAIL"} skip-ineligible reason (default prefix) → ${JSON.stringify(defaultReason)}`);
     console.log(`${okCustom ? "ok  " : "FAIL"} skip-ineligible reason (prefix=sd) → ${JSON.stringify(customReason)}`);
+    console.log(`${okOverride ? "ok  " : "FAIL"} skip-ineligible reason (override) → ${JSON.stringify(overrideReason)}`);
   }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} transition cases + eligibility table + 2 prefix-reason checks, ${fail} failed)`);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} transition cases + eligibility table + 3 prefix/override-reason checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -164,12 +173,15 @@ function cmdNext(args) {
   // renderNextReason (presentation-only, applied OUTSIDE nextStep — see that function's
   // comment for why: decision-capture's fixed seven-key "next" contract, FAFF-826/956).
   // `state` (below, captureDecision's normalised_inputs) stays the unmodified seven keys.
-  const { resolveLabelPrefix } = require("./config");
+  const { resolveLabelPrefix, resolveControlLabels } = require("./config");
   const { findRoot } = require("./shared-infra");
   const root = values["--root"] || findRoot();
   const resolvedPrefix = resolveLabelPrefix(root);
   if (resolvedPrefix.error) { process.stderr.write(resolvedPrefix.error + "\n"); return 2; }
-  const reason = renderNextReason(rawReason, resolvedPrefix.prefix);
+  // FAFF-1091: also resolve the per-role override map so a renamed `automate` reads natively.
+  const resolvedNames = resolveControlLabels(root);
+  if (resolvedNames.error) { process.stderr.write(resolvedNames.error + "\n"); return 2; }
+  const reason = renderNextReason(rawReason, resolvedPrefix.prefix, resolvedNames.names.automate);
   // would_be_eligible is set only when the hypothetical path was actually taken: the item is
   // not eligible, --if-eligible bypassed the short-circuit, and it wasn't a terminal short-circuit.
   const hypothetical = !state.eligible && state.ifEligible && !TERMINAL_STATUSES.includes(state.status);

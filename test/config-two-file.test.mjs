@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, appendFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, appendFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -296,6 +296,95 @@ test("config check: no config at all → exit 0 (defaults)", () => {
   const dir = gitDir({});
   try { assert.equal(run(dir, "config", "check").code, 0); }
   finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1080: tracking.teams / default_team / team_routing cross-field validation.
+// ---------------------------------------------------------------------------
+
+test("config check: a well-formed team-set (teams + default_team member + team_routing values all members) → exit 0", () => {
+  const dir = plainDir({
+    base: "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n    - RISKS\n  default_team: PRODUCT\n  team_routing:\n    spike: IDEAS\n    bug: PRODUCT\n",
+  });
+  try { assert.equal(run(dir, "config", "check").code, 0); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: default_team not a member of teams → exit 1, naming the value + member set", () => {
+  const dir = plainDir({ base: "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: STAGING\n" });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /default_team/);
+    assert.match(r.out, /STAGING/);
+    assert.match(r.out, /IDEAS, PRODUCT/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: a team_routing value not a member of teams → exit 1, naming the key + value + member set", () => {
+  const dir = plainDir({
+    base: "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing:\n    feature: IDEAS_TYPO\n",
+  });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /team_routing/);
+    assert.match(r.out, /feature/);
+    assert.match(r.out, /IDEAS_TYPO/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: tracking.teams present but empty → exit 1", () => {
+  const dir = plainDir({ base: "tracking:\n  teams: []\n  default_team: PRODUCT\n" });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /tracking\.teams is empty/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: default_team set without teams (and without legacy team_key) → exit 1", () => {
+  const dir = plainDir({ base: "tracking:\n  default_team: PRODUCT\n" });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /default_team is set without tracking\.teams/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: legacy team_key ALONE (no teams, no default_team) → exit 0, unaffected by the new validation", () => {
+  const dir = plainDir({ base: "tracking:\n  team_key: PRODUCT\n" });
+  try { assert.equal(run(dir, "config", "check").code, 0); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: inline-flow bare teams (the ticket's literal [IDEAS, PRODUCT, RISKS]) reads as a string, not a list — rejected loudly, never a silent degrade", () => {
+  const dir = plainDir({ base: "tracking:\n  teams: [IDEAS, PRODUCT, RISKS]\n  default_team: PRODUCT\n" });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /tracking\.teams is empty \(or not a list\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: a scalar (non-map) team_routing is rejected loudly, not silently skipped (adversarial review finding)", () => {
+  const dir = plainDir({ base: "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing: oops\n" });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /tracking\.team_routing is not a map/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config set: refuses a nested team_routing LEAF write (tracking.team_routing.spike), not just the exact key (adversarial review finding)", () => {
+  const dir = plainDir({ base: "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing:\n    spike: IDEAS\n" });
+  try {
+    const before = readFileSync(join(dir, ".faffrc.yaml"), "utf8");
+    const r = run(dir, "config", "set", "tracking.team_routing.spike", "PRODUCT", "--force");
+    assert.equal(r.code, 2);
+    assert.match(r.err, /list-valued key/);
+    assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("config check: a *_env value is NOT flagged (name-indirection is exempt by design)", () => {

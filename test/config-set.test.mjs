@@ -203,6 +203,87 @@ test("holdout: refuses the inline-flow refs form, even with --force, file byte-u
 });
 
 // ---------------------------------------------------------------------------
+// FAFF-1080: tracking.teams / tracking.team_routing join the sequence/map carve-out
+// (same reason as adversarial.refs — preserves the scalar-only writer invariant);
+// tracking.default_team is the one scalar leaf in the trio, writable like team_key.
+// ---------------------------------------------------------------------------
+
+test("holdout: refuses tracking.teams (block-sequence), file byte-unchanged", () => {
+  const dir = tmpDir();
+  const before = "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n";
+  writeFileSync(join(dir, ".faffrc.yaml"), before);
+  const r = run(dir, "config", "set", "tracking.teams", "RISKS", "--force");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /list-valued key/);
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);
+});
+
+test("holdout: refuses tracking.team_routing (nested map), file byte-unchanged", () => {
+  const dir = tmpDir();
+  const before = "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  team_routing:\n    spike: IDEAS\n";
+  writeFileSync(join(dir, ".faffrc.yaml"), before);
+  const r = run(dir, "config", "set", "tracking.team_routing", "foo", "--force");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /list-valued key/);
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);
+});
+
+test("config set: tracking.default_team is a plain writable scalar (the team_key pattern)", () => {
+  const dir = tmpDir();
+  assert.equal(run(dir, "config", "set", "tracking.default_team", "PRODUCT").code, 0);
+  assert.equal(run(dir, "config", "get", "tracking.default_team").out, "PRODUCT");
+});
+
+test("config init --set tracking.default_team=PRODUCT is accepted (same allowlist as team_key)", () => {
+  const dir = tmpDir();
+  const r = run(dir, "config", "init", "--set", "tracking.default_team=PRODUCT");
+  assert.equal(r.code, 0);
+  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8").includes("default_team: PRODUCT"), true);
+});
+
+test("resolveTeams: team-set / legacy team_key / zero-config resolution table", async () => {
+  const { resolveTeams } = await import(CONFIG_LIB);
+  // team-set wins when present
+  assert.deepEqual(
+    resolveTeams({ tracking: { teams: ["IDEAS", "PRODUCT", "RISKS"], default_team: "PRODUCT", team_routing: { spike: "IDEAS" } } }),
+    { teams: ["IDEAS", "PRODUCT", "RISKS"], default_team: "PRODUCT", routing: { spike: "IDEAS" } },
+  );
+  // legacy team_key shims to a one-element set, default_team == the team, empty routing
+  assert.deepEqual(resolveTeams({ tracking: { team_key: "PRODUCT" } }), { teams: ["PRODUCT"], default_team: "PRODUCT", routing: {} });
+  // zero-config
+  assert.deepEqual(resolveTeams({}), { teams: [], default_team: null, routing: {} });
+  // a team-set with no team_routing at all -> routing defaults to {}
+  assert.deepEqual(
+    resolveTeams({ tracking: { teams: ["A"], default_team: "A" } }),
+    { teams: ["A"], default_team: "A", routing: {} },
+  );
+});
+
+test("config get --json tracking.teams / tracking.team_routing return structured values (array / object)", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"),
+    "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing:\n    spike: IDEAS\n");
+  const teamsOut = run(dir, "config", "get", "--json", "tracking.teams");
+  assert.equal(teamsOut.code, 0);
+  assert.deepEqual(JSON.parse(teamsOut.out), ["IDEAS", "PRODUCT"]);
+  const routingOut = run(dir, "config", "get", "--json", "tracking.team_routing");
+  assert.equal(routingOut.code, 0);
+  assert.deepEqual(JSON.parse(routingOut.out), { spike: "IDEAS" });
+  // plain (non-json) get on the map stringifies to the documented "[object Object]" — never a crash
+  const plain = run(dir, "config", "get", "tracking.team_routing");
+  assert.equal(plain.code, 0);
+  assert.equal(plain.out, "[object Object]");
+});
+
+test("config check: a team_routing KEY with no taxonomy match is harmless — only VALUES are membership-validated", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"),
+    "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing:\n    not-a-real-type-token: IDEAS\n");
+  const r = run(dir, "config", "check");
+  assert.equal(r.code, 0, "an unmatched free-form routing key is never a validation error");
+});
+
+// ---------------------------------------------------------------------------
 // Vocabulary / validation, --dry-run, conflicts, idempotence, namespace typo guard.
 // ---------------------------------------------------------------------------
 

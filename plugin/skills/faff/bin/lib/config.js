@@ -669,6 +669,73 @@ function resolveControlLabels(root, data) {
   return { names };
 }
 
+// FAFF-1080: resolve the tracking team dimension into the ONE shape every consumer reads —
+// a team-set (`tracking.teams` + `tracking.default_team` + optional `tracking.team_routing`),
+// the legacy single `tracking.team_key` shimmed to a one-element set, or the zero-config empty
+// set. Pure over the merged config document (no fs, no defaults registry — a per-repo team has
+// no universal default, matching team_key). Precedence: an explicit non-empty `teams` array wins
+// over legacy `team_key`; `team_key` in turn wins over zero-config. A `teams` array is trusted
+// as given (validateTeams below is the cross-field fail-loud check `faff config check` runs —
+// resolveTeams itself never rejects a malformed set, it just returns what's there).
+function resolveTeams(data) {
+  const teams = dig(data, "tracking.teams");
+  if (Array.isArray(teams) && teams.length > 0) {
+    const rawDefault = dig(data, "tracking.default_team");
+    const default_team = rawDefault === null || rawDefault === undefined ? null : rawDefault;
+    const rawRouting = dig(data, "tracking.team_routing");
+    const routing = (rawRouting && typeof rawRouting === "object" && !Array.isArray(rawRouting)) ? rawRouting : {};
+    return { teams, default_team, routing };
+  }
+  const teamKey = dig(data, "tracking.team_key");
+  if (typeof teamKey === "string" && teamKey.trim() !== "") {
+    const tk = teamKey.trim();
+    return { teams: [tk], default_team: tk, routing: {} };   // legacy shim
+  }
+  return { teams: [], default_team: null, routing: {} };     // zero-config
+}
+
+// FAFF-1080: cross-field validation for the team-set schema, invoked by `faff config check`
+// over the MERGED document (same posture as the git_host check below) — never by resolveTeams
+// itself, which stays a pure passthrough. Returns `config check` finding objects naming the
+// offending key/value and the member set; never silently drops a dangling reference.
+function validateTeams(mergedDoc) {
+  const findings = [];
+  const teams = dig(mergedDoc, "tracking.teams");
+  const defaultTeam = dig(mergedDoc, "tracking.default_team");
+  const routing = dig(mergedDoc, "tracking.team_routing");
+  const teamKey = dig(mergedDoc, "tracking.team_key");
+  const teamsPresent = teams !== null && teams !== undefined;
+  if (teamsPresent) {
+    if (!Array.isArray(teams) || teams.length === 0) {
+      findings.push({ severity: "error", surface: "tracking.teams", message: "tracking.teams is empty (or not a list) — must be a non-empty block-sequence of team keys." });
+      return findings; // nothing else to cross-check against an empty/malformed set
+    }
+    if (defaultTeam === null || defaultTeam === undefined) {
+      findings.push({ severity: "error", surface: "tracking.default_team", message: "tracking.default_team is required when tracking.teams is set." });
+    } else if (!teams.includes(defaultTeam)) {
+      findings.push({ severity: "error", surface: "tracking.default_team", message: `tracking.default_team "${defaultTeam}" is not a member of tracking.teams [${teams.join(", ")}].` });
+    }
+    const routingPresent = routing !== null && routing !== undefined;
+    const routingIsMap = routingPresent && typeof routing === "object" && !Array.isArray(routing);
+    if (routingPresent && !routingIsMap) {
+      // Adversarial review finding: a scalar/array team_routing silently skipped the loop below
+      // and passed `config check` clean, despite the schema declaring a map. Fail loud instead —
+      // every other malformed-shape case in this validator (empty teams, above) does the same.
+      findings.push({ severity: "error", surface: "tracking.team_routing", message: "tracking.team_routing is not a map — must be a nested map of type-token -> team-key (e.g. `spike: IDEAS`)." });
+    } else if (routingIsMap) {
+      for (const k of Object.keys(routing)) {
+        const v = routing[k];
+        if (!teams.includes(v)) {
+          findings.push({ severity: "error", surface: `tracking.team_routing['${k}']`, message: `tracking.team_routing['${k}'] -> "${v}" is not a member of tracking.teams [${teams.join(", ")}].` });
+        }
+      }
+    }
+  } else if (defaultTeam !== null && defaultTeam !== undefined && (teamKey === null || teamKey === undefined)) {
+    findings.push({ severity: "error", surface: "tracking.default_team", message: "tracking.default_team is set without tracking.teams." });
+  }
+  return findings;
+}
+
 // FAFF-859: closed value vocabulary for the two lane-isolation DECLARED-field axes. The two axes
 // are ORTHOGONAL (container = containment, host = locality); each is its own closed-vocab scalar,
 // keyed on the full dotted path — the models.<lane> / effort.<lane> shape, not a co-constrained
@@ -972,6 +1039,12 @@ const resolveAdrSupersededDocsPath = (root, data, create) =>
 const TRACKING_KEYS = [
   "tracking.tracker",
   "tracking.team_key",
+  // FAFF-1080: the scalar fallback create-target for a `tracking.teams` team-set. The set
+  // itself (`tracking.teams`) and the optional `tracking.team_routing` map are sequence/map
+  // shaped — SEQUENCE_VALUED_KEYS below refuses them and they stay a committed-base hand-edit
+  // (the `adversarial.refs` precedent); only this one scalar leaf is writer-ergonomic. No
+  // DEFAULTS registry entry, matching team_key — a per-repo team has no universal default.
+  "tracking.default_team",
   "tracking.repo",
   "tracking.git_host",
   "tracking.spec_docs_path",
@@ -1236,6 +1309,11 @@ const SEQUENCE_VALUED_KEYS = new Set([
   "adversarial.refs",
   "adversarial.fallbacks",
   "adversarial.backends",
+  // FAFF-1080: teams is a block-sequence and team_routing a nested map — both refused by
+  // `config set` for the same reason as the adversarial.* keys above (preserves the
+  // scalar-only writer invariant, FAFF-667); hand-edited in the committed base instead.
+  "tracking.teams",
+  "tracking.team_routing",
 ]);
 
 // FAFF-870: per-consumer adversarial refs (`adversarial.<consumer>.refs`) are the
@@ -1247,8 +1325,14 @@ const SEQUENCE_VALUED_KEYS = new Set([
 // `adversarial.refs` (already in the set above) nor `adversarial.<consumer>.timeout`
 // (a legitimate writable scalar leaf). Bound to the schema by configSetSelftest.
 const PER_CONSUMER_REFS_KEY = /^adversarial\.[A-Za-z0-9_]+\.refs$/;
+// FAFF-1080 (adversarial review finding): `tracking.team_routing` is refused by exact-key match
+// above, but `config set` writes at ANY dotted depth, so `tracking.team_routing.spike IDEAS`
+// targets a LEAF under the refused key and would otherwise slip through as an ordinary nested-map
+// write — building the hand-edit-only map back up key-by-key through the writer it was routed
+// AROUND. Close the whole subtree, not just the exact key.
+const TEAM_ROUTING_LEAF_KEY = /^tracking\.team_routing\./;
 function isSequenceValuedKey(key) {
-  return SEQUENCE_VALUED_KEYS.has(key) || PER_CONSUMER_REFS_KEY.test(key);
+  return SEQUENCE_VALUED_KEYS.has(key) || PER_CONSUMER_REFS_KEY.test(key) || TEAM_ROUTING_LEAF_KEY.test(key);
 }
 
 // Recognised top-level config namespaces `config set` may write into — a cheap typo guard at
@@ -2026,6 +2110,12 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   if (gitHost !== null && gitHost !== undefined && validateGitHostValue("tracking.git_host", gitHost)) {
     findings.push({ severity: "error", surface: "tracking.git_host", message: `git_host: "${gitHost}" is not supported — faff's merge floor is GitHub-only. Set git_host: github or leave it unset.` });
   }
+
+  // Check 8b (FAFF-1080): tracking.teams / default_team / team_routing cross-field validation
+  // over the same merged document — empty teams, an absent/dangling default_team, or a
+  // team_routing value outside the team-set all fail loud here, naming the offending
+  // key/value and the member set (never a silent dangling reference).
+  findings.push(...validateTeams(mergedDoc));
 
   // Check 9 (FAFF-794): known-key (schema) lint — flags an unrecognised or flat-dotted
   // top-level key as a warn finding, so a typo (e.g. `autonymous.sentry_acting`, meant as
@@ -3015,4 +3105,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane, validateTeams };

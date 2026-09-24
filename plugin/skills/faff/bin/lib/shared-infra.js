@@ -160,10 +160,27 @@ function normalizeSelfIntakeTarget(raw) {
 
 // Coerce a raw SelfIntakeSelf onto the closed shape. lane_on is STRICT-boolean
 // (=== true) — a missing/truthy-non-bool lane dial never reads as opted-in.
+//
+// FAFF-1080: `team` (singular) generalises to `teams` (a set) so the containment floor can
+// key on team-set MEMBERSHIP rather than single-team equality. `teams` wins when present (a
+// non-empty array of non-empty strings); otherwise a legacy singular `team` field — the shape
+// every self-intake-check event recorded before FAFF-1080 carries, and the shape every existing
+// hand-built self object in this file's own selftest table still uses — normalizes to a
+// one-element set. This is what lets `faff audit` recompute a pre-FAFF-1080 recorded event
+// unchanged, and what keeps a legacy single-team config's membership test exactly the old `===`
+// (membership over a one-element set).
 function normalizeSelfIntakeSelf(raw) {
   const r = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  let teams;
+  if (Array.isArray(r.teams)) {
+    teams = r.teams.filter((t) => typeof t === "string" && t !== "");
+  } else if (typeof r.team === "string" && r.team !== "") {
+    teams = [r.team];   // legacy/back-compat singular field
+  } else {
+    teams = [];
+  }
   return {
-    team: typeof r.team === "string" && r.team !== "" ? r.team : null,
+    teams,
     repo: typeof r.repo === "string" && r.repo !== "" ? r.repo : null,
     lane_on: r.lane_on === true,
   };
@@ -184,10 +201,13 @@ function decideSelfIntake(targetRaw, selfRaw) {
   if (target.team === null && target.repo === null) {
     return { target, self, verdict: "not-self", reason: "unresolved-target" };
   }
-  if (self.team === null && self.repo === null) {
+  if (self.teams.length === 0 && self.repo === null) {
     return { target, self, verdict: "not-self", reason: "unresolved-self" };
   }
-  if (target.team !== null && self.team !== null && target.team === self.team) {
+  // FAFF-1080: set-membership generalises the old strict === — a legacy one-element self.teams
+  // makes this EXACTLY the prior equality test, so the golden single-team decision table is
+  // unaffected. Still strict per-element comparison (case-mismatch fails toward not-self).
+  if (target.team !== null && self.teams.length > 0 && self.teams.includes(target.team)) {
     return { target, self, verdict: "self", reason: "team-match" };
   }
   if (target.repo !== null && self.repo !== null && target.repo === self.repo) {

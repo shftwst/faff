@@ -69,7 +69,7 @@ Full schema (every key optional unless noted; shown with example values):
 # .faffrc.yaml — faff configuration, repo root
 tracking:
   tracker: linear            # linear | github | jira | … (autodetected from available MCP if omitted)
-  team_key: SHF              # tracker team/board key
+  team_key: SHF              # LEGACY single team; teams/default_team/team_routing (FAFF-1080) generalise it to a team-set — see .faffrc.example.yaml
   project_id: "abc-123"      # tracker project/team id
   repo: shftwst/faff         # org/repo slug
   git_host: github           # github — the only supported host (the merge gate is GitHub-only; may be left unset)

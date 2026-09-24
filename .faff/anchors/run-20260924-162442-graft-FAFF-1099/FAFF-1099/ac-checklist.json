@@ -1,0 +1,17 @@
+{
+  "issue": "FAFF-1099",
+  "all_verified": true,
+  "items": [
+    { "ac": "No quay.io/minio ref remains in env.js, test/env.test.mjs, or the doc", "verified": true, "evidence": "grep across the three files returns none" },
+    { "ac": "No skip/reachability gate added; [docker-gated] daemon-absence skip untouched", "verified": true, "evidence": "test/env.test.mjs:213-238 unchanged" },
+    { "ac": "DATASTORE_TABLE.minio.image is the digest-pinned server mirror", "verified": true, "evidence": "MINIO_SERVER_IMAGE = chainguard/minio@sha256:bd014394..." },
+    { "ac": "Both mc client sidecars + comment use the digest-pinned client mirror", "verified": true, "evidence": "MINIO_CLIENT_IMAGE at env.js:631 seed + test:344 literal" },
+    { "ac": "Every MinIO image reference is digest-pinned, not tag-pinned", "verified": true, "evidence": "@sha256: on both constants and the test literal" },
+    { "ac": "envSelftest label + assertion use the new server literal; faff env --selftest passes", "verified": true, "evidence": "env --selftest: ok" },
+    { "ac": "compose-gen unit test asserts the new server literal and passes", "verified": true, "evidence": "assertion /^chainguard\\/minio@sha256:/ passes" },
+    { "ac": "docker-gated integration test passes against the mirror (up healthy, seed 2, mc ls 2, teardown)", "verified": true, "evidence": "env.test.mjs #20 pass locally + env-rootless CI green" },
+    { "ac": "minio reaches healthy within SLA via the mc ready probe; compose-gen probe assertion matches", "verified": true, "evidence": "test :144 /mc ready local/ passes; integration healthy in 4s" },
+    { "ac": "doc names the mirror image", "verified": true, "evidence": "cage-engine-acceptance.md:44 -> chainguard/minio" },
+    { "ac": "node --test env.test.mjs passes; suite green; validate-adapters green", "verified": true, "evidence": "25/25; faff gates run pass; validate-adapters PASS" }
+  ]
+}

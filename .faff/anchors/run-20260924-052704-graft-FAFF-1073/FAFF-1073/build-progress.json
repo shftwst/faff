@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1073",
+  "build": {
+    "status": "complete",
+    "diff_hash": "78c8d49452d421dd9f9304ca8b5e0b970b9a0914a4424b61dce1085bb51c67d9",
+    "branch": "faff-1073-spike-is-holdout-at-l3-feasible-can-a-provably-code-blind",
+    "pushed_at": "2026-09-24T05:43:21.171Z"
+  },
+  "updated_at": "2026-09-24T05:43:21.171Z"
+}

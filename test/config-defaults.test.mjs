@@ -35,7 +35,6 @@ test("unset registry SCALAR resolves to its baked default, exit 0 (no -d needed)
   const dir = withConfig(null);
   try {
     assert.deepEqual(run(dir, "config", "get", "logging"), { code: 0, out: "full" });
-    assert.deepEqual(run(dir, "config", "get", "automation_default"), { code: 0, out: "opt-in" });
     assert.deepEqual(run(dir, "config", "get", "concurrency_max"), { code: 0, out: "4" });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -66,3 +66,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: faff ref storage in `bundle.js` (`buildClaimStore`, `resolveBundleStore*`); local mode (FAFF-1059). Does not change `git-remote` behaviour.
 - Matches: bundle_store; build-claim ref; refs/faff storage; on-box refs; buildClaimStore; ref storage location
 - Date: 2026-09-21
+
+## git-only eligibility default
+
+- Chosen: git-only defaults opt-in; `automation_default: opt-out` removed; one eligibility model (`automate` present/absent) everywhere. Eligibility is `faff-automate` present → eligible, absent → not eligible, in tracker and git-only mode alike; there is no second eligibility mode and no per-ticket exclude label.
+- Rationale: single functional eligibility signal; consistent across tracker and git-only; retiring `automation-hold` is then behaviour-neutral in every mode. Opt-out was the only reason `automation-hold`'s per-ticket exclude was load-bearing — with one opt-in model, absence already means "not automated", so no exclude label is needed anywhere. The only behaviour change lands on git-only opt-out repos, which now add `automate` per ticket to opt in (the same gesture tracker repos already use).
+- Scope: faff eligibility model — `eligible.js`, the `automation_default` config key, and the git-only opt-out from FAFF-753.
+- Matches: git-only opt-out; automation_default; eligibility default
+- Date: 2026-09-24

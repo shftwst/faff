@@ -77,5 +77,5 @@ ticket automation eligibility, and the attempt budget limits how far an
 eligible run may go. SuperDomestique does not add the eligibility label itself.
 
 The run may prepare, admit, build, or stop only within those inputs. A person
-can remove eligibility, apply `faff-automation-hold`, or start a later run with
+can remove eligibility (the `faff-automate` label) or start a later run with
 a new budget. A stopped run does not close unreached tickets.

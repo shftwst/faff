@@ -1,17 +1,14 @@
 // ===========================================================================
-// === region:factory — eligible — FAFF-61/753: the automation-eligibility function. PURE: resolves whether ===
-// a ticket may be touched by the AUTONOMOUS pipeline, from its labels, the
-// configured `automation_default` knob, and whether a tracker governs the repo.
-// Precedence: hard-exclude > include > default. Fail-safe: the shipped default is
-// opt-in, so an unlabelled ticket is NOT eligible, and any non-"opt-out" default
-// value coerces to opt-in. FAFF-753: `opt-out` opens the unlabelled surface ONLY in
-// git-only mode (no tracker) — under a tracker it is inert, because the two faff-*
-// labels are the safe-space control surface there. The caller resolves tracker
-// presence via the gateway "Tracker availability resolution" rule and passes it as
-// --tracker present|absent; this stays a PURE arg (no config/MCP read here). Read-only
-// skills never gate on this. The agent calls this (passing the issue's labels + `faff
-// config get automation_default -d opt-in` + the resolved --tracker) and feeds the
-// result to `faff next` as --not-eligible.
+// === region:factory — eligible — FAFF-61/1097: the automation-eligibility function. PURE: resolves ===
+// whether a ticket may be touched by the AUTONOMOUS pipeline from a single signal —
+// the tracker-owned `faff-automate` label. Present ⇒ eligible, absent ⇒ not. One
+// eligibility model everywhere (FAFF-1097, operator decision 2026-09-24): tracker and
+// git-only mode alike default opt-in, so the `automation_default` opt-out and the
+// FAFF-753 git-only exclude are retired. `automationDefault` / `trackerPresent` are
+// retained ONLY to keep the fixed 3-arg signature decision-capture's KERNEL_REGISTRY
+// "eligible" contract depends on (see the signature note below); neither affects the
+// verdict. Read-only skills never gate on this. The agent calls this (passing the
+// issue's labels) and feeds the result to `faff next` as --not-eligible.
 // ===========================================================================
 
 
@@ -24,50 +21,40 @@
 // `normalizeEligibilityLabels` below, which translates a configured-prefix label onto the
 // literal strings this function still compares against, threaded in by cmdEligible.
 function automationEligible(labels, automationDefault, trackerPresent) {
-  const set = new Set(labels);
-  if (set.has("faff-automation-hold")) return false; // hard exclude wins, always
-  if (set.has("faff-automate")) return true;         // explicit include
-  // unlabelled ⇒ follow the knob, but opt-out opens the surface ONLY in git-only.
-  // `trackerPresent === false` is deliberate: only an explicit git-only signal opens
-  // it — present, or the legacy 2-arg call (undefined), leaves opt-out inert (fail-safe).
-  return automationDefault === "opt-out" && trackerPresent === false;
+  // FAFF-1097: eligibility is one signal — faff-automate present ⇒ eligible, absent ⇒ not.
+  // automationDefault/trackerPresent are unused (retained only for the fixed signature).
+  return new Set(labels).has("faff-automate");
 }
 
 // FAFF-1044: the role-lookup translation layer. Maps a raw label list resolved against
-// the CONFIGURED prefix onto the default "faff-automate"/"faff-automation-hold" spelling
-// automationEligible compares — so the pipeline's actual eligibility decision is genuinely
-// prefix-aware without automationEligible's own signature ever changing. Pure, no config
-// read (prefix is threaded in by the caller); a "faff" prefix is a byte-identical no-op.
-// Under a NON-default prefix, a literal "faff-automate"/"faff-automation-hold" label is
-// stripped first (never passed through unmapped) — otherwise it would leak past the
-// translation and still match automationEligible's own unchanged literal check, silently
-// reintroducing the "faff-" prefix as a fallback the spec explicitly rules out (no
-// cross-prefix fallback; §5 SCENARIOS "the role lookup resolves against the configured
-// prefix, not faff-").
+// the CONFIGURED prefix onto the default "faff-automate" spelling automationEligible
+// compares — so the pipeline's actual eligibility decision is genuinely prefix-aware
+// without automationEligible's own signature ever changing. Pure, no config read (prefix
+// is threaded in by the caller); a "faff" prefix is a byte-identical no-op. Under a
+// NON-default prefix, a literal "faff-automate" label is stripped first (never passed
+// through unmapped) — otherwise it would leak past the translation and still match
+// automationEligible's own unchanged literal check, silently reintroducing the "faff-"
+// prefix as a fallback the spec explicitly rules out (no cross-prefix fallback; §5
+// SCENARIOS "the role lookup resolves against the configured prefix, not faff-").
 function normalizeEligibilityLabels(labels, prefix = "faff") {
   if (prefix === "faff") return labels;
   const automate = `${prefix}-automate`;
-  const hold = `${prefix}-automation-hold`;
   return labels
-    .filter((l) => l !== "faff-automate" && l !== "faff-automation-hold")
-    .map((l) => (l === automate ? "faff-automate" : l === hold ? "faff-automation-hold" : l));
+    .filter((l) => l !== "faff-automate")
+    .map((l) => (l === automate ? "faff-automate" : l));
 }
 
-// Cases: [[labels, default, trackerPresent], want]. trackerPresent true = a tracker
-// governs the repo (opt-out inert); false = git-only (opt-out is the on-switch);
-// undefined = the legacy 2-arg call (must coerce to inert, the fail-safe direction).
+// Cases: [[labels, default, trackerPresent], want]. FAFF-1097: only faff-automate
+// presence decides eligibility now; default/trackerPresent are retained args that no
+// longer affect the verdict (the rows that vary them prove they are ignored).
 const ELIGIBLE_CASES = [
-  [[["faff-automation-hold"], "opt-out", false], false],          // hold wins even under opt-out + git-only
-  [[["faff-automation-hold"], "opt-out", true], false],           // hold wins under a tracker too
-  [[["faff-automation-hold", "faff-automate"], "opt-in", true], false], // both present ⇒ hold wins
   [[["faff-automate"], "opt-in", true], true],                    // explicit include, tracker present
-  [[["faff-automate"], "opt-in", false], true],                   // explicit include, git-only
-  [[[], "opt-in", true], false],                                  // unlabelled + opt-in ⇒ ineligible (fail-safe)
-  [[[], "opt-in", false], false],                                 // unlabelled + opt-in, git-only ⇒ ineligible
-  [[[], "opt-out", true], false],                                 // opt-out under a tracker ⇒ INERT (FAFF-753)
-  [[[], "opt-out", false], true],                                 // opt-out in git-only ⇒ eligible (the on-switch)
-  [[[], "garbage", false], false],                                // invalid default coerces to opt-in (fail-safe)
-  [[[], "opt-out", undefined], false],                            // legacy 2-arg call ⇒ opt-out inert (fail-safe)
+  [[["faff-automate"], "opt-in", false], true],                   // explicit include, git-only ⇒ still eligible
+  [[["faff-automate"], "garbage", true], true],                   // default ignored — automate present wins
+  [[[], "opt-in", true], false],                                  // unlabelled ⇒ ineligible (one opt-in model)
+  [[[], "opt-in", false], false],                                 // unlabelled, git-only ⇒ ineligible (opt-in everywhere)
+  [[[], "garbage", false], false],                                // default ignored — absent ⇒ ineligible
+  [[[], "opt-in", undefined], false],                             // legacy 2-arg call ⇒ ineligible
 ];
 
 function runEligibleCases() {
@@ -81,13 +68,12 @@ function runEligibleCases() {
   return fail;
 }
 
-// FAFF-1044: a configured non-default prefix resolves hold/automate by role against
-// THAT prefix — normalizeEligibilityLabels maps the configured-prefix label onto the
-// literal automationEligible compares, and the default-prefix "faff-automate" string
-// does NOT match under a custom prefix (no cross-prefix fallback).
+// FAFF-1044: a configured non-default prefix resolves automate by role against THAT
+// prefix — normalizeEligibilityLabels maps the configured-prefix label onto the literal
+// automationEligible compares, and the default-prefix "faff-automate" string does NOT
+// match under a custom prefix (no cross-prefix fallback).
 const ELIGIBLE_PREFIX_CASES = [
   // [rawLabels, prefix, def, tracker] -> want (after normalizeEligibilityLabels + automationEligible)
-  [["sd-automation-hold"], "sd", "opt-out", false, false],   // hold wins under the configured prefix
   [["sd-automate"], "sd", "opt-in", true, true],             // explicit include under the configured prefix
   [["faff-automate"], "sd", "opt-in", true, false],          // default-prefix label doesn't match under "sd"
 ];
@@ -119,12 +105,12 @@ const ELIGIBLE_SPEC = {
   flags: {
     "--selftest": { arity: 0 },
     "--label": { arity: 1, repeatable: true },
-    "--default": { arity: 1 }, // no enum: a non-opt-out value legitimately coerces to opt-in (fail-safe)
-    "--tracker": { arity: 1 }, // no enum: absent = git-only; present/omitted/garbage ⇒ tracker-present (tighter)
+    "--default": { arity: 1 }, // retained for signature/decision-capture faithfulness; no longer affects the verdict (FAFF-1097)
+    "--tracker": { arity: 1 }, // retained for signature/decision-capture faithfulness; no longer affects the verdict (FAFF-1097)
     "--root": { arity: 1 },
   },
 };
-const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default opt-in|opt-out] [--tracker present|absent] [--root DIR]";
+const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default VALUE] [--tracker present|absent] [--root DIR]";
 
 function cmdEligible(args) {
   if (args.includes("--selftest")) return eligibleSelftest();

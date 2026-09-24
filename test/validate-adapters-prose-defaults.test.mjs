@@ -35,9 +35,9 @@ const flagged = (r) => /\(prose default\)/.test(r.stdout);
 // --- Rule (a): redundant `-d` on a registry key ---
 
 test("rule (a): flags a redundant -d on a registry scalar key", () => {
-  const r = runOnFixture('default=$("$faff" config get automation_default -d opt-in)\n');
+  const r = runOnFixture('default=$("$faff" config get logging -d full)\n');
   assert.ok(flagged(r), "should report a prose-default failure");
-  assert.match(r.stdout, /"automation_default"/);
+  assert.match(r.stdout, /"logging"/);
   assert.notEqual(r.status, 0);
 });
 
@@ -47,7 +47,7 @@ test("rule (a) negative: a non-registry key with -d passes clean", () => {
 });
 
 test("rule (a) negative: .example lines are exempt", () => {
-  const r = runOnFixture('.faffrc.example: config get automation_default -d opt-in\n');
+  const r = runOnFixture('.faffrc.example: config get logging -d full\n');
   assert.equal(flagged(r), false);
 });
 

@@ -12,7 +12,7 @@ One skill, three entry points — **not** separate commands per item type:
 
 - **Kick off an empty project** — greenfield. No tracker project yet, or an empty repo. Produces an initial structure: workstreams/containers and the first tickets to reach a usable v0.
 - **Capture a new feature, bug, or ticket** — single-item. An existing project. Produces one well-formed ticket (or a small set, if it genuinely splits), landed wherever the `methodology` slot's `ticket-shaping` places it — a workstream/project home, or (the agile-lens default) project-less in Backlog.
-- **Shape or gate an existing ticket** — `/faff-jot ISSUE-XX`. *Not* new work: the human's conversational entry point to decide an existing ticket's **shape and eligibility** — v1 ships **crank up/crank down of automation eligibility** (`faff-automate`), plus the `faff-automation-hold` hard stop. Narrow remit (see **Existing-ticket interactor** below); never speccing, grooming, or building.
+- **Shape or gate an existing ticket** — `/faff-jot ISSUE-XX`. *Not* new work: the human's conversational entry point to decide an existing ticket's **shape and eligibility** — v1 ships **crank up/crank down of automation eligibility** (`faff-automate`). Narrow remit (see **Existing-ticket interactor** below); never speccing, grooming, or building.
 
 ## Configuration
 
@@ -30,7 +30,7 @@ All human-facing output this skill emits — new-work tracker **descriptions** (
 
 ```
 no arg → new work:           discover (intake) → shape (methodology) → create → chain to /faff-prep
-ISSUE-XX → existing ticket:  load → shaping/gating menu → crank up/crank down (or hold/unhold) → log
+ISSUE-XX → existing ticket:  load → shaping/gating menu → crank up/crank down → log
 ```
 
 ### 0. Dispatch on argument
@@ -98,9 +98,9 @@ Title-matching is imperfect (Linear search isn't exact-string) — scope it to t
 
 ## Existing-ticket interactor (`/faff-jot ISSUE-XX`)
 
-When invoked with an issue-id argument, `/faff-jot` is **not** doing new-work intake — it's the human's conversational entry point to **shape or gate an existing ticket**. It is **interactive-only** (never autonomous) and runs in the orchestrator lane, which already has tracker write (it creates tickets for new work). But the eligibility labels it shapes (`faff-automate` / `faff-automation-hold`) are **tracker-owned**, so `/faff-jot` never writes them itself — it **advises** the human on the toggle to make in the tracker (see step 3), consistent with the write-abstention model.
+When invoked with an issue-id argument, `/faff-jot` is **not** doing new-work intake — it's the human's conversational entry point to **shape or gate an existing ticket**. It is **interactive-only** (never autonomous) and runs in the orchestrator lane, which already has tracker write (it creates tickets for new work). But the eligibility label it shapes (`faff-automate`) is **tracker-owned**, so `/faff-jot` never writes it itself — it **advises** the human on the toggle to make in the tracker (see step 3), consistent with the write-abstention model.
 
-**Remit — shaping & eligibility only.** Crank up/crank down (add/remove `faff-automate`) + hold/unhold (the `faff-automation-hold` hard stop), and (deferred — see **Out of scope**) re-scope, re-home (re-parent), split/merge *intent*: "the human deciding a ticket's shape and whether it enters the pipeline." It deliberately does **not** absorb operations that already have homes:
+**Remit — shaping & eligibility only.** Crank up/crank down (add/remove `faff-automate`), and (deferred — see **Out of scope**) re-scope, re-home (re-parent), split/merge *intent*: "the human deciding a ticket's shape and whether it enters the pipeline." It deliberately does **not** absorb operations that already have homes:
 
 - speccing → `/faff-prep`
 - grooming / diagnostics → `/faff-tidy`
@@ -111,16 +111,13 @@ Framed narrowly it extends jot's intake identity (jot already owns the human↔p
 ### The flow
 
 1. **Load the ticket** — title, description, labels, status, spec comments. If the issue doesn't exist → error and stop. If it's **cancelled or archived** → refuse (shared **Ignore cancelled and archived** rule). This is a **load**, not a re-run of discovery — never re-interview the human about a ticket that already exists.
-2. **Present a shaping/gating menu** keyed to the ticket's **automation eligibility** (gateway → **Automation eligibility**), not its hold-state. Resolve eligibility first — `faff eligible --label <each of the ticket's labels> --default <automation_default> --tracker present|absent` (the tracker-present signal from **Tracker availability resolution**; the interactor runs on a fetched tracker issue so it is `present`) — the CLI's pure precedence function: `faff-automation-hold` > `faff-automate` > the `automation_default` knob (opt-out inert under a tracker). Then offer the matching control:
-   - ticket **held** (carries `faff-automation-hold`) → the hard stop dominates, so promoting is a silent no-op; offer **unhold**: "FAFF-XX is hard-held out of automation — lift the hold? (y/n)" (note: the hold overrides any `faff-automate`).
-   - ticket **eligible** (carries `faff-automate`, not held) → offer **crank down**: "FAFF-XX is automation-eligible — crank it down (hands-off)? (y/n)", and offer **hold** as the hard stop: "…or hard-hold it out entirely? (y/n)".
-   - ticket **not eligible, not held** (unlabelled under the opt-in default) → offer **crank up**: "FAFF-XX isn't automation-eligible — crank it up (make it automatable)? (y/n)", and offer **hold** as a pre-emptive hard stop.
-3. **Point the human at the tracker toggle (advisory).** The eligibility-throttle labels (`faff-automate`, `faff-automation-hold`) are **tracker-owned**: the faff CLI refuses to write them (it exits non-zero and directs here), so the interactive choice **names the exact label + direction to toggle in the tracker** and faff never executes the write. The human flips it in one click on the board:
+2. **Present a shaping/gating menu** keyed to the ticket's **automation eligibility** (gateway → **Automation eligibility**). Resolve eligibility first — `faff eligible --label <each of the ticket's labels>` — the CLI's pure single-signal function: `faff-automate` present ⇒ eligible, absent ⇒ not. Then offer the matching control:
+   - ticket **eligible** (carries `faff-automate`) → offer **crank down**: "FAFF-XX is automation-eligible — crank it down (hands-off)? (y/n)".
+   - ticket **not eligible** (no `faff-automate`) → offer **crank up**: "FAFF-XX isn't automation-eligible — crank it up (make it automatable)? (y/n)".
+3. **Point the human at the tracker toggle (advisory).** The eligibility-throttle label (`faff-automate`) is **tracker-owned**: the faff CLI refuses to write it (it exits non-zero and directs here), so the interactive choice **names the direction to toggle in the tracker** and faff never executes the write. The human flips it in one click on the board:
    - **crank up** → tell the human to **add `faff-automate`** to the ticket in the tracker. It becomes automation-eligible and rejoins normal eligibility on the next pass; **crank up does not move it to Todo**.
-   - **crank down** → tell the human to **remove `faff-automate`**. The ticket falls back to the `automation_default` (hands-off under opt-in).
-   - **hold** → tell the human to **add `faff-automation-hold`** (the hard stop — excludes even if `faff-automate` is present); optionally pair it with a one-line reason comment (which faff may still post).
-   - **unhold** → tell the human to **remove `faff-automation-hold`**. The ticket returns to whatever its `faff-automate`/default eligibility would otherwise be.
-   - **State, don't write (no CLI no-op):** because faff never writes these labels there is no idempotency no-op to compute — always point at the tracker toggle, optionally naming the current state to orient the human (e.g. "FAFF-XX already carries `faff-automate`").
+   - **crank down** → tell the human to **remove `faff-automate`**. The ticket falls back to hands-off (not automatable).
+   - **State, don't write (no CLI no-op):** because faff never writes this label there is no idempotency no-op to compute — always point at the tracker toggle, optionally naming the current state to orient the human (e.g. "FAFF-XX already carries `faff-automate`").
 4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.
 
 ### Relationship to `/faff-tidy`
@@ -130,7 +127,7 @@ Crank up/crank down here and `/faff-tidy`'s §4a **crank-up** are **complementar
 - **jot is ticket-centric** — "crank up/crank down *this ticket I named*."
 - **tidy is grooming-batch** — "crank up across the On-hold items I'm reviewing."
 
-Same add/remove of the `faff-automate` label, both human-gated, no canonical-owner conflict. The hold/unhold of `faff-automation-hold` is the shared **hard-stop** control, available from either entry point.
+Same add/remove of the `faff-automate` label, both human-gated, no canonical-owner conflict.
 
 ### Out of scope (v1)
 
@@ -150,7 +147,7 @@ When no tracker connector resolves — concluded **per gateway → Tracker avail
 
 If `/faff-jot` is somehow invoked in autonomous mode, it produces the discovery brief and shaped-ticket proposal, writes them to `.faff/intake/…`, and surfaces them for human review rather than creating tickets unattended. It never auto-creates a project or backlog without a human confirming the shape.
 
-The **existing-ticket interactor** (`/faff-jot ISSUE-XX`) is likewise **interactive-only** — crank up/crank down (and the hold/unhold hard stop) is a human steering decision, and changing a ticket's automation eligibility is always human-gated (gateway → **Automation eligibility**), so there is no autonomous path to it.
+The **existing-ticket interactor** (`/faff-jot ISSUE-XX`) is likewise **interactive-only** — crank up/crank down is a human steering decision, and changing a ticket's automation eligibility is always human-gated (gateway → **Automation eligibility**), so there is no autonomous path to it.
 
 ## Appetite
 
@@ -162,12 +159,12 @@ Reads the suite-wide `appetite` dial but is lightly modulated, since creation is
 
 ## Logging
 
-Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist. For the **existing-ticket interactor**, log the ticket id, its prior eligibility state, the crank up/crank down/hold/unhold action taken (or the no-op), and any reason comment. This narrative `HHMMSS-jot.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
+Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist. For the **existing-ticket interactor**, log the ticket id, its prior eligibility state, the crank up/crank down action taken (or the no-op), and any reason comment. This narrative `HHMMSS-jot.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
 
 ## Rules
 
 - One skill for all new-work intake — never spawn per-type variants (`faff-new-bug`, `faff-new-feature`). Mode is a parameter, not a separate command. The existing-ticket interactor follows the same principle: it's selected by the issue-id **argument**, not a separate command.
-- The existing-ticket interactor (`/faff-jot ISSUE-XX`) is **shaping/eligibility only** (crank up/crank down + hold/unhold in v1) and **interactive-only**. It never specs (→ `/faff-prep`), grooms (→ `/faff-tidy`), or builds (→ `/faff-graft`), never re-runs discovery on a ticket that already exists, and never edits the ticket's title/description/status in place.
+- The existing-ticket interactor (`/faff-jot ISSUE-XX`) is **shaping/eligibility only** (crank up/crank down in v1) and **interactive-only**. It never specs (→ `/faff-prep`), grooms (→ `/faff-tidy`), or builds (→ `/faff-graft`), never re-runs discovery on a ticket that already exists, and never edits the ticket's title/description/status in place.
 - Discovery is delegated (`intake` slot), shaping is delegated (`methodology` slot). `/faff-jot` orchestrates: detect mode, route the brief, confirm, create, chain. It owns no ideation opinions and no structural opinions of its own.
 - Never write a spec here. A created ticket is a `Backlog` item with a seeded description and open questions — `/faff-prep` turns it into a buildable spec. (A description is never a spec — gateway shared rule.)
 - Ticket creation is gated on human confirmation except at `full` appetite for non-container tickets. Containers always confirm (except within the L4 accepted-root envelope).

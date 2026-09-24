@@ -4,11 +4,11 @@
 // it cannot create tracker labels (no MCP). The agent ensures-before-tag via the
 // tracker MCP using this manifest (gateway -> Control-label provisioning).
 // ===========================================================================
-// `tracker_owned: true` marks the two eligibility-throttle labels the faff CLI
-// REFUSES to mutate (FAFF-218): they may only be toggled by a human in the tracker
-// UI, so `faff-automate` present ⟹ a human set it, by construction. The refusal
-// predicate in labelOp reads this flag — never a hardcoded name set. Machine-breadcrumb
-// labels omit it (⇒ false) and stay CLI-writable.
+// `tracker_owned: true` marks the eligibility-throttle label the faff CLI REFUSES to
+// mutate (FAFF-218): `faff-automate` may only be toggled by a human in the tracker UI,
+// so its presence ⟹ a human set it, by construction. The refusal predicate in labelOp
+// reads this flag — never a hardcoded name set. Machine-breadcrumb labels omit it
+// (⇒ false) and stay CLI-writable.
 //
 // FAFF-1044: each entry's `role` is the STABLE identity — prefix-independent, never
 // compared directly by a read-site. `name` (`<prefix>-<role>`) is DERIVED by the
@@ -19,9 +19,7 @@
 
 const CONTROL_LABEL_DEFS = [
   { role: "automate", color: "#6fcf97", tracker_owned: true,
-    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). Under the default opt-in posture, absence = not automatable. Removing it cranks the ticket down to hands-off. Tracker-owned (FAFF-218): toggle in the tracker UI only — the faff CLI refuses to add/remove it." },
-  { role: "automation-hold", color: "#5e6ad2", tracker_owned: true,
-    description: "Human-set hard exclude: NEVER automate this ticket, even if it also carries the automate label. Highest precedence in the eligibility model. Visible to read skills. Tracker-owned (FAFF-218): toggle in the tracker UI only — the faff CLI refuses to add/remove it." },
+    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). The sole eligibility signal — presence = automatable, absence = not (one opt-in model everywhere, FAFF-1097). Removing it cranks the ticket down to hands-off. Tracker-owned (FAFF-218): toggle in the tracker UI only — the faff CLI refuses to add/remove it." },
   { role: "parked", color: "#e8a33d",
     description: "Issue parked by an autonomous faff run. Check the issue comments for the park reason. Surfaced by /faff-wtf." },
   { role: "awaiting-review", color: "#f2c94c",
@@ -50,8 +48,8 @@ function controlLabels(prefix = "faff") {
 // description pass through unchanged per entry.
 const LABELS_SELFTEST_CASES = [
   // [prefix, expectedNames] — role/color/tracker_owned/description checked structurally below
-  ["faff", ["faff-automate", "faff-automation-hold", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-claimed", "faff-awaiting-adjudication", "faff-stacked"]],
-  ["sd", ["sd-automate", "sd-automation-hold", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-claimed", "sd-awaiting-adjudication", "sd-stacked"]],
+  ["faff", ["faff-automate", "faff-parked", "faff-awaiting-review", "faff-awaiting-spec-review", "faff-claimed", "faff-awaiting-adjudication", "faff-stacked"]],
+  ["sd", ["sd-automate", "sd-parked", "sd-awaiting-review", "sd-awaiting-spec-review", "sd-claimed", "sd-awaiting-adjudication", "sd-stacked"]],
 ];
 
 function labelsSelftest() {

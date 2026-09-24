@@ -18,17 +18,15 @@ The first time you run `/faff-beep-boop` on a fresh backlog, it can look like no
 
 An **automation-eligible** ticket is one the *autonomous* pipeline (`/faff-beep-boop`) may auto-spec, auto-promote, and auto-build. (Your read and planning skills — `/faff-wtf`, `/faff-map`, `/faff-tidy` — are never gated by this; they always see everything.)
 
-Eligibility ships **fail-safe `opt-in`**: nothing is eligible until a human explicitly opts a ticket in. A human steers the backlog with two tracker labels and one config knob:
+Eligibility ships **fail-safe `opt-in`**: nothing is eligible until a human explicitly opts a ticket in. A human steers the backlog with one tracker label:
 
 | Signal | Effect |
 |---|---|
-| `faff-automate` label | **Crank up** — this ticket may be picked up by the autonomous pipeline. Removing it *cranks down*. |
-| `faff-automation-hold` label | **Hard exclude** — never automate this ticket, even if it also carries `faff-automate`. |
-| `automation_default` (`.faffrc.yaml`) | Decides an *unlabelled* ticket. Ships `opt-in` (unlabelled ⇒ not eligible); flip to `opt-out` to invert. |
+| `faff-automate` label | **Crank up** — this ticket may be picked up by the autonomous pipeline. Removing it *cranks down*. The sole eligibility signal: absent ⇒ not eligible. |
 
-Precedence is **hold > automate > default**. So on a fresh, `opt-in` backlog with no labels yet, *nothing* is eligible — which is why the first run skips everything.
+One opt-in model everywhere — tracker and git-only mode alike. So on a fresh backlog with no labels yet, *nothing* is eligible — which is why the first run skips everything.
 
-**The labels are tracker-owned — you toggle them, not faff.** You add or remove `faff-automate` and `faff-automation-hold` in your tracker's UI. faff's own label CLI *refuses* to write either one in any direction; the most it will do is advise you which label to toggle. That refusal is deliberate: it makes `faff-automate` present ⟹ **a human set it directly**, true by construction. That by-construction human intent is exactly the provenance L3's trust rests on (see the trust premise below).
+**The label is tracker-owned — you toggle it, not faff.** You add or remove `faff-automate` in your tracker's UI. faff's own label CLI *refuses* to write it in either direction; the most it will do is advise you which way to toggle. That refusal is deliberate: it makes `faff-automate` present ⟹ **a human set it directly**, true by construction. That by-construction human intent is exactly the provenance L3's trust rests on (see the trust premise below).
 
 A not-eligible ticket is **On-hold, not parked** — the two are different:
 

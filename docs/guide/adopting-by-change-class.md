@@ -19,9 +19,9 @@ A change class is an informal group of changes with a similar risk profile:
 
 ## Start with nothing eligible
 
-The default `automation_default: opt-in` setting leaves unlabelled work alone.
-A person makes a ticket eligible by adding `faff-automate`. The
-`faff-automation-hold` label always excludes a ticket.
+The default opt-in posture leaves unlabelled work alone. A person makes a ticket
+eligible by adding `faff-automate` — the sole eligibility signal; removing it
+excludes the ticket again.
 
 The system may recommend a change in eligibility, but it does not set these
 tracker-owned labels itself. The decision to hand over work remains visible in

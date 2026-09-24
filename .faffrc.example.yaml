@@ -210,16 +210,10 @@ appetite: high
 # the default stall_window_secs (900s) / this repo's configured 2400s.
 producer_tick_max_secs: 600
 
-# Automation eligibility default for an UNLABELLED ticket (see gateway → Automation
-# eligibility). opt-in (default, fail-safe): nothing is touched by the autonomous
-# pipeline unless a human adds the faff-automate label — a forgotten label means
-# "left alone". opt-out: unlabelled tickets are eligible — but this is scoped to
-# GIT-ONLY mode (FAFF-753): on a tracker-bound repo opt-out is IGNORED and eligibility
-# stays fail-safe opt-in (the two faff-* labels are the safe-space control surface;
-# `faff config check` warns if you set opt-out with a tracker pinned). opt-out is
-# meaningful only where no tracker resolves, as the sole autonomous on-switch. Add
-# faff-automation-hold to hard-exclude; faff-automation-hold always wins regardless.
-automation_default: opt-in   # opt-in | opt-out (opt-out is git-only-only — inert under a tracker)
+# Automation eligibility (see gateway → Automation eligibility) is a single tracker-owned
+# signal (FAFF-1097): the faff-automate label present ⇒ the autonomous pipeline may pick
+# the ticket up, absent ⇒ left alone. One opt-in model everywhere — tracker and git-only
+# mode alike — so there is no automation_default knob and no per-ticket exclude label.
 
 # Phase-0 recovery-bundle store (FAFF-819/861). A top-level MODE ENUM, not a slot — slots delegate
 # to user-swappable Skills, whereas these occupants are built-in implementations of a fixed
@@ -231,7 +225,7 @@ bundle_store: local          # local | git-remote
 # Intake-provenance guard (FAFF-212). faff-graft's pre-worktree precondition checks that a
 # ticket entered through the front door (/faff-jot writes a CLI-owned .faff/provenance/<ISSUE>.json
 # marker) rather than being retrofitted to satisfy the commit convention. A mechanism value (like
-# automation_default / adr.mode), NOT a prose preference. warn (default): print guidance, never
+# adr.mode), NOT a prose preference. warn (default): print guidance, never
 # block (observe no-provenance counts before tightening) · block: refuse a ticket with no genuine
 # provenance · off: disable the guard. Sanctioned override: faff intake-record <ISSUE> --via fast-track --reason "…".
 intake_gate: warn   # warn (default) | block | off
@@ -280,7 +274,7 @@ conventions:
 # persistent L3 posture; --converge/--no-converge are mutually exclusive and a flag overrides this config).
 # max_waves is a RUNAWAY BACKSTOP ONLY: K consecutive no-progress waves → a reported non-convergence
 # escalate, never a silent truncation. Eligibility is not bypassed — discovered tickets re-enter only
-# if automation-eligible (so meaningful in-run draining needs crank-up, or — git-only only — automation_default: opt-out).
+# if automation-eligible (so meaningful in-run draining needs the faff-automate crank-up).
 convergence:
   enabled: true    # true (default) | false (L3 opt-out only; inert at L4)
   max_waves: 6     # runaway backstop K — consecutive no-progress waves before non-convergence escalate

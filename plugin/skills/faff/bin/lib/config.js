@@ -90,7 +90,6 @@ const DEFAULTS = {
   "slots.transport": "faffter-noon-transport-private-network",
   "logging": "full",
   "concurrency_max": "4",
-  "automation_default": "opt-in",
   // FAFF-819 / FAFF-861: the Phase-0 recovery-bundle store. A top-level MODE ENUM, not a slot —
   // slots delegate to user-swappable Skills, whereas this names a BUILT-IN occupant bundle.js
   // dispatches on the string: "local" (default: nothing leaves the box) or "git-remote" (opt-in
@@ -1204,7 +1203,7 @@ function isSequenceValuedKey(key) {
 // documented in .faffrc.example.yaml must be a member — asserted by configSetSelftest.
 const WRITABLE_NAMESPACES = new Set([
   "tracking", "slots", "models", "effort", "backends", "engines", "appetite",
-  "concurrency_max", "worktree_root", "logging", "automation_default",
+  "concurrency_max", "worktree_root", "logging",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
   "bundle_store", "install", "lanes", "producer_tick_max_secs", "conventions",
@@ -1959,26 +1958,6 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   const mergedDoc = overlayDoc ? deepMergeConfig(baseDoc || {}, overlayDoc) : (baseDoc || {});
   findings.push(...backendsConfigCheckFindings(mergedDoc));
 
-  // Check 7 (FAFF-753/FAFF-808): automation_default: opt-out is INERT on a tracker-bound
-  // repo — it opens the unlabelled surface only in git-only mode. Warn when a tracker is
-  // pinned (a real connector name) AND opt-out is set, so the ignored knob is surfaced.
-  // A git-only pin (the reserved `none`/`git-only` sentinel, FAFF-808) is NOT a connector
-  // pin — it's the symmetric assertion the repo has no tracker, so opt-out is legitimately
-  // honoured there and must not warn. Read the pin inline (no require("./tracker") —
-  // config.js is on tracker.js's require path) and replicate classifyTracker's
-  // trim/blank/sentinel normalisation so this linter and `faff tracker probe` never
-  // disagree: a whitespace-only pin is unpinned, and a git-only sentinel is not "pinned".
-  const pinRaw = dig(mergedDoc, "tracking.tracker");
-  // Exact parity with classifyTracker (tracker.js): null/undefined/blank-after-trim ⇒ unpinned;
-  // a reserved sentinel (none/git-only, case-insensitive, trimmed) ⇒ git-only, not pinned;
-  // otherwise coerce via String().trim() (a non-string pin is classified the same way there).
-  const pinTrimmed = pinRaw === null || pinRaw === undefined ? "" : String(pinRaw).trim();
-  const pinned = pinTrimmed !== "" && !["none", "git-only"].includes(pinTrimmed.toLowerCase());
-  const autoDefault = dig(mergedDoc, "automation_default");
-  if (pinned && autoDefault === "opt-out") {
-    findings.push({ severity: "warn", surface: "automation_default", message: "`automation_default: opt-out` is ignored on a tracker-bound repo — it applies only in git-only mode; the two faff-* labels are the control surface here." });
-  }
-
   // Check 8 (FAFF-430): a present, non-github tracking.git_host is config theater — faff's
   // merge floor is unconditionally `gh`, so a hand-edited base carrying e.g. `git_host: gitlab`
   // would otherwise limp silently past this linter (config get / config set already fail loud
@@ -2268,76 +2247,6 @@ function configCheckSelftest() {
     check("malformed base: error finding naming file + detail, exit 1",
       r.exit === 1 && r.findings.some((f) => f.severity === "error" && f.surface === ".faffrc.yaml" && /malformed base config/.test(f.message) && /does not parse to a mapping/.test(f.message)));
   }
-  {
-    // FAFF-753: pinned tracker + automation_default:opt-out → warn (opt-out inert on a tracker repo).
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "linear" }, automation_default: "opt-out" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-753: pinned tracker + opt-out → warn finding, exit 1",
-      r.exit === 1 && r.findings.some((f) => f.severity === "warn" && f.surface === "automation_default" && /ignored on a tracker-bound repo/.test(f.message)));
-  }
-  {
-    // FAFF-753: opt-out but tracker UNPINNED (git-only) → no warn (opt-out is legitimately honoured).
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { automation_default: "opt-out" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-753: opt-out git-only (no pin) → no opt-out warn",
-      !r.findings.some((f) => f.surface === "automation_default"));
-  }
-  {
-    // FAFF-753: whitespace-only tracker pin is UNPINNED (classifyTracker parity) → no warn.
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "   " }, automation_default: "opt-out" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-753: whitespace-only pin ⇒ unpinned ⇒ no opt-out warn (trim parity)",
-      !r.findings.some((f) => f.surface === "automation_default"));
-  }
-  {
-    // FAFF-753: pinned tracker + opt-in → no opt-out warn (opt-in is the normal safe posture).
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "linear" }, automation_default: "opt-in" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-753: pinned tracker + opt-in → no opt-out warn",
-      !r.findings.some((f) => f.surface === "automation_default"));
-  }
-  {
-    // FAFF-808: git-only pin (canonical `none`) + opt-out → no opt-out warn (not a connector pin).
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "none" }, automation_default: "opt-out" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-808: git-only pin (none) + opt-out → no opt-out warn",
-      !r.findings.some((f) => f.surface === "automation_default"));
-  }
-  {
-    // FAFF-808: git-only pin (alias `git-only`) + opt-out → no opt-out warn.
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "git-only" }, automation_default: "opt-out" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-808: git-only pin (alias) + opt-out → no opt-out warn",
-      !r.findings.some((f) => f.surface === "automation_default"));
-  }
-  {
-    // FAFF-808: git-only pin, mixed-case + whitespace (`  None  `) + opt-out → no opt-out warn.
-    const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "  None  " }, automation_default: "opt-out" },
-      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
-    });
-    check("FAFF-808: git-only pin, mixed-case + whitespace → no opt-out warn",
-      !r.findings.some((f) => f.surface === "automation_default"));
-  }
 
   // --- known-key (schema) lint (FAFF-794) ----------------------------------
   {
@@ -2620,7 +2529,7 @@ function cmdConfig(args) {
           "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
           "slots.env", "slots.prd", "slots.transport",
-          "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
+          "logging", "concurrency_max", "appetite", "adr.mode", "intake_gate",
           "containment.self_hosting_intake",
           "gates.fallback",
           // FAFF-849 (639b): the execution-ladder bounding knobs.

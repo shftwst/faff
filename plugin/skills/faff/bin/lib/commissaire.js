@@ -1,10 +1,16 @@
 // ===========================================================================
 // === region:factory — commissaire — FAFF-828: the external Commissaire facade (schema:3 governed records, verb-3 protected-effect decisions) ===
 //
-// The minimal external governance facade a SECOND producer (not faff's own runner)
-// drives to produce authenticated governed facts, request a Commissaire-signed
-// protected-effect decision, reconcile observed-minus-declared, conclude a terminal
-// verdict, and seal a run-close recovery bundle. Verbs 3, 5, and 6 (request-decision,
+// The minimal external governance facade a producer drives to produce authenticated
+// governed facts, request a Commissaire-signed protected-effect decision, reconcile
+// observed-minus-declared, conclude a terminal verdict, and seal a run-close recovery
+// bundle. FAFF-1034 promotes faff's OWN runner onto this facade as a producer for the
+// merge effect at every level, via an IN-PROCESS governor (custody option 3): the runner
+// mints and holds SK_commissaire in the run dir alongside the effect ledger. That earns
+// authenticated, author-bound, hash-chained, `audit verify`-checkable, chokepoint-mediated
+// merges — NOT independence or unforgeability against the orchestrator (it holds the key).
+// The `--governor-dir` seam relocates SK for the future out-of-process (option 1) upgrade.
+// Verbs 3, 5, and 6 (request-decision,
 // terminal-verdict, seal-bundle) are all built to depth in-process (FAFF-1000; the
 // terminal verdict hardened by FAFF-1008) — none shells out to the faff bin.
 //
@@ -164,6 +170,31 @@ function evaluateDecisionRequest(admission, requestRecord, key, ledgerEntries) {
   if (!covered) return { verdict: "deny", reason: "effect-not-declared" };
   // Every leg passes → grant.
   return { verdict: "grant", reason: "all-legs-pass" };
+}
+
+// --- Pure composable leg: the per-level authorization policy (FAFF-1034) ------------------
+
+// PURE. Composed ABOVE evaluateDecisionRequest (never inside it): the born-verifiable pure core
+// stays effect-integrity-only, and this level-keyed leg gates the authorize verdict beside it, the
+// same way decideFloor keys its holdout leg on level without forking the pure core. The inputs
+// (level, attended, holdout) are recorded in the request/verdict payload so a deny whose pure legs
+// pass is replayable by a secret-free `audit verify` reviewer.
+//   L1 / L2 — pass iff the run is attended (human presence authorizes the merge)
+//   L3      — pass (the base floor governs; no extra authority required)
+//   L4      — pass iff the holdout verdict is "meets-spec"
+// An ABSENT level → pass (back-compat: an unsupplied level never newly denies).
+function evaluateLevelPolicy({ level, attended, holdout } = {}) {
+  if (level == null) return { pass: true, reason: "no-level" };
+  if (level === "L1" || level === "L2") {
+    return attended ? { pass: true, reason: "attended" } : { pass: false, reason: "level-requires-attendance" };
+  }
+  if (level === "L3") return { pass: true, reason: "base-floor-governs" };
+  if (level === "L4") {
+    return holdout === "meets-spec"
+      ? { pass: true, reason: "holdout-meets-spec" }
+      : { pass: false, reason: "level-requires-holdout-meets-spec" };
+  }
+  return { pass: true, reason: "unknown-level-no-policy" };
 }
 
 // --- Pure core: chokepoint_permit -------------------------------------------------------
@@ -386,7 +417,7 @@ function usage() {
     "usage: faff commissaire <object> <action> ...  (ADR-0123 object-verb grammar; the flat verbs are retained aliases)\n" +
     "  contract admit    --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]   (alias: admit)\n" +
     "  effect declare    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: declare)\n" +
-    "  effect authorize  --run-dir DIR --producer ID --issue I --step S   (stdin: {effect, evidence_seq?})   (alias: request-decision)\n" +
+    "  effect authorize  --run-dir DIR --producer ID --issue I --step S [--level L]   (stdin: {effect, evidence_seq?, level?, attended?, holdout?})   (alias: request-decision)\n" +
     "  effect observe    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
     "  effect reconcile  --run-dir DIR --issue I   (alias: reconcile)\n" +
     "  verdict conclude  --run-dir DIR --issue I [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed accepted_under_contract record, or a refusal; alias: terminal-verdict)\n" +
@@ -399,7 +430,7 @@ function usage() {
 function parseCommissaireArgs(args) {
   const flags = {};
   const rest = [];
-  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store"]);
+  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level"]);
   for (let i = 0; i < args.length; i++) {
     if (single.has(args[i])) flags[args[i]] = args[++i];
     else if (args[i] === "--json") flags["--json"] = true;
@@ -512,8 +543,15 @@ function cmdRequestDecision(flags) {
   if (payload.err) { process.stderr.write(`faff commissaire request-decision: ${payload.err}\n`); return 2; }
   const req = payload.value || {};
   const contractRevision = loaded.admission.contract_revision;
+  // FAFF-1034: the level policy inputs — level from --level (wins) or the stdin payload, attended
+  // and holdout from the payload. All optional; when level is absent the composed verdict is
+  // byte-identical to today (evaluateLevelPolicy passes an absent level, and undefined payload keys
+  // drop out of both the physical JSON line and the HMAC image).
+  const level = flags["--level"] !== undefined ? flags["--level"] : req.level;
+  const attended = req.attended;
+  const holdout = req.holdout;
   // Producer half: build + HMAC the request record, append it (author = producer).
-  const requestBody = { kind_of_entry: "effect-decision-request", issue, step, payload: { effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq } };
+  const requestBody = { kind_of_entry: "effect-decision-request", issue, step, payload: { effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq, level, attended, holdout } };
   // FAFF-979: read the full-ledger snapshot INSIDE the same append lock as the request record,
   // so the freshness/coverage legs evaluate exactly the ledger as it stood the instant the
   // request was chained (no unlocked re-read that a concurrent append could slip into).
@@ -529,12 +567,25 @@ function cmdRequestDecision(flags) {
   // Commissaire half: re-derive the key from master, authenticate, evaluate, sign the verdict.
   const key = deriveKey(gov.master_secret, producerId, contractRevision);
   const decision = evaluateDecisionRequest(loaded.admission, requestRecord, key, snapshot);
-  const verdictBody = {
-    kind_of_entry: "effect-decision-verdict", issue, step,
-    payload: { request_seq: requestRecord.seq, verdict: decision.verdict, reason: decision.reason, effect: req.effect },
-  };
+  // FAFF-1034: compose the level policy ABOVE the pure verdict. grant iff BOTH pass; else deny with
+  // the first failing reason (the pure legs are named first, then the level policy). The policy
+  // result AND its inputs are recorded in the verdict payload beside the pure reason for replay.
+  const levelPolicy = evaluateLevelPolicy({ level, attended, holdout });
+  const composed = decision.verdict === "grant" && levelPolicy.pass
+    ? { verdict: "grant", reason: decision.reason }
+    : { verdict: "deny", reason: decision.verdict !== "grant" ? decision.reason : levelPolicy.reason };
+  // The pure-verdict/level-policy metadata is recorded only when a level was actually supplied, so a
+  // no-level (ungoverned-style) authorize writes a verdict record byte-identical to today; undefined
+  // level/attended/holdout drop out of both the JSON line and the signature image regardless.
+  const verdictPayload = { request_seq: requestRecord.seq, verdict: composed.verdict, reason: composed.reason, effect: req.effect, level, attended, holdout };
+  if (level != null) {
+    verdictPayload.level_policy = levelPolicy;
+    verdictPayload.pure_verdict = decision.verdict;
+    verdictPayload.pure_reason = decision.reason;
+  }
+  const verdictBody = { kind_of_entry: "effect-decision-verdict", issue, step, payload: verdictPayload };
   const verdictRecord = appendCommissaireRecord(runDir, gov.sk, producerId, contractRevision, verdictBody, flags["--ts"]);
-  console.log(JSON.stringify({ verdict: decision.verdict, reason: decision.reason, verdict_seq: verdictRecord.seq, request_seq: requestRecord.seq }));
+  console.log(JSON.stringify({ verdict: composed.verdict, reason: composed.reason, verdict_seq: verdictRecord.seq, request_seq: requestRecord.seq }));
   return 0;
 }
 
@@ -886,6 +937,16 @@ function commissaireSelftest() {
   const deny = { author: "commissaire", payload: { verdict: "deny", effect } }; deny.commissaire_sig = signDecision(deny, gov.sk);
   if (chokepointPermit(effect, deny, gov.pk, gov.pk_fingerprint).permit) fail("chokepoint refuses a deny verdict");
 
+  // --- evaluateLevelPolicy (FAFF-1034) — the L1/L2/L3/L4 truth table ---
+  if (!evaluateLevelPolicy({ level: "L1", attended: true }).pass) fail("L1 attended → pass");
+  if (evaluateLevelPolicy({ level: "L1", attended: false }).pass) fail("L1 unattended → deny");
+  if (!evaluateLevelPolicy({ level: "L2", attended: true }).pass) fail("L2 attended → pass");
+  if (evaluateLevelPolicy({ level: "L2", attended: false }).pass) fail("L2 unattended → deny");
+  if (!evaluateLevelPolicy({ level: "L3", attended: false }).pass) fail("L3 → pass (base floor governs)");
+  if (!evaluateLevelPolicy({ level: "L4", holdout: "meets-spec" }).pass) fail("L4 meets-spec → pass");
+  if (evaluateLevelPolicy({ level: "L4", holdout: "fails" }).pass) fail("L4 non-meets-spec → deny");
+  if (!evaluateLevelPolicy({ attended: false }).pass) fail("absent level → pass (back-compat)");
+
   // --- full CLI round trip under BOTH spellings (flat + object-verb) ---
   // The chain admit → declare → request-decision → reconcile is run once with the flat verbs and
   // once with the object-verb forms; both must exit and verdict-match identically, proving each
@@ -979,7 +1040,7 @@ module.exports = {
   KIND_AUTHOR, DECISION_VERDICTS, LEDGER_CFG, COMMISSAIRE_SPEC, COMMISSAIRE_SURFACE,
   OBJECT_TOKENS, COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, resolveCommissaireKey,
   buildEnvelope, appendProducerRecords, appendCommissaireRecord,
-  evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, hasGovernanceContext,
+  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, hasGovernanceContext,
   readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf,
   cmdCommissaire, commissaireSelftest,
 };

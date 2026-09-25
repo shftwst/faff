@@ -79,6 +79,37 @@ record was authored honestly. The [evidence page](./evidence.md) and
 [governance-check guide](/guide/governance-check) describe the current status
 and the remaining external-verification work.
 
+## The runner's own merges
+
+SuperDomestique's own runner is now a governed producer for the merge effect at
+every level. At run start it admits itself to the Commissaire facade; at the
+merge locus it declares the merge effect, obtains a level-scaled signed decision,
+and observes the merge; and the merge chokepoint (`merge-gate`) permits the merge
+only against a verified covering grant. A governed merge with no covering grant is
+refused before it lands, rather than passed silently.
+
+This is an in-process governor: the runner mints and holds the Commissaire
+signing key, so the guarantees it earns are exactly these, and no more:
+
+- **Authenticated and author-bound.** Every record carries a producer HMAC or a
+  Commissaire Ed25519 signature, so who wrote each record is verifiable.
+- **Hash-chained.** The records chain by hash, so a record cannot be inserted,
+  removed, or reordered without detection.
+- **Externally verifiable.** `faff commissaire audit verify` replays the whole
+  trail from public material alone and reports a pass or fail.
+- **Mechanically mediated at the chokepoint.** The merge is permitted by a tool
+  that verifies the signed grant, not by narration, and it fails closed on a
+  governed run without a covering grant.
+
+This does **not** make a governed merge independent of, or unforgeable against,
+the orchestrator. The runner is the orchestrator, and it holds the signing key,
+so a runner that chose to lie could sign its own grant. The signing key also
+lives in the same run directory as the effect ledger it protects, so this
+tamper-resistance holds only against a tamperer who can reach the effect records
+but is walled off from the co-located key; a party with the run directory has
+both. Genuine independence needs an out-of-process signer, which is future work
+behind the existing `--governor-dir` seam.
+
 ## Implementation references
 
 - [`regions.js`](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/bin/lib/regions.js)

@@ -291,6 +291,10 @@ const REGION_MAP = {
   "models": "factory",
   "doctor": "factory",
   "worktree-check": "factory",
+  // worktree-heal — FAFF-1114: self-heal a clobbered graft worktree (recreate the pruned
+  // admin metadata + `git worktree repair`). Reuses worktree-prune.js's tokenMatch and shells
+  // the worktree-root resolver — a fs/git surgery command, sibling of worktree-check → factory.
+  "worktree-heal": "factory",
   "worktree-prune": "factory",
   "worktree-root": "factory",
   // review-target — FAFF-957: the worktree/PR-aware review-target resolver + ambient-cwd/branch
@@ -508,6 +512,7 @@ const REGION_SELFTEST_ARGV = {
   "models": ["models", "--selftest"],
   "doctor": null,
   "worktree-check": ["worktree-check", "--selftest"],
+  "worktree-heal": ["worktree-heal", "--selftest"],
   "worktree-prune": ["worktree-prune", "--selftest"],
   "worktree-root": ["worktree-root", "--selftest"],
   "review-target": ["review-target", "--selftest"],

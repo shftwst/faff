@@ -35,6 +35,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { findRoot } = require("./shared-infra");
 const { parseWorktreeEntries, ownMatches } = require("./worktree-prune");
+const { detectClobber } = require("./worktree-heal");
 const { parseArgs, usageError } = require("./argv");
 
 // Pure core — no git, no fs. `behind` may arrive unreadable (NaN, negative, non-finite) from a
@@ -109,7 +110,21 @@ function cmdWorktreeCheck(args) {
 
   const sel = { paths: [], branch: null, issue };
   const matches = entries.filter((e) => ownMatches(e, sel));
-  if (matches.length === 0) return fail(`no worktree resolvable for issue '${issue}' — nothing to reuse (create fresh)`, "no-worktree");
+  if (matches.length === 0) {
+    // Before concluding "nothing on disk", probe for a CLOBBERED worktree: an orphaned
+    // issue-owned checkout whose `.git/worktrees/<id>/` admin metadata was pruned out-of-band
+    // while its branch ref survives (FAFF-1114). A non-null finding is recoverable in place —
+    // reported as its own exit-2 reason so graft heals it rather than colliding on fresh-create.
+    // Fail-safe: a null finding (nothing, ambiguous dir, or no bindable branch) → no-worktree.
+    const finding = detectClobber(root, issue);
+    if (finding) {
+      const payload = { issue, error: `worktree for issue '${issue}' has clobbered admin metadata — recoverable in place`, reason: "clobbered-recoverable", worktree_path: finding.worktree_path, branch: finding.branch, admin_id: finding.admin_id };
+      if (asJson) console.log(JSON.stringify(payload));
+      else process.stderr.write(`faff worktree-check: clobbered-recoverable — ${finding.worktree_path} lost its git admin metadata; run 'faff worktree-heal --issue ${issue}'\n`);
+      return 2;
+    }
+    return fail(`no worktree resolvable for issue '${issue}' — nothing to reuse (create fresh)`, "no-worktree");
+  }
   if (matches.length > 1) return fail(`ambiguous: ${matches.length} worktrees match issue '${issue}' — cannot certify which to check`, "ambiguous-match");
   const entry = matches[0];
   if (!entry.branch) return fail(`worktree '${entry.path}' for issue '${issue}' has no resolvable branch`, "no-branch");

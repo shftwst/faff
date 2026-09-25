@@ -125,6 +125,7 @@ const { cmdTracker } = require("./lib/tracker");
 const { cmdTurncheck } = require("./lib/turncheck");
 const { cmdValidateAdapters } = require("./lib/validate-adapters");
 const { cmdWorktreeCheck } = require("./lib/worktree-check");
+const { cmdWorktreeHeal } = require("./lib/worktree-heal");
 const { cmdWorktreePrune } = require("./lib/worktree-prune");
 
 // ===========================================================================
@@ -247,6 +248,7 @@ const COMMANDS = {
   "contract": cmdContract,
   "doctor": cmdDoctor,
   "worktree-check": cmdWorktreeCheck,
+  "worktree-heal": cmdWorktreeHeal,
   "worktree-prune": cmdWorktreePrune,
   "worktree-root": cmdWorktreeRoot,
   "review-target": cmdReviewTarget,

@@ -981,6 +981,7 @@ function resolveBranchDeleteGrant(runDir, issue, branchTarget) {
 // non-uniform mix with no absent leg (e.g. valid + not-applicable, which per-run shared governance
 // context makes unreachable in practice) fails closed to "absent-or-invalid".
 function andGrants(...grants) {
+  if (!grants.length) return "absent-or-invalid"; // a zero-arg AND is fail-closed, never a vacuous valid-grant
   if (grants.some((g) => g === "absent-or-invalid")) return "absent-or-invalid";
   if (grants.every((g) => g === "valid-grant")) return "valid-grant";
   if (grants.every((g) => g === "not-applicable")) return "not-applicable";
@@ -2038,6 +2039,7 @@ async function mergeGateSelftest() {
   check("andGrants: a non-uniform valid+not-applicable mix fails closed to absent-or-invalid", andGrants("valid-grant", "not-applicable") === "absent-or-invalid");
   check("andGrants: single valid grant → valid-grant (non-delete merge, the FAFF-1034 path)", andGrants("valid-grant") === "valid-grant");
   check("andGrants: single not-applicable → not-applicable (ungoverned non-delete merge)", andGrants("not-applicable") === "not-applicable");
+  check("andGrants: zero args → absent-or-invalid (fail-closed, never a vacuous valid-grant)", andGrants() === "absent-or-invalid");
 
   // classifyHeadShaChecks
   check("head checks: empty → no-ci-coverage", classifyHeadShaChecks([], null, 0) === "no-ci-coverage");

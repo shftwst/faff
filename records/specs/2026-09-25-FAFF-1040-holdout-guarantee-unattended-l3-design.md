@@ -2,12 +2,13 @@
 
 > Spec: faffter-dark-nlspec · 2026-09-24 · interactive · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1040.
 > Revised 2026-09-24 — re-scoped to holdout-guarantee-only (operator comment); folds in the FAFF-1073 spike verdict + the conditions×capabilities reframe; supersedes the four-mechanism draft earlier in this thread and its `reject-approach`.
+> Revised 2026-09-25 (mid-build, operator-directed) — **removed the config opt-in entirely.** Holdout activation is a pure function of run facts — unattended × can-run (SUT exposable over the code-blind boundary + born-verifiable DoD) × caged — exactly as admissibility is required for any unattended run (FAFF-1072/ADR-0130), with no per-mechanism config toggle. This dissolves both prior Punts (config shape, cost budget): there is no `l3_safety.holdout` leaf and no `opted_in` ledger field; "which tickets" is capability-determined (pass-through where no exposable SUT), not config-flagged.
 
-**Artifact:** an nlspec spec for FAFF-1040, decision-first. Its primary deliverable is **ADR-0131**, which settles the activation posture for the code-blind holdout guarantee and generalises it off the `level === "L4"` label onto run facts, plus the enabling predicate-widening and ledger persistence. **Audience:** the build agent (who lands ADR-0131 and the wiring) and human reviewers (who ratify the two narrow punts). The core question was already answered by the FAFF-1073 spike; this spec records that answer and wires it.
+**Artifact:** an nlspec spec for FAFF-1040, decision-first. Its primary deliverable is **ADR-0131**, which settles the activation posture for the code-blind holdout guarantee and generalises it off the `level === "L4"` label onto run facts, plus the enabling predicate-widening and ledger persistence. **Audience:** the build agent (who lands ADR-0131 and the wiring) and human reviewers (who ratify the fact-based activation posture). The core question was already answered by the FAFF-1073 spike; this spec records that answer and wires it.
 
 ## 1. WHY — Problem and Principles
 
-**The load-bearing model.** The holdout guarantee's activation is a **pure function of run facts, not a level label**: `is the run unattended? × can holdout run? × is it caged?`. "Can holdout run" means the DoD is born-verifiable **and** a system-under-test stands up. The three facts pick one of three postures — **strict block-on-fails**, **offer-and-report** (human decides), or **pass-through labelled with the missing capability**. This is the same fact-based template FAFF-1072 shipped for the custody stamp (ADR-0130); FAFF-1040 is the named follow-up that applies it to the holdout guarantee, which ADR-0130 line 22 explicitly deferred.
+**The load-bearing model.** The holdout guarantee's activation is a **pure function of run facts, not a level label and not a config opt-in**: `is the run unattended? × can holdout run? × is it caged?`. "Can holdout run" means the DoD is born-verifiable **and** a system-under-test can be exposed as an interface over the code-blind boundary (a standable SUT). The three facts pick one of three postures — **strict block-on-fails**, **offer-and-report** (human decides), or **pass-through labelled with the missing capability**. This is the same fact-based template FAFF-1072 shipped for the custody stamp (ADR-0130); FAFF-1040 is the named follow-up that applies it to the holdout guarantee, which ADR-0130 line 22 explicitly deferred. **There is no per-mechanism config toggle** — exactly as admissibility is *required* for any unattended run keyed on run facts (never a config opt-in), so is holdout. Adding an `l3_safety.holdout`-style leaf would contradict the very "gate on facts, not a flag" principle this generalises.
 
 **Problem statement.** Today the holdout gate fires only at `level === "L4"` (`decideFloor` contract-defs.js:2311; the two merge-gate ternaries at :1083/:1418), so an unattended **L3** run merges to `main` with no code-blind check even when it could run one, and an L4 run with no born-verifiable DoD or no SUT **parks on a non-defect** ("holdout: missing"). This change re-keys the guarantee's activation on the underlying facts, so it fires wherever it is viable and steps aside — visibly labelled — wherever it is not.
 
@@ -37,7 +38,7 @@
 | `plugin/skills/faff/bin/lib/contract-defs.js:725-726` (`ENV_HANDLE_STATUSES`, `computeEnvHandle`) | JS | standable SUT? — `status: "ready"` is the only gate-passing status. |
 | `plugin/skills/faff/bin/lib/sentry.js:226-228` (`literalTrue`), `:251-253` (`declaredUnattendedFromConfig`) | JS | The unattended fact from config. `literalTrue` accepts `"TRUE"`/`"true"`/bool `true`. |
 | `plugin/skills/faff/bin/lib/lights-out.js:1158-1194` (L4 mint ledger object) | JS | Additive seam for the persisted posture, alongside `floor`/`dial_profile`. |
-| `plugin/skills/faff/bin/lib/run-ledger.js:127` (`buildSelfDrainLedger`, `SELF_DRAIN_LEVEL`) | JS | The L3 self-drain (beep-boop) mint — where the unattended-L3 opt-in is captured. |
+| `plugin/skills/faff/bin/lib/run-ledger.js:127` (`buildSelfDrainLedger`, `SELF_DRAIN_LEVEL`) | JS | The L3 self-drain (beep-boop) mint — where the unattended fact is captured. |
 | `plugin/skills/faff/bin/lib/lights-out.js:88` (`LIGHTS_OUT_GUARDRAILS` holdout entry) | JS | The per-unit L4 holdout guardrail row; its `rechecked: true` now covers the widened activation. |
 | `records/adr/0130-…md:22` | md | ADR-0130 explicitly declined to generalise the holdout guarantee. ADR-0131 is the named follow-up that does; cite + amend. |
 
@@ -86,9 +87,9 @@ RECORD HoldoutPostureResult:
 # Additive run-ledger field, stamped once at mint (lights-out.js:1158 / run-ledger.js:127),
 # read back at merge via readLedger(runDir) — NEVER re-derived from live .faffrc.
 RECORD LedgerHoldoutGuarantee:
-  unattended: Bool        # the resolved attendedness fact at mint
-  opted_in:   Bool        # the L3 config opt-in leaf (Punt: leaf vs namespace), resolved at mint
-                          # L4 mint: unattended = true by construction
+  unattended: Bool        # the resolved attendedness fact at mint (L4 || (L3 && declaredUnattendedFromConfig))
+                          # L4 mint: unattended = true by construction. NO opted_in field — activation is
+                          # fact-based (unattended × can_run × caged), never a config opt-in.
 ```
 
 **decideFloor input widening.** `FloorInputs` gains one field; `holdout` keeps its meaning.
@@ -103,7 +104,7 @@ RECORD FloorInputs (additions only):
 ```
 
 **Design decision — the binding fact source.**
-**Chosen:** the merge floor reads `unattended`/`opted_in` from the **run-ledger** (`readLedger(runDir)`, mint-time-resolved), not from live config. Rationale in Failure Modes (fail-open-on-resume); this is the FAFF-1072 mint-resolved-once precedent (`floor`/`dial_profile` are already resolved at mint).
+**Chosen:** the merge floor reads `unattended` from the **run-ledger** (`readLedger(runDir)`, mint-time-resolved), not from live config. Rationale in Failure Modes (fail-open-on-resume); this is the FAFF-1072 mint-resolved-once precedent (`floor`/`dial_profile` are already resolved at mint).
 
 ## 4. HOW — Behavior
 
@@ -184,8 +185,8 @@ PROCEDURE readCaged(runDir):                              # -> CapabilityRead
 ```
 AT MINT:  ledger.holdout_guarantee = {
             unattended: (level == "L4") || (level == "L3" && declaredUnattendedFromConfig(cfg)),
-            opted_in:   literalTrue(dig(cfg, "<holdout leaf>")),   # Punt: leaf name
-          }
+          }   # no opted_in — activation is fact-based; `declaredUnattendedFromConfig` is the SAME
+              # attendedness axis admissibility uses, not a holdout-specific opt-in.
 AT MERGE: read ledger.holdout_guarantee — DO NOT call loadConfig for this fact.
 ```
 
@@ -202,7 +203,7 @@ AT MERGE: read ledger.holdout_guarantee — DO NOT call loadConfig for this fact
 
 **Failure modes.**
 
-- **The failure:** fail-open-on-resume — an unattended run whose guarantee resolved to `strict` at mint is re-entered after a crash/`--resume` from a `.faffrc` with the leaf removed, and the live re-derivation silently resolves the gate off, merging with no record. **How you'd know:** a merge-record showing `holdout_posture: pass-through` on a run whose mint ledger says `unattended: true, opted_in: true`. **What it means:** proceed only with the ledger-persisted read; this is why persistence is Chosen, not a punt.
+- **The failure:** fail-open-on-resume — an unattended run whose guarantee resolved to `strict` at mint is re-entered after a crash/`--resume` from a `.faffrc` with `autonomous.unattended` removed, and a live re-derivation would silently resolve `unattended` false and the gate off, merging with no record. **How you'd know:** a merge-record showing `holdout_posture: pass-through` on a run whose mint ledger says `unattended: true`. **What it means:** proceed only with the ledger-persisted read; this is why persistence is Chosen, not a punt.
 - **The failure:** the `"TRUE"`-coercion trap — assuming a quoted-YAML `"TRUE"` coerces to `false`. It does not: `literalTrue` (sentry.js:227) lower-cases and accepts it. **How you'd know:** a config selftest (config.js:813 precedent) asserting `"TRUE"` → true. **What it means:** proceed; do not add a "handle the string case" workaround — it already works.
 - **The failure:** the L4-generalisation loosens a real gate — an L4 no-SUT run that used to hard-block on `holdout: missing` now passes through. **How you'd know:** an L4 merge-record with `holdout_posture: pass-through, missing: [no-born-verifiable-dod-or-standable-sut]`. **What it means:** proceed — this is the intended correction (condition-(a) = 19.3% of specs are non-born-verifiable; forcing holdout there parks a non-defect). ADR-0131 must own this as an amendment to ADR-0130 line 22. **This is the *legitimate-absent* case only** — a faulted read is caught by the fault channel below and does NOT reach pass-through.
 - **The failure (fail-open-on-capability-fault — the infosec-major this revision closes):** a naive `can_run = boolean(read succeeded && true)` would collapse "no SUT declared" and "env-handle unreadable/torn-down/stale" into one `false`, routing both to pass-through — so a plumbing fault at an unattended run would **silently skip** the holdout and **invert** today's L4 fail-closed posture (absent/unreadable `holdout.json` → `readHoldout` → `missing`/`blocked` → block). **How you'd know:** an unattended merge-record with `holdout_posture: pass-through` whose `env-handle`/`lane-boundary` artifact was actually present-but-unreadable or `terminated`. **What it means:** the three-way `CapabilityRead` (satisfied/absent/faulted) + fault-before-absent precedence is load-bearing, not a nicety: `faulted` → `strict` (unattended) / `offer` (interactive), never `pass-through`. Mirror `laneBoundaryPromisesCage`'s ENOENT-vs-unreadable discipline and `readHoldout`'s freshness guard.
@@ -235,7 +236,7 @@ Then the posture is "pass-through" with missing == ["no-proven-cage"] — cage i
 ```
 
 ```
-Given an unattended run whose guarantee resolved "strict" at mint, then re-entered via --resume from a .faffrc with the holdout leaf removed
+Given an unattended run whose guarantee resolved "strict" at mint, then re-entered via --resume from a .faffrc with autonomous.unattended removed
 When the merge floor is consulted
 Then the posture is still "strict" (read from the mint-stamped ledger), not silently flipped to pass-through
 ```
@@ -276,21 +277,19 @@ Then can_run is "absent", the posture is "pass-through" labelled "no-...-standab
 - Yes, for L4 no-SUT / non-born-verifiable runs (now pass-through, previously hard-block).
 - **Chosen:** accept and record it — condition-(a) = 19.3% of specs are non-born-verifiable; the spike grounds this as removing false parks, not weakening real coverage. ADR-0131 amends ADR-0130 line 22.
 
-**Whole overnight-L3 queue vs a flagged subset for holdout?**
-- Standup is cheap where a SUT exists (spike condition-b: ~2.7s, 0 faults), but no-SUT tickets are a large class.
-- **Punt:** whole L3 queue vs a flagged subset — needs human (decides: product).
+**Is there a config opt-in for the holdout guarantee?**
+- Options: (a) a per-mechanism opt-in leaf (`l3_safety.holdout`) the resolver ANDs in; (b) no config — activation is purely fact-based.
+- (a) contradicts the fact-based principle this generalises: admissibility is *required* for any unattended run with no toggle (FAFF-1072). A holdout opt-in would let an unattended, caged, standable run silently skip the code-blind gate on a config default — the exact silent-skip the fault channel exists to prevent.
+- **Chosen:** (b) no config opt-in (operator-directed, 2026-09-25). Activation = `unattended × can_run × caged`, all run facts. `declaredUnattendedFromConfig` remains the attendedness axis (shared with admissibility), which is a condition, not a holdout-specific opt-in.
 
-**Config layout: a `verification`-style namespace or a single leaf?**
-- Now that this is holdout-only, a whole namespace may be over-built.
-- **Punt:** single `l3_safety.holdout`-style leaf vs a namespace — keep minimal, human call (decides: architecture).
+**Which tickets get holdout — whole queue or a subset?**
+- Not a config choice. The "subset" is **capability-determined**: a ticket with a code-blind-exposable SUT + born-verifiable DoD gets `strict` (unattended) or `offer` (interactive); one without gets `pass-through` labelled. The spike showed standup is cheap where a SUT exists (~2.7s, 0 faults), so attempting across the eligible queue costs little, and the no-SUT majority pass through by construction — no flagging mechanism.
 
-*Temporal anchor:* at the time of writing, `verification.holdout` (config.js:329) exists but is FAFF-1061 advisory-only (short-circuits off for unattended); the new binding leaf is distinct and must not reuse it.
+*Temporal anchor:* at the time of writing, `verification.holdout` (config.js:329) exists but is FAFF-1061 advisory-only (short-circuits off for unattended); it is a *different axis* (the attended opt-in-to-see surface) and this ticket adds **no** binding config leaf at all.
 
 ## 7. Open Questions and Assumptions
 
-**Open Questions.**
-- **Punt (cost budget, decides: product):** should an unattended L3 drain run holdout across the whole ready queue, or only a flagged subset? Standup is cheap where a SUT exists but no-SUT tickets are a large class. Non-blocking: the resolver already yields pass-through for no-SUT tickets, so the default (attempt-all, pass-through where it can't run) is safe; this punt is about deliberately narrowing to save on the SUT-standup runs.
-- **Punt (config shape, decides: architecture):** a single `l3_safety.holdout`-style leaf, or a small namespace? Keep minimal. Whichever is chosen must register in `DEFAULTS`, `WRITABLE_NAMESPACES` (config.js:1205-1212), and `.faffrc.example.yaml` (the config selftest's example-drift check enforces this).
+**Open Questions.** None material. Both earlier Punts (cost budget; config shape) were dissolved by the operator-directed removal of the config opt-in (2026-09-25): activation is fact-based, and "which tickets" is capability-determined, so neither is an open decision. A future *different* mechanism (not holdout) wanting a per-level binding leaf would revisit config shape then — out of scope here.
 
 **Assumptions.**
 - **Assumes:** ADR-0131 lands on top of `origin/main`, which carries FAFF-1072's ADR-0130 and FAFF-1073's spike artifacts; the current dev worktree is on an older branch (`faff-1075-…`). *Validate:* `git log origin/main --oneline | grep -E "FAFF-1072|FAFF-1073"` before authoring, and rebase the ADR onto `origin/main`.
@@ -305,7 +304,7 @@ Then can_run is "absent", the posture is "pass-through" labelled "no-...-standab
 
 ### From WHAT (types and interfaces)
 - [ ] `resolveHoldoutPosture(unattended, caps)` returns `{ posture, missing }` with `posture ∈ {strict, offer, pass-through}` and `missing` non-empty only for pass-through.
-- [ ] The run-ledger carries a `holdout_guarantee { unattended, opted_in }` object at L4 mint (lights-out.js:1158) and L3 self-drain mint (run-ledger.js:127).
+- [ ] The run-ledger carries a `holdout_guarantee { unattended }` object at L4 mint (lights-out.js:1158) and L3 self-drain mint (run-ledger.js:127). No `opted_in` field — activation is fact-based.
 - [ ] `FloorInputs` carries `holdout_posture`, `holdout_missing`, and `holdout_fault` (the last surfaced on the merge record so a fault is diagnosable); every existing field is unchanged.
 
 ### From HOW (behaviour)
@@ -317,18 +316,18 @@ Then can_run is "absent", the posture is "pass-through" labelled "no-...-standab
 ### From HOW (edge cases)
 - [ ] An L4 ledger with no `holdout_guarantee` field resolves `unattended = true` (back-compat: in-flight L4 keeps blocking). *(fixture — the fail-closed-direction edge.)*
 - [ ] An absent/unreadable ledger resolves `unattended = false` (never newly `strict`). *(fixture — the fail-closed-direction edge.)*
-- [ ] `--resume` from a config with the leaf removed keeps the mint-stamped posture (no fail-open).
+- [ ] `--resume` from a config with `autonomous.unattended` removed keeps the mint-stamped `unattended` (no fail-open).
 - [ ] `readCanRun`/`readCaged` return the three-way `CapabilityRead`: a genuinely-absent artifact (ENOENT) → `absent` → pass-through; an unreadable / `terminated` / stale artifact → `faulted` → strict (unattended) / offer, **never** pass-through. Freshness-guarded like `readHoldout`.
 - [ ] A faulted capability read on an unattended run yields `strict` (blocks), not `pass-through` — a covered scenario, the fail-safe direction.
 
 ### Config / eval coverage
-- [ ] The chosen holdout opt-in leaf (per the config-shape punt) is registered in `DEFAULTS`, `WRITABLE_NAMESPACES`, and `.faffrc.example.yaml`; the config selftest passes.
+- [ ] **No new config leaf** — activation is fact-based; the change adds no `l3_safety.*` key and touches neither `DEFAULTS` nor `WRITABLE_NAMESPACES`. (A test asserts the resolver ignores config for activation, keying only on ledger `unattended` + capability reads.)
 - [ ] This change touches no LLM-judgement seam (pure predicate + wiring), so no grader/eval-case DONE item applies.
 
 **Integration smoke test.**
 ```
-1. Mint an L3 self-drain ledger with autonomous.unattended=true and the holdout leaf set.
-2. Assert ledger.holdout_guarantee == { unattended: true, opted_in: true }.
+1. Mint an L3 self-drain ledger with autonomous.unattended=true.
+2. Assert ledger.holdout_guarantee == { unattended: true }.
 3. With a born-verifiable spec + ready env-handle + cage promise, run the merge-gate consult.
 4. Assert floor.holdout_posture == "strict"; a non-meets-spec holdout.json yields a merge blocker.
 5. Remove the SUT (env-handle status != ready); re-consult.
@@ -357,12 +356,11 @@ spec-review: approve
 ```faff-contract:spec-readiness
 { "confidence": "high",
   "decisions": [
-    { "marker": "chosen", "topic": "fact-based holdout activation posture (ADR-0131)" },
+    { "marker": "chosen", "topic": "fact-based holdout activation posture (ADR-0131); NO config opt-in — required on run facts like admissibility" },
     { "marker": "chosen", "topic": "three-state resolver: strict/offer/pass-through; cage detects not blocks" },
     { "marker": "chosen", "topic": "three-way capability reads (satisfied/absent/faulted); faulted fails safe, never pass-through — preserves L4 fail-closed; env-handle freshness-guarded" },
-    { "marker": "chosen", "topic": "persist resolved posture into run-ledger at mint (fail-open-on-resume fix)" },
+    { "marker": "chosen", "topic": "persist resolved unattended fact into run-ledger at mint (fail-open-on-resume fix)" },
     { "marker": "chosen", "topic": "accept and record the L4 no-SUT generalisation (amends ADR-0130)" },
-    { "marker": "punt", "topic": "cost budget: whole L3 queue vs flagged subset" },
-    { "marker": "punt", "topic": "config shape: single holdout leaf vs namespace" }
+    { "marker": "chosen", "topic": "which tickets is capability-determined (pass-through where no exposable SUT), not a config-flagged subset" }
   ] }
 ```

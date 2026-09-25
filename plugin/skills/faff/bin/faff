@@ -72,7 +72,7 @@ const { cmdLintCliCoverage } = require("./lib/lint-cli-coverage");
 const { cmdLintCliDoc } = require("./lib/lint-cli-doc");
 const { cmdLintRefs } = require("./lib/lint-refs");
 const { cmdMergeFence } = require("./lib/merge-fence");
-const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate } = require("./lib/merge-gate");
+const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdPrCreate } = require("./lib/merge-gate");
 const { cmdNativeMap } = require("./lib/native-map");
 const { cmdNext } = require("./lib/next");
 const { cmdParkHistory } = require("./lib/park-history");
@@ -196,6 +196,7 @@ const COMMANDS = {
   "bundle-recover": cmdBundleRecover,
   "corrective": cmdCorrective,
   "merge-gate": cmdMergeGate,
+  "pr-create": cmdPrCreate,
   "branch-protection-check": cmdBranchProtectionCheck,
   "github-auth-check": cmdGithubAuthCheck,
   "ci-triage": cmdCiTriage,

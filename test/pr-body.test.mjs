@@ -179,7 +179,9 @@ test("faff-graft SKILL.md Step 9b: the git-only no-op guard precedes the pr-body
   assert.ok(sanitizeInvokeIdx >= 0, "pr-body sanitize invocation not found in Step 9b");
   assert.ok(gitOnlyIdx < sanitizeInvokeIdx, "git-only no-op guard must precede the sanitizer invocation");
 
-  // The sequence also names check + gh pr create --body-file, per FAFF-214 §3/§4.
+  // The sequence also names check + the PR-create invocation with --body-file, per FAFF-214 §3/§4.
+  // FAFF-1118: the create is now `faff pr-create` (the sole sanctioned gh-pr-create path), never a
+  // raw `gh pr create`.
   assert.match(section, /pr-body check --target/);
-  assert.match(section, /gh pr create --body-file/);
+  assert.match(section, /faff pr-create[^\n]*--body-file/);
 });

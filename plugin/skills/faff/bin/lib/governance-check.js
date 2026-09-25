@@ -5,8 +5,8 @@
 // Claude Code harness. Composes ALREADY-SHIPPED cores: runcheck's completeness
 // audit (`auditLedger`), the budget envelope's LAST recorded `budget-checkpoint`
 // event (never a live token recompute), merge-gate's floor-artifact re-validation
-// (`readAcComplete`/`readReviewVerdict`/`readHoldout` — the SAME functions
-// `merge-gate` reads, never a forked rule), audit's events↔ledger coherence join
+// (`readAcComplete`/`readReviewVerdict` + the `resolveHoldoutLeg` posture — the SAME
+// functions `merge-gate` reads, never a forked rule), audit's events↔ledger coherence join
 // (`buildReconstruction`), and the run-ledger's owner-block shape. Adds NO new
 // invariant — every leg re-reads/re-validates a substrate an existing verb already
 // produces or validates; this verb only aggregates the verdict and renders it.
@@ -35,7 +35,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { auditLedger, TERMINAL_STATES } = require("./runcheck");
-const { readAcComplete, readHoldout, readReviewVerdict } = require("./merge-gate");
+const { readAcComplete, readReviewVerdict, resolveHoldoutLeg } = require("./merge-gate");
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
 const { verifyAuthLeg, hasGovernanceContext } = require("./commissaire");
@@ -126,23 +126,23 @@ function evaluateLivenessLeg(ledger, nowMs) {
 // ---------------------------------------------------------------------------
 // Leg: merge_floor — for each target issue, re-validate the SAME persisted floor
 // artifacts `faff merge-gate` reads, through the SAME functions (never a forked
-// rule): `readAcComplete` + `readReviewVerdict` (both merge-gate.js). At L4 the
-// floor ALSO covers the persisted holdout verdict (`readHoldout`), the same
-// gate merge-gate applies under `--level L4`.
+// rule): `readAcComplete` + `readReviewVerdict` (both merge-gate.js). The holdout
+// leg re-validates through the SAME posture resolver the live merge floor uses
+// (`resolveHoldoutLeg`, FAFF-1040) — capability-driven and level-agnostic, never a
+// forked `level === "L4"` test, so this gating mirror can never contradict the live
+// floor (it would otherwise refuse a no-SUT run the live floor passes through, and
+// miss a caged unattended-L3 run's failing verdict the live floor now blocks).
 // ---------------------------------------------------------------------------
 
-function evaluateMergeFloorLeg(runDir, issue, level) {
+function evaluateMergeFloorLeg(runDir, issue, level) { // `level` retained for signature parity; the holdout leg is level-agnostic
   const acComplete = readAcComplete(runDir, issue);
   const reviewVerdict = readReviewVerdict(runDir, issue);
   const reasons = [];
   if (!acComplete) reasons.push("ac-checklist.json missing/incomplete");
   if (reviewVerdict !== "pass") reasons.push(`review-verdict ${reviewVerdict}`);
-  let holdout = null;
-  if (level === "L4") {
-    holdout = readHoldout(runDir, issue);
-    if (holdout !== "meets-spec") reasons.push(`holdout ${holdout}`);
-  }
-  return { issue, pass: reasons.length === 0, ac_complete: acComplete, review_verdict: reviewVerdict, holdout, reasons };
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue);
+  if (holdoutLeg.holdout_posture === "strict" && holdoutLeg.holdout !== "meets-spec") reasons.push(`holdout ${holdoutLeg.holdout}`);
+  return { issue, pass: reasons.length === 0, ac_complete: acComplete, review_verdict: reviewVerdict, holdout: holdoutLeg.holdout, reasons };
 }
 
 // ---------------------------------------------------------------------------
@@ -268,18 +268,15 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
     if (ch && typeof ch.run_id === "string" && ch.run_id) label = ch.run_id + (ch.issue ? `/${ch.issue}` : "");
     if (ch && typeof ch.issue === "string" && ch.issue) issue = ch.issue;
   } catch { /* no chain-head witness — label/issue stay the dir basename */ }
-  // FAFF-690 (F1b): derive the merge-floor level from the anchor's OWN committed run-ledger.json (the
-  // same head-sha-pinned byte-copy `faff events anchor` writes into the dir), so the required
-  // branch-protection-gated CI check and merge-gate consult the same pinned truth and cannot disagree
-  // — an L4-anchored PR then has its holdout leg enforced by CI independently of merge-gate. Only
-  // STRENGTHENS: a non-L4 / legacy / level-less / unreadable anchor keeps today's `--level`-flag
-  // behaviour (fail-closed to the flag, unchanged).
-  let effectiveLevel = level;
+  // FAFF-1040: the merge-floor holdout leg is now capability-driven and LEVEL-AGNOSTIC (it consults
+  // `resolveHoldoutLeg`, the same posture the live floor uses), so the FAFF-690 anchor-level derivation
+  // that used to switch the holdout leg on/off is gone — the leg enforces a fresh caged verdict at any
+  // level and passes through its absence, identically here and at merge-gate, with no level to derive.
+  // The anchor's committed run-ledger.json is still read below for the FAFF-796 outcome check.
   let anchorLedger = null;
   try {
     anchorLedger = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
-    if (anchorLedger && FLOOR_LEVELS.includes(anchorLedger.level)) effectiveLevel = anchorLedger.level;
-  } catch { anchorLedger = null; /* no/unreadable/malformed anchor ledger → keep the --level flag (unchanged) */ }
+  } catch { anchorLedger = null; /* no/unreadable/malformed anchor ledger → outcome undefined below */ }
   // FAFF-796: an outcome-aware merge_floor — a run-level (git-only) anchor deliberately anchors
   // NON-shipped issues too (parked/errored/routed-out/superseded/…), which never reached review
   // and so carry none of evaluateMergeFloorLeg's expected floor files. Reusing the leg unchanged
@@ -300,7 +297,7 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
   // per-issue evaluateMergeFloorLeg result (no `issues` array) must never be assigned directly.
   const floorResult = isNonShipped
     ? { issue, pass: true, ac_complete: null, review_verdict: null, holdout: null, reasons: [] }
-    : { ...evaluateMergeFloorLeg(dir, ".", effectiveLevel), issue };
+    : { ...evaluateMergeFloorLeg(dir, ".", level), issue };
   const merge_floor = isNonShipped
     ? { pass: true, issues: [floorResult], detail: `n/a — non-shipped run-level issue (outcome: ${JSON.stringify(outcome)})` }
     : { pass: floorResult.pass, issues: [floorResult] };
@@ -893,9 +890,25 @@ function governanceCheckSelftest() {
 
       check("floor: missing artifacts entirely → fail (fail-closed)", evaluateMergeFloorLeg(tmp, "FAFF-404", "L3").pass === false);
 
+      // FAFF-1040: no holdout artifact is a genuinely-absent capability → pass-through (the holdout
+      // guarantee steps aside), NOT a `missing` refuse — at ANY level. This mirrors the live floor and
+      // is the loosening ADR-0131 exists to make; the leg no longer forks on `level === "L4"`.
       writeFloorArtifacts(tmp, "FAFF-4", { acComplete: true, reviewVerdict: "pass" });
-      check("floor: L4 with no holdout.json → fail (holdout missing)", evaluateMergeFloorLeg(tmp, "FAFF-4", "L4").pass === false);
-      check("floor: L3 (same issue, no holdout required) → pass", evaluateMergeFloorLeg(tmp, "FAFF-4", "L3").pass === true);
+      check("floor: no holdout artifact → pass-through, leg passes (any level, mirrors live floor)", evaluateMergeFloorLeg(tmp, "FAFF-4", "L4").pass === true);
+      check("floor: no holdout artifact → pass-through at L3 too", evaluateMergeFloorLeg(tmp, "FAFF-4", "L3").pass === true);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  // FAFF-1040: a fresh, caged, non-meets-spec holdout verdict is enforced (strict) — the leg BLOCKS,
+  // exactly as the live floor does, at any level (proves the mirror gate no longer forks from it).
+  {
+    const tmp = mkTmpRunDir("faff-govcheck-holdout-strict-");
+    try {
+      writeFloorArtifacts(tmp, "FAFF-6", { acComplete: true, reviewVerdict: "pass" });
+      fs.writeFileSync(path.join(tmp, "lane-boundary.json"), JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+      fs.writeFileSync(path.join(tmp, "FAFF-6", "build-progress.json"), JSON.stringify({ updated_at: new Date(1000).toISOString() }));
+      fs.writeFileSync(path.join(tmp, "FAFF-6", "holdout.json"), JSON.stringify({ aggregate: "blocked", criteria: [] })); // fresh (written now > checkpoint epoch); non-meets-spec under the cage ratchet
+      const r = evaluateMergeFloorLeg(tmp, "FAFF-6", "L3");
+      check("floor: fresh caged non-meets-spec holdout → strict → leg fails (any level)", r.pass === false && r.reasons.some((x) => /holdout/.test(x)));
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
@@ -1196,30 +1209,27 @@ function governanceCheckSelftest() {
     } finally { fs.rmSync(l4, { recursive: true, force: true }); }
   }
   {
-    // FAFF-690 (F1b): evaluateAnchorDir derives the merge-floor level from the anchor's OWN committed
-    // run-ledger.json, not the --level flag. An L4-anchored dir with a clean AC+review floor but NO
-    // holdout FAILs the required check even with no --level flag (which would default to L3, where the
-    // holdout leg is skipped) — proving the level came from the anchor ledger. No events.jsonl ⇒ the
-    // integrity leg trivially passes, isolating merge_floor as the variable.
+    // FAFF-1040 (supersedes FAFF-690 F1b): the merge_floor holdout leg is now LEVEL-AGNOSTIC — it
+    // consults the capability posture (resolveHoldoutLeg), never the anchor-derived level. So an
+    // L4-anchored dir with a clean AC+review floor but NO holdout artifact now PASSES (the absent
+    // capability is pass-through), identically at any anchor level and identically to the live floor —
+    // the anchor level no longer switches the holdout leg on or off. No events.jsonl ⇒ the integrity
+    // leg trivially passes, isolating merge_floor as the variable.
     const anchorDir = mkTmpRunDir("faff-govcheck-anchorlevel-");
     try {
       fs.writeFileSync(path.join(anchorDir, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
       fs.writeFileSync(path.join(anchorDir, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
-      // L4 in the anchor's own committed ledger — no holdout artifact beside it.
       writeLedger(anchorDir, { run_id: "anchored", level: "L4" });
-      const { result: derivedL4 } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir])); // no --level → flag default L3
-      check("F1b: L4 anchor-ledger + no holdout → merge-floor FAILS (level derived from the anchor, not the L3 flag default)", derivedL4 === 1);
+      const { result: l4NoHoldout } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir])); // no --level → flag default L3
+      check("FAFF-1040: L4 anchor-ledger + no holdout → merge-floor PASSES (holdout leg is level-agnostic, absent → pass-through)", l4NoHoldout === 0);
 
-      // Rewrite the anchor ledger to a non-L4 level (or drop it) → the flag default (L3) governs again,
-      // the holdout leg is skipped, and the same clean floor PASSES — the fallback is unchanged.
       writeLedger(anchorDir, { run_id: "anchored", level: "L3" });
       const { result: l3Anchor } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir]));
-      check("F1b: L3 anchor-ledger + clean floor → passes (non-L4 anchor keeps today's flag behaviour)", l3Anchor === 0);
+      check("FAFF-1040: L3 anchor-ledger + clean floor (no holdout) → passes", l3Anchor === 0);
 
-      // A ledger with no usable level → the flag default (L3) governs (fail-closed to the flag), unchanged.
       writeLedger(anchorDir, { run_id: "anchored" });
       const { result: noLevel } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir]));
-      check("F1b: level-less anchor-ledger → flag default governs (unchanged), clean floor passes", noLevel === 0);
+      check("FAFF-1040: level-less anchor-ledger + clean floor → passes", noLevel === 0);
     } finally { fs.rmSync(anchorDir, { recursive: true, force: true }); }
   }
   {

@@ -41,7 +41,7 @@ const BRANCH_PROTECTION_SPEC = { flags: {
 } };
 // FAFF-728: the GitHub-auth preflight probe — user-scoped, so it needs no repo slug.
 const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
-const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, requiresSelfConsistencyStamp, resolveGateLevel } = require("./contract-defs");
+const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, requiresSelfConsistencyStamp, resolveGateLevel, resolveHoldoutPosture } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches } = require("./effects");
@@ -408,10 +408,11 @@ function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integri
   if (!readAcComplete(runDir, issue)) reasons.push("ACs not all verified");
   const rv = readReviewVerdict(runDir, issue);
   if (rv !== "pass") reasons.push(`review verdict is ${rv}`);
-  if (level === "L4") {
-    const h = readHoldout(runDir, issue);
-    if (h !== "meets-spec") reasons.push(`L4 holdout: ${h}`);
-  }
+  // FAFF-1040: the retrospective floor re-derives the SAME posture-based holdout leg as the live floor
+  // (resolveHoldoutLeg), never a divergent `level === "L4"` test — otherwise an already-merged no-SUT
+  // run that the live floor passed through would be refused retrospectively (no success evidence).
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue);
+  if (holdoutLeg.holdout_posture === "strict" && holdoutLeg.holdout !== "meets-spec") reasons.push(`holdout guarantee (strict): ${holdoutLeg.holdout}`);
   if (integrity.state === "violated") reasons.push("corrective-artifact integrity violated");
   if (integrity.state === "unasserted-refuse") reasons.push("corrective-artifact integrity unasserted at L4");
   if (reasons.length === 0) {
@@ -716,6 +717,73 @@ function readHoldout(runDir, issue) {
   const res = holdoutGateResult(block, { requireSpawnerAttested });
   if (res.gate === "pass") return "meets-spec";
   return res.reason === "missing" ? "missing" : "blocked";
+}
+
+// FAFF-1040: the "can-run" capability read for the holdout guarantee, THREE-way (satisfied/absent/
+// faulted). The code-blind holdout verdict is the only merge-time on-disk evidence that a
+// system-under-test was stood up and judged: the env-handle is an upstream in-band contract block,
+// NEVER a run-dir artifact (Assumption 3 validated at build time — it is not reachable at the floor),
+// and the full spec's holdout criteria are stripped from the committed builder view, so dodClassify
+// is not runnable here either. So this reads the SAME <run-dir>/<issue>/holdout.json readHoldout
+// consults and classifies the READ, not the verdict:
+//   - absent (ENOENT) → no verdict was produced: holdout genuinely could not run (no standable SUT —
+//     faff's own tickets, or a non-born-verifiable spec). The legitimate can't-run case → pass-through.
+//   - faulted → present but unreadable/malformed, or present-but-STALE (freshness unprovable against
+//     the build-complete checkpoint). A plumbing/tamper fault — fail SAFE (strict when unattended),
+//     never a silent pass-through; this preserves today's L4 fail-closed posture for the broken case.
+//   - satisfied → a fresh, readable verdict exists; the meets-spec/blocked check is left to readHoldout,
+//     consulted by the caller once the posture resolves non-pass-through.
+// PURE beyond the file reads; never throws.
+function readCanRun(runDir, issue) {
+  if (!runDir) return "absent"; // no run to bind to — nothing stood up
+  const holdoutPath = path.join(runDir, issue, "holdout.json");
+  let holdoutMtimeMs;
+  try {
+    JSON.parse(fs.readFileSync(holdoutPath, "utf8")); // readability + parseability
+    holdoutMtimeMs = fs.statSync(holdoutPath).mtimeMs;
+  } catch (e) {
+    return e.code === "ENOENT" ? "absent" : "faulted"; // ENOENT → absent; unreadable/malformed → faulted
+  }
+  let checkpointTimeMs = NaN;
+  try {
+    const checkpoint = JSON.parse(fs.readFileSync(buildProgressPath(runDir, issue), "utf8"));
+    checkpointTimeMs = Date.parse(checkpoint.updated_at ?? checkpoint.build?.pushed_at);
+  } catch (e) { /* NaN → not fresh below */ }
+  if (!holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs)) return "faulted"; // stale/unprovable → fail safe
+  return "satisfied";
+}
+
+// FAFF-1040: the "caged" capability read, THREE-way. Reuses the SAME lane-boundary.json parse as
+// laneBoundaryPromisesCage, but SPLITS the "present-but-broken" case out as `faulted` (fail safe to
+// strict) instead of folding it into the arm-the-ratchet true. absent (ENOENT, or a valid non-cage
+// boundary — no cage promised) → pass-through; faulted (unreadable/malformed/invalid) → strict;
+// satisfied (a valid evaluator-cage promise) → the cage capability holds. PURE beyond the read.
+function readCaged(runDir) {
+  if (!runDir) return "absent";
+  let raw;
+  try { raw = fs.readFileSync(path.join(runDir, "lane-boundary.json"), "utf8"); }
+  catch (e) { return e.code === "ENOENT" ? "absent" : "faulted"; }
+  let intent;
+  try { intent = JSON.parse(raw); } catch { return "faulted"; }
+  const { contractData, failLoud } = computeLaneBoundary(intent);
+  if (failLoud || !contractData) return "faulted";
+  if (contractData.violations.length > 0) return "faulted";
+  return (contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent") ? "satisfied" : "absent";
+}
+
+// FAFF-1040: the impure holdout leg the merge floor folds — reads the two three-way CAPABILITY facts
+// live from the run-dir artifacts, resolves the posture through the PURE resolveHoldoutPosture, and
+// reads the actual verdict only when the posture is not pass-through. Capability-driven and
+// level-agnostic: a present, fresh, caged verdict is enforced at any level; nothing else is consulted.
+// (A future follow-up captures these capabilities in the run ledger at build time — when SUT
+// standability is actually known — and reads them here instead of the merge-time artifact proxy.)
+// Returns the four floor fields (holdout + posture + the labelled missing/fault lists surfaced on the
+// merge record).
+function resolveHoldoutLeg(runDir, issue) {
+  const caps = { can_run: readCanRun(runDir, issue), caged: readCaged(runDir) };
+  const { posture, missing, fault } = resolveHoldoutPosture(caps);
+  const holdout = posture === "pass-through" ? "not-applicable" : readHoldout(runDir, issue);
+  return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
 }
 
 // === FAFF-383 / FAFF-1012: the merge chokepoint is declarer AND observer for the merge ======
@@ -1074,19 +1142,23 @@ async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLeve
   const gatesOutcome = await runLadder(cwd);
   const ci_state = gatesSignalToCiState(gatesOutcome);
 
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue); // FAFF-1040: posture from run facts, not the L4 label
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
     ci_state,
     head_sha_matches: true, // the gates just ran against this EXACT branch tip — no drift leg to model
     level,
-    holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
+    holdout: holdoutLeg.holdout,
+    holdout_posture: holdoutLeg.holdout_posture,
+    holdout_missing: holdoutLeg.holdout_missing,
+    holdout_fault: holdoutLeg.holdout_fault,
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
     decision_grant: resolveCommissaireDecisionGrant(runDir, issue, base),
   };
   const { verdict, blockers } = decideFloor(floor); // UNCHANGED pure core
-  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [] };
+  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [], holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault };
 
   if (verdict === "refuse") {
     if (interactive && acceptReviewUnavailable) {
@@ -1409,20 +1481,24 @@ function cmdMergeGate(args) {
   if (interlock.headSha) headSha = interlock.headSha; // a successful rebase advanced D's head
 
   const ci = observeCi(repo, pr, headSha);
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue); // FAFF-1040: posture from run facts, not the L4 label
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
     ci_state: ci.ci_state,
     head_sha_matches: ci.head_sha_matches,
     level,
-    holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
+    holdout: holdoutLeg.holdout,
+    holdout_posture: holdoutLeg.holdout_posture,
+    holdout_missing: holdoutLeg.holdout_missing,
+    holdout_fault: holdoutLeg.holdout_fault,
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
     decision_grant: resolveCommissaireDecisionGrant(runDir, issue, null),
     dependency_gate: interlock.gate,
   };
   const { verdict, blockers } = decideFloor(floor);
-  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display };
+  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display, holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault };
   // FAFF-1077: surface the interlock's owner-park intent (never enacted here) and any transient
   // note so the owning layer can escalate a "leave pr-open" refuse to a park at the merge locus.
   if (interlock.park) { result.dependency_park = interlock.park; result.remedy = `park the dependent: ${interlock.park.cause}`; }
@@ -1662,6 +1738,14 @@ async function mergeGateSelftest() {
   check("L4 holdout meets-spec → merge-ok", F({ level: "L4", holdout: "meets-spec" }).verdict === "merge-ok");
   check("L4 holdout missing → refuse", F({ level: "L4", holdout: "missing" }).verdict === "refuse");
   check("L4 holdout blocked → refuse", F({ level: "L4", holdout: "blocked" }).verdict === "refuse");
+  // FAFF-1040: decideFloor blocks on the resolved POSTURE, not the L-level label. Only "strict"
+  // blocks; "pass-through" never blocks; an unset posture keeps the level-aware back-compat default
+  // (the three L4 checks above rely on it: L4 → strict, so they are unchanged).
+  check("holdout posture strict + missing → refuse", F({ holdout_posture: "strict", holdout: "missing" }).verdict === "refuse");
+  check("holdout posture strict + meets-spec → merge-ok", F({ holdout_posture: "strict", holdout: "meets-spec" }).verdict === "merge-ok");
+  check("holdout posture pass-through + missing → merge-ok (never blocks)", F({ holdout_posture: "pass-through", holdout: "missing" }).verdict === "merge-ok");
+  check("holdout posture absent + L3 defaults pass-through → merge-ok", F({ level: "L3", holdout: "missing" }).verdict === "merge-ok");
+  check("holdout posture strict names the FAFF-1040 blocker", /holdout guarantee \(strict\)/.test(F({ holdout_posture: "strict", holdout: "missing" }).blockers.join(" ")));
   // holdoutIsFresh (FAFF-420): pure freshness comparator readHoldout wraps around the run-scoped read
   check("holdoutIsFresh: fresh (holdout after checkpoint) → true", holdoutIsFresh(200, 100) === true);
   check("holdoutIsFresh: stale (holdout before checkpoint) → false", holdoutIsFresh(50, 100) === false);
@@ -2311,6 +2395,66 @@ async function mergeGateSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })();
 
+  // FAFF-1040: the three-way capability reads + the mint-stamped attendedness fact + the folded leg.
+  (() => {
+    const ISSUE = "FAFF-1040";
+    const cageIntent = { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false };
+    const buildIntent = { version: 1, lane: "build", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false };
+    // writeRun builds a run dir: fresh|stale|malformed|none holdout, optional lane-boundary + ledger.
+    const writeRun = (opts) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1040-"));
+      const idir = path.join(dir, ISSUE); fs.mkdirSync(idir, { recursive: true });
+      if (opts.holdout === "fresh" || opts.holdout === "stale") {
+        fs.writeFileSync(path.join(idir, "build-progress.json"), JSON.stringify({ updated_at: new Date(1000).toISOString() }));
+        fs.writeFileSync(path.join(idir, "holdout.json"), JSON.stringify(opts.block || { aggregate: "meets-spec", criteria: [] }));
+        // fresh ⇒ holdout mtime postdates the checkpoint (set the checkpoint to the epoch above);
+        // stale ⇒ backdate holdout.json's mtime to before the checkpoint.
+        if (opts.holdout === "stale") { const t = new Date(500); fs.utimesSync(path.join(idir, "holdout.json"), t, t); }
+      } else if (opts.holdout === "malformed") {
+        fs.writeFileSync(path.join(idir, "holdout.json"), "{not json");
+      }
+      if (opts.lane === "cage") fs.writeFileSync(path.join(dir, "lane-boundary.json"), JSON.stringify(cageIntent));
+      else if (opts.lane === "build") fs.writeFileSync(path.join(dir, "lane-boundary.json"), JSON.stringify(buildIntent));
+      else if (opts.lane === "malformed") fs.writeFileSync(path.join(dir, "lane-boundary.json"), "{not json");
+      return dir;
+    };
+    const rm = (d) => fs.rmSync(d, { recursive: true, force: true });
+    // readCanRun three-way
+    let d = writeRun({ holdout: "none" }); check("FAFF-1040: readCanRun no holdout.json → absent", readCanRun(d, ISSUE) === "absent"); rm(d);
+    d = writeRun({ holdout: "malformed" }); check("FAFF-1040: readCanRun malformed holdout.json → faulted", readCanRun(d, ISSUE) === "faulted"); rm(d);
+    d = writeRun({ holdout: "stale" }); check("FAFF-1040: readCanRun present-but-stale holdout → faulted (fail-safe)", readCanRun(d, ISSUE) === "faulted"); rm(d);
+    d = writeRun({ holdout: "fresh" }); check("FAFF-1040: readCanRun fresh readable holdout → satisfied", readCanRun(d, ISSUE) === "satisfied"); rm(d);
+    check("FAFF-1040: readCanRun no runDir → absent", readCanRun(null, ISSUE) === "absent");
+    // readCaged three-way
+    d = writeRun({ holdout: "none", lane: "none" }); check("FAFF-1040: readCaged no lane-boundary → absent", readCaged(d) === "absent"); rm(d);
+    d = writeRun({ holdout: "none", lane: "malformed" }); check("FAFF-1040: readCaged malformed lane-boundary → faulted (fail-safe)", readCaged(d) === "faulted"); rm(d);
+    d = writeRun({ holdout: "none", lane: "build" }); check("FAFF-1040: readCaged valid non-cage lane → absent (no cage promised)", readCaged(d) === "absent"); rm(d);
+    d = writeRun({ holdout: "none", lane: "cage" }); check("FAFF-1040: readCaged valid evaluator-cage lane → satisfied", readCaged(d) === "satisfied"); rm(d);
+    // resolveHoldoutLeg integration: fresh caged verdict present → strict (any level), verdict read back
+    d = writeRun({ holdout: "fresh", lane: "cage" });
+    let leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg can-run+caged → strict (any level)", leg.holdout_posture === "strict");
+    check("FAFF-1040: leg strict reads the verdict back (a real verdict, not pass-through's not-applicable)", leg.holdout !== "not-applicable" && ["meets-spec", "missing", "blocked"].includes(leg.holdout));
+    check("FAFF-1040: leg strict has no missing/fault labels", leg.holdout_missing.length === 0 && leg.holdout_fault.length === 0); rm(d);
+    // no cage → pass-through labelled, holdout not read
+    d = writeRun({ holdout: "fresh", lane: "none" });
+    leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg no cage → pass-through", leg.holdout_posture === "pass-through");
+    check("FAFF-1040: leg pass-through labels no-proven-cage + holdout not-applicable", leg.holdout_missing.includes("no-proven-cage") && leg.holdout === "not-applicable"); rm(d);
+    // no verdict → pass-through labelled (nothing stood up)
+    d = writeRun({ holdout: "none", lane: "cage" });
+    leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg absent verdict → pass-through", leg.holdout_posture === "pass-through");
+    check("FAFF-1040: leg absent labels no-...-standable-sut", leg.holdout_missing.includes("no-born-verifiable-dod-or-standable-sut")); rm(d);
+    // faulted capability → strict (fail-safe), fault surfaced, verdict read back
+    d = writeRun({ holdout: "malformed", lane: "cage" });
+    leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg faulted can-run → strict (fail-safe, never pass-through)", leg.holdout_posture === "strict");
+    check("FAFF-1040: leg faulted surfaces the fault + reads verdict (missing) → decideFloor blocks", leg.holdout_fault.length > 0 && leg.holdout === "missing"); rm(d);
+    check("FAFF-1040: leg strict + non-meets-spec → decideFloor blocks", decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", holdout_posture: "strict" }).verdict === "refuse");
+    check("FAFF-1040: leg pass-through → decideFloor does not block", decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", holdout_posture: "pass-through" }).verdict === "merge-ok");
+  })();
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -2344,4 +2488,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

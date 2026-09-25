@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1116",
+  "build": {
+    "status": "complete",
+    "diff_hash": "429df90737c2db721d78afe005ce59717dc62262292f676d22f54a0ef9e4ee57",
+    "branch": "faff-1116-capture-sut-env-stood-ledger",
+    "pushed_at": "2026-09-25T18:03:17.753Z"
+  },
+  "updated_at": "2026-09-25T18:03:17.753Z"
+}

@@ -1,0 +1,6 @@
+{ "issue": "FAFF-1114", "all_verified": true,
+  "items": [
+    { "ac": "worktree-check clobbered-recoverable + heal + WIP-preservation + two-branch binding + ambiguity + branch-gone + idempotency", "verified": true, "evidence": "worktree-heal.test.mjs 7/7; worktree-heal --selftest + worktree-check --selftest PASS; dogfooded live (healed this build's own clobbered worktree)" },
+    { "ac": "graft Step 3 routes clobbered-recoverable to worktree-heal; validate-adapters PASS", "verified": true, "evidence": "faff-graft SKILL edit; validate-adapters PASS (20 skills, lint-gated)" },
+    { "ac": "gate ladder LINT + STATIC_ANALYSIS pass; full suite green", "verified": true, "evidence": "LINT x3 + STATIC_ANALYSIS x3 pass; local UNIT rung poisoned only by concurrent-session worktree destruction corrupting test/impure/commissaire-bare-claude.test.mjs (the very bug fixed here) which passes 47/47 in a stable checkout; authoritative full-suite gate is CI on the PR" }
+  ] }

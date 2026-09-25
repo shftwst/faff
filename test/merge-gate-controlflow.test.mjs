@@ -293,15 +293,18 @@ test("F3: already-MERGED on a SATISFIED retrospective floor → exit 0 merge-ok 
   assert.equal(existsSync(sentinel), false, "no re-merge");
 });
 
-test("F3: already-MERGED at L4 with no fresh meets-spec holdout → exit 1 refuse (the retrospective floor re-derives the L4 holdout leg), NO merge-record", () => {
-  const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact under the run dir
+test("F3: already-MERGED at L4 with an unmet floor → exit 1 refuse (the retrospective floor re-derives the L4-gated legs), NO merge-record", () => {
+  // FAFF-1040: with no holdout artifact + no cage the holdout leg now passes THROUGH (can-run absent),
+  // so the retrospective L4 observable is the FAFF-325 integrity leg (unasserted-refuse at L4) — the
+  // point (a merged L4 run whose floor is not satisfied writes no success evidence) is unchanged.
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact, no integrity declaration
   const { env, sentinel } = stubGhEnv({ prState: "MERGED", anchorLevel: "L4" });
   const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
   assert.equal(out.ci_state, "not-observed-already-merged");
-  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "the retrospective floor re-derives the L4 holdout leg");
+  assert.ok(out.blockers.some((b) => /unasserted at L4/.test(b)), "the retrospective floor re-derives the L4-gated integrity leg");
   assert.equal(existsSync(mergeRecordPath(runDir)), false);
   assert.equal(existsSync(sentinel), false);
 });
@@ -396,7 +399,9 @@ test("F1: L4 committed anchor + no --level + no holdout artifact → exit 1, ref
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
-  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "refuse must name the L4 holdout leg");
+  // FAFF-1040: no holdout artifact + no cage ⇒ holdout passes through; the L4-only observable is now
+  // the FAFF-325 integrity leg (unasserted-refuse fires at L4, never below — proves L4 resolution).
+  assert.ok(out.blockers.some((b) => /unasserted at L4/.test(b)), "refuse must name an L4-gated leg (anchor resolved to L4)");
   assert.equal(existsSync(sentinel), false, "an anchor-derived L4 refuse must never reach gh pr merge");
 });
 
@@ -415,7 +420,7 @@ test("F1: L4 anchor + --level L4 (agreement) → proceeds at L4, refuse still na
   const { code, stdout } = runCli(argsNoLevel(runDir, ["--level", "L4"]), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
-  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)));
+  assert.ok(out.blockers.some((b) => /unasserted at L4/.test(b))); // FAFF-1040: holdout passes through; integrity is the L4 observable
   assert.equal(existsSync(sentinel), false);
 });
 
@@ -534,7 +539,7 @@ test("F1 FALLBACK: git-show miss + L4 anchor via the Contents-API fallback → l
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
   const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
-  assert.ok(JSON.parse(stdout).blockers.some((b) => /L4 holdout/.test(b)), "the L4 level came THROUGH the fallback (not defaulted, not anchor-missing)");
+  assert.ok(JSON.parse(stdout).blockers.some((b) => /unasserted at L4/.test(b)), "the L4 level came THROUGH the fallback (not defaulted, not anchor-missing) — FAFF-1040: integrity is the L4 observable");
   assert.equal(existsSync(sentinel), false);
 });
 
@@ -568,7 +573,7 @@ test("F1 MONEY: committed anchor L4 + live ledger rewritten to L1 + a fresh vali
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
-  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "the L4 legs fire — the live L4→L1 rewrite + chain append had no effect");
+  assert.ok(out.blockers.some((b) => /unasserted at L4/.test(b)), "the L4 legs fire — the live L4→L1 rewrite + chain append had no effect (FAFF-1040: integrity is the L4 observable)");
   assert.equal(existsSync(sentinel), false, "the live tamper cannot downgrade the merge to an ungated L1");
 });
 
@@ -584,7 +589,7 @@ test("F1 SMOKE: real committed L4 anchor + fresh meets-spec holdout → level re
   const { env, sentinel } = stubGhEnv({ sha });
   const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: repoDir });
   const out = JSON.parse(stdout);
-  assert.ok(!out.blockers.some((b) => /L4 holdout/.test(b)), "git-show resolved L4 and the fresh meets-spec holdout satisfied the leg");
+  assert.ok(!out.blockers.some((b) => /holdout guarantee/.test(b)), "git-show resolved L4 and the holdout leg does not block (FAFF-1040: fresh verdict, no cage → pass-through)");
   assert.equal(code, 1);
   assert.ok(out.blockers.some((b) => /corrective-artifact integrity unasserted at L4/.test(b)), "only the FAFF-325 defence-in-depth leg remains");
   assert.equal(existsSync(sentinel), false);
@@ -619,14 +624,21 @@ function writeHoldout(runDir, mtimeDate) {
   utimesSync(file, mtimeDate, mtimeDate);
 }
 
-test("FAFF-420: no holdout artifact under the run-dir (foreign/absent) → refuse, blocker names L4 holdout missing", () => {
+test("FAFF-1040: no holdout artifact under the run-dir (absent) → holdout passes THROUGH (never blocks, never silently meets-spec)", () => {
+  // FAFF-1040 supersedes the FAFF-420 "absent → L4 holdout missing → refuse": a genuinely-absent
+  // holdout verdict (ENOENT) means the check could not run (no standable SUT / non-born-verifiable),
+  // so the posture is pass-through — labelled, never a park on a non-defect, and never silently
+  // meets-spec. The overall refuse on this host is the FAFF-325 integrity leg (unasserted at L4).
   const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout.json anywhere under this run-dir
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
   const { code, stdout } = runCli(argsL4(runDir), { env, cwd: runDir });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
-  assert.ok(out.blockers.some((b) => /L4 holdout: missing/.test(b)), "an absent/foreign holdout must read as missing, never meets-spec");
+  assert.ok(!out.blockers.some((b) => /holdout guarantee/.test(b)), "an absent holdout must pass through, never push a holdout blocker");
+  assert.equal(out.holdout_posture, "pass-through", "an absent holdout verdict resolves pass-through");
+  assert.ok(out.holdout_missing.includes("no-born-verifiable-dod-or-standable-sut"), "pass-through is labelled with the missing can-run capability");
+  assert.ok(out.blockers.some((b) => /unasserted at L4/.test(b)), "the refuse is the FAFF-325 integrity leg, not holdout");
   assert.equal(existsSync(sentinel), false);
 });
 
@@ -641,7 +653,10 @@ test("FAFF-420: holdout mtime predates the build-complete checkpoint (stale) →
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
-  assert.ok(out.blockers.some((b) => /L4 holdout: blocked/.test(b)), "a stale verdict must read as blocked, distinct from missing");
+  // FAFF-1040: a stale artifact is a FAULTED capability read (freshness unprovable) → strict → the
+  // verdict reads "blocked" → the holdout leg blocks. Fail-safe: a present-but-broken artifact never
+  // relaxes to pass-through, preserving the pre-generalisation refuse.
+  assert.ok(out.blockers.some((b) => /holdout guarantee \(strict\): blocked/.test(b)), "a stale verdict must read as blocked (faulted → strict), distinct from missing");
   assert.equal(existsSync(sentinel), false, "a stale holdout must never satisfy the L4 floor");
 });
 
@@ -650,11 +665,11 @@ test("FAFF-420: holdout mtime predates the build-complete checkpoint (stale) →
 // trips the corrective-integrity defence-in-depth leg — exactly the shipped behaviour: at rung-0,
 // with no outer-layer mount+declaration anywhere, the run-start preflight is supposed to have
 // refused this L4 run at ADMISSION, long before it ever reached merge-gate; reaching here at all is
-// the belt-and-braces case, and it correctly refuses too. This test's original intent — prove the
-// HOLDOUT leg itself is satisfied by a fresh, run-scoped verdict — still holds: assert no holdout
-// blocker fires, and that integrity is the ONLY reason the overall verdict is refuse (never conflate
-// the two legs, and never silently paper over the new gate by loosening this assertion).
-test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) → the holdout leg itself is satisfied (no L4-holdout blocker); overall refuse is FAFF-325's corrective-integrity defence-in-depth, unasserted on this host", () => {
+// the belt-and-braces case, and it correctly refuses too. FAFF-1040: with a fresh readable verdict but
+// NO proven cage (no lane-boundary.json), the posture is pass-through (cage absent → labelled), so the
+// holdout leg does not block. The observable this test pins — no holdout blocker fires, and integrity
+// is the ONLY reason the overall verdict is refuse — is unchanged (never conflate the two legs).
+test("FAFF-1040: fresh readable holdout but no proven cage → pass-through (no holdout blocker); overall refuse is FAFF-325's corrective-integrity defence-in-depth", () => {
   const runDir = seedRunDir("merge-ok");
   const checkpointTime = new Date("2026-07-10T12:00:00.000Z");
   const freshHoldoutTime = new Date("2026-07-10T13:00:00.000Z"); // after the checkpoint
@@ -663,7 +678,8 @@ test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) �
   const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
   const { code, stdout } = runCli(argsL4(runDir), { env, cwd: runDir });
   const out = JSON.parse(stdout);
-  assert.ok(!out.blockers.some((b) => /L4 holdout/.test(b)), "the fresh, run-scoped meets-spec verdict must satisfy the holdout leg on its own");
+  assert.ok(!out.blockers.some((b) => /holdout guarantee/.test(b)), "no cage → pass-through → the holdout leg must push no blocker");
+  assert.equal(out.holdout_posture, "pass-through", "cage absent resolves pass-through even with a fresh readable verdict");
   assert.equal(code, 1);
   assert.equal(out.verdict, "refuse");
   assert.ok(out.blockers.some((b) => /corrective-artifact integrity unasserted at L4/.test(b)), "the ONLY remaining blocker must be the FAFF-325 defence-in-depth leg");
@@ -679,7 +695,7 @@ test("FAFF-420: holdout present but no build-complete checkpoint under the run-d
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
-  assert.ok(out.blockers.some((b) => /L4 holdout: blocked/.test(b)), "an unprovable freshness must refuse (blocked), never a silent pass");
+  assert.ok(out.blockers.some((b) => /holdout guarantee \(strict\): blocked/.test(b)), "an unprovable freshness is faulted → strict → blocked, never a silent pass");
   assert.equal(existsSync(sentinel), false);
 });
 

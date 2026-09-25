@@ -187,20 +187,21 @@ function writeAnchorFloor(anchorDir, { ac = true, review = "pass" } = {}) {
   writeFileSync(path.join(anchorDir, "review-verdict.json"), JSON.stringify({ signal: review, findings: [] }));
 }
 
-test("FAFF-690 (F1b): an L4 anchor-ledger + no holdout FAILS the merge-floor leg with NO --level flag (level derived from the anchor, not the L3 flag default)", () => {
+test("FAFF-1040 (supersedes FAFF-690 F1b): an L4 anchor-ledger + no holdout PASSES the merge-floor leg — the holdout leg is level-agnostic (absent capability → pass-through)", () => {
   const anchor = tmpRunDir("faff690-f1b-l4-");
   try {
     writeAnchorFloor(anchor);
     writeLedger(anchor, { run_id: "anchored", level: "L4" }); // the anchor's own committed level
-    // No --level flag → the flag would default to L3 (holdout leg skipped). F1b derives L4 from the
-    // anchor ledger, so the absent holdout blocks.
+    // FAFF-1040: the holdout leg no longer forks on the anchor level; a genuinely-absent holdout
+    // artifact is pass-through at any level, identically to the live merge floor. So the clean
+    // AC+review floor passes even at an L4 anchor.
     const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
-    assert.equal(r.code, 1, `expected merge_floor fail from the derived L4 level; stdout=${r.stdout} stderr=${r.stderr}`);
+    assert.equal(r.code, 0, `expected merge_floor pass (holdout level-agnostic, absent → pass-through); stdout=${r.stdout} stderr=${r.stderr}`);
     const verdict = JSON.parse(r.stdout);
-    assert.equal(verdict.runs[0].legs.integrity.pass, true, "integrity is clean — isolates the assertion to the derived-level holdout leg");
-    assert.equal(verdict.runs[0].legs.merge_floor.pass, false);
-    assert.ok(verdict.runs[0].legs.merge_floor.issues.some((i) => (i.reasons || []).some((x) => /holdout/.test(x))),
-      `expected a holdout reason from the derived L4 level; got ${JSON.stringify(verdict.runs[0].legs.merge_floor.issues)}`);
+    assert.equal(verdict.runs[0].legs.integrity.pass, true, "integrity is clean — isolates the assertion to the holdout leg");
+    assert.equal(verdict.runs[0].legs.merge_floor.pass, true);
+    assert.ok(!verdict.runs[0].legs.merge_floor.issues.some((i) => (i.reasons || []).some((x) => /holdout/.test(x))),
+      `expected NO holdout reason (pass-through); got ${JSON.stringify(verdict.runs[0].legs.merge_floor.issues)}`);
   } finally { rmSync(anchor, { recursive: true, force: true }); }
 });
 
@@ -215,17 +216,18 @@ test("FAFF-690 (F1b): a non-L4 (L3) anchor-ledger keeps today's flag behaviour �
   } finally { rmSync(anchor, { recursive: true, force: true }); }
 });
 
-test("FAFF-690 (F1b): a level-less / missing anchor-ledger falls back to the --level flag (unchanged) — the L3 default clean floor passes", () => {
+test("FAFF-1040 (supersedes FAFF-690 F1b): a level-less anchor + clean floor passes, and --level no longer gates the holdout leg (it is level-agnostic)", () => {
   const anchor = tmpRunDir("faff690-f1b-nolevel-");
   try {
     writeAnchorFloor(anchor);
-    writeLedger(anchor, { run_id: "anchored" }); // no `level` key → flag default (L3) governs
+    writeLedger(anchor, { run_id: "anchored" }); // no `level` key
     const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
-    assert.equal(r.code, 0, `expected pass (flag default L3); stdout=${r.stdout} stderr=${r.stderr}`);
+    assert.equal(r.code, 0, `expected pass; stdout=${r.stdout} stderr=${r.stderr}`);
     assert.equal(JSON.parse(r.stdout).runs[0].legs.merge_floor.pass, true);
-    // And an explicit --level L4 on the SAME level-less anchor DOES gate (flag fallback is honoured).
+    // FAFF-1040: --level L4 on the SAME no-holdout anchor no longer gates — the holdout leg is
+    // capability-driven, not level-driven, so an absent holdout is pass-through regardless of --level.
     const gated = runCli(["governance-check", "--anchor-dir", anchor, "--level", "L4", "--json"]);
-    assert.equal(gated.code, 1, "a level-less anchor falls back to the --level flag, so --level L4 gates the holdout");
+    assert.equal(gated.code, 0, "the holdout leg is level-agnostic — --level L4 does not gate an absent holdout");
   } finally { rmSync(anchor, { recursive: true, force: true }); }
 });
 

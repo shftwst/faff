@@ -19,9 +19,10 @@ import {
   deriveKey, signRecord, verifyRecord, mintGovernorKeypair, signDecision, verifyDecision,
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
-  evaluateDecisionRequest, chokepointPermit, verifyAuthLeg, appendProducerRecords, readLedgerEntries,
+  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, appendProducerRecords, readLedgerEntries,
   governorFileOf, producerFileOf, pkFileOf, governorDirOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
+import { resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant } from "../plugin/skills/faff/bin/lib/merge-gate.js";
 import { mintGovernorKeypair as _mintKp } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import { appendEffectEntries, computeEscapes } from "../plugin/skills/faff/bin/lib/effects.js";
 import { verifyEffectsChain, mintIssueAnchor } from "../plugin/skills/faff/bin/lib/events.js";
@@ -969,4 +970,135 @@ test("transparency-no-interleave: with no interleave, the same request grants al
     assert.equal(out.verdict, "grant");
     assert.equal(out.reason, "all-legs-pass");
   } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// ===========================================================================
+// FAFF-1034 — promote the runner onto the facade: the level policy, the composed authorize verdict,
+// and the fail-closed merge chokepoint (resolveCommissaireDecisionGrant's three states).
+// ===========================================================================
+
+// --- evaluateLevelPolicy: the L1/L2/L3/L4 truth table (pure) ----------------------------
+test("evaluateLevelPolicy: L1/L2 pass iff attended; L3 always passes; L4 passes iff holdout meets-spec; absent level passes", () => {
+  assert.equal(evaluateLevelPolicy({ level: "L1", attended: true }).pass, true);
+  assert.equal(evaluateLevelPolicy({ level: "L1", attended: false }).pass, false);
+  assert.equal(evaluateLevelPolicy({ level: "L2", attended: true }).pass, true);
+  assert.equal(evaluateLevelPolicy({ level: "L2", attended: false }).pass, false);
+  assert.equal(evaluateLevelPolicy({ level: "L3", attended: false }).pass, true);
+  assert.equal(evaluateLevelPolicy({ level: "L3", attended: true }).pass, true);
+  assert.equal(evaluateLevelPolicy({ level: "L4", holdout: "meets-spec" }).pass, true);
+  assert.equal(evaluateLevelPolicy({ level: "L4", holdout: "fails" }).pass, false);
+  assert.equal(evaluateLevelPolicy({ level: "L4" }).pass, false); // absent holdout blocks at L4
+  assert.equal(evaluateLevelPolicy({}).pass, true);              // absent level → pass (back-compat)
+  assert.equal(evaluateLevelPolicy().pass, true);               // no argument → pass
+});
+
+// --- resolveCommissaireDecisionGrant: governed+covered → valid-grant --------------------
+test("resolveCommissaireDecisionGrant: a governed run with a covering merge grant → valid-grant", () => {
+  const { runDir } = mkRun("com-fc-grant-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.equal(rd.code, 0);
+    assert.equal(JSON.parse(rd.stdout.trim()).verdict, "grant");
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main"), "valid-grant");
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", null), "valid-grant"); // grant's own target used
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- resolveCommissaireDecisionGrant: governed + no verdict → absent-or-invalid (FAIL CLOSED) ---
+test("resolveCommissaireDecisionGrant: a governed run with NO covering verdict → absent-or-invalid (fail closed)", () => {
+  const { runDir } = mkRun("com-fc-block-");
+  try {
+    // admit alone writes a schema:3 admission record ⇒ hasGovernanceContext, but no merge verdict exists
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-2", "main"), "absent-or-invalid");
+    // decideFloor blocks on that state
+    const base = { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "needs-human", integrity: "unasserted-ok" };
+    const blocked = decideFloor({ ...base, decision_grant: "absent-or-invalid" });
+    assert.equal(blocked.verdict, "refuse");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- resolveCommissaireDecisionGrant: ungoverned → not-applicable (byte-for-byte pass) --------
+test("resolveCommissaireDecisionGrant: an ungoverned run (no schema:3 records) → not-applicable (regression)", () => {
+  const { runDir } = mkRun("com-fc-ungov-");
+  try {
+    // no admit, no schema:3 records at all
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-3", "main"), "not-applicable");
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-3", null), "not-applicable");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- the composed authorize verdict records level/attended/holdout + the policy result ---------
+test("authorize --level records level/attended/holdout in BOTH the request and verdict payloads; an L4 non-meets-spec denies although the pure legs pass", () => {
+  const { runDir, ledger } = mkRun("com-level-record-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L4"], JSON.stringify({ effect: { kind: "merge", target: "main" }, attended: false, holdout: "fails" }));
+    assert.equal(rd.code, 0);
+    const out = JSON.parse(rd.stdout.trim());
+    assert.equal(out.verdict, "deny");
+    assert.equal(out.reason, "level-requires-holdout-meets-spec");
+    const recs = records(ledger);
+    const req = recs.find((r) => r.kind_of_entry === "effect-decision-request");
+    const ver = recs.find((r) => r.kind_of_entry === "effect-decision-verdict");
+    assert.equal(req.payload.level, "L4"); assert.equal(req.payload.attended, false); assert.equal(req.payload.holdout, "fails");
+    assert.equal(ver.payload.level, "L4"); assert.equal(ver.payload.attended, false); assert.equal(ver.payload.holdout, "fails");
+    assert.equal(ver.payload.pure_verdict, "grant", "the pure legs pass — the deny is the level policy's");
+    assert.equal(ver.payload.level_policy.pass, false);
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- an L1 attended merge grants and records the inputs ---------------------------------
+test("authorize --level L1 on an attended run grants, recording level/attended/holdout", () => {
+  const { runDir, ledger } = mkRun("com-l1-grant-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" }, level: "L1", attended: true }));
+    assert.equal(rd.code, 0);
+    assert.equal(JSON.parse(rd.stdout.trim()).verdict, "grant");
+    const ver = records(ledger).find((r) => r.kind_of_entry === "effect-decision-verdict");
+    assert.equal(ver.payload.level, "L1"); assert.equal(ver.payload.attended, true);
+    assert.equal(ver.payload.level_policy.pass, true);
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- a governed merge trail (grant AND a level-policy deny) passes `audit verify` result:pass ---
+test("a governed schema:3 merge trail — including a deny whose pure legs pass — passes `commissaire audit verify` with result:pass", () => {
+  const { runDir } = mkRun("com-auditverify-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge,branch-delete"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    // a second issue whose level policy denies (L4 without meets-spec) — pure legs pass, verdict deny
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-2", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const denied = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-2", "--step", "merge", "--level", "L4"], JSON.stringify({ effect: { kind: "merge", target: "main" }, holdout: "fails" }));
+    assert.equal(JSON.parse(denied.stdout.trim()).verdict, "deny");
+    const av = runCom(["audit", "verify", "--run-dir", runDir]);
+    assert.equal(av.code, 0, `audit verify exits 0 (${av.stderr})`);
+    const report = JSON.parse(av.stdout.trim());
+    assert.equal(report.result, "pass");
+    assert.equal(report.commissaire_decisions.failed, 0);
+    assert.equal(report.producer_claims.failed, 0);
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+});
+
+// --- per-covered-merge schema:2 suppression predicate (FAFF-1034) -----------------------
+test("mergeCoveredBySchema3Grant: true for a covered merge, false for a governed-but-ungranted merge and for an ungoverned run", () => {
+  const { runDir } = mkRun("com-suppress-");
+  try {
+    assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
+    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main"), true);   // covered → suppress schema:2
+    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-2", "main"), false);  // governed but ungranted → keep schema:2 (and blocks)
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+  const { runDir: ungov } = mkRun("com-suppress-ungov-");
+  try {
+    assert.equal(mergeCoveredBySchema3Grant(ungov, "FAFF-1", "main"), false);   // ungoverned → never suppressed
+  } finally { rmSync(join(ungov, "..", "..", ".."), { recursive: true, force: true }); }
 });

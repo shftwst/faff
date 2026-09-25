@@ -45,7 +45,7 @@ const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, compu
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches } = require("./effects");
-const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir } = require("./commissaire");
+const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir, hasGovernanceContext: commissaireHasGovernanceContext } = require("./commissaire");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
@@ -902,7 +902,14 @@ function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
   const verdicts = entries.filter((e) =>
     e && e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" &&
     e.issue === issue && e.step === "merge");
-  if (verdicts.length === 0) return "not-applicable"; // the facade never governed this merge
+  if (verdicts.length === 0) {
+    // FAFF-1034 — fail closed on a GOVERNED run. Before this ticket a no-verdict merge always read
+    // "not-applicable" (fail open). Now: a run whose runner has `admit`ted (any schema:3 record ⇒
+    // hasGovernanceContext) but produced NO covering merge verdict is exactly the hole the protocol
+    // exists to prevent — return "absent-or-invalid" so decideFloor refuses the merge BEFORE it lands.
+    // An UNGOVERNED run (no schema:3 records at all) stays "not-applicable" ⇒ pass, byte-for-byte.
+    return commissaireHasGovernanceContext(runDir) ? "absent-or-invalid" : "not-applicable";
+  }
   const verdict = verdicts[verdicts.length - 1]; // the latest decision for this issue's merge
   let pkRec;
   try { pkRec = JSON.parse(fs.readFileSync(commissairePkFile(commissaireProducerDir(runDir)), "utf8")); }
@@ -911,6 +918,18 @@ function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
   const mergeEffect = { kind: "merge", target: mergeTarget || grantedTarget };
   const res = commissaireChokepointPermit(mergeEffect, verdict, pkRec.pk, pkRec.pk_fingerprint);
   return res.permit ? "valid-grant" : "absent-or-invalid";
+}
+
+// FAFF-1034 — per-covered-merge schema:2 suppression predicate. TRUE iff THIS (issue, merge)
+// carries a covering, verified schema:3 grant (resolved the same way the chokepoint selects the
+// verdict + verifies coverage). When true, the merge's schema:2 auto-declare/observe is suppressed
+// so the covered merge has a SINGLE declaration lineage (schema:3) and computeEscapes never double-
+// counts. An uncovered merge (no grant / a governed-but-ungranted merge / an ungoverned run) keeps
+// its schema:2 trail as defence-in-depth — an ungoverned run has no schema:3 verdict, so this is
+// always false there and the schema:2 path is byte-for-byte unchanged.
+function mergeCoveredBySchema3Grant(runDir, issue, mergeTarget) {
+  try { return resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) === "valid-grant"; }
+  catch { return false; }
 }
 
 // ===========================================================================
@@ -1572,7 +1591,9 @@ function cmdMergeGate(args) {
       writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
       // FAFF-383: path (b) — the post-merge step's own success is unconfirmed (that's WHY gh
       // exited non-zero here), so observe the merge only, never branch-delete.
-      observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
+      // FAFF-1034: suppress the schema:2 auto-declare/observe for a merge covered by a schema:3 grant
+      // (the covered merge's schema:3 lineage is authoritative — single lineage, no double-count).
+      if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
       return emit(result, 0);
     }
     // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
@@ -1587,7 +1608,8 @@ function cmdMergeGate(args) {
   writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
   // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
   // merge-args carried --delete-branch (resolved.flags, not the raw --merge-args string).
-  observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
+  // FAFF-1034: suppressed for a merge covered by a schema:3 grant (single schema:3 lineage).
+  if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
   return emit(result, 0);
 }
 
@@ -2488,4 +2510,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

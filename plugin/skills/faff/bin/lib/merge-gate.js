@@ -986,7 +986,7 @@ function landBaseFfOnly({ cwd, base, tipSha, baseShaBefore, allowInPlace = false
   return { ok: true, case: "A" };
 }
 
-function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, acceptReviewUnavailable, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
+async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, acceptReviewUnavailable, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
     else {
@@ -1071,7 +1071,7 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
 
   // Fresh CI-equivalent (spec: NEVER reuse graft's earlier Step-7.5 result — the gate observes
   // the CI-equivalent itself on the final head sha, mirroring the FAFF-350 keystone property).
-  const gatesOutcome = runLadder(cwd);
+  const gatesOutcome = await runLadder(cwd);
   const ci_state = gatesSignalToCiState(gatesOutcome);
 
   const floor = {
@@ -1647,7 +1647,7 @@ function githubAuthSelftest() {
 // In-memory selftest: drives the PURE cores (decideFloor via classifyHeadShaChecks + parseMergeArgs
 // + classifyBranchProtection) with NO network. The impure gh/git path is covered by the integration
 // smoke test in the spec, not here (parity with container-check's pure-only selftest).
-function mergeGateSelftest() {
+async function mergeGateSelftest() {
   let fail = 0;
   const check = (label, cond) => { if (!cond) { console.log(`FAIL ${label}`); fail++; } else console.log(`ok   ${label}`); };
   const F = (o) => decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "needs-human", ...o });
@@ -2031,7 +2031,7 @@ function mergeGateSelftest() {
 
   // gitRemoteEmpty / resolveLocalBase / cmdMergeGateLocal — integration coverage against REAL git
   // repos (mirrors post-merge.js's postMergeSelftest pattern: no mocking of git itself).
-  (() => {
+  await (async () => {
     const gitTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-gate-local-"));
     const git = (cwd, ...gitArgs) => spawnSync("git", ["-C", cwd, ...gitArgs], { encoding: "utf8" });
     const makeRepo = (dir, testScript) => {
@@ -2081,14 +2081,14 @@ function mergeGateSelftest() {
       writeFloor(runDirA, "FAFF-526A", true, "pass");
       commitAnchor(repoA, runDirA, "FAFF-526A", "L3");
       const featureShaA = git(repoA, "rev-parse", "feature").stdout.trim(); // after the anchor commit
-      const okRes = runLocal("FAFF-526A", runDirA, repoA);
+      const okRes = await runLocal("FAFF-526A", runDirA, repoA);
       check("cmdMergeGateLocal: clean build (AC+review+gates green) → exit 0 merge-ok", okRes === 0);
       check("cmdMergeGateLocal: base ref advanced to the feature tip", git(repoA, "rev-parse", "main").stdout.trim() === featureShaA);
       const recordA = JSON.parse(fs.readFileSync(path.join(runDirA, "FAFF-526A", "merge-record.json"), "utf8"));
       check("cmdMergeGateLocal: merge-record.json carries head_sha + pr:0 (null pr coerced by Number())", recordA.head_sha === featureShaA && recordA.pr === 0 && recordA.merged === true);
 
       // idempotent: a second invocation on the now-already-merged branch is a no-op merge-ok
-      const idempotentRes = runLocal("FAFF-526A", runDirA, repoA);
+      const idempotentRes = await runLocal("FAFF-526A", runDirA, repoA);
       check("cmdMergeGateLocal: already-merged branch → idempotent exit 0 (no double-merge)", idempotentRes === 0);
 
       // --- repo B: no remote, a FAILING UNIT rung ---
@@ -2098,7 +2098,7 @@ function mergeGateSelftest() {
       writeFloor(runDirB, "FAFF-526B", true, "pass");
       commitAnchor(repoB, runDirB, "FAFF-526B", "L3");
       const baseBeforeB = git(repoB, "rev-parse", "main").stdout.trim();
-      const failRes = runLocal("FAFF-526B", runDirB, repoB);
+      const failRes = await runLocal("FAFF-526B", runDirB, repoB);
       check("cmdMergeGateLocal: failing gates run (signal=fail → ci-red) → exit 1 refuse", failRes === 1);
       check("cmdMergeGateLocal: failing gates → base ref NOT advanced", git(repoB, "rev-parse", "main").stdout.trim() === baseBeforeB);
       check("cmdMergeGateLocal: failing gates → no merge-record.json written", !fs.existsSync(path.join(runDirB, "FAFF-526B", "merge-record.json")));
@@ -2109,7 +2109,7 @@ function mergeGateSelftest() {
       const runDirC = path.join(gitTmp, "run-dir-c");
       writeFloor(runDirC, "FAFF-526C", true, "pass");
       commitAnchor(repoC, runDirC, "FAFF-526C", "L3");
-      const noGatesRes = runLocal("FAFF-526C", runDirC, repoC);
+      const noGatesRes = await runLocal("FAFF-526C", runDirC, repoC);
       check("cmdMergeGateLocal: discovery:none (no declared gates) → refuse fail-closed (no_ci_policy default needs-human)", noGatesRes === 1);
 
       // --- repo D: HAS a configured remote → bypass-guard refuses --local outright ---
@@ -2119,7 +2119,7 @@ function mergeGateSelftest() {
       makeRepo(repoD, "true");
       git(repoD, "remote", "add", "origin", remoteD);
       check("gitRemoteEmpty: a configured remote → false", gitRemoteEmpty(repoD) === false);
-      const remoteRes = runLocal("FAFF-526D", path.join(gitTmp, "run-dir-d"), repoD);
+      const remoteRes = await runLocal("FAFF-526D", path.join(gitTmp, "run-dir-d"), repoD);
       check("cmdMergeGateLocal: repo WITH a remote → bypass-guard refuses exit 2 (never usable as a CI-skip)", remoteRes === 2);
 
       // --- repo E: base branch moved (not fast-forwardable) after the feature branched ---
@@ -2133,7 +2133,7 @@ function mergeGateSelftest() {
       git(repoE, "add", "-A");
       git(repoE, "commit", "-qm", "main moved on independently");
       git(repoE, "checkout", "-q", "feature");
-      const notFfRes = runLocal("FAFF-526E", runDirE, repoE);
+      const notFfRes = await runLocal("FAFF-526E", runDirE, repoE);
       check("cmdMergeGateLocal: base moved since branching (non-ff) → refuse 'rebase first' (ff-only)", notFfRes === 1);
 
       // --- repo F: non-pass review verdict ---
@@ -2142,7 +2142,7 @@ function mergeGateSelftest() {
       const runDirF = path.join(gitTmp, "run-dir-f");
       writeFloor(runDirF, "FAFF-526F", true, "needs-human");
       commitAnchor(repoF, runDirF, "FAFF-526F", "L3");
-      const nonPassRes = runLocal("FAFF-526F", runDirF, repoF);
+      const nonPassRes = await runLocal("FAFF-526F", runDirF, repoF);
       check("cmdMergeGateLocal: review verdict != pass → refuse (identical fail-closed floor as the PR path)", nonPassRes === 1);
 
       // --- repo G: AC not all verified ---
@@ -2151,15 +2151,15 @@ function mergeGateSelftest() {
       const runDirG = path.join(gitTmp, "run-dir-g");
       writeFloor(runDirG, "FAFF-526G", false, "pass");
       commitAnchor(repoG, runDirG, "FAFF-526G", "L3");
-      const acRes = runLocal("FAFF-526G", runDirG, repoG);
+      const acRes = await runLocal("FAFF-526G", runDirG, repoG);
       check("cmdMergeGateLocal: AC not all verified → refuse", acRes === 1);
 
       // === FAFF-673: non-graft remedy + explainable-record integration on the local path ========
       // Capture the emitted JSON (runLocal passes json:true → the result object is written to stdout).
-      const captureStdout = (fn) => {
+      const captureStdout = async (fn) => {
         const orig = process.stdout.write; let out = "";
         process.stdout.write = (c) => { out += c; return true; };
-        let ret; try { ret = fn(); } finally { process.stdout.write = orig; }
+        let ret; try { ret = await fn(); } finally { process.stdout.write = orig; }
         return { out, ret };
       };
 
@@ -2169,7 +2169,7 @@ function mergeGateSelftest() {
       const runDirH = path.join(gitTmp, "run-dir-h");
       fs.mkdirSync(path.join(runDirH, "FAFF-673H"), { recursive: true }); // no floor artifacts written
       commitAnchor(repoH, runDirH, "FAFF-673H", "L3");
-      const capH = captureStdout(() => runLocal("FAFF-673H", runDirH, repoH));
+      const capH = await captureStdout(() => runLocal("FAFF-673H", runDirH, repoH));
       const resH = JSON.parse(capH.out);
       check("FAFF-673: non-graft refuse (no AC, no review) → exit 1", capH.ret === 1);
       check("FAFF-673: non-graft refuse → remedy names the human-merge path (--override-reason)", typeof resH.remedy === "string" && /--override-reason/.test(resH.remedy) && /faff effects declare/.test(resH.remedy));
@@ -2180,7 +2180,7 @@ function mergeGateSelftest() {
       const runDirI = path.join(gitTmp, "run-dir-i");
       writeFloor(runDirI, "FAFF-673I", true, "fail"); // ac_complete true, review "fail" → not the non-graft key
       commitAnchor(repoI, runDirI, "FAFF-673I", "L3");
-      const capI = captureStdout(() => runLocal("FAFF-673I", runDirI, repoI));
+      const capI = await captureStdout(() => runLocal("FAFF-673I", runDirI, repoI));
       const resI = JSON.parse(capI.out);
       check("FAFF-673: graft refuse (review fail, AC ok) → refuse, NO remedy (signature mismatch)", capI.ret === 1 && resI.remedy === undefined);
 
@@ -2194,7 +2194,7 @@ function mergeGateSelftest() {
       let overrideExit;
       try {
         process.stdin.isTTY = true; // the fence requires a real terminal; stub it for the test
-        overrideExit = captureStdout(() => runLocal("FAFF-673J", runDirJ, repoJ, { interactive: true, humanOverride: true, overrideReason: "spike findings; no floor applies" })).ret;
+        overrideExit = (await captureStdout(() => runLocal("FAFF-673J", runDirJ, repoJ, { interactive: true, humanOverride: true, overrideReason: "spike findings; no floor applies" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-673: local override with reason → exit 0 (override replaces the refusal, merges)", overrideExit === 0);
       const ovrJ = JSON.parse(fs.readFileSync(path.join(runDirJ, "FAFF-673J", "merge-gate-override.json"), "utf8"));
@@ -2212,7 +2212,7 @@ function mergeGateSelftest() {
       try {
         process.stdin.isTTY = true;
         process.stderr.write = () => true; // swallow the expected fence stderr
-        noReasonExit = runLocal("FAFF-673K", runDirK, repoK, { interactive: true, humanOverride: true, overrideReason: null });
+        noReasonExit = await runLocal("FAFF-673K", runDirK, repoK, { interactive: true, humanOverride: true, overrideReason: null });
       } finally { process.stdin.isTTY = origTty; process.stderr.write = origStderr673; }
       check("FAFF-673: --human-override with NO --override-reason → exit 2 (fenced, never a silent override)", noReasonExit === 2);
       check("FAFF-673: --human-override with NO reason → NO merge-gate-override.json written", !fs.existsSync(path.join(runDirK, "FAFF-673K", "merge-gate-override.json")));
@@ -2228,7 +2228,7 @@ function mergeGateSelftest() {
       let acceptExit;
       try {
         process.stdin.isTTY = true;
-        acceptExit = captureStdout(() => runLocal("FAFF-912L", runDirL, repoL, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; clean graft" })).ret;
+        acceptExit = (await captureStdout(() => runLocal("FAFF-912L", runDirL, repoL, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; clean graft" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: narrow accept on a review-unavailable-only refuse → exit 0 (merges)", acceptExit === 0);
       const ovrL = JSON.parse(fs.readFileSync(path.join(runDirL, "FAFF-912L", "merge-gate-override.json"), "utf8"));
@@ -2247,7 +2247,7 @@ function mergeGateSelftest() {
       let refuseExit;
       try {
         process.stdin.isTTY = true;
-        refuseExit = captureStdout(() => runLocal("FAFF-912M", runDirM, repoM, { interactive: true, acceptReviewUnavailable: true, overrideReason: "trying to excuse a real failure" })).ret;
+        refuseExit = (await captureStdout(() => runLocal("FAFF-912M", runDirM, repoM, { interactive: true, acceptReviewUnavailable: true, overrideReason: "trying to excuse a real failure" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: narrow accept on review 'fail' (not an outage) → exit 1 refuse, no merge", refuseExit === 1);
       check("FAFF-912: narrow-accept refuse → base ref NOT advanced", git(repoM, "rev-parse", "main").stdout.trim() === baseBeforeM);
@@ -2263,7 +2263,7 @@ function mergeGateSelftest() {
       let ciRedRefuseExit, ciRedRefuseOut;
       try {
         process.stdin.isTTY = true;
-        const cap = captureStdout(() => runLocal("FAFF-912N", runDirN, repoN, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; also CI is red" }));
+        const cap = await captureStdout(() => runLocal("FAFF-912N", runDirN, repoN, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; also CI is red" }));
         ciRedRefuseExit = cap.ret; ciRedRefuseOut = cap.out;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: narrow accept with review-unavailable + CI red → exit 1 refuse (another leg unmet)", ciRedRefuseExit === 1);
@@ -2282,7 +2282,7 @@ function mergeGateSelftest() {
       let blanketStillWorksExit;
       try {
         process.stdin.isTTY = true;
-        blanketStillWorksExit = captureStdout(() => runLocal("FAFF-912O", runDirO, repoO, { interactive: true, humanOverride: true, overrideReason: "spike; no floor" })).ret;
+        blanketStillWorksExit = (await captureStdout(() => runLocal("FAFF-912O", runDirO, repoO, { interactive: true, humanOverride: true, overrideReason: "spike; no floor" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: --human-override blanket path is byte-for-byte unchanged (still lands, still source:human-override)", blanketStillWorksExit === 0);
       const ovrO = JSON.parse(fs.readFileSync(path.join(runDirO, "FAFF-912O", "merge-gate-override.json"), "utf8"));

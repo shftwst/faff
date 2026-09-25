@@ -232,6 +232,18 @@ Additionally, a conformant bridge presents at `env-handle.endpoint` as a TCP `ho
 
 **Rich-type marshalling beyond JSON.** The wire guarantees JSON primitives, arrays, and objects end to end. Language-specific rich types (dates/times, arbitrary-precision decimals, binary blobs, sets, enums) have no single canonical JSON lowering, and the choice is entangled with each runtime adapter's reflection. Whether to standardise a canonical cross-runtime lowering now, or to defer until the first reflection adapter (FAFF-1104) exposes the concrete need and standardise once a second runtime lands, is an open architecture decision. Until it is resolved, the wire's guarantee is scoped to JSON-representable values, and an argument or return value that is not JSON-representable is the adapter's responsibility to lower, or to reject as `outcome:"threw"` with a descriptive `ThrownError`. This does not affect the wire's four-method shape; it only bounds the value space the wire promises.
 
+## Relationship to the shipped holdout stack
+
+The shipped holdout stack delivers the **service path only**; the code-interface path this wire adds is not yet delivered. This document is greenfield: no prior wire/RPC/code-interface design reconciles with it.
+
+| Shipped | Delivers |
+|---|---|
+| FAFF-34 | The code-blind holdout harness and `holdout-verdict`. |
+| FAFF-276 | Sandboxed code-blind enforcement. |
+| FAFF-307 / 309 / 311 | Wiring the holdout into the delivery / graft pipeline (`holdout_step`, faff-graft Step 10). |
+| FAFF-384 | The evaluator hard cage, the `evaluate-call.mjs` spawner, and cross-cage transport (`spawner_attested` + `attestation`). |
+| FAFF-817 | The `transport` slot (private-network base-host resolution). |
+
 ## Appendix A: wire error catalogue
 
 | `WireError.code` | Meaning | Terminal? |

@@ -94,6 +94,7 @@ const { cmdRatifiedScope } = require("./lib/ratified-scope");
 const { cmdReconcile } = require("./lib/reconcile");
 const { cmdReconcileRecover } = require("./lib/reconcile-recover");
 const { cmdMachineId } = require("./lib/machine-id");
+const { cmdManifest } = require("./lib/manifest");
 const { cmdRegions } = require("./lib/regions");
 const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
 const { cmdReviewTarget } = require("./lib/review-target");
@@ -226,6 +227,7 @@ const COMMANDS = {
   "ratified-scope": cmdRatifiedScope,
   "profile": cmdProfile,
   "profiles": cmdProfiles,
+  "manifest": cmdManifest,
   "conventions": cmdConventions,
   "fixtures": cmdFixtures,
   "env": cmdEnv,

@@ -221,6 +221,7 @@ const RUN_LEDGER_SPEC = {
   flags: {
     "--issue": { arity: 1 },
     "--outcome": { arity: 1, enum: [...EVENT_LEDGER_OUTCOMES] },
+    "--sut-env-stood": { arity: 1, enum: ["true", "false"] },
     "--root": { arity: 1 },
     "--run-dir": { arity: 1 },
     "--id": { arity: 1 },
@@ -244,10 +245,11 @@ const RUN_LEDGER_SURFACE = {
     "init-interactive": { required_flags: ["--issue"] },
     "init-self-drain": { required_flags: [] },
     "record-outcome": { required_flags: ["--issue", "--outcome"] },
+    "capture-capability": { required_flags: ["--issue", "--sut-env-stood"] },
   },
 };
 
-const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR]> [--json] [--selftest]";
+const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR] | capture-capability --issue <ISSUE-ID> --sut-env-stood <true|false> [--run-dir DIR]> [--json] [--selftest]";
 
 function cmdRunLedger(args) {
   if (args.includes("--selftest")) return runLedgerSelftest();
@@ -258,7 +260,8 @@ function cmdRunLedger(args) {
   if (sub === "init-interactive") return initInteractive(values);
   if (sub === "init-self-drain") return initSelfDrain(values);
   if (sub === "record-outcome") return recordOutcome(values);
-  process.stderr.write(`faff run-ledger: expected subcommand 'init-interactive' | 'init-self-drain' | 'record-outcome'${sub ? ` (got ${JSON.stringify(sub)})` : ""}\n${USAGE}\n`);
+  if (sub === "capture-capability") return captureCapability(values);
+  process.stderr.write(`faff run-ledger: expected subcommand 'init-interactive' | 'init-self-drain' | 'record-outcome' | 'capture-capability'${sub ? ` (got ${JSON.stringify(sub)})` : ""}\n${USAGE}\n`);
   return 2;
 }
 
@@ -569,6 +572,51 @@ function recordOutcome(values) {
   return 0;
 }
 
+// FAFF-1116: `capture-capability` — the trusted-side write of the standability fact into the LIVE
+// run-ledger, at env-stand time inside holdout_step. Merges capabilities[issue].sut_env_stood under the
+// same lock record-outcome uses; the mutate closure OMITS `level` so mutateLedgerUnderLock re-inherits the
+// launch level (never trips LEVEL_WRITE_ONCE). Additive: leaves outcomes/admitted/owner/budget/level
+// untouched. Fail-closed: absent/invalid run dir → 3; a bad --issue/--sut-env-stood → 2; a vanished or
+// malformed fresh ledger → the mutate returns null (no write) → 3.
+function captureCapability(values) {
+  const issue = values["--issue"];
+  if (!issue || !ISSUE_ID_RE.test(issue) || issue.includes("..")) {
+    process.stderr.write(`faff run-ledger capture-capability: --issue ${JSON.stringify(issue)} is not a valid issue id\n`);
+    return 2;
+  }
+  const raw = values["--sut-env-stood"]; // enum-guarded to "true"|"false" by parseArgs; belt here
+  if (raw !== "true" && raw !== "false") {
+    process.stderr.write(`faff run-ledger capture-capability: --sut-env-stood ${JSON.stringify(raw)} must be true|false\n`);
+    return 2;
+  }
+  const standable = raw === "true";
+  const root = values["--root"] || findRoot();
+  const runDir = values["--run-dir"] || process.env.FAFF_RUN_DIR || latestRunDir(root);
+  if (!runDir || !fs.existsSync(path.join(runDir, "run-ledger.json"))) {
+    process.stderr.write(`faff run-ledger capture-capability: no run dir with run-ledger.json resolved (${runDir || "none"}) — pass --run-dir or set FAFF_RUN_DIR\n`);
+    return 3;
+  }
+  let runId = path.basename(runDir);
+  const res = mutateLedgerUnderLock(runDir, (fresh) => {
+    if (!fresh || typeof fresh !== "object") return null; // vanished/malformed → abort (no write)
+    if (typeof fresh.run_id === "string") runId = fresh.run_id;
+    const caps = (fresh.capabilities && typeof fresh.capabilities === "object") ? fresh.capabilities : {};
+    const prior = (caps[issue] && typeof caps[issue] === "object") ? caps[issue] : {};
+    fresh.capabilities = { ...caps, [issue]: { ...prior, sut_env_stood: standable } };
+    return fresh; // `level` deliberately NOT set → mutateLedgerUnderLock re-inherits it (no LEVEL_WRITE_ONCE)
+  });
+  if (!res.written) {
+    process.stderr.write(`faff run-ledger capture-capability: could not write ${path.join(runDir, "run-ledger.json")} (missing/locked/malformed)\n`);
+    return 3;
+  }
+  if (values["--json"]) {
+    process.stdout.write(JSON.stringify({ captured: true, run_id: runId, run_dir: runDir, issue, sut_env_stood: standable, ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
+  } else {
+    process.stdout.write(`captured ${issue}.sut_env_stood=${standable} in ${runDir}\n`);
+  }
+  return 0;
+}
+
 // In-memory selftest (mirrors lights-out/events): mints into an ephemeral tmp dir and asserts
 // the pure ledger shape + the genesis chain verifies. Fail-closed per-case ok/FAIL + RESULT.
 function runLedgerSelftest() {
@@ -658,6 +706,16 @@ function runLedgerSelftest() {
     ok("a run-start event is present in the genesis chain", lines.some((r) => r.type === "run-start"));
     const verify = verifyChain(runDir);
     ok("genesis chain verifies (faff events verify → verified)", verifyExitCode(verify, "fail") === 0);
+    // --- FAFF-1116: capture-capability writes capabilities[issue].sut_env_stood; level re-inherited ---
+    const capRc = captureCapability({ "--issue": "TEST-1", "--sut-env-stood": "true", "--run-dir": runDir });
+    ok("capture-capability exits 0", capRc === 0);
+    const afterCap = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+    ok("capture-capability writes capabilities[issue].sut_env_stood=true", afterCap.capabilities && afterCap.capabilities["TEST-1"] && afterCap.capabilities["TEST-1"].sut_env_stood === true);
+    ok("capture-capability preserves level by omission (no LEVEL_WRITE_ONCE)", afterCap.level === "L2");
+    ok("capture-capability leaves admitted/outcomes/owner intact (additive)", Array.isArray(afterCap.admitted) && afterCap.admitted[0] === "TEST-1" && Object.keys(afterCap.outcomes).length === 0 && afterCap.owner && afterCap.owner.status === "running");
+    captureCapability({ "--issue": "TEST-1", "--sut-env-stood": "false", "--run-dir": runDir });
+    const afterFlip = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+    ok("capture-capability re-write flips the field, level still L2", afterFlip.capabilities["TEST-1"].sut_env_stood === false && afterFlip.level === "L2");
   } catch (e) {
     ok(`real mint selftest threw: ${e && e.message}`, false);
   } finally {

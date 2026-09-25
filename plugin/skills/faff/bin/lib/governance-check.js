@@ -912,6 +912,46 @@ function governanceCheckSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
+  // FAFF-1116: evaluateMergeFloorLeg inherits the resolveCanRun redirect with NO separate edit — the
+  // captured sut_env_stood fact drives the SAME posture the live floor computes (single-source redirect).
+  {
+    const cageBoundary = JSON.stringify({ version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false });
+    const writeLedger = (dir, issue, standable) => {
+      const led = { run_id: "r", level: "L3", admitted: [issue], outcomes: {} };
+      if (standable !== undefined) led.capabilities = { [issue]: { sut_env_stood: standable } };
+      fs.writeFileSync(path.join(dir, "run-ledger.json"), JSON.stringify(led));
+    };
+    // captured false + no holdout + cage → pass-through, leg passes (a stand-failed run is NOT newly blocked)
+    let tmp = mkTmpRunDir("faff-govcheck-1116-false-");
+    try {
+      writeFloorArtifacts(tmp, "FAFF-7", { acComplete: true, reviewVerdict: "pass" });
+      fs.writeFileSync(path.join(tmp, "lane-boundary.json"), cageBoundary);
+      writeLedger(tmp, "FAFF-7", false);
+      check("FAFF-1116: captured false + no holdout → pass-through, leg passes (no new block, mirrors live)", evaluateMergeFloorLeg(tmp, "FAFF-7", "L4").pass === true);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+    // captured true + fresh non-meets-spec holdout + cage → strict → leg fails (matches the live floor)
+    tmp = mkTmpRunDir("faff-govcheck-1116-true-");
+    try {
+      writeFloorArtifacts(tmp, "FAFF-8", { acComplete: true, reviewVerdict: "pass" });
+      fs.writeFileSync(path.join(tmp, "lane-boundary.json"), cageBoundary);
+      fs.writeFileSync(path.join(tmp, "FAFF-8", "build-progress.json"), JSON.stringify({ updated_at: new Date(1000).toISOString() }));
+      fs.writeFileSync(path.join(tmp, "FAFF-8", "holdout.json"), JSON.stringify({ aggregate: "blocked", criteria: [] }));
+      writeLedger(tmp, "FAFF-8", true);
+      const r8 = evaluateMergeFloorLeg(tmp, "FAFF-8", "L3");
+      check("FAFF-1116: captured true + fresh non-meets-spec → strict → leg fails (matches live)", r8.pass === false && r8.reasons.some((x) => /holdout/.test(x)));
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+    // contradiction: captured false + fresh verdict + cage → faulted → strict → leg fails (fail-safe backstop)
+    tmp = mkTmpRunDir("faff-govcheck-1116-contra-");
+    try {
+      writeFloorArtifacts(tmp, "FAFF-9", { acComplete: true, reviewVerdict: "pass" });
+      fs.writeFileSync(path.join(tmp, "lane-boundary.json"), cageBoundary);
+      fs.writeFileSync(path.join(tmp, "FAFF-9", "build-progress.json"), JSON.stringify({ updated_at: new Date(1000).toISOString() }));
+      fs.writeFileSync(path.join(tmp, "FAFF-9", "holdout.json"), JSON.stringify({ aggregate: "meets-spec", criteria: [] }));
+      writeLedger(tmp, "FAFF-9", false);
+      check("FAFF-1116: contradiction (captured false + fresh verdict) → faulted → strict → leg fails", evaluateMergeFloorLeg(tmp, "FAFF-9", "L3").pass === false);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+
   // --- evaluateRunDir + cmdGovernanceCheck: full spec table over real fixtures ---
   {
     const tmp = mkTmpRunDir("faff-govcheck-pass-");

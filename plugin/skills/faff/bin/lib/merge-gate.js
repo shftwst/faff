@@ -771,16 +771,48 @@ function readCaged(runDir) {
   return (contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent") ? "satisfied" : "absent";
 }
 
+// FAFF-1116: the captured standability fact, read LIVE from <run-dir>/run-ledger.json (NOT the anchor —
+// sut_env_stood is not known until Step 10, after the Step-9b anchor is frozen, so it cannot be anchored;
+// FAFF-690 reads `level` from the anchor precisely because the live ledger is build-lane-writable, and this
+// read does NOT rely on write-isolation — its safety lives in resolveCanRun's contradiction guard + the
+// pre-existing absent-verdict dominance). capabilities[issue].sut_env_stood is the boolean the trusted side
+// writes at env-stand time. Returns true/false, or undefined (UNKNOWN) when the field, ledger, or file is
+// absent/unreadable/malformed — the fail-safe fallback signal. PURE beyond the read; never throws.
+function readLedgerSutEnvStood(runDir, issue) {
+  if (!runDir) return undefined;
+  try {
+    const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+    const cap = ledger && ledger.capabilities && ledger.capabilities[issue];
+    const v = cap ? cap.sut_env_stood : undefined;
+    return typeof v === "boolean" ? v : undefined;
+  } catch (e) { return undefined; }
+}
+
+// FAFF-1116: the standability arm of the can-run capability, redirected to the captured fact with a
+// live-read fallback. The captured sut_env_stood replaces ONLY the "could a SUT stand?" inference; the
+// verdict's own freshness/readability still comes from the live readCanRun. Posture-preserving:
+//   - UNKNOWN (uncaptured / older run / unreadable) → the live readCanRun, byte-identical to today.
+//   - false (stand failed) → absent when the live read is absent (the crux: a stand failure passes
+//     through today), else faulted (a fresh verdict alongside a false is a contradiction → fail safe).
+//   - true (stood) → defer to the live readCanRun (true+fresh→satisfied; true+stale→faulted; true+ENOENT
+//     →absent, the stood-but-verdict-missing hole preserved).
+// Same "satisfied"|"absent"|"faulted" domain as readCanRun, so resolveHoldoutPosture consumes it unchanged
+// and governance-check's evaluateMergeFloorLeg inherits the redirect. PURE beyond the reads; never throws.
+function resolveCanRun(runDir, issue) {
+  const standable = readLedgerSutEnvStood(runDir, issue);
+  if (standable === undefined) return readCanRun(runDir, issue); // fallback — exact live behaviour
+  if (standable === false) return readCanRun(runDir, issue) === "absent" ? "absent" : "faulted";
+  return readCanRun(runDir, issue); // standable === true → defer freshness/readability to the live read
+}
+
 // FAFF-1040: the impure holdout leg the merge floor folds — reads the two three-way CAPABILITY facts
-// live from the run-dir artifacts, resolves the posture through the PURE resolveHoldoutPosture, and
-// reads the actual verdict only when the posture is not pass-through. Capability-driven and
-// level-agnostic: a present, fresh, caged verdict is enforced at any level; nothing else is consulted.
-// (A future follow-up captures these capabilities in the run ledger at build time — when SUT
-// standability is actually known — and reads them here instead of the merge-time artifact proxy.)
-// Returns the four floor fields (holdout + posture + the labelled missing/fault lists surfaced on the
-// merge record).
+// (can_run via FAFF-1116's resolveCanRun: the captured sut_env_stood fact with a live-read fallback; caged
+// live from lane-boundary.json), resolves the posture through the PURE resolveHoldoutPosture, and reads the
+// actual verdict only when the posture is not pass-through. Capability-driven and level-agnostic: a present,
+// fresh, caged verdict is enforced at any level; nothing else is consulted. Returns the four floor fields
+// (holdout + posture + the labelled missing/fault lists surfaced on the merge record).
 function resolveHoldoutLeg(runDir, issue) {
-  const caps = { can_run: readCanRun(runDir, issue), caged: readCaged(runDir) };
+  const caps = { can_run: resolveCanRun(runDir, issue), caged: readCaged(runDir) };
   const { posture, missing, fault } = resolveHoldoutPosture(caps);
   const holdout = posture === "pass-through" ? "not-applicable" : readHoldout(runDir, issue);
   return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
@@ -2524,6 +2556,59 @@ async function mergeGateSelftest() {
     check("FAFF-1115: restore with mtime-preserving copy (cp -p) → readCanRun satisfied", readCanRun(d, ISSUE) === "satisfied"); rm(d);
   })();
 
+  // FAFF-1116: capture sut_env_stood in the run ledger + redirect resolveCanRun to read it (live-read
+  // fallback). Posture-preservation is the binding constraint — every LEGITIMATE row matches the live floor;
+  // only the illegitimate contradiction row diverges, and only toward strict (fail-safe).
+  (() => {
+    const ISSUE = "FAFF-1116";
+    const cage = { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false };
+    // opts: standable (true|false|undefined→omit capabilities), holdout ("fresh"|"none"), caged (bool)
+    const mk = (opts) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1116-"));
+      const idir = path.join(dir, ISSUE); fs.mkdirSync(idir, { recursive: true });
+      const ledger = { run_id: "r", level: "L2", admitted: [ISSUE], outcomes: {} };
+      if (opts.standable !== undefined) ledger.capabilities = { [ISSUE]: { sut_env_stood: opts.standable } };
+      fs.writeFileSync(path.join(dir, "run-ledger.json"), JSON.stringify(ledger));
+      if (opts.holdout === "fresh") {
+        fs.writeFileSync(path.join(idir, "build-progress.json"), JSON.stringify({ updated_at: new Date(1000).toISOString() }));
+        fs.writeFileSync(path.join(idir, "holdout.json"), JSON.stringify({ aggregate: "fails", criteria: [] })); // mtime now > 1000 ⇒ fresh
+      }
+      if (opts.caged) fs.writeFileSync(path.join(dir, "lane-boundary.json"), JSON.stringify(cage));
+      return dir;
+    };
+    const rm = (d) => fs.rmSync(d, { recursive: true, force: true });
+    // readLedgerSutEnvStood three-way (true / false / uncaptured→undefined)
+    let d = mk({ standable: true, holdout: "none", caged: false }); check("FAFF-1116: readLedgerSutEnvStood captured true", readLedgerSutEnvStood(d, ISSUE) === true); rm(d);
+    d = mk({ standable: false, holdout: "none", caged: false }); check("FAFF-1116: readLedgerSutEnvStood captured false", readLedgerSutEnvStood(d, ISSUE) === false); rm(d);
+    d = mk({ standable: undefined, holdout: "none", caged: false }); check("FAFF-1116: readLedgerSutEnvStood uncaptured → undefined", readLedgerSutEnvStood(d, ISSUE) === undefined); rm(d);
+    d = mk({ standable: undefined, holdout: "none", caged: false }); check("FAFF-1116: readLedgerSutEnvStood no runDir → undefined", readLedgerSutEnvStood(null, ISSUE) === undefined); rm(d);
+    // crux: captured false + no holdout → absent (NEVER faulted), pass-through under a cage
+    d = mk({ standable: false, holdout: "none", caged: true });
+    check("FAFF-1116: crux — captured false + no holdout → resolveCanRun absent (never faulted)", resolveCanRun(d, ISSUE) === "absent");
+    check("FAFF-1116: crux — stand-failed run → holdout_posture pass-through (merge not blocked)", resolveHoldoutLeg(d, ISSUE).holdout_posture === "pass-through"); rm(d);
+    // a captured false does NOT newly block a run that passes through today (uncaptured baseline == captured-false)
+    d = mk({ standable: undefined, holdout: "none", caged: true });
+    const baseline = resolveHoldoutLeg(d, ISSUE).holdout_posture; rm(d);
+    d = mk({ standable: false, holdout: "none", caged: true });
+    check("FAFF-1116: captured false posture == uncaptured baseline (no new block)", resolveHoldoutLeg(d, ISSUE).holdout_posture === baseline && baseline === "pass-through"); rm(d);
+    // captured true + fresh verdict → satisfied → strict (with cage), verdict enforced
+    d = mk({ standable: true, holdout: "fresh", caged: true });
+    check("FAFF-1116: captured true + fresh → resolveCanRun satisfied", resolveCanRun(d, ISSUE) === "satisfied");
+    check("FAFF-1116: captured true + fresh + cage → strict (verdict enforced)", resolveHoldoutLeg(d, ISSUE).holdout_posture === "strict"); rm(d);
+    // uncaptured fallback == live readCanRun, byte-identical
+    d = mk({ standable: undefined, holdout: "fresh", caged: true });
+    check("FAFF-1116: uncaptured fallback → resolveCanRun == live readCanRun (satisfied)", resolveCanRun(d, ISSUE) === readCanRun(d, ISSUE) && resolveCanRun(d, ISSUE) === "satisfied"); rm(d);
+    // contradiction guard: captured false + fresh verdict → faulted → strict (fail-safe block)
+    d = mk({ standable: false, holdout: "fresh", caged: true });
+    check("FAFF-1116: contradiction false+fresh (caged) → resolveCanRun faulted", resolveCanRun(d, ISSUE) === "faulted");
+    check("FAFF-1116: contradiction false+fresh (caged) → strict (fail-safe block)", resolveHoldoutLeg(d, ISSUE).holdout_posture === "strict"); rm(d);
+    // caged==absent axis — the axis the posture proof depends on (resolveHoldoutPosture is fault-first)
+    d = mk({ standable: false, holdout: "fresh", caged: false });
+    check("FAFF-1116: caged==absent — contradiction false+fresh → strict (fault-first, no cage)", resolveHoldoutLeg(d, ISSUE).holdout_posture === "strict"); rm(d);
+    d = mk({ standable: true, holdout: "fresh", caged: false });
+    check("FAFF-1116: caged==absent — legitimate true+fresh → pass-through (no cage, unchanged vs live)", resolveHoldoutLeg(d, ISSUE).holdout_posture === "pass-through"); rm(d);
+  })();
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -2557,4 +2642,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

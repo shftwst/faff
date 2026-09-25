@@ -628,6 +628,27 @@ function heartbeatSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
+  // --- FAFF-1116: a capabilities-writing mutate (capture-capability's pattern) that OMITS `level`
+  // re-inherits it (never trips LEVEL_WRITE_ONCE); the guard still throws on a level change; a null
+  // fresh aborts with no write ---
+  {
+    const os = require("node:os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-hb-cap-"));
+    try {
+      mutateLedgerUnderLock(tmp, () => ({ run_id: "t", level: "L2", admitted: ["X"], outcomes: {}, owner: { status: "running" } }));
+      // a mutate that OMITS level (returns a fresh object without it) → level re-inherited, no throw
+      const capRes = mutateLedgerUnderLock(tmp, (fresh) => ({ run_id: fresh.run_id, admitted: fresh.admitted, outcomes: fresh.outcomes, owner: fresh.owner, capabilities: { X: { sut_env_stood: true } } }));
+      const led = JSON.parse(fs.readFileSync(path.join(tmp, "run-ledger.json"), "utf8"));
+      check("FAFF-1116: level-omitting capabilities write lands + re-inherits level L2 (no throw)", capRes.written && led.capabilities.X.sut_env_stood === true && led.level === "L2");
+      let threw = null;
+      try { mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, level: "L4" })); } catch (e) { threw = e && e.code; }
+      check("FAFF-1116: a level-changing mutate still throws LEVEL_WRITE_ONCE (the guard the omission relies on)", threw === "LEVEL_WRITE_ONCE");
+      fs.rmSync(path.join(tmp, "run-ledger.json"));
+      const abortRes = mutateLedgerUnderLock(tmp, () => null);
+      check("FAFF-1116: a capture mutate returning null aborts with no write", abortRes.written === false && !fs.existsSync(path.join(tmp, "run-ledger.json")));
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+
   if (failed) return 1;
   console.log("heartbeat --selftest: ok");
   return 0;

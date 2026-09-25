@@ -41,11 +41,11 @@ const BRANCH_PROTECTION_SPEC = { flags: {
 } };
 // FAFF-728: the GitHub-auth preflight probe — user-scoped, so it needs no repo slug.
 const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
-const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, requiresSelfConsistencyStamp, resolveGateLevel } = require("./contract-defs");
+const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, requiresSelfConsistencyStamp, resolveGateLevel, resolveHoldoutPosture } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches } = require("./effects");
-const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir } = require("./commissaire");
+const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir, hasGovernanceContext: commissaireHasGovernanceContext } = require("./commissaire");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
@@ -408,10 +408,11 @@ function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integri
   if (!readAcComplete(runDir, issue)) reasons.push("ACs not all verified");
   const rv = readReviewVerdict(runDir, issue);
   if (rv !== "pass") reasons.push(`review verdict is ${rv}`);
-  if (level === "L4") {
-    const h = readHoldout(runDir, issue);
-    if (h !== "meets-spec") reasons.push(`L4 holdout: ${h}`);
-  }
+  // FAFF-1040: the retrospective floor re-derives the SAME posture-based holdout leg as the live floor
+  // (resolveHoldoutLeg), never a divergent `level === "L4"` test — otherwise an already-merged no-SUT
+  // run that the live floor passed through would be refused retrospectively (no success evidence).
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue);
+  if (holdoutLeg.holdout_posture === "strict" && holdoutLeg.holdout !== "meets-spec") reasons.push(`holdout guarantee (strict): ${holdoutLeg.holdout}`);
   if (integrity.state === "violated") reasons.push("corrective-artifact integrity violated");
   if (integrity.state === "unasserted-refuse") reasons.push("corrective-artifact integrity unasserted at L4");
   if (reasons.length === 0) {
@@ -718,6 +719,73 @@ function readHoldout(runDir, issue) {
   return res.reason === "missing" ? "missing" : "blocked";
 }
 
+// FAFF-1040: the "can-run" capability read for the holdout guarantee, THREE-way (satisfied/absent/
+// faulted). The code-blind holdout verdict is the only merge-time on-disk evidence that a
+// system-under-test was stood up and judged: the env-handle is an upstream in-band contract block,
+// NEVER a run-dir artifact (Assumption 3 validated at build time — it is not reachable at the floor),
+// and the full spec's holdout criteria are stripped from the committed builder view, so dodClassify
+// is not runnable here either. So this reads the SAME <run-dir>/<issue>/holdout.json readHoldout
+// consults and classifies the READ, not the verdict:
+//   - absent (ENOENT) → no verdict was produced: holdout genuinely could not run (no standable SUT —
+//     faff's own tickets, or a non-born-verifiable spec). The legitimate can't-run case → pass-through.
+//   - faulted → present but unreadable/malformed, or present-but-STALE (freshness unprovable against
+//     the build-complete checkpoint). A plumbing/tamper fault — fail SAFE (strict when unattended),
+//     never a silent pass-through; this preserves today's L4 fail-closed posture for the broken case.
+//   - satisfied → a fresh, readable verdict exists; the meets-spec/blocked check is left to readHoldout,
+//     consulted by the caller once the posture resolves non-pass-through.
+// PURE beyond the file reads; never throws.
+function readCanRun(runDir, issue) {
+  if (!runDir) return "absent"; // no run to bind to — nothing stood up
+  const holdoutPath = path.join(runDir, issue, "holdout.json");
+  let holdoutMtimeMs;
+  try {
+    JSON.parse(fs.readFileSync(holdoutPath, "utf8")); // readability + parseability
+    holdoutMtimeMs = fs.statSync(holdoutPath).mtimeMs;
+  } catch (e) {
+    return e.code === "ENOENT" ? "absent" : "faulted"; // ENOENT → absent; unreadable/malformed → faulted
+  }
+  let checkpointTimeMs = NaN;
+  try {
+    const checkpoint = JSON.parse(fs.readFileSync(buildProgressPath(runDir, issue), "utf8"));
+    checkpointTimeMs = Date.parse(checkpoint.updated_at ?? checkpoint.build?.pushed_at);
+  } catch (e) { /* NaN → not fresh below */ }
+  if (!holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs)) return "faulted"; // stale/unprovable → fail safe
+  return "satisfied";
+}
+
+// FAFF-1040: the "caged" capability read, THREE-way. Reuses the SAME lane-boundary.json parse as
+// laneBoundaryPromisesCage, but SPLITS the "present-but-broken" case out as `faulted` (fail safe to
+// strict) instead of folding it into the arm-the-ratchet true. absent (ENOENT, or a valid non-cage
+// boundary — no cage promised) → pass-through; faulted (unreadable/malformed/invalid) → strict;
+// satisfied (a valid evaluator-cage promise) → the cage capability holds. PURE beyond the read.
+function readCaged(runDir) {
+  if (!runDir) return "absent";
+  let raw;
+  try { raw = fs.readFileSync(path.join(runDir, "lane-boundary.json"), "utf8"); }
+  catch (e) { return e.code === "ENOENT" ? "absent" : "faulted"; }
+  let intent;
+  try { intent = JSON.parse(raw); } catch { return "faulted"; }
+  const { contractData, failLoud } = computeLaneBoundary(intent);
+  if (failLoud || !contractData) return "faulted";
+  if (contractData.violations.length > 0) return "faulted";
+  return (contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent") ? "satisfied" : "absent";
+}
+
+// FAFF-1040: the impure holdout leg the merge floor folds — reads the two three-way CAPABILITY facts
+// live from the run-dir artifacts, resolves the posture through the PURE resolveHoldoutPosture, and
+// reads the actual verdict only when the posture is not pass-through. Capability-driven and
+// level-agnostic: a present, fresh, caged verdict is enforced at any level; nothing else is consulted.
+// (A future follow-up captures these capabilities in the run ledger at build time — when SUT
+// standability is actually known — and reads them here instead of the merge-time artifact proxy.)
+// Returns the four floor fields (holdout + posture + the labelled missing/fault lists surfaced on the
+// merge record).
+function resolveHoldoutLeg(runDir, issue) {
+  const caps = { can_run: readCanRun(runDir, issue), caged: readCaged(runDir) };
+  const { posture, missing, fault } = resolveHoldoutPosture(caps);
+  const holdout = posture === "pass-through" ? "not-applicable" : readHoldout(runDir, issue);
+  return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
+}
+
 // === FAFF-383 / FAFF-1012: the merge chokepoint is declarer AND observer for the merge ======
 // Per ADR-0126 (which amends ADR-0064's authority split for the merge chokepoint only): merge-gate
 // is the single component that both performs the merge and holds the (issue, step="merge",
@@ -834,7 +902,14 @@ function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
   const verdicts = entries.filter((e) =>
     e && e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" &&
     e.issue === issue && e.step === "merge");
-  if (verdicts.length === 0) return "not-applicable"; // the facade never governed this merge
+  if (verdicts.length === 0) {
+    // FAFF-1034 — fail closed on a GOVERNED run. Before this ticket a no-verdict merge always read
+    // "not-applicable" (fail open). Now: a run whose runner has `admit`ted (any schema:3 record ⇒
+    // hasGovernanceContext) but produced NO covering merge verdict is exactly the hole the protocol
+    // exists to prevent — return "absent-or-invalid" so decideFloor refuses the merge BEFORE it lands.
+    // An UNGOVERNED run (no schema:3 records at all) stays "not-applicable" ⇒ pass, byte-for-byte.
+    return commissaireHasGovernanceContext(runDir) ? "absent-or-invalid" : "not-applicable";
+  }
   const verdict = verdicts[verdicts.length - 1]; // the latest decision for this issue's merge
   let pkRec;
   try { pkRec = JSON.parse(fs.readFileSync(commissairePkFile(commissaireProducerDir(runDir)), "utf8")); }
@@ -843,6 +918,18 @@ function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
   const mergeEffect = { kind: "merge", target: mergeTarget || grantedTarget };
   const res = commissaireChokepointPermit(mergeEffect, verdict, pkRec.pk, pkRec.pk_fingerprint);
   return res.permit ? "valid-grant" : "absent-or-invalid";
+}
+
+// FAFF-1034 — per-covered-merge schema:2 suppression predicate. TRUE iff THIS (issue, merge)
+// carries a covering, verified schema:3 grant (resolved the same way the chokepoint selects the
+// verdict + verifies coverage). When true, the merge's schema:2 auto-declare/observe is suppressed
+// so the covered merge has a SINGLE declaration lineage (schema:3) and computeEscapes never double-
+// counts. An uncovered merge (no grant / a governed-but-ungranted merge / an ungoverned run) keeps
+// its schema:2 trail as defence-in-depth — an ungoverned run has no schema:3 verdict, so this is
+// always false there and the schema:2 path is byte-for-byte unchanged.
+function mergeCoveredBySchema3Grant(runDir, issue, mergeTarget) {
+  try { return resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) === "valid-grant"; }
+  catch { return false; }
 }
 
 // ===========================================================================
@@ -986,7 +1073,7 @@ function landBaseFfOnly({ cwd, base, tipSha, baseShaBefore, allowInPlace = false
   return { ok: true, case: "A" };
 }
 
-function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, acceptReviewUnavailable, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
+async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, acceptReviewUnavailable, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, custodyPathArg, custodyShaArg, cwd }) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
     else {
@@ -1071,22 +1158,26 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
 
   // Fresh CI-equivalent (spec: NEVER reuse graft's earlier Step-7.5 result — the gate observes
   // the CI-equivalent itself on the final head sha, mirroring the FAFF-350 keystone property).
-  const gatesOutcome = runLadder(cwd);
+  const gatesOutcome = await runLadder(cwd);
   const ci_state = gatesSignalToCiState(gatesOutcome);
 
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue); // FAFF-1040: posture from run facts, not the L4 label
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
     ci_state,
     head_sha_matches: true, // the gates just ran against this EXACT branch tip — no drift leg to model
     level,
-    holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
+    holdout: holdoutLeg.holdout,
+    holdout_posture: holdoutLeg.holdout_posture,
+    holdout_missing: holdoutLeg.holdout_missing,
+    holdout_fault: holdoutLeg.holdout_fault,
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
     decision_grant: resolveCommissaireDecisionGrant(runDir, issue, base),
   };
   const { verdict, blockers } = decideFloor(floor); // UNCHANGED pure core
-  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [] };
+  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [], holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault };
 
   if (verdict === "refuse") {
     if (interactive && acceptReviewUnavailable) {
@@ -1409,20 +1500,24 @@ function cmdMergeGate(args) {
   if (interlock.headSha) headSha = interlock.headSha; // a successful rebase advanced D's head
 
   const ci = observeCi(repo, pr, headSha);
+  const holdoutLeg = resolveHoldoutLeg(runDir, issue); // FAFF-1040: posture from run facts, not the L4 label
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
     ci_state: ci.ci_state,
     head_sha_matches: ci.head_sha_matches,
     level,
-    holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
+    holdout: holdoutLeg.holdout,
+    holdout_posture: holdoutLeg.holdout_posture,
+    holdout_missing: holdoutLeg.holdout_missing,
+    holdout_fault: holdoutLeg.holdout_fault,
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
     decision_grant: resolveCommissaireDecisionGrant(runDir, issue, null),
     dependency_gate: interlock.gate,
   };
   const { verdict, blockers } = decideFloor(floor);
-  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display };
+  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display, holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault };
   // FAFF-1077: surface the interlock's owner-park intent (never enacted here) and any transient
   // note so the owning layer can escalate a "leave pr-open" refuse to a park at the merge locus.
   if (interlock.park) { result.dependency_park = interlock.park; result.remedy = `park the dependent: ${interlock.park.cause}`; }
@@ -1496,7 +1591,9 @@ function cmdMergeGate(args) {
       writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
       // FAFF-383: path (b) — the post-merge step's own success is unconfirmed (that's WHY gh
       // exited non-zero here), so observe the merge only, never branch-delete.
-      observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
+      // FAFF-1034: suppress the schema:2 auto-declare/observe for a merge covered by a schema:3 grant
+      // (the covered merge's schema:3 lineage is authoritative — single lineage, no double-count).
+      if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
       return emit(result, 0);
     }
     // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
@@ -1511,7 +1608,8 @@ function cmdMergeGate(args) {
   writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
   // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
   // merge-args carried --delete-branch (resolved.flags, not the raw --merge-args string).
-  observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
+  // FAFF-1034: suppressed for a merge covered by a schema:3 grant (single schema:3 lineage).
+  if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
   return emit(result, 0);
 }
 
@@ -1647,7 +1745,7 @@ function githubAuthSelftest() {
 // In-memory selftest: drives the PURE cores (decideFloor via classifyHeadShaChecks + parseMergeArgs
 // + classifyBranchProtection) with NO network. The impure gh/git path is covered by the integration
 // smoke test in the spec, not here (parity with container-check's pure-only selftest).
-function mergeGateSelftest() {
+async function mergeGateSelftest() {
   let fail = 0;
   const check = (label, cond) => { if (!cond) { console.log(`FAIL ${label}`); fail++; } else console.log(`ok   ${label}`); };
   const F = (o) => decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "needs-human", ...o });
@@ -1662,6 +1760,14 @@ function mergeGateSelftest() {
   check("L4 holdout meets-spec → merge-ok", F({ level: "L4", holdout: "meets-spec" }).verdict === "merge-ok");
   check("L4 holdout missing → refuse", F({ level: "L4", holdout: "missing" }).verdict === "refuse");
   check("L4 holdout blocked → refuse", F({ level: "L4", holdout: "blocked" }).verdict === "refuse");
+  // FAFF-1040: decideFloor blocks on the resolved POSTURE, not the L-level label. Only "strict"
+  // blocks; "pass-through" never blocks; an unset posture keeps the level-aware back-compat default
+  // (the three L4 checks above rely on it: L4 → strict, so they are unchanged).
+  check("holdout posture strict + missing → refuse", F({ holdout_posture: "strict", holdout: "missing" }).verdict === "refuse");
+  check("holdout posture strict + meets-spec → merge-ok", F({ holdout_posture: "strict", holdout: "meets-spec" }).verdict === "merge-ok");
+  check("holdout posture pass-through + missing → merge-ok (never blocks)", F({ holdout_posture: "pass-through", holdout: "missing" }).verdict === "merge-ok");
+  check("holdout posture absent + L3 defaults pass-through → merge-ok", F({ level: "L3", holdout: "missing" }).verdict === "merge-ok");
+  check("holdout posture strict names the FAFF-1040 blocker", /holdout guarantee \(strict\)/.test(F({ holdout_posture: "strict", holdout: "missing" }).blockers.join(" ")));
   // holdoutIsFresh (FAFF-420): pure freshness comparator readHoldout wraps around the run-scoped read
   check("holdoutIsFresh: fresh (holdout after checkpoint) → true", holdoutIsFresh(200, 100) === true);
   check("holdoutIsFresh: stale (holdout before checkpoint) → false", holdoutIsFresh(50, 100) === false);
@@ -2031,7 +2137,7 @@ function mergeGateSelftest() {
 
   // gitRemoteEmpty / resolveLocalBase / cmdMergeGateLocal — integration coverage against REAL git
   // repos (mirrors post-merge.js's postMergeSelftest pattern: no mocking of git itself).
-  (() => {
+  await (async () => {
     const gitTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-gate-local-"));
     const git = (cwd, ...gitArgs) => spawnSync("git", ["-C", cwd, ...gitArgs], { encoding: "utf8" });
     const makeRepo = (dir, testScript) => {
@@ -2081,14 +2187,14 @@ function mergeGateSelftest() {
       writeFloor(runDirA, "FAFF-526A", true, "pass");
       commitAnchor(repoA, runDirA, "FAFF-526A", "L3");
       const featureShaA = git(repoA, "rev-parse", "feature").stdout.trim(); // after the anchor commit
-      const okRes = runLocal("FAFF-526A", runDirA, repoA);
+      const okRes = await runLocal("FAFF-526A", runDirA, repoA);
       check("cmdMergeGateLocal: clean build (AC+review+gates green) → exit 0 merge-ok", okRes === 0);
       check("cmdMergeGateLocal: base ref advanced to the feature tip", git(repoA, "rev-parse", "main").stdout.trim() === featureShaA);
       const recordA = JSON.parse(fs.readFileSync(path.join(runDirA, "FAFF-526A", "merge-record.json"), "utf8"));
       check("cmdMergeGateLocal: merge-record.json carries head_sha + pr:0 (null pr coerced by Number())", recordA.head_sha === featureShaA && recordA.pr === 0 && recordA.merged === true);
 
       // idempotent: a second invocation on the now-already-merged branch is a no-op merge-ok
-      const idempotentRes = runLocal("FAFF-526A", runDirA, repoA);
+      const idempotentRes = await runLocal("FAFF-526A", runDirA, repoA);
       check("cmdMergeGateLocal: already-merged branch → idempotent exit 0 (no double-merge)", idempotentRes === 0);
 
       // --- repo B: no remote, a FAILING UNIT rung ---
@@ -2098,7 +2204,7 @@ function mergeGateSelftest() {
       writeFloor(runDirB, "FAFF-526B", true, "pass");
       commitAnchor(repoB, runDirB, "FAFF-526B", "L3");
       const baseBeforeB = git(repoB, "rev-parse", "main").stdout.trim();
-      const failRes = runLocal("FAFF-526B", runDirB, repoB);
+      const failRes = await runLocal("FAFF-526B", runDirB, repoB);
       check("cmdMergeGateLocal: failing gates run (signal=fail → ci-red) → exit 1 refuse", failRes === 1);
       check("cmdMergeGateLocal: failing gates → base ref NOT advanced", git(repoB, "rev-parse", "main").stdout.trim() === baseBeforeB);
       check("cmdMergeGateLocal: failing gates → no merge-record.json written", !fs.existsSync(path.join(runDirB, "FAFF-526B", "merge-record.json")));
@@ -2109,7 +2215,7 @@ function mergeGateSelftest() {
       const runDirC = path.join(gitTmp, "run-dir-c");
       writeFloor(runDirC, "FAFF-526C", true, "pass");
       commitAnchor(repoC, runDirC, "FAFF-526C", "L3");
-      const noGatesRes = runLocal("FAFF-526C", runDirC, repoC);
+      const noGatesRes = await runLocal("FAFF-526C", runDirC, repoC);
       check("cmdMergeGateLocal: discovery:none (no declared gates) → refuse fail-closed (no_ci_policy default needs-human)", noGatesRes === 1);
 
       // --- repo D: HAS a configured remote → bypass-guard refuses --local outright ---
@@ -2119,7 +2225,7 @@ function mergeGateSelftest() {
       makeRepo(repoD, "true");
       git(repoD, "remote", "add", "origin", remoteD);
       check("gitRemoteEmpty: a configured remote → false", gitRemoteEmpty(repoD) === false);
-      const remoteRes = runLocal("FAFF-526D", path.join(gitTmp, "run-dir-d"), repoD);
+      const remoteRes = await runLocal("FAFF-526D", path.join(gitTmp, "run-dir-d"), repoD);
       check("cmdMergeGateLocal: repo WITH a remote → bypass-guard refuses exit 2 (never usable as a CI-skip)", remoteRes === 2);
 
       // --- repo E: base branch moved (not fast-forwardable) after the feature branched ---
@@ -2133,7 +2239,7 @@ function mergeGateSelftest() {
       git(repoE, "add", "-A");
       git(repoE, "commit", "-qm", "main moved on independently");
       git(repoE, "checkout", "-q", "feature");
-      const notFfRes = runLocal("FAFF-526E", runDirE, repoE);
+      const notFfRes = await runLocal("FAFF-526E", runDirE, repoE);
       check("cmdMergeGateLocal: base moved since branching (non-ff) → refuse 'rebase first' (ff-only)", notFfRes === 1);
 
       // --- repo F: non-pass review verdict ---
@@ -2142,7 +2248,7 @@ function mergeGateSelftest() {
       const runDirF = path.join(gitTmp, "run-dir-f");
       writeFloor(runDirF, "FAFF-526F", true, "needs-human");
       commitAnchor(repoF, runDirF, "FAFF-526F", "L3");
-      const nonPassRes = runLocal("FAFF-526F", runDirF, repoF);
+      const nonPassRes = await runLocal("FAFF-526F", runDirF, repoF);
       check("cmdMergeGateLocal: review verdict != pass → refuse (identical fail-closed floor as the PR path)", nonPassRes === 1);
 
       // --- repo G: AC not all verified ---
@@ -2151,15 +2257,15 @@ function mergeGateSelftest() {
       const runDirG = path.join(gitTmp, "run-dir-g");
       writeFloor(runDirG, "FAFF-526G", false, "pass");
       commitAnchor(repoG, runDirG, "FAFF-526G", "L3");
-      const acRes = runLocal("FAFF-526G", runDirG, repoG);
+      const acRes = await runLocal("FAFF-526G", runDirG, repoG);
       check("cmdMergeGateLocal: AC not all verified → refuse", acRes === 1);
 
       // === FAFF-673: non-graft remedy + explainable-record integration on the local path ========
       // Capture the emitted JSON (runLocal passes json:true → the result object is written to stdout).
-      const captureStdout = (fn) => {
+      const captureStdout = async (fn) => {
         const orig = process.stdout.write; let out = "";
         process.stdout.write = (c) => { out += c; return true; };
-        let ret; try { ret = fn(); } finally { process.stdout.write = orig; }
+        let ret; try { ret = await fn(); } finally { process.stdout.write = orig; }
         return { out, ret };
       };
 
@@ -2169,7 +2275,7 @@ function mergeGateSelftest() {
       const runDirH = path.join(gitTmp, "run-dir-h");
       fs.mkdirSync(path.join(runDirH, "FAFF-673H"), { recursive: true }); // no floor artifacts written
       commitAnchor(repoH, runDirH, "FAFF-673H", "L3");
-      const capH = captureStdout(() => runLocal("FAFF-673H", runDirH, repoH));
+      const capH = await captureStdout(() => runLocal("FAFF-673H", runDirH, repoH));
       const resH = JSON.parse(capH.out);
       check("FAFF-673: non-graft refuse (no AC, no review) → exit 1", capH.ret === 1);
       check("FAFF-673: non-graft refuse → remedy names the human-merge path (--override-reason)", typeof resH.remedy === "string" && /--override-reason/.test(resH.remedy) && /faff effects declare/.test(resH.remedy));
@@ -2180,7 +2286,7 @@ function mergeGateSelftest() {
       const runDirI = path.join(gitTmp, "run-dir-i");
       writeFloor(runDirI, "FAFF-673I", true, "fail"); // ac_complete true, review "fail" → not the non-graft key
       commitAnchor(repoI, runDirI, "FAFF-673I", "L3");
-      const capI = captureStdout(() => runLocal("FAFF-673I", runDirI, repoI));
+      const capI = await captureStdout(() => runLocal("FAFF-673I", runDirI, repoI));
       const resI = JSON.parse(capI.out);
       check("FAFF-673: graft refuse (review fail, AC ok) → refuse, NO remedy (signature mismatch)", capI.ret === 1 && resI.remedy === undefined);
 
@@ -2194,7 +2300,7 @@ function mergeGateSelftest() {
       let overrideExit;
       try {
         process.stdin.isTTY = true; // the fence requires a real terminal; stub it for the test
-        overrideExit = captureStdout(() => runLocal("FAFF-673J", runDirJ, repoJ, { interactive: true, humanOverride: true, overrideReason: "spike findings; no floor applies" })).ret;
+        overrideExit = (await captureStdout(() => runLocal("FAFF-673J", runDirJ, repoJ, { interactive: true, humanOverride: true, overrideReason: "spike findings; no floor applies" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-673: local override with reason → exit 0 (override replaces the refusal, merges)", overrideExit === 0);
       const ovrJ = JSON.parse(fs.readFileSync(path.join(runDirJ, "FAFF-673J", "merge-gate-override.json"), "utf8"));
@@ -2212,7 +2318,7 @@ function mergeGateSelftest() {
       try {
         process.stdin.isTTY = true;
         process.stderr.write = () => true; // swallow the expected fence stderr
-        noReasonExit = runLocal("FAFF-673K", runDirK, repoK, { interactive: true, humanOverride: true, overrideReason: null });
+        noReasonExit = await runLocal("FAFF-673K", runDirK, repoK, { interactive: true, humanOverride: true, overrideReason: null });
       } finally { process.stdin.isTTY = origTty; process.stderr.write = origStderr673; }
       check("FAFF-673: --human-override with NO --override-reason → exit 2 (fenced, never a silent override)", noReasonExit === 2);
       check("FAFF-673: --human-override with NO reason → NO merge-gate-override.json written", !fs.existsSync(path.join(runDirK, "FAFF-673K", "merge-gate-override.json")));
@@ -2228,7 +2334,7 @@ function mergeGateSelftest() {
       let acceptExit;
       try {
         process.stdin.isTTY = true;
-        acceptExit = captureStdout(() => runLocal("FAFF-912L", runDirL, repoL, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; clean graft" })).ret;
+        acceptExit = (await captureStdout(() => runLocal("FAFF-912L", runDirL, repoL, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; clean graft" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: narrow accept on a review-unavailable-only refuse → exit 0 (merges)", acceptExit === 0);
       const ovrL = JSON.parse(fs.readFileSync(path.join(runDirL, "FAFF-912L", "merge-gate-override.json"), "utf8"));
@@ -2247,7 +2353,7 @@ function mergeGateSelftest() {
       let refuseExit;
       try {
         process.stdin.isTTY = true;
-        refuseExit = captureStdout(() => runLocal("FAFF-912M", runDirM, repoM, { interactive: true, acceptReviewUnavailable: true, overrideReason: "trying to excuse a real failure" })).ret;
+        refuseExit = (await captureStdout(() => runLocal("FAFF-912M", runDirM, repoM, { interactive: true, acceptReviewUnavailable: true, overrideReason: "trying to excuse a real failure" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: narrow accept on review 'fail' (not an outage) → exit 1 refuse, no merge", refuseExit === 1);
       check("FAFF-912: narrow-accept refuse → base ref NOT advanced", git(repoM, "rev-parse", "main").stdout.trim() === baseBeforeM);
@@ -2263,7 +2369,7 @@ function mergeGateSelftest() {
       let ciRedRefuseExit, ciRedRefuseOut;
       try {
         process.stdin.isTTY = true;
-        const cap = captureStdout(() => runLocal("FAFF-912N", runDirN, repoN, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; also CI is red" }));
+        const cap = await captureStdout(() => runLocal("FAFF-912N", runDirN, repoN, { interactive: true, acceptReviewUnavailable: true, overrideReason: "outage; also CI is red" }));
         ciRedRefuseExit = cap.ret; ciRedRefuseOut = cap.out;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: narrow accept with review-unavailable + CI red → exit 1 refuse (another leg unmet)", ciRedRefuseExit === 1);
@@ -2282,7 +2388,7 @@ function mergeGateSelftest() {
       let blanketStillWorksExit;
       try {
         process.stdin.isTTY = true;
-        blanketStillWorksExit = captureStdout(() => runLocal("FAFF-912O", runDirO, repoO, { interactive: true, humanOverride: true, overrideReason: "spike; no floor" })).ret;
+        blanketStillWorksExit = (await captureStdout(() => runLocal("FAFF-912O", runDirO, repoO, { interactive: true, humanOverride: true, overrideReason: "spike; no floor" }))).ret;
       } finally { process.stdin.isTTY = origTty; }
       check("FAFF-912: --human-override blanket path is byte-for-byte unchanged (still lands, still source:human-override)", blanketStillWorksExit === 0);
       const ovrO = JSON.parse(fs.readFileSync(path.join(runDirO, "FAFF-912O", "merge-gate-override.json"), "utf8"));
@@ -2309,6 +2415,66 @@ function mergeGateSelftest() {
       const cust = evaluateCustody(bDir, "FAFF-894", undefined, undefined);
       check("FAFF-894: dispatched build run with no custody flags → required:true, refuse (FAFF-784 gate fires, not {required:false})", cust.required === true && cust.ok === false);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })();
+
+  // FAFF-1040: the three-way capability reads + the mint-stamped attendedness fact + the folded leg.
+  (() => {
+    const ISSUE = "FAFF-1040";
+    const cageIntent = { version: 1, lane: "evaluator", container: "own", host: "local", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false };
+    const buildIntent = { version: 1, lane: "build", container: "shared", host: "local", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false };
+    // writeRun builds a run dir: fresh|stale|malformed|none holdout, optional lane-boundary + ledger.
+    const writeRun = (opts) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1040-"));
+      const idir = path.join(dir, ISSUE); fs.mkdirSync(idir, { recursive: true });
+      if (opts.holdout === "fresh" || opts.holdout === "stale") {
+        fs.writeFileSync(path.join(idir, "build-progress.json"), JSON.stringify({ updated_at: new Date(1000).toISOString() }));
+        fs.writeFileSync(path.join(idir, "holdout.json"), JSON.stringify(opts.block || { aggregate: "meets-spec", criteria: [] }));
+        // fresh ⇒ holdout mtime postdates the checkpoint (set the checkpoint to the epoch above);
+        // stale ⇒ backdate holdout.json's mtime to before the checkpoint.
+        if (opts.holdout === "stale") { const t = new Date(500); fs.utimesSync(path.join(idir, "holdout.json"), t, t); }
+      } else if (opts.holdout === "malformed") {
+        fs.writeFileSync(path.join(idir, "holdout.json"), "{not json");
+      }
+      if (opts.lane === "cage") fs.writeFileSync(path.join(dir, "lane-boundary.json"), JSON.stringify(cageIntent));
+      else if (opts.lane === "build") fs.writeFileSync(path.join(dir, "lane-boundary.json"), JSON.stringify(buildIntent));
+      else if (opts.lane === "malformed") fs.writeFileSync(path.join(dir, "lane-boundary.json"), "{not json");
+      return dir;
+    };
+    const rm = (d) => fs.rmSync(d, { recursive: true, force: true });
+    // readCanRun three-way
+    let d = writeRun({ holdout: "none" }); check("FAFF-1040: readCanRun no holdout.json → absent", readCanRun(d, ISSUE) === "absent"); rm(d);
+    d = writeRun({ holdout: "malformed" }); check("FAFF-1040: readCanRun malformed holdout.json → faulted", readCanRun(d, ISSUE) === "faulted"); rm(d);
+    d = writeRun({ holdout: "stale" }); check("FAFF-1040: readCanRun present-but-stale holdout → faulted (fail-safe)", readCanRun(d, ISSUE) === "faulted"); rm(d);
+    d = writeRun({ holdout: "fresh" }); check("FAFF-1040: readCanRun fresh readable holdout → satisfied", readCanRun(d, ISSUE) === "satisfied"); rm(d);
+    check("FAFF-1040: readCanRun no runDir → absent", readCanRun(null, ISSUE) === "absent");
+    // readCaged three-way
+    d = writeRun({ holdout: "none", lane: "none" }); check("FAFF-1040: readCaged no lane-boundary → absent", readCaged(d) === "absent"); rm(d);
+    d = writeRun({ holdout: "none", lane: "malformed" }); check("FAFF-1040: readCaged malformed lane-boundary → faulted (fail-safe)", readCaged(d) === "faulted"); rm(d);
+    d = writeRun({ holdout: "none", lane: "build" }); check("FAFF-1040: readCaged valid non-cage lane → absent (no cage promised)", readCaged(d) === "absent"); rm(d);
+    d = writeRun({ holdout: "none", lane: "cage" }); check("FAFF-1040: readCaged valid evaluator-cage lane → satisfied", readCaged(d) === "satisfied"); rm(d);
+    // resolveHoldoutLeg integration: fresh caged verdict present → strict (any level), verdict read back
+    d = writeRun({ holdout: "fresh", lane: "cage" });
+    let leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg can-run+caged → strict (any level)", leg.holdout_posture === "strict");
+    check("FAFF-1040: leg strict reads the verdict back (a real verdict, not pass-through's not-applicable)", leg.holdout !== "not-applicable" && ["meets-spec", "missing", "blocked"].includes(leg.holdout));
+    check("FAFF-1040: leg strict has no missing/fault labels", leg.holdout_missing.length === 0 && leg.holdout_fault.length === 0); rm(d);
+    // no cage → pass-through labelled, holdout not read
+    d = writeRun({ holdout: "fresh", lane: "none" });
+    leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg no cage → pass-through", leg.holdout_posture === "pass-through");
+    check("FAFF-1040: leg pass-through labels no-proven-cage + holdout not-applicable", leg.holdout_missing.includes("no-proven-cage") && leg.holdout === "not-applicable"); rm(d);
+    // no verdict → pass-through labelled (nothing stood up)
+    d = writeRun({ holdout: "none", lane: "cage" });
+    leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg absent verdict → pass-through", leg.holdout_posture === "pass-through");
+    check("FAFF-1040: leg absent labels no-...-standable-sut", leg.holdout_missing.includes("no-born-verifiable-dod-or-standable-sut")); rm(d);
+    // faulted capability → strict (fail-safe), fault surfaced, verdict read back
+    d = writeRun({ holdout: "malformed", lane: "cage" });
+    leg = resolveHoldoutLeg(d, ISSUE);
+    check("FAFF-1040: leg faulted can-run → strict (fail-safe, never pass-through)", leg.holdout_posture === "strict");
+    check("FAFF-1040: leg faulted surfaces the fault + reads verdict (missing) → decideFloor blocks", leg.holdout_fault.length > 0 && leg.holdout === "missing"); rm(d);
+    check("FAFF-1040: leg strict + non-meets-spec → decideFloor blocks", decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", holdout_posture: "strict" }).verdict === "refuse");
+    check("FAFF-1040: leg pass-through → decideFloor does not block", decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", holdout_posture: "pass-through" }).verdict === "merge-ok");
   })();
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
@@ -2344,4 +2510,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

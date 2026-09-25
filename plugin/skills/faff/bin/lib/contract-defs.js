@@ -2270,6 +2270,39 @@ const DISPATCH_STATES = ["dispatched", "absent", "indeterminate"];
 function requiresSelfConsistencyStamp(unattended, dispatchState) {
   return !!unattended && dispatchState === "absent";
 }
+// FAFF-1040: the code-blind holdout guarantee's binding merge-floor posture, resolved from the
+// CAPABILITY facts alone — never the L-level label and never a config opt-in. "strict" blocks on a
+// non-meets-spec holdout; "pass-through" (a capability was legitimately absent, labelled) never blocks.
+// There is deliberately no "offer" posture at the merge floor: whether to RUN a holdout on an attended
+// run is a build-START interaction (its own follow-up), not a merge-time state — by merge time the
+// only fact is whether a fresh caged verdict was produced.
+const HOLDOUT_POSTURES = ["strict", "pass-through"];
+// FAFF-1040: a capability read is THREE-way, not a bool — "satisfied" (the fact holds), "absent"
+// (the artifact is legitimately not there — holdout genuinely cannot run → pass-through), and
+// "faulted" (present-but-unreadable / torn-down / stale — a plumbing fault that must fail SAFE,
+// never a silent pass-through). resolveHoldoutPosture keys on these.
+const CAPABILITY_READS = ["satisfied", "absent", "faulted"];
+// FAFF-1040: the pure activation resolver for the code-blind holdout guarantee — the named follow-up
+// ADR-0130 line 22 deferred. It keys on the two CAPABILITY reads (`can_run`, `caged`), each three-way,
+// and NOTHING else — a present, fresh, caged verdict is enforced at ANY level. Precedence is deliberate
+// and load-bearing: a FAULTED read is evaluated BEFORE an ABSENT one, so a torn-down/unreadable/stale
+// capability artifact can never be mistaken for a legitimate no-capability and silently skipped — it
+// fails safe to STRICT (blocks), preserving today's L4 fail-closed direction. Only a genuinely-ABSENT
+// capability yields pass-through, labelled with which; never a park on a non-defect. Returns
+// { posture, missing, fault }: `missing` is non-empty only for pass-through, `fault` only when a read
+// faulted (surfaced on the merge record for diagnosability; it does not change that faulted ⇒ strict).
+function resolveHoldoutPosture(caps) {
+  const c = caps || {};
+  const fault = [];
+  if (c.can_run === "faulted") fault.push("can-run-read-faulted");
+  if (c.caged === "faulted") fault.push("cage-read-faulted");
+  if (fault.length) return { posture: "strict", missing: [], fault }; // fail-safe: present-but-broken blocks
+  const missing = [];
+  if (c.can_run === "absent") missing.push("no-born-verifiable-dod-or-standable-sut");
+  if (c.caged === "absent") missing.push("no-proven-cage");
+  if (missing.length) return { posture: "pass-through", missing, fault: [] }; // nothing to run / untrusted → step aside
+  return { posture: "strict", missing: [], fault: [] }; // present, fresh, caged verdict → enforce, any level
+}
 // FAFF-828: the Commissaire protected-effect decision leg — the worked chokepoint (merge-gate)
 // feeds a THREE-state signal, not two. "not-applicable" (the common case: an ordinary merge the
 // external Commissaire facade never governed — no admitted producer, no schema:3 decision context)
@@ -2308,7 +2341,13 @@ function decideFloor(f) {
   if (f.ci_state === "indeterminate") blockers.push("CI state indeterminate / not on head sha");
   if (!f.head_sha_matches) blockers.push("green CI is not on the current PR head sha");
   if (f.ci_state === "no-ci-coverage" && f.no_ci_policy === "needs-human") blockers.push("no CI coverage for this diff (FAFF-3)");
-  if (f.level === "L4" && f.holdout !== "meets-spec") blockers.push(`L4 holdout: ${f.holdout} (need meets-spec)`);
+  // FAFF-1040: block on the resolved POSTURE (a capability fact), not the L-level label. Only "strict"
+  // blocks; "pass-through" (a capability was legitimately absent, labelled in f.holdout_missing) never
+  // blocks. A pre-1040 caller that never set holdout_posture gets the level-aware back-compat default
+  // (L4 → strict, else pass-through), byte-identical to the old `level === "L4"` gate — the merge-gate
+  // shell now sets it explicitly from resolveHoldoutPosture.
+  const holdoutPosture = f.holdout_posture || (f.level === "L4" ? "strict" : "pass-through");
+  if (holdoutPosture === "strict" && f.holdout !== "meets-spec") blockers.push(`holdout guarantee (strict): ${f.holdout} (need meets-spec)`);
   if (f.integrity === "violated") blockers.push("corrective-artifact integrity violated (FAFF-325): the FAFF_INTEGRITY_BOUNDARY attestation failed verification (forged/tampered) — refused at every level");
   if (f.integrity === "unasserted-refuse") blockers.push("corrective-artifact integrity unasserted at L4 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)");
   if (f.decision_grant === "absent-or-invalid") blockers.push("Commissaire protected-effect decision absent or invalid for a governed effect (FAFF-828): the chokepoint could not verify a covering Ed25519-signed grant — refused before the effect");
@@ -2379,7 +2418,21 @@ function computeIntegrityFloor(extraction) {
   let dependency_gate = e.dependency_gate;
   if (dependency_gate === undefined) dependency_gate = "not-applicable";
   else if (!FLOOR_DEPENDENCY_GATES.includes(dependency_gate)) return { contractData: null, failLoud: `dependency_gate ${JSON.stringify(dependency_gate)} not in {${FLOOR_DEPENDENCY_GATES.join(",")}}` };
-  const f = { ac_complete: e.ac_complete, review_verdict: e.review_verdict, ci_state: e.ci_state, head_sha_matches: e.head_sha_matches, level: e.level, holdout: e.holdout, no_ci_policy, integrity, decision_grant, dependency_gate };
+  // FAFF-1040: the holdout activation posture leg. Absent → left undefined so decideFloor applies the
+  // single-sourced level-aware back-compat default (L4 → strict, else pass-through), byte-identical to
+  // the old `level === "L4"` holdout gate for every pre-1040 extraction; the merge-gate shell now sets
+  // it explicitly from resolveHoldoutPosture. A present-but-out-of-enum value is a shell bug → fail-loud,
+  // same posture as the integrity/decision_grant/dependency_gate siblings.
+  let holdout_posture = e.holdout_posture;
+  if (holdout_posture !== undefined && !HOLDOUT_POSTURES.includes(holdout_posture)) return { contractData: null, failLoud: `holdout_posture ${JSON.stringify(holdout_posture)} not in {${HOLDOUT_POSTURES.join(",")}}` };
+  // FAFF-1040: the labelled-miss and fault lists are carried on FloorInputs for a diagnosable merge
+  // record; they NEVER affect the verdict (only the posture does). Absent → []; present must be a
+  // string array (a shell bug otherwise → fail-loud).
+  const holdout_missing = e.holdout_missing === undefined ? [] : e.holdout_missing;
+  if (!Array.isArray(holdout_missing) || holdout_missing.some((x) => typeof x !== "string")) return { contractData: null, failLoud: "holdout_missing must be an array of strings" };
+  const holdout_fault = e.holdout_fault === undefined ? [] : e.holdout_fault;
+  if (!Array.isArray(holdout_fault) || holdout_fault.some((x) => typeof x !== "string")) return { contractData: null, failLoud: "holdout_fault must be an array of strings" };
+  const f = { ac_complete: e.ac_complete, review_verdict: e.review_verdict, ci_state: e.ci_state, head_sha_matches: e.head_sha_matches, level: e.level, holdout: e.holdout, no_ci_policy, integrity, decision_grant, dependency_gate, holdout_posture, holdout_missing, holdout_fault };
   const { verdict, blockers } = decideFloor(f);
   return { contractData: { verdict, ci_state: f.ci_state, level: f.level, conformant: verdict === "merge-ok", violations: blockers }, failLoud: null };
 }
@@ -2451,6 +2504,21 @@ const CONTRACTS = {
       { name: "l4-dispatched-absent-integrity-ok-detective-owns-it", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "meets-spec", unattended: true, dispatch_state: "dispatched" }, wantExit: 0 },
       { name: "fail-loud-bad-unattended", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", unattended: "yes" }, wantExit: 2 },
       { name: "fail-loud-bad-dispatch-state", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", dispatch_state: "maybe" }, wantExit: 2 },
+      // FAFF-1040: the holdout leg now blocks on the resolved POSTURE (a run fact), not the L4 label.
+      // The level-aware back-compat default (absent posture ⇒ L4 → strict, else pass-through) keeps
+      // every fixture above byte-for-byte; these add the new cells and prove pass-through/offer never
+      // block. All carry integrity:"asserted" + unattended/dispatched so the holdout leg is the sole
+      // variable, isolated from the FAFF-690/1072 integrity legs.
+      { name: "holdout-strict-missing-refuses", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", holdout_posture: "strict", integrity: "asserted" }, wantExit: 1 },
+      { name: "holdout-strict-meets-spec-merge-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "meets-spec", holdout_posture: "strict", integrity: "asserted" }, wantExit: 0 },
+      { name: "holdout-pass-through-missing-is-a-no-op", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", holdout_posture: "pass-through", integrity: "asserted" }, wantExit: 0 },
+      { name: "holdout-posture-absent-l4-defaults-strict-refuses", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "missing", integrity: "asserted", unattended: true, dispatch_state: "dispatched" }, wantExit: 1 },
+      { name: "holdout-posture-absent-l3-defaults-pass-through-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", integrity: "asserted" }, wantExit: 0 },
+      { name: "holdout-missing-list-carried-does-not-block", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", holdout_posture: "pass-through", holdout_missing: ["no-proven-cage"], integrity: "asserted" }, wantExit: 0 },
+      { name: "holdout-fault-list-carried-strict-still-blocks", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "missing", holdout_posture: "strict", holdout_fault: ["env-handle-terminated"], integrity: "asserted" }, wantExit: 1 },
+      { name: "fail-loud-bad-holdout-posture", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", holdout_posture: "maybe" }, wantExit: 2 },
+      { name: "fail-loud-bad-holdout-missing", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", holdout_missing: "nope" }, wantExit: 2 },
+      { name: "fail-loud-bad-holdout-fault", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", holdout_fault: [1, 2] }, wantExit: 2 },
     ],
   },
   "spec-readiness": {
@@ -3549,4 +3617,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, DISPATCH_STATES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_DEPENDENCY_GATES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, requiresSelfConsistencyStamp, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, CI_STATES, CUSTODY_CLASSIFICATIONS, CUSTODY_DETAIL_MAX, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, DISPATCH_STATES, ENV_HANDLE_STATUSES, FLOOR_DECISION_GRANTS, FLOOR_DEPENDENCY_GATES, FLOOR_HOLDOUTS, FLOOR_INTEGRITY, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_CHALLENGE_GROUNDS, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, RECOVERY_DISPOSITIONS, ROOT_CAUSES, ROUTING_VERDICTS, SCENARIO_RECORD_DISPOSITIONS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_JUDGE_OUTCOMES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, classifyCustodyVerdictBytes, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeBuildJudgeVerdict, computeBundleVerdict, computeCiTriage, computeCustodyVerdict, computeCustodyVerdictAdmission, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeRecoveryDispositionVerdict, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeScenarioRecordVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractBuildJudgeVerdict, contractBundleVerdict, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractRecoveryDispositionVerdict, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractScenarioRecordVerdict, contractSelftest, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, requiresSelfConsistencyStamp, resolveGateLevel, HOLDOUT_POSTURES, CAPABILITY_READS, resolveHoldoutPosture };

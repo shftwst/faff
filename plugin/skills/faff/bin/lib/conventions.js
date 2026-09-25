@@ -27,7 +27,8 @@ const { loadConfig, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolvePrd
 const { parseArgs, usageError } = require("./argv");
 const { dig, findRoot } = require("./shared-infra");
 
-const CONVENTIONS_SCHEMA = 2;   // FAFF-1068: schema 1 (FAFF-1041) was mine-emitted-only; schema 2 is the persisted cache.
+const CONVENTIONS_SCHEMA = 3;   // FAFF-1068: schema 1 (FAFF-1041) was mine-emitted-only; schema 2 added the persisted cache.
+                                 // FAFF-1082: schema 3 adds the `rules` manifest (repository rule-file discovery).
 const CONVENTIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--refresh": { arity: 0 }, "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] } }, positionals: { min: 0, max: null, name: "verb key" } };
 const CONVENTIONS_SURFACE = {
   kind: "subcommand_dispatch",
@@ -105,6 +106,66 @@ function findStandardsDocs(root) {
   for (const rel of listDirMatches(root, ".github", /commit/i)) found.push(rel);
   for (const rel of walkDocsForNames(root, /^(contributing|style)/i)) found.push(rel);
   return [...new Set(found)];
+}
+
+// ---------------------------------------------------------------------------
+// FAFF-1082 — repository rule-file discovery. A STRUCTURALLY SEPARATE scan from
+// findStandardsDocs above: rule files carry no fixed vocabulary and must never win or reorder
+// the first-confident-hit precedence the three style keys (branch_naming/commit_subject/
+// pr_title) scan over. This records file PRESENCE + provenance only — never rule-file prose,
+// never a style-key resolution input. See findStandardsDocs' region note for the axis this is
+// deliberately kept apart from.
+// ---------------------------------------------------------------------------
+const RULE_WALK_BUDGET = 5000;
+const RULE_SOURCE = "discovered";           // a rules-block-only source token; NOT a member of CONVENTIONS_SOURCES
+const RULE_EVIDENCE_KINDS = ["rule-file"];  // a rules-block-only evidence-kind set; NOT a member of CONVENTIONS_EVIDENCE_KINDS
+
+// Bounded recursive walk of .claude/rules for *.md files, mirroring walkDocsForNames' own
+// safeguards (a budget cap, symlinks skipped) — not a reuse of that helper, which is
+// docs/-and-basename specific rather than a general recursive .md glob. Deterministic
+// (alphabetic) order.
+function walkRuleFiles(root) {
+  const out = [];
+  const stack = [path.join(root, ".claude", "rules")];
+  let budget = RULE_WALK_BUDGET;
+  while (stack.length && budget-- > 0) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      if (e.isSymbolicLink()) continue;
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) stack.push(full);
+      else if (e.isFile() && /\.md$/i.test(e.name)) out.push(path.relative(root, full).split(path.sep).join("/"));
+    }
+  }
+  return out.sort();
+}
+
+// Root CLAUDE.md (when present as a regular file) first, then every *.md under .claude/rules at
+// any depth, alphabetically. Duplicates removed, order preserved. CLAUDE.md is recorded
+// independently of AGENTS.md (already scanned by findStandardsDocs above) — the two files load
+// under different semantics and deduping would need a fragile "does this file only import
+// another?" heuristic, so none is attempted.
+function findRuleFiles(root) {
+  const out = [];
+  if (conventionsIsFile(path.join(root, "CLAUDE.md"))) out.push("CLAUDE.md");
+  for (const rel of walkRuleFiles(root)) out.push(rel);
+  return [...new Set(out)];
+}
+
+// Maps each discovered rule file to a RuleFileEntry — the same five-field shape a convention
+// entry uses ({key, value, source, confidence, evidence}), but with its own rules-only
+// vocabulary (source "discovered", evidence.kind "rule-file") so it never has to pass through
+// the style-key CONVENTIONS_VOCAB / CONVENTIONS_SOURCES enums.
+function scanRuleFiles(root) {
+  return findRuleFiles(root).map((rel) => ({
+    key: rel,
+    value: rel,
+    source: RULE_SOURCE,
+    confidence: "high",
+    evidence: [{ kind: "rule-file", ref: rel, detail: `${rel} discovered as a repository rule file` }],
+  }));
 }
 
 // Every occurrence of "conventional commit(s)" / a bare-imperative synonym, tagged by the scope
@@ -396,9 +457,10 @@ function workflowFiles(root) {
 function computeSourceFingerprint(root, cfg) {
   const docs = findStandardsDocs(root).map((rel) => [rel, statMeta(path.join(root, rel))]).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
   const workflows = workflowFiles(root).map((rel) => [rel, statMeta(path.join(root, rel))]);
+  const rules = findRuleFiles(root).map((rel) => [rel, statMeta(path.join(root, rel))]);   // FAFF-1082: rule-file stat-list, so a changed rule file misses the cache
   const config = dig(cfg, "conventions");
   const record_dirs = recordDirCandidates(root, cfg);   // FAFF-1069: names-only record-dir signal so a moved record dir invalidates
-  const canonical = JSON.stringify({ docs, workflows, config: config === undefined ? null : config, record_dirs });
+  const canonical = JSON.stringify({ docs, workflows, rules, config: config === undefined ? null : config, record_dirs });
   return crypto.createHash("sha256").update(canonical).digest("hex");
 }
 
@@ -441,6 +503,7 @@ function mineConventions(root, cfg) {
   set.commit_subject = resolveConvention(root, "commit_subject", cfg);
   set.pr_title = resolvePrTitle(root, cfg, set.commit_subject);
   set.record_locations = scanRecordLocations(root, cfg);   // FAFF-1069: synonym-tolerant record-store detection
+  set.rules = scanRuleFiles(root);   // FAFF-1082: repository rule-file manifest (discovery only, never a style-key input)
   return set;
 }
 
@@ -635,6 +698,34 @@ const CONVENTIONS_EVIDENCE_KINDS = ["config-key", "doc-file", "history"];
 const CONVENTIONS_SOURCES = ["explicit", "documented", "inferred", "default"];
 const CONVENTIONS_CONFIDENCES = ["high", "medium", "low"];
 
+// FAFF-1082 — validates the `rules` manifest block, mirroring validateConventionSet's shape but
+// against the rules-only vocabulary (source "discovered", evidence.kind "rule-file") rather than
+// CONVENTIONS_VOCAB/CONVENTIONS_SOURCES. Called unconditionally (never optional, unlike
+// record_locations below) — a schema-3 set's `rules` array must always be present, even empty.
+function validateRuleManifest(rules) {
+  if (!Array.isArray(rules)) return ["rules must be an array"];
+  const v = [];
+  const seen = new Set();
+  rules.forEach((entry, i) => {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) { v.push(`rules[${i}] must be an object`); return; }
+    if (!entry.key || String(entry.key).trim() === "") v.push(`rules[${i}].key must be a non-empty string`);
+    else if (seen.has(entry.key)) v.push(`duplicate rule key: ${entry.key}`);
+    else seen.add(entry.key);
+    if (!entry.value || String(entry.value).trim() === "") v.push(`rules[${i}].value must be a non-empty string`);
+    if (entry.source !== RULE_SOURCE) v.push(`rules[${i}].source must be '${RULE_SOURCE}'`);
+    if (entry.confidence !== "high") v.push(`rules[${i}].confidence must be 'high'`);
+    if (!Array.isArray(entry.evidence) || entry.evidence.length !== 1) {
+      v.push(`rules[${i}].evidence must be a length-1 array`);
+    } else {
+      const ev = entry.evidence[0];
+      if (ev === null || typeof ev !== "object" || Array.isArray(ev) || !RULE_EVIDENCE_KINDS.includes(ev.kind) || !ev.ref || String(ev.ref).trim() === "") {
+        v.push(`rules[${i}].evidence[0] must be { kind: "rule-file", ref: <non-empty> }`);
+      }
+    }
+  });
+  return v;
+}
+
 function validateConventionSet(obj) {
   if (obj === null || typeof obj !== "object" || Array.isArray(obj)) return ["conventions record must be a JSON object"];
   const v = [];
@@ -658,6 +749,8 @@ function validateConventionSet(obj) {
       });
     }
   }
+  // FAFF-1082 — rules is MANDATORY on a schema-3 set (never absent, may be an empty array).
+  v.push(...validateRuleManifest(obj.rules));
   // FAFF-1069 — record_locations is OPTIONAL (a pre-slice schema-2 cache omits it and stays valid);
   // when present it must carry all six keys, each a well-formed entry.
   if (obj.record_locations !== undefined) {
@@ -813,9 +906,10 @@ function conventionsSelftest() {
   check("dominance: 19 samples (below the 20 floor) -> no adoption (null)", belowFloor === null);
 
   // --- validateConventionSet ---
-  const validSet = mineConventions(os.tmpdir(), {});   // tmpdir has no docs/git signal -> pure defaults
-  check("validate: a freshly-mined (all-default) set is valid, schema 2", validSet.schema === CONVENTIONS_SCHEMA && validateConventionSet(validSet).length === 0);
+  const validSet = mineConventions(os.tmpdir(), {});   // tmpdir has no docs/git/rules signal -> pure defaults
+  check("validate: a freshly-mined (all-default) set is valid, current schema", validSet.schema === CONVENTIONS_SCHEMA && validateConventionSet(validSet).length === 0);
   check("validate: a schema-1 set is invalid (stale schema)", validateConventionSet({ ...validSet, schema: 1 }).length > 0);
+  check("validate: a tmpdir mine has an empty rules array (no CLAUDE.md/.claude/rules there)", Array.isArray(validSet.rules) && validSet.rules.length === 0);
   check("validate: missing convention is invalid", validateConventionSet({ schema: CONVENTIONS_SCHEMA, generated_at: "t", branch_naming: validSet.branch_naming, pr_title: validSet.pr_title }).length > 0);
   check("validate: out-of-vocabulary value is invalid", validateConventionSet({ ...validSet, branch_naming: { ...validSet.branch_naming, value: "camelCase" } }).length > 0);
   check("validate: default source with non-low confidence is invalid", validateConventionSet({ ...validSet, branch_naming: { ...validSet.branch_naming, confidence: "high" } }).length > 0);
@@ -1016,13 +1110,13 @@ function conventionsSelftest() {
   // --- FAFF-1069 record_locations validator (pure) ---
   {
     const styleDefault = (k, val) => ({ key: k, value: val, source: "default", confidence: "low", evidence: [] });
-    const base = { schema: CONVENTIONS_SCHEMA, generated_at: "t",
+    const base = { schema: CONVENTIONS_SCHEMA, generated_at: "t", rules: [],
       branch_naming: styleDefault("branch_naming", "issue-slug"),
       commit_subject: styleDefault("commit_subject", "conventional"),
       pr_title: styleDefault("pr_title", "conventional") };
     const rlValid = {};
     for (const k of RECORD_LOCATION_KEYS) rlValid[k] = { key: k, value: `docs/${k}`, source: "default", confidence: "low", evidence: [] };
-    check("record validate: a schema-2 set WITHOUT record_locations is valid (back-compat)", validateConventionSet(base).length === 0);
+    check("record validate: a set WITHOUT record_locations is valid (back-compat)", validateConventionSet(base).length === 0);
     check("record validate: a well-formed record_locations passes", validateConventionSet({ ...base, record_locations: rlValid }).length === 0);
     const badSource = JSON.parse(JSON.stringify(rlValid));
     badSource.adr_docs_path = { key: "adr_docs_path", value: "docs/adr", source: "inferred", confidence: "high", evidence: [{ kind: "doc-file", ref: "docs/adr" }] };
@@ -1033,6 +1127,108 @@ function conventionsSelftest() {
     const noEvidence = JSON.parse(JSON.stringify(rlValid));
     noEvidence.adr_docs_path = { key: "adr_docs_path", value: "docs/decisions", source: "synonym-mapped", confidence: "low", evidence: [] };
     check("record validate: a non-default record source with no evidence is rejected", validateConventionSet({ ...base, record_locations: noEvidence }).length > 0);
+  }
+
+  // --- FAFF-1082 repository rule-file discovery (real tmp dirs) ---
+  let ruleTmp;
+  try {
+    ruleTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-conventions-rules-"));
+
+    // No rule files at all -> empty manifest, not a missing field or an error.
+    check("rules: no CLAUDE.md / .claude/rules -> empty array", findRuleFiles(ruleTmp).length === 0 && scanRuleFiles(ruleTmp).length === 0);
+
+    // Capture style-key resolution BEFORE adding rule files, to prove precedence-isolation below.
+    const cfgEmptyRules = {};
+    const styleBefore = {
+      branch_naming: resolveConvention(ruleTmp, "branch_naming", cfgEmptyRules),
+      commit_subject: resolveConvention(ruleTmp, "commit_subject", cfgEmptyRules),
+      pr_title: resolveConvention(ruleTmp, "pr_title", cfgEmptyRules),
+    };
+
+    // Add a root CLAUDE.md and a nested .claude/rules/managed/documentation.md.
+    fs.writeFileSync(path.join(ruleTmp, "CLAUDE.md"), "# rules load automatically\n");
+    fs.mkdirSync(path.join(ruleTmp, ".claude", "rules", "managed"), { recursive: true });
+    fs.writeFileSync(path.join(ruleTmp, ".claude", "rules", "managed", "documentation.md"), "# doc standards\n");
+    fs.writeFileSync(path.join(ruleTmp, ".claude", "rules", "managed", "general.md"), "# general rules\n");
+    // A non-.md file under .claude/rules must never be picked up.
+    fs.writeFileSync(path.join(ruleTmp, ".claude", "rules", "managed", "notes.txt"), "not markdown\n");
+
+    const rels = findRuleFiles(ruleTmp);
+    check("rules: CLAUDE.md discovered", rels.includes("CLAUDE.md"));
+    check("rules: nested .claude/rules/**/*.md discovered at depth", rels.includes(".claude/rules/managed/documentation.md") && rels.includes(".claude/rules/managed/general.md"));
+    check("rules: non-.md file under .claude/rules excluded", !rels.includes(".claude/rules/managed/notes.txt"));
+    check("rules: CLAUDE.md ordered first", rels[0] === "CLAUDE.md");
+    check("rules: .claude/rules entries alphabetically ordered", rels.slice(1).join("|") === [...rels.slice(1)].sort().join("|"));
+
+    const entries = scanRuleFiles(ruleTmp);
+    const docEntry = entries.find((e) => e.key === ".claude/rules/managed/documentation.md");
+    check("rules: entry shape {key,value,source,confidence,evidence}", !!docEntry && docEntry.value === docEntry.key
+      && docEntry.source === "discovered" && docEntry.confidence === "high"
+      && Array.isArray(docEntry.evidence) && docEntry.evidence.length === 1
+      && docEntry.evidence[0].kind === "rule-file" && docEntry.evidence[0].ref === docEntry.key);
+    check("rules: one entry per discovered file, keys unique", entries.length === rels.length && new Set(entries.map((e) => e.key)).size === entries.length);
+
+    // Precedence-isolation: adding rule files must not shift the three style keys at all.
+    const styleAfter = {
+      branch_naming: resolveConvention(ruleTmp, "branch_naming", cfgEmptyRules),
+      commit_subject: resolveConvention(ruleTmp, "commit_subject", cfgEmptyRules),
+      pr_title: resolveConvention(ruleTmp, "pr_title", cfgEmptyRules),
+    };
+    check("rules: branch_naming resolution unchanged by rule files", JSON.stringify(styleBefore.branch_naming) === JSON.stringify(styleAfter.branch_naming));
+    check("rules: commit_subject resolution unchanged by rule files", JSON.stringify(styleBefore.commit_subject) === JSON.stringify(styleAfter.commit_subject));
+    check("rules: pr_title resolution unchanged by rule files", JSON.stringify(styleBefore.pr_title) === JSON.stringify(styleAfter.pr_title));
+    check("rules: findStandardsDocs untouched by rule files", !findStandardsDocs(ruleTmp).some((d) => d.startsWith(".claude/")));
+
+    // A freshly-mined schema-3 set carrying the rules manifest validates.
+    const minedWithRules = mineConventions(ruleTmp, {});
+    check("rules: mineConventions attaches set.rules with the discovered entries", minedWithRules.rules.length === entries.length);
+    check("rules: a freshly-mined set with rules validates (schema 3)", minedWithRules.schema === CONVENTIONS_SCHEMA && validateConventionSet(minedWithRules).length === 0);
+
+    // Symlinked file/dir under .claude/rules is skipped, never followed, never hangs.
+    const outsideTarget = fs.mkdtempSync(path.join(os.tmpdir(), "faff-conventions-rules-outside-"));
+    fs.writeFileSync(path.join(outsideTarget, "escaped.md"), "# should never be discovered\n");
+    try { fs.symlinkSync(outsideTarget, path.join(ruleTmp, ".claude", "rules", "linked-dir")); } catch { /* symlink perms unavailable in this sandbox */ }
+    try { fs.symlinkSync(path.join(ruleTmp, "CLAUDE.md"), path.join(ruleTmp, ".claude", "rules", "managed", "linked.md")); } catch { /* symlink perms unavailable */ }
+    const relsWithSymlinks = findRuleFiles(ruleTmp);
+    check("rules: symlinked dir under .claude/rules skipped", !relsWithSymlinks.some((r) => r.includes("linked-dir")));
+    check("rules: symlinked file under .claude/rules skipped", !relsWithSymlinks.includes(".claude/rules/managed/linked.md"));
+    fs.rmSync(outsideTarget, { recursive: true, force: true });
+  } catch (e) {
+    check(`rule-file discovery threw unexpectedly: ${e.message}`, false);
+  } finally {
+    if (ruleTmp) fs.rmSync(ruleTmp, { recursive: true, force: true });
+  }
+
+  // --- FAFF-1082 validateRuleManifest (pure) ---
+  {
+    check("rules validate: not an array is invalid", validateRuleManifest("nope").length > 0);
+    check("rules validate: empty array is valid", validateRuleManifest([]).length === 0);
+    const goodEntry = { key: "CLAUDE.md", value: "CLAUDE.md", source: "discovered", confidence: "high", evidence: [{ kind: "rule-file", ref: "CLAUDE.md", detail: "CLAUDE.md discovered as a repository rule file" }] };
+    check("rules validate: a well-formed entry passes", validateRuleManifest([goodEntry]).length === 0);
+    check("rules validate: duplicate key rejected", validateRuleManifest([goodEntry, goodEntry]).length > 0);
+    check("rules validate: wrong source rejected", validateRuleManifest([{ ...goodEntry, source: "documented" }]).length > 0);
+    check("rules validate: wrong confidence rejected", validateRuleManifest([{ ...goodEntry, confidence: "low" }]).length > 0);
+    check("rules validate: missing evidence rejected", validateRuleManifest([{ ...goodEntry, evidence: [] }]).length > 0);
+    check("rules validate: wrong evidence.kind rejected", validateRuleManifest([{ ...goodEntry, evidence: [{ kind: "doc-file", ref: "CLAUDE.md" }] }]).length > 0);
+  }
+
+  // --- FAFF-1082 cache-fingerprint invalidation on a rule-file change ---
+  let fptmp;
+  try {
+    fptmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-conventions-rules-fp-"));
+    fs.mkdirSync(path.join(fptmp, ".claude", "rules"), { recursive: true });
+    fs.writeFileSync(path.join(fptmp, ".claude", "rules", "general.md"), "v1\n");
+    const fp1 = computeSourceFingerprint(fptmp, {});
+    // Force a distinct mtime (some filesystems have coarse mtime resolution).
+    const future = new Date(Date.now() + 5000);
+    fs.writeFileSync(path.join(fptmp, ".claude", "rules", "general.md"), "v2, a longer body\n");
+    fs.utimesSync(path.join(fptmp, ".claude", "rules", "general.md"), future, future);
+    const fp2 = computeSourceFingerprint(fptmp, {});
+    check("rules: fingerprint changes when a discovered rule file's content/stat changes", fp1 !== fp2);
+  } catch (e) {
+    check(`rule-file fingerprint check threw unexpectedly: ${e.message}`, false);
+  } finally {
+    if (fptmp) fs.rmSync(fptmp, { recursive: true, force: true });
   }
 
   if (failed) return 1;
@@ -1048,4 +1244,5 @@ module.exports = {
   inferConvention, matchDocForKey, mineConventions, readConventionsCache, resolveConvention,
   resolveConventionCached, scanDocs, validateConventionSet, writeConventionsCacheAtomic,
   RECORD_LOCATION_KEYS, RECORD_SOURCES, RECORD_SYNONYMS, scanRecordLocations, recordDirCandidates,
+  RULE_SOURCE, RULE_EVIDENCE_KINDS, findRuleFiles, scanRuleFiles, validateRuleManifest,
 };

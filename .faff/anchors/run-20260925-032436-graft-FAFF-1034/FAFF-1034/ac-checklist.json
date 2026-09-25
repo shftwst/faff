@@ -1,0 +1,17 @@
+{
+  "issue": "FAFF-1034",
+  "all_verified": true,
+  "items": [
+    { "ac": "governed covered merge -> resolveCommissaireDecisionGrant valid-grant", "verified": true, "evidence": "merge-gate.test.mjs 39/39" },
+    { "ac": "governed no-covering-grant -> absent-or-invalid (fail closed)", "verified": true, "evidence": "merge-gate.test.mjs (resolver three-state test)" },
+    { "ac": "ungoverned run -> not-applicable (byte-for-byte pass regression)", "verified": true, "evidence": "merge-gate.test.mjs regression test" },
+    { "ac": "evaluateLevelPolicy pure L1/L2/L3/L4 truth table; evaluateDecisionRequest legs unchanged", "verified": true, "evidence": "commissaire.test.mjs + selftest truth table" },
+    { "ac": "cmdRequestDecision records level/attended/holdout + policy result in payload; deny-whose-pure-legs-pass replayable", "verified": true, "evidence": "commissaire.test.mjs recorded-inputs test" },
+    { "ac": "per-covered-merge schema:2 suppression (single lineage)", "verified": true, "evidence": "commissaire.test.mjs / merge-gate suppression predicate test" },
+    { "ac": "runner drives admit at run start (skip-on-existing, never --force); merge locus declare/authorize/observe; run-close conclude+reconcile", "verified": true, "evidence": "faff-graft + faff-beep-boop SKILL.md wiring; validate-adapters PASS" },
+    { "ac": "governed schema:3 trail passes faff commissaire audit verify result:pass", "verified": true, "evidence": "commissaire.test.mjs audit-verify test + live run result:pass" },
+    { "ac": "docs claim exactly option-3 posture with co-located-key caveat, NOT independence (forbidden-outcome guardrail)", "verified": true, "evidence": "docs/concept/execution-and-governance.md 'The runner's own merges' reviewed: claims authenticated/hash-chained/verifiable/mediated+fail-closed; explicitly disclaims independence/unforgeability against orchestrator with co-located-key caveat" },
+    { "ac": "two follow-on stubs filed + linked", "verified": true, "evidence": "FAFF-1108 (other-effects governance), FAFF-1109 (out-of-process governor), both relatedTo FAFF-1034" },
+    { "ac": "faff gates run pass; validate-adapters PASS; suite green", "verified": true, "evidence": "gates signal:pass; validate-adapters PASS (20 skills); commissaire 55/55; merge-gate 39/39" }
+  ]
+}

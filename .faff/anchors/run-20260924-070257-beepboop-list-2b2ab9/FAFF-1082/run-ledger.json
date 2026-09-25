@@ -1,0 +1,59 @@
+{
+  "run_id": "run-20260924-070257-beepboop-list-2b2ab9",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1085",
+    "FAFF-1084",
+    "FAFF-1082",
+    "FAFF-1080"
+  ],
+  "outcomes": {
+    "FAFF-1034": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-1034": {
+      "state": "routed-out",
+      "reason": "operator designated interactive-only build (security/custody claim) — 2026-09-22 comment: 'keeps it off the unattended path by design'; consistent with prior runs"
+    }
+  },
+  "base_sha": "113277305093aa64aff88f1ee92626047d1a2fde",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260924-070257-beepboop-list-2b2ab9",
+    "pid": 451,
+    "started_at": "2026-09-24T07:02:57.713Z",
+    "last_heartbeat": "2026-09-24T07:02:57.713Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "price_per_mtok": 0,
+      "pricing": "map"
+    },
+    "measure_session_id": "ab968351-3632-416a-b43e-077a3783c818",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 58,
+        "output": 22227,
+        "cache_write_5m": 0,
+        "cache_write_1h": 305606,
+        "cache_read": 4681434
+      }
+    },
+    "tokens_at_start": 5009325,
+    "tokens_at_last_event": {
+      "input": 271,
+      "output": 212722,
+      "cache_write_5m": 0,
+      "cache_write_1h": 827129,
+      "cache_read": 33831290
+    }
+  }
+}

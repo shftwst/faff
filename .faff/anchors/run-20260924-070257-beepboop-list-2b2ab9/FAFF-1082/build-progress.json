@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1082",
+  "build": {
+    "status": "complete",
+    "diff_hash": "dd067a761b06285349dec04f76e8297ae77a3251eb583c53c068aa25ee3b2a47",
+    "branch": "faff-1082-discover-repository-rule-files-clauderules-claudemd-in",
+    "pushed_at": "2026-09-24T07:56:56.211Z"
+  },
+  "updated_at": "2026-09-24T07:56:56.211Z"
+}

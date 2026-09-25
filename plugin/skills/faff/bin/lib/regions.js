@@ -527,6 +527,10 @@ const REGION_SELFTEST_ARGV = {
   "regions": ["regions", "--selftest"],
   "cli-surface": ["cli-surface", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],
+  // FAFF-1118: pr-create opens a real PR (the sole `gh pr create` path) — no host-safe standalone
+  // --selftest; its resolvers/andGrants/coattail logic are covered by `merge-gate --selftest` + the
+  // suite, so it takes a factory null (non-fatal), like sync/doctor/state.
+  "pr-create": null,
   "branch-protection-check": ["branch-protection-check", "--selftest"],
   "github-auth-check": ["github-auth-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],

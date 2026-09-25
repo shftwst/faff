@@ -917,39 +917,75 @@ function observeMergeEffects(runDir, issue, effects) {
   }
 }
 
-// FAFF-828: the worked chokepoint. Resolve the Commissaire protected-effect decision leg for THIS
-// merge — a three-state signal decideFloor consumes. "not-applicable" (an ordinary merge the
-// external facade never governed: no schema:3 effect-decision-verdict for this issue's merge step)
-// is a no-op, so ordinary merges are byte-for-byte unaffected. When governance DOES apply, the
-// latest signed verdict is verified through chokepoint_permit against the pinned public PK: a
-// genuine covering grant → "valid-grant" (no-op), anything else (missing/forged/deny/non-covering
-// grant, or an unreadable pinned PK) → "absent-or-invalid", which decideFloor refuses BEFORE the
-// merge. This is where a verified unforgeable decision becomes prevention. Any read error is
-// swallowed to "not-applicable" — the decision leg never itself crashes a merge that the facade
-// was never governing. `mergeTarget` (the base branch) is the effect target the grant must cover;
-// when unresolved, the grant's own declared merge target is used (the governor's signed intent).
-function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
+// FAFF-828/1118: the worked chokepoint core, shared by every per-effect resolver. Resolve the
+// Commissaire protected-effect decision leg for ONE (issue, step, effectKind) — a three-state
+// signal decideFloor / cmdPrCreate consume. "not-applicable" (an ordinary effect the external
+// facade never governed: no schema:3 effect-decision-verdict for this issue's step) is a no-op, so
+// ungoverned runs are byte-for-byte unaffected. When governance DOES apply, the latest signed
+// verdict FOR THIS EFFECT KIND is verified through chokepoint_permit against the pinned public PK:
+// a genuine covering grant → "valid-grant" (no-op), anything else (missing/forged/deny/non-covering
+// grant, an unreadable pinned PK, or no verdict covering this kind) → "absent-or-invalid", which
+// the caller refuses BEFORE the effect. Any read error is swallowed to "not-applicable" — the leg
+// never itself crashes an effect the facade was never governing. `target` (the base branch / head
+// ref) is what the grant must cover; when unresolved, the grant's own declared target is used
+// (the governor's signed intent). FAFF-1118: the verdict is selected by `payload.effect.kind`, not
+// merely the last step verdict, so a branch-delete verdict at step="merge" cannot shadow the merge
+// verdict — byte-identical to last-wins on a one-verdict-per-kind ledger.
+function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
   let entries;
   try { entries = commissaireReadLedger(runDir); } catch { return "not-applicable"; }
   const verdicts = entries.filter((e) =>
     e && e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" &&
-    e.issue === issue && e.step === "merge");
+    e.issue === issue && e.step === step);
   if (verdicts.length === 0) {
-    // FAFF-1034 — fail closed on a GOVERNED run. Before this ticket a no-verdict merge always read
-    // "not-applicable" (fail open). Now: a run whose runner has `admit`ted (any schema:3 record ⇒
-    // hasGovernanceContext) but produced NO covering merge verdict is exactly the hole the protocol
-    // exists to prevent — return "absent-or-invalid" so decideFloor refuses the merge BEFORE it lands.
+    // FAFF-1034 — fail closed on a GOVERNED run. A run whose runner has `admit`ted (any schema:3
+    // record ⇒ hasGovernanceContext) but produced NO verdict at this step is exactly the hole the
+    // protocol exists to prevent — "absent-or-invalid" so the caller refuses BEFORE the effect.
     // An UNGOVERNED run (no schema:3 records at all) stays "not-applicable" ⇒ pass, byte-for-byte.
     return commissaireHasGovernanceContext(runDir) ? "absent-or-invalid" : "not-applicable";
   }
-  const verdict = verdicts[verdicts.length - 1]; // the latest decision for this issue's merge
+  const covering = verdicts.filter((v) => v.payload && v.payload.effect && v.payload.effect.kind === effectKind);
+  const verdict = covering[covering.length - 1]; // the latest decision FOR THIS effect kind
+  if (!verdict) return "absent-or-invalid"; // governed, step verdicts exist, but none covers this kind — fail-closed
   let pkRec;
   try { pkRec = JSON.parse(fs.readFileSync(commissairePkFile(commissaireProducerDir(runDir)), "utf8")); }
   catch { return "absent-or-invalid"; } // governance applies but the pinned PK is unreadable — fail-closed
   const grantedTarget = verdict.payload && verdict.payload.effect && verdict.payload.effect.target;
-  const mergeEffect = { kind: "merge", target: mergeTarget || grantedTarget };
-  const res = commissaireChokepointPermit(mergeEffect, verdict, pkRec.pk, pkRec.pk_fingerprint);
+  const effect = { kind: effectKind, target: target || grantedTarget };
+  const res = commissaireChokepointPermit(effect, verdict, pkRec.pk, pkRec.pk_fingerprint);
   return res.permit ? "valid-grant" : "absent-or-invalid";
+}
+
+// FAFF-828: the merge chokepoint leg — the schema:3 grant covering THIS merge. `mergeTarget` (the
+// base branch) is the effect target; when unresolved the grant's own declared target is used.
+function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
+  return resolveGrantByEffectKind(runDir, issue, "merge", "merge", mergeTarget);
+}
+
+// FAFF-1118: the pr-create chokepoint leg — a structural mirror at step="pr-create", kind="pr-create".
+// `prTarget` is the base branch the PR opens against (the merge grant's base-branch convention).
+function resolvePrCreateGrant(runDir, issue, prTarget) {
+  return resolveGrantByEffectKind(runDir, issue, "pr-create", "pr-create", prTarget);
+}
+
+// FAFF-1118: the branch-delete coattail leg — the branch-delete grant lives at step="merge" (where
+// the branch-delete is declared), selected by kind so it never shadows (or is shadowed by) the
+// merge verdict. `branchTarget` is the head ref the delete removes.
+function resolveBranchDeleteGrant(runDir, issue, branchTarget) {
+  return resolveGrantByEffectKind(runDir, issue, "merge", "branch-delete", branchTarget);
+}
+
+// FAFF-1118: the fail-closed AND monoid over three-valued grants. "valid-grant" iff EVERY input is
+// "valid-grant"; "absent-or-invalid" if ANY input is "absent-or-invalid" (it DOMINATES); otherwise
+// "not-applicable" iff ALL inputs are "not-applicable" (an ungoverned run, byte-for-byte). A
+// non-uniform mix with no absent leg (e.g. valid + not-applicable, which per-run shared governance
+// context makes unreachable in practice) fails closed to "absent-or-invalid".
+function andGrants(...grants) {
+  if (!grants.length) return "absent-or-invalid"; // a zero-arg AND is fail-closed, never a vacuous valid-grant
+  if (grants.some((g) => g === "absent-or-invalid")) return "absent-or-invalid";
+  if (grants.every((g) => g === "valid-grant")) return "valid-grant";
+  if (grants.every((g) => g === "not-applicable")) return "not-applicable";
+  return "absent-or-invalid";
 }
 
 // FAFF-1034 — per-covered-merge schema:2 suppression predicate. TRUE iff THIS (issue, merge)
@@ -961,6 +997,15 @@ function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
 // always false there and the schema:2 path is byte-for-byte unchanged.
 function mergeCoveredBySchema3Grant(runDir, issue, mergeTarget) {
   try { return resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) === "valid-grant"; }
+  catch { return false; }
+}
+
+// FAFF-1118 — the pr-create sibling of mergeCoveredBySchema3Grant: TRUE iff THIS (issue, pr-create)
+// carries a covering, verified schema:3 grant, so cmdPrCreate suppresses its own schema:2 trail on
+// a covered create (single schema:3 lineage). False on an ungoverned/ungranted create → the schema:2
+// trail is written as defence-in-depth, byte-for-byte the pre-slice behaviour.
+function prCreateCoveredBySchema3Grant(runDir, issue, prTarget) {
+  try { return resolvePrCreateGrant(runDir, issue, prTarget) === "valid-grant"; }
   catch { return false; }
 }
 
@@ -1533,6 +1578,14 @@ function cmdMergeGate(args) {
 
   const ci = observeCi(repo, pr, headSha);
   const holdoutLeg = resolveHoldoutLeg(runDir, issue); // FAFF-1040: posture from run facts, not the L4 label
+  // FAFF-1118: coattail close — a --delete-branch merge must carry a grant covering BOTH {merge}
+  // and {branch-delete}. The shell ANDs the two independently-verified grants into the single
+  // decision_grant field (decideFloor untouched). A non-delete merge resolves from the merge grant
+  // alone, byte-for-byte the FAFF-1034 path.
+  const mergeGrant = resolveCommissaireDecisionGrant(runDir, issue, null);
+  const decisionGrant = resolved.flags.includes("--delete-branch")
+    ? andGrants(mergeGrant, resolveBranchDeleteGrant(runDir, issue, headRefName))
+    : mergeGrant;
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
@@ -1545,7 +1598,7 @@ function cmdMergeGate(args) {
     holdout_fault: holdoutLeg.holdout_fault,
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
-    decision_grant: resolveCommissaireDecisionGrant(runDir, issue, null),
+    decision_grant: decisionGrant,
     dependency_gate: interlock.gate,
   };
   const { verdict, blockers } = decideFloor(floor);
@@ -1643,6 +1696,76 @@ function cmdMergeGate(args) {
   // FAFF-1034: suppressed for a merge covered by a schema:3 grant (single schema:3 lineage).
   if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
   return emit(result, 0);
+}
+
+// FAFF-1118: the flag grammar for `faff pr-create`. `--base` is the grant-coverage target (the
+// base branch the PR opens against), NOT forwarded to `gh pr create` — the gh invocation stays
+// byte-for-byte Step 9b's (`--body-file` + optional `--title`), so an ungoverned PR-open is
+// identical to the pre-slice raw call.
+const PR_CREATE_SPEC = { flags: {
+  "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--base": { arity: 1 },
+  "--body-file": { arity: 1 }, "--title": { arity: 1 }, "--level": { arity: 1 }, "--json": { arity: 0 },
+} };
+
+// FAFF-1118: the SOLE sanctioned `gh pr create` path. Mirrors merge-gate's shell shape — a
+// fail-closed three-valued grant guard (resolvePrCreateGrant) inline BEFORE the effect (pr-create
+// carries no CI/AC/review floor of its own, so a full decideFloor would be dead machinery), an
+// ungoverned run byte-for-byte unaffected (grant not-applicable → open exactly as a raw gh pr
+// create), and a covered-create schema:2 suppression. Git-only (no pushable remote) is a no-op
+// exit 0. On absent-or-invalid it exits non-zero and opens NOTHING.
+function cmdPrCreate(args) {
+  const parsed = parseArgs(args, PR_CREATE_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff pr-create --run-dir DIR --issue ID --base BRANCH --body-file FILE [--title T] [--level L] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const json = !!parsed.values["--json"];
+  const runDir = get("--run-dir");
+  const issue = get("--issue");
+  const base = get("--base");
+  const bodyFile = get("--body-file");
+  const title = get("--title");
+  if (!runDir || !issue || !base || !bodyFile) { process.stderr.write("faff pr-create: --run-dir, --issue, --base and --body-file are required\n"); return 2; }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff pr-create: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
+
+  const emit = (res, status) => {
+    if (json) process.stdout.write(JSON.stringify(res) + "\n");
+    else {
+      console.log(`${res.verdict}${res.opened ? " (opened)" : ""}${res.pr_url ? ` — ${res.pr_url}` : ""}`);
+      for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
+    }
+    return status;
+  };
+
+  // (1) Git-only (no pushable remote) → no-op exit 0, mirroring Step 9b's git-only no-op.
+  if (gitRemoteEmpty(process.cwd()) === true) return emit({ verdict: "no-op", opened: false, note: "git-only (no remote) — no PR to open" }, 0);
+
+  // (2)+(3) the fail-closed pr-create chokepoint — a governed-but-uncovered create opens NOTHING.
+  const grant = resolvePrCreateGrant(runDir, issue, base);
+  if (grant === "absent-or-invalid") {
+    return emit({ verdict: "refuse", opened: false, blockers: ["Commissaire pr-create decision absent or invalid — a governed run must carry a covering signed pr-create grant for this base branch before the PR opens"] }, 1);
+  }
+
+  // (4) THE SOLE gh pr create invocation. On not-applicable (ungoverned) / valid-grant the PR opens.
+  const ghArgs = ["pr", "create", "--body-file", bodyFile];
+  if (title) ghArgs.push("--title", title);
+  const r = spawnSync("gh", ghArgs, { encoding: "utf8", timeout: 120000 });
+  if (r.status !== 0) {
+    return emit({ verdict: "refuse", opened: false, blockers: [`gh pr create failed: ${(r.stderr || "").trim() || "non-zero exit"}`] }, 1);
+  }
+
+  // (5) declare + observe the schema:2 pr-create effect UNLESS a covering schema:3 grant already
+  // owns the lineage (single schema:3 lineage for a covered create — mirrors merge-gate.js's own
+  // covered-merge suppression). Every failure is swallowed — the PR is already open by now.
+  if (!prCreateCoveredBySchema3Grant(runDir, issue, base)) {
+    const effects = [{ kind: "pr-create", target: base, reversible: true }];
+    try {
+      const dec = appendEffectEntries(runDir, "declare", issue, "pr-create", effects, undefined, { origin: "pr-create-auto" });
+      if (dec.violations) process.stderr.write(`faff pr-create: effects ledger declare rejected internally-built descriptors: ${JSON.stringify(dec.violations)}\n`);
+      const obs = appendEffectEntries(runDir, "observe", issue, "pr-create", effects);
+      if (obs.violations) process.stderr.write(`faff pr-create: effects ledger observe rejected internally-built descriptors: ${JSON.stringify(obs.violations)}\n`);
+    } catch (e) { process.stderr.write(`faff pr-create: effects ledger append failed (PR already open): ${e.message}\n`); }
+  }
+  // (6)
+  return emit({ verdict: "opened", opened: true, pr_url: (r.stdout || "").trim() }, 0);
 }
 
 function cmdBranchProtectionCheck(args) {
@@ -1906,6 +2029,18 @@ async function mergeGateSelftest() {
   check("resolveGateLevel: no ledger, L3 flag → L3/no-mismatch", (() => { const r = resolveGateLevel(null, "L3"); return r.level === "L3" && r.mismatch === false; })());
   check("resolveGateLevel: no ledger, no flag → L3 default", (() => { const r = resolveGateLevel(null, null); return r.level === "L3" && r.mismatch === false; })());
   check("resolveGateLevel: out-of-enum ledger level (pre-normalised null), L4 flag → L4", (() => { const r = resolveGateLevel(null, "L4"); return r.level === "L4" && r.mismatch === false; })());
+
+  // FAFF-1118 andGrants — the fail-closed AND monoid over the three-valued grant. absent-or-invalid
+  // DOMINATES; valid-grant only when every input is valid; not-applicable only when all are.
+  check("andGrants: all valid → valid-grant", andGrants("valid-grant", "valid-grant") === "valid-grant");
+  check("andGrants: any absent-or-invalid dominates (valid + absent)", andGrants("valid-grant", "absent-or-invalid") === "absent-or-invalid");
+  check("andGrants: absent dominates not-applicable too", andGrants("not-applicable", "absent-or-invalid") === "absent-or-invalid");
+  check("andGrants: all not-applicable → not-applicable (ungoverned, byte-for-byte)", andGrants("not-applicable", "not-applicable") === "not-applicable");
+  check("andGrants: a non-uniform valid+not-applicable mix fails closed to absent-or-invalid", andGrants("valid-grant", "not-applicable") === "absent-or-invalid");
+  check("andGrants: single valid grant → valid-grant (non-delete merge, the FAFF-1034 path)", andGrants("valid-grant") === "valid-grant");
+  check("andGrants: single not-applicable → not-applicable (ungoverned non-delete merge)", andGrants("not-applicable") === "not-applicable");
+  check("andGrants: zero args → absent-or-invalid (fail-closed, never a vacuous valid-grant)", andGrants() === "absent-or-invalid");
+
   // classifyHeadShaChecks
   check("head checks: empty → no-ci-coverage", classifyHeadShaChecks([], null, 0) === "no-ci-coverage");
   check("head checks: all success → ci-green", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }], "success", 1) === "ci-green");
@@ -2642,4 +2777,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

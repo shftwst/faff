@@ -64,7 +64,7 @@ const EFFECTS_SURFACE = {
 const EFFECT_KINDS = new Set([
   "merge", "branch-delete", "deploy", "db-migration", "secret-rotation",
   "email", "webhook", "registry-publish", "force-push", "prod-script",
-  "label-write", "tracker-write", "file-write", "other",
+  "label-write", "tracker-write", "file-write", "pr-create", "other",
 ]);
 
 // Pure validator for one EffectDescriptor — returns violation strings (empty == valid).
@@ -708,6 +708,9 @@ function effectsSelftest() {
   const vcases = [
     [{ kind: "merge", target: "main", reversible: true }, 0, "valid merge descriptor"],
     [{ kind: "merge", target: "main" }, 0, "reversible optional"],
+    // FAFF-1118: pr-create is a FIRST-CLASS kind (never coerced to `other`) — a well-formed
+    // {kind:"pr-create", target, reversible} descriptor validates; an unknown kind still rejects.
+    [{ kind: "pr-create", target: "main", reversible: true }, 0, "valid pr-create descriptor (first-class, not other-coerced)"],
     [{ kind: "no-such-kind", target: "main" }, 1, "unknown kind"],
     [{ kind: "merge" }, 1, "missing target"],
     [{ kind: "merge", target: "" }, 1, "empty target"],

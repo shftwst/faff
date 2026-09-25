@@ -61,6 +61,10 @@ const TEST_FILE_COVERAGE = {
   // `--selftest` (--assemble/--admit only); its degrade/fail-loud directions and dispatch-loop
   // logic are exercised through the real CLI entrypoint here.
   "build-judge-evidence": "test/build-judge-evidence.test.mjs",
+  // pr-create — FAFF-1118: the sole sanctioned `gh pr create` path. No standalone `--selftest`
+  // (its shell is impure gh); the git-only no-op / grant-refusal / dispatch-registration seam is
+  // exercised through the real CLI entrypoint here.
+  "pr-create": "test/pr-create-chokepoint.test.mjs",
 };
 
 // A command is selftest-covered iff its allowlist entry is a runnable argv array

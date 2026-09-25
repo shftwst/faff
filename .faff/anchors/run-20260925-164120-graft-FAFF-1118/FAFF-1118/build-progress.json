@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1118",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c8c5c2fe6b32c4e8c34afe1cc2ea25b696df95d2ad26a0b6bbb7cee32dd5cec0",
+    "branch": "faff-1118-pr-create-chokepoint",
+    "pushed_at": "2026-09-25T17:13:20.249Z"
+  },
+  "updated_at": "2026-09-25T17:13:20.249Z"
+}

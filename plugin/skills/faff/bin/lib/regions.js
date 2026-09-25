@@ -314,6 +314,10 @@ const REGION_MAP = {
   // computeReviewVerdict) so it is NOT in the extractable governance layer; branch-protection-check
   // mirrors the factory container-check assert-don't-enforce probe.
   "merge-gate": "factory",
+  // FAFF-1118: pr-create is the sole sanctioned `gh pr create` path, colocated in merge-gate.js and
+  // reusing its factory identifiers (resolvePrCreateGrant + the chokepoint machinery) → factory, for
+  // the identical reason merge-gate sits here.
+  "pr-create": "factory",
   "branch-protection-check": "factory",
   // FAFF-728: the run-start GitHub-auth preflight probe — colocated in merge-gate.js, reuses its
   // spawnSync gh idiom, mirrors the branch-protection-check assert-don't-enforce probe → factory.
@@ -523,6 +527,10 @@ const REGION_SELFTEST_ARGV = {
   "regions": ["regions", "--selftest"],
   "cli-surface": ["cli-surface", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],
+  // FAFF-1118: pr-create opens a real PR (the sole `gh pr create` path) — no host-safe standalone
+  // --selftest; its resolvers/andGrants/coattail logic are covered by `merge-gate --selftest` + the
+  // suite, so it takes a factory null (non-fatal), like sync/doctor/state.
+  "pr-create": null,
   "branch-protection-check": ["branch-protection-check", "--selftest"],
   "github-auth-check": ["github-auth-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],

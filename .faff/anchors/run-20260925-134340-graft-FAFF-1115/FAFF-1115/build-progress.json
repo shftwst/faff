@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1115",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a1c3cfc6e684750a2f02305f9b1600e5ae5301b8a6f05fe0767476cc713fd702",
+    "branch": "faff-1115-surface-holdout-offer-at-build-start",
+    "pushed_at": "2026-09-25T14:33:23.417Z"
+  },
+  "updated_at": "2026-09-25T14:33:23.417Z"
+}

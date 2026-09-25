@@ -2477,6 +2477,53 @@ async function mergeGateSelftest() {
     check("FAFF-1040: leg pass-through → decideFloor does not block", decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", holdout_posture: "pass-through" }).verdict === "merge-ok");
   })();
 
+  // FAFF-1115: the resume-store restore carries a Step-8c holdout.json forward, and freshness holds
+  // across the copy regardless of `cp` glob order — readCanRun/readHoldout compare holdout.json's file
+  // mtime against build-progress.json's `updated_at` CONTENT field, not its file mtime. A restored
+  // verdict stays fresh whichever order the two files land in the fresh run dir.
+  (() => {
+    const ISSUE = "FAFF-1115";
+    const past = new Date(1000).toISOString();
+    const mkStore = () => {
+      const s = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1115-store-"));
+      fs.writeFileSync(path.join(s, "build-progress.json"), JSON.stringify({ updated_at: past }));
+      fs.writeFileSync(path.join(s, "holdout.json"), JSON.stringify({ aggregate: "meets-spec", criteria: [] }));
+      return s;
+    };
+    // Restore = copy every *.json from the store into <run_dir>/<issue>/ in a given order (plain cp: dest mtime = now).
+    const restore = (order) => {
+      const store = mkStore();
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1115-run-"));
+      const idir = path.join(dir, ISSUE); fs.mkdirSync(idir, { recursive: true });
+      for (const name of order) fs.copyFileSync(path.join(store, name), path.join(idir, name));
+      fs.rmSync(store, { recursive: true, force: true });
+      return dir;
+    };
+    const rm = (d) => fs.rmSync(d, { recursive: true, force: true });
+    // readCanRun's "satisfied" is exactly the freshness capability (it wraps holdoutIsFresh): satisfied ⟺ the
+    // restored verdict postdates the checkpoint's content timestamp. That is the "freshness preserved across the
+    // copy" pin; the meets-spec/blocked content check is readHoldout's separate concern, not freshness.
+    let d = restore(["build-progress.json", "holdout.json"]);
+    check("FAFF-1115: restore (checkpoint→verdict glob order) → readCanRun satisfied (fresh)", readCanRun(d, ISSUE) === "satisfied"); rm(d);
+    d = restore(["holdout.json", "build-progress.json"]);
+    check("FAFF-1115: restore (verdict→checkpoint glob order) → readCanRun satisfied (glob order irrelevant)", readCanRun(d, ISSUE) === "satisfied"); rm(d);
+    // cp -p variant: source mtimes preserved; the stashed holdout was written AFTER the checkpoint, so it stays fresh.
+    d = (() => {
+      const store = mkStore();
+      const later = new Date(2000); fs.utimesSync(path.join(store, "holdout.json"), later, later);
+      const older = new Date(1000); fs.utimesSync(path.join(store, "build-progress.json"), older, older);
+      const rd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1115-runp-"));
+      const idir = path.join(rd, ISSUE); fs.mkdirSync(idir, { recursive: true });
+      for (const name of ["holdout.json", "build-progress.json"]) {
+        fs.copyFileSync(path.join(store, name), path.join(idir, name));
+        const st = fs.statSync(path.join(store, name)); fs.utimesSync(path.join(idir, name), st.atime, st.mtime);
+      }
+      fs.rmSync(store, { recursive: true, force: true });
+      return rd;
+    })();
+    check("FAFF-1115: restore with mtime-preserving copy (cp -p) → readCanRun satisfied", readCanRun(d, ISSUE) === "satisfied"); rm(d);
+  })();
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }

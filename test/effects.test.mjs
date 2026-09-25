@@ -42,6 +42,21 @@ test("effects --selftest passes", () => {
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// --- FAFF-1119: push is a first-class EFFECT_KIND --------------------------
+
+test("declare accepts a {kind:push} descriptor (first-class); an unknown kind still rejects", () => {
+  const dir = tmp(); mkRun(dir, "run-push");
+  try {
+    const ok = run(dir, ["effects", "declare", "--run", "run-push", "--issue", "FAFF-1119", "--step", "push"],
+      JSON.stringify({ kind: "push", target: "feature-x", reversible: true }));
+    assert.equal(ok.code, 0, ok.err);
+    assert.equal(JSON.parse(ok.out).effect.kind, "push");
+    const bad = run(dir, ["effects", "declare", "--run", "run-push", "--issue", "FAFF-1119", "--step", "push"],
+      JSON.stringify({ kind: "no-such-kind", target: "x" }));
+    assert.equal(bad.code, 1, "an unknown kind is rejected (exit 1)");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- declare/observe: envelope + seq --------------------------------------
 
 test("declare: first entry → schema-2/run_id/seq 0/ts + kind_of_entry/issue/step/effect + genesis prev; exit 0", () => {

@@ -31,6 +31,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { findRoot } = require("./shared-infra");
+const { appendEffectEntries } = require("./effects");
+const { hasGovernanceContext } = require("./commissaire");
 
 function tokenMatch(haystack, want) {
   if (!haystack || !want) return false;
@@ -121,16 +123,23 @@ const { parseArgs, usageError } = require("./argv");
 const WORKTREE_PRUNE_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--dry-run": { arity: 0 },
   "--root": { arity: 1 }, "--own": { arity: 1, repeatable: true }, "--branch": { arity: 1 }, "--issue": { arity: 1 },
+  // FAFF-1119: an optional governed-run ledger dir. When present on a governed run, a
+  // non-dry-run removal of ≥1 own dangling admin dir writes a schema:2 branch-delete
+  // declare/observe pair (step "worktree-prune") into its declared-effects.jsonl. Record-only
+  // (DETECTED, not prevented): an append failure never gates the prune. Absent / ungoverned /
+  // dry-run / zero-removal writes nothing.
+  "--run-dir": { arity: 1 },
 } };
 
 function cmdWorktreePrune(args) {
   if (args.includes("--selftest")) return worktreePruneSelftest();
   const { values, errors } = parseArgs(args, WORKTREE_PRUNE_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff worktree-prune [--issue ID] [--branch B] [--own PATH]... [--root DIR] [--dry-run] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff worktree-prune [--issue ID] [--branch B] [--own PATH]... [--root DIR] [--run-dir DIR] [--dry-run] [--json]");
   const get = (f) => (values[f] === undefined ? null : values[f]);
   const asJson = !!values["--json"];
   const dryRun = !!values["--dry-run"];
   const root = get("--root") || findRoot();
+  const runDir = get("--run-dir");
   const sel = { paths: values["--own"] || [], branch: get("--branch"), issue: get("--issue") };
 
   const entries = parseWorktreeEntries(root);
@@ -141,6 +150,19 @@ function cmdWorktreePrune(args) {
   const removed = [];
   const failed = [];
   if (!dryRun) {
+    // FAFF-1119: on a governed run with --run-dir, bracket the removal with a schema:2
+    // branch-delete declare/observe pair (step "worktree-prune"). Record-only: DETECTED,
+    // never prevented — any append failure logs one stderr note and the prune proceeds.
+    // No candidate to prune (cls.prune empty), an ungoverned run, or no --run-dir writes
+    // nothing at all, so an untouched ledger stays byte-for-byte unchanged.
+    const recordGoverned = runDir !== null && !!sel.issue && hasGovernanceContext(runDir);
+    const pruneDescriptor = (p) => ({ kind: "branch-delete", target: p, reversible: true });
+    if (recordGoverned && cls.prune.length > 0) {
+      try {
+        const dec = appendEffectEntries(runDir, "declare", sel.issue, "worktree-prune", cls.prune.map((e) => pruneDescriptor(e.path)), undefined, { origin: "worktree-prune-auto" });
+        if (dec.violations) process.stderr.write(`faff worktree-prune: effects ledger declare rejected internally-built descriptors: ${JSON.stringify(dec.violations)}\n`);
+      } catch (err) { process.stderr.write(`faff worktree-prune: effects ledger declare failed (prune proceeds): ${err.message}\n`); }
+    }
     // Scoped removal: delete ONLY each OWN dangling admin dir, addressed by its
     // AUTHORITATIVE git admin-dir id (e.id, resolved from the gitdir map) — never
     // the path basename (ambiguous under git's id de-duplication) and never the
@@ -151,6 +173,12 @@ function cmdWorktreePrune(args) {
       const dir = path.join(root, ".git", "worktrees", e.id);
       try { fs.rmSync(dir, { recursive: true, force: true }); removed.push(e.path); }
       catch (err) { failed.push({ path: e.path, error: err.message }); }
+    }
+    if (recordGoverned && removed.length > 0) {
+      try {
+        const obs = appendEffectEntries(runDir, "observe", sel.issue, "worktree-prune", removed.map(pruneDescriptor), undefined, { origin: "worktree-prune-auto" });
+        if (obs.violations) process.stderr.write(`faff worktree-prune: effects ledger observe rejected internally-built descriptors: ${JSON.stringify(obs.violations)}\n`);
+      } catch (err) { process.stderr.write(`faff worktree-prune: effects ledger observe failed (prune already done): ${err.message}\n`); }
     }
   }
   const result = {

@@ -580,7 +580,7 @@ PROCEDURE transition_to_in_review(issue):
 
 The write mirrors Step 5's mechanism exactly (live status re-read, agent-mediated forward-rank `save_issue`) and adds no new control label — Step 5 pairs its In Progress write with the `faff-claimed` breadcrumb, In Review needs no equivalent. It obeys the status-monotonicity guard (forward-only, never reverting a further-along issue) and runs wherever Step 9b runs, including in a dispatched build lane.
 
-**Anti-patterns:** introducing a `faff status set` CLI (status writes stay agent-mediated throughout faff — Step 5, ship, tidy; no status-set verb exists and this doesn't add one); failing the build when the tracker lacks an In Review state (it is a forward-progress nicety, not a merge precondition — a missing state degrades to a no-op).
+**Anti-patterns:** introducing a `faff status set` CLI (status writes stay agent-mediated throughout faff — Step 5, this In Review transition, tidy's sweep; the merge-time `→ Done` is forge-driven via the PR's `Closes` keyword, not an agent write; no status-set verb exists and this doesn't add one); failing the build when the tracker lacks an In Review state (it is a forward-progress nicety, not a merge precondition — a missing state degrades to a no-op).
 
 Proceed to Step 10.
 

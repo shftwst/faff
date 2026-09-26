@@ -17,12 +17,15 @@ import { fileURLToPath } from "node:url";
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
 // spawnSync so we capture BOTH streams: the hook BLOCKS via a stdout decision payload,
-// and (foreign / sweep) WARNS via a non-blocking stderr line. FAFF_RUN_DIR / FAFF_SESSION_ID
-// default to "" so the test process's own env never leaks ownership; a case sets them.
+// and (foreign / sweep / note) writes a non-blocking stderr line. FAFF_RUN_DIR /
+// FAFF_SESSION_ID / CLAUDE_CODE_SESSION_ID default to "" so the test process's own env
+// never leaks ownership or the harness-tracked-background signal (FAFF-1096 — this test
+// suite itself runs under interactive Claude Code, which sets CLAUDE_CODE_SESSION_ID);
+// a case sets whichever it needs.
 function run(args, env) {
   const r = spawnSync("node", [CLI, ...args], {
     encoding: "utf8",
-    env: { ...process.env, FAFF_RUN_DIR: "", FAFF_SESSION_ID: "", ...env },
+    env: { ...process.env, FAFF_RUN_DIR: "", FAFF_SESSION_ID: "", CLAUDE_CODE_SESSION_ID: "", ...env },
   });
   return { code: r.status ?? 1, out: (r.stdout ?? "").toString(), err: (r.stderr ?? "").toString() };
 }
@@ -46,6 +49,9 @@ function findMarker(root, key) {
 
 const S1 = { FAFF_SESSION_ID: "sess-one" };
 const S2 = { FAFF_SESSION_ID: "sess-two" };
+// FAFF-1096: interactive Claude Code sessions — a real CLAUDE_CODE_SESSION_ID, no FAFF_*.
+const CCA = { CLAUDE_CODE_SESSION_ID: "cc-A" };
+const CCB = { CLAUDE_CODE_SESSION_ID: "cc-B" };
 
 test("open → hook blocks the owning session; close → hook is silent (the strand shape)", () => {
   const root = freshRoot();
@@ -148,6 +154,56 @@ test("N concurrent owned markers open at a Stop event all block (no false-negati
   const payload = JSON.parse(blocked.out.trim());
   assert.equal(payload.decision, "block");
   for (const k of ["FAFF-10", "FAFF-11", "FAFF-12"]) assert.match(payload.reason, new RegExp(k));
+});
+
+test("FAFF-1096: interactive Claude Code sessions get distinct scopes — no cross-block, own dispatch is a note not a block", () => {
+  const root = freshRoot();
+  // Session A opens a marker as interactive Claude Code (no FAFF_RUN_DIR/FAFF_SESSION_ID, a real CC id).
+  assert.equal(run(["inflightcheck", "--open", "--key", "FAFF-1078", "--describe", "spec-review", "--root", root], CCA).code, 0);
+  const mpath = findMarker(root, "FAFF-1078");
+  assert.ok(mpath, "marker written under A's CC scope");
+  const marker = JSON.parse(readFileSync(mpath, "utf8"));
+  assert.equal(marker.owner.session_id, "cc-A", "owner.session_id stamped from CLAUDE_CODE_SESSION_ID (attribution)");
+
+  // Dimension 2: session B (a different CC id) hits turn-end — A's marker is FOREIGN, never a block.
+  const b = run(["inflightcheck", "--hook", "--root", root], CCB);
+  assert.equal(b.code, 0);
+  assert.equal(b.out.trim(), "", "peer session B does not block on A's foreign marker");
+
+  // Dimension 1: session A hits its OWN turn-end — harness-tracked-background → NOTE, not block.
+  const a = run(["inflightcheck", "--hook", "--root", root], CCA);
+  assert.equal(a.code, 0);
+  assert.equal(a.out.trim(), "", "A's own harness-tracked dispatch does not block turn-end");
+  assert.match(a.err, /\[note\]/, "A's own dispatch surfaces a non-blocking note");
+  assert.match(a.err, /FAFF-1078/);
+  assert.ok(findMarker(root, "FAFF-1078"), "the note path never sweeps/removes the live marker");
+});
+
+test("FAFF-1096: an own fresh marker still BLOCKS when FAFF_RUN_DIR is set (headless stranding premise holds)", () => {
+  const root = freshRoot();
+  const RUN = { FAFF_RUN_DIR: join(root, ".faff", "runs", "run-x"), CLAUDE_CODE_SESSION_ID: "cc-A" };
+  assert.equal(run(["inflightcheck", "--open", "--key", "FAFF-9", "--root", root], RUN).code, 0);
+  const blocked = run(["inflightcheck", "--hook", "--root", root], RUN);
+  assert.equal(blocked.code, 0);
+  assert.match(blocked.out, /"decision":"block"/, "FAFF_RUN_DIR present → block stays, never a note");
+});
+
+test("FAFF-1096: a legacy owner:{} \"local\" marker never blocks a session with a real CC scope", () => {
+  const root = freshRoot();
+  const localDir = join(root, ".faff", "inflight", "local");
+  mkdirSync(localDir, { recursive: true });
+  writeFileSync(join(localDir, "FAFF-1016.json"), JSON.stringify({ key: "FAFF-1016", describe: "spec-review", opened_at: new Date().toISOString(), owner: {} }));
+  const r = run(["inflightcheck", "--hook", "--root", root], CCA);
+  assert.equal(r.code, 0);
+  assert.equal(r.out.trim(), "", "a legacy local owner-less marker does not block a real-scope session");
+});
+
+test("FAFF-1096: --open then --close under the same CC session target the same scope (env-symmetry)", () => {
+  const root = freshRoot();
+  assert.equal(run(["inflightcheck", "--open", "--key", "FAFF-7", "--root", root], CCA).code, 0);
+  assert.ok(findMarker(root, "FAFF-7"), "marker written under the CC scope");
+  assert.equal(run(["inflightcheck", "--close", "--key", "FAFF-7", "--root", root], CCA).code, 0);
+  assert.equal(findMarker(root, "FAFF-7"), null, "same-session close removes the CC-scope marker (open/close symmetric)");
 });
 
 test("--selftest passes (the pure decision + key + slug tables)", () => {

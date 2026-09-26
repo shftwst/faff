@@ -53,14 +53,35 @@ function slugScope(s) {
 }
 
 // This session's owner-scope, path-encoded as the marker subdirectory:
-//   slug(FAFF_RUN_DIR) when set, else slug(FAFF_SESSION_ID) when set, else "local".
-// An interactive session with neither env var falls to "local"; ownership is then
-// the shared local scope, and the age-alone sweep bounds any cross-session block.
+//   slug(FAFF_RUN_DIR) when set, else slug(FAFF_SESSION_ID) when set,
+//   else slug(CLAUDE_CODE_SESSION_ID) when set, else "local".
+// The CLAUDE_CODE_SESSION_ID tier (FAFF-1096) gives an interactive Claude Code
+// session — which sets neither FAFF_RUN_DIR nor FAFF_SESSION_ID — a real per-session
+// scope, so two interactive sessions no longer collapse onto one shared "local" scope
+// and cross-block on each other's markers. A session with none of the three still
+// falls to "local" (safe degradation, no new fail-open); the age-alone sweep bounds
+// any residual cross-session block there exactly as before.
 function resolveOwnerScope(env) {
   const e = env || process.env;
   if (e.FAFF_RUN_DIR) return slugScope(e.FAFF_RUN_DIR);
   if (e.FAFF_SESSION_ID) return slugScope(e.FAFF_SESSION_ID);
+  if (e.CLAUDE_CODE_SESSION_ID) return slugScope(e.CLAUDE_CODE_SESSION_ID);
   return "local";
+}
+
+// Does the harness track a backgrounded Agent dispatch ACROSS the turn boundary and
+// re-invoke the parent when the child completes? (FAFF-1096.) Interactive Claude Code
+// does: its Agent tool is always-background, yet the child survives turn-end and the
+// parent is re-invoked, so an OWN marker still open at turn-end is NOT a strand and must
+// not block. The signal is the interactive proxy CLAUDE_CODE_SESSION_ID present AND
+// FAFF_RUN_DIR absent: FAFF_RUN_DIR marks the autonomous/headless run path (beep-boop
+// always sets it) where turn-end kills the cage and the stranding premise DOES hold, so
+// the block stays. Absent CLAUDE_CODE_SESSION_ID → false (degrade to block; never fail
+// open — a genuinely stranded headless child is still caught). A bare `claude -p` prep
+// with no FAFF_RUN_DIR is the one disclosed residual (see the spec Punt): swept at TTL.
+function isHarnessTrackedBackground(env) {
+  const e = env || process.env;
+  return !!(e.CLAUDE_CODE_SESSION_ID && !e.FAFF_RUN_DIR);
 }
 
 // The sweep TTL. Defaults to the same 900s window the ledger liveness check uses
@@ -153,24 +174,48 @@ function inflightReason(keys) {
   );
 }
 
+// The SOLE per-marker "would this block turn-end?" predicate (FAFF-1096) — pure,
+// filesystem-free, and shared by inflightHookDecision (below) AND turncheck's
+// hasOpenInflightForOwner, so the two can never drift (the coupling turncheck.js:48-55
+// mandates). A marker blocks IFF it is owned-by-path AND is not a swept corpse AND the
+// harness does not track the background child across the turn boundary:
+//   foreign                          → false (a non-owner never blocks; warn/silent decided in the hook)
+//   owned + unparseable body         → true  (fail closed — the PATH proves ownership)
+//   owned + stale (opened_at > TTL)  → false (corpse; swept, not blocked)
+//   owned + harness-tracked-bg       → false (interactive Claude Code re-invokes the parent — not a strand)
+//   owned + fresh + stranding holds  → true  (a live strand this turn)
+// It models the normal turn-end decision; the hook's --recover human override (foreign
+// → block) is deliberately outside this predicate, and turncheck never uses --recover.
+function inflightWouldBlock(marker, nowMs, env) {
+  const owned = marker.scope === resolveOwnerScope(env);
+  if (!owned) return false;
+  if (!marker.parseOk) return true;
+  if (inflightIsStale(marker.opened_at, nowMs, env)) return false;
+  if (isHarnessTrackedBackground(env)) return false;
+  return true;
+}
+
 // Pure per-marker decision for the Stop hook — the twin of prepcheckHookDecision.
 // Each marker is decided INDEPENDENTLY against THIS session's owner-scope (path
 // comparison, no body parse needed for ownership):
 //   - unparseable body, owned-by-path  → block  (fail closed — never fail open)
 //   - unparseable body, foreign        → silent (a non-owner's corrupt marker is unassessable)
 //   - owned + stale (opened_at age > TTL) → sweep (corpse; the wedge escape), never blocks
-//   - owned + not-stale                → block  (a live strand this turn)
+//   - owned + fresh + harness-tracked-bg → note  (FAFF-1096: tracked child survives turn-end, not a strand)
+//   - owned + fresh + stranding holds  → block  (a live strand this turn)
 //   - foreign + held                   → silent
 //   - foreign + not-held               → warn, unless --recover forces the block
-// Returns { block:[keys], warn:[keys], sweep:[{scope,key,file}] }. The ledger read
-// for foreign liveness happens inside inflightForeignHeld; the selftest's synthetic
-// run_dir resolves to null on disk so the opened_at floor decides (filesystem-free).
+// The block routing agrees with inflightWouldBlock by construction (same owned/stale/
+// tracked sub-conditions). Returns { block:[keys], warn:[keys], sweep:[{scope,key,file}],
+// note:[keys] }. The ledger read for foreign liveness happens inside inflightForeignHeld;
+// the selftest's synthetic run_dir resolves to null on disk so the opened_at floor decides.
 function inflightHookDecision(markers, nowMs, env, opts) {
   const recover = !!(opts && opts.recover);
   const thisScope = resolveOwnerScope(env);
   const block = [];
   const warn = [];
   const sweep = [];
+  const note = [];
   for (const m of markers) {
     const owned = m.scope === thisScope;
     if (!m.parseOk) {
@@ -179,6 +224,7 @@ function inflightHookDecision(markers, nowMs, env, opts) {
     }
     if (owned) {
       if (inflightIsStale(m.opened_at, nowMs, env)) sweep.push({ scope: m.scope, key: m.key, file: m.file });
+      else if (isHarnessTrackedBackground(env)) note.push(m.key); // harness-tracked bg child — not a strand
       else block.push(m.key);
       continue;
     }
@@ -187,7 +233,7 @@ function inflightHookDecision(markers, nowMs, env, opts) {
     if (recover) block.push(m.key);
     else warn.push(m.key);
   }
-  return { block: [...new Set(block)].sort(), warn: [...new Set(warn)].sort(), sweep };
+  return { block: [...new Set(block)].sort(), warn: [...new Set(warn)].sort(), sweep, note: [...new Set(note)].sort() };
 }
 
 const { parseArgs, usageError } = require("./argv");
@@ -214,7 +260,12 @@ function cmdInflightcheck(args) {
     const scope = resolveOwnerScope(process.env);
     const owner = {};
     if (process.env.FAFF_RUN_DIR) owner.run_dir = process.env.FAFF_RUN_DIR;
-    if (process.env.FAFF_SESSION_ID) owner.session_id = process.env.FAFF_SESSION_ID;
+    // owner.session_id is attribution/forensics only — the ownership DECISION stays
+    // path-derived (the scope subdir), so the body is never trusted for a block. Stamp
+    // FAFF_SESSION_ID first, else CLAUDE_CODE_SESSION_ID (FAFF-1096); omit when neither
+    // is set rather than writing an empty string (legacy-tolerant, mirrors prepcheck).
+    const sessionId = process.env.FAFF_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID;
+    if (sessionId) owner.session_id = sessionId;
     const marker = { key, describe: get("--describe") || key, opened_at: new Date().toISOString(), owner };
     const dir = path.join(root, ".faff", "inflight", scope);
     fs.mkdirSync(dir, { recursive: true });
@@ -241,6 +292,9 @@ function cmdInflightcheck(args) {
       try { fs.rmSync(s.file); } catch { /* raced away → fine */ }
       process.stderr.write(`[warn] swept stale in-flight marker ${s.key}: owning dispatch no longer live\n`);
     }
+    // Harness-tracked own dispatches (FAFF-1096): surface a non-blocking note and do NOT
+    // block — the child survives turn-end and the harness re-invokes the parent.
+    if (d.note.length) process.stderr.write(`[note] ${d.note.length} harness-tracked Agent dispatch(es) still in flight at turn-end (not stranded — the harness re-invokes the parent on completion): ${d.note.join(", ")}\n`);
     // block via the decision payload on stdout (the Stop-hook block mechanism), not
     // the exit code — same as runcheck/prepcheck --hook. Foreign abandoned → stderr warn.
     if (d.block.length) console.log(JSON.stringify({ decision: "block", reason: inflightReason(d.block) }));
@@ -277,33 +331,47 @@ const ownedScope = (env) => resolveOwnerScope(env);
 const ownM = (env, extra) => ({ scope: ownedScope(env), key: "K", parseOk: true, ...extra });
 const forM = (extra) => ({ scope: "ZZ-foreign-scope", key: "K", parseOk: true, ...extra });
 
-// [name, marker, env, wantBlock, wantWarn, wantSweep, opts?]
+// [name, marker, env, wantBlock, wantWarn, wantSweep, wantNote, opts?]
 const INFLIGHT_HOOK_SELFTEST_CASES = [
   ["owned + fresh opened_at → block (live strand this turn)",
-    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(10) }), { FAFF_SESSION_ID: "S1" }, true, false, false],
+    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(10) }), { FAFF_SESSION_ID: "S1" }, true, false, false, false],
   ["owned + stale opened_at → SWEEP (corpse; the wedge escape), no block",
-    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(1000) }), { FAFF_SESSION_ID: "S1" }, false, false, true],
+    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(1000) }), { FAFF_SESSION_ID: "S1" }, false, false, true, false],
   ["owned + stale opened_at + a still-live same-scope run heartbeat → STILL swept (age alone, not runIsHeld)",
-    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(1000), owner: { run_dir: "/runs/OWNED-LIVE" } }), { FAFF_SESSION_ID: "S1" }, false, false, true],
+    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(1000), owner: { run_dir: "/runs/OWNED-LIVE" } }), { FAFF_SESSION_ID: "S1" }, false, false, true, false],
   ["owned + unparseable body → block (fail closed, path-derived ownership)",
-    ownM({ FAFF_SESSION_ID: "S1" }, { parseOk: false }), { FAFF_SESSION_ID: "S1" }, true, false, false],
+    ownM({ FAFF_SESSION_ID: "S1" }, { parseOk: false }), { FAFF_SESSION_ID: "S1" }, true, false, false, false],
   ["owned via FAFF_RUN_DIR scope + fresh → block",
-    ownM({ FAFF_RUN_DIR: "/runs/MINE" }, { opened_at: inflightAgo(10) }), { FAFF_RUN_DIR: "/runs/MINE" }, true, false, false],
+    ownM({ FAFF_RUN_DIR: "/runs/MINE" }, { opened_at: inflightAgo(10) }), { FAFF_RUN_DIR: "/runs/MINE" }, true, false, false, false],
   ["foreign + fresh opened_at → silent (held via opened_at floor)",
-    forM({ opened_at: inflightAgo(10) }), { FAFF_SESSION_ID: "S1" }, false, false, false],
+    forM({ opened_at: inflightAgo(10) }), { FAFF_SESSION_ID: "S1" }, false, false, false, false],
   ["foreign + stale opened_at + no live ledger → WARN, not block",
-    forM({ opened_at: inflightAgo(1000), owner: { run_dir: "/runs/OTHER" } }), { FAFF_SESSION_ID: "S1" }, false, true, false],
+    forM({ opened_at: inflightAgo(1000), owner: { run_dir: "/runs/OTHER" } }), { FAFF_SESSION_ID: "S1" }, false, true, false, false],
   ["foreign + unparseable body → silent (a non-owner's corrupt marker is unassessable)",
-    forM({ parseOk: false }), { FAFF_SESSION_ID: "S1" }, false, false, false],
+    forM({ parseOk: false }), { FAFF_SESSION_ID: "S1" }, false, false, false, false],
   ["foreign + stale + --recover → block (deliberate human recovery)",
-    forM({ opened_at: inflightAgo(1000), owner: { run_dir: "/runs/OTHER" } }), { FAFF_SESSION_ID: "S1" }, true, false, false, { recover: true }],
+    forM({ opened_at: inflightAgo(1000), owner: { run_dir: "/runs/OTHER" } }), { FAFF_SESSION_ID: "S1" }, true, false, false, false, { recover: true }],
   ["foreign + fresh + --recover → silent (nothing to recover)",
-    forM({ opened_at: inflightAgo(10) }), { FAFF_SESSION_ID: "S1" }, false, false, false, { recover: true }],
+    forM({ opened_at: inflightAgo(10) }), { FAFF_SESSION_ID: "S1" }, false, false, false, false, { recover: true }],
   ["owned + stale + --recover → still SWEEP (recover never turns a corpse into a block)",
-    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(1000) }), { FAFF_SESSION_ID: "S1" }, false, false, true, { recover: true }],
+    ownM({ FAFF_SESSION_ID: "S1" }, { opened_at: inflightAgo(1000) }), { FAFF_SESSION_ID: "S1" }, false, false, true, false, { recover: true }],
   ["custom FAFF_INFLIGHT_STALE_SECS shrinks the window: owned opened 120s ago, TTL 60 → SWEEP",
     ownM({ FAFF_SESSION_ID: "S1", FAFF_INFLIGHT_STALE_SECS: "60" }, { opened_at: inflightAgo(120) }),
-    { FAFF_SESSION_ID: "S1", FAFF_INFLIGHT_STALE_SECS: "60" }, false, false, true],
+    { FAFF_SESSION_ID: "S1", FAFF_INFLIGHT_STALE_SECS: "60" }, false, false, true, false],
+  // --- FAFF-1096: interactive Claude Code (CLAUDE_CODE_SESSION_ID) owner-scope + harness-tracked-bg ---
+  ["FAFF-1096: owned + fresh + interactive Claude Code (CC session, no FAFF_RUN_DIR) → NOTE, not block (harness re-invokes)",
+    ownM({ CLAUDE_CODE_SESSION_ID: "cc-A" }, { opened_at: inflightAgo(10) }), { CLAUDE_CODE_SESSION_ID: "cc-A" }, false, false, false, true],
+  ["FAFF-1096: owned + fresh + FAFF_RUN_DIR set (headless/autonomous under claude-code) → block (stranding premise holds)",
+    ownM({ FAFF_RUN_DIR: "/runs/MINE", CLAUDE_CODE_SESSION_ID: "cc-A" }, { opened_at: inflightAgo(10) }),
+    { FAFF_RUN_DIR: "/runs/MINE", CLAUDE_CODE_SESSION_ID: "cc-A" }, true, false, false, false],
+  ["FAFF-1096 (Dimension 2): peer interactive session's fresh marker → silent, NOT block (distinct CC scope)",
+    { scope: slugScope("cc-A"), key: "FAFF-1078", parseOk: true, opened_at: inflightAgo(10), owner: { session_id: "cc-A" } },
+    { CLAUDE_CODE_SESSION_ID: "cc-B" }, false, false, false, false],
+  ["FAFF-1096 (Dimension 2): legacy \"local\" owner:{} marker, stale → WARN not block for a real-scope session",
+    { scope: "local", key: "FAFF-1016", parseOk: true, opened_at: inflightAgo(1000), owner: {} },
+    { CLAUDE_CODE_SESSION_ID: "cc-A" }, false, true, false, false],
+  ["FAFF-1096: owned + stale under interactive CC scope → SWEEP (corpse still swept, harness-tracked never masks a corpse)",
+    ownM({ CLAUDE_CODE_SESSION_ID: "cc-A" }, { opened_at: inflightAgo(1000) }), { CLAUDE_CODE_SESSION_ID: "cc-A" }, false, false, true, false],
 ];
 
 // [name, key, wantValid]
@@ -320,14 +388,22 @@ const INFLIGHT_KEY_SELFTEST_CASES = [
 
 function inflightcheckSelftest() {
   let fail = 0;
-  for (const [name, marker, env, wantBlock, wantWarn, wantSweep, opts] of INFLIGHT_HOOK_SELFTEST_CASES) {
+  for (const [name, marker, env, wantBlock, wantWarn, wantSweep, wantNote, opts] of INFLIGHT_HOOK_SELFTEST_CASES) {
     const d = inflightHookDecision([marker], INFLIGHT_NOW, env, opts);
     const gotBlock = d.block.length > 0;
     const gotWarn = d.warn.length > 0;
     const gotSweep = d.sweep.length > 0;
-    const ok = gotBlock === wantBlock && gotWarn === (wantWarn || false) && gotSweep === (wantSweep || false);
+    const gotNote = d.note.length > 0;
+    let ok = gotBlock === wantBlock && gotWarn === (wantWarn || false) && gotSweep === (wantSweep || false) && gotNote === (wantNote || false);
+    // Cross-check: the SOLE would-block predicate must agree with the hook's block
+    // routing on every non-recover case (--recover is a human override outside the
+    // predicate). This is the anti-drift tie between inflightWouldBlock and the hook.
+    if (!(opts && opts.recover)) {
+      const wouldBlock = inflightWouldBlock(marker, INFLIGHT_NOW, env);
+      if (wouldBlock !== gotBlock) { ok = false; console.log(`FAIL ${name} → inflightWouldBlock=${wouldBlock} disagrees with hook block=${gotBlock}`); }
+    }
     if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} ${name} → block=${gotBlock} warn=${gotWarn} sweep=${gotSweep} (want block=${wantBlock} warn=${wantWarn || false} sweep=${wantSweep || false})`);
+    console.log(`${ok ? "ok  " : "FAIL"} ${name} → block=${gotBlock} warn=${gotWarn} sweep=${gotSweep} note=${gotNote} (want block=${wantBlock} warn=${wantWarn || false} sweep=${wantSweep || false} note=${wantNote || false})`);
   }
   // A concurrency non-regression the pure decision CAN assert: N owned+fresh markers
   // open at a Stop event all block (a real strand); the executor's await-all prose is
@@ -354,7 +430,28 @@ function inflightcheckSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} slug deterministic+injective+traversal-safe → ${a} / ${b}`);
   }
-  const total = INFLIGHT_HOOK_SELFTEST_CASES.length + 1 + INFLIGHT_KEY_SELFTEST_CASES.length + 1;
+  // FAFF-1096: resolveOwnerScope gains the CLAUDE_CODE_SESSION_ID tier below FAFF_SESSION_ID
+  // and above the "local" fallback; precedence FAFF_RUN_DIR > FAFF_SESSION_ID > CC > local.
+  {
+    const cc = resolveOwnerScope({ CLAUDE_CODE_SESSION_ID: "cc-A" }) === slugScope("cc-A");
+    const loc = resolveOwnerScope({}) === "local";
+    const sessOverCc = resolveOwnerScope({ FAFF_SESSION_ID: "S1", CLAUDE_CODE_SESSION_ID: "cc-A" }) === slugScope("S1");
+    const runOverAll = resolveOwnerScope({ FAFF_RUN_DIR: "/r", FAFF_SESSION_ID: "S1", CLAUDE_CODE_SESSION_ID: "cc-A" }) === slugScope("/r");
+    const ok = cc && loc && sessOverCc && runOverAll;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} resolveOwnerScope tiers: CC tier + local fallback + FAFF precedence`);
+  }
+  // FAFF-1096: isHarnessTrackedBackground iff CLAUDE_CODE_SESSION_ID ∧ ¬FAFF_RUN_DIR.
+  {
+    const t1 = isHarnessTrackedBackground({ CLAUDE_CODE_SESSION_ID: "cc-A" }) === true;                       // interactive CC
+    const t2 = isHarnessTrackedBackground({ CLAUDE_CODE_SESSION_ID: "cc-A", FAFF_RUN_DIR: "/r" }) === false;  // headless/autonomous
+    const t3 = isHarnessTrackedBackground({}) === false;                                                      // no CC → degrade to block
+    const t4 = isHarnessTrackedBackground({ FAFF_SESSION_ID: "S1" }) === false;                               // faff session, not CC
+    const ok = t1 && t2 && t3 && t4;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} isHarnessTrackedBackground truth table (CC ∧ ¬RUN_DIR only)`);
+  }
+  const total = INFLIGHT_HOOK_SELFTEST_CASES.length + 1 + INFLIGHT_KEY_SELFTEST_CASES.length + 1 + 2;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -362,6 +459,6 @@ function inflightcheckSelftest() {
 module.exports = {
   INFLIGHT_HOOK_SELFTEST_CASES, INFLIGHT_KEY_SELFTEST_CASES, INFLIGHT_KEY_RE, INFLIGHT_NOW,
   cmdInflightcheck, inflightAgo, inflightForeignHeld, inflightHookDecision, inflightIsStale,
-  inflightReason, inflightStaleSecs, isValidKey, markerPath, readInflightMarkers, resolveOwnerScope,
-  slugScope, tryReadLedger,
+  inflightReason, inflightStaleSecs, inflightWouldBlock, isHarnessTrackedBackground, isValidKey,
+  markerPath, readInflightMarkers, resolveOwnerScope, slugScope, tryReadLedger,
 };

@@ -30,6 +30,7 @@ const REGISTRY = {
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-transport-private-network": { type: "producer-transport" },
+  "faffter-noon-env-code-interface": { type: "producer-env-code-interface" },
   "faffter-noon-review": { type: "producer-review" },
   "faffter-dark-adversarial-review": { type: "producer-review" },
   "faffter-noon-ship": { type: "producer-ship" },
@@ -342,6 +343,7 @@ const SLOT_TYPES = {
   architecture: { type: "producer-architecture", slot: "architecture" },
   env: { type: "producer-env", slot: "env" },
   transport: { type: "producer-transport", slot: "transport" },
+  "env-code-interface": { type: "producer-env-code-interface", slot: "env-code-interface" },
   evaluator: { type: "producer-evaluator", slot: "evaluator" },
   prd: { type: "producer-prd", slot: "prd" },
   review: { type: "producer-review" },
@@ -452,6 +454,17 @@ function checksFor(meta, t) {
       // occupant consumes the resolved base host mid-flow, in the same turn, never a piped contract.
       out.push([has("`transport` slot") || has("transport slot"), "names its `transport` slot"]);
       out.push([has("base host") || has("base_host"), "documents returning a resolved base host for evaluator→SUT reachability"]);
+      out.push([!/faff-contract:/.test(t),
+                "carries NO faff-contract block (the result is consumed inline by env, not gated)"]);
+      break;
+    case "producer-env-code-interface":
+      // FAFF-1105: the code-interface reachability provisioner composed under `env`. Inline-return
+      // occupant (no gated faff-contract block, mirroring producer-transport) — it builds a code
+      // component and stands up the FAFF-1104 bridge (faff-bridge-node.mjs) as a health-checked compose
+      // service, returning the bridge socket the env occupant folds into the one env-handle it emits.
+      out.push([has("`env-code-interface` slot") || has("env-code-interface slot"), "names its `env-code-interface` slot"]);
+      out.push([has("/faff-rpc/health"), "documents the bridge endpoint + /faff-rpc/health health-check for the code-interface reachability"]);
+      out.push([has("teardown"), "documents teardown of the bridge it stands up"]);
       out.push([!/faff-contract:/.test(t),
                 "carries NO faff-contract block (the result is consumed inline by env, not gated)"]);
       break;

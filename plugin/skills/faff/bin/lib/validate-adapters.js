@@ -465,6 +465,8 @@ function checksFor(meta, t) {
       out.push([has("`env-code-interface` slot") || has("env-code-interface slot"), "names its `env-code-interface` slot"]);
       out.push([has("/faff-rpc/health"), "documents the bridge endpoint + /faff-rpc/health health-check for the code-interface reachability"]);
       out.push([has("teardown"), "documents teardown of the bridge it stands up"]);
+      out.push([has("host-side reachability") || has("all-interfaces"),
+                "documents the transport-constrained host publish (never a naive all-interfaces publish)"]);
       out.push([!/faff-contract:/.test(t),
                 "carries NO faff-contract block (the result is consumed inline by env, not gated)"]);
       break;

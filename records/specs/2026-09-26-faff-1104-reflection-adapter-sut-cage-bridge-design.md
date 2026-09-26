@@ -106,7 +106,7 @@ Field-to-manifest mapping (FAFF-1103): `open.target` → `Binding.name` (→ `Bi
 - **Manifest op-allowlist gate + prototype-safe resolution** — **Chosen:** the bridge exposes exactly the names-only surface the manifest authorises, never inherited or dunder symbols. Enforced two ways: (a) before any reflection, `call` rejects an `op` absent from the resolved binding's declared `instance_ops[].op` set, and `call_static` rejects an `op` absent from any binding's `static_ops[].op` set, as `dispatch_unavailable`; (b) `resolve()` walks **own enumerable properties only** (never the prototype chain, via `Object.prototype.hasOwnProperty.call`) and refuses the reserved segments `__proto__`, `prototype`, `constructor` at any position.
 - **Static-op dotted-path resolution scoping** — **Chosen:** module-relative to the bridge's `--module` export namespace (the same root `entry` resolves against), never relative to the entry instance object.
 - **`dispatch_unavailable` vs a genuine throw** — **Chosen:** `dispatch_unavailable` is decided entirely *before* invocation (op not in the declared set, symbol absent, not a constructor for `kind:ctor`, factory not callable, op not a function, `open` on a construction-less binding, a reserved-segment resolution miss); once the resolved callable is invoked, every failure — a synchronous body error or a rejected promise — is `result.outcome=="threw"`.
-- **Rich-type marshalling (first rule)** — **Chosen:** JSON base types pass end-to-end; args arrive already JSON-parsed and are passed positionally as-is; a return value that is not JSON-representable (BigInt, function, symbol, circular, top-level `undefined`) is `result.outcome=="threw"` with reserved `ThrownError.type` `faff.bridge.NonJSONReturn` (wire-sanctioned), never a `WireError`.
+- **Rich-type marshalling (first rule)** — **Chosen:** JSON base types pass end-to-end; args arrive already JSON-parsed and are passed positionally as-is. A **void return (`undefined`)** — the common mutator case (`push`, `set`) — maps to a normal `result{returned, value:null}`, never an error. A return that is genuinely not JSON-representable (BigInt, function, symbol, circular) is `result.outcome=="threw"` with reserved `ThrownError.type` `faff.bridge.NonJSONReturn` (wire-sanctioned), never a `WireError`. (Build refinement: an earlier draft lumped top-level `undefined` into NonJSONReturn, which would have errored every void method.)
 - **Canonical cross-runtime rich-type lowering standard** — **Punt:** defer a canonical JSON lowering for dates/decimals/blobs/sets/enums until a second runtime lands — needs human (decides: architecture). Mirrors the wire doc's own open question; non-blocking.
 - **Arity enforcement** — **Chosen:** none — `arity` is informational (FAFF-1103); pass the positional vector as-is.
 - **Async op handling** — **Chosen:** await a returned thenable before marshalling; async returns → `returned`, rejections → `threw`.
@@ -205,13 +205,15 @@ PROCEDURE resolve(dotted_path, module_root):
 
 ```
 PROCEDURE marshal(value):
-  1. Attempt JSON round-trip of value.
-  2. representable -> return value (the wire layer JSON.stringifies the whole response).
-  3. NOT representable (BigInt / function / symbol / circular / top-level undefined) ->
+  1. value === undefined (a void return) -> result{ returned, value:null }.
+  2. Attempt JSON round-trip of value.
+  3. representable -> return value (the wire layer JSON.stringifies the whole response).
+  4. NOT representable (BigInt / function / symbol / circular) ->
        raise NonJSONReturn -> result{ threw, error:{ type:"faff.bridge.NonJSONReturn", message:<what>, payload:null } }.
 
 PROCEDURE toThrownError(err):
-  type    = err?.constructor?.name || err?.name || typeof err      # "TypeError"; "string" for `throw "x"`
+  type    = (err is an object) ? (err.constructor?.name || err.name || "object")    # "TypeError"
+                              : typeof err                                          # "string" for `throw "x"`
   message = String(err?.message ?? err)
   payload = JSON-representable own-enumerable props of err minus {type,message}, else null
   # NEVER include the inbound Authorization header value (never in scope here by construction)

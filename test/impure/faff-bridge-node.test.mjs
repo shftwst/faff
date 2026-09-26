@@ -6,10 +6,21 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createServer } from "node:net";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// Acquire an OS-assigned free port (bind :0, read it, release). Removes the random-guess
+// collision that made this real-listener test flaky under the concurrent sharded UNIT rung.
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const s = createServer();
+    s.on("error", reject);
+    s.listen(0, "127.0.0.1", () => { const p = s.address().port; s.close(() => resolve(p)); });
+  });
+}
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BRIDGE = join(HERE, "..", "..", "plugin", "skills", "faff", "bin", "faff-bridge-node.mjs");
@@ -41,13 +52,17 @@ before(async () => {
   dir = mkdtempSync(join(tmpdir(), "faff-bridge-"));
   writeFileSync(join(dir, "stack.mjs"), SUT);
   writeFileSync(join(dir, "binding-manifest.json"), JSON.stringify(MANIFEST));
-  const port = 20000 + Math.floor(Math.random() * 20000);
+  const port = await freePort();
   base = `http://127.0.0.1:${port}`;
+  let exited = null;
   proc = spawn(process.execPath, [BRIDGE, "--manifest", join(dir, "binding-manifest.json"), "--module", join(dir, "stack.mjs"), "--host", "127.0.0.1", "--port", String(port)], { stdio: ["ignore", "ignore", "inherit"] });
-  // Poll health until the listener is up (bounded).
-  const deadline = Date.now() + 10000;
+  proc.on("exit", (code) => { exited = code; });
+  // Poll health until the listener is up (generous deadline — this runs under the concurrent
+  // sharded UNIT rung, where ~4x parallel load slows subprocess start).
+  const deadline = Date.now() + 30000;
   for (;;) {
-    if (Date.now() > deadline) throw new Error("bridge did not start listening within 10s");
+    if (exited !== null) throw new Error(`bridge process exited early with code ${exited} (port ${port})`);
+    if (Date.now() > deadline) throw new Error("bridge did not start listening within 30s");
     try { const r = await fetch(`${base}/faff-rpc/health`); if (r.ok) break; } catch { /* not up yet */ }
     await new Promise((r) => setTimeout(r, 100));
   }

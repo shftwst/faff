@@ -316,7 +316,7 @@ export async function main(argv, io = {}) {
   return EXIT.OK;
 }
 
-function realListen(host, port, state, log) {
+export function realListen(host, port, state, log = () => {}) {
   return new Promise((resolve, reject) => {
     const server = createServer((httpReq, httpRes) => {
       const send = (status, obj) => { httpRes.writeHead(status, { "content-type": "application/json" }); httpRes.end(JSON.stringify(obj)); };

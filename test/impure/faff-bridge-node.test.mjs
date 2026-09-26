@@ -1,41 +1,24 @@
 // FAFF-1104 (impure) — faff-bridge-node.mjs end-to-end over a REAL TCP listener.
-// Spawns the bridge as an actual process against a temp SUT module + manifest, then
-// drives the frozen wire (open/call/call_static/close + health) over HTTP, asserting
-// the conformance list from docs/reference/session-rpc-wire.md. Real subprocess +
-// real socket, so this lives under test/impure/ (macOS + linux env-rootless lanes).
+// Starts the bridge's actual node:http server (the exported realListen) in-process on an
+// OS-assigned port and drives the frozen wire (open/call/call_static/close + health) over
+// real HTTP, asserting the conformance list from docs/reference/session-rpc-wire.md. A real
+// socket, so it lives under test/impure/. It binds in-process (no subprocess spawn, no
+// startup poll, OS-assigned port) so it stays deterministic under the concurrent sharded
+// UNIT rung — the true argv->process->listen path is covered by the --selftest subprocess
+// assertion in test/faff-bridge-node.test.mjs.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { createServer } from "node:net";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { realListen, buildAllowlist } from "../../plugin/skills/faff/bin/faff-bridge-node.mjs";
 
-// Acquire an OS-assigned free port (bind :0, read it, release). Removes the random-guess
-// collision that made this real-listener test flaky under the concurrent sharded UNIT rung.
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const s = createServer();
-    s.on("error", reject);
-    s.listen(0, "127.0.0.1", () => { const p = s.address().port; s.close(() => resolve(p)); });
-  });
-}
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const BRIDGE = join(HERE, "..", "..", "plugin", "skills", "faff", "bin", "faff-bridge-node.mjs");
 const W = "faff.session-rpc/1";
 
-let dir, proc, base;
-
-const SUT = `
-export class Stack {
+// A representative SUT module reflected by the bridge.
+class Stack {
   constructor(init = []) { this.items = [...init]; }
   push(x) { this.items.push(x); }
   pop() { if (!this.items.length) throw new TypeError("pop from empty stack"); return this.items.pop(); }
 }
-export const util = { drain: (n) => n * 2 };
-`;
+const MODULE_ROOT = { Stack, util: { drain: (n) => n * 2 } };
 const MANIFEST = {
   schema: 1, runtime: "node",
   bindings: [{
@@ -46,32 +29,21 @@ const MANIFEST = {
   }],
 };
 
-const rpc = (body) => fetch(`${base}/faff-rpc`, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer secret-token-xyz" }, body: JSON.stringify(body) }).then((r) => r.json());
+let server, base;
+
+const rpc = (body) => fetch(`${base}/faff-rpc`, {
+  method: "POST",
+  headers: { "content-type": "application/json", authorization: "Bearer secret-token-xyz" },
+  body: JSON.stringify(body),
+}).then((r) => r.json());
 
 before(async () => {
-  dir = mkdtempSync(join(tmpdir(), "faff-bridge-"));
-  writeFileSync(join(dir, "stack.mjs"), SUT);
-  writeFileSync(join(dir, "binding-manifest.json"), JSON.stringify(MANIFEST));
-  const port = await freePort();
-  base = `http://127.0.0.1:${port}`;
-  let exited = null;
-  proc = spawn(process.execPath, [BRIDGE, "--manifest", join(dir, "binding-manifest.json"), "--module", join(dir, "stack.mjs"), "--host", "127.0.0.1", "--port", String(port)], { stdio: ["ignore", "ignore", "inherit"] });
-  proc.on("exit", (code) => { exited = code; });
-  // Poll health until the listener is up (generous deadline — this runs under the concurrent
-  // sharded UNIT rung, where ~4x parallel load slows subprocess start).
-  const deadline = Date.now() + 30000;
-  for (;;) {
-    if (exited !== null) throw new Error(`bridge process exited early with code ${exited} (port ${port})`);
-    if (Date.now() > deadline) throw new Error("bridge did not start listening within 30s");
-    try { const r = await fetch(`${base}/faff-rpc/health`); if (r.ok) break; } catch { /* not up yet */ }
-    await new Promise((r) => setTimeout(r, 100));
-  }
+  const state = { wireMajor: 1, allowlist: buildAllowlist(MANIFEST), moduleRoot: MODULE_ROOT, sessions: new Map() };
+  server = await realListen("127.0.0.1", 0, state);   // port 0 -> OS assigns; no race, no poll
+  base = `http://127.0.0.1:${server.address().port}`;
 });
 
-after(() => {
-  if (proc) proc.kill("SIGTERM");
-  if (dir) rmSync(dir, { recursive: true, force: true });
-});
+after(() => { if (server) server.close(); });
 
 test("health returns 200 with the served wire version", async () => {
   const r = await fetch(`${base}/faff-rpc/health`);
@@ -133,8 +105,8 @@ test("malformed body is a malformed_request wire error", async () => {
 test("the bearer token never appears in any response (never-echo)", async () => {
   const sid = (await rpc({ wire: W, method: "open", id: "1", target: "Stack", ctor_args: [] })).result.session_id;
   const responses = [
-    await rpc({ wire: W, method: "call", id: "2", session_id: sid, op: "pop", args: [] }),   // throws
-    await rpc({ wire: W, method: "call", id: "3", session_id: sid, op: "toString", args: [] }), // dispatch_unavailable
+    await rpc({ wire: W, method: "call", id: "2", session_id: sid, op: "pop", args: [] }),      // throws
+    await rpc({ wire: W, method: "call", id: "3", session_id: sid, op: "toString", args: [] }),  // dispatch_unavailable
     await rpc({ wire: W, method: "close", id: "4", session_id: sid }),
   ];
   for (const r of responses) assert.ok(!JSON.stringify(r).includes("secret-token-xyz"), "response must not echo the bearer token");

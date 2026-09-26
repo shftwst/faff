@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1124",
+  "build": {
+    "status": "complete",
+    "diff_hash": "1bbd421e2a3f1729a865360b0e8871975ffa00dfc69df64b04e231bf6ff10543",
+    "branch": "faff-1124-make-the-worktree-prune-append-failure-test-deterministic",
+    "pushed_at": "2026-09-26T14:45:00.271Z"
+  },
+  "updated_at": "2026-09-26T14:45:00.271Z"
+}

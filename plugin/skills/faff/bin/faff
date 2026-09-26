@@ -29,6 +29,7 @@ const { cmdBundleRecover } = require("./lib/bundle-recover");
 const { cmdCiTriage } = require("./lib/ci-triage");
 const { cmdClaimVerdict } = require("./lib/claim-verdict");
 const { cmdParkVerdict } = require("./lib/park-verdict");
+const { cmdPuntScan } = require("./lib/punt-scan");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdCommissaire } = require("./lib/commissaire");
 const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
@@ -180,6 +181,7 @@ const COMMANDS = {
   "eligible": cmdEligible,
   "claim-verdict": cmdClaimVerdict,
   "park-verdict": cmdParkVerdict,
+  "punt-scan": cmdPuntScan,
   "admissible": cmdAdmissible,
   "dod": cmdDod,
   "holdout": cmdHoldout,

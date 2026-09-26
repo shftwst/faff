@@ -75,6 +75,7 @@ const DEFAULTS = {
   "slots.adr": "faffter-noon-adr",
   "slots.architecture": "faffter-noon-architecture",
   "slots.env": "faffter-noon-env-compose",
+  "slots.env-code-interface": "faffter-noon-env-code-interface",
   "slots.evaluator": "faffter-noon-evaluate",
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",

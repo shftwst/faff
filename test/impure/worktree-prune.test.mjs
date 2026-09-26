@@ -5,7 +5,7 @@
 // only the declared-own dangling entry is removed; a live worktree's admin dir is untouched.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, chmodSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { seedRepo } from "../helpers/seed-repo.mjs";
 import { runCli } from "../helpers/run-cli.mjs";
@@ -190,15 +190,30 @@ test("a declare/observe append failure does not gate the prune (record-only)", (
   let rd;
   try {
     rd = admit(root, mkRunDir(root, "RUN-WTP-6"), "RUN-WTP-6");
-    // Make the run dir read-only so the ledger lock file cannot be created → append throws.
-    chmodSync(rd, 0o555);
+    // Force the governed-record append to fail deterministically for EVERY uid: pre-create the
+    // ledger LOCK path as a directory. acquireFileLock's openSync(lock,"wx") cannot create a file
+    // where a directory exists, and its stale-takeover unlinkSync cannot remove a directory as a
+    // file either, so acquisition throws — a TYPE conflict, not a permission one. (A chmod 0o555
+    // is silently bypassed by root, which would exercise the append-SUCCESS path instead — the
+    // false-confidence this test replaces.) Backdate the dir past the stale-lock threshold so
+    // acquisition throws immediately instead of spinning out the acquire budget. The ledger FILE
+    // itself is untouched, so hasGovernanceContext stays true and the bracket genuinely runs and
+    // fails at the append (rather than being skipped).
+    const lockDir = join(rd, "declared-effects.jsonl.lock");
+    mkdirSync(lockDir);
+    const old = new Date(Date.now() - 3600_000);
+    utimesSync(lockDir, old, old);
     const { stdout, code } = runCli(["worktree-prune", "--issue", "faff-4444", "--run-dir", rd, "--json"], { cwd: root });
     assert.equal(code, 0, stdout);
     const result = JSON.parse(stdout);
     assert.equal(result.pruned.length, 1, "the prune still completes despite the append failure");
     assert.ok(!existsSync(danglingAdminPath), "the dangling admin dir is removed regardless of the record");
+    // Positively prove the append FAILED (never silently succeeded): no schema:2 declare/observe
+    // record landed — only the schema:3 admission record admit() wrote remains. Without this, the
+    // three assertions above are byte-identical on the success and failure paths.
+    const schema2 = readEffectRecords(rd).filter((r) => r.schema === 2);
+    assert.equal(schema2.length, 0, "no declare/observe record was written — the append genuinely failed");
   } finally {
-    if (rd) { try { chmodSync(rd, 0o755); } catch { /* best-effort */ } }
     teardown();
   }
 });

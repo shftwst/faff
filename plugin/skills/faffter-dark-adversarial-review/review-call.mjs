@@ -1743,10 +1743,12 @@ async function safeCall(callFn) {
 // carries. Capture is a pure add-on gated entirely on shared.rawDir, so an absent flag is byte-for-today.
 
 // The injectable write path (mirrors getFn/streamFn/checkFn): real mkdir -p + writeFile, so CI writes
-// nothing to disk unless a test injects its own writeFn.
-export function realWrite(filePath, content) {
+// nothing to disk unless a test injects its own writeFn. FAFF-1056: `opts` is passed through to
+// writeFileSync so a caller can request an atomic `wx` exclusive-create (throws EEXIST rather than
+// overwrite an existing file); an absent `opts` is byte-for-today.
+export function realWrite(filePath, content, opts) {
   mkdirSync(pathDirname(filePath), { recursive: true });
-  writeFileSync(filePath, content);
+  writeFileSync(filePath, content, opts);
 }
 
 // PURE: filename-safe a path segment (provider/model/lens can carry "/" and other unsafe chars).
@@ -1808,7 +1810,7 @@ export function captureRawResponseBody(shared, { chainIndex, backend, result, to
       + `\n…[truncated ${byteLength - RAW_BODY_MAX_BYTES} bytes]`;
     truncated = true;
   }
-  const fname = `round-${sanitizeSegment(round)}.${sanitizeSegment(lens)}.${chainIndex}-${sanitizeSegment(provider)}-${sanitizeSegment(model)}.${sanitizeSegment(token)}.txt`;
+  const base = `round-${sanitizeSegment(round)}.${sanitizeSegment(lens)}.${chainIndex}-${sanitizeSegment(provider)}-${sanitizeSegment(model)}.${sanitizeSegment(token)}`;
   const preamble = [
     "# faff-raw-adversarial-body (FAFF-928)",
     `# lens: ${lens}`,
@@ -1825,12 +1827,29 @@ export function captureRawResponseBody(shared, { chainIndex, backend, result, to
     "# ---",
     "",
   ].join("\n");
-  try {
-    writeFn(pathJoin(shared.rawDir, fname), preamble + body);
-  } catch (e) {
-    const log = shared.log || ((m) => process.stderr.write(m + "\n"));
-    log(`[raw-capture] FAFF-928: failed to write ${fname}: ${e && e.message}`);
+  // FAFF-1056: refuse to overwrite a retained body. The in-turn retry (disposition_unavailable)
+  // re-dispatches the same lens with the SAME round/lens/backend/token, so attempt 2 would otherwise
+  // clobber attempt 1 — the very fault body that diagnosed the FAFF-1056 incident. Claim the filename
+  // with an atomic `wx` exclusive-create (the OS create is the race-arbiter, so two concurrent
+  // same-round writers each land on a distinct file); on EEXIST bump a monotonic `.retry-<k>` suffix.
+  // The FIRST (fault) body is never lost. This is a within-round (phase-1) guarantee; a hold-resume
+  // (phase 2) re-enters on a later drain with an ADVANCED round number, so its `round-<n+1>.…`
+  // filename never collides with the `round-<n>.…` fault body — cross-drain preservation is the
+  // round-keyed naming that already holds, not a `.retry-<k>` guarantee.
+  const log = shared.log || ((m) => process.stderr.write(m + "\n"));
+  const RETRY_CAP = 1000;   // defensive: a mis-injected writeFn that always throws EEXIST must not spin forever
+  for (let k = 0; k <= RETRY_CAP; k++) {
+    const target = k === 0 ? `${base}.txt` : `${base}.retry-${k}.txt`;
+    try {
+      writeFn(pathJoin(shared.rawDir, target), preamble + body, { flag: "wx" });
+      return;
+    } catch (e) {
+      if (e && e.code === "EEXIST") continue;   // that name is held — bump the suffix and retry
+      log(`[raw-capture] FAFF-928: failed to write ${target}: ${e && e.message}`);
+      return;
+    }
   }
+  log(`[raw-capture] FAFF-1056: gave up after ${RETRY_CAP} retry-suffix collisions for ${base}.txt`);
 }
 
 export async function runReviewChain(chain = [], shared = {}) {

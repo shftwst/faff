@@ -10,6 +10,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { parseRefutation, CANONICAL_NO_FINDINGS, entrypoint_href } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
+// FAFF-1056: cross-import the transport's shape-gate to pin the one-directional grammar property.
+import { validateFindingsShape } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PARSE = join(HERE, "..", "plugin", "skills", "faffter-dark-spec-review", "parse-refutation.mjs");
@@ -258,6 +260,105 @@ test("entrypoint_href builds a comparable file: URL from a realpath-resolvable p
   assert.equal(entrypoint_href(PARSE), pathToFileURL(PARSE).href);
 });
 
+// ---- FAFF-1056: parser tolerance + model-transient reclassification + one-directional grammar ----
+
+// A severity-less `### ` heading (leaked reasoning), the exact shape that used to void the lens.
+function reasoningHeading(title = "Analysis") {
+  return [`### ${title}`, "Let me re-read the spec's scope section before deciding.", "It looks internally consistent."].join("\n");
+}
+
+test("FAFF-1056: a leaked severity-less `### Analysis` preamble ahead of a well-formed gating section parses ok, carries the gating objection", () => {
+  const r = parseRefutation(fixture(reasoningHeading("Analysis"), majorSection()), "methodology");
+  assert.equal(r.ok, true, "the leaked reasoning heading no longer voids the lens");
+  assert.equal(r.entry.outcome, "refuted");
+  assert.equal(r.entry.objections.length, 1, "the severity-less section is skipped as prose; the gating objection survives");
+  assert.equal(r.entry.objections[0].severity, "major");
+  assert.equal(r.entry.objections[0].claim, "the retry loop has no bound.");
+});
+
+test("FAFF-1056: a clean `### observation: no findings` preceded by a severity-less reasoning heading parses clear, [] (fast-path re-keyed off recognised sections)", () => {
+  const r = parseRefutation(fixture(reasoningHeading("My reasoning"), CANONICAL_NO_FINDINGS), "QA");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.outcome, "clear");
+  assert.deepEqual(r.entry.objections, [], "the clean sentinel is never pushed as an objection");
+});
+
+test("FAFF-1056: N severity-less headings + one gating section — all preamble skipped, the objection survives", () => {
+  const r = parseRefutation(fixture(reasoningHeading("Step 1"), reasoningHeading("Step 2"), majorSection("bounded?")), "architectural");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections.length, 1);
+  assert.equal(r.entry.objections[0].severity, "major");
+});
+
+test("FAFF-1056: a body whose `###` sections are ALL severity-less still FAULTS (no findings to grade), missing_field null, distinctive reason", () => {
+  const r = parseRefutation(fixture(reasoningHeading("Analysis"), reasoningHeading("More thoughts")), "infosec");
+  assert.equal(r.ok, false, "a findings-less body is a genuine fault, never a silent clean pass");
+  assert.equal(r.fault.missing_field, null);
+  assert.match(r.fault.reason, /no recognised finding section/);
+  assert.doesNotMatch(r.fault.reason, /names no known severity/, "the old per-section reason is gone — the one-directional property");
+});
+
+test("FAFF-1056: headerModel still extracts the model past a severity-less `### Analysis` preamble", () => {
+  const r = parseRefutation(fixture(reasoningHeading("Analysis"), majorSection()), "architectural");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.model, "openai/gpt-4", "the header scan is preamble-scoped and unaffected by the tolerated `### ` reasoning heading");
+});
+
+// The one-directional grammar property (spec DONE — From WHY): for every body the transport shape-gate
+// ADMITS, parseRefutation either parses (ok:true) or faults for a reason OTHER THAN "a section names no
+// known severity". Deliberately NOT two-way agreement — the parser is strictly MORE permissive than the
+// gate (it skips every severity-less section; the gate only requires one severity-bearing section to
+// exist). Enumerated body table so the FAFF-1056 incident class cannot silently reopen.
+test("FAFF-1056: one-directional grammar — every gate-admitted body parses or faults for a non-severity-less reason", () => {
+  const bodies = {
+    "(a) leaked `### Analysis` + gating major": fixture(reasoningHeading("Analysis"), majorSection()),
+    "(b) clean sentinel after a severity-less preamble": fixture(reasoningHeading("My reasoning"), CANONICAL_NO_FINDINGS),
+    "(c) two severity-less headings + one gating": fixture(reasoningHeading("Step 1"), reasoningHeading("Step 2"), majorSection()),
+    "(d) only a well-formed `### minor:`": fixture(["### minor: a small nit", "- claim: could be tighter."].join("\n")),
+    "well-formed critical only": fixture(["### critical: broken", "- claim: c", "- evidence: e", "- predicted_consequence: p"].join("\n")),
+  };
+  for (const [name, body] of Object.entries(bodies)) {
+    assert.equal(validateFindingsShape(body).ok, true, `precondition: the shape-gate must ADMIT ${name}`);
+    const r = parseRefutation(body, "architectural");
+    if (r.ok) continue;  // parsed — property holds
+    assert.doesNotMatch(
+      r.fault.reason || "",
+      /names no known severity/,
+      `${name}: a gate-admitted body must never fault for the severity-less-heading reason`,
+    );
+  }
+});
+
+// Documented (NOT asserted-as-fixed) residual the fixture does not pin (spec DONE): a severity-WORDED
+// but off-grammar heading (e.g. `### Critical Issue Found`) fails SEVERITY_HEADING_RE and is skipped as
+// prose — an out-of-scope follow-up (fuzzy-severity), named so a later reader does not misread the green
+// test as closing it. This asserts the current (tolerated-as-prose) behaviour, not a desired end-state.
+test("FAFF-1056 (documented residual, out of scope): a severity-WORDED off-grammar heading is skipped as prose, not gated", () => {
+  const body = fixture("### Critical Issue Found\nThe env teardown never runs.", majorSection());
+  const r = parseRefutation(body, "infosec");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections.length, 1, "only the well-formed `### major:` gates; `### Critical Issue Found` is prose");
+  assert.equal(r.entry.objections[0].severity, "major");
+});
+
+test("FAFF-1056: a model-transient unavailable lens routes through aggregate.mjs to `unavailable`, never needs-human", () => {
+  const clearEntry = (lens) => ({ lens, outcome: "clear", objections: [] });
+  const input = JSON.stringify({
+    enabled_lenses: ["architectural", "infosec", "methodology", "QA"],
+    refutations: [
+      { lens: "methodology", outcome: "unavailable", kind: "model-transient", objections: [] },
+      clearEntry("architectural"), clearEntry("infosec"), clearEntry("QA"),
+    ],
+  });
+  const agg = spawnSync(process.execPath, [AGG], { input, encoding: "utf8" });
+  assert.equal(agg.status, 0, agg.stderr);
+  const json = agg.stdout.split("\n").find((l) => l.trim().startsWith("{"));
+  const verdict = JSON.parse(json);
+  assert.equal(verdict.verdict, "unavailable", "a model-transient swing lens surfaces the outage verdict");
+  assert.notEqual(verdict.verdict, "needs-human", "a model-transient fault never hits the config-fault floor");
+  assert.ok(verdict.objections.some((o) => o.lens === "methodology" && o.severity === "major"));
+});
+
 // ---- CLI --------------------------------------------------------------------------------------
 
 test("CLI: exit 0, emits the RefutationEntry JSON on stdout for a complete objection", () => {
@@ -282,11 +383,14 @@ test("FAFF-990 CLI: predicted_consequence absent now DEGRADES to exit 0 with the
   assert.ok(!("predicted_consequence" in entry.objections[0]));
 });
 
-test("FAFF-990 CLI: a residual fault (no claim) WITHOUT --truncated -> exit 1, stdout kind config-fault", () => {
+test("FAFF-1056 CLI: a residual fault (no claim) WITHOUT --truncated -> exit 1, stdout kind model-transient (was config-fault)", () => {
   const section = ["### major: something", "- evidence: e"].join("\n");  // no claim
   const res = spawnSync(process.execPath, [PARSE, "--lens", "qa"], { input: fixture(section), encoding: "utf8" });
   assert.equal(res.status, 1);
-  assert.deepEqual(JSON.parse(res.stdout), { lens: "qa", outcome: "unavailable", kind: "config-fault", objections: [] });
+  // FAFF-1056: a served, shape-valid, off-grammar body is a model-quality transient, not a human
+  // config bug — so the non-truncated residual fault now carries `model-transient` and routes to the
+  // swing `unavailable` verdict (retry/hold), never the config-fault floor -> needs-human park.
+  assert.deepEqual(JSON.parse(res.stdout), { lens: "qa", outcome: "unavailable", kind: "model-transient", objections: [] });
   assert.match(res.stderr, /missing_field=claim/);
   assert.match(res.stderr, /truncated=false/);
 });

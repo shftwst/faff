@@ -33,8 +33,13 @@ export function strictMajority(n) {
 // carries at least one GATING objection (observation-only / empty → clear). `nEnabled` is the count
 // of lenses that fired for this issue (default: the number of refutations supplied).
 //
-// Refutation: { lens, outcome: "refuted"|"clear"|"unavailable", kind?: "infra-configured"|"config-fault",
+// Refutation: { lens, outcome: "refuted"|"clear"|"unavailable",
+//               kind?: "infra-configured"|"config-fault"|"model-transient",
 //               objections: [{ severity, claim?, evidence?, predicted_consequence?, summary? }], model? }
+// FAFF-1056: `model-transient` (a non-truncated parser residual fault — served, backend healthy,
+// off-grammar) routes IDENTICALLY to `infra-configured` — it is `unavailable` with kind !== "config-fault",
+// so it skips the config-fault floor below and falls through to the swing `unavailable` branch. No
+// functional change here: adding a floor branch for it would be dead-equivalent code.
 //
 // FAFF-935: an objection may carry the enrichment triple {claim, evidence, predicted_consequence}
 // (the argued content a downstream judge reads). FAFF-943 adds `spec_anchor` — the heading slug of
@@ -176,6 +181,17 @@ function selftest() {
   // infra-configured down lens that cannot swing (available already force reject via critical) → reject-approach
   v = aggregate([down("infosec", "infra-configured"), r("architectural", "critical"), clear("methodology"), clear("QA")], 4);
   t("infra-down no-swing → reject-approach", v.verdict === "reject-approach");
+
+  // FAFF-1056: a model-transient down lens (a non-truncated parser residual fault) routes exactly
+  // like infra-configured — swing → unavailable (NEVER needs-human, the config-fault floor is not
+  // reached because kind !== "config-fault"), named as a "major" objection.
+  v = aggregate([down("infosec", "model-transient"), clear("architectural"), clear("methodology"), clear("QA")], 4);
+  t("model-transient swing → unavailable", v.verdict === "unavailable");
+  t("model-transient swing not needs-human", v.verdict !== "needs-human");
+  t("model-transient swing names lens as major", v.objections.some((o) => o.lens === "infosec" && o.severity === "major"));
+  // model-transient down lens that cannot swing (available already force reject) → reject-approach
+  v = aggregate([down("infosec", "model-transient"), r("architectural", "critical"), clear("methodology"), clear("QA")], 4);
+  t("model-transient no-swing → reject-approach", v.verdict === "reject-approach");
 
   // single enabled lens refuting (n=1) is already a majority → reject-approach
   v = aggregate([r("architectural", "minor")], 1);

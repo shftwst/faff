@@ -231,7 +231,7 @@ This is a pure partition over the two disjoint, exhaustive lens sets — `{metho
 
 **Advisory in-ticket discrimination smoke (non-gating).** Optionally run the built judge over the committed defect/taste case pair (`plugin/skills/faffter-dark-spec-review/eval/spec-judge-discrimination/`) once and log the observed rulings against the pinned oracles (defect NOT `AFFIRM_SPEC`, taste `AFFIRM_SPEC`) as an advisory signal; a transport outage retries (bounded) and an exhausted outage records a skip. A single stochastic sample cannot certify the judge, so neither a mismatch nor a skip gates the build — the gating calibrated-corpus eval is a sibling ticket's.
 
-**Spec-review-outage disposition (`unavailable` verdict).** The occupant's transport floor surfaces `unavailable` only for a **swing-capable, `infra-configured`** outage — a transient (host unreachable / a 429 chain), never a `config-fault` (still `needs-human`, a human config fix the retry loop can't ride out). This means *the reviewer was down*, not *the spec is suspect* — port the shipped build-side shape (a retry-later hold, fail-closed chain-exhaustion, an in-band `unavailable` verdict) to this altitude:
+**Spec-review-outage disposition (`unavailable` verdict).** The occupant's transport floor surfaces `unavailable` for a **swing-capable** outage of two kinds — `infra-configured` (a network transient: host unreachable / a 429 chain) **and, FAFF-1056, `model-transient`** (a non-truncated *parser* residual fault — the backend served a shape-valid but off-grammar body, so the config demonstrably worked and a re-run is likely to clear it). Both route here; only a genuine `config-fault` stays `needs-human` (a human config fix the retry loop can't ride out — and a *parser* residual fault is no longer one of those). This means *the reviewer was down (or served off-grammar)*, not *the spec is suspect* — port the shipped build-side shape (a retry-later hold, fail-closed chain-exhaustion, an in-band `unavailable` verdict) to this altitude:
 
 ```
 PROCEDURE disposition_unavailable(issue, spec):
@@ -259,7 +259,16 @@ PROCEDURE disposition_unavailable(issue, spec):
          owns regardless). Return parked.
      ELSE hold:
        a. write .faff/resume/<issue>/spec-review-hold.json
-          { outage_holds: holds+1, outaged_lenses: [...], pinned_reviewer?: ... }
+          { outage_holds: holds+1, outaged_lenses: [...], kind: "model-transient"|"infra-configured", pinned_reviewer?: ... }
+          # FAFF-1056 provenance seam: `kind` is the swing-kind that triggered THIS hold, written additively
+          # alongside the shared outage_holds counter. It is READ BY NO GATE today (provenance only, changes no
+          # routing — the two families route identically), so it changes nothing operationally; it (a) lets an
+          # operator triaging a held issue tell a network blip (infra-configured) from a systematically
+          # off-grammar backend (model-transient), and (b) is the seam a FUTURE divergence (e.g. a shorter retry
+          # ceiling for model-transient) keys off WITHOUT re-plumbing this store. Additive on a schema-less JSON
+          # store: a legacy hold lacking `kind` reads as `infra-configured` (back-compatible). The single
+          # outage_holds counter stays SHARED across both kinds (a held-drain is a held-drain regardless of kind).
+          # The divergent gate itself is explicitly OUT OF SCOPE for FAFF-1056 — this only lays the seam.
        b. faff label add <issue> faff-awaiting-spec-review        # descriptor → single tracker write
        c. tracker comment: hold notice — "spec-review provider unavailable; spec attached and held;
           attempt <holds+1>/<N>; auto-resumes at review on the next drain"

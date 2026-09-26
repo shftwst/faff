@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.35.0](https://github.com/shftwst/faff/compare/faff--v0.34.0...faff--v0.35.0) (2026-09-26)
+
+
+### Features
+
+* **FAFF-1034:** promote the runner onto the Commissaire facade for the merge effect ([#945](https://github.com/shftwst/faff/issues/945)) ([9d1fade](https://github.com/shftwst/faff/commit/9d1fadef75298528b6fcbd7b80eafd5aff56dbb3))
+* **FAFF-1040:** gate the code-blind holdout guarantee on capability facts, not the L4 label ([#943](https://github.com/shftwst/faff/issues/943)) ([4d58af3](https://github.com/shftwst/faff/commit/4d58af3140691597a96809e5dad1bdbd8e3810d3))
+* **FAFF-1072:** gate admissibility and custody on run facts, not the L-level label ([#927](https://github.com/shftwst/faff/issues/927)) ([b0f4bbf](https://github.com/shftwst/faff/commit/b0f4bbff11fe61d1596fd6b72858de9d9dc05012))
+* **FAFF-1073:** holdout-at-L3 feasibility spike — decision + reproducible measurement ([#936](https://github.com/shftwst/faff/issues/936)) ([1132773](https://github.com/shftwst/faff/commit/113277305093aa64aff88f1ee92626047d1a2fde))
+* **FAFF-1077:** opt-in branch-stacking for dependents awaiting a dependency's PR sign-off ([#924](https://github.com/shftwst/faff/issues/924)) ([57fa922](https://github.com/shftwst/faff/commit/57fa922c37a6bcaf9f6e96b39f11bdf9fb86b1d0))
+* **FAFF-1080:** support a functional team-set per repo, with cross-team blockers first-class ([#940](https://github.com/shftwst/faff/issues/940)) ([603b131](https://github.com/shftwst/faff/commit/603b13146eec0965ba506a3ab4b37fbfa729f75d))
+* **FAFF-1081:** discover tracker-native issue templates in /faff-onboard ([#925](https://github.com/shftwst/faff/issues/925)) ([68f6351](https://github.com/shftwst/faff/commit/68f6351282b3b91e249b62aa57124cd1165716e4))
+* **FAFF-1082:** discover repository rule files (.claude/rules/, CLAUDE.md) in conventions mine ([#938](https://github.com/shftwst/faff/issues/938)) ([a0b1742](https://github.com/shftwst/faff/commit/a0b17428e5405336cce40be6889eeb93b1bd1349))
+* **FAFF-1083:** implement tier-1 native-template slot (jot/plot fill from the tracker) ([#928](https://github.com/shftwst/faff/issues/928)) ([78c1de5](https://github.com/shftwst/faff/commit/78c1de5c8bf53b908d8422b313eb157835f375ac))
+* **FAFF-1085:** adr slot honours a repo-specific ADR template, defaults to Nygard ([#939](https://github.com/shftwst/faff/issues/939)) ([7b1dc97](https://github.com/shftwst/faff/commit/7b1dc97bf167189771ce8446a1ab2c2b66583413))
+* **FAFF-1091:** configure control-label names per role (full name), not just a prefix ([#935](https://github.com/shftwst/faff/issues/935)) ([1f7a9d5](https://github.com/shftwst/faff/commit/1f7a9d5979293d343ead3ca22fb485a81d60b2e5))
+* **FAFF-1103:** Tier-1 binding manifest schema + faff manifest validate ([#951](https://github.com/shftwst/faff/issues/951)) ([b69b576](https://github.com/shftwst/faff/commit/b69b576cd44037a8bbe20f2a2d8b7165dd8d4976))
+* **FAFF-1104:** first per-runtime reflection adapter (Node SUT-cage bridge) ([#955](https://github.com/shftwst/faff/issues/955)) ([ae121e6](https://github.com/shftwst/faff/commit/ae121e68a62b349a33e7d345bd6953fb6af31a04))
+* **FAFF-1105:** code-interface branch for the env slot (bridge provisioning mechanism) ([#959](https://github.com/shftwst/faff/issues/959)) ([d335b1f](https://github.com/shftwst/faff/commit/d335b1f13bd2bf71ba9e5ecc313376f8291df11c))
+* **FAFF-1114:** self-heal a graft worktree whose git admin metadata was pruned out-of-band ([#946](https://github.com/shftwst/faff/issues/946)) ([5c8cab4](https://github.com/shftwst/faff/commit/5c8cab4f501e04d8017c1ec34a223a407b8a1a02))
+* **FAFF-1115:** split the code-blind holdout into a build-start OFFER and a post-build RUN ([#947](https://github.com/shftwst/faff/issues/947)) ([302d2cc](https://github.com/shftwst/faff/commit/302d2cc82db463264f9a4df20aa2f1e1372050b0))
+* **FAFF-1116:** capture sut_env_stood in the run ledger; redirect the merge floor to read it ([#949](https://github.com/shftwst/faff/issues/949)) ([554a0c3](https://github.com/shftwst/faff/commit/554a0c3949a3628c5b56eca23f536b1c5f27d8a1))
+* **FAFF-1118:** PR-create chokepoint + close the merge-coupled branch-delete coattail ([#948](https://github.com/shftwst/faff/issues/948)) ([e2d49d0](https://github.com/shftwst/faff/commit/e2d49d099769f49949e67dc20d1a69bbe0e7dd98))
+* **FAFF-1119:** governed records for push, label, ADR/PRDR, worktree-prune ([#950](https://github.com/shftwst/faff/issues/950)) ([af256e4](https://github.com/shftwst/faff/commit/af256e476ba2db793eb364a56554831d5134cc3a))
+* **FAFF-1120:** governed tracker-write record + settle the status-set anti-pattern ([#953](https://github.com/shftwst/faff/issues/953)) ([368b5de](https://github.com/shftwst/faff/commit/368b5defd8a961ca3c7d9c48e4c300323183e08f))
+* **FAFF-731:** fan the refutation-spec eval into four independent lens passes ([#941](https://github.com/shftwst/faff/issues/941)) ([5a0e494](https://github.com/shftwst/faff/commit/5a0e494eeb1231b46b5e0c22377df8046088a81e))
+
+
+### Bug Fixes
+
+* **FAFF-1002:** shard the local UNIT rung so faff gates run fits a foreground turn ([#887](https://github.com/shftwst/faff/issues/887)) ([ca36eb3](https://github.com/shftwst/faff/commit/ca36eb3a597198c2ce0424d73d50253f4049d291))
+* **FAFF-1007:** case-back the park-reconsider-classification grader (designed → covered) ([#932](https://github.com/shftwst/faff/issues/932)) ([a2354ab](https://github.com/shftwst/faff/commit/a2354abbce8a9804a3a539ad01c0c56bbfa11609))
+* **FAFF-1056:** tolerate severity-less refuter sections, reclassify residual parse fault as model-transient ([#952](https://github.com/shftwst/faff/issues/952)) ([b5c0154](https://github.com/shftwst/faff/commit/b5c01548bef7deb809160bde8dae87f21dee62c0))
+* **FAFF-1075:** thread the adversarial backend chain into build-judge-evidence --assemble ([#931](https://github.com/shftwst/faff/issues/931)) ([56b904f](https://github.com/shftwst/faff/commit/56b904f527258deaa4a988f4337199cedf095373))
+* **FAFF-1078:** non-blocking Punt tag + routing narrowing so a deferred Punt stops forcing needs-decision-first ([#957](https://github.com/shftwst/faff/issues/957)) ([d6fe559](https://github.com/shftwst/faff/commit/d6fe559048cf8b4123ed91923d1f1e47118a7e7b))
+* **FAFF-1092:** retire the faff-repeat-parked control-label (keep the repeat-parked verdict) ([#930](https://github.com/shftwst/faff/issues/930)) ([af54c4a](https://github.com/shftwst/faff/commit/af54c4abe89cbc8bd8bf86de818f7971fa37c26e))
+* **FAFF-1095:** case-back the prd-readiness grader (designed → covered) ([#933](https://github.com/shftwst/faff/issues/933)) ([3a23717](https://github.com/shftwst/faff/commit/3a2371763a33b7703f537095a4c49b73cf7a504c))
+* **FAFF-1096:** scope inflightcheck to the session that wrote the marker ([#958](https://github.com/shftwst/faff/issues/958)) ([583e632](https://github.com/shftwst/faff/commit/583e632d4e876e553e575a6e3f283c88649e3104))
+* **FAFF-1097:** retire the automation-hold label; eligibility is a single automate label ([#934](https://github.com/shftwst/faff/issues/934)) ([d9a290d](https://github.com/shftwst/faff/commit/d9a290dce3366db0fd5c90d6f6be0e5236a6b757))
+* **FAFF-1099:** move MinIO env images off the quay.io 401 wall to the Chainguard mirror ([#942](https://github.com/shftwst/faff/issues/942)) ([9e5230a](https://github.com/shftwst/faff/commit/9e5230ae27b4fe68773a62578de527a6e195cfb6))
+
 ## [0.34.0](https://github.com/shftwst/faff/compare/faff--v0.33.0...faff--v0.34.0) (2026-09-21)
 
 

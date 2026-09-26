@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1126",
+  "build": {
+    "status": "complete",
+    "diff_hash": "090bfd0f27c118ab0bb922b698d8a1a21ac0c9c3052ac0e503e126fc71ec73d5",
+    "branch": "faff-1126-graft-terminal-outcome-wrong-run-ledger",
+    "pushed_at": "2026-09-26T22:32:43.627Z"
+  },
+  "updated_at": "2026-09-26T22:32:43.627Z"
+}

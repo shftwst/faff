@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1096",
+  "build": {
+    "status": "complete",
+    "diff_hash": "90036af1b72645174664eb5b158e9d3686e8586f0b6dca03abac961cf383327d",
+    "branch": "faff-1096-inflight-owner-scope",
+    "pushed_at": "2026-09-26T16:06:39.799Z"
+  },
+  "updated_at": "2026-09-26T16:06:39.799Z"
+}

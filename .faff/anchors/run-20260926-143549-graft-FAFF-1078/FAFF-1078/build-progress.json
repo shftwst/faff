@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1078",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4efa75b5224843ec67e24120bbc37913307d0f926b5a50db83f67f3ab81f3cb4",
+    "branch": "FAFF-1078-non-blocking-punt-tag",
+    "pushed_at": "2026-09-26T15:41:49.777Z"
+  },
+  "updated_at": "2026-09-26T15:41:49.777Z"
+}

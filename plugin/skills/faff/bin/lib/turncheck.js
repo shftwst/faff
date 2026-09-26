@@ -27,7 +27,7 @@
 const path = require("node:path");
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { auditLedger, malformedOwnedReason, ownedByEnvPointer, resolveRunDir, runIsHeld, runIsOwned } = require("./runcheck");
-const { inflightIsStale, readInflightMarkers, resolveOwnerScope } = require("./inflightcheck");
+const { inflightWouldBlock, readInflightMarkers } = require("./inflightcheck");
 const { findRoot, readLedger } = require("./shared-infra");
 
 // The block-reason text (shared by the hook and the selftest expectation).
@@ -44,23 +44,21 @@ function turncheckReason(ledger) {
 
 // Does THIS owner have an in-flight marker inflightcheck WOULD BLOCK ON? Computed in
 // the impure shell (the readInflightMarkers filesystem read) and folded into opts, so
-// the pure decision keeps runcheck's 5-arg signature and stays filesystem-free. A
-// marker is "this owner's" by the same path-derived owner-scope inflightcheck itself
-// uses. Crucially, turncheck defers ONLY to a marker inflightcheck actually blocks on:
-// a LIVE owned marker (parseable + within the TTL) or a CORRUPT owned one (inflightcheck
-// fails those closed). A parseable owned marker past the TTL is a corpse inflightcheck
-// SWEEPS (it does not block), so it must NOT make turncheck defer — otherwise the
-// residual (owner running, clean queue, only a stale corpse marker) could slip through
-// BOTH hooks. Filtering here makes the composition order-independent rather than relying
-// on turncheck running after inflightcheck in the Stop sequence.
+// the pure decision keeps runcheck's 5-arg signature and stays filesystem-free. It defers
+// to EXACTLY the markers inflightcheck actually blocks on by calling the SOLE shared
+// predicate `inflightWouldBlock` (FAFF-1096) — never a re-implementation. That predicate
+// already encodes every routing rule: a foreign marker never blocks; a live owned marker
+// (parseable + within the TTL, stranding premise holding) blocks; a corrupt owned one
+// fails closed (blocks); a parseable owned corpse past the TTL is SWEPT (does not block),
+// so it must NOT make turncheck defer; and an owned marker under a harness-tracked
+// background (interactive Claude Code) is not a strand (does not block), so turncheck
+// must not defer to it either. Sharing the one predicate makes the composition
+// order-independent and drift-proof rather than relying on turncheck running after
+// inflightcheck in the Stop sequence (the coupling this function's comment must honour).
 function hasOpenInflightForOwner(root, env, nowMs) {
-  const scope = resolveOwnerScope(env || process.env);
+  const e = env || process.env;
   const now = Number.isFinite(nowMs) ? nowMs : Date.now();
-  return readInflightMarkers(root).some((m) => {
-    if (m.scope !== scope) return false;
-    if (!m.parseOk) return true;                          // corrupt owned marker → inflightcheck blocks → defer
-    return !inflightIsStale(m.opened_at, now, env);       // live → inflightcheck blocks → defer; corpse → it sweeps → don't defer
-  });
+  return readInflightMarkers(root).some((m) => inflightWouldBlock(m, now, e));
 }
 
 // Pure decision for the Stop hook (FAFF-854): given a parsed ledger, the resolved

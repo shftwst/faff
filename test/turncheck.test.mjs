@@ -22,8 +22,11 @@ const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skill
 // default to "" so the test process's own env never leaks ownership; each case sets them.
 function run(args, env) {
   const r = spawnSync("node", [CLI, ...args], {
+    // CLAUDE_CODE_SESSION_ID neutralised too (FAFF-1096) — this suite runs under interactive
+    // Claude Code, whose ambient CC id would otherwise leak the harness-tracked-background
+    // signal into cases that don't set FAFF_RUN_DIR; each case sets whichever env it needs.
     encoding: "utf8",
-    env: { ...process.env, FAFF_RUN_DIR: "", FAFF_SESSION_ID: "", ...env },
+    env: { ...process.env, FAFF_RUN_DIR: "", FAFF_SESSION_ID: "", CLAUDE_CODE_SESSION_ID: "", ...env },
   });
   return { code: r.status ?? 1, out: (r.stdout ?? "").toString(), err: (r.stderr ?? "").toString() };
 }
@@ -120,6 +123,16 @@ test("FOREIGN session (env does not own the run) + running + stale heartbeat →
   assert.equal(r.code, 0);
   assert.equal(r.out.trim(), "", "a foreign session is never hard-blocked");
   assert.match(r.err, /\[warn\]/, "a foreign abandoned run is surfaced as a non-blocking warn");
+});
+
+test("FAFF-1096: a genuine interactive Claude Code session (CC id only, owns no run ledger) is never hard-blocked", () => {
+  // Only CLAUDE_CODE_SESSION_ID is set — no FAFF_RUN_DIR / FAFF_SESSION_ID match, so
+  // runIsOwned is false and turncheck must stay silent regardless of the run's state.
+  // This is the spec's stated guarantee: interactive Claude Code is not a run owner.
+  const { root, runDir } = fixture(); // fresh heartbeat (10s) → a live foreign drain
+  const r = hook(runDir, root, { CLAUDE_CODE_SESSION_ID: "cc-A" });
+  assert.equal(r.code, 0);
+  assert.equal(r.out.trim(), "", "no block payload for a non-owning interactive session");
 });
 
 test("--selftest passes (the pure decision table)", () => {

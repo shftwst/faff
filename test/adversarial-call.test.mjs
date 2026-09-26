@@ -4083,3 +4083,42 @@ test("FAFF-928 AC7: captureRawResponseBody is a no-op without rawDir and never t
   assert.equal(called, 0, "no rawDir ⇒ writeFn never called");
   assert.equal(typeof realWrite, "function", "the default write path is exported for injection");
 });
+
+test("FAFF-1056: captureRawResponseBody refuses to overwrite a retained body — same round/lens/backend/token → .txt then .retry-1.txt", () => {
+  // A fake fs honouring the `wx` exclusive-create contract realWrite forwards to writeFileSync: a write
+  // to an already-claimed path throws EEXIST, so the capture loop must bump a `.retry-<k>` sibling.
+  const files = new Map();
+  const writeFn = (p, content, opts) => {
+    if (opts && opts.flag === "wx" && files.has(p)) {
+      const e = new Error(`EEXIST: file already exists, open '${p}'`);
+      e.code = "EEXIST";
+      throw e;
+    }
+    files.set(p, content);
+  };
+  const shared = { rawDir: "/raw", lens: "architectural", round: 1, writeFn, log: () => {} };
+  const call = { chainIndex: 0, backend: { provider: "spark", model: "qwen", hostSource: "config" }, result: { content: "### major: x\n- claim: c" }, token: "findings", exit: 0 };
+
+  captureRawResponseBody(shared, call);   // attempt 1 — the fault body claims the base name
+  captureRawResponseBody(shared, call);   // in-turn retry — must NOT overwrite; bumps .retry-1
+  const paths = [...files.keys()].sort();
+  assert.equal(paths.length, 2, "two same-key attempts → two files (the first, fault, body is preserved)");
+  assert.equal(paths[0], "/raw/round-1.architectural.0-spark-qwen.findings.retry-1.txt");
+  assert.equal(paths[1], "/raw/round-1.architectural.0-spark-qwen.findings.txt");
+  assert.match(files.get("/raw/round-1.architectural.0-spark-qwen.findings.txt"), /### major: x/, "the ORIGINAL file still holds the first body");
+
+  captureRawResponseBody(shared, call);   // a third collision bumps .retry-2, still never overwriting
+  assert.ok(files.has("/raw/round-1.architectural.0-spark-qwen.findings.retry-2.txt"));
+});
+
+test("FAFF-1056: a spy writeFn that never throws (the default test double) writes exactly the base name — no spurious retry suffix", () => {
+  // Guards against the loop bumping a suffix when there is no collision: the pre-FAFF-1056 spy shape
+  // (a 2-arg writeFn that ignores opts and never throws) must land exactly one file at the base name.
+  const writes = [];
+  captureRawResponseBody(
+    { rawDir: "/raw", lens: "QA", round: 2, writeFn: (p, c) => writes.push({ path: p, content: c }), log: () => {} },
+    { chainIndex: 1, backend: { provider: "gemini", model: "gemma", hostSource: "config" }, result: { content: "### observation: no findings" }, token: "clean", exit: 0 },
+  );
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].path, "/raw/round-2.QA.1-gemini-gemma.clean.txt", "no collision ⇒ base name, no .retry suffix");
+});

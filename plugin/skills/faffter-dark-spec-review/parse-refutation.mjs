@@ -130,35 +130,46 @@ export function parseRefutation(content, lens) {
   const sections = splitSections(text);
   const model = headerModel(text);
 
-  // Defensive fail-loud: the transport's shape-gate (validateFindingsShape) guarantees >=1 section
-  // with a recognised severity before exit 0, so this should be unreachable — but a parser that
-  // silently treated "no sections at all" as a clean pass would reintroduce exactly the silent-drop
-  // failure mode this ticket removes.
-  if (sections.length === 0) {
+  // FAFF-1056: skip severity-less `### ` sections as non-finding prose (a reasoning model's leaked
+  // `### Analysis`/`### My reasoning` deliberation headings, a narrative preamble), mirroring
+  // parseBullets' existing discard of a narrative lead-in before the first bullet. The transport's
+  // shape-gate (validateFindingsShape) admits any body with >=1 severity-bearing section; the old
+  // parser then demanded EVERY `### ` section carry a severity and faulted on the first that did not,
+  // so a leaked reasoning heading ahead of a well-formed finding passed the gate but voided the whole
+  // lens (mis-attributed config-fault -> needs-human park). Tolerate the prose here; the parser is now
+  // strictly MORE permissive than the shape-gate (it skips every severity-less section; the gate only
+  // requires one severity-bearing section to exist), and that asymmetry is intended.
+  const recognisedSections = sections.filter((s) => s.severity != null);
+
+  // Fault iff NO recognised-severity section survives. This single truthful guard subsumes the old
+  // `sections.length === 0` and `s.severity == null` arms, both of which carried a false
+  // "should be unreachable" premise about the shape-gate establishing `all` when it only guarantees
+  // `>=1`. The guard is reachable by construction (a body of only severity-less sections) and
+  // correctly so: a findings-less body is a genuine fault (no objections to grade), never a silent
+  // clean pass — which would reintroduce exactly the silent-drop this module was built to remove.
+  if (recognisedSections.length === 0) {
     return {
       ok: false,
-      fault: { lens, severity: "unknown", title: "(none)", missing_field: null, reason: "no ### finding section found in input" },
+      fault: { lens, severity: "unknown", title: "(none)", missing_field: null, reason: "no recognised finding section (### <severity>: ...)" },
     };
   }
 
-  // Clean refutation: the transport's canonical single-observation token, and nothing else. On the
-  // exit-0 wire a clean lens is EXACTLY this one section — no gating section coexists with it.
-  const gatingCount = sections.filter((s) => GATING_SEVERITIES.has(s.severity)).length;
-  if (gatingCount === 0 && sections.length === 1 && sections[0].heading === CANONICAL_NO_FINDINGS) {
+  // Clean refutation: the transport's canonical single-observation token as the ONLY recognised
+  // section. Re-keyed off recognisedSections (not sections.length) so a leaked severity-less
+  // preamble no longer defeats the clean fast-path.
+  const gatingCount = recognisedSections.filter((s) => GATING_SEVERITIES.has(s.severity)).length;
+  if (gatingCount === 0 && recognisedSections.length === 1 && recognisedSections[0].heading === CANONICAL_NO_FINDINGS) {
     const entry = { lens, outcome: "clear", objections: [] };
     if (model) entry.model = model;
     return { ok: true, entry };
   }
 
   const objections = [];
-  for (const s of sections) {
-    if (s.severity == null) {
-      // Should be unreachable (see the shape-gate note above) — fail loud rather than guess.
-      return {
-        ok: false,
-        fault: { lens, severity: "unknown", title: s.title, missing_field: null, reason: `section heading names no known severity: ${JSON.stringify(s.heading)}` },
-      };
-    }
+  for (const s of recognisedSections) {
+    // The `### observation: no findings` sentinel is the clean marker and is NEVER pushed as an
+    // objection — that is what makes a clean lens's objections == []. A mixed body carrying it
+    // alongside real findings drops it here, matching the clean fast-path's exclusion above.
+    if (s.heading === CANONICAL_NO_FINDINGS) continue;
     const fields = parseBullets(s.body);
     const gating = GATING_SEVERITIES.has(s.severity);
     if (gating) {
@@ -193,18 +204,26 @@ export function parseRefutation(content, lens) {
 // ---- CLI ------------------------------------------------------------------------------------
 // `parse-refutation.mjs --lens <lens> [--truncated]` reads one refuter's raw exit-0 stdout on stdin.
 //   exit 0      -> the RefutationEntry JSON on stdout (objections may be degraded — claim-only).
-//   exit 1      -> a RESIDUAL parse fault (a gating section with no usable `claim`) WITHOUT --truncated:
-//                  `{lens, outcome:"unavailable", kind:"config-fault", objections:[]}` on stdout, a human
-//                  diagnostic on stderr. The transport floor routes config-fault -> needs-human (park).
+//   exit 1      -> a RESIDUAL parse fault (a gating section with no usable `claim`, or a body with no
+//                  recognised-severity section) WITHOUT --truncated:
+//                  `{lens, outcome:"unavailable", kind:"model-transient", objections:[]}` on stdout, a
+//                  human diagnostic on stderr. FAFF-1056: a parser-stage residual fault is NEVER a
+//                  config fault — `parseRefutation` only ever sees a body the transport served and the
+//                  shape-gate passed, so the config demonstrably worked; the off-grammar content is a
+//                  model-quality transient a re-run is likely to clear. `model-transient` is
+//                  swing-capable -> the `unavailable` verdict + a resumable hold, never a park.
 //   exit 3      -> the same residual fault WITH --truncated (the served response carried a truncation
 //                  signal): `{lens, outcome:"unavailable", kind:"infra-configured", objections:[]}` on
 //                  stdout. `infra-configured` is swing-capable -> the `unavailable` verdict + a
 //                  resumable `faff-awaiting-spec-review` hold (FAFF-900), never a park.
-//   exit 2      -> usage (missing --lens, unreadable stdin) — a real fault, empty stdout.
-// FAFF-990: the config-fault-vs-availability decision is deterministic, so the parser NAMES the `kind`
-// on stdout (chosen from --truncated) and the occupant records that stdout verbatim — the exit code and
-// the stdout `kind` are one decision surfaced twice, both code-emitted and both fixture-testable. The
-// occupant performs no exit-to-kind judgement of its own.
+//   exit 2      -> usage (missing --lens, unreadable stdin) — a real fault, empty stdout; the occupant
+//                  records `config-fault` for this (a genuine parser plumbing fault).
+// FAFF-990/FAFF-1056: the kind decision is deterministic, so the parser NAMES the `kind` on stdout
+// (chosen from --truncated) and the occupant records that stdout verbatim — the exit code and the
+// stdout `kind` are one decision surfaced twice, both code-emitted and both fixture-testable. The
+// occupant performs no exit-to-kind judgement of its own. `config-fault` is retained for its genuine
+// sources (a review-call transport/config outage, an unconfigured chain, parser usage exit 2), never a
+// parser residual fault.
 function faultMessage(f, truncated) {
   const parts = [`lens=${f.lens}`, `severity=${f.severity}`, `title=${JSON.stringify(f.title)}`];
   if (f.missing_field) parts.push(`missing_field=${f.missing_field}`);
@@ -232,8 +251,12 @@ function main(argv) {
   const result = parseRefutation(content, lens);
   if (!result.ok) {
     // Residual fault: emit the machine record on STDOUT (the occupant records it verbatim) and the
-    // human diagnostic on STDERR (the audit trail). `kind`/exit are the same decision, keyed on --truncated.
-    const kind = truncated ? "infra-configured" : "config-fault";
+    // human diagnostic on STDERR (the audit trail). `kind`/exit are the same decision, keyed on
+    // --truncated. FAFF-1056: the non-truncated residual fault carries `model-transient` (was
+    // `config-fault`) — a served, shape-valid, off-grammar body is a model-quality transient, not a
+    // human-fixable config fault, so it routes to the swing `unavailable` verdict (retry/hold), never
+    // the `config-fault` floor -> needs-human park.
+    const kind = truncated ? "infra-configured" : "model-transient";
     process.stdout.write(JSON.stringify({ lens, outcome: "unavailable", kind, objections: [] }) + "\n");
     process.stderr.write(faultMessage(result.fault, truncated) + "\n");
     return truncated ? 3 : 1;

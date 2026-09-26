@@ -57,6 +57,24 @@ test("declare accepts a {kind:push} descriptor (first-class); an unknown kind st
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// --- FAFF-1120: tracker-write (status transitions) round-trips, sanctioned ---
+
+test("a tracker-write status descriptor round-trips through declare/observe with no escape", () => {
+  const dir = tmp(); mkRun(dir, "run-tw");
+  const desc = JSON.stringify({ kind: "tracker-write", target: "FAFF-1120:Todo->In Progress", reversible: true });
+  try {
+    const ok = run(dir, ["effects", "declare", "--run", "run-tw", "--issue", "FAFF-1120", "--step", "tracker-write"], desc);
+    assert.equal(ok.code, 0, ok.err);
+    assert.equal(JSON.parse(ok.out).effect.kind, "tracker-write");
+    run(dir, ["effects", "observe", "--run", "run-tw", "--issue", "FAFF-1120", "--step", "tracker-write"], desc);
+    const chk = run(dir, ["effects", "check", "--run", "run-tw", "--json"]);
+    assert.equal(chk.code, 0);
+    const j = JSON.parse(chk.out);
+    assert.equal(j.any_escape, false, "a declared-then-observed status write is sanctioned, never an escape");
+    assert.equal(j.escapes.length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- declare/observe: envelope + seq --------------------------------------
 
 test("declare: first entry → schema-2/run_id/seq 0/ts + kind_of_entry/issue/step/effect + genesis prev; exit 0", () => {

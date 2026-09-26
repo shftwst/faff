@@ -82,3 +82,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: FAFF-1091 control-label naming/grouping — `labels.js` (`controlLabels`, `groupTransitionOps`, the `group` field on `CONTROL_LABEL_DEFS`), the new `resolveControlLabels`/`validateControlLabelName` in `config.js`, and the `faff label transition` verb. Does not make group membership config-overridable (out of scope) and does not introduce an `eligibility` group.
 - Matches: control-label groups; label name validation; stacked grouping; control_labels; single-select state group
 - Date: 2026-09-24
+
+## Tracker status writes are governed by record, not chokepoint (no faff status set CLI)
+
+- Chosen: Hold the `faff status set` anti-pattern. Tracker status writes stay agent-mediated (Step 5, In Review, ship, tidy); no status-set CLI verb is introduced. They are governed by a declare/observe detection record (`tracker-write` effect kind), never a chokepoint.
+- Rationale: A chokepoint prevents, and there is nothing to prevent here. Tracker status is a breadcrumb — the write-once build-claim git ref is the real build mutex, and `faff-claimed` plus the status column are human-facing provenance read by nothing to gate a build — so no protected transition exists for a status-set gate to defend. A `faff status set` CLI would also break faff's standing boundary that the CLI stays pure and tracker-agnostic while tracker MCP writes stay agent-side (the same boundary that keeps `label.js` a pure op-descriptor emitter).
+- Scope: faff's own governance of tracker effects (the Commissaire producer half), FAFF-1120 / FAFF-1108. Reopen only if audit ever needs status prevention, which it does not today.
+- Matches: status-set anti-pattern; tracker-write chokepoint; govern tracker status; faff status set CLI; tracker-write record
+- Date: 2026-09-26

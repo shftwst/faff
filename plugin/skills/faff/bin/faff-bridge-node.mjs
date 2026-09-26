@@ -117,13 +117,18 @@ export function resolveOwn(dottedPath, moduleRoot) {
 
 // ---- pure: marshalling + error-as-data -------------------------------------
 
-// True iff the value round-trips through JSON without loss at the top level.
+// True iff the value round-trips through JSON without loss. A non-finite number
+// (NaN / Infinity / -Infinity) JSON.stringifies to "null", which would silently
+// coerce it to null and make the evidence indistinguishable from a real null —
+// so it is treated as NOT representable (→ NonJSONReturn), at the top level AND
+// nested (the replacer flags any non-finite number anywhere in the value).
 export function isJsonRepresentable(value) {
   if (value === undefined) return false;
   try {
-    const s = JSON.stringify(value);
-    return s !== undefined;   // JSON.stringify(function|symbol|undefined) === undefined
-  } catch { return false; }   // circular / BigInt throw
+    let lossy = false;
+    const s = JSON.stringify(value, (k, v) => { if (typeof v === "number" && !Number.isFinite(v)) lossy = true; return v; });
+    return s !== undefined && !lossy;   // JSON.stringify(function|symbol|undefined) === undefined; circular/BigInt throw
+  } catch { return false; }
 }
 
 export function toThrownError(err) {
@@ -255,9 +260,23 @@ export async function dispatch(req, state) {
     }
   }
 
-  // close — idempotent, never errors.
-  sessions.delete(req.session_id);
+  // close — dispose the live instance (best-effort), drop it, and answer an
+  // idempotent returned no-op. Never errors: a disposal that throws is swallowed
+  // (logged is the caller's concern) so teardown never races on a double-close.
+  const closing = sessions.get(req.session_id);
+  if (closing) { disposeInstance(closing.instance); sessions.delete(req.session_id); }
   return resultReturned(wire, id, null);
+}
+
+// Best-effort disposal of a session instance on close: call an explicit disposer if
+// the SUT object exposes one, so sockets/handles/timers a stateful instance holds are
+// released rather than leaked for the bridge's lifetime. Any disposer error is swallowed
+// (close never errors); a SUT with no disposer is a no-op.
+function disposeInstance(instance) {
+  if (instance == null || typeof instance !== "object") return;
+  for (const hook of [Symbol.dispose, Symbol.asyncDispose, "close", "dispose"]) {
+    try { if (typeof instance[hook] === "function") { instance[hook](); return; } } catch { return; }
+  }
 }
 
 // A method is callable iff it resolves (own or inherited-instance-method) to a
@@ -328,7 +347,7 @@ export function realListen(host, port, state, log = () => {}) {
         let parsed;
         try { parsed = JSON.parse(body); } catch { send(200, wireError(undefined, undefined, "malformed_request", "body is not valid JSON")); return; }
         try { send(200, await handleRequest(parsed, state)); }
-        catch (e) { send(200, wireError(parsed && parsed.wire, parsed && parsed.id, "dispatch_unavailable", `internal: ${e.message}`)); }
+        catch (e) { log(`faff-bridge-node: internal error handling request: ${(e && e.stack) || e}`); send(200, wireError(parsed && parsed.wire, parsed && parsed.id, "dispatch_unavailable", "internal bridge error")); }
       });
     });
     server.on("error", reject);
@@ -344,11 +363,13 @@ function selftest(log) {
 
   // A fake module root with a class (ctor + instance ops) and a static function.
   class Stack {
-    constructor() { this.items = []; }
+    constructor() { this.items = []; this.disposed = false; }
     push(x) { this.items.push(x); }
     pop() { if (!this.items.length) throw new TypeError("pop from empty stack"); return this.items.pop(); }
     async size() { return this.items.length; }
     bad() { return () => 1; }   // returns a non-JSON value
+    ratio() { return 0 / 0; }   // returns NaN (JSON-lossy)
+    close() { this.disposed = true; }   // disposal hook exercised by `close`
   }
   const moduleRoot = { Stack, util: { drain: (n) => n * 2 } };
   const manifest = {
@@ -356,7 +377,7 @@ function selftest(log) {
     bindings: [{
       name: "Stack", entry: "Stack",
       construction: { kind: "ctor", arity: { required: 0 } },
-      instance_ops: [{ op: "push", arity: { required: 1 } }, { op: "pop", arity: { required: 0 } }, { op: "size", arity: { required: 0 } }, { op: "bad", arity: { required: 0 } }],
+      instance_ops: [{ op: "push", arity: { required: 1 } }, { op: "pop", arity: { required: 0 } }, { op: "size", arity: { required: 0 } }, { op: "bad", arity: { required: 0 } }, { op: "ratio", arity: { required: 0 } }],
       static_ops: [{ op: "util.drain", arity: { required: 1 } }],
     }],
   };
@@ -385,9 +406,13 @@ function selftest(log) {
     check("async size awaited -> returned", (await run({ wire: W, method: "call", id: "4b", session_id: sid, op: "size", args: [] }, s)).result?.value === 0);
     const nonjson = await run({ wire: W, method: "call", id: "4c", session_id: sid, op: "bad", args: [] }, s);
     check("non-JSON return -> threw NonJSONReturn", nonjson.result?.outcome === "threw" && nonjson.result.error.type === "faff.bridge.NonJSONReturn");
+    const nanret = await run({ wire: W, method: "call", id: "4d", session_id: sid, op: "ratio", args: [] }, s);
+    check("NaN return -> threw NonJSONReturn (not lossy null)", nanret.result?.outcome === "threw" && nanret.result.error.type === "faff.bridge.NonJSONReturn");
 
-    // close idempotent.
+    // close disposes the instance, then is idempotent.
+    const inst = s.sessions.get(sid).instance;
     check("close returned", (await run({ wire: W, method: "close", id: "5", session_id: sid }, s)).result?.value === null);
+    check("close disposed the instance", inst.disposed === true);
     check("close again idempotent (no error)", (await run({ wire: W, method: "close", id: "6", session_id: sid }, s)).result?.outcome === "returned");
 
     // strict unknown session.

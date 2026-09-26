@@ -169,6 +169,41 @@ test("isJsonRepresentable", () => {
   assert.equal(isJsonRepresentable(() => 1), false);
   const c = {}; c.self = c;
   assert.equal(isJsonRepresentable(c), false);
+  // non-finite numbers are lossy through JSON (stringify -> "null"), so NOT representable — top-level and nested.
+  assert.equal(isJsonRepresentable(NaN), false);
+  assert.equal(isJsonRepresentable(Infinity), false);
+  assert.equal(isJsonRepresentable(-Infinity), false);
+  assert.equal(isJsonRepresentable({ x: NaN }), false);
+});
+
+test("a NaN/Infinity return is NonJSONReturn threw, never a lossy null", async () => {
+  class N { ratio() { return 0 / 0; } huge() { return Infinity; } }
+  const manifest = { schema: 1, runtime: "node", bindings: [{ name: "N", entry: "N", construction: { kind: "ctor", arity: { required: 0 } }, instance_ops: [{ op: "ratio", arity: { required: 0 } }, { op: "huge", arity: { required: 0 } }] }] };
+  const s = { wireMajor: 1, moduleRoot: { N }, sessions: new Map(), allowlist: buildAllowlist(manifest) };
+  const sid = (await handleRequest({ wire: W, method: "open", id: "1", target: "N", ctor_args: [] }, s)).result.session_id;
+  for (const op of ["ratio", "huge"]) {
+    const r = await handleRequest({ wire: W, method: "call", id: "2", session_id: sid, op, args: [] }, s);
+    assert.equal(r.result.outcome, "threw", `${op} -> threw`);
+    assert.equal(r.result.error.type, "faff.bridge.NonJSONReturn");
+  }
+});
+
+test("close disposes the live instance (best-effort)", async () => {
+  let disposed = false;
+  class D { close() { disposed = true; } ping() { return "ok"; } }
+  const manifest = { schema: 1, runtime: "node", bindings: [{ name: "D", entry: "D", construction: { kind: "ctor", arity: { required: 0 } }, instance_ops: [{ op: "ping", arity: { required: 0 } }] }] };
+  const s = { wireMajor: 1, moduleRoot: { D }, sessions: new Map(), allowlist: buildAllowlist(manifest) };
+  const sid = (await handleRequest({ wire: W, method: "open", id: "1", target: "D", ctor_args: [] }, s)).result.session_id;
+  await handleRequest({ wire: W, method: "close", id: "2", session_id: sid }, s);
+  assert.equal(disposed, true, "close should invoke the instance's disposer");
+  assert.equal(s.sessions.size, 0);
+  // a disposer that throws must not break close's idempotent no-op.
+  class Bad { close() { throw new Error("disposer boom"); } ping() {} }
+  const s2 = { wireMajor: 1, moduleRoot: { Bad }, sessions: new Map(), allowlist: buildAllowlist({ schema: 1, runtime: "node", bindings: [{ name: "Bad", entry: "Bad", construction: { kind: "ctor", arity: { required: 0 } }, instance_ops: [{ op: "ping", arity: { required: 0 } }] }] }) };
+  const sid2 = (await handleRequest({ wire: W, method: "open", id: "3", target: "Bad", ctor_args: [] }, s2)).result.session_id;
+  const r = await handleRequest({ wire: W, method: "close", id: "4", session_id: sid2 }, s2);
+  assert.equal(r.result.outcome, "returned");
+  assert.equal(r.error, undefined);
 });
 
 test("healthBody shape", () => {

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1119",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2267f6a6a92bcbf4b77d42c725b85a7a01161b432ea2e796ac0708c2e7022ce4",
+    "branch": "faff-1119-governed-effect-records",
+    "pushed_at": "2026-09-25T23:42:01.413Z"
+  },
+  "updated_at": "2026-09-25T23:42:01.413Z"
+}

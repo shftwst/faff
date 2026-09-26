@@ -29,6 +29,7 @@ const { ENV_SURFACE } = require("./env");
 const { EVENTS_SURFACE } = require("./events");
 const { FIXTURES_SURFACE } = require("./fixtures");
 const { GATES_SURFACE } = require("./gates");
+const { MANIFEST_SURFACE } = require("./manifest");
 const { NATIVE_MAP_SURFACE } = require("./native-map");
 const { PRDR_SURFACE } = require("./prdr");
 const { PRD_SURFACE } = require("./prd");
@@ -54,6 +55,7 @@ const DISPATCH_SURFACES = {
   events: EVENTS_SURFACE,
   fixtures: FIXTURES_SURFACE,
   gates: GATES_SURFACE,
+  manifest: MANIFEST_SURFACE,
   "native-map": NATIVE_MAP_SURFACE,
   prdr: PRDR_SURFACE,
   prd: PRD_SURFACE,

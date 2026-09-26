@@ -266,6 +266,10 @@ const REGION_MAP = {
   "ratified-scope": "factory",
   "prdr": "factory",
   "profile": "factory",
+  // manifest — FAFF-1103: the Tier-1 binding-manifest schema + names-only validator.
+  // A pure validator behind a thin stdin/--file shell (requires only argv), the same
+  // descriptor-block family as profile → factory.
+  "manifest": "factory",
   // conventions — FAFF-1041: read-only repo-convention discovery (branch naming / commit-subject
   // / PR-title grammar), the third "repo archaeology" leaf beside profile/gates. Requires only
   // config (dig/loadConfig), argv, shared-infra (dig/findRoot) — a pure acquirer + resolver,
@@ -503,6 +507,7 @@ const REGION_SELFTEST_ARGV = {
   "ratified-scope": ["ratified-scope", "--selftest"],
   "prdr": ["prdr", "--selftest"],
   "profile": ["profile", "--selftest"],
+  "manifest": ["manifest", "validate", "--selftest"],
   "conventions": ["conventions", "--selftest"],
   "native-map": ["native-map", "set", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],

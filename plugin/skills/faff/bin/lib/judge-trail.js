@@ -155,6 +155,7 @@ function collectObjectionsByRound(specReviewDir) {
     if (f.n < windowStart) continue;
     let parsed;
     try { parsed = JSON.parse(fs.readFileSync(f.path, "utf8")); } catch { continue; }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue; // a null / non-object round file -> skip that round only
     const objections = Array.isArray(parsed.objections) ? parsed.objections : [];
     out.push({ round: f.n, window_start: windowStart, objections });
   }

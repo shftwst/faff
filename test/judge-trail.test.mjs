@@ -491,3 +491,24 @@ test("FAFF-1131: judge-history --rounds against a v1 trail (no objections-by-rou
     assert.equal(records[0].objections_by_round, null, "an absent per-round member degrades to null, never a throw");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("FAFF-1131: a corrupt round is skipped (others retained) and a corrupt window.json degrades to window_start=1; the mint never aborts", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-corrupt-"));
+  try {
+    initRepo(root);
+    const runId = "run-byround-corrupt-000104";
+    const { runDir, specReviewDir } = seedRounds(root, runId, "FAFF-14", [
+      { n: 1, objections: [{ lens: "QA", severity: "minor", claim: "r1" }] },
+      { n: 3, objections: [{ lens: "QA", severity: "minor", claim: "r3" }] },
+    ]);
+    writeFileSync(join(specReviewDir, "round-2.json"), "null");        // valid JSON, non-object -> skip that round only
+    writeFileSync(join(specReviewDir, "window.json"), "{ not json");   // corrupt marker -> readWindowStart throws -> window_start=1
+    const mint = JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout);
+    assert.equal(mint.minted, true, "the mint completes despite the corrupt round + window marker");
+    assert.deepEqual(mint.issues, ["FAFF-14"], "the issue subtree is retained, not dropped by the corrupt round");
+    const withRounds = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout);
+    const obr = withRounds[0].objections_by_round;
+    assert.deepEqual(obr.map((r) => r.round), [1, 3], "the corrupt round 2 is skipped; rounds 1 and 3 retained");
+    assert.ok(obr.every((r) => r.window_start === 1), "the corrupt window.json degraded to window_start=1");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

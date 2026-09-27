@@ -71,21 +71,42 @@ test("attended run, no verification config → all legs off (fail-closed default
   assert.equal(r.any, false);
 });
 
-test("ACTING INVARIANT: declared-unattended config short-circuits to all-off even with legs on", () => {
+test("ACTING INVARIANT: declared-unattended config short-circuits to all-off at L3 (automated)", () => {
   const root = tmpRoot(VERIF_ON + "autonomous:\n  unattended: true\n");
-  const runDir = mintLedger("L2");
+  const runDir = mintLedger("L3");
   const r = resolve([], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
   assert.equal(r.unattended, true);
   assert.equal(r.attended, false);
   assert.deepEqual(r.legs, { holdout: false, spec_review: false, code_review: false });
 });
 
-test("ACTING INVARIANT: retained FAFF-717 alias (sentry_acting) also short-circuits to all-off", () => {
+test("ACTING INVARIANT: retained FAFF-717 alias (sentry_acting) also short-circuits at L3", () => {
   const root = tmpRoot(VERIF_ON + "autonomous:\n  sentry_acting: true\n");
-  const runDir = mintLedger("L2");
+  const runDir = mintLedger("L3");
   const r = resolve([], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
   assert.equal(r.unattended, true);
   assert.equal(r.any, false);
+});
+
+// FAFF-1133: an interactive L1/L2 run is attended BY CONSTRUCTION — the declared-unattended config
+// (either key) is NOT read below L4, so the reported incident (a forced holdout on an attended graft)
+// cannot recur. This mirrors merge-gate.js's L3-gated resolveIntegrity; the abort axis is untouched.
+test("FAFF-1133: L2 + declared-unattended config → attended, legs resolve (config not read below L4)", () => {
+  const root = tmpRoot(VERIF_ON + "autonomous:\n  unattended: true\n");
+  const runDir = mintLedger("L2");
+  const r = resolve([], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
+  assert.equal(r.attended, true);
+  assert.equal(r.unattended, false);
+  assert.deepEqual(r.legs, { holdout: true, spec_review: true, code_review: true });
+});
+
+test("FAFF-1133: L2 + sentry_acting alias → attended (the reported incident's config, now fixed)", () => {
+  const root = tmpRoot(VERIF_ON + "autonomous:\n  sentry_acting: true\n");
+  const runDir = mintLedger("L2");
+  const r = resolve([], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
+  assert.equal(r.attended, true);
+  assert.equal(r.unattended, false);
+  assert.equal(r.any, true);
 });
 
 test("ACTING INVARIANT: an L4 ledger is unattended → all-off regardless of verification config", () => {
@@ -112,8 +133,10 @@ test("per-invocation flag opts a leg in on an attended run (no standing config n
 });
 
 test("ACTING INVARIANT: a per-invocation flag can NOT confer verification on an unattended run", () => {
+  // FAFF-1133: the unattended premise is now an L3 automated run (declared-unattended); at L2 the
+  // run is attended and a flag WOULD confer, so only L3 preserves the flag-can't-confer invariant.
   const root = tmpRoot("autonomous:\n  unattended: true\n");
-  const runDir = mintLedger("L2");
+  const runDir = mintLedger("L3");
   const r = resolve(["--holdout", "--code-review"], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
   assert.equal(r.unattended, true);
   assert.equal(r.any, false);

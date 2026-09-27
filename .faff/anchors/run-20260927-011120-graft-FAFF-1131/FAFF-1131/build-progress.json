@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1131",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b66c73dd6a6aa1c1dd7e04671030cd21c185cb97a705053b669129f2f4e20e45",
+    "branch": "faff-1131-judge-trail-per-round-history",
+    "pushed_at": "2026-09-27T01:29:00.455Z"
+  },
+  "updated_at": "2026-09-27T01:29:00.455Z"
+}

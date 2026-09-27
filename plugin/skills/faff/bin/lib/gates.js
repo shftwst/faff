@@ -607,21 +607,36 @@ function aggregateShardResults(rung, shardResults, n, wall_ms) {
   return out;
 }
 
-// FAFF-1002: run a shard-capable rung as N `--test-shard=<i>/<n>` children, bounded-parallel at
-// concurrency n (== the shard count, so a host with >= n cores runs them in one wave), then fold
-// the per-shard results into one aggregate RungResult whose duration_ms is the WALL-CLOCK of the
-// whole batch (≈ the slowest shard), not the sum. `command` on the returned result stays the
-// LOGICAL unsharded command — callers never see the per-shard `--test-shard=` forms.
-async function runShardedRung(rung, root, rung_timeout_ms, n) {
+// FAFF-1002: run a shard-capable rung as N `--test-shard=<i>/<n>` children, then fold the per-shard
+// results into one aggregate RungResult whose duration_ms is the WALL-CLOCK of the whole batch
+// (≈ the slowest shard), not the sum. `command` on the returned result stays the LOGICAL unsharded
+// command — callers never see the per-shard `--test-shard=` forms.
+//
+// FAFF-1137: the fan-out is a bounded worker pool, not an unbounded Promise.all. `concurrency` caps
+// how many shards run at once so a resource-heavy shard can't oversubscribe the box and starve its
+// siblings into a spurious RED; runRung passes gates.local_shard_concurrency (default reserves one
+// core of headroom). An absent/non-numeric/<1 `concurrency` (an external caller omitting the new
+// param) means n → a single wave, byte-identical to the pre-pool Promise.all path. Results are
+// COLLECTED KEYED BY SHARD INDEX and folded in index order: aggregateShardResults reports the
+// first-errored shard's reason in index order, so a completion-order fold would silently change
+// which reason surfaces. Every one of the N shards is awaited before folding, so a later-wave
+// shard's RED is never dropped.
+async function runShardedRung(rung, root, rung_timeout_ms, n, concurrency) {
   const started = Date.now();
-  const shardResults = await Promise.all(
-    Array.from({ length: n }, (_, i) => i + 1).map(async (i) => {
+  const poolSize = Math.min((Number.isFinite(concurrency) && concurrency >= 1) ? Math.floor(concurrency) : n, n);
+  const shardResults = new Array(n);
+  let nextSlot = 0;
+  const worker = async () => {
+    for (;;) {
+      const slot = nextSlot++;
+      if (slot >= n) return;
+      const i = slot + 1;
       const shardStarted = Date.now();
       const res = await spawnAsync(`${rung.command} --test-shard=${i}/${n}`, { cwd: root, timeoutMs: rung_timeout_ms, maxBufferBytes: MAX_RUNG_STDOUT_BYTES });
-      const classified = classifyRungResult(rung, res, Date.now() - shardStarted, rung_timeout_ms);
-      return { index: i, ...classified };
-    })
-  );
+      shardResults[slot] = { index: i, ...classifyRungResult(rung, res, Date.now() - shardStarted, rung_timeout_ms) };
+    }
+  };
+  await Promise.all(Array.from({ length: poolSize }, () => worker()));
   return aggregateShardResults(rung, shardResults, n, Date.now() - started);
 }
 
@@ -633,11 +648,11 @@ async function runShardedRung(rung, root, rung_timeout_ms, n) {
 // post-merge.js's verifyPostMerge) inherit this with no change to their own calling logic — an
 // async runRung is simply awaited.
 async function runRung(rung, root) {
-  const { rung_timeout_ms, local_shards } = readGatesConfig(root);
+  const { rung_timeout_ms, local_shards, local_shard_concurrency } = readGatesConfig(root);
   if (!shardCapable(rung.command)) return runSingleSpawnSync(rung, root, rung_timeout_ms);
   const n = local_shards;
   if (!(n > 1)) return runSingleSpawnSync(rung, root, rung_timeout_ms);   // 1-core host: no benefit
-  return runShardedRung(rung, root, rung_timeout_ms, n);
+  return runShardedRung(rung, root, rung_timeout_ms, n, local_shard_concurrency);
 }
 
 // Resolve the fallback policy for `discovery: none` from config: fail-closed (default) | advisory.
@@ -689,7 +704,16 @@ function readGatesConfig(root) {
   let local_shards = safeAvailableParallelism();
   const ls = Math.floor(num("gates.local_shards"));
   if (Number.isFinite(ls) && ls >= 2) local_shards = ls;
-  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards };
+  // FAFF-1137: gates.local_shard_concurrency — how many of the N shards run at once (a bounded pool
+  // in runShardedRung). The default reserves one core of scheduling headroom so a resource-heavy
+  // shard can't starve a co-running shard into a spurious RED; the knob only tunes it. Present-ness-
+  // before-coerce, mirroring local_shards above: absent/non-numeric/<1 → default; a present value
+  // >=1 is honoured verbatim (set it == local_shards to opt back into full-width single-wave, or
+  // lower it on a docker-saturating box).
+  let local_shard_concurrency = Math.max(2, local_shards - 1);
+  const lsc = Math.floor(num("gates.local_shard_concurrency"));
+  if (Number.isFinite(lsc) && lsc >= 1) local_shard_concurrency = lsc;
+  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency };
 }
 
 // os.availableParallelism() is the FAFF-1002 default shard count (mirrors CI's own "N=4 matches the
@@ -1092,6 +1116,15 @@ async function gatesSelftest() {
   cases.push(["config: local_shards=0 defaults", readGatesConfig(mk("ls-zero", { ".faffrc.yaml": "gates:\n  local_shards: 0\n" })).local_shards === safeAvailableParallelism()]);
   cases.push(["config: positive local_shards>=2 honoured", readGatesConfig(mk("ls-ok", { ".faffrc.yaml": "gates:\n  local_shards: 3\n" })).local_shards === 3]);
 
+  // FAFF-1137: gates.local_shard_concurrency — same present-ness-before-coerce idiom as local_shards
+  // above; the default reserves one core of scheduling headroom. With local_shards unset it resolves
+  // to safeAvailableParallelism(), so the default is max(2, that - 1).
+  const lscDefault = Math.max(2, safeAvailableParallelism() - 1);
+  cases.push(["config: absent local_shard_concurrency defaults to max(2, local_shards-1)", readGatesConfig(mk("lsc-absent", { "README.md": "hi" })).local_shard_concurrency === lscDefault]);
+  cases.push(["config: non-numeric local_shard_concurrency defaults", readGatesConfig(mk("lsc-nan", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: not-a-number\n" })).local_shard_concurrency === lscDefault]);
+  cases.push(["config: local_shard_concurrency=0 (<1) defaults", readGatesConfig(mk("lsc-zero", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 0\n" })).local_shard_concurrency === lscDefault]);
+  cases.push(["config: positive local_shard_concurrency>=1 honoured verbatim", readGatesConfig(mk("lsc-ok", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 1\n" })).local_shard_concurrency === 1]);
+
   // 5k. FAFF-1002: end-to-end sharded run — a real `node --test` fixture, forced to 2 shards via
   // gates.local_shards, must produce ONE aggregate RungResult whose command is the logical
   // (unsharded) command, and must fold a real per-shard failure into an aggregate `fail` (worst-wins,
@@ -1113,6 +1146,40 @@ async function gatesSelftest() {
   });
   const shardFailRung = await runRung({ kind: "UNIT", name: "unit (sharded fail)", command: "node --test" }, dShardFail);
   cases.push(["shard: one real failing shard → aggregate status fail (never masked by the passing sibling)", shardFailRung.status === "fail"]);
+
+  // FAFF-1137: the bounded shard pool. The exported runShardedRung's `concurrency` param defaults to
+  // single-wave (n) when omitted, so an external caller is byte-identical to the pre-pool path.
+  const shardNoConc = await runShardedRung({ kind: "UNIT", name: "unit (no concurrency arg)", command: "node --test" }, dShardPass, 1_800_000, 2);
+  cases.push(["shard: exported runShardedRung with concurrency omitted → single-wave, aggregate pass", shardNoConc.status === "pass"]);
+
+  // Single wave: concurrency == n reproduces today's full-width scheduling.
+  const dSingleWave = mk("shard-single-wave", {
+    "test/a.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.ok(true));\n",
+    "test/b.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('b', () => assert.ok(true));\n",
+    ".faffrc.yaml": "gates:\n  local_shards: 2\n  local_shard_concurrency: 2\n",
+  });
+  cases.push(["shard: single wave (concurrency == n) → aggregate pass", (await runRung({ kind: "UNIT", name: "unit (single wave)", command: "node --test" }, dSingleWave)).status === "pass"]);
+
+  // Fail-open guard: concurrency < n forces the FAILING shard into a LATER wave (node maps the
+  // alphabetically-later b.test.mjs to shard 2/2, which runs only after shard 1/2 under a pool of 1).
+  // The aggregate must still fold to fail — a later-wave RED is never dropped.
+  const dLaterWaveFail = mk("shard-later-wave-fail", {
+    "test/a.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.ok(true));\n",
+    "test/b.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('b', () => assert.ok(false));\n",
+    ".faffrc.yaml": "gates:\n  local_shards: 2\n  local_shard_concurrency: 1\n",
+  });
+  cases.push(["shard: concurrency < n, failing shard in a LATER wave → aggregate fail (fail-open, later-wave RED never dropped)", (await runRung({ kind: "UNIT", name: "unit (later-wave fail)", command: "node --test" }, dLaterWaveFail)).status === "fail"]);
+
+  // Index-order preservation, driven directly against runShardedRung with a per-shard `node -e`
+  // command: shard 1 emits MARK1 after a 400ms delay, shard 2 emits MARK2 instantly, so shard 2
+  // COMPLETES FIRST. With results keyed by shard index, the aggregate detail lists MARK1 (shard 1)
+  // before MARK2 (shard 2); a completion-order fold would surface MARK2 first. This pins the
+  // index-order collection that aggregateShardResults' first-errored-in-index-order reason relies on.
+  // `--` terminates node's option parsing so the pool's appended `--test-shard=i/n` reaches the
+  // program as a positional arg (node otherwise consumes `--test-shard` as its own flag).
+  const idxProg = 'const s=(process.argv.find(a=>a.startsWith("--test-shard"))||"").split("=")[1]||"";if(s.startsWith("1")){setTimeout(()=>{process.stdout.write("MARK1");process.exit(1)},400)}else{process.stdout.write("MARK2");process.exit(1)}';
+  const idxRung = await runShardedRung({ kind: "UNIT", name: "unit (index order)", command: `node -e '${idxProg}' --` }, dShardPass, 1_800_000, 2, 2);
+  cases.push(["shard: results folded in INDEX order regardless of completion order (MARK1 before MARK2)", idxRung.status === "fail" && idxRung.detail.startsWith("shard 1/2: MARK1") && idxRung.detail.indexOf("MARK1") < idxRung.detail.indexOf("MARK2")]);
 
   // 5l. FAFF-1002: aggregateShardResults itself — worst-wins precedence and reason carry, driven
   // directly against fabricated per-shard results (no real process spawn needed for the pure logic).

@@ -234,6 +234,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # FAFF-1117: full history so the driver commits the impure commissaire-bare-claude test
+          # needs are already local — its in-test `git fetch --unshallow origin` never fires on the
+          # default shallow checkout, which is what tipped one subtest past the 120s per-subtest ceiling.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

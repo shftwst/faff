@@ -49,6 +49,10 @@ export const HEALTH_PATH = "/faff-rpc/health";
 export const METHODS = new Set(["open", "call", "call_static", "close"]);
 export const WIRE_ERROR_CODES = new Set([
   "malformed_request", "unknown_method", "unknown_session", "unsupported_version", "dispatch_unavailable",
+  // dispatch_timeout: a reflected op was invoked but its thenable never settled within the
+  // per-request deadline (FAFF-1128). A wire-level infra fault (evaluator reads needs-human),
+  // distinct from dispatch_unavailable (decided BEFORE invocation) and from a `threw` result.
+  "dispatch_timeout",
 ]);
 // Reserved reflection segments never traversed — each is a valid single-segment
 // identifier under the FAFF-1103 grammar, so the manifest allowlist alone cannot
@@ -58,7 +62,7 @@ const RESERVED_SEGMENTS = new Set(["__proto__", "prototype", "constructor"]);
 // ---- pure: arg parsing -----------------------------------------------------
 
 export function parseBridgeArgs(argv) {
-  const spec = { "--manifest": 1, "--module": 1, "--host": 1, "--port": 1, "--wire": 1, "--selftest": 0 };
+  const spec = { "--manifest": 1, "--module": 1, "--host": 1, "--port": 1, "--wire": 1, "--request-timeout-secs": 1, "--selftest": 0 };
   const out = { selftest: false };
   const errors = [];
   for (let i = 0; i < argv.length; i++) {
@@ -196,10 +200,40 @@ export function validateEnvelope(req, wireMajor) {
   return { ok: true };
 }
 
+// ---- pure: per-request timeout (FAFF-1128) ---------------------------------
+
+// A module-private sentinel so a dispatch catch can tell a per-request timeout apart
+// from a genuine SUT rejection (mirrors review-call.mjs's FirstByteBreachError).
+class TimeoutBreachError extends Error {
+  constructor(timeoutMs) { super(`op did not settle within ${timeoutMs}ms`); this.name = "TimeoutBreachError"; this.timeoutMs = timeoutMs; }
+}
+
+// Bound a work promise by a deadline. Pass-through when no positive finite deadline is
+// set (byte-for-byte the pre-1128 unbounded await). Otherwise race the work against a
+// timer that rejects a TimeoutBreachError; the timer is unref'd so it never keeps the
+// process alive, the loser branch is swallowed to avoid an unhandledRejection, and the
+// timer is always cleared. JavaScript cannot cancel a promise and a reflected op holds
+// no abort signal, so this frees the request/socket — the orphaned op is reaped at run
+// scope (see the spec's OUT OF SCOPE). `timers` is injectable for deterministic tests.
+export function raceToDeadline(workPromise, timeoutMs, timers) {
+  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0) return workPromise;
+  const t = timers || { set: setTimeout, clear: clearTimeout };
+  let timer;
+  const clear = () => { if (timer !== undefined) { t.clear(timer); timer = undefined; } };
+  const breach = new Promise((_, reject) => {
+    timer = t.set(() => reject(new TimeoutBreachError(timeoutMs)), timeoutMs);
+    if (timer && typeof timer.unref === "function") timer.unref();
+  });
+  workPromise.then(clear, clear);   // swallow the loser + always clear the timer
+  return Promise.race([workPromise, breach]);
+}
+
 // ---- pure: the dispatch core ----------------------------------------------
 
-// Dispatch a validated request. `state` = { wire, allowlist, moduleRoot, sessions }.
-// Async because it awaits thenable returns; every from-invocation failure is `threw`.
+// Dispatch a validated request. `state` = { wire, allowlist, moduleRoot, sessions,
+// requestTimeoutMs?, timers? }.
+// Async because it awaits thenable returns; every from-invocation failure is `threw`,
+// except a per-request timeout, which is the dispatch_timeout WireError (FAFF-1128).
 export async function dispatch(req, state) {
   const { allowlist, moduleRoot, sessions } = state;
   const wire = req.wire;
@@ -221,11 +255,13 @@ export async function dispatch(req, state) {
     // THROW plane begins at construction.
     try {
       let instance = c.kind === "factory" ? symRes.value(...ctorArgs) : Reflect.construct(symRes.value, ctorArgs);
-      if (instance && typeof instance.then === "function") instance = await instance;
+      if (instance && typeof instance.then === "function") instance = await raceToDeadline(instance, state.requestTimeoutMs, state.timers);
       const sid = "s-" + randomUUID();
       sessions.set(sid, { instance, binding });
       return resultReturned(wire, id, null, { session_id: sid });
     } catch (err) {
+      // A per-request timeout is a wire fault, not SUT evidence; an open timeout mints no session.
+      if (err instanceof TimeoutBreachError) return wireError(wire, id, "dispatch_timeout", err.message);
       return resultThrew(wire, id, toThrownError(err));
     }
   }
@@ -239,9 +275,11 @@ export async function dispatch(req, state) {
     const args = Array.isArray(req.args) ? req.args : [];
     try {
       let r = session.instance[req.op](...args);
-      if (r && typeof r.then === "function") r = await r;
+      if (r && typeof r.then === "function") r = await raceToDeadline(r, state.requestTimeoutMs, state.timers);
       return respondWithValue(wire, id, r);
     } catch (err) {
+      // A per-request timeout is a wire fault; the session is RETAINED (not auto-closed).
+      if (err instanceof TimeoutBreachError) return wireError(wire, id, "dispatch_timeout", err.message);
       return resultThrew(wire, id, toThrownError(err));
     }
   }
@@ -253,9 +291,10 @@ export async function dispatch(req, state) {
     const args = Array.isArray(req.args) ? req.args : [];
     try {
       let r = symRes.value(...args);
-      if (r && typeof r.then === "function") r = await r;
+      if (r && typeof r.then === "function") r = await raceToDeadline(r, state.requestTimeoutMs, state.timers);
       return respondWithValue(wire, id, r);
     } catch (err) {
+      if (err instanceof TimeoutBreachError) return wireError(wire, id, "dispatch_timeout", err.message);
       return resultThrew(wire, id, toThrownError(err));
     }
   }
@@ -330,7 +369,10 @@ export async function main(argv, io = {}) {
   let moduleRoot;
   try { moduleRoot = await importFn(opts.module); } catch (e) { log(`faff-bridge-node: cannot import --module ${opts.module}: ${e.message}`); return EXIT.OTHER; }
 
-  const state = { wireMajor: opts.wireMajor, allowlist: buildAllowlist(manifest), moduleRoot, sessions: new Map() };
+  const secs = Number(opts["request-timeout-secs"]);
+  const requestTimeoutMs = (Number.isFinite(secs) && secs > 0) ? secs * 1000 : undefined;
+  const state = { wireMajor: opts.wireMajor, allowlist: buildAllowlist(manifest), moduleRoot, sessions: new Map(),
+    requestTimeoutMs, timers: io.timers || { set: setTimeout, clear: clearTimeout } };
   await listen(opts.host, Number(opts.port), state, log);
   return EXIT.OK;
 }
@@ -369,16 +411,17 @@ function selftest(log) {
     async size() { return this.items.length; }
     bad() { return () => 1; }   // returns a non-JSON value
     ratio() { return 0 / 0; }   // returns NaN (JSON-lossy)
+    hang() { return new Promise(() => {}); }   // never settles — exercises the per-request timeout
     close() { this.disposed = true; }   // disposal hook exercised by `close`
   }
-  const moduleRoot = { Stack, util: { drain: (n) => n * 2 } };
+  const moduleRoot = { Stack, util: { drain: (n) => n * 2, hangStatic: () => new Promise(() => {}) } };
   const manifest = {
     schema: 1, runtime: "node",
     bindings: [{
       name: "Stack", entry: "Stack",
       construction: { kind: "ctor", arity: { required: 0 } },
-      instance_ops: [{ op: "push", arity: { required: 1 } }, { op: "pop", arity: { required: 0 } }, { op: "size", arity: { required: 0 } }, { op: "bad", arity: { required: 0 } }, { op: "ratio", arity: { required: 0 } }],
-      static_ops: [{ op: "util.drain", arity: { required: 1 } }],
+      instance_ops: [{ op: "push", arity: { required: 1 } }, { op: "pop", arity: { required: 0 } }, { op: "size", arity: { required: 0 } }, { op: "bad", arity: { required: 0 } }, { op: "ratio", arity: { required: 0 } }, { op: "hang", arity: { required: 0 } }],
+      static_ops: [{ op: "util.drain", arity: { required: 1 } }, { op: "util.hangStatic", arity: { required: 0 } }],
     }],
   };
   const mk = () => ({ wireMajor: 1, allowlist: buildAllowlist(manifest), moduleRoot, sessions: new Map() });
@@ -448,6 +491,40 @@ function selftest(log) {
     check("args: missing required -> error", parseBridgeArgs(["--host", "h"]).errors.length > 0);
     check("args: selftest short-circuit", parseBridgeArgs(["--selftest"]).selftest === true);
     check("args: wire defaults to 1", parseBridgeArgs(["--manifest", "m", "--module", "x", "--host", "h", "--port", "8080"]).wireMajor === 1);
+    check("args: --request-timeout-secs parsed", parseBridgeArgs(["--manifest", "m", "--module", "x", "--host", "h", "--port", "8080", "--request-timeout-secs", "5"])["request-timeout-secs"] === "5");
+
+    // per-request timeout (FAFF-1128) — injected fake timer, deterministic breach.
+    const mkTimed = () => {
+      const cap = { fn: null, cleared: false };
+      const timers = { set: (fn) => { cap.fn = fn; return { unref() {} }; }, clear: () => { cap.cleared = true; } };
+      return { state: { wireMajor: 1, allowlist: buildAllowlist(manifest), moduleRoot, sessions: new Map(), requestTimeoutMs: 50, timers }, cap };
+    };
+    // call on a hung thenable -> dispatch_timeout WireError (never a result), session retained.
+    const th = mkTimed();
+    const tho = await run({ wire: W, method: "open", id: "t1", target: "Stack", ctor_args: [] }, th.state);
+    const tsid = tho.result.session_id;
+    const hungP = run({ wire: W, method: "call", id: "t2", session_id: tsid, op: "hang", args: [] }, th.state);
+    th.cap.fn();   // fire the armed timer -> breach
+    const hungRes = await hungP;
+    check("hung call -> dispatch_timeout WireError", hungRes.error?.code === "dispatch_timeout" && hungRes.result === undefined);
+    check("hung call -> session retained (not auto-closed)", th.state.sessions.has(tsid));
+    // op settling within the window -> returned, timer cleared, no dispatch_timeout.
+    const sw = mkTimed();
+    const swo = await run({ wire: W, method: "open", id: "t3", target: "Stack", ctor_args: [] }, sw.state);
+    const swRes = await run({ wire: W, method: "call", id: "t4", session_id: swo.result.session_id, op: "size", args: [] }, sw.state);
+    check("settle within window -> returned", swRes.result?.outcome === "returned" && swRes.result.value === 0);
+    check("settle within window -> timer cleared", sw.cap.cleared === true);
+    // call_static on a hung thenable -> dispatch_timeout.
+    const ts = mkTimed();
+    const hungSP = run({ wire: W, method: "call_static", id: "t5", op: "util.hangStatic", args: [] }, ts.state);
+    ts.cap.fn();
+    const hungSRes = await hungSP;
+    check("hung call_static -> dispatch_timeout WireError", hungSRes.error?.code === "dispatch_timeout" && hungSRes.result === undefined);
+    // raceToDeadline pass-through: no positive finite deadline -> identity (same promise object).
+    const passP = Promise.resolve(1);
+    check("raceToDeadline pass-through (undefined)", raceToDeadline(passP, undefined, undefined) === passP);
+    check("raceToDeadline pass-through (0)", raceToDeadline(passP, 0, undefined) === passP);
+    check("raceToDeadline pass-through (NaN)", raceToDeadline(passP, NaN, undefined) === passP);
 
     if (failed) return EXIT.OTHER;
     log("faff-bridge-node --selftest: ok");

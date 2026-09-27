@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -206,4 +206,57 @@ test("pr-create: governed run with NO covering pr-create grant + a remote → re
     assert.equal(res.opened, false);
     assert.match(res.blockers.join(" "), /pr-create decision absent or invalid/);
   } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+// --- FAFF-1130: --title is required (never a silent title-less headless gh call) -----------------
+
+// run the CLI with an augmented PATH so a stub `gh` shadows the real one (only reached on the
+// not-applicable/valid-grant path — the grant + git-only guards return before the gh spawn).
+function runWithPath(cwd, args, binDir) {
+  try {
+    const out = execFileSync("node", [CLI, ...args], { cwd, encoding: "utf8", env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` } });
+    return { code: 0, out: out.trim(), err: "" };
+  } catch (e) {
+    return { code: e.status ?? 1, out: (e.stdout ?? "").toString().trim(), err: (e.stderr ?? "").toString().trim() };
+  }
+}
+
+test("pr-create: ungoverned run + a remote but NO --title → fail-loud exit 2, opens nothing, remedy names --title", () => {
+  const repo = gitRepo(true);
+  try {
+    // ungoverned (no admit) so the grant resolves not-applicable and the title guard is reached;
+    // it returns BEFORE the gh spawn, so no PR is opened and no gh stub is needed.
+    const rd = mkRunDir(repo, "RUN-CLI-NOTITLE");
+    const r = run(repo, ["pr-create", "--run-dir", rd, "--issue", "FAFF-1", "--base", "main", "--body-file", "/dev/null", "--json"]);
+    assert.equal(r.code, 2);
+    const res = JSON.parse(r.out);
+    assert.equal(res.verdict, "refuse");
+    assert.equal(res.opened, false);
+    assert.match(res.blockers.join(" "), /--title is required/);
+    // NOT a bare gh usage failure — the message names the remedy, not gh's own usage text.
+    assert.doesNotMatch(res.blockers.join(" "), /gh pr create failed/);
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test("pr-create: ungoverned run + a remote WITH --title → forwards --title to the gh args unchanged", () => {
+  const repo = gitRepo(true);
+  const binDir = tmp();
+  try {
+    // stub gh: record argv, print a fake PR url, exit 0 — so the create path runs without a real PR.
+    const argsLog = join(binDir, "gh-args.txt");
+    const stub = join(binDir, "gh");
+    writeFileSync(stub, `#!/bin/sh\nprintf '%s\\n' "$@" > ${JSON.stringify(argsLog)}\necho "https://example.invalid/x/y/pull/1"\n`);
+    chmodSync(stub, 0o755);
+    const rd = mkRunDir(repo, "RUN-CLI-TITLE");
+    const r = runWithPath(repo, ["pr-create", "--run-dir", rd, "--issue", "FAFF-1", "--base", "main", "--body-file", "/dev/null", "--title", "fix(FAFF-1): a build title", "--json"], binDir);
+    assert.equal(r.code, 0, r.err);
+    const res = JSON.parse(r.out);
+    assert.equal(res.verdict, "opened");
+    assert.equal(res.opened, true);
+    // the stub recorded the exact argv gh received: pr create --body-file <f> --title <t>.
+    const recorded = readFileSync(argsLog, "utf8").split("\n");
+    const ti = recorded.indexOf("--title");
+    assert.notEqual(ti, -1, "gh was not passed --title");
+    assert.equal(recorded[ti + 1], "fix(FAFF-1): a build title", "the title was not forwarded unchanged");
+  } finally { rmSync(repo, { recursive: true, force: true }); rmSync(binDir, { recursive: true, force: true }); }
 });

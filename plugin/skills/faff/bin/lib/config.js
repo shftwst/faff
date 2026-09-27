@@ -119,6 +119,14 @@ const DEFAULTS = {
   // the LOAD-BEARING liveness defence for a nested producer whose own sub-calls fall
   // back in-context (never fork to a supervised `faff engine call`).
   "producer_tick_max_secs": "600",
+  // FAFF-1128: the Node reflection bridge's per-request timeout (seconds). Bounds a single
+  // open/call/call_static invocation's thenable await so a never-settling SUT op fails fast as a
+  // dispatch_timeout WireError instead of wedging the session for the process lifetime. The
+  // composing occupant (FAFF-1105 follow-on) reads this and passes it as --request-timeout-secs;
+  // the bridge itself is config-resolution-free and pass-through when the flag is absent. 120s is
+  // generous for one reflected op yet well below any run-level deadline (evaluator --deadline / env
+  // teardown SLA), so it fail-fasts before run teardown.
+  "bridge.request_timeout_secs": "120",
   // FAFF-1041: repo-convention discovery (branch naming / commit-subject / PR-title grammar) —
   // the DEFAULT tier only. `conventions.js`'s own resolver reads these via `dig` directly (raw,
   // undefined when genuinely unset) rather than through `config get`'s DEFAULTS-applying `get`
@@ -1346,7 +1354,7 @@ const WRITABLE_NAMESPACES = new Set([
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
   "bundle_store", "install", "lanes", "producer_tick_max_secs", "conventions",
-  "verification",
+  "verification", "bridge",
 ]);
 
 // Top-level namespaces faff genuinely READS (via dig(config, "<ns>.…")) but that `config set`

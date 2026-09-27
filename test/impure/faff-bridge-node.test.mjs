@@ -111,3 +111,54 @@ test("the bearer token never appears in any response (never-echo)", async () => 
   ];
   for (const r of responses) assert.ok(!JSON.stringify(r).includes("secret-token-xyz"), "response must not echo the bearer token");
 });
+
+// FAFF-1128 — a real bridge with an armed per-request timeout returns dispatch_timeout for a
+// hung op within the window, releases the socket, retains the session, and keeps the disjoint
+// planes clean even when the orphaned op settles (rejects) AFTER the breach.
+test("per-request timeout: hung op -> dispatch_timeout, socket released, session retained, no late unhandledRejection", async () => {
+  class HangStack {
+    constructor() { this.items = []; }
+    push(x) { this.items.push(x); }
+    hang() { return new Promise(() => {}); }                                   // never settles
+    lateReject() { return new Promise((_, rej) => setTimeout(() => rej(new Error("late")), 120)); }  // rejects AFTER the 40ms deadline
+  }
+  const moduleRoot = { HangStack };
+  const manifest = {
+    schema: 1, runtime: "node",
+    bindings: [{
+      name: "HangStack", entry: "HangStack",
+      construction: { kind: "ctor", arity: { required: 0 } },
+      instance_ops: [{ op: "push", arity: { required: 1 } }, { op: "hang", arity: { required: 0 } }, { op: "lateReject", arity: { required: 0 } }],
+    }],
+  };
+  const state = { wireMajor: 1, allowlist: buildAllowlist(manifest), moduleRoot, sessions: new Map(),
+    requestTimeoutMs: 40, timers: { set: setTimeout, clear: clearTimeout } };
+  const srv = await realListen("127.0.0.1", 0, state);
+  const b = `http://127.0.0.1:${srv.address().port}`;
+  const call = (body) => fetch(`${b}/faff-rpc`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+
+  const rejections = [];
+  const onRej = (e) => rejections.push(e);
+  process.on("unhandledRejection", onRej);
+  try {
+    const sid = (await call({ wire: W, method: "open", id: "1", target: "HangStack", ctor_args: [] })).result.session_id;
+
+    const hung = await call({ wire: W, method: "call", id: "2", session_id: sid, op: "hang", args: [] });
+    assert.equal(hung.error.code, "dispatch_timeout");          // wire plane, never a result
+    assert.equal(hung.result, undefined);
+
+    // the socket was released (this second request completes) and the session is retained.
+    assert.equal((await call({ wire: W, method: "call", id: "3", session_id: sid, op: "push", args: [7] })).result.outcome, "returned");
+
+    // an op whose promise REJECTS after the breach: still dispatch_timeout, and the late
+    // rejection must be swallowed (no unhandledRejection), the session still clean.
+    const late = await call({ wire: W, method: "call", id: "4", session_id: sid, op: "lateReject", args: [] });
+    assert.equal(late.error.code, "dispatch_timeout");
+    await new Promise((r) => setTimeout(r, 200));               // let the detached rejection fire
+    assert.equal(rejections.length, 0, "a late-settling timed-out op must not surface an unhandledRejection");
+    assert.equal((await call({ wire: W, method: "close", id: "5", session_id: sid })).result.value, null);
+  } finally {
+    process.removeListener("unhandledRejection", onRej);
+    srv.close();
+  }
+});

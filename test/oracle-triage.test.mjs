@@ -219,9 +219,10 @@ test("FAFF-670 the extension record: kinds_added is corpus-derived, paths resolv
   }
 
   assert.ok(/^[0-9a-f]{7,40}$/.test(x.origin_commit || ""), "origin_commit must be 7–40 lowercase hex");
-  // Reachability half. FAFF-670 finding 1: .github/workflows/validate.yml checks out with
+  // Reachability half. FAFF-670 finding 1: the ubuntu `unit` lane this test runs on checks out with
   // actions/checkout@v4 and no fetch-depth — a depth-1 shallow clone in which only the checked-out tip
-  // resolves, while origin_commit is BY CONSTRUCTION an earlier commit. `git cat-file -e <sha>^{commit}`
+  // resolves, while origin_commit is BY CONSTRUCTION an earlier commit (only `validate-macos` sets
+  // `fetch-depth: 0`, since FAFF-1117, and this test never runs on that lane). `git cat-file -e <sha>^{commit}`
   // would therefore fail on every CI run. So the hex-shape assertion above is unconditional, and the
   // reachability check is SKIPPED when the clone is shallow (where it cannot be meaningful) and run only
   // in a full clone (local dev, where it catches a fabricated sha).

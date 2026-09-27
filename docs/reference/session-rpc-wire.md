@@ -93,7 +93,7 @@ RECORD ThrownError:               # a thrown exception represented AS DATA
 
 RECORD WireError:                 # a protocol fault in USING the wire
   code: Enum{ malformed_request, unknown_method, unknown_session,
-              unsupported_version, dispatch_unavailable }
+              unsupported_version, dispatch_unavailable, dispatch_timeout }
   message: String
 ```
 
@@ -253,8 +253,11 @@ The shipped holdout stack delivers the **service path only**; the code-interface
 | `unknown_session` | `call` addressed a `session_id` never opened or already closed. (`close` on such an id is an idempotent no-op instead.) | Yes (for `call`) |
 | `unsupported_version` | The request's `wire` major version is not implemented by the bridge. | Yes |
 | `dispatch_unavailable` | The bridge could not locate or invoke the named `target`/`op` at all: a dispatch-plane fault, distinct from the component throwing. | Yes |
+| `dispatch_timeout` | The bridge invoked the op but its returned thenable did not settle within the per-request deadline (FAFF-1128). Invoked-but-never-settled, distinct from `dispatch_unavailable` (decided before invocation) and from a `threw` result. | Yes |
 
 No code in this catalogue denotes an application-level throw; a throw is always `result.outcome=="threw"`. All wire errors are terminal for the request: the evaluator does not retry on the wire, it records `needs-human` with the code.
+
+Adding a new terminal `WireError.code` (as `dispatch_timeout` was) is an **additive, backward-compatible** extension within a wire major: an evaluator that maps any unrecognised `WireError.code` to `needs-human` handles it without change, so it does not bump the major (per the versioning note above).
 
 ## Appendix B: worked envelope examples
 

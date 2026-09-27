@@ -238,6 +238,13 @@ appetite: high
 # the default stall_window_secs (900s) / this repo's configured 2400s.
 producer_tick_max_secs: 600
 
+# Node reflection bridge per-request timeout (seconds, FAFF-1128). Bounds one
+# open/call/call_static invocation's thenable await so a never-settling SUT op fails fast as a
+# dispatch_timeout WireError instead of wedging the session. The composing env occupant passes it
+# to the bridge as --request-timeout-secs; the bridge is pass-through (unbounded) when absent.
+bridge:
+  request_timeout_secs: 120
+
 # Automation eligibility (see gateway → Automation eligibility) is a single tracker-owned
 # signal (FAFF-1097): the faff-automate label present ⇒ the autonomous pipeline may pick
 # the ticket up, absent ⇒ left alone. One opt-in model everywhere — tracker and git-only

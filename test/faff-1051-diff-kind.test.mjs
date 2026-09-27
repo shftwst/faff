@@ -118,8 +118,9 @@ test("FAFF-1051/FAFF-1065 golden provenance: each golden's generated_from names 
   // the provenance claim mechanically checkable rather than a matter of trust. FAFF-1065 extends the
   // same check to the FAFF-1058 default-code-review-payload golden, closing the same gap there.
   //
-  // CI's default actions/checkout is a SHALLOW clone (fetch-depth 1, no `fetch-depth: 0` anywhere in
-  // validate.yml), so the merge-base commit object this repo's own history genuinely contains is simply
+  // CI's default actions/checkout is a SHALLOW clone (fetch-depth 1); the ubuntu `unit` lane this test
+  // runs on sets no `fetch-depth` (only `validate-macos` sets `fetch-depth: 0`, since FAFF-1117), so the
+  // merge-base commit object this repo's own history genuinely contains is simply
   // absent locally there — `git merge-base --is-ancestor` fails "Not a valid commit name" for a reason
   // that has nothing to do with whether the claim is true. Check the object's local presence first
   // (`git cat-file -e`) and only assert ancestry when it resolves; a shallow environment still gets the

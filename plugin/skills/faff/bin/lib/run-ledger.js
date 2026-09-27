@@ -544,13 +544,27 @@ function recordOutcome(values) {
   // {written, yielded, before_sha256, after_sha256} — not the mutated ledger — so this is the
   // only place the post-mutation status is observable.
   let resultingOwnerStatus = null;
+  // FAFF-1126: refuse an outcome for an issue not in the resolved ledger's admitted[] — an
+  // outcome-for-non-admitted always violates the runcheck invariant `outcomes ⊆ admitted`, so it
+  // is never legitimate. This is the caller/env-agnostic backstop for a mis-resolved run dir (a
+  // graft that omits --run-dir and falls through to a foreign latestRunDir): abort the write and
+  // surface the mismatch, never silently contaminate a foreign run's ledger. Checked inside the
+  // lock against the fresh admitted[], captured out via a flag (mutateLedgerUnderLock returns no
+  // ledger), so a genuine lock/malformed failure still reports its own distinct message below.
+  let admittedMismatch = false;
   const res = mutateLedgerUnderLock(runDir, (fresh) => {
     if (!fresh || typeof fresh !== "object") return null; // vanished/malformed → abort (no write)
     if (typeof fresh.run_id === "string") runId = fresh.run_id;
+    const admitted = Array.isArray(fresh.admitted) ? fresh.admitted : [];
+    if (!admitted.includes(issue)) { admittedMismatch = true; return null; } // outcome for a non-admitted issue → abort
     const next = applyTerminalOutcome(fresh, issue, outcome, nowIso);
     resultingOwnerStatus = next && next.owner && next.owner.status;
     return next;
   });
+  if (admittedMismatch) {
+    process.stderr.write(`faff run-ledger record-outcome: issue ${JSON.stringify(issue)} is not in run ${JSON.stringify(runId)} admitted[] (resolved run dir ${runDir}) — pass --run-dir for the correct run\n`);
+    return 2;
+  }
   if (!res.written) {
     process.stderr.write(`faff run-ledger record-outcome: could not write ${path.join(runDir, "run-ledger.json")} (missing/locked/malformed)\n`);
     return 3;

@@ -840,18 +840,30 @@ function resolveConvergence(cfg, env = process.env) {
 // never auto-merges, auto-parks, or refuses. It is consulted at all three call sites (the holdout
 // gate, the spec-review lens-pin, the adversarial code-review) via `faff verification resolve`, so
 // the three surfaces cannot drift independently.
-//   1. UNATTENDED run (an L4-minted ledger OR a declared-unattended config) → all-false: the
-//      unattended path runs/gates its OWN floor (the merge-gate auto-merge interlock, the L4
-//      mandatory refuse) — never this resolver. This is the same attended-vs-unattended axis
-//      actsOnSentryAbort keys on, INLINED (deliberately NOT calling actsOnSentryAbort) so a future
-//      change to abort-ACTING semantics can never silently flip verification-RUNNING (spec
-//      anti-pattern). The `||` is lazy, so an L4 ledger short-circuits before any config read.
+//   1. UNATTENDED run (per verificationUnattended below) → all-false: the unattended path
+//      runs/gates its OWN floor (the merge-gate auto-merge interlock, the L4 mandatory refuse) —
+//      never this resolver.
 //   2. no ledger / no attended run → all-false: an attended posture needs a minted run to attach to.
-//   3. otherwise (an attended, non-L4 ledger) → per-leg literalTrue(verification.<leg>), fail-closed.
+//   3. otherwise (an attended, non-unattended ledger) → per-leg literalTrue(verification.<leg>), fail-closed.
 // Reads config only; never sets/escalates level, never flips autonomous/lights_out.
+//
+// FAFF-1133: the verification-axis attendedness resolver. An L4 mint is always unattended and
+// short-circuits BEFORE any config read (lazy OR). Below L4, ONLY an automated L3 run consults
+// declared-unattended config — an interactive L1/L2 run (and a no-ledger call) is attended by
+// construction, so the config-declared-unattended signal (autonomous.unattended, or its retained
+// sentry_acting alias) is never read there. This mirrors merge-gate.js's resolveIntegrity
+// (`level === "L4" || (level === "L3" && declaredUnattendedFromConfig(cfg))`) so the verification
+// axis and the merge floor compute attendedness the same way. The abort axis (actsOnSentryAbort,
+// which keeps reading declaredUnattendedFromConfig at every level) is untouched.
+function verificationUnattended(ledger, cfg) {
+  return (
+    (!!ledger && ledger.level === "L4") ||
+    (!!ledger && ledger.level === "L3" && declaredUnattendedFromConfig(cfg))
+  );
+}
 function resolveInteractiveVerification(ledger, cfg) {
   const allFalse = { holdout: false, spec_review: false, code_review: false };
-  if ((!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg)) return { ...allFalse };
+  if (verificationUnattended(ledger, cfg)) return { ...allFalse };
   if (!ledger) return { ...allFalse };
   return {
     holdout: literalTrue(dig(cfg, "verification.holdout")),
@@ -889,7 +901,7 @@ function cmdVerification(args) {
   let ledger = null;
   if (runDir) { try { ledger = readLedger(runDir); } catch { ledger = null; } }
 
-  const unattended = (!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg);
+  const unattended = verificationUnattended(ledger, cfg);
   const attended = !!ledger && !unattended;
   const base = resolveInteractiveVerification(ledger, cfg);
   const legs = {
@@ -950,13 +962,20 @@ function verificationSelftest() {
   check("L4 ledger → spec_review all-false", r.spec_review, false);
   check("L4 ledger → code_review all-false", r.code_review, false);
 
-  // Unattended: declared-unattended config (FAFF-717 axis) short-circuits to all-false even at L2.
+  // FAFF-1133: declared-unattended config (FAFF-717 axis) short-circuits to all-false at L3 (an
+  // automated run) — the level where the config posture applies.
+  r = resolveInteractiveVerification(L3, { verification: allOn.verification, autonomous: { unattended: "true" } });
+  check("L3 declared-unattended → all-false (holdout)", r.holdout, false);
+  check("L3 declared-unattended → all-false (code_review)", r.code_review, false);
+  // The retained FAFF-717 alias (autonomous.sentry_acting) also short-circuits at L3.
+  r = resolveInteractiveVerification(L3, { verification: allOn.verification, autonomous: { sentry_acting: "true" } });
+  check("L3 sentry_acting alias → all-false", r.holdout || r.spec_review || r.code_review, false);
+  // FAFF-1133: at L1/L2 (interactive, attended by construction) the declared-unattended config is
+  // NOT read — both config keys leave an interactive run attended, so the opted-in legs resolve.
   r = resolveInteractiveVerification(L2, { verification: allOn.verification, autonomous: { unattended: "true" } });
-  check("declared-unattended → all-false (holdout)", r.holdout, false);
-  check("declared-unattended → all-false (code_review)", r.code_review, false);
-  // The retained FAFF-717 alias (autonomous.sentry_acting) also short-circuits.
+  check("L2 + declared-unattended → attended, holdout on", r.holdout, true);
   r = resolveInteractiveVerification(L2, { verification: allOn.verification, autonomous: { sentry_acting: "true" } });
-  check("sentry_acting alias → all-false", r.holdout || r.spec_review || r.code_review, false);
+  check("L2 + sentry_acting alias → attended, holdout on", r.holdout, true);
 
   // No ledger → all-false (no attended run to attach the posture to).
   r = resolveInteractiveVerification(null, allOn);

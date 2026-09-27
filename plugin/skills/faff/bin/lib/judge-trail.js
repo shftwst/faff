@@ -44,8 +44,12 @@ const { findRoot } = require("./shared-infra");
 const { canonicalJSON, resolveBundleStoreName } = require("./bundle");
 const { sha256Text } = require("./spec-judge-casefile");
 const { roundFilesInDir } = require("./spec-review-convergence");
+const { readWindowStart } = require("./spec-review-window");
 
-const SCHEMA_VERSION = 1;
+// schema_version 2 (FAFF-1131): adds the `objections-by-round.json` per-issue member and its
+// manifest pointer. A trail minted before this slice is schema_version 1 (no per-round member,
+// no pointer); `judge-history --rounds` reads such a trail as objections_by_round:null.
+const SCHEMA_VERSION = 2;
 const REMOTE_NAME = "origin";
 
 // Identity-component charset — mirrors bundle.js's own (unexported) validIdentityToken:
@@ -131,6 +135,32 @@ function collectObjections(specReviewDir, ledger) {
   });
 }
 
+// Per-round objection history (FAFF-1131) — the verbatim `objections` array of EVERY
+// in-window round-<n>.json (n >= window_start), ascending by round. The additive sibling to
+// collectObjections's standing-residue-only latest-round proxy: it reads the window_start
+// already on disk in this same specReviewDir (spec-review-window.js's readWindowStart — a
+// factory->factory require, the same edge class as roundFilesInDir) and keeps each round's
+// objections VERBATIM, with NO ledger enrichment (the ledger index-matches only the final
+// residue; earlier rounds have no stable p-NN mapping, so contested_source/ledger lens+severity
+// stay on the standing-residue objections.json alone). Best-effort per the writer contract: a
+// corrupt window marker degrades to window_start=1, an unparseable single round is skipped, no
+// round files yields []. Entry shape: { round, window_start, objections }.
+function collectObjectionsByRound(specReviewDir) {
+  let windowStart = 1;
+  try { windowStart = readWindowStart(specReviewDir); } catch { windowStart = 1; }
+  let rounds;
+  try { rounds = roundFilesInDir(specReviewDir); } catch { rounds = []; }
+  const out = [];
+  for (const f of rounds) {
+    if (f.n < windowStart) continue;
+    let parsed;
+    try { parsed = JSON.parse(fs.readFileSync(f.path, "utf8")); } catch { continue; }
+    const objections = Array.isArray(parsed.objections) ? parsed.objections : [];
+    out.push({ round: f.n, window_start: windowStart, objections });
+  }
+  return out;
+}
+
 // Rulings — verbatim ruling-<pid>.json files (the spec-judge-verdict contract shape:
 // proposition_id/outcome/rationale/correction/synthesis_sources/prd_gap_citation/lens/
 // severity/conformant/violations), gathered in ledger.order when a ledger is present (a
@@ -197,6 +227,7 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
   const admitResult = readJsonMaybe(path.join(judgeDir, "admit-result.json"));
 
   const objections = collectObjections(specReviewDir, ledger);
+  const objectionsByRound = collectObjectionsByRound(specReviewDir);
   const rulings = collectRulings(judgeDir, ledger);
   const specText = resolveSpecText(runDir, issue, ledger);
   const builtSpecSha = sha256Text(specText || "");
@@ -205,6 +236,7 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
 
   const files = {};
   files["objections.json"] = Buffer.from(JSON.stringify(objections, null, 2) + "\n", "utf8");
+  files["objections-by-round.json"] = Buffer.from(JSON.stringify(objectionsByRound, null, 2) + "\n", "utf8");
   files["rulings.json"] = Buffer.from(JSON.stringify(rulings, null, 2) + "\n", "utf8");
   if (admitResult !== null) files["admit-result.json"] = Buffer.from(JSON.stringify(admitResult, null, 2) + "\n", "utf8");
   if (specText !== null) files["spec.txt"] = Buffer.from(specText, "utf8");
@@ -216,6 +248,7 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
     built_spec_sha: builtSpecSha,
     spec_blob: specText !== null ? "spec.txt" : null,
     objections: "objections.json",
+    objections_by_round: "objections-by-round.json",
     rulings: "rulings.json",
     admit_result: admitResult !== null ? "admit-result.json" : null,
     outcome,
@@ -379,6 +412,31 @@ function judgeTrailSelftest() {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 
+  // collectObjectionsByRound (FAFF-1131): per-round verbatim objections + window_start filter.
+  const tmpDirBR = fs.mkdtempSync(path.join(os.tmpdir(), "faff-judge-trail-byround-"));
+  try {
+    for (const n of [1, 2, 3]) {
+      fs.writeFileSync(path.join(tmpDirBR, `round-${n}.json`), JSON.stringify({
+        verdict: "revise",
+        objections: [{ lens: "qa", severity: "minor", claim: `r${n}`, evidence: "e", predicted_consequence: null, spec_anchor: "a" }],
+      }));
+    }
+    const all = collectObjectionsByRound(tmpDirBR);
+    ok("collectObjectionsByRound: no window marker -> all rounds (window_start=1)", all.length === 3 && all[0].round === 1 && all[2].round === 3);
+    ok("collectObjectionsByRound: objections verbatim per round", all[0].objections[0] && all[0].objections[0].claim === "r1" && all[2].objections[0].claim === "r3");
+    ok("collectObjectionsByRound: window_start stamped on every entry", all.every((r) => r.window_start === 1));
+    fs.writeFileSync(path.join(tmpDirBR, "window.json"), JSON.stringify({ window_start: 2 }));
+    const windowed = collectObjectionsByRound(tmpDirBR);
+    ok("collectObjectionsByRound: window_start=2 excludes round 1", windowed.length === 2 && windowed[0].round === 2 && windowed.every((r) => r.window_start === 2));
+  } finally {
+    fs.rmSync(tmpDirBR, { recursive: true, force: true });
+  }
+  {
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), "faff-jt-byround-empty-"));
+    try { ok("collectObjectionsByRound: empty dir -> []", collectObjectionsByRound(empty).length === 0); }
+    finally { fs.rmSync(empty, { recursive: true, force: true }); }
+  }
+
   console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (judge-trail --selftest, ${failed} failed)`);
   return failed ? 1 : 0;
 }
@@ -491,7 +549,16 @@ function judgeHistory(filters = {}, opts = {}) {
     const issues = listTreeIssues(root, r.sha);
     for (const issue of issues) {
       if (filters.issue && issue !== filters.issue) continue;
-      records.push(readManifestRecord(r.runId, root, r.sha, issue));
+      const rec = readManifestRecord(r.runId, root, r.sha, issue);
+      // --rounds (FAFF-1131): fetch the per-round member at the SAME commit. Absent (a v1
+      // trail, or an unparseable blob) -> null, never a throw; tamper_suspect is untouched
+      // (the per-round blob is outside the witness envelope's byte scope, as every member is).
+      if (opts.rounds) {
+        const bytes = showBlob(root, r.sha, `${issue}/objections-by-round.json`);
+        if (bytes === null) rec.objections_by_round = null;
+        else { try { rec.objections_by_round = JSON.parse(bytes.toString("utf8")); } catch { rec.objections_by_round = null; } }
+      }
+      records.push(rec);
     }
   }
 
@@ -507,6 +574,7 @@ const JUDGE_HISTORY_SPEC = {
     "--run": { arity: 1 },
     "--lens": { arity: 1 },
     "--outcome": { arity: 1 },
+    "--rounds": { arity: 0 },
     "--root": { arity: 1 },
     "--json": { arity: 0 },
   },
@@ -515,7 +583,7 @@ const JUDGE_HISTORY_SPEC = {
 
 function cmdJudgeHistory(args) {
   const { values, errors } = parseArgs(args, JUDGE_HISTORY_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff judge-history [--issue ID] [--run RUN_ID] [--lens L] [--outcome O] [--root DIR] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff judge-history [--issue ID] [--run RUN_ID] [--lens L] [--outcome O] [--rounds] [--root DIR] [--json]");
   const root = values["--root"] || findRoot();
   const filters = {
     issue: values["--issue"] || null,
@@ -523,12 +591,18 @@ function cmdJudgeHistory(args) {
     lens: values["--lens"] || null,
     outcome: values["--outcome"] || null,
   };
-  const result = judgeHistory(filters, { root });
+  const result = judgeHistory(filters, { root, rounds: !!values["--rounds"] });
   if (values["--json"]) { console.log(JSON.stringify(result.records)); return 0; }
   if (result.records.length === 0) { console.log(result.note || "no judge-trail records found"); return 0; }
   for (const rec of result.records) {
     const flag = rec.tamper_suspect ? " TAMPER-SUSPECT (witness_sha mismatch)" : "";
     console.log(`${rec.run_id}/${rec.issue}  outcome=${rec.outcome || "?"}  lenses=${(rec.lenses || []).join(",")}${flag}`);
+    if (values["--rounds"] && Array.isArray(rec.objections_by_round)) {
+      for (const rd of rec.objections_by_round) {
+        const lensSet = [...new Set((rd.objections || []).map((o) => o && o.lens).filter(Boolean))].sort();
+        console.log(`  round ${rd.round} (window_start=${rd.window_start}): ${(rd.objections || []).length} objection(s)${lensSet.length ? ` [lenses: ${lensSet.join(", ")}]` : ""}`);
+      }
+    }
   }
   return 0;
 }
@@ -539,6 +613,7 @@ module.exports = {
   witnessSha,
   listIssueScratchDirs,
   collectObjections,
+  collectObjectionsByRound,
   collectRulings,
   resolveSpecText,
   determineOutcome,

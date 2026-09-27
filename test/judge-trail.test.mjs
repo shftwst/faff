@@ -107,11 +107,12 @@ test("mint -> judge-history (local store): manifest carries schema_version/issue
     assert.deepEqual([...rec.lenses].sort(), ["QA", "infosec"]);
 
     const m = rec.manifest;
-    assert.equal(m.schema_version, 1);
+    assert.equal(m.schema_version, 2);
     assert.equal(m.issue, "FAFF-1");
     assert.equal(m.run_id, runId);
     assert.equal(m.spec_blob, "spec.txt");
     assert.equal(m.objections, "objections.json");
+    assert.equal(m.objections_by_round, "objections-by-round.json");
     assert.equal(m.rulings, "rulings.json");
     assert.equal(m.admit_result, "admit-result.json");
     assert.equal(m.built_spec_sha, sha256Text("# Spec\n\nhello world\n"), "built_spec_sha == sha256Text(spec_text), the exact spec.txt bytes just fetched below");
@@ -387,5 +388,106 @@ test("faff audit: when no judge-trail ref exists for the run, the durable second
     const recon = JSON.parse(audit.stdout);
     assert.equal(recon.durable_judge_trail.available, true, "an empty ref enumeration is available:true with zero records, not an error");
     assert.deepEqual(recon.durable_judge_trail.records, []);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// FAFF-1131 — per-round objection history. Seed N rounds (no judge dir needed; round files
+// alone are material for the mint), optionally a window.json, and mint/read.
+function seedRounds(root, runId, issue, rounds, windowStart) {
+  const runDir = join(root, ".faff", "runs", runId);
+  const specReviewDir = join(runDir, issue, "spec-review");
+  mkdirSync(specReviewDir, { recursive: true });
+  for (const { n, objections } of rounds) {
+    writeFileSync(join(specReviewDir, `round-${n}.json`), JSON.stringify({ verdict: "revise", objections }));
+  }
+  if (windowStart != null) writeFileSync(join(specReviewDir, "window.json"), JSON.stringify({ window_start: windowStart }));
+  return { runDir, specReviewDir };
+}
+
+test("FAFF-1131: mint retains per-round objections; judge-history --rounds returns each round verbatim, default omits it", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-byround-"));
+  try {
+    initRepo(root);
+    const runId = "run-byround-000101";
+    const { runDir } = seedRounds(root, runId, "FAFF-11", [
+      { n: 1, objections: [{ lens: "infosec", severity: "major", claim: "r1a" }, { lens: "QA", severity: "minor", claim: "r1b" }] },
+      { n: 2, objections: [{ lens: "infosec", severity: "major", claim: "r2a" }] },
+      { n: 3, objections: [] },
+    ]);
+    const mint = JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout);
+    assert.equal(mint.minted, true, "a rounds-only run is mintable material");
+
+    // Default read: no per-round field fetched (cost profile unchanged).
+    const def = JSON.parse(runCli(["judge-history", "--run", runId, "--root", root, "--json"]).stdout);
+    assert.equal(def.length, 1);
+    assert.equal(def[0].objections_by_round, undefined, "default read carries no objections_by_round");
+
+    // --rounds: every round, verbatim, ascending.
+    const withRounds = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout);
+    const obr = withRounds[0].objections_by_round;
+    assert.ok(Array.isArray(obr) && obr.length === 3, "all three rounds retained");
+    assert.deepEqual(obr.map((r) => r.round), [1, 2, 3]);
+    assert.equal(obr[0].objections.length, 2);
+    assert.equal(obr[0].objections[0].claim, "r1a");
+    assert.equal(obr[1].objections[0].claim, "r2a");
+    assert.equal(obr[2].objections.length, 0, "an empty-objection round is retained as []");
+    assert.ok(obr.every((r) => r.window_start === 1), "window_start=1 stamped (no marker)");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1131: window_start excludes pre-window rounds from objections-by-round.json", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-window-"));
+  try {
+    initRepo(root);
+    const runId = "run-byround-window-000102";
+    const { runDir } = seedRounds(root, runId, "FAFF-13", [
+      { n: 1, objections: [{ lens: "infosec", severity: "major", claim: "pre-window" }] },
+      { n: 2, objections: [{ lens: "QA", severity: "minor", claim: "r2" }] },
+      { n: 3, objections: [{ lens: "QA", severity: "minor", claim: "r3" }] },
+    ], 2);
+    assert.equal(JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout).minted, true);
+    const withRounds = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout);
+    const obr = withRounds[0].objections_by_round;
+    assert.deepEqual(obr.map((r) => r.round), [2, 3], "round 1 (below window_start=2) is excluded");
+    assert.ok(obr.every((r) => r.window_start === 2));
+    assert.ok(!obr.some((r) => r.objections.some((o) => o.claim === "pre-window")), "the pre-window round's objections are absent");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1131: judge-history --rounds against a v1 trail (no objections-by-round member) returns objections_by_round:null, exit 0", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-v1-"));
+  try {
+    initRepo(root);
+    const runId = "run-v1-legacy-000103";
+    const issue = "FAFF-12";
+    // Hand-build a schema_version:1 subtree: manifest.json (witness_sha over the v1 core) +
+    // objections.json only — deliberately NO objections-by-round.json member (a pre-slice trail).
+    const core = {
+      schema_version: 1, issue, run_id: runId, built_spec_sha: sha256Text(""),
+      spec_blob: null, objections: "objections.json", rulings: "rulings.json",
+      admit_result: null, outcome: "no-judge", lenses: [],
+    };
+    const manifest = { ...core, witness_sha: jt.witnessSha(core) };
+    const idx = join(root, ".git", "faff-v1-index");
+    const env = { ...process.env, GIT_INDEX_FILE: idx };
+    const stage = (rel, body) => {
+      const h = spawnSync("git", ["-C", root, "hash-object", "-w", "--stdin"], { input: body, encoding: "utf8" });
+      assert.equal(h.status, 0, h.stderr);
+      const u = spawnSync("git", ["-C", root, "update-index", "--add", "--cacheinfo", `100644,${h.stdout.trim()},${issue}/${rel}`], { env, encoding: "utf8" });
+      assert.equal(u.status, 0, u.stderr);
+    };
+    stage("manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+    stage("objections.json", JSON.stringify([], null, 2) + "\n");
+    stage("rulings.json", JSON.stringify([], null, 2) + "\n");
+    const treeSha = spawnSync("git", ["-C", root, "write-tree"], { env, encoding: "utf8" }).stdout.trim();
+    const commitSha = spawnSync("git", ["-C", root, "commit-tree", treeSha, "-m", `judge-trail ${runId}`], { encoding: "utf8" }).stdout.trim();
+    assert.equal(spawnSync("git", ["-C", root, "update-ref", `refs/faff/judge-trail/${runId}`, commitSha]).status, 0);
+
+    const r = runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const records = JSON.parse(r.stdout);
+    assert.equal(records.length, 1);
+    assert.equal(records[0].tamper_suspect, false, "the v1 manifest still verifies");
+    assert.equal(records[0].objections_by_round, null, "an absent per-round member degrades to null, never a throw");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

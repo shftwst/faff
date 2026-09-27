@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1133",
+  "build": {
+    "status": "complete",
+    "diff_hash": "1f7c43be3605bac2c14772d13dc4a10f489a26dabbad756884822a9655bc64b2",
+    "branch": "faff-1133-verification-resolve-conflates-sentry-acting-unattended",
+    "pushed_at": "2026-09-27T01:36:36.628Z"
+  },
+  "updated_at": "2026-09-27T01:36:36.628Z"
+}

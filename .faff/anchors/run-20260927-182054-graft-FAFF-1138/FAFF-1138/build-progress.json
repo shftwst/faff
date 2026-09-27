@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1138",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d3455917fe92fc2005b7fe0da6d89e0f54d6c92d08c6e374c8825d632fe37ad1",
+    "branch": "faff-1138-harden-conformance-test",
+    "pushed_at": "2026-09-27T18:29:03.718Z"
+  },
+  "updated_at": "2026-09-27T18:29:03.718Z"
+}

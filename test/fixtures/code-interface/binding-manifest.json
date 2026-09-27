@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "runtime": "node",
+  "bindings": [
+    {
+      "name": "Stack",
+      "entry": "Stack",
+      "construction": { "kind": "ctor", "arity": { "required": 0 } },
+      "instance_ops": [
+        { "op": "push", "arity": { "required": 1 } },
+        { "op": "pop", "arity": { "required": 0 } },
+        { "op": "size", "arity": { "required": 0 } }
+      ],
+      "static_ops": [
+        { "op": "util.drain", "arity": { "required": 1, "types": ["integer"] } }
+      ]
+    }
+  ]
+}

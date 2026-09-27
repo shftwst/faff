@@ -20,6 +20,7 @@
 import { test } from "node:test";
 import assert from "node:assert";
 import { spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, cpSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -81,25 +82,23 @@ function stageContext() {
   return dir;
 }
 
-// Probe exactly the docker capabilities this ticket needs, degrading honestly: daemon up, a throwaway
-// custom-image build allowed, and a bare-node sibling run + exec allowed. Any missing leg narrows or
-// skips - never a RED failure.
-function probeDocker() {
-  if (spawnSync("docker", ["info"], { stdio: "ignore" }).status !== 0) return { daemon: false, build: false, sibling: false };
-  const probeCtx = mkdtempSync(join(tmpdir(), "faff-1107-probe-"));
-  writeFileSync(join(probeCtx, "Dockerfile"), `FROM ${NEUTRAL_IMAGE}\nRUN true\nCMD ["true"]\n`);
-  const build = spawnSync("docker", ["build", "-q", "-t", "faff-1107-probe", probeCtx], { encoding: "utf8" }).status === 0;
-  rmSync(probeCtx, { recursive: true, force: true });
-  spawnSync("docker", ["rmi", "-f", "faff-1107-probe"], { stdio: "ignore" });
-  const sib = `faff-1107-probe-sib-${process.pid}`;
-  spawnSync("docker", ["rm", "-f", sib], { stdio: "ignore" });
-  const ran = spawnSync("docker", ["run", "-d", "--name", sib, NEUTRAL_IMAGE, "sleep", "30"], { encoding: "utf8" }).status === 0;
-  const sibling = ran && spawnSync("docker", ["exec", sib, "test", "-e", "/bin/sh"], { stdio: "ignore" }).status === 0;
-  spawnSync("docker", ["rm", "-f", sib], { stdio: "ignore" });
-  return { daemon: true, build, sibling };
+// Discovery-time gate: only the cheap `docker info` daemon check runs at module top level. The build and
+// sibling capabilities degrade honestly inside the gated body (buildImage -> t.skip; neutral-cage run
+// status -> narrowed form), so no docker build or sibling run/exec fires at test discovery.
+const SKIP_E2E = spawnSync("docker", ["info"], { stdio: "ignore" }).status === 0 ? false : "docker daemon unavailable";
+
+// A currently-free loopback port, picked by binding a throwaway server on port 0 and reading the OS
+// assignment. net.Server.listen/close are event/callback-based, so each is promisified. The server must
+// close before docker binds the port; the close->run gap is an accepted TOCTOU race (see spec §4 item 2).
+async function freePort() {
+  const srv = createServer();
+  const port = await new Promise((resolve, reject) => {
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => resolve(srv.address().port));
+  });
+  await new Promise((resolve) => srv.close(resolve));
+  return port;
 }
-const CAP = probeDocker();
-const SKIP_E2E = !CAP.daemon ? "docker daemon unavailable" : !CAP.build ? "docker build not permitted" : false;
 
 const contractExit = (file, ...extra) =>
   spawnSync("node", [FAFF, "contract", "holdout-verdict", ...extra, "--in", file], { encoding: "utf8" }).status;
@@ -157,21 +156,17 @@ test("rpc exerciser splits the two failure planes against in-process realListen 
 // ---- DOCKER-GATED: e2e + live conformance + topology + violating variant --------------------------
 
 test("code-interface holdout: live conformance + real-spawner e2e + topology (docker-gated)", { skip: SKIP_E2E }, async (t) => {
-  const staging = stageContext();
-  const workdir = mkdtempSync(join(tmpdir(), "faff-1107-run-"));
   const tag = "faff-ci-stack";
   const name = `faff-ci-stack-${process.pid}`;
-  const hostPort = 18930;
-  const endpoint = `http://127.0.0.1:${hostPort}/`;
-
-  const specPath = join(workdir, "spec.md");
-  const intentPath = join(workdir, "lane-boundary.json");
-  writeFileSync(specPath, SPEC);
-  writeFileSync(intentPath, LANE_BOUNDARY);
 
   // A passing in-cage preflight is stubbed: the CI host is uncaged, so the real repo-absent probe would
   // refuse on every run. Placement is proven by the topology assertions below, not by this stub.
   const preflightFn = () => ({ holds: true, refusals: [] });
+
+  // Setup artifacts are created INSIDE the try so a mid-setup throw still hits teardown; each is declared
+  // here and guarded on its own existence in the finally.
+  let staging, workdir, specPath, intentPath, endpoint;
+  let imageBuilt = false;
 
   let spawnPayloadSeen;
   const runSpawner = async (outPath, expectValue) => {
@@ -190,9 +185,24 @@ test("code-interface holdout: live conformance + real-spawner e2e + topology (do
     return { code, verdict: JSON.parse(readFileSync(outPath, "utf8")) };
   };
 
-  assert.ok(buildImage(staging, tag), "fixture image builds");
-  assert.ok(upBridge({ name, tag, hostPort, containerPort: 8080 }), "bridge container stands up on 127.0.0.1");
   try {
+    staging = stageContext();
+    workdir = mkdtempSync(join(tmpdir(), "faff-1107-run-"));
+    specPath = join(workdir, "spec.md");
+    intentPath = join(workdir, "lane-boundary.json");
+    writeFileSync(specPath, SPEC);
+    writeFileSync(intentPath, LANE_BOUNDARY);
+
+    // The real build IS the build-capability check: a build-denied host skips cleanly, never a RED.
+    if (!buildImage(staging, tag)) {
+      t.skip("docker build not permitted");
+      return;
+    }
+    imageBuilt = true;
+
+    const hostPort = await freePort();
+    endpoint = `http://127.0.0.1:${hostPort}/`;
+    assert.ok(upBridge({ name, tag, hostPort, containerPort: 8080 }), "bridge container stands up on 127.0.0.1");
     assert.ok(await waitReady(`${endpoint}faff-rpc/health`), "the bridge reaches health");
 
     await t.test("the six frozen wire conformance scenarios answer live over the containerised bridge", async () => {
@@ -247,21 +257,22 @@ test("code-interface holdout: live conformance + real-spawner e2e + topology (do
       // withheld-safe keys - no repo path / cwd / diff - and the withheld-set is true by construction.
       assert.ok(spawnPayloadSeen, "the happy-path spawn payload was captured");
       assert.deepEqual(Object.keys(spawnPayloadSeen).sort(), ["deadlineMs", "endpoints", "intentText", "specText"]);
-      assert.deepEqual(buildWithheldSet(), { repo: true, worktree_cwd: true, diff: true });
+
+      // Live cross-check: the withheld-set the spawner keeps from the child must be the one that actually
+      // flowed into the persisted verdict's attestation (build -> derive -> assemble -> write), not a
+      // literal compared against a copy of its own definition.
+      const persisted = JSON.parse(readFileSync(join(workdir, "verdict.json"), "utf8"));
+      assert.deepEqual(persisted.attestation.withheld, buildWithheldSet(), "the persisted verdict's attestation carries the spawner-derived withheld-set");
 
       // The co-residency split. The `docker exec test -e` probe needs nothing installed in either
       // container, so it is the always-feasible form. The optional `faff evaluator-preflight
       // --repo-path <dir>` corroboration is omitted here: faff is not on PATH in the bare-node judge
       // cage, and it would need a DIRECTORY path (its absent-check is isDirectory-gated), distinct from
       // the file path this probe uses - never the same variable.
-      if (CAP.sibling) {
-        const neutral = `faff-ci-neutral-${process.pid}`;
-        spawnSync("docker", ["rm", "-f", neutral], { stdio: "ignore" });
-        assert.equal(
-          spawnSync("docker", ["run", "-d", "--name", neutral, NEUTRAL_IMAGE, "sleep", "120"], { encoding: "utf8" }).status,
-          0,
-          "the neutral judge cage stands up",
-        );
+      const neutral = `faff-ci-neutral-${process.pid}`;
+      spawnSync("docker", ["rm", "-f", neutral], { stdio: "ignore" });
+      const ranNeutral = spawnSync("docker", ["run", "-d", "--name", neutral, NEUTRAL_IMAGE, "sleep", "120"], { encoding: "utf8" }).status === 0;
+      if (ranNeutral) {
         try {
           assert.equal(execExists(neutral, SOURCE_FILE_IN_IMAGE), false, "the judge cage cannot see the source");
           assert.equal(execExists(name, SOURCE_FILE_IN_IMAGE), true, "the SUT cage legitimately holds it");
@@ -296,9 +307,9 @@ test("code-interface holdout: live conformance + real-spawner e2e + topology (do
     });
   } finally {
     down(name);
-    spawnSync("docker", ["rmi", "-f", tag], { stdio: "ignore" });
-    rmSync(staging, { recursive: true, force: true });
-    rmSync(workdir, { recursive: true, force: true });
+    if (imageBuilt) spawnSync("docker", ["rmi", "-f", tag], { stdio: "ignore" });
+    if (workdir) rmSync(workdir, { recursive: true, force: true });
+    if (staging) rmSync(staging, { recursive: true, force: true });
   }
   assert.equal(dangling(name), "", "the bridge container is torn down - no leak");
 });

@@ -109,6 +109,17 @@ test("FAFF-1133: L2 + sentry_acting alias → attended (the reported incident's 
   assert.equal(r.any, true);
 });
 
+// FAFF-1133: the exact reported incident — attended L2 + sentry_acting + NO verification opt-in.
+// The holdout leg must be off (attended run, fail-closed default), never forced.
+test("FAFF-1133: L2 + sentry_acting + no verification config → attended, all legs off (incident-exact)", () => {
+  const root = tmpRoot("autonomous:\n  sentry_acting: true\n");
+  const runDir = mintLedger("L2");
+  const r = resolve([], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
+  assert.equal(r.attended, true);
+  assert.equal(r.unattended, false);
+  assert.equal(r.any, false);
+});
+
 test("ACTING INVARIANT: an L4 ledger is unattended → all-off regardless of verification config", () => {
   const root = tmpRoot(VERIF_ON);
   const runDir = mintLedger("L4");

@@ -1699,9 +1699,9 @@ function cmdMergeGate(args) {
 }
 
 // FAFF-1118: the flag grammar for `faff pr-create`. `--base` is the grant-coverage target (the
-// base branch the PR opens against), NOT forwarded to `gh pr create` — the gh invocation stays
-// byte-for-byte Step 9b's (`--body-file` + optional `--title`), so an ungoverned PR-open is
-// identical to the pre-slice raw call.
+// base branch the PR opens against), NOT forwarded to `gh pr create` — the gh invocation is
+// `--body-file` + a REQUIRED `--title` (gh demands a title in a non-interactive session; see the
+// title guard in cmdPrCreate), so an ungoverned PR-open is identical to a raw titled gh pr create.
 const PR_CREATE_SPEC = { flags: {
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--base": { arity: 1 },
   "--body-file": { arity: 1 }, "--title": { arity: 1 }, "--level": { arity: 1 }, "--json": { arity: 0 },
@@ -1712,7 +1712,8 @@ const PR_CREATE_SPEC = { flags: {
 // carries no CI/AC/review floor of its own, so a full decideFloor would be dead machinery), an
 // ungoverned run byte-for-byte unaffected (grant not-applicable → open exactly as a raw gh pr
 // create), and a covered-create schema:2 suppression. Git-only (no pushable remote) is a no-op
-// exit 0. On absent-or-invalid it exits non-zero and opens NOTHING.
+// exit 0. On absent-or-invalid, or a missing --title (required in a non-interactive session), it
+// exits non-zero and opens NOTHING.
 function cmdPrCreate(args) {
   const parsed = parseArgs(args, PR_CREATE_SPEC);
   if (parsed.errors.length) return usageError(parsed.errors, "usage: faff pr-create --run-dir DIR --issue ID --base BRANCH --body-file FILE [--title T] [--level L] [--json]");
@@ -1745,8 +1746,13 @@ function cmdPrCreate(args) {
   }
 
   // (4) THE SOLE gh pr create invocation. On not-applicable (ungoverned) / valid-grant the PR opens.
-  const ghArgs = ["pr", "create", "--body-file", bodyFile];
-  if (title) ghArgs.push("--title", title);
+  // gh pr create requires --title in a non-interactive session (no TTY to prompt, and it does not
+  // derive one from the head commit) — a title-less call there dumps gh's usage text and opens
+  // nothing. Fail loud with the remedy instead of shelling that guaranteed-to-fail call.
+  if (!title) {
+    return emit({ verdict: "refuse", opened: false, blockers: ["faff pr-create: --title is required (gh pr create needs --title in a non-interactive session); pass --title resolved from the build's pr_title/commit_subject convention"] }, 2);
+  }
+  const ghArgs = ["pr", "create", "--body-file", bodyFile, "--title", title];
   const r = spawnSync("gh", ghArgs, { encoding: "utf8", timeout: 120000 });
   if (r.status !== 0) {
     return emit({ verdict: "refuse", opened: false, blockers: [`gh pr create failed: ${(r.stderr || "").trim() || "non-zero exit"}`] }, 1);

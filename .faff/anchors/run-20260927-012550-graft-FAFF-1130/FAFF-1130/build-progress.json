@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1130",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f4570acc076f98863800fcdf6e5d8e27871078768049ef81a19d74dfce01238b",
+    "branch": "faff-1130-pr-create-explicit-title",
+    "pushed_at": "2026-09-27T01:48:50.822Z"
+  },
+  "updated_at": "2026-09-27T01:48:50.822Z"
+}

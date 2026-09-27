@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1137",
+  "build": {
+    "status": "complete",
+    "diff_hash": "043e48c623a37e2c9c57cfbcafb5c8052025a317c1a09cf60ce1d30297149e49",
+    "branch": "faff-1137-harden-sharded-gate-ladder",
+    "pushed_at": "2026-09-27T21:31:26.100Z"
+  },
+  "updated_at": "2026-09-27T21:31:26.100Z"
+}

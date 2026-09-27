@@ -101,6 +101,12 @@ function pidAliveProbe(pid) {
 // only ever spends time when the runner is genuinely starved.
 const ABORT_LANDING_BUDGET_MS = 30000; // ~5-6x the two-child-spawn worst case under CI contention
 const POLLER_EXIT_BUDGET_MS = 20000; // covers detached-process teardown under the same contention
+// FAFF-1137 — the advisory (non-acting) tests wait on the poller's positive progress signal (an
+// `advisory-trip` log line, written on every advisory trip tick) before asserting the negative
+// invariant, instead of a fixed "nothing happened" sleep that races the detached poller's ~1s tick
+// cadence under sharded-ladder starvation. Sized like the FAFF-635 budgets above; predicate-polled,
+// so a healthy run pays nothing.
+const ADVISORY_TRIP_BUDGET_MS = 30000;
 
 test("sentry-poller --selftest passes (the pure tick-decision core + parseIntervalSecs table)", () => {
   const r = run(["sentry-poller", "--selftest"]);
@@ -308,7 +314,7 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
 });
 
 test("attended L3 (neither autonomous.unattended nor the sentry_acting alias) + the SAME stale heartbeat → NO abort: the ledger is byte-identical, advisory-trip logged instead (FAFF-765 — an attended run stays advisory)", async () => {
-  const { root, runDir, read } = rootWith({
+  const { root, runDir, read, log } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
@@ -316,14 +322,15 @@ test("attended L3 (neither autonomous.unattended nor the sentry_acting alias) + 
   try {
     const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
 
-    // Let several ticks elapse well past the staleness window — nothing should abort.
-    await waitUntil(() => false, { timeoutMs: 3000, intervalMs: 3000 });
+    // Wait on the positive progress signal — the poller has run its trip decision at least once
+    // (advisory-trip logged) — then assert the negative invariant AT a point the actor is known to
+    // have executed, rather than at an arbitrary wall-clock offset.
+    const tripped = await waitUntil(() => log().includes("advisory-trip"), { timeoutMs: ADVISORY_TRIP_BUDGET_MS });
+    assert.ok(tripped, "the attended poller logged advisory-trip — its trip decision ran at least once");
 
     assert.equal(readFileSync(join(runDir, "run-ledger.json"), "utf8"), before, "run-ledger.json is byte-identical — no abort entry, owner.status untouched");
     assert.equal(read().owner.status, "running");
-    const logText = existsSync(join(runDir, "sentry-poller.log")) ? readFileSync(join(runDir, "sentry-poller.log"), "utf8") : "";
-    assert.match(logText, /advisory-trip/);
-    assert.doesNotMatch(logText, /abort-actioned/);
+    assert.doesNotMatch(log(), /abort-actioned/);
 
     assert.ok(pidAliveProbe(started.pid), "a non-L4 poller keeps polling — it never self-stops on a trip");
   } finally {
@@ -402,7 +409,7 @@ test("L3 + the retained autonomous.sentry_acting:true ALIAS + the SAME stale hea
 });
 
 test("L3 + a MALFORMED .faffrc + the SAME stale heartbeat → NO abort, advisory-trip, poller keeps polling (FAFF-717 — the guarded config read fails safe to OFF, never a coerced abort)", async () => {
-  const { root, runDir, read } = rootWith({
+  const { root, runDir, read, log } = rootWith({
     run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
@@ -415,14 +422,14 @@ test("L3 + a MALFORMED .faffrc + the SAME stale heartbeat → NO abort, advisory
     const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
     assert.equal(started.spawned, true);
 
-    // Let several ticks elapse well past the staleness window — nothing should abort.
-    await waitUntil(() => false, { timeoutMs: 3000, intervalMs: 3000 });
+    // Wait on the poller's positive progress signal (advisory-trip logged) before checking the
+    // negative invariant — a fixed sleep races the tick cadence on a starved box.
+    const tripped = await waitUntil(() => log().includes("advisory-trip"), { timeoutMs: ADVISORY_TRIP_BUDGET_MS });
+    assert.ok(tripped, "the watchdog logged advisory-trip under a config fault — it trips advisory, never a coerced abort");
 
     assert.equal(readFileSync(join(runDir, "run-ledger.json"), "utf8"), before, "run-ledger.json is byte-identical — a config fault never coerces an abort");
     assert.equal(read().owner.status, "running");
-    const logText = existsSync(join(runDir, "sentry-poller.log")) ? readFileSync(join(runDir, "sentry-poller.log"), "utf8") : "";
-    assert.match(logText, /advisory-trip/);
-    assert.doesNotMatch(logText, /abort-actioned/);
+    assert.doesNotMatch(log(), /abort-actioned/);
     assert.ok(pidAliveProbe(started.pid), "the watchdog survives a config fault — it never fault-caps on a malformed .faffrc");
   } finally {
     run(["sentry-poller", "stop", "--run-dir", runDir]);

@@ -24,11 +24,34 @@ import { fileURLToPath } from "node:url";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
+// FAFF-1137 — each test chains several real CLI spawns plus a `git init`; under the sharded gate
+// ladder they run on an oversubscribed box. A generous, contention-scaled timeout cuts a genuinely
+// WEDGED child fast and diagnostically (never bounds a merely-slow one); ample maxBuffer keeps a
+// chatty CLI from tripping ENOBUFS. Sized like the FAFF-635 budgets in sentry-poller.test.mjs.
+const CLI_SPAWN_BUDGET_MS = 60000;
+const CLI_SPAWN_MAX_BUFFER = 32 * 1024 * 1024;
+// A momentarily-exhausted process table makes a fork fail transiently with EAGAIN/ENOMEM (surfaced
+// on err.code, with err.status null — distinct from a real non-zero CLI exit, which sets err.status
+// and leaves err.code undefined). Retry a bounded number of times on those codes ONLY, with a short
+// backoff; a real CLI exit is never retried and surfaces exactly as before.
+const MAX_SPAWN_RETRIES = 3;
+const TRANSIENT_FORK_CODES = new Set(["EAGAIN", "ENOMEM"]);
+
 // Run the real faff CLI with cwd = root and NO --root, so root resolves via
 // findRoot(process.cwd()) exactly as the bare decline-branch invocations do.
 function run(args, root, { allowFail = false } = {}) {
-  try { return { code: 0, out: execFileSync("node", [CLI, ...args], { encoding: "utf8", cwd: root }) }; }
-  catch (e) { if (!allowFail) throw e; return { code: e.status ?? 1, out: (e.stdout ?? "").toString(), err: (e.stderr ?? "").toString() }; }
+  for (let attempt = 0; ; attempt++) {
+    try { return { code: 0, out: execFileSync("node", [CLI, ...args], { encoding: "utf8", cwd: root, timeout: CLI_SPAWN_BUDGET_MS, maxBuffer: CLI_SPAWN_MAX_BUFFER }) }; }
+    catch (e) {
+      if (TRANSIENT_FORK_CODES.has(e.code) && attempt < MAX_SPAWN_RETRIES) {
+        const wait = new Int32Array(new SharedArrayBuffer(4));
+        Atomics.wait(wait, 0, 0, 25 * (attempt + 1)); // short synchronous backoff, no event-loop yield
+        continue;
+      }
+      if (!allowFail) throw e;
+      return { code: e.status ?? 1, out: (e.stdout ?? "").toString(), err: (e.stderr ?? "").toString() };
+    }
+  }
 }
 
 // Seed a real git repo so findRoot anchors on `.git` (the real decline cwd).

@@ -204,7 +204,7 @@ export function validateEnvelope(req, wireMajor) {
 
 // A module-private sentinel so a dispatch catch can tell a per-request timeout apart
 // from a genuine SUT rejection (mirrors review-call.mjs's FirstByteBreachError).
-export class TimeoutBreachError extends Error {
+class TimeoutBreachError extends Error {
   constructor(timeoutMs) { super(`op did not settle within ${timeoutMs}ms`); this.name = "TimeoutBreachError"; this.timeoutMs = timeoutMs; }
 }
 

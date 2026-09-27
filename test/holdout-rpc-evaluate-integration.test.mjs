@@ -39,13 +39,10 @@ const MANIFEST_PATH = join(FIXTURE_DIR, "binding-manifest.json");
 const BRIDGE = fileURLToPath(new URL("../plugin/skills/faff/bin/faff-bridge-node.mjs", import.meta.url));
 const LIB = fileURLToPath(new URL("../plugin/skills/faff/bin/lib", import.meta.url));
 
-// Resolve the faff binary as the operator env exposes it, else the linked-skills fallback.
-function resolveFaff() {
-  const r = spawnSync("sh", ["-c", "command -v faff"], { encoding: "utf8" });
-  const p = (r.stdout || "").trim();
-  return p || `${process.env.HOME}/.claude/skills/faff/bin/faff`;
-}
-const FAFF = resolveFaff();
+// The faff bin, resolved repo-relative and invoked via node - the same hermetic form the sibling
+// holdout-evaluate-integration.test.mjs and classifyDoD use, so the test exercises the checkout's own
+// bin regardless of host PATH (CI has no faff on PATH).
+const FAFF = fileURLToPath(new URL("../plugin/skills/faff/bin/faff", import.meta.url));
 
 // A fixture DoD whose criteria are all born-verifiable (no prose), so the aggregate is a clean
 // meets-spec when every criterion is met and never meets-spec when one is unmet.
@@ -105,12 +102,12 @@ const CAP = probeDocker();
 const SKIP_E2E = !CAP.daemon ? "docker daemon unavailable" : !CAP.build ? "docker build not permitted" : false;
 
 const contractExit = (file, ...extra) =>
-  spawnSync(FAFF, ["contract", "holdout-verdict", ...extra, "--in", file], { encoding: "utf8" }).status;
+  spawnSync("node", [FAFF, "contract", "holdout-verdict", ...extra, "--in", file], { encoding: "utf8" }).status;
 
 // ---- UNGATED: manifest validity ------------------------------------------------------------------
 
 test("fixture binding manifest passes faff manifest validate (ungated)", () => {
-  const r = spawnSync(FAFF, ["manifest", "validate", "--file", MANIFEST_PATH], { encoding: "utf8" });
+  const r = spawnSync("node", [FAFF, "manifest", "validate", "--file", MANIFEST_PATH], { encoding: "utf8" });
   assert.equal(r.status, 0, `manifest validate should exit 0: ${r.stderr}`);
 });
 

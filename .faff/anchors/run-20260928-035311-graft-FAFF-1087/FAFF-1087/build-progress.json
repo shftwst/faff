@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1087",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4da367ea3c10defa1c09cd129d93e7368f5bee3450431027e6bd108d62a3fbdc",
+    "branch": "faff-1087-rebase-mechanics-integration-test",
+    "pushed_at": "2026-09-28T04:15:36.104Z"
+  },
+  "updated_at": "2026-09-28T04:15:36.104Z"
+}

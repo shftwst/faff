@@ -40,7 +40,7 @@ For the byte-level record shapes and the on-disk keypair custody, see
 
 The standalone `commissaire` binary requires only the governance cores it needs
 plus shared infrastructure: `plugin/skills/faff/bin/lib/commissaire.js`,
-`plugin/skills/faff/bin/lib/effects.js`, and `bin/lib/shared-infra.js`. It
+`plugin/skills/faff/bin/lib/effects.js`, and `plugin/skills/faff/bin/lib/shared-infra.js`. It
 deliberately does **not** require the `faff` launcher, which pulls in around a
 hundred orchestration modules (tracker, harness, engine, scheduling) at load
 time. That keeps the facade free of SuperDomestique scheduling.

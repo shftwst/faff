@@ -271,6 +271,16 @@ jobs:
           # file per `node --test` invocation means a hang always has a "last file started, never
           # finished" line in the job log, even when the hang is in module load.
           for f in "${matched[@]}"; do
+            # FAFF-1117: commissaire-bare-claude is a ~43-subtest / ~17-worktree-spawn impure test
+            # whose macOS runtime swings from ~107s to >240s under runner load — an unfixable-by-
+            # timeout flake (raising the per-test ceiling only moved where it tips). It still runs on
+            # the Linux `validate` lane (fast, reliable), so skip it on the macOS lane only. The
+            # file-count floor uses the full matched[] and the test-count floor still clears with
+            # margin (≈95 tests / 16 files) without it.
+            if [ "$(basename "$f")" = "commissaire-bare-claude.test.mjs" ]; then
+              echo "===== ${f} ===== SKIPPED on macOS (FAFF-1117; covered on the Linux validate lane)"
+              continue
+            fi
             filelog=$(mktemp)
             killflag=$(mktemp -u)
 

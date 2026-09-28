@@ -114,7 +114,10 @@ function computeReviewVerdict(extraction) {
       }
     }
     // FAFF-1146: free-string enrichment — copied only when present as a string, no enum, no violation.
+    // disposition_rationale carries the reasoning/commentary behind the disposition (e.g. why a finding
+    // was accepted-risk or refuted); same preserve-when-present treatment as refutation/model.
     if (typeof obj.refutation === "string") out.refutation = obj.refutation;
+    if (typeof obj.disposition_rationale === "string") out.disposition_rationale = obj.disposition_rationale;
     if (typeof obj.model === "string") out.model = obj.model;
     return out;
   });
@@ -2579,6 +2582,8 @@ const CONTRACTS = {
       // action_present}-only finding stays covered by "conformant" above.
       { name: "enriched-conformant-with-source", in: { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "major", refutation: "node --check passed on the cited file", disposition: "refuted", source: "adversarial", model: "gemini/gemini-2.0" }] }, wantExit: 0 },
       { name: "adversarial-observation-open-conformant", in: { signal: "pass", findings: [{ location_present: true, action_present: true, severity: "observation", source: "adversarial", disposition: "open" }] }, wantExit: 0 },
+      { name: "disposition-rationale-present", in: { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "minor", disposition: "accepted-risk", disposition_rationale: "low blast radius, tracked as a follow-up" }] }, wantExit: 0 },
+      { name: "disposition-rationale-absent-still-valid", in: { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "minor", disposition: "accepted-risk" }] }, wantExit: 0 },
       { name: "out-of-enum-severity", in: { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "catastrophic" }] }, wantExit: 1 },
       { name: "out-of-enum-disposition", in: { signal: "fail", findings: [{ location_present: true, action_present: true, disposition: "deferred" }] }, wantExit: 1 },
       { name: "out-of-enum-source", in: { signal: "fail", findings: [{ location_present: true, action_present: true, source: "external" }] }, wantExit: 1 },
@@ -3116,7 +3121,7 @@ const CONTRACT_DESCRIBES = {
       { field: "findings[].source", enum: REVIEW_FINDING_SOURCES, lintable: false, semantics: { standard: "raised by the primary code-review pass", adversarial: "raised by the adversarial second-opinion pass (a structurally different model)" } },
     ],
     coercions: ["an out-of-enum signal → coerced to needs-human (never pass) — a malformed verdict never reads as a green light", "a fail/needs-human signal with zero findings → conformant:false (exit 1)", "an out-of-enum finding severity/disposition/source → conformant:false (exit 1, not fail-loud — an echoed bad value on an additive soft field, the value preserved verbatim); the merge floor still branches only on `signal`, so it never blocks or escalates the merge"],
-    producer_notes: ["the producer never self-reports `unavailable` — that signal is the orchestrator's own outage detection (FAFF-405), not something a reviewer LLM emits about its own run", "refutation and model are optional free strings (no enum, no violation); `model` is the harness-authored `<provider>/<model>` attribution copied from review-call.mjs's attributionHeader, never a self-named model"],
+    producer_notes: ["the producer never self-reports `unavailable` — that signal is the orchestrator's own outage detection (FAFF-405), not something a reviewer LLM emits about its own run", "refutation, disposition_rationale and model are optional free strings (no enum, no violation); `disposition_rationale` is the reasoning/commentary behind the disposition (producers SHOULD emit it alongside `disposition`, especially for `accepted-risk`/`refuted`); `model` is the harness-authored `<provider>/<model>` attribution copied from review-call.mjs's attributionHeader, never a self-named model"],
   },
   "delivery-outcome": {
     purpose: "The fixed three-value outcome the `ship` producer emits after attempting to merge/deploy — what faff-graft routes the caller-facing return on.",

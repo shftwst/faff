@@ -67,25 +67,26 @@ RECORD Finding:
   severity:         String?        # OPTIONAL — enum-checked via violations against SEVERITY_ENUM
   refutation:       String?        # OPTIONAL — adversarial challenge text; free string, preserved when present
   disposition:      String?        # OPTIONAL — enum-checked via violations against DISPOSITION_ENUM
+  disposition_rationale: String?   # OPTIONAL — free-text reasoning behind the disposition; preserved when present
   source:           String?        # OPTIONAL — enum-checked via violations against SOURCE_ENUM
   model:            String?        # OPTIONAL — "<provider>/<model>" or a primary-reviewer handle; free string
 
   # Preservation rule (mirrors computeSpecReviewVerdict, contract-defs.js ~L461-467):
   #   an enum-checked field (severity/disposition/source) is copied when present: a valid value
   #   passes through, an out-of-enum value is preserved in string form (or "" if non-string) AND
-  #   pushes a violation naming the finding index. A free-string field (refutation/model) is copied
-  #   ONLY when present as a string; absent or non-string → omitted, never defaulted.
+  #   pushes a violation naming the finding index. A free-string field (refutation/disposition_rationale/model)
+  #   is copied ONLY when present as a string; absent or non-string → omitted, never defaulted.
   #   location_present/action_present stay coerced booleans exactly as today.
 ```
 
 **Envelope (unchanged):** `{ signal, findings, conformant, violations }`. `signal` ∈ `{pass, fail, needs-human, unavailable}`; `conformant`/`violations` computed as today plus the new soft-enum checks.
 
-**Schema surface (`review-verdict.schema.json`):** `findings.items` gains the five optional properties (`severity`, `refutation`, `disposition`, `source`, `model`, all `{"type":"string"}`) alongside the two existing required booleans, still under `additionalProperties:false`. `required` stays `["location_present","action_present"]`. This is a hard co-requirement so an enriched verdict passes `schemaCheck` — the compute fn and schema MUST move together (the same coupling `spec-review-verdict` maintains).
+**Schema surface (`review-verdict.schema.json`):** `findings.items` gains the six optional properties (`severity`, `refutation`, `disposition`, `disposition_rationale`, `source`, `model`, all `{"type":"string"}`) alongside the two existing required booleans, still under `additionalProperties:false`. `required` stays `["location_present","action_present"]`. This is a hard co-requirement so an enriched verdict passes `schemaCheck` — the compute fn and schema MUST move together (the same coupling `spec-review-verdict` maintains).
 
 **Producer contract-block surface (skill prose):**
 
-- `faffter-noon-review/SKILL.md` — the declared `faff-contract:review-verdict` block extends each finding to optionally carry `severity`/`disposition`/`source`/`model` (a single-model in-session pass sets `source: "standard"`, one `model`, and no `refutation`; all optional, so an un-updated emit still validates).
-- `faffter-dark-adversarial-review/SKILL.md` — states how the two passes' findings fold into one array: standard findings from Phase 1 (`source: "standard"`), adversarial findings from Phase 2 (`source: "adversarial"`) each carrying `severity` (already in its `### [severity]:` prose), `refutation` (the auto-refutation evidence line or reviewer counter), `model` (from the harness-authored `attributionHeader`, never self-named), and `disposition` (best-known at emit — e.g. auto-refuted → `refuted`; otherwise `open`).
+- `faffter-noon-review/SKILL.md` — the declared `faff-contract:review-verdict` block extends each finding to optionally carry `severity`/`disposition`/`disposition_rationale`/`source`/`model` (a single-model in-session pass sets `source: "standard"`, one `model`, and no `refutation`; all optional, so an un-updated emit still validates).
+- `faffter-dark-adversarial-review/SKILL.md` — states how the two passes' findings fold into one array: standard findings from Phase 1 (`source: "standard"`), adversarial findings from Phase 2 (`source: "adversarial"`) each carrying `severity` (already in its `### [severity]:` prose), `refutation` (the auto-refutation evidence line or reviewer counter), `model` (from the harness-authored `attributionHeader`, never self-named), `disposition` (best-known at emit — e.g. auto-refuted → `refuted`; otherwise `open`), and `disposition_rationale` (the reasoning behind a non-`open` disposition — SHOULD accompany it, especially `accepted-risk`/`refuted`).
 
 ## 4. HOW — Behavior
 
@@ -222,13 +223,13 @@ Then the command exits 0 and the finding is unchanged (backward compatibility)
 ## 8. DONE — Definition of Done
 
 ### From WHY
-- [ ] Each `review-verdict` finding can carry `severity`, `refutation`, `disposition`, `source`, and `model`, covering both standard and adversarial findings in the one shared `findings` array.
+- [ ] Each `review-verdict` finding can carry `severity`, `refutation`, `disposition`, `disposition_rationale`, `source`, and `model`, covering both standard and adversarial findings in the one shared `findings` array.
 - [ ] All existing gating/coercion rules (`fail`/`needs-human` ≥1 finding; location+action required; out-of-enum signal → `needs-human`) are byte-identical after the change.
 - [ ] The merge floor's decision is unchanged: `decideFloor` reads only `signal`; no new field alters which verdicts merge.
 
 ### From WHAT (types and schema)
-- [ ] `computeReviewVerdict` preserves `severity`/`disposition`/`source` when present (valid → passthrough, out-of-enum → preserved-string + indexed violation) and `refutation`/`model` only when present as a string; absent fields are omitted, not defaulted.
-- [ ] `review-verdict.schema.json` `findings.items` lists the five optional string fields under `additionalProperties:false`, with `required` unchanged at `["location_present","action_present"]`.
+- [ ] `computeReviewVerdict` preserves `severity`/`disposition`/`source` when present (valid → passthrough, out-of-enum → preserved-string + indexed violation) and `refutation`/`disposition_rationale`/`model` only when present as a string; absent fields are omitted, not defaulted.
+- [ ] `review-verdict.schema.json` `findings.items` lists the six optional string fields (`severity`, `refutation`, `disposition`, `disposition_rationale`, `source`, `model`) under `additionalProperties:false`, with `required` unchanged at `["location_present","action_present"]`.
 - [ ] An enriched finding (all five fields present) passes `schemaCheck` (no exit-2 fail-loud).
 
 ### From HOW (behaviour)

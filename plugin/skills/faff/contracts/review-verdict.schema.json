@@ -20,6 +20,7 @@
           "severity": { "type": "string" },
           "refutation": { "type": "string" },
           "disposition": { "type": "string" },
+          "disposition_rationale": { "type": "string" },
           "source": { "type": "string" },
           "model": { "type": "string" }
         }

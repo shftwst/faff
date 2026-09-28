@@ -90,6 +90,7 @@ The occupant that assembles the final `faff-contract:review-verdict` block folds
 | `model` | the primary reviewer handle | the harness-authored `<provider>/<model>` from the `attributionHeader` — **never** self-named |
 | `refutation` | (none) | the auto-refutation evidence line, or a reviewer counter-argument, when present |
 | `disposition` | best-known at emit (usually `open`) | best-known at emit — an auto-refuted finding → `refuted`; otherwise `open` |
+| `disposition_rationale` | the reasoning behind the disposition, when one is set | the reasoning — e.g. the auto-refutation evidence for a `refuted`, or the accepted-risk justification — SHOULD accompany a non-`open` `disposition` |
 
 `disposition` is the best-known value **at verdict-emit time**; the durable, settled disposition record stays the implementor's per-issue graft log folded into the terminal review comment (above), not a second contract emission. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block — the floor branches only on `signal`.
 

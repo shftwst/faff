@@ -273,7 +273,10 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   const localRequires = requires.filter((r) => r.startsWith("."));
   // FAFF-1000 — `audit seal`/`export` require the denylist-clean sealing core (buildBundle /
   // localBundleStore / requiredMembersFor). It is NOT ./bundle, ./config, or ./contract-defs.
-  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core"]);
+  // FAFF-1140 — `admit-required` requires ./sentry (the shared abort-axis unattendedness resolver)
+  // and ./budget (readGovernanceConfig); both reach no orchestration module (proven by the
+  // standalone independence walk), and requiresSelfConsistencyStamp comes from ./shared-infra.
+  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
 });
 

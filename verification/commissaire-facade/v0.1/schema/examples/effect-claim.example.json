@@ -1,0 +1,19 @@
+{
+  "schema": 3,
+  "run_id": "run-20260927-182054-graft-FAFF-1138",
+  "seq": 12,
+  "ts": "2026-09-27T18:35:07.252Z",
+  "author": "producer",
+  "producer_id": "run-20260927-182054-graft-FAFF-1138",
+  "contract_revision": "faff-runner-v1",
+  "kind_of_entry": "observe",
+  "issue": "FAFF-1138",
+  "step": "pr-create",
+  "prev": "16bae451986564b06b34ca29f92aad463b9b0419d55b0c7604e52fdddffcad89",
+  "effect": {
+    "kind": "pr-create",
+    "target": "main",
+    "reversible": true
+  },
+  "producer_hmac": "9d136f33ced3d54c3c234ae20c0a22fd1a7c3eb0ed0b3b90f1dac352a730fc33"
+}

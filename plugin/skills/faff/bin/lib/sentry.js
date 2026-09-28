@@ -276,6 +276,16 @@ function runElapsedCeilingSkipWhenLive(cfg) {
 // de-levelling pause is FAFF-766, correct stays authority-gated per FAFF-326). The
 // CONSULT is never forked on level/attendedness — only the abort HANDLING consults this.
 function actsOnSentryAbort(ledger, cfg) {
+  return resolveAbortAxisUnattended(ledger, cfg);
+}
+
+// FAFF-1140 — the SINGLE shared abort-axis unattendedness composition: an L4-minted ledger
+// (the FIRST, always-unattended disjunct — the `||` is LAZY so an L4 ledger short-circuits and
+// NEVER reads config, per ADR-0034) OR the declared-unattended posture. actsOnSentryAbort (and
+// thereby actsOnSentryPause / the run-start `commissaire admit-required` gate) all key on THIS one
+// function, so a run one locus treats as autonomous another can never treat as optional — the
+// principle the FAFF-1140 gate rests on (no second unattendedness resolver).
+function resolveAbortAxisUnattended(ledger, cfg) {
   return (!!ledger && ledger.level === "L4") || declaredUnattendedFromConfig(cfg);
 }
 
@@ -1996,4 +2006,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, literalTrue, sentryActingFromConfig, runElapsedCeilingSkipWhenLive, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds, stallWindowEnvIgnored };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, actsOnSentryPause, resolveAbortAxisUnattended, applySentryAbort, cmdSentry, declaredUnattendedFromConfig, literalTrue, sentryActingFromConfig, runElapsedCeilingSkipWhenLive, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalHeartbeatProgressMismatch, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, renderSentryCheckSummaryMd, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryReconcileCheck, sentryRunElapsedSecs, sentrySelftest, sentryThresholds, stallWindowEnvIgnored };

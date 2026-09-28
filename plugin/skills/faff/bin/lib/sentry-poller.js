@@ -48,7 +48,7 @@ const { appendEventRecord } = require("./events");
 // FAFF-717: the single abort-acting resolver + the same guarded governance-config
 // loader `sentry check` uses. No import cycle — sentry.js/budget.js never require
 // this poller (only cli-surface does).
-const { actsOnSentryAbort, stallWindowEnvIgnored } = require("./sentry");
+const { resolveAbortAxisUnattended, stallWindowEnvIgnored } = require("./sentry");
 const { readGovernanceConfig } = require("./budget");
 
 // Default poll interval (seconds) — inside ADR-0065's proposed 60-120s band; ~1/10
@@ -243,7 +243,7 @@ function gatherFacts(runDir, consecutiveFaults) {
   let cfg = {};
   try { cfg = readGovernanceConfig(findRoot(runDir)); }
   catch { cfg = {}; /* base-parse-error / legacy-name / any fault → fail-safe OFF */ }
-  facts.actsOnSentryAbort = actsOnSentryAbort(ledger, cfg);
+  facts.actsOnSentryAbort = resolveAbortAxisUnattended(ledger, cfg);
 
   const r = spawnSync(process.execPath, [ENTRYPOINT, "sentry", "check", "--json", "--run-dir", runDir], { encoding: "utf8" });
   if (r.error) { facts.checkFault = `spawn error: ${r.error.message}`; return facts; }

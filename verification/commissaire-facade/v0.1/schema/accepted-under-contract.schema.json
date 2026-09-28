@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/accepted-under-contract",
+  "title": "accepted_under_contract (kind_of_entry: accepted_under_contract)",
+  "description": "The terminal verdict `verdict conclude` appends on the clean path: the governor's Ed25519-signed statement that an issue's evidence concluded under the contract, having checked for escapes. Always author==commissaire. `accepted_under_contract` is the stored kind; `conclude` is the CLI action. A conclude on an issue with zero ledger records is refused (`no-evidence`) and writes nothing. Shape normative here; semantics in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "seq", "ts", "author", "producer_id", "contract_revision", "kind_of_entry", "issue", "step", "prev", "payload", "commissaire_sig"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [3] },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer" },
+    "ts": { "type": "string" },
+    "author": { "type": "string", "enum": ["commissaire"] },
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "kind_of_entry": { "type": "string", "enum": ["accepted_under_contract"] },
+    "issue": { "type": "string" },
+    "step": { "type": "string" },
+    "prev": { "type": "string" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer_id", "contract_revision", "evidence_seq_range", "escapes_checked"],
+      "properties": {
+        "producer_id": { "type": "string" },
+        "contract_revision": { "type": "string" },
+        "evidence_seq_range": { "type": "array", "items": { "type": "integer" }, "description": "[min seq, max seq] over the issue's entries this verdict concludes" },
+        "escapes_checked": { "type": "boolean", "description": "true — conclude refuses on any unreconciled escape before signing" }
+      }
+    },
+    "commissaire_sig": { "type": "string" }
+  }
+}

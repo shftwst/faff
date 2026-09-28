@@ -22,7 +22,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Govern delivery',
-      items: ['governance-check', 'verify-run-evidence'],
+      items: ['governance-check', 'verify-run-evidence', 'commissaire-reuse'],
     },
     {
       type: 'category',

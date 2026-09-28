@@ -122,17 +122,17 @@ A pass on a live run directory looks like this:
 2. Any `failed` count above `0`, or a non-empty `ledger_failures`, is a real
    tamper or structure signal. Stop and investigate; do not treat it as noise.
 
-### `unverifiable_without_secret` — your run versus a published anchor
+### `unverifiable_without_secret` — your run versus public material only
 
 This bucket is **not a failure**. It counts producer HMAC claims the verifier
 could not re-check because the symmetric secret was not available.
 
 - **On your own run directory**, the producer's `key_hex` is present locally, so
   producer claims land in `verified` (`unverifiable_without_secret: 0`, as above).
-- **From public material only** — a published anchor, or any external verifier
-  who holds only `pk.json` and no governor secret — the same producer claims move
-  to `unverifiable_without_secret`, while the Ed25519 decisions still verify and
-  the result is still `pass`:
+- **From public material only** — any external verifier who holds only `pk.json`
+  and no governor secret — the same producer claims move to
+  `unverifiable_without_secret`, while the Ed25519 decisions still verify and the
+  result is still `pass`:
 
 ```json
 { "result": "pass",
@@ -141,9 +141,16 @@ could not re-check because the symmetric secret was not available.
   "ledger_failures": [] }
 ```
 
-An external verifier reproduces this secret-free replay end to end; the
+This count comes from a secret-free replay of a **full run's** ledger; the
 [worked bare-Claude example](https://github.com/shftwst/faff/blob/main/verification/external-verification/commissaire-bare-claude/replay.sh)
-runs it against a published capture.
+runs exactly that against a published capture.
+
+**A per-PR graft anchor is a different, thinner artifact.** It is byte-copied at
+anchor-mint (before the merge effect runs), so its `<issue>` subdir ledger holds
+only the `admission` — no producer claims yet. Pointing `audit verify` at one
+gives `producer_claims: {0, 0, 0}` with the admission's `commissaire_decisions`
+verifying: a `pass` with `unverifiable_without_secret: 0`, because there is
+nothing producer-authored to be unverifiable, not because a secret was present.
 
 ## When effects don't reconcile
 

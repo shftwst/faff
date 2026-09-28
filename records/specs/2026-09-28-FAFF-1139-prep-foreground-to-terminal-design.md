@@ -39,7 +39,7 @@ The premise still holds empirically: the re-prep loop was observed on 2026-09-27
 | `plugin/skills/faff-beep-boop/SKILL.md:183-194` | Markdown (skill prose) | The prep-queue drain, section 3. The prose to change. |
 | `plugin/skills/faff-graft/SKILL.md:349` | Markdown | The foreground-to-terminal posture to mirror. |
 | `plugin/skills/faff-prep/SKILL.md:167` | Markdown | The `inflightcheck --open/--close` bracketing pattern to mirror. |
-| `plugin/skills/faff/bin/lib/validate-adapters.js:74` | JavaScript | `ANCHOR_PHRASES` map; add a `faff-beep-boop` entry. |
+| `plugin/skills/faff/bin/lib/validate-adapters.js:74` | JavaScript | `ANCHOR_PHRASES` map; APPEND `foreground-to-terminal` to the EXISTING `faff-beep-boop` array (retain the three FAFF-884 phrases). |
 | `plugin/skills/faff/bin/lib/validate-adapters.js:65` | JavaScript | `SKILL_LINE_BASELINE`; bump `faff-beep-boop`. |
 | `plugin/skills/faff/bin/lib/inflightcheck.js` | JavaScript | The Stop hook + `--open/--close` CLI (unchanged; consumed as-is). |
 | `plugin/skills/faff/bin/lib/turncheck.js:202-204` | JavaScript | State-based backstop; already blocks the mid-prep death (no change). |
@@ -72,21 +72,22 @@ faff inflightcheck --close --key <ISSUE-XX>                   # after the prep r
 
 `--key` must match `^[A-Za-z0-9_-][A-Za-z0-9._-]*$` (an issue id like `FAFF-1132` satisfies this). This is the identical pattern faff-prep applies to its spec-review fan-out at `faff-prep/SKILL.md:167`.
 
-**`ANCHOR_PHRASES` entry (validate-adapters).** Add a `faff-beep-boop` key to the module-scope map. The phrase(s) must be literal strings the new prose genuinely carries:
+**`ANCHOR_PHRASES` entry (validate-adapters).** A `faff-beep-boop` key ALREADY EXISTS (FAFF-884: the three turn-survival phrases). **APPEND** `foreground-to-terminal` to that existing array — never replace it, or the three shipped FAFF-884 anchors are silently dropped. The phrase(s) must be literal strings the new prose genuinely carries:
 
 ```
 ANCHOR_PHRASES = {
   "faff-graft":     ["run_in_background: true", "never end a turn", "foreground-to-terminal"],
-  "faff-beep-boop": ["foreground-to-terminal"]    # NEW — the prep-queue-drain posture anchor
+  // APPEND "foreground-to-terminal" to the EXISTING faff-beep-boop array (retain all three):
+  "faff-beep-boop": ["never end a turn", "in-flight marker", "non-terminal turn-end", "foreground-to-terminal"],
 }
 ```
 
-The lint at `validate-adapters.js:988` already iterates `ANCHOR_PHRASES[name]` and FAILs on any missing phrase (case-insensitive), so adding the entry makes the prose clause born-verifiable with no new lint code.
+The lint at `validate-adapters.js:988` already iterates `ANCHOR_PHRASES[name]` and FAILs on any missing phrase (case-insensitive), so appending the phrase makes the prose clause born-verifiable with no new lint code.
 
 **Design decisions (markers; full rationale in section 6).**
 
 - Durability strategy: **Chosen:** make prep reach attach in-turn via (a) foreground-to-terminal prose + (b) `inflightcheck` bracketing; a prep-production resume store is out of scope. `(decides: architecture)`
-- Enforcement layer: **Chosen:** add a `faff-beep-boop` `ANCHOR_PHRASES` entry so the prose clause is validate-adapters-gated, reusing the existing per-skill lint; do not write a new lint. `(decides: architecture)`
+- Enforcement layer: **Chosen:** APPEND `foreground-to-terminal` to the EXISTING `faff-beep-boop` `ANCHOR_PHRASES` array (retain the three FAFF-884 phrases) so the prose clause is validate-adapters-gated, reusing the existing per-skill lint; do not write a new lint. `(decides: architecture)`
 - Marker key convention: **Chosen:** `--key <ISSUE-XX> --describe prep`, mirroring faff-prep's spec-review bracket, so the two prep-side arms share one marker grammar. `(decides: architecture)`
 
 ## 4. HOW — Behaviour
@@ -109,9 +110,9 @@ PROCEDURE prep_queue_drain(candidates):
 
 The clause must contain the literal phrase `foreground-to-terminal` (the anchor) and state: prep dispatch is foreground-awaited, never `run_in_background: true`; the drain never ends a turn on a "prep agents running" progress report; a turn ends only with the queue drained or a sanctioned hold.
 
-**(b) Inflight bracketing.** Wrap each faff-prep dispatch in the drain with `--open`/`--close` as shown. This closes the enumeration gap: today the drain opens **no** marker for prep, so a stranded prep producer is invisible to `inflightcheck` (it only sees markers it `--open`'d) and catchable only by the state-based `turncheck`. Bracketing lands the "deferred prep-producer isolation" that `SKILL.md:565` names as not-yet-built.
+**(b) Inflight bracketing.** Wrap each faff-prep dispatch in the drain with `--open`/`--close` as shown. This is **observability/enumeration**, NOT a second turn-end blocker on top of `turncheck`: `turncheck`'s state check (running owner + clean queue) ALREADY refuses the mid-prep turn-end regardless of any marker. What bracketing adds is enumeration — today the drain opens **no** marker for prep, so a stranded prep producer is invisible to `inflightcheck` (it only sees markers it `--open`'d) and to `faff disposition`, catchable only by the state-based `turncheck`. Bracketing lands the "deferred prep-producer isolation" that `SKILL.md:565` names as not-yet-built.
 
-**Behaviour summary.** With (a)+(b), a prep dispatch that the drain would otherwise strand at turn-end is refused by `inflightcheck` (open own marker) *and* by `turncheck` (running owner + clean queue), so the turn cannot end mid-prep; the prep therefore completes-and-attaches in-turn, and the next drain finds a durable spec on the tracker rather than re-prepping.
+**Behaviour summary.** `turncheck`'s state check already blocks the mid-prep turn-end (running owner + clean queue), so the turn cannot voluntarily end mid-prep; with (a)+(b) added, the `inflightcheck` open own marker makes the same stranded prep enumerable/observable (and visible to `faff disposition`) rather than only state-detectable. The prep therefore completes-and-attaches in-turn, and the next drain finds a durable spec on the tracker rather than re-prepping.
 
 **Edge cases and error handling.**
 
@@ -183,7 +184,7 @@ At the time of writing (2026-09-28), `background-fence.js:109-111` explicitly do
 - [ ] The prep-queue drain (`faff-beep-boop/SKILL.md` section 3) states that a prep dispatch is foreground-awaited and the drain never ends a turn on a "prep agents running" progress report (grep for the posture clause).
 
 ### From WHAT (interfaces / enforcement)
-- [ ] `ANCHOR_PHRASES` in `validate-adapters.js` gains a `"faff-beep-boop"` entry containing `"foreground-to-terminal"`.
+- [ ] The EXISTING `"faff-beep-boop"` `ANCHOR_PHRASES` entry gains `"foreground-to-terminal"` APPENDED to the three FAFF-884 phrases (`"never end a turn"`, `"in-flight marker"`, `"non-terminal turn-end"` all retained — never replaced).
 - [ ] `SKILL_LINE_BASELINE["faff-beep-boop"]` is bumped to the new committed line count of the edited SKILL.
 - [ ] `faff validate-adapters` passes for `faff-beep-boop` (anchor phrase present AND within line baseline).
 
@@ -194,7 +195,7 @@ At the time of writing (2026-09-28), `background-fence.js:109-111` explicitly do
 
 ### From HOW (born-verifiable backstop)
 - [ ] A test asserts that a prep dispatch left open (an `inflightcheck --open --key <issue> --describe prep` marker present at turn-end, under the stranding premise) is refused at turn-end by `inflightcheck` specifically — not only by `turncheck`. Extend `test/inflightcheck.test.mjs`.
-- [ ] A validate-adapters test (`test/validate-adapters.test.mjs`) asserts the `faff-beep-boop` anchor phrase is enforced (FAIL when the phrase is absent, PASS when present).
+- [ ] A validate-adapters test (`test/validate-adapters.test.mjs`) asserts the `faff-beep-boop` anchor phrases are enforced (FAIL when any is absent, PASS when all present) AND that the array RETAINS the three FAFF-884 phrases while gaining `foreground-to-terminal` (the destructive-edit regression guard).
 
 ### Integration smoke test
 ```

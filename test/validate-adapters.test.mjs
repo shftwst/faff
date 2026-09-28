@@ -17,7 +17,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
 const BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
 const require = createRequire(import.meta.url);
-const { SKILL_LINE_BASELINE } = require(join(REPO, "plugin", "skills", "faff", "bin", "lib", "validate-adapters.js"));
+const { SKILL_LINE_BASELINE, ANCHOR_PHRASES } = require(join(REPO, "plugin", "skills", "faff", "bin", "lib", "validate-adapters.js"));
 
 // Run validate-adapters over a throwaway skills dir of {dirName: SKILL.md body} fixtures.
 // Fixture dir names are NOT faffter-/faffidavit-/faff- prefixed (unless a test needs the gateway
@@ -259,7 +259,7 @@ test("FAFF-584: a baselined fixture below its baseline gets a non-failing RATCHE
   // FAFF-884 turn-survival anchor check (faff-beep-boop is an ANCHOR_PHRASES skill); satisfy both with
   // a harmless rendering_adaptor mention + the turn-survival anchors so this test isolates the RATCHET
   // behaviour alone.
-  const r = runOne("This fixture routes through the rendering_adaptor. never end a turn with an in-flight marker open; turncheck refuses a non-terminal turn-end.\n\none line only\n", "faff-beep-boop");
+  const r = runOne("This fixture routes through the rendering_adaptor. never end a turn with an in-flight marker open; turncheck refuses a non-terminal turn-end; foreground-to-terminal.\n\none line only\n", "faff-beep-boop");
   assert.match(r.stdout, /RATCHET\s+faff-beep-boop/, "a baselined file below its baseline should print a RATCHET advisory");
   assert.equal(has(r, "line cap"), false, "shrinking below baseline must not FAIL");
   assert.equal(r.status, 0, "a RATCHET advisory alone must not force a non-zero exit");
@@ -342,6 +342,36 @@ test("regression guard: the real shipped tree passes every charter rule clean", 
     assert.equal(hasFail(r, cat), false, `shipped tree should pass the '${cat}' charter rule`);
   }
   assert.equal(r.status, 0, "validate-adapters is green on the shipped tree");
+});
+
+// FAFF-1139 — the prep-queue drain gains a `foreground-to-terminal` posture anchor, APPENDED to
+// (never replacing) the three FAFF-884 turn-survival anchors. A destructive edit that dropped the
+// FAFF-884 phrases would silently remove shipped turn-survival guards while still passing on the new
+// phrase, so guard the array shape directly: all three FAFF-884 phrases RETAINED + the new one gained.
+test("FAFF-1139: faff-beep-boop ANCHOR_PHRASES retains the three FAFF-884 phrases and gains foreground-to-terminal", () => {
+  const phrases = ANCHOR_PHRASES["faff-beep-boop"];
+  for (const p of ["never end a turn", "in-flight marker", "non-terminal turn-end"]) {
+    assert.ok(phrases.includes(p), `the shipped FAFF-884 anchor ${JSON.stringify(p)} must be retained, not replaced`);
+  }
+  assert.ok(phrases.includes("foreground-to-terminal"), "the FAFF-1139 posture anchor must be present");
+});
+
+// The array assertion above proves the map; this proves the lint enforces every one of the four —
+// FAILing when any is absent from the prose, PASSing when all are present (born-verifiable agreement
+// between the map entry and the SKILL prose the runtime reader actually carries).
+test("FAFF-1139: the faff-beep-boop anchor lint FAILs on a missing phrase and PASSes with all four present", () => {
+  const phrases = ANCHOR_PHRASES["faff-beep-boop"];
+  const allPresent = "This routes through the rendering_adaptor.\n\n" + phrases.join("; ") + ".\n\nfinal line\n";
+  const ok = runOne(allPresent, "faff-beep-boop");
+  assert.doesNotMatch(ok.stdout, /turn-survival posture/, "prose carrying all four anchors must pass the turn-survival check");
+
+  for (const drop of phrases) {
+    const body = "This routes through the rendering_adaptor.\n\n" + phrases.filter((p) => p !== drop).join("; ") + ".\n\nfinal line\n";
+    const r = runOne(body, "faff-beep-boop");
+    assert.match(r.stdout, /turn-survival posture/, `dropping ${JSON.stringify(drop)} must trip the turn-survival check`);
+    assert.match(r.stdout, new RegExp(drop.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), "the missing phrase must be named");
+    assert.notEqual(r.status, 0);
+  }
 });
 
 test("FAFF-584: the real gateway's duplicate ## Routing has been deduped — no ambiguous-anchor WARN", () => {

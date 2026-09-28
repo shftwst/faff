@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-1147",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": null,
+    "pid": 1215637,
+    "started_at": "2026-09-28T03:08:57.461Z",
+    "last_heartbeat": "2026-09-28T03:08:57.461Z"
+  },
+  "machine_id": "e916e8a7a1787307129814170f5ecd35f73f152ecbef441a03501f694a0e5b14",
+  "heartbeating": false,
+  "claim_epoch": 0,
+  "claimed_at": "2026-09-28T03:08:57.783Z"
+}

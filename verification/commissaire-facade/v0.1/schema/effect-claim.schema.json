@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/effect-claim",
+  "title": "declare / observe claim (kind_of_entry: declare | observe)",
+  "description": "A producer's HMAC'd claim about an effect it intends (declare) or has caused (observe). Always author==producer, authenticated by producer_hmac. `declare` states intent before the act; `observe` records the act, and observe-minus-declare is what `effect reconcile` detects. Shape normative here; semantics in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "seq", "ts", "author", "producer_id", "contract_revision", "kind_of_entry", "issue", "step", "prev", "effect", "producer_hmac"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [3] },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer" },
+    "ts": { "type": "string" },
+    "author": { "type": "string", "enum": ["producer"] },
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "kind_of_entry": { "type": "string", "enum": ["declare", "observe"] },
+    "issue": { "type": "string" },
+    "step": { "type": "string" },
+    "prev": { "type": "string" },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "target"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] },
+        "target": { "type": "string" },
+        "reversible": { "type": "boolean" }
+      }
+    },
+    "producer_hmac": { "type": "string" }
+  }
+}

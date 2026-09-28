@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/effect-decision-request",
+  "title": "effect-decision-request (kind_of_entry: effect-decision-request)",
+  "description": "The producer's HMAC'd request for a signed decision on a protected effect — the first of the two records `effect authorize` appends. Always author==producer. The payload mirrors the stdin AuthorizeRequest fields; `declared_ref` and the policy inputs (`level`, `attended`, `holdout`, `evidence_seq`) are optional and recorded so a secret-free `audit verify` can replay the verdict. Shape normative here; semantics in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "seq", "ts", "author", "producer_id", "contract_revision", "kind_of_entry", "issue", "step", "prev", "payload", "producer_hmac"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [3] },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer" },
+    "ts": { "type": "string" },
+    "author": { "type": "string", "enum": ["producer"] },
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "kind_of_entry": { "type": "string", "enum": ["effect-decision-request"] },
+    "issue": { "type": "string" },
+    "step": { "type": "string" },
+    "prev": { "type": "string" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["effect"],
+      "properties": {
+        "effect": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["kind", "target"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] },
+            "target": { "type": "string" }
+          }
+        },
+        "declared_ref": { "description": "reference to the declare being authorized; null when unset (any type)" },
+        "evidence_seq": { "type": "integer", "description": "seq of the declare this authorization rests on (freshness input)" },
+        "level": { "type": "string", "description": "L1..L4 assurance-floor policy input" },
+        "attended": { "type": "boolean" },
+        "holdout": { "type": "string" }
+      }
+    },
+    "producer_hmac": { "type": "string" }
+  }
+}

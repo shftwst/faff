@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "run_id": "run-20260927-182054-graft-FAFF-1138",
+  "seq": 11,
+  "ts": "2026-09-27T18:35:04.939Z",
+  "author": "commissaire",
+  "producer_id": "run-20260927-182054-graft-FAFF-1138",
+  "contract_revision": "faff-runner-v1",
+  "kind_of_entry": "effect-decision-verdict",
+  "issue": "FAFF-1138",
+  "step": "pr-create",
+  "prev": "0c81cb945501c8adb56574a73970cc2bed7f67fb87c5c78a8f10363f21785285",
+  "payload": {
+    "request_seq": 10,
+    "verdict": "grant",
+    "reason": "all-legs-pass",
+    "effect": {
+      "kind": "pr-create",
+      "target": "main"
+    },
+    "level": "L2",
+    "attended": true,
+    "level_policy": {
+      "pass": true,
+      "reason": "attended"
+    },
+    "pure_verdict": "grant",
+    "pure_reason": "all-legs-pass"
+  },
+  "commissaire_sig": "lgI8JlNyDal9FdXv4T5jIC+q4IMvtwUM9t8zwnDpvFSNl89TPEQ4leuB5/gP+LdXkuWzKmwLSRsv4H6r7hbTAw=="
+}

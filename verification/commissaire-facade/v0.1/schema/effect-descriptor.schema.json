@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/effect-descriptor",
+  "title": "EffectDescriptor",
+  "description": "The {kind, target, reversible} shape naming a protected effect. Stdin to `effect declare` / `effect observe`; embedded as `effect` in declare/observe records and (kind+target only) in decision payloads. `kind` enum mirrors EFFECT_KINDS in bin/lib/effects.js; a given producer may only cause the subset in its own `admitted_scope`. `reversible` defaults to true when omitted (normEffect). Semantics live in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "target"],
+  "properties": {
+    "kind": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] },
+    "target": { "type": "string", "description": "what the effect acts on (branch, PR base, \"ISSUE:from->to\", ...)" },
+    "reversible": { "type": "boolean" }
+  }
+}

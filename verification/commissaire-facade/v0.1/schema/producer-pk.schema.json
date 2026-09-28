@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/producer-pk",
+  "title": "<run-dir>/commissaire/producer/pk.json",
+  "description": "The published governor public key `contract admit` writes into --producer-dir: the producer- and verifier-side pin. Fully public — safe to ship and commit. This is what secret-free `audit verify` replays commissaire decisions against. Shape normative here; semantics in ../keypair.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pk", "pk_fingerprint"],
+  "properties": {
+    "pk": { "type": "string", "description": "Ed25519 public key, PEM" },
+    "pk_fingerprint": { "type": "string", "description": "SHA-256 fingerprint of the public key" }
+  }
+}

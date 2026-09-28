@@ -898,6 +898,26 @@ function governanceCheckSelftest() {
       check("floor: no holdout artifact → pass-through at L3 too", evaluateMergeFloorLeg(tmp, "FAFF-4", "L3").pass === true);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
+  // FAFF-1147: the enriched schema-2 per-criterion cross-check flows through the SHARED readAcComplete
+  // import, so this governance-check consumer path (evaluateMergeFloorLeg) sees the same semantics as
+  // the live floor — a regression in the second consumer is not left untested (methodology note).
+  {
+    const tmp = mkTmpRunDir("faff-govcheck-ac-schema2-");
+    const writeAc = (issue, obj) => {
+      fs.mkdirSync(path.join(tmp, issue), { recursive: true });
+      fs.writeFileSync(path.join(tmp, issue, "ac-checklist.json"), JSON.stringify(obj));
+      fs.writeFileSync(path.join(tmp, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+    };
+    try {
+      writeAc("S2OK", { all_verified: true, criteria: [{ ac: "A", verified: "test x", passed: true }] });
+      check("gov floor: schema-2 all-passed criteria + review pass → pass (cross-check via shared reader)", evaluateMergeFloorLeg(tmp, "S2OK", "L3").pass === true);
+      writeAc("S2BAD", { all_verified: true, criteria: [{ ac: "A", verified: "Needs human verification: x", passed: false }] });
+      const r = evaluateMergeFloorLeg(tmp, "S2BAD", "L3");
+      check("gov floor: schema-2 aggregate-true but a criterion passed:false → fail (auditable, fail-closed)", r.pass === false && r.ac_complete === false);
+      writeAc("S1", { all_verified: true });
+      check("gov floor: schema-1 back-compat still passes through the consumer", evaluateMergeFloorLeg(tmp, "S1", "L3").pass === true);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
   // FAFF-1040: a fresh, caged, non-meets-spec holdout verdict is enforced (strict) — the leg BLOCKS,
   // exactly as the live floor does, at any level (proves the mirror gate no longer forks from it).
   {

@@ -574,11 +574,23 @@ function buildMergeFloorDigestVerify(runDir, issue, custodyPathArg, custodyShaAr
 
 // Read the AC-checklist artifact graft persists at <run-dir>/<ISSUE>/ac-checklist.json.
 // Missing/unreadable/malformed → false (fail-closed: an unverifiable AC leg never passes).
+// FAFF-1147: schema-2 enriches the artifact with an OPTIONAL per-criterion `criteria` array
+// ([{ ac, verified, passed }]). When present, cross-check it against the aggregate — the leg
+// grants only when the aggregate is true AND every listed criterion passed, so `all_verified`
+// is auditable rather than merely asserted. Schema-1 files (no `criteria` key) keep the
+// aggregate authoritative, unchanged. The cross-check can only ever tighten the gate
+// (fail-closed): an inconsistent schema-2 file (all_verified=true but a criterion passed=false)
+// now fails, and a non-array/empty `criteria` fails too.
 function readAcComplete(runDir, issue) {
-  try {
-    const j = JSON.parse(fs.readFileSync(path.join(runDir, issue, "ac-checklist.json"), "utf8"));
-    return j && (j.all_verified === true || j.ac_complete === true);
-  } catch { return false; }
+  let j;
+  try { j = JSON.parse(fs.readFileSync(path.join(runDir, issue, "ac-checklist.json"), "utf8")); }
+  catch { return false; }                                                // fail-closed
+  if (!j || typeof j !== "object") return false;
+  const aggregate = j.all_verified === true || j.ac_complete === true;   // schema-1 signal, unchanged
+  if (!("criteria" in j)) return aggregate;                              // schema-1 path
+  if (!Array.isArray(j.criteria)) return false;                          // malformed → fail-closed
+  const everyPassed = j.criteria.length > 0 && j.criteria.every((c) => c && c.passed === true);
+  return aggregate && everyPassed;                                       // cross-check
 }
 
 // Read + RE-VALIDATE the review-verdict block graft persists at <run-dir>/<ISSUE>/review-verdict.json
@@ -1953,6 +1965,36 @@ async function mergeGateSelftest() {
   check("holdoutIsFresh: non-finite holdout mtime → false", holdoutIsFresh(NaN, 100) === false);
   check("holdoutIsFresh: non-finite checkpoint time → false", holdoutIsFresh(200, NaN) === false);
   check("holdoutIsFresh: both non-finite → false", holdoutIsFresh(NaN, NaN) === false);
+  // FAFF-1147: readAcComplete — schema-1 back-compat + schema-2 per-criterion cross-check (real fs fixtures).
+  {
+    const acTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-ac-checklist-"));
+    const writeAc = (issue, obj) => {
+      fs.mkdirSync(path.join(acTmp, issue), { recursive: true });
+      fs.writeFileSync(path.join(acTmp, issue, "ac-checklist.json"), JSON.stringify(obj));
+    };
+    try {
+      writeAc("S1", { all_verified: true });
+      check("readAcComplete: schema-1 all_verified:true, no criteria → true (aggregate authoritative)", readAcComplete(acTmp, "S1") === true);
+      writeAc("S1F", { all_verified: false });
+      check("readAcComplete: schema-1 all_verified:false → false", readAcComplete(acTmp, "S1F") === false);
+      writeAc("LEGACY", { ac_complete: true });
+      check("readAcComplete: legacy schema-1 ac_complete:true → true (back-compat)", readAcComplete(acTmp, "LEGACY") === true);
+      writeAc("S2OK", { all_verified: true, criteria: [{ ac: "A", verified: "test x", passed: true }, { ac: "B", verified: "test y", passed: true }] });
+      check("readAcComplete: schema-2 all passed → true", readAcComplete(acTmp, "S2OK") === true);
+      writeAc("S2BAD", { all_verified: true, criteria: [{ ac: "A", verified: "test x", passed: true }, { ac: "B", verified: "Needs human verification: layout", passed: false }] });
+      check("readAcComplete: schema-2 aggregate-true but one criterion passed:false → false (auditable, fail-closed)", readAcComplete(acTmp, "S2BAD") === false);
+      writeAc("S2EMPTY", { all_verified: true, criteria: [] });
+      check("readAcComplete: schema-2 empty criteria array → false (fail-closed; a real zero-AC issue emits schema-1)", readAcComplete(acTmp, "S2EMPTY") === false);
+      writeAc("S2NOTARR", { all_verified: true, criteria: "oops" });
+      check("readAcComplete: schema-2 criteria not an array → false (malformed, fail-closed)", readAcComplete(acTmp, "S2NOTARR") === false);
+      writeAc("S2NOPASS", { all_verified: true, criteria: [{ ac: "A", verified: "x" }] });
+      check("readAcComplete: schema-2 criterion missing passed → false (missing passed => not-passed)", readAcComplete(acTmp, "S2NOPASS") === false);
+      check("readAcComplete: missing file → false (fail-closed)", readAcComplete(acTmp, "NOPE") === false);
+      fs.mkdirSync(path.join(acTmp, "MAL"), { recursive: true });
+      fs.writeFileSync(path.join(acTmp, "MAL", "ac-checklist.json"), "{not valid json");
+      check("readAcComplete: unparseable json → false (fail-closed)", readAcComplete(acTmp, "MAL") === false);
+    } finally { fs.rmSync(acTmp, { recursive: true, force: true }); }
+  }
   check("multi-blocker names all legs", F({ ac_complete: false, review_verdict: "fail" }).blockers.length === 2);
   // decideFloor integrity leg (FAFF-325): undefined (every pre-existing fixture above) is a no-op;
   // "violated" refuses at EVERY level, never level-graded; "unasserted-refuse" (the L4

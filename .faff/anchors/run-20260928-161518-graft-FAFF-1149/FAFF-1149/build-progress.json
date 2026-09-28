@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1149",
+  "build": {
+    "status": "complete",
+    "diff_hash": "fadce8b896e6167f0c28ed656db9b1c95c129b0f8abcd6917dfbccf65f0b38cf",
+    "branch": "faff-1149-gates-run-unit-false-fail-local",
+    "pushed_at": "2026-09-28T16:34:06.978Z"
+  },
+  "updated_at": "2026-09-28T16:34:06.978Z"
+}

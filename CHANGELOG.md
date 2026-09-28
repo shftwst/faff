@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.36.0](https://github.com/shftwst/faff/compare/faff--v0.35.0...faff--v0.36.0) (2026-09-28)
+
+
+### Features
+
+* **FAFF-1137:** bound sharded gate-ladder concurrency + harden two timing-fragile tests ([#969](https://github.com/shftwst/faff/issues/969)) ([304ae2e](https://github.com/shftwst/faff/commit/304ae2ec01038edc7a0ab2b429c27c19bc572d64))
+* **FAFF-1139:** make beep-boop prep-queue drain foreground-to-terminal ([#975](https://github.com/shftwst/faff/issues/975)) ([2084139](https://github.com/shftwst/faff/commit/2084139b5bdf1bf8c93583c17adc8a42b928221e))
+* **FAFF-1140:** fail closed on Commissaire admit failure for governance-required runs ([#974](https://github.com/shftwst/faff/issues/974)) ([32fd001](https://github.com/shftwst/faff/commit/32fd001fd8e3088ef84a45c72c3cf2c2c5f7abad))
+* **FAFF-1143:** stop surfacing automation eligibility in interactive skills ([#971](https://github.com/shftwst/faff/issues/971)) ([f8a7e3e](https://github.com/shftwst/faff/commit/f8a7e3ee20ce680e5c554c485e0ca2e3b4532bf4))
+* **FAFF-1146:** itemise review-verdict findings with severity/refutation/disposition/source/model ([#981](https://github.com/shftwst/faff/issues/981)) ([e65e03e](https://github.com/shftwst/faff/commit/e65e03e533fa7e52dab046d2497777b68b38ba44))
+* **FAFF-1147:** record each verified criterion in ac-checklist.json alongside all_verified ([#976](https://github.com/shftwst/faff/issues/976)) ([b5eeb81](https://github.com/shftwst/faff/commit/b5eeb813955041ac9775a8995d8d308c0dafd9aa))
+
+
+### Bug Fixes
+
+* **FAFF-1117:** skip the flaky commissaire-bare-claude test on the macOS lane ([#979](https://github.com/shftwst/faff/issues/979)) ([545edc9](https://github.com/shftwst/faff/commit/545edc94319d635802abbb32ca3b1b6b63907c5d))
+* **FAFF-1149:** stop the local gate ladder false-failing UNIT on scraped CI shell fragments ([#980](https://github.com/shftwst/faff/issues/980)) ([73333c0](https://github.com/shftwst/faff/commit/73333c004c4d74ec4084302573e953745f991378))
+
 ## [0.35.0](https://github.com/shftwst/faff/compare/faff--v0.34.0...faff--v0.35.0) (2026-09-27)
 
 

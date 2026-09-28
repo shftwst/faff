@@ -264,6 +264,18 @@ function readLedger(runDir) {
   return JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
 }
 
+// FAFF-1072/FAFF-1140: the shared "this run must be self-consistent / must be governed" run-fact
+// predicate — an UNATTENDED run merging in-session with NO dispatch cut above it to provide detective
+// custody. Pure: `unattended` is the attendedness fact the caller resolves (from the anchor level +
+// config, via sentry's shared abort-axis resolver); `dispatchState === "absent"` is the only blocking
+// case (a dispatched run is exempt, an indeterminate dispatch is refused upstream). It lives HERE, in
+// the dependency-free leaf, so both contract-defs (the merge floor) and commissaire (the run-start
+// admit-required gate) key on ONE definition without commissaire's import graph reaching an
+// orchestration module (the standalone-independence guard, FAFF-999).
+function requiresSelfConsistencyStamp(unattended, dispatchState) {
+  return !!unattended && dispatchState === "absent";
+}
+
 // Shared run-dir + ledger resolver (FAFF-425) — used by BOTH `budget check` and
 // `sentry check`. Key invariant: own-fault ≠ empty. A run whose ledger can't be
 // read (explicitly named and absent, or present-but-corrupt) is a FAULT — the
@@ -723,4 +735,4 @@ function runGovernedDispatch(label, handler, args) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

@@ -40,7 +40,7 @@ const ATTENTION_OUTCOMES = new Set(["parked", "errored", "unreached-budget", "pr
 // so it is PREFIX-matched; the rest are exact. A plain budget stop / queue-drained /
 // converged / all-remaining-parked is a configured quiet stop and raises nothing (its
 // undispatched issues, if any, already surface as unreached-budget issue items).
-const ESCALATE_STOP_EXACT = new Set(["non-convergence", "product-incomplete", "sentry-abort"]);
+const ESCALATE_STOP_EXACT = new Set(["non-convergence", "product-incomplete", "sentry-abort", "governance-admit-failed"]);
 function isEscalateStopReason(stopReason) {
   if (typeof stopReason !== "string") return false;
   if (stopReason.startsWith("budget-escalated")) return true;   // budget-escalated(<dims>)

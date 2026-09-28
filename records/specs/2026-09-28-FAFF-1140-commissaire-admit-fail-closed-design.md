@@ -42,7 +42,6 @@
 
 ## 2. OUT OF SCOPE
 
-- **Merge-floor distinguishability of ungoverned vs failed-admit runs.** — Excluded. **Why excluded:** the chosen decision refuses at run-start, so a required run with a failed admit never reaches the floor; the floor needs no change to satisfy this ticket. **Extension point:** `merge-gate.js:934-957` `resolveGrantByEffectKind` (a defence-in-depth "governance-required" run-start stamp is captured as an open question below, not built here).
 - **Full run-abort diagnosability (transcript + event richness).** — Excluded. **Why excluded:** aborted runs currently persist only ~3 events and no transcript; that gap is tracked on FAFF-1139. This ticket adds the *structured stop_reason token + andon event*, which is the in-scope diagnosable reason. **Extension point:** FAFF-1139 (assumed, see section 7).
 - **A new andon delivery class for "refuse".** — Excluded. **Why excluded:** `park` (reason: needs-human) is already default-delivered and carries a reason; a new class is unneeded surface. **Extension point:** `andon.js:48` `ANDON_CLASSES`.
 - **Changing the optional/interactive fail-open behaviour.** — Excluded by principle: it stays byte-for-byte as today. **Extension point:** n/a — explicitly preserved.
@@ -101,7 +100,7 @@ CONST STOP_GOVERNANCE_ADMIT_FAILED = "governance-admit-failed"
 - **Refuse mechanics:** **Chosen:** the fault-class precedent (§0a's harder branch) — exit non-zero, start nothing, `admitted: []`, `owner.status: "done"` + escalate `stop_reason`, andon pump — not the softer "surface and continue".
 - **Escalate token:** **Chosen:** `governance-admit-failed`, added to `ESCALATE_STOP_EXACT`.
 - **Andon class:** **Chosen:** a `park` event with `reason: needs-human` (default-delivered, carries a reason), not a new class.
-- **Defence-in-depth run-start governance-required stamp for the merge floor:** **Punt:** write a run-start marker so the floor can distinguish required-but-ungoverned from ordinary-ungoverned even if the run-start refuse is ever bypassed, or rely on the run-start refuse alone — needs human. `(decides: architecture)`
+- **Defence-in-depth run-start governance-required stamp for the merge floor:** **Chosen (operator-ratified 2026-09-28):** the governance-required run writes a run-start sentinel `<run_dir>/commissaire/governance-required.json` (`{governance_required:true}`), and `resolveGrantByEffectKind` fails closed ("absent-or-invalid") when the sentinel is present even with no schema:3 records — so a required-but-ungoverned run is caught at the floor even if the run-start refuse is ever bypassed. A run without the sentinel is unchanged (no new wedge).
 
 ---
 
@@ -264,7 +263,7 @@ Options: a new bespoke predicate; reuse `requiresSelfConsistencyStamp`.
 
 **Rejected alternative — hold every issue at the merge gate.** Building the run then blocking each merge wastes the whole build for a run that can never legally merge. Recorded rejected per the operator's option-1 decision; not the primary.
 
-**Rejected/deferred alternative — a merge-floor "governance-required" marker.** Stamping a run-start marker so `resolveGrantByEffectKind` could distinguish required-but-ungoverned from ordinary-ungoverned is defence-in-depth beyond the run-start refuse. Deferred as an open question (see section 7), not built here.
+**Adopted alternative — a merge-floor "governance-required" marker (operator-ratified 2026-09-28).** A run-start sentinel lets `resolveGrantByEffectKind` distinguish required-but-ungoverned from ordinary-ungoverned as defence-in-depth beyond the run-start refuse. Built alongside the refuse, not instead of it.
 
 ---
 
@@ -272,7 +271,7 @@ Options: a new bespoke predicate; reuse `requiresSelfConsistencyStamp`.
 
 **Open Questions.**
 
-- **Punt (decides: architecture):** should the run *also* write a run-start "governance-required" stamp the merge floor can read, as defence-in-depth in case the run-start refuse is ever bypassed (e.g. a resumed run, a future code path that skips the admit step)? The chosen decision refuses at run-start and needs no floor change; this is belt-and-braces only. A human/architect should weigh the added surface against the residual risk.
+- _None outstanding._ (The former defence-in-depth merge-floor stamp question was operator-ratified on 2026-09-28 and built — see §3 and §6.)
 
 **Assumptions.**
 

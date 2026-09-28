@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1146",
+  "build": {
+    "status": "complete",
+    "diff_hash": "89587f354862e3d747c7e69f6ba68546c26e856548df60910e3d885fbcbf5090",
+    "branch": "faff-1146-review-verdict-itemise-findings-with-severity-refutation",
+    "pushed_at": "2026-09-28T18:51:02.904Z"
+  },
+  "updated_at": "2026-09-28T18:51:02.904Z"
+}

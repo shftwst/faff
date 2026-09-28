@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "faff/contracts/review-verdict",
   "title": "review-verdict contract data",
-  "description": "Reference schema (FAFF-78). The SHAPE of the review-verdict contract data the merge gate branches on. Shape is normative here; the verdict SEMANTICS + the revert test live in the gateway (ADR 0001, Decision 4). Coercion target for a malformed verdict is `needs-human` (never `pass`).",
+  "description": "Reference schema (FAFF-78). The SHAPE of the review-verdict contract data the merge gate branches on. Shape is normative here; the verdict SEMANTICS + the revert test live in the gateway (ADR 0001, Decision 4). Coercion target for a malformed verdict is `needs-human` (never `pass`). FAFF-1146: each finding may additionally carry the OPTIONAL enrichment fields severity/disposition/source (enum-checked in the compute fn via violations — the spec-review-verdict lens/severity precedent) and refutation/model (free strings) — additive, never gating; a legacy {location_present, action_present}-only finding still validates because the enrichment fields are optional. The enum fields are plain strings here so an out-of-enum value is a soft violation (exit 1), never a schemaCheck fail-loud (exit 2).",
   "type": "object",
   "additionalProperties": false,
   "required": ["signal", "findings", "conformant", "violations"],
@@ -16,7 +16,13 @@
         "required": ["location_present", "action_present"],
         "properties": {
           "location_present": { "type": "boolean" },
-          "action_present": { "type": "boolean" }
+          "action_present": { "type": "boolean" },
+          "severity": { "type": "string" },
+          "refutation": { "type": "string" },
+          "disposition": { "type": "string" },
+          "disposition_rationale": { "type": "string" },
+          "source": { "type": "string" },
+          "model": { "type": "string" }
         }
       }
     },

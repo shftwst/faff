@@ -294,3 +294,25 @@ test("AC5e: a genuine per-file test failure (valid summary line, non-zero exit) 
   const result = run(files);
   assert.notEqual(result.code, 0, result.stdout);
 });
+
+// --- FAFF-1117: the heavy commissaire-bare-claude test is skipped on the macOS lane only ---
+
+test("FAFF-1117: commissaire-bare-claude.test.mjs is skipped on macOS, the other files still run, floors still clear", () => {
+  // makeSandbox pads to 8 total, so this is the skipped file plus 7 clean pad files (10 tests each
+  // = 70 >= the 50 test floor without the skipped file's contribution).
+  const files = [{ name: "commissaire-bare-claude.test.mjs", stdout: "TAP version 13\n# tests 43\n", exit: 0 }];
+  const result = run(files);
+  assert.equal(result.code, 0, result.stdout);
+  assert.match(
+    result.stdout,
+    /commissaire-bare-claude\.test\.mjs ===== SKIPPED on macOS \(FAFF-1117/,
+    result.stdout,
+  );
+  const argvLines = result.argv.trim().split("\n").filter(Boolean);
+  assert.ok(
+    !argvLines.some((l) => l.includes("commissaire-bare-claude.test.mjs")),
+    `the skipped file must never reach node's argv: ${result.argv}`,
+  );
+  assert.equal(argvLines.length, 7, "the 7 padded files run; the skipped file does not");
+  assert.deepEqual(annotationLines(result.stdout), [], "a clean run with the skip emits no error annotation");
+});

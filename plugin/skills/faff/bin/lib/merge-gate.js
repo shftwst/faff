@@ -1546,7 +1546,7 @@ function cmdMergeGate(args) {
   // identity fetch that already runs on every path — never a second gh call.
   const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,headRefName,state,url"]);
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
-  const headSha = hv.data.headRefOid;
+  let headSha = hv.data.headRefOid; // FAFF-1087: reassigned below when the stacked-dependency interlock's bounded rebase advances D's head
   const headRefName = hv.data.headRefName || null;
 
   // FAFF-784: custody validation runs BEFORE the existing integrity/AC/review/CI/holdout/head-sha

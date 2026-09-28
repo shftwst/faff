@@ -62,6 +62,13 @@ Every conformance claim in this directory inherits the posture stated in
 runs, budget breaches, tampered/missing floor artifacts — never a forging one. Signing
 and attestation are a separate trust layer, out of scope for this directory.
 
+That signing/attestation layer has its own sibling spec:
+[`verification/commissaire-facade/`](../commissaire-facade/) documents Commissaire's
+`schema:3` facade records — signature/HMAC-verified, forgery-resistant, and replayable
+secret-free via `commissaire audit verify` — for a reuser embedding Commissaire standalone.
+It holds the opposite posture to this directory and serves a different reader; the two
+cross-link rather than merge.
+
 ## Changelog
 
 - **v0.2 — 2026-07-24 (FAFF-601, documenting FAFF-568).** Adds the `chain-head.json`

@@ -574,11 +574,23 @@ function buildMergeFloorDigestVerify(runDir, issue, custodyPathArg, custodyShaAr
 
 // Read the AC-checklist artifact graft persists at <run-dir>/<ISSUE>/ac-checklist.json.
 // Missing/unreadable/malformed → false (fail-closed: an unverifiable AC leg never passes).
+// FAFF-1147: schema-2 enriches the artifact with an OPTIONAL per-criterion `criteria` array
+// ([{ ac, verified, passed }]). When present, cross-check it against the aggregate — the leg
+// grants only when the aggregate is true AND every listed criterion passed, so `all_verified`
+// is auditable rather than merely asserted. Schema-1 files (no `criteria` key) keep the
+// aggregate authoritative, unchanged. The cross-check can only ever tighten the gate
+// (fail-closed): an inconsistent schema-2 file (all_verified=true but a criterion passed=false)
+// now fails, and a non-array/empty `criteria` fails too.
 function readAcComplete(runDir, issue) {
-  try {
-    const j = JSON.parse(fs.readFileSync(path.join(runDir, issue, "ac-checklist.json"), "utf8"));
-    return j && (j.all_verified === true || j.ac_complete === true);
-  } catch { return false; }
+  let j;
+  try { j = JSON.parse(fs.readFileSync(path.join(runDir, issue, "ac-checklist.json"), "utf8")); }
+  catch { return false; }                                                // fail-closed
+  if (!j || typeof j !== "object") return false;
+  const aggregate = j.all_verified === true || j.ac_complete === true;   // schema-1 signal, unchanged
+  if (!("criteria" in j)) return aggregate;                              // schema-1 path
+  if (!Array.isArray(j.criteria)) return false;                          // malformed → fail-closed
+  const everyPassed = j.criteria.length > 0 && j.criteria.every((c) => c && c.passed === true);
+  return aggregate && everyPassed;                                       // cross-check
 }
 
 // Read + RE-VALIDATE the review-verdict block graft persists at <run-dir>/<ISSUE>/review-verdict.json
@@ -931,6 +943,19 @@ function observeMergeEffects(runDir, issue, effects) {
 // (the governor's signed intent). FAFF-1118: the verdict is selected by `payload.effect.kind`, not
 // merely the last step verdict, so a branch-delete verdict at step="merge" cannot shadow the merge
 // verdict — byte-identical to last-wins on a one-verdict-per-kind ledger.
+// FAFF-1140 — the run-start "governance-required" sentinel reader. A governance-required run whose
+// run-start Commissaire admit failed writes <run_dir>/commissaire/governance-required.json before it
+// refuses (belt-and-braces: the primary defence is the run-start refuse never reaching the floor).
+// Pure and total: absent, unreadable, or malformed => false (never throws) — an ordinary run without
+// the sentinel is byte-for-byte unaffected. TRUE only for the explicit `governance_required: true`
+// stamp, so a stray/partial file can never fail-closed a run that was never required to be governed.
+function governanceRequiredSentinelPresent(runDir) {
+  try {
+    const rec = JSON.parse(fs.readFileSync(path.join(runDir, "commissaire", "governance-required.json"), "utf8"));
+    return !!rec && rec.governance_required === true;
+  } catch { return false; }
+}
+
 function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
   let entries;
   try { entries = commissaireReadLedger(runDir); } catch { return "not-applicable"; }
@@ -942,7 +967,11 @@ function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
     // record ⇒ hasGovernanceContext) but produced NO verdict at this step is exactly the hole the
     // protocol exists to prevent — "absent-or-invalid" so the caller refuses BEFORE the effect.
     // An UNGOVERNED run (no schema:3 records at all) stays "not-applicable" ⇒ pass, byte-for-byte.
-    return commissaireHasGovernanceContext(runDir) ? "absent-or-invalid" : "not-applicable";
+    // FAFF-1140 — defence-in-depth: a run bearing the run-start governance-required sentinel (its
+    // admit failed on a required run) fails closed EVEN with no schema:3 records, in case the
+    // run-start refuse is ever bypassed. A run with neither context is unchanged (not-applicable).
+    return (commissaireHasGovernanceContext(runDir) || governanceRequiredSentinelPresent(runDir))
+      ? "absent-or-invalid" : "not-applicable";
   }
   const covering = verdicts.filter((v) => v.payload && v.payload.effect && v.payload.effect.kind === effectKind);
   const verdict = covering[covering.length - 1]; // the latest decision FOR THIS effect kind
@@ -1936,6 +1965,36 @@ async function mergeGateSelftest() {
   check("holdoutIsFresh: non-finite holdout mtime → false", holdoutIsFresh(NaN, 100) === false);
   check("holdoutIsFresh: non-finite checkpoint time → false", holdoutIsFresh(200, NaN) === false);
   check("holdoutIsFresh: both non-finite → false", holdoutIsFresh(NaN, NaN) === false);
+  // FAFF-1147: readAcComplete — schema-1 back-compat + schema-2 per-criterion cross-check (real fs fixtures).
+  {
+    const acTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-ac-checklist-"));
+    const writeAc = (issue, obj) => {
+      fs.mkdirSync(path.join(acTmp, issue), { recursive: true });
+      fs.writeFileSync(path.join(acTmp, issue, "ac-checklist.json"), JSON.stringify(obj));
+    };
+    try {
+      writeAc("S1", { all_verified: true });
+      check("readAcComplete: schema-1 all_verified:true, no criteria → true (aggregate authoritative)", readAcComplete(acTmp, "S1") === true);
+      writeAc("S1F", { all_verified: false });
+      check("readAcComplete: schema-1 all_verified:false → false", readAcComplete(acTmp, "S1F") === false);
+      writeAc("LEGACY", { ac_complete: true });
+      check("readAcComplete: legacy schema-1 ac_complete:true → true (back-compat)", readAcComplete(acTmp, "LEGACY") === true);
+      writeAc("S2OK", { all_verified: true, criteria: [{ ac: "A", verified: "test x", passed: true }, { ac: "B", verified: "test y", passed: true }] });
+      check("readAcComplete: schema-2 all passed → true", readAcComplete(acTmp, "S2OK") === true);
+      writeAc("S2BAD", { all_verified: true, criteria: [{ ac: "A", verified: "test x", passed: true }, { ac: "B", verified: "Needs human verification: layout", passed: false }] });
+      check("readAcComplete: schema-2 aggregate-true but one criterion passed:false → false (auditable, fail-closed)", readAcComplete(acTmp, "S2BAD") === false);
+      writeAc("S2EMPTY", { all_verified: true, criteria: [] });
+      check("readAcComplete: schema-2 empty criteria array → false (fail-closed; a real zero-AC issue emits schema-1)", readAcComplete(acTmp, "S2EMPTY") === false);
+      writeAc("S2NOTARR", { all_verified: true, criteria: "oops" });
+      check("readAcComplete: schema-2 criteria not an array → false (malformed, fail-closed)", readAcComplete(acTmp, "S2NOTARR") === false);
+      writeAc("S2NOPASS", { all_verified: true, criteria: [{ ac: "A", verified: "x" }] });
+      check("readAcComplete: schema-2 criterion missing passed → false (missing passed => not-passed)", readAcComplete(acTmp, "S2NOPASS") === false);
+      check("readAcComplete: missing file → false (fail-closed)", readAcComplete(acTmp, "NOPE") === false);
+      fs.mkdirSync(path.join(acTmp, "MAL"), { recursive: true });
+      fs.writeFileSync(path.join(acTmp, "MAL", "ac-checklist.json"), "{not valid json");
+      check("readAcComplete: unparseable json → false (fail-closed)", readAcComplete(acTmp, "MAL") === false);
+    } finally { fs.rmSync(acTmp, { recursive: true, force: true }); }
+  }
   check("multi-blocker names all legs", F({ ac_complete: false, review_verdict: "fail" }).blockers.length === 2);
   // decideFloor integrity leg (FAFF-325): undefined (every pre-existing fixture above) is a no-op;
   // "violated" refuses at EVERY level, never level-graded; "unasserted-refuse" (the L4
@@ -2783,4 +2842,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

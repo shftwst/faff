@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/facade-envelope",
+  "title": "declared-effects.jsonl schema:3 record — common envelope",
+  "description": "The fields every schema:3 facade record carries, before its verb-specific body. Shape is normative here; semantics live in ../records.md. Exactly one authenticator is present, keyed by `author`: `commissaire_sig` (Ed25519, iff author==commissaire) or `producer_hmac` (iff author==producer) — a constraint this Draft-2020-12 subset validator cannot express, stated in prose and enforced by `audit verify`. `effect` and `payload` are verb-specific and mutually optional here. Enums mirror KIND_AUTHOR in bin/lib/commissaire.js — never redefined.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "seq", "ts", "author", "producer_id", "contract_revision", "kind_of_entry", "issue", "step", "prev"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [3], "description": "schema:3 is canonical for governed records after the ADR-0122 cutover" },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer", "description": "0-based position in this run's hash chain; seq 0 is the admission" },
+    "ts": { "type": "string", "description": "ISO-8601 timestamp" },
+    "author": { "type": "string", "enum": ["commissaire", "producer"], "description": "who wrote the record; selects the authenticator field" },
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "kind_of_entry": { "type": "string", "enum": ["admission", "declare", "observe", "effect-decision-request", "effect-decision-verdict", "reconcile", "accepted_under_contract"], "description": "the stored record KIND (not the CLI action name); mirrors KIND_AUTHOR" },
+    "issue": { "type": "string", "description": "tracker id, or \"-\" on the admission" },
+    "step": { "type": "string", "description": "effect step key, e.g. \"merge\", \"pr-create\", \"admit\", \"conclude\"" },
+    "prev": { "type": "string", "description": "SHA-256 hash link over the prior record (chain integrity)" },
+    "effect": { "type": "object", "description": "verb-specific: present on declare/observe records" },
+    "payload": { "type": "object", "description": "verb-specific: present on admission / decision / conclude records" },
+    "commissaire_sig": { "type": "string", "description": "Base64 Ed25519 signature; present iff author==commissaire" },
+    "producer_hmac": { "type": "string", "description": "Hex HMAC under K_producer; present iff author==producer" }
+  }
+}

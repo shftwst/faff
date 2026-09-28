@@ -72,6 +72,29 @@ test("open → hook blocks the owning session; close → hook is silent (the str
   assert.equal(cleared.out.trim(), "", "no block payload after close");
 });
 
+// FAFF-1139 — the beep-boop prep-queue drain brackets each faff-prep dispatch with a
+// `--describe prep` marker (the prep-side twin of faff-prep:167's `--describe spec-review`).
+// inflightcheck is unchanged/consumed as-is; this is a keying regression guard that the prep
+// describe-token keys identically — an open prep marker blocks the owning session's turn-end,
+// carries describe:"prep", and clears on --close (a subsequent turn-end is not refused on that key).
+test("FAFF-1139: an open --describe prep marker blocks turn-end and clears on --close (prep keying guard)", () => {
+  const root = freshRoot();
+  assert.equal(run(["inflightcheck", "--open", "--key", "FAFF-1139", "--describe", "prep", "--root", root], S1).code, 0);
+  const mpath = findMarker(root, "FAFF-1139");
+  assert.ok(mpath, "prep marker written under the owner-scope");
+  assert.equal(JSON.parse(readFileSync(mpath, "utf8")).describe, "prep", "the prep describe-token is recorded on the marker");
+
+  const blocked = run(["inflightcheck", "--hook", "--root", root], S1);
+  assert.equal(blocked.code, 0);
+  const payload = JSON.parse(blocked.out.trim());
+  assert.equal(payload.decision, "block", "an open prep marker refuses turn-end for the owning session");
+  assert.match(payload.reason, /FAFF-1139/);
+
+  assert.equal(run(["inflightcheck", "--close", "--key", "FAFF-1139", "--root", root], S1).code, 0);
+  assert.equal(findMarker(root, "FAFF-1139"), null, "the prep marker is removed by --close");
+  assert.equal(run(["inflightcheck", "--hook", "--root", root], S1).out.trim(), "", "no block after the prep marker closes");
+});
+
 test("--close on an absent marker is idempotent (exit 0)", () => {
   const root = freshRoot();
   assert.equal(run(["inflightcheck", "--close", "--key", "NOPE-9", "--root", root], S1).code, 0);

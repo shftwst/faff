@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1144",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c428bf8f3e804c04102468ce1697b6559c3cda57660b00069646c852baabee59",
+    "branch": "faff-1144-commissaire-reuse-how-to",
+    "pushed_at": "2026-09-28T04:44:45.680Z"
+  },
+  "updated_at": "2026-09-28T04:44:45.680Z"
+}

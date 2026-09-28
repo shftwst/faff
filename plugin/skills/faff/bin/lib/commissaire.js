@@ -52,7 +52,13 @@ const {
 } = require("./producer-auth");
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
 const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes } = require("./effects");
-const { ENTRYPOINT, findRoot } = require("./shared-infra");
+const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp } = require("./shared-infra");
+// FAFF-1140 — the run-start `admit-required` read resolves `unattended` from the SAME shared abort-axis
+// resolver the sentry-poller uses (never a second definition), and the governance config the same way
+// the poller does. Both requires stay within the standalone-independence guard (sentry.js and budget.js
+// reach no orchestration module — proven by the FAFF-999 require-graph walk).
+const { resolveAbortAxisUnattended } = require("./sentry");
+const { readGovernanceConfig } = require("./budget");
 // FAFF-1000 — `audit seal`/`export` build and read the run-close recovery bundle IN-PROCESS via the
 // denylist-clean sealing core (never `faff bundle publish`, never `./bundle`, `./config`, or
 // `./contract-defs`, all of which reach the standalone-commissaire DENYLIST). This is the ONLY new
@@ -416,6 +422,7 @@ function usage() {
   process.stderr.write(
     "usage: faff commissaire <object> <action> ...  (ADR-0123 object-verb grammar; the flat verbs are retained aliases)\n" +
     "  contract admit    --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]   (alias: admit)\n" +
+    "  contract admit-required --run-dir DIR [--json]   (pure run-start read: {governance_required, unattended, dispatch_state}; exit 0 always; alias: admit-required)\n" +
     "  effect declare    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: declare)\n" +
     "  effect authorize  --run-dir DIR --producer ID --issue I --step S [--level L]   (stdin: {effect, evidence_seq?, level?, attended?, holdout?})   (alias: request-decision)\n" +
     "  effect observe    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
@@ -476,8 +483,18 @@ function cmdAdmit(flags) {
     return 2;
   }
   // Governor half: mint the keypair + master, hold SK + master in the governor dir only.
-  const kp = mintGovernorKeypair();
-  const masterSecret = require("node:crypto").randomBytes(32).toString("hex");
+  // FAFF-1140 — guard the mint: a crypto failure here must surface as a clean exit 4 (admit internal
+  // failure) with NOTHING written, never an unguarded throw the run-start prose cannot branch on. The
+  // guard wraps ONLY the mint — the first writeJson below is the earliest side-effect, so an exit 4
+  // leaves no partial governor.json. Exits 0/2/3 are unchanged.
+  let kp, masterSecret;
+  try {
+    kp = mintGovernorKeypair();
+    masterSecret = require("node:crypto").randomBytes(32).toString("hex");
+  } catch (e) {
+    process.stderr.write(`faff commissaire admit: keypair/master mint failed: ${e.message}\n`);
+    return 4;
+  }
   writeJson(governorFileOf(governorDir), { sk: kp.sk, pk: kp.pk, pk_fingerprint: kp.pk_fingerprint, master_secret: masterSecret });
   // Producer half: derive + deliver K_producer (never SK, never master); publish PK.
   const key = deriveKey(masterSecret, producerId, contractRevision);
@@ -494,6 +511,38 @@ function cmdAdmit(flags) {
   }, flags["--ts"]);
   const out = { admitted: true, producer_id: producerId, admitted_scope: scope, pk_fingerprint: kp.pk_fingerprint, governor_dir: governorDir, producer_dir: producerDir };
   console.log(JSON.stringify(out));
+  return 0;
+}
+
+// FAFF-1140 — `contract admit-required` (flat alias `admit-required`): the pure run-start projection
+// the fail-closed gate consults after a failed admit. It answers "was this run REQUIRED to be governed?"
+// so the orchestrator can refuse a required run rather than silently proceed ungoverned. Read-only,
+// total, exit 0 always — it writes nothing and never throws. `unattended` is resolved from the SAME
+// shared abort-axis resolver the sentry-poller uses (no second definition of unattended); `dispatch_state`
+// is "absent" (a self-drain run-start has no dispatch cut above it — the fail-closed default). A
+// malformed/unreadable ledger cannot prove the run optional, so it resolves fail-closed (unattended:true).
+function cmdAdmitRequired(flags) {
+  const runDir = flags["--run-dir"];
+  const dispatch_state = "absent";
+  let unattended;
+  let ledger = null;
+  try { ledger = readLedger(runDir); } catch { ledger = null; }
+  if (!ledger) {
+    unattended = true; // cannot prove optional ⇒ required (fail-closed)
+  } else {
+    let cfg = {};
+    let cfgFault = false;
+    try { cfg = readGovernanceConfig(findRoot(runDir)); } catch { cfg = {}; cfgFault = true; }
+    // An UNREADABLE config cannot prove the run optional: an L3 run declares its unattendedness in
+    // config (the fly-ci-l3-runner's autonomous.unattended:true), so a config that throws must
+    // fail-closed exactly like a malformed ledger, never silently resolve unattended:false. A readable
+    // config that simply lacks the key is legitimately optional (fail-open). L4 needs no config —
+    // resolveAbortAxisUnattended short-circuits on the ledger level before the config is consulted.
+    if (cfgFault && ledger.level !== "L4") unattended = true;
+    else unattended = resolveAbortAxisUnattended(ledger, cfg);
+  }
+  const governance_required = requiresSelfConsistencyStamp(unattended, dispatch_state);
+  console.log(JSON.stringify({ governance_required, unattended, dispatch_state }));
   return 0;
 }
 
@@ -790,6 +839,7 @@ const OBJECT_TOKENS = new Set(["contract", "effect", "verdict", "audit"]);
 // handler, wired in here so the unified resolver keeps it working; its body is untouched.
 const COMMISSAIRE_DISPATCH = {
   "contract admit": (flags) => cmdAdmit(flags),
+  "contract admit-required": (flags) => cmdAdmitRequired(flags), // FAFF-1140 — pure run-start governance-required read
   "effect declare": (flags) => cmdProducerLedger(flags, "declare", "declare"),
   "effect authorize": (flags) => cmdRequestDecision(flags),
   "effect observe": (flags) => cmdProducerLedger(flags, "observe", "observe"),
@@ -805,6 +855,7 @@ const COMMISSAIRE_DISPATCH = {
 // key: it resolves to one before dispatch, so there is exactly one handler per operation.
 const COMMISSAIRE_ALIASES = {
   "admit": "contract admit",
+  "admit-required": "contract admit-required", // FAFF-1140
   "declare": "effect declare",
   "request-decision": "effect authorize",
   "observe": "effect observe",
@@ -818,6 +869,7 @@ const COMMISSAIRE_ALIASES = {
 // (FAFF-978 removed the phantom `--producer` requirement; cmdReconcile gates on nothing else).
 const REQUIRED_FLAGS_BY_CANONICAL = {
   "contract admit": ["--producer", "--contract-revision"],
+  "contract admit-required": ["--run-dir"], // FAFF-1140
   "effect declare": ["--producer", "--issue", "--step"],
   "effect authorize": ["--producer", "--issue", "--step"],
   "effect observe": ["--producer", "--issue", "--step"],

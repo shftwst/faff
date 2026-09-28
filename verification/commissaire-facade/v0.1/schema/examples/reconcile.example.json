@@ -1,0 +1,18 @@
+{
+  "escapes": [
+    {
+      "signal": "escaped-side-effect",
+      "issue": "FAFF-DEMO",
+      "step": "push",
+      "escaped": [
+        {
+          "kind": "push",
+          "target": "escape-branch",
+          "reversible": true
+        }
+      ],
+      "event_seq": null
+    }
+  ],
+  "any_escape": true
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.1/reconcile",
+  "title": "reconcile detection output (`effect reconcile` stdout)",
+  "description": "The escape-detection object `effect reconcile` prints — the computeEscapes result (observed-minus-declared) in bin/lib/effects.js. IMPORTANT: unlike the other kinds, the shipped `effect reconcile` verb emits this to STDOUT and does NOT append a ledger record — no code path writes a `kind_of_entry: reconcile` line, though KIND_AUTHOR reserves that kind for the producer. A normal run produces no escape (`any_escape: false`, empty `escapes`); this example was generated under a forced escape. Shape normative here; semantics in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["escapes", "any_escape"],
+  "properties": {
+    "any_escape": { "type": "boolean", "description": "true iff at least one observed effect is uncovered by a declaration" },
+    "escapes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["signal", "issue", "step", "escaped", "event_seq"],
+        "properties": {
+          "signal": { "type": "string", "enum": ["escaped-side-effect"] },
+          "issue": { "type": "string" },
+          "step": { "type": "string" },
+          "escaped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "target"],
+              "properties": {
+                "kind": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] },
+                "target": { "type": "string" },
+                "reversible": { "type": "boolean" }
+              }
+            }
+          },
+          "event_seq": { "description": "the events.jsonl seq of the escape when known; null from the ledger-only reconcile path (any type)" }
+        }
+      }
+    }
+  }
+}

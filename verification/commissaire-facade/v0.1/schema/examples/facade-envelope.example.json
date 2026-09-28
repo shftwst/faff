@@ -1,0 +1,19 @@
+{
+  "schema": 3,
+  "run_id": "run-20260927-182054-graft-FAFF-1138",
+  "seq": 15,
+  "ts": "2026-09-27T21:12:25.038Z",
+  "author": "producer",
+  "producer_id": "run-20260927-182054-graft-FAFF-1138",
+  "contract_revision": "faff-runner-v1",
+  "kind_of_entry": "declare",
+  "issue": "FAFF-1138",
+  "step": "merge",
+  "prev": "9cfccaeff0dbb6bf4bbb00192a76880d002ff16913a4d26997f5df9d33f06733",
+  "effect": {
+    "kind": "merge",
+    "target": "main",
+    "reversible": true
+  },
+  "producer_hmac": "0dc1bdb6886ff77b1e7aa702dae6f361d911c1988f8fce12c450d3ca688e05d5"
+}

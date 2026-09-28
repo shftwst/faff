@@ -1,0 +1,23 @@
+{
+  "schema": 3,
+  "run_id": "run-20260927-182054-graft-FAFF-1138",
+  "seq": 10,
+  "ts": "2026-09-27T18:35:04.936Z",
+  "author": "producer",
+  "producer_id": "run-20260927-182054-graft-FAFF-1138",
+  "contract_revision": "faff-runner-v1",
+  "kind_of_entry": "effect-decision-request",
+  "issue": "FAFF-1138",
+  "step": "pr-create",
+  "prev": "a001c9f119c20819dffd2a04ee10b6f32f7a0e7165692f1a0ded8fd5ef49d04f",
+  "payload": {
+    "effect": {
+      "kind": "pr-create",
+      "target": "main"
+    },
+    "declared_ref": null,
+    "level": "L2",
+    "attended": true
+  },
+  "producer_hmac": "64e2e1b715ea2a7f9d02b9d2b71d67a21b04eb819d717afff828fd97aba314d9"
+}

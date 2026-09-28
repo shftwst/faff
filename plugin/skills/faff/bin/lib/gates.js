@@ -751,16 +751,50 @@ function osFamily(runsOn) {
   return null;
 }
 
+// FAFF-1149: a recognised portable UNIT test runner (the UNIT entries of CI_RUNNERS — node --test,
+// pytest, jest, vitest, mocha, ava, tap, go test, cargo test). Its result is OS-independent by
+// construction, so it survives an os-mismatch and runs on any dev host.
+function isPortableRunner(command) {
+  return ciRunnerKind(command) === "UNIT";
+}
+
+// FAFF-1149: a scraped `run:` body line that cannot be executed standalone in the worktree, so it
+// must never become a rung (excluded "not-runnable", never fail/errored). Reached only AFTER the
+// github-context check in exclusionReason, so cmd carries no ${{ }} / $GITHUB_ / $RUNNER_ token.
+// Three cases:
+//   (a) a comment-only line (trimmed starts with "#");
+//   (b) a reference to a shell variable ($NAME or ${NAME}) whose NAME is not a live process.env key
+//       (a workflow-local var like $f / ${test_timeout_ms}; an exported var like $HOME is runnable);
+//   (c) a bare control-operator fragment: a lone shell keyword (fi/done/then/else/do/esac), an
+//       assignment-only NAME=VALUE line, or a lone control operator (a trailing "&" with no command).
+function isNotRunnable(command) {
+  const cmd = String(command);
+  const trimmed = cmd.trim();
+  if (trimmed.startsWith("#")) return true;
+  for (const m of cmd.matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g)) {
+    const name = m[1] || m[2];
+    if (!Object.prototype.hasOwnProperty.call(process.env, name)) return true;
+  }
+  if (/^(fi|done|then|else|do|esac)$/.test(trimmed)) return true;
+  if (/^[A-Za-z_][A-Za-z0-9_]*=\S*$/.test(trimmed)) return true;
+  if (/^[&|;]+$/.test(trimmed)) return true;
+  return false;
+}
+
 // Why a recognised/candidate step is excluded from local execution, or null if runnable.
-// Precedence: configured > os-mismatch > github-context (any one excludes).
+// Precedence (FAFF-1149): configured > github-context > not-runnable > os-mismatch (any one
+// excludes). github-context stays AHEAD of not-runnable so ${{ }} / $GITHUB_ / $RUNNER_ keep their
+// existing reason and the existing selftests pass unchanged; a recognised portable UNIT runner
+// survives os-mismatch so the genuine cross-platform suite runs on any dev host.
 function exclusionReason(rec, cfg, localOsVal) {
   const cmd = String(rec.command);
   if (cfg.exclude.some((pat) => pat && cmd.includes(pat))) return "configured";
+  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(cmd)) return "github-context";
+  if (isNotRunnable(cmd)) return "not-runnable";
   if (rec.runs_on) {
     const fam = osFamily(rec.runs_on);
-    if (fam !== null && fam !== localOsVal) return "os-mismatch";
+    if (fam !== null && fam !== localOsVal && !isPortableRunner(cmd)) return "os-mismatch";
   }
-  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(cmd)) return "github-context";
   return null;
 }
 
@@ -1414,23 +1448,45 @@ async function gatesSelftest() {
   const aggEmpty = aggregateSelftest([{ kind: "LINT", command: "node --test", cost_rank: 25 }]);
   cases.push(["aggregate: no-op when no selftest rung present", aggEmpty.length === 1 && aggEmpty[0].command === "node --test"]);
 
-  // 27. exclusion reasons — precedence configured > os-mismatch > github-context; each excludes.
+  // 27. exclusion reasons — precedence configured > github-context > not-runnable > os-mismatch
+  // (FAFF-1149); each excludes. github-context stays AHEAD of not-runnable so ${{ }} / $GITHUB_ /
+  // $RUNNER_ keep their existing reason; a recognised portable UNIT runner bypasses os-mismatch.
   const exCfg = { exclude: ["regions selftest"], partial: "warn", max_rungs_per_kind: 5, partial_threshold: 0.5, fallback: "fail-closed" };
   cases.push(["exclude: github-context ${{ }}", exclusionReason({ command: "node --test ${{ matrix.x }}" }, exCfg, "linux") === "github-context"]);
   cases.push(["exclude: github-context $GITHUB_", exclusionReason({ command: "echo $GITHUB_SHA" }, exCfg, "linux") === "github-context"]);
-  cases.push(["exclude: os-mismatch macos on linux", exclusionReason({ command: "node --test", runs_on: "macos-latest" }, exCfg, "linux") === "os-mismatch"]);
+  // FAFF-1149: a recognised portable UNIT runner (node --test) bypasses os-mismatch — updated from
+  // the pre-1149 "os-mismatch" expectation so the genuine cross-platform suite runs on any host.
+  cases.push(["exclude: portable node --test bypasses os-mismatch (FAFF-1149)", exclusionReason({ command: "node --test", runs_on: "macos-latest" }, exCfg, "linux") === null]);
+  // Companion: a NON-portable OS-specific shell step (not a CI_RUNNERS UNIT runner) still os-mismatch.
+  cases.push(["exclude: non-portable OS-specific step still os-mismatch (FAFF-1149)", exclusionReason({ command: "sw_vers -productVersion", runs_on: "macos-latest" }, exCfg, "linux") === "os-mismatch"]);
   cases.push(["exclude: same-OS ubuntu on linux is runnable", exclusionReason({ command: "node --test", runs_on: "ubuntu-latest" }, exCfg, "linux") === null]);
   cases.push(["exclude: absent runs-on not excluded on OS grounds", exclusionReason({ command: "node --test" }, exCfg, "linux") === null]);
   cases.push(["exclude: matrix runs-on (unrecognised) not excluded", exclusionReason({ command: "node --test", runs_on: "${{ matrix.os }}" }, exCfg, "linux") === null]);
   cases.push(["exclude: configured substring match", exclusionReason({ command: "node bin/faff regions selftest --region factory" }, exCfg, "linux") === "configured"]);
   cases.push(["exclude: precedence configured beats os-mismatch", exclusionReason({ command: "regions selftest x", runs_on: "macos-latest" }, exCfg, "linux") === "configured"]);
 
-  // 28. os-mismatch subtracts the whole step from eligible_steps AND emits no rung.
-  const dMac = mk("macos", { ".github/workflows/mac.yml": "jobs:\n  impure-macos:\n    runs-on: macos-latest\n    steps:\n      - name: t\n        run: node --test\n  linux-job:\n    runs-on: ubuntu-latest\n    steps:\n      - name: adapters\n        run: node bin/faff validate-adapters\n" });
+  // 27b. FAFF-1149 — not-runnable exclusion (comment lines, undefined shell vars, bare fragments).
+  // The undefined-var leg is tested DETERMINISTICALLY: inject a known-present var and use a
+  // known-absent one, restored after — never relying on an ambient var like $HOME.
+  cases.push(["not-runnable: comment-only line", exclusionReason({ command: "# per-file loop over node --test" }, exCfg, "linux") === "not-runnable"]);
+  cases.push(["not-runnable: assignment-only bare fragment", exclusionReason({ command: "SHARD_TOTAL=4" }, exCfg, "linux") === "not-runnable"]);
+  const savedPresent = process.env.FAFF_TEST_PRESENT;
+  const savedAbsent = process.env.FAFF_TEST_ABSENT;
+  process.env.FAFF_TEST_PRESENT = "x";
+  delete process.env.FAFF_TEST_ABSENT;
+  cases.push(["not-runnable: reference to a var absent from process.env", exclusionReason({ command: "node --import ./test/hermetic-env.mjs --test \"$FAFF_TEST_ABSENT\"" }, exCfg, "linux") === "not-runnable"]);
+  cases.push(["not-runnable: a command referencing only a PRESENT env var is runnable", exclusionReason({ command: "echo $FAFF_TEST_PRESENT" }, exCfg, "linux") === null]);
+  if (savedPresent === undefined) delete process.env.FAFF_TEST_PRESENT; else process.env.FAFF_TEST_PRESENT = savedPresent;
+  if (savedAbsent === undefined) delete process.env.FAFF_TEST_ABSENT; else process.env.FAFF_TEST_ABSENT = savedAbsent;
+
+  // 28. FAFF-1149 — a portable UNIT runner (node --test) survives an OS mismatch as a runnable rung
+  // (updated from the pre-1149 "macos step excluded" expectation), while a NON-portable OS-specific
+  // step is still os-mismatch-excluded and logged. Two eligible steps now (the portable UNIT + LINT).
+  const dMac = mk("macos", { ".github/workflows/mac.yml": "jobs:\n  impure-macos:\n    runs-on: macos-latest\n    steps:\n      - name: t\n        run: node --test\n      - name: mac-only\n        run: sw_vers -productVersion\n  linux-job:\n    runs-on: ubuntu-latest\n    steps:\n      - name: adapters\n        run: node bin/faff validate-adapters\n" });
   const selMac = selectRunnableRungs(dMac, cfgDefault);
-  cases.push(["os-mismatch: macos step excluded, only the linux LINT rung runnable", selMac.rungs.filter((r) => r.kind === "UNIT").length === 0 && selMac.rungs.some((r) => r.kind === "LINT")]);
-  cases.push(["os-mismatch: macos step subtracted from eligible_steps (1 eligible, not 2)", selMac.coverage.eligible_steps === 1]);
-  cases.push(["os-mismatch: exclusion logged with reason", selMac.exclusions.some((e) => e.reason === "os-mismatch" && /node --test/.test(e.command))]);
+  cases.push(["os-mismatch: portable node --test survives OS mismatch as a UNIT rung (FAFF-1149)", selMac.rungs.filter((r) => r.kind === "UNIT").length === 1 && selMac.rungs.some((r) => r.kind === "LINT")]);
+  cases.push(["os-mismatch: portable UNIT step counts as eligible (2: node --test + validate-adapters)", selMac.coverage.eligible_steps === 2]);
+  cases.push(["os-mismatch: the non-portable mac-only step is excluded and logged os-mismatch", selMac.exclusions.some((e) => e.reason === "os-mismatch" && /sw_vers/.test(e.command))]);
 
   // 29. configured exclusion — a gates.exclude entry removes matching rungs; the rest still run.
   const dExc = mk("exc", {

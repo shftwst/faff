@@ -117,6 +117,55 @@ test("normaliseLocalRungCommand is a byte-identical no-op for a command without 
   assert.equal(normaliseLocalRungCommand("node plugin/skills/faff/bin/faff validate-adapters"), "node plugin/skills/faff/bin/faff validate-adapters");
 });
 
+// ---------------------------------------------------------------------------
+// FAFF-1149: the local gate ladder must not fabricate a non-green UNIT verdict from `validate-macos`
+// shell-loop fragments on a macOS dev host, and must let the genuine cross-platform `node --test`
+// suite (pinned to ubuntu in CI) run on any host. `test/gates-ci-source.test.mjs`'s real-repo
+// acceptance runs on the ubuntu unit lane, so the macOS selection path had no coverage — these two
+// cases close it by spoofing process.platform (macOS) and asserting the Linux path is unchanged.
+// ---------------------------------------------------------------------------
+
+test("FAFF-1149: on a macOS host the validate-macos fragments are excluded not-runnable and the portable node --test suite survives os-mismatch", () => {
+  const platformDesc = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", { value: "darwin" });
+  try {
+    const { rungs, exclusions } = selectRunnableRungs(repoRoot, readGatesConfig(repoRoot));
+    // No selected rung is a scraped shell fragment: never a comment line, never an undefined var.
+    assert.ok(rungs.every((r) => !r.command.trim().startsWith("#")), "no selected rung is a comment line");
+    assert.ok(rungs.every((r) => !/\$\{?[A-Za-z_]/.test(r.command)), `no selected rung references a shell var; got ${rungs.map((r) => r.command).join(" | ")}`);
+    // The three validate-macos per-file-loop fragments are excluded as not-runnable (two comment
+    // lines + the per-file `node --test-reporter=tap … ${test_timeout_ms}/$f/$filelog` invocation).
+    const notRunnable = exclusions.filter((e) => e.reason === "not-runnable");
+    assert.ok(notRunnable.some((e) => e.command.trim().startsWith("#")), "a comment fragment is excluded not-runnable");
+    assert.ok(notRunnable.some((e) => /--test-reporter=tap/.test(e.command)), "the per-file node --test fragment (undefined ${test_timeout_ms}/$f/$filelog) is excluded not-runnable");
+    // The genuine cross-platform suite survives os-mismatch as a portable UNIT runner and is selected.
+    const unit = rungs.filter((r) => r.kind === "UNIT");
+    assert.ok(unit.some((r) => r.command === "node --import ./test/hermetic-env.mjs --test"), `expected the portable whole-suite UNIT rung on macOS; got ${unit.map((r) => r.command).join(" | ")}`);
+  } finally {
+    Object.defineProperty(process, "platform", platformDesc);
+  }
+});
+
+test("FAFF-1149: on a Linux host the selected-rung set and discovery are unchanged (behaviour-relevant regression guard, not a per-reason exclusion count)", { skip: process.platform !== "linux" ? "linux-only regression guard" : false }, () => {
+  // The internal exclusion-reason accounting churns broadly and non-behaviourally (many comment /
+  // $var / fragment lines across all jobs move to not-runnable), so the guard asserts the SELECTED-
+  // RUNG SET + discovery classification — which together determine the ladder signal under the
+  // default gates.partial=warn policy — never a per-reason exclusion count (brittle by design).
+  const { rungs, discovery } = selectRunnableRungs(repoRoot, readGatesConfig(repoRoot));
+  const expected = [
+    "node plugin/skills/faff/bin/faff validate-adapters",
+    "node plugin/skills/faff/bin/faff lint-refs",
+    "node plugin/skills/faff/bin/faff lint-cli-doc",
+    "node plugin/skills/faff/bin/faff adr validate",
+    "node plugin/skills/faff/bin/faff prdr validate",
+    "node plugin/skills/faff/bin/faff regions check",
+    "node --import ./test/hermetic-env.mjs --test",
+    "node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs",
+  ].sort();
+  assert.deepEqual(rungs.map((r) => r.command).sort(), expected, "the Linux selected-rung set is unchanged by FAFF-1149");
+  assert.equal(discovery, "partial", "Linux runnable-coverage discovery stays partial (the ladder-signal determinant); the fix selects the same rungs");
+});
+
 test("the sharded validate.yml line becomes a RUNNABLE unsharded UNIT rung (not github-context-excluded)", () => {
   // discoverCiWorkflowsRunnable applies the exclusion filter: a raw `${{ matrix.shard }}` would be
   // dropped as github-context. After stripping --test-shard the command carries no `${{`, so it

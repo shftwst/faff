@@ -1,0 +1,6 @@
+{
+  "sk": "<REDACTED — Ed25519 PKCS8 PEM, governor custody only; not published>",
+  "pk": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAnHRbKB2d7JluiveMQ63PXWGKVpHbXZJCzQwuptmTIU8=\n-----END PUBLIC KEY-----\n",
+  "pk_fingerprint": "19dd46d704eb0f3ce592e739a9759935b4cd043b54528c3f2835455957c76b57",
+  "master_secret": "<REDACTED — hex HMAC master, governor custody only; not published>"
+}

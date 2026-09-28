@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1141",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3983876d2017651e41101288a4778074de2de51975475fb341e44708133e5d97",
+    "branch": "faff-1141-verify-run-evidence-guide",
+    "pushed_at": "2026-09-28T02:31:19.542Z"
+  },
+  "updated_at": "2026-09-28T02:31:19.542Z"
+}

@@ -124,13 +124,18 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 ````
 ```faff-contract:review-verdict
 { "signal": "<your verdict — faff contract review-verdict --describe>",
-  "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per finding you raised ] }
+  "findings": [ { "location_present": <bool>, "action_present": <bool>,
+                  "severity": "<critical|major|minor|observation, optional>",
+                  "disposition": "<fixed|refuted|accepted-risk|open, optional>",
+                  "source": "standard", "model": "<your reviewer handle, optional>" },
+               ... one per finding you raised ] }
 ```
 ````
 
 - **One** block, at the very end. `signal` is the same value as your `signal:` line. `findings` carries one entry per finding you raised, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`) — you raised the finding, so you know both directly.
+- **Optional per-finding enrichment (all optional — an un-enriched emit still validates):** `severity` ∈ {critical, major, minor, observation}, `disposition` ∈ {fixed, refuted, accepted-risk, open}, `source` (this single-model in-session pass sets `"standard"`), and `model` (your reviewer handle). This standard pass raises no `refutation`. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block — the floor branches only on `signal`.
 - the approving verdict may carry zero findings; the fixable-issues and human-judgement verdicts carry ≥1 (the contract script enforces this).
-- Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction is just `{ signal, findings }`.
+- Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction is `{ signal, findings }` (findings optionally enriched per above).
 - The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-graft reading your prose — the absent-block fallback.)
 
 ## Appetite integration

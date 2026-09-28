@@ -68,6 +68,19 @@ function contractSpecReadiness(extraction) {
 // --- review-verdict (FAFF-78) ---
 // Safe coerce target = `needs-human` (never `pass`) — review HAS a safe target, unlike
 // spec-readiness's fail-loud (FAFF-76 Decision 3). Fail-loud only on an unparseable extraction.
+// FAFF-1146: each finding may carry the OPTIONAL enrichment fields severity/disposition/source
+// (enum-checked via violations) plus refutation/model (free strings), covering both the standard
+// code-review pass and the adversarial second-opinion pass in one shared findings array. Additive
+// enrichment, never a re-gate — mirrors computeSpecReviewVerdict's FAFF-935/943 objection triple:
+// the enum fields add a soft violation (exit 1) on an out-of-enum value rather than a schemaCheck
+// fail-loud (exit 2), the {location_present, action_present} gating decision is byte-identical, and
+// a legacy {location_present, action_present}-only finding validates unchanged. severity reuses the
+// exact set faffter-dark-adversarial-review already emits (critical/major/minor/observation) so no
+// well-formed adversarial finding — including the auto-refutation downgrade and the clean-review
+// `observation` token — trips a spurious violation.
+const REVIEW_SEVERITIES = ["critical", "major", "minor", "observation"];
+const REVIEW_DISPOSITIONS = ["fixed", "refuted", "accepted-risk", "open"];
+const REVIEW_FINDING_SOURCES = ["standard", "adversarial"];
 function computeReviewVerdict(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
@@ -84,7 +97,27 @@ function computeReviewVerdict(extraction) {
     signal = "needs-human";
   }
   const raw = Array.isArray(extraction.findings) ? extraction.findings : [];
-  const findings = raw.map((f) => ({ location_present: !!(f && f.location_present), action_present: !!(f && f.action_present) }));
+  const findings = raw.map((f, i) => {
+    const obj = f && typeof f === "object" ? f : {};
+    const out = { location_present: !!obj.location_present, action_present: !!obj.action_present };
+    // FAFF-1146: enum-checked enrichment. A field is copied only when PRESENT: a valid value passes
+    // through, an out-of-enum value is preserved in string form (or "" if non-string) AND pushes a
+    // violation naming the finding index; an ABSENT field is omitted, never defaulted.
+    for (const [field, enumVals] of [["severity", REVIEW_SEVERITIES], ["disposition", REVIEW_DISPOSITIONS], ["source", REVIEW_FINDING_SOURCES]]) {
+      if (obj[field] !== undefined) {
+        if (typeof obj[field] === "string" && enumVals.includes(obj[field])) {
+          out[field] = obj[field];
+        } else {
+          out[field] = typeof obj[field] === "string" ? obj[field] : "";
+          violations.push(`finding[${i}] ${field} ${JSON.stringify(obj[field])} not in {${enumVals.join(",")}}`);
+        }
+      }
+    }
+    // FAFF-1146: free-string enrichment — copied only when present as a string, no enum, no violation.
+    if (typeof obj.refutation === "string") out.refutation = obj.refutation;
+    if (typeof obj.model === "string") out.model = obj.model;
+    return out;
+  });
   if ((signal === "fail" || signal === "needs-human") && findings.length === 0) {
     violations.push(`${signal} carries no findings`);
   }
@@ -2542,6 +2575,14 @@ const CONTRACTS = {
       { name: "unavailable-with-malformed-finding-still-flagged", in: { signal: "unavailable", findings: [{ location_present: false, action_present: false }] }, wantExit: 1 },
       { name: "needs-human-no-findings", in: { signal: "needs-human", findings: [] }, wantExit: 1 },
       { name: "coerce-malformed-signal", in: { signal: "maybe", findings: [{ location_present: true, action_present: true }] }, wantExit: 1 },
+      // FAFF-1146: enriched-finding cases (additive, non-gating). A legacy {location_present,
+      // action_present}-only finding stays covered by "conformant" above.
+      { name: "enriched-conformant-with-source", in: { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "major", refutation: "node --check passed on the cited file", disposition: "refuted", source: "adversarial", model: "gemini/gemini-2.0" }] }, wantExit: 0 },
+      { name: "adversarial-observation-open-conformant", in: { signal: "pass", findings: [{ location_present: true, action_present: true, severity: "observation", source: "adversarial", disposition: "open" }] }, wantExit: 0 },
+      { name: "out-of-enum-severity", in: { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "catastrophic" }] }, wantExit: 1 },
+      { name: "out-of-enum-disposition", in: { signal: "fail", findings: [{ location_present: true, action_present: true, disposition: "deferred" }] }, wantExit: 1 },
+      { name: "out-of-enum-source", in: { signal: "fail", findings: [{ location_present: true, action_present: true, source: "external" }] }, wantExit: 1 },
+      { name: "non-string-refutation-omitted", in: { signal: "fail", findings: [{ location_present: true, action_present: true, refutation: 42 }] }, wantExit: 0 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -3058,7 +3099,7 @@ const CONTRACT_DESCRIBES = {
     producer_notes: [],
   },
   "review-verdict": {
-    purpose: "The fixed four-value verdict every code-review pass (the `review` slot) emits — what faff-graft's Step 9 and the merge floor branch on.",
+    purpose: "The fixed four-value verdict every code-review pass (the `review` slot) emits — what faff-graft's Step 9 and the merge floor branch on. Each finding may additionally carry the optional enrichment fields severity/refutation/disposition/source/model (FAFF-1146), covering both the standard code-review pass and the adversarial second-opinion pass in one shared findings array.",
     values: [
       { field: "signal", enum: ["pass", "fail", "needs-human", "unavailable"], semantics: {
         pass: "diff matches spec, ACs covered, no flagged items — proceed to merge",
@@ -3066,9 +3107,16 @@ const CONTRACT_DESCRIBES = {
         "needs-human": "genuine human judgement required (product call, security/privacy concern, irreversible side effect, spec gap) — park, no auto-merge",
         unavailable: "no review verdict could be produced — a review-chain outage (provider down), not a verdict about the work; never treated as pass",
       } },
+      // FAFF-1146: severity/disposition/source are lintable:false — the reviewer producer WRITES
+      // these labels while itemising its own findings (a checklist dialect, like spec-review's
+      // lens/severity), not a routing verdict a consumer branches on. `signal` above stays lintable
+      // (the closed four-value routing enum every consumer pipes through `faff contract review-verdict`).
+      { field: "findings[].severity", enum: REVIEW_SEVERITIES, lintable: false, semantics: { critical: "a severe defect", major: "a significant defect", minor: "a small defect", observation: "a non-defect note (also the adversarial pass's clean-review token and its auto-refutation downgrade)" } },
+      { field: "findings[].disposition", enum: REVIEW_DISPOSITIONS, lintable: false, semantics: { fixed: "the finding was addressed in the diff", refuted: "the finding was challenged and shown to be a non-defect", "accepted-risk": "the finding is valid but accepted as a known risk", open: "undecided at verdict-emit time (the durable disposition record is graft Step 9's terminal comment)" } },
+      { field: "findings[].source", enum: REVIEW_FINDING_SOURCES, lintable: false, semantics: { standard: "raised by the primary code-review pass", adversarial: "raised by the adversarial second-opinion pass (a structurally different model)" } },
     ],
-    coercions: ["an out-of-enum signal → coerced to needs-human (never pass) — a malformed verdict never reads as a green light", "a fail/needs-human signal with zero findings → conformant:false (exit 1)"],
-    producer_notes: ["the producer never self-reports `unavailable` — that signal is the orchestrator's own outage detection (FAFF-405), not something a reviewer LLM emits about its own run"],
+    coercions: ["an out-of-enum signal → coerced to needs-human (never pass) — a malformed verdict never reads as a green light", "a fail/needs-human signal with zero findings → conformant:false (exit 1)", "an out-of-enum finding severity/disposition/source → conformant:false (exit 1, not fail-loud — an echoed bad value on an additive soft field, the value preserved verbatim); the merge floor still branches only on `signal`, so it never blocks or escalates the merge"],
+    producer_notes: ["the producer never self-reports `unavailable` — that signal is the orchestrator's own outage detection (FAFF-405), not something a reviewer LLM emits about its own run", "refutation and model are optional free strings (no enum, no violation); `model` is the harness-authored `<provider>/<model>` attribution copied from review-call.mjs's attributionHeader, never a self-named model"],
   },
   "delivery-outcome": {
     purpose: "The fixed three-value outcome the `ship` producer emits after attempting to merge/deploy — what faff-graft routes the caller-facing return on.",

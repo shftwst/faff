@@ -13,7 +13,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { HERE } = require("./shared-infra");
+const { HERE, requiresSelfConsistencyStamp } = require("./shared-infra");
 const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engine");
 const { parseArgs, usageError } = require("./argv");
 const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 }, "--describe": { arity: 0 }, "--json": { arity: 0 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
@@ -2260,16 +2260,12 @@ const FLOOR_INTEGRITY = ["asserted", "custody-trusted", "unasserted-ok", "unasse
 // present-but-broken boundary (indeterminate — refused upstream by evaluateCustody before the
 // floor is folded, so it never reaches the predicate below as a merge-floor pass).
 const DISPATCH_STATES = ["dispatched", "absent", "indeterminate"];
-// FAFF-1072: the shared predicate the interactive custody stamp AND the merge-floor branch-6
-// consumer both key on — replacing the old `level === "L4"` activation with the run facts the
-// stamp actually protects: an UNATTENDED run merging in-session with NO dispatch cut above it to
-// provide detective custody. Pure: `unattended` is the attendedness fact (computed by the caller
-// from the committed anchor level + config, never here); `dispatchState` is the Fact-C value
-// above. A dispatched run is exempt (detective custody owns it); an indeterminate dispatch is
-// refused upstream (evaluateCustody), so `=== "absent"` is the only case that blocks.
-function requiresSelfConsistencyStamp(unattended, dispatchState) {
-  return !!unattended && dispatchState === "absent";
-}
+// FAFF-1072/FAFF-1140: `requiresSelfConsistencyStamp` — the shared "must be self-consistent / must be
+// governed" run-fact predicate the interactive custody stamp AND the merge-floor branch-6 consumer key
+// on. Its single definition was relocated to shared-infra (the dependency-free leaf) so commissaire's
+// run-start admit-required gate can key on the SAME function without its import graph reaching an
+// orchestration module (the standalone-independence guard). Imported above and re-exported here for
+// the existing consumers (merge-gate, resolveGateLevel below) unchanged.
 // FAFF-1040: the code-blind holdout guarantee's binding merge-floor posture, resolved from the
 // CAPABILITY facts alone — never the L-level label and never a config opt-in. "strict" blocks on a
 // non-meets-spec holdout; "pass-through" (a capability was legitimately absent, labelled) never blocks.

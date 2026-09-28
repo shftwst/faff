@@ -931,6 +931,19 @@ function observeMergeEffects(runDir, issue, effects) {
 // (the governor's signed intent). FAFF-1118: the verdict is selected by `payload.effect.kind`, not
 // merely the last step verdict, so a branch-delete verdict at step="merge" cannot shadow the merge
 // verdict — byte-identical to last-wins on a one-verdict-per-kind ledger.
+// FAFF-1140 — the run-start "governance-required" sentinel reader. A governance-required run whose
+// run-start Commissaire admit failed writes <run_dir>/commissaire/governance-required.json before it
+// refuses (belt-and-braces: the primary defence is the run-start refuse never reaching the floor).
+// Pure and total: absent, unreadable, or malformed => false (never throws) — an ordinary run without
+// the sentinel is byte-for-byte unaffected. TRUE only for the explicit `governance_required: true`
+// stamp, so a stray/partial file can never fail-closed a run that was never required to be governed.
+function governanceRequiredSentinelPresent(runDir) {
+  try {
+    const rec = JSON.parse(fs.readFileSync(path.join(runDir, "commissaire", "governance-required.json"), "utf8"));
+    return !!rec && rec.governance_required === true;
+  } catch { return false; }
+}
+
 function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
   let entries;
   try { entries = commissaireReadLedger(runDir); } catch { return "not-applicable"; }
@@ -942,7 +955,11 @@ function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
     // record ⇒ hasGovernanceContext) but produced NO verdict at this step is exactly the hole the
     // protocol exists to prevent — "absent-or-invalid" so the caller refuses BEFORE the effect.
     // An UNGOVERNED run (no schema:3 records at all) stays "not-applicable" ⇒ pass, byte-for-byte.
-    return commissaireHasGovernanceContext(runDir) ? "absent-or-invalid" : "not-applicable";
+    // FAFF-1140 — defence-in-depth: a run bearing the run-start governance-required sentinel (its
+    // admit failed on a required run) fails closed EVEN with no schema:3 records, in case the
+    // run-start refuse is ever bypassed. A run with neither context is unchanged (not-applicable).
+    return (commissaireHasGovernanceContext(runDir) || governanceRequiredSentinelPresent(runDir))
+      ? "absent-or-invalid" : "not-applicable";
   }
   const covering = verdicts.filter((v) => v.payload && v.payload.effect && v.payload.effect.kind === effectKind);
   const verdict = covering[covering.length - 1]; // the latest decision FOR THIS effect kind
@@ -2783,4 +2800,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

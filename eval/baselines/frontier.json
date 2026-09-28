@@ -1,10 +1,10 @@
 {
   "meta": {
-    "captured_at": "2026-08-16",
+    "captured_at": "2026-09-28",
     "driver": "frontier",
     "model": "claude-opus-4-8",
     "base_reps": 20,
-    "source": "scoped --update-baseline --kind — refreshed refutation-spec, resolved-elsewhere, roadmap, routing, shaping, spec-verdict, specqual, splittable, stale, superseded, vague, verdict-revert; 17 prior kind(s) retained"
+    "source": "scoped --update-baseline --kind — refreshed park-reconsider-classification, prd-readiness, prdr-yagni; 29 prior kind(s) retained"
   },
   "per_kind": {
     "adr-drift": {
@@ -148,6 +148,21 @@
       "format_adherence": 1
     },
     "verdict-revert": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "park-reconsider-classification": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "prd-readiness": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "prdr-yagni": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1

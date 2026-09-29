@@ -527,9 +527,17 @@ test("FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merge
 
 test("FAFF-731 fanRefutationSpec errors the rep when a lens produces unparseable output (never a silent drop)", () => {
   const c = { id: "rs-bad", kind: "refutation-spec", question: "Refute.", fixture: { spec: "S" } };
-  const spawnFn = () => ({ stdout: "this is not refuter markdown, no ### sections", status: 0 });
+  const badStdout = "this is not refuter markdown, no ### sections";
+  const spawnFn = () => ({ stdout: badStdout, status: 0 });
   const systemDir = join(DEFAULT_PLUGIN_DIR, "skills", "faffter-dark-spec-review");
   assert.throws(() => fanRefutationSpec(c, { spawnFn, systemDir, opts: {}, cfgDir: "/tmp/x" }), /unparseable/);
+  // FAFF-1153 — the thrown error carries the failing lens's raw stdout so runCase records it on the
+  // errored rep instead of a blind null; assert both the lens tag and the actual output are present.
+  assert.throws(() => fanRefutationSpec(c, { spawnFn, systemDir, opts: {}, cfgDir: "/tmp/x" }), (e) => {
+    assert.ok(typeof e.rawOutput === "string" && e.rawOutput.includes(badStdout), "rawOutput carries the failing lens stdout");
+    assert.match(e.rawOutput, /lens=architectural/);
+    return true;
+  });
 });
 
 test("FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings", () => {

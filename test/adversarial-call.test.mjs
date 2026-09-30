@@ -1822,7 +1822,7 @@ test("FAFF-746 normaliseCleanRefutation: clean-like ambiguity remains byte-ident
     "", "## Refutation — architectural\nNo QA objection.",
     "No architectural objection", "no architectural objection.",
     "No architectural objections.", "**No architectural objection.**",
-    "No performance objection.", "No architectural objection.\nAdditional prose.",
+    "No performance objection.",
     "## Refutation — unknown\nNo architectural objection.",
   ];
   for (const content of rejected) {
@@ -1884,14 +1884,11 @@ test("FAFF-942 normaliseCleanRefutation: the findings-shaped observation the ref
 
 test("FAFF-942 normaliseCleanRefutation: the new 3-line grammar stays CLOSED (negative cases)", () => {
   const rejected = [
-    // a trailing 4th line past the recognised no-op: the affirmation is no longer the final line
-    "## Refutation — methodology\nno methodology signal available.\nNo methodology objection.\nAnd one more thing.",
-    // 2-line signal-only form (no objection sentence): the final line is not a canonical affirmation at all
+    // 2-line signal-only form (no objection sentence): no line is a canonical affirmation at all
     "## Refutation — methodology\nno methodology signal available.",
-    // the objection sentence with unrelated trailing prose (the pre-existing openness guard): the
-    // affirmation is not the final line
-    "No methodology objection.\nAdditional prose.",
   ];
+  // FAFF-1154: the former "trailing 4th line" and "affirmation + Additional prose." negatives now
+  // FLIP to clean (guard-clean trailing prose is tolerated) — they are asserted positive below.
   for (const content of rejected) {
     assert.deepEqual(
       normaliseCleanRefutation(content),
@@ -2163,9 +2160,43 @@ test("FAFF-1053 normaliseCleanRefutation: a severity-shaped preamble line still 
   );
 });
 
-test("FAFF-1053 normaliseCleanRefutation: the affirmation must be the FINAL non-blank line — a mid-body affirmation followed by more prose does not normalise", () => {
+test("FAFF-1154 normaliseCleanRefutation: a clean affirmation followed by reconsideration musing normalises (no finding section emitted = no objection)", () => {
+  // Pre-FAFF-1154 this was rejected because the affirmation had to be the FINAL non-blank line. The
+  // trailing musing carries no finding section (no `### <severity>:`), so structurally no objection
+  // was emitted — it is guard-clean trailing prose, not a safety call, and classifies clean.
   const content = "No architectural objection.\nActually, let me reconsider that once more.";
-  assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null });
+  assert.deepEqual(normaliseCleanRefutation(content), { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "architectural", form: "bare" });
+});
+
+test("FAFF-1154 normaliseCleanRefutation: guard-clean trailing prose after the affirmation normalises across all four forms", () => {
+  const cases = [
+    { content: "No architectural objection.\nAdditional prose.", lens: "architectural", form: "bare" },
+    { content: "## Refutation — QA\nNo QA objection.\nI checked the diff and found nothing to raise.", lens: "QA", form: "headed" },
+    { content: "## Refutation — methodology\nno methodology signal available.\nNo methodology objection.\nAnd one more thing.", lens: "methodology", form: "headed+signal" },
+    { content: "## Second opinion\nNo infosec objection.\nEverything looks fine.", lens: "infosec", form: "header-wrapped" },
+  ];
+  for (const { content, lens, form } of cases) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content: CANONICAL_NO_FINDINGS, normalised: true, lens, form },
+      JSON.stringify(content),
+    );
+  }
+});
+
+test("FAFF-1154 normaliseCleanRefutation: a genuine finding or wrong-lens heading AFTER the affirmation still rejects (trailing-segment guard, level-agnostic)", () => {
+  const rejected = [
+    "No QA objection.\n### major: a real finding",                              // canonical 3-hash severity after the affirmation
+    "No QA objection.\n## Critical: a concern stated after the affirmation",     // level-agnostic 2-hash severity after the affirmation
+    "No architectural objection.\n## Refutation — QA",                          // a dangling/wrong-lens namespace heading after the affirmation
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      JSON.stringify(content),
+    );
+  }
 });
 
 test("FAFF-1053 normaliseCleanRefutation: a genuinely malformed preambled body (no canonical affirmation anywhere) still classifies malformed", () => {

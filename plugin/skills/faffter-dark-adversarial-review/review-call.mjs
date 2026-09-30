@@ -699,7 +699,8 @@ export const TRUNCATION_SIGNAL = "[faff:truncated]";
 // FAFF-942: a lens may carry an optional `signal` — a lens-specific no-signal diagnostic line the
 // refuter emits alongside its no-objection sentence. Only methodology has one (the no-critique case).
 // It extends the closed grammar by exactly one recognised three-line `heading` + `signal` + `sentence`
-// form; every substantive byte stays exact, so arbitrary trailing prose is still rejected.
+// form; every substantive byte stays exact. Guard-clean prose AFTER the affirmation is tolerated
+// (FAFF-1154), but a genuine finding or a wrong-lens heading after it still rejects.
 export const CLEAN_REFUTATIONS = Object.freeze([
   Object.freeze({ lens: "architectural", heading: "## Refutation — architectural", sentence: "No architectural objection." }),
   Object.freeze({ lens: "infosec", heading: "## Refutation — infosec", sentence: "No infosec objection." }),
@@ -744,17 +745,22 @@ function isDecorativeHeader(line) {
 // FAFF-1053: a reasoning backend can stream its visible deliberation into the content channel before
 // emitting the canonical affirmation, so the whole-body, exact-line-count premise above (every arm
 // gated on `lines.length === 1/2/3`) fails any body with a preamble and falls through to `malformed`,
-// discarding a correct no-findings verdict on POSITION rather than content. Fixed by matching the
-// TAIL of the body instead of the whole body: the affirmation must be the final non-blank line, and
-// the line(s) directly above it (if any) decide the form via the same per-entry/decorative logic the
-// whole-body arms used, tried most-specific-first (`headed+signal` → `headed` → `header-wrapped`/
-// `bare`) so no no-preamble body relabels. A heading directly above the affirmation that is neither
-// this entry's own heading nor a decorative header (a wrong-lens `## Refutation —` namespace hit or a
-// severity-worded heading) stays rejected exactly as the whole-body `headed` arm did — never silently
-// falls through to `bare`. Finally, a preamble severity guard (`SEVERITY_LIKE_HEADING_RE` over every
-// line before the matched tail segment) stops a body that ALSO carries a genuine finding from being
-// swallowed as clean — the whole-body premise made this hazard impossible for free (a body with a
-// finding could never be 1–3 lines); tail matching removes that free guard, so it is re-added here.
+// discarding a correct no-findings verdict on POSITION rather than content. Fixed by matching a
+// SEGMENT of the body instead of the whole body: the line(s) directly above the affirmation decide
+// the form via the same per-entry/decorative logic the whole-body arms used, tried most-specific-first
+// (`headed+signal` → `headed` → `header-wrapped`/`bare`) so no no-preamble body relabels. A heading
+// directly above the affirmation that is neither this entry's own heading nor a decorative header (a
+// wrong-lens `## Refutation —` namespace hit or a severity-worded heading) stays rejected exactly as
+// the whole-body `headed` arm did — never silently falls through to `bare`.
+//
+// FAFF-1154: the affirmation need no longer be the final non-blank line — it is located as the last
+// line equal to an affirmation sentence, and guard-clean prose may follow it. Two guards keep clean
+// meaning clean, one on each side of the affirmation: a preamble severity guard
+// (`SEVERITY_LIKE_HEADING_RE` over every line before the matched segment) and a trailing-segment guard
+// (`SEVERITY_LIKE_HEADING_RE`/`REFUTATION_NAMESPACE_RE` over every line after the affirmation) stop a
+// body that ALSO carries a genuine finding or a wrong-lens heading from being swallowed as clean — the
+// whole-body premise made this hazard impossible for free (a body with a finding could never be 1–3
+// lines); segment matching removes that free guard, so both directions are re-added here.
 export function normaliseCleanRefutation(content) {
   const original = String(content == null ? "" : content);
   const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
@@ -762,24 +768,46 @@ export function normaliseCleanRefutation(content) {
     return { content: original, normalised: false, lens: null, form: null };
   }
 
-  const lastIdx = lines.length - 1;
-  const last = lines[lastIdx];
-  const above1 = lastIdx - 1 >= 0 ? lines[lastIdx - 1] : null;
-  const above2 = lastIdx - 2 >= 0 ? lines[lastIdx - 2] : null;
-
-  const entry = CLEAN_REFUTATIONS.find((e) => e.sentence === last);
+  // FAFF-1154: locate the affirmation as the LAST line that exactly equals an affirmation sentence,
+  // not merely the final non-blank line, so guard-clean explanatory prose after the affirmation no
+  // longer pushes recognition off the tail. Scan from the end (last-affirmation-wins keeps the
+  // existing stacked-sentence tie-break); when the affirmation IS the final line — the common case —
+  // the trailing segment below is empty and the path is byte-identical to the previous behaviour.
+  let affirmationIdx = -1;
+  let entry = null;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const candidate = CLEAN_REFUTATIONS.find((e) => e.sentence === lines[i]);
+    if (candidate) {
+      affirmationIdx = i;
+      entry = candidate;
+      break;
+    }
+  }
   if (!entry) {
     return { content: original, normalised: false, lens: null, form: null };
   }
+
+  // Trailing-segment guard (the bidirectional twin of the preamble severity guard below): a genuine
+  // finding (`### <severity>:`, level-agnostic) or a wrong-lens/dangling `## Refutation —` heading
+  // AFTER the affirmation must never be swallowed by rewriting the body to clean. Fails toward
+  // rejection, matching the preamble scan's stance applied past the affirmation instead of before it.
+  for (let i = affirmationIdx + 1; i < lines.length; i++) {
+    if (SEVERITY_LIKE_HEADING_RE.test(lines[i]) || REFUTATION_NAMESPACE_RE.test(lines[i])) {
+      return { content: original, normalised: false, lens: null, form: null };
+    }
+  }
+
+  const above1 = affirmationIdx - 1 >= 0 ? lines[affirmationIdx - 1] : null;
+  const above2 = affirmationIdx - 2 >= 0 ? lines[affirmationIdx - 2] : null;
 
   let form;
   let start; // index of the tail segment's first line — everything before it is preamble
   if (entry.signal != null && above1 === entry.signal && above2 === entry.heading) {
     form = "headed+signal";
-    start = lastIdx - 2;
+    start = affirmationIdx - 2;
   } else if (above1 === entry.heading) {
     form = "headed";
-    start = lastIdx - 1;
+    start = affirmationIdx - 1;
   } else if (above1 != null && ATX_HEADING_RE.test(above1)) {
     // A heading sits directly above the affirmation but is NOT this lens's own heading: either a
     // decorative wrapper (accept as header-wrapped) or a namespace/severity heading (a wrong-lens
@@ -787,13 +815,13 @@ export function normaliseCleanRefutation(content) {
     // fall through to bare, with or without preceding preamble).
     if (isDecorativeHeader(above1)) {
       form = "header-wrapped";
-      start = lastIdx - 1;
+      start = affirmationIdx - 1;
     } else {
       return { content: original, normalised: false, lens: null, form: null };
     }
   } else {
     form = "bare";
-    start = lastIdx;
+    start = affirmationIdx;
   }
 
   // Preamble severity guard (clean means clean): a real `### <severity>:`-shaped finding anywhere

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1154",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0a64092ce826bb910637a85cfc18076e5289b5cf4c614d7a424bb6f49dae6fb4",
+    "branch": "faff-1154-clean-pass-refutation-is-dropped-as-an-error-when-the",
+    "pushed_at": "2026-09-30T13:12:22.260Z"
+  },
+  "updated_at": "2026-09-30T13:12:22.260Z"
+}

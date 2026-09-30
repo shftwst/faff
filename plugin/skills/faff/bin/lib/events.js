@@ -1506,7 +1506,11 @@ function mintIssueAnchor(runDir, issue, destDir) {
   // landing-progress.json (FAFF-846's per-issue fix-cycle counter), so it rides the anchor's
   // existing generic byte-copy into the `anchors` bundle member and is restorable after a
   // Phase-0 recovery (bundle-recover.js's reconstructProjection copies it back out).
-  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "holdout.json", "build-progress.json", "landing-progress.json"];
+  // FAFF-1157: spec-review-verdict.json rides the same best-effort byte-copy — the anchored
+  // spec-review evidence (objections + dispositions). Best-effort, never required: it is legitimately
+  // absent for a clean first-round approve, a git-only spec without the block, or an outage-resumed
+  // path, so it is NOT added to the FAFF-1155 floor-incomplete required guard.
+  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json", "holdout.json", "build-progress.json", "landing-progress.json"];
   const issueDir = path.join(runDir, issue);
   const copiedFloorFiles = [];
   for (const f of optionalFloorFiles) {
@@ -2008,7 +2012,19 @@ function eventsSelftest() {
           && fs.readFileSync(path.join(dest2, "review-verdict.json"), "utf8") === fs.readFileSync(path.join(src, "FAFF-1", "review-verdict.json"), "utf8"));
         vcheck("anchor: holdout.json/build-progress.json absent below L4 → not copied (no error)",
           !fs.existsSync(path.join(dest2, "holdout.json")) && !fs.existsSync(path.join(dest2, "build-progress.json")));
+        // FAFF-1157: spec-review-verdict.json legitimately absent → anchor minted unchanged, not copied.
+        vcheck("anchor: spec-review-verdict.json absent → not copied, anchor still minted (exit 0)",
+          !fs.existsSync(path.join(dest2, "spec-review-verdict.json")));
         fs.rmSync(dest2, { recursive: true, force: true });
+
+        // FAFF-1157: spec-review-verdict.json present alongside the required floor → best-effort copied verbatim.
+        const dest2b = mkDir();
+        fs.writeFileSync(path.join(src, "FAFF-1", "spec-review-verdict.json"), JSON.stringify({ verdict: "revise", objections: [{ lens: "architectural", severity: "major", disposition: "fixed" }] }));
+        rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest2b]);
+        vcheck("anchor: spec-review-verdict.json present → exit 0, copied verbatim into the anchor", rc === 0
+          && fs.readFileSync(path.join(dest2b, "spec-review-verdict.json"), "utf8") === fs.readFileSync(path.join(src, "FAFF-1", "spec-review-verdict.json"), "utf8"));
+        fs.rmSync(path.join(src, "FAFF-1", "spec-review-verdict.json"));
+        fs.rmSync(dest2b, { recursive: true, force: true });
 
         // L4: add holdout.json + build-progress.json too — all four copy.
         const dest3 = mkDir();

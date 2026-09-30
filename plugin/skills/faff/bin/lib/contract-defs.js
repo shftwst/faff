@@ -499,6 +499,21 @@ function computeSpecReviewVerdict(extraction) {
       for (const field of ["claim", "evidence", "predicted_consequence", "spec_anchor"]) {
         if (typeof o[field] === "string") out[field] = o[field];
       }
+      // FAFF-1157: the objection carries how it was ultimately resolved, mirroring FAFF-1146's
+      // review-verdict finding triple exactly — enum-checked `disposition` (out-of-enum → soft
+      // violation naming the objection index, preserved verbatim; absent → omitted), plus the free
+      // strings `refutation` / `disposition_rationale` (preserve-when-present, no enum, no violation).
+      // Additive, never a re-gate: the {lens, severity} gating decision is byte-identical.
+      if (o.disposition !== undefined) {
+        if (typeof o.disposition === "string" && REVIEW_DISPOSITIONS.includes(o.disposition)) {
+          out.disposition = o.disposition;
+        } else {
+          out.disposition = typeof o.disposition === "string" ? o.disposition : "";
+          violations.push(`objection[${i}] disposition ${JSON.stringify(o.disposition)} not in {${REVIEW_DISPOSITIONS.join(",")}}`);
+        }
+      }
+      if (typeof o.refutation === "string") out.refutation = o.refutation;
+      if (typeof o.disposition_rationale === "string") out.disposition_rationale = o.disposition_rationale;
     }
     return out;
   });
@@ -2869,6 +2884,15 @@ const CONTRACTS = {
       { name: "conformant-anchor-only", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", spec_anchor: "phase-2-revised" }] }, wantExit: 0 },
       { name: "conformant-anchor-empty-string", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", spec_anchor: "" }] }, wantExit: 0 },
       { name: "conformant-anchor-non-string-dropped", in: { verdict: "revise", objections: [{ lens: "infosec", severity: "major", claim: "auth bypass", spec_anchor: 42 }] }, wantExit: 0 },
+      // FAFF-1157: the OPTIONAL resolution triple {disposition (enum), refutation, disposition_rationale}
+      // mirrors FAFF-1146's review-verdict finding enrichment — a disposition-bearing objection is
+      // conformant, an out-of-enum disposition is a soft violation (exit 1, value preserved), and the
+      // free strings add no violation. A legacy {lens, severity}-only objection still validates (above).
+      { name: "conformant-disposition-fixed", in: { verdict: "revise", objections: [{ lens: "architectural", severity: "major", disposition: "fixed" }] }, wantExit: 0 },
+      { name: "conformant-disposition-triple", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", disposition: "refuted", refutation: "the objection did not hold", disposition_rationale: "the spec already covered it" }] }, wantExit: 0 },
+      { name: "conformant-disposition-accepted-risk", in: { verdict: "reject-approach", objections: [{ lens: "infosec", severity: "blocker", disposition: "accepted-risk", disposition_rationale: "accepted as a known risk" }] }, wantExit: 0 },
+      { name: "conformant-disposition-rationale-non-string-dropped", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", disposition: "fixed", disposition_rationale: 42 }] }, wantExit: 0 },
+      { name: "out-of-enum-disposition", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor", disposition: "bogus" }] }, wantExit: 1 },
       { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
@@ -3383,9 +3407,13 @@ const CONTRACT_DESCRIBES = {
       // routing enum every consumer pipes through `faff contract spec-review-verdict`).
       { field: "objections[].lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
       { field: "objections[].severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },
+      // FAFF-1157: the objection's resolution, mirroring review-verdict's findings[].disposition
+      // (FAFF-1146) by reference — enum-checked, lintable:false (provenance the objection carries,
+      // not a routing verdict a consumer branches on).
+      { field: "objections[].disposition", enum: REVIEW_DISPOSITIONS, lintable: false, semantics: { fixed: "the objection was addressed by a spec revision", refuted: "the objection was challenged and shown not to hold", "accepted-risk": "the objection is valid but accepted as a known risk", open: "undecided at evidence-persist time (not emitted on the cleared-gate path this feature persists on)" } },
     ],
-    coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "approve declared with any objections, or a non-approve verdict declared with zero objections → conformant:false", "an out-of-enum objection lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
-    producer_notes: [],
+    coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "approve declared with any objections, or a non-approve verdict declared with zero objections → conformant:false", "an out-of-enum objection lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)", "an out-of-enum objection disposition → conformant:false (exit 1, not fail-loud — an echoed bad value on an additive soft field, the value preserved verbatim); this contract is audit-only evidence, so it gates no merge"],
+    producer_notes: ["refutation and disposition_rationale are optional free strings on an objection (no enum, no violation); `disposition_rationale` is the reasoning behind the disposition. FAFF-1157 persists these as anchored evidence at prep's terminal review seam — they are populated only on the judge path (which produces a correction/AFFIRM rationale); the refuter revise-loop path stamps `disposition:\"fixed\"` mechanically with no free text"],
   },
   "spec-judge-verdict": {
     purpose: "The spec-review judge's per-proposition ruling at the would-be-park point (FAFF-930): for ONE atomic disputed proposition, in the closed four-outcome vocabulary. Admission is the deterministic admit roll-up over the resolved ledger, never asserted by the judge.",

@@ -114,6 +114,7 @@ const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = require("./lib/spec-judg
 const { cmdBuildReviewChurn } = require("./lib/build-review-churn");
 const { cmdBuildReviewConvergence } = require("./lib/build-review-convergence");
 const { cmdBuildJudgeEvidence } = require("./lib/build-judge-evidence");
+const { cmdSpecReview } = require("./lib/spec-review");
 const { cmdSpecReviewChurn } = require("./lib/spec-review-churn");
 const { cmdSpecReviewConvergence } = require("./lib/spec-review-convergence");
 const { cmdSpecReviewIterationCap } = require("./lib/spec-review-iteration-cap");
@@ -270,6 +271,7 @@ const COMMANDS = {
   "build-review-churn": cmdBuildReviewChurn,
   "build-review-convergence": cmdBuildReviewConvergence,
   "build-judge-evidence": cmdBuildJudgeEvidence,
+  "spec-review": cmdSpecReview,
   "spec-review-churn": cmdSpecReviewChurn,
   "spec-review-convergence": cmdSpecReviewConvergence,
   "spec-review-iteration-cap": cmdSpecReviewIterationCap,

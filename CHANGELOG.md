@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.37.0](https://github.com/shftwst/faff/compare/faff--v0.36.0...faff--v0.37.0) (2026-09-30)
+
+
+### Features
+
+* **FAFF-1155:** require ac-checklist + review-verdict at the per-PR anchor ([#984](https://github.com/shftwst/faff/issues/984)) ([b0af3dd](https://github.com/shftwst/faff/commit/b0af3dde141c558ad23061ffbb3476b82329cbec))
+* **FAFF-1156:** validate a single PRD via faff prd validate &lt;container&gt; ([#986](https://github.com/shftwst/faff/issues/986)) ([0a4a42f](https://github.com/shftwst/faff/commit/0a4a42f2c646c02e363a3956eb4d8db17cc5f036))
+* **FAFF-1157:** persist + anchor spec-review evidence (dispositions/refutations) ([#987](https://github.com/shftwst/faff/issues/987)) ([31ad46c](https://github.com/shftwst/faff/commit/31ad46cac6bd592fc8337e8a048db65f0169b2ed))
+
 ## [0.36.0](https://github.com/shftwst/faff/compare/faff--v0.35.0...faff--v0.36.0) (2026-09-28)
 
 

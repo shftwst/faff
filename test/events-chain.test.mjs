@@ -266,9 +266,19 @@ test("integration smoke: 5 CLI appends + a --tokens ledger write + a hand-edit n
 // as legacy, pass under the default policy) and the forged torn tail (tamper the
 // last record + truncate its newline so the heuristic skips it).
 
+// FAFF-1155: a per-PR `events anchor` requires ac-checklist.json + review-verdict.json under
+// <runDir>/<issue>/ (a valid-genesis run reaching Step 9b always carries them). Seed both so an
+// exit-0 anchor exercises the real Step-9b shape.
+function seedFloor(runDir, issue = "A-1") {
+  mkdirSync(join(runDir, issue), { recursive: true });
+  writeFileSync(join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+  writeFileSync(join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+}
+
 function buildAnchoredChain(prefix, runId, count = 3) {
   const { root, runDir, log } = mkRoot(prefix, runId);
   for (let i = 0; i < count; i++) appendRecordUnderLock(runDir, mkMinter(runId));
+  seedFloor(runDir);
   const dest = join(root, "anchor");
   const r = run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "A-1", "--dest", dest]);
   assert.equal(r.code, 0, r.err);
@@ -311,6 +321,7 @@ test("genuine torn tail anchored as-is: the witness corroborates it — verified
   try {
     for (let i = 0; i < 2; i++) appendRecordUnderLock(runDir, mkMinter("RUN-TORN"));
     appendFileSyncTorn(join(runDir, "events.jsonl"));
+    seedFloor(runDir);   // FAFF-1155: torn TAIL (intact seq-0 genesis) is a VALID genesis, so the floor guard applies
     const dest = join(root, "anchor");
     const a = run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "A-1", "--dest", dest]);
     assert.equal(a.code, 0, a.err);

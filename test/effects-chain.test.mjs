@@ -143,6 +143,15 @@ test("legacy schema-1 effects ledger classifies legacy-unverifiable; a mixed log
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// FAFF-1155: a per-PR `events anchor` over a valid genesis requires ac-checklist.json +
+// review-verdict.json under <runDir>/<issue>/. Seed both so an exit-0 anchor exercises the real
+// Step-9b shape.
+function seedFloor(runDir, issue = "FAFF-1") {
+  mkdirSync(join(runDir, issue), { recursive: true });
+  writeFileSync(join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+  writeFileSync(join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+}
+
 // --- Scenario: anchor byte-copies the ledger + writes the witness; witness-absent gates ---
 test("faff events anchor: an anchored run carrying declared-effects.jsonl gets a byte-identical copy + effects-chain-head.json; deleting the witness fails closed as an anchor", () => {
   const { root, runDir } = mkRoot("effects-anchor-", "RUN-A");
@@ -150,6 +159,7 @@ test("faff events anchor: an anchored run carrying declared-effects.jsonl gets a
     // Both ledgers present (anchor requires events.jsonl; effects is the new addition).
     run(root, ["events", "append", "--run", "RUN-A", "--ts", "t"], JSON.stringify({ phase: "run", type: "run-start" }));
     appendEffectEntries(runDir, "declare", "FAFF-1", "build", [{ kind: "merge", target: "a" }, { kind: "deploy", target: "b" }], "t");
+    seedFloor(runDir);
     const dest = join(root, "anchor");
     const a = run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "FAFF-1", "--dest", dest]);
     assert.equal(a.code, 0, a.err);
@@ -170,6 +180,7 @@ test("anchor: a run with NO declared-effects.jsonl copies no effects ledger and 
   const { root, runDir } = mkRoot("effects-anchor-absent-", "RUN-A2");
   try {
     run(root, ["events", "append", "--run", "RUN-A2", "--ts", "t"], JSON.stringify({ phase: "run", type: "run-start" }));
+    seedFloor(runDir);
     const dest = join(root, "anchor");
     assert.equal(run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "FAFF-1", "--dest", dest]).code, 0);
     assert.ok(!existsSync(join(dest, "declared-effects.jsonl")), "no effects ledger copied");
@@ -202,6 +213,7 @@ test("integration smoke: 3 declares + 2 observes → 5 schema-2 lines seq 0..4, 
     // Restore + anchor.
     lines[2] = lines[2].replace('"target":"Z"', '"target":"c"');
     writeFileSync(ledger, lines.join("\n"));
+    seedFloor(runDir);
     const dest = join(root, "anchor");
     assert.equal(run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "FAFF-1", "--dest", dest]).code, 0);
     assert.ok(existsSync(join(dest, "declared-effects.jsonl")) && existsSync(join(dest, "effects-chain-head.json")));

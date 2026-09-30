@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -77,6 +77,11 @@ test("evidence-spec: v0.2 chain-head example is reproducible from a fresh `faff 
   // chain (anchor never re-verifies at anchor time, only computes the head).
   genesis.prev = createHash("sha256").update(runId, "utf8").digest("hex");
   writeFileSync(join(src, "events.jsonl"), JSON.stringify(genesis) + "\n");
+  // FAFF-1155: a per-PR anchor over a valid genesis requires ac-checklist.json + review-verdict.json
+  // under <run-dir>/<issue>/ — seed both so the anchor reaches the head-compute path under test.
+  mkdirSync(join(src, "FAFF-TEST"), { recursive: true });
+  writeFileSync(join(src, "FAFF-TEST", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+  writeFileSync(join(src, "FAFF-TEST", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
 
   const r = spawnSync(process.execPath, [BIN, "events", "anchor", "--run-dir", src, "--issue", "FAFF-TEST", "--dest", dest], { encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout + r.stderr);

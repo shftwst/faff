@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1155",
+  "build": {
+    "status": "complete",
+    "diff_hash": "48efbf296559cae1a85b1580859d42af550d0b6156cb2bb30316dc6684b2d9a8",
+    "branch": "faff-1155-make-ac-checklist-review-verdict-required-at-the-per-pr",
+    "pushed_at": "2026-09-30T03:09:58.281Z"
+  },
+  "updated_at": "2026-09-30T03:09:58.281Z"
+}

@@ -131,6 +131,50 @@ test("validate: a body line starting 'PRD:' does NOT false-trigger the collision
   rmSync(root, { recursive: true, force: true });
 });
 
+// FAFF-1156 — validate a single specified PRD via an optional <container> positional.
+test("validate <container>: a valid target exits 0 and names just that PRD, ignoring an invalid sibling", () => {
+  const root = tmpRepo({ "alpha.md": validPrd("Alpha"), "beta.md": "# PRD — Beta\n\n- **Container:** Beta\n- **Date:** 2026-06-26\n\n## Problem\nx\n" });
+  const r = run(["validate", "alpha", "--root", root]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /OK — PRD alpha valid\./);
+  assert.doesNotMatch(r.stdout, /beta/, "the invalid sibling must not appear");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate <container>: an invalid target exits 1 with only that PRD's problems", () => {
+  const root = tmpRepo({ "alpha.md": validPrd("Alpha"), "beta.md": "# PRD — Beta\n\n- **Container:** Beta\n- **Date:** 2026-06-26\n\n## Problem\nx\n" });
+  const r = run(["validate", "beta", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /beta\.md: missing Status field/);
+  assert.doesNotMatch(r.stdout, /alpha/, "the valid sibling must not appear");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate <unknown-container>: exits 2 with a fail-loud stderr message", () => {
+  const root = tmpRepo({ "alpha.md": validPrd("Alpha") });
+  const r = run(["validate", "ghost", "--root", root]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /faff prd validate: no PRD found for ghost/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate <container> --strict: applies the born-verifiable form-check to that one PRD", () => {
+  const root = tmpRepo({ "alpha.md": validPrd("Alpha") });   // Draft, loose prose body — no ## Acceptance criteria
+  assert.equal(run(["validate", "alpha", "--root", root]).status, 0, "lenient single-target passes");
+  const r = run(["validate", "alpha", "--strict", "--root", root]);
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stdout, /alpha\.md:/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate with no positional is unchanged — whole-dir sweep still catches an invalid PRD (regression)", () => {
+  const root = tmpRepo({ "alpha.md": validPrd("Alpha"), "beta.md": "# PRD — Beta\n\n- **Container:** Beta\n- **Date:** 2026-06-26\n\n## Problem\nx\n" });
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /beta\.md: missing Status field/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the real repo tree validates clean (or has no docs/prd yet)", () => {
   const r = run(["validate"]);
   assert.equal(r.status, 0, r.stdout);

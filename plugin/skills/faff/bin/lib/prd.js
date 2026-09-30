@@ -132,7 +132,9 @@ function prdStrictCheck(prdText) {
 // have well-formed born-verifiable stop-conditions). Draft/Active/Stale stay lenient unless --strict.
 function prdValidate(dir, opts) {
   const strict = !!(opts && opts.strict);
-  const prds = listPrds(dir);
+  // FAFF-1156: an optional `only` slug scopes validation to one PRD; null/absent = whole-dir (unchanged).
+  const only = (opts && opts.only) || null;
+  const prds = only ? listPrds(dir).filter((p) => p.slug === only) : listPrds(dir);
   const problems = [];
   for (const p of prds) {
     const text = fs.readFileSync(path.join(dir, p.file), "utf8");
@@ -184,6 +186,17 @@ function cmdPrd(args) {
 
   if (action === "validate") {
     const strict = args.includes("--strict");
+    // FAFF-1156: no positional → whole-dir sweep (byte-for-byte today's). A container positional
+    // scopes validation to that one PRD, resolved the same way the `path` verb resolves it.
+    if (container) {
+      const slug = prdSlug(container);
+      const full = path.join(dir, slug + ".md");
+      if (!fs.existsSync(full)) { process.stderr.write(`faff prd validate: no PRD found for ${container}\n`); return 2; }
+      const problems = prdValidate(dir, { strict, only: slug });
+      if (!problems.length) { console.log(`OK — PRD ${slug} valid${strict ? " (strict: born-verifiable)" : ""}.`); return 0; }
+      for (const p of problems) console.log(`FAIL  ${p}`);
+      return 1;
+    }
     const problems = prdValidate(dir, { strict });
     if (!problems.length) { console.log(`OK — ${listPrds(dir).length} PRD(s) in ${path.relative(root, dir) || dir} valid${strict ? " (strict: born-verifiable)" : ""}.`); return 0; }
     for (const p of problems) console.log(`FAIL  ${p}`);
@@ -238,6 +251,14 @@ function prdSelftest() {
   t("new file listed", list1.length === 1 && list1[0].slug === "alpha-project");
   t("template metadata parsed", list1[0].container === "Alpha Project" && list1[0].status === "Draft" && list1[0].mode === "authored");
   t("validate clean", prdValidate(dir).length === 0);
+
+  // FAFF-1156: the `only` slug filter isolates one PRD's problems from the whole-dir sweep.
+  fs.writeFileSync(path.join(dir, "only-bad.md"), "# PRD — OnlyBad\n\n- **Container:** OnlyBad\n- **Date:** 2026-06-26\n\n## Problem\nx\n"); // missing Status
+  t("only filter: whole-dir sees the invalid sibling", prdValidate(dir).some((p) => /^only-bad\.md: missing Status/.test(p)));
+  t("only filter: valid target reports no problems, ignoring the invalid sibling", prdValidate(dir, { only: "alpha-project" }).length === 0);
+  const onlyBadProblems = prdValidate(dir, { only: "only-bad" });
+  t("only filter: invalid target reports only its own problems", onlyBadProblems.length > 0 && onlyBadProblems.every((p) => /^only-bad\.md/.test(p)));
+  fs.unlinkSync(path.join(dir, "only-bad.md"));
 
   // missing Status flagged
   fs.writeFileSync(path.join(dir, "beta.md"), "# PRD — Beta\n\n- **Container:** Beta\n- **Date:** 2026-06-26\n\n## Problem\nx\n");

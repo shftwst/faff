@@ -33,6 +33,16 @@ function tryAnchor(runDir, root) {
   return runCli(["events", "anchor", "--run-dir", runDir, "--issue", "TEST-1", "--dest", dest]);
 }
 
+// FAFF-1155: a per-PR `events anchor` over a VALID genesis requires ac-checklist.json +
+// review-verdict.json under <runDir>/<issue>/. Seed both so a valid-genesis exit-0 test
+// exercises the real Step-9b shape; genesis-fault tests skip this (the guard is genesis-gated,
+// so an invalid genesis refuses before the floor check regardless).
+function seedFloor(runDir, issue = "TEST-1") {
+  mkdirSync(path.join(runDir, issue), { recursive: true });
+  writeFileSync(path.join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+  writeFileSync(path.join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+}
+
 test("no-events: run-ledger.json present, events.jsonl absent → exit 3, code no-events (unchanged from before this ticket)", () => {
   const root = mkTmp("faff-966-guard-");
   const runDir = mkRunDir(root);
@@ -134,6 +144,7 @@ test("valid: a real seq-0 (correct prev) followed by a run-start → anchors nor
   const runId = path.basename(runDir);
   appendRecordUnderLock(runDir, (seq, _p, prevHash) => ({ schema: 2, run_id: runId, seq, ts: "t", prev: prevHash, phase: "run", type: "run-start", data: { level: "L3" } }));
   appendRecordUnderLock(runDir, (seq, _p, prevHash) => ({ schema: 2, run_id: runId, seq, ts: "t", prev: prevHash, phase: "build", type: "build-start", issue: "TEST-1" }));
+  seedFloor(runDir);
   const r = tryAnchor(runDir, root);
   assert.equal(r.code, 0, r.stderr);
   assert.equal(existsSync(path.join(root, "dest", "events.jsonl")), true);
@@ -147,6 +158,7 @@ test("integration smoke test (spec §8): mint → anchor ok → simulate a genes
   const runDir = JSON.parse(r1.stdout).run_dir;
 
   const dest1 = path.join(root, "anchor1");
+  seedFloor(runDir, "FAFF-XXX");   // FAFF-1155: valid genesis → the per-PR floor is required
   const a1 = runCli(["events", "anchor", "--run-dir", runDir, "--issue", "FAFF-XXX", "--dest", dest1]);
   assert.equal(a1.code, 0, a1.stderr);
 
@@ -156,7 +168,8 @@ test("integration smoke test (spec §8): mint → anchor ok → simulate a genes
   require("node:fs").rmSync(evPath);
   const dest2 = path.join(root, "anchor2");
   const a2 = runCli(["events", "anchor", "--run-dir", runDir, "--issue", "FAFF-XXX", "--dest", dest2]);
-  assert.notEqual(a2.code, 0, "no-events refuses");
+  assert.equal(a2.code, 3, "no-events refuses with exit 3");   // FAFF-1155: specific code, not a bare notEqual — genesis-fault must NOT read as floor-incomplete
+  assert.match(a2.stderr, /no events\.jsonl/);
   assert.equal(existsSync(evPath), false, "nothing fabricated back");
   assert.ok(before.length > 0, "sanity: the original genesis really had content");
 
@@ -165,7 +178,8 @@ test("integration smoke test (spec §8): mint → anchor ok → simulate a genes
   const beforeWs = readFileSync(evPath);
   const dest3 = path.join(root, "anchor3");
   const a3 = runCli(["events", "anchor", "--run-dir", runDir, "--issue", "FAFF-XXX", "--dest", dest3]);
-  assert.notEqual(a3.code, 0, "genesis-invalid refuses");
+  assert.equal(a3.code, 3, "genesis-invalid refuses with exit 3");   // FAFF-1155: specific code, not a bare notEqual
+  assert.match(a3.stderr, /genesis|no valid genesis/i);
   const afterWs = readFileSync(evPath);
   assert.ok(beforeWs.equals(afterWs), "never truncated");
 
@@ -183,6 +197,7 @@ test("valid: a genesis chain whose ONLY record is a ledger-write (no run-start e
   writeFileSync(path.join(runDir, "run-ledger.json"), ledgerBytes);
   const ledgerSha = require("node:crypto").createHash("sha256").update(ledgerBytes).digest("hex");
   appendRecordUnderLock(runDir, (seq, _p, prevHash) => ({ schema: 2, run_id: runId, seq, ts: "t", prev: prevHash, phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } }));
+  seedFloor(runDir);
   const r = tryAnchor(runDir, root);
   assert.equal(r.code, 0, r.stderr);
   assert.equal(existsSync(path.join(root, "dest", "events.jsonl")), true);

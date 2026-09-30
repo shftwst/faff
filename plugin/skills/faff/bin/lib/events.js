@@ -1233,6 +1233,26 @@ function cmdEvents(args) {
         return 1;
       }
     }
+    // FAFF-1155: a per-PR anchor MUST carry its acceptance-criteria + code-review evidence.
+    // ac-checklist.json (graft Step 8) and review-verdict.json (Step 9) are always written before
+    // Step 9b mints this anchor, so their absence here is a genuine build-evidence defect, not the
+    // legitimate best-effort gap mintIssueAnchor's floor-copy loop tolerates — refuse loud rather
+    // than commit a silently incomplete anchor. Genesis-first: a run whose genesis is absent/torn
+    // is a provisioning fault (Steps 8/9 never ran either) that must surface no-events /
+    // genesis-invalid from mintIssueAnchor below, NOT floor-incomplete, so this guard runs only on
+    // a valid genesis (validateAnchorGenesis is read-only; the re-read is cheap and mintIssueAnchor
+    // re-validates internally regardless). Pre-mint, so a refusal creates no --dest. Only the
+    // per-PR `anchor` command reaches this guard — `anchor-run` and bundle.js reuse mintIssueAnchor
+    // directly and are unaffected.
+    if (validateAnchorGenesis(dirArg).valid) {
+      const anchorIssueDir = path.join(dirArg, issueArg);
+      for (const floorFile of ["ac-checklist.json", "review-verdict.json"]) {
+        if (!fs.existsSync(path.join(anchorIssueDir, floorFile))) {
+          process.stderr.write(`faff events anchor: floor-incomplete — ${issueArg}/${floorFile} is required in a per-PR anchor but is absent in ${dirArg}\n`);
+          return 3;
+        }
+      }
+    }
     const result = mintIssueAnchor(dirArg, issueArg, destArg);
     if (!result.ok) {
       process.stderr.write(`faff events anchor: ${result.message}\n`);
@@ -1649,6 +1669,15 @@ function eventsSelftest() {
       if (ledger !== undefined) fs.writeFileSync(path.join(dir, "run-ledger.json"), ledger);
       return lines;
     };
+    // FAFF-1155: a per-PR `events anchor` now REQUIRES ac-checklist.json + review-verdict.json
+    // under <runDir>/<issue>/ (a valid-genesis run reaching Step 9b always carries them). Seed
+    // both so an exit-0 anchor test exercises the real Step-9b shape rather than the pre-guard
+    // floor-less one.
+    const seedFloor = (dir, issue = "FAFF-1") => {
+      fs.mkdirSync(path.join(dir, issue), { recursive: true });
+      fs.writeFileSync(path.join(dir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(dir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+    };
     const vcheck = (label, cond) => { if (!cond) { process.stderr.write(`events --selftest FAIL: ${label}\n`); failed++; } };
 
     { // clean chain → verified, exit 0
@@ -1810,6 +1839,7 @@ function eventsSelftest() {
           { phase: "build", type: "build-start", issue: "FAFF-1" },
           { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
         ], ledger);
+        seedFloor(src);
         const rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
         vcheck("anchor: exit 0", rc === 0);
         const r = verifyChain(dest, {});
@@ -1892,6 +1922,7 @@ function eventsSelftest() {
           { phase: "run", type: "run-start" },
           { phase: "build", type: "build-start", issue: "FAFF-1" },
         ], ledger); // run-ledger.json present, but no ledger-write event chained yet
+        seedFloor(src);
         const rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
         vcheck("anchor: no ledger-write event present → exit 0, mints (absence is not a refusal)", rc === 0 && fs.existsSync(path.join(dest, "chain-head.json")));
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
@@ -1907,6 +1938,7 @@ function eventsSelftest() {
           { phase: "build", type: "build-start", issue: "FAFF-1" },
           { phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } },
         ], ledger);
+        seedFloor(src);
         const rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
         vcheck("anchor: matching ledger fold → exit 0, mints", rc === 0 && fs.existsSync(path.join(dest, "chain-head.json")));
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
@@ -1939,21 +1971,30 @@ function eventsSelftest() {
         });
         fs.appendFileSync(path.join(src, "events.jsonl"), resyncLine + "\n");
 
+        seedFloor(src);
         const rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
         vcheck("anchor: post-resync re-run → exit 0, mints", rc === 0 && fs.existsSync(path.join(dest, "chain-head.json")));
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(destRoot, { recursive: true, force: true }); }
     }
-    { // FAFF-623: merge-floor evidence copy — best-effort per-file, none required.
+    { // FAFF-623 + FAFF-1155: merge-floor evidence copy. ac-checklist.json + review-verdict.json are
+      // now REQUIRED at a per-PR anchor (FAFF-1155); holdout.json / build-progress.json stay best-effort.
       const src = mkDir(), dest = mkDir();
       try {
         buildChain(src, "run-floor", [
           { phase: "run", type: "run-start" },
           { phase: "build", type: "build-start", issue: "FAFF-1" },
         ]);
-        // No FAFF-1/ subdir at all yet — anchor must still succeed (chain-only), copying nothing extra.
-        let rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
-        vcheck("anchor: no per-issue floor files present → exit 0, none copied", rc === 0
-          && !fs.existsSync(path.join(dest, "ac-checklist.json")) && !fs.existsSync(path.join(dest, "review-verdict.json")));
+        // FAFF-1155: no FAFF-1/ subdir at all (valid genesis) → refused floor-incomplete (exit 3),
+        // no anchor dir created (pre-mint guard). This replaces the pre-guard "exit 0, none copied".
+        const refusedDest = path.join(dest, "refused");
+        const origStderrFloor = process.stderr.write;
+        let floorStderr = "";
+        process.stderr.write = (chunk) => { floorStderr += chunk; return true; };
+        let rc;
+        try { rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", refusedDest]); }
+        finally { process.stderr.write = origStderrFloor; }
+        vcheck("anchor: no per-issue floor files present → exit 3 floor-incomplete, no anchor dir created", rc === 3
+          && /floor-incomplete/.test(floorStderr) && !fs.existsSync(refusedDest));
 
         // Now populate ac-checklist.json + review-verdict.json only (holdout/build-progress absent —
         // the normal case below L4) and re-anchor to a fresh dest.

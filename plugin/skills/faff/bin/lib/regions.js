@@ -361,6 +361,9 @@ const REGION_MAP = {
   // than to review-iteration-cap's config-read shape) — factory, same family as the
   // other small deterministic CLI resolvers faff-prep/faff-graft shell out to.
   "spec-review-churn": "factory",
+  // FAFF-1157: spec-review extract-evidence is a pure section-locator + fence-extractor over a
+  // committed spec (the sibling of adr extract-intent) — factory, same family.
+  "spec-review": "factory",
   // FAFF-874: spec-review-convergence is a pure comparator over the ordered round-record JSON
   // files (reuses spec-review-churn's lensSet/readRoundRecord — factory→factory is a legal
   // require edge, ADR-0042) — factory, same family as the other small deterministic CLI
@@ -551,6 +554,7 @@ const REGION_SELFTEST_ARGV = {
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
   "backends": ["backends", "--selftest"],
   "spec-review-churn": ["spec-review-churn", "--selftest"],
+  "spec-review": ["spec-review", "--selftest"],
   "spec-review-convergence": ["spec-review-convergence", "--selftest"],
   "spec-review-pin": ["spec-review-pin", "--selftest"],
   "spec-review-dir": ["spec-review-dir", "--selftest"],

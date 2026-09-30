@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1157",
+  "build": {
+    "status": "complete",
+    "diff_hash": "36799f076fa9340f9f6f01c5ca66cb4267904b225ac286d3236de3d81283afcd",
+    "branch": "faff-1157-persist-and-anchor-spec-review-evidence-refutations",
+    "pushed_at": "2026-09-30T05:57:28.756Z"
+  },
+  "updated_at": "2026-09-30T05:57:28.756Z"
+}

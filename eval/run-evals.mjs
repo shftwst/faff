@@ -39,11 +39,15 @@ export function capRaw(rawText, cap = RAW_CAP) {
 }
 
 // PURE — build one JudgementRecord from the values already in hand at a rep's completion point.
-export function buildJudgementRecord(c, i, runId, { status, rawText = null, env = null, graded = null, score = null, signature = null }) {
+export function buildJudgementRecord(c, i, runId, { status, rawText = null, env = null, graded = null, score = null, signature = null, stamp = null }) {
   const { raw_text, raw_truncated } = capRaw(rawText);
   return {
     run_id: runId,
     ts: new Date().toISOString(),
+    // FAFF-1153 — stamp the resolved model + effort onto every rep so a judgements.jsonl is
+    // self-describing across runs (was only on the sweep progress/baseline meta). Null = not set / see banner.
+    model: stamp?.model ?? null,
+    effort: stamp?.effort ?? null,
     case_id: c.id,
     kind: c.kind,
     rep: i,
@@ -103,7 +107,7 @@ export function loadLiveCases(dir = join(HERE, "cases-live")) {
 // Drive one case. `driver(evalCase, repIndex) -> Promise<{ rawText, tokens, transcript? }>`.
 // FAFF-320 — `judgementsPath` (default null): when set, each completed rep appends one JudgementRecord
 // to it synchronously, before the next rep runs. null (the mock-driver test path) → capture is a no-op.
-async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null }) {
+async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null, stamp = null }) {
   const base = Math.min(c.reps || baseReps, maxReps);
   const reps = [];
   let target = base;
@@ -118,7 +122,9 @@ async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null }) 
     } catch (e) {
       reps.push(erroredRep(`driver-error:${e.message}`));
       // FAFF-320 — driver threw: no out, no envelope, no grade. Captured so crash-salvage has no holes.
-      if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "errored", rawText: null, env: null, graded: "ERRORED" }));
+      // FAFF-1153 — a fanned kind (refutation-spec) throws before returning rawText; the fan attaches the
+      // failing lens's stdout as e.rawOutput, so record that instead of a blind null when present.
+      if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "errored", rawText: e.rawOutput ?? null, env: null, graded: "ERRORED", stamp }));
       continue;
     }
     try {
@@ -128,7 +134,7 @@ async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null }) 
       rr.format = env.format; // FAFF-137: "compliant" | "noncompliant" — feeds format_adherence
       reps.push(rr);
       // FAFF-320 — happy path: envelope + grade in hand. Advisory capture only (never feeds per_kind).
-      if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "graded", rawText: out.rawText, env, graded: rr.graded, score: rr.score, signature: rr.signature }));
+      if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "graded", rawText: out.rawText, env, graded: rr.graded, score: rr.score, signature: rr.signature, stamp }));
     } catch (e) {
       // FAFF-139: the per-rep cfgDir is removed by the driver, so the errored-rep diagnostic is the
       // malformed-output snippet (the actual judgement text that failed to parse), not a dead path.
@@ -137,7 +143,7 @@ async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null }) 
         reps.push(erroredRep(out.transcript ?? snippet ?? e.message));
         // FAFF-320 — envelope-parse failure: the bounded failing rawText is the HIGHEST-value capture
         // (envelope is null, so this is what you inspect to fix a broken contract / miscalibrated oracle).
-        if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "errored", rawText: out.rawText, env: null, graded: "ERRORED" }));
+        if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "errored", rawText: out.rawText, env: null, graded: "ERRORED", stamp }));
       } else throw e; // a real grader bug must surface, not masquerade as flakiness
     }
     // Adaptive escalation: once the base reps are in, if they disagree, concentrate reps here.
@@ -183,7 +189,7 @@ export function writeCheckpointKind(path, kind, entry, caseIds) {
 // kind's every expected case-id has completed this session, its aggregate is checkpointed to disk so
 // a killed sweep can resume. Kind-completion is by case-id SET MEMBERSHIP, not cr.kind adjacency
 // (loadCases sorts by filename — same-kind adjacency is incidental).
-export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = MAX_REPS, deadlineMs = null, judgementsPath = null, progressPath = null } = {}) {
+export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = MAX_REPS, deadlineMs = null, judgementsPath = null, progressPath = null, stamp = null } = {}) {
   const results = [];
   let incomplete = false;
   const expected = {};                                    // kind -> Set of every expected case-id
@@ -193,7 +199,7 @@ export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = 
   const seenResultsByKind = {};                           // kind -> CaseResults accumulated this session
   for (const c of cases) {
     if (deadlineMs != null && Date.now() >= deadlineMs) { incomplete = true; break; }
-    const cr = await runCase(c, driver, { baseReps, maxReps, judgementsPath }); // FAFF-320 — opt-in capture
+    const cr = await runCase(c, driver, { baseReps, maxReps, judgementsPath, stamp }); // FAFF-320 — opt-in capture; FAFF-1153 — stamp threads model/effort
     results.push(cr);
     (seenResultsByKind[cr.kind] ??= []).push(cr);
     pending[cr.kind].delete(cr.case_id);
@@ -455,7 +461,7 @@ export async function updateBaseline(argv, presets, baselinePath) {
 
   const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for this multi-hour sweep
   console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
-  const summary = await runEvals({ cases, driver, baseReps, judgementsPath, progressPath });
+  const summary = await runEvals({ cases, driver, baseReps, judgementsPath, progressPath, stamp }); // FAFF-1153 — stamp model/effort onto each rep
   foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only, scopedKinds });
   printHeadline(summary);
   return summary.status === "complete" ? 0 : 1;
@@ -814,7 +820,9 @@ async function main(argv) {
   assertNonEmptyCases(cases, { entry: "plain sweep", only, casesDir, kind: null, loadedCount });
   const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for the full sweep
   console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
-  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS, judgementsPath });
+  // FAFF-1153 — record the explicit model/effort flags on each rep (frontier default resolution is echoed in the run banner).
+  const runStamp = { model: argFlag(argv, "--model") ?? null, effort: argFlag(argv, "--effort") ?? null };
+  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS, judgementsPath, stamp: runStamp });
   const reportDir = join(HERE, "report");
   mkdirSync(reportDir, { recursive: true });
   writeFileSync(join(reportDir, "latest.json"), JSON.stringify(summary, null, 2));

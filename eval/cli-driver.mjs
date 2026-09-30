@@ -1220,7 +1220,12 @@ export function fanRefutationSpec(evalCase, { spawnFn, systemDir, opts, cfgDir }
     if (!parsed.ok) {
       const f = parsed.fault ?? {};
       const reason = f.reason ?? (f.missing_field ? `missing field ${f.missing_field}` : "unparseable refuter output");
-      throw new Error(`refutation-spec eval: lens=${lens} produced unparseable output (${reason})`);
+      const err = new Error(`refutation-spec eval: lens=${lens} produced unparseable output (${reason})`);
+      // FAFF-1153 — the fan throws before returning rawText, so runCase's driver-throw catch records a
+      // blind `raw_text: null`. Carry the failing lens's raw stdout on the error so the errored rep
+      // captures WHAT broke parsing (the highest-value diagnostic when a model's format drifts).
+      err.rawOutput = `[lens=${lens} unparseable: ${reason}]\n${stdout}`;
+      throw err;
     }
     refutations.push(parsed.entry);
   }

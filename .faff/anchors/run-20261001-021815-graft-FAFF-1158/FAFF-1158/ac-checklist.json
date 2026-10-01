@@ -1,0 +1,60 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "models.adr lane added: DEFAULTS=inherit + MODEL_LANE_VOCAB closed five-token set (config.js)",
+      "verified": "faff config get models.adr -> inherit (exit 0); faff config set models.adr gpt-5 -> exit 2 naming { inherit, sonnet, opus, haiku, fable }",
+      "passed": true
+    },
+    {
+      "ac": "config defaults --selftest passes with models.adr registered + validateModelLane accept/reject assertions",
+      "verified": "config defaults --selftest: ok; expected[] gains models.adr, vocab block gains adr accept + off-vocab reject + engine-value reject",
+      "passed": true
+    },
+    {
+      "ac": "config resolved echoes a pinned models.adr",
+      "verified": "config resolved -> \"model adr: opus\" when pinned (echo loop includes adr)",
+      "passed": true
+    },
+    {
+      "ac": "faff-graft Step 7 dispatches the top-level build as a bare-executor subagent at faff models build-for --tier/--confidence (model param) + faff effort build-for --tier (effort); inherit omits each; exit 2 fails loud",
+      "verified": "SKILL.md Step 7 prose carries the Top-level-graft branch with both resolvers + inherit-omits + exit-2-fail-loud (grep confirmed)",
+      "passed": true
+    },
+    {
+      "ac": "Dispatched-subagent graft still builds inline (autonomous path byte-identical); discriminator is the captured Step-3 mint-vs-skip state, not a bare FAFF_RUN_DIR re-test",
+      "verified": "SKILL.md Step 7 Dispatched-graft branch = build inline exactly as today; discriminator prose = captured Step-3 mint-vs-skip (grep confirmed)",
+      "passed": true
+    },
+    {
+      "ac": "Step 7 records the resolved model + effort in a checkable place (per-issue run log)",
+      "verified": "SKILL.md Step 7 prose: Record the resolved model + effort on the per-issue run log (<run_dir>/<ISSUE>/graft.md)",
+      "passed": true
+    },
+    {
+      "ac": "Staging + stage-guard + commit stay in the orchestrator (PR #258 secret-leak guard); executor returns the uncommitted worktree diff",
+      "verified": "SKILL.md Step 7 prose: executor returns uncommitted diff + gate verdict, orchestrator performs selective staging + faff stage-guard + commit; never delegated to the context-less executor",
+      "passed": true
+    },
+    {
+      "ac": "faff-graft Step 4b sub-step 2 dispatches the adr producer as a subagent resolving models.adr when top-level, in-context when dispatched; downstream body/commit path unchanged",
+      "verified": "SKILL.md Step 4b sub-step 2 prose: Producer subagent resolving models.adr top-level / in-context dispatched-subagent (grep confirmed)",
+      "passed": true
+    },
+    {
+      "ac": "faff validate-adapters green; SKILL_LINE_BASELINE[faff-graft] bumped 952->955 with a forward-stated rationale; kernel lane lists edited line-neutral",
+      "verified": "validate-adapters exit 0; baseline comment names FAFF-1158 +3 faff-graft rationale; kernel wc unchanged",
+      "passed": true
+    },
+    {
+      "ac": "No ticket refs introduced into SKILL.md prose; stray-marker lints clean",
+      "verified": "lint-refs PASS (no external-artifact refs in enforced prose)",
+      "passed": true
+    },
+    {
+      "ac": "Full pure unit suite green",
+      "verified": "node --test test/*.test.mjs: 4992 pass / 0 fail / 5 skipped (4997 total)",
+      "passed": true
+    }
+  ]
+}

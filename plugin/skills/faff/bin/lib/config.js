@@ -201,6 +201,9 @@ const DEFAULTS = {
   // The architecture proposer's producer-subagent dispatch lane (faff-prep's conditional
   // architecture step) — same closed Agent-token set as the sibling producer lanes.
   "models.architecture": "inherit",
+  // The ADR-body author's producer-subagent dispatch lane (faff-graft Step 4b) — same closed
+  // Agent-token set as the sibling producer lanes; no effort lane (the body is small, fires rarely).
+  "models.adr": "inherit",
   "models.eval": "claude-sonnet-4-6",
   // FAFF-416: per-lane reasoning-EFFORT selection — the effort counterpart to the FAFF-315
   // model lanes. Only the non-prep, subagent-dispatched lanes are tunable: build (concurrency
@@ -352,6 +355,7 @@ const MODEL_LANE_VOCAB = {
   "models.methodology": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.intake": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.architecture": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.adr": ["inherit", "sonnet", "opus", "haiku", "fable"],
 };
 function validateModelLane(key, value) {
   // FAFF-422: an `engine:<name>` lane value selects the out-of-session one-shot transport
@@ -2710,6 +2714,7 @@ function cmdConfig(args) {
           "models.build", "models.prep_explore",
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
           "models.architecture",
+          "models.adr",
           "models.eval",
           // FAFF-416: per-lane effort lanes (non-prep, subagent-dispatched only).
           "effort.build", "effort.methodology", "effort.intake",
@@ -2749,7 +2754,9 @@ function cmdConfig(args) {
           validateModelLane("models.methodology", DEFAULTS["models.methodology"]) ||
           validateModelLane("models.intake", DEFAULTS["models.intake"]) ||
           validateModelLane("models.architecture", DEFAULTS["models.architecture"]) ||
+          validateModelLane("models.adr", DEFAULTS["models.adr"]) ||
           (validateModelLane("models.architecture", "gpt-5") ? null : "architecture lane vocab failed to reject an invalid token") ||
+          (validateModelLane("models.adr", "gpt-5") ? null : "adr lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.spec", "gpt-5") ? null : "producer lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
           (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
@@ -2778,6 +2785,7 @@ function cmdConfig(args) {
           validateModelLane("models.intake", "engine:studio") ||
           (validateModelLane("models.build", "engine:studio") ? null : "build lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.spec", "engine:studio") ? null : "spec lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateModelLane("models.adr", "engine:studio") ? null : "adr lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.eval", "engine:studio") ? null : "eval lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.build_by_confidence.high", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)") ||
           // FAFF-859: the isolation-lane vocab must accept both axes' baked defaults and reject an
@@ -2879,7 +2887,7 @@ function cmdConfig(args) {
       // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
       // visible, not silent (the same FAFF-50 intent as the slot echo above).
       const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
-      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "eval"]) {
+      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr", "eval"]) {
         const v = models[lane];
         if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
       }

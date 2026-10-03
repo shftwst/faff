@@ -30,6 +30,8 @@ docs/whitepapers/ideas
 # the anchors carve-out below can re-include the committed per-PR chain anchors)
 .faff/*
 !.faff/anchors/
+!.faff/decisions.md
+!.faff/conventions.md
 
 # Generated eval reports (real-model run output — FAFF-130 onward)
 eval/report/

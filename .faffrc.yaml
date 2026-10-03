@@ -131,10 +131,16 @@ adversarial:
       - openrouter-glm-5-3-flash
       - openrouter-gemma
 models:
+    intake: inherit
+    adr: sonnet
+    methodology: inherit
+    architecture: inherit
     build_by_confidence:
         default: inherit
         high: sonnet
         medium: inherit
+    spec: inherit
+    spec_review: inherit
     prep_explore: sonnet
     eval: claude-opus-4-8
 

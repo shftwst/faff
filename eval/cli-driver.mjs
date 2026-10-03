@@ -416,7 +416,8 @@ export function loadHoldoutJudgementProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 export const EVAL_MODE_INSTRUCTION =
   "Run faff-tidy's judgement pass over this fixture internally, then OUTPUT ONLY one fenced code " +
   "block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
-  '{ "case_id": "<ID>", "classifications": { "dupe": [..], "vague": [..], "stale": [..], "superseded": [..] }, ' +
+  '{ "case_id": "<ID>", "classifications": { "dupe": ["<issue-id>", ..], "vague": ["<issue-id>", ..], ' +
+  '"stale": ["<issue-id>", ..], "superseded": ["<issue-id>", ..] }, ' +
   '"ordering": ["<issue-id>", ..], "gloss": { "<issue-id>": "<one-line gloss>" }, ' +
   '"splittable": ["<concern-label>", ..] } — for a splittable-spec case, `splittable` is the list of the ' +
   "structurally-independent concern labels the spec covers (an empty list [] means the spec is NOT splittable — " +

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.38.0](https://github.com/shftwst/faff/compare/faff--v0.37.0...faff--v0.38.0) (2026-10-01)
+
+
+### Features
+
+* **FAFF-1153:** capture failing refuter output + stamp model/effort on eval reps ([#983](https://github.com/shftwst/faff/issues/983)) ([a76fce4](https://github.com/shftwst/faff/commit/a76fce42e39f773d364874f099a13e8825cc29d1))
+* **FAFF-1158:** dispatch interactive build + adr producers as subagents ([#990](https://github.com/shftwst/faff/issues/990)) ([a2cc469](https://github.com/shftwst/faff/commit/a2cc4699b4af71994e92dd4a767b47fd8b43c38d))
+
+
+### Bug Fixes
+
+* **FAFF-1154:** recognise a clean-pass refutation when guard-clean prose follows the affirmation ([#989](https://github.com/shftwst/faff/issues/989)) ([1c880c2](https://github.com/shftwst/faff/commit/1c880c248e7b47a2100be1faabf4ab79e5eadae0))
+
 ## [0.37.0](https://github.com/shftwst/faff/compare/faff--v0.36.0...faff--v0.37.0) (2026-09-30)
 
 

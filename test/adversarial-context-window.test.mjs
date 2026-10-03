@@ -385,9 +385,9 @@ test("the trimmed shared prefix is byte-identical across four different lens bri
   const servedBy = [];
   // The briefs must span WIDELY. A narrow spread (tens to a few thousand bytes) can leave every lens
   // landing on the same ladder rung, so a trim target that wrongly consumed the brief would still
-  // produce identical prefixes and the test would pass while the invariant was broken. 11 B vs 14 KB
+  // produce identical prefixes and the test would pass while the invariant was broken. 11 B vs 18 KB
   // straddles a rung boundary, so a brief-consuming target genuinely diverges here.
-  for (const brief of ["arch brief", "x".repeat(14005), "QA", "methodology " + "y".repeat(1500)]) {
+  for (const brief of ["arch brief", "x".repeat(18005), "QA", "methodology " + "y".repeat(1500)]) {
     const sysFile = join(f.dir, `b-${prefixes.length}.md`);
     writeFileSync(sysFile, brief);
     await runMain(["--backends-json", bf, "--system", sysFile, "--diff", f.diff, "--context", f.ctx],
@@ -400,7 +400,7 @@ test("the trimmed shared prefix is byte-identical across four different lens bri
   }
   // The other half of the same principle, and the one behaviour nothing else pins: the per-backend
   // GUARD does include this lens's brief, so a per-lens SKIP decision may differ even though the prefix
-  // may not. The 14 KB brief is sized to push exactly that one lens past the primary's window.
+  // may not. The 18 KB brief is sized to push exactly that one lens past the primary's window.
   assert.equal(servedBy[1], "fallback",
     "the huge-brief lens must be guard-skipped off the primary — the guard counts the brief");
   for (const i of [0, 2, 3]) {

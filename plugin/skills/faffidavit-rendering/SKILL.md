@@ -183,7 +183,7 @@ In order of preference:
 2. The issue title plus the first 2-3 sentences of the spec
 3. The issue title plus the description if no spec exists
 
-The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SHF-217 dep chain", "as discussed") is replaced with what was actually meant.
+The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SHF-217 dep chain", "as discussed") is replaced with what was actually meant. Paraphrase the framing, not the subject: keep the work's own terms for what it changes and how (rate limiting, cold start, memoising) so the reader can match the gloss to the ticket, and explain around them.
 
 ### Humanisation rule
 

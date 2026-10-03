@@ -223,6 +223,8 @@ confidence: high | medium | low
 - **medium** — a **blocking** open `**Punt:**` item remains (an unresolved decision the increment depends on), or the explore findings were ambiguous in places. Weigh only blocking Punts: an **eligible non-blocking** Punt — one `faff punt-scan` reports `eligible` (tagged `(non-blocking)` and cross-referenced under OUT OF SCOPE) — is excluded from the weighed count, so a spec whose only open items are eligible non-blocking Punts self-rates `high`. Excluding it is a mechanical read of the scanner, not a self-certification of the tag; tag honesty is the spec-review lens's call.
 - **low** — significant unknowns, architectural uncertainty, or the issue may need splitting
 
+Rate open decisions, not polish. A slip the builder can settle without making a new decision (a field missing from one example, an obvious unstated default) is fixed in the draft and does not lower the rating.
+
 This line is consumed by faff-prep for its gate decision (autonomous mode: `high` → promote; `medium` → attach + flag for review; `low` → park) and is **retained on the attached spec** — downstream consumers (faff-graft, faff-beep-boop, and faff-tidy's spec-health pass) read it as durable provenance and a re-spec signal; a retained `confidence: medium` maps to the `needs-decision-first` routing verdict. It is both a signal to the caller and a lasting property of the spec.
 
 ## Quality bar — self-review before returning

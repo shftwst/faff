@@ -43,8 +43,8 @@ const SEVERITY_HEADING_RE = /^###\s*\[?(critical|major|minor|observation)\]?\s*[
 const GATING_SEVERITIES = new Set(["critical", "major", "minor"]);
 
 // A triple/anchor bullet: "- <key>: <value>". Case-insensitive key, same closed vocabulary the
-// refuter prompts emit.
-const BULLET_RE = /^-\s*(claim|evidence|predicted_consequence|spec_anchor)\s*:\s*(.*)$/i;
+// refuter prompts emit. The key may carry markdown emphasis ("- **claim:**", "- _claim_:").
+const BULLET_RE = /^-\s*(?:\*{1,2}|_{1,2})?(claim|evidence|predicted_consequence|spec_anchor)(?:\*{1,2}|_{1,2})?\s*:\s*(?:\*{1,2}|_{1,2})?\s*(.*)$/i;
 // A heading line of any level — stops a bullet-value continuation from swallowing past a section
 // boundary. Bodies are already sliced to one section, so this is a defensive guard only.
 const ANY_HEADING_RE = /^#{2,}\s(?!#)/;

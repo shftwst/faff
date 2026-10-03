@@ -1,0 +1,6 @@
+{"all_verified":false,"criteria":[
+{"ac":"A decision names one chosen layout (d), with (c) rejected by the committed-emit principle, keeping one bin/faff for all four paths","verified":"records/adr/0132: Decision = layout (d); (c) eliminated pre-experiment; one entrypoint asserted","passed":true},
+{"ac":"The ADR exists at the next free number, cross-linked from the addendum, asserts the four constraints true, names which FAFF-1170/1171 decisions it feeds","verified":"records/adr/0132 present; addendum decision-1 note cites ADR-0132; Consequences names FAFF-1170/1171/1169","passed":true},
+{"ac":"producer-auth converted + commissaire --selftest probe; matrix with command+Node per cell; adopter paths on Node 20; ADR states real vs simulated","verified":"Needs human verification: resolution proved on real Node 20.20 (docker) + Node 24.15; the layout-deciding resolver behaviour is real, but the real tsc emit of producer-auth and per-path shell assembly are deferred to FAFF-1170 (npx tsc had no network) and recorded as such in the ADR","passed":false},
+{"ac":"After the spike the working tree holds only the ADR and the addendum cross-link; no tsconfig, build script, package.json, or committed .ts remains","verified":"git diff: only records/specs + records/adr markdown; no tsconfig/package.json/.ts; docker fixture removed","passed":true}
+]}

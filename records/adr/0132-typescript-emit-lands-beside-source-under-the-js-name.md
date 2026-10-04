@@ -1,9 +1,10 @@
 # ADR 0132 — TypeScript emit lands beside source under the `.js` name (layout d)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-03
 - **Issue:** FAFF-1168
+- **Accepted-by:** FAFF-1170 (2026-10-05)
 
 ## Context
 
@@ -59,4 +60,4 @@ Proved on real runtimes: the module-resolution behaviour that decides all four i
 
 ## Status note
 
-`Proposed`. FAFF-1170 (the first real conversion) is the acceptance that flips it, or narrows it if a real `tsc` emit surfaces a resolution wrinkle the hand-staged fixture did not.
+`Accepted` by FAFF-1170 (the first real conversion). The real `tsc` emit of `producer-auth.ts` and `commissaire.ts` under `erasableSyntaxOnly` + `rewriteRelativeImportExtensions` is byte-stable across two consecutive builds, and the per-path probes re-confirmed layout (d) on the real converted module: `faff commissaire --selftest` passes from a dependency-free marketplace-style copy on Node 20.20, all emit tests pass on Node 20, and `producer-auth.ts` runs directly on the Node 22.18+ source lane. No resolution wrinkle surfaced, so the layout is accepted as specified with no narrowing.

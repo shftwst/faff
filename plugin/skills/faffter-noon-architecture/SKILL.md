@@ -27,6 +27,8 @@ The contract (`faff contract architecture-proposal`) validates the envelope's **
 - **Fit the profile.** Derive the architecture from the infra evidence (runtimes, CI, deploy targets, PaaS availability, stated prefs) and the brief — not a generic best-practice template.
 - **Build-biased.** Default `recommendation: "build"` (local-first tenet). Use a non-build recommendation only when the best fit is not locally buildable; any non-build recommendation is **surfaced for a human**, never actioned here (procurement is a separate, out-of-scope concern).
 - **Born-verifiable.** State concrete decisions and `assumptions` a human (or a later check) can verify. "Is this production-grade?" is the **human gate** in v1 — this producer does not self-judge proposal quality.
+- **Meet each stated need in its own words.** For every requirement the brief states (durability, integrity, load), name the decision that meets it, using the brief's wording, so a reviewer can tick each one off.
+- **Argue for the choice, not against the alternatives.** Justify each decision from the brief and the profile. Do not name or argue against architectures you did not choose: the proposal describes one design.
 - **ADR candidates.** Name the decisions worth an ADR as candidates only (`{title, decision, rationale}`); echo each into the `## ADR promotion intent` section.
 
 ## Output (the contract artifact)

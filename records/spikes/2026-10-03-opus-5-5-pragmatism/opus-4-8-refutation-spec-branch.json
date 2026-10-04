@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "captured_at": "2026-10-04",
+    "driver": "frontier",
+    "model": "claude-opus-4-8",
+    "base_reps": 20,
+    "source": "branch opus-5-5-pragmatism; runEvals with the official grader, 20 base reps, escalation to 50; usage-limit reps excluded",
+    "reference_only": "Measurement of the branch's skills, not a gate baseline."
+  },
+  "per_kind": {
+    "refutation-spec": {
+      "accuracy": 0.8263221153846154,
+      "stability": 0.893389423076923,
+      "format_adherence": 1
+    }
+  }
+}

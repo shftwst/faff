@@ -37,6 +37,8 @@ The consumer passes:
 
 Severities are `blocker` / `major` / `minor`. Emit at most one objection per lens (the lens's worst finding); a lens with no finding contributes none.
 
+**Object only to what must change before build.** Any objection turns `approve` into `revise`, so these are not objections: a choice the builder settles during the build without a new decision, a test any decent suite adds anyway, a threat that needs a careless implementation the spec never asks for, and another lens's point restated in yours. A spec with nothing else gets `approve`.
+
 **Each objection carries the enrichment triple** `{claim, evidence, predicted_consequence}` alongside `{lens, severity}` — `claim` (what is wrong), `evidence` (the spec clause / file it points to), `predicted_consequence` (the concrete, checkable thing that happens if the spec ships as-is). A lens that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` — the honest signal that the objection is taste-level. Each objection also carries the optional `spec_anchor`, stated as this exact bullet (the one rule home in code is faff `bin/lib/heading-slug.js`):
 
 - spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.

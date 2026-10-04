@@ -201,6 +201,17 @@ test("severity classification is case-insensitive and accepts bracketed form", (
   assert.equal(r.entry.outcome, "refuted");
 });
 
+test("a field label wrapped in markdown emphasis is still read as that field", () => {
+  for (const label of ["**claim:**", "**claim**:", "_claim_:", "__Claim__:"]) {
+    const r = parseRefutation(fixture(["### major: t", `- ${label} the retry loop has no bound.`].join("\n")), "QA");
+    assert.equal(r.ok, true, label);
+    assert.equal(r.entry.objections[0].claim, "the retry loop has no bound.", label);
+  }
+  const unrelated = parseRefutation(fixture(["### major: t", "- **Note:** not a field"].join("\n")), "QA");
+  assert.equal(unrelated.ok, false, "an emphasised label outside the closed vocabulary is still not a field");
+  assert.equal(unrelated.fault.missing_field, "claim");
+});
+
 test("a repeated bullet key: last one wins", () => {
   const section = [
     "### major: double claim",

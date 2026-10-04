@@ -1,0 +1,14 @@
+{
+  "name": "@shftwst/faff-skill",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Build-time TypeScript toolchain for the faff plugin skill. The shipped artifact (the bin/faff and bin/commissaire CLIs plus the committed .js emit) runs on Node built-ins with zero runtime dependencies; typescript and @types/node are build-time-only, fully-erased type packages that never reach the artifact.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "~5.9.0"
+  }
+}

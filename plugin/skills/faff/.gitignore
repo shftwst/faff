@@ -1,0 +1,6 @@
+# Build-time-only type packages (typescript, @types/node) install here. They are
+# build-time-only and fully erased from the emit, so the shipped artifact dir must
+# never carry an installed node_modules into the marketplace copy — the dependency-free
+# pillar governs the shipped artifact, and this keeps it off developer discipline alone
+# (FAFF-1170 build requirement).
+node_modules/

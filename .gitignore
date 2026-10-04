@@ -1,6 +1,9 @@
 .DS_Store
 
 .scratch
+*.err
+*.stderr
+*.log
 
 design/
 reports/

@@ -171,14 +171,16 @@ may run it. Follow these six points exactly.
 
    The model resolves `--model` flag **>** `faff config get models.eval` **>** the baked-in
    `claude-sonnet-4-6`. In this repo `models.eval` is set (`.faffrc.yaml`) and currently returns
-   `claude-opus-4-8`, so that is what a plain run gets — the `claude-sonnet-4-6` fallback is a safety net
+   `claude-opus-5-5`, so that is what a plain run gets — the `claude-sonnet-4-6` fallback is a safety net
    for a repo with no `models.eval` configured, not the expected outcome here. The run prints the
    resolved model at start (`[run-evals] frontier model: …`); confirm it matches what you intended
-   before letting it spend. Note the committed `eval/baselines/frontier.json`'s `meta` block predates
-   the FAFF-315 pinning and carries no `model` key. `models.eval` was pinned back to `claude-opus-4-8`
-   (PR #509) so this sweep matches ADR-0089's recorded production sweep, which also ran on
-   `claude-opus-4-8`; keep it there unless you deliberately want a different lineage, because nothing in
-   the harness warns you when the model changes between sweeps.
+   before letting it spend. A baseline is only valid for the model it was captured on: the committed
+   `eval/baselines/frontier.json` records its model in `meta.model`, and nothing in the harness warns
+   you when `models.eval` and that value differ. `models.eval` moved from `claude-opus-4-8` to
+   `claude-opus-5-5` once the judgement skills were calibrated for it
+   (`records/spikes/2026-10-03-opus-5-5-pragmatism/results.md`). Until a full sweep re-captures the
+   baseline on `claude-opus-5-5`, `frontier.json` still holds `claude-opus-4-8` rows; change the model
+   again only when you deliberately want a different lineage, and re-baseline when you do.
 
    **Reasoning effort — `--effort <level>` (FAFF-722, frontier lane only).** By default no `--effort` is
    passed, so a sweep runs at `claude -p`'s built-in default effort (both a model comparison and a

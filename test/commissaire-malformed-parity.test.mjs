@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, appendFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, appendFileSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,5 +65,24 @@ test("S8b(c): a schema-3 record with absent/other author fires neither verify br
     appendLine(runDir, { schema: 3, author: "observer", seq: 51, kind_of_entry: "note" });
     appendLine(runDir, { schema: 3, seq: 52, kind_of_entry: "note" }); // no author at all
     assert.equal(verifyAuthLeg(runDir).pass, true, "a non-producer/non-commissaire author is skipped, not failed");
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test("S8c: a present-but-non-string master_secret stays FAIL-CLOSED (producer-auth-mismatch), never fail-open unverifiable", () => {
+  // Parity guard for the master path (FAFF-1170 review). The pre-conversion emit guarded on
+  // `master_secret == null`, so a present-but-non-string master (a corrupted/tampered governor file)
+  // flowed to deriveKey, mismatched the HMAC, and FAILED the auth leg (gating). A type-narrowing
+  // `str()` on that value would re-classify it as non-gating `unverifiable` — a fail-OPEN regression.
+  const { tmp, runDir } = admittedRun();
+  try {
+    const govFile = path.join(runDir, "commissaire", "governor", "governor.json");
+    const gov = JSON.parse(readFileSync(govFile, "utf8"));
+    gov.master_secret = 12345; // non-string, non-null
+    writeFileSync(govFile, JSON.stringify(gov));
+    appendLine(runDir, { schema: 3, author: "producer", producer_id: "P1", contract_revision: "r1", seq: 77, kind_of_entry: "declare", issue: "X", step: "s", producer_hmac: "0".repeat(64) });
+    const auth = verifyAuthLeg(runDir);
+    assert.equal(auth.pass, false, "a non-string master_secret must FAIL the auth leg, not pass");
+    assert.ok(auth.failures.some((f) => f.reason === "producer-auth-mismatch"), `expected producer-auth-mismatch (fail-closed), got failures=${JSON.stringify(auth.failures)} unverifiable=${JSON.stringify(auth.unverifiable)}`);
+    assert.ok(!auth.unverifiable.some((u) => u.seq === 77), "the record must NOT be classified unverifiable (the fail-open regression)");
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 });

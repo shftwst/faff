@@ -330,12 +330,15 @@ function verifyAuthLeg(runDir, governorDir, producerDir) {
         if (e.schema !== 3)
             continue; // frozen pre-cutover line — never re-authenticated
         if (e.author === "producer") {
-            const master = gov ? str(gov.master_secret) : undefined;
-            if (!gov || master === undefined) {
+            // Parity (FAFF-1170 review): `== null` matches the pre-conversion guard. A present-but-non-string
+            // master_secret (a corrupted/tampered governor file) must NOT narrow to a fail-open `unverifiable`;
+            // it flows to deriveKey (which String-coerces), the HMAC mismatches, and the record fails the auth
+            // leg (producer-auth-mismatch, fail-closed). deriveKey's masterSecret param is `unknown` by design.
+            if (!gov || gov.master_secret == null) {
                 unverifiable.push({ seq: e.seq, reason: "no-master" });
                 continue;
             }
-            const key = deriveKey(master, str(e.producer_id), str(e.contract_revision));
+            const key = deriveKey(gov.master_secret, str(e.producer_id), str(e.contract_revision));
             if (!verifyRecord(e, key)) {
                 failures.push({ seq: e.seq, reason: "producer-auth-mismatch" });
                 continue;

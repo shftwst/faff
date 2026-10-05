@@ -156,7 +156,11 @@ test("--non-default-policy-run is repeatable (finding-2 regression)", () => {
 
 test("the committed FAFF-826 report reproduces from a clean context", () => {
   const dir = join(REPO, "verification", "reports", "FAFF-826-coordination-fidelity");
-  const r = run(REPO, ["shadow-fidelity", "reproduce", "--dir", dir, "--root", REPO]);
+  const mapRoot = join(REPO, "test", "fixtures", "faff-826-map-root");
+  // Byte copy of `git show 48be132d:docs/rfc/rfc-superdomestique-runtime/v5/STATE-AUTHORITY-MAP-v5.md`, the map revision the report was produced under.
+  const mapBytes = readFileSync(join(mapRoot, "docs", "rfc", "rfc-superdomestique-runtime", "v5", "STATE-AUTHORITY-MAP-v5.md"));
+  assert.equal(sha256(mapBytes), "7a21e429b7e143023c6ea9ca0ac30e70099f5a777e8ef53d1ad37b29daba3389");
+  const r = run(REPO, ["shadow-fidelity", "reproduce", "--dir", dir, "--root", mapRoot]);
   assert.equal(r.code, 0, r.err || r.out);
   // the committed corpus digest must match its manifest
   const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));

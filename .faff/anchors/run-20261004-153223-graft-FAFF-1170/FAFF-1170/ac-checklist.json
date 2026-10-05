@@ -1,0 +1,85 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "S1 — Toolchain builds the cluster: `npm install && npm run build` exits 0 and writes both `.js`",
+      "verified": "`npm run build` exit 0 on two consecutive runs; producer-auth.js and commissaire.js both emitted",
+      "passed": true
+    },
+    {
+      "ac": "S2 — Brands flow across the production edge: a raw un-minted string at the producer-auth admission API (ProducerId param) fails `tsc --noEmit` with TS2345",
+      "verified": "test/ts-brand-negative.test.mjs — asserts TS2345 (not merely non-zero) on Node 22.18+ source lane",
+      "passed": true
+    },
+    {
+      "ac": "S3 — Cast prohibition enforced: `as`/`<T>`/`as any`/`!`/`satisfies` boundary casts caught; real sources clean",
+      "verified": "test/check-no-boundary-cast.test.mjs (all five assertion forms caught, clean fixture passes); scripts/check-no-boundary-cast.mjs on real sources exit 0",
+      "passed": true
+    },
+    {
+      "ac": "S4a — Source type-valid: `tsc --noEmit` type-checks both `.ts`, exits 0",
+      "verified": "node_modules/.bin/tsc --noEmit -p tsconfig.json exit 0",
+      "passed": true
+    },
+    {
+      "ac": "S4b — Selftests + existing tests on the emit, Node 20: `commissaire --selftest` ok and all emit tests pass",
+      "verified": "docker node:20 (v20.20.2): `node bin/commissaire --selftest` exit 0 (`commissaire selftest: ok`) from a dependency-free marketplace-style copy (node_modules absent); 104/104 commissaire+producer-auth emit tests pass on Node 20",
+      "passed": true
+    },
+    {
+      "ac": "S4c — Leaf runs un-built on Node 22.18+: `producer-auth.ts` type-strips and loads directly",
+      "verified": "Node v24.15.0 (>=22.18): require('./producer-auth.ts') loads, exports present, exit 0",
+      "passed": true
+    },
+    {
+      "ac": "S5 — Guards pass on the emit: `faff regions check` + the standalone import-independence guard",
+      "verified": "faff regions check exit 0 (real tree); test/commissaire-standalone.test.mjs passes incl. the non-vacuous tainted-fixture guard (Node 20, writable copy)",
+      "passed": true
+    },
+    {
+      "ac": "S6 — Emit-coverage fails on un-emitted source: a `.ts` without its `.js` sibling → `faff regions check` exit 2",
+      "verified": "test/emit-coverage.test.mjs — regionsEmitCoverage leg + command-level exit 2 on a missing emit, exit 0 on the real tree",
+      "passed": true
+    },
+    {
+      "ac": "S7 — Revert restores the prior artifact",
+      "verified": "By git-revert semantics: the pre-conversion producer-auth.js (6d7d9c84~1) and commissaire.js (e0af4b15~1) are committed in history, so reverting the conversion commits restores the previous `.js`; shown in the PR body",
+      "passed": true
+    },
+    {
+      "ac": "S8 — Malformed `producer_id` on a schema-3 record stays fail-closed (producer-auth-mismatch, byte-for-byte, no throw / no null->deny)",
+      "verified": "test/commissaire-malformed-parity.test.mjs — S8 deny-outcome parity",
+      "passed": true
+    },
+    {
+      "ac": "S8b — Three further malformed shapes keep today's path (non-object line dropped; schema!=3 skipped; absent/other author skipped)",
+      "verified": "test/commissaire-malformed-parity.test.mjs — S8b (a)/(b)/(c) parity",
+      "passed": true
+    },
+    {
+      "ac": "Emit byte-stable across two builds; committed emit matches a fresh build",
+      "verified": "Two `npm run build`s produce byte-identical producer-auth.js and commissaire.js; `git status` clean after both builds",
+      "passed": true
+    },
+    {
+      "ac": "ADR-0132 accepted by this slice (real tsc emit byte-stable, per-path probes re-confirmed layout (d), no wrinkle)",
+      "verified": "records/adr/0132 Status flipped Proposed -> Accepted with evidence; `faff adr validate` exit 0 (132 ADRs valid)",
+      "passed": true
+    },
+    {
+      "ac": "`plugin/skills/faff/package.json` not matched by release-please-config.json",
+      "verified": "release-please-config.json has only a `.` simple package; the plugin package.json is not in packages or extra-files",
+      "passed": true
+    },
+    {
+      "ac": "AGENTS.md gains the Node 22.18+ contributor floor; README keeps Node 20 or later",
+      "verified": "AGENTS.md 'TypeScript source and the committed emit' section (contributor floor 22.18, adopter floor 20); README.md:48 retains 'Node 20 or later'",
+      "passed": true
+    },
+    {
+      "ac": "Commits carry Signed-off-by",
+      "verified": "All five branch commits carry `Signed-off-by: Alec Hill`; no AI authoring attribution",
+      "passed": true
+    }
+  ]
+}

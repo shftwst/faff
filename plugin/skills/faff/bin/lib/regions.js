@@ -38,6 +38,30 @@ function regionSources() {
   return [ENTRYPOINT, ...libFiles];
 }
 
+// FAFF-1170: the emit-coverage guard enumerates `.ts` SOURCES under bin/lib (not only `.js` — which
+// is what made a `.js`-only list vacuous). The governed artifact is the committed `.js` emit, so
+// every TypeScript source MUST ship its compiled sibling; a `.ts` lacking its `.js` would run
+// un-emitted (and so un-governed by region lint / the import-independence guard). `FAFF_EMIT_COVERAGE_TS_DIR`
+// is a test-only seam (same idiom as FAFF_TEST_LEDGER_INTERLEAVE) letting a command-level test point
+// the scan at a fixture dir; it defaults to bin/lib for every real invocation.
+function regionTsSources() {
+  const dir = process.env.FAFF_EMIT_COVERAGE_TS_DIR || __dirname;
+  return fs.readdirSync(dir).filter((f) => f.endsWith(".ts")).sort().map((f) => path.join(dir, f));
+}
+
+// Existence-only floor (FAFF-1170): a `.ts` without a committed sibling `.js` emit is MISSING.
+// Staleness detection (the committed `.js` is older than / differs from a fresh build) is FAFF-1171's
+// `git diff --exit-code` freshness gate (ratified mitigation-sequencing), not this slice. Returns
+// { missing: [string] }.
+function regionsEmitCoverage(tsFiles) {
+  const missing = [];
+  for (const tsf of tsFiles) {
+    const jsf = tsf.slice(0, -3) + ".js";
+    if (!fs.existsSync(jsf)) missing.push(`${path.basename(tsf)}: no committed .js emit sibling (run \`npm run build\` under plugin/skills/faff and commit the emit)`);
+  }
+  return { missing };
+}
+
 const REGION_MAP = {
   // governance — the flight recorder + interlocks (the extractable layer)
   "runcheck": "governance",
@@ -1142,6 +1166,14 @@ function cmdRegions(args, COMMANDS) {
   }
 
   if (sub === "check") {
+    // FAFF-1170 emit-coverage floor — runs first: a `.ts` source without its committed `.js` emit
+    // means the governed artifact is missing, so no later leg can meaningfully lint it.
+    const emit = regionsEmitCoverage(regionTsSources());
+    if (emit.missing.length) {
+      for (const m of emit.missing) process.stderr.write(`faff regions check: EMIT-MISSING — ${m}\n`);
+      process.stderr.write(`faff regions check: ${emit.missing.length} TypeScript source(s) lack a committed .js emit — run \`npm run build\` under plugin/skills/faff and commit the emit\n`);
+      return 2;
+    }
     const res = regionsCheck(regionSources());
     if (res.malformed.length) {
       for (const m of res.malformed) process.stderr.write(`faff regions check: MALFORMED — ${m}\n`);
@@ -1174,4 +1206,4 @@ function cmdRegions(args, COMMANDS) {
 }
 
 
-module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsExitFor, regionsFailDetail, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };
+module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsEmitCoverage, regionTsSources, regionsExitFor, regionsFailDetail, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };

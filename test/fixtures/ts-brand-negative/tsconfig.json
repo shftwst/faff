@@ -1,0 +1,7 @@
+{
+  "extends": "../../../plugin/skills/faff/tsconfig.json",
+  "compilerOptions": {
+    "typeRoots": ["../../../plugin/skills/faff/node_modules/@types"]
+  },
+  "include": ["brand-negative.ts"]
+}

@@ -29,6 +29,25 @@ Real cases are published as v0.1 reports under `results/<case>/`, owned by the c
 
 FAFF-472 shipped and was git-verified merged, yet the same run recorded two failing governance controls: a run-ledger custody tamper (caught by `integrity-digest verify`: the build lane hand-wrote the ledger, adding `level: "L3"`) and a post-merge full-suite verified-fail. Because the frozen hypothesis is a clean governed delivery, those two negatives make the result **does-not-support**. The case bounds its claim to that single run and evaluates reproducibility, repeatability, and generalisation as `not-evaluated`.
 
+### Rung results
+
+One row per rung in [The six rungs](#the-six-rungs), in the same order. Each status is one of `pass`, `fail`, `inconclusive` or `not-run`. A row's status is the main result of its most recent executed case: `supports-hypothesis` is `pass`, `does-not-support` is `fail`, and `inconclusive` or `protocol-failure` is `inconclusive`. A rung with no executed case is `not-run`. Registered cases that have not run are linked but do not change the status.
+
+| Rung | Script | Status | Cases | Note |
+|---|---|---|---|---|
+| P1 | `scaffold-p1-link-shortener.sh` | `inconclusive` | [`results/2026-08-29-l4-p1-link-shortener-faff-499/`](results/2026-08-29-l4-p1-link-shortener-faff-499/README.md), [`results/2026-08-30-l4-p1-link-shortener-faff-499/`](results/2026-08-30-l4-p1-link-shortener-faff-499/README.md) | The 2026-08-29 run (EVP-L4-P1-0001) is a retrospective backup, not a published result; its frozen re-run EVP-L4-P1-0002 is registered and not yet executed |
+| P2 | `scaffold-p2-task-api.sh` | `not-run` | none | Never run |
+| P3 | `scaffold-p3-landing-page.sh` | `not-run` | none | Never run |
+| P4 | `scaffold-p4-stripe-testmode.sh` | `not-run` | none | Never run |
+| P5 | `scaffold-p5-brownfield.sh` | `not-run` | none | Never run |
+| faff-lab | `scaffold-faff-lab.sh` | `not-run` | none | Never run |
+
+**First failure rung:** `undetermined`
+
+The first failure rung is the lowest rung whose status is `fail` while every lower rung is `pass`. It is `none` only when all six rungs pass, and `undetermined` otherwise, so a single P1 pass can never yield `none`. This is a suite-level value, distinct from the v0.1 report's `first_failure` field, which names the protocol stage that failed within one case.
+
+Any run of a rung updates its row and the first failure rung line, win or fail, in the same change that publishes its case. `test/faff-588-external-verification-rungs.test.mjs` checks the rows against "The six rungs", each status against its linked cases, and the first failure rung line against the rule.
+
 ## The six rungs
 
 | Script | SUT | Behaviours | Autonomy | Tracker |
@@ -131,3 +150,8 @@ Each `RUNBOOK.md` ends with a per-project rubric. The score is **"did the behavi
 did faff respect its boundary"**, *not* "did it build the thing." For P3 and P4 a **pass is
 correct escalation / parking**, not autonomous completion. Record the **first failure rung** and
 take it back to faff's backlog through the front door (`/faff-jot`).
+
+Before any rung was scored, attempted use alone found harness defects: the P2 and P4 runbooks
+cited `faff prd` verbs that did not exist (FAFF-512, with FAFF-507 closed as its duplicate), and the
+L4 preflight refused the `.faffrc.yaml` scaffolded for P1 to P3 (FAFF-513). Defects like these
+surface only when someone tries to run a rung, which is the argument for running rungs early.

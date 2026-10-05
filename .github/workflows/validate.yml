@@ -473,15 +473,17 @@ jobs:
         # where the test's resolveTypescript() anchors, so it must run here. Assert the TAP summary
         # reports `# skipped 0` and a non-zero `# pass`, so a silent degradation reddens the job
         # rather than passing with leg 1 contributing nothing.
+        # The node --test invocation is kept on its own physical line (FAFF-987 convention) so
+        # `faff gates` per-line discovery sees a clean UNIT command, not a shell fragment.
         run: |
-          out=$(node --test --test-reporter=tap test/check-no-boundary-cast.test.mjs 2>&1) || {
-            printf '%s\n' "$out"
+          node --test --test-reporter=tap test/check-no-boundary-cast.test.mjs > "$RUNNER_TEMP/unskip.tap" 2>&1 || floor_rc=$?
+          cat "$RUNNER_TEMP/unskip.tap"
+          if [ "${floor_rc:-0}" != "0" ]; then
             echo "::error::un-skip floor: check-no-boundary-cast.test.mjs did not pass"
             exit 1
-          }
-          printf '%s\n' "$out"
-          skipped=$(printf '%s\n' "$out" | grep -oE '^# skipped [0-9]+' | tail -1 | grep -oE '[0-9]+$' || true)
-          passed=$(printf '%s\n' "$out" | grep -oE '^# pass [0-9]+' | tail -1 | grep -oE '[0-9]+$' || true)
+          fi
+          skipped=$(grep -oE '^# skipped [0-9]+' "$RUNNER_TEMP/unskip.tap" | tail -1 | grep -oE '[0-9]+$' || true)
+          passed=$(grep -oE '^# pass [0-9]+' "$RUNNER_TEMP/unskip.tap" | tail -1 | grep -oE '[0-9]+$' || true)
           skipped=${skipped:-1}
           passed=${passed:-0}
           if [ "$skipped" != "0" ] || [ "$passed" -eq 0 ]; then

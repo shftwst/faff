@@ -161,6 +161,9 @@ test("FAFF-1149: on a Linux host the selected-rung set and discovery are unchang
     "node plugin/skills/faff/bin/faff regions check",
     "node --import ./test/hermetic-env.mjs --test",
     "node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs",
+    // FAFF-1171: the Node 24 typecheck job's source-lane checks are discovered as runnable rungs too.
+    "npx tsc --noEmit -p tsconfig.json",
+    "node --no-experimental-strip-types --import ./test/hermetic-env.mjs --test",
   ].sort();
   assert.deepEqual(rungs.map((r) => r.command).sort(), expected, "the Linux selected-rung set is unchanged by FAFF-1149");
   assert.equal(discovery, "partial", "Linux runnable-coverage discovery stays partial (the ladder-signal determinant); the fix selects the same rungs");

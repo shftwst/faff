@@ -401,3 +401,88 @@ jobs:
         env:
           FAFF_REQUIRE_DOCKER: "1"
         run: node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs
+
+  # FAFF-1171: the source-lane freshness gate. The Node 20 lanes above stay byte-identical and keep
+  # testing the committed .js emit exactly as adopters run it; this job runs on Node 24 (direct .ts
+  # execution needs 22.18+), type-checks the .ts source, proves the committed emit is fresh
+  # (remove-then-rebuild + a path-less `git diff --exit-code` — POSITIVE proof, never a vacuous
+  # noEmit build), and runs the node:test suite against source with an un-skip floor for the
+  # TS-compiler-API tests. `typecheck` is a DISTINCT branch-protection-required context per ADR-0132;
+  # adding it to the required set is an out-of-band repo-admin step the PR cannot self-apply. See the
+  # FAFF-1171 spec under records/specs/.
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install the build-time toolchain deterministically (typescript + @types/node)
+        working-directory: plugin/skills/faff
+        run: npm ci
+
+      - name: Type-check the TypeScript source (a type error fails here, before the build)
+        working-directory: plugin/skills/faff
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Remove each tsconfig include entry's committed .js emit (positive-proof setup)
+        working-directory: plugin/skills/faff
+        # Derive the emit paths from tsconfig `include` (no hand-kept path list) and delete each
+        # sibling .js. Removing them first turns the freshness check into POSITIVE proof: the build
+        # below must regenerate every one, or the deletion itself shows in `git diff` — so a vacuous
+        # build (noEmit / outDir / include drift) that writes nothing fails loud instead of passing
+        # over a stale emit.
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const cfg = JSON.parse(fs.readFileSync("tsconfig.json", "utf8"));
+            for (const entry of cfg.include || []) {
+              if (!entry.endsWith(".ts")) continue;
+              const js = entry.replace(/\.ts$/, ".js");
+              fs.rmSync(js, { force: true });
+              console.log("removed " + js);
+            }
+          '
+
+      - name: Rebuild the emit from source (must regenerate every removed .js)
+        working-directory: plugin/skills/faff
+        run: npm run build
+
+      - name: Fail on a stale or missing committed emit (path-less git diff from the repo root)
+        # Path-less so it covers every tracked emit — current and future modules — with no lockstep
+        # path list. `npm ci` wrote only the gitignored node_modules/ and `tsc` wrote only the
+        # include set's tracked .js, so any diff here is a drifted or not-regenerated emit.
+        run: git diff --exit-code
+
+      - name: Un-skip floor — the TS-compiler-API test must RUN, not silently skip
+        # Leg 1's value rests on check-no-boundary-cast.test.mjs NOT skipping (it self-skips when
+        # typescript is unresolvable). npm ci installed typescript under plugin/skills/faff, exactly
+        # where the test's resolveTypescript() anchors, so it must run here. Assert the TAP summary
+        # reports `# skipped 0` and a non-zero `# pass`, so a silent degradation reddens the job
+        # rather than passing with leg 1 contributing nothing.
+        run: |
+          out=$(node --test --test-reporter=tap test/check-no-boundary-cast.test.mjs 2>&1) || {
+            printf '%s\n' "$out"
+            echo "::error::un-skip floor: check-no-boundary-cast.test.mjs did not pass"
+            exit 1
+          }
+          printf '%s\n' "$out"
+          skipped=$(printf '%s\n' "$out" | grep -oE '^# skipped [0-9]+' | tail -1 | grep -oE '[0-9]+$' || true)
+          passed=$(printf '%s\n' "$out" | grep -oE '^# pass [0-9]+' | tail -1 | grep -oE '[0-9]+$' || true)
+          skipped=${skipped:-1}
+          passed=${passed:-0}
+          if [ "$skipped" != "0" ] || [ "$passed" -eq 0 ]; then
+            echo "::error::un-skip floor: expected '# skipped 0' and a non-zero '# pass', got skipped=${skipped} pass=${passed} — the TS-compiler-API coverage silently degraded"
+            exit 1
+          fi
+          echo "un-skip floor cleared: # skipped 0, # pass ${passed}"
+
+      - name: Run the full node:test suite on Node 24 against the fresh build (source-lane coverage)
+        env:
+          # Docker unreachable so the docker-gated tests self-skip (mirrors the Node 20 unit job);
+          # FAFF_REQUIRE_DOCKER stays unset — real-container stand-ups stay on the env-rootless lane.
+          DOCKER_HOST: "unix:///nonexistent/faff1171.sock"
+        run: node --import ./test/hermetic-env.mjs --test

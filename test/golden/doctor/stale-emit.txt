@@ -1,0 +1,8 @@
+faff doctor — install health (<TARGET>)
+  ✓ faff-graft  symlink (live → repo)
+  ✓ bin/faff  symlink (live)
+  ✓ merge-fence PreToolUse fence present
+  ✗ bin/lib/producer-auth.js  emit older than source bin/lib/producer-auth.ts — run the build
+
+RESULT: 1 stale TypeScript emit(s) — install is not clean.
+Fix: npm run build  (from plugin/skills/faff/)

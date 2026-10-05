@@ -1552,6 +1552,68 @@ function mergeFencePresentAt(root) {
   return preToolUseCommands(settings).some((c) => commandInvokesFaffHook(c, "merge-fence"));
 }
 
+// FAFF-1172: the stale-emit install-health axis. Under the TypeScript emit layout (ADR-0132,
+// layout d) the committed `.js` beside each `.ts` is what every install path runs; a contributor
+// who edits a `.ts` and forgets to rebuild silently runs a stale emit until CI fails. This axis
+// compares each committed `.js` against its `.ts` source by mtime and flags a strictly-newer
+// source. It FIRES ONLY where the build is runnable here — a resolvable `plugin/skills/faff`
+// TypeScript toolchain — and skips otherwise (an adopter marketplace copy ships tsconfig + `.ts`
+// + `.js` yet cannot rebuild, so a finding there is unactionable noise). Ratified by the decision
+// `stale-emit-check-fires-only-where-buildable` (docs/decisions.md, Ratified-by: human). It is a
+// filesystem probe only — never spawns tsc/npm, so doctor stays cheap and tsc-free — and fails
+// toward clean (skip) on every absent/unreadable input; doctor is a heads-up, not the byte-exact
+// gate (that is FAFF-1171's CI rebuild-and-diff).
+function isFileAt(p) {
+  try { return fs.statSync(p).isFile(); } catch { return false; }
+}
+
+// True iff the TypeScript compiler is installed and resolvable under tsconfigDir — the same signal
+// `npm run build` needs to run at all. A filesystem probe, never a spawn.
+function buildToolchainResolvable(tsconfigDir) {
+  return isFileAt(path.join(tsconfigDir, "node_modules", "typescript", "package.json"))
+      || isFileAt(path.join(tsconfigDir, "node_modules", ".bin", "tsc"));
+}
+
+// Returns { active, stale }: `active` is true only where the build is runnable AND at least one
+// real `.ts`/`.js` pair resolved (minor fix, human-accept 2026-10-05 — a glob or all-non-`.ts`
+// include that resolves to zero pairs reports inactive/skip, never "active / up to date" while
+// checking nothing). `stale` is empty when the axis is clean OR skipped.
+function gatherStaleEmits(root) {
+  const tsconfigDir = path.join(root, "plugin", "skills", "faff");
+  if (!buildToolchainResolvable(tsconfigDir)) return { active: false, stale: [] };
+
+  let config;
+  try { config = JSON.parse(fs.readFileSync(path.join(tsconfigDir, "tsconfig.json"), "utf8")); }
+  catch { return { active: false, stale: [] }; }
+
+  const includes = config.include;
+  if (!Array.isArray(includes) || includes.length === 0 || !includes.every((e) => typeof e === "string")) {
+    return { active: false, stale: [] };
+  }
+
+  // Pair enumeration from tsconfig `include` (resolved against the tsconfig's own directory), so it
+  // auto-extends as more modules convert — never a hardcoded filename set. A pair is counted the
+  // moment its `.ts` source resolves; a glob entry (never expanded here) or a vanished source
+  // resolves to no file and so counts no pair, which is what keeps the zero-pair case inactive.
+  let pairsFound = 0;
+  const stale = [];
+  for (const entry of includes) {
+    if (!entry.endsWith(".ts")) continue;                    // not a TS source
+    const src = path.join(tsconfigDir, entry);
+    let srcStat;
+    try { srcStat = fs.statSync(src); } catch { continue; }   // source gone (or an unexpanded glob) — no pair
+    pairsFound++;
+    const emit = `${src.slice(0, -3)}.js`;
+    let emitStat;
+    try { emitStat = fs.statSync(emit); } catch { continue; } // no committed emit → treated as clean
+    if (srcStat.mtimeMs > emitStat.mtimeMs) {
+      stale.push({ source: entry, emit: path.relative(tsconfigDir, emit) });
+    }
+  }
+  if (pairsFound === 0) return { active: false, stale: [] };  // nothing real to check → skip
+  return { active: true, stale };
+}
+
 // FAFF-443: classify a live global skill/CLI symlink by WHERE it resolves. A global install
 // is machine-wide, so a link resolving into a linked worktree is "live but fragile" — it will
 // dangle when that worktree is removed. The target sits in a LINKED worktree iff that checkout's
@@ -1820,13 +1882,18 @@ function gatherDoctorState(scanSet, collapseNotices, expectCopies, root, targetO
   // while its sole `true` branch is single-element, so `scanSet[0]` names it exactly.
   const pluginRoot = expectCopies ? scanSet[0] : null;
 
+  // FAFF-1172: the stale-emit axis — one more machine-wide install-health dimension folded into
+  // the single exit. Runs once per invocation, independent of the scan set, and skips (contributes
+  // nothing) wherever the build is not runnable here.
+  const { active: emitCheckActive, stale: staleEmits } = gatherStaleEmits(root);
+
   const anyMissingHere = scans.some((s) => s.missingHere.length > 0);
-  const exit = emptyUnion ? 2 : ((copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk) ? 1 : 0);
+  const exit = emptyUnion ? 2 : ((copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk || staleEmits.length > 0) ? 1 : 0);
 
   return {
     scanSet, scans, collapseNotices, unionSize: union.size, emptyUnion,
     copies, dangling, intoWorktree, expected,
-    binFaff, fenceOk, pluginRoot, anyMissingHere, exit,
+    binFaff, fenceOk, pluginRoot, anyMissingHere, emitCheckActive, staleEmits, exit,
   };
 }
 
@@ -1865,6 +1932,18 @@ function renderHuman(state) {
     ? `  ✓ merge-fence PreToolUse fence present`
     : `  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
 
+  // FAFF-1172: the stale-emit axis line. Printed only where the axis is active (the build is
+  // runnable here); a skipped axis prints nothing — there is nothing to check.
+  if (state.emitCheckActive) {
+    if (state.staleEmits.length === 0) {
+      out.push(`  ✓ TypeScript emits up to date`);
+    } else {
+      for (const pair of state.staleEmits) {
+        out.push(`  ✗ ${pair.emit}  emit older than source ${pair.source} — run the build`);
+      }
+    }
+  }
+
   if (state.exit === 1) {
     const problems = [];
     if (state.copies > 0 || state.dangling > 0) problems.push(`${state.copies} copy / ${state.dangling} dangling skill link(s)`);
@@ -1873,11 +1952,13 @@ function renderHuman(state) {
       if (s.missingHere.length > 0) problems.push(`${s.missingHere.length} skill(s) missing from ${s.directory}`);
     }
     if (!state.fenceOk) problems.push("merge-fence PreToolUse fence missing");
+    if (state.staleEmits.length > 0) problems.push(`${state.staleEmits.length} stale TypeScript emit(s)`);
     out.push("");
     out.push(`RESULT: ${problems.join(" + ")} — install is not clean.`);
     const fixes = [];
     if (state.copies > 0 || state.dangling > 0 || state.intoWorktree > 0 || state.anyMissingHere) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
     if (!state.fenceOk) fixes.push("faff hooks-ensure");
+    if (state.staleEmits.length > 0) fixes.push("npm run build  (from plugin/skills/faff/)");
     out.push(`Fix: ${fixes.join(" && ")}`);
     console.log(out.join("\n"));
     return state.exit;
@@ -1902,7 +1983,10 @@ function buildDoctorJson(state) {
         directory: d, readable: false, reason: "not present", expected_install: d === state.pluginRoot,
         names_found: [], live: 0, copies: 0, dangling: 0, into_worktree: 0, expected: 0, missing_here: [], findings: [],
       })),
-      plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff, exit: state.exit, ok: state.exit === 0,
+      plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff,
+      emit_check: state.emitCheckActive ? "active" : "skipped",
+      stale_emits: state.staleEmits.map((p) => ({ source: p.source, emit: p.emit })),
+      exit: state.exit, ok: state.exit === 0,
     };
   }
   return {
@@ -1920,7 +2004,10 @@ function buildDoctorJson(state) {
       missing_here: s.missingHere ?? [],
       findings: s.findings,
     })),
-    plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff, exit: state.exit, ok: state.exit === 0,
+    plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff,
+    emit_check: state.emitCheckActive ? "active" : "skipped",
+    stale_emits: state.staleEmits.map((p) => ({ source: p.source, emit: p.emit })),
+    exit: state.exit, ok: state.exit === 0,
   };
 }
 

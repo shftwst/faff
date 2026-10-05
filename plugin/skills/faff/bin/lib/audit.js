@@ -18,7 +18,7 @@ const { spawnSync } = require("node:child_process");
 const { auditLedger } = require("./runcheck");
 // FAFF-673: the PR-path human-merge landing check reuses the SAME escape core `faff effects check`
 // uses (governance→governance import; the require-graph invariant only forbids governance→factory).
-const { computeEscapes } = require("./effects");
+const { computeEscapes, matchesUnit } = require("./effects");
 const { parseArgs, usageError } = require("./argv");
 const AUDIT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--issue": { arity: 1 } }, positionals: { min: 0, max: 1, name: "run-id" } };
 // FAFF-354: the containment recompute reads the SAME pure primitives `contain`
@@ -78,7 +78,7 @@ function accountHumanMerge(issue, overrideRec, mergeRecord, effectsEntries) {
   if (!overrideRec || typeof overrideRec !== "object") return null;
   const entries = Array.isArray(effectsEntries) ? effectsEntries : [];
   const declare_present = entries.some((e) =>
-    e && e.issue === issue && e.step === "merge" && e.kind_of_entry === "declare"
+    e && matchesUnit(e, issue) && e.step === "merge" && e.kind_of_entry === "declare"
     && e.effect && e.effect.kind === "merge");
   const merged = !!(mergeRecord && typeof mergeRecord === "object" && mergeRecord.merged === true);
   const prPath = overrideRec.pr !== undefined && overrideRec.pr !== null;

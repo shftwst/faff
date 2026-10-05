@@ -47,11 +47,11 @@ test("pass: admit → declare → request-decision(granted) → observe → reco
   const { runDir, ledger } = mkRun("com-pass-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     assert.equal(rd.code, 0);
     assert.equal(JSON.parse(rd.stdout.trim()).verdict, "grant");
-    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
 
     // every record is schema:3 and the chain verifies
     const recs = records(ledger);
@@ -131,7 +131,7 @@ test("seeded-governance-block: a pre-cutover schema:2 ledger stays frozen; a fre
 
     // a fresh schema:3 run alongside it
     assert.equal(runCom(["admit", "--run-dir", fresh.runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", fresh.runDir, "--producer", "P1", "--issue", "FAFF-NEW", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", fresh.runDir, "--producer", "P1", "--unit-id", "FAFF-NEW", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
     const freshRecs = records(fresh.ledger);
     assert.ok(freshRecs.some((r) => r.schema === 3), "the fresh run is schema:3");
     assert.equal(verifyEffectsChain(fresh.runDir, {}).schema_floor, 3, "the fresh run is canonical schema-3");
@@ -151,10 +151,10 @@ test("stale-evidence: a request resting on evidence older than the latest observ
   const { runDir, ledger } = mkRun("com-stale-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     // the observe advanced the chain head; the request rests on evidence_seq 0 (the declare, pre-observation)
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: 0 }));
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: 0 }));
     assert.equal(rd.code, 0);
     const out = JSON.parse(rd.stdout.trim());
     assert.equal(out.verdict, "deny");
@@ -171,7 +171,7 @@ test("effect-mismatch: an observed effect covered by no declaration surfaces as 
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge,registry-publish"]);
     // observe an effect that was never declared
-    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "build"], JSON.stringify([{ kind: "registry-publish", target: "pkg@1.0.0" }]));
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "build"], JSON.stringify([{ kind: "registry-publish", target: "pkg@1.0.0" }]));
     const rec = runCom(["reconcile", "--run-dir", runDir, "--issue", "FAFF-1"]);
     const out = JSON.parse(rec.stdout.trim());
     assert.equal(out.any_escape, true);
@@ -184,8 +184,8 @@ test("killed-producer: a torn final line is tolerated (chain verifies); a revoke
   const { runDir, ledger } = mkRun("com-killed-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "release" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "release" }]));
     // simulate a kill mid-write: append a torn (newline-less, truncated) final line
     const raw = readFileSync(ledger, "utf8");
     writeFileSync(ledger, raw + '{"schema":3,"seq":99,"author":"producer","prev":"deadbeef","incompl');
@@ -227,8 +227,8 @@ test("replay-determinism: the terminal-verdict projection recomputed twice from 
   const { runDir, ledger } = mkRun("com-replay-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     const frozen = readFileSync(ledger); // frozen bytes
     // the projection: the ordered (kind_of_entry, verdict) sequence recomputed over frozen bytes
     const project = (buf) => JSON.stringify(buf.toString("utf8").split("\n").filter((l) => l.trim() !== "")
@@ -302,8 +302,8 @@ test("hardening: verifyAuthLeg fails closed when the producer-writable pk.json i
   const { runDir } = mkRun("com-authpk-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     assert.ok(verifyAuthLeg(runDir).pass, "baseline auth leg passes");
     // an attacker swaps the producer-dir pk.json to their own key — the leg must fail closed on the
     // fingerprint mismatch against the governor's authoritative PK, never verify against the swapped key
@@ -325,16 +325,16 @@ test("hardening: a revoked producer is refused at CLI entry, before any ledger a
     const pf = producerFileOf(producerDirOf(runDir), "P1");
     const pj = JSON.parse(readFileSync(pf, "utf8")); pj.status = "revoked"; writeFileSync(pf, JSON.stringify(pj));
     // declare and request-decision are both refused (exit 2) with NO ledger append
-    const d = runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    const d = runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     assert.equal(d.code, 2); assert.match(d.stderr, /revoked/);
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     assert.equal(rd.code, 2); assert.match(rd.stderr, /revoked/);
     assert.equal(records(ledger).length, linesBefore, "no record was appended by the revoked producer");
   } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
 });
 
 // --- FAFF-978 hardening: reconcile no longer requires --producer ------------------------
-test("hardening: reconcile works with only --issue (the phantom --producer requirement is gone)", () => {
+test("hardening: reconcile works with only the deprecated --issue alias (the phantom --producer requirement is gone)", () => {
   const { runDir } = mkRun("com-recon-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
@@ -355,8 +355,8 @@ const FIXTURE_ROOT = join(HERE, "fixtures", "commissaire", "secret-free-replay")
 function mintGovernedRun(prefix) {
   const { root, runDir, ledger } = mkRun(prefix);
   assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-  assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-  assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
+  assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+  assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
   return { root, runDir, ledger };
 }
 
@@ -493,7 +493,7 @@ test("audit verify: the seven flat verbs and the cli-surface bijection/pinned se
   // the compound `audit verify` SURFACE key does not break the surface selftest
   assert.equal(runCli(["cli-surface", "--selftest"]).code, 0);
   // a representative flat verb still dispatches with its own (legacy exit-3) run-dir contract
-  const missing = runCom(["reconcile", "--run-dir", join(tmpdir(), `com-flat-missing-${Date.now()}`), "--issue", "FAFF-1"]);
+  const missing = runCom(["reconcile", "--run-dir", join(tmpdir(), `com-flat-missing-${Date.now()}`), "--unit-id", "FAFF-1"]);
   assert.equal(missing.code, 3, "the flat verbs keep their own exit-3 missing-run-dir convention");
 });
 
@@ -508,20 +508,20 @@ test("grammar: object-verb chain and flat-alias chain return byte-identical exit
   try {
     // flat spelling
     assert.equal(runCom(["admit", "--run-dir", flat.runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", flat.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const rdFlat = runCom(["request-decision", "--run-dir", flat.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.equal(runCom(["declare", "--run-dir", flat.runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rdFlat = runCom(["request-decision", "--run-dir", flat.runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     // object-verb spelling — same inputs against a fresh dir
     assert.equal(runCom(["contract", "admit", "--run-dir", obj.runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["effect", "declare", "--run-dir", obj.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const rdObj = runCom(["effect", "authorize", "--run-dir", obj.runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.equal(runCom(["effect", "declare", "--run-dir", obj.runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rdObj = runCom(["effect", "authorize", "--run-dir", obj.runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
 
     assert.equal(rdFlat.code, rdObj.code, "identical exit code");
     assert.equal(rdObj.code, 0);
     assert.equal(rdFlat.stdout.trim(), rdObj.stdout.trim(), "byte-identical request-decision JSON across spellings");
     assert.equal(JSON.parse(rdObj.stdout.trim()).verdict, "grant");
     // reconcile pairs: `effect reconcile` == `reconcile`, same exit + JSON
-    const recFlat = runCom(["reconcile", "--run-dir", flat.runDir, "--issue", "FAFF-1"]);
-    const recObj = runCom(["effect", "reconcile", "--run-dir", obj.runDir, "--issue", "FAFF-1"]);
+    const recFlat = runCom(["reconcile", "--run-dir", flat.runDir, "--unit-id", "FAFF-1"]);
+    const recObj = runCom(["effect", "reconcile", "--run-dir", obj.runDir, "--unit-id", "FAFF-1"]);
     assert.equal(recFlat.code, recObj.code);
     assert.equal(recFlat.stdout.trim(), recObj.stdout.trim(), "byte-identical reconcile JSON across spellings");
   } finally { rmSync(flat.root, { recursive: true, force: true }); rmSync(obj.root, { recursive: true, force: true }); }
@@ -540,11 +540,11 @@ test("grammar: all seven flat aliases and their object-verb forms dispatch to th
   // each pair [flat tokens, object-verb tokens] must produce the same exit on the same missing dir.
   const pairs = [
     [["admit", "--run-dir", missing, "--producer", "P1", "--contract-revision", "r1"], ["contract", "admit", "--run-dir", missing, "--producer", "P1", "--contract-revision", "r1"]],
-    [["declare", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"], ["effect", "declare", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"]],
-    [["request-decision", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"], ["effect", "authorize", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"]],
-    [["observe", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"], ["effect", "observe", "--run-dir", missing, "--producer", "P1", "--issue", "I", "--step", "S"]],
-    [["reconcile", "--run-dir", missing, "--issue", "I"], ["effect", "reconcile", "--run-dir", missing, "--issue", "I"]],
-    [["terminal-verdict", "--run-dir", missing, "--issue", "I"], ["verdict", "conclude", "--run-dir", missing, "--issue", "I"]],
+    [["declare", "--run-dir", missing, "--producer", "P1", "--unit-id", "I", "--step", "S"], ["effect", "declare", "--run-dir", missing, "--producer", "P1", "--unit-id", "I", "--step", "S"]],
+    [["request-decision", "--run-dir", missing, "--producer", "P1", "--unit-id", "I", "--step", "S"], ["effect", "authorize", "--run-dir", missing, "--producer", "P1", "--unit-id", "I", "--step", "S"]],
+    [["observe", "--run-dir", missing, "--producer", "P1", "--unit-id", "I", "--step", "S"], ["effect", "observe", "--run-dir", missing, "--producer", "P1", "--unit-id", "I", "--step", "S"]],
+    [["reconcile", "--run-dir", missing, "--unit-id", "I"], ["effect", "reconcile", "--run-dir", missing, "--unit-id", "I"]],
+    [["terminal-verdict", "--run-dir", missing, "--unit-id", "I"], ["verdict", "conclude", "--run-dir", missing, "--unit-id", "I"]],
     [["seal-bundle", "--run-dir", missing], ["audit", "seal", "--run-dir", missing]],
   ];
   for (const [flatArgs, objArgs] of pairs) {
@@ -577,11 +577,11 @@ test("FAFF-1000 verdict conclude: a clean covered run appends one signed accepte
   const { root, runDir, ledger } = mkRun("com-vc-ok-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
-    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
 
-    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0);
     const out = JSON.parse(vc.stdout.trim());
     assert.equal(out.verdict, "accepted_under_contract");
@@ -607,9 +607,9 @@ test("FAFF-1000 verdict conclude: an unreconciled escape refuses (exit 0) and wr
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge,registry-publish"]);
     // observe an effect that was never declared -> an escape for FAFF-1
-    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "build"], JSON.stringify([{ kind: "registry-publish", target: "pkg@1.0.0" }]));
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "build"], JSON.stringify([{ kind: "registry-publish", target: "pkg@1.0.0" }]));
     const before = records(ledger).length;
-    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0, "a completed refusal exits 0");
     const out = JSON.parse(vc.stdout.trim());
     assert.equal(out.verdict, "refused");
@@ -624,18 +624,18 @@ test("FAFF-1000 verdict conclude: no-evidence on a bare issue; ambiguous-produce
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
     // no-evidence: an issue with zero ledger entries
-    const ne = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-NONE"]).stdout.trim());
+    const ne = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-NONE"]).stdout.trim());
     assert.equal(ne.verdict, "refused");
     assert.equal(ne.reason, "no-evidence");
     // ambiguous-producer: a second distinct producer_id on the same issue (the ambiguity check reads
     // producer_id off the ledger, never the HMAC), --producer absent
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     writeFileSync(ledger, readFileSync(ledger, "utf8") + JSON.stringify({ schema: 3, run_id: runDir.split("/").pop(), seq: 999, author: "producer", producer_id: "P2", contract_revision: "r1", kind_of_entry: "declare", issue: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main" } }) + "\n");
-    const amb = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]).stdout.trim());
+    const amb = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]).stdout.trim());
     assert.equal(amb.verdict, "refused");
     assert.equal(amb.reason, "ambiguous-producer");
     // naming an unknown producer is a producer-not-admitted refusal (still exit 0, still no write)
-    const named = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1", "--producer", "P2"]).stdout.trim());
+    const named = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1", "--producer", "P2"]).stdout.trim());
     assert.equal(named.reason, "producer-not-admitted");
     assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0, "no refusal wrote a terminal record");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -645,10 +645,10 @@ test("FAFF-1000 verdict conclude: a second call for an already-concluded issue r
   const { root, runDir, ledger } = mkRun("com-vc-idem-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    const first = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]).stdout.trim());
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    const first = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]).stdout.trim());
     assert.equal(first.verdict, "accepted_under_contract");
-    const second = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]).stdout.trim());
+    const second = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]).stdout.trim());
     assert.equal(second.verdict, "accepted_under_contract");
     assert.equal(second.idempotent, true);
     assert.equal(second.seq, first.seq, "the idempotent re-conclude returns the existing record's seq");
@@ -662,10 +662,10 @@ test("FAFF-1008 verdict conclude: a named producer with zero ledger entries refu
   const { root, runDir, ledger } = mkRun("com-vc-ghost-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     const before = records(ledger).length;
     // GHOST is not in producerIds, so this hits the named-but-absent branch (item 3), NOT producer-not-admitted.
-    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1", "--producer", "GHOST"]);
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1", "--producer", "GHOST"]);
     assert.equal(vc.code, 0);
     const out = JSON.parse(vc.stdout.trim());
     assert.equal(out.verdict, "refused");
@@ -680,9 +680,9 @@ test("FAFF-1008 verdict conclude: labels the terminal record from the ledger, no
   const { root, runDir, ledger } = mkRun("com-vc-readmit-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
-    assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
-    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
+    runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
 
     // The admission now names r2 while the issue's ledger entries stay r1 (the divergence item 1
     // handles). Overwrite ONLY the admission file's contract_revision, NOT `admit --force`: --force
@@ -694,7 +694,7 @@ test("FAFF-1008 verdict conclude: labels the terminal record from the ledger, no
     adm.contract_revision = "r2";
     writeFileSync(admPath, JSON.stringify(adm, null, 2) + "\n");
 
-    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0, `conclude failed: ${vc.stderr}`);
     assert.equal(JSON.parse(vc.stdout.trim()).verdict, "accepted_under_contract");
 
@@ -717,16 +717,16 @@ test("FAFF-1008 verdict conclude: the issue's ledger entries spanning two revisi
   const { root, runDir, ledger } = mkRun("com-vc-ambrev-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     // A second entry for the SAME issue/producer under a distinct contract_revision (r2), minted
     // through the REAL append path (chained + HMAC'd under the r2-derived key), not a raw
     // unauthenticated line — so the ledger genuinely spans two revisions and the fixture stays valid
     // even if conclude later gains chain/auth verification before deriving revs.
     const gov = JSON.parse(readFileSync(governorFileOf(governorDirOf(runDir, undefined)), "utf8"));
     const r2key = deriveKey(gov.master_secret, "P1", "r2");
-    appendProducerRecords(runDir, r2key, "P1", "r2", [{ kind_of_entry: "declare", issue: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main" } }], "t2");
+    appendProducerRecords(runDir, r2key, "P1", "r2", [{ kind_of_entry: "declare", unit_id: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main" } }], "t2");
     const before = records(ledger).length;
-    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0);
     const out = JSON.parse(vc.stdout.trim());
     assert.equal(out.verdict, "refused");
@@ -741,7 +741,7 @@ test("FAFF-1008 verdict conclude: an admission whose pk_fingerprint differs from
   const { root, runDir, ledger } = mkRun("com-vc-pkmis-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     // Tamper the admission file so its pk_fingerprint no longer matches the governor's.
     const admFile = producerFileOf(producerDirOf(runDir, undefined), "P1");
     const adm = JSON.parse(readFileSync(admFile, "utf8"));
@@ -749,7 +749,7 @@ test("FAFF-1008 verdict conclude: an admission whose pk_fingerprint differs from
     adm.pk_fingerprint = "0".repeat(64);
     writeFileSync(admFile, JSON.stringify(adm));
     const before = records(ledger).length;
-    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--issue", "FAFF-1"]);
+    const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0);
     const out = JSON.parse(vc.stdout.trim());
     assert.equal(out.verdict, "refused");
@@ -766,7 +766,7 @@ test("FAFF-1000 audit seal: seals the run-close bundle in-process; bundle_manife
   const { root, runDir } = mkRun("com-seal-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
-    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+    runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     const runId = runDir.split("/").pop();
     mintRunCloseAnchor(root, runDir, runId);
 
@@ -828,8 +828,8 @@ test("FAFF-1000 audit export: copies a sealed bundle's manifest + every required
 function mintGovernedAnchor(prefix, runId = "RUN-976") {
   const { root, runDir } = mkRun(prefix, runId);
   assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-  assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-  assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
+  assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+  assert.equal(JSON.parse(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).stdout.trim()).verdict, "grant");
   writeFileSync(join(runDir, "events.jsonl"), `{"schema":1,"run_id":"${runId}","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n`);
   const anchorDir = join(root, ".faff", "anchors", runId, "FAFF-1");
   const mint = mintIssueAnchor(runDir, "FAFF-1", anchorDir);
@@ -919,7 +919,7 @@ test("snapshot-pinning-unit: appendProducerRecords({withSnapshot}) pins the ledg
   const { runDir, ledger } = mkRun("com-snap-");
   try {
     const key = deriveKey("m", "P1", "r1");
-    const requestBody = { kind_of_entry: "effect-decision-request", issue: "FAFF-1", step: "merge", payload: { effect: { kind: "merge", target: "main" } } };
+    const requestBody = { kind_of_entry: "effect-decision-request", unit_id: "FAFF-1", step: "merge", payload: { effect: { kind: "merge", target: "main" } } };
     const { minted, snapshot } = appendProducerRecords(runDir, key, "P1", "r1", [requestBody], "t", { withSnapshot: true });
     const requestRecord = minted[0];
     // mutate the on-disk ledger AFTER the snapshot was captured inside the lock
@@ -938,15 +938,15 @@ test("interleave-ignored: an append landing in the post-request window cannot ch
   const { runDir, ledger } = mkRun("com-interleave-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
     // the request rests on the pre-request observe's seq; the interleave observe carries a HIGHER
     // seq, so were it read (unpinned) the freshness leg would flip to stale-evidence (deny).
     const preObserve = records(ledger).filter((r) => r.kind_of_entry === "observe").pop();
     const interleaveFile = join(runDir, "interleave.jsonl");
     const interleave = { schema: 3, author: "producer", kind_of_entry: "observe", issue: "FAFF-1", step: "merge", seq: 999, effect: { kind: "merge", target: "main" } };
     writeFileSync(interleaveFile, JSON.stringify(interleave) + "\n");
-    const rd = runCli(["commissaire", "request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"],
+    const rd = runCli(["commissaire", "request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"],
       { input: JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: preObserve.seq }),
         env: { ...process.env, FAFF_TEST_LEDGER_INTERLEAVE: interleaveFile } });
     assert.equal(rd.code, 0);
@@ -963,10 +963,10 @@ test("transparency-no-interleave: with no interleave, the same request grants al
   const { runDir, ledger } = mkRun("com-transparent-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
     const preObserve = records(ledger).filter((r) => r.kind_of_entry === "observe").pop();
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"],
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"],
       JSON.stringify({ effect: { kind: "merge", target: "main" }, evidence_seq: preObserve.seq }));
     assert.equal(rd.code, 0);
     const out = JSON.parse(rd.stdout.trim());
@@ -1000,8 +1000,8 @@ test("resolveCommissaireDecisionGrant: a governed run with a covering merge gran
   const { runDir } = mkRun("com-fc-grant-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     assert.equal(rd.code, 0);
     assert.equal(JSON.parse(rd.stdout.trim()).verdict, "grant");
     assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main"), "valid-grant");
@@ -1038,8 +1038,8 @@ test("authorize --level records level/attended/holdout in BOTH the request and v
   const { runDir, ledger } = mkRun("com-level-record-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L4"], JSON.stringify({ effect: { kind: "merge", target: "main" }, attended: false, holdout: "fails" }));
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--level", "L4"], JSON.stringify({ effect: { kind: "merge", target: "main" }, attended: false, holdout: "fails" }));
     assert.equal(rd.code, 0);
     const out = JSON.parse(rd.stdout.trim());
     assert.equal(out.verdict, "deny");
@@ -1059,8 +1059,8 @@ test("authorize --level L1 on an attended run grants, recording level/attended/h
   const { runDir, ledger } = mkRun("com-l1-grant-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" }, level: "L1", attended: true }));
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" }, level: "L1", attended: true }));
     assert.equal(rd.code, 0);
     assert.equal(JSON.parse(rd.stdout.trim()).verdict, "grant");
     const ver = records(ledger).find((r) => r.kind_of_entry === "effect-decision-verdict");
@@ -1074,12 +1074,12 @@ test("a governed schema:3 merge trail — including a deny whose pure legs pass 
   const { runDir } = mkRun("com-auditverify-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge,branch-delete"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
-    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
+    assert.equal(runCom(["observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
     // a second issue whose level policy denies (L4 without meets-spec) — pure legs pass, verdict deny
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-2", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    const denied = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-2", "--step", "merge", "--level", "L4"], JSON.stringify({ effect: { kind: "merge", target: "main" }, holdout: "fails" }));
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-2", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    const denied = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-2", "--step", "merge", "--level", "L4"], JSON.stringify({ effect: { kind: "merge", target: "main" }, holdout: "fails" }));
     assert.equal(JSON.parse(denied.stdout.trim()).verdict, "deny");
     const av = runCom(["audit", "verify", "--run-dir", runDir]);
     assert.equal(av.code, 0, `audit verify exits 0 (${av.stderr})`);
@@ -1095,8 +1095,8 @@ test("mergeCoveredBySchema3Grant: true for a covered merge, false for a governed
   const { runDir } = mkRun("com-suppress-");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
-    assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
+    assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
+    assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
     assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main"), true);   // covered → suppress schema:2
     assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-2", "main"), false);  // governed but ungranted → keep schema:2 (and blocks)
   } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }

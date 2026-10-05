@@ -195,11 +195,11 @@ let rc = 0;
 try {
   if (D("contract admit", { "--run-dir": runDir, "--producer": "P1", "--contract-revision": "r1", "--scope": "merge" }) !== 0) throw new Error("admit");
   stdinQueue.push(JSON.stringify([{ kind: "merge", target: "main" }]));
-  if (D("effect declare", { "--run-dir": runDir, "--producer": "P1", "--issue": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("declare");
+  if (D("effect declare", { "--run-dir": runDir, "--producer": "P1", "--unit-id": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("declare");
   stdinQueue.push(JSON.stringify({ effect: { kind: "merge", target: "main" } }));
-  if (D("effect authorize", { "--run-dir": runDir, "--producer": "P1", "--issue": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("authorize");
+  if (D("effect authorize", { "--run-dir": runDir, "--producer": "P1", "--unit-id": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("authorize");
   stdinQueue.push(JSON.stringify([{ kind: "merge", target: "main" }]));
-  if (D("effect observe", { "--run-dir": runDir, "--producer": "P1", "--issue": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("observe");
+  if (D("effect observe", { "--run-dir": runDir, "--producer": "P1", "--unit-id": "FAFF-1", "--step": "merge" }) !== 0) throw new Error("observe");
 
   // run-ledger + a directly-minted run-close anchor (fs writes under root/.faff/anchors/<run_id>/) —
   // never via \`faff events anchor-run\`; the guard's whole point is a path with no faff-bin call.
@@ -214,7 +214,7 @@ try {
 
   // Measure ONLY the two verbs under test.
   calls.length = 0;
-  const vc = D("verdict conclude", { "--run-dir": runDir, "--issue": "FAFF-1" });
+  const vc = D("verdict conclude", { "--run-dir": runDir, "--unit-id": "FAFF-1" });
   const seal = D("audit seal", { "--run-dir": runDir, "--root": root });
   if (vc !== 0) throw new Error("verdict conclude exit " + vc);
   if (seal !== 0) throw new Error("audit seal exit " + seal);

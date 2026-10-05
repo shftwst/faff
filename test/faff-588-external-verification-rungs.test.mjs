@@ -102,16 +102,13 @@ function deriveFirstFailure(rows) {
 function makeCaseReader(resultsRoot) {
   return (caseDir, fileName) => {
     if (caseDir.includes("/") || caseDir.includes("..")) return null;
-    let real;
-    let root;
     try {
-      real = fs.realpathSync(path.join(resultsRoot, caseDir, fileName));
-      root = fs.realpathSync(resultsRoot);
+      const real = fs.realpathSync(path.join(resultsRoot, caseDir, fileName));
+      const root = fs.realpathSync(resultsRoot);
+      return real.startsWith(root + path.sep) ? fs.readFileSync(real, "utf8") : null;
     } catch {
       return null;
     }
-    if (!real.startsWith(root + path.sep)) return null;
-    return fs.readFileSync(real, "utf8");
   };
 }
 
@@ -373,6 +370,8 @@ describe("rung results table", () => {
     assert.equal(reader("2026-09-03-escape-link", "README.md"), null);
     assert.equal(reader("2026-09-04-file-link", "README.md"), null);
     assert.equal(fs.readFileSync(path.join(results, "2026-09-03-escape-link", "README.md"), "utf8"), "# case\n");
+    fs.mkdirSync(path.join(results, "2026-09-05-unreadable", "report.md"), { recursive: true });
+    assert.equal(reader("2026-09-05-unreadable", "report.md"), null);
 
     const base = setCell(setCell(readme(), "P1", "Status", "`not-run`"), "P1", "Cases", "none");
     for (const dir of ["2026-09-03-escape-link", "2026-09-04-file-link"]) {

@@ -711,6 +711,8 @@ test("FAFF-675: DoctorJson is a total projection of DoctorState — every axis i
     assert.equal(json.plugin_root, state.pluginRoot);
     assert.equal(json.merge_fence, state.fenceOk);
     assert.equal(json.bin_faff, state.binFaff);
+    assert.equal(json.emit_check, state.emitCheckActive ? "active" : "skipped"); // FAFF-1172
+    assert.deepEqual(json.stale_emits, state.staleEmits.map((p) => ({ source: p.source, emit: p.emit }))); // FAFF-1172
     assert.equal(json.exit, state.exit);
     assert.equal(json.ok, state.exit === 0);
 
@@ -734,7 +736,9 @@ test("FAFF-675: DoctorJson is a total projection of DoctorState — every axis i
     const accountedFor = new Set([
       "scanSet", "scans", "collapseNotices", "unionSize", "emptyUnion",
       "copies", "dangling", "intoWorktree", "expected",
-      "binFaff", "fenceOk", "pluginRoot", "anyMissingHere", "exit",
+      "binFaff", "fenceOk", "pluginRoot", "anyMissingHere",
+      "emitCheckActive", "staleEmits", // FAFF-1172 — reflected as emit_check / stale_emits above
+      "exit",
     ]);
     for (const key of Object.keys(state)) {
       assert.ok(accountedFor.has(key), `DoctorState gained an axis ("${key}") not reflected in this completeness test / buildDoctorJson — extend both.`);

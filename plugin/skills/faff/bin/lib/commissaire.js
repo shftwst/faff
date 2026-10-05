@@ -63,7 +63,7 @@ const { spawnSync } = require("node:child_process");
 const producerAuth = require("./producer-auth");
 const { deriveKey, signRecord, verifyRecord, mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, producerAuthSelftest, } = producerAuth;
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
-const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes } = require("./effects");
+const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys } = require("./effects");
 const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp } = require("./shared-infra");
 // FAFF-1140 — the run-start `admit-required` read resolves `unattended` from the SAME shared abort-axis
 // resolver the sentry-poller uses (never a second definition), and the governance config the same way
@@ -145,14 +145,24 @@ function parseAdmissionRecord(raw) {
         rec[k] = raw[k];
     return rec;
 }
-// --- Ledger append: mint schema:3 records, signing each inside the lock -------------------
+// Reject a body no schema:3 writer may emit: one carrying `issue` (or both unit keys), or one
+// whose `unit_id` is not a non-empty string. Runs before the append lock is taken.
+function assertEnvelopeBody(body) {
+    if (!isRecord(body))
+        throw new TypeError("commissaire: envelope body must be an object");
+    if (Object.prototype.hasOwnProperty.call(body, "issue"))
+        throw new TypeError("commissaire: envelope body must carry unit_id, not issue");
+    if (typeof body.unit_id !== "string" || body.unit_id === "")
+        throw new TypeError("commissaire: envelope body must carry a non-empty string unit_id");
+}
 // Build the common schema:3 envelope (WITHOUT the auth field), given the seq/prev the lock
-// assigned. `body` carries the verb-specific fields (kind_of_entry, issue, step, effect|payload).
+// assigned. `body` carries the verb-specific fields (kind_of_entry, unit_id, step, effect|payload).
 function buildEnvelope(runId, seq, prevHash, author, producerId, contractRevision, body, ts) {
+    assertEnvelopeBody(body);
     const rec = {
         schema: 3, run_id: runId, seq, ts: ts || new Date().toISOString(),
         author, producer_id: producerId, contract_revision: contractRevision,
-        kind_of_entry: body.kind_of_entry, issue: body.issue, step: body.step, prev: prevHash,
+        kind_of_entry: body.kind_of_entry, unit_id: body.unit_id, step: body.step, prev: prevHash,
     };
     if (body.effect !== undefined)
         rec.effect = body.effect;
@@ -162,6 +172,7 @@ function buildEnvelope(runId, seq, prevHash, author, producerId, contractRevisio
 }
 // Append N producer-authored records (HMAC'd under K_producer) as one atomic chained batch.
 function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts, opts) {
+    bodies.forEach(assertEnvelopeBody);
     const runId = path.basename(runDir);
     return appendRecordsUnderLock(runDir, LEDGER_CFG, bodies.length, (index, seq, _prev, prevHash) => {
         const rec = buildEnvelope(runId, seq, prevHash, "producer", producerId, contractRevision, bodies[index] ?? {}, ts);
@@ -171,6 +182,7 @@ function appendProducerRecords(runDir, key, producerId, contractRevision, bodies
 }
 // Append one Commissaire-authored record (Ed25519-signed under SK) as a chained record.
 function appendCommissaireRecord(runDir, sk, producerId, contractRevision, body, ts) {
+    assertEnvelopeBody(body);
     const runId = path.basename(runDir);
     const written = appendRecordsUnderLock(runDir, LEDGER_CFG, 1, (_i, seq, _prev, prevHash) => {
         const rec = buildEnvelope(runId, seq, prevHash, "commissaire", producerId, contractRevision, body, ts);
@@ -195,6 +207,11 @@ function evaluateDecisionRequest(admission, requestRecord, key, ledgerEntries) {
     // Leg 2 — the producer's request authenticates under its own key.
     if (!verifyRecord(requestRecord, key))
         return { verdict: "deny", reason: "producer-auth-failed" };
+    // Unit identity (FAFF-1167) — the request must resolve to exactly one work unit, and no record in
+    // the snapshot may carry both unit keys (an unattributable record could belong to this unit).
+    const unit = unitIdOf(requestRecord);
+    if (unit === null || ledgerEntries.some(carriesBothUnitKeys))
+        return { verdict: "deny", reason: "invalid-unit-key" };
     const payload = isRecord(requestRecord.payload) ? requestRecord.payload : undefined;
     const effect = payload ? payload.effect : undefined;
     const effectKind = isRecord(effect) ? str(effect.kind) : undefined;
@@ -208,12 +225,12 @@ function evaluateDecisionRequest(admission, requestRecord, key, ledgerEntries) {
     if (effectKind === undefined || !scope.includes(effectKind))
         return { verdict: "deny", reason: "effect-out-of-scope" };
     // Leg 5a — freshness: a request resting on evidence older than the latest observation for
-    // (issue, step) is stale.
-    const issue = requestRecord.issue, step = requestRecord.step;
+    // (unit, step) is stale.
+    const step = requestRecord.step;
     let latestObserveSeq = -1;
     for (const e of ledgerEntries) {
         const eSeq = num(e.seq);
-        if (e.kind_of_entry === "observe" && e.issue === issue && e.step === step && eSeq !== undefined && Number.isInteger(eSeq)) {
+        if (e.kind_of_entry === "observe" && matchesUnit(e, unit) && e.step === step && eSeq !== undefined && Number.isInteger(eSeq)) {
             latestObserveSeq = Math.max(latestObserveSeq, eSeq);
         }
     }
@@ -221,9 +238,9 @@ function evaluateDecisionRequest(admission, requestRecord, key, ledgerEntries) {
     if (evidenceSeq !== undefined && Number.isInteger(evidenceSeq) && latestObserveSeq >= 0 && evidenceSeq < latestObserveSeq) {
         return { verdict: "deny", reason: "stale-evidence" };
     }
-    // Leg 5b — coverage: the granted effect must be declared or wildcard-covered for (issue, step).
+    // Leg 5b — coverage: the granted effect must be declared or wildcard-covered for (unit, step).
     const covered = ledgerEntries.some((e) => {
-        if (!(e.kind_of_entry === "declare" && e.issue === issue && e.step === step && isRecord(e.effect)))
+        if (!(e.kind_of_entry === "declare" && matchesUnit(e, unit) && e.step === step && isRecord(e.effect)))
             return false;
         return e.effect.kind === effectKind && effectTargetMatches(e.effect.target, effectTarget);
     });
@@ -467,15 +484,15 @@ function cmdAuditAnchor(flags) {
     const runDir = requireRunDir(flags, "audit anchor");
     if (!runDir)
         return 3;
-    const issue = strFlag(flags, "--issue");
+    const issue = strFlag(flags, "--unit-id");
     if (!issue) {
-        process.stderr.write("faff commissaire audit anchor: --issue <id> is required\n");
+        process.stderr.write("faff commissaire audit anchor: --unit-id <id> is required\n");
         return 2;
     }
-    // Mirrors `faff events anchor`'s --issue shape guard (defence-in-depth): a bare issue-id token
+    // Mirrors `faff events anchor`'s --issue shape guard (defence-in-depth): a bare unit-id token
     // only, so a malformed/malicious value can't walk the read path outside --run-dir via "..".
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) {
-        process.stderr.write(`faff commissaire audit anchor: --issue ${JSON.stringify(issue)} is not a valid issue id\n`);
+        process.stderr.write(`faff commissaire audit anchor: --unit-id ${JSON.stringify(issue)} is not a valid unit id\n`);
         return 2;
     }
     let dest = strFlag(flags, "--dest");
@@ -511,6 +528,7 @@ function cmdAuditAnchor(flags) {
     console.log(JSON.stringify({
         minted: true,
         issue,
+        unit_id: issue,
         dest,
         head: result.head,
         copied_floor_files: result.copiedFloorFiles,
@@ -523,20 +541,21 @@ function usage() {
     process.stderr.write("usage: faff commissaire <object> <action> ...  (ADR-0123 object-verb grammar; the flat verbs are retained aliases)\n" +
         "  contract admit    --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]   (alias: admit)\n" +
         "  contract admit-required --run-dir DIR [--json]   (pure run-start read: {governance_required, unattended, dispatch_state}; exit 0 always; alias: admit-required)\n" +
-        "  effect declare    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: declare)\n" +
-        "  effect authorize  --run-dir DIR --producer ID --issue I --step S [--level L]   (stdin: {effect, evidence_seq?, level?, attended?, holdout?})   (alias: request-decision)\n" +
-        "  effect observe    --run-dir DIR --producer ID --issue I --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
-        "  effect reconcile  --run-dir DIR --issue I   (alias: reconcile)\n" +
-        "  verdict conclude  --run-dir DIR --issue I [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed accepted_under_contract record, or a refusal; alias: terminal-verdict)\n" +
+        "  effect declare    --run-dir DIR --producer ID --unit-id U --step S   (stdin: EffectDescriptor[])   (alias: declare)\n" +
+        "  effect authorize  --run-dir DIR --producer ID --unit-id U --step S [--level L]   (stdin: {effect, evidence_seq?, level?, attended?, holdout?})   (alias: request-decision)\n" +
+        "  effect observe    --run-dir DIR --producer ID --unit-id U --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
+        "  effect reconcile  --run-dir DIR --unit-id U   (alias: reconcile)\n" +
+        "  verdict conclude  --run-dir DIR --unit-id U [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed accepted_under_contract record, or a refusal; alias: terminal-verdict)\n" +
         "  audit seal        --run-dir DIR [--root R] [--bundle-store local]   (build + write the run-close recovery bundle in-process; alias: seal-bundle)\n" +
         "  audit export      --run-dir DIR --dest DIR [--root R] [--bundle-store local]   (copy an already-sealed bundle's manifest + members to DIR)\n" +
+        "  (--issue is accepted as a deprecated alias of --unit-id for one release; passing both is a usage error)\n" +
         "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n" +
-        "  audit anchor      --run-dir DIR --issue ISSUE [--dest DIR] [--root R]   (mint ONE per-issue anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n");
+        "  audit anchor      --run-dir DIR --unit-id U [--dest DIR] [--root R]   (mint ONE per-unit anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n");
 }
 function parseCommissaireArgs(args) {
     const flags = {};
     const rest = [];
-    const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level"]);
+    const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level"]);
     for (let i = 0; i < args.length; i++) {
         const a = args[i];
         if (a === undefined)
@@ -638,7 +657,7 @@ function cmdAdmit(flags) {
     writeJson(pkFileOf(producerDir), { pk: kp.pk, pk_fingerprint: kp.pk_fingerprint });
     // Append a signed admission record to the ledger (author = commissaire) for the audit trail.
     appendCommissaireRecord(runDir, kp.sk, producerId, contractRevision, {
-        kind_of_entry: "admission", issue: "-", step: "admit",
+        kind_of_entry: "admission", unit_id: "-", step: "admit",
         payload: { producer_id: producerId, contract_revision: contractRevision, admitted_scope: scope, pk_fingerprint: kp.pk_fingerprint, admitted_at: admittedAt },
     }, strFlag(flags, "--ts"));
     const out = { admitted: true, producer_id: producerId, admitted_scope: scope, pk_fingerprint: kp.pk_fingerprint, governor_dir: governorDir, producer_dir: producerDir };
@@ -716,9 +735,9 @@ function cmdProducerLedger(flags, verb, kindOfEntry) {
     const runDir = requireRunDir(flags, verb);
     if (!runDir)
         return 3;
-    const producerId = strFlag(flags, "--producer"), issue = strFlag(flags, "--issue"), step = strFlag(flags, "--step");
-    if (!producerId || !issue || !step) {
-        process.stderr.write(`faff commissaire ${verb}: --producer, --issue and --step are required\n`);
+    const producerId = strFlag(flags, "--producer"), unit = strFlag(flags, "--unit-id"), step = strFlag(flags, "--step");
+    if (!producerId || !unit || !step) {
+        process.stderr.write(`faff commissaire ${verb}: --producer, --unit-id and --step are required\n`);
         return 2;
     }
     const loaded = loadProducerKey(runDir, flags, producerId, verb);
@@ -742,7 +761,7 @@ function cmdProducerLedger(flags, verb, kindOfEntry) {
             return 1;
         }
     }
-    const bodies = descriptors.map((d) => ({ kind_of_entry: kindOfEntry, issue, step, effect: normEffect(d) }));
+    const bodies = descriptors.map((d) => ({ kind_of_entry: kindOfEntry, unit_id: unit, step, effect: normEffect(d) }));
     const written = appendProducerRecords(runDir, loaded.key, producerId, str(loaded.admission.contract_revision), bodies, strFlag(flags, "--ts"));
     console.log(JSON.stringify(written.length === 1 ? written[0] : written));
     return 0;
@@ -751,9 +770,9 @@ function cmdRequestDecision(flags) {
     const runDir = requireRunDir(flags, "request-decision");
     if (!runDir)
         return 3;
-    const producerId = strFlag(flags, "--producer"), issue = strFlag(flags, "--issue"), step = strFlag(flags, "--step");
-    if (!producerId || !issue || !step) {
-        process.stderr.write("faff commissaire request-decision: --producer, --issue and --step are required\n");
+    const producerId = strFlag(flags, "--producer"), unit = strFlag(flags, "--unit-id"), step = strFlag(flags, "--step");
+    if (!producerId || !unit || !step) {
+        process.stderr.write("faff commissaire request-decision: --producer, --unit-id and --step are required\n");
         return 2;
     }
     const loaded = loadProducerKey(runDir, flags, producerId, "request-decision");
@@ -780,7 +799,7 @@ function cmdRequestDecision(flags) {
     const attended = req.attended;
     const holdout = req.holdout;
     // Producer half: build + HMAC the request record, append it (author = producer).
-    const requestBody = { kind_of_entry: "effect-decision-request", issue, step, payload: { effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq, level, attended, holdout } };
+    const requestBody = { kind_of_entry: "effect-decision-request", unit_id: unit, step, payload: { effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq, level, attended, holdout } };
     // FAFF-979: read the full-ledger snapshot INSIDE the same append lock as the request record,
     // so the freshness/coverage legs evaluate exactly the ledger as it stood the instant the
     // request was chained (no unlocked re-read that a concurrent append could slip into).
@@ -815,7 +834,7 @@ function cmdRequestDecision(flags) {
         verdictPayload.pure_verdict = decision.verdict;
         verdictPayload.pure_reason = decision.reason;
     }
-    const verdictBody = { kind_of_entry: "effect-decision-verdict", issue, step, payload: verdictPayload };
+    const verdictBody = { kind_of_entry: "effect-decision-verdict", unit_id: unit, step, payload: verdictPayload };
     const verdictRecord = appendCommissaireRecord(runDir, gov.sk, producerId, contractRevision, verdictBody, strFlag(flags, "--ts"));
     console.log(JSON.stringify({ verdict: composed.verdict, reason: composed.reason, verdict_seq: verdictRecord.seq, request_seq: requestRecord.seq }));
     return 0;
@@ -824,9 +843,9 @@ function cmdReconcile(flags) {
     const runDir = requireRunDir(flags, "reconcile");
     if (!runDir)
         return 3;
-    const issue = strFlag(flags, "--issue") || null;
-    const result = computeEscapes(readLedgerEntries(runDir), issue);
-    console.log(JSON.stringify(result));
+    const unit = strFlag(flags, "--unit-id") || null;
+    const result = computeEscapes(readLedgerEntries(runDir), unit);
+    console.log(JSON.stringify({ ...result, escapes: withUnitId(result.escapes) }));
     return 0;
 }
 // --- verb 5: `verdict conclude` (in-process, FAFF-1000) ----------------------------------
@@ -834,8 +853,12 @@ function cmdReconcile(flags) {
 // exits 0 (mirroring evaluateDecisionRequest's grant/deny-is-not-an-error convention) and writes
 // NOTHING to the ledger (a negative `outcome_rejected` record is out of scope — spec §2). The one
 // setup error, `no-governor` (admit was never run), exits 2, matching cmdRequestDecision.
-function refuseVerdict(reason, issue, detail) {
-    console.log(JSON.stringify({ verdict: "refused", reason, issue, ...(detail || {}) }));
+// One-release dual output (FAFF-1167): every escape carries `unit_id` beside the legacy `issue`.
+function withUnitId(escapes) {
+    return escapes.map((e) => ({ ...e, unit_id: e.issue }));
+}
+function refuseVerdict(reason, unit, detail) {
+    console.log(JSON.stringify({ verdict: "refused", reason, issue: unit, unit_id: unit, ...(detail || {}) }));
     return reason === "no-governor" ? 2 : 0;
 }
 // `verdict conclude` — the record only Commissaire may issue (V5 master doc). Validate the run dir
@@ -847,18 +870,19 @@ function cmdTerminalVerdict(flags) {
     const runDir = requireRunDir(flags, "verdict conclude");
     if (!runDir)
         return 3;
-    const issue = strFlag(flags, "--issue");
+    const issue = strFlag(flags, "--unit-id");
     if (!issue) {
-        process.stderr.write("faff commissaire verdict conclude: --issue is required\n");
+        process.stderr.write("faff commissaire verdict conclude: --unit-id is required\n");
         return 2;
     }
-    const entries = readLedgerEntries(runDir).filter((e) => e.issue === issue);
+    const ledger = readLedgerEntries(runDir);
+    const entries = ledger.filter((e) => matchesUnit(e, issue));
     if (entries.length === 0)
         return refuseVerdict("no-evidence", issue);
     // Idempotent re-conclude: a prior `accepted_under_contract` for this issue is returned, never doubled.
     const existing = entries.find((e) => e.kind_of_entry === "accepted_under_contract");
     if (existing) {
-        console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, idempotent: true, seq: existing.seq }));
+        console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, unit_id: issue, idempotent: true, seq: existing.seq }));
         return 0;
     }
     const producerIds = [...new Set(entries.map((e) => str(e.producer_id)).filter((x) => x != null && x !== "-"))];
@@ -881,9 +905,11 @@ function cmdTerminalVerdict(flags) {
     const admission = parseAdmissionRecord(readJson(producerFileOf(producerDirOf(runDir, strFlag(flags, "--producer-dir")), producerId)));
     if (!admission || admission.status === "revoked")
         return refuseVerdict("producer-not-admitted", issue, { producer_id: producerId });
-    const escapeResult = computeEscapes(entries, issue);
+    // Over the whole ledger with the unit filter, so a dual-key record (unattributable, so possibly
+    // this unit's) surfaces as a rejected-unit-key escape and refuses the conclusion.
+    const escapeResult = computeEscapes(ledger, issue);
     if (escapeResult.any_escape)
-        return refuseVerdict("unreconciled-escape", issue, { escapes: escapeResult.escapes });
+        return refuseVerdict("unreconciled-escape", issue, { escapes: withUnitId(escapeResult.escapes) });
     const gov = parseGovernedRecord(readJson(governorFileOf(governorDirOf(runDir, strFlag(flags, "--governor-dir")))));
     if (!gov)
         return refuseVerdict("no-governor", issue); // setup error — exit 2, not a governed refusal
@@ -912,14 +938,14 @@ function cmdTerminalVerdict(flags) {
     const concludedRevision = (revs.length === 1 && firstRev !== undefined) ? firstRev : str(admission.contract_revision);
     const seqs = entries.map((e) => num(e.seq)).filter((s) => s !== undefined && Number.isInteger(s));
     const body = {
-        kind_of_entry: "accepted_under_contract", issue, step: "conclude",
+        kind_of_entry: "accepted_under_contract", unit_id: issue, step: "conclude",
         payload: {
             producer_id: producerId, contract_revision: concludedRevision,
             evidence_seq_range: [Math.min(...seqs), Math.max(...seqs)], escapes_checked: true,
         },
     };
     const record = appendCommissaireRecord(runDir, gov.sk, producerId, concludedRevision, body, strFlag(flags, "--ts"));
-    console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, producer_id: producerId, seq: record.seq }));
+    console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, unit_id: issue, producer_id: producerId, seq: record.seq }));
     return 0;
 }
 // The facade reaches only the LOCAL BundleStore occupant in-process. The git-remote occupant lives
@@ -1086,20 +1112,20 @@ const COMMISSAIRE_ALIASES = {
     "seal-bundle": "audit seal",
 };
 // Required flags per canonical key — the single source COMMISSAIRE_SURFACE.subcommands derives from,
-// so the declared grammar cannot drift from dispatch. `effect reconcile` requires only `--issue`
+// so the declared grammar cannot drift from dispatch. `effect reconcile` requires only `--unit-id`
 // (FAFF-978 removed the phantom `--producer` requirement; cmdReconcile gates on nothing else).
 const REQUIRED_FLAGS_BY_CANONICAL = {
     "contract admit": ["--producer", "--contract-revision"],
     "contract admit-required": ["--run-dir"], // FAFF-1140
-    "effect declare": ["--producer", "--issue", "--step"],
-    "effect authorize": ["--producer", "--issue", "--step"],
-    "effect observe": ["--producer", "--issue", "--step"],
-    "effect reconcile": ["--issue"],
-    "verdict conclude": ["--issue"],
+    "effect declare": ["--producer", "--unit-id", "--step"],
+    "effect authorize": ["--producer", "--unit-id", "--step"],
+    "effect observe": ["--producer", "--unit-id", "--step"],
+    "effect reconcile": ["--unit-id"],
+    "verdict conclude": ["--unit-id"],
     "audit seal": [],
     "audit export": ["--dest"], // FAFF-1000
     "audit verify": ["--run-dir"], // FAFF-977, retained
-    "audit anchor": ["--run-dir", "--issue"], // FAFF-1015
+    "audit anchor": ["--run-dir", "--unit-id"], // FAFF-1015
 };
 // Resolve one or two leading non-flag tokens to a canonical COMMISSAIRE_DISPATCH key, or null.
 function resolveCommissaireKey(rest) {
@@ -1118,10 +1144,27 @@ function resolveCommissaireKey(rest) {
     }
     return null;
 }
+// FAFF-1167: `--issue` is the deprecated alias of `--unit-id` for one release. A lone `--issue` is
+// moved to `--unit-id` with one stderr notice; both together are refused, so no precedence rule exists.
+function normaliseUnitFlag(flags) {
+    const hasIssue = flags["--issue"] !== undefined, hasUnit = flags["--unit-id"] !== undefined;
+    if (hasIssue && hasUnit) {
+        process.stderr.write("faff commissaire: pass --unit-id only (--issue is its deprecated alias)\n");
+        return false;
+    }
+    if (hasIssue) {
+        flags["--unit-id"] = flags["--issue"];
+        delete flags["--issue"];
+        process.stderr.write("faff commissaire: --issue is deprecated; use --unit-id\n");
+    }
+    return true;
+}
 function cmdCommissaire(args) {
     if (args.includes("--selftest"))
         return commissaireSelftest();
     const { flags, rest } = parseCommissaireArgs(args);
+    if (!normaliseUnitFlag(flags))
+        return 2;
     const key = resolveCommissaireKey(rest);
     if (!key) {
         usage();
@@ -1137,7 +1180,7 @@ function cmdCommissaire(args) {
 // The CLI surface grammar (cli-surface.js DISPATCH_SURFACES entry).
 const COMMISSAIRE_SPEC = { flags: {
         "--run-dir": { arity: 1 }, "--run": { arity: 1 }, "--producer": { arity: 1 }, "--contract-revision": { arity: 1 },
-        "--scope": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--governor-dir": { arity: 1 },
+        "--scope": { arity: 1 }, "--unit-id": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--governor-dir": { arity: 1 },
         "--producer-dir": { arity: 1 }, "--ts": { arity: 1 },
         "--root": { arity: 1 }, "--dest": { arity: 1 }, "--bundle-store": { arity: 1 }, // FAFF-1000 (audit seal/export)
         "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
@@ -1177,15 +1220,29 @@ function commissaireSelftest() {
     const key = deriveKey("m", "P1", "r1");
     const mkReq = (extra) => {
         const rec = { schema: 3, author: "producer", producer_id: "P1", contract_revision: "r1", seq: 1,
-            kind_of_entry: "effect-decision-request", issue: "FAFF-1", step: "merge",
+            kind_of_entry: "effect-decision-request", unit_id: "FAFF-1", step: "merge",
             payload: { effect: { kind: "merge", target: "main", reversible: true }, ...extra } };
         rec.producer_hmac = signRecord(rec, key);
         return rec;
     };
-    const declareEntry = { kind_of_entry: "declare", issue: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main", reversible: true }, seq: 0 };
+    const declareEntry = { kind_of_entry: "declare", unit_id: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main", reversible: true }, seq: 0 };
     // grant on the clean covered path
     if (evaluateDecisionRequest(admission, mkReq(), key, [declareEntry]).verdict !== "grant")
         fail("clean covered request grants");
+    // FAFF-1167 compatibility read: a frozen issue-keyed declare still covers a unit_id request
+    const legacyDeclare = { kind_of_entry: "declare", issue: "FAFF-1", step: "merge", effect: { kind: "merge", target: "main", reversible: true }, seq: 0 };
+    if (evaluateDecisionRequest(admission, mkReq(), key, [legacyDeclare]).verdict !== "grant")
+        fail("an issue-keyed declare covers a unit_id request");
+    // FAFF-1167 dual-key rejection: a dual-key request, or a dual-key record anywhere in the snapshot
+    const dualReq = { schema: 3, author: "producer", producer_id: "P1", contract_revision: "r1", seq: 1,
+        kind_of_entry: "effect-decision-request", issue: "A", unit_id: "B", step: "merge",
+        payload: { effect: { kind: "merge", target: "main", reversible: true } } };
+    dualReq.producer_hmac = signRecord(dualReq, key);
+    const dualDeclare = { kind_of_entry: "declare", issue: "A", unit_id: "B", step: "merge", effect: { kind: "merge", target: "main", reversible: true }, seq: 0 };
+    if (evaluateDecisionRequest(admission, dualReq, key, [dualDeclare]).reason !== "invalid-unit-key")
+        fail("a dual-key request → invalid-unit-key");
+    if (evaluateDecisionRequest(admission, mkReq(), key, [declareEntry, dualDeclare]).reason !== "invalid-unit-key")
+        fail("a dual-key record in the snapshot → invalid-unit-key");
     // not admitted
     if (evaluateDecisionRequest({ status: "revoked", admitted_scope: ["merge"] }, mkReq(), key, [declareEntry]).reason !== "producer-not-admitted")
         fail("revoked → producer-not-admitted");
@@ -1196,7 +1253,7 @@ function commissaireSelftest() {
         fail("tampered request → producer-auth-failed");
     // out of scope
     const deployReq = { schema: 3, author: "producer", producer_id: "P1", contract_revision: "r1", seq: 1,
-        kind_of_entry: "effect-decision-request", issue: "FAFF-1", step: "merge",
+        kind_of_entry: "effect-decision-request", unit_id: "FAFF-1", step: "merge",
         payload: { effect: { kind: "deploy", target: "prod", reversible: true } } };
     deployReq.producer_hmac = signRecord(deployReq, key);
     if (evaluateDecisionRequest(admission, deployReq, key, [declareEntry]).reason !== "effect-out-of-scope")
@@ -1205,11 +1262,11 @@ function commissaireSelftest() {
     if (evaluateDecisionRequest(admission, mkReq(), key, []).reason !== "effect-not-declared")
         fail("uncovered effect → effect-not-declared");
     // stale evidence
-    const staleLedger = [declareEntry, { kind_of_entry: "observe", issue: "FAFF-1", step: "merge", seq: 5, effect: { kind: "merge", target: "main" } }];
+    const staleLedger = [declareEntry, { kind_of_entry: "observe", unit_id: "FAFF-1", step: "merge", seq: 5, effect: { kind: "merge", target: "main" } }];
     if (evaluateDecisionRequest(admission, mkReq({ evidence_seq: 0 }), key, staleLedger).reason !== "stale-evidence")
         fail("evidence older than latest observe → stale-evidence");
     // assurance floor: a declare record presented as a request
-    const declareAsReq = { schema: 3, author: "producer", producer_id: "P1", kind_of_entry: "declare", issue: "FAFF-1", step: "merge", seq: 1, effect: { kind: "merge", target: "main" } };
+    const declareAsReq = { schema: 3, author: "producer", producer_id: "P1", kind_of_entry: "declare", unit_id: "FAFF-1", step: "merge", seq: 1, effect: { kind: "merge", target: "main" } };
     if (evaluateDecisionRequest(admission, declareAsReq, key, [declareEntry]).reason !== "assurance-floor")
         fail("J-D declare presented as request → assurance-floor");
     // --- chokepointPermit ---
@@ -1270,10 +1327,10 @@ function commissaireSelftest() {
             let r = run([...tok.admit, "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
             if (r.status !== 0)
                 fail(`[${label}] admit exited ${r.status}: ${r.stderr}`);
-            r = run([...tok.declare, "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
+            r = run([...tok.declare, "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
             if (r.status !== 0)
                 fail(`[${label}] declare exited ${r.status}: ${r.stderr}`);
-            r = run([...tok.authorize, "--run-dir", runDir, "--producer", "P1", "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
+            r = run([...tok.authorize, "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
             if (r.status !== 0)
                 fail(`[${label}] request-decision exited ${r.status}: ${r.stderr}`);
             let verdict = null;
@@ -1307,9 +1364,18 @@ function commissaireSelftest() {
                     fail(`[${label}] producer file must NOT hold SK or master`);
             }
             // reconcile reports no escape on the fully-declared/observed-free run
-            r = run([...tok.reconcile, "--run-dir", runDir, "--issue", "FAFF-1"]);
+            r = run([...tok.reconcile, "--run-dir", runDir, "--unit-id", "FAFF-1"]);
             if (r.status !== 0)
                 fail(`[${label}] reconcile exited ${r.status}`);
+            // FAFF-1167: new records carry unit_id and never issue; --issue is a deprecated alias
+            if (readLedgerEntries(runDir).some((e) => e.unit_id === undefined || Object.prototype.hasOwnProperty.call(e, "issue")))
+                fail(`[${label}] every new record carries unit_id and no issue`);
+            r = run([...tok.reconcile, "--run-dir", runDir, "--issue", "FAFF-1"]);
+            if (r.status !== 0 || !/--issue is deprecated/.test(r.stderr))
+                fail(`[${label}] --issue alone runs with one deprecation line (exit ${r.status})`);
+            r = run([...tok.reconcile, "--run-dir", runDir, "--issue", "FAFF-1", "--unit-id", "FAFF-1"]);
+            if (r.status !== 2)
+                fail(`[${label}] --issue with --unit-id is a usage error (exit ${r.status})`);
         }
         finally {
             fs.rmSync(tmp, { recursive: true, force: true });
@@ -1329,7 +1395,7 @@ function commissaireSelftest() {
             fs.writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } }) + "\n");
             const dest = path.join(tmp, "anchor-out");
             const run = (a) => spawnSync(process.execPath, [ENTRYPOINT, "commissaire", "audit", "anchor", ...a], { encoding: "utf8" });
-            const r = run(["--run-dir", runDir, "--issue", "FAFF-1", "--dest", dest]);
+            const r = run(["--run-dir", runDir, "--unit-id", "FAFF-1", "--dest", dest]);
             if (r.status !== 0)
                 fail(`audit anchor: shipped-issue-no-floor-files mint exited ${r.status}: ${r.stderr}`);
             if (!fs.existsSync(path.join(dest, "chain-head.json")))
@@ -1355,13 +1421,13 @@ function commissaireSelftest() {
             // no-events → exit 3
             const emptyRunDir = path.join(tmp, "RUN-ANCHOR-EMPTY");
             fs.mkdirSync(emptyRunDir, { recursive: true });
-            const r2 = run(["--run-dir", emptyRunDir, "--issue", "FAFF-1", "--dest", path.join(tmp, "anchor-out-2")]);
+            const r2 = run(["--run-dir", emptyRunDir, "--unit-id", "FAFF-1", "--dest", path.join(tmp, "anchor-out-2")]);
             if (r2.status !== 3)
                 fail(`audit anchor: no-events should exit 3, got ${r2.status}`);
-            // malformed --issue → exit 2
-            const r3 = run(["--run-dir", runDir, "--issue", "../escape", "--dest", path.join(tmp, "anchor-out-3")]);
+            // malformed --unit-id → exit 2
+            const r3 = run(["--run-dir", runDir, "--unit-id", "../escape", "--dest", path.join(tmp, "anchor-out-3")]);
             if (r3.status !== 2)
-                fail(`audit anchor: invalid --issue should exit 2, got ${r3.status}`);
+                fail(`audit anchor: invalid --unit-id should exit 2, got ${r3.status}`);
             // no --dest, no --root, invoked from a cwd with no discoverable .git/.faff marker anywhere
             // in its ancestry → exit 2, nothing written (spec §3 "no resolvable root" guard). findRoot()
             // itself never returns falsy (it falls back to returning cwd verbatim), so this asserts the
@@ -1369,7 +1435,7 @@ function commissaireSelftest() {
             const noRepoCwd = path.join(tmp, "outside-any-repo");
             fs.mkdirSync(noRepoCwd, { recursive: true });
             const noRootDest = path.join(tmp, "anchor-out-4");
-            const r4 = spawnSync(process.execPath, [ENTRYPOINT, "commissaire", "audit", "anchor", "--run-dir", runDir, "--issue", "FAFF-1"], { encoding: "utf8", cwd: noRepoCwd });
+            const r4 = spawnSync(process.execPath, [ENTRYPOINT, "commissaire", "audit", "anchor", "--run-dir", runDir, "--unit-id", "FAFF-1"], { encoding: "utf8", cwd: noRepoCwd });
             if (r4.status !== 2)
                 fail(`audit anchor: no resolvable root should exit 2, got ${r4.status}: ${r4.stderr}`);
             if (fs.existsSync(noRootDest) || fs.existsSync(path.join(noRepoCwd, ".faff")))

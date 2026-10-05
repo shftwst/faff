@@ -77,14 +77,16 @@ moving sources of truth.
 | Step | Command | Notes |
 |---|---|---|
 | admit | `commissaire contract admit --run-dir D --producer ID --contract-revision R` | `--scope`, `--governor-dir`, `--producer-dir` |
-| declare | `commissaire effect declare --run-dir D --issue I --step S` | stdin: `EffectDescriptor[]` |
-| authorize | `commissaire effect authorize --run-dir D --issue I --step S --level L` | stdin: `AuthorizeRequest` |
+| declare | `commissaire effect declare --run-dir D --unit-id U --step S` | stdin: `EffectDescriptor[]` |
+| authorize | `commissaire effect authorize --run-dir D --unit-id U --step S --level L` | stdin: `AuthorizeRequest` |
 | act | the reuser's own effect | the capture creates one protected file |
-| observe | `commissaire effect observe --run-dir D --issue I --step S` | stdin: `EffectDescriptor[]` |
-| reconcile | `commissaire effect reconcile --run-dir D --issue I` | prints escapes to stdout; **not** a ledger record |
-| conclude | `commissaire verdict conclude --run-dir D --issue I` | refuses on zero evidence; appends the signed `accepted_under_contract` |
+| observe | `commissaire effect observe --run-dir D --unit-id U --step S` | stdin: `EffectDescriptor[]` |
+| reconcile | `commissaire effect reconcile --run-dir D --unit-id U` | prints escapes to stdout; **not** a ledger record |
+| conclude | `commissaire verdict conclude --run-dir D --unit-id U` | refuses on zero evidence; appends the signed `accepted_under_contract` |
 | seal | `commissaire audit seal --run-dir D` | writes the run-close recovery bundle |
 | verify | `commissaire audit verify --run-dir D --json` | secret-free replay from `pk.json` alone |
+
+`--unit-id` names the work unit. `--issue` still works as a deprecated alias for one release, with a stderr notice; passing both is a usage error.
 
 `reconcile` is a **detection query**, not a record: it prints the computed
 escapes (observed protected effects with no matching declaration) to stdout and

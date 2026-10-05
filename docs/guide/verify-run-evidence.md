@@ -160,7 +160,7 @@ for its `(issue, step)` — see the [escape glossary row](https://github.com/shf
 
 - `faff effects check --run-dir <dir>` prints the human summary — on a clean run,
   `no escape — every observed effect is covered by a declaration`.
-- `faff commissaire effect reconcile --run-dir <dir> --issue <issue>` returns the
+- `faff commissaire effect reconcile --run-dir <dir> --unit-id <unit>` returns the
   machine result:
 
 ```json
@@ -180,7 +180,7 @@ independent re-checking. For every flag, see the
 |---|---|
 | `faff commissaire audit seal --run-dir <dir>` | At a run's close — builds and writes the recovery bundle through the resolved `bundle_store` |
 | `faff commissaire audit export --run-dir <dir> --dest <dir>` | Copies an already-sealed bundle's manifest and members to another location |
-| `faff commissaire audit anchor --run-dir <dir> --issue <issue>` | Mints one per-issue anchor subdir — the byte-copy that ships with the PR |
+| `faff commissaire audit anchor --run-dir <dir> --unit-id <unit>` | Mints one per-issue anchor subdir — the byte-copy that ships with the PR |
 
 **Bundle versus anchor.** The **per-PR anchor** is the public evidence that rides
 one issue's pull request and CI re-hashes; it carries public key material only.

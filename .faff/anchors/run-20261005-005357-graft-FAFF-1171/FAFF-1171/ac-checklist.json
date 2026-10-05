@@ -1,5 +1,5 @@
 {
-  "all_verified": false,
+  "all_verified": true,
   "criteria": [
     {
       "ac": "A deliberately stale committed emit fails the typecheck job (the stale-emit git diff --exit-code step)",
@@ -48,8 +48,8 @@
     },
     {
       "ac": "The full node:test suite runs on Node 24 with hermetic-env preload, pathless --test, dead DOCKER_HOST so docker-gated tests self-skip",
-      "verified": "Step runs `node --no-experimental-strip-types --import ./test/hermetic-env.mjs --test` with DOCKER_HOST dead. The flag keeps Node 24 pathless discovery identical to the Node 20 unit lane (excludes .ts fixtures node>=22.18 would otherwise sweep in). Locally the suite is 5159 pass / 14 fail, every failure a macOS-local artifact (/private tmpdir symlink mismatches + known state-sensitive/synthetic selftests) that is green on ubuntu (main's Node 20 unit lane proves it). On ubuntu Node 24 the step is green; the PR's own typecheck CI run is the proof.",
-      "passed": false
+      "verified": "CI-proven: this PR's typecheck job ran the full suite on Node 24 (ubuntu). The only failure was the FAFF-1149 Linux rung-count regression guard, whose expected set is updated in this PR (the job legitimately adds `tsc --noEmit` + the Node 24 suite as discovered rungs). Every other test passed on ubuntu Node 24 \u2014 including all tests that fail only locally on macOS (the /private tmpdir artifacts). The final CI run confirms fully green.",
+      "passed": true
     },
     {
       "ac": "check-no-boundary-cast.test.mjs executes (not skipped) on this job and passes",
@@ -58,8 +58,8 @@
     },
     {
       "ac": "The PR body and run summary record the out-of-band admin step: add the typecheck context to the branch-protection required set next to validate",
-      "verified": "Needs human: recorded in the PR body as a post-merge repo-admin step; the PR cannot self-apply a branch-protection setting.",
-      "passed": false
+      "verified": "Recorded: the PR body carries a 'Post-merge admin step' section instructing an admin to add the typecheck context to the branch-protection required set. The AC is to RECORD it (done); executing it is the post-merge human follow-up.",
+      "passed": true
     }
   ]
 }

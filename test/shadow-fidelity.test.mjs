@@ -11,7 +11,9 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
+const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
 const CLI = join(REPO, "plugin", "skills", "faff", "bin", "faff");
@@ -166,4 +168,54 @@ test("the committed FAFF-826 report reproduces from a clean context", () => {
   const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
   const corpusBytes = readFileSync(join(dir, "decision-corpus.jsonl"));
   assert.equal(manifest.corpus_sha256, sha256(corpusBytes));
+});
+
+// The decision-kernel set the shadow study scopes itself by, as the live map classifies it.
+// Changing a classification row's bucket to or from decision-kernel changes the study's scope,
+// so it must change this list in the same PR.
+const LIVE_MAP_DECISION_KERNEL = [
+  "claim-verdict",
+  "decision-capture",
+  "eligible",
+  "next",
+  "park-reconsider",
+  "park-verdict",
+  "project-next",
+  "queue-state",
+  "run-done",
+  "run-ledger",
+  "run-outward",
+  "run-start",
+  "shadow-fidelity",
+  "state",
+];
+
+function classificationTableDecisionKernel(mapText) {
+  const lines = mapText.split("\n");
+  const start = lines.findIndex((l) => l === "## Classification table");
+  assert.ok(start >= 0, "the live map has no '## Classification table' heading");
+  const rel = lines.slice(start + 1).findIndex((l) => l.startsWith("## "));
+  const section = rel < 0 ? lines.slice(start + 1) : lines.slice(start + 1, start + 1 + rel);
+  const out = [];
+  for (const line of section) {
+    if (!line.startsWith("| `")) continue;
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
+    if (cells[2] === "decision-kernel") out.push(cells[0].replace(/`/g, ""));
+  }
+  return out.sort();
+}
+
+function setDifference(a, b) {
+  return a.filter((x) => !b.includes(x));
+}
+
+test("the live state-authority map parses to the expected decision-kernel set", () => {
+  const { readMapDecisionKernelCommands } = require("../plugin/skills/faff/bin/lib/shadow-fidelity.js");
+  const mapText = readFileSync(join(REPO, "docs", "rfc", "rfc-superdomestique-runtime", "v5", "STATE-AUTHORITY-MAP-v5.md"), "utf8");
+  const parsed = readMapDecisionKernelCommands(REPO);
+  const fromTable = classificationTableDecisionKernel(mapText);
+  assert.deepEqual(parsed, fromTable,
+    `parser and classification table disagree — parser only: [${setDifference(parsed, fromTable)}], table only: [${setDifference(fromTable, parsed)}]`);
+  assert.deepEqual(parsed, LIVE_MAP_DECISION_KERNEL,
+    `decision-kernel set changed — added: [${setDifference(parsed, LIVE_MAP_DECISION_KERNEL)}], removed: [${setDifference(LIVE_MAP_DECISION_KERNEL, parsed)}]`);
 });

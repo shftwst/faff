@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, rmSync, utimesSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,6 +67,50 @@ function mkFencedRoot() {
   }, null, 2) + "\n");
   return root;
 }
+
+// ---- FAFF-1172: the stale-emit axis fixtures ----
+//
+// A --root temp tree mirroring plugin/skills/faff/ for the stale-emit axis: a tsconfig `include`,
+// its paired .ts/.js, an installed-toolchain signal (node_modules/typescript), and a merge-fence
+// settings.json so the fence axis is held PRESENT. Paired with mkFixtureHome() (a deterministic
+// bin/faff) and a --target skills dir with one live symlink (populated union), every OTHER axis
+// is held constant, so the asserted exit code is attributable to the stale-emit axis alone.
+function writeFence(root) {
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  writeFileSync(join(root, ".claude", "settings.json"), JSON.stringify({
+    hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] },
+  }, null, 2) + "\n");
+}
+
+function mkEmitRoot({ toolchain = true, tsconfig = true, include = ["bin/lib/producer-auth.ts"], writeSource = true, writeEmit = true } = {}) {
+  const root = mkdtempSync(join(tmpdir(), "doc-emit-"));
+  const faffDir = join(root, "plugin", "skills", "faff");
+  mkdirSync(join(faffDir, "bin", "lib"), { recursive: true });
+  if (toolchain) {
+    mkdirSync(join(faffDir, "node_modules", "typescript"), { recursive: true });
+    writeFileSync(join(faffDir, "node_modules", "typescript", "package.json"), JSON.stringify({ name: "typescript", version: "5.9.0" }) + "\n");
+  }
+  if (tsconfig) writeFileSync(join(faffDir, "tsconfig.json"), JSON.stringify({ include }, null, 2) + "\n");
+  const tsPath = join(faffDir, "bin", "lib", "producer-auth.ts");
+  const jsPath = join(faffDir, "bin", "lib", "producer-auth.js");
+  if (writeSource) writeFileSync(tsPath, "export const x = 1;\n");
+  if (writeEmit) writeFileSync(jsPath, "exports.x = 1;\n");
+  writeFence(root);
+  return { root, faffDir, tsPath, jsPath };
+}
+
+// A --target skills dir whose single live symlink keeps the union non-empty (so emptyUnion is
+// false and the exit rule reaches the fault disjunct, never early-returning exit 2).
+function mkSkillsTarget() {
+  const skills = mkdtempSync(join(tmpdir(), "doc-skills-"));
+  symlinkSync("/tmp", join(skills, "faff-graft"));
+  return skills;
+}
+
+const EMIT_OLD = new Date("2026-01-01T00:00:00Z");
+const EMIT_NEW = new Date("2026-02-01T00:00:00Z");
+const setStaleEmit = (tsPath, jsPath) => { utimesSync(jsPath, EMIT_OLD, EMIT_OLD); utimesSync(tsPath, EMIT_NEW, EMIT_NEW); };
+const setFreshEmit = (tsPath, jsPath) => { utimesSync(tsPath, EMIT_OLD, EMIT_OLD); utimesSync(jsPath, EMIT_NEW, EMIT_NEW); };
 
 test("doctor: a symlinked install is clean (exit 0, live)", () => {
   const dir = mkdtempSync(join(tmpdir(), "doc-ok-"));
@@ -317,4 +361,217 @@ test("doctor: default scan set — one directory symlinked to the other collapse
     assert.match(r.out, /resolves to .*\.claude\/skills — treating them as one target/);
     assert.doesNotMatch(r.out, /MISSING here/);
   } finally { rmSync(home, { recursive: true, force: true }); rmSync(nonRepo, { recursive: true, force: true }); rmSync(root, { recursive: true, force: true }); }
+});
+
+// ---- FAFF-1172: the stale-emit axis ----
+//
+// Every case holds the other three axes constant — a populated union (--target with one live
+// symlink), a present fence (writeFence in mkEmitRoot), and a deterministic bin/faff (mkFixtureHome
+// via runEnv HOME) — so the asserted exit code is attributable to the stale-emit axis alone. The
+// fixture $HOME fence is what makes these hermetic on a linked-worktree dev box, whose real
+// ~/.local/bin/faff would otherwise drive exit 1 through the machine-wide bin/faff axis.
+
+test("doctor: stale emit on a buildable checkout → exit 1, names the emit + the build fix", () => {
+  const { root, tsPath, jsPath } = mkEmitRoot();
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    setStaleEmit(tsPath, jsPath);
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills);
+    assert.equal(r.code, 1, "a stale emit on a buildable checkout is a fault");
+    assert.match(r.out, /bin\/lib\/producer-auth\.js\s+emit older than source bin\/lib\/producer-auth\.ts — run the build/);
+    assert.match(r.out, /1 stale TypeScript emit\(s\)/);
+    assert.match(r.out, /npm run build {2}\(from plugin\/skills\/faff\/\)/);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: a fresh build clears the finding → exit 0, emits up to date", () => {
+  const { root, tsPath, jsPath } = mkEmitRoot();
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    setFreshEmit(tsPath, jsPath);
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills);
+    assert.equal(r.code, 0, "a fresh emit with every other axis clean is exit 0");
+    assert.match(r.out, /✓ TypeScript emits up to date/);
+    assert.doesNotMatch(r.out, /emit older than source/);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: adopter copy (tsconfig + .ts + stale .js, no node_modules/typescript) → axis skipped, no fault", () => {
+  const { root, tsPath, jsPath } = mkEmitRoot({ toolchain: false });
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    setStaleEmit(tsPath, jsPath); // stale, but not buildable here
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "skipped", "no resolvable toolchain → axis skipped despite the stale pair");
+    assert.deepEqual(j.stale_emits, []);
+    assert.equal(j.exit, 0, "a non-buildable copy never turns an otherwise-clean doctor red");
+    assert.equal(r.code, 0);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: toolchain present but no tsconfig → axis skipped, clean", () => {
+  const { root } = mkEmitRoot({ tsconfig: false });
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "skipped");
+    assert.deepEqual(j.stale_emits, []);
+    assert.equal(j.exit, 0);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: --json reflects emit_check + stale_emits with matching exit (stale)", () => {
+  const { root, tsPath, jsPath } = mkEmitRoot();
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    setStaleEmit(tsPath, jsPath);
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "active");
+    assert.deepEqual(j.stale_emits, [{ source: "bin/lib/producer-auth.ts", emit: "bin/lib/producer-auth.js" }]);
+    assert.equal(j.exit, 1, "the --json exit matches the human renderer");
+    assert.equal(r.code, 1);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+// Minor #1 (human-accept 2026-10-05): a glob include resolves to zero real pairs (doctor never
+// expands globs), so the axis must report INACTIVE (skip) — never "active / up to date" while
+// checking nothing — even with the toolchain present and real .ts/.js beside it.
+test("doctor: glob include resolves to zero pairs → axis skipped, not a false green", () => {
+  const { root } = mkEmitRoot({ include: ["bin/lib/*.ts"] });
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "skipped", "a never-expanded glob matches no literal source → zero pairs → skip");
+    assert.deepEqual(j.stale_emits, []);
+    assert.equal(j.exit, 0);
+    const human = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills);
+    assert.doesNotMatch(human.out, /TypeScript emits up to date/, "never claims freshness while checking nothing");
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: an all-non-.ts include → axis skipped, clean", () => {
+  const { root } = mkEmitRoot({ include: ["bin/lib/foo.json"] });
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "skipped");
+    assert.equal(j.exit, 0);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: a .ts whose .js emit is missing → clean (not flagged), other pairs still checked", () => {
+  const { root, faffDir, tsPath, jsPath } = mkEmitRoot({ include: ["bin/lib/producer-auth.ts", "bin/lib/commissaire.ts"] });
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    // producer-auth has no committed .js (never-built → clean); commissaire is a genuine stale pair.
+    rmSync(jsPath, { force: true });
+    const cTs = join(faffDir, "bin", "lib", "commissaire.ts");
+    const cJs = join(faffDir, "bin", "lib", "commissaire.js");
+    writeFileSync(cTs, "export const y = 2;\n");
+    writeFileSync(cJs, "exports.y = 2;\n");
+    setStaleEmit(cTs, cJs);
+    utimesSync(tsPath, EMIT_NEW, EMIT_NEW); // producer-auth.ts present, its .js absent
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "active", "the resolvable commissaire pair keeps the axis active");
+    assert.deepEqual(j.stale_emits, [{ source: "bin/lib/commissaire.ts", emit: "bin/lib/commissaire.js" }]);
+    assert.equal(j.exit, 1);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+test("doctor: equal mtimes → not flagged (strictly-newer only)", () => {
+  const { root, tsPath, jsPath } = mkEmitRoot();
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    utimesSync(tsPath, EMIT_NEW, EMIT_NEW);
+    utimesSync(jsPath, EMIT_NEW, EMIT_NEW);
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json");
+    const j = JSON.parse(r.out);
+    assert.equal(j.emit_check, "active");
+    assert.deepEqual(j.stale_emits, []);
+    assert.equal(j.exit, 0);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+// FAFF-1172 — the integration smoke test (spec §8): one fixture, the full stale → fresh → adopter
+// arc, every other axis held constant so each asserted exit code is attributable to the axis alone.
+test("doctor: stale-emit integration smoke — stale (exit 1) → fresh (exit 0) → adopter (skipped)", () => {
+  const { root, faffDir, tsPath, jsPath } = mkEmitRoot();
+  const skills = mkSkillsTarget();
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    // 1-4: stale → exit 1, names the emit, Fix names the build.
+    setStaleEmit(tsPath, jsPath);
+    const stale = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills);
+    assert.equal(stale.code, 1);
+    assert.match(stale.out, /producer-auth\.js\s+emit older than source .*producer-auth\.ts — run the build/);
+    assert.match(stale.out, /npm run build/);
+
+    // 5-6: fresh → exit 0 (no other axis faults), emit_check active + empty under --json.
+    setFreshEmit(tsPath, jsPath);
+    const fresh = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills);
+    assert.equal(fresh.code, 0);
+    const freshJson = JSON.parse(runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json").out);
+    assert.equal(freshJson.emit_check, "active");
+    assert.deepEqual(freshJson.stale_emits, []);
+
+    // 7-8: remove the toolchain, re-stale → axis skipped, exit 0 (the adopter-copy case).
+    rmSync(join(faffDir, "node_modules"), { recursive: true, force: true });
+    setStaleEmit(tsPath, jsPath);
+    const adopter = JSON.parse(runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills, "--json").out);
+    assert.equal(adopter.emit_check, "skipped");
+    assert.deepEqual(adopter.stale_emits, []);
+    assert.equal(adopter.exit, 0);
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
+});
+
+// FAFF-1172 — guard against a production silent no-op (adversarial review, major): the axis fires
+// only where the toolchain is resolvable AND tsconfig resolves >=1 real .ts/.js pair, so a glob-only
+// or all-non-.ts include would (correctly, per the ratified decision) skip. This asserts the REAL
+// repo's own tsconfig still resolves >=1 literal pair, so the axis actually fires here rather than
+// silently skipping — a future switch to a glob include fails this loudly rather than going dark.
+test("doctor: the real plugin/skills/faff tsconfig resolves >=1 literal .ts/.js pair (the axis is not a silent no-op here)", () => {
+  const tsconfigDir = join(HERE, "..", "plugin", "skills", "faff");
+  const cfg = JSON.parse(readFileSync(join(tsconfigDir, "tsconfig.json"), "utf8"));
+  assert.ok(Array.isArray(cfg.include) && cfg.include.length > 0, "the real tsconfig.include is a non-empty array");
+  const pairs = cfg.include
+    .filter((e) => typeof e === "string" && e.endsWith(".ts"))
+    .filter((e) => existsSync(join(tsconfigDir, e)) && existsSync(join(tsconfigDir, e.replace(/\.ts$/, ".js"))));
+  assert.ok(pairs.length >= 1,
+    "the real tsconfig must resolve >=1 literal .ts/.js pair so the stale-emit axis fires on this repo (a glob-only include would silently skip — see the ratified decision)");
+});
+
+// FAFF-1172 — a toolchain-present golden capturing the stale-emit human output byte-exactly
+// (minor #3, human-accept 2026-10-05: the existing goldens are toolchain-absent and can only
+// photograph the skip case). Per-run absolute paths are normalised to <TARGET>/<ROOT>/<HOME>, a
+// byte comparison not a substring match — the same discipline as the FAFF-676 golden above.
+test("doctor: stale-emit human output is byte-identical to the golden", () => {
+  const { root, tsPath, jsPath } = mkEmitRoot();
+  const skills = mkdtempSync(join(tmpdir(), "doc-emit-golden-"));
+  const { home, nonRepo } = mkFixtureHome();
+  try {
+    symlinkSync(nonRepo, join(skills, "faff-graft")); // live, non-repo → "symlink (live → repo)"
+    setStaleEmit(tsPath, jsPath);
+    const r = runEnv({ HOME: home }, "doctor", "--root", root, "--target", skills);
+    assert.equal(r.code, 1, "the golden fixture fixes exit 1");
+    const normalised = r.out.split(skills).join("<TARGET>").split(root).join("<ROOT>").split(home).join("<HOME>");
+    const golden = readFileSync(join(HERE, "golden", "doctor", "stale-emit.txt"), "utf8");
+    assert.equal(normalised.trimEnd(), golden.trimEnd());
+    assert.doesNotMatch(normalised.replace(/<TARGET>|<ROOT>|<HOME>/g, ""), /\/(tmp|var|Users|home)\//,
+      "no absolute path may survive normalisation");
+  } finally { [root, skills, home, nonRepo].forEach((d) => rmSync(d, { recursive: true, force: true })); }
 });

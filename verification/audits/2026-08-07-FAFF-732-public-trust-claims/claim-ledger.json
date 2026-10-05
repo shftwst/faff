@@ -6367,8 +6367,7 @@
         }
       ],
       "current_state": "The claim is supported as an attested governance posture, not as proof that every configured repository is safe.",
-      "target_state": "Pair the public claim with reproducible pass-and-stop evidence before presenting it as demonstrated across harnesses.",
-      "owner_issue": "FAFF-741"
+      "target_state": "Pair the public claim with reproducible pass-and-stop evidence before presenting it as demonstrated across harnesses."
     },
     {
       "id": "readme-l3-park-and-ledger",
@@ -6446,13 +6445,13 @@
       "evidence": [
         {
           "label": "The repository now records observed Codex CLI operation",
-          "target": "docs/architecture/codex-cli-observed.md",
+          "target": "docs/reference/architecture/codex-cli-observed.md",
           "supports": "status-history"
         }
       ],
       "current_state": "Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path.",
       "target_state": "Use harness-neutral positioning and publish an evidence-bounded support matrix.",
-      "owner_issue": "FAFF-735"
+      "owner_issue": "FAFF-1183"
     },
     {
       "id": "codex-observed-capability",
@@ -6461,12 +6460,13 @@
       "summary": "Codex can drive the Faff workflow with documented harness-specific constraints.",
       "source": {
         "path": "docs/architecture/codex-cli-observed.md",
-        "section": "Observed behaviour"
+        "section": "Observed behaviour",
+        "current_path": "docs/reference/architecture/codex-cli-observed.md"
       },
       "evidence": [
         {
           "label": "Codex CLI observation record",
-          "target": "docs/architecture/codex-cli-observed.md",
+          "target": "docs/reference/architecture/codex-cli-observed.md",
           "supports": "demonstration"
         }
       ],
@@ -6479,18 +6479,19 @@
       "summary": "A public, evidence-bounded harness support matrix is not yet published.",
       "source": {
         "path": "docs/architecture/harness-coupling.md",
-        "section": "Portability boundary"
+        "section": "Portability boundary",
+        "current_path": "docs/reference/architecture/harness-coupling.md"
       },
       "evidence": [
         {
           "label": "Harness coupling inventory records the current boundary",
-          "target": "docs/architecture/harness-coupling.md",
+          "target": "docs/reference/architecture/harness-coupling.md",
           "supports": "status-history"
         }
       ],
       "current_state": "Support evidence is distributed across architecture notes and run records.",
       "target_state": "Publish demonstrated Claude Code and Codex capabilities and label pi.dev as planned.",
-      "owner_issue": "FAFF-735"
+      "owner_issue": "FAFF-1183"
     },
     {
       "id": "governance-required-check",
@@ -6522,13 +6523,13 @@
       "evidence": [
         {
           "label": "External-verification evidence index distinguishes conformance from authenticity",
-          "target": "docs/evidence/README.md",
+          "target": "verification/evidence/README.md",
           "supports": "status-history"
         }
       ],
       "current_state": "L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete.",
       "target_state": "Publish the verification protocol, paired walkthroughs, claim links, and governed close-out.",
-      "owner_issue": "FAFF-736"
+      "owner_issue": "FAFF-1183"
     }
   ]
 }

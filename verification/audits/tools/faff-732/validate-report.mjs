@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const STATUSES = new Set(["enforced", "attested", "demonstrated", "planned", "stale", "unsupported"]);
@@ -84,6 +86,7 @@ export function validateLedger(ledger, { checkInventory = true } = {}) {
   for (const claim of claims) {
     if (!text(claim.id) || !KINDS.has(claim.kind) || !STATUSES.has(claim.status) || !text(claim.summary) || !text(claim.current_state)) errors.push(`${claim.id || "<missing>"}: invalid claim shape`);
     if (!fileByPath.has(claim.source?.path) || !text(claim.source?.section)) errors.push(`${claim.id}: invalid source anchor`);
+    if (claim.source && "current_path" in claim.source && (!text(claim.source.current_path) || claim.source.current_path === claim.source.path)) errors.push(`${claim.id}: invalid source.current_path`);
     if (!list(fileByPath.get(claim.source?.path)?.claim_ids).includes(claim.id)) errors.push(`${claim.id}: absent from source file claim_ids`);
     const evidence = list(claim.evidence);
     for (const ref of evidence) if (!text(ref.label) || !text(ref.target) || !SUPPORTS.has(ref.supports)) errors.push(`${claim.id}: invalid evidence`);
@@ -116,8 +119,32 @@ export function validateLedger(ledger, { checkInventory = true } = {}) {
   return errors;
 }
 
+const REPOSITORY_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
+const FOLLOWABLE_ELSEWHERE = /^(https?:\/\/|FAFF-[1-9][0-9]*$)/;
+
+export function checkLive(ledger, root) {
+  const errors = [];
+  let checked = 0;
+  let skipped = 0;
+  const checkPath = (id, field, value) => {
+    checked += 1;
+    if (!text(value)) errors.push(`${id}: ${field} is missing`);
+    else if (path.isAbsolute(value) || value.split("/").includes("..")) errors.push(`${id}: ${field} ${value} must be a repository-relative path`);
+    else if (!fs.existsSync(path.join(root, value))) errors.push(field === "source path" ? `${id}: source path ${value} does not exist in the working tree; record the move in source.current_path` : `${id}: ${field} ${value} does not exist in the working tree`);
+  };
+  for (const claim of list(ledger.claims)) {
+    if (text(claim.source?.current_path)) checkPath(claim.id, "source.current_path", claim.source.current_path);
+    else checkPath(claim.id, "source path", claim.source?.path);
+    for (const ref of list(claim.evidence)) {
+      if (FOLLOWABLE_ELSEWHERE.test(ref.target)) skipped += 1;
+      else checkPath(claim.id, "evidence target", ref.target);
+    }
+  }
+  return { errors, checked, skipped };
+}
+
 const esc = (value) => String(value ?? "").replaceAll("|", "\\|").replaceAll("\n", " ");
-const source = (claim) => `\`${claim.source.path}\` (${claim.source.section})`;
+const source = (claim) => `\`${claim.source.path}\` (${claim.source.section})${claim.source.current_path ? `, now at \`${claim.source.current_path}\`` : ""}`;
 
 export function renderReport(ledger) {
   const claims = [...list(ledger.claims)].sort((a, b) => a.id.localeCompare(b.id));
@@ -131,6 +158,8 @@ export function renderReport(ledger) {
     "## Method",
     "",
     `The inventory covers all ${ledger.files.length} tracked paths under \`README.md\`, \`docs/**\`, and \`website/**\`. A recall-biased scanner records obvious guarantee, enforcement, autonomy-level, and support-status language. Human review still owns semantic sufficiency and evidence strength.`,
+    "",
+    "Claim source paths and the file inventory stay pinned to the source commit. Where a source file has since moved, its current location is shown as \"now at\". Evidence targets and \"now at\" paths are checked against the current tree, so a reader can follow them.",
     "",
     "## Status summary",
     "",
@@ -178,15 +207,25 @@ function selftest() {
 }
 
 const args = process.argv.slice(2);
+const USAGE = "usage: validate-report.mjs <ledger.json> [report.md] | --render <ledger.json> | --check-live <ledger.json> | --selftest";
+
+function readLedger(ledgerPath) {
+  try { return JSON.parse(fs.readFileSync(ledgerPath, "utf8")); }
+  catch (error) { console.error(`invalid ledger: ${error.message}`); process.exit(1); }
+}
+
 if (args[0] === "--selftest") selftest();
-else {
+else if (args[0] === "--check-live") {
+  if (!args[1]) { console.error(USAGE); process.exit(2); }
+  const { errors, checked, skipped } = checkLive(readLedger(args[1]), REPOSITORY_ROOT);
+  if (errors.length) { errors.forEach((error) => console.error(error)); process.exit(1); }
+  console.log(JSON.stringify({ live: true, checked, skipped }));
+} else {
   const renderOnly = args[0] === "--render";
   const ledgerPath = renderOnly ? args[1] : args[0];
   const reportPath = renderOnly ? null : args[1];
-  if (!ledgerPath) { console.error("usage: validate-report.mjs <ledger.json> [report.md] | --render <ledger.json> | --selftest"); process.exit(2); }
-  let ledger;
-  try { ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); }
-  catch (error) { console.error(`invalid ledger: ${error.message}`); process.exit(1); }
+  if (!ledgerPath) { console.error(USAGE); process.exit(2); }
+  const ledger = readLedger(ledgerPath);
   const errors = validateLedger(ledger);
   const rendered = renderReport(ledger);
   if (reportPath) {

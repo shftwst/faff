@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.2/effect-decision-verdict",
+  "title": "effect-decision-verdict (kind_of_entry: effect-decision-verdict)",
+  "description": "The governor's Ed25519-signed grant/deny verdict on a request — the second of the two records `effect authorize` appends. Always author==commissaire. `verdict`/`reason` mirror evaluateDecisionRequest in bin/lib/commissaire.js: `reason` is the first failing leg (deny) or `all-legs-pass` (grant). `request_seq` back-references the request. The `level_policy` / `pure_*` fields are present when a policy `level` was supplied (evaluateLevelPolicy composed above the pure core). Shape normative here; semantics in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "seq", "ts", "author", "producer_id", "contract_revision", "kind_of_entry", "unit_id", "step", "prev", "payload", "commissaire_sig"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [3] },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer" },
+    "ts": { "type": "string" },
+    "author": { "type": "string", "enum": ["commissaire"] },
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "kind_of_entry": { "type": "string", "enum": ["effect-decision-verdict"] },
+    "unit_id": { "type": "string" },
+    "step": { "type": "string" },
+    "prev": { "type": "string" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["request_seq", "verdict", "reason", "effect"],
+      "properties": {
+        "request_seq": { "type": "integer", "description": "seq of the effect-decision-request this verdict answers" },
+        "verdict": { "type": "string", "enum": ["grant", "deny"], "description": "mirrors DECISION_VERDICTS" },
+        "reason": { "type": "string", "enum": ["all-legs-pass", "producer-not-admitted", "assurance-floor", "producer-auth-failed", "invalid-unit-key", "invalid-effect-descriptor", "effect-out-of-scope", "stale-evidence", "effect-not-declared"], "description": "grant reason all-legs-pass, or the first failing leg's deny reason; mirrors evaluateDecisionRequest" },
+        "effect": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["kind", "target"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] },
+            "target": { "type": "string" }
+          }
+        },
+        "level": { "type": "string" },
+        "attended": { "type": "boolean" },
+        "holdout": { "type": "string" },
+        "level_policy": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["pass", "reason"],
+          "properties": {
+            "pass": { "type": "boolean" },
+            "reason": { "type": "string" }
+          }
+        },
+        "pure_verdict": { "type": "string", "enum": ["grant", "deny"], "description": "the pure-core verdict before the level policy composed over it" },
+        "pure_reason": { "type": "string" }
+      }
+    },
+    "commissaire_sig": { "type": "string" }
+  }
+}

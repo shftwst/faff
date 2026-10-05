@@ -1,0 +1,23 @@
+{
+  "schema": 3,
+  "run_id": "run-20261005-063237-graft-DEMO-1",
+  "seq": 0,
+  "ts": "2026-10-05T06:32:37.874Z",
+  "author": "commissaire",
+  "producer_id": "bare-claude",
+  "contract_revision": "r1",
+  "kind_of_entry": "admission",
+  "unit_id": "-",
+  "step": "admit",
+  "prev": "fe21d9d74bba2d0b9845b1889dd3b640faa83a3e844a0f21fc44bb2d349dd785",
+  "payload": {
+    "producer_id": "bare-claude",
+    "contract_revision": "r1",
+    "admitted_scope": [
+      "file-write"
+    ],
+    "pk_fingerprint": "31d644975378468551d670edad5e50d536e9bd433714ab97741997c293825d52",
+    "admitted_at": "2026-10-05T06:32:37.870Z"
+  },
+  "commissaire_sig": "8zUJl+3HoKaB0acyjswFUdX6q0Kyzh9yeFhgsHsG/7eXS4QDipXi5NATlWDFg5c9POoS4EN0JBBrw4kKIjQIBw=="
+}

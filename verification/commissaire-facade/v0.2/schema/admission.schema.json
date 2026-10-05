@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.2/admission",
+  "title": "admission record (kind_of_entry: admission)",
+  "description": "The seq-0 genesis record `contract admit` signs into the ledger: the governor admits a producer, pins the public-key fingerprint for the run, and records the admitted effect scope. Always author==commissaire, Ed25519-signed. Shape normative here; semantics in ../records.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "seq", "ts", "author", "producer_id", "contract_revision", "kind_of_entry", "unit_id", "step", "prev", "payload", "commissaire_sig"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [3] },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer", "enum": [0], "description": "the admission is always the seq-0 genesis of the chain" },
+    "ts": { "type": "string" },
+    "author": { "type": "string", "enum": ["commissaire"] },
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "kind_of_entry": { "type": "string", "enum": ["admission"] },
+    "unit_id": { "type": "string", "description": "\"-\" on the admission" },
+    "step": { "type": "string" },
+    "prev": { "type": "string" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer_id", "contract_revision", "admitted_scope", "pk_fingerprint", "admitted_at"],
+      "properties": {
+        "producer_id": { "type": "string" },
+        "contract_revision": { "type": "string" },
+        "admitted_scope": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] },
+          "description": "the effect kinds this producer may cause; a subset of EFFECT_KINDS"
+        },
+        "pk_fingerprint": { "type": "string", "description": "the governor public key pinned for this run" },
+        "admitted_at": { "type": "string" }
+      }
+    },
+    "commissaire_sig": { "type": "string" }
+  }
+}

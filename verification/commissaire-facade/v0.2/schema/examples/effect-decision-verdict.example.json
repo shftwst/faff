@@ -1,0 +1,23 @@
+{
+  "schema": 3,
+  "run_id": "run-20261005-063237-graft-DEMO-1",
+  "seq": 5,
+  "ts": "2026-10-05T06:32:39.838Z",
+  "author": "commissaire",
+  "producer_id": "bare-claude",
+  "contract_revision": "r1",
+  "kind_of_entry": "effect-decision-verdict",
+  "unit_id": "DEMO-1",
+  "step": "write",
+  "prev": "5525633dba26ecc04e8eed2d381768c3abe7d7b103cc93c365084a137180b202",
+  "payload": {
+    "request_seq": 4,
+    "verdict": "grant",
+    "reason": "all-legs-pass",
+    "effect": {
+      "kind": "file-write",
+      "target": "protected-output.txt"
+    }
+  },
+  "commissaire_sig": "tkzZ/gb9wK3hH9xIXPhpWuPsk1LwBDgE9ataa6ghwjXDl56vkJy61TA4FFMCAejwDshuHnuY2QkKWivlnLH8Cw=="
+}

@@ -77,8 +77,8 @@ COMMISSAIRE_ROOT=<checkout-at-the-pinned-revision> sh replay.sh
 
 ## Cited gaps
 
-- **FAFF-1015:** the run anchor is minted by `faff events anchor`, not yet by a Commissaire-native
-  verb. That one leg is the sole governance-to-flight-recorder coupling in this harness.
+- **FAFF-1015 (closed):** the run anchor is minted by the Commissaire-native `commissaire audit
+  anchor`, so no governance leg depends on the flight-recorder binary.
 - **FAFF-1016:** `replay.sh` copies the capture to a temporary directory before verifying, because
   `faff bundle verify` resolves its bundle store through an enclosing `.faffrc.yaml`. Removing the
   copy is tracked there.
@@ -96,3 +96,5 @@ COMMISSAIRE_ROOT=<checkout-at-the-pinned-revision> sh replay.sh
   with the master absent, producer records are classified `unverifiable_without_secret`, not
   promoted to verified.
 - No cryptographic identity claim over the Stop invocation; the derived label is forgeable.
+- No claim of an acceptance check or a code review: the run anchor is a byte-copy of the ledger
+  and run files and attests no acceptance check or code review.

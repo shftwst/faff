@@ -1,0 +1,19 @@
+{
+  "escapes": [
+    {
+      "signal": "escaped-side-effect",
+      "issue": "DEMO-ESCAPE",
+      "step": "push",
+      "escaped": [
+        {
+          "kind": "push",
+          "target": "escape-branch",
+          "reversible": true
+        }
+      ],
+      "event_seq": null,
+      "unit_id": "DEMO-ESCAPE"
+    }
+  ],
+  "any_escape": true
+}

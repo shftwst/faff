@@ -1,0 +1,20 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff doctor` exits 1 and names the stale file when a `.ts` source is newer than its committed emit",
+      "verified": "test/doctor.test.mjs::\"doctor: stale emit on a buildable checkout → exit 1, names the emit + the build fix\" and the integration smoke test — passing (exit 1, names bin/lib/producer-auth.js, Fix line includes `npm run build (from plugin/skills/faff/)`)",
+      "passed": true
+    },
+    {
+      "ac": "A fresh build clears the finding",
+      "verified": "test/doctor.test.mjs::\"doctor: a fresh build clears the finding → exit 0, emits up to date\" and smoke-test steps 5-6 — passing (exit 0, `✓ TypeScript emits up to date`)",
+      "passed": true
+    },
+    {
+      "ac": "The autonomous entry logs the finding and continues, never prompts",
+      "verified": "Inherited, unchanged gateway doctor-at-entry preamble behaviour (kernel.md 'Install health'): the autonomous/beep-boop lane logs any doctor exit-1 and continues without prompting, axis-agnostically. The stale-emit axis produces exit 1 (verified above), which that preamble handles like any other finding. Out of scope for this slice's code per spec §2; no new test asserts the preamble, per the spec DoD.",
+      "passed": true
+    }
+  ]
+}

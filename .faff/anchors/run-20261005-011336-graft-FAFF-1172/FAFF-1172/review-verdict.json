@@ -1,0 +1,88 @@
+{
+  "signal": "pass",
+  "findings": [
+    {
+      "source": "standard",
+      "severity": "observation",
+      "location": "git diff origin/main...HEAD (all files)",
+      "action": "Proceed — no change required.",
+      "title": "Phase 1 standard review: AC coverage, scope, spec fidelity all clean",
+      "disposition": "open",
+      "disposition_rationale": "Diff is isolated to the new doctor stale-emit axis + its tests; all three ACs covered (1-2 by new tests, 3 by inherited gateway preamble behaviour); matches spec §3/§4 and the three ratified human-accept minors.",
+      "location_present": true,
+      "action_present": true
+    },
+    {
+      "source": "adversarial",
+      "severity": "major",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "location": "plugin/skills/faff/bin/lib/gates.js gatherStaleEmits; test/doctor.test.mjs",
+      "action": "Fixed — added a guard test asserting the real tsconfig resolves >=1 literal .ts/.js pair.",
+      "title": "glob/non-literal tsconfig include could make the axis a silent no-op on the real repo",
+      "disposition": "fixed",
+      "disposition_rationale": "The real plugin/skills/faff/tsconfig.json uses literal .ts includes, so the axis fires here (glob->skip is the ratified minor-#1 behaviour, not a defect). The new guard test fails loudly if a future include switches to a glob and silently skips.",
+      "location_present": true,
+      "action_present": true
+    },
+    {
+      "source": "adversarial",
+      "severity": "major",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "location": "plugin/skills/faff/bin/lib/gates.js buildToolchainResolvable",
+      "action": "Refuted — no change; ratified by-design behaviour.",
+      "title": "axis skips in a linked worktree with no installed toolchain",
+      "disposition": "refuted",
+      "disposition_rationale": "This is the human-ratified decision stale-emit-check-fires-only-where-buildable and the spec's documented failure mode: a tree that cannot run npm run build gets no (unactionable) heads-up; FAFF-1171's CI gate is the backstop and the heads-up reappears once the toolchain is installed. Changing it would re-litigate a settled decision.",
+      "location_present": true,
+      "action_present": true
+    },
+    {
+      "source": "adversarial",
+      "severity": "minor",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "location": "plugin/skills/faff/bin/lib/gates.js buildToolchainResolvable",
+      "action": "Accepted risk — no change; out of scope per the ratified Chosen detection.",
+      "title": "buildable probe checks the compiler but not that a build script exists",
+      "disposition": "accepted-risk",
+      "disposition_rationale": "The spec's ratified Chosen defines buildable as a resolvable typescript toolchain under node_modules specifically (§4), not script presence; this repo's package.json declares the build script, so the pathological typescript-without-build-script tree does not arise here.",
+      "location_present": true,
+      "action_present": true
+    },
+    {
+      "source": "adversarial",
+      "severity": "minor",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "location": "plugin/skills/faff/bin/lib/gates.js buildToolchainResolvable (.bin/tsc disjunct)",
+      "action": "Refuted — no change; probe is correct on Windows.",
+      "title": ".bin/tsc probe is POSIX-shaped on Windows",
+      "disposition": "refuted",
+      "disposition_rationale": "The extensionless tsc shim exists on Windows too, so the file-presence probe returns true correctly (toolchain present). No behavioural bug; reviewer rated it observation-grade.",
+      "location_present": true,
+      "action_present": true
+    },
+    {
+      "source": "adversarial",
+      "severity": "observation",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "location": "plugin/skills/faff/bin/lib/gates.js gatherStaleEmits (path.join of include entries)",
+      "action": "Refuted — no change; trusted repo-controlled input, no execution.",
+      "title": "tsconfig include entries are path.join'd without validating against escape",
+      "disposition": "refuted",
+      "disposition_rationale": "tsconfig is repo-controlled, PR-reviewed, trusted input; the axis only stats mtimes and reports relative paths with no content read and no spawn, so an odd/absolute entry has nil impact.",
+      "location_present": true,
+      "action_present": true
+    },
+    {
+      "source": "adversarial",
+      "severity": "observation",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "location": "plugin/skills/faff/bin/lib/gates.js gatherStaleEmits (statSync src then emit)",
+      "action": "Accepted risk — no change; poll-style heads-up self-corrects.",
+      "title": "src-stat/emit-stat pair is not atomic (TOCTOU across a concurrent rebuild)",
+      "disposition": "accepted-risk",
+      "disposition_rationale": "Doctor is a poll-style heads-up that self-corrects on the next run; the spec explicitly accepts same-tick edit-and-rebuild as a tolerated best-effort miss (FAFF-1171 CI is the byte-exact authority).",
+      "location_present": true,
+      "action_present": true
+    }
+  ]
+}

@@ -8,6 +8,8 @@ This is a dated audit, not continuous semantic enforcement. It distinguishes pro
 
 The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `website/**`. A recall-biased scanner records obvious guarantee, enforcement, autonomy-level, and support-status language. Human review still owns semantic sufficiency and evidence strength.
 
+Claim source paths and the file inventory stay pinned to the source commit. Where a source file has since moved, its current location is shown as "now at". Evidence targets and "now at" paths are checked against the current tree, so a reader can follow them.
+
 ## Status summary
 
 | Status | Claims |
@@ -24,9 +26,9 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 **codex-observed-capability: Codex can drive the Faff workflow with documented harness-specific constraints.**
 
 - Kind/status: `process-observation` / `demonstrated`
-- Source: `docs/architecture/codex-cli-observed.md` (Observed behaviour)
+- Source: `docs/architecture/codex-cli-observed.md` (Observed behaviour), now at `docs/reference/architecture/codex-cli-observed.md`
 - Current: A Codex path has been observed and documented; the evidence does not imply full harness parity.
-- Evidence (demonstration): Codex CLI observation record — `docs/architecture/codex-cli-observed.md`
+- Evidence (demonstration): Codex CLI observation record — `docs/reference/architecture/codex-cli-observed.md`
 
 **governance-required-check: Governance-check becomes binding only when configured as a required branch-protection status.**
 
@@ -38,11 +40,11 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 **harness-portability-boundary: A public, evidence-bounded harness support matrix is not yet published.**
 
 - Kind/status: `product-guarantee` / `planned`
-- Source: `docs/architecture/harness-coupling.md` (Portability boundary)
+- Source: `docs/architecture/harness-coupling.md` (Portability boundary), now at `docs/reference/architecture/harness-coupling.md`
 - Current: Support evidence is distributed across architecture notes and run records.
 - Target: Publish demonstrated Claude Code and Codex capabilities and label pi.dev as planned.
-- Owner: FAFF-735
-- Evidence (status-history): Harness coupling inventory records the current boundary — `docs/architecture/harness-coupling.md`
+- Owner: FAFF-1183
+- Evidence (status-history): Harness coupling inventory records the current boundary — `docs/reference/architecture/harness-coupling.md`
 
 **l4-completion-claim: The public repository does not yet have enough external evidence for an unqualified L4-complete claim.**
 
@@ -50,8 +52,8 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 - Source: `README.md` (The levels)
 - Current: L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete.
 - Target: Publish the verification protocol, paired walkthroughs, claim links, and governed close-out.
-- Owner: FAFF-736
-- Evidence (status-history): External-verification evidence index distinguishes conformance from authenticity — `docs/evidence/README.md`
+- Owner: FAFF-1183
+- Evidence (status-history): External-verification evidence index distinguishes conformance from authenticity — `verification/evidence/README.md`
 
 **readme-claude-only-harness-wording: The README describes Faff only as Claude Code skills.**
 
@@ -59,8 +61,8 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 - Source: `README.md` (What faff is)
 - Current: Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path.
 - Target: Use harness-neutral positioning and publish an evidence-bounded support matrix.
-- Owner: FAFF-735
-- Evidence (status-history): The repository now records observed Codex CLI operation — `docs/architecture/codex-cli-observed.md`
+- Owner: FAFF-1183
+- Evidence (status-history): The repository now records observed Codex CLI operation — `docs/reference/architecture/codex-cli-observed.md`
 
 **readme-l3-park-and-ledger: An unattended L3 run parks ambiguity and cannot finish cleanly with admitted work dangling.**
 
@@ -84,7 +86,6 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 - Source: `README.md` (What faff is)
 - Current: The claim is supported as an attested governance posture, not as proof that every configured repository is safe.
 - Target: Pair the public claim with reproducible pass-and-stop evidence before presenting it as demonstrated across harnesses.
-- Owner: FAFF-741
 - Evidence (attestation): The repository documents the gates and trust boundaries that support this positioning — `docs/guide/governance-check.md`
 
 **readme-tracker-control-plane: The tracker is Faff's human-legible control plane and outcome surface.**
@@ -96,7 +97,7 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 
 ## Stale content
 
-- **readme-claude-only-harness-wording**: Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Owner: FAFF-735.
+- **readme-claude-only-harness-wording**: Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Owner: FAFF-1183.
 
 ## Terminology map
 
@@ -116,9 +117,9 @@ The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `we
 
 ## Evidence gaps
 
-- **harness-portability-boundary** (planned): Support evidence is distributed across architecture notes and run records. Owner: FAFF-735.
-- **l4-completion-claim** (unsupported): L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete. Owner: FAFF-736.
-- **readme-claude-only-harness-wording** (stale): Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Owner: FAFF-735.
+- **harness-portability-boundary** (planned): Support evidence is distributed across architecture notes and run records. Owner: FAFF-1183.
+- **l4-completion-claim** (unsupported): L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete. Owner: FAFF-1183.
+- **readme-claude-only-harness-wording** (stale): Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Owner: FAFF-1183.
 
 ## File inventory
 

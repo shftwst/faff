@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-740",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9962996ced4056959dd947dd88b28110fc98b963c43e9f039603550382abb8ab",
+    "branch": "FAFF-740-connect-the-phase-0-release-claims-to-live-evidence",
+    "pushed_at": "2026-10-05T04:48:57.996Z"
+  },
+  "updated_at": "2026-10-05T04:48:57.996Z"
+}

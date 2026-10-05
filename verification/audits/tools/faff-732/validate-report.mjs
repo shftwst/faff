@@ -86,7 +86,7 @@ export function validateLedger(ledger, { checkInventory = true } = {}) {
   for (const claim of claims) {
     if (!text(claim.id) || !KINDS.has(claim.kind) || !STATUSES.has(claim.status) || !text(claim.summary) || !text(claim.current_state)) errors.push(`${claim.id || "<missing>"}: invalid claim shape`);
     if (!fileByPath.has(claim.source?.path) || !text(claim.source?.section)) errors.push(`${claim.id}: invalid source anchor`);
-    if (claim.source && "current_path" in claim.source && (!text(claim.source.current_path) || claim.source.current_path === claim.source.path)) errors.push(`${claim.id}: invalid source.current_path`);
+    if (Object.hasOwn(Object(claim.source ?? {}), "current_path") && (!text(claim.source.current_path) || claim.source.current_path === claim.source.path)) errors.push(`${claim.id}: invalid source.current_path`);
     if (!list(fileByPath.get(claim.source?.path)?.claim_ids).includes(claim.id)) errors.push(`${claim.id}: absent from source file claim_ids`);
     const evidence = list(claim.evidence);
     for (const ref of evidence) if (!text(ref.label) || !text(ref.target) || !SUPPORTS.has(ref.supports)) errors.push(`${claim.id}: invalid evidence`);

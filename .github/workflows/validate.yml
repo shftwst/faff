@@ -439,11 +439,21 @@ jobs:
           node -e '
             const fs = require("node:fs");
             const cfg = JSON.parse(fs.readFileSync("tsconfig.json", "utf8"));
+            let removed = 0;
             for (const entry of cfg.include || []) {
-              if (!entry.endsWith(".ts")) continue;
+              if (!entry.endsWith(".ts")) continue;          // literal .ts include entry
               const js = entry.replace(/\.ts$/, ".js");
-              fs.rmSync(js, { force: true });
-              console.log("removed " + js);
+              if (fs.existsSync(js)) { fs.rmSync(js); removed++; console.log("removed " + js); }
+              else { console.log("no committed emit at " + js + " yet (build will create it)"); }
+            }
+            // Guard the positive proof itself: if this step removed zero committed emits, the
+            // tsconfig include is not the literal .ts-entry form these paths are derived from
+            // (e.g. a glob like bin/lib/**/*.ts, or a directory include). Failing loud here keeps
+            // the freshness check from silently degrading to the vacuous differential diff the
+            // remove-then-rebuild design exists to prevent — handle that include form here first.
+            if (removed === 0) {
+              console.error("::error::positive-proof setup removed zero committed emits — the tsconfig include is not the literal .ts-entry form this step derives paths from (handle globs/directory includes here, or the freshness gate degrades to a vacuous diff)");
+              process.exit(1);
             }
           '
 

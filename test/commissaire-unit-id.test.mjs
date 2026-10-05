@@ -229,6 +229,22 @@ test("computeEscapes: each dual-key record is its own rejected-unit-key escape; 
   const plain = r.escapes.filter((e) => e.signal === "escaped-side-effect");
   assert.equal(plain.length, 1, "the no-unit observe keeps today's escaped-side-effect shape");
   assert.equal(plain[0].issue, null);
+
+  const filtered = computeEscapes([
+    { kind_of_entry: "observe", issue: "A", unit_id: "B", step: "merge", seq: 1, effect: MERGE },
+    { kind_of_entry: "observe", step: "merge", seq: 2, effect: MERGE },
+  ], "FAFF-X");
+  assert.deepEqual(filtered.escapes.map((e) => e.signal), ["rejected-unit-key"],
+    "under a unit filter a dual-key record still surfaces, and a no-unit record matches no filter");
+});
+
+test("computeEscapes: a no-unit declare never covers an observe whose unit is the string \"null\"", () => {
+  const r = computeEscapes([
+    { kind_of_entry: "declare", step: "merge", seq: 1, effect: MERGE },
+    { kind_of_entry: "observe", unit_id: "null", step: "merge", seq: 2, effect: MERGE },
+  ], null);
+  assert.equal(r.escapes.length, 1);
+  assert.equal(r.escapes[0].issue, "null");
 });
 
 test("bundle-recover: a rejected-unit-key escape parks as an issue:null entry, never a silent resume", () => {

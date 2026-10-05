@@ -134,7 +134,7 @@ function computeEscapes(entries, unitFilter) {
     }
     const unit = unitIdOf(e);
     if (unitFilter != null && !matchesUnit(e, unitFilter)) continue;
-    const k = `${unit}\x00${e.step}`;
+    const k = `${unit === null ? "\x01" : `s${unit}`}\x00${e.step}`; // the null unit never shares a key with the string "null"
     if (!groups.has(k)) groups.set(k, { issue: unit, step: e.step, declared: [], observed: [] });
     const g = groups.get(k);
     if (e.kind_of_entry === "declare") g.declared.push(e.effect);

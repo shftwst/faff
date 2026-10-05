@@ -222,6 +222,7 @@ function mergeRecordPathLocal(runDir, issue) {
 // correctly against the full set. `--issue` narrows the SEGMENT scope (see `inScope` in
 // reconcileMerges), never this read.
 function readDeclaredMergeEffects(runDir) {
+  const { carriesBothUnitKeys, unitIdOf } = require("./effects"); // lazy — the same cycle segmentCovered breaks
   const p = path.join(runDir, "declared-effects.jsonl");
   if (!fs.existsSync(p)) return [];
   const lines = fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "");
@@ -231,7 +232,8 @@ function readDeclaredMergeEffects(runDir) {
     try { e = JSON.parse(line); } catch { continue; }
     if (!e || (e.kind_of_entry !== "declare" && e.kind_of_entry !== "observe")) continue;
     if (!e.effect || e.effect.kind !== "merge") continue;
-    out.push({ issue: e.issue, target: e.effect.target });
+    if (carriesBothUnitKeys(e)) continue; // a dual-key record covers nothing (FAFF-1167)
+    out.push({ issue: unitIdOf(e), target: e.effect.target });
   }
   return out;
 }
@@ -725,6 +727,7 @@ module.exports = {
   sanitizeDetail,
   partitionSegments,
   segmentCovered,
+  readDeclaredMergeEffects,
   reconcileMerges,
   cmdEffectsReconcileMerges,
   effectsReconcileSelftest,

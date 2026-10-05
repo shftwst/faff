@@ -44,7 +44,7 @@ const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arit
 const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, requiresSelfConsistencyStamp, resolveGateLevel, resolveHoldoutPosture } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
-const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches } = require("./effects");
+const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches, matchesUnit } = require("./effects");
 const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir, hasGovernanceContext: commissaireHasGovernanceContext } = require("./commissaire");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
@@ -865,7 +865,7 @@ function readDeclaredMergeEffects(runDir, issue) {
     if (!fs.existsSync(ledgerPath)) return [];
     return fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")
       .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
-      .filter((e) => e.kind_of_entry === "declare" && e.issue === issue && e.step === "merge")
+      .filter((e) => e.kind_of_entry === "declare" && matchesUnit(e, issue) && e.step === "merge")
       .map((e) => e.effect);
   } catch (e) { return []; /* unreadable ledger => [] => every effect reads as uncovered */ }
 }
@@ -961,7 +961,7 @@ function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
   try { entries = commissaireReadLedger(runDir); } catch { return "not-applicable"; }
   const verdicts = entries.filter((e) =>
     e && e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" &&
-    e.issue === issue && e.step === step);
+    matchesUnit(e, issue) && e.step === step);
   if (verdicts.length === 0) {
     // FAFF-1034 — fail closed on a GOVERNED run. A run whose runner has `admit`ted (any schema:3
     // record ⇒ hasGovernanceContext) but produced NO verdict at this step is exactly the hole the

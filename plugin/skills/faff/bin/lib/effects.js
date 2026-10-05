@@ -90,14 +90,52 @@ function effectTargetMatches(declaredTarget, observedTarget) {
   return declaredTarget === "*" || declaredTarget === observedTarget;
 }
 
-// Pure escape core: observed-MINUS-declared per (issue, step). `entries` is the parsed
-// ledger; optional issueFilter narrows scope. Returns { escapes: [EscapeSignal], any_escape }.
-function computeEscapes(entries, issueFilter) {
-  const groups = new Map(); // (issue\0step) -> { issue, step, declared:[], observed:[] }
+// === FAFF-1167: the work-unit compatibility read ==========================
+// A ledger record names its work unit under `unit_id` (schema:3 records minted after
+// FAFF-1167) or `issue` (frozen schema:3 records and every schema:2 row). The key name is
+// inside each record's signed image, so frozen records are never rewritten; readers resolve
+// the unit here instead. A record carrying BOTH keys is rejected (it resolves to no unit),
+// and the unit is a string — never coerced — compared strictly.
+
+function hasUnitKey(rec, key) {
+  return Object.prototype.hasOwnProperty.call(rec, key) && rec[key] !== undefined;
+}
+
+function carriesBothUnitKeys(rec) {
+  return !!rec && typeof rec === "object" && hasUnitKey(rec, "issue") && hasUnitKey(rec, "unit_id");
+}
+
+// The record's work unit, or null when it is not a plain object, carries both keys, or its
+// unit is not a non-empty string.
+function unitIdOf(rec) {
+  if (!rec || typeof rec !== "object" || Array.isArray(rec)) return null;
+  if (carriesBothUnitKeys(rec)) return null;
+  const unit = hasUnitKey(rec, "unit_id") ? rec.unit_id : rec.issue;
+  return typeof unit === "string" && unit !== "" ? unit : null;
+}
+
+// The only unit comparison readers use: false for a missing or non-string comparand, so two
+// unresolvable sides can never match each other.
+function matchesUnit(rec, unit) {
+  return typeof unit === "string" && unit !== "" && unitIdOf(rec) === unit;
+}
+
+// Pure escape core: observed-MINUS-declared per (unit, step). `entries` is the parsed
+// ledger; optional unitFilter narrows scope. Returns { escapes: [EscapeSignal], any_escape }.
+// A record carrying both unit keys never joins a group: it is reported as its own
+// `rejected-unit-key` escape whatever the filter, so it can neither cover nor hide anything.
+function computeEscapes(entries, unitFilter) {
+  const groups = new Map(); // (unit\0step) -> { issue, step, declared:[], observed:[] }
+  const rejected = [];
   for (const e of entries) {
-    if (issueFilter != null && e.issue !== issueFilter) continue;
-    const k = `${e.issue}\x00${e.step}`;
-    if (!groups.has(k)) groups.set(k, { issue: e.issue, step: e.step, declared: [], observed: [] });
+    if (carriesBothUnitKeys(e)) {
+      rejected.push({ signal: "rejected-unit-key", issue: null, step: e.step, seq: e.seq, escaped: e.effect ? [e.effect] : [], event_seq: null });
+      continue;
+    }
+    const unit = unitIdOf(e);
+    if (unitFilter != null && !matchesUnit(e, unitFilter)) continue;
+    const k = `${unit}\x00${e.step}`;
+    if (!groups.has(k)) groups.set(k, { issue: unit, step: e.step, declared: [], observed: [] });
     const g = groups.get(k);
     if (e.kind_of_entry === "declare") g.declared.push(e.effect);
     else if (e.kind_of_entry === "observe") g.observed.push(e.effect);
@@ -108,6 +146,7 @@ function computeEscapes(entries, issueFilter) {
       !g.declared.some((d) => d.kind === O.kind && effectTargetMatches(d.target, O.target)));
     if (escaped.length) escapes.push({ signal: "escaped-side-effect", issue: g.issue, step: g.step, escaped, event_seq: null });
   }
+  escapes.push(...rejected);
   return { escapes, any_escape: escapes.length > 0 };
 }
 
@@ -775,6 +814,22 @@ function effectsSelftest() {
   ], "FAFF-A");
   if (r.escapes.length !== 1 || r.escapes[0].issue !== "FAFF-A") fail("issue filter narrows scope");
 
+  // --- FAFF-1167: the work-unit compatibility read ---
+  if (unitIdOf({ unit_id: "U1" }) !== "U1" || unitIdOf({ issue: "U1" }) !== "U1") fail("unitIdOf: resolves either single key");
+  if (unitIdOf({ issue: "U1", unit_id: "U1" }) !== null || unitIdOf({ issue: "A", unit_id: "B" }) !== null) fail("unitIdOf: a dual-key record resolves to null");
+  if (unitIdOf({}) !== null || unitIdOf({ unit_id: 5 }) !== null || unitIdOf({ issue: true }) !== null || unitIdOf({ unit_id: "" }) !== null) fail("unitIdOf: no unit, a non-string or an empty unit resolves to null");
+  if (matchesUnit({}, undefined) || matchesUnit({ unit_id: 5 }, "5") || matchesUnit({ issue: "A", unit_id: "B" }, "A")) fail("matchesUnit: never matches an unresolved side");
+  r = computeEscapes([
+    { kind_of_entry: "declare", unit_id: "FAFF-9", step: "build", effect: { kind: "merge", target: "main" } },
+    obs("FAFF-9", "build", { kind: "merge", target: "main" }),
+  ], "FAFF-9");
+  if (r.any_escape !== false) fail("a unit_id declare covers an issue-keyed observe for the same unit");
+  r = computeEscapes([
+    { kind_of_entry: "declare", issue: "A", unit_id: "B", step: "build", seq: 1, effect: { kind: "merge", target: "main" } },
+    { kind_of_entry: "observe", issue: "A", unit_id: "B", step: "build", seq: 2, effect: { kind: "merge", target: "main" } },
+  ], "OTHER");
+  if (r.escapes.length !== 2 || r.escapes.some((x) => x.signal !== "rejected-unit-key" || x.issue !== null)) fail("each dual-key record is its own rejected-unit-key escape, whatever the filter");
+
   // --- appendEffectEntries (FAFF-383/621): the shared ledger-append core cmdEffects and
   // merge-gate's mechanical observe both call — now schema-2 CHAINED (per-line prev). ---
   {
@@ -818,4 +873,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest };
+module.exports = { EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };

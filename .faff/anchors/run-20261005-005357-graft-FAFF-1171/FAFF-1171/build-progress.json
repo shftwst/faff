@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1171",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b3b8e46dbba08954e96d5e984baf31afc8e717109219c375d5fc98b99c986424",
+    "branch": "FAFF-1171-fail-ci-on-a-type-error-or-a-stale-committed-emit",
+    "pushed_at": "2026-10-05T01:42:08.315Z"
+  },
+  "updated_at": "2026-10-05T01:42:08.315Z"
+}

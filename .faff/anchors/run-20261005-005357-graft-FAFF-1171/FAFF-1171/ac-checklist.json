@@ -1,0 +1,65 @@
+{
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "A deliberately stale committed emit fails the typecheck job (the stale-emit git diff --exit-code step)",
+      "verified": "Local exercise: edited commissaire.ts emit-changingly and committed WITHOUT rebuilding .js; ran the job sequence (derive+rm each include emit -> npm run build -> path-less `git diff --exit-code`) -> git diff DIRTY (commissaire.js differs) -> non-zero -> job fails. Reverted.",
+      "passed": true
+    },
+    {
+      "ac": "A type error in a .ts source fails the typecheck job (the tsc --noEmit step)",
+      "verified": "Local exercise: injected `const x: number = \"...\"` into producer-auth.ts; `npx tsc --noEmit -p tsconfig.json` -> exit 2, `error TS2322`. Reverted; tsc clean again.",
+      "passed": true
+    },
+    {
+      "ac": "The Node 20 lanes (validate, unit, coverage-report, validate-macos, env-rootless) are unchanged",
+      "verified": "`git diff origin/main -- validate.yml` is purely additive (@@ -401,3 +401,88 @@, zero deletions); YAML parse confirms the 5 original jobs are byte-identical and `typecheck` is appended.",
+      "passed": true
+    },
+    {
+      "ac": "typecheck job added: runs-on ubuntu-latest, node-version 24, timeout-minutes present",
+      "verified": "YAML parse: jobs include `typecheck`; runs-on ubuntu-latest; setup-node node-version 24; timeout-minutes 20 (in 1-360, ci-workflow-timeout-bounds guard passes 9/9).",
+      "passed": true
+    },
+    {
+      "ac": "npm/tsc steps run with working-directory: plugin/skills/faff",
+      "verified": "npm ci / tsc --noEmit / remove-emit / npm run build steps all carry `working-directory: plugin/skills/faff`.",
+      "passed": true
+    },
+    {
+      "ac": "Steps run in order: npm ci -> tsc --noEmit -> remove-each-emit + npm run build -> path-less git diff (repo root) -> un-skip floor -> full source-lane suite",
+      "verified": "Step order confirmed in validate.yml typecheck job.",
+      "passed": true
+    },
+    {
+      "ac": "Stale-emit detection is a path-less `git diff --exit-code` from the repo root (not a hard-coded list)",
+      "verified": "The diff step is a bare `git diff --exit-code` at repo root; the remove step derives emit paths from tsconfig.json `include` via node (no hand-kept path list).",
+      "passed": true
+    },
+    {
+      "ac": "Positive-proof build: each include entry's committed .js is removed before npm run build (no vacuous green)",
+      "verified": "Remove step deletes each include entry's sibling .js before build; locally confirmed removal+rebuild regenerates both emits and a non-regenerated emit shows as a deletion in git diff.",
+      "passed": true
+    },
+    {
+      "ac": "Un-skip floor runs check-no-boundary-cast.test.mjs as its own step and fails if reported skipped (# skipped 0, non-zero # pass)",
+      "verified": "Dedicated step present; locally with typescript installed the test runs 5/5 (# skipped 0, # pass 5) and the floor parse logic clears; a skipped run (no typescript) would set skipped>0 and fail the step.",
+      "passed": true
+    },
+    {
+      "ac": "The full node:test suite runs on Node 24 with hermetic-env preload, pathless --test, dead DOCKER_HOST so docker-gated tests self-skip",
+      "verified": "Step runs `node --no-experimental-strip-types --import ./test/hermetic-env.mjs --test` with DOCKER_HOST dead. The flag keeps Node 24 pathless discovery identical to the Node 20 unit lane (excludes .ts fixtures node>=22.18 would otherwise sweep in). Locally the suite is 5159 pass / 14 fail, every failure a macOS-local artifact (/private tmpdir symlink mismatches + known state-sensitive/synthetic selftests) that is green on ubuntu (main's Node 20 unit lane proves it). On ubuntu Node 24 the step is green; the PR's own typecheck CI run is the proof.",
+      "passed": false
+    },
+    {
+      "ac": "check-no-boundary-cast.test.mjs executes (not skipped) on this job and passes",
+      "verified": "Verified locally 5/5 pass with typescript installed; enforced in CI by the dedicated un-skip floor step.",
+      "passed": true
+    },
+    {
+      "ac": "The PR body and run summary record the out-of-band admin step: add the typecheck context to the branch-protection required set next to validate",
+      "verified": "Needs human: recorded in the PR body as a post-merge repo-admin step; the PR cannot self-apply a branch-protection setting.",
+      "passed": false
+    }
+  ]
+}

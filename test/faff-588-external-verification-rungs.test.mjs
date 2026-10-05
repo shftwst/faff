@@ -178,7 +178,7 @@ function checkRungResults(readmeText, readCaseFile) {
     const executed = caseDirs
       .map((dir) => ({ dir, result: caseMainResult(readCaseFile, dir) }))
       .filter((c) => c.result !== null)
-      .sort((a, b) => a.dir.localeCompare(b.dir));
+      .sort((a, b) => (a.dir < b.dir ? -1 : 1));
     const expected = executed.length === 0 ? "not-run" : STATUS_FOR_MAIN_RESULT[executed.at(-1).result];
     if (status !== null && status !== expected) {
       violations.push(`RUNG_STATUS_UNSUPPORTED: ${rung} is ${status} but its linked cases give ${expected}`);

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-588",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9df03602d65811a8810b57dcac799a8a7469270025ce08255f57356d5273e175",
+    "branch": "faff-588-rung-results-and-first-failure-rung",
+    "pushed_at": "2026-10-05T04:52:03.450Z"
+  },
+  "updated_at": "2026-10-05T04:52:03.450Z"
+}

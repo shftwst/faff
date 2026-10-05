@@ -152,3 +152,6 @@ sentry:
 
 capture:
   decision_kernel: "on"
+
+effort:
+  eval: medium

@@ -586,13 +586,26 @@ export function resolveEvalModel(argv, { run } = {}) {
 // FAFF-722 — the accepted reasoning-effort levels for the frontier `claude -p --effort` flag. Matches
 // faff's `.faffrc` effort: vocabulary; an off-vocabulary value fails LOUD (never forwarded to claude -p).
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"];
-export function resolveEffort(argv) {
-  const flag = argFlag(argv, "--effort");
-  if (flag == null) return null;
-  if (!EFFORT_LEVELS.includes(flag)) {
-    throw new Error(`--effort: unknown level ${JSON.stringify(flag)}; expected one of ${EFFORT_LEVELS.join("|")}`);
+// ADR-0133 — the effort resolves `--effort` flag > `effort.eval` config > none (no flag passed), the
+// models.eval precedence. "inherit" (flag or config) means no flag, so `--effort inherit` overrides a
+// pinned config. An invalid configured value fails loud (config get exits 2); an unavailable config CLI
+// falls back to no flag, never to a guessed level.
+function configuredEvalEffort(run) {
+  const bin = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
+  const doRun = run ?? ((b, a) => spawnSync("node", [b, ...a], { encoding: "utf8" }));
+  const r = doRun(bin, ["config", "get", "effort.eval"]);
+  if (r.status === 2) throw new Error(`effort.eval: ${String(r.stderr ?? "").trim()}`);
+  const value = r.status === 0 ? String(r.stdout ?? "").trim() : "";
+  return value && value !== "inherit" ? value : null;
+}
+
+export function resolveEffort(argv, { run } = {}) {
+  const level = argFlag(argv, "--effort") ?? configuredEvalEffort(run);
+  if (level == null || level === "inherit") return null;
+  if (!EFFORT_LEVELS.includes(level)) {
+    throw new Error(`--effort: unknown level ${JSON.stringify(level)}; expected one of ${EFFORT_LEVELS.join("|")}`);
   }
-  return flag;
+  return level;
 }
 
 export function resolveDriver(argv, presets) {

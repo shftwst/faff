@@ -261,7 +261,7 @@ test("--kind --resume skips a checkpointed named kind, uses the scoped file, and
 
   const spy = [];
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
-  const argv = ["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", baselinePath, "--kind", `${done},${todo}`, "--resume"];
+  const argv = ["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--update-baseline", baselinePath, "--kind", `${done},${todo}`, "--resume"];
   const { result } = await capture(() => updateBaseline(argv, presets, baselinePath));
 
   assert.equal(result, 0);
@@ -294,7 +294,7 @@ test("--kind --resume does NOT refold a leftover un-named kind from the shared s
 
   const spy = [];
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
-  const { result } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", baselinePath, "--kind", named, "--resume"], presets, baselinePath));
+  const { result } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--update-baseline", baselinePath, "--kind", named, "--resume"], presets, baselinePath));
 
   assert.equal(result, 0);
   assert.ok(spy.every((id) => byKind[named].includes(id)), "only the named kind's cases dispatched (leftover not run)");
@@ -316,7 +316,7 @@ test("--kind --resume refuses to blend on a stamp mismatch, before any rep", asy
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
   const dir = tmp();
   await assert.rejects(
-    () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", join(dir, "frontier.json"), "--kind", "dupe,vague", "--resume"], presets, join(dir, "frontier.json"))),
+    () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--update-baseline", join(dir, "frontier.json"), "--kind", "dupe,vague", "--resume"], presets, join(dir, "frontier.json"))),
     /refusing to blend/,
   );
   assert.equal(spy.length, 0, "no rep dispatched before the stamp guard threw");
@@ -339,7 +339,7 @@ test("--resume dispatches only missing kinds and writes a complete baseline", as
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
   const dir = tmp();
   const baselinePath = join(dir, "frontier.json");
-  const argv = ["--driver", "frontier", "--model", "M", "--reps", "1", "--resume"];
+  const argv = ["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--resume"];
   const { result } = await capture(() => updateBaseline(argv, presets, baselinePath));
 
   assert.ok(spy.length > 0, "the missing kind's cases were dispatched");
@@ -366,7 +366,7 @@ test("--resume with all kinds complete runs zero reps and writes a complete base
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
   const dir = tmp();
   const baselinePath = join(dir, "frontier.json");
-  const { result } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--resume"], presets, baselinePath));
+  const { result } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--resume"], presets, baselinePath));
   assert.equal(spy.length, 0, "zero reps dispatched");
   const written = JSON.parse(readFileSync(baselinePath, "utf8"));
   assert.ok(Object.keys(byKind).every((k) => k in written.per_kind), "complete baseline written");
@@ -392,7 +392,7 @@ test("a completed kind whose stored case-id set is stale is re-run, not kept", a
   const spy = [];
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
   const dir = tmp();
-  await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--resume"], presets, join(dir, "frontier.json")));
+  await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--resume"], presets, join(dir, "frontier.json")));
   assert.equal(spy.length, byKind[stale].length, "the stale kind was re-run");
   assert.ok(spy.every((id) => byKind[stale].includes(id)), "and ONLY the stale kind was re-run");
   cleanReal();
@@ -407,7 +407,7 @@ test("--resume throws before any rep when the progress stamp differs (driver/mod
   const dir = tmp();
   await capture(async () => {
     await assert.rejects(
-      updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--resume"], presets, join(dir, "frontier.json")),
+      updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--resume"], presets, join(dir, "frontier.json")),
       /refusing to blend/,
     );
   });
@@ -424,7 +424,7 @@ test("a corrupt progress file on --resume throws with the path", async () => {
   const dir = tmp();
   await capture(async () => {
     await assert.rejects(
-      updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--resume"], presets, join(dir, "frontier.json")),
+      updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--resume"], presets, join(dir, "frontier.json")),
       (e) => e.message.includes("frontier-sweep-progress.json") && /corrupt|unparseable/i.test(e.message),
     );
   });
@@ -439,7 +439,7 @@ test("--resume with no progress file warns and runs the full sweep (non-fatal)",
   const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
   const dir = tmp();
   const baselinePath = join(dir, "frontier.json");
-  const { result, warns } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--resume"], presets, baselinePath));
+  const { result, warns } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--effort", "inherit", "--reps", "1", "--resume"], presets, baselinePath));
   assert.ok(warns.some((w) => /no progress file/i.test(w)), "warned about the missing progress file");
   assert.equal(spy.length, cases.length, "every case ran (full sweep, reps 1)");
   assert.equal(existsSync(REAL_PROGRESS), true, "a fresh progress file was created");

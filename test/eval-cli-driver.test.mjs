@@ -92,9 +92,18 @@ test("resolveDriver rejects an unknown --driver", () => {
 // --- FAFF-722: --effort vocabulary + threading into the frontier preset (localOpts never gets it) ---
 test("resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)", () => {
   assert.equal(resolveEffort(["--effort", "max"]), "max");
-  assert.equal(resolveEffort([]), null, "no --effort ⇒ null (byte-for-byte)");
+  assert.equal(resolveEffort([], { run: () => ({ status: 0, stdout: "inherit\n" }) }), null, "no --effort and an inherit config ⇒ null (byte-for-byte)");
   assert.deepEqual(EFFORT_LEVELS, ["low", "medium", "high", "xhigh", "max"]);
   assert.throws(() => resolveEffort(["--effort", "turbo"]), /unknown level.*low\|medium\|high\|xhigh\|max/);
+});
+
+test("resolveEffort: --effort flag > effort.eval config > none; inherit means no flag (ADR-0133)", () => {
+  assert.equal(resolveEffort([], { run: () => ({ status: 0, stdout: "medium\n" }) }), "medium", "a pinned effort.eval is used when no flag is given");
+  assert.equal(resolveEffort(["--effort", "high"], { run: () => ({ status: 0, stdout: "medium\n" }) }), "high", "the flag wins over the config");
+  assert.equal(resolveEffort(["--effort", "inherit"], { run: () => ({ status: 0, stdout: "medium\n" }) }), null, "--effort inherit overrides a pinned config");
+  assert.equal(resolveEffort([], { run: () => ({ status: 1, stdout: "" }) }), null, "an unavailable config CLI ⇒ no flag");
+  assert.throws(() => resolveEffort([], { run: () => ({ status: 2, stderr: "invalid effort token" }) }), /effort\.eval: invalid effort token/,
+    "an invalid configured value fails loud, never a silent fallback");
 });
 
 test("resolveDriver rejects an off-vocabulary --effort loudly, before building anything (FAFF-722)", () => {
@@ -102,14 +111,14 @@ test("resolveDriver rejects an off-vocabulary --effort loudly, before building a
   assert.throws(() => resolveDriver(["--driver", "frontier", "--effort", "bogus"], PRESETS), /unknown level/);
 });
 
-test("resolveDriver threads --effort into the frontier preset; omits it when unset (FAFF-722)", () => {
+test("resolveDriver threads --effort into the frontier preset; omits it for inherit (FAFF-722)", () => {
   let captured = null;
   const cap = { frontierDriver: (opts) => { captured = opts; return () => {}; }, localDriver };
   resolveDriver(["--driver", "frontier", "--model", "M", "--effort", "high"], cap);
   assert.equal(captured.effort, "high", "frontier preset receives the resolved effort");
   captured = null;
-  resolveDriver(["--driver", "frontier", "--model", "M"], cap);
-  assert.equal(captured.effort, null, "no --effort ⇒ effort null passed to the preset (byte-for-byte)");
+  resolveDriver(["--driver", "frontier", "--model", "M", "--effort", "inherit"], cap);
+  assert.equal(captured.effort, null, "--effort inherit ⇒ effort null passed to the preset (byte-for-byte)");
 });
 
 test("resolveDriver(--driver local) warns that --effort is ignored and never passes it down (FAFF-722)", () => {

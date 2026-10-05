@@ -209,12 +209,15 @@ const DEFAULTS = {
   // model lanes. Only the non-prep, subagent-dispatched lanes are tunable: build (concurrency
   // executors' build subagents), methodology + intake (producer-subagent dispatches). "inherit"
   // = omit the effort arg = today's dispatch, byte-for-byte. HARD EXCLUSION: prep/spec lanes
-  // (spec / spec_review / prep_explore / architecture) and eval get NO effort lane — prep runs
-  // once and gates the whole pipeline, so it stays pinned; the adversarial judge's effort tuning
-  // lives in its own adversarial engine block (compose-not-subsume). See ADR.
+  // (spec / spec_review / prep_explore / architecture) get NO effort lane — prep runs once and
+  // gates the whole pipeline, so it stays pinned; the adversarial judge's effort tuning lives in
+  // its own adversarial engine block (compose-not-subsume). See ADR-0050.
   "effort.build": "inherit",
   "effort.methodology": "inherit",
   "effort.intake": "inherit",
+  // ADR-0133: the eval harness's reasoning effort, read by eval/run-evals.mjs (--effort flag wins).
+  // Part of a baseline's lineage, like models.eval. "inherit" = pass no --effort flag.
+  "effort.eval": "inherit",
   // FAFF-403: bounded retry count for graft's retry-later/awaiting-review hold on a mandatory-review
   // `unavailable` (provider-outage) verdict — graft's own namespace (it owns the disposition loop;
   // adversarial.* configures the engine call, not loop policy). After this many held
@@ -572,6 +575,7 @@ const EFFORT_LANE_VOCAB = {
   "effort.build": ["inherit", "low", "medium", "high", "xhigh", "max"],
   "effort.methodology": ["inherit", "low", "medium", "high", "xhigh", "max"],
   "effort.intake": ["inherit", "low", "medium", "high", "xhigh", "max"],
+  "effort.eval": ["inherit", "low", "medium", "high", "xhigh", "max"],
 };
 function validateEffortLane(key, value) {
   let vocab = EFFORT_LANE_VOCAB[key];
@@ -581,11 +585,11 @@ function validateEffortLane(key, value) {
   // validateModelLane's identical `models.build_by_confidence.` extension above.
   if (!vocab && /^effort\.build_by_tier\./.test(key)) vocab = EFFORT_LANE_VOCAB["effort.build"];
   if (vocab) return vocab.includes(value) ? null : `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
-  // FAFF-416: the prep/spec + eval EXCLUSION is enforced by FAIL-LOUD, not silent tolerance —
-  // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture /
-  // effort.eval, or a typo) fails at read so a hand-set value can never masquerade as a live knob
+  // FAFF-416: the prep/spec EXCLUSION is enforced by FAIL-LOUD, not silent tolerance —
+  // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture,
+  // or a typo) fails at read so a hand-set value can never masquerade as a live knob
   // no dispatch consumes. Non-`effort.*` keys are not this validator's business (returns null).
-  if (/^effort\./.test(key)) return `config get ${key}: "${key}" is not a tunable effort lane — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable (prep/spec + eval are deliberately excluded; FAFF-416)`;
+  if (/^effort\./.test(key)) return `config get ${key}: "${key}" is not a tunable effort lane — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable (prep/spec are deliberately excluded; FAFF-416)`;
   return null;
 }
 

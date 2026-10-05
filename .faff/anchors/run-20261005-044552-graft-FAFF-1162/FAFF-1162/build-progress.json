@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1162",
+  "build": {
+    "status": "complete",
+    "diff_hash": "dc4d658c9493c717f7e0643803836e7020481b5508f4413a6161968f96abe5ce",
+    "branch": "FAFF-1162-bring-the-v5-state-authority-map-current-to-a-pinned-commit",
+    "pushed_at": "2026-10-05T06:30:46.381Z"
+  },
+  "updated_at": "2026-10-05T06:30:46.381Z"
+}

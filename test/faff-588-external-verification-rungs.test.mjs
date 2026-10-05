@@ -1,4 +1,4 @@
-// FAFF-588 — the external-verification README's rung results table and the frozen P1 case's
+// FAFF-588: the external-verification README's rung results table and the frozen P1 case's
 // pinned inputs.
 //
 // The rung results checker recomputes every row status from the linked cases' `Main result:`

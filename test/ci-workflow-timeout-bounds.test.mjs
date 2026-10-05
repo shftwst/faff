@@ -82,11 +82,11 @@ function readRealWorkflowFiles() {
 
 // --- AC1 + AC2: the real repo, today ---
 
-test("every job under .github/workflows/ declares an integer timeout-minutes in 1-360; job count is 14 [AC1, AC2]", () => {
+test("every job under .github/workflows/ declares an integer timeout-minutes in 1-360; job count is 15 [AC1, AC2]", () => {
   const files = readRealWorkflowFiles();
   const { jobCount, violations } = guardWorkflowBounds(files);
   assert.deepEqual(violations, [], `violations found: ${violations.join("; ")}`);
-  assert.equal(jobCount, 14, "job count across the 8 workflow files must be 14");
+  assert.equal(jobCount, 15, "job count across the 8 workflow files must be 15");
 });
 
 test("job enumeration matches the 8 known files with their known per-file job counts", () => {
@@ -100,7 +100,7 @@ test("job enumeration matches the 8 known files with their known per-file job co
     "job-surface-probe.yml": 2,
     "release-please.yml": 1,
     "semantic-pr.yml": 1,
-    "validate.yml": 5,
+    "validate.yml": 6,
   });
 });
 

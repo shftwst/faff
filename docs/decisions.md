@@ -90,3 +90,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: faff's own governance of tracker effects (the Commissaire producer half), FAFF-1120 / FAFF-1108. Reopen only if audit ever needs status prevention, which it does not today.
 - Matches: status-set anti-pattern; tracker-write chokepoint; govern tracker status; faff status set CLI; tracker-write record
 - Date: 2026-09-26
+
+## stale-emit doctor axis fires only where the TypeScript build is runnable
+
+- Chosen: The `faff doctor` stale-emit axis fires only where the build is actually runnable — a source/dev checkout with the `plugin/skills/faff` TypeScript toolchain installed and resolvable (e.g. `node_modules/typescript` present) — and skips otherwise. It does NOT gate on "tsconfig absent", because an adopter marketplace copy ships `tsconfig.json`, the `.ts` sources, and the committed `.js` emits yet cannot rebuild (its devDependencies are gitignored and uninstalled). The gate is "can this environment run `npm run build`?", not "is a config file present?".
+- Rationale: A stale-emit finding is useless to an adopter who cannot rebuild, so the round-1 "absent tsconfig → skipped" fail-safe (which never fires for an adopter copy, since those ship tsconfig) would nag a permanent, unactionable exit 1. Firing only where buildable makes the check meaningful (it nags the contributor who can fix it) and silent where it would be noise. The detection is the presence of a resolvable build toolchain — the same signal `npm run build` itself needs.
+- Scope: FAFF-1172 only — the `faff doctor` heads-up half of the deferred TypeScript-emit safety net (`ts-foundation-mitigation-sequencing`); the CI freshness gate (FAFF-1171) is the enforcing half.
+- Matches: adopter copy stale emit; doctor fires where buildable; tsconfig-absent fail-safe; emptyUnion exit 2 smoke test; stale-emit-check-fires-only-where-buildable
+- Date: 2026-10-05

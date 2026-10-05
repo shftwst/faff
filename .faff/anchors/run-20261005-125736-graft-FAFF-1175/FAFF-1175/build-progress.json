@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1175",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0ca7641507549fc7ca17a0f4f2f4e5075c3baaac3bc04694c500e73ef9676b24",
+    "branch": "FAFF-1175-publish-facade-v0-2-and-move-consumer-to-unit-id",
+    "pushed_at": "2026-10-05T13:46:43.086Z"
+  },
+  "updated_at": "2026-10-05T13:46:43.086Z"
+}

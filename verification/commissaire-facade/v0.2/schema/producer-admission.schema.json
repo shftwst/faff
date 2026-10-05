@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.2/producer-admission",
+  "title": "<run-dir>/commissaire/producer/producers/<run-id>.json",
+  "description": "The producer-side admission record `contract admit` writes into --producer-dir: it carries `key_hex` (the producer's HMAC key K_producer), the pinned public key, the admitted scope, and admission status. `key_hex` is a secret held only by the producer. Shape normative here; semantics in ../keypair.md. The shipped example redacts `key_hex` — a deliberate publication redaction, not the on-disk shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["producer_id", "contract_revision", "key_hex", "pk", "pk_fingerprint", "admitted_scope", "status", "admitted_at"],
+  "properties": {
+    "producer_id": { "type": "string" },
+    "contract_revision": { "type": "string" },
+    "key_hex": { "type": "string", "description": "K_producer — the HMAC secret, producer custody only" },
+    "pk": { "type": "string", "description": "Ed25519 public key, PEM (the published governor half)" },
+    "pk_fingerprint": { "type": "string" },
+    "admitted_scope": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["merge", "branch-delete", "deploy", "db-migration", "secret-rotation", "email", "webhook", "registry-publish", "force-push", "prod-script", "label-write", "tracker-write", "file-write", "pr-create", "push", "other"] }
+    },
+    "status": { "type": "string", "enum": ["admitted", "revoked"] },
+    "admitted_at": { "type": "string" }
+  }
+}

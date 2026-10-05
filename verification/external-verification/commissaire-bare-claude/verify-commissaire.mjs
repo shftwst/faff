@@ -3,9 +3,9 @@
 //
 // A five-phase verifier (prepare / complete / verify / curate / ci) that drives an ordinary
 // no-remote repository (the SUT) through the shipped Commissaire governance workflow using two
-// binaries from one pinned driver checkout: `commissaire` issues every governance decision,
-// `faff` supplies the flight-recorder legs (run ledger, anchor, chain validators, runcheck,
-// bundle verify). No SuperDomestique skills, config, or plugins live in the SUT.
+// binaries from one pinned driver checkout: `commissaire` issues every governance decision and
+// mints the run anchor, `faff` supplies the flight-recorder legs (run ledger, chain validators,
+// runcheck, bundle verify). No SuperDomestique skills, config, or plugins live in the SUT.
 //
 // This file is copied verbatim into a scaffolded SUT's scripts/ directory. The scaffolder fills
 // EXPECTED_COMMISSAIRE_REVISION here and FAFF_BIN in the sibling stop-hook. Every count is a
@@ -22,7 +22,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The pinned driver revision the harness was proven against. The scaffolder substitutes this
 // value; kept as a real SHA here so a static "same SHA in scaffolder and verifier" check holds.
-const EXPECTED_COMMISSAIRE_REVISION = "fd1e9788a44860ee8804bdb775e33fb5dfd3f057";
+const EXPECTED_COMMISSAIRE_REVISION = "475c0362aa2f67f8aef4ad0b13c618fe956bce78";
 // FAFF-828 facade commit; preflight requires it to be an ancestor of the driver revision.
 const FAFF828_ANCESTOR = "881f4a2555aa919947ec7e52a15b093478ed8110";
 
@@ -317,8 +317,8 @@ function prepare() {
   const pkFingerprint = admit.json.pk_fingerprint;
 
   // 4. no-evidence refusal, before any decision request.
-  const conc = invoke("no-evidence-probe", "commissaire", ["verdict", "conclude", "--run-dir", absRun, "--issue", ISSUE]);
-  if (conc.exit !== 0 || !conc.json || conc.json.verdict !== "refused" || conc.json.reason !== "no-evidence" || conc.json.issue !== ISSUE) {
+  const conc = invoke("no-evidence-probe", "commissaire", ["verdict", "conclude", "--run-dir", absRun, "--unit-id", ISSUE]);
+  if (conc.exit !== 0 || !conc.json || conc.json.verdict !== "refused" || conc.json.reason !== "no-evidence" || conc.json.unit_id !== ISSUE) {
     die(1, "prepare: verdict conclude did not refuse no-evidence");
   }
   const recCount = readJsonLines(path.join(absRun, "declared-effects.jsonl")).length;
@@ -326,7 +326,7 @@ function prepare() {
 
   // 5-6. decision request before declaring -> deny/effect-not-declared.
   const deny = invoke("predeclaration-decision", "commissaire",
-    ["effect", "authorize", "--run-dir", absRun, "--producer", PRODUCER, "--issue", ISSUE, "--step", "write"],
+    ["effect", "authorize", "--run-dir", absRun, "--producer", PRODUCER, "--unit-id", ISSUE, "--step", "write"],
     { input: { effect: { kind: "file-write", target: TARGET } } });
   if (deny.exit !== 0 || !deny.json || deny.json.verdict !== "deny" || deny.json.reason !== "effect-not-declared") {
     die(1, "prepare: undeclared decision request did not deny effect-not-declared");
@@ -365,11 +365,11 @@ function complete() {
 
   // 3-5. declare, then request -> grant.
   const decl = invoke("declare", "commissaire",
-    ["effect", "declare", "--run-dir", absRun, "--producer", PRODUCER, "--issue", ISSUE, "--step", "write"],
+    ["effect", "declare", "--run-dir", absRun, "--producer", PRODUCER, "--unit-id", ISSUE, "--step", "write"],
     { input: [{ kind: "file-write", target: TARGET }] });
   if (decl.exit !== 0) die(1, `complete: effect declare failed (exit ${decl.exit})`);
   const grant = invoke("covered-decision", "commissaire",
-    ["effect", "authorize", "--run-dir", absRun, "--producer", PRODUCER, "--issue", ISSUE, "--step", "write"],
+    ["effect", "authorize", "--run-dir", absRun, "--producer", PRODUCER, "--unit-id", ISSUE, "--step", "write"],
     { input: { effect: { kind: "file-write", target: TARGET } } });
   if (grant.exit !== 0 || !grant.json || grant.json.verdict !== "grant" || grant.json.reason !== "all-legs-pass") {
     die(1, "complete: declared decision request did not grant all-legs-pass");
@@ -380,10 +380,10 @@ function complete() {
 
   // 7-8. observe, reconcile.
   const obs = invoke("observe", "commissaire",
-    ["effect", "observe", "--run-dir", absRun, "--producer", PRODUCER, "--issue", ISSUE, "--step", "write"],
+    ["effect", "observe", "--run-dir", absRun, "--producer", PRODUCER, "--unit-id", ISSUE, "--step", "write"],
     { input: [{ kind: "file-write", target: TARGET }] });
   if (obs.exit !== 0) die(1, `complete: effect observe failed (exit ${obs.exit})`);
-  const rec = invoke("reconcile", "commissaire", ["effect", "reconcile", "--run-dir", absRun, "--issue", ISSUE]);
+  const rec = invoke("reconcile", "commissaire", ["effect", "reconcile", "--run-dir", absRun, "--unit-id", ISSUE]);
   if (rec.exit !== 0 || !rec.json || rec.json.any_escape !== false) die(1, "complete: reconcile reported an escape");
 
   // 9. live audit verify.
@@ -397,8 +397,8 @@ function complete() {
   }
 
   // 10. conclude -> accepted_under_contract, last record, seq = count-1.
-  const conc = invoke("terminal-verdict", "commissaire", ["verdict", "conclude", "--run-dir", absRun, "--issue", ISSUE]);
-  if (conc.exit !== 0 || !conc.json || conc.json.verdict !== "accepted_under_contract" || conc.json.issue !== ISSUE || conc.json.producer_id !== PRODUCER) {
+  const conc = invoke("terminal-verdict", "commissaire", ["verdict", "conclude", "--run-dir", absRun, "--unit-id", ISSUE]);
+  if (conc.exit !== 0 || !conc.json || conc.json.verdict !== "accepted_under_contract" || conc.json.unit_id !== ISSUE || conc.json.producer_id !== PRODUCER) {
     die(1, "complete: verdict conclude did not accept_under_contract");
   }
   const records = readJsonLines(path.join(absRun, "declared-effects.jsonl"));
@@ -416,10 +416,11 @@ function complete() {
   const outcome = invoke("record-outcome", "faff", ["run-ledger", "record-outcome", "--issue", ISSUE, "--outcome", "shipped", "--run-dir", absRun, "--json"]);
   if (outcome.exit !== 0 || !outcome.json || outcome.json.recorded !== true) die(1, "complete: record-outcome failed");
 
-  // 12. mint the run anchor.
+  // 12. mint the run anchor (the Commissaire-native verb; `faff events anchor` would demand build
+  // evidence this consumer never produces).
   const anchorDest = path.join(SUT_ROOT, ".faff", "anchors", runId, ISSUE);
-  const anchor = invoke("events-anchor", "faff", ["events", "anchor", "--run-dir", absRun, "--issue", ISSUE, "--dest", anchorDest]);
-  if (anchor.exit !== 0) die(1, `complete: events anchor failed (exit ${anchor.exit})`);
+  const anchor = invoke("audit-anchor", "commissaire", ["audit", "anchor", "--run-dir", absRun, "--unit-id", ISSUE, "--dest", anchorDest]);
+  if (anchor.exit !== 0) die(1, `complete: audit anchor failed (exit ${anchor.exit})`);
   const pkFile = path.join(anchorDest, "commissaire", "producer", "pk.json");
   if (!fs.existsSync(pkFile)) die(1, "complete: anchor missing commissaire/producer/pk.json");
   const pk = JSON.parse(fs.readFileSync(pkFile, "utf8"));

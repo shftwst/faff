@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/commissaire-facade/v0.2/governor-keypair",
+  "title": "<run-dir>/commissaire/governor/governor.json",
+  "description": "The governor's secret custody file, minted by `contract admit` into --governor-dir. Holds the Ed25519 keypair (PEM) plus the HMAC `master_secret` from which each producer's K_producer is HKDF-derived. NEVER shipped to a producer; the producer receives only pk.json. Shape normative here; semantics in ../keypair.md. The shipped example redacts the secret halves (`sk`, `master_secret`) — a deliberate publication redaction, not the on-disk shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sk", "pk", "pk_fingerprint", "master_secret"],
+  "properties": {
+    "sk": { "type": "string", "description": "Ed25519 private key, PKCS8 PEM — governor custody only" },
+    "pk": { "type": "string", "description": "Ed25519 public key, PEM — the published half" },
+    "pk_fingerprint": { "type": "string", "description": "SHA-256 fingerprint of the public key" },
+    "master_secret": { "type": "string", "description": "hex HMAC master; K_producer = HKDF(master_secret, ...) — governor custody only" }
+  }
+}

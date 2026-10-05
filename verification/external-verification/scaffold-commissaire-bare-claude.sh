@@ -19,7 +19,7 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # The pinned driver revision. Kept identical to EXPECTED_COMMISSAIRE_REVISION in the verifier; the
 # copy step below re-substitutes it into the scaffolded verifier so the two never drift.
-EXPECTED_COMMISSAIRE_REVISION="fd1e9788a44860ee8804bdb775e33fb5dfd3f057"
+EXPECTED_COMMISSAIRE_REVISION="475c0362aa2f67f8aef4ad0b13c618fe956bce78"
 
 if [ -z "${COMMISSAIRE_ROOT:-}" ]; then
   echo "scaffold-commissaire-bare-claude: COMMISSAIRE_ROOT is required (a checkout at $EXPECTED_COMMISSAIRE_REVISION)" >&2

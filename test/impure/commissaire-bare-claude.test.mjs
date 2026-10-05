@@ -19,8 +19,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(HERE, "..", "..");
 const SCAFFOLDER = path.join(REPO_ROOT, "verification", "external-verification", "scaffold-commissaire-bare-claude.sh");
 const SRC_DIR = path.join(REPO_ROOT, "verification", "external-verification", "commissaire-bare-claude");
-const EXPECTED = "fd1e9788a44860ee8804bdb775e33fb5dfd3f057";
-const DRIFT = "3910417c4086e76c0e68e29cee84fa5f9c3ea71d"; // fd1e9788^ — a different, CLI-complete, present SHA
+const EXPECTED = "475c0362aa2f67f8aef4ad0b13c618fe956bce78";
 
 const cleanups = [];
 process.on("exit", () => {
@@ -75,6 +74,28 @@ function provisionDriver(sha) {
   });
   driverCache.set(sha, dir);
   return dir;
+}
+
+// A drift driver: a throwaway worktree at EXPECTED plus one empty commit made here, so it is a
+// different, present, CLI-complete SHA with the same tree and needs no network.
+let driftDriver = null;
+function provisionDriftDriver() {
+  if (driftDriver) return driftDriver;
+  const dir = mkdtemp("cbc-drift-");
+  fs.rmSync(dir, { recursive: true, force: true });
+  provisionDriver(EXPECTED); // materialises EXPECTED locally (fetches it in a shallow clone)
+  const add = git(REPO_ROOT, "worktree", "add", "--detach", dir, EXPECTED);
+  if (add.status !== 0) throw new Error(`git worktree add ${EXPECTED} failed: ${add.stderr}`);
+  cleanups.push(() => {
+    git(REPO_ROOT, "worktree", "remove", "--force", dir);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const env = { ...process.env, GIT_AUTHOR_NAME: "faff-test", GIT_AUTHOR_EMAIL: "faff-test@example.invalid", GIT_COMMITTER_NAME: "faff-test", GIT_COMMITTER_EMAIL: "faff-test@example.invalid" };
+  const c = spawnSync("git", ["commit", "--allow-empty", "--no-verify", "-m", "drift"], { cwd: dir, encoding: "utf8", env });
+  if (c.status !== 0) throw new Error(`drift commit failed: ${c.stderr}`);
+  const sha = git(dir, "rev-parse", "HEAD").stdout.trim();
+  driftDriver = { dir, sha };
+  return driftDriver;
 }
 
 function scaffold(commissaireRoot) {
@@ -607,7 +628,7 @@ test("Governor override refused: COMMISSAIRE_GOVERNOR_DIR makes preflight exit 2
 });
 
 test("Revision pin: a different-but-present SHA with no drift flag exits 2 naming both SHAs", () => {
-  const drift = provisionDriver(DRIFT);
+  const { dir: drift, sha: DRIFT } = provisionDriftDriver();
   const sut = scaffold(drift);
   const r = runPhase(sut, ["prepare"], { driver: drift, rev: DRIFT });
   assert.strictEqual(r.status, 2);
@@ -616,7 +637,7 @@ test("Revision pin: a different-but-present SHA with no drift flag exits 2 namin
 });
 
 test("Revision drift accept: ALLOW_REVISION_DRIFT=1 + a different SHA continues and stamps counts_pinned:false", () => {
-  const drift = provisionDriver(DRIFT);
+  const { dir: drift, sha: DRIFT } = provisionDriftDriver();
   const sut = scaffold(drift);
   const r = runPhase(sut, ["ci"], { driver: drift, rev: DRIFT, extraEnv: { ALLOW_REVISION_DRIFT: "1" } });
   assert.strictEqual(r.status, 0, `drift ci: ${r.stderr}`);
@@ -653,6 +674,7 @@ test("README claims: the generated capture README carries every required sentenc
     "present only after the grant",
     "gates only on zero evidence",
     "forgeable derived label",
+    "attests no acceptance check or code review",
     "FAFF-1015",
     "FAFF-1016",
     "FAFF-1017",
@@ -667,7 +689,6 @@ test("README claims: the generated capture README carries every required sentenc
     "universal effect prevention",
     "merge enforcement",
     "offline producer authentication",
-    "Commissaire-minted anchor",
   ]) {
     assert.ok(!readme.includes(forbidden), `README contains forbidden phrase: ${forbidden}`);
   }

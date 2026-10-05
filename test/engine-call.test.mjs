@@ -54,7 +54,7 @@ test("allowlisted lanes accept engine:<name> at read; the reference resolves", (
 });
 
 test("every other models.* lane rejects an engine value at read, naming the allowlist", () => {
-  for (const lane of ["build", "prep_explore", "spec", "spec_review", "architecture", "eval"]) {
+  for (const lane of ["build", "prep_explore", "spec", "spec_review", "architecture"]) {
     const dir = fixtureDir(ENGINES_BLOCK + `models:\n  ${lane}: engine:studio\n`);
     try {
       const r = runCli(["config", "get", `models.${lane}`], { cwd: dir });
@@ -62,6 +62,15 @@ test("every other models.* lane rejects an engine value at read, naming the allo
       assert.match(r.stderr, /models\.methodology \| models\.intake/, `models.${lane} error names the allowlist`);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }
+});
+
+test("eval.model rejects an engine value at read (eval runs claude -p, never an engine)", () => {
+  const dir = fixtureDir(ENGINES_BLOCK + "eval:\n  model: engine:studio\n");
+  try {
+    const r = runCli(["config", "get", "eval.model"], { cwd: dir });
+    assert.equal(r.code, 2, "eval.model must fail loud on an engine value");
+    assert.match(r.stderr, /engine values are not legal/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("unknown engine name fails at read, listing the configured engine names", () => {

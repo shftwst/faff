@@ -188,7 +188,6 @@ const DEFAULTS = {
   "prdr.validate_git": "auto",
   // FAFF-315: per-lane model selection. build/prep_explore take the closed Agent-tool token set
   // (MODEL_LANE_VOCAB below); "inherit" = dispatch with no model param (byte-for-byte today).
-  // models.eval is the eval frontier driver's pinned default — NEVER the account default (budget guard).
   "models.build": "inherit",
   "models.prep_explore": "inherit",
   // FAFF-372: per-producer model lanes for the migrated interactive prep/jot producer subagents
@@ -204,7 +203,6 @@ const DEFAULTS = {
   // The ADR-body author's producer-subagent dispatch lane (faff-graft Step 4b) — same closed
   // Agent-token set as the sibling producer lanes; no effort lane (the body is small, fires rarely).
   "models.adr": "inherit",
-  "models.eval": "claude-sonnet-4-6",
   // FAFF-416: per-lane reasoning-EFFORT selection — the effort counterpart to the FAFF-315
   // model lanes. Only the non-prep, subagent-dispatched lanes are tunable: build (concurrency
   // executors' build subagents), methodology + intake (producer-subagent dispatches). "inherit"
@@ -215,9 +213,12 @@ const DEFAULTS = {
   "effort.build": "inherit",
   "effort.methodology": "inherit",
   "effort.intake": "inherit",
-  // ADR-0133: the eval harness's reasoning effort, read by eval/run-evals.mjs (--effort flag wins).
-  // Part of a baseline's lineage, like models.eval. "inherit" = pass no --effort flag.
-  "effort.eval": "inherit",
+  // ADR-0133: the eval harness's settings, in their own block (eval is not a dispatch lane), read by
+  // eval/run-evals.mjs (the --model / --effort flags win). eval.model is the frontier driver's pinned
+  // default, never the account default (budget guard); eval.effort "inherit" passes no --effort flag.
+  // Both are part of a baseline's lineage.
+  "eval.model": "claude-sonnet-4-6",
+  "eval.effort": "inherit",
   // FAFF-403: bounded retry count for graft's retry-later/awaiting-review hold on a mandatory-review
   // `unavailable` (provider-outage) verdict — graft's own namespace (it owns the disposition loop;
   // adversarial.* configures the engine call, not loop policy). After this many held
@@ -348,7 +349,7 @@ const DEFAULTS = {
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
 // the set fails LOUD at read (exit 2, names the value + legal set) — a misconfigured model must
 // never silently fall back to the session default (the FAFF-50 dropped-slot failure mode).
-// models.eval is deliberately absent (open vocabulary — `claude -p` validates the id itself).
+// The eval model is not a lane here: it lives at eval.model (open vocabulary, validateEvalKey).
 const MODEL_LANE_VOCAB = {
   "models.build": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.prep_explore": ["inherit", "sonnet", "opus", "haiku", "fable"],
@@ -360,6 +361,29 @@ const MODEL_LANE_VOCAB = {
   "models.architecture": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.adr": ["inherit", "sonnet", "opus", "haiku", "fable"],
 };
+// ADR-0133: eval's settings moved to their own eval: block. The old keys fail loud naming the new one,
+// whether or not they are set.
+const MOVED_KEYS = { "models.eval": "eval.model", "effort.eval": "eval.effort" };
+function movedKeyError(key) {
+  return Object.prototype.hasOwnProperty.call(MOVED_KEYS, key)
+    ? `config ${key}: moved to ${MOVED_KEYS[key]} (eval is not a dispatch lane; ADR-0133)`
+    : null;
+}
+// eval.model is open-vocabulary (`claude -p` validates the id) but never an engine value;
+// eval.effort takes the effort vocabulary.
+const EVAL_KEYS = ["eval.model", "eval.effort"];
+function validateEvalKey(key, value) {
+  if (!/^eval\./.test(key)) return null;
+  if (!EVAL_KEYS.includes(key)) return `config ${key}: unknown eval key; legal: ${EVAL_KEYS.join(" | ")}`;
+  if (key === "eval.model" && /^engine:/.test(String(value))) {
+    return "config eval.model: engine values are not legal here; eval runs `claude -p --model <id>`";
+  }
+  if (key === "eval.effort" && !EFFORT_LEVELS_WITH_INHERIT.includes(String(value))) {
+    return `config eval.effort: invalid effort token "${value}"; legal set: ${EFFORT_LEVELS_WITH_INHERIT.join(" | ")}`;
+  }
+  return null;
+}
+const EFFORT_LEVELS_WITH_INHERIT = ["inherit", "low", "medium", "high", "xhigh", "max"];
 function validateModelLane(key, value) {
   // FAFF-422: an `engine:<name>` lane value selects the out-of-session one-shot transport
   // (`faff engine call`), legal ONLY on the v1 pure-data-in allowlist. Every other models.*
@@ -575,7 +599,6 @@ const EFFORT_LANE_VOCAB = {
   "effort.build": ["inherit", "low", "medium", "high", "xhigh", "max"],
   "effort.methodology": ["inherit", "low", "medium", "high", "xhigh", "max"],
   "effort.intake": ["inherit", "low", "medium", "high", "xhigh", "max"],
-  "effort.eval": ["inherit", "low", "medium", "high", "xhigh", "max"],
 };
 function validateEffortLane(key, value) {
   let vocab = EFFORT_LANE_VOCAB[key];
@@ -1376,7 +1399,7 @@ function isSequenceValuedKey(key) {
 // brand-new top-level namespace does (a deliberate schema addition). Every top-level key
 // documented in .faffrc.example.yaml must be a member — asserted by configSetSelftest.
 const WRITABLE_NAMESPACES = new Set([
-  "tracking", "slots", "models", "effort", "backends", "engines", "appetite",
+  "tracking", "slots", "models", "effort", "eval", "backends", "engines", "appetite",
   "concurrency_max", "worktree_root", "logging",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
@@ -1565,6 +1588,8 @@ function cmdConfigSet(args, root) {
   }
   // By NAME, before touching the file: the JSON-string form of these keys reads back as a
   // plain scalar, so a value-shape guard alone cannot catch it (see SEQUENCE_VALUED_KEYS above).
+  const movedSetErr = movedKeyError(key);
+  if (movedSetErr) { process.stderr.write(movedSetErr + "\n"); return 2; }
   if (isSequenceValuedKey(key)) {
     process.stderr.write(`faff config set: '${key}' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)\n`);
     return 2;
@@ -1573,7 +1598,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateEvalKey(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
@@ -2675,6 +2700,8 @@ function cmdConfig(args) {
         console.log(wantJson ? JSON.stringify(conv) : conv);
         return 0;
       }
+      const movedErr = movedKeyError(key);
+      if (movedErr) { process.stderr.write(movedErr + "\n"); return 2; }
       const value = dig(data, key);
       if (value === null || value === undefined) {
         // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
@@ -2690,7 +2717,7 @@ function cmdConfig(args) {
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
       // fails loud here too, never a silently GitHub-shaped merge gate.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateEvalKey(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
@@ -2719,7 +2746,7 @@ function cmdConfig(args) {
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
           "models.architecture",
           "models.adr",
-          "models.eval",
+          "eval.model", "eval.effort",
           // FAFF-416: per-lane effort lanes (non-prep, subagent-dispatched only).
           "effort.build", "effort.methodology", "effort.intake",
           // FAFF-403: graft's outage-retry-later bound (graft.* namespace — graft owns the loop).
@@ -2763,7 +2790,9 @@ function cmdConfig(args) {
           (validateModelLane("models.adr", "gpt-5") ? null : "adr lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.spec", "gpt-5") ? null : "producer lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
-          (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
+          (validateEvalKey("eval.model", "any-id-is-fine") ? "eval.model must be open-vocabulary" : null) ||
+          (validateEvalKey("eval.effort", "turbo") ? null : "eval.effort failed to reject an invalid token") ||
+          (movedKeyError("models.eval") && movedKeyError("effort.eval") ? null : "moved eval keys must fail loud") ||
           // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
           validateModelLane("models.build_by_confidence.high", "sonnet") ||
           (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
@@ -2790,7 +2819,7 @@ function cmdConfig(args) {
           (validateModelLane("models.build", "engine:studio") ? null : "build lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.spec", "engine:studio") ? null : "spec lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateModelLane("models.adr", "engine:studio") ? null : "adr lane failed to reject an engine value (FAFF-422 allowlist)") ||
-          (validateModelLane("models.eval", "engine:studio") ? null : "eval lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateEvalKey("eval.model", "engine:studio") ? null : "eval.model failed to reject an engine value") ||
           (validateModelLane("models.build_by_confidence.high", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)") ||
           // FAFF-859: the isolation-lane vocab must accept both axes' baked defaults and reject an
           // off-vocabulary value on each axis (the fail-loud path is load-bearing for the declared field).
@@ -2891,9 +2920,15 @@ function cmdConfig(args) {
       // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
       // visible, not silent (the same FAFF-50 intent as the slot echo above).
       const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
-      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr", "eval"]) {
+      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr"]) {
         const v = models[lane];
         if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
+      }
+      // ADR-0133: surface the eval harness's pinned model and effort (a baseline's lineage).
+      const evalCfg = (data.eval && typeof data.eval === "object" && !Array.isArray(data.eval)) ? data.eval : {};
+      for (const field of ["model", "effort"]) {
+        const v = evalCfg[field];
+        if (v !== null && v !== undefined && v !== "") console.log(`eval ${field}: ${v}`);
       }
       // FAFF-334: surface the per-issue build-model matcher when set — a routing config that flips
       // build-model resolution from per-run to per-issue must be visible in the run banner, not silent.

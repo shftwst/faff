@@ -560,7 +560,7 @@ export function resolvePluginDir(argv) {
 // Select the driver from --driver (default frontier). `presets` is injected
 // ({ frontierDriver, localDriver }) so this stays pure/testable — it never spawns. Both presets load
 // the repo's canonical skills by default (FAFF-133), so frontier and local measure the same prose.
-// FAFF-315: the eval frontier lane is PINNED — flag > `faff config get models.eval` > the baked
+// FAFF-315: the eval frontier lane is PINNED — flag > `faff config get eval.model` > the baked
 // fallback — NEVER the account default. Budget guard: eval bulk must not silently bill the
 // session/account model (e.g. a fast-burning frontier pool); validity guard: the report names the
 // model the numbers belong to (baseline lineage is model-specific). Local/ollama lanes untouched.
@@ -577,7 +577,7 @@ export function resolveEvalModel(argv, { run } = {}) {
       if (r.status !== 0) throw new Error(`faff config get failed: ${r.stderr}`);
       return r.stdout;
     });
-    const out = doRun(bin, ["config", "get", "models.eval"]).trim();
+    const out = doRun(bin, ["config", "get", "eval.model"]).trim();
     if (out) return out;
   } catch { /* config CLI unavailable — fall to the pinned fallback, never the account default */ }
   return EVAL_MODEL_FALLBACK;
@@ -586,15 +586,15 @@ export function resolveEvalModel(argv, { run } = {}) {
 // FAFF-722 — the accepted reasoning-effort levels for the frontier `claude -p --effort` flag. Matches
 // faff's `.faffrc` effort: vocabulary; an off-vocabulary value fails LOUD (never forwarded to claude -p).
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"];
-// ADR-0133 — the effort resolves `--effort` flag > `effort.eval` config > none (no flag passed), the
-// models.eval precedence. "inherit" (flag or config) means no flag, so `--effort inherit` overrides a
+// ADR-0133 — the effort resolves `--effort` flag > `eval.effort` config > none (no flag passed), the
+// eval.model precedence. "inherit" (flag or config) means no flag, so `--effort inherit` overrides a
 // pinned config. An invalid configured value fails loud (config get exits 2); an unavailable config CLI
 // falls back to no flag, never to a guessed level.
 function configuredEvalEffort(run) {
   const bin = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
   const doRun = run ?? ((b, a) => spawnSync("node", [b, ...a], { encoding: "utf8" }));
-  const r = doRun(bin, ["config", "get", "effort.eval"]);
-  if (r.status === 2) throw new Error(`effort.eval: ${String(r.stderr ?? "").trim()}`);
+  const r = doRun(bin, ["config", "get", "eval.effort"]);
+  if (r.status === 2) throw new Error(`eval.effort: ${String(r.stderr ?? "").trim()}`);
   const value = r.status === 0 ? String(r.stdout ?? "").trim() : "";
   return value && value !== "inherit" ? value : null;
 }
@@ -616,7 +616,7 @@ export function resolveDriver(argv, presets) {
   if (which === "frontier") {
     if (argFlag(argv, "--base-url")) console.warn("[run-evals] WARN: --base-url is ignored for --driver frontier");
     const model = resolveEvalModel(argv);
-    console.log(`[run-evals] frontier model: ${model}${effort ? ` · effort: ${effort}` : ""} (--model flag > models.eval config > pinned default; never the account default — FAFF-315)`);
+    console.log(`[run-evals] frontier model: ${model}${effort ? ` · effort: ${effort}` : ""} (--model flag > eval.model config > pinned default; never the account default — FAFF-315)`);
     return presets.frontierDriver({ bin, pluginDir, model, effort });
   }
   if (which === "local") {

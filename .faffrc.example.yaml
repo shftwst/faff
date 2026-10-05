@@ -108,14 +108,13 @@ slots:
 # dispatch inherits the session/account model exactly as today (byte-for-byte).
 # Only dispatch points that can actually consume a model appear here — a slot invoked
 # inline via the Skill tool inherits the session model and cannot take a per-slot model.
-# All lanes except eval take the CLOSED Agent-token set (sonnet | opus | haiku | fable,
+# Every lane takes the CLOSED Agent-token set (sonnet | opus | haiku | fable,
 # plus inherit); an off-vocabulary value FAILS LOUD at read (never a silent inherit).
 # methodology / intake may ALSO take engine:<name> (FAFF-422 — the v1 pure-data-in
 # allowlist), resolving the top-level engines: map below and dispatching via
 # `faff engine call` instead of an Agent-tool subagent; any other lane given an
-# engine: value fails loud at read naming the allowlist. eval is the eval frontier
-# driver's model — a pinned default (never the account default), overridable per run
-# with `run-evals --model <id>`.
+# engine: value fails loud at read naming the allowlist. The eval harness is not a lane:
+# its settings live in the eval: block below.
 models:
   build: # Agent-token — the concurrency executors' build subagents (default: inherit)
   prep_explore: # Agent-token — faff-prep's explore + clean-context verify subagents (default: inherit)
@@ -124,7 +123,13 @@ models:
   architecture: # Agent-token — the architecture proposer subagent (default: inherit)
   methodology: # Agent-token or engine:<name> — the methodology producer dispatches (default: inherit)
   intake: # Agent-token or engine:<name> — the intake producer dispatch (default: inherit)
-  eval: # model id for the eval frontier driver's `claude -p --model` (default: claude-sonnet-4-6)
+
+# The eval harness (ADR-0133). Not a dispatch lane: these settings feed eval/run-evals.mjs only,
+# and the run's --model / --effort flags override them. Both are part of a baseline's lineage,
+# so re-capture the baseline whenever either changes. `models.eval` / `effort.eval` fail loud.
+eval:
+  model: # the frontier driver's `claude -p --model` id; a pinned default, never the account default (default: claude-sonnet-4-6)
+  effort: # reasoning effort for every rep: inherit | low | medium | high | xhigh | max; inherit passes no --effort flag (default: inherit)
 
 # Shared model/provider/auth backend namespace (FAFF-523). A top-level, NAMED map — the
 # generalization of the legacy top-level engines: map below (engines: folds into this

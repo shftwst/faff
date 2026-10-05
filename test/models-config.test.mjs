@@ -1,7 +1,7 @@
 // FAFF-315 — per-lane model selection: the `models:` config surface.
 // Covers: registry defaults resolve (inherit/inherit/claude-sonnet-4-6); the closed
 // Agent-token vocabulary fails LOUD (exit 2, names the value + legal set) on an invalid
-// build/prep_explore token — never a silent inherit; models.eval stays open-vocabulary;
+// build/prep_explore token — never a silent inherit; eval.model stays open-vocabulary;
 // `config resolved` echoes a non-default lane model; and the eval frontier driver's
 // flag > config > pinned-default precedence (pure, no live model call).
 
@@ -20,10 +20,10 @@ function fixtureDir(faffrcBody) {
   return dir;
 }
 
-test("models.* registry defaults resolve with no config (inherit / inherit / pinned eval)", () => {
+test("models.* and eval.model registry defaults resolve with no config (inherit / inherit / pinned eval)", () => {
   const dir = fixtureDir(); // no .faffrc at all
   try {
-    for (const [key, want] of [["models.build", "inherit"], ["models.prep_explore", "inherit"], ["models.eval", "claude-sonnet-4-6"]]) {
+    for (const [key, want] of [["models.build", "inherit"], ["models.prep_explore", "inherit"], ["eval.model", "claude-sonnet-4-6"]]) {
       const r = runCli(["config", "get", key], { cwd: dir });
       assert.equal(r.code, 0, `${key} exit`);
       assert.equal(r.stdout.trim(), want, key);
@@ -83,13 +83,33 @@ test("FAFF-372: config resolved echoes a non-default producer lane", () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("models.eval is open-vocabulary (any id resolves; claude -p validates it)", () => {
-  const dir = fixtureDir("models:\n  eval: claude-opus-4-8\n");
+test("eval.model is open-vocabulary (any id resolves; claude -p validates it) but refuses engine values", () => {
+  const dir = fixtureDir("eval:\n  model: claude-opus-4-8\n");
+  const engine = fixtureDir("eval:\n  model: engine:studio\n");
   try {
-    const r = runCli(["config", "get", "models.eval"], { cwd: dir });
+    const r = runCli(["config", "get", "eval.model"], { cwd: dir });
     assert.equal(r.code, 0);
     assert.equal(r.stdout.trim(), "claude-opus-4-8");
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+    const e = runCli(["config", "get", "eval.model"], { cwd: engine });
+    assert.equal(e.code, 2, "an engine value on eval.model fails loud");
+  } finally { for (const d of [dir, engine]) rmSync(d, { recursive: true, force: true }); }
+});
+
+test("models.eval and effort.eval moved to the eval block: reads and writes fail loud naming the new key (ADR-0133)", () => {
+  const unset = fixtureDir();
+  const legacy = fixtureDir("models:\n  eval: claude-opus-4-8\neffort:\n  eval: medium\n");
+  try {
+    for (const dir of [unset, legacy]) {
+      for (const [oldKey, newKey] of [["models.eval", "eval.model"], ["effort.eval", "eval.effort"]]) {
+        const r = runCli(["config", "get", oldKey], { cwd: dir });
+        assert.equal(r.code, 2, `${oldKey} read fails loud`);
+        assert.match(r.stderr, new RegExp(`moved to ${newKey.replace(".", "\\.")}`));
+      }
+    }
+    const w = runCli(["config", "set", "models.eval", "claude-opus-5-5"], { cwd: unset });
+    assert.equal(w.code, 2, "writing the old key fails loud");
+    assert.match(w.stderr, /moved to eval\.model/);
+  } finally { for (const d of [unset, legacy]) rmSync(d, { recursive: true, force: true }); }
 });
 
 test("config resolved echoes non-default models.* (a pinned model is visible, never silent)", () => {
@@ -126,7 +146,7 @@ test("resolveEvalModel precedence: flag > config CLI > pinned fallback (never th
   // config CLI next — run receives (bin, argv-array), no shell string anywhere
   assert.equal(resolveEvalModel([], { run: (bin, args) => {
     assert.ok(bin.endsWith("/faff"));
-    assert.deepEqual(args, ["config", "get", "models.eval"]);
+    assert.deepEqual(args, ["config", "get", "eval.model"]);
     return "claude-haiku-4-5-20251001\n";
   } }), "claude-haiku-4-5-20251001");
   // CLI unavailable → the pinned fallback, not the account default
@@ -137,7 +157,7 @@ test("resolveEvalModel precedence: flag > config CLI > pinned fallback (never th
 test("resolveEvalModel real spawn path resolves the registry default (no shell involved)", () => {
   // exercises the default argv-array spawn against the real CLI (pure read, no model call).
   // Run from an isolated dir with no .faffrc so the spawn resolves the registry DEFAULT, not
-  // whatever this repo's own .faffrc sets for models.eval — the test must not depend on repo
+  // whatever this repo's own .faffrc sets for eval.model — the test must not depend on repo
   // faffrc values (which legitimately override the default).
   const dir = fixtureDir(); // empty temp dir, no .faffrc
   const prev = process.cwd();

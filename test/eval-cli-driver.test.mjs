@@ -97,12 +97,12 @@ test("resolveEffort: valid level returned, absent → null, off-vocab throws nam
   assert.throws(() => resolveEffort(["--effort", "turbo"]), /unknown level.*low\|medium\|high\|xhigh\|max/);
 });
 
-test("resolveEffort: --effort flag > effort.eval config > none; inherit means no flag (ADR-0133)", () => {
-  assert.equal(resolveEffort([], { run: () => ({ status: 0, stdout: "medium\n" }) }), "medium", "a pinned effort.eval is used when no flag is given");
+test("resolveEffort: --effort flag > eval.effort config > none; inherit means no flag (ADR-0133)", () => {
+  assert.equal(resolveEffort([], { run: () => ({ status: 0, stdout: "medium\n" }) }), "medium", "a pinned eval.effort is used when no flag is given");
   assert.equal(resolveEffort(["--effort", "high"], { run: () => ({ status: 0, stdout: "medium\n" }) }), "high", "the flag wins over the config");
   assert.equal(resolveEffort(["--effort", "inherit"], { run: () => ({ status: 0, stdout: "medium\n" }) }), null, "--effort inherit overrides a pinned config");
   assert.equal(resolveEffort([], { run: () => ({ status: 1, stdout: "" }) }), null, "an unavailable config CLI ⇒ no flag");
-  assert.throws(() => resolveEffort([], { run: () => ({ status: 2, stderr: "invalid effort token" }) }), /effort\.eval: invalid effort token/,
+  assert.throws(() => resolveEffort([], { run: () => ({ status: 2, stderr: "invalid effort token" }) }), /eval\.effort: invalid effort token/,
     "an invalid configured value fails loud, never a silent fallback");
 });
 

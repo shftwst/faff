@@ -88,15 +88,15 @@ test("HARD EXCLUSION is fail-loud: a hand-set prep/spec effort key exits 2, neve
   }
 });
 
-test("effort.eval is a tunable lane: inherit by default, a pinned level echoes, off-vocab fails loud (ADR-0133)", () => {
+test("eval.effort lives in the eval block: inherit by default, a pinned level echoes, off-vocab fails loud (ADR-0133)", () => {
   const unset = fixtureDir();
-  const pinned = fixtureDir("effort:\n  eval: medium\n");
-  const bad = fixtureDir("effort:\n  eval: turbo\n");
+  const pinned = fixtureDir("eval:\n  effort: medium\n");
+  const bad = fixtureDir("eval:\n  effort: turbo\n");
   try {
-    assert.equal(runCli(["config", "get", "effort.eval"], { cwd: unset }).stdout.trim(), "inherit");
-    assert.equal(runCli(["config", "get", "effort.eval"], { cwd: pinned }).stdout.trim(), "medium");
-    const r = runCli(["config", "get", "effort.eval"], { cwd: bad });
-    assert.equal(r.code, 2, "an off-vocabulary effort.eval fails loud");
+    assert.equal(runCli(["config", "get", "eval.effort"], { cwd: unset }).stdout.trim(), "inherit");
+    assert.equal(runCli(["config", "get", "eval.effort"], { cwd: pinned }).stdout.trim(), "medium");
+    const r = runCli(["config", "get", "eval.effort"], { cwd: bad });
+    assert.equal(r.code, 2, "an off-vocabulary eval.effort fails loud");
     assert.match(r.stderr, /inherit \| low \| medium \| high \| xhigh \| max/);
   } finally { for (const d of [unset, pinned, bad]) rmSync(d, { recursive: true, force: true }); }
 });

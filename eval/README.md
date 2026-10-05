@@ -169,28 +169,29 @@ may run it. Follow these six points exactly.
    falls through to a plain sweep, and you pay for a multi-hour run that writes `eval/report/latest.json`
    and no baseline at all.
 
-   The model resolves `--model` flag **>** `faff config get models.eval` **>** the baked-in
-   `claude-sonnet-4-6`. In this repo `models.eval` is set (`.faffrc.yaml`) and currently returns
+   The model resolves `--model` flag **>** `faff config get eval.model` **>** the baked-in
+   `claude-sonnet-4-6`. In this repo `eval.model` is set (`.faffrc.yaml`) and currently returns
    `claude-opus-4-8`, so that is what a plain run gets — the `claude-sonnet-4-6` fallback is a safety net
-   for a repo with no `models.eval` configured, not the expected outcome here. The run prints the
+   for a repo with no `eval.model` configured, not the expected outcome here. The run prints the
    resolved model at start (`[run-evals] frontier model: …`); confirm it matches what you intended
    before letting it spend. Note the committed `eval/baselines/frontier.json`'s `meta` block predates
-   the FAFF-315 pinning and carries no `model` key. `models.eval` was pinned back to `claude-opus-4-8`
+   the FAFF-315 pinning and carries no `model` key. The eval model was pinned back to `claude-opus-4-8`
    (PR #509) so this sweep matches ADR-0089's recorded production sweep, which also ran on
    `claude-opus-4-8`; keep it there unless you deliberately want a different lineage, because nothing in
    the harness warns you when the model changes between sweeps.
 
-   **Reasoning effort: `effort.eval` and `--effort <level>` (frontier lane only).** The effort resolves
-   `--effort` flag **>** `faff config get effort.eval` **>** no flag (ADR-0133). In this repo
-   `effort.eval` is pinned to `medium`, so a plain run passes `--effort medium`; `inherit` (the default
+   **Reasoning effort: `eval.effort` and `--effort <level>` (frontier lane only).** The effort resolves
+   `--effort` flag **>** `faff config get eval.effort` **>** no flag (ADR-0133). In this repo
+   `eval.effort` is pinned to `medium`, so a plain run passes `--effort medium`; `inherit` (the default
    when unset) passes no flag and runs at `claude -p`'s built-in default, which has changed between model
    versions. Pass `--effort low|medium|high|xhigh|max` to override for one run, or `--effort inherit` to
    run at the CLI default despite the pin. An off-vocabulary value fails loud, from the flag or the config,
    and is never forwarded to `claude -p`. The resolved effort is printed at start (`… · effort: <level>`)
    and recorded in the baseline `meta` and the resume stamp, so it joins the `--resume` stamp-guard (a
    resume at a different effort refuses to blend, exactly as a different `--model` does). Like
-   `models.eval`, `effort.eval` is part of a baseline's lineage: change it only together with a
-   re-baseline. `--effort` is ignored (with a warning) on the `local`/`ollama-direct` lanes; reasoning
+   `eval.model`, `eval.effort` is part of a baseline's lineage: change it only together with a
+   re-baseline. Both live in their own `eval:` block because eval is not a dispatch lane; the
+   old `models.eval` / `effort.eval` keys fail loud. `--effort` is ignored (with a warning) on the `local`/`ollama-direct` lanes; reasoning
    effort is a frontier `claude -p` knob.
 
 3. **Never pass `--only` with `--update-baseline`.** The advice is unchanged; the reason below replaces

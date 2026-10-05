@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.39.0](https://github.com/shftwst/faff/compare/faff--v0.38.0...faff--v0.39.0) (2026-10-05)
+
+
+### Features
+
+* **commissaire:** convert the Commissaire cluster to TypeScript and ship its emit (FAFF-1170) ([#996](https://github.com/shftwst/faff/issues/996)) ([7c80247](https://github.com/shftwst/faff/commit/7c80247d7f7c2e51db5dbae82413cd5cee6a413c))
+* **commissaire:** publish facade v0.2 (unit_id) and move the external harness to --unit-id (FAFF-1175) ([#1005](https://github.com/shftwst/faff/issues/1005)) ([938acd7](https://github.com/shftwst/faff/commit/938acd7ef4ae949abc0f0547f7c2098ef1da9555))
+* **commissaire:** rename the schema:3 envelope unit key issue to unit_id (FAFF-1167) ([#1003](https://github.com/shftwst/faff/issues/1003)) ([475c036](https://github.com/shftwst/faff/commit/475c0362aa2f67f8aef4ad0b13c618fe956bce78))
+* **doctor:** report stale TypeScript emit as an exit-1 finding (FAFF-1172) ([#997](https://github.com/shftwst/faff/issues/997)) ([7143b8a](https://github.com/shftwst/faff/commit/7143b8a97e7e0d2be8bb9df6b991cc4af59877c6))
+* **FAFF-588:** publish rung results and the first failure rung ([#1002](https://github.com/shftwst/faff/issues/1002)) ([fca6ac6](https://github.com/shftwst/faff/commit/fca6ac6c6df2e64f52ffd3baaa5e9ea73efcea3c))
+* **FAFF-740:** connect the Phase 0 release claims to live evidence ([#1001](https://github.com/shftwst/faff/issues/1001)) ([8f9b5b0](https://github.com/shftwst/faff/commit/8f9b5b055418071d23e8df97d58371f700c2e7a8))
+* **skills:** calibrate judgement skills to consequence for claude-opus-5-5 ([#993](https://github.com/shftwst/faff/issues/993)) ([1aecaf9](https://github.com/shftwst/faff/commit/1aecaf9ede6c5685acbe9f40af5f827793f6c82c))
+
 ## [0.38.0](https://github.com/shftwst/faff/compare/faff--v0.37.0...faff--v0.38.0) (2026-10-01)
 
 

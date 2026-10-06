@@ -28,6 +28,8 @@
 //   6 Seal+bundle      -> seal-bundle         (built to depth, in-process)
 //   + audit export     -> audit export        (copy a sealed bundle to --dest; FAFF-1000)
 //   + audit verify     -> audit verify        (secret-free replay of the auth leg; FAFF-977)
+// Later read verbs sit beside these: `contract admit-required` (FAFF-1140), `audit anchor` (FAFF-1015)
+// and `contract status` (FAFF-1176, the governed/custody read the runner's skills use).
 //
 // The facade delivers a DECISION, not an enforcement: it makes a grant unforgeable
 // and verifiable (Commissaire signs with Ed25519; a producer holds only a symmetric
@@ -110,6 +112,28 @@ const readJson = (p) => { try {
 catch {
     return null;
 } };
+// The one read of the governor file (SK + master + PK). Every in-module consumer goes through it, so a
+// later custody move (FAFF-1177: SK out of the run dir) changes this function and nothing else.
+const readGovernorRecord = (runDir, governorDirOverride) => parseGovernedRecord(readJson(governorFileOf(governorDirOf(runDir, governorDirOverride))));
+// FAFF-1176: the chokepoint-key resolver merge-gate reads instead of building the pk.json path itself.
+// The parsed value is returned unvalidated on purpose: merge-gate keeps reading `.pk`/`.pk_fingerprint`
+// exactly as before, so a pk.json holding JSON `null` still throws there (behaviour parity). FAFF-1178
+// replaces this with verification against a pinned key.
+function readChokepointKeyRecord(runDir, producerDir) {
+    let raw;
+    try {
+        raw = fs.readFileSync(pkFileOf(producerDirOf(runDir, producerDir)), "utf8");
+    }
+    catch {
+        return { ok: false };
+    }
+    try {
+        return { ok: true, record: JSON.parse(raw) };
+    }
+    catch {
+        return { ok: false };
+    }
+}
 const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(obj, null, 2) + "\n"); };
 const readLedgerEntries = (runDir) => {
     const p = path.join(runDir, LEDGER_CFG.ledgerFile);
@@ -321,7 +345,7 @@ function chokepointPermit(effect, verdictRecord, pk, pinnedFingerprint) {
 // producer-auth mismatch or a revoked/unadmitted producer fails-closed. `pass` = no GATING failures.
 function verifyAuthLeg(runDir, governorDir, producerDir) {
     const entries = readLedgerEntries(runDir);
-    const gov = parseGovernedRecord(readJson(governorFileOf(governorDirOf(runDir, governorDir))));
+    const gov = readGovernorRecord(runDir, governorDir);
     const pkRec = parseGovernedRecord(readJson(pkFileOf(producerDirOf(runDir, producerDir))));
     // FAFF-978: the governor file is the AUTHORITATIVE source of PK_commissaire — prefer it. The
     // producer-dir pk.json is producer-writable (the less-trusted custodian), so it must never be
@@ -541,6 +565,7 @@ function usage() {
     process.stderr.write("usage: faff commissaire <object> <action> ...  (ADR-0123 object-verb grammar; the flat verbs are retained aliases)\n" +
         "  contract admit    --run-dir DIR --producer ID --contract-revision R [--scope kind,kind] [--governor-dir D] [--producer-dir D] [--force]   (alias: admit)\n" +
         "  contract admit-required --run-dir DIR [--json]   (pure run-start read: {governance_required, unattended, dispatch_state}; exit 0 always; alias: admit-required)\n" +
+        "  contract status   --run-dir DIR [--governor-dir D] [--json]   (read-only: {governed, custody, pk_fingerprint}; exit 0, or 2 when the run dir is missing)\n" +
         "  effect declare    --run-dir DIR --producer ID --unit-id U --step S   (stdin: EffectDescriptor[])   (alias: declare)\n" +
         "  effect authorize  --run-dir DIR --producer ID --unit-id U --step S [--level L]   (stdin: {effect, evidence_seq?, level?, attended?, holdout?})   (alias: request-decision)\n" +
         "  effect observe    --run-dir DIR --producer ID --unit-id U --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
@@ -711,6 +736,27 @@ function cmdAdmitRequired(flags) {
     console.log(JSON.stringify({ governance_required, unattended, dispatch_state }));
     return 0;
 }
+// FAFF-1176 — `contract status`: the read the runner's skills use to decide whether a run is governed,
+// instead of testing for the governor file by path. `governed` is file existence, whatever the file holds
+// (the exact predicate the skills used before), and the output is built from three named fields only, so
+// the governor file's SK and master never reach stdout. Read-only; exit 0 for any existing run dir.
+function cmdContractStatus(flags) {
+    const runDir = requireRunDir(flags, "contract status");
+    if (!runDir)
+        return 2;
+    const override = strFlag(flags, "--governor-dir");
+    const governed = fs.existsSync(governorFileOf(governorDirOf(runDir, override)));
+    let out;
+    if (governed) {
+        const gov = readGovernorRecord(runDir, override);
+        out = { governed: true, custody: "in-process", pk_fingerprint: (gov && str(gov.pk_fingerprint)) ?? null };
+    }
+    else {
+        out = { governed: false, custody: null, pk_fingerprint: null };
+    }
+    console.log(JSON.stringify(out));
+    return 0;
+}
 function loadProducerKey(runDir, flags, producerId, verb) {
     const producerDir = producerDirOf(runDir, strFlag(flags, "--producer-dir"));
     const admission = parseAdmissionRecord(readJson(producerFileOf(producerDir, producerId)));
@@ -780,7 +826,7 @@ function cmdRequestDecision(flags) {
     const loaded = loadProducerKey(runDir, flags, producerId, "request-decision");
     if (!loaded)
         return 2;
-    const gov = parseGovernedRecord(readJson(governorFileOf(governorDirOf(runDir, strFlag(flags, "--governor-dir")))));
+    const gov = readGovernorRecord(runDir, strFlag(flags, "--governor-dir"));
     if (!gov) {
         process.stderr.write("faff commissaire request-decision: no governor material (run `admit` first)\n");
         return 2;
@@ -912,7 +958,7 @@ function cmdTerminalVerdict(flags) {
     const escapeResult = computeEscapes(ledger, issue);
     if (escapeResult.any_escape)
         return refuseVerdict("unreconciled-escape", issue, { escapes: withUnitId(escapeResult.escapes) });
-    const gov = parseGovernedRecord(readJson(governorFileOf(governorDirOf(runDir, strFlag(flags, "--governor-dir")))));
+    const gov = readGovernorRecord(runDir, strFlag(flags, "--governor-dir"));
     if (!gov)
         return refuseVerdict("no-governor", issue); // setup error — exit 2, not a governed refusal
     // FAFF-1008 item 2: fail closed at conclude time when the admission and governor custodians
@@ -1091,6 +1137,7 @@ const OBJECT_TOKENS = new Set(["contract", "effect", "verdict", "audit"]);
 const COMMISSAIRE_DISPATCH = {
     "contract admit": (flags) => cmdAdmit(flags),
     "contract admit-required": (flags) => cmdAdmitRequired(flags), // FAFF-1140 — pure run-start governance-required read
+    "contract status": (flags) => cmdContractStatus(flags), // FAFF-1176 — is this run governed, and with what key
     "effect declare": (flags) => cmdProducerLedger(flags, "declare", "declare"),
     "effect authorize": (flags) => cmdRequestDecision(flags),
     "effect observe": (flags) => cmdProducerLedger(flags, "observe", "observe"),
@@ -1119,6 +1166,7 @@ const COMMISSAIRE_ALIASES = {
 const REQUIRED_FLAGS_BY_CANONICAL = {
     "contract admit": ["--producer", "--contract-revision"],
     "contract admit-required": ["--run-dir"], // FAFF-1140
+    "contract status": ["--run-dir"], // FAFF-1176
     "effect declare": ["--producer", "--unit-id", "--step"],
     "effect authorize": ["--producer", "--unit-id", "--step"],
     "effect observe": ["--producer", "--unit-id", "--step"],
@@ -1457,6 +1505,6 @@ module.exports = {
     OBJECT_TOKENS, COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, resolveCommissaireKey,
     buildEnvelope, appendProducerRecords, appendCommissaireRecord,
     evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, hasGovernanceContext,
-    readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf,
+    readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf, readChokepointKeyRecord,
     cmdCommissaire, commissaireSelftest,
 };

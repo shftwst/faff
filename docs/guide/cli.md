@@ -225,4 +225,4 @@ cmsrbin=$(find ~/.claude -path '*/skills/faff/bin/commissaire' -type f 2>/dev/nu
 ln -s "$cmsrbin" ~/.local/bin/commissaire   # the same ~/.local/bin as faff
 ```
 
-It exposes the noun-verb grammar `commissaire <object> <action>` (e.g. `commissaire contract admit`, `commissaire effect authorize`, `commissaire audit verify`) — dispatching into the same handler `faff commissaire …` reaches, so both forms behave identically.
+It exposes the noun-verb grammar `commissaire <object> <action>` (e.g. `commissaire contract admit`, `commissaire contract status`, `commissaire effect authorize`, `commissaire audit verify`) — dispatching into the same handler `faff commissaire …` reaches, so both forms behave identically.

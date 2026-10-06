@@ -56,36 +56,49 @@ test("a model token in an effort lane fails loud (the vocabularies are distinct)
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("HARD EXCLUSION: no prep/spec effort lane exists (prep is pinned, not tunable)", () => {
-  // These lanes have a MODEL lane (FAFF-372) but must have NO effort lane. With no such key in
-  // DEFAULTS and none in config, `config get` reports the key absent (exit 3) — never inherits an
-  // effort, and (crucially) a configured value under one of these keys is NOT vocabulary-validated
-  // as an effort lane, so it is not silently treated as a tunable effort knob.
+test("effort: has no spec/prep lane, so an unset effort.spec reads as absent (the lane lives under dispatch:)", () => {
+  // These lanes have a MODEL lane (FAFF-372) but no key in the old effort: tree (FAFF-1197 sets their
+  // effort at dispatch.<lane>.effort). With no such key in DEFAULTS and none in config, `config get`
+  // reports the key absent (exit 3), never inheriting an effort.
   const dir = fixtureDir(); // no .faffrc
   try {
-    for (const key of ["effort.spec", "effort.spec_review", "effort.prep_explore", "effort.architecture"]) {
+    for (const key of ["effort.spec", "effort.spec_review", "effort.prep_explore", "effort.architecture", "effort.adr"]) {
       const r = runCli(["config", "get", key], { cwd: dir });
       assert.equal(r.code, 3, `${key} must be absent (no such lane), got exit ${r.code}`);
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("HARD EXCLUSION is fail-loud: a hand-set prep/spec effort key exits 2, never a silent echo", () => {
-  // A user who hand-writes an excluded effort key into .faffrc must be told it is not a tunable
-  // lane — never have the value silently echoed as if it were a live knob no dispatch consumes.
-  for (const [key, body] of [
-    ["effort.spec", "effort:\n  spec: low\n"],
-    ["effort.architecture", "effort:\n  architecture: high\n"],
-    ["effort.bogus", "effort:\n  bogus: low\n"],
+test("a hand-set effort.<dispatch lane> key is fail-loud and names dispatch.<lane>.effort, never a silent echo", () => {
+  // A user who hand-writes a non-tunable effort key into .faffrc must be told where it belongs
+  // (dispatch.<lane>.effort), never have the value silently echoed as a live knob no resolver reads.
+  for (const [key, body, pointer] of [
+    ["effort.spec", "effort:\n  spec: low\n", /dispatch\.spec\.effort/],
+    ["effort.spec_review", "effort:\n  spec_review: low\n", /dispatch\.spec_review\.effort/],
+    ["effort.prep_explore", "effort:\n  prep_explore: low\n", /dispatch\.prep_explore\.effort/],
+    ["effort.architecture", "effort:\n  architecture: high\n", /dispatch\.architecture\.effort/],
+    ["effort.adr", "effort:\n  adr: high\n", /dispatch\.adr\.effort/],
+    ["effort.bogus", "effort:\n  bogus: low\n", /not a tunable effort lane/],
   ]) {
     const dir = fixtureDir(body);
     try {
       const r = runCli(["config", "get", key], { cwd: dir });
       assert.equal(r.code, 2, `${key} must fail loud (exit 2), got exit ${r.code}`);
       assert.match(r.stderr, /not a tunable effort lane/, `${key} names the exclusion`);
+      assert.match(r.stderr, pointer, `${key} points at its home`);
       assert.equal(r.stdout.trim(), "", `${key} echoes no value`);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }
+});
+
+test("effort.eval exits 2 saying eval is not a dispatch lane", () => {
+  const dir = fixtureDir();
+  try {
+    const r = runCli(["config", "get", "effort.eval"], { cwd: dir });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /eval is not a dispatch lane/);
+    assert.match(r.stderr, /eval\.effort/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("eval.effort lives in the eval block: inherit by default, a pinned level echoes, off-vocab fails loud (ADR-0133)", () => {

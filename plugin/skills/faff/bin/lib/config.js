@@ -519,20 +519,25 @@ function resolveEngineForLane(cfg, lane) {
   if (!ENGINE_CALL_LANES.includes(lane)) {
     return { error: `lane "${lane}" is not engine-dispatchable — v1 allowlist: ${ENGINE_CALL_LANES.join(" | ")} (FAFF-422)` };
   }
+  const overlaid = effectiveView(cfg);
+  if (overlaid.error) return { error: overlaid.error };
+  const view = overlaid.view;
   const key = `models.${lane}`;
-  const raw = dig(cfg, key);
+  const modelSource = laneSourceKey(cfg, lane, "model");
+  const effortSource = laneSourceKey(cfg, lane, "effort");
+  const raw = dig(view, key);
   const value = (raw === null || raw === undefined || raw === "") ? DEFAULTS[key] : String(raw).trim();
   const laneErr = validateModelLane(key, value);
   if (laneErr) return { error: laneErr };
   if (!/^engine:/.test(value)) {
-    return { error: `${key} is "${value}", not an engine:<name> value — faff engine call serves only engine-valued lanes (an Anthropic token keeps the Agent-tool dispatch)` };
+    return { error: `${modelSource} is "${value}", not an engine:<name> value — faff engine call serves only engine-valued lanes (an Anthropic token keeps the Agent-tool dispatch)` };
   }
   const refErr = validateEngineRef(cfg, value);
-  if (refErr) return { error: `${key}: ${refErr}` };
+  if (refErr) return { error: `${modelSource}: ${refErr}` };
   // FAFF-705: the effort level the operator requested for this lane (validateEffortLane
   // already gated the token at read, so this is a legal faff level or "inherit"). Its
   // capability check is deferred to below — it needs the resolved family + reasoning_off.
-  const effortRaw = dig(cfg, `effort.${lane}`);
+  const effortRaw = dig(view, `effort.${lane}`);
   const effort = (effortRaw === null || effortRaw === undefined || effortRaw === "") ? "inherit" : String(effortRaw).trim();
   const name = value.slice("engine:".length).trim();
   // validateEngineRef above already proved the merged backends:+engines: namespace has
@@ -543,7 +548,7 @@ function resolveEngineForLane(cfg, lane) {
   // top-level `backends:` is equally reachable via engine:<name>.
   const merged = mergeBackendsNamespace(cfg);
   const entry = merged.backends && merged.backends[name];
-  if (!entry) return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
+  if (!entry) return { error: `${modelSource}: engines.${name} vanished after validation (concurrent config edit?)` };
   const provider = String(entry.provider).toLowerCase();
   const family = ENGINE_PROVIDER_FAMILY[provider];
   const reasoningOff = entry.reasoning_off === true;
@@ -557,10 +562,10 @@ function resolveEngineForLane(cfg, lane) {
   let resolvedEffort = null;
   if (effort !== "inherit") {
     if (!EFFORT_GRADED_FAMILIES.has(family)) {
-      return { error: `effort.${lane} is "${effort}" but engines.${name} (provider ${provider}, family ${family}) has no graded reasoning-effort transport — only reasoning_off (on/off). Set effort.${lane} to inherit and use engines.${name}.reasoning_off, or point the lane at a graded-effort engine (an openai-family or codex backend).` };
+      return { error: `${effortSource} is "${effort}" but engines.${name} (provider ${provider}, family ${family}) has no graded reasoning-effort transport — only reasoning_off (on/off). Set ${effortSource} to inherit and use engines.${name}.reasoning_off, or point the lane at a graded-effort engine (an openai-family or codex backend).` };
     }
     if (reasoningOff) {
-      return { error: `effort.${lane} is "${effort}" (graded) but engines.${name} sets reasoning_off: true — contradictory; a lane cannot both silence reasoning and request a graded effort. Drop one.` };
+      return { error: `${effortSource} is "${effort}" (graded) but engines.${name} sets reasoning_off: true — contradictory; a lane cannot both silence reasoning and request a graded effort. Drop one.` };
     }
     resolvedEffort = effort;
   }
@@ -612,8 +617,186 @@ function validateEffortLane(key, value) {
   // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture,
   // or a typo) fails at read so a hand-set value can never masquerade as a live knob
   // no dispatch consumes. Non-`effort.*` keys are not this validator's business (returns null).
-  if (/^effort\./.test(key)) return `config get ${key}: "${key}" is not a tunable effort lane — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable (prep/spec are deliberately excluded; FAFF-416)`;
+  if (/^effort\./.test(key)) {
+    const lane = key.slice("effort.".length);
+    const pointer = DISPATCH_LANES.includes(lane) ? `; set it at dispatch.${lane}.effort` : "";
+    return `config get ${key}: "${key}" is not a tunable effort lane${pointer} — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable under effort: (FAFF-1197)`;
+  }
   return null;
+}
+
+// FAFF-1197: one dispatch: tree pairs model and effort for every subagent-dispatched lane.
+// Values resolve through effectiveView (the overlay); the registry carries no dispatch.* defaults,
+// because a default would count as set and stop a position falling through to the old tree.
+const DISPATCH_LANES = ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr"];
+const DISPATCH_TIERS = ["default", "mechanical", "standard", "complex"];
+const DISPATCH_CONFIDENCES = ["default", "high", "medium", "low"];
+const DISPATCH_FIELDS = ["model", "effort"];
+const DISPATCH_MATCHER_PARENTS = { by_tier: DISPATCH_TIERS, by_confidence: DISPATCH_CONFIDENCES };
+
+function isPlainMap(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+function isUnset(v) {
+  return v === null || v === undefined || v === "";
+}
+function isInlineMap(v) {
+  return typeof v === "string" && v.trim().startsWith("{");
+}
+
+function dispatchLaneError(key, lane) {
+  if (lane === "eval") return `config ${key}: eval is not a dispatch lane (use eval.model / eval.effort)`;
+  if (!DISPATCH_LANES.includes(lane)) return `config ${key}: unknown dispatch lane ${lane}; legal: ${DISPATCH_LANES.join(" | ")}`;
+  return null;
+}
+
+// PURE: classify a path below dispatch.<lane>. Returns { kind: "node" | "leaf", field? } or { error }.
+function classifyDispatchPath(lane, rest) {
+  if (rest.length === 0) return { kind: "node" };
+  const [head, bucket, field] = rest;
+  if (rest.length === 1 && DISPATCH_FIELDS.includes(head)) return { kind: "leaf", field: head };
+  if (lane === "build" && Object.prototype.hasOwnProperty.call(DISPATCH_MATCHER_PARENTS, head)) {
+    const legal = DISPATCH_MATCHER_PARENTS[head];
+    if (rest.length === 1) return { kind: "node" };
+    if (!legal.includes(String(bucket).toLowerCase())) {
+      return { error: `unknown ${head} key ${bucket}; legal: ${legal.join(" | ")}` };
+    }
+    if (rest.length === 2) return { kind: "node" };
+    if (rest.length === 3 && DISPATCH_FIELDS.includes(field)) {
+      if (head === "by_confidence" && field === "effort") {
+        return { error: "no effort by confidence (ADR-0108); use dispatch.build.by_tier" };
+      }
+      return { kind: "leaf", field };
+    }
+  }
+  return { error: `unknown dispatch field ${rest.join(".")}; legal: ${DISPATCH_FIELDS.join(" | ")} (+ by_tier, by_confidence on build)` };
+}
+
+// PURE: read/write validator for one dispatch.* key. Only scalar values are checked here (a map
+// value is a node read; validateDispatchTree covers every leaf beneath it).
+function validateDispatchKey(key, value) {
+  if (!/^dispatch\./.test(key)) return null;
+  if (isPlainMap(value)) return null;
+  const [lane, ...rest] = key.slice("dispatch.".length).split(".");
+  const laneErr = dispatchLaneError(key, lane);
+  if (laneErr) return laneErr;
+  const position = classifyDispatchPath(lane, rest);
+  if (position.error) return `config ${key}: ${position.error}`;
+  if (isInlineMap(value)) return `config ${key}: holds an inline map the config parser cannot read; use block form`;
+  if (position.kind === "node") return `config ${key}: must be a block map of model / effort`;
+  const token = String(value);
+  if (position.field === "effort") {
+    return EFFORT_LEVELS_WITH_INHERIT.includes(token) ? null
+      : `config ${key}: invalid effort token "${token}" — legal set: ${EFFORT_LEVELS_WITH_INHERIT.join(" | ")} (fail-loud, no silent inherit)`;
+  }
+  if (/^engine:/.test(token)) {
+    return rest.length === 1 && ENGINE_CALL_LANES.includes(lane) ? null
+      : `config ${key}: engine values are only legal on ${ENGINE_CALL_LANES.map((l) => `dispatch.${l}.model`).join(" | ")} (FAFF-422 v1 allowlist)`;
+  }
+  const vocab = MODEL_LANE_VOCAB["models.build"];
+  return vocab.includes(token) ? null
+    : `config ${key}: invalid model token "${token}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+}
+
+// PURE: the finding for a map sitting at a dispatch position (null when a map is legal there).
+function dispatchMapPositionError(key, parts) {
+  const [lane, ...rest] = parts;
+  const laneErr = dispatchLaneError(key, lane);
+  if (laneErr) return laneErr;
+  const position = classifyDispatchPath(lane, rest);
+  if (position.error) return `config ${key}: ${position.error}`;
+  return position.kind === "leaf" ? `config ${key}: must be a single value, not a map` : null;
+}
+
+// PURE: walk every position under cfg.dispatch. Returns the first finding or null.
+function validateDispatchTree(cfg) {
+  const tree = cfg ? cfg.dispatch : undefined;
+  if (isUnset(tree)) return null;
+  if (!isPlainMap(tree)) {
+    return isInlineMap(tree)
+      ? "dispatch holds an inline map the config parser cannot read; use block form"
+      : "dispatch must be a block map of lanes";
+  }
+  const walk = (node, parts) => {
+    for (const [name, value] of Object.entries(node)) {
+      if (isUnset(value)) continue;
+      const here = [...parts, name];
+      const key = `dispatch.${here.join(".")}`;
+      const finding = isPlainMap(value) ? dispatchMapPositionError(key, here) || walk(value, here) : validateDispatchKey(key, value);
+      if (finding) return finding;
+    }
+    return null;
+  };
+  return walk(tree, []);
+}
+
+function cloneMap(v) {
+  if (!isPlainMap(v)) return {};
+  const out = {};
+  for (const [k, val] of Object.entries(v)) out[k] = isPlainMap(val) ? cloneMap(val) : val;
+  return out;
+}
+
+// Every dispatch leaf paired with the old-tree position it overlays.
+function dispatchOverlayRows(dispatch) {
+  const rows = [];
+  for (const lane of DISPATCH_LANES) {
+    const node = dispatch[lane];
+    if (!isPlainMap(node)) continue;
+    rows.push({ from: `dispatch.${lane}.model`, value: node.model, to: ["models", lane] });
+    rows.push({ from: `dispatch.${lane}.effort`, value: node.effort, to: ["effort", lane] });
+    if (lane !== "build") continue;
+    for (const [parent, tree, fields] of [["by_tier", "build_by_tier", DISPATCH_FIELDS], ["by_confidence", "build_by_confidence", ["model"]]]) {
+      if (!isPlainMap(node[parent])) continue;
+      for (const [bucket, leaf] of Object.entries(node[parent])) {
+        if (!isPlainMap(leaf)) continue;
+        for (const field of fields) {
+          rows.push({
+            from: `dispatch.build.${parent}.${bucket}.${field}`,
+            value: leaf[field],
+            to: [field === "model" ? "models" : "effort", tree, String(bucket).trim().toLowerCase()],
+          });
+        }
+      }
+    }
+  }
+  return rows;
+}
+
+// PURE: the config the resolvers read. Validates the whole dispatch: tree, then copies models and
+// effort and writes each non-empty dispatch value over the old-tree position it overlays, so the
+// existing chains run unchanged and the most specific position wins whichever tree set it. The
+// loaded config is never mutated. No dispatch: key returns cfg itself.
+// Returns { view } | { error }.
+function effectiveView(cfg) {
+  if (!cfg || isUnset(cfg.dispatch)) return { view: cfg };
+  const finding = validateDispatchTree(cfg);
+  if (finding) return { error: finding };
+  const view = { ...cfg, models: cloneMap(cfg.models), effort: cloneMap(cfg.effort) };
+  for (const row of dispatchOverlayRows(cfg.dispatch)) {
+    if (isUnset(row.value)) continue;
+    let parent = view;
+    for (const [i, segment] of row.to.slice(0, -1).entries()) {
+      if (isUnset(parent[segment])) parent[segment] = {};
+      if (!isPlainMap(parent[segment])) {
+        return { error: `${row.from}: cannot overlay ${row.to.slice(0, i + 1).join(".")}, which is not a block map; make it one or remove it` };
+      }
+      parent = parent[segment];
+    }
+    const leafKey = row.to[row.to.length - 1];
+    for (const existing of Object.keys(parent)) {
+      if (existing.trim().toLowerCase() === leafKey) delete parent[existing];
+    }
+    parent[leafKey] = String(row.value).trim();
+  }
+  return { view };
+}
+
+// The key a lane's value came from, for error text: the dispatch: leaf when the loaded config
+// sets it there, else the old-tree key.
+function laneSourceKey(cfg, lane, field) {
+  const dispatchKey = `dispatch.${lane}.${field}`;
+  return isUnset(dig(cfg, dispatchKey)) ? `${field === "model" ? "models" : "effort"}.${lane}` : dispatchKey;
 }
 
 // FAFF-430: `git_host` is an ADVERTISED config knob with no behavioural consumer beyond this
@@ -1399,7 +1582,7 @@ function isSequenceValuedKey(key) {
 // brand-new top-level namespace does (a deliberate schema addition). Every top-level key
 // documented in .faffrc.example.yaml must be a member — asserted by configSetSelftest.
 const WRITABLE_NAMESPACES = new Set([
-  "tracking", "slots", "models", "effort", "eval", "backends", "engines", "appetite",
+  "tracking", "slots", "models", "effort", "eval", "dispatch", "backends", "engines", "appetite",
   "concurrency_max", "worktree_root", "logging",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
@@ -1598,7 +1781,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateEvalKey(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateEvalKey(key, value) || validateDispatchKey(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
@@ -2717,12 +2900,12 @@ function cmdConfig(args) {
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
       // fails loud here too, never a silently GitHub-shaped merge gate.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateEvalKey(key, fmt(value)) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateEvalKey(key, fmt(value)) || validateDispatchKey(key, value) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
       // the first dispatch that happens to touch the lane.
-      if (/^models\./.test(key) && /^engine:/.test(fmt(value))) {
+      if ((/^models\./.test(key) || /^dispatch\.(methodology|intake)\.model$/.test(key)) && /^engine:/.test(fmt(value))) {
         const refErr = validateEngineRef(data, fmt(value));
         if (refErr) { process.stderr.write(`config get ${key}: ${refErr}\n`); return 2; }
       }
@@ -2973,6 +3156,7 @@ function cmdConfig(args) {
           if (v !== null && v !== undefined && v !== "" && fmt(v) !== DEFAULTS[key]) console.log(`isolation ${lane}.${axis}: ${fmt(v)}`);
         }
       }
+      printDispatchBanner(data);
       return 0;
     }
   } catch (e) {
@@ -3008,6 +3192,39 @@ function cmdConfig(args) {
   }
   process.stderr.write(`faff config: expected one of ${configVerbList()}\n`);
   return 2;
+}
+
+// FAFF-1197: echo the raw dispatch: values next to the model/effort lines above. Until FAFF-1198
+// rewires the skill dispatch sites, only the build lane and engine-valued lanes read the value.
+function printDispatchBanner(data) {
+  const invalid = validateDispatchTree(data);
+  if (invalid) console.log(`dispatch: INVALID — ${invalid} (every resolver exits 2 until fixed)`);
+  const dispatch = isPlainMap(data.dispatch) ? data.dispatch : {};
+  const lowered = (node) => {
+    const out = {};
+    if (isPlainMap(node)) for (const [k, v] of Object.entries(node)) out[String(k).trim().toLowerCase()] = v;
+    return out;
+  };
+  const pairs = (node, fields) => fields
+    .filter((f) => isPlainMap(node) && !isUnset(node[f]))
+    .map((f) => `${f}=${node[f]}`)
+    .join(" ");
+  const echo = (label, node, fields, annotation = "") => {
+    const text = pairs(node, fields);
+    if (text) console.log(`dispatch ${label}: ${text}${annotation}`);
+  };
+  const models = isPlainMap(data.models) ? data.models : {};
+  for (const lane of DISPATCH_LANES) {
+    const node = dispatch[lane];
+    const effectiveModel = isPlainMap(node) && !isUnset(node.model) ? node.model : models[lane];
+    const read = lane === "build" || (ENGINE_CALL_LANES.includes(lane) && /^engine:/.test(String(effectiveModel)));
+    echo(lane, node, DISPATCH_FIELDS, read ? "" : " (not yet read at subagent dispatch sites; FAFF-1198)");
+  }
+  const build = isPlainMap(dispatch.build) ? dispatch.build : {};
+  const byTier = lowered(build.by_tier);
+  for (const t of DISPATCH_TIERS) echo(`build.by_tier.${t}`, byTier[t], DISPATCH_FIELDS);
+  const byConfidence = lowered(build.by_confidence);
+  for (const c of ["default", "high", "medium"]) echo(`build.by_confidence.${c}`, byConfidence[c], ["model"]);
 }
 
 // FAFF-334: per-issue build-model routing. `models.build` (FAFF-315) is a single per-run scalar;
@@ -3117,8 +3334,10 @@ function cmdModels(args) {
   const root = values["--root"] || findRoot();
   const confArg = values["--confidence"] || positionals[1] || null;
   const tierArg = values["--tier"] || null;
-  const [cfg] = loadConfig(root);
-  const res = resolveBuildModelForIssue(cfg, tierArg, confArg);
+  const [loaded] = loadConfig(root);
+  const overlaid = effectiveView(loaded);
+  if (overlaid.error) { process.stderr.write(`faff models build-for: ${overlaid.error}\n`); return 2; }
+  const res = resolveBuildModelForIssue(overlaid.view, tierArg, confArg);
   if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
   console.log(res.token);
   return 0;
@@ -3180,4 +3399,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane, validateTeams };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, effectiveView, emitChainBlock, emitScalar, emitTrackingBlock, fmt, laneSourceKey, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane, validateTeams };

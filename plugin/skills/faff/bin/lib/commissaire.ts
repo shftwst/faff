@@ -53,6 +53,7 @@
 // ===========================================================================
 
 import type { ProducerAuthApi } from "./producer-auth";
+import type { ProducerId, ContractRevisionId } from "./ids";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -597,7 +598,9 @@ function cmdAdmit(flags: CommissaireFlags): number {
   // Producer half: derive + deliver K_producer (never SK, never master); publish PK. The branded
   // admission API is the mint/admission edge: producerId/contractRevision are freshly minted here
   // from trusted CLI input and a raw string would be a TS2345 on this production path.
-  const key = producerAuth.admitProducerKey(masterSecret, producerAuth.asProducerId(producerId), producerAuth.asContractRevisionId(contractRevision));
+  const admittedProducerId: ProducerId = producerAuth.asProducerId(producerId);
+  const admittedContractRevision: ContractRevisionId = producerAuth.asContractRevisionId(contractRevision);
+  const key = producerAuth.admitProducerKey(masterSecret, admittedProducerId, admittedContractRevision);
   const admittedAt = strFlag(flags, "--ts") || new Date().toISOString();
   writeJson(producerFileOf(producerDir, producerId), {
     producer_id: producerId, contract_revision: contractRevision, key_hex: key.toString("hex"),

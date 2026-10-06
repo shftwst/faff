@@ -51,7 +51,7 @@ After editing a `.ts` source, rebuild and commit the emit:
 cd plugin/skills/faff && npm install && npm run build
 ```
 
-Commit the regenerated `.js` alongside the `.ts`. `faff regions check` fails (exit 2) when a `.ts` under `bin/lib/` has no committed `.js` sibling.
+Commit the regenerated `.js` and `build-manifest.json` alongside the `.ts`. `faff regions check` fails (exit 2) when a `.ts` under `bin/lib/` has no committed `.js` sibling.
 
 - **Contributor floor (running the source directly):** Node 22.18 or later, where unflagged TypeScript type stripping landed on the 22.x line. The build and `node bin/lib/producer-auth.ts` need it.
 - **Adopter floor (running the committed emit):** Node 20 or later, unchanged. Adopters never build; they run the shipped `.js`.

@@ -34,6 +34,7 @@ import cliSurfaceEntry from "../plugin/skills/faff/bin/lib/cli-surface.js";
 import {
   DEFAULTS,
   VALID_APPETITES,
+  removedKeyError,
   validateDispatchKey,
 } from "../plugin/skills/faff/bin/lib/config.js";
 
@@ -219,6 +220,8 @@ function faffrcFindings(body, source) {
       if (value && !VALID_APPETITES.has(value)) {
         findings.push(`${source}: appetite=${value} ∉ {${[...VALID_APPETITES].join(", ")}}`);
       }
+    } else if (/^(models|effort)(\.|$)/.test(key)) {
+      if (!key.includes(".")) findings.push(`${source}: removed top-level ${key}: block; ${removedKeyError(key)}`);
     } else if (key.startsWith("dispatch.") && value) {
       const err = validateDispatchKey(key, value);
       if (err) findings.push(`${source}: ${err}`);
@@ -405,6 +408,14 @@ test("dispatch.* keys in an embedded .faffrc are checked with the dispatch valid
   assert.strictEqual(findings.length, 2, findings.join("\n"));
   assert.match(findings[0], /invalid effort token/);
   assert.match(findings[1], /eval is not a dispatch lane/);
+});
+
+test("a scaffolder here-doc that embeds a removed models: or effort: block is a finding (ADR-0134)", () => {
+  for (const block of ["models:\n  spec: opus\n", "effort:\n  build: low\n"]) {
+    const findings = faffrcFindings(block, "fixture");
+    assert.strictEqual(findings.length, 1, findings.join("\n"));
+    assert.match(findings[0], /removed top-level (models|effort): block/);
+  }
 });
 
 test("`dispatch` is a classified verb and a RUNBOOK dispatch gesture passes the verb check (FAFF-1197)", () => {

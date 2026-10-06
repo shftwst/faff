@@ -351,7 +351,8 @@ function removedKeyError(key) {
     return `config ${key}: moved to ${EVAL_MOVED_KEYS[key]} (eval is not a dispatch lane; ADR-0133)`;
   }
   const replacement = replacementKey(key);
-  return replacement ? `config ${key}: removed; set ${replacement} instead (ADR-0134)` : null;
+  if (!replacement) return null;
+  return `config ${key}: removed; set ${replacement} instead, then remove the old block with \`faff config unset ${key.split(".")[0]}\` (ADR-0134)`;
 }
 
 // Every dotted leaf under a legacy tree, as { removed, replacement } pairs.
@@ -3188,7 +3189,7 @@ function cmdConfig(args) {
           (validateDispatchKey("dispatch.build.by_confidence.high.model", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)") ||
           // ADR-0134: the removed models:/effort: keys fail loud naming the dispatch: replacement.
           (removedKeyError("models.eval") && removedKeyError("effort.eval") ? null : "moved eval keys must fail loud") ||
-          (removedKeyError("models.spec") === "config models.spec: removed; set dispatch.spec.model instead (ADR-0134)" ? null : "models.<lane> must map to dispatch.<lane>.model") ||
+          (removedKeyError("models.spec") === "config models.spec: removed; set dispatch.spec.model instead, then remove the old block with `faff config unset models` (ADR-0134)" ? null : "models.<lane> must map to dispatch.<lane>.model") ||
           (/dispatch\.adr\.effort/.test(removedKeyError("effort.adr")) ? null : "effort.<lane> must map to dispatch.<lane>.effort") ||
           (/dispatch\.build\.by_confidence\.high\.model/.test(removedKeyError("models.build_by_confidence.High")) ? null : "models.build_by_confidence.<c> must map to dispatch.build.by_confidence.<c>.model") ||
           (/dispatch\.build\.by_tier\.complex\.effort/.test(removedKeyError("effort.build_by_tier.complex")) ? null : "effort.build_by_tier.<t> must map to dispatch.build.by_tier.<t>.effort") ||

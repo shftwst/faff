@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.40.0](https://github.com/shftwst/faff/compare/faff--v0.39.0...faff--v0.40.0) (2026-10-06)
+
+
+### Features
+
+* **commissaire:** add shared typed identities, a result helper and a build manifest (FAFF-1180) ([#1012](https://github.com/shftwst/faff/issues/1012)) ([6ff75ee](https://github.com/shftwst/faff/commit/6ff75ee7c0b7b14708bc53e3cbbe9ec3b00c5600))
+* **commissaire:** route the runner's governor reads through the facade (FAFF-1176) ([#1014](https://github.com/shftwst/faff/issues/1014)) ([3f823d6](https://github.com/shftwst/faff/commit/3f823d6b04d193ee879d59aeb21d2c5a7601f858))
+* **config:** add a dispatch tree pairing model and effort per lane (FAFF-1197) ([#1008](https://github.com/shftwst/faff/issues/1008)) ([35dae0a](https://github.com/shftwst/faff/commit/35dae0a1fa5b72564081f9ad7dad44321cc863d5))
+* **config:** add faff config unset to remove a key or subtree (FAFF-1201) ([#1011](https://github.com/shftwst/faff/issues/1011)) ([6d581f9](https://github.com/shftwst/faff/commit/6d581f95ccf2fc4adfee5ff599ece2725efaf756))
+* **config:** resolve every dispatch site through faff dispatch resolve and remove the models and effort trees (FAFF-1198) ([#1017](https://github.com/shftwst/faff/issues/1017)) ([f9c5b7f](https://github.com/shftwst/faff/commit/f9c5b7f487be0eb2bb0b86b0e5e5217592d2a497))
+
+
+### Bug Fixes
+
+* **build-claim:** pin the default skew tolerance against an injected clock (FAFF-1208) ([#1016](https://github.com/shftwst/faff/issues/1016)) ([d6bf0d7](https://github.com/shftwst/faff/commit/d6bf0d747167e864e6d84b1cecdfc953516b9104))
+* **FAFF-1200:** make the test suite pass on a macOS, Node 24, non-UTC host ([#1009](https://github.com/shftwst/faff/issues/1009)) ([d0577bc](https://github.com/shftwst/faff/commit/d0577bc6dfc1d4bc4288c3054b3ee9fd8bbbb492))
+
 ## [0.39.0](https://github.com/shftwst/faff/compare/faff--v0.38.0...faff--v0.39.0) (2026-10-05)
 
 

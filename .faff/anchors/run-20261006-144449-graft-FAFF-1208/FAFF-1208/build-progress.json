@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1208",
+  "build": {
+    "status": "complete",
+    "diff_hash": "45edb5cabf4a03333bc0b744d634a4141505abf74cec5f40f61d531d3e565358",
+    "branch": "FAFF-1208-build-claim-default-tolerance-selftest-case-a-fails-on-a",
+    "pushed_at": "2026-10-06T15:28:39.475Z"
+  },
+  "updated_at": "2026-10-06T15:28:39.475Z"
+}

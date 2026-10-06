@@ -149,7 +149,7 @@ eval:
 # tailscale (*.ts.net) host → local egress, else external. provider: anthropic is accepted
 # HERE (needed to name a subscription/API Claude endpoint) but still REFUSED at the
 # `faff engine call` consumer boundary (that transport has no anthropic support — use the
-# Agent-token models.<lane> vocabulary for Claude lanes instead).
+# Agent-token dispatch.<lane>.model vocabulary for Claude lanes instead).
 # backends:
 #   nvidia-glm:
 #     provider: nvidia

@@ -332,7 +332,7 @@ Wherever a faff skill tells you to "invoke the `<name>` skill via the Skill tool
   **Dispatch rule** (every subagent dispatch site; `lane` is the site's dispatch lane):
   1. Run `faff dispatch resolve <lane>` (`build`: add `--tier` / `--confidence` when known).
   2. Exit 2 → fail loud, do not dispatch (never a silent session-model fallback).
-  3. Agent-tool dispatch: `model` ≠ `inherit` → the Agent-tool `model` param; `inherit` → omit it. Effort is not applied (the Agent tool has no effort parameter): `effort` ≠ `inherit` → write `<lane>: effort <level> (not applied: Agent tool)` to the run log; no event carries it, and neither the dispatcher nor the subagent tags `data.effort`. `inherit` → record nothing.
+  3. Agent-tool dispatch: `model` ≠ `inherit` → the Agent-tool `model` param; `inherit` → omit it. Effort is not applied (the Agent tool has no effort parameter): `effort` ≠ `inherit` → write `<lane>: effort <level> (not applied: Agent tool)` to the run log (outside a run, the per-invocation `.faff/logs` narrative log); no event carries it, and neither the dispatcher nor the subagent tags `data.effort`. `inherit` → record nothing.
   4. `model` = `engine:<name>` (`methodology` / `intake` only) → the `faff engine call --lane <lane>` fork above, which applies the lane's effort itself and refuses one the engine family cannot carry.
   5. Record the resolved model on the run log where the site already records one.
 - **Chaining handoff** — control **transfers** to a sibling that takes over the conversation (the **Chaining pattern** gates: prep→graft, jot→prep/plot, graft→prep/wtf). Invoke it **via the Skill tool** so control transfers; a subagent would run it in a throwaway context and discard the new driver.

@@ -355,3 +355,10 @@ test("faff models and faff effort are unknown commands", () => {
   }
   assert.doesNotMatch(cli(undefined, "--help").stdout + cli(undefined, "--help").stderr, /\bmodels\b.*build-for|\beffort\b.*build-for/);
 });
+
+test("legacyTreeError maps the eval leaves to their eval: keys instead of dropping them", () => {
+  const doc = { models: { adr: "sonnet", eval: "x" }, effort: { eval: "low" } };
+  const message = legacyTreeError([{ file: ".faffrc.yaml", local: false, doc }]);
+  assert.ok(message.includes("models.adr -> dispatch.adr.model, models.eval -> eval.model, then run `faff config unset models`."), message);
+  assert.ok(message.includes("effort.eval -> eval.effort"), message);
+});

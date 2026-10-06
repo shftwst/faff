@@ -332,6 +332,7 @@ const REMOVED_KEY_FIELD = { models: "model", effort: "effort" };
 
 // PURE: the `dispatch.` key a removed `models.*` / `effort.*` key maps to, or null for any other key.
 function replacementKey(key) {
+  if (Object.prototype.hasOwnProperty.call(EVAL_MOVED_KEYS, key)) return EVAL_MOVED_KEYS[key];
   const [tree, ...rest] = String(key).split(".");
   if (!REMOVED_TREES.includes(tree)) return null;
   const field = REMOVED_KEY_FIELD[tree];
@@ -363,7 +364,7 @@ function legacyLeafPairs(tree, node) {
     pairs.push({ removed, replacement: replacementKey(removed) });
   };
   walk(node, []);
-  return pairs.filter((p) => !Object.prototype.hasOwnProperty.call(EVAL_MOVED_KEYS, p.removed));
+  return pairs;
 }
 
 // PURE: one sentence per (file, legacy tree) across the base and overlay layers, or null.
@@ -3194,6 +3195,7 @@ function cmdConfig(args) {
           (removedKeyError("models") && removedKeyError("effort") && removedKeyError("models.build_by_tier") ? null : "a bare removed tree must fail loud") ||
           (removedKeyError("dispatch.spec.model") === null && removedKeyError("tracking.repo") === null ? null : "a non-removed key must pass") ||
           (pairsOf([".faffrc.yaml", false, { models: { adr: "sonnet" } }]) === ".faffrc.yaml still holds the removed models: tree (ADR-0134); set models.adr -> dispatch.adr.model, then run `faff config unset models`." ? null : "legacyTreeError must name the file, the mapping and the unset command") ||
+          (pairsOf([".faffrc.yaml", false, { models: { adr: "sonnet", eval: "x" } }]) === ".faffrc.yaml still holds the removed models: tree (ADR-0134); set models.adr -> dispatch.adr.model, models.eval -> eval.model, then run `faff config unset models`." ? null : "legacyTreeError must map models.eval to eval.model") ||
           (pairsOf([".faffrc.local.yaml", true, { effort: null }]) === ".faffrc.local.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort --local`." ? null : "an empty effort: header must omit the set clause and add --local") ||
           (pairsOf([".faffrc.yaml", false, { tracking: {} }]) === null ? null : "a config without a legacy tree must pass") ||
           // FAFF-859: the isolation-lane vocab must accept both axes' baked defaults and reject an

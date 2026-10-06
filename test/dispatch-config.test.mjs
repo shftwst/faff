@@ -112,6 +112,19 @@ test("dispatch resolve refuses --tier/--confidence off the build lane, eval and 
   });
 });
 
+test("dispatch resolve refuses an old-tree effort.<lane> the effort: tree does not allow", () => {
+  for (const lane of ["spec", "spec_review", "prep_explore", "architecture", "adr"]) {
+    withConfig(`effort:\n  ${lane}: low\n`, (dir) => {
+      const r = cli(dir, "dispatch", "resolve", lane);
+      assert.equal(r.code, 2, `${lane}: ${r.stdout}`);
+      assert.match(r.stderr, new RegExp(`dispatch\\.${lane}\\.effort`));
+    });
+  }
+  withConfig("effort:\n  methodology: low\n", (dir) => {
+    assert.equal(cli(dir, "dispatch", "resolve", "methodology").stdout.trim(), '{"model":"inherit","effort":"low"}');
+  });
+});
+
 test("overlay precedence: the more specific position wins across trees", () => {
   const body = "models:\n  build_by_tier:\n    complex: opus\ndispatch:\n  build:\n    model: sonnet\n";
   withConfig(body, (dir) => {

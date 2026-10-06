@@ -15,7 +15,7 @@ const { parseArgs, usageError } = require("./argv");
 const { findRoot } = require("./shared-infra");
 const {
   DEFAULTS, DISPATCH_LANES, EFFORT_LANE_VOCAB, effectiveView, laneSourceKey, loadConfig,
-  resolveBuildModelForIssue, validateEngineRef, validateModelLane,
+  resolveBuildModelForIssue, validateEffortLane, validateEngineRef, validateModelLane,
 } = require("./config");
 const { resolveBuildEffort } = require("./effort");
 
@@ -56,6 +56,11 @@ function resolveDispatch(cfg, lane, { tier = null, confidence = null } = {}) {
   if (/^engine:/.test(model)) {
     const refErr = validateEngineRef(cfg, model);
     if (refErr) return { error: `${laneSourceKey(cfg, lane, "model")}: ${refErr}` };
+  }
+  const oldEffort = cfg.effort && cfg.effort[lane];
+  if (!isEmpty(oldEffort)) {
+    const oldErr = validateEffortLane(`effort.${lane}`, String(oldEffort).trim());
+    if (oldErr) return { error: oldErr };
   }
   const effortRaw = view.effort && view.effort[lane];
   const effort = isEmpty(effortRaw) ? "inherit" : String(effortRaw).trim();
@@ -101,6 +106,10 @@ function dispatchSelftest() {
     ok(`${lane}: dispatch effort is settable`, pair({ dispatch: { [lane]: { effort: "low" } } }, lane) === "inherit/low");
     ok(`${lane}: dispatch model is settable`, pair({ dispatch: { [lane]: { model: "haiku" } } }, lane) === "haiku/inherit");
   }
+
+  ok("an illegal old-tree effort.<lane> fails loud instead of resolving",
+    /dispatch\.spec\.effort/.test(pair({ effort: { spec: "low" } }, "spec"))
+    && pair({ effort: { spec: "low" }, dispatch: { spec: { effort: "high" } } }, "spec").startsWith("error:"));
 
   const overlaid = { models: { spec: "opus" }, dispatch: { spec: { model: "sonnet" } } };
   ok("dispatch.<lane>.model wins over models.<lane>", pair(overlaid, "spec") === "sonnet/inherit");

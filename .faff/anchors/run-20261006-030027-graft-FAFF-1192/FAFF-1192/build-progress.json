@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1192",
+  "build": {
+    "status": "complete",
+    "diff_hash": "430a3b9867fa197c6b44cb061479fde967a08af87200b11ad36581fdfe609338",
+    "branch": "faff-1192-wait-for-the-andon-pump-state-file-in-sentry-poller-tests",
+    "pushed_at": "2026-10-06T03:50:01.035Z"
+  },
+  "updated_at": "2026-10-06T03:50:01.035Z"
+}

@@ -1830,7 +1830,7 @@ function cmdConfigSet(args, root) {
 function hasConfigPath(data, segments) {
   let current = data;
   for (const segment of segments) {
-    if (!isPlainConfigMap(current) || !(segment in current)) return false;
+    if (!isPlainConfigMap(current) || !Object.hasOwn(current, segment)) return false;
     current = current[segment];
   }
   return true;
@@ -1857,8 +1857,19 @@ function removeConfigPath(rawText, segments) {
 
   const bodyEndOf = (idx, windowEnd) => {
     const indent = indentOf(lines[idx]);
+    const isShallowComment = (line) => !isBlank(line) && line.trim().startsWith("#") && indentOf(line) <= indent;
+    const deeperCodeFollows = (from) => {
+      const next = firstKeyLine(from, windowEnd);
+      return next !== undefined && indentOf(next) > indent;
+    };
     let end = idx + 1;
-    while (end < windowEnd && (isBlank(lines[end]) || indentOf(lines[end]) > indent)) end++;
+    while (end < windowEnd) {
+      const line = lines[end];
+      const inBody = isBlank(line) || indentOf(line) > indent || (isShallowComment(line) && deeperCodeFollows(end + 1));
+      if (!inBody) break;
+      end++;
+    }
+    while (end > idx + 1 && (isBlank(lines[end - 1]) || isShallowComment(lines[end - 1]))) end--;
     return end;
   };
   const firstKeyLine = (from, to) => lines.slice(from, to).find((line) => !isBlankOrComment(line));
@@ -1896,7 +1907,10 @@ function removeConfigPath(rawText, segments) {
   const leafInline = inlineValueOf(lines[leafIdx]);
   const firstChild = firstKeyLine(leafIdx + 1, bodyEndOf(leafIdx, windowEnd));
   const isInlineList = leafInline.startsWith("[") && leafInline.endsWith("]");
-  const isBlockList = leafInline === "" && firstChild !== undefined && /^-(\s|$)/.test(firstChild.trim());
+  const isListItem = (line) => /^-(\s|$)/.test(line.trim());
+  const nextKeyLine = firstKeyLine(leafIdx + 1, windowEnd);
+  const isUnindentedList = leafInline === "" && nextKeyLine !== undefined && indentOf(nextKeyLine) === indentOf(lines[leafIdx]) && isListItem(nextKeyLine);
+  const isBlockList = isUnindentedList || (leafInline === "" && firstChild !== undefined && isListItem(firstChild));
   if (isInlineList || isBlockList) return unchanged("list");
 
   const spanEndOf = (idx) => {
@@ -2055,8 +2069,9 @@ function configUnsetSelftest() {
   removes("4-space leaf keeps sibling", "a:\n    b: 1\n    c: 2\n", "a.b", "a:\n    c: 2\n");
   removes("inline flow map leaf", "infra: {\"a\": 1}\nz: 1\n", "infra", "z: 1\n");
   removes("subtree holding a list", "adversarial:\n  refs:\n    - a\n  timeout: 5\nz: 1\n", "adversarial", "z: 1\n");
-  removes("first match under a duplicated name", "a:\n  x: 1\nb: 1\n", "a.x", "b: 1\n", ["a"]);
+  removes("leaf removal prunes a single-child parent", "a:\n  x: 1\nb: 1\n", "a.x", "b: 1\n", ["a"]);
 
+  status("unindented block sequence", "teams:\n- A\nz: 1\n", "teams", "list");
   status("block-sequence leaf", "tracking:\n  items:\n    - A\n    - B\n", "tracking.items", "list");
   status("bare-word inline list", "k: [a, b]\n", "k", "list");
   status("JSON inline list", "k: [\"a\",\"b\"]\n", "k", "list");
@@ -2069,6 +2084,10 @@ function configUnsetSelftest() {
   status("scalar ancestor", "tracking: foo\n", "tracking.provider", "absent");
   status("nested key not matched at top level", "a:\n  b: 1\n", "b", "absent");
   status("empty text", "", "a", "absent");
+  status("inherited property name is not a key", "a: {\"b\": 1}\n", "a.toString", "absent");
+  removes("shallower comment inside a block: leaf", "a:\n  b: 1\n# old\n  c: 2\n", "a.c", "a:\n  b: 1\n# old\n");
+  removes("shallower comment inside a block: whole block", "a:\n  b: 1\n# old\n  c: 2\nz: 1\n", "a", "z: 1\n");
+  removes("detached comment above next sibling survives", "a:\n  b: 1\n# next\nz: 1\n", "a", "# next\nz: 1\n");
   check("inline-ancestor names the ancestor", removeConfigPath("x:\n  a: {\"b\": 1}\n", ["x", "a", "b"]).ancestor === "x.a");
   check("absent leaves the text untouched", removeConfigPath("a: 1\n", ["q"]).text === "a: 1\n");
 

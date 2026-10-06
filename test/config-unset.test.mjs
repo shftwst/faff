@@ -127,6 +127,30 @@ test("list-valued keys by name and by shape exit 2 and leave the file alone", ()
   }
 });
 
+test("an unindented block sequence is refused as list-valued and the file is untouched", () => {
+  const text = "teams:\n- A\nz: 1\n";
+  const dir = repo(text);
+  const r = run(dir, "config", "unset", "teams");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /list-valued key/);
+  assert.equal(base(dir), text);
+});
+
+test("a shallower comment inside a block does not hide later keys", () => {
+  const text = "a:\n  b: 1\n# old\n  c: 2\nz: 1\n";
+  const leaf = repo(text);
+  assert.equal(run(leaf, "config", "unset", "a.c").code, 0);
+  assert.equal(base(leaf), "a:\n  b: 1\n# old\nz: 1\n");
+  const whole = repo(text);
+  assert.equal(run(whole, "config", "unset", "a").code, 0);
+  assert.equal(base(whole), "z: 1\n");
+});
+
+test("an inherited property name is not a key", () => {
+  const dir = repo("a: {\"b\": 1}\n");
+  assert.equal(run(dir, "config", "unset", "a.toString").code, 3);
+});
+
 test("a map subtree that holds a list is removed whole", () => {
   const dir = repo("adversarial:\n  refs:\n    - a\n  timeout: 5\nz: 1\n");
   assert.equal(run(dir, "config", "unset", "adversarial").code, 0);

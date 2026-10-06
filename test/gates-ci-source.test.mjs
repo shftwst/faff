@@ -162,8 +162,8 @@ test("FAFF-1149: on a Linux host the selected-rung set and discovery are unchang
     "node --import ./test/hermetic-env.mjs --test",
     "node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs",
     // FAFF-1171: the Node 24 typecheck job's source-lane checks are discovered as runnable rungs too.
+    // FAFF-1200: its suite step now matches the unit lane's command, so the two dedupe to one rung.
     "npx tsc --noEmit -p tsconfig.json",
-    "node --no-experimental-strip-types --import ./test/hermetic-env.mjs --test",
   ].sort();
   assert.deepEqual(rungs.map((r) => r.command).sort(), expected, "the Linux selected-rung set is unchanged by FAFF-1149");
   assert.equal(discovery, "partial", "Linux runnable-coverage discovery stays partial (the ladder-signal determinant); the fix selects the same rungs");
@@ -176,7 +176,8 @@ test("the sharded validate.yml line becomes a RUNNABLE unsharded UNIT rung (not 
   const { rungs } = selectRunnableRungs(repoRoot, readGatesConfig(repoRoot));
   const unit = rungs.filter((r) => r.kind === "UNIT");
   assert.ok(unit.length >= 1, "at least one runnable UNIT rung survives after sharding");
-  const whole = unit.find((r) => r.command === "node --import ./test/hermetic-env.mjs --test");
-  assert.ok(whole, `expected the unsharded pathless whole-suite UNIT rung; got ${unit.map((r) => r.command).join(" | ")}`);
+  const wholeSuite = unit.filter((r) => /\s--test$/.test(r.command));
+  assert.deepEqual(wholeSuite.map((r) => r.command), ["node --import ./test/hermetic-env.mjs --test"],
+    `expected exactly one pathless whole-suite UNIT rung (FAFF-1200: the Node 20 and Node 24 lanes dedupe); got ${unit.map((r) => r.command).join(" | ")}`);
   assert.ok(unit.every((r) => !/--test-shard|\$\{\{/.test(r.command)), "no runnable UNIT rung carries --test-shard or an unexpanded ${{ … }}");
 });

@@ -17,7 +17,7 @@ import { resolveTypescript, checkSources } from "../scripts/check-no-boundary-ca
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..");
-const FIX = path.join(HERE, "fixtures", "boundary-cast");
+const FIX = path.join(REPO, "testdata", "typescript", "boundary-cast");
 const LIB = path.join(REPO, "plugin", "skills", "faff", "bin", "lib");
 const REAL = [path.join(LIB, "producer-auth.ts"), path.join(LIB, "commissaire.ts")];
 

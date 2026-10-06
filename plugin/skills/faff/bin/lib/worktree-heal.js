@@ -113,11 +113,20 @@ function verifyHeal(root, finding) {
   if (head.status !== 0) return false;
   const list = spawnSync("git", ["-C", root, "worktree", "list", "--porcelain"], { encoding: "utf8" });
   if (list.status !== 0 || typeof list.stdout !== "string") return false;
-  const norm = (p) => String(p).replace(/\/+$/, "");
-  const listed = list.stdout.split("\n")
+  return list.stdout.split("\n")
     .filter((ln) => ln.startsWith("worktree "))
-    .map((ln) => norm(ln.slice("worktree ".length).trim()));
-  return listed.includes(norm(wt));
+    .some((ln) => samePath(ln.slice("worktree ".length).trim(), wt));
+}
+
+// git records canonical paths, while finding.worktree_path comes from the configured root,
+// which may be reached through a symlink (macOS /tmp, /var/folders). An unresolvable side
+// keeps its raw string, so the comparison can only miss a heal, never invent one.
+function samePath(a, b) {
+  const canonical = (p) => {
+    const stripped = String(p).replace(/\/+$/, "");
+    try { return fs.realpathSync(stripped); } catch { return stripped; }
+  };
+  return canonical(a) === canonical(b);
 }
 
 // healClobberedWorktree(root, issue) -> { code, finding, error? }.

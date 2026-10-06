@@ -819,12 +819,11 @@ function normaliseLocalRungCommand(command) {
 // records is excluded — matching 848's per-step counting), emits a rung per recognised, runnable
 // command, and returns the runnable-coverage inputs + the exclusion log. Never throws (same
 // missing-dir/unreadable-file posture as discoverCiWorkflowsReporting).
-function discoverCiWorkflowsRunnable(root, cfg) {
+function discoverCiWorkflowsRunnable(root, cfg, hostOs = localOs()) {
   const rungs = [];
   const exclusions = [];
   let eligibleSteps = 0;
   const recognisedStepKeys = new Set();
-  const localOsVal = localOs();
   const dir = path.join(root, ".github", "workflows");
   let stat;
   try { stat = fs.statSync(dir); } catch { return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 }; }
@@ -846,7 +845,7 @@ function discoverCiWorkflowsRunnable(root, cfg) {
       // node --test line runs the whole suite unsharded locally AND its `${{ matrix.shard }}` no
       // longer trips the github-context exclusion below. No-op for a command without --test-shard.
       for (const rec of recs) rec.command = normaliseLocalRungCommand(rec.command);
-      const reasons = recs.map((r) => exclusionReason(r, cfg, localOsVal));
+      const reasons = recs.map((r) => exclusionReason(r, cfg, hostOs));
       const allExcluded = reasons.every((x) => x !== null);
       if (allExcluded) {                             // whole step subtracted from eligible + never a rung
         recs.forEach((r, i) => exclusions.push({ command: r.command, reason: reasons[i] }));
@@ -909,7 +908,7 @@ function capPerKind(rungs, cap) {
 // Local rungs (pre-commit/pkg/Makefile) are reused as-is and a local rung of a kind still
 // suppresses ALL ci rungs of that kind (FAFF-533 preserved). Returns the bounded rung set +
 // runnable coverage + discovery (confident/partial/none) + the exclusion log.
-function selectRunnableRungs(root, cfg) {
+function selectRunnableRungs(root, cfg, hostOs = localOs()) {
   const localRungs = [
     ...discoverPreCommit(root),
     ...discoverPkgScripts(root),
@@ -922,7 +921,7 @@ function selectRunnableRungs(root, cfg) {
   const dedupedLocal = [...localByKind.values()];
   const localKinds = new Set(dedupedLocal.map((r) => r.kind));
 
-  const { rungs: ciRunnable, exclusions, eligibleSteps, recognisedSteps } = discoverCiWorkflowsRunnable(root, cfg);
+  const { rungs: ciRunnable, exclusions, eligibleSteps, recognisedSteps } = discoverCiWorkflowsRunnable(root, cfg, hostOs);
   const ciByKindCommand = new Map();
   for (const r of ciRunnable) {
     const key = `${r.kind} ${r.command}`;
@@ -1425,7 +1424,7 @@ async function gatesSelftest() {
   // selectRunnableRungs (filter → aggregate → cap). These re-express 848's execution-isolation
   // runLadder assertions to reflect the intended widening. ---
   const cfgDefault = readGatesConfig(dNone);        // dNone has no .faffrc → all gates.* defaults
-  const selWide = selectRunnableRungs(dWide, cfgDefault);
+  const selWide = selectRunnableRungs(dWide, cfgDefault, "linux");
   cases.push(["execution (639b): selectRunnableRungs surfaces the widened STATIC_ANALYSIS rungs",
     selWide.rungs.some((r) => r.kind === "STATIC_ANALYSIS")]);
   cases.push(["execution (639b): runnable discovery is partial on the wide fixture (ratio < 0.5)",
@@ -1483,24 +1482,30 @@ async function gatesSelftest() {
   // (updated from the pre-1149 "macos step excluded" expectation), while a NON-portable OS-specific
   // step is still os-mismatch-excluded and logged. Two eligible steps now (the portable UNIT + LINT).
   const dMac = mk("macos", { ".github/workflows/mac.yml": "jobs:\n  impure-macos:\n    runs-on: macos-latest\n    steps:\n      - name: t\n        run: node --test\n      - name: mac-only\n        run: sw_vers -productVersion\n  linux-job:\n    runs-on: ubuntu-latest\n    steps:\n      - name: adapters\n        run: node bin/faff validate-adapters\n" });
-  const selMac = selectRunnableRungs(dMac, cfgDefault);
+  const selMac = selectRunnableRungs(dMac, cfgDefault, "linux");
   cases.push(["os-mismatch: portable node --test survives OS mismatch as a UNIT rung (FAFF-1149)", selMac.rungs.filter((r) => r.kind === "UNIT").length === 1 && selMac.rungs.some((r) => r.kind === "LINT")]);
   cases.push(["os-mismatch: portable UNIT step counts as eligible (2: node --test + validate-adapters)", selMac.coverage.eligible_steps === 2]);
   cases.push(["os-mismatch: the non-portable mac-only step is excluded and logged os-mismatch", selMac.exclusions.some((e) => e.reason === "os-mismatch" && /sw_vers/.test(e.command))]);
+  // FAFF-1200: the mirror direction, pinned so both rows hold on any host. On a macOS host the
+  // ubuntu-latest validate-adapters step is the os-mismatch while the portable node --test survives.
+  const selMacHost = selectRunnableRungs(dMac, cfgDefault, "macos");
+  cases.push(["os-mismatch (macos host): ubuntu step excluded os-mismatch, portable node --test UNIT survives (FAFF-1200)",
+    selMacHost.exclusions.some((e) => e.reason === "os-mismatch" && /validate-adapters/.test(e.command)) &&
+    selMacHost.rungs.filter((r) => r.kind === "UNIT").length === 1 && !selMacHost.rungs.some((r) => r.kind === "LINT")]);
 
   // 29. configured exclusion — a gates.exclude entry removes matching rungs; the rest still run.
   const dExc = mk("exc", {
     ".faffrc.yaml": "gates:\n  exclude:\n    - regions selftest\n",
     ".github/workflows/w.yml": "jobs:\n  v:\n    steps:\n      - name: check\n        run: node bin/faff regions check\n      - name: self\n        run: node bin/faff regions selftest --region factory\n",
   });
-  const selExc = selectRunnableRungs(dExc, readGatesConfig(dExc));
+  const selExc = selectRunnableRungs(dExc, readGatesConfig(dExc), "linux");
   cases.push(["configured: no regions selftest rung when gates.exclude names it", !selExc.rungs.some((r) => /regions\s+selftest/i.test(r.command))]);
   cases.push(["configured: the non-excluded regions check rung still present", selExc.rungs.some((r) => /regions\s+check/i.test(r.command))]);
   cases.push(["configured: readGatesConfig parses gates.exclude list", readGatesConfig(dExc).exclude.includes("regions selftest")]);
 
   // 30. per-kind cap — cap 2 keeps the cheapest 2 STATIC_ANALYSIS rungs of the wide fixture.
   const cfgCap = { ...cfgDefault, max_rungs_per_kind: 2 };
-  const selCap = selectRunnableRungs(dWide, cfgCap);
+  const selCap = selectRunnableRungs(dWide, cfgCap, "linux");
   cases.push(["cap: max_rungs_per_kind=2 keeps 2 STATIC_ANALYSIS rungs", selCap.rungs.filter((r) => r.kind === "STATIC_ANALYSIS").length === 2]);
   cases.push(["cap: capPerKind keeps the cheapest N by cost_rank",
     capPerKind([{ kind: "UNIT", cost_rank: 55 }, { kind: "UNIT", cost_rank: 50 }, { kind: "UNIT", cost_rank: 60 }], 2).map((r) => r.cost_rank).join(",") === "50,55"]);

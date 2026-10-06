@@ -5,7 +5,7 @@
 // fields (provider/model/host/api_key_env/reasoning_off/timeout) PLUS two new
 // first-class dimensions — `auth: subscription-seat|api-key|none` and
 // `egress: local|external` — so a consumer can be referenced by NAME from
-// anywhere (a slot occupant, a models.X lane, a fallback chain), and a
+// anywhere (a slot occupant, a dispatch.<lane>.model, a fallback chain), and a
 // residency-sensitive consumer can fail closed rather than silently egress.
 // `engines:` entries fold into this namespace at load (collision = hard
 // error); `engine:<name>` keeps resolving against the MERGED namespace
@@ -43,7 +43,7 @@ function positiveWindow(v) {
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
 const EGRESS_VALUES = ["local", "external"];
 // FAFF-873: the config-vocabulary set a per-backend reasoning_effort value must
-// belong to — faff's own five-tier effort vocabulary (EFFORT_LANE_VOCAB minus the
+// belong to — faff's own five-tier effort vocabulary (EFFORT_LEVELS_WITH_INHERIT minus the
 // lane-only `inherit` sentinel, which is never a per-backend value). This is
 // CONFIG-VOCABULARY validation only — never a model-capability check; a wire-legal
 // token sent to a model that ignores it is a no-op, not an error.
@@ -214,7 +214,7 @@ function normalizeBackend(name, raw) {
 }
 
 // FAFF-604: the engine backends this run's fleet can reach, resolved from the
-// `engine:<name>` values on the models.* lanes (the only place a config points a
+// `engine:<name>` values on the dispatch.* lanes (the only place a config points a
 // lane at a backend). Returns the resolved Backend records, so a caller can read
 // each one's declared telemetry source.
 //
@@ -224,7 +224,7 @@ function normalizeBackend(name, raw) {
 // rather than reaching for it. The dispatch shell, which is exempt by design, is
 // where the two regions meet for `budget check`.
 function fleetEngineBackends(cfg) {
-  const lanes = dig(cfg, "models");
+  const lanes = dig(cfg, "dispatch");
   if (!lanes || typeof lanes !== "object" || Array.isArray(lanes)) return [];
   const refs = [];
   const walk = (node) => {
@@ -586,14 +586,14 @@ function backendsSelftest() {
 
   // --- fleet telemetry scan (FAFF-604) — moved here from budget.js: governance
   // may not require this module, so the factory owns the resolution.
-  const codexFleet = { backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, models: { methodology: "engine:seat" } };
-  const localFleet = { backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } }, models: { intake: "engine:lan" } };
+  const codexFleet = { backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, dispatch: { methodology: { model: "engine:seat" } } };
+  const localFleet = { backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } }, dispatch: { intake: { model: "engine:lan" } } };
   ok("fleetEngineBackends: resolves an engine:<name> lane value to its backend",
     fleetEngineBackends(codexFleet).map((b) => b.name).join(",") === "seat");
   ok("fleetEngineBackends: no engine lanes -> empty (an all-Agent-token fleet)",
-    fleetEngineBackends({ models: { build: "sonnet" } }).length === 0);
+    fleetEngineBackends({ dispatch: { build: { model: "sonnet" } } }).length === 0);
   ok("fleetEngineBackends: an engine ref naming no configured backend is dropped, never a throw",
-    fleetEngineBackends({ backends: {}, models: { intake: "engine:ghost" } }).length === 0);
+    fleetEngineBackends({ backends: {}, dispatch: { intake: { model: "engine:ghost" } } }).length === 0);
   ok("unmeteredFleetEngines: a codex engine is METERED (exec-json-events), never flagged",
     unmeteredFleetEngines(codexFleet, []).length === 0);
   ok("unmeteredFleetEngines: an ollama engine derives telemetry: none -> flagged",

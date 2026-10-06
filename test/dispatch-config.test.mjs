@@ -1,7 +1,7 @@
-// FAFF-1197 — one `dispatch:` tree pairs model and effort for every subagent-dispatched lane.
-// Covers: the config get/set validators, `faff dispatch resolve`, the overlay feeding
-// `models build-for` / `effort build-for` / `engine call`, the whole-tree validation, the run
-// banner, and that the overlay never mutates the loaded config.
+// FAFF-1197 / FAFF-1198 — one `dispatch:` tree pairs model and effort for every subagent-dispatched
+// lane, and is the only place a lane's model or effort is set. Covers: the config get/set
+// validators, `faff dispatch resolve`, `engine call` reading `dispatch.<lane>.*`, the whole-tree
+// validation and the run banner.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { resolveDispatch } from "../plugin/skills/faff/bin/lib/dispatch.js";
-import { DEFAULTS, effectiveView } from "../plugin/skills/faff/bin/lib/config.js";
+import { DEFAULTS, legacyTreeError, removedKeyError } from "../plugin/skills/faff/bin/lib/config.js";
 
 function withConfig(body, fn) {
   const dir = mkdtempSync(path.join(tmpdir(), "faff1197-"));
@@ -18,6 +18,7 @@ function withConfig(body, fn) {
   try { return fn(dir); } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 const cli = (dir, ...args) => runCli(args, { cwd: dir });
+const NOT_APPLIED_NOTE = " (effort recorded, not applied: Agent tool)";
 const ENGINE_OLLAMA = "engines:\n  local:\n    provider: ollama\n    model: m1\n    host: http://h.test:11434\n";
 
 test("no dispatch.* key is registered in DEFAULTS; an unset dispatch key reads as absent (exit 3)", () => {
@@ -112,36 +113,22 @@ test("dispatch resolve refuses --tier/--confidence off the build lane, eval and 
   });
 });
 
-test("dispatch resolve refuses an old-tree effort.<lane> the effort: tree does not allow", () => {
-  for (const lane of ["spec", "spec_review", "prep_explore", "architecture", "adr"]) {
-    withConfig(`effort:\n  ${lane}: low\n`, (dir) => {
-      const r = cli(dir, "dispatch", "resolve", lane);
-      assert.equal(r.code, 2, `${lane}: ${r.stdout}`);
-      assert.match(r.stderr, new RegExp(`dispatch\\.${lane}\\.effort`));
-    });
-  }
-  withConfig("effort:\n  methodology: low\n", (dir) => {
-    assert.equal(cli(dir, "dispatch", "resolve", "methodology").stdout.trim(), '{"model":"inherit","effort":"low"}');
-  });
-});
-
-test("overlay precedence: the more specific position wins across trees", () => {
-  const body = "models:\n  build_by_tier:\n    complex: opus\ndispatch:\n  build:\n    model: sonnet\n";
+test("the more specific dispatch.build position wins over a less specific one", () => {
+  const body = "dispatch:\n  build:\n    model: sonnet\n    by_confidence:\n      high:\n        model: fable\n    by_tier:\n      complex:\n        model: haiku\n";
   withConfig(body, (dir) => {
-    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "complex").stdout.trim(), '{"model":"opus","effort":"inherit"}');
-    assert.equal(cli(dir, "models", "build-for", "--tier", "complex").stdout.trim(), "opus");
-  });
-  withConfig(`${body}`.replace("    model: sonnet\n", "    model: sonnet\n    by_tier:\n      complex:\n        model: haiku\n"), (dir) => {
-    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "complex").stdout.trim(), '{"model":"haiku","effort":"inherit"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "complex", "--confidence", "high").stdout.trim(), '{"model":"haiku","effort":"inherit"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--confidence", "high").stdout.trim(), '{"model":"fable","effort":"inherit"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "standard").stdout.trim(), '{"model":"sonnet","effort":"inherit"}');
   });
 });
 
-test("field independence: a node with only effort resolves model down the old tree, and the reverse", () => {
-  withConfig("models:\n  spec: opus\ndispatch:\n  spec:\n    effort: high\n", (dir) => {
-    assert.equal(cli(dir, "dispatch", "resolve", "spec").stdout.trim(), '{"model":"opus","effort":"high"}');
+test("field independence: a node with only effort leaves model to the rest of the chain, and the reverse", () => {
+  withConfig("dispatch:\n  build:\n    model: opus\n    by_tier:\n      complex:\n        effort: high\n", (dir) => {
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "complex").stdout.trim(), '{"model":"opus","effort":"high"}');
   });
-  withConfig("effort:\n  methodology: low\ndispatch:\n  methodology:\n    model: haiku\n", (dir) => {
-    assert.equal(cli(dir, "dispatch", "resolve", "methodology").stdout.trim(), '{"model":"haiku","effort":"low"}');
+  withConfig("dispatch:\n  methodology:\n    effort: low\n  spec:\n    model: haiku\n", (dir) => {
+    assert.equal(cli(dir, "dispatch", "resolve", "methodology").stdout.trim(), '{"model":"inherit","effort":"low"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "spec").stdout.trim(), '{"model":"haiku","effort":"inherit"}');
   });
 });
 
@@ -153,14 +140,13 @@ test("tier-absent behaviour is unchanged per field", () => {
   });
 });
 
-test("models build-for and effort build-for honour dispatch.build.* through the overlay", () => {
+test("dispatch resolve build honours dispatch.build.* at every position", () => {
   const body = "dispatch:\n  build:\n    model: sonnet\n    effort: low\n    by_tier:\n      complex:\n        model: opus\n        effort: high\n    by_confidence:\n      medium:\n        model: haiku\n";
   withConfig(body, (dir) => {
-    assert.equal(cli(dir, "models", "build-for", "--tier", "complex").stdout.trim(), "opus");
-    assert.equal(cli(dir, "models", "build-for", "--tier", "mechanical").stdout.trim(), "sonnet");
-    assert.equal(cli(dir, "models", "build-for", "--confidence", "medium").stdout.trim(), "haiku");
-    assert.equal(cli(dir, "effort", "build-for", "--tier", "complex").stdout.trim(), "high");
-    assert.equal(cli(dir, "effort", "build-for").stdout.trim(), "low");
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "complex").stdout.trim(), '{"model":"opus","effort":"high"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--tier", "mechanical").stdout.trim(), '{"model":"sonnet","effort":"low"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--confidence", "medium").stdout.trim(), '{"model":"haiku","effort":"low"}');
+    assert.equal(cli(dir, "dispatch", "resolve", "build").stdout.trim(), '{"model":"sonnet","effort":"low"}');
   });
 });
 
@@ -171,29 +157,16 @@ test("engine call honours dispatch.<lane>.model / .effort and names the dispatch
     assert.match(r.stderr, /dispatch\.methodology\.effort/);
     assert.match(r.stderr, /no graded reasoning-effort transport/);
   });
-  withConfig(`${ENGINE_OLLAMA}models:\n  methodology: engine:local\ndispatch:\n  methodology:\n    effort: high\n`, (dir) => {
-    const r = cli(dir, "engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null");
-    assert.equal(r.code, 2);
-    assert.match(r.stderr, /dispatch\.methodology\.effort/);
-  });
 });
 
 test("every resolver validates the whole dispatch tree: a typo'd lane elsewhere exits 2", () => {
-  const body = `${ENGINE_OLLAMA}models:\n  methodology: engine:local\ndispatch:\n  biuld:\n    model: opus\n`;
+  const body = `${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:local\n  biuld:\n    model: opus\n`;
   withConfig(body, (dir) => {
-    for (const args of [["dispatch", "resolve", "spec"], ["models", "build-for"], ["effort", "build-for"], ["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"]]) {
+    for (const args of [["dispatch", "resolve", "spec"], ["dispatch", "resolve", "build"], ["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"]]) {
       const r = cli(dir, ...args);
       assert.equal(r.code, 2, args.join(" "));
       assert.match(r.stderr, /unknown dispatch lane biuld/, args.join(" "));
     }
-  });
-});
-
-test("a dispatch leaf over a non-map old-tree parent exits 2 naming the old-tree key", () => {
-  withConfig("models:\n  build_by_tier: opus\ndispatch:\n  build:\n    by_tier:\n      complex:\n        model: haiku\n", (dir) => {
-    const r = cli(dir, "dispatch", "resolve", "build");
-    assert.equal(r.code, 2);
-    assert.match(r.stderr, /models\.build_by_tier/);
   });
 });
 
@@ -217,7 +190,7 @@ test("dispatch effort by confidence in a file fails every resolver (ADR-0108)", 
   });
 });
 
-test("config resolved prints dispatch lines only for set values, with the FAFF-1198 annotation off the build lane", () => {
+test("config resolved prints dispatch lines only for set values, annotating unapplied effort", () => {
   const body = [
     "dispatch:", "  spec:", "    effort: low",
     "  build:", "    model: sonnet",
@@ -225,15 +198,15 @@ test("config resolved prints dispatch lines only for set values, with the FAFF-1
     "    by_confidence:", "      medium:", "        model: haiku", "      low:", "        model: haiku",
     "  methodology:", "    effort: high", "",
   ].join("\n");
-  withConfig(`${ENGINE_OLLAMA}models:\n  intake: engine:local\n${body}  intake:\n    effort: low\n`, (dir) => {
+  withConfig(`${ENGINE_OLLAMA}${body}  intake:\n    model: engine:local\n    effort: low\n`, (dir) => {
     const lines = cli(dir, "config", "resolved").stdout.split("\n").filter((l) => l.startsWith("dispatch "));
-    const note = " (not yet read at subagent dispatch sites; FAFF-1198)";
+    const note = NOT_APPLIED_NOTE;
     assert.deepEqual(lines, [
       "dispatch build: model=sonnet",
       `dispatch spec: effort=low${note}`,
       `dispatch methodology: effort=high${note}`,
-      "dispatch intake: effort=low",
-      "dispatch build.by_tier.complex: model=opus effort=high",
+      "dispatch intake: model=engine:local effort=low",
+      `dispatch build.by_tier.complex: model=opus effort=high${note}`,
       "dispatch build.by_confidence.medium: model=haiku",
     ]);
   });
@@ -248,28 +221,144 @@ test("config resolved flags an invalid dispatch tree instead of staying silent",
 });
 
 test("with no dispatch key the config resolved banner gains no line", () => {
-  withConfig("models:\n  spec: opus\n", (dir) => {
+  withConfig("tracking:\n  team_key: X\n", (dir) => {
     assert.ok(!cli(dir, "config", "resolved").stdout.includes("dispatch"));
   });
 });
 
-test("the overlay never mutates the loaded config, and repeated resolves agree", () => {
-  const cfg = {
-    models: { build_by_tier: { complex: "opus" }, build_by_confidence: { high: "sonnet" } },
-    effort: { build_by_tier: { complex: "low" } },
-    dispatch: { build: { by_tier: { complex: { model: "haiku", effort: "high" } }, by_confidence: { high: { model: "fable" } } } },
-  };
-  const before = JSON.stringify(cfg);
-  const first = resolveDispatch(cfg, "build", { tier: "complex", confidence: "high" });
-  const second = resolveDispatch(cfg, "build", { tier: "complex", confidence: "high" });
-  assert.equal(JSON.stringify(cfg), before);
-  assert.deepEqual(first, second);
-  assert.deepEqual(first, { model: "haiku", effort: "high" });
-  assert.equal(effectiveView(cfg).view.models.build_by_confidence.high, "fable");
-  assert.equal(cfg.models.build_by_confidence.high, "sonnet");
+const LANES = ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr"];
+
+test("config get and config set exit 2 for every removed key, naming the dispatch replacement, whether or not it is set", () => {
+  const cases = [
+    ...LANES.map((lane) => [`models.${lane}`, `dispatch.${lane}.model`]),
+    ...LANES.map((lane) => [`effort.${lane}`, `dispatch.${lane}.effort`]),
+    ["models.build_by_confidence.high", "dispatch.build.by_confidence.high.model"],
+    ["models.build_by_confidence.default", "dispatch.build.by_confidence.default.model"],
+    ["models.build_by_tier.complex", "dispatch.build.by_tier.complex.model"],
+    ["effort.build_by_tier.complex", "dispatch.build.by_tier.complex.effort"],
+    ["models", "dispatch.<lane>.model"],
+    ["effort", "dispatch.<lane>.effort"],
+    ["models.build_by_tier", "dispatch.<lane>.model"],
+    ["effort.build_by_confidence.high", "dispatch.<lane>.effort"],
+  ];
+  const unset = [undefined, "models:\n  spec: opus\n  build_by_tier:\n    complex: opus\neffort:\n  build: low\n  build_by_tier:\n    complex: low\n"];
+  for (const body of unset) {
+    withConfig(body, (dir) => {
+      for (const [removed, replacement] of cases) {
+        const get = cli(dir, "config", "get", removed);
+        assert.equal(get.code, 2, `get ${removed}`);
+        assert.ok(get.stderr.includes(replacement), `get ${removed}: ${get.stderr}`);
+        const set = cli(dir, "config", "set", removed, "low");
+        assert.equal(set.code, 2, `set ${removed}`);
+        assert.ok(set.stderr.includes(replacement), `set ${removed}: ${set.stderr}`);
+      }
+    });
+  }
 });
 
-test("effectiveView returns the loaded config itself when there is no dispatch key", () => {
-  const cfg = { models: { build: "opus" } };
-  assert.equal(effectiveView(cfg).view, cfg);
+test("the eval keys keep their moved-to message and removedKeyError leaves other keys alone", () => {
+  assert.match(removedKeyError("models.eval"), /moved to eval\.model/);
+  assert.match(removedKeyError("effort.eval"), /moved to eval\.effort/);
+  for (const key of ["dispatch.spec.model", "eval.model", "tracking.repo", "modelsfoo", "effortive"]) assert.equal(removedKeyError(key), null, key);
+});
+
+test("config unset removes a legacy tree, including an empty header, and is never refused as a removed key", () => {
+  withConfig("models:\n  adr: sonnet\neffort:\ntracking:\n  repo: a/b\n", (dir) => {
+    assert.equal(cli(dir, "config", "unset", "models").code, 0);
+    assert.equal(cli(dir, "config", "unset", "effort").code, 0);
+    assert.equal(readFileSync(path.join(dir, ".faffrc.yaml"), "utf8"), "tracking:\n  repo: a/b\n");
+  });
+  withConfig("tracking:\n  repo: a/b\n", (dir) => {
+    writeFileSync(path.join(dir, ".faffrc.local.yaml"), "effort:\n");
+    assert.equal(cli(dir, "config", "unset", "effort", "--local").code, 0);
+  });
+});
+
+test("legacyTreeError names the file, each leaf with its replacement and the exact unset command", () => {
+  const base = { file: ".faffrc.yaml", local: false, doc: { models: { prep_explore: "sonnet", build_by_tier: { complex: "opus" } }, effort: { spec: "low" } } };
+  const overlay = { file: ".faffrc.local.yaml", local: true, doc: { effort: null } };
+  assert.equal(
+    legacyTreeError([base, overlay]),
+    ".faffrc.yaml still holds the removed models: tree (ADR-0134); set models.prep_explore -> dispatch.prep_explore.model, models.build_by_tier.complex -> dispatch.build.by_tier.complex.model, then run `faff config unset models`."
+    + " .faffrc.yaml still holds the removed effort: tree (ADR-0134); set effort.spec -> dispatch.spec.effort, then run `faff config unset effort`."
+    + " .faffrc.local.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort --local`.",
+  );
+  assert.equal(legacyTreeError([{ file: ".faffrc.yaml", local: false, doc: { tracking: {} } }]), null);
+});
+
+test("a legacy tree in the base makes every resolver exit 2, and the named command clears it", () => {
+  withConfig(`${ENGINE_OLLAMA}models:\n  prep_explore: sonnet\n  adr: sonnet\n`, (dir) => {
+    for (const args of [["dispatch", "resolve", "prep_explore"], ["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"]]) {
+      const r = cli(dir, ...args);
+      assert.equal(r.code, 2, args.join(" "));
+      assert.match(r.stderr, /\.faffrc\.yaml still holds the removed models: tree/);
+      assert.ok(r.stderr.includes("models.prep_explore -> dispatch.prep_explore.model"));
+      assert.ok(r.stderr.includes("models.adr -> dispatch.adr.model"));
+      assert.ok(r.stderr.includes("`faff config unset models`"));
+    }
+    const resolved = cli(dir, "config", "resolved");
+    assert.match(resolved.stdout, /^dispatch: INVALID — .*models\.prep_explore -> dispatch\.prep_explore\.model/m);
+    const check = cli(dir, "config", "check");
+    assert.equal(check.code, 1);
+    assert.match(check.stdout, /ERROR \.faffrc\.yaml: .*models\.adr -> dispatch\.adr\.model/);
+    assert.equal(cli(dir, "config", "set", "dispatch.spec.effort", "low").code, 0, "config set keeps working beside a legacy tree");
+    assert.equal(cli(dir, "config", "get", "tracking.repo").code, 3, "config get of a non-removed key keeps working");
+    assert.equal(cli(dir, "config", "unset", "models").code, 0);
+    assert.equal(cli(dir, "dispatch", "resolve", "prep_explore").code, 0);
+    assert.equal(cli(dir, "config", "check").code, 0);
+  });
+});
+
+test("an empty effort: header is a legacy tree: exit 2 with no set clause, cleared by unset", () => {
+  withConfig("effort:\n", (dir) => {
+    const r = cli(dir, "dispatch", "resolve", "spec");
+    assert.equal(r.code, 2);
+    assert.ok(r.stderr.includes(".faffrc.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort`."), r.stderr);
+    assert.doesNotMatch(r.stderr, /set .* -> /);
+    assert.equal(cli(dir, "config", "unset", "effort").code, 0);
+    assert.equal(cli(dir, "dispatch", "resolve", "spec").code, 0);
+  });
+});
+
+test("a legacy tree in the overlay names .faffrc.local.yaml and the --local command", () => {
+  withConfig("tracking:\n  repo: a/b\n", (dir) => {
+    writeFileSync(path.join(dir, ".faffrc.local.yaml"), "models:\n  spec: opus\n");
+    const r = cli(dir, "dispatch", "resolve", "spec");
+    assert.equal(r.code, 2);
+    assert.ok(r.stderr.includes(".faffrc.local.yaml still holds the removed models: tree"));
+    assert.ok(r.stderr.includes("`faff config unset models --local`"));
+    assert.equal(cli(dir, "config", "unset", "models", "--local").code, 0);
+    assert.equal(cli(dir, "dispatch", "resolve", "spec").code, 0);
+  });
+});
+
+test("the resolvers also refuse a merged legacy tree, naming both unset commands", () => {
+  assert.match(resolveDispatch({ models: { spec: "opus" } }, "spec").error, /faff config unset models.*faff config unset effort/);
+  assert.match(resolveDispatch({ effort: null }, "build").error, /faff config unset effort/);
+});
+
+test("config resolved annotates every Agent-dispatched effort and no engine lane's", () => {
+  withConfig(`${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:local\n    effort: high\n  spec:\n    effort: low\n  prep_explore:\n    effort: inherit\n`, (dir) => {
+    const lines = cli(dir, "config", "resolved").stdout.split("\n").filter((l) => l.startsWith("dispatch "));
+    assert.deepEqual(lines, [
+      "dispatch prep_explore: effort=inherit",
+      `dispatch spec: effort=low${NOT_APPLIED_NOTE}`,
+      "dispatch methodology: model=engine:local effort=high",
+    ]);
+  });
+});
+
+test("faff models and faff effort are unknown commands", () => {
+  for (const verb of ["models", "effort"]) {
+    const r = cli(undefined, verb, "build-for");
+    assert.notEqual(r.code, 0, verb);
+  }
+  assert.doesNotMatch(cli(undefined, "--help").stdout + cli(undefined, "--help").stderr, /\bmodels\b.*build-for|\beffort\b.*build-for/);
+});
+
+test("legacyTreeError maps the eval leaves to their eval: keys instead of dropping them", () => {
+  const doc = { models: { adr: "sonnet", eval: "x" }, effort: { eval: "low" } };
+  const message = legacyTreeError([{ file: ".faffrc.yaml", local: false, doc }]);
+  assert.ok(message.includes("models.adr -> dispatch.adr.model, models.eval -> eval.model, then run `faff config unset models`."), message);
+  assert.ok(message.includes("effort.eval -> eval.effort"), message);
 });

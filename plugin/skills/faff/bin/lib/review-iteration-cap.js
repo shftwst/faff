@@ -8,7 +8,7 @@
 // instead of stating a per-appetite integer of its own, and the reviewer's table is
 // annotated as materialized by this same resolver — so the two representations can never
 // silently disagree again. PURE (no tracker/network/file writes — parity with
-// eligible/models build-for): the appetite is passed in by the caller (already resolved
+// eligible/dispatch resolve): the appetite is passed in by the caller (already resolved
 // via `faff config get appetite`), never re-resolved here.
 // ===========================================================================
 
@@ -24,7 +24,7 @@ const LEGAL_SET = Array.from(VALID_APPETITES).join(" | ");
 
 // resolveReviewIterationCap(appetite) -> { cap } | { error }
 // Case-insensitive; an absent/unrecognised appetite is a usage fault (fail-loud,
-// never a silent default) — mirrors `models build-for`'s invalid-token shape.
+// never a silent default) — mirrors `dispatch resolve`'s invalid-token shape.
 function resolveReviewIterationCap(appetite) {
   const key = appetite != null ? String(appetite).trim().toLowerCase() : "";
   if (!key || !Object.prototype.hasOwnProperty.call(APPETITE_CAP, key)) {
@@ -64,7 +64,7 @@ function reviewIterationCapSelftest() {
 
 // `faff review-iteration-cap --appetite <low|medium|high|full>` — print the resolved
 // integer cap on stdout, exit 0. Absent/unrecognised appetite: nothing on stdout, the
-// legal set named on stderr, exit 2 (fail-loud, parity with `models build-for`).
+// legal set named on stderr, exit 2 (fail-loud, parity with `dispatch resolve`).
 const { parseArgs, usageError } = require("./argv");
 const REVIEW_ITERATION_CAP_SPEC = { flags: { "--selftest": { arity: 0 }, "--appetite": { arity: 1 } } };
 const REVIEW_ITERATION_CAP_USAGE = "usage: faff review-iteration-cap --appetite low|medium|high|full";

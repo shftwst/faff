@@ -1,9 +1,9 @@
-// FAFF-315 — per-lane model selection: the `models:` config surface.
-// Covers: registry defaults resolve (inherit/inherit/claude-sonnet-4-6); the closed
-// Agent-token vocabulary fails LOUD (exit 2, names the value + legal set) on an invalid
-// build/prep_explore token — never a silent inherit; eval.model stays open-vocabulary;
-// `config resolved` echoes a non-default lane model; and the eval frontier driver's
-// flag > config > pinned-default precedence (pure, no live model call).
+// Per-lane model selection through the `dispatch:` tree (FAFF-315 lanes, FAFF-1198 form).
+// Covers: an unset lane resolves to inherit; the closed Agent-token vocabulary fails LOUD
+// (exit 2, names the value + legal set) on an invalid token — never a silent inherit;
+// `config resolved` echoes a non-default lane model; the build-model chain
+// (by_tier -> by_confidence -> scalar -> inherit); eval.model stays open-vocabulary; and the
+// eval frontier driver's flag > config > pinned-default precedence (pure, no live model call).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -20,66 +20,71 @@ function fixtureDir(faffrcBody) {
   return dir;
 }
 
-test("models.* and eval.model registry defaults resolve with no config (inherit / inherit / pinned eval)", () => {
+const resolve = (dir, lane, ...flags) => runCli(["dispatch", "resolve", lane, ...flags], { cwd: dir });
+const resolved = (dir, lane, ...flags) => {
+  const r = resolve(dir, lane, ...flags);
+  assert.equal(r.code, 0, r.stderr);
+  return JSON.parse(r.stdout);
+};
+const LEGAL_MODELS = /inherit \| sonnet \| opus \| haiku \| fable/;
+
+test("an unset dispatch lane resolves to inherit; eval.model resolves its pinned default", () => {
   const dir = fixtureDir(); // no .faffrc at all
   try {
-    for (const [key, want] of [["models.build", "inherit"], ["models.prep_explore", "inherit"], ["eval.model", "claude-sonnet-4-6"]]) {
-      const r = runCli(["config", "get", key], { cwd: dir });
-      assert.equal(r.code, 0, `${key} exit`);
-      assert.equal(r.stdout.trim(), want, key);
-    }
+    for (const lane of ["build", "prep_explore"]) assert.deepEqual(resolved(dir, lane), { model: "inherit", effort: "inherit" }, lane);
+    const r = runCli(["config", "get", "eval.model"], { cwd: dir });
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout.trim(), "claude-sonnet-4-6");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("config defaults --selftest covers the models.* family + vocab table", () => {
+test("config defaults --selftest covers the dispatch vocabulary", () => {
   const r = runCli(["config", "defaults", "--selftest"]);
   assert.equal(r.code, 0, r.stderr);
 });
 
 test("a configured Agent-token resolves; an invalid token fails loud (exit 2, names value + legal set)", () => {
-  const dir = fixtureDir("models:\n  build: sonnet\n  prep_explore: gpt-5\n");
+  const good = fixtureDir("dispatch:\n  build:\n    model: sonnet\n");
+  const dir = fixtureDir("dispatch:\n  prep_explore:\n    model: gpt-5\n");
   try {
-    const ok = runCli(["config", "get", "models.build"], { cwd: dir });
-    assert.equal(ok.code, 0);
-    assert.equal(ok.stdout.trim(), "sonnet");
-    const bad = runCli(["config", "get", "models.prep_explore"], { cwd: dir });
+    assert.equal(resolved(good, "build").model, "sonnet");
+    const bad = resolve(dir, "prep_explore");
     assert.equal(bad.code, 2, "invalid token must exit 2 (fail-loud), not silently inherit");
     assert.match(bad.stderr, /gpt-5/, "message names the bad value");
     assert.match(bad.stderr, /sonnet \| opus \| haiku \| fable/, "message names the legal set");
     assert.equal(bad.stdout.trim(), "", "no value on stdout for an invalid token");
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+    const read = runCli(["config", "get", "dispatch.prep_explore.model"], { cwd: dir });
+    assert.equal(read.code, 2, "the raw read refuses the same token");
+  } finally { for (const d of [good, dir]) rmSync(d, { recursive: true, force: true }); }
 });
 
-test("FAFF-372: producer lanes (spec / spec_review / methodology / intake) default to inherit", () => {
+test("producer lanes (spec / spec_review / methodology / intake) default to inherit", () => {
   const dir = fixtureDir(); // no .faffrc
   try {
-    for (const key of ["models.spec", "models.spec_review", "models.methodology", "models.intake"]) {
-      const r = runCli(["config", "get", key], { cwd: dir });
-      assert.equal(r.code, 0, `${key} exit`);
-      assert.equal(r.stdout.trim(), "inherit", key);
+    for (const lane of ["spec", "spec_review", "methodology", "intake"]) {
+      assert.equal(resolved(dir, lane).model, "inherit", lane);
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("FAFF-372: a producer lane resolves a valid token and fails loud on an invalid one (exit 2)", () => {
-  const dir = fixtureDir("models:\n  spec: opus\n  spec_review: gpt-5\n");
+test("a producer lane resolves a valid token and fails loud on an invalid one (exit 2)", () => {
+  const good = fixtureDir("dispatch:\n  spec:\n    model: opus\n");
+  const dir = fixtureDir("dispatch:\n  spec_review:\n    model: gpt-5\n");
   try {
-    const ok = runCli(["config", "get", "models.spec"], { cwd: dir });
-    assert.equal(ok.code, 0);
-    assert.equal(ok.stdout.trim(), "opus");
-    const bad = runCli(["config", "get", "models.spec_review"], { cwd: dir });
+    assert.equal(resolved(good, "spec").model, "opus");
+    const bad = resolve(dir, "spec_review");
     assert.equal(bad.code, 2, "invalid producer-lane token must exit 2 (fail-loud), not silently inherit");
     assert.match(bad.stderr, /gpt-5/, "message names the bad value");
-    assert.match(bad.stderr, /inherit \| sonnet \| opus \| haiku \| fable/, "message names the legal set");
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+    assert.match(bad.stderr, LEGAL_MODELS, "message names the legal set");
+  } finally { for (const d of [good, dir]) rmSync(d, { recursive: true, force: true }); }
 });
 
-test("FAFF-372: config resolved echoes a non-default producer lane", () => {
-  const dir = fixtureDir("models:\n  methodology: opus\n");
+test("config resolved echoes a non-default producer lane", () => {
+  const dir = fixtureDir("dispatch:\n  methodology:\n    model: opus\n");
   try {
     const r = runCli(["config", "resolved"], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stdout, /model methodology: opus/);
+    assert.match(r.stdout, /dispatch methodology: model=opus/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -112,12 +117,12 @@ test("models.eval and effort.eval moved to the eval block: reads and writes fail
   } finally { for (const d of [unset, legacy]) rmSync(d, { recursive: true, force: true }); }
 });
 
-test("config resolved echoes non-default models.* (a pinned model is visible, never silent)", () => {
-  const dir = fixtureDir("models:\n  build: haiku\n");
+test("config resolved echoes a non-default dispatch model (a pinned model is visible, never silent)", () => {
+  const dir = fixtureDir("dispatch:\n  build:\n    model: haiku\n");
   try {
     const r = runCli(["config", "resolved"], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stdout, /model build: haiku/);
+    assert.match(r.stdout, /dispatch build: model=haiku/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -170,91 +175,105 @@ test("resolveEvalModel real spawn path resolves the registry default (no shell i
   }
 });
 
-// ── FAFF-334: per-issue build-model routing (`models.build_by_confidence` matcher) ──
+// ── per-issue build-model routing (`dispatch.build.by_confidence` matcher, FAFF-334) ──
 
-const MATCHER = "models:\n  build: opus\n  build_by_confidence:\n    default: opus\n    high: sonnet\n    medium: opus\n";
+const MATCHER = "dispatch:\n  build:\n    model: opus\n    by_confidence:\n      default:\n        model: opus\n      high:\n        model: sonnet\n      medium:\n        model: opus\n";
 
-test("models.build_by_confidence nested leaves resolve via config get", () => {
+test("dispatch.build.by_confidence nested leaves resolve via config get", () => {
   const dir = fixtureDir(MATCHER);
   try {
     for (const [leaf, want] of [["default", "opus"], ["high", "sonnet"], ["medium", "opus"]]) {
-      const r = runCli(["config", "get", `models.build_by_confidence.${leaf}`], { cwd: dir });
+      const r = runCli(["config", "get", `dispatch.build.by_confidence.${leaf}.model`], { cwd: dir });
       assert.equal(r.code, 0, `${leaf} exit`);
       assert.equal(r.stdout.trim(), want, leaf);
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("config resolved echoes the build_by_confidence matcher (a routing config is never silent)", () => {
+test("config resolved echoes the by_confidence matcher (a routing config is never silent)", () => {
   const dir = fixtureDir(MATCHER);
   try {
     const r = runCli(["config", "resolved"], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stdout, /model build_by_confidence\.high: sonnet/);
-    assert.match(r.stdout, /model build_by_confidence\.medium: opus/);
+    assert.match(r.stdout, /dispatch build\.by_confidence\.high: model=sonnet/);
+    assert.match(r.stdout, /dispatch build\.by_confidence\.medium: model=opus/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("an invalid matcher-leaf token fails loud at read (exit 2, names value + legal set)", () => {
-  const dir = fixtureDir("models:\n  build_by_confidence:\n    high: gpt-5\n");
+  const dir = fixtureDir("dispatch:\n  build:\n    by_confidence:\n      high:\n        model: gpt-5\n");
   try {
-    const bad = runCli(["config", "get", "models.build_by_confidence.high"], { cwd: dir });
+    const bad = runCli(["config", "get", "dispatch.build.by_confidence.high.model"], { cwd: dir });
     assert.equal(bad.code, 2, "invalid matcher token must exit 2, not silently inherit");
     assert.match(bad.stderr, /gpt-5/);
     assert.match(bad.stderr, /sonnet \| opus \| haiku \| fable/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("faff models build-for resolves per confidence from the matcher", () => {
+test("dispatch resolve build resolves per confidence from the matcher", () => {
   const dir = fixtureDir(MATCHER);
   try {
-    assert.equal(runCli(["models", "build-for", "high"], { cwd: dir }).stdout.trim(), "sonnet");
-    assert.equal(runCli(["models", "build-for", "medium"], { cwd: dir }).stdout.trim(), "opus");
+    assert.equal(resolved(dir, "build", "--confidence", "high").model, "sonnet");
+    assert.equal(resolved(dir, "build", "--confidence", "medium").model, "opus");
     // unknown / low confidence → the default bucket (never guesses high)
-    assert.equal(runCli(["models", "build-for", "low"], { cwd: dir }).stdout.trim(), "opus");
-    assert.equal(runCli(["models", "build-for", "zzz"], { cwd: dir }).stdout.trim(), "opus");
+    assert.equal(resolved(dir, "build", "--confidence", "low").model, "opus");
+    assert.equal(resolved(dir, "build", "--confidence", "zzz").model, "opus");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("faff models build-for fallback precedence: leaf → default → scalar → inherit", () => {
+test("dispatch resolve build fallback precedence: leaf → default → scalar → inherit", () => {
   // no leaf, no default, has scalar → scalar
-  let dir = fixtureDir("models:\n  build: haiku\n  build_by_confidence:\n    high: sonnet\n");
+  let dir = fixtureDir("dispatch:\n  build:\n    model: haiku\n    by_confidence:\n      high:\n        model: sonnet\n");
   try {
-    assert.equal(runCli(["models", "build-for", "medium"], { cwd: dir }).stdout.trim(), "haiku");
+    assert.equal(resolved(dir, "build", "--confidence", "medium").model, "haiku");
   } finally { rmSync(dir, { recursive: true, force: true }); }
   // matcher present but nothing matches and no scalar → inherit
-  dir = fixtureDir("models:\n  build_by_confidence:\n    high: sonnet\n");
+  dir = fixtureDir("dispatch:\n  build:\n    by_confidence:\n      high:\n        model: sonnet\n");
   try {
-    assert.equal(runCli(["models", "build-for", "medium"], { cwd: dir }).stdout.trim(), "inherit");
+    assert.equal(resolved(dir, "build", "--confidence", "medium").model, "inherit");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("faff models build-for fails loud on an invalid resolved token", () => {
-  const dir = fixtureDir("models:\n  build_by_confidence:\n    high: gpt-5\n");
+test("a capitalised matcher leaf key (High:) resolves case-insensitively", () => {
+  const dir = fixtureDir("dispatch:\n  build:\n    by_confidence:\n      High:\n        model: sonnet\n      default:\n        model: opus\n");
   try {
-    const bad = runCli(["models", "build-for", "high"], { cwd: dir });
+    assert.equal(resolved(dir, "build", "--confidence", "high").model, "sonnet");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("dispatch resolve build fails loud on an invalid resolved token", () => {
+  const dir = fixtureDir("dispatch:\n  build:\n    by_confidence:\n      high:\n        model: gpt-5\n");
+  try {
+    const bad = resolve(dir, "build", "--confidence", "high");
     assert.equal(bad.code, 2);
     assert.match(bad.stderr, /gpt-5/);
     assert.match(bad.stderr, /sonnet \| opus \| haiku \| fable/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("matcher absent ⇒ build-for == config get models.build (byte-for-byte FAFF-315)", () => {
-  const dir = fixtureDir("models:\n  build: sonnet\n");   // scalar only, no matcher
+test("an invalid matcher leaf fails loud even for a confidence that never resolves to it", () => {
+  const dir = fixtureDir("dispatch:\n  build:\n    by_confidence:\n      high:\n        model: gpt-5\n      default:\n        model: opus\n");
   try {
-    const scalar = runCli(["config", "get", "models.build"], { cwd: dir }).stdout.trim();
-    const bf = runCli(["models", "build-for", "high"], { cwd: dir }).stdout.trim();
-    assert.equal(bf, scalar, "with no matcher the per-issue resolver equals the per-run scalar");
-    assert.equal(bf, "sonnet");
+    assert.equal(resolve(dir, "build", "--confidence", "medium").code, 2);
   } finally { rmSync(dir, { recursive: true, force: true }); }
-  // no models block at all → inherit
+});
+
+test("matcher absent ⇒ build resolves to the scalar dispatch.build.model", () => {
+  const dir = fixtureDir("dispatch:\n  build:\n    model: sonnet\n");   // scalar only, no matcher
+  try {
+    const scalar = runCli(["config", "get", "dispatch.build.model"], { cwd: dir }).stdout.trim();
+    const viaChain = resolved(dir, "build", "--confidence", "high").model;
+    assert.equal(viaChain, scalar, "with no matcher the per-issue resolver equals the per-run scalar");
+    assert.equal(viaChain, "sonnet");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+  // no dispatch block at all → inherit
   const dir2 = fixtureDir("tracking:\n  team_key: X\n");
   try {
-    assert.equal(runCli(["models", "build-for", "high"], { cwd: dir2 }).stdout.trim(), "inherit");
+    assert.equal(resolved(dir2, "build", "--confidence", "high").model, "inherit");
   } finally { rmSync(dir2, { recursive: true, force: true }); }
 });
 
-test("models --selftest passes (resolver + matcher-leaf validation table)", () => {
-  const r = runCli(["models", "--selftest"]);
+test("dispatch --selftest passes (resolver + matcher-leaf validation table)", () => {
+  const r = runCli(["dispatch", "--selftest"]);
   assert.equal(r.code, 0, r.stderr);
 });

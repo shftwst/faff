@@ -104,25 +104,31 @@ slots:
   routing_adaptor: # assigns + displays the automation-routing verdict; the six verdicts + admission rule are fixed in the gateway (default: faffidavit-routing)
   rendering_adaptor: # pure adaptor, no internal contract — house output style: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-rendering)
 
-# Per-lane model selection (FAFF-315/372). Optional; every key optional. Unset ⇒ each
-# dispatch inherits the session/account model exactly as today (byte-for-byte).
-# Only dispatch points that can actually consume a model appear here — a slot invoked
-# inline via the Skill tool inherits the session model and cannot take a per-slot model.
-# Every lane takes the CLOSED Agent-token set (sonnet | opus | haiku | fable,
-# plus inherit); an off-vocabulary value FAILS LOUD at read (never a silent inherit).
-# methodology / intake may ALSO take engine:<name> (FAFF-422 — the v1 pure-data-in
-# allowlist), resolving the top-level engines: map below and dispatching via
-# `faff engine call` instead of an Agent-tool subagent; any other lane given an
-# engine: value fails loud at read naming the allowlist. The eval harness is not a lane:
-# its settings live in the eval: block below.
-models:
-  build: # Agent-token — the concurrency executors' build subagents (default: inherit)
-  prep_explore: # Agent-token — faff-prep's explore + clean-context verify subagents (default: inherit)
-  spec: # Agent-token — the spec producer subagent (default: inherit)
-  spec_review: # Agent-token — the spec-review producer subagent (default: inherit)
-  architecture: # Agent-token — the architecture proposer subagent (default: inherit)
-  methodology: # Agent-token or engine:<name> — the methodology producer dispatches (default: inherit)
-  intake: # Agent-token or engine:<name> — the intake producer dispatch (default: inherit)
+# Per-lane model and reasoning effort (dispatch:). Optional; every key optional. Unset ⇒ each
+# dispatch inherits the session/account model and effort (the parameter is omitted).
+# Eight lanes: build, prep_explore, spec, spec_review, methodology, intake, architecture, adr.
+# Each lane takes `model` (sonnet | opus | haiku | fable | inherit) and `effort`
+# (low | medium | high | xhigh | max | inherit); an off-vocabulary value FAILS LOUD (never a
+# silent inherit). methodology / intake may ALSO take model: engine:<name> (the v1 pure-data-in
+# allowlist), resolving the top-level engines: map below and dispatching via `faff engine call`,
+# which applies the lane's effort itself. On an Agent-tool dispatch the effort is recorded in the
+# run log and not applied (the Agent tool has no effort parameter). Skills read a lane with
+# `faff dispatch resolve <lane>`. The eval harness is not a lane: see the eval: block below.
+# Examples (write them with `faff config set dispatch.<lane>.<field> <value>`):
+#   spec:
+#     effort: low
+#   methodology:
+#     model: engine:studio
+#   build:
+#     model: sonnet            # scalar fallback for every build dispatch
+#     by_tier:                 # mechanical | standard | complex | default; model and effort
+#       complex:
+#         model: opus
+#         effort: high
+#     by_confidence:           # default | high | medium; model only (no effort by confidence)
+#       medium:
+#         model: sonnet
+dispatch:
 
 # The eval harness (ADR-0133). Not a dispatch lane: these settings feed eval/run-evals.mjs only,
 # and the run's --model / --effort flags override them. Both are part of a baseline's lineage,
@@ -143,7 +149,7 @@ eval:
 # tailscale (*.ts.net) host → local egress, else external. provider: anthropic is accepted
 # HERE (needed to name a subscription/API Claude endpoint) but still REFUSED at the
 # `faff engine call` consumer boundary (that transport has no anthropic support — use the
-# Agent-token models.<lane> vocabulary for Claude lanes instead).
+# Agent-token dispatch.<lane>.model vocabulary for Claude lanes instead).
 # backends:
 #   nvidia-glm:
 #     provider: nvidia
@@ -173,7 +179,7 @@ eval:
 # --refs a,b,c` prints the resolved chain as JSON.
 
 # Named local/self-hosted engines (FAFF-422). Referenced by an engine:<name> lane value
-# above (v1: models.methodology / models.intake only). One definition serves many lanes.
+# above (v1: dispatch.methodology.model / dispatch.intake.model only). One definition serves many lanes.
 # provider families: ollama, or the openai-compatible aliases (openai | vllm | openrouter |
 # nvidia | deepseek | openai-compatible | gemini) — provider: anthropic is REFUSED at THIS
 # consumer (Anthropic models are what the Agent-token vocabulary is for), even though the

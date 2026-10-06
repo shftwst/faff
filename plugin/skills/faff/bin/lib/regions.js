@@ -320,7 +320,6 @@ const REGION_MAP = {
   "lights-out": "factory",
   "gates": "factory",
   "contract": "factory",
-  "models": "factory",
   "doctor": "factory",
   "worktree-check": "factory",
   // worktree-heal — FAFF-1114: self-heal a clobbered graft worktree (recreate the pruned
@@ -372,10 +371,10 @@ const REGION_MAP = {
   // governance-check/merge-gate, factory for the identical reason.
   "landing-comment": "factory",
   // FAFF-261: mechanical adversarial-backends assembly reads config via loadConfig/dig
-  // (factory identifiers, config.js) — same family as config/eligible/models → factory.
+  // (factory identifiers, config.js) — same family as config/eligible → factory.
   "adversarial-backends": "factory",
   // FAFF-341: review-iteration-cap requires config.js's VALID_APPETITES (factory identifier,
-  // same family as models/eligible) → factory.
+  // same family as eligible) → factory.
   "review-iteration-cap": "factory",
   // FAFF-523: backends reads config via loadConfig (factory identifier, config.js) for its
   // resolve/realizable subcommands — same family as adversarial-backends/engine → factory.
@@ -431,12 +430,8 @@ const REGION_MAP = {
   // reference — same shape as spec-review-churn) — factory, same family as the other small
   // deterministic CLI resolvers.
   "tier": "factory",
-  // FAFF-417: effort (build-effort-by-tier resolution) references config.js's shared
-  // vocab/validation/config-load machinery (factory identifiers) — same family as
-  // models/eligible → factory. factory -> factory is a legal require edge (ADR-0042).
-  "effort": "factory",
-  // FAFF-1197: dispatch (the one dispatch: tree's resolver verb) requires config.js and
-  // effort.js — factory -> factory, legal under ADR-0042.
+  // FAFF-1197: dispatch (the one dispatch: tree's resolver verb) requires config.js —
+  // factory -> factory, legal under ADR-0042.
   "dispatch": "factory",
 };
 
@@ -553,7 +548,6 @@ const REGION_SELFTEST_ARGV = {
   "lights-out": ["lights-out", "--selftest"],
   "gates": ["gates", "--selftest"],
   "contract": ["contract", "--selftest"],
-  "models": ["models", "--selftest"],
   "doctor": null,
   "worktree-check": ["worktree-check", "--selftest"],
   "worktree-heal": ["worktree-heal", "--selftest"],
@@ -601,7 +595,6 @@ const REGION_SELFTEST_ARGV = {
   // test/build-judge-evidence.test.mjs, declared in lint-cli-coverage's TEST_FILE_COVERAGE).
   "build-judge-evidence": null,
   "tier": ["tier", "--selftest"],
-  "effort": ["effort", "--selftest"],
   "dispatch": ["dispatch", "--selftest"],
 };
 

@@ -12,9 +12,6 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { isDeepStrictEqual } = require("node:util");
 const { parseArgs, usageError } = require("./argv");
-// FAFF-417: --tier/--confidence are the flag-form of the (still byte-for-byte) bare
-// positional confidence — `faff models build-for <confidence>` keeps working unchanged.
-const MODELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--tier": { arity: 1 }, "--confidence": { arity: 1 } }, positionals: { min: 0, max: 2, name: "verb confidence" } };
 // Union across every `config` sub-verb (path|get|set|check|init and the docs-path resolvers). The gate
 // rejects unknown flags / missing values; each sub-verb's own body reads the validated flags below.
 const CONFIG_SPEC = { flags: {
@@ -188,33 +185,6 @@ const DEFAULTS = {
   // silent outside a git work tree) | off (skip the git tier entirely).
   "prdr.accept_branch_prefix": "prdr/",
   "prdr.validate_git": "auto",
-  // FAFF-315: per-lane model selection. build/prep_explore take the closed Agent-tool token set
-  // (MODEL_LANE_VOCAB below); "inherit" = dispatch with no model param (byte-for-byte today).
-  "models.build": "inherit",
-  "models.prep_explore": "inherit",
-  // FAFF-372: per-producer model lanes for the migrated interactive prep/jot producer subagents
-  // (spec / methodology / spec_review / intake). Same closed Agent-token set as build; "inherit"
-  // omits the model param (byte-for-byte today until a repo pins one).
-  "models.spec": "inherit",
-  "models.spec_review": "inherit",
-  "models.methodology": "inherit",
-  "models.intake": "inherit",
-  // The architecture proposer's producer-subagent dispatch lane (faff-prep's conditional
-  // architecture step) — same closed Agent-token set as the sibling producer lanes.
-  "models.architecture": "inherit",
-  // The ADR-body author's producer-subagent dispatch lane (faff-graft Step 4b) — same closed
-  // Agent-token set as the sibling producer lanes; no effort lane (the body is small, fires rarely).
-  "models.adr": "inherit",
-  // FAFF-416: per-lane reasoning-EFFORT selection — the effort counterpart to the FAFF-315
-  // model lanes. Only the non-prep, subagent-dispatched lanes are tunable: build (concurrency
-  // executors' build subagents), methodology + intake (producer-subagent dispatches). "inherit"
-  // = omit the effort arg = today's dispatch, byte-for-byte. HARD EXCLUSION: prep/spec lanes
-  // (spec / spec_review / prep_explore / architecture) get NO effort lane — prep runs once and
-  // gates the whole pipeline, so it stays pinned; the adversarial judge's effort tuning lives in
-  // its own adversarial engine block (compose-not-subsume). See ADR-0050.
-  "effort.build": "inherit",
-  "effort.methodology": "inherit",
-  "effort.intake": "inherit",
   // ADR-0133: the eval harness's settings, in their own block (eval is not a dispatch lane), read by
   // eval/run-evals.mjs (the --model / --effort flags win). eval.model is the frontier driver's pinned
   // default, never the account default (budget guard); eval.effort "inherit" passes no --effort flag.
@@ -348,28 +318,104 @@ const DEFAULTS = {
   "verification.code_review": "false",
 };
 
-// FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
+// FAFF-315: closed Agent-tool model vocabulary for every dispatch lane. A configured value outside
 // the set fails LOUD at read (exit 2, names the value + legal set) — a misconfigured model must
 // never silently fall back to the session default (the FAFF-50 dropped-slot failure mode).
 // The eval model is not a lane here: it lives at eval.model (open vocabulary, validateEvalKey).
-const MODEL_LANE_VOCAB = {
-  "models.build": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  "models.prep_explore": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  // FAFF-372: migrated interactive producer lanes reuse the build lane's closed Agent-token set.
-  "models.spec": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  "models.spec_review": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  "models.methodology": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  "models.intake": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  "models.architecture": ["inherit", "sonnet", "opus", "haiku", "fable"],
-  "models.adr": ["inherit", "sonnet", "opus", "haiku", "fable"],
-};
-// ADR-0133: eval's settings moved to their own eval: block. The old keys fail loud naming the new one,
-// whether or not they are set.
-const MOVED_KEYS = { "models.eval": "eval.model", "effort.eval": "eval.effort" };
-function movedKeyError(key) {
-  return Object.prototype.hasOwnProperty.call(MOVED_KEYS, key)
-    ? `config ${key}: moved to ${MOVED_KEYS[key]} (eval is not a dispatch lane; ADR-0133)`
+const AGENT_MODEL_TOKENS = ["inherit", "sonnet", "opus", "haiku", "fable"];
+
+// ADR-0134: the `models:` and `effort:` trees are removed; `dispatch:` is the only place a lane's
+// model or effort is set. Eval's keys moved earlier (ADR-0133) and keep their own message.
+const EVAL_MOVED_KEYS = { "models.eval": "eval.model", "effort.eval": "eval.effort" };
+const REMOVED_TREES = ["models", "effort"];
+const REMOVED_KEY_FIELD = { models: "model", effort: "effort" };
+
+// PURE: the `dispatch.` key a removed `models.*` / `effort.*` key maps to, or null for any other key.
+function replacementKey(key) {
+  if (Object.prototype.hasOwnProperty.call(EVAL_MOVED_KEYS, key)) return EVAL_MOVED_KEYS[key];
+  const [tree, ...rest] = String(key).split(".");
+  if (!REMOVED_TREES.includes(tree)) return null;
+  const field = REMOVED_KEY_FIELD[tree];
+  const [head, bucket] = rest;
+  const lowered = bucket === undefined ? undefined : String(bucket).toLowerCase();
+  if (rest.length === 1 && DISPATCH_LANES.includes(head)) return `dispatch.${head}.${field}`;
+  if (rest.length === 2 && head === "build_by_tier") return `dispatch.build.by_tier.${lowered}.${field}`;
+  if (rest.length === 2 && head === "build_by_confidence" && tree === "models") return `dispatch.build.by_confidence.${lowered}.model`;
+  return `the dispatch: tree (dispatch.<lane>.model / dispatch.<lane>.effort)`;
+}
+
+// PURE: the exit-2 message for a read or write of a removed key, or null. Applies to `config get` and
+// `config set` only, never to `config unset` (removing the tree is the fix).
+function removedKeyError(key) {
+  if (Object.prototype.hasOwnProperty.call(EVAL_MOVED_KEYS, key)) {
+    return `config ${key}: moved to ${EVAL_MOVED_KEYS[key]} (eval is not a dispatch lane; ADR-0133)`;
+  }
+  const replacement = replacementKey(key);
+  if (!replacement) return null;
+  return `config ${key}: removed; set ${replacement} instead, then remove the old block with \`faff config unset ${key.split(".")[0]}\` (ADR-0134)`;
+}
+
+// Every dotted leaf under a legacy tree, as { removed, replacement } pairs.
+function legacyLeafPairs(tree, node) {
+  const pairs = [];
+  const walk = (value, parts) => {
+    if (isPlainMap(value)) { for (const [k, v] of Object.entries(value)) walk(v, [...parts, k]); return; }
+    if (isUnset(value)) return;
+    const removed = [tree, ...parts].join(".");
+    pairs.push({ removed, replacement: replacementKey(removed) });
+  };
+  walk(node, []);
+  return pairs;
+}
+
+// PURE: one sentence per (file, legacy tree) across the base and overlay layers, or null.
+// layers: [{ file, local, doc }]. A bare or leafless header counts as a legacy tree.
+function legacyTreeError(layers) {
+  const sentences = [];
+  for (const { file, local, doc } of layers) {
+    if (!isPlainMap(doc)) continue;
+    for (const tree of REMOVED_TREES) {
+      if (!Object.prototype.hasOwnProperty.call(doc, tree)) continue;
+      const pairs = legacyLeafPairs(tree, doc[tree]);
+      const unset = `\`faff config unset ${tree}${local ? " --local" : ""}\``;
+      const setClause = pairs.length
+        ? `set ${pairs.map((p) => `${p.removed} -> ${p.replacement}`).join(", ")}, then run `
+        : "run ";
+      sentences.push(`${file} still holds the removed ${tree}: tree (ADR-0134); ${setClause}${unset}.`);
+    }
+  }
+  return sentences.length ? sentences.join(" ") : null;
+}
+
+// PURE: backstop for in-process callers holding only the merged config.
+function mergedLegacyTreeError(cfg) {
+  const held = REMOVED_TREES.some((tree) => cfg && Object.prototype.hasOwnProperty.call(cfg, tree));
+  return held
+    ? `config still holds a removed ${REMOVED_TREES.join(": / ")}: tree (ADR-0134); run ${REMOVED_TREES.map((t) => `\`faff config unset ${t}\``).join(" and ")}`
     : null;
+}
+
+// PURE: the first step of every resolver. Refuses a legacy tree and an invalid dispatch: tree, then
+// returns the dispatch: map the chains walk. Returns { dispatch } | { error }.
+function prepareDispatch(cfg) {
+  const error = mergedLegacyTreeError(cfg) || validateDispatchTree(cfg);
+  if (error) return { error };
+  return { dispatch: cfg && isPlainMap(cfg.dispatch) ? cfg.dispatch : {} };
+}
+
+// The base and overlay files as separate layers, the shape legacyTreeError reads.
+function readConfigLayers(root) {
+  const layers = [];
+  const basePath = findConfig(root);
+  if (basePath !== null) layers.push({ file: path.basename(basePath), local: false, doc: readBaseConfigStrict(basePath) });
+  const overlayPath = findOverlay(root);
+  if (overlayPath !== null) layers.push({ file: path.basename(overlayPath), local: true, doc: parseOverlayStrict(overlayPath) });
+  return layers;
+}
+
+// Entry-point guard: the legacy-tree message naming the file and exact unset command, or null.
+function legacyTreeGuard(root) {
+  return legacyTreeError(readConfigLayers(root));
 }
 // eval.model is open-vocabulary (`claude -p` validates the id) but never an engine value;
 // eval.effort takes the effort vocabulary.
@@ -386,36 +432,12 @@ function validateEvalKey(key, value) {
   return null;
 }
 const EFFORT_LEVELS_WITH_INHERIT = ["inherit", "low", "medium", "high", "xhigh", "max"];
-function validateModelLane(key, value) {
-  // FAFF-422: an `engine:<name>` lane value selects the out-of-session one-shot transport
-  // (`faff engine call`), legal ONLY on the v1 pure-data-in allowlist. Every other models.*
-  // key — the tool-needing/prep lanes, the matcher leaves, AND the open-vocabulary eval lane —
-  // rejects it at read, naming the allowlist (the read-time half of the capability-mismatch
-  // guard; `faff engine call --lane` is the dispatch-time half). Name existence is checked at
-  // resolution (validateEngineRef), not here — the shape is what the vocabulary admits.
-  if (/^models\./.test(key) && /^engine:/.test(String(value))) {
-    return ENGINE_LANE_KEYS.includes(key) ? null
-      : `config get ${key}: engine values are only legal on ${ENGINE_LANE_KEYS.join(" | ")} (FAFF-422 v1 allowlist — a tool-needing lane can never reach a tool-incapable transport)`;
-  }
-  let vocab = MODEL_LANE_VOCAB[key];
-  // FAFF-334: the per-issue build-model matcher leaves (`models.build_by_confidence.<leaf>`) reuse
-  // the build lane's closed Agent-token set, so an invalid token in the matcher fails loud at
-  // `config get` read time too — never a silent inherit at the per-issue dispatch site.
-  // FAFF-417: `models.build_by_tier.<leaf>` reuses the identical closed set — the tier matcher
-  // is the same build lane, just keyed differently.
-  if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
-  if (!vocab && /^models\.build_by_tier\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
-  if (!vocab || vocab.includes(value)) return null;
-  return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
-}
-
 // FAFF-422: local-engine lane values. The v1 allowlist is exactly the pure-data-in producer
 // lanes (their SKILL.md + payload is self-sufficient — no tool use, no repo access), enforced
-// at read (validateModelLane above) AND at dispatch (`faff engine call --lane`). Engines live
+// at read (validateDispatchKey) AND at dispatch (`faff engine call --lane`). Engines live
 // in a top-level name-keyed `engines:` map so one definition serves many lanes; the lane value
 // stays a scalar (`engine:<name>`) so the closed-vocab machinery extends rather than forks.
 const ENGINE_CALL_LANES = ["methodology", "intake"];
-const ENGINE_LANE_KEYS = ENGINE_CALL_LANES.map((l) => `models.${l}`);
 // Provider families reuse review-call.mjs's whitelist semantics: ollama has its own wire
 // format; most of the rest ride the openai-compatible /v1 shape. `codex` is the first SPAWN
 // family (FAFF-593): its transport is a `codex exec --json` child process, not an HTTP POST.
@@ -452,7 +474,7 @@ function reasoningEffortForTransport(faffLevel) {
     case "high": return "high";
     case "xhigh": return "high";   // clamp to ceiling
     case "max": return "high";     // clamp to ceiling
-    default: return "high";        // defensive: never reached (validateEffortLane gates the vocab)
+    default: return "high";        // defensive: never reached (validateDispatchKey gates the vocab)
   }
 }
 
@@ -479,7 +501,7 @@ function validateEngineRef(cfg, value) {
   if (missing("provider")) return `engines.${name}: missing required field "provider" (an engine needs provider, model, host)`;
   const provider = String(entry.provider).toLowerCase();
   if (provider === "anthropic") {
-    return `engines.${name}: provider "anthropic" is refused — Anthropic models are what the Agent-token vocabulary is for (set models.<lane> to sonnet | opus | haiku | fable instead)`;
+    return `engines.${name}: provider "anthropic" is refused — Anthropic models are what the Agent-token vocabulary is for (set dispatch.<lane>.model to sonnet | opus | haiku | fable instead)`;
   }
   if (!ENGINE_PROVIDER_FAMILY[provider]) {
     return `engines.${name}: unknown provider "${entry.provider}" — legal providers: ${Object.keys(ENGINE_PROVIDER_FAMILY).join(" | ")}`;
@@ -509,38 +531,33 @@ function validateEngineRef(cfg, value) {
 // PURE: resolve an allowlisted lane to its configured engine for dispatch (`faff engine call`).
 // Fail-loud at every step — allowlist, engine: shape, engines.<name> reference, and the
 // effort×engine resolution (FAFF-705). Effort is no longer blanket-refused on engine lanes:
-// a graded `effort.<lane>` on a GRADED-effort family (openai | codex — EFFORT_GRADED_FAMILIES)
+// a graded `dispatch.<lane>.effort` on a GRADED-effort family (openai | codex — EFFORT_GRADED_FAMILIES)
 // is carried on the record and mapped onto the transport at dispatch; a graded effort on a
 // non-graded family (ollama, no graded transport) OR a graded effort contradicting
 // `reasoning_off: true` is refused with a capability-specific message (never silently dropped).
 // Returns { name, provider, family, model, host, binPath, apiKeyEnv, auth, seatTokenEnv,
 // reasoningOff, timeoutMs, effort } or { error }. `effort` is the resolved faff level
-// (five-level, pre-map) or null when effort.<lane> is inherit/unset. The codex family's record
+// (five-level, pre-map) or null when dispatch.<lane>.effort is inherit/unset. The codex family's record
 // is host-less and carries binPath instead (FAFF-593 — spawn transport, not HTTP).
 function resolveEngineForLane(cfg, lane) {
   if (!ENGINE_CALL_LANES.includes(lane)) {
     return { error: `lane "${lane}" is not engine-dispatchable — v1 allowlist: ${ENGINE_CALL_LANES.join(" | ")} (FAFF-422)` };
   }
-  const overlaid = effectiveView(cfg);
-  if (overlaid.error) return { error: overlaid.error };
-  const view = overlaid.view;
-  const key = `models.${lane}`;
-  const modelSource = laneSourceKey(cfg, lane, "model");
-  const effortSource = laneSourceKey(cfg, lane, "effort");
-  const raw = dig(view, key);
-  const value = (raw === null || raw === undefined || raw === "") ? DEFAULTS[key] : String(raw).trim();
-  const laneErr = validateModelLane(key, value);
-  if (laneErr) return { error: laneErr };
+  const prepared = prepareDispatch(cfg);
+  if (prepared.error) return { error: prepared.error };
+  const node = isPlainMap(prepared.dispatch[lane]) ? prepared.dispatch[lane] : {};
+  const modelSource = `dispatch.${lane}.model`;
+  const effortSource = `dispatch.${lane}.effort`;
+  const value = isUnset(node.model) ? "inherit" : String(node.model).trim();
   if (!/^engine:/.test(value)) {
     return { error: `${modelSource} is "${value}", not an engine:<name> value — faff engine call serves only engine-valued lanes (an Anthropic token keeps the Agent-tool dispatch)` };
   }
   const refErr = validateEngineRef(cfg, value);
   if (refErr) return { error: `${modelSource}: ${refErr}` };
-  // FAFF-705: the effort level the operator requested for this lane (validateEffortLane
-  // already gated the token at read, so this is a legal faff level or "inherit"). Its
-  // capability check is deferred to below — it needs the resolved family + reasoning_off.
-  const effortRaw = dig(view, `effort.${lane}`);
-  const effort = (effortRaw === null || effortRaw === undefined || effortRaw === "") ? "inherit" : String(effortRaw).trim();
+  // The effort level the operator requested for this lane (prepareDispatch already gated the token,
+  // so this is a legal faff level or "inherit"). Its capability check is deferred to below: it needs
+  // the resolved family + reasoning_off.
+  const effort = isUnset(node.effort) ? "inherit" : String(node.effort).trim();
   const name = value.slice("engine:".length).trim();
   // validateEngineRef above already proved the merged backends:+engines: namespace has
   // this entry with provider/model/host, so this re-resolve is non-null today; guard it
@@ -598,38 +615,8 @@ function resolveEngineForLane(cfg, lane) {
   };
 }
 
-// FAFF-416: closed value vocabulary for the per-lane reasoning-EFFORT lanes — the FAFF-415
-// EFFORT_LEVELS (low|medium|high|xhigh|max) plus "inherit" (omit the effort arg, byte-for-byte
-// today). Mirrors validateModelLane: a configured off-vocabulary value fails LOUD at read
-// (config get exit 2, names the value + legal set), never a silent inherit at the dispatch site.
-const EFFORT_LANE_VOCAB = {
-  "effort.build": ["inherit", "low", "medium", "high", "xhigh", "max"],
-  "effort.methodology": ["inherit", "low", "medium", "high", "xhigh", "max"],
-  "effort.intake": ["inherit", "low", "medium", "high", "xhigh", "max"],
-};
-function validateEffortLane(key, value) {
-  let vocab = EFFORT_LANE_VOCAB[key];
-  // FAFF-417: the per-issue build-effort matcher leaves (`effort.build_by_tier.<leaf>`) reuse
-  // the build lane's closed effort vocabulary, so an invalid token in the matcher fails loud
-  // at read too — never a silent inherit at the per-issue dispatch site. Mirrors
-  // validateModelLane's identical `models.build_by_confidence.` extension above.
-  if (!vocab && /^effort\.build_by_tier\./.test(key)) vocab = EFFORT_LANE_VOCAB["effort.build"];
-  if (vocab) return vocab.includes(value) ? null : `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
-  // FAFF-416: the prep/spec EXCLUSION is enforced by FAIL-LOUD, not silent tolerance —
-  // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture,
-  // or a typo) fails at read so a hand-set value can never masquerade as a live knob
-  // no dispatch consumes. Non-`effort.*` keys are not this validator's business (returns null).
-  if (/^effort\./.test(key)) {
-    const lane = key.slice("effort.".length);
-    const pointer = DISPATCH_LANES.includes(lane) ? `; set it at dispatch.${lane}.effort` : "";
-    return `config get ${key}: "${key}" is not a tunable effort lane${pointer} — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable under effort: (FAFF-1197)`;
-  }
-  return null;
-}
-
-// FAFF-1197: one dispatch: tree pairs model and effort for every subagent-dispatched lane.
-// Values resolve through effectiveView (the overlay); the registry carries no dispatch.* defaults,
-// because a default would count as set and stop a position falling through to the old tree.
+// FAFF-1197: one dispatch: tree pairs model and effort for every subagent-dispatched lane. The
+// registry carries no dispatch.* defaults: an unset position falls through its chain to inherit.
 const DISPATCH_LANES = ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr"];
 const DISPATCH_TIERS = ["default", "mechanical", "standard", "complex"];
 const DISPATCH_CONFIDENCES = ["default", "high", "medium", "low"];
@@ -695,9 +682,8 @@ function validateDispatchKey(key, value) {
     return rest.length === 1 && ENGINE_CALL_LANES.includes(lane) ? null
       : `config ${key}: engine values are only legal on ${ENGINE_CALL_LANES.map((l) => `dispatch.${l}.model`).join(" | ")} (FAFF-422 v1 allowlist)`;
   }
-  const vocab = MODEL_LANE_VOCAB["models.build"];
-  return vocab.includes(token) ? null
-    : `config ${key}: invalid model token "${token}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+  return AGENT_MODEL_TOKENS.includes(token) ? null
+    : `config ${key}: invalid model token "${token}" — legal set: ${AGENT_MODEL_TOKENS.join(" | ")} (fail-loud, no silent inherit)`;
 }
 
 // PURE: the finding for a map sitting at a dispatch position (null when a map is legal there).
@@ -732,79 +718,10 @@ function validateDispatchTree(cfg) {
   return walk(tree, []);
 }
 
-function cloneMap(v) {
-  if (!isPlainMap(v)) return {};
-  const out = {};
-  for (const [k, val] of Object.entries(v)) out[k] = isPlainMap(val) ? cloneMap(val) : val;
-  return out;
-}
-
-// Every dispatch leaf paired with the old-tree position it overlays.
-function dispatchOverlayRows(dispatch) {
-  const rows = [];
-  for (const lane of DISPATCH_LANES) {
-    const node = dispatch[lane];
-    if (!isPlainMap(node)) continue;
-    rows.push({ from: `dispatch.${lane}.model`, value: node.model, to: ["models", lane] });
-    rows.push({ from: `dispatch.${lane}.effort`, value: node.effort, to: ["effort", lane] });
-    if (lane !== "build") continue;
-    for (const [parent, tree, fields] of [["by_tier", "build_by_tier", DISPATCH_FIELDS], ["by_confidence", "build_by_confidence", ["model"]]]) {
-      if (!isPlainMap(node[parent])) continue;
-      for (const [bucket, leaf] of Object.entries(node[parent])) {
-        if (!isPlainMap(leaf)) continue;
-        for (const field of fields) {
-          rows.push({
-            from: `dispatch.build.${parent}.${bucket}.${field}`,
-            value: leaf[field],
-            to: [field === "model" ? "models" : "effort", tree, String(bucket).trim().toLowerCase()],
-          });
-        }
-      }
-    }
-  }
-  return rows;
-}
-
-// PURE: the config the resolvers read. Validates the whole dispatch: tree, then copies models and
-// effort and writes each non-empty dispatch value over the old-tree position it overlays, so the
-// existing chains run unchanged and the most specific position wins whichever tree set it. The
-// loaded config is never mutated. No dispatch: key returns cfg itself.
-// Returns { view } | { error }.
-function effectiveView(cfg) {
-  if (!cfg || isUnset(cfg.dispatch)) return { view: cfg };
-  const finding = validateDispatchTree(cfg);
-  if (finding) return { error: finding };
-  const view = { ...cfg, models: cloneMap(cfg.models), effort: cloneMap(cfg.effort) };
-  for (const row of dispatchOverlayRows(cfg.dispatch)) {
-    if (isUnset(row.value)) continue;
-    let parent = view;
-    for (const [i, segment] of row.to.slice(0, -1).entries()) {
-      if (isUnset(parent[segment])) parent[segment] = {};
-      if (!isPlainMap(parent[segment])) {
-        return { error: `${row.from}: cannot overlay ${row.to.slice(0, i + 1).join(".")}, which is not a block map; make it one or remove it` };
-      }
-      parent = parent[segment];
-    }
-    const leafKey = row.to[row.to.length - 1];
-    for (const existing of Object.keys(parent)) {
-      if (existing.trim().toLowerCase() === leafKey) delete parent[existing];
-    }
-    parent[leafKey] = String(row.value).trim();
-  }
-  return { view };
-}
-
-// The key a lane's value came from, for error text: the dispatch: leaf when the loaded config
-// sets it there, else the old-tree key.
-function laneSourceKey(cfg, lane, field) {
-  const dispatchKey = `dispatch.${lane}.${field}`;
-  return isUnset(dig(cfg, dispatchKey)) ? `${field === "model" ? "models" : "effort"}.${lane}` : dispatchKey;
-}
-
 // FAFF-430: `git_host` is an ADVERTISED config knob with no behavioural consumer beyond this
 // TRACKING_KEYS entry — the merge floor (merge-gate.js) is unconditionally `gh`, so a configured
 // non-github host was silent config theater: branch/commit ops look fine, then the merge gate is
-// silently GitHub-shaped. Mirrors validateModelLane/validateEffortLane's exact-match closed-vocab
+// silently GitHub-shaped. Mirrors validateDispatchKey's exact-match closed-vocab
 // shape: a configured off-vocabulary value fails LOUD (config get exit 2, names value + legal
 // set), never a silent limp. Unset stays fully valid — this validator is only ever called for a
 // PRESENT tracking.git_host value (the call sites below all short-circuit on absence first).
@@ -967,7 +884,7 @@ function validateTeams(mergedDoc) {
 // record. A configured off-vocabulary value fails LOUD at read (config get exit 2) AND at write
 // (config set exit 2), naming the value + legal set — never a silent fallback (the FAFF-315
 // models/effort discipline). Chained into the same validator chain (config get ~2019, config set
-// ~1008) validateModelLane/validateEffortLane run through.
+// ~1008) validateDispatchKey runs through.
 const ISOLATION_LANE_VOCAB = {
   "lanes.evaluator.isolation.container": ["shared", "own"],
   "lanes.evaluator.isolation.host": ["local", "remote"],
@@ -1536,7 +1453,7 @@ function cmdConfigInit(args, root) {
 
 // ---------------------------------------------------------------------------
 // config set — FAFF-667: the general scalar-leaf writer. `config init` bootstraps the 7 flat
-// tracking.* keys; every OTHER behaviour key (backends.*, models.*, slots.*, appetite, ...) had
+// tracking.* keys; every OTHER behaviour key (backends.*, dispatch.*, slots.*, appetite, ...) had
 // no sanctioned write path at all. `set` fixes that: writes a scalar leaf at ANY nesting depth
 // via the same surgical raw-text discipline as mergeTrackingBlock (never parse-then-reserialise),
 // round-trips through the real reader before committing, and reuses config-get's own validators
@@ -1584,7 +1501,7 @@ function isSequenceValuedKey(key) {
 // brand-new top-level namespace does (a deliberate schema addition). Every top-level key
 // documented in .faffrc.example.yaml must be a member — asserted by configSetSelftest.
 const WRITABLE_NAMESPACES = new Set([
-  "tracking", "slots", "models", "effort", "eval", "dispatch", "backends", "engines", "appetite",
+  "tracking", "slots", "eval", "dispatch", "backends", "engines", "appetite",
   "concurrency_max", "worktree_root", "logging",
   "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
   "adversarial", "autonomous", "containment", "post_merge", "graft", "andon",
@@ -1767,14 +1684,14 @@ function cmdConfigSet(args, root) {
     return 2;
   }
   const segments = key.split(".");
+  const removedSetErr = removedKeyError(key);
+  if (removedSetErr) { process.stderr.write(removedSetErr + "\n"); return 2; }
   if (!WRITABLE_NAMESPACES.has(segments[0])) {
     process.stderr.write(`faff config set: unknown config namespace '${segments[0]}' — writable namespaces: ${[...WRITABLE_NAMESPACES].sort().join(", ")}\n`);
     return 2;
   }
   // By NAME, before touching the file: the JSON-string form of these keys reads back as a
   // plain scalar, so a value-shape guard alone cannot catch it (see SEQUENCE_VALUED_KEYS above).
-  const movedSetErr = movedKeyError(key);
-  if (movedSetErr) { process.stderr.write(movedSetErr + "\n"); return 2; }
   if (isSequenceValuedKey(key)) {
     process.stderr.write(`faff config set: '${key}' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)\n`);
     return 2;
@@ -1783,7 +1700,7 @@ function cmdConfigSet(args, root) {
   // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
   // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
   // yet; existence is already checked at read/resolution.
-  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value) || validateEvalKey(key, value) || validateDispatchKey(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
+  const writeErr = validateEvalKey(key, value) || validateDispatchKey(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
   const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
@@ -2138,11 +2055,11 @@ function configSetSelftest() {
   // top-level scalar leaf into an existing file, other blocks + comments untouched.
   {
     const orig = "slots:\n  spec: gstack:autoplan  # custom\nappetite: full\n";
-    const { text, changed } = mergeConfigPath(orig, ["models", "build"], "sonnet", false);
+    const { text, changed } = mergeConfigPath(orig, ["dispatch", "build", "model"], "sonnet", false);
     check("top-level-leaf: changed", changed === true);
     check("top-level-leaf: slots block byte-intact", text.includes("slots:\n  spec: gstack:autoplan  # custom"));
     check("top-level-leaf: appetite intact", text.includes("appetite: full"));
-    check("top-level-leaf: new key round-trips", dig(parseYamlSubset(text), "models.build") === "sonnet");
+    check("top-level-leaf: new key round-trips", dig(parseYamlSubset(text), "dispatch.build.model") === "sonnet");
   }
 
   // idempotent set: identical value, changed=false, no conflict.
@@ -2561,6 +2478,7 @@ function knownKeyLint(doc, fileLabel, knownSet) {
   if (!isPlainConfigMap(doc)) return findings;
   const known = [...knownSet].sort().join(", ");
   for (const topKey of Object.keys(doc)) {
+    if (REMOVED_TREES.includes(topKey)) continue; // reported as a legacy-tree error by computeConfigCheck
     const dotIdx = topKey.indexOf(".");
     if (dotIdx !== -1) {
       const prefix = topKey.slice(0, dotIdx);
@@ -2655,6 +2573,14 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // to the file it lives in, exactly as the secret scan (Check 4) attributes per-file.
   if (baseDoc) findings.push(...knownKeyLint(baseDoc, rel(basePath) || ".faffrc.yaml", RECOGNISED_NAMESPACES));
   if (overlayDoc) findings.push(...knownKeyLint(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml", RECOGNISED_NAMESPACES));
+
+  // Check 10 (ADR-0134): a removed models:/effort: tree is an error finding per file, naming the
+  // dispatch: replacements and the exact `faff config unset` command.
+  for (const [doc, filePath, fallback, local] of [[baseDoc, basePath, ".faffrc.yaml", false], [overlayDoc, overlayPath, ".faffrc.local.yaml", true]]) {
+    const file = rel(filePath) || fallback;
+    const message = legacyTreeError([{ file, local, doc }]);
+    if (message) findings.push({ severity: "error", surface: file, message });
+  }
 
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }
@@ -3169,8 +3095,8 @@ function cmdConfig(args) {
         console.log(wantJson ? JSON.stringify(conv) : conv);
         return 0;
       }
-      const movedErr = movedKeyError(key);
-      if (movedErr) { process.stderr.write(movedErr + "\n"); return 2; }
+      const removedErr = removedKeyError(key);
+      if (removedErr) { process.stderr.write(removedErr + "\n"); return 2; }
       const value = dig(data, key);
       if (value === null || value === undefined) {
         // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
@@ -3182,16 +3108,16 @@ function cmdConfig(args) {
         else if (wantJson) console.log("null");
         return 3;
       }
-      // FAFF-315: Agent-token model lanes have a closed vocabulary — an invalid configured
+      // FAFF-315: dispatch model lanes have a closed vocabulary — an invalid configured
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       // FAFF-430: tracking.git_host reuses the same read-time seam — a non-github value
       // fails loud here too, never a silently GitHub-shaped merge gate.
-      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value)) || validateEvalKey(key, fmt(value)) || validateDispatchKey(key, value) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
+      const laneErr = validateEvalKey(key, fmt(value)) || validateDispatchKey(key, value) || validateGitHostValue(key, fmt(value)) || validateLabelPrefix(key, fmt(value)) || validateControlLabelName(key, fmt(value)) || validateIsolationLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
       // read — a dangling name / missing field / illegal provider fails loud HERE, not at
       // the first dispatch that happens to touch the lane.
-      if ((/^models\./.test(key) || /^dispatch\.(methodology|intake)\.model$/.test(key)) && /^engine:/.test(fmt(value))) {
+      if (/^dispatch\.(methodology|intake)\.model$/.test(key) && /^engine:/.test(fmt(value))) {
         const refErr = validateEngineRef(data, fmt(value));
         if (refErr) { process.stderr.write(`config get ${key}: ${refErr}\n`); return 2; }
       }
@@ -3211,13 +3137,7 @@ function cmdConfig(args) {
           // FAFF-849 (639b): the execution-ladder bounding knobs.
           "gates.partial", "gates.max_rungs_per_kind", "gates.partial_threshold",
           "post_merge.check", "budget.at_ceiling",
-          "models.build", "models.prep_explore",
-          "models.spec", "models.spec_review", "models.methodology", "models.intake",
-          "models.architecture",
-          "models.adr",
           "eval.model", "eval.effort",
-          // FAFF-416: per-lane effort lanes (non-prep, subagent-dispatched only).
-          "effort.build", "effort.methodology", "effort.intake",
           // FAFF-403: graft's outage-retry-later bound (graft.* namespace — graft owns the loop).
           "graft.review_outage_retry_limit",
           // FAFF-900: prep's spec-review-outage disposition bounds (prep.* namespace — prep owns
@@ -3243,53 +3163,42 @@ function cmdConfig(args) {
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
-        // FAFF-315: the model-lane vocab table must cover every Agent-token lane, accept its own
-        // defaults, and reject an off-vocabulary token (the fail-loud path is load-bearing).
+        // The dispatch vocabulary must accept every lane's legal tokens, reject off-vocabulary
+        // ones, and keep engine values to the pure-data-in allowlist (the fail-loud path is the point).
+        const pairsOf = (...layers) => legacyTreeError(layers.map(([file, local, doc]) => ({ file, local, doc })));
         const vocabFail =
-          validateModelLane("models.build", DEFAULTS["models.build"]) ||
-          validateModelLane("models.prep_explore", DEFAULTS["models.prep_explore"]) ||
-          // FAFF-372: the migrated producer lanes accept their own defaults and reject off-vocabulary tokens.
-          validateModelLane("models.spec", DEFAULTS["models.spec"]) ||
-          validateModelLane("models.spec_review", DEFAULTS["models.spec_review"]) ||
-          validateModelLane("models.methodology", DEFAULTS["models.methodology"]) ||
-          validateModelLane("models.intake", DEFAULTS["models.intake"]) ||
-          validateModelLane("models.architecture", DEFAULTS["models.architecture"]) ||
-          validateModelLane("models.adr", DEFAULTS["models.adr"]) ||
-          (validateModelLane("models.architecture", "gpt-5") ? null : "architecture lane vocab failed to reject an invalid token") ||
-          (validateModelLane("models.adr", "gpt-5") ? null : "adr lane vocab failed to reject an invalid token") ||
-          (validateModelLane("models.spec", "gpt-5") ? null : "producer lane vocab failed to reject an invalid token") ||
-          (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
+          DISPATCH_LANES.map((lane) =>
+            validateDispatchKey(`dispatch.${lane}.model`, "sonnet")
+            || validateDispatchKey(`dispatch.${lane}.effort`, "max")
+            || (validateDispatchKey(`dispatch.${lane}.model`, "gpt-5") ? null : `${lane} lane failed to reject an invalid model token`)
+            || (validateDispatchKey(`dispatch.${lane}.effort`, "ultra") ? null : `${lane} lane failed to reject an invalid effort token`)
+            || (validateDispatchKey(`dispatch.${lane}.effort`, "sonnet") ? null : `${lane} lane failed to reject a model token as an effort`)
+          ).find(Boolean) ||
+          validateDispatchKey("dispatch.build.by_confidence.high.model", "sonnet") ||
+          (validateDispatchKey("dispatch.build.by_confidence.high.model", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
+          validateDispatchKey("dispatch.build.by_tier.mechanical.effort", "low") ||
+          (validateDispatchKey("dispatch.build.by_tier.mechanical.effort", "ultra") ? null : "tier matcher leaf failed to reject an invalid token") ||
           (validateEvalKey("eval.model", "any-id-is-fine") ? "eval.model must be open-vocabulary" : null) ||
           (validateEvalKey("eval.effort", "turbo") ? null : "eval.effort failed to reject an invalid token") ||
-          (movedKeyError("models.eval") && movedKeyError("effort.eval") ? null : "moved eval keys must fail loud") ||
-          // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
-          validateModelLane("models.build_by_confidence.high", "sonnet") ||
-          (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
-          // FAFF-417: the tier-keyed matcher leaves reuse the identical build vocab — same
-          // accept/reject smoke check as the confidence matcher leaves above.
-          validateModelLane("models.build_by_tier.mechanical", "sonnet") ||
-          (validateModelLane("models.build_by_tier.mechanical", "gpt-5") ? null : "tier matcher leaf failed to reject an invalid token") ||
-          // FAFF-416: the effort-lane vocab must accept every effort lane's default (inherit) + a
-          // real effort level, and reject an off-vocabulary token (the fail-loud path is load-bearing).
-          validateEffortLane("effort.build", DEFAULTS["effort.build"]) ||
-          validateEffortLane("effort.methodology", "low") ||
-          validateEffortLane("effort.intake", "max") ||
-          (validateEffortLane("effort.build", "sonnet") ? null : "effort lane vocab failed to reject a model token") ||
-          (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token") ||
-          // FAFF-417: the effort tier-keyed matcher leaves reuse the effort.build vocab — same
-          // accept/reject smoke check as the scalar effort lanes above.
-          validateEffortLane("effort.build_by_tier.mechanical", "low") ||
-          (validateEffortLane("effort.build_by_tier.mechanical", "ultra") ? null : "effort tier matcher leaf failed to reject an invalid token") ||
-          // FAFF-422: engine values are legal on exactly the pure-data-in allowlist — the two
-          // allowlisted lanes accept the SHAPE, every other models.* key (incl. the open-vocabulary
-          // eval lane and the matcher leaves) rejects it naming the allowlist.
-          validateModelLane("models.methodology", "engine:studio") ||
-          validateModelLane("models.intake", "engine:studio") ||
-          (validateModelLane("models.build", "engine:studio") ? null : "build lane failed to reject an engine value (FAFF-422 allowlist)") ||
-          (validateModelLane("models.spec", "engine:studio") ? null : "spec lane failed to reject an engine value (FAFF-422 allowlist)") ||
-          (validateModelLane("models.adr", "engine:studio") ? null : "adr lane failed to reject an engine value (FAFF-422 allowlist)") ||
           (validateEvalKey("eval.model", "engine:studio") ? null : "eval.model failed to reject an engine value") ||
-          (validateModelLane("models.build_by_confidence.high", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)") ||
+          // FAFF-422: engine values are legal on exactly the pure-data-in allowlist.
+          validateDispatchKey("dispatch.methodology.model", "engine:studio") ||
+          validateDispatchKey("dispatch.intake.model", "engine:studio") ||
+          (validateDispatchKey("dispatch.build.model", "engine:studio") ? null : "build lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateDispatchKey("dispatch.spec.model", "engine:studio") ? null : "spec lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateDispatchKey("dispatch.build.by_confidence.high.model", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)") ||
+          // ADR-0134: the removed models:/effort: keys fail loud naming the dispatch: replacement.
+          (removedKeyError("models.eval") && removedKeyError("effort.eval") ? null : "moved eval keys must fail loud") ||
+          (removedKeyError("models.spec") === "config models.spec: removed; set dispatch.spec.model instead, then remove the old block with `faff config unset models` (ADR-0134)" ? null : "models.<lane> must map to dispatch.<lane>.model") ||
+          (/dispatch\.adr\.effort/.test(removedKeyError("effort.adr")) ? null : "effort.<lane> must map to dispatch.<lane>.effort") ||
+          (/dispatch\.build\.by_confidence\.high\.model/.test(removedKeyError("models.build_by_confidence.High")) ? null : "models.build_by_confidence.<c> must map to dispatch.build.by_confidence.<c>.model") ||
+          (/dispatch\.build\.by_tier\.complex\.effort/.test(removedKeyError("effort.build_by_tier.complex")) ? null : "effort.build_by_tier.<t> must map to dispatch.build.by_tier.<t>.effort") ||
+          (removedKeyError("models") && removedKeyError("effort") && removedKeyError("models.build_by_tier") ? null : "a bare removed tree must fail loud") ||
+          (removedKeyError("dispatch.spec.model") === null && removedKeyError("tracking.repo") === null ? null : "a non-removed key must pass") ||
+          (pairsOf([".faffrc.yaml", false, { models: { adr: "sonnet" } }]) === ".faffrc.yaml still holds the removed models: tree (ADR-0134); set models.adr -> dispatch.adr.model, then run `faff config unset models`." ? null : "legacyTreeError must name the file, the mapping and the unset command") ||
+          (pairsOf([".faffrc.yaml", false, { models: { adr: "sonnet", eval: "x" } }]) === ".faffrc.yaml still holds the removed models: tree (ADR-0134); set models.adr -> dispatch.adr.model, models.eval -> eval.model, then run `faff config unset models`." ? null : "legacyTreeError must map models.eval to eval.model") ||
+          (pairsOf([".faffrc.local.yaml", true, { effort: null }]) === ".faffrc.local.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort --local`." ? null : "an empty effort: header must omit the set clause and add --local") ||
+          (pairsOf([".faffrc.yaml", false, { tracking: {} }]) === null ? null : "a config without a legacy tree must pass") ||
           // FAFF-859: the isolation-lane vocab must accept both axes' baked defaults and reject an
           // off-vocabulary value on each axis (the fail-loud path is load-bearing for the declared field).
           validateIsolationLane("lanes.evaluator.isolation.container", DEFAULTS["lanes.evaluator.isolation.container"]) ||
@@ -3390,50 +3299,11 @@ function cmdConfig(args) {
         if (v !== null && v !== undefined && v !== "") { console.log(`slot ${s}: ${v}`); any = true; }
       }
       if (!any) console.log("slots:    (all defaults)");
-      // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
-      // visible, not silent (the same FAFF-50 intent as the slot echo above).
-      const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
-      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "adr"]) {
-        const v = models[lane];
-        if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
-      }
       // ADR-0133: surface the eval harness's pinned model and effort (a baseline's lineage).
       const evalCfg = (data.eval && typeof data.eval === "object" && !Array.isArray(data.eval)) ? data.eval : {};
       for (const field of ["model", "effort"]) {
         const v = evalCfg[field];
         if (v !== null && v !== undefined && v !== "") console.log(`eval ${field}: ${v}`);
-      }
-      // FAFF-334: surface the per-issue build-model matcher when set — a routing config that flips
-      // build-model resolution from per-run to per-issue must be visible in the run banner, not silent.
-      const byConf = (models.build_by_confidence && typeof models.build_by_confidence === "object" && !Array.isArray(models.build_by_confidence)) ? models.build_by_confidence : {};
-      // Only the buckets that actually route are echoed (default/high/medium) — a `low` leaf is inert
-      // (a low-confidence spec parks at prep, never builds), so echoing it would imply a live routing
-      // config that does nothing and mislead the reader about what the run will do.
-      for (const conf of ["default", "high", "medium"]) {
-        const v = byConf[conf];
-        if (v !== null && v !== undefined && v !== "") console.log(`model build_by_confidence.${conf}: ${v}`);
-      }
-      // FAFF-417: surface the per-issue build-model TIER matcher when set — same FAFF-50 intent
-      // as the confidence matcher above. Every tier builds (routing-only, no park/promote gate),
-      // so — unlike the confidence matcher's `low`-leaf suppression — ALL configured leaves echo.
-      const byTier = (models.build_by_tier && typeof models.build_by_tier === "object" && !Array.isArray(models.build_by_tier)) ? models.build_by_tier : {};
-      for (const t of ["default", "mechanical", "standard", "complex"]) {
-        const v = byTier[t];
-        if (v !== null && v !== undefined && v !== "") console.log(`model build_by_tier.${t}: ${v}`);
-      }
-      // FAFF-416: surface non-default per-lane effort in the run banner — a pinned effort must be
-      // visible, not silent (the same FAFF-50 intent as the slot + model echoes above).
-      const effort = (data.effort && typeof data.effort === "object" && !Array.isArray(data.effort)) ? data.effort : {};
-      for (const lane of ["build", "methodology", "intake"]) {
-        const v = effort[lane];
-        if (v !== null && v !== undefined && v !== "") console.log(`effort ${lane}: ${v}`);
-      }
-      // FAFF-417: surface the per-issue build-EFFORT tier matcher when set — mirrors the
-      // model tier-matcher echo above; all tiers route, so no inert-leaf suppression.
-      const effortByTier = (effort.build_by_tier && typeof effort.build_by_tier === "object" && !Array.isArray(effort.build_by_tier)) ? effort.build_by_tier : {};
-      for (const t of ["default", "mechanical", "standard", "complex"]) {
-        const v = effortByTier[t];
-        if (v !== null && v !== undefined && v !== "") console.log(`effort build_by_tier.${t}: ${v}`);
       }
       // FAFF-859: surface a non-default lane-isolation declaration in the run banner — an operator
       // who armed (or will arm) the cage/locality must see it, never silent (the FAFF-50 intent as
@@ -3446,7 +3316,7 @@ function cmdConfig(args) {
           if (v !== null && v !== undefined && v !== "" && fmt(v) !== DEFAULTS[key]) console.log(`isolation ${lane}.${axis}: ${fmt(v)}`);
         }
       }
-      printDispatchBanner(data);
+      printDispatchBanner(data, legacyTreeGuard(root));
       return 0;
     }
   } catch (e) {
@@ -3484,10 +3354,13 @@ function cmdConfig(args) {
   return 2;
 }
 
-// FAFF-1197: echo the raw dispatch: values next to the model/effort lines above. Until FAFF-1198
-// rewires the skill dispatch sites, only the build lane and engine-valued lanes read the value.
-function printDispatchBanner(data) {
-  const invalid = validateDispatchTree(data);
+// FAFF-1197: echo the raw dispatch: values, the only model and effort lines in the run banner.
+// An effort on an Agent-dispatched lane is recorded in the run log, never applied (the Agent tool
+// has no effort parameter), so its line says so; only an engine-valued lane applies it.
+const EFFORT_NOT_APPLIED_NOTE = " (effort recorded, not applied: Agent tool)";
+
+function printDispatchBanner(data, legacyError = null) {
+  const invalid = legacyError || validateDispatchTree(data);
   if (invalid) console.log(`dispatch: INVALID — ${invalid} (every resolver exits 2 until fixed)`);
   const dispatch = isPlainMap(data.dispatch) ? data.dispatch : {};
   const lowered = (node) => {
@@ -3499,16 +3372,15 @@ function printDispatchBanner(data) {
     .filter((f) => isPlainMap(node) && !isUnset(node[f]))
     .map((f) => `${f}=${node[f]}`)
     .join(" ");
-  const echo = (label, node, fields, annotation = "") => {
+  const echo = (label, node, fields, agentDispatched = true) => {
     const text = pairs(node, fields);
-    if (text) console.log(`dispatch ${label}: ${text}${annotation}`);
+    const unapplied = agentDispatched && isPlainMap(node) && !isUnset(node.effort) && String(node.effort).trim() !== "inherit";
+    if (text) console.log(`dispatch ${label}: ${text}${unapplied ? EFFORT_NOT_APPLIED_NOTE : ""}`);
   };
-  const models = isPlainMap(data.models) ? data.models : {};
   for (const lane of DISPATCH_LANES) {
     const node = dispatch[lane];
-    const effectiveModel = isPlainMap(node) && !isUnset(node.model) ? node.model : models[lane];
-    const read = lane === "build" || (ENGINE_CALL_LANES.includes(lane) && /^engine:/.test(String(effectiveModel)));
-    echo(lane, node, DISPATCH_FIELDS, read ? "" : " (not yet read at subagent dispatch sites; FAFF-1198)");
+    const onEngine = ENGINE_CALL_LANES.includes(lane) && isPlainMap(node) && /^engine:/.test(String(node.model));
+    echo(lane, node, DISPATCH_FIELDS, !onEngine);
   }
   const build = isPlainMap(dispatch.build) ? dispatch.build : {};
   const byTier = lowered(build.by_tier);
@@ -3517,176 +3389,28 @@ function printDispatchBanner(data) {
   for (const c of ["default", "high", "medium"]) echo(`build.by_confidence.${c}`, byConfidence[c], ["model"]);
 }
 
-// FAFF-334: per-issue build-model routing. `models.build` (FAFF-315) is a single per-run scalar;
-// this resolver keys the build model off an issue's retained spec confidence via the OPTIONAL sibling
-// matcher `models.build_by_confidence` (a `default` + confidence-keyed leaves), so a mixed-confidence
-// build queue picks the safe model per issue with no rc churn. PURE — the confidence is passed in, no
-// tracker call (the orchestrator already holds it at assembly). Fallback chain, in order:
-//   models.build_by_confidence.<conf> → models.build_by_confidence.default → models.build (scalar) → "inherit".
-// The resolved token is validated against the closed build Agent-token set (fail-loud, never a silent
-// inherit — FAFF-315/FAFF-50). An absent/unknown `conf` routes to the `default` bucket (never guesses
-// `high`), mirroring the "no confidence line" tolerance the routing gate already applies. Matcher
-// ABSENT ⇒ the scalar path, byte-for-byte FAFF-315.
-function resolveBuildModel(cfg, conf) {
-  const byConf = dig(cfg, "models.build_by_confidence");
-  const rawMap = (byConf && typeof byConf === "object" && !Array.isArray(byConf)) ? byConf : null;
-  // Normalise leaf keys to lowercase once — a capitalised YAML key (`High:`) must not silently miss
-  // and route to the default bucket; the confidence tokens themselves are lowercase (high|medium|low).
-  const map = {};
-  if (rawMap) for (const k of Object.keys(rawMap)) {
-    const v = rawMap[k];
-    if (v !== null && v !== undefined && v !== "") map[String(k).trim().toLowerCase()] = String(v).trim();
+// FAFF-334/417: per-issue build-model routing over dispatch.build. Each field resolves on its own,
+// most specific position first, and an unset position falls through to the next:
+//   model:  by_tier.<tier> -> by_tier.default (tier given only) -> by_confidence.<conf>
+//           -> by_confidence.default -> dispatch.build.model -> "inherit"
+// The tier matcher is skipped when no tier is given (never guesses a tier); an absent or unknown
+// confidence routes to by_confidence.default. The caller validated the whole dispatch: tree.
+function pickDispatchField(map, key, field) {
+  if (!isPlainMap(map) || key === null || key === undefined) return null;
+  const wanted = String(key).trim().toLowerCase();
+  for (const [name, node] of Object.entries(map)) {
+    if (String(name).trim().toLowerCase() === wanted && isPlainMap(node) && !isUnset(node[field])) return String(node[field]).trim();
   }
-  // Validate EVERY configured leaf up-front — not just the resolved token. The spec's guarantee is
-  // "an invalid Agent-token ANYWHERE in the matcher ⇒ fail-loud at read", so a typo in a not-yet-
-  // dispatched leaf is caught at the first resolution, never left dormant until its bucket happens to build.
-  for (const k of Object.keys(map)) {
-    if (validateModelLane("models.build_by_confidence." + k, map[k])) {
-      return { error: `faff models build-for: invalid model token "${map[k]}" in models.build_by_confidence.${k} — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
-    }
-  }
-  const pick = (k) => (k != null && Object.prototype.hasOwnProperty.call(map, k)) ? map[k] : null;
-  const key = conf != null ? String(conf).trim().toLowerCase() : null;
-  let token = pick(key) ?? pick("default");
-  if (token == null) {
-    const scalar = dig(cfg, "models.build");
-    token = (scalar === null || scalar === undefined || scalar === "") ? DEFAULTS["models.build"] : String(scalar).trim();
-  }
-  if (validateModelLane("models.build", token)) {
-    return { error: `faff models build-for: resolved token "${token}" is not a legal build model — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
-  }
-  return { token };
+  return null;
 }
 
-// FAFF-417: layers `models.build_by_tier` AHEAD of resolveBuildModel's FAFF-334
-// confidence/scalar chain — never subsumes it. Fallback, first hit wins:
-//   models.build_by_tier.<tier> -> .default -> null (fall through to the caller's
-//   confidence/scalar chain, NOT to "inherit" directly)
-// Tier ABSENT => skip the tier matcher entirely — never guess a tier. Matcher NOT
-// configured at all => null immediately, same fall-through. Every configured leaf
-// validates up-front (mirrors resolveBuildModel) regardless of whether `tierVal`
-// resolves — an invalid token anywhere in the matcher fails loud at first resolution.
-function resolveBuildModelForTier(cfg, tierVal) {
-  const byTier = dig(cfg, "models.build_by_tier");
-  const rawMap = (byTier && typeof byTier === "object" && !Array.isArray(byTier)) ? byTier : null;
-  if (!rawMap) return null; // not configured — caller falls through to confidence/scalar
-  const map = {};
-  for (const k of Object.keys(rawMap)) {
-    const v = rawMap[k];
-    if (v !== null && v !== undefined && v !== "") map[String(k).trim().toLowerCase()] = String(v).trim();
-  }
-  for (const k of Object.keys(map)) {
-    if (validateModelLane("models.build_by_tier." + k, map[k])) {
-      return { error: `faff models build-for: invalid model token "${map[k]}" in models.build_by_tier.${k} — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
-    }
-  }
-  if (tierVal == null) return null; // tier absent — skip the tier matcher, never guess
-  const pick = (k) => (k != null && Object.prototype.hasOwnProperty.call(map, k)) ? map[k] : null;
-  const key = String(tierVal).trim().toLowerCase();
-  const token = pick(key) ?? pick("default");
-  if (token == null) return null; // no matching leaf — fall through to confidence/scalar
-  if (validateModelLane("models.build", token)) {
-    return { error: `faff models build-for: resolved token "${token}" is not a legal build model — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
-  }
-  return { token };
+// resolveBuildModel(dispatch, tier, conf) -> token
+function resolveBuildModel(dispatch, tier, conf) {
+  const build = isPlainMap(dispatch.build) ? dispatch.build : {};
+  const fromTier = tier == null ? null
+    : pickDispatchField(build.by_tier, tier, "model") ?? pickDispatchField(build.by_tier, "default", "model");
+  const fromConfidence = () => pickDispatchField(build.by_confidence, conf, "model") ?? pickDispatchField(build.by_confidence, "default", "model");
+  return fromTier ?? fromConfidence() ?? (isUnset(build.model) ? "inherit" : String(build.model).trim());
 }
 
-// FAFF-417 spec §4 PROCEDURE resolve build model (tier?, conf?):
-//   1. IF models.build_by_tier configured AND tier present: build_by_tier.<tier> -> .default -> fall through
-//   2. IF models.build_by_confidence configured AND conf present: FAFF-334 chain verbatim (resolveBuildModel)
-//   3. models.build (scalar) -> "inherit"           [handled inside resolveBuildModel]
-// The tier matcher — the better-informed key, since it already folds confidence in as a
-// prior — outranks the confidence matcher whenever both are configured and a tier is
-// present. With no `models.build_by_tier` config (or an absent tier), this is byte-for-byte
-// resolveBuildModel(cfg, conf) — the FAFF-334 posture, unchanged.
-function resolveBuildModelForIssue(cfg, tierVal, conf) {
-  const tierRes = resolveBuildModelForTier(cfg, tierVal);
-  if (tierRes) return tierRes; // either a resolved token or a fail-loud error — tier wins
-  return resolveBuildModel(cfg, conf);
-}
-
-// `faff models build-for [<confidence>] [--tier <tier>] [--confidence <conf>]` — print the
-// per-issue build model token (or "inherit", which the caller maps to "omit the Agent-tool
-// model param"). Pure; exit 0 token / 2 usage or invalid token. The bare positional
-// `<confidence>` form is byte-for-byte unchanged (FAFF-334); `--tier` layers the FAFF-417
-// tier matcher ahead of it; `--confidence` is the flag-form alias for the same confidence
-// slot the positional fills (so `--tier`+`--confidence` can be given together).
-function cmdModels(args) {
-  if (args.includes("--selftest")) return modelsSelftest();
-  const { values, positionals, errors } = parseArgs(args, MODELS_SPEC);
-  const usage = "usage: faff models build-for [<confidence>] [--tier <tier>] [--confidence <conf>] [--root DIR]";
-  if (errors.length) return usageError(errors, usage);
-  const sub = positionals[0];
-  if (sub !== "build-for") {
-    process.stderr.write(usage + "\n");
-    return 2;
-  }
-  const root = values["--root"] || findRoot();
-  const confArg = values["--confidence"] || positionals[1] || null;
-  const tierArg = values["--tier"] || null;
-  const [loaded] = loadConfig(root);
-  const overlaid = effectiveView(loaded);
-  if (overlaid.error) { process.stderr.write(`faff models build-for: ${overlaid.error}\n`); return 2; }
-  const res = resolveBuildModelForIssue(overlaid.view, tierArg, confArg);
-  if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
-  console.log(res.token);
-  return 0;
-}
-
-// Selftest — drives the pure resolver over the fallback chain + the read-time matcher-leaf validation.
-function modelsSelftest() {
-  let fail = 0;
-  const ok = (name, cond) => { if (!cond) { console.log(`FAIL ${name}`); fail++; } else console.log(`ok   ${name}`); };
-  const full = { models: { build: "opus", build_by_confidence: { default: "opus", high: "sonnet", medium: "opus" } } };
-  ok("build-for high → matcher leaf sonnet", resolveBuildModel(full, "high").token === "sonnet");
-  ok("build-for medium → matcher leaf opus", resolveBuildModel(full, "medium").token === "opus");
-  ok("build-for HIGH (case-insensitive) → sonnet", resolveBuildModel(full, "HIGH").token === "sonnet");
-  ok("unknown conf → default bucket (opus)", resolveBuildModel(full, "zzz").token === "opus");
-  ok("null conf → default bucket (opus)", resolveBuildModel(full, null).token === "opus");
-  // fallback precedence: leaf absent → default → scalar → inherit
-  ok("no leaf, has default → default", resolveBuildModel({ models: { build: "haiku", build_by_confidence: { default: "fable", high: "sonnet" } } }, "medium").token === "fable");
-  ok("no leaf, no default → scalar models.build", resolveBuildModel({ models: { build: "haiku", build_by_confidence: { high: "sonnet" } } }, "medium").token === "haiku");
-  ok("no matcher, has scalar → scalar (per-run FAFF-315 path)", resolveBuildModel({ models: { build: "fable" } }, "high").token === "fable");
-  ok("no matcher, no scalar → inherit", resolveBuildModel({ models: {} }, "high").token === "inherit");
-  ok("empty cfg → inherit", resolveBuildModel({}, "high").token === "inherit");
-  // fail-loud on an invalid resolved token — never a silent inherit
-  ok("invalid matcher leaf token fails loud", !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5" } } }, "high").error);
-  ok("invalid scalar fallback fails loud", !!resolveBuildModel({ models: { build: "gpt-5" } }, "zzz").error);
-  ok("low leaf tolerated (inert but valid token)", resolveBuildModel({ models: { build_by_confidence: { low: "haiku", default: "opus" } } }, "low").token === "haiku");
-  // fail-loud ANYWHERE — an invalid token in a NOT-dispatched leaf is caught, never left dormant
-  ok("invalid UNUSED leaf fails loud (validate anywhere, not just resolved)",
-    !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5", default: "opus" } } }, "medium").error);
-  // case-insensitive YAML leaf key — a capitalised `High:` must not silently miss → default
-  ok("capitalised YAML leaf key (High:) resolves case-insensitively",
-    resolveBuildModel({ models: { build_by_confidence: { High: "sonnet", default: "opus" } } }, "high").token === "sonnet");
-  // read-time matcher-leaf validation (validateModelLane extension)
-  ok("validateModelLane accepts a valid matcher leaf", validateModelLane("models.build_by_confidence.high", "sonnet") === null);
-  ok("validateModelLane rejects an invalid matcher leaf", validateModelLane("models.build_by_confidence.high", "gpt-5") !== null);
-  ok("validateModelLane accepts the default leaf", validateModelLane("models.build_by_confidence.default", "opus") === null);
-  ok("validateModelLane leaves models.build scalar unchanged", validateModelLane("models.build", "sonnet") === null && validateModelLane("models.build", "gpt-5") !== null);
-  // FAFF-417: models.build_by_tier layers ahead of models.build_by_confidence — tier wins
-  const layered = { models: { build: "opus", build_by_tier: { mechanical: "haiku", default: "fable" }, build_by_confidence: { default: "opus", high: "sonnet" } } };
-  ok("tier matcher outranks confidence matcher when both configured and tier present",
-    resolveBuildModelForIssue(layered, "mechanical", "high").token === "haiku");
-  ok("tier matcher default leaf still outranks confidence matcher",
-    resolveBuildModelForIssue(layered, "standard", "high").token === "fable");
-  ok("no tier passed → falls through to the confidence matcher (still resolves)",
-    resolveBuildModelForIssue(layered, null, "high").token === "sonnet");
-  ok("tier passed but matcher unconfigured → falls through to the confidence matcher",
-    resolveBuildModelForIssue({ models: { build: "opus", build_by_confidence: { default: "opus", high: "sonnet" } } }, "mechanical", "high").token === "sonnet");
-  ok("no tier, no confidence matcher → falls through to the scalar",
-    resolveBuildModelForIssue({ models: { build: "fable" } }, null, null).token === "fable");
-  ok("invalid tier-matcher leaf fails loud, even on a tier that never resolves",
-    !!resolveBuildModelForIssue({ models: { build_by_tier: { mechanical: "gpt-5", default: "opus" } } }, "standard", null).error);
-  ok("invalid tier-matcher leaf fails loud with NO tier passed at all (validate anywhere)",
-    !!resolveBuildModelForIssue({ models: { build_by_tier: { mechanical: "gpt-5" } } }, null, null).error);
-  // FAFF-705: the transport effort mapping (five-level faff → three-level transport, clamp above ceiling)
-  ok("reasoningEffortForTransport: low/medium/high pass through", reasoningEffortForTransport("low") === "low" && reasoningEffortForTransport("medium") === "medium" && reasoningEffortForTransport("high") === "high");
-  ok("reasoningEffortForTransport: xhigh/max clamp to high", reasoningEffortForTransport("xhigh") === "high" && reasoningEffortForTransport("max") === "high");
-  ok("EFFORT_GRADED_FAMILIES: openai + codex graded, ollama not", EFFORT_GRADED_FAMILIES.has("openai") && EFFORT_GRADED_FAMILIES.has("codex") && !EFFORT_GRADED_FAMILIES.has("ollama"));
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (models build-for resolver, ${fail} failed)`);
-  return fail ? 1 : 0;
-}
-
-
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdConfigUnset, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configUnsetSelftest, configVerbList, effectiveView, emitChainBlock, emitScalar, emitTrackingBlock, fmt, laneSourceKey, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, removeConfigPath, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane, validateTeams };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdConfigUnset, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configUnsetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, removeConfigPath, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams, AGENT_MODEL_TOKENS, EFFORT_LEVELS_WITH_INHERIT, legacyTreeError, legacyTreeGuard, pickDispatchField, prepareDispatch, removedKeyError };

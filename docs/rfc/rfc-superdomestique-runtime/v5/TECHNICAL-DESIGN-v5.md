@@ -179,8 +179,9 @@ type OpaqueId<Name extends string> = string & {
 
 type RunId = OpaqueId<"RunId">;
 type RunSegmentId = OpaqueId<"RunSegmentId">;
-type WorkItemId = OpaqueId<"WorkItemId">;
+type UnitId = OpaqueId<"UnitId">;
 type ContractRevisionId = OpaqueId<"ContractRevisionId">;
+type ProducerId = OpaqueId<"ProducerId">;
 type StageAttemptId = OpaqueId<"StageAttemptId">;
 type EffectId = OpaqueId<"EffectId">;
 type LaneId = OpaqueId<"LaneId">;
@@ -203,7 +204,7 @@ The canonical model distinguishes:
 |---|---|---|
 | Run ID | One bounded orchestration campaign | Stable across resumed run segments |
 | Run-segment ID | One process or executor occupation of a run | New after replacement or resumed occupation |
-| Work-item ID | One delegated outcome | Stable across runs, correction, and retry |
+| Unit ID | One delegated outcome | Stable across runs, correction, and retry |
 | Contract-revision ID | One immutable set of governing terms | New after a material amendment |
 | Stage-attempt ID | One immutable attempt to perform a stage | New for retry, correction, or replacement |
 | Effect ID | One consequential external action | Stable across idempotent retry and reconciliation |
@@ -242,7 +243,7 @@ interface RecordEnvelope<Type extends string, Payload> {
   readonly references: {
     readonly runId?: RunId;
     readonly runSegmentId?: RunSegmentId;
-    readonly workItemId?: WorkItemId;
+    readonly unitId?: UnitId;
     readonly contractRevisionId?: ContractRevisionId;
     readonly stageAttemptId?: StageAttemptId;
     readonly effectId?: EffectId;

@@ -21,8 +21,8 @@
 // SAME byte image via one shared canonicalBytes serialiser (a producer HMAC and a
 // Commissaire signature cover identical bytes, minus the auth fields).
 //
-// TypeScript (FAFF-1170): branded ProducerId / ContractRevisionId flow across the
-// mint/admission edge into commissaire. deriveKey is deliberately NOT a brand site —
+// TypeScript (FAFF-1170): branded ProducerId / ContractRevisionId (defined once, in ids.ts) flow
+// across the mint/admission edge into commissaire. deriveKey is deliberately NOT a brand site —
 // it is shared by the admit AND the ledger-read verify paths, so its id params stay
 // plain `string | undefined`. The brand bites only at admitProducerKey, the typed
 // admission API commissaire's admit flow calls. The committed .js emit is pure
@@ -30,6 +30,7 @@
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
 const crypto = require("node:crypto");
+const ids = require("./ids");
 // A narrow runtime guard for plain JSON objects — the one tool that lets every field-by-field
 // read below work from `unknown` with no `as` cast crossing an input boundary.
 function isRecord(v) {
@@ -40,27 +41,28 @@ function isRecord(v) {
 function pemString(k) {
     return typeof k === "string" ? k : k.toString("utf8");
 }
-// --- Brand mints (the sole sanctioned assertion sites — allow-listed by the boundary checker) ---
-function isNonEmptyString(v) {
-    return typeof v === "string" && v.length > 0;
-}
-// Throwing mint for fail-loud sites (CLI argv): assert the brand only AFTER the runtime check.
+// --- Brand mints (thin delegates over the shared ids.ts parsers; no assertion here) ---
+// Throwing mint for fail-loud sites (CLI argv).
 function asProducerId(v) {
-    if (!isNonEmptyString(v))
+    const r = ids.parseProducerId(v);
+    if (!r.ok)
         throw new TypeError(`asProducerId: expected a non-empty string, got ${typeof v}`);
-    return v;
+    return r.value;
 }
 function asContractRevisionId(v) {
-    if (!isNonEmptyString(v))
+    const r = ids.parseContractRevisionId(v);
+    if (!r.ok)
         throw new TypeError(`asContractRevisionId: expected a non-empty string, got ${typeof v}`);
-    return v;
+    return r.value;
 }
 // Non-throwing mint for admission-time construction from trusted input: null when the check fails.
 function tryAsProducerId(v) {
-    return isNonEmptyString(v) ? v : null;
+    const r = ids.parseProducerId(v);
+    return r.ok ? r.value : null;
 }
 function tryAsContractRevisionId(v) {
-    return isNonEmptyString(v) ? v : null;
+    const r = ids.parseContractRevisionId(v);
+    return r.ok ? r.value : null;
 }
 // The two per-record authentication fields, EXCLUDED from canonicalBytes so the
 // value being signed never contains the signature. `prev` (the chain link) is NOT

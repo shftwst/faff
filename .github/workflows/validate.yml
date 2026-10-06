@@ -455,6 +455,14 @@ jobs:
               console.error("::error::positive-proof setup removed zero committed emits — the tsconfig include is not the literal .ts-entry form this step derives paths from (handle globs/directory includes here, or the freshness gate degrades to a vacuous diff)");
               process.exit(1);
             }
+            // The manifest is part of the proof: it must exist so the build below has to regenerate it,
+            // and a build that stops writing it shows as a deletion in `git diff`.
+            if (!fs.existsSync("build-manifest.json")) {
+              console.error("::error::no committed build-manifest.json; run npm run build and commit it");
+              process.exit(1);
+            }
+            fs.rmSync("build-manifest.json");
+            console.log("removed build-manifest.json");
           '
 
       - name: Rebuild the emit from source (must regenerate every removed .js)

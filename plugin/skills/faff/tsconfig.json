@@ -20,6 +20,8 @@
   },
   "include": [
     "bin/lib/producer-auth.ts",
-    "bin/lib/commissaire.ts"
+    "bin/lib/commissaire.ts",
+    "bin/lib/ids.ts",
+    "bin/lib/result.ts"
   ]
 }

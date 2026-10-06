@@ -1,10 +1,13 @@
-// A clean fixture: a validator-mint `as` (allow-listed) + a typed producer-auth require.
+// A clean fixture: no assertion anywhere, and typed requires of every cross-module specifier.
 import type { ProducerAuthApi } from "./producer-auth";
-type ProducerId = string & { readonly __b: "ProducerId" };
-function isNonEmptyString(v: unknown): v is string { return typeof v === "string" && v.length > 0; }
-export function asProducerId(v: unknown): ProducerId {
-  if (!isNonEmptyString(v)) throw new TypeError("nope");
-  return v as ProducerId;
-}
+import type { IdsApi } from "./ids";
+import type { ResultApi } from "./result";
+
 const producerAuth: ProducerAuthApi = require("./producer-auth");
-export { producerAuth };
+const ids: IdsApi = require("./ids");
+const result: ResultApi = require("./result");
+
+export function mint(v: unknown) {
+  return ids.parseProducerId(v);
+}
+export { producerAuth, result };

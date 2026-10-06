@@ -5,7 +5,7 @@
   "type": "commonjs",
   "description": "Build-time TypeScript toolchain for the faff plugin skill. The shipped artifact (the bin/faff and bin/commissaire CLIs plus the committed .js emit) runs on Node built-ins with zero runtime dependencies; typescript and @types/node are build-time-only, fully-erased type packages that never reach the artifact.",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && node scripts/build-manifest.js write"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

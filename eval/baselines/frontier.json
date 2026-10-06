@@ -1,15 +1,16 @@
 {
   "meta": {
-    "captured_at": "2026-09-28",
+    "captured_at": "2026-10-05",
     "driver": "frontier",
-    "model": "claude-opus-4-8",
+    "model": "claude-opus-5-5",
     "base_reps": 20,
-    "source": "scoped --update-baseline --kind — refreshed park-reconsider-classification, prd-readiness, prdr-yagni; 29 prior kind(s) retained"
+    "effort": "medium",
+    "source": "real run via --update-baseline"
   },
   "per_kind": {
     "adr-drift": {
-      "accuracy": 0.97,
-      "stability": 0.97,
+      "accuracy": 1,
+      "stability": 1,
       "format_adherence": 1
     },
     "adr-gloss": {
@@ -18,9 +19,9 @@
       "format_adherence": 1
     },
     "architecture": {
-      "accuracy": 0.8200000000000001,
-      "stability": 0.8200000000000001,
-      "format_adherence": 1
+      "accuracy": 0.99,
+      "stability": 0.99,
+      "format_adherence": 0.955
     },
     "chain-gap": {
       "accuracy": 1,
@@ -28,13 +29,13 @@
       "format_adherence": 1
     },
     "confidence": {
-      "accuracy": 0.9733333333333333,
-      "stability": 0.9733333333333333,
+      "accuracy": 1,
+      "stability": 1,
       "format_adherence": 1
     },
     "decomposition": {
-      "accuracy": 0.96,
-      "stability": 0.96,
+      "accuracy": 1,
+      "stability": 1,
       "format_adherence": 1
     },
     "dupe": {
@@ -48,13 +49,13 @@
       "format_adherence": 1
     },
     "gloss": {
-      "accuracy": 0.9733333333333333,
-      "stability": 0.9733333333333333,
+      "accuracy": 0.98,
+      "stability": 0.98,
       "format_adherence": 1
     },
     "grouping": {
-      "accuracy": 0.84,
-      "stability": 0.84,
+      "accuracy": 0.96,
+      "stability": 0.96,
       "format_adherence": 1
     },
     "holdout": {
@@ -82,6 +83,21 @@
       "stability": 1,
       "format_adherence": 1
     },
+    "park-reconsider-classification": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "prd-readiness": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "prdr-yagni": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
     "prep-architecture-trigger": {
       "accuracy": 1,
       "stability": 1,
@@ -93,8 +109,8 @@
       "format_adherence": 1
     },
     "refutation-spec": {
-      "accuracy": 0.806,
-      "stability": 0.8140000000000001,
+      "accuracy": 0.9037499999999999,
+      "stability": 0.9049999999999999,
       "format_adherence": 1
     },
     "resolved-elsewhere": {
@@ -105,7 +121,7 @@
     "roadmap": {
       "accuracy": 1,
       "stability": 1,
-      "format_adherence": 1
+      "format_adherence": 0.925
     },
     "routing": {
       "accuracy": 1,
@@ -123,9 +139,9 @@
       "format_adherence": 1
     },
     "specqual": {
-      "accuracy": 0.9733333333333333,
-      "stability": 0.9733333333333333,
-      "format_adherence": 1
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 0.9500000000000001
     },
     "splittable": {
       "accuracy": 1,
@@ -138,8 +154,8 @@
       "format_adherence": 1
     },
     "superseded": {
-      "accuracy": 1,
-      "stability": 1,
+      "accuracy": 0.98,
+      "stability": 0.98,
       "format_adherence": 1
     },
     "vague": {
@@ -148,21 +164,6 @@
       "format_adherence": 1
     },
     "verdict-revert": {
-      "accuracy": 1,
-      "stability": 1,
-      "format_adherence": 1
-    },
-    "park-reconsider-classification": {
-      "accuracy": 1,
-      "stability": 1,
-      "format_adherence": 1
-    },
-    "prd-readiness": {
-      "accuracy": 1,
-      "stability": 1,
-      "format_adherence": 1
-    },
-    "prdr-yagni": {
       "accuracy": 1,
       "stability": 1,
       "format_adherence": 1

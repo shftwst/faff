@@ -143,7 +143,6 @@ models:
     spec: inherit
     spec_review: inherit
     prep_explore: sonnet
-    eval: claude-opus-4-8
 
 sentry:
   stall_window_secs: 7200
@@ -152,3 +151,7 @@ sentry:
 
 capture:
   decision_kernel: "on"
+
+eval:
+  model: claude-opus-5-5
+  effort: medium

@@ -56,14 +56,14 @@ test("a model token in an effort lane fails loud (the vocabularies are distinct)
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("HARD EXCLUSION: no prep/spec or eval effort lane exists (prep is pinned, not tunable)", () => {
+test("HARD EXCLUSION: no prep/spec effort lane exists (prep is pinned, not tunable)", () => {
   // These lanes have a MODEL lane (FAFF-372) but must have NO effort lane. With no such key in
   // DEFAULTS and none in config, `config get` reports the key absent (exit 3) — never inherits an
   // effort, and (crucially) a configured value under one of these keys is NOT vocabulary-validated
   // as an effort lane, so it is not silently treated as a tunable effort knob.
   const dir = fixtureDir(); // no .faffrc
   try {
-    for (const key of ["effort.spec", "effort.spec_review", "effort.prep_explore", "effort.architecture", "effort.eval"]) {
+    for (const key of ["effort.spec", "effort.spec_review", "effort.prep_explore", "effort.architecture"]) {
       const r = runCli(["config", "get", key], { cwd: dir });
       assert.equal(r.code, 3, `${key} must be absent (no such lane), got exit ${r.code}`);
     }
@@ -76,7 +76,6 @@ test("HARD EXCLUSION is fail-loud: a hand-set prep/spec effort key exits 2, neve
   for (const [key, body] of [
     ["effort.spec", "effort:\n  spec: low\n"],
     ["effort.architecture", "effort:\n  architecture: high\n"],
-    ["effort.eval", "effort:\n  eval: max\n"],
     ["effort.bogus", "effort:\n  bogus: low\n"],
   ]) {
     const dir = fixtureDir(body);
@@ -87,6 +86,19 @@ test("HARD EXCLUSION is fail-loud: a hand-set prep/spec effort key exits 2, neve
       assert.equal(r.stdout.trim(), "", `${key} echoes no value`);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }
+});
+
+test("eval.effort lives in the eval block: inherit by default, a pinned level echoes, off-vocab fails loud (ADR-0133)", () => {
+  const unset = fixtureDir();
+  const pinned = fixtureDir("eval:\n  effort: medium\n");
+  const bad = fixtureDir("eval:\n  effort: turbo\n");
+  try {
+    assert.equal(runCli(["config", "get", "eval.effort"], { cwd: unset }).stdout.trim(), "inherit");
+    assert.equal(runCli(["config", "get", "eval.effort"], { cwd: pinned }).stdout.trim(), "medium");
+    const r = runCli(["config", "get", "eval.effort"], { cwd: bad });
+    assert.equal(r.code, 2, "an off-vocabulary eval.effort fails loud");
+    assert.match(r.stderr, /inherit \| low \| medium \| high \| xhigh \| max/);
+  } finally { for (const d of [unset, pinned, bad]) rmSync(d, { recursive: true, force: true }); }
 });
 
 test("config resolved echoes a non-default effort lane (a pinned effort is visible, never silent)", () => {

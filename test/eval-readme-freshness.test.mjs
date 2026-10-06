@@ -86,7 +86,7 @@ function deriveFacts() {
 
 function resolveEvalModelFromConfig() {
   const [cfg] = loadConfig(REPO_ROOT);
-  return cfg.models?.eval ?? EVAL_MODEL_FALLBACK;
+  return cfg.eval?.model ?? EVAL_MODEL_FALLBACK;
 }
 
 test("eval-readme-freshness: derived corpus/rep/gate numbers appear in the runbook section", () => {
@@ -135,7 +135,7 @@ test("eval-readme-freshness: the rep-range appears in every section that restate
   }
 });
 
-test("eval-readme-freshness: the runbook's named-current model matches models.eval", () => {
+test("eval-readme-freshness: the runbook's named-current model matches eval.model", () => {
   // FAFF-677 — the resolved-model prose drifted to `claude-opus-5` while config returned
   // `claude-opus-4-8`, and the number-only guard never saw it (hand-fixed in PR #518). Resolve the
   // model in-process (zero-spawn) and compare it to the token the prose calls current.
@@ -144,8 +144,8 @@ test("eval-readme-freshness: the runbook's named-current model matches models.ev
   assert.ok(
     ok,
     `eval/README.md's runbook names the current eval model as ${named === null ? "«no `currently returns \\`…\\`` token found»" : `\`${named}\``}, ` +
-      `but config resolves models.eval to \`${resolved}\`. Update the "currently returns \`…\`" line ` +
-      `to \`${resolved}\` (or fix models.eval in .faffrc.yaml), whichever is wrong.`,
+      `but config resolves eval.model to \`${resolved}\`. Update the "currently returns \`…\`" line ` +
+      `to \`${resolved}\` (or fix eval.model in .faffrc.yaml), whichever is wrong.`,
   );
 });
 
@@ -174,7 +174,7 @@ test("eval-readme-freshness: the assert helpers report failure on deliberately-s
 
   // (c) The regex captures across the real line-break-and-indent between "returns" and the backtick,
   // not just when they're adjacent — the shape that actually lives in the README.
-  const wrappedReadme = "In this repo `models.eval` is set and currently returns\n   `claude-opus-4-8`, so that is what a plain run gets.";
+  const wrappedReadme = "In this repo `eval.model` is set and currently returns\n   `claude-opus-4-8`, so that is what a plain run gets.";
   assert.equal(
     extractNamedModel(wrappedReadme),
     "claude-opus-4-8",

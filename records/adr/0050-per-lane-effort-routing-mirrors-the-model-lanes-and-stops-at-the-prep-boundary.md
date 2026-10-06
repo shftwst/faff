@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-07-09
 - **Issue:** FAFF-416
+- **Amended:** 2026-10-05: the `effort.eval` exclusion superseded in part by ADR-0133; the prep/spec exclusion and all other decisions unchanged.
 
 ## Context
 

@@ -649,7 +649,7 @@ function claimStoreCore(root, transportOrRemote, spec) {
   // FAFF-1208: `nowMs` is a selftest clock seam so the default-tolerance pin measures an exact age
   // regardless of host speed. Production callers never pass it: a caller-chosen clock decides
   // whether a live holder reads as stale.
-  function reclaimIfStale(identity, ownerSnapshot, env, nowMs = Date.now()) {
+  function reclaimIfStale(identity, ownerSnapshot, env, nowMs) {
     const ref = spec.refName(identity);
     const existing = transport.read(ref);
     if (existing.status === "unreachable") return { reclaimed: false, reason: "store_unavailable" };
@@ -672,7 +672,7 @@ function claimStoreCore(root, transportOrRemote, spec) {
     // a binding whose reclaim decision carries cross-machine wrong-verdict cost pays the delay
     // (`recoveryClaimStore` opts out with `applySkewTolerance: false` — see its own header comment).
     const toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env);
-    const skewedNowMs = nowMs - toleranceSecs * 1000;
+    const skewedNowMs = (nowMs ?? Date.now()) - toleranceSecs * 1000;
     const held = spec.stalePredicate(existing.claim, skewedNowMs, env);
     if (held) return { reclaimed: false, reason: "held", holder: existing.claim, sha: existing.sha };
 

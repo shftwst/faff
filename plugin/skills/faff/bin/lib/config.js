@@ -1959,6 +1959,7 @@ function verifyUnset(rawText, newText, segments) {
     if (!isPlainConfigMap(next)) break;
     chain.push(next);
   }
+  if (chain.length !== segments.length) return "key path does not resolve to a map chain in the original parse";
   delete chain[chain.length - 1][segments[chain.length - 1]];
   for (let depth = chain.length - 1; depth > 0 && Object.keys(chain[depth]).length === 0; depth--) {
     delete chain[depth - 1][segments[depth - 1]];
@@ -2071,6 +2072,9 @@ function configUnsetSelftest() {
   removes("subtree holding a list", "adversarial:\n  refs:\n    - a\n  timeout: 5\nz: 1\n", "adversarial", "z: 1\n");
   removes("leaf removal prunes a single-child parent", "a:\n  x: 1\nb: 1\n", "a.x", "b: 1\n", ["a"]);
 
+  removes("block scalar whose text starts with a dash", "notes: |\n  - item one\nz: 1\n", "notes", "z: 1\n");
+  removes("folded block scalar with chomping", "a:\n  notes: >-\n    - item\n  keep: 1\n", "a.notes", "a:\n  keep: 1\n");
+  check("verifyUnset fails when the chain stops at a non-map", verifyUnset("a: 1\n", "", ["a", "b"]) !== null);
   status("unindented block sequence", "teams:\n- A\nz: 1\n", "teams", "list");
   status("block-sequence leaf", "tracking:\n  items:\n    - A\n    - B\n", "tracking.items", "list");
   status("bare-word inline list", "k: [a, b]\n", "k", "list");

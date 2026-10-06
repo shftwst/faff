@@ -151,6 +151,12 @@ test("an inherited property name is not a key", () => {
   assert.equal(run(dir, "config", "unset", "a.toString").code, 3);
 });
 
+test("a block scalar whose text starts with a dash is not a list", () => {
+  const dir = repo("notes: |\n  - item one\nz: 1\n");
+  assert.equal(run(dir, "config", "unset", "notes").code, 0);
+  assert.equal(base(dir), "z: 1\n");
+});
+
 test("a map subtree that holds a list is removed whole", () => {
   const dir = repo("adversarial:\n  refs:\n    - a\n  timeout: 5\nz: 1\n");
   assert.equal(run(dir, "config", "unset", "adversarial").code, 0);

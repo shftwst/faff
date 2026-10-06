@@ -830,7 +830,7 @@ function isInsideRoot(relativeDir) {
 function exclusionReason(rec, cfg, localOsVal) {
   const cmd = String(rec.command);
   if (cfg.exclude.some((pat) => pat && cmd.includes(pat))) return "configured";
-  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(cmd + (rec.working_directory || ""))) return "github-context";
+  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(`${cmd}\n${rec.working_directory || ""}`)) return "github-context";
   if (isNotRunnable(cmd)) return "not-runnable";
   if (rec.working_directory && !isInsideRoot(rec.working_directory)) return "not-runnable";
   if (rec.runs_on) {

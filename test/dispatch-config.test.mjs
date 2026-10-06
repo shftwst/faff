@@ -239,6 +239,14 @@ test("config resolved prints dispatch lines only for set values, with the FAFF-1
   });
 });
 
+test("config resolved flags an invalid dispatch tree instead of staying silent", () => {
+  withConfig("dispatch:\n  biuld:\n    model: opus\n", (dir) => {
+    const r = cli(dir, "config", "resolved");
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /^dispatch: INVALID — .*unknown dispatch lane biuld/m);
+  });
+});
+
 test("with no dispatch key the config resolved banner gains no line", () => {
   withConfig("models:\n  spec: opus\n", (dir) => {
     assert.ok(!cli(dir, "config", "resolved").stdout.includes("dispatch"));

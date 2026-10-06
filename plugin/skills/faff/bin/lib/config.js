@@ -3197,6 +3197,8 @@ function cmdConfig(args) {
 // FAFF-1197: echo the raw dispatch: values next to the model/effort lines above. Until FAFF-1198
 // rewires the skill dispatch sites, only the build lane and engine-valued lanes read the value.
 function printDispatchBanner(data) {
+  const invalid = validateDispatchTree(data);
+  if (invalid) console.log(`dispatch: INVALID — ${invalid} (every resolver exits 2 until fixed)`);
   const dispatch = isPlainMap(data.dispatch) ? data.dispatch : {};
   const lowered = (node) => {
     const out = {};

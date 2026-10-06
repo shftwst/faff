@@ -22,7 +22,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
 const https = require("node:https");
-const { ENGINE_CALL_LANES, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
+const { ENGINE_CALL_LANES, laneSourceKey, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
 const { CANONICAL_CONFIG, findRoot, latestRunDir } = require("./shared-infra");
 // FAFF-877: the shared bounded-operation supervisor — the HTTP transport arm the
 // non-spawn engine families (ollama, openai-compatible) run their call under.
@@ -326,7 +326,8 @@ function cmdEngine(args) {
   if (res.effort) {
     const mapped = reasoningEffortForTransport(res.effort);
     if (mapped !== res.effort) {
-      process.stderr.write(`faff engine call: effort.${lane} "${res.effort}" clamped to "${mapped}" — engines.${res.name} (${res.provider}) reasoning-effort tops out at ${mapped}; set effort.${lane} to ${mapped} to silence this note.\n`);
+      const effortSource = laneSourceKey(cfg, lane, "effort");
+      process.stderr.write(`faff engine call: ${effortSource} "${res.effort}" clamped to "${mapped}" — engines.${res.name} (${res.provider}) reasoning-effort tops out at ${mapped}; set ${effortSource} to ${mapped} to silence this note.\n`);
     }
   }
   // FAFF-593/FAFF-647: a SPAWN transport family (codex today) is not HTTP — fork

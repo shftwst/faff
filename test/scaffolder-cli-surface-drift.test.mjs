@@ -13,7 +13,7 @@
 //   - verbs                 ← Object.keys(COMMANDS), imported from the entrypoint (FAFF-538 export).
 //   - subcommands + flags   ← lib/cli-surface.js's SURFACES map (FAFF-628) — the SAME declared
 //                             grammar `faff cli-surface --json` emits, imported directly (no spawn).
-//   - config keys           ← DEFAULTS / VALID_APPETITES / model+effort lane validators from config.js.
+//   - config keys           ← DEFAULTS / VALID_APPETITES / model/effort/dispatch lane validators from config.js.
 //
 // FAFF-628 SCOPE: verb + subcommand existence (unchanged from v1) PLUS flag-layer assertions —
 // an unknown flag, or a missing declared-required flag — on 4-space-indented command-block lines
@@ -36,6 +36,7 @@ import {
   VALID_APPETITES,
   validateModelLane,
   validateEffortLane,
+  validateDispatchKey,
 } from "../plugin/skills/faff/bin/lib/config.js";
 
 const { COMMANDS } = faffEntry;
@@ -226,6 +227,9 @@ function faffrcFindings(body, source) {
     } else if (key.startsWith("effort.")) {
       const err = validateEffortLane(key, value);
       if (err) findings.push(`${source}: ${err}`);
+    } else if (key.startsWith("dispatch.") && value) {
+      const err = validateDispatchKey(key, value);
+      if (err) findings.push(`${source}: ${err}`);
     }
     // else: namespaced blocks tolerated — validated by their own commands, not a central schema.
   }
@@ -401,6 +405,19 @@ test("an illegal appetite value is caught", () => {
   const findings = faffrcFindings("appetite: reckless\n", "fixture");
   assert.strictEqual(findings.length, 1, findings.join("\n"));
   assert.match(findings[0], /appetite=reckless/);
+});
+
+test("dispatch.* keys in an embedded .faffrc are checked with the dispatch validator (FAFF-1197)", () => {
+  assert.deepStrictEqual(faffrcFindings("dispatch:\n  spec:\n    effort: low\n  build:\n    by_tier:\n      complex:\n        model: opus\n", "fixture"), []);
+  const findings = faffrcFindings("dispatch:\n  spec:\n    effort: turbo\n  eval:\n    model: opus\n", "fixture");
+  assert.strictEqual(findings.length, 2, findings.join("\n"));
+  assert.match(findings[0], /invalid effort token/);
+  assert.match(findings[1], /eval is not a dispatch lane/);
+});
+
+test("`dispatch` is a classified verb and a RUNBOOK dispatch gesture passes the verb check (FAFF-1197)", () => {
+  assert.strictEqual(SURFACES.dispatch.kind, "flat");
+  assert.deepStrictEqual(runbookFindings("    faff dispatch resolve spec\n", "fixture:RUNBOOK.md"), []);
 });
 
 // Integration smoke test (spec §8) — inject a phantom into a REAL scaffolder body, prove it fails,

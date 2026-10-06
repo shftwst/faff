@@ -15,7 +15,7 @@
 
 const { parseArgs, usageError } = require("./argv");
 const { dig, findRoot } = require("./shared-infra");
-const { DEFAULTS, EFFORT_LANE_VOCAB, loadConfig, validateEffortLane } = require("./config");
+const { DEFAULTS, EFFORT_LANE_VOCAB, effectiveView, loadConfig, validateEffortLane } = require("./config");
 
 const EFFORT_SPEC = { flags: { "--selftest": { arity: 0 }, "--tier": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
 const EFFORT_USAGE = "usage: faff effort build-for [--tier <tier>] [--root DIR]";
@@ -69,8 +69,10 @@ function cmdEffort(args) {
   }
   const root = values["--root"] || findRoot();
   const tierArg = values["--tier"] || null;
-  const [cfg] = loadConfig(root);
-  const res = resolveBuildEffort(cfg, tierArg);
+  const [loaded] = loadConfig(root);
+  const overlaid = effectiveView(loaded);
+  if (overlaid.error) { process.stderr.write(`faff effort build-for: ${overlaid.error}\n`); return 2; }
+  const res = resolveBuildEffort(overlaid.view, tierArg);
   if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
   console.log(res.level);
   return 0;

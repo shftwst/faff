@@ -44,6 +44,7 @@ const { cmdIntegrityDigest } = require("./lib/integrity-digest");
 const { cmdDecisionCapture } = require("./lib/decision-capture");
 const { cmdShadowFidelity } = require("./lib/shadow-fidelity");
 const { cmdDecisions } = require("./lib/decisions");
+const { cmdDispatch } = require("./lib/dispatch");
 const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
 const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = require("./lib/effects");
@@ -282,6 +283,7 @@ const COMMANDS = {
   "backends": cmdBackends,
   "tier": cmdTier,
   "effort": cmdEffort,
+  "dispatch": cmdDispatch,
 };
 
 // Compact synopsis — the command list is DERIVED from Object.keys(COMMANDS), so it

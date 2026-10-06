@@ -435,6 +435,9 @@ const REGION_MAP = {
   // vocab/validation/config-load machinery (factory identifiers) — same family as
   // models/eligible → factory. factory -> factory is a legal require edge (ADR-0042).
   "effort": "factory",
+  // FAFF-1197: dispatch (the one dispatch: tree's resolver verb) requires config.js and
+  // effort.js — factory -> factory, legal under ADR-0042.
+  "dispatch": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -599,6 +602,7 @@ const REGION_SELFTEST_ARGV = {
   "build-judge-evidence": null,
   "tier": ["tier", "--selftest"],
   "effort": ["effort", "--selftest"],
+  "dispatch": ["dispatch", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

@@ -36,6 +36,11 @@ for (const [name, sites] of Object.entries(SITES)) {
     for (const line of lines.filter((l) => l.includes("commissaire contract status"))) {
       assert.ok(line.includes(CANONICAL), "the verb is called only through the one check");
     }
+    // Outside the canonical sentence, no sentence that names the stop may soften it into a fallback.
+    const sentences = text.split(CANONICAL).join(" ").split(/(?<=[.!?])\s+/);
+    for (const s of sentences.filter((x) => x.includes("commissaire-status-failed"))) {
+      assert.doesNotMatch(s, /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i, `fallback wording beside the stop: ${s}`);
+    }
   });
 }
 

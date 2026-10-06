@@ -574,7 +574,10 @@ test("FAFF-472: andon.url unset -> the sentry-trip event still lands (unconditio
     assert.ok(settled, "poller reached abort-actioned");
 
     // The poller appends sentry-trip after it logs abort-actioned, so wait for it.
-    const tripLanded = await waitUntil(() => events().some((e) => e.type === "sentry-trip"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    const tripLanded = await waitUntil(() => {
+      try { return events().some((e) => e.type === "sentry-trip"); }
+      catch { return false; }
+    }, { timeoutMs: ABORT_LANDING_BUDGET_MS });
     assert.ok(tripLanded, "the sentry-trip event landed");
     const trips = events().filter((e) => e.type === "sentry-trip");
     assert.equal(trips.length, 1, "the event append is unconditional — it does not gate on andon config");

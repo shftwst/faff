@@ -68,7 +68,7 @@ function exitUsage(message) {
 // `include` has no such entry or omits a bin/lib `.ts` file (tsc still emits one it reaches by import).
 export function realSources(pluginDir = PLUGIN) {
   const include = JSON.parse(readFileSync(path.join(pluginDir, "tsconfig.json"), "utf8")).include ?? [];
-  const sources = include.filter((entry) => entry.endsWith(".ts")).map((entry) => path.resolve(pluginDir, entry));
+  const sources = include.filter((entry) => typeof entry === "string" && entry.endsWith(".ts")).map((entry) => path.resolve(pluginDir, entry));
   if (sources.length === 0) exitUsage("tsconfig include has no literal .ts entries");
   for (const file of tsFilesUnder(path.join(pluginDir, "bin", "lib"))) {
     if (!sources.includes(file)) exitUsage(`${path.relative(pluginDir, file)} is not in tsconfig include; add it so it is checked`);

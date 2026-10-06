@@ -8,10 +8,10 @@
 // has built the cluster. The check itself is also wired into CI as a dedicated step would be under a
 // toolchain-installing lane (FAFF-1171's remit); this slice proves it at the source.
 
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -79,10 +79,14 @@ test("S3: the real cluster sources are clean (exit 0)", { skip }, () => {
   assert.equal(violations.length, 0, `real sources must be clean, got: ${JSON.stringify(violations)}`);
 });
 
+const tempDirs = [];
+after(() => { for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true }); });
+
 test("S3: the one brand assertion is allowed in the real ids.ts and nowhere else", { skip }, () => {
   const idsText = readFileSync(path.join(LIB, "ids.ts"), "utf8");
   assert.equal((idsText.match(/\bas OpaqueId\b/g) ?? []).length, 1, "ids.ts must hold exactly one brand assertion");
   const tmp = mkdtempSync(path.join(os.tmpdir(), "faff-ids-copy-"));
+  tempDirs.push(tmp);
   const copy = path.join(tmp, "ids.ts");
   writeFileSync(copy, idsText);
   const { violations } = checkSources([copy], ts);
@@ -91,6 +95,7 @@ test("S3: the one brand assertion is allowed in the real ids.ts and nowhere else
 
 function packageWithInclude(include, extraLibFiles) {
   const dir = mkdtempSync(path.join(os.tmpdir(), "faff-realsources-"));
+  tempDirs.push(dir);
   const lib = path.join(dir, "bin", "lib");
   cpSync(path.join(PLUGIN, "bin", "lib"), lib, { recursive: true, filter: (src) => !src.endsWith(".js") });
   for (const file of extraLibFiles) {

@@ -2,10 +2,10 @@
 // every refusal path (stale emit, missing emit, uncovered source, drifted or absent compiler) fails loud.
 // Pure fs and child processes: it never loads `typescript`, so it runs in every lane.
 
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
@@ -17,10 +17,17 @@ const { computeManifest, serialiseManifest, installedCompilerVersion } = createR
 
 const PACKAGE_FILES = ["tsconfig.json", "package.json", "package-lock.json", "build-manifest.json"];
 
+const tempDirs = [];
+after(() => { for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true }); });
+
+// Only the TypeScript sources and their emit matter to the manifest, so skip the rest of bin/lib.
+const isSourceOrEmit = (src) => statSync(src).isDirectory() || src.endsWith(".ts") || existsSync(src.replace(/\.js$/, ".ts"));
+
 function copyPackage() {
   const dir = mkdtempSync(path.join(os.tmpdir(), "faff-manifest-"));
+  tempDirs.push(dir);
   for (const file of PACKAGE_FILES) cpSync(path.join(PKG, file), path.join(dir, file));
-  cpSync(path.join(PKG, "bin", "lib"), path.join(dir, "bin", "lib"), { recursive: true });
+  cpSync(path.join(PKG, "bin", "lib"), path.join(dir, "bin", "lib"), { recursive: true, filter: isSourceOrEmit });
   cpSync(path.join(PKG, "scripts"), path.join(dir, "scripts"), { recursive: true });
   return dir;
 }

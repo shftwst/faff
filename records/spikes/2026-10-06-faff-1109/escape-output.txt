@@ -1,0 +1,19 @@
+$ sandbox-exec -f runner.sb launchctl submit -l dev.faff.1109probe -- /bin/sh -c 'cat $GOV/key/governor-key.json > /private/tmp/faff-1109-sock/leak; echo $? > /private/tmp/faff-1109-sock/leak.rc'
+submit exit=1
+$ launchctl list | grep 1109probe
+$ ls -la /private/tmp/faff-1109-sock/
+total 8
+drwx------@     4 shftwst  wheel     128 Oct  6 18:11 .
+drwxrwxrwt  17030 root     wheel  544960 Oct  6 18:11 ..
+srw-------@     1 shftwst  wheel       0 Oct  6 18:11 gov.sock
+-rw-r--r--@     1 shftwst  wheel     151 Oct  6 18:11 governor.out
+$ cat leak.rc
+cat: /private/tmp/faff-1109-sock/leak.rc: No such file or directory
+$ cat leak.err
+cat: /private/tmp/faff-1109-sock/leak.err: No such file or directory
+$ wc -c leak
+wc: /private/tmp/faff-1109-sock/leak: open: No such file or directory
+$ launchctl submit -l dev.faff.1109control -- /bin/sh -c 'echo ran > /private/tmp/faff-1109-sock/control'   # control, outside the profile
+submit exit=0
+$ cat control
+ran

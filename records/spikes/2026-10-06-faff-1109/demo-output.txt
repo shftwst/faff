@@ -1,0 +1,66 @@
+$ whoami; id -u; sw_vers -productVersion; node --version
+shftwst
+501
+15.6.1
+v24.15.0
+$ node governor.js $GOV/key $GOV/state $SOCK &
+governor pid=63446 uid=501 socket=/private/tmp/faff-1109-sock/gov.sock pk_fingerprint=c8585945163d2114c2883388517cf83247ce2e17c96248faa1ec2988d4db693b
+$ ls -la $GOV/key
+total 8
+drwx------@ 3 shftwst  wheel   96 Oct  6 18:11 .
+drwx------@ 4 shftwst  wheel  128 Oct  6 18:11 ..
+-rw-------@ 1 shftwst  wheel  482 Oct  6 18:11 governor-key.json
+
+$ sandbox-exec -f runner.sb node runner.js $RUN $SOCK $GOV/key/governor-key.json $FP
+runner: {"pid":63453,"uid":501,"run_id":"run-2026-10-06-proto"}
+step 1, runner reads the governor key file with node: EPERM: EPERM: operation not permitted, open '/private/tmp/faff-1109-gov/key/governor-key.json'
+step 1, runner child process runs cat on the key file: exit=1 cat: /private/tmp/faff-1109-gov/key/governor-key.json: Operation not permitted
+step 1, runner lists the key directory: exit=1 ls: /private/tmp/faff-1109-gov/key: Operation not permitted
+step 2, admit: runner sends admit with the empty ledger and its chain position
+  admission appended: {"seq":0,"custody":"governor","pk_fingerprint":"c8585945163d2114c2883388517cf83247ce2e17c96248faa1ec2988d4db693b"}
+step 3, declare + request: runner HMACs a declare and an effect-decision-request under K_producer
+  request appended: {"seq":2,"producer_hmac":"2243218fdfd205d7..."}
+step 4, authorize with a forced lost race: a concurrent producer append lands between the governor's signature and the runner's append
+  authorize attempt 1 lost the race: append core: minted record must carry the supplied seq/prev (want seq 4 prev 4d7ce0b80d7de594e2514f6b1806a4af1ecf77a081433fa0cfa78c6cfa5c69ee, got seq 3 prev ebbeef2d174af8335d79463f486da9c082b4c2b4fb0bc78950d5b4d3e638ce3a)
+  authorize attempt 2: {"verdict":"grant","reason":"all-legs-pass","signed_seq":4}
+step 5, chokepoint check with the pinned fingerprint: {"permit":true,"reason":"valid-grant"}
+step 6, deny path: request a merge for a unit that declared nothing
+  authorize attempt 1: {"verdict":"deny","reason":"effect-not-declared","signed_seq":6}
+step 7, self-signed grant: runner mints its own keypair, signs a grant, and presents it with its own key
+  chokepoint, runner key, pinned fingerprint: {"permit":false,"reason":"pk-fingerprint-mismatch"}
+  chokepoint, runner key, fingerprint from the runner's own pk.json (today): {"permit":true,"reason":"valid-grant"}
+runner exit=0
+
+$ sandbox-exec -f runner.sb /bin/kill -0 $GPID   # signal the governor from inside the profile
+exit=0
+
+$ ls $RUN/commissaire   # what the runner holds
+producer
+
+/private/tmp/faff-1109-run/run-2026-10-06-proto/commissaire/producer:
+pk.json
+producers
+
+/private/tmp/faff-1109-run/run-2026-10-06-proto/commissaire/producer/producers:
+faff-runner.json
+$ grep -rl 'BEGIN PRIVATE KEY\|master_secret\|root_secret' $RUN || echo none
+none
+
+$ jq -c '{seq,author,kind_of_entry,unit_id,verdict:.payload.verdict,reason:.payload.reason,custody:.payload.custody}' $RUN/declared-effects.jsonl
+{"seq":0,"author":"commissaire","kind_of_entry":"admission","unit_id":"-","verdict":null,"reason":null,"custody":"governor"}
+{"seq":1,"author":"producer","kind_of_entry":"declare","unit_id":"FAFF-9001","verdict":null,"reason":null,"custody":null}
+{"seq":2,"author":"producer","kind_of_entry":"effect-decision-request","unit_id":"FAFF-9001","verdict":null,"reason":null,"custody":null}
+{"seq":3,"author":"producer","kind_of_entry":"declare","unit_id":"FAFF-9002","verdict":null,"reason":null,"custody":null}
+{"seq":4,"author":"commissaire","kind_of_entry":"effect-decision-verdict","unit_id":"FAFF-9001","verdict":"grant","reason":"all-legs-pass","custody":null}
+{"seq":5,"author":"producer","kind_of_entry":"effect-decision-request","unit_id":"FAFF-9003","verdict":null,"reason":null,"custody":null}
+{"seq":6,"author":"commissaire","kind_of_entry":"effect-decision-verdict","unit_id":"FAFF-9003","verdict":"deny","reason":"effect-not-declared","custody":null}
+
+$ faff commissaire audit verify --run-dir $RUN
+{"version":1,"result":"pass","governance_context":true,"producer_claims":{"verified":0,"unverifiable_without_secret":4,"failed":0},"commissaire_decisions":{"verified":3,"failed":0},"pk_fingerprint":"c8585945163d2114c2883388517cf83247ce2e17c96248faa1ec2988d4db693b","ledger_failures":[],"records":[{"seq":0,"author":"commissaire","kind_of_entry":"admission","classification":"verified","reason":null},{"seq":1,"author":"producer","kind_of_entry":"declare","classification":"unverifiable_without_secret","reason":"no-master"},{"seq":2,"author":"producer","kind_of_entry":"effect-decision-request","classification":"unverifiable_without_secret","reason":"no-master"},{"seq":3,"author":"producer","kind_of_entry":"declare","classification":"unverifiable_without_secret","reason":"no-master"},{"seq":4,"author":"commissaire","kind_of_entry":"effect-decision-verdict","classification":"verified","reason":null},{"seq":5,"author":"producer","kind_of_entry":"effect-decision-request","classification":"unverifiable_without_secret","reason":"no-master"},{"seq":6,"author":"commissaire","kind_of_entry":"effect-decision-verdict","classification":"verified","reason":null}]}
+exit=0
+
+$ cat $GOV/state/governor-log.jsonl   # the governor's own log, outside the run dir
+{"op":"admit","run_id":"run-2026-10-06-proto","at":{"seq":0,"prev":"70fa7a0051a2c82c7b173ab865db7acdd57a99a1da79f0dac279073e99bff0d6"},"ok":true,"signed_seq":0}
+{"op":"authorize","run_id":"run-2026-10-06-proto","request_seq":2,"at":{"seq":3,"prev":"ebbeef2d174af8335d79463f486da9c082b4c2b4fb0bc78950d5b4d3e638ce3a"},"ok":true,"verdict":"grant","reason":"all-legs-pass","signed_seq":3}
+{"op":"authorize","run_id":"run-2026-10-06-proto","request_seq":2,"at":{"seq":4,"prev":"4d7ce0b80d7de594e2514f6b1806a4af1ecf77a081433fa0cfa78c6cfa5c69ee"},"ok":true,"verdict":"grant","reason":"all-legs-pass","signed_seq":4}
+{"op":"authorize","run_id":"run-2026-10-06-proto","request_seq":5,"at":{"seq":6,"prev":"a89343b0d18643e79164da24f91dbb3f7cb094ebf253c39724c0916860b66d96"},"ok":true,"verdict":"deny","reason":"effect-not-declared","signed_seq":6}

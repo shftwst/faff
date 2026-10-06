@@ -10,6 +10,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { isDeepStrictEqual } = require("node:util");
 const { parseArgs, usageError } = require("./argv");
 // FAFF-417: --tier/--confidence are the flag-form of the (still byte-for-byte) bare
 // positional confidence — `faff models build-for <confidence>` keeps working unchanged.
@@ -45,6 +46,7 @@ const CONFIG_SURFACE = {
     init: { required_flags: [] },
     resolved: { required_flags: [] },
     set: { required_flags: [] },
+    unset: { required_flags: [] },
   },
 };
 // FAFF-667: both usage strings (the flag-gate failure and the unknown/missing-subcommand
@@ -1825,6 +1827,267 @@ function cmdConfigSet(args, root) {
   return 0;
 }
 
+function hasConfigPath(data, segments) {
+  let current = data;
+  for (const segment of segments) {
+    if (!isPlainConfigMap(current) || !(segment in current)) return false;
+    current = current[segment];
+  }
+  return true;
+}
+
+// Surgical removal of a dotted key's line span (the key line plus every following line that is
+// blank or indented deeper), then of any ancestor map left without a key line. Pure: returns
+// { status: removed|absent|list|inline-ancestor, text, pruned, ancestor? } and never re-emits
+// the file from a parse, so comments and every byte outside the span survive.
+function removeConfigPath(rawText, segments) {
+  const indentOf = (line) => line.length - line.replace(/^ +/, "").length;
+  const isBlank = (line) => line.trim() === "";
+  const isBlankOrComment = (line) => isBlank(line) || line.trim().startsWith("#");
+  const keyOf = (line) => {
+    const content = stripInlineComment(line.trim());
+    const colon = content.indexOf(":");
+    return (colon === -1 ? content : content.slice(0, colon)).trim();
+  };
+  const inlineValueOf = (line) => stripInlineComment(line.slice(line.indexOf(":") + 1)).trim();
+  const unchanged = (status, extra = {}) => ({ status, text: rawText, pruned: [], ...extra });
+
+  const endsWithNewline = rawText.endsWith("\n");
+  const lines = (endsWithNewline ? rawText.slice(0, -1) : rawText).split("\n");
+
+  const bodyEndOf = (idx, windowEnd) => {
+    const indent = indentOf(lines[idx]);
+    let end = idx + 1;
+    while (end < windowEnd && (isBlank(lines[end]) || indentOf(lines[end]) > indent)) end++;
+    return end;
+  };
+  const firstKeyLine = (from, to) => lines.slice(from, to).find((line) => !isBlankOrComment(line));
+
+  let windowStart = 0, windowEnd = lines.length, expectedIndent = 0;
+  const findKey = (segment) => {
+    for (let i = windowStart; i < windowEnd; i++) {
+      if (isBlankOrComment(lines[i]) || indentOf(lines[i]) !== expectedIndent) continue;
+      if (keyOf(lines[i]) === segment) return i;
+    }
+    return -1;
+  };
+
+  const ancestors = [];
+  for (let s = 0; s < segments.length - 1; s++) {
+    const idx = findKey(segments[s]);
+    if (idx === -1) return unchanged("absent");
+    const ancestorPath = segments.slice(0, s + 1).join(".");
+    const inline = inlineValueOf(lines[idx]);
+    if (inline !== "") {
+      const value = scalar(inline);
+      return isPlainConfigMap(value) && hasConfigPath(value, segments.slice(s + 1))
+        ? unchanged("inline-ancestor", { ancestor: ancestorPath })
+        : unchanged("absent");
+    }
+    ancestors.push({ idx, path: ancestorPath });
+    windowEnd = bodyEndOf(idx, windowEnd);
+    windowStart = idx + 1;
+    const child = firstKeyLine(windowStart, windowEnd);
+    expectedIndent = child === undefined ? indentOf(lines[idx]) + 2 : indentOf(child);
+  }
+
+  const leafIdx = findKey(segments[segments.length - 1]);
+  if (leafIdx === -1) return unchanged("absent");
+  const leafInline = inlineValueOf(lines[leafIdx]);
+  const firstChild = firstKeyLine(leafIdx + 1, bodyEndOf(leafIdx, windowEnd));
+  const isInlineList = leafInline.startsWith("[") && leafInline.endsWith("]");
+  const isBlockList = leafInline === "" && firstChild !== undefined && /^-(\s|$)/.test(firstChild.trim());
+  if (isInlineList || isBlockList) return unchanged("list");
+
+  const spanEndOf = (idx) => {
+    let end = bodyEndOf(idx, lines.length);
+    while (end > idx + 1 && isBlank(lines[end - 1])) end--;
+    return end;
+  };
+  const removeSpan = (start, end) => {
+    const nothingFollows = lines.slice(end).every(isBlank);
+    if (nothingFollows) {
+      lines.length = start;
+      while (lines.length && isBlank(lines[lines.length - 1])) lines.pop();
+      return;
+    }
+    const precededByBlank = start === 0 || isBlank(lines[start - 1]);
+    const dropFollowingBlank = precededByBlank && isBlank(lines[end]);
+    lines.splice(start, end - start + (dropFollowingBlank ? 1 : 0));
+  };
+
+  removeSpan(leafIdx, spanEndOf(leafIdx));
+  const pruned = [];
+  for (let a = ancestors.length - 1; a >= 0; a--) {
+    const { idx, path: ancestorPath } = ancestors[a];
+    if (lines.slice(idx + 1, bodyEndOf(idx, lines.length)).some((line) => !isBlankOrComment(line))) break;
+    removeSpan(idx, spanEndOf(idx));
+    pruned.push(ancestorPath);
+  }
+  const text = lines.length ? lines.join("\n") + (endsWithNewline ? "\n" : "") : "";
+  return { status: "removed", text, pruned };
+}
+
+function leafPaths(data, prefix = []) {
+  if (prefix.length === 0 && isPlainConfigMap(data) && Object.keys(data).length === 0) return [];
+  if (!isPlainConfigMap(data) || Object.keys(data).length === 0) return [[prefix.join("."), JSON.stringify(data)]];
+  return Object.entries(data).flatMap(([key, value]) => leafPaths(value, [...prefix, key]));
+}
+
+// Proves a removal against the real reader: the new parse must equal the old parse minus
+// exactly the key and the ancestors it emptied. Returns null on success, else a detail that
+// names key paths only, never values.
+function verifyUnset(rawText, newText, segments) {
+  const expected = structuredClone(parseYamlSubset(rawText));
+  const chain = [expected];
+  for (const segment of segments.slice(0, -1)) {
+    const next = chain[chain.length - 1][segment];
+    if (!isPlainConfigMap(next)) break;
+    chain.push(next);
+  }
+  delete chain[chain.length - 1][segments[chain.length - 1]];
+  for (let depth = chain.length - 1; depth > 0 && Object.keys(chain[depth]).length === 0; depth--) {
+    delete chain[depth - 1][segments[depth - 1]];
+  }
+  const after = parseYamlSubset(newText);
+  if (isDeepStrictEqual(after, expected)) return null;
+  const want = new Map(leafPaths(expected)), got = new Map(leafPaths(after));
+  const differing = [...new Set([...want.keys(), ...got.keys()])].filter((p) => want.get(p) !== got.get(p));
+  return `differs at ${differing.join(", ") || "(root)"}; a duplicate key can cause this, so repair it or regenerate with faff config init`;
+}
+
+function cmdConfigUnset(args, root) {
+  const local = args.includes("--local");
+  const dryRun = args.includes("--dry-run");
+  const positionals = args.filter((a) => !a.startsWith("--"));
+  const segments = positionals.length === 1 ? positionals[0].split(".") : [];
+  if (segments.length === 0 || segments.includes("")) {
+    process.stderr.write("faff config unset: requires exactly one <dotted.key>\n");
+    return 2;
+  }
+  const key = positionals[0];
+  if (isSequenceValuedKey(key)) return refuseListKey(key);
+
+  const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
+  const existingPath = local ? findOverlay(root) : findConfig(root);
+  if (existingPath === null) {
+    process.stderr.write(`faff config unset: no ${targetName} in ${root}; nothing to unset\n`);
+    return 3;
+  }
+  const rawText = fs.readFileSync(existingPath, "utf8");
+  const result = removeConfigPath(rawText, segments);
+  if (result.status === "absent") {
+    process.stderr.write(`faff config unset: '${key}' is not set in ${targetName}\n`);
+    return 3;
+  }
+  if (result.status === "list") return refuseListKey(key);
+  if (result.status === "inline-ancestor") {
+    process.stderr.write(`faff config unset: '${result.ancestor}' is an inline map; unset '${result.ancestor}' instead\n`);
+    return 2;
+  }
+  const mismatch = verifyUnset(rawText, result.text, segments);
+  if (mismatch) {
+    process.stderr.write(`faff config unset: internal error, edited text does not round-trip (${mismatch}); aborting to avoid a corrupt config.\n`);
+    return 2;
+  }
+  if (dryRun) {
+    process.stdout.write(result.text.endsWith("\n") || result.text === "" ? result.text : result.text + "\n");
+    return 0;
+  }
+  fs.writeFileSync(path.join(root, targetName), result.text);
+  const prunedNote = result.pruned.length ? ` Pruned empty ${result.pruned.join(", ")}.` : "";
+  console.log(`config unset: removed ${key} from ${targetName}.${prunedNote}`);
+  noteKeyStillSetElsewhere(root, local, segments, key);
+  return 0;
+}
+
+function refuseListKey(key) {
+  process.stderr.write(`faff config unset: '${key}' is a list-valued key; hand-edit the committed base (config unset removes maps and scalars only)\n`);
+  return 2;
+}
+
+function noteKeyStillSetElsewhere(root, editedLocal, segments, key) {
+  try {
+    const otherPath = editedLocal ? findConfig(root) : findOverlay(root);
+    if (otherPath === null) return;
+    if (hasConfigPath(parseYamlSubset(fs.readFileSync(otherPath, "utf8")), segments)) {
+      process.stderr.write(`note: ${key} is still set in ${path.basename(otherPath)}; faff config get reads the merged value.\n`);
+    }
+  } catch { /* best-effort: the note never changes the outcome */ }
+}
+
+// In-memory self-test for removeConfigPath and verifyUnset. Every editing case asserts the exact
+// edited text, because the round-trip proof cannot see comment or blank-line damage.
+function configUnsetSelftest() {
+  let fail = 0;
+  const check = (label, cond) => {
+    if (!cond) fail++;
+    console.log(`${cond ? "ok  " : "FAIL"} ${label}`);
+  };
+  const removes = (label, text, key, want, wantPruned = []) => {
+    const r = removeConfigPath(text, key.split("."));
+    check(`${label}: exact text`, r.status === "removed" && r.text === want);
+    check(`${label}: pruned ${JSON.stringify(wantPruned)}`, JSON.stringify(r.pruned) === JSON.stringify(wantPruned));
+    check(`${label}: round-trips`, verifyUnset(text, r.text, key.split(".")) === null);
+  };
+  const status = (label, text, key, want) => check(`${label}: ${want}`, removeConfigPath(text, key.split(".")).status === want);
+
+  removes("leaf", "a:\n  b: 1\n  c: 2\n", "a.b", "a:\n  c: 2\n");
+  removes("block", "x: 1\nmodels:\n  build: sonnet\n  spec: opus\ny: 2\n", "models", "x: 1\ny: 2\n");
+  removes("two-level prune", "keep: 1\ndispatch:\n  spec:\n    effort: low\n", "dispatch.spec.effort", "keep: 1\n", ["dispatch.spec", "dispatch"]);
+  removes("comment-only parent pruned", "a:\n  b: 1\n  # note\nz: 1\n", "a.b", "z: 1\n", ["a"]);
+  removes("detached comment kept", "# about models\nmodels:\n  build: sonnet\nz: 1\n", "models", "# about models\nz: 1\n");
+  removes("deeper comment removed", "models:\n  # legacy\n  spec: opus\nz: 1\n", "models", "z: 1\n");
+  removes("sibling comment at key indent kept", "a:\n  b: 1\n  # for c\n  c: 2\n", "a.b", "a:\n  # for c\n  c: 2\n");
+  removes("inline comment goes with the key", "models: # lanes\n  build: x\nz: 1\n", "models", "z: 1\n");
+  removes("blank separator collapses", "a: 1\n\nmodels:\n  build: x\n\nz: 1\n", "models", "a: 1\n\nz: 1\n");
+  removes("blank kept when comment precedes", "a: 1\n\n# lanes\nmodels:\n  build: x\n\nz: 1\n", "models", "a: 1\n\n# lanes\n\nz: 1\n");
+  removes("last block leaves no trailing blank", "a: 1\n\nmodels:\n  build: x\n", "models", "a: 1\n");
+  removes("first block leaves no leading blank", "models:\n  build: x\n\nz: 1\n", "models", "z: 1\n");
+  removes("trailing newline absent stays absent", "a: 1\nb: 2", "b", "a: 1");
+  removes("trailing newline present stays present", "a: 1\nb: 2\n", "b", "a: 1\n");
+  removes("emptied file is empty text", "a:\n  b: 1\n", "a.b", "", ["a"]);
+  removes("block scalar leaf", "a:\n  note: |\n    one\n    two\n  keep: 1\n", "a.note", "a:\n  keep: 1\n");
+  removes("null leaf (bare key)", "a: 1\nmodels:\nb: 2\n", "models", "a: 1\nb: 2\n");
+  removes("null leaf (explicit)", "a: 1\nmodels: null\nb: 2\n", "models", "a: 1\nb: 2\n");
+  removes("tilde leaf", "a: 1\nmodels: ~\n", "models", "a: 1\n");
+  removes("4-space indent", "a:\n    b:\n        c: 1\n    d: 2\n", "a.b.c", "a:\n    d: 2\n", ["a.b"]);
+  removes("4-space leaf keeps sibling", "a:\n    b: 1\n    c: 2\n", "a.b", "a:\n    c: 2\n");
+  removes("inline flow map leaf", "infra: {\"a\": 1}\nz: 1\n", "infra", "z: 1\n");
+  removes("subtree holding a list", "adversarial:\n  refs:\n    - a\n  timeout: 5\nz: 1\n", "adversarial", "z: 1\n");
+  removes("first match under a duplicated name", "a:\n  x: 1\nb: 1\n", "a.x", "b: 1\n", ["a"]);
+
+  status("block-sequence leaf", "tracking:\n  items:\n    - A\n    - B\n", "tracking.items", "list");
+  status("bare-word inline list", "k: [a, b]\n", "k", "list");
+  status("JSON inline list", "k: [\"a\",\"b\"]\n", "k", "list");
+  status("inline list with comment", "k: [a, b]  # c\n", "k", "list");
+  status("inline-map ancestor", "a: {\"b\": 1}\n", "a.b", "inline-ancestor");
+  status("partial-path inline map", "a: {\"b\": 1}\n", "a.b.c", "absent");
+  status("absent leaf", "a:\n  b: 1\n", "a.c", "absent");
+  status("absent top-level", "a: 1\n", "zz", "absent");
+  status("absent ancestor", "a: 1\n", "x.y", "absent");
+  status("scalar ancestor", "tracking: foo\n", "tracking.provider", "absent");
+  status("nested key not matched at top level", "a:\n  b: 1\n", "b", "absent");
+  status("empty text", "", "a", "absent");
+  check("inline-ancestor names the ancestor", removeConfigPath("x:\n  a: {\"b\": 1}\n", ["x", "a", "b"]).ancestor === "x.a");
+  check("absent leaves the text untouched", removeConfigPath("a: 1\n", ["q"]).text === "a: 1\n");
+
+  const duplicate = "models:\n  a: 1\nmodels:\n  b: 2\n";
+  const dupEdit = removeConfigPath(duplicate, ["models"]);
+  const dupDetail = verifyUnset(duplicate, dupEdit.text, ["models"]);
+  check("duplicate key: round-trip fails", typeof dupDetail === "string" && dupDetail.includes("models.b"));
+  check("duplicate key: detail carries no value", !dupDetail.includes("2"));
+  check("verifyUnset passes a faithful edit", verifyUnset("a:\n  b: 1\n  c: 2\n", "a:\n  c: 2\n", ["a", "b"]) === null);
+  check("verifyUnset catches a damaged sibling", verifyUnset("a:\n  b: 1\n  c: 2\n", "a:\n  c: 3\n", ["a", "b"]) !== null);
+
+  for (const key of ["adversarial.refs", "tracking.teams", "tracking.team_routing.x", "adversarial.spec_review.refs"]) {
+    check(`by-name list refusal: ${key}`, isSequenceValuedKey(key));
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config unset, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 // In-memory self-test for cmdConfigSet's pure helpers + the round-trip contract. Mirrors
 // configInitSelftest's shape: per-case ok/FAIL + a RESULT line, non-zero on any fail.
 function configSetSelftest() {
@@ -3066,6 +3329,10 @@ function cmdConfig(args) {
       if (rest.includes("--selftest")) return configSetSelftest();
       return cmdConfigSet(rest.slice(1), root);
     }
+    if (cmd === "unset") {
+      if (rest.includes("--selftest")) return configUnsetSelftest();
+      return cmdConfigUnset(rest.slice(1), root);
+    }
     if (cmd === "resolved") {
       // FAFF-50: loud, human-readable echo of the resolved NON-default config — what a run
       // actually uses that overrides a built-in default. Print it in run banners so a dropped
@@ -3399,4 +3666,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, effectiveView, emitChainBlock, emitScalar, emitTrackingBlock, fmt, laneSourceKey, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane, validateTeams };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdConfigUnset, cmdModels, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configUnsetSelftest, configVerbList, effectiveView, emitChainBlock, emitScalar, emitTrackingBlock, fmt, laneSourceKey, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, removeConfigPath, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveBuildModelForIssue, resolveBuildModelForTier, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEffortLane, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateModelLane, validateTeams };

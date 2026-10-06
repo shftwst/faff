@@ -1,8 +1,16 @@
-# FAFF-1109 spike evidence: governor round trip and claude-box mount check
+# FAFF-1109 spike evidence: governor round trips and claude-box mount check
 
-Evidence for ADR 0135. Recorded 2026-10-06 on the maintainer's machine: macOS 15.6.1, Node 24.15.0, faff at `82d6dbb2` (origin/main). Every command ran as the same OS user (uid 501). No command used sudo.
+Evidence for ADR 0135. Recorded 2026-10-06 on the maintainer's machine: macOS 15.6.1, Node 24.15.0, faff at `82d6dbb2` (origin/main). No command used sudo on the host.
 
-## Part 1: prototype round trip
+| Part | What | Boundary |
+|---|---|---|
+| 1 | macOS prototype round trip | Seatbelt profile on the runner, same OS user. An experiment only (FAFF-1109 comment ded5c387) |
+| 2 | claude-box mount check | Read of the launcher plus `docker inspect` |
+| 3 | Linux prototype round trip | Separate OS users inside a throwaway container |
+
+## Part 1: macOS prototype round trip (Seatbelt, experiment only)
+
+Every command in this part ran as the same OS user (uid 501).
 
 ### What was built
 
@@ -182,3 +190,84 @@ These matter more than the mounts, because the claude-box scenario keeps the gov
 The project's `.git/hooks` and `.claude/settings.json` are also inside the read-write project mount, and host tools run them. These were not tested.
 
 The claude-box launcher also forwards the human's own GitHub token into the cage (`libcage.sh:889-893`, `gh auth token`). That does not affect key custody, but it limits any GitHub-side human gate: the runner acts as the human on GitHub.
+
+## Part 3: Linux prototype round trip (separate OS user)
+
+### What was built
+
+The same round trip as part 1, on Linux, across an OS-user boundary. It ran inside a throwaway `node:20` container (Debian 12.13, Node 20.20.2, the adopter floor) on the host's Colima Docker. The container ran as root, which made it possible to create users without host sudo. Root inside the container was used only to create the users and directories and to start each process as its user with `runuser`. No host privilege beyond running the container was used.
+
+The scratch worktree at `82d6dbb2` was mounted read-only at `/faff`. It changed no tracked file, was never committed or pushed, and was deleted after this run.
+
+| File | Lines | SHA-256 | Role |
+|---|---|---|---|
+| `governor.js` | 149 | `8be5c171da87993c040bc61970593bd2a687bce647f50749344287779c5dce54` | Part 1's governor, plus a peer-credential check on every connection |
+| `runner.js` | 98 | `79ef58632c0c0d2a8a2e78af415df7eba2fb7313eabf0806d90ba2d869004a66` | Part 1's runner, without the Seatbelt steps, plus a signal probe |
+| `demo-linux.sh` | 45 | `76199e97ee0eeafe4db378702b3b1736863cacc964fa6fb6bf075471a3cd03b0` | Creates the users, starts the governor, runs the runner and an intruder |
+
+Users and custody:
+
+| User | uid | Role |
+|---|---|---|
+| `faffgov` (system user) | 999 | Runs the governor. Owns `/var/lib/faffgov` (`0700`), the key directory (`0700`) and `governor-key.json` (`0600`) |
+| `runner` | 1001 | Runs the runner. The governor's only allowed caller |
+| `intruder` | 1002 | A second unprivileged user, used to test the caller check |
+
+**Caller authentication.** Node has no API for `SO_PEERCRED`. The governor hands a duplicate of each accepted connection's file descriptor to a short Python helper, which reads the peer's pid, uid and gid with `getsockopt(SOL_SOCKET, SO_PEERCRED)`. The governor drops any caller whose uid is not on its allow list before it reads the request. The socket file was deliberately left at mode `0666` so that this check, and not the file mode, was what refused the intruder. A deployment would also restrict the socket file to the runner's group.
+
+### Commands and output
+
+`docker run --rm -v <scratch worktree>:/faff:ro node:20 /faff/proto-1109/demo-linux.sh`, full output in [`demo-linux-output.txt`](demo-linux-output.txt). Abridged:
+
+```
+$ id faffgov; id runner; id intruder
+uid=999(faffgov) gid=999(faffgov) groups=999(faffgov)
+uid=1001(runner) gid=1001(runner) groups=1001(runner)
+uid=1002(intruder) gid=1002(intruder) groups=1002(intruder)
+$ runuser -u faffgov -- node /faff/proto-1109/governor.js /var/lib/faffgov/key /var/lib/faffgov/state /run/faffgov/gov.sock 1001 &
+governor pid=41 uid=999 socket=/run/faffgov/gov.sock allowed_uids=1001 pk_fingerprint=dd543265…f0e72738
+-rw------- 1 faffgov faffgov  482 Oct  6 18:35 governor-key.json
+
+$ runuser -u runner -- node /faff/proto-1109/runner.js …
+runner: {"pid":53,"uid":1001,"gid":1001,"groups":[1001],"run_id":"run-linux-proto"}
+step 1, runner reads the governor key file with node: EACCES: permission denied, open '/var/lib/faffgov/key/governor-key.json'
+step 1, cat on the key file: exit=1 /bin/cat: /var/lib/faffgov/key/governor-key.json: Permission denied
+step 1, ls of the key directory: exit=2 /bin/ls: cannot access '/var/lib/faffgov/key': Permission denied
+step 1, kill -0 on the governor: exit=1 /bin/kill: (41): Operation not permitted
+step 2, admission appended: {"seq":0,"custody":"governor",…}
+  authorize attempt 1 lost the race: append core: minted record must carry the supplied seq/prev (want seq 4 …, got seq 3 …)
+  authorize attempt 2: {"verdict":"grant","reason":"all-legs-pass","signed_seq":4}
+step 5, chokepoint check with the pinned fingerprint: {"permit":true,"reason":"valid-grant"}
+  authorize attempt 1: {"verdict":"deny","reason":"effect-not-declared","signed_seq":6}
+  chokepoint, runner key, pinned fingerprint: {"permit":false,"reason":"pk-fingerprint-mismatch"}
+  chokepoint, runner key, fingerprint from the runner's own pk.json (today): {"permit":true,"reason":"valid-grant"}
+
+$ runuser -u intruder -- cat /var/lib/faffgov/key/governor-key.json
+cat: /var/lib/faffgov/key/governor-key.json: Permission denied
+$ runuser -u intruder -- node -e '<send one authorize request to the socket>'
+{"ok":false,"reason":"caller-not-allowed","peer":{"pid":70,"uid":1002,"gid":1002}}
+
+$ grep -rl 'BEGIN PRIVATE KEY\|master_secret\|root_secret' /home/runner/runs/run-linux-proto || echo none
+none
+$ runuser -u runner -- node /faff/plugin/skills/faff/bin/faff commissaire audit verify --run-dir … | <keep three fields>
+{"result":"pass","producer_claims":{"verified":0,"unverifiable_without_secret":4,"failed":0},"commissaire_decisions":{"verified":3,"failed":0}}
+```
+
+The governor's own log, readable only by `faffgov`, records the caller's uid on every request, the orphaned grant at seq 3, and the refused intruder connection.
+
+### What the Linux prototype proved
+
+1. The OS-user boundary on Linux. The runner's user got `EACCES` on the key file and could not list the key directory. It could not signal the governor either (`kill -0` returned "Operation not permitted"), which the Seatbelt profile in part 1 did not prevent.
+2. The same round trip as part 1 works across users: the unchanged evaluators, a verdict signed at the runner's chain position, a recovered lost race, a deny, and the self-grant refused against the pinned fingerprint.
+3. Peer-credential caller authentication works from Node through a helper. A caller with a uid that is not allowed is refused before its request is read, and the refusal is logged with its uid.
+4. The committed emit runs on Node 20, the adopter floor.
+
+### What the Linux prototype did not prove
+
+| Not tested | Why it matters |
+|---|---|
+| The `docker` group route | Membership of the `docker` group is root-equivalent on a host (`docker run -v /:/host`). Nobody in the container was in such a group, and the container had no Docker daemon |
+| The sudo route | No user in the container had sudo. Root inside the container could read the key, as root can on any host |
+| systemd | The governor was started with `runuser`, not a systemd service |
+| A real host | A container shares the host kernel, and users inside it are not host users. The test shows Linux file permissions and `SO_PEERCRED` behaviour, not a deployment |
+| Peer credentials without a helper | Spawning Python per connection is a prototype shortcut. FAFF-1177 must choose a production route |

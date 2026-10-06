@@ -1,0 +1,71 @@
+$ docker run --rm -v <scratch worktree>:/faff:ro node:20 /faff/proto-1109/demo-linux.sh
+$ node --version
+v20.20.2
+$ cat /etc/debian_version
+12.13
+$ useradd --system --home-dir /var/lib/faffgov faffgov; useradd -m runner; useradd -m intruder
+$ id faffgov
+uid=999(faffgov) gid=999(faffgov) groups=999(faffgov)
+$ id runner
+uid=1001(runner) gid=1001(runner) groups=1001(runner)
+$ id intruder
+uid=1002(intruder) gid=1002(intruder) groups=1002(intruder)
+$ runuser -u faffgov -- node /faff/proto-1109/governor.js /var/lib/faffgov/key /var/lib/faffgov/state /run/faffgov/gov.sock 1001 &
+governor pid=41 uid=999 socket=/run/faffgov/gov.sock allowed_uids=1001 pk_fingerprint=dd5432652439bedb9bd450839054d563e56c7b984c8f079435d80e36f0e72738
+$ ls -la /var/lib/faffgov /var/lib/faffgov/key /run/faffgov
+/run/faffgov:
+total 8
+drwxr-xr-x 2 faffgov faffgov 4096 Oct  6 18:35 .
+drwxr-xr-x 1 root    root    4096 Oct  6 18:35 ..
+srw-rw-rw- 1 faffgov faffgov    0 Oct  6 18:35 gov.sock
+
+/var/lib/faffgov:
+total 16
+drwx------ 4 faffgov faffgov 4096 Oct  6 18:35 .
+drwxr-xr-x 1 root    root    4096 Oct  6 18:35 ..
+drwx------ 2 faffgov faffgov 4096 Oct  6 18:35 key
+drwx------ 2 faffgov faffgov 4096 Oct  6 18:35 state
+
+/var/lib/faffgov/key:
+total 12
+drwx------ 2 faffgov faffgov 4096 Oct  6 18:35 .
+drwx------ 4 faffgov faffgov 4096 Oct  6 18:35 ..
+-rw------- 1 faffgov faffgov  482 Oct  6 18:35 governor-key.json
+
+$ runuser -u runner -- node /faff/proto-1109/runner.js /home/runner/runs/run-linux-proto /run/faffgov/gov.sock /var/lib/faffgov/key/governor-key.json $FP $GPID
+runner: {"pid":53,"uid":1001,"gid":1001,"groups":[1001],"run_id":"run-linux-proto"}
+step 1, runner reads the governor key file with node: EACCES: permission denied, open '/var/lib/faffgov/key/governor-key.json'
+step 1, cat on the key file: exit=1 /bin/cat: /var/lib/faffgov/key/governor-key.json: Permission denied
+step 1, ls of the key directory: exit=2 /bin/ls: cannot access '/var/lib/faffgov/key': Permission denied
+step 1, kill -0 on the governor: exit=1 /bin/kill: (41): Operation not permitted
+step 2, admission appended: {"seq":0,"custody":"governor","pk_fingerprint":"dd5432652439bedb9bd450839054d563e56c7b984c8f079435d80e36f0e72738"}
+step 3, request appended: {"seq":2,"producer_hmac":"90ce6cac398053c1..."}
+step 4, authorize with a forced lost race: a concurrent producer append lands between the governor's signature and the runner's append
+  authorize attempt 1 lost the race: append core: minted record must carry the supplied seq/prev (want seq 4 prev 0ec362ec10310407542b0a9bfa4fdda897c29650011d492eb0c96302f6eb35d4, got seq 3 prev 4b2efcbe2721fe82016b1b3a37aa40b223cf628534a5442a5dc258b6dc312255)
+  authorize attempt 2: {"verdict":"grant","reason":"all-legs-pass","signed_seq":4}
+step 5, chokepoint check with the pinned fingerprint: {"permit":true,"reason":"valid-grant"}
+step 6, deny path: request a merge for a unit that declared nothing
+  authorize attempt 1: {"verdict":"deny","reason":"effect-not-declared","signed_seq":6}
+step 7, self-signed grant: runner mints its own keypair and signs a grant
+  chokepoint, runner key, pinned fingerprint: {"permit":false,"reason":"pk-fingerprint-mismatch"}
+  chokepoint, runner key, fingerprint from the runner's own pk.json (today): {"permit":true,"reason":"valid-grant"}
+runner exit=0
+
+$ runuser -u intruder -- cat /var/lib/faffgov/key/governor-key.json
+cat: /var/lib/faffgov/key/governor-key.json: Permission denied
+exit=1
+$ runuser -u intruder -- node -e '<send one authorize request to the socket>'
+{"ok":false,"reason":"caller-not-allowed","peer":{"pid":70,"uid":1002,"gid":1002}}
+
+$ grep -rl 'BEGIN PRIVATE KEY\|master_secret\|root_secret' /home/runner/runs/run-linux-proto || echo none
+none
+$ runuser -u runner -- node /faff/plugin/skills/faff/bin/faff commissaire audit verify --run-dir /home/runner/runs/run-linux-proto | <keep result, producer_claims, commissaire_decisions>
+{"result":"pass","producer_claims":{"verified":0,"unverifiable_without_secret":4,"failed":0},"commissaire_decisions":{"verified":3,"failed":0}}
+
+$ runuser -u faffgov -- <print /var/lib/faffgov/state/governor-log.jsonl without timestamps>   # the governor own log
+{"op":"admit","peer_uid":1001,"run_id":"run-linux-proto","at":{"seq":0,"prev":"ff96596587daa8bd8f03305a25f311ee39eb3bfb2ffcad4f4721f517bb760730"},"ok":true,"signed_seq":0}
+{"op":"authorize","peer_uid":1001,"run_id":"run-linux-proto","request_seq":2,"at":{"seq":3,"prev":"4b2efcbe2721fe82016b1b3a37aa40b223cf628534a5442a5dc258b6dc312255"},"ok":true,"verdict":"grant","reason":"all-legs-pass","signed_seq":3}
+{"op":"authorize","peer_uid":1001,"run_id":"run-linux-proto","request_seq":2,"at":{"seq":4,"prev":"0ec362ec10310407542b0a9bfa4fdda897c29650011d492eb0c96302f6eb35d4"},"ok":true,"verdict":"grant","reason":"all-legs-pass","signed_seq":4}
+{"op":"authorize","peer_uid":1001,"run_id":"run-linux-proto","request_seq":5,"at":{"seq":6,"prev":"e093f6c030d7e6826d40ef4ee6a5db40ee83a9fd99d15325431ec16c5d329984"},"ok":true,"verdict":"deny","reason":"effect-not-declared","signed_seq":6}
+{"op":"connect","ok":false,"reason":"caller-not-allowed","peer":{"pid":70,"uid":1002,"gid":1002}}
+docker exit=0

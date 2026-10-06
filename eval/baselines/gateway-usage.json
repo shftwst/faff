@@ -94,7 +94,7 @@
    "tokens": 2649
   },
   {
-   "title": "Model & effort selection (`models:` / `effort:` \u2014 per-lane)",
+   "title": "Model & effort selection (`dispatch:` \u2014 per-lane)",
    "consumers": [
     "faff-beep-boop",
     "faff-prep",

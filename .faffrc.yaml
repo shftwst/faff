@@ -131,18 +131,6 @@ adversarial:
     refs:
       - openrouter-deepseek-v4-flash-reasoning
       - openrouter-gemma
-models:
-    intake: inherit
-    adr: sonnet
-    methodology: inherit
-    architecture: inherit
-    build_by_confidence:
-        default: inherit
-        high: sonnet
-        medium: inherit
-    spec: inherit
-    spec_review: inherit
-    prep_explore: sonnet
 
 sentry:
   stall_window_secs: 7200
@@ -155,3 +143,13 @@ capture:
 eval:
   model: claude-opus-5-5
   effort: medium
+
+dispatch:
+  prep_explore:
+    model: sonnet
+  adr:
+    model: sonnet
+  build:
+    by_confidence:
+      high:
+        model: sonnet

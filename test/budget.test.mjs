@@ -1646,7 +1646,7 @@ const codexRecord = (over = {}) => ({
 });
 // A mixed fleet: a Claude orchestrator (transcript-jsonl) + a codex build lane
 // (exec-json-events) — the acceptance sketch's exact configuration.
-const MIXED_FLEET_RC = "backends:\n  seat:\n    provider: codex\n    model: gpt-5-codex\nmodels:\n  methodology: engine:seat\n";
+const MIXED_FLEET_RC = "backends:\n  seat:\n    provider: codex\n    model: gpt-5-codex\ndispatch:\n  methodology:\n    model: engine:seat\n";
 
 test("FAFF-604 PARITY: a run with no engine-spend.jsonl measures byte-identically to before the seam", () => {
   const rc = "budget:\n  tokens: 1000\n";
@@ -1711,7 +1711,7 @@ test("FAFF-604 WINDOW: the window draw includes engine spend (one combined figur
 
 test("FAFF-604 REFUSAL: an unmetered engine under a dollar ceiling reports cost:null + warns, exit 0", () => {
   // An ollama backend derives telemetry: none — its spend is unobservable.
-  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n";
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\ndispatch:\n  intake:\n    model: engine:lan\nbudget:\n  cost: 25\n";
   const f = fixture({ rc, ledger: baseLedger() });
   try {
     const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
@@ -1729,7 +1729,7 @@ test("FAFF-604 REFUSAL: an unmetered engine under a dollar ceiling reports cost:
 });
 
 test("FAFF-604 WAIVER: budget.allow_unmetered clears the refusal but never the visibility", () => {
-  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\ndispatch:\n  intake:\n    model: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
   const f = fixture({ rc, ledger: baseLedger() });
   try {
     const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
@@ -1797,7 +1797,7 @@ test("FAFF-604 REGRESSION: the allow_unmetered waiver survives the LEDGER envelo
   // there — and an inert waiver does not merely get ignored: it forces cost:null,
   // and a null cost makes computeBudgetState skip the cost dimension entirely, so
   // the operator loses the very ceiling they were keeping.
-  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\ndispatch:\n  intake:\n    model: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
   const f = fixture({
     rc,
     ledger: baseLedger({ budget: { envelope: { ceilings: { cost: 25, tokens: null, until: null, max_attempts: null }, at_ceiling: "stop", price_per_mtok: 0, pricing: "map" } } }),
@@ -1816,7 +1816,7 @@ test("FAFF-604 REGRESSION: the allow_unmetered waiver survives the LEDGER envelo
 });
 
 test("FAFF-604 REGRESSION: an unmetered engine with NO cost ceiling keeps its informational cost figure", () => {
-  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  tokens: 100000\n";
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\ndispatch:\n  intake:\n    model: engine:lan\nbudget:\n  tokens: 100000\n";
   const f = fixture({ rc, ledger: baseLedger() });
   try {
     const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });

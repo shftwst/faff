@@ -2,7 +2,7 @@
 // === region:factory — engine — one-shot local-engine dispatch (FAFF-422) ===
 // ===========================================================================
 // `faff engine call` — the direct-API one-shot transport for engine-valued lanes.
-// A models.<lane> value of `engine:<name>` routes the producer request out of session
+// A dispatch.<lane>.model value of `engine:<name>` routes the producer request out of session
 // as ONE non-streaming completion against the configured engine (ollama /api/chat, or
 // an openai-compatible /v1/chat/completions; the codex SPAWN family forks to
 // engine-codex.js after resolution — FAFF-593). v1 allowlist: methodology | intake (the
@@ -22,7 +22,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
 const https = require("node:https");
-const { ENGINE_CALL_LANES, laneSourceKey, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
+const { ENGINE_CALL_LANES, legacyTreeGuard, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
 const { CANONICAL_CONFIG, findRoot, latestRunDir } = require("./shared-infra");
 // FAFF-877: the shared bounded-operation supervisor — the HTTP transport arm the
 // non-spawn engine families (ollama, openai-compatible) run their call under.
@@ -303,14 +303,17 @@ function cmdEngine(args) {
   const root = get("--root") || findRoot();
   if (!lane || !systemFile || !userFile) { process.stderr.write(ENGINE_USAGE); return ENGINE_EXIT.CONFIG; }
   // Dispatch-time allowlist guard — independent of config state (the second enforcement
-  // point of the FAFF-422 capability-mismatch guard; read-time validateModelLane is the first).
+  // point of the FAFF-422 capability-mismatch guard; read-time validateDispatchKey is the first).
   if (!ENGINE_CALL_LANES.includes(lane)) {
     process.stderr.write(`faff engine call: lane "${lane}" is not engine-dispatchable — v1 allowlist: ${ENGINE_CALL_LANES.join(" | ")} (FAFF-422: a tool-needing producer can never reach a tool-incapable transport)\n`);
     return ENGINE_EXIT.CONFIG;
   }
   let cfg;
-  try { [cfg] = loadConfig(root); }
-  catch (e) {
+  try {
+    const legacy = legacyTreeGuard(root);
+    if (legacy) { process.stderr.write(`faff engine call: ${legacy}\n`); return ENGINE_EXIT.CONFIG; }
+    [cfg] = loadConfig(root);
+  } catch (e) {
     if (e.message === "legacy-config-name" || e.message === "multiple-config") {
       process.stderr.write(`faff engine call: config resolution failed (${e.message}) — fix the ${CANONICAL_CONFIG} at the repo root\n`);
       return ENGINE_EXIT.CONFIG;
@@ -326,7 +329,7 @@ function cmdEngine(args) {
   if (res.effort) {
     const mapped = reasoningEffortForTransport(res.effort);
     if (mapped !== res.effort) {
-      const effortSource = laneSourceKey(cfg, lane, "effort");
+      const effortSource = `dispatch.${lane}.effort`;
       process.stderr.write(`faff engine call: ${effortSource} "${res.effort}" clamped to "${mapped}" — engines.${res.name} (${res.provider}) reasoning-effort tops out at ${mapped}; set ${effortSource} to ${mapped} to silence this note.\n`);
     }
   }
@@ -545,7 +548,7 @@ async function engineSelftest() {
   }
 
   // dispatch-side resolution (the config.js seam) — fixture cfg objects, no disk
-  const cfgOk = { engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1" } }, models: { methodology: "engine:studio", intake: "sonnet" } };
+  const cfgOk = { engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1" } }, dispatch: { methodology: { model: "engine:studio" }, intake: { model: "sonnet" } } };
   {
     const r = resolveEngineForLane(cfgOk, "methodology");
     ok("resolve: happy path", !r.error && r.name === "studio" && r.family === "ollama" && r.model === "m1");
@@ -556,54 +559,54 @@ async function engineSelftest() {
     ok("resolve: default operationDeadlineSecs 3600 (FAFF-877 human decision, alec 2026-08-22)", r.operationDeadlineSecs === 3600);
   }
   {
-    const r = resolveEngineForLane({ engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1", operation_deadline_secs: 900 } }, models: { methodology: "engine:studio" } }, "methodology");
+    const r = resolveEngineForLane({ engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1", operation_deadline_secs: 900 } }, dispatch: { methodology: { model: "engine:studio" } } }, "methodology");
     ok("resolve: operation_deadline_secs overridable per consumer", !r.error && r.operationDeadlineSecs === 900);
   }
   ok("resolve: non-allowlisted lane refused", !!resolveEngineForLane(cfgOk, "build").error);
   ok("resolve: Anthropic-token lane refused (not an engine value)", !!resolveEngineForLane(cfgOk, "intake").error);
   ok("resolve: unknown engine name refused, names listed",
-    /unknown engine/.test(resolveEngineForLane({ engines: { studio: cfgOk.engines.studio }, models: { intake: "engine:nope" } }, "intake").error || ""));
+    /unknown engine/.test(resolveEngineForLane({ engines: { studio: cfgOk.engines.studio }, dispatch: { intake: { model: "engine:nope" } } }, "intake").error || ""));
   ok("resolve: missing host refused, field named",
-    /"host"/.test(resolveEngineForLane({ engines: { s: { provider: "ollama", model: "m" } }, models: { intake: "engine:s" } }, "intake").error || ""));
+    /"host"/.test(resolveEngineForLane({ engines: { s: { provider: "ollama", model: "m" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
   ok("resolve: anthropic provider refused",
-    /anthropic/.test(resolveEngineForLane({ engines: { s: { provider: "anthropic", model: "m", host: "http://h" } }, models: { intake: "engine:s" } }, "intake").error || ""));
+    /anthropic/.test(resolveEngineForLane({ engines: { s: { provider: "anthropic", model: "m", host: "http://h" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
   ok("resolve: unknown provider refused",
-    /provider/.test(resolveEngineForLane({ engines: { s: { provider: "llamacpp", model: "m", host: "http://h" } }, models: { intake: "engine:s" } }, "intake").error || ""));
+    /provider/.test(resolveEngineForLane({ engines: { s: { provider: "llamacpp", model: "m", host: "http://h" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
   // FAFF-705: a graded effort on a NON-graded family (ollama) stays refused, now with a
   // capability-specific message naming the missing transport + the remedy.
   {
-    const r = resolveEngineForLane({ ...cfgOk, effort: { methodology: "high" } }, "methodology");
+    const r = resolveEngineForLane({ ...cfgOk, dispatch: { ...cfgOk.dispatch, methodology: { model: "engine:studio", effort: "high" } } }, "methodology");
     ok("resolve: graded effort on ollama (non-graded family) refused, capability-named",
-      /effort\.methodology/.test(r.error || "") && /no graded reasoning-effort transport/.test(r.error || "") && /reasoning_off/.test(r.error || ""));
+      /dispatch\.methodology\.effort/.test(r.error || "") && /no graded reasoning-effort transport/.test(r.error || "") && /reasoning_off/.test(r.error || ""));
   }
   // FAFF-705: a graded effort on a GRADED-effort family (openai) is carried on the record.
   {
-    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, models: { methodology: "engine:s" }, effort: { methodology: "high" } }, "methodology");
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, dispatch: { methodology: { model: "engine:s", effort: "high" } } }, "methodology");
     ok("resolve: graded effort on openai family carried (not refused)", !r.error && r.effort === "high" && r.family === "openai");
   }
   // FAFF-705: an above-ceiling effort (max) is carried pre-map on the record (the encode
   // sites clamp; the record stores the faff level so economics buckets it uniformly).
   {
-    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, models: { intake: "engine:s" }, effort: { intake: "max" } }, "intake");
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, dispatch: { intake: { model: "engine:s", effort: "max" } } }, "intake");
     ok("resolve: above-ceiling effort (max) carried pre-map", !r.error && r.effort === "max");
   }
   // FAFF-705: a graded effort contradicting reasoning_off on one openai engine is refused.
   {
-    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", reasoning_off: true } }, models: { methodology: "engine:s" }, effort: { methodology: "low" } }, "methodology");
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", reasoning_off: true } }, dispatch: { methodology: { model: "engine:s", effort: "low" } } }, "methodology");
     ok("resolve: graded effort + reasoning_off refused, contradiction named",
       /reasoning_off: true/.test(r.error || "") && /contradictory/.test(r.error || ""));
   }
   // FAFF-705: an inherit/unset engine lane resolves effort:null (byte-for-byte the old path).
   ok("resolve: inherit effort → effort:null", resolveEngineForLane(cfgOk, "methodology").effort === null);
   {
-    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", api_key_env: "K", timeout: 30, reasoning_off: true } }, models: { intake: "engine:s" } }, "intake");
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", api_key_env: "K", timeout: 30, reasoning_off: true } }, dispatch: { intake: { model: "engine:s" } } }, "intake");
     ok("resolve: openai-compatible family + options", !r.error && r.family === "openai" && r.apiKeyEnv === "K" && r.timeoutMs === 30000 && r.reasoningOff === true);
     ok("resolve: api-key backend carries auth + null seat handle", r.auth === "api-key" && r.seatTokenEnv === null);
   }
   {
     // FAFF-481: an openai-compatible subscription-seat with a headless handle resolves seatTokenEnv,
     // so the engine-call transport reads the seat token from that env var (not api_key_env).
-    const r = resolveEngineForLane({ backends: { seat: { provider: "nvidia", model: "m", host: "https://x/v1", auth: "subscription-seat", seat_token_env: "OPENAI_SEAT_TOKEN" } }, models: { intake: "engine:seat" } }, "intake");
+    const r = resolveEngineForLane({ backends: { seat: { provider: "nvidia", model: "m", host: "https://x/v1", auth: "subscription-seat", seat_token_env: "OPENAI_SEAT_TOKEN" } }, dispatch: { intake: { model: "engine:seat" } } }, "intake");
     ok("resolve: subscription-seat backend carries the seat handle", !r.error && r.auth === "subscription-seat" && r.seatTokenEnv === "OPENAI_SEAT_TOKEN" && r.apiKeyEnv === null);
   }
 

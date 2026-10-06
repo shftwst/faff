@@ -43,9 +43,9 @@ test("engines: map parses; config get engines.<name>.<field> resolves", () => {
 });
 
 test("allowlisted lanes accept engine:<name> at read; the reference resolves", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "models:\n  methodology: engine:studio\n  intake: engine:studio\n");
+  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  methodology:\n    model: engine:studio\n  intake:\n    model: engine:studio\n");
   try {
-    for (const key of ["models.methodology", "models.intake"]) {
+    for (const key of ["dispatch.methodology.model", "dispatch.intake.model"]) {
       const r = runCli(["config", "get", key], { cwd: dir });
       assert.equal(r.code, 0, `${key}: ${r.stderr}`);
       assert.equal(r.stdout.trim(), "engine:studio");
@@ -53,13 +53,13 @@ test("allowlisted lanes accept engine:<name> at read; the reference resolves", (
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("every other models.* lane rejects an engine value at read, naming the allowlist", () => {
+test("every other dispatch lane rejects an engine value at read, naming the allowlist", () => {
   for (const lane of ["build", "prep_explore", "spec", "spec_review", "architecture"]) {
-    const dir = fixtureDir(ENGINES_BLOCK + `models:\n  ${lane}: engine:studio\n`);
+    const dir = fixtureDir(ENGINES_BLOCK + `dispatch:\n  ${lane}:\n    model: engine:studio\n`);
     try {
-      const r = runCli(["config", "get", `models.${lane}`], { cwd: dir });
-      assert.equal(r.code, 2, `models.${lane} must fail loud`);
-      assert.match(r.stderr, /models\.methodology \| models\.intake/, `models.${lane} error names the allowlist`);
+      const r = runCli(["config", "get", `dispatch.${lane}.model`], { cwd: dir });
+      assert.equal(r.code, 2, `dispatch.${lane}.model must fail loud`);
+      assert.match(r.stderr, /dispatch\.methodology\.model \| dispatch\.intake\.model/, `dispatch.${lane}.model error names the allowlist`);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }
 });
@@ -74,9 +74,9 @@ test("eval.model rejects an engine value at read (eval runs claude -p, never an 
 });
 
 test("unknown engine name fails at read, listing the configured engine names", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "models:\n  intake: engine:nope\n");
+  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  intake:\n    model: engine:nope\n");
   try {
-    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /unknown engine "nope"/);
     assert.match(r.stderr, /studio/);
@@ -84,36 +84,36 @@ test("unknown engine name fails at read, listing the configured engine names", (
 });
 
 test("missing required engine field fails at read, naming the field", () => {
-  const dir = fixtureDir("engines:\n  s:\n    provider: ollama\n    model: m\nmodels:\n  intake: engine:s\n");
+  const dir = fixtureDir("engines:\n  s:\n    provider: ollama\n    model: m\ndispatch:\n  intake:\n    model: engine:s\n");
   try {
-    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /"host"/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("provider: anthropic inside an engines: entry is refused at read", () => {
-  const dir = fixtureDir("engines:\n  a:\n    provider: anthropic\n    model: m\n    host: https://api.anthropic.com\nmodels:\n  methodology: engine:a\n");
+  const dir = fixtureDir("engines:\n  a:\n    provider: anthropic\n    model: m\n    host: https://api.anthropic.com\ndispatch:\n  methodology:\n    model: engine:a\n");
   try {
-    const r = runCli(["config", "get", "models.methodology"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.methodology.model"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /anthropic.*refused|refused.*anthropic/i);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("a non-default engine value echoes in config resolved (visible, never silent)", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "models:\n  intake: engine:studio\n");
+  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  intake:\n    model: engine:studio\n");
   try {
     const r = runCli(["config", "resolved"], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stdout, /model intake: engine:studio/);
+    assert.match(r.stdout, /dispatch intake: model=engine:studio/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("an Anthropic-token lane value still resolves exactly as before (byte-for-byte)", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "models:\n  intake: sonnet\n");
+  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  intake:\n    model: sonnet\n");
   try {
-    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 0);
     assert.equal(r.stdout.trim(), "sonnet");
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -122,7 +122,7 @@ test("an Anthropic-token lane value still resolves exactly as before (byte-for-b
 // --- dispatch-time guards (`faff engine call` — config-fault table, no network) ---
 
 test("engine call: non-allowlisted --lane is refused at dispatch, independent of config", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "models:\n  methodology: engine:studio\n");
+  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  methodology:\n    model: engine:studio\n");
   try {
     const r = runCli(["engine", "call", "--lane", "build", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
     assert.equal(r.code, 2);
@@ -132,7 +132,7 @@ test("engine call: non-allowlisted --lane is refused at dispatch, independent of
 });
 
 test("engine call: an Anthropic-token lane is refused (engine call serves only engine values)", () => {
-  const dir = fixtureDir("models:\n  intake: sonnet\n");
+  const dir = fixtureDir("dispatch:\n  intake:\n    model: sonnet\n");
   try {
     const r = runCli(["engine", "call", "--lane", "intake", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
     assert.equal(r.code, 2);
@@ -145,11 +145,11 @@ test("engine call: an Anthropic-token lane is refused (engine call serves only e
 // a graded-effort engine) — the reworded refusal replacing the FAFF-422 blanket "engines
 // can't carry effort" prose.
 test("engine call: graded effort on an ollama (non-graded) engine lane is refused, capability-named", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "models:\n  methodology: engine:studio\neffort:\n  methodology: high\n");
+  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  methodology:\n    model: engine:studio\n    effort: high\n");
   try {
     const r = runCli(["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
     assert.equal(r.code, 2);
-    assert.match(r.stderr, /effort\.methodology/);
+    assert.match(r.stderr, /dispatch\.methodology\.effort/);
     assert.match(r.stderr, /no graded reasoning-effort transport/);
     assert.match(r.stderr, /reasoning_off/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -160,7 +160,7 @@ test("engine call: graded effort on an ollama (non-graded) engine lane is refuse
 // with engine-unreachable, never the old effort×engine config refusal (exit 2).
 test("engine call: graded effort on an openai-family engine lane is not config-refused (dispatches)", () => {
   const OPENAI_BLOCK = "engines:\n  seat:\n    provider: openai\n    model: gpt-5\n    host: http://127.0.0.1:9/v1\n";
-  const dir = fixtureDir(OPENAI_BLOCK + "models:\n  methodology: engine:seat\neffort:\n  methodology: high\n");
+  const dir = fixtureDir(OPENAI_BLOCK + "dispatch:\n  methodology:\n    model: engine:seat\n    effort: high\n");
   try {
     const r = runCli(["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
     assert.notEqual(r.code, 2, r.stderr);                       // not the config refusal
@@ -170,7 +170,7 @@ test("engine call: graded effort on an openai-family engine lane is not config-r
 });
 
 test("engine call: declared api_key_env unset → auth-failed exit 6 BEFORE any network call", () => {
-  const dir = fixtureDir("engines:\n  s:\n    provider: nvidia\n    model: m\n    host: https://x.test/v1\n    api_key_env: FAFF422_TEST_UNSET_KEY\nmodels:\n  intake: engine:s\n");
+  const dir = fixtureDir("engines:\n  s:\n    provider: nvidia\n    model: m\n    host: https://x.test/v1\n    api_key_env: FAFF422_TEST_UNSET_KEY\ndispatch:\n  intake:\n    model: engine:s\n");
   try {
     const env = { ...process.env };
     delete env.FAFF422_TEST_UNSET_KEY;
@@ -206,7 +206,7 @@ test("validateEngineRef: unknown provider fails naming the legal set", () => {
 test("resolveEngineForLane: happy path resolves family, options, defaults", () => {
   const r = resolveEngineForLane({
     engines: { s: { provider: "vllm", model: "m", host: "https://x/v1", reasoning_off: true, timeout: 30 } },
-    models: { intake: "engine:s" },
+    dispatch: { intake: { model: "engine:s" } },
   }, "intake");
   assert.equal(r.error, undefined);
   assert.equal(r.family, "openai");
@@ -294,19 +294,19 @@ test("preflightEngine: openai 401 on the probe classifies as auth-failed, not un
 
 const CODEX_BLOCK = "backends:\n  codex-seat:\n    provider: codex\n    model: gpt-5-codex\n";
 
-test("codex: engine:codex-seat on models.methodology resolves at read (host-less is valid)", () => {
-  const dir = fixtureDir(CODEX_BLOCK + "models:\n  methodology: engine:codex-seat\n");
+test("codex: engine:codex-seat on dispatch.methodology.model resolves at read (host-less is valid)", () => {
+  const dir = fixtureDir(CODEX_BLOCK + "dispatch:\n  methodology:\n    model: engine:codex-seat\n");
   try {
-    const r = runCli(["config", "get", "models.methodology"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.methodology.model"], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout.trim(), "engine:codex-seat");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("codex: a present host is refused at read with the named error", () => {
-  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    host: http://h:1\nmodels:\n  intake: engine:c\n");
+  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    host: http://h:1\ndispatch:\n  intake:\n    model: engine:c\n");
   try {
-    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /a codex engine has no host/);
     assert.match(r.stderr, /bin_path/);
@@ -314,36 +314,36 @@ test("codex: a present host is refused at read with the named error", () => {
 });
 
 test("codex: reasoning_off: true is refused at read (no codex mapping exists)", () => {
-  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    reasoning_off: true\nmodels:\n  intake: engine:c\n");
+  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    reasoning_off: true\ndispatch:\n  intake:\n    model: engine:c\n");
   try {
-    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /reasoning_off is not supported on provider codex/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("codex: auth: none is refused at read (codex always authenticates)", () => {
-  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    auth: none\nmodels:\n  intake: engine:c\n");
+  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    auth: none\ndispatch:\n  intake:\n    model: engine:c\n");
   try {
-    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /auth "none" is refused on provider codex/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("codex: a non-allowlisted lane still rejects an engine value at read (unchanged guard)", () => {
-  const dir = fixtureDir(CODEX_BLOCK + "models:\n  build: engine:codex-seat\n");
+  const dir = fixtureDir(CODEX_BLOCK + "dispatch:\n  build:\n    model: engine:codex-seat\n");
   try {
-    const r = runCli(["config", "get", "models.build"], { cwd: dir });
+    const r = runCli(["config", "get", "dispatch.build.model"], { cwd: dir });
     assert.equal(r.code, 2);
-    assert.match(r.stderr, /models\.methodology \| models\.intake/);
+    assert.match(r.stderr, /dispatch\.methodology\.model \| dispatch\.intake\.model/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("codex: resolveEngineForLane returns the codex-shaped record (binPath, no host)", () => {
   const r = resolveEngineForLane({
     backends: { c: { provider: "codex", model: "gpt-5-codex", bin_path: "/opt/codex/bin/codex", timeout: 30 } },
-    models: { intake: "engine:c" },
+    dispatch: { intake: { model: "engine:c" } },
   }, "intake");
   assert.equal(r.error, undefined);
   assert.equal(r.family, "codex");
@@ -530,7 +530,7 @@ test("codex parse: events (usage fields included) survive in the parse result �
 // through `faff engine call`, and that a missing run degrades honestly.
 
 const { sumCodexUsage } = engineCodex;
-const CODEX_FIXTURE = "backends:\n  seat:\n    provider: codex\n    model: gpt-5-codex\nmodels:\n  methodology: engine:seat\n";
+const CODEX_FIXTURE = "backends:\n  seat:\n    provider: codex\n    model: gpt-5-codex\ndispatch:\n  methodology:\n    model: engine:seat\n";
 
 test("FAFF-604: sumCodexUsage totals turn.completed usage into the four token classes", () => {
   const u = sumCodexUsage([

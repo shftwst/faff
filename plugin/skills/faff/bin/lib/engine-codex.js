@@ -739,12 +739,12 @@ async function codexSelftest() {
   }
 
   // config guards (fixture cfg objects — the read-time half)
-  const codexCfg = () => ({ backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, models: { methodology: "engine:seat" } });
+  const codexCfg = () => ({ backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, dispatch: { methodology: { model: "engine:seat" } } });
   {
     const r = resolveEngineForLane(codexCfg(), "methodology");
     ok("resolve: codex-shaped record (family codex, bin_path default, no host)",
       !r.error && r.family === "codex" && r.binPath === "codex" && r.host === null);
-    const r2 = resolveEngineForLane({ backends: { seat: { provider: "codex", model: "m", bin_path: "/opt/codex" } }, models: { intake: "engine:seat" } }, "intake");
+    const r2 = resolveEngineForLane({ backends: { seat: { provider: "codex", model: "m", bin_path: "/opt/codex" } }, dispatch: { intake: { model: "engine:seat" } } }, "intake");
     ok("resolve: explicit bin_path honored", !r2.error && r2.binPath === "/opt/codex");
   }
   ok("guard: host present on codex refused, named",

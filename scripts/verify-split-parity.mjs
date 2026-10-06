@@ -94,7 +94,7 @@ const MATRIX = [
     "container-check", "corrective-integrity", "dod", "economics", "effects", "eligible",
     "env", "events", "fixtures", "heartbeat", "holdout", "hooks-ensure",
     "intake-record", "intakecheck", "label", "labels", "lights-out", "lint-cli-doc",
-    "lint-refs", "merge-fence", "merge-gate", "models", "next", "park-history", "prdr",
+    "lint-refs", "merge-fence", "merge-gate", "next", "park-history", "prdr",
     "prepcheck", "profile", "project-next", "quality", "review-progress", "run-done",
     "runcheck", "sentry", "shadow-fidelity", "spec-review-lenses", "state", "validate-adapters",
     "worktree-prune", "worktree-root",

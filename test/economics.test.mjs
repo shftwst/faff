@@ -648,7 +648,7 @@ test("FAFF-500 INTEGRATION: --by phase with no resolvable transcript → source:
 });
 
 test("FAFF-705 INTEGRATION: --by effort folds engine-spend into the effort buckets (two-source)", () => {
-  const ECON_MIXED = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\nmodels:\n  methodology: engine:seat\n";
+  const ECON_MIXED = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\ndispatch:\n  methodology:\n    model: engine:seat\n";
   const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
   const f = fixture({ rc: ECON_MIXED, ledger });
   try {
@@ -923,7 +923,7 @@ test("FAFF-500 REGRESSION: --by phase honours --session-id (reads effectiveEnv, 
 // came from, and never reports an unobservable engine as free.
 // ---------------------------------------------------------------------------
 
-const ECON_MIXED_RC = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\nmodels:\n  methodology: engine:seat\n";
+const ECON_MIXED_RC = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\ndispatch:\n  methodology:\n    model: engine:seat\n";
 const econCodexRecord = (over = {}) => ({
   ts: "2026-07-25T12:00:00Z", engine: "seat", provider: "codex", model: "claude-sonnet-5",
   source: "exec-json-events", input: 0, output: 0, cache_read: 0, cache_write: 0, ...over,
@@ -985,7 +985,7 @@ test("FAFF-604: --by model rows carry a source label and reconcile across both s
 });
 
 test("FAFF-604: an unmetered engine is named in economics and never counted as free", () => {
-  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\n";
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\ndispatch:\n  intake:\n    model: engine:lan\n";
   const f = fixture({ rc, ledger: baseLedger() });
   try {
     const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100 }] } });

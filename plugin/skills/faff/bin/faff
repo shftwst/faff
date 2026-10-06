@@ -33,7 +33,7 @@ const { cmdPuntScan } = require("./lib/punt-scan");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdCommissaire } = require("./lib/commissaire");
 const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
-const { cmdConfig, cmdModels, cmdVerification } = require("./lib/config");
+const { cmdConfig, cmdVerification } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
 const { cmdContract } = require("./lib/contract-defs");
@@ -48,7 +48,6 @@ const { cmdDispatch } = require("./lib/dispatch");
 const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
 const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = require("./lib/effects");
-const { cmdEffort } = require("./lib/effort");
 const { cmdEligible } = require("./lib/eligible");
 const { cmdEngine } = require("./lib/engine");
 const { cmdEnv } = require("./lib/env");
@@ -264,7 +263,6 @@ const COMMANDS = {
   "lint-cli-coverage": (args) => cmdLintCliCoverage(args, COMMANDS),
   "regions": (args) => cmdRegions(args, COMMANDS),
   "cli-surface": (args) => cmdCliSurface(args, COMMANDS),
-  "models": cmdModels,
   "adversarial-backends": cmdAdversarialBackends,
   "review-iteration-cap": cmdReviewIterationCap,
   "spec-judge-evidence": cmdSpecJudgeEvidence,
@@ -282,7 +280,6 @@ const COMMANDS = {
   "spec-review-window": cmdSpecReviewWindow,
   "backends": cmdBackends,
   "tier": cmdTier,
-  "effort": cmdEffort,
   "dispatch": cmdDispatch,
 };
 

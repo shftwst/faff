@@ -34,8 +34,6 @@ import cliSurfaceEntry from "../plugin/skills/faff/bin/lib/cli-surface.js";
 import {
   DEFAULTS,
   VALID_APPETITES,
-  validateModelLane,
-  validateEffortLane,
   validateDispatchKey,
 } from "../plugin/skills/faff/bin/lib/config.js";
 
@@ -176,7 +174,7 @@ function runbookFindings(body, source) {
 // --- config-key half ------------------------------------------------------------------------------
 
 // Extract dotted keys + scalar values from an embedded `.faffrc.yaml` body. A minimal indent-stack
-// walk of the documented YAML subset — enough to key `slots.*`, `appetite`, `models.*`, `effort.*`;
+// walk of the documented YAML subset — enough to key `slots.*`, `appetite`, `dispatch.*`;
 // deeper namespaced blocks (backends.*, budget.*, adversarial.*, tracking.*) round-trip as tolerated
 // keys their own validators own (see OUT OF SCOPE — deep grammar).
 function extractFaffrcKeys(body) {
@@ -206,7 +204,7 @@ function skillDirExists(name) {
 }
 
 // Assert every slot key is a recognised slot, every in-repo slot occupant resolves to a real skill,
-// and enumerated scalars (appetite, model/effort lanes) carry legal values. Returns finding strings.
+// and enumerated scalars (appetite, dispatch lanes) carry legal values. Returns finding strings.
 function faffrcFindings(body, source) {
   const findings = [];
   for (const { key, value } of extractFaffrcKeys(body)) {
@@ -221,12 +219,6 @@ function faffrcFindings(body, source) {
       if (value && !VALID_APPETITES.has(value)) {
         findings.push(`${source}: appetite=${value} ∉ {${[...VALID_APPETITES].join(", ")}}`);
       }
-    } else if (key.startsWith("models.")) {
-      const err = validateModelLane(key, value);
-      if (err) findings.push(`${source}: ${err}`);
-    } else if (key.startsWith("effort.")) {
-      const err = validateEffortLane(key, value);
-      if (err) findings.push(`${source}: ${err}`);
     } else if (key.startsWith("dispatch.") && value) {
       const err = validateDispatchKey(key, value);
       if (err) findings.push(`${source}: ${err}`);

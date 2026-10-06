@@ -1,6 +1,6 @@
 // FAFF-667 — `faff config set` is the general scalar-leaf writer for the whole config schema.
 // `config init` only ever covered the 7 flat tracking.* keys; every behaviour key (backends.*,
-// models.*, slots.*, appetite, ...) had NO sanctioned write path at all. This exercises the new
+// dispatch.*, slots.*, appetite, ...) had NO sanctioned write path at all. This exercises the new
 // `set` verb through the REAL CLI on the filesystem (the whole write path — cmdConfigSet →
 // mergeConfigPath/emitChainBlock → the round-trip guard → fs.writeFileSync), plus the two drift
 // guards the ticket asked for: usage-string/dispatcher agreement, and the schema/carve-out
@@ -49,11 +49,11 @@ test("config set: a write into an existing file leaves other blocks + comments b
   const dir = tmpDir();
   writeFileSync(join(dir, ".faffrc.yaml"),
     "slots:\n  spec: gstack:autoplan  # custom\nappetite: full\n");
-  assert.equal(run(dir, "config", "set", "models.build", "sonnet").code, 0);
+  assert.equal(run(dir, "config", "set", "dispatch.build.model", "sonnet").code, 0);
   const text = readFileSync(join(dir, ".faffrc.yaml"), "utf8");
   assert.match(text, /slots:\n {2}spec: gstack:autoplan {2}# custom/);
   assert.match(text, /appetite: full/);
-  assert.equal(run(dir, "config", "get", "models.build").out, "sonnet");
+  assert.equal(run(dir, "config", "get", "dispatch.build.model").out, "sonnet");
 });
 
 // ---------------------------------------------------------------------------
@@ -287,22 +287,22 @@ test("config check: a team_routing KEY with no taxonomy match is harmless — on
 // Vocabulary / validation, --dry-run, conflicts, idempotence, namespace typo guard.
 // ---------------------------------------------------------------------------
 
-test("config set on models.* runs the same validator config get runs, refuses off-vocab before writing", () => {
+test("config set on dispatch.* runs the same validator config get runs, refuses off-vocab before writing", () => {
   const dir = tmpDir();
-  const before = run(dir, "config", "get", "models.build").out; // baked default, file absent
-  const r = run(dir, "config", "set", "models.build", "gpt-5");
+  const before = run(dir, "config", "get", "dispatch.build.model").out; // baked default, file absent
+  const r = run(dir, "config", "set", "dispatch.build.model", "gpt-5");
   assert.equal(r.code, 2);
   assert.match(r.err, /invalid model token/);
   // still no file written
   assert.equal(run(dir, "config", "path").code, 3);
-  assert.equal(run(dir, "config", "get", "models.build").out, before);
+  assert.equal(run(dir, "config", "get", "dispatch.build.model").out, before);
 });
 
 test("config set --dry-run prints the would-be text and writes nothing", () => {
   const dir = tmpDir();
-  const r = run(dir, "config", "set", "models.build", "sonnet", "--dry-run");
+  const r = run(dir, "config", "set", "dispatch.build.model", "sonnet", "--dry-run");
   assert.equal(r.code, 0);
-  assert.match(r.out, /models:\n {2}build: sonnet/);
+  assert.match(r.out, /dispatch:\n {2}build:\n {4}model: sonnet/);
   assert.equal(run(dir, "config", "path").code, 3, "dry-run must not create the file");
 });
 
@@ -433,4 +433,15 @@ test("config set --selftest passes (writer pure-helper + carve-out + drift table
   const r = run(dir, "config", "set", "--selftest");
   assert.equal(r.code, 0, r.out);
   assert.match(r.out, /RESULT: PASS/);
+});
+
+test("config set refuses a removed models.* / effort.* key before the namespace check, naming the dispatch key", () => {
+  const dir = tmpDir();
+  const models = run(dir, "config", "set", "models.spec", "opus");
+  assert.equal(models.code, 2);
+  assert.match(models.err, /dispatch\.spec\.model/);
+  const effort = run(dir, "config", "set", "effort.build_by_tier.complex", "low");
+  assert.equal(effort.code, 2);
+  assert.match(effort.err, /dispatch\.build\.by_tier\.complex\.effort/);
+  assert.equal(run(dir, "config", "path").code, 3, "a refused write creates no file");
 });

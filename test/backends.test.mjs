@@ -449,10 +449,10 @@ test("CLI: adversarial-backends with a refs: config resolves cleanly", () => {
 // equally reachable via engine:<name>.
 // ===========================================================================
 
-test("integration: models.<lane> = engine:<name> resolves a backend declared ONLY under backends: (not engines:)", () => {
+test("integration: dispatch.<lane>.model = engine:<name> resolves a backend declared ONLY under backends: (not engines:)", () => {
   const cfg = {
     backends: { "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" } },
-    models: { methodology: "engine:studio-ollama", intake: "sonnet" },
+    dispatch: { methodology: { model: "engine:studio-ollama" }, intake: { model: "sonnet" } },
   };
   const res = resolveEngineForLane(cfg, "methodology");
   assert.equal(res.error, undefined);
@@ -471,7 +471,7 @@ test("integration: engines:/backends: name collision surfaces at the engine-lane
   const cfg = {
     backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
     engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
-    models: { intake: "engine:shared" },
+    dispatch: { intake: { model: "engine:shared" } },
   };
   const res = resolveEngineForLane(cfg, "intake");
   assert.match(res.error, /name collision/);

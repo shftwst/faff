@@ -101,7 +101,7 @@ Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** 
 
 ### Transport (per-output dispatch grain)
 
-Every `methodology` named-output request is a **producer dispatch** (see **Sibling-skill invocation → Producer dispatch**, resolving `models.methodology` + `effort.methodology` via `faff config get`; `inherit` omits the arg). How many dispatches a caller makes — and what each carries — is fixed **here** so it is re-tunable per output without editing each call site. The shared batch envelope:
+Every `methodology` named-output request is a **producer dispatch** (see **Sibling-skill invocation → Producer dispatch**, resolving the `methodology` dispatch lane). How many dispatches a caller makes — and what each carries — is fixed **here** so it is re-tunable per output without editing each call site. The shared batch envelope:
 
 ```
 BATCH REQUEST (the dispatch prompt): requests = ordered [ { output, input: that output's contract-row payload } ]

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1197",
+  "build": {
+    "status": "complete",
+    "diff_hash": "41d5dcaa2237159e7e3470404914bb0d51ab1091f5e593a9c2c7a8c4b6a6c563",
+    "branch": "FAFF-1197-dispatch-tree",
+    "pushed_at": "2026-10-06T04:35:10.548Z"
+  },
+  "updated_at": "2026-10-06T04:35:10.548Z"
+}

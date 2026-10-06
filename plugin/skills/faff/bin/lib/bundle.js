@@ -645,7 +645,11 @@ function claimStoreCore(root, transportOrRemote, spec) {
   // on the true holder's next write, not by this one), and the skew tolerance above is a mitigation
   // for that risk, not for this TOCTOU. Do not conflate the two: the CAS proves "the ref hadn't
   // moved since I read it," never "the holder is actually dead."
-  function reclaimIfStale(identity, ownerSnapshot, env) {
+  //
+  // FAFF-1208: `nowMs` is a selftest clock seam so the default-tolerance pin measures an exact age
+  // regardless of host speed. Production callers never pass it: a caller-chosen clock decides
+  // whether a live holder reads as stale.
+  function reclaimIfStale(identity, ownerSnapshot, env, nowMs = Date.now()) {
     const ref = spec.refName(identity);
     const existing = transport.read(ref);
     if (existing.status === "unreachable") return { reclaimed: false, reason: "store_unavailable" };
@@ -668,7 +672,7 @@ function claimStoreCore(root, transportOrRemote, spec) {
     // a binding whose reclaim decision carries cross-machine wrong-verdict cost pays the delay
     // (`recoveryClaimStore` opts out with `applySkewTolerance: false` — see its own header comment).
     const toleranceSecs = spec.applySkewTolerance === false ? 0 : resolveClaimClockSkewToleranceSecs(env);
-    const skewedNowMs = Date.now() - toleranceSecs * 1000;
+    const skewedNowMs = nowMs - toleranceSecs * 1000;
     const held = spec.stalePredicate(existing.claim, skewedNowMs, env);
     if (held) return { reclaimed: false, reason: "held", holder: existing.claim, sha: existing.sha };
 
@@ -1546,7 +1550,7 @@ function buildClaimSelftest() {
       const storeA = buildClaimStore(rootA, "origin");
       const storeB = buildClaimStore(rootB, "origin");
       // The graft Step-5 second arg: the clean owner snapshot MERGED with machine_id + heartbeating.
-      const arg = (sid, machineId, heartbeating, hbAgeMs = 0) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date(Date.now() - hbAgeMs).toISOString(), machine_id: machineId, heartbeating });
+      const arg = (sid, machineId, heartbeating, hbAgeMs = 0, nowMs = Date.now()) => ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date(nowMs - hbAgeMs).toISOString(), machine_id: machineId, heartbeating });
 
       // Race → exactly one graft builds (§5 scenario 1 / §8 smoke).
       const idX = { issue: "FAFF-X" };
@@ -1687,20 +1691,24 @@ function buildClaimSelftest() {
       // FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS from the env passed to reclaimIfStale (never rely on
       // ambient process.env state) so a CI environment that happens to set either cannot silently
       // shift this test's oracle — no injected window override, since the DEFAULT itself is what
-      // must be pinned.
+      // must be pinned. FAFF-1208: each case stamps its heartbeat from one captured instant and
+      // passes the same instant to reclaimIfStale as the clock, so the git work between acquire and
+      // check (about 500 ms on a slow host) cannot shift the measured age past either bound.
       const pinEnv = { ...process.env };
       delete pinEnv.FAFF_RUN_HEARTBEAT_STALE_SECS;
       delete pinEnv.FAFF_CLAIM_CLOCK_SKEW_TOLERANCE_SECS;
 
       const idPinA = { issue: "FAFF-SKEW-PIN-A" };
-      storeA.acquire(idPinA, arg("sess-pinA-a", "machine-A", true, 959500)); // 900s window + 59.5s
-      const pinA = storeB.reclaimIfStale(idPinA, arg("sess-pinA-b", "machine-B", true), pinEnv);
+      const pinNowA = Date.now();
+      storeA.acquire(idPinA, arg("sess-pinA-a", "machine-A", true, 959500, pinNowA)); // 900s window + 59.5s
+      const pinA = storeB.reclaimIfStale(idPinA, arg("sess-pinA-b", "machine-B", true), pinEnv, pinNowA);
       ok(pinA.reclaimed === false && pinA.reason === "held",
         `buildClaimStore: default-tolerance pin, case A (lower bound) — 959500ms stale reads held; a 59s default would reclaim and fail this (got ${JSON.stringify(pinA)})`);
 
       const idPinB = { issue: "FAFF-SKEW-PIN-B" };
-      storeA.acquire(idPinB, arg("sess-pinB-a", "machine-A", true, 960500)); // 900s window + 60.5s
-      const pinB = storeB.reclaimIfStale(idPinB, arg("sess-pinB-b", "machine-B", true), pinEnv);
+      const pinNowB = Date.now();
+      storeA.acquire(idPinB, arg("sess-pinB-a", "machine-A", true, 960500, pinNowB)); // 900s window + 60.5s
+      const pinB = storeB.reclaimIfStale(idPinB, arg("sess-pinB-b", "machine-B", true), pinEnv, pinNowB);
       ok(pinB.reclaimed === true,
         `buildClaimStore: default-tolerance pin, case B (upper bound) — 960500ms stale reclaims; a 61s default would stay held and fail this (got ${JSON.stringify(pinB)})`);
 

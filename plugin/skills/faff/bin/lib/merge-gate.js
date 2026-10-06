@@ -45,7 +45,7 @@ const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, compu
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches, matchesUnit } = require("./effects");
-const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, pkFileOf: commissairePkFile, producerDirOf: commissaireProducerDir, hasGovernanceContext: commissaireHasGovernanceContext } = require("./commissaire");
+const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, readChokepointKeyRecord: commissaireReadChokepointKey, hasGovernanceContext: commissaireHasGovernanceContext } = require("./commissaire");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
@@ -976,9 +976,9 @@ function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
   const covering = verdicts.filter((v) => v.payload && v.payload.effect && v.payload.effect.kind === effectKind);
   const verdict = covering[covering.length - 1]; // the latest decision FOR THIS effect kind
   if (!verdict) return "absent-or-invalid"; // governed, step verdicts exist, but none covers this kind — fail-closed
-  let pkRec;
-  try { pkRec = JSON.parse(fs.readFileSync(commissairePkFile(commissaireProducerDir(runDir)), "utf8")); }
-  catch { return "absent-or-invalid"; } // governance applies but the pinned PK is unreadable — fail-closed
+  const key = commissaireReadChokepointKey(runDir);
+  if (!key.ok) return "absent-or-invalid"; // governance applies but the pinned PK is unreadable — fail-closed
+  const pkRec = key.record;
   const grantedTarget = verdict.payload && verdict.payload.effect && verdict.payload.effect.target;
   const effect = { kind: effectKind, target: target || grantedTarget };
   const res = commissaireChokepointPermit(effect, verdict, pkRec.pk, pkRec.pk_fingerprint);

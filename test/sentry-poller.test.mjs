@@ -11,7 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import http from "node:http";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -107,6 +107,9 @@ const POLLER_EXIT_BUDGET_MS = 20000; // covers detached-process teardown under t
 // cadence under sharded-ladder starvation. Sized like the FAFF-635 budgets above; predicate-polled,
 // so a healthy run pays nothing.
 const ADVISORY_TRIP_BUDGET_MS = 30000;
+// FAFF-1202: fs-lock.js treats a lock as stale once its mtime is STALE_LOCK_MS (5s) old. Seeding
+// the lock with an mtime this far in the future keeps it live for far longer than any wait here.
+const SEEDED_LOCK_HOLD_MS = 60000;
 
 test("sentry-poller --selftest passes (the pure tick-decision core + parseIntervalSecs table)", () => {
   const r = run(["sentry-poller", "--selftest"]);
@@ -635,22 +638,23 @@ test("FAFF-472: an abort-failed tick (the abort child itself fails) emits NO sen
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},
     owner: { status: "running", started_at: isoAgo(STALE_AGE_SECS), last_heartbeat: isoAgo(STALE_AGE_SECS) },
   });
-  // Pre-seed a live-looking ledger lock file (fresh mtime) so `faff sentry abort`'s
-  // lock acquisition deterministically exhausts its 2s retry budget and returns
-  // LEDGER_LOCKED (exit 1) on the very first tick — a non-timing-dependent way to
-  // force the abort child to fail, without touching runDir's own writability (the
-  // poller's handle/log/events files must stay writable, unlike a directory-level
-  // permission strip).
-  writeFileSync(join(runDir, "run-ledger.json.lock"), "");
+  // Pre-seed a live ledger lock so `faff sentry abort`'s lock acquisition exhausts its
+  // 2s retry budget and returns LEDGER_LOCKED (exit 1), without touching runDir's own
+  // writability (the poller's handle/log/events files must stay writable). The future
+  // mtime keeps the lock short of fs-lock.js STALE_LOCK_MS for the whole wait, so a slow
+  // host still observes the LOCKED failure, never a stale-takeover success.
+  const lock = join(runDir, "run-ledger.json.lock");
+  writeFileSync(lock, "");
+  const holdUntil = new Date(Date.now() + SEEDED_LOCK_HOLD_MS);
+  utimesSync(lock, holdUntil, holdUntil);
   try {
     const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
     assert.equal(started.spawned, true);
 
-    // Bounded well under the lock's 5s staleness window (fs-lock.js STALE_LOCK_MS)
-    // so this only ever observes the deterministic LOCKED failure, never a
-    // stale-takeover success on a slow retry.
-    const failed = await waitUntil(() => log().includes("abort-failed"), { timeoutMs: 4000 });
+    const failed = await waitUntil(() => log().includes("abort-failed"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
     assert.ok(failed, "the poller logged abort-failed — the abort child did not exit 0");
+    assert.match(log(), /abort-failed \{"exit":1\}/, "the abort child failed with LEDGER_LOCKED (exit 1), not another error");
+    assert.ok(existsSync(lock), "the seeded lock was never taken over as stale");
 
     assert.doesNotMatch(log(), /abort-actioned/, "the landing-tick log line never appears while the abort keeps failing");
     assert.equal(events().filter((e) => e.type === "sentry-trip").length, 0, "no sentry-trip event on a tick where the abort itself failed");

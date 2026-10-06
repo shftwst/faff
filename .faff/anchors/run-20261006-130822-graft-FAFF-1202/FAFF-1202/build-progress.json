@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1202",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f1f83fbf801c70eee07ef669f2d1d851bc28e87399a47dad0b7cde0485851a64",
+    "branch": "faff-1202-hold-the-seeded-ledger-lock-live-for-the-abort-failed-wait",
+    "pushed_at": "2026-10-06T14:47:44.938Z"
+  },
+  "updated_at": "2026-10-06T14:47:44.938Z"
+}

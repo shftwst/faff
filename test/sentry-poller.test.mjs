@@ -545,10 +545,15 @@ test("FAFF-472: actioned abort with andon.url configured -> a sentry-trip event 
     // Ordering: the event append happens before the pump call (HOW §4), so by the
     // time the pump has POSTed, the event is already on disk — already asserted by
     // reading events() after observing the POST above.
-    assert.ok(existsSync(join(runDir, "andon-state.json")), "the pump's own cursor/dedupe state was written");
+    // The pump writes its state only after the POST returns, so wait for the file.
+    // A crash between the two re-sends the page on restart (at-least-once): a
+    // duplicate page is safer than a missed one.
+    const stateWritten = await waitUntil(() => existsSync(join(runDir, "andon-state.json")), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(stateWritten, "the pump's own cursor/dedupe state was written");
 
     const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
     assert.ok(diedOrGone, "the poller still exits after actioning the abort — the andon emit doesn't change control flow");
+    assert.equal(posts.length, 1, "still exactly one notification once the pump has finished");
   } finally {
     run(["sentry-poller", "stop", "--run-dir", runDir]);
     await waitUntil(() => true, { timeoutMs: 1500 });
@@ -568,12 +573,16 @@ test("FAFF-472: andon.url unset -> the sentry-trip event still lands (unconditio
     const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
     assert.ok(settled, "poller reached abort-actioned");
 
+    // The poller appends sentry-trip after it logs abort-actioned, so wait for it.
+    const tripLanded = await waitUntil(() => events().some((e) => e.type === "sentry-trip"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(tripLanded, "the sentry-trip event landed");
     const trips = events().filter((e) => e.type === "sentry-trip");
     assert.equal(trips.length, 1, "the event append is unconditional — it does not gate on andon config");
-    assert.equal(existsSync(join(runDir, "andon-state.json")), false, "andon disabled -> the pump is a complete no-op, no state file");
 
     const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
     assert.ok(diedOrGone, "the poller exits exactly as before andon.url existed");
+    // Checked after exit: the poller exits only once its blocking pump child has returned.
+    assert.equal(existsSync(join(runDir, "andon-state.json")), false, "andon disabled -> the pump is a complete no-op, no state file");
   } finally {
     run(["sentry-poller", "stop", "--run-dir", runDir]);
     await waitUntil(() => true, { timeoutMs: 1500 });

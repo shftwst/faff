@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1198",
+  "build": {
+    "status": "complete",
+    "diff_hash": "32c1fc839f0c097faf96c6cd5b76b54058012caa1217a82c09486a3a078309a5",
+    "branch": "FAFF-1198-dispatch-cutover",
+    "pushed_at": "2026-10-06T15:38:15.597Z"
+  },
+  "updated_at": "2026-10-06T15:38:15.597Z"
+}

@@ -1,0 +1,182 @@
+{
+  "aggregate": "needs-human",
+  "code_blind": true,
+  "criteria": [
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true
+    },
+    {
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true
+    },
+    {
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true
+    },
+    {
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true
+    },
+    {
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    },
+    {
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false
+    }
+  ],
+  "violations": []
+}

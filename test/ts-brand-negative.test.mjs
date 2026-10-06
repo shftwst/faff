@@ -26,3 +26,13 @@ test("S2: a raw string at the branded admission API fails tsc with TS2345", { sk
   assert.notEqual(r.status, 0, `tsc must FAIL on the brand-negative fixture (output: ${out})`);
   assert.match(out, /TS2345/, `the failure must be TS2345 (a raw string where a brand is required), got: ${out}`);
 });
+
+const IDS_FIXTURE_TSCONFIG = path.join(REPO, "testdata", "typescript", "ts-ids-negative", "tsconfig.json");
+
+test("FAFF-1180: a RunId and a raw string where a UnitId is required are exactly two TS2345 diagnostics", { skip }, () => {
+  const r = spawnSync(process.execPath, [TSC, "--noEmit", "-p", IDS_FIXTURE_TSCONFIG], { encoding: "utf8" });
+  const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+  assert.notEqual(r.status, 0, `tsc must FAIL on the ids-negative fixture (output: ${out})`);
+  const diagnostics = out.match(/error TS\d+/g) ?? [];
+  assert.deepEqual(diagnostics, ["error TS2345", "error TS2345"], `expected exactly two TS2345 diagnostics, got: ${out}`);
+});

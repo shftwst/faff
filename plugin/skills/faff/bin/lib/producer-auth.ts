@@ -20,25 +20,18 @@
 // SAME byte image via one shared canonicalBytes serialiser (a producer HMAC and a
 // Commissaire signature cover identical bytes, minus the auth fields).
 //
-// TypeScript (FAFF-1170): branded ProducerId / ContractRevisionId flow across the
-// mint/admission edge into commissaire. deriveKey is deliberately NOT a brand site —
+// TypeScript (FAFF-1170): branded ProducerId / ContractRevisionId (defined once, in ids.ts) flow
+// across the mint/admission edge into commissaire. deriveKey is deliberately NOT a brand site —
 // it is shared by the admit AND the ledger-read verify paths, so its id params stay
 // plain `string | undefined`. The brand bites only at admitProducerKey, the typed
 // admission API commissaire's admit flow calls. The committed .js emit is pure
 // CommonJS (every type form here is erasable).
 // ===========================================================================
 
+import type { ProducerId, ContractRevisionId, IdsApi } from "./ids";
+
 const crypto = require("node:crypto");
-
-// --- Branded ids (compile-time only; erased to `string` in the emit) ----------------------
-
-// OpaqueId carries a phantom brand so a raw `string` is not assignable where a ProducerId /
-// ContractRevisionId is required. The brand has zero runtime cost: `declare const` and the
-// type alias emit nothing, and every mint returns the underlying string unchanged.
-declare const brand: unique symbol;
-type OpaqueId<Name extends string> = string & { readonly [brand]: Name };
-export type ProducerId = OpaqueId<"ProducerId">;
-export type ContractRevisionId = OpaqueId<"ContractRevisionId">;
+const ids: IdsApi = require("./ids");
 
 // The typed surface commissaire pins via `const producerAuth: ProducerAuthApi = require(...)`.
 // admitProducerKey is the mint/admission edge: a raw `string` passed to its ProducerId /
@@ -76,27 +69,27 @@ function pemString(k: string | Buffer): string {
   return typeof k === "string" ? k : k.toString("utf8");
 }
 
-// --- Brand mints (the sole sanctioned assertion sites — allow-listed by the boundary checker) ---
+// --- Brand mints (thin delegates over the shared ids.ts parsers; no assertion here) ---
 
-function isNonEmptyString(v: unknown): v is string {
-  return typeof v === "string" && v.length > 0;
-}
-
-// Throwing mint for fail-loud sites (CLI argv): assert the brand only AFTER the runtime check.
+// Throwing mint for fail-loud sites (CLI argv).
 function asProducerId(v: unknown): ProducerId {
-  if (!isNonEmptyString(v)) throw new TypeError(`asProducerId: expected a non-empty string, got ${typeof v}`);
-  return v as ProducerId;
+  const r = ids.parseProducerId(v);
+  if (!r.ok) throw new TypeError(`asProducerId: expected a non-empty string, got ${typeof v}`);
+  return r.value;
 }
 function asContractRevisionId(v: unknown): ContractRevisionId {
-  if (!isNonEmptyString(v)) throw new TypeError(`asContractRevisionId: expected a non-empty string, got ${typeof v}`);
-  return v as ContractRevisionId;
+  const r = ids.parseContractRevisionId(v);
+  if (!r.ok) throw new TypeError(`asContractRevisionId: expected a non-empty string, got ${typeof v}`);
+  return r.value;
 }
 // Non-throwing mint for admission-time construction from trusted input: null when the check fails.
 function tryAsProducerId(v: unknown): ProducerId | null {
-  return isNonEmptyString(v) ? (v as ProducerId) : null;
+  const r = ids.parseProducerId(v);
+  return r.ok ? r.value : null;
 }
 function tryAsContractRevisionId(v: unknown): ContractRevisionId | null {
-  return isNonEmptyString(v) ? (v as ContractRevisionId) : null;
+  const r = ids.parseContractRevisionId(v);
+  return r.ok ? r.value : null;
 }
 
 // The two per-record authentication fields, EXCLUDED from canonicalBytes so the

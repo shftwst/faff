@@ -1,6 +1,6 @@
 # ADR 0134 — One dispatch tree pairs model and effort per lane
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-06
 - **Issue:** FAFF-1197

@@ -205,6 +205,8 @@ function extractRunCommandsWithContext(text) {
   let currentJob = null;
   let currentJobRunsOn = null;
   let currentStepName = null;
+  let stepsIndent = null;
+  let stepDashIndent = null;
   let currentStepWorkdir = null;
   let currentStepRecords = [];
   let stepIndex = 0;
@@ -213,15 +215,25 @@ function extractRunCommandsWithContext(text) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    if (/^\s*-\s+\S/.test(line)) {
-      currentStepWorkdir = null;
-      currentStepRecords = [];
-    }
-    const workdirMatch = /^\s*working-directory:\s*(.+)$/.exec(line);
-    if (workdirMatch) {
-      currentStepWorkdir = workdirMatch[1].trim().replace(/^["']|["']$/g, "");
-      for (const rec of currentStepRecords) rec.working_directory = currentStepWorkdir;
-      i += 1; continue;
+    if (trimmed !== "") {
+      const indent = indentOf(line);
+      const isStepDash = stepsIndent !== null && indent > stepsIndent && /^\s*-\s+\S/.test(line);
+      if (/^steps:\s*$/.test(trimmed)) {
+        stepsIndent = indent;
+      } else if (stepsIndent !== null && indent <= stepsIndent) {
+        stepsIndent = null;
+      }
+      if (isStepDash || stepsIndent === null || (stepDashIndent !== null && indent <= stepDashIndent)) {
+        currentStepWorkdir = null;
+        currentStepRecords = [];
+        stepDashIndent = isStepDash ? indent : null;
+      }
+      const workdirMatch = /^\s*(?:-\s+)?working-directory:\s*(.+)$/.exec(line);
+      if (workdirMatch && stepDashIndent !== null) {
+        currentStepWorkdir = workdirMatch[1].trim().replace(/^["']|["']$/g, "");
+        for (const rec of currentStepRecords) rec.working_directory = currentStepWorkdir;
+        i += 1; continue;
+      }
     }
 
     if (!inJobsBlock && /^jobs:\s*$/.test(trimmed) && indentOf(line) === 0) {
@@ -1538,6 +1550,9 @@ async function gatesSelftest() {
   cases.push(["workdir: a step without working-directory has no cwd", wdOf("UNIT") === undefined]);
   cases.push(["workdir: a templated working-directory is excluded github-context", selWd.exclusions.some((e) => e.reason === "github-context" && /adr validate/.test(e.command))]);
   cases.push(["workdir: an out-of-repo working-directory is excluded not-runnable", selWd.exclusions.some((e) => e.reason === "not-runnable" && /prdr validate/.test(e.command))]);
+  const wdJobs = extractRunCommandsWithContext("jobs:\n  a:\n    steps:\n      - name: t\n        run: node --test\n  b:\n    defaults:\n      run:\n        working-directory: site\n    steps:\n      - working-directory: pkg\n        run: npx tsc --noEmit\n");
+  cases.push(["workdir: a later job's defaults working-directory never leaks onto the previous job's step", wdJobs.find((r) => r.command === "node --test").working_directory === undefined]);
+  cases.push(["workdir: working-directory as a step's first key (- working-directory:) is honoured", wdJobs.find((r) => /tsc/.test(r.command)).working_directory === "pkg"]);
   cases.push(["workdir: rungCwd joins the cwd onto the root", rungCwd({ cwd: "pkg" }, "/r") === path.join("/r", "pkg") && rungCwd({}, "/r") === "/r"]);
 
   // 29. configured exclusion — a gates.exclude entry removes matching rungs; the rest still run.

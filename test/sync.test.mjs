@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, cpSync, chmodSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, cpSync, chmodSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,7 @@ function run(args, env = {}, opts = {}) {
 // FAFF-204: build a temp "repo" with a .git marker and a stub scripts/link-skills.sh,
 // so default (no --script) resolution from cwd can be exercised without touching ~/.claude.
 function mkRepo({ anchor = true } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "sync-repo-"));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "sync-repo-")));
   if (anchor) mkdirSync(join(dir, ".git"));
   mkdirSync(join(dir, "scripts"));
   const script = join(dir, "scripts", "link-skills.sh");
@@ -31,7 +31,7 @@ function mkRepo({ anchor = true } = {}) {
 
 // Write a stub link-skills.sh that records its argv (FAFF_STUB_LOG) and exits FAFF_STUB_EXIT.
 function mkStub() {
-  const dir = mkdtempSync(join(tmpdir(), "sync-stub-"));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "sync-stub-")));
   const script = join(dir, "link-skills.sh");
   writeFileSync(script, `#!/usr/bin/env bash\nif [ -n "$FAFF_STUB_LOG" ]; then echo "$@" > "$FAFF_STUB_LOG"; fi\nexit \${FAFF_STUB_EXIT:-0}\n`);
   chmodSync(script, 0o755);
@@ -125,8 +125,8 @@ test("sync: no readable candidate → exit 2, stderr names every path tried (no 
   // To exercise the fail-loud branch BOTH strategies must miss. Run a COPY of the CLI
   // from an isolated dir (so the self-walk four-up has no scripts/link-skills.sh) with
   // cwd = a dir that has no .git/.faff anchor and no scripts/link-skills.sh either.
-  const cliDir = mkdtempSync(join(tmpdir(), "sync-cli-"));
-  const cwdDir = mkdtempSync(join(tmpdir(), "sync-noanchor-"));
+  const cliDir = realpathSync(mkdtempSync(join(tmpdir(), "sync-cli-")));
+  const cwdDir = realpathSync(mkdtempSync(join(tmpdir(), "sync-noanchor-")));
   const cliCopy = join(cliDir, "faff");
   // FAFF-441: the CLI is now an entrypoint + sibling bin/lib modules, so an isolated
   // copy must bring the whole bin/ tree (a lone-file copy can't require its modules).

@@ -5,17 +5,17 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 
 function markerDir() {
-  const d = mkdtempSync(path.join(tmpdir(), "faff-ib-"));
+  const d = realpathSync(mkdtempSync(path.join(tmpdir(), "faff-ib-")));
   mkdirSync(path.join(d, ".faff"), { recursive: true }); // a resolvable root marker
   return d;
 }
-function bareDir() { return mkdtempSync(path.join(tmpdir(), "faff-ib-bare-")); }
+function bareDir() { return realpathSync(mkdtempSync(path.join(tmpdir(), "faff-ib-bare-"))); }
 
 test("integrity-boundary --selftest passes (the round-trip table)", () => {
   const r = runCli(["integrity-boundary", "--selftest"]);

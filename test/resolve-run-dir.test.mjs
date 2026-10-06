@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -21,7 +21,7 @@ function git(cwd, ...args) {
 // A temp parent holding a main checkout (repo/) + a linked worktree (wt/). Returns
 // { parent, root, wt }. `runInMain` seeds `.faff/runs/<run>` in the main checkout only.
 function setup(run, { runInMain = false } = {}) {
-  const parent = mkdtempSync(path.join(tmpdir(), "faff591-"));
+  const parent = realpathSync(mkdtempSync(path.join(tmpdir(), "faff591-")));
   const root = path.join(parent, "repo");
   mkdirSync(root);
   git(root, "init", "-q", "-b", "main");
@@ -67,7 +67,7 @@ test("genuinely missing everywhere: returns the cwd-root path (the canonical exi
 });
 
 test("mainWorktreeRoot -> null (non-git root) degrades to the cwd-root path, no throw", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "faff591-nongit-"));
+  const dir = realpathSync(mkdtempSync(path.join(tmpdir(), "faff591-nongit-")));
   try {
     const got = resolveRunDir(dir, "run-5", false);
     assert.equal(got, path.join(dir, ".faff", "runs", "run-5"));

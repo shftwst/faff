@@ -1558,10 +1558,12 @@ function budgetSelftest(now = Date.now()) {
   ok("no budget.cost at all → ceilings.cost null regardless of pricing", e7.ceilings.cost === null && e7.pricing === "map");
 
   // --- untilToEpoch: next-day-if-past ---
-  const future = untilToEpoch("13:00", NOW);
-  ok("until future same-day", future > NOW && future - NOW < 2 * 3600 * 1000);
-  const past = untilToEpoch("11:00", NOW);
-  ok("until past rolls to next day", past > NOW && past - NOW > 22 * 3600 * 1000);
+  // `until` is a local wall-clock time, so these rows anchor on local noon to hold in every zone.
+  const LOCAL_NOON = new Date(2026, 5, 23, 12, 0, 0, 0).getTime();
+  const future = untilToEpoch("13:00", LOCAL_NOON);
+  ok("until future same-day", future > LOCAL_NOON && future - LOCAL_NOON < 2 * 3600 * 1000);
+  const past = untilToEpoch("11:00", LOCAL_NOON);
+  ok("until past rolls to next day", past > LOCAL_NOON && past - LOCAL_NOON > 22 * 3600 * 1000);
   ok("until malformed → null", untilToEpoch("nope", NOW) === null && untilToEpoch("25:00", NOW) === null);
 
   // --- FAFF-364: parseHHMM accept/reject table (the one shared parser) ---

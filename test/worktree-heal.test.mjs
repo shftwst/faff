@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readdirSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readdirSync, readFileSync, existsSync, realpathSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -21,7 +21,7 @@ function git(cwd, ...args) {
 // A temp parent holding a main checkout (repo/) and a sibling worktree root (wtroot/) that
 // FAFF_WORKTREE_ROOT points at, so the FAFF-382 resolver `worktree-heal` shells lands there.
 function setup() {
-  const parent = mkdtempSync(path.join(tmpdir(), "faff1114-heal-"));
+  const parent = realpathSync(mkdtempSync(path.join(tmpdir(), "faff1114-heal-")));
   const repo = path.join(parent, "repo");
   const wtroot = path.join(parent, "wtroot");
   mkdirSync(repo);
@@ -163,6 +163,25 @@ test("idempotency: re-run heal after a successful heal → exit 2 no-op via the 
     // and worktree-check now certifies it (fresh/stale), no longer clobbered-recoverable
     const c = runCli(["worktree-check", "--issue", "faff-1114", "--root", repo, "--json"], { cwd: repo, env });
     assert.notEqual(c.stdout.includes("clobbered-recoverable"), true);
+  } finally { rmSync(parent, { recursive: true, force: true }); }
+});
+
+test("worktree root reached through a symlink → heal verifies against git's canonical path (FAFF-1200)", () => {
+  const { parent, repo, wtroot } = setup();
+  try {
+    const link = path.join(parent, "wtroot-link");
+    symlinkSync(wtroot, link);
+    const env = { ...process.env, FAFF_WORKTREE_ROOT: link };
+    const wt = addWorktree(repo, link, "faff-1114-thread");
+    writeFileSync(path.join(wt, "wip.txt"), "wip\n");
+    clobber(repo, realpathSync(wt));
+
+    const h = runCli(["worktree-heal", "--issue", "faff-1114", "--root", repo, "--json"], { cwd: repo, env });
+    assert.equal(h.code, 0, h.stdout + h.stderr);
+    const hj = JSON.parse(h.stdout);
+    assert.equal(hj.healed, true);
+    assert.equal(hj.branch, "faff-1114-thread");
+    assert.ok(git(repo, "worktree", "list").includes(realpathSync(wt)), "worktree re-listed at its canonical path");
   } finally { rmSync(parent, { recursive: true, force: true }); }
 });
 

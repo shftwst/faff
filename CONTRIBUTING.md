@@ -20,7 +20,7 @@ this clone's `core.hooksPath` at [`.githooks/`](.githooks), which installs a
 CI runs these, and you can run them locally from the repository root:
 
 ```sh
-node --import ./test/hermetic-env.mjs --test test/   # the test suite (canonical invocation)
+node --import ./test/hermetic-env.mjs --test         # the test suite (canonical invocation)
 node plugin/skills/faff/bin/faff validate-adapters   # SKILL.md lint
 node plugin/skills/faff/bin/faff lint-refs           # ban tracker refs in skill prose
 node plugin/skills/faff/bin/faff lint-cli-doc        # CLI-doc coverage
@@ -34,6 +34,13 @@ produces the same green result as clean CI. A bare `node --test` still works on 
 clean checkout; the preload is what makes a *dirty* one match it. The one
 exception, `FAFF_REQUIRE_DOCKER`, survives the scrub so docker-gated cases keep
 failing loud rather than silently skipping (FAFF-274).
+
+Run the suite without a path argument: a `test/` argument fails on Node 22 and
+later. The suite should pass on macOS and Linux with Node 20 or later, in any
+time zone. For a faster local run, split it the way CI does by adding
+`--test-shard=N/4` for each N from 1 to 4. Keep TypeScript fixtures in
+`testdata/typescript/`, not under `test/`: on Node 22.18 and later the default
+test glob would run them as tests.
 
 ## Pull requests
 

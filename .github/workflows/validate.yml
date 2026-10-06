@@ -497,12 +497,7 @@ jobs:
           # Docker unreachable so the docker-gated tests self-skip (mirrors the Node 20 unit job);
           # FAFF_REQUIRE_DOCKER stays unset — real-container stand-ups stay on the env-rootless lane.
           DOCKER_HOST: "unix:///nonexistent/faff1171.sock"
-        # `--no-experimental-strip-types` keeps Node 24's pathless discovery identical to the Node 20
-        # unit lane: without it, Node >=22.18 enables TypeScript type-stripping, which extends the
-        # default test glob (`**/test/**/*`) to `.ts` and sweeps the `.ts` compiler-API FIXTURES
-        # under test/fixtures/ in as if they were test files (they are inputs, not tests — they exit
-        # non-zero when executed). The real suite is all `.mjs`; check-no-boundary-cast drives the
-        # compiler API itself, so disabling node's own stripping changes no real test. Pathless stays
-        # the cross-version-safe discovery form (FAFF-987 note); this flag just restores the Node 20
-        # file set on the newer runtime.
-        run: node --no-experimental-strip-types --import ./test/hermetic-env.mjs --test
+        # FAFF-1200: the .ts compiler-API fixtures live in testdata/typescript/, outside Node's default
+        # test glob, and test/no-typescript-under-test.test.mjs keeps .ts files out of test/, so this
+        # is the same pathless command developers and the Node 20 unit lane run.
+        run: node --import ./test/hermetic-env.mjs --test

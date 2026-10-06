@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { writeFileSync, mkdtempSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdtempSync, mkdirSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -229,8 +229,8 @@ test("NON-LEAK: analyze() output serialises to JSON with no transcript payload t
 // --- integration smoke: run the real script against a synthetic corpus ------------
 test("SMOKE: node scripts/token-breakdown.mjs --json reconciles and carries the new columns", () => {
   // Build a temp CLAUDE_CONFIG_DIR whose projects/<cwd-slug>/ holds one transcript.
-  const cfg = mkdtempSync(join(tmpdir(), "tbd-"));
-  const cwd = mkdtempSync(join(tmpdir(), "proj-"));
+  const cfg = realpathSync(mkdtempSync(join(tmpdir(), "tbd-")));
+  const cwd = realpathSync(mkdtempSync(join(tmpdir(), "proj-")));
   const slug = cwd.replace(/\//g, "-");
   const projDir = join(cfg, "projects", slug);
   mkdirSync(projDir, { recursive: true });

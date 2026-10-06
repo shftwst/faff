@@ -73,6 +73,22 @@ test("budget --selftest passes (the envelope/until/state/attempts table)", () =>
   assert.match(r.out, /RESULT: PASS/);
 });
 
+// FAFF-1200: CI runs in UTC, so sweep other zones explicitly. Each non-UTC zone must first be shown
+// to take effect in a child, so a runner that ignores TZ fails here instead of passing vacuously.
+for (const zone of ["UTC", "Europe/London", "America/Los_Angeles", "Pacific/Kiritimati"]) {
+  test(`budget --selftest passes with TZ=${zone}`, () => {
+    if (zone !== "UTC") {
+      const offset = spawnSync("node", ["-e", "process.stdout.write(String(new Date(2026, 5, 23).getTimezoneOffset()))"], {
+        encoding: "utf8", env: { PATH: process.env.PATH, TZ: zone },
+      });
+      assert.notEqual(Number(offset.stdout), 0, `TZ=${zone} did not take effect in a child process (offset ${offset.stdout})`);
+    }
+    const r = run(["budget", "--selftest"], { TZ: zone });
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.match(r.out, /RESULT: PASS/);
+  });
+}
+
 test("usage: a non-check subcommand exits 2", () => {
   const r = run(["budget", "wat"]);
   assert.equal(r.code, 2);

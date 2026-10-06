@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..");
 const TSC = path.join(REPO, "plugin", "skills", "faff", "node_modules", "typescript", "bin", "tsc");
-const FIXTURE_TSCONFIG = path.join(HERE, "fixtures", "ts-brand-negative", "tsconfig.json");
+const FIXTURE_TSCONFIG = path.join(REPO, "testdata", "typescript", "ts-brand-negative", "tsconfig.json");
 
 const skip = existsSync(TSC) ? false : "typescript compiler not installed (run `npm install` under plugin/skills/faff)";
 

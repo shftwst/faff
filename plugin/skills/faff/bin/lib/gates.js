@@ -194,7 +194,8 @@ function reportKind(command) {
 // (639b), the input the os-mismatch exclusion needs), the most recent `- name:` at step
 // indentation, and a `step_index` incremented ONCE per `run:` key (not once per emitted body line
 // — a block scalar is one step however many command lines it holds, the counting unit the spec's
-// Coverage record needs). Returns `{command, step_index, step_name, job, runs_on}` records. The
+// Coverage record needs). Returns `{command, step_index, step_name, job, runs_on}` records, plus
+// `working_directory` when the step sets one (before or after its `run:`). The
 // execution-path extractRunCommands above is untouched and keeps returning bare command strings.
 function extractRunCommandsWithContext(text) {
   const out = [];
@@ -204,11 +205,24 @@ function extractRunCommandsWithContext(text) {
   let currentJob = null;
   let currentJobRunsOn = null;
   let currentStepName = null;
+  let currentStepWorkdir = null;
+  let currentStepRecords = [];
   let stepIndex = 0;
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     const trimmed = line.trim();
+
+    if (/^\s*-\s+\S/.test(line)) {
+      currentStepWorkdir = null;
+      currentStepRecords = [];
+    }
+    const workdirMatch = /^\s*working-directory:\s*(.+)$/.exec(line);
+    if (workdirMatch) {
+      currentStepWorkdir = workdirMatch[1].trim().replace(/^["']|["']$/g, "");
+      for (const rec of currentStepRecords) rec.working_directory = currentStepWorkdir;
+      i += 1; continue;
+    }
 
     if (!inJobsBlock && /^jobs:\s*$/.test(trimmed) && indentOf(line) === 0) {
       inJobsBlock = true;
@@ -245,16 +259,22 @@ function extractRunCommandsWithContext(text) {
     stepIndex += 1;                     // one increment per `run:` key, regardless of body length
     const thisStepIndex = stepIndex;
     const ctx = { step_index: thisStepIndex, step_name: currentStepName, job: currentJob, runs_on: currentJobRunsOn };
+    const emit = (command) => {
+      const rec = { command, ...ctx };
+      if (currentStepWorkdir) rec.working_directory = currentStepWorkdir;
+      out.push(rec);
+      currentStepRecords.push(rec);
+    };
     if (/^[|>][+-]?\s*$/.test(inline)) {
       i += 1;
       while (i < lines.length && (lines[i].trim() === "" || indentOf(lines[i]) > keyIndent)) {
         const body = lines[i].trim();
-        if (body !== "") out.push({ command: body, ...ctx });
+        if (body !== "") emit(body);
         i += 1;
       }
       continue;
     } else if (inline !== "") {
-      out.push({ command: inline.replace(/^["']|["']$/g, ""), ...ctx });
+      emit(inline.replace(/^["']|["']$/g, ""));
     }
     i += 1;
   }
@@ -472,13 +492,17 @@ function classifyRungResult(rung, res, duration_ms, rung_timeout_ms) {
   return { kind: rung.kind, name: rung.name, command: rung.command, status, duration_ms, detail: tail };
 }
 
+function rungCwd(rung, root) {
+  return rung.cwd ? path.join(root, rung.cwd) : root;
+}
+
 // Today's exact single-process path (byte-identical to the pre-FAFF-1002 runRung) — the fallback
 // for a non-shard-capable command and for local_shards<=1 hosts.
 function runSingleSpawnSync(rung, root, rung_timeout_ms) {
   const started = Date.now();
   let res;
   try {
-    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: rung_timeout_ms, maxBuffer: MAX_RUNG_STDOUT_BYTES });
+    res = spawnSync(rung.command, { cwd: rungCwd(rung, root), shell: true, encoding: "utf8", timeout: rung_timeout_ms, maxBuffer: MAX_RUNG_STDOUT_BYTES });
   } catch (e) {
     return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", duration_ms: Date.now() - started, detail: String(e && e.message || e).slice(-500) };
   }
@@ -632,7 +656,7 @@ async function runShardedRung(rung, root, rung_timeout_ms, n, concurrency) {
       if (slot >= n) return;
       const i = slot + 1;
       const shardStarted = Date.now();
-      const res = await spawnAsync(`${rung.command} --test-shard=${i}/${n}`, { cwd: root, timeoutMs: rung_timeout_ms, maxBufferBytes: MAX_RUNG_STDOUT_BYTES });
+      const res = await spawnAsync(`${rung.command} --test-shard=${i}/${n}`, { cwd: rungCwd(rung, root), timeoutMs: rung_timeout_ms, maxBufferBytes: MAX_RUNG_STDOUT_BYTES });
       shardResults[slot] = { index: i, ...classifyRungResult(rung, res, Date.now() - shardStarted, rung_timeout_ms) };
     }
   };
@@ -786,11 +810,17 @@ function isNotRunnable(command) {
 // excludes). github-context stays AHEAD of not-runnable so ${{ }} / $GITHUB_ / $RUNNER_ keep their
 // existing reason and the existing selftests pass unchanged; a recognised portable UNIT runner
 // survives os-mismatch so the genuine cross-platform suite runs on any dev host.
+function isInsideRoot(relativeDir) {
+  const resolved = path.posix.normalize(String(relativeDir));
+  return !path.posix.isAbsolute(resolved) && resolved !== ".." && !resolved.startsWith("../");
+}
+
 function exclusionReason(rec, cfg, localOsVal) {
   const cmd = String(rec.command);
   if (cfg.exclude.some((pat) => pat && cmd.includes(pat))) return "configured";
-  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(cmd)) return "github-context";
+  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(cmd + (rec.working_directory || ""))) return "github-context";
   if (isNotRunnable(cmd)) return "not-runnable";
+  if (rec.working_directory && !isInsideRoot(rec.working_directory)) return "not-runnable";
   if (rec.runs_on) {
     const fam = osFamily(rec.runs_on);
     if (fam !== null && fam !== localOsVal && !isPortableRunner(cmd)) return "os-mismatch";
@@ -857,7 +887,12 @@ function discoverCiWorkflowsRunnable(root, cfg, hostOs = localOs()) {
         const kind = reportKind(rec.command);
         if (!kind) return;
         recognisedStepKeys.add(`${f}:${idx}`);
-        rungs.push({ kind, name: `${kind.toLowerCase()} (ci-workflow: ${rec.command})`, command: rec.command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true });
+        const rung = { kind, name: `${kind.toLowerCase()} (ci-workflow: ${rec.command})`, command: rec.command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true };
+        if (rec.working_directory) {
+          rung.cwd = rec.working_directory;
+          rung.name = `${kind.toLowerCase()} (ci-workflow: ${rec.command}; in ${rec.working_directory})`;
+        }
+        rungs.push(rung);
       });
     }
   }
@@ -924,7 +959,7 @@ function selectRunnableRungs(root, cfg, hostOs = localOs()) {
   const { rungs: ciRunnable, exclusions, eligibleSteps, recognisedSteps } = discoverCiWorkflowsRunnable(root, cfg, hostOs);
   const ciByKindCommand = new Map();
   for (const r of ciRunnable) {
-    const key = `${r.kind} ${r.command}`;
+    const key = `${r.kind} ${r.cwd || "."} ${r.command}`;
     if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r);   // two-tier: keep distinct commands
   }
   const dedupedCi = [...ciByKindCommand.values()].filter((r) => !localKinds.has(r.kind)); // FAFF-533
@@ -1492,6 +1527,18 @@ async function gatesSelftest() {
   cases.push(["os-mismatch (macos host): ubuntu step excluded os-mismatch, portable node --test UNIT survives (FAFF-1200)",
     selMacHost.exclusions.some((e) => e.reason === "os-mismatch" && /validate-adapters/.test(e.command)) &&
     selMacHost.rungs.filter((r) => r.kind === "UNIT").length === 1 && !selMacHost.rungs.some((r) => r.kind === "LINT")]);
+
+  // 28b. a step's working-directory (before or after its run:) becomes the rung's cwd; a templated or
+  // out-of-repo directory excludes the step; a step without one runs at the root as before.
+  const dWd = mk("workdir", { ".github/workflows/w.yml": "jobs:\n  t:\n    steps:\n      - name: types\n        working-directory: pkg\n        run: npx tsc --noEmit -p tsconfig.json\n      - name: lint\n        run: node bin/faff lint-refs\n        working-directory: tools\n      - name: tests\n        run: node --test\n      - name: templated\n        working-directory: ${{ matrix.dir }}\n        run: node bin/faff adr validate\n      - name: outside\n        working-directory: ../elsewhere\n        run: node bin/faff prdr validate\n" });
+  const selWd = selectRunnableRungs(dWd, cfgDefault);
+  const wdOf = (kind) => (selWd.rungs.find((r) => r.kind === kind) || {}).cwd;
+  cases.push(["workdir: working-directory before run: sets the rung cwd", wdOf("TYPECHECK") === "pkg"]);
+  cases.push(["workdir: working-directory after run: sets the rung cwd", wdOf("LINT") === "tools"]);
+  cases.push(["workdir: a step without working-directory has no cwd", wdOf("UNIT") === undefined]);
+  cases.push(["workdir: a templated working-directory is excluded github-context", selWd.exclusions.some((e) => e.reason === "github-context" && /adr validate/.test(e.command))]);
+  cases.push(["workdir: an out-of-repo working-directory is excluded not-runnable", selWd.exclusions.some((e) => e.reason === "not-runnable" && /prdr validate/.test(e.command))]);
+  cases.push(["workdir: rungCwd joins the cwd onto the root", rungCwd({ cwd: "pkg" }, "/r") === path.join("/r", "pkg") && rungCwd({}, "/r") === "/r"]);
 
   // 29. configured exclusion — a gates.exclude entry removes matching rungs; the rest still run.
   const dExc = mk("exc", {

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1180",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7de3da02beae706f0bb11a360abe573e04ae86c74c6428803ea7a539625b3a63",
+    "branch": "FAFF-1180-add-shared-typed-identities-a-result-helper-and-a-build",
+    "pushed_at": "2026-10-06T14:02:27.865Z"
+  },
+  "updated_at": "2026-10-06T14:02:27.865Z"
+}

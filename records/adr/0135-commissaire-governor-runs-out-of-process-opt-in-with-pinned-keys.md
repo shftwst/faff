@@ -361,7 +361,7 @@ The Linux run proves the OS-user boundary on Linux. It does not show a deploymen
 
 ### Build tickets re-cut
 
-**Agent proposal, filed at the human's request (2026-10-07).** The tickets are split along the ownership line (4706c740) and are in Backlog in the project "Governed execution is compared with a strong one-shot control". FAFF-1109 blocks all of them. Each description states its domain in its first line.
+**Agent proposal, filed at the human's request (2026-10-07).** The tickets are split along the ownership line (4706c740) and are in Backlog in the project "Governed execution is compared with a strong one-shot control". FAFF-1109 blocks every new ticket, and it already blocked FAFF-1177, 1178, 1179 and 1181. Each description states its domain in its first line.
 
 | Ticket | Domain | Scope | Size |
 |---|---|---|---|
@@ -381,7 +381,7 @@ The Linux run proves the OS-user boundary on Linux. It does not show a deploymen
 | FAFF-1220 | Commissaire, operator setup | Prevention: a required status check only the governor's App can post (Human-task follow-on) | M |
 | FAFF-1214 | Commissaire, with faff's evaluator | Bind `holdout` to an evaluator-signed verdict (follow-on) | M |
 | FAFF-1215 | External (claude-box) | Start the governor on the host from claude-box | M |
-| FAFF-1209 | External (claude-box) | Close the cage's host routes (filed by the human) | M |
+| FAFF-1209 | External (claude-box) | Close the cage's host routes. Filed by the human and not edited here | M |
 
 FAFF-1195 (owner-only key file modes) already existed and is not duplicated.
 

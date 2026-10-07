@@ -7,7 +7,7 @@
 
 Drafted by an agent from the FAFF-1109 spike. Each decision is marked with who made it:
 
-- **Human** decisions come from eight FAFF-1109 comments: 71b55ac3, 186e010e, 5bc1c730, c76c0d54, 236415f8 and ded5c387 (2026-10-06), and 4706c740 and 862cf5f5 (2026-10-07). They are binding. Comment 236415f8 answered the four open questions in the first draft of this ADR. Comment ded5c387 makes Linux a first-class platform. Comment 4706c740 makes the governor part of Commissaire, with faff as one consumer. Comment 862cf5f5 fixes how the trust file is read and when a run can count.
+- **Human** decisions come from nine FAFF-1109 comments: 71b55ac3, 186e010e, 5bc1c730, c76c0d54, 236415f8 and ded5c387 (2026-10-06), and 4706c740, 862cf5f5 and fd51b1c5 (2026-10-07). They are binding. Comment 236415f8 answered the four open questions in the first draft of this ADR. Comment ded5c387 makes Linux a first-class platform. Comment 4706c740 makes the governor part of Commissaire, with faff as one consumer. Comment 862cf5f5 fixes how the trust file is read and when a run can count. Comment fd51b1c5 names the governor's OS user `_commissaire` on macOS and `commissaire` on Linux, replacing the earlier `_faffgov` and `faffgov`.
 - **Agent proposal** decisions take the FAFF-1109 description's default, or the agent's choice where the default no longer fits. They stand only once the human accepts this ADR.
 
 ## Context
@@ -62,7 +62,7 @@ There is no same-user tier. A governor configured for a run never falls back to 
 
 | Boundary | Linux | macOS |
 |---|---|---|
-| Separate OS user | A system user with a systemd service, created by `commissaire governor install` | `_faffgov` with a launchd daemon, created by the same command (agent proposal) |
+| Separate OS user | The system user `commissaire` with a systemd service, created by `commissaire governor install` | `_commissaire` with a launchd daemon, created by the same command |
 | Caller authentication on the Unix socket | Peer credentials (`SO_PEERCRED`) | Peer credentials (`getpeereid`, `LOCAL_PEERCRED`) (agent proposal) |
 | Separate machine | Fly, or any Linux host | Fly, or any Linux host |
 | Caged runner | A governor on the host, outside the cage | A governor on the host, outside the cage |
@@ -73,6 +73,33 @@ There is no same-user tier. A governor configured for a run never falls back to 
 - **Remote.** The same program on a separate machine: its own Fly app for unattended L3 runs, starting on request and stopping when idle, or any Linux host the operator runs.
 
 **Agent proposal: Windows.** Native Windows is out of scope. Windows users run faff and the governor inside WSL2, where the Linux forms apply.
+
+**Human (fd51b1c5).** The governor's OS user is named for Commissaire: `_commissaire` on macOS and `commissaire` on Linux. It is a hidden service account, not a login user.
+
+- **macOS:** an underscore prefix, a UID below 500, no login shell, and hidden from the login window.
+- **Linux:** a system user (`useradd --system`), no login shell, and not listed by display-manager greeters.
+
+**Agent proposal: how `commissaire governor install` creates the account.**
+
+| | macOS | Linux |
+|---|---|---|
+| Account | `_commissaire`, with a group of the same name | `commissaire`, with a group of the same name |
+| How it is created | `dscl . -create` records: `UniqueID` and `PrimaryGroupID` set to the first free ID in 300 to 499, found from `dscl . -list /Users UniqueID` and `dscl . -list /Groups PrimaryGroupID`; `UserShell /usr/bin/false`; `IsHidden 1`; `Password "*"`; `NFSHomeDirectory /var/empty`; `RealName "Commissaire governor"` | `useradd --system --user-group --shell /usr/sbin/nologin --home-dir /var/lib/commissaire --no-create-home commissaire`. The nologin path is resolved per distribution (`/usr/sbin/nologin` or `/sbin/nologin`) |
+| Why it stays off the login screen | A UID below 500 and the underscore prefix keep it off the login window, and `IsHidden 1` hides it from the Users and Groups settings. Its home is `/var/empty`, so no home directory appears | A UID in the system range (below `UID_MIN` in `/etc/login.defs`, usually 1000) and a nologin shell, which AccountsService and display-manager greeters skip |
+| Why it cannot log in | `/usr/bin/false` as its shell and `*` as its password | `nologin` as its shell and a locked password, `useradd`'s default for a system user |
+| Key directory | `/var/db/commissaire`, created by root, owned by `_commissaire`, mode `0700` | `/var/lib/commissaire`, owned by `commissaire`, mode `0700` |
+| Service | A launchd daemon in `/Library/LaunchDaemons` with `UserName _commissaire` | A systemd unit with `User=commissaire`, `StateDirectory=commissaire`, `StateDirectoryMode=0700`, and hardening (`ProtectSystem=strict`, `ProtectHome=yes`, `NoNewPrivileges=yes`, `PrivateTmp=yes`) |
+
+The macOS key directory is `/var/db/commissaire` rather than `/usr/local/var/commissaire`. On many Macs Homebrew makes `/usr/local` owned by the admin user. A runner with that user could then rename or replace the parent directory, even though it cannot read the key file itself. `/var/db` is owned by root and is where macOS daemons keep their state. The same reasoning applies on Linux: every parent of the key directory must be owned by root.
+
+**Considered: systemd `DynamicUser=` with `StateDirectory=`.** systemd allocates a transient UID when the service starts and keeps the state in `/var/lib/private/commissaire`, behind a root-only `0700` directory. It needs no persistent account and turns on strong sandboxing by default. The agent recommends a static `commissaire` user instead, for four reasons:
+
+- the human named the account (fd51b1c5);
+- a fixed owner for the long-lived key directory survives rotation, backup and restore without systemd changing file ownership;
+- it matches the macOS form, so install, the install checks and `status` work the same way on both platforms;
+- the unit can still adopt `StateDirectory=` and the same hardening directives with a static `User=`.
+
+The FAFF-1109 Linux prototype (RESULTS part 3) used the earlier name `faffgov`. The evidence files are left as the record of what ran.
 
 Requests are stateless. The only state is the governor's key, its per-run admission records and its append-only log. The program is TypeScript (CommonJS) with a committed `.js` emit (ADR-0132). The wire format is the one the prototype used: one newline-delimited JSON request per connection, with operations `admit`, `authorize` and `conclude`.
 
@@ -158,7 +185,7 @@ Rejected:
 
 - **Per-run HMAC master.** Derived inside the governor as `HMAC-SHA256(root_secret, "faff-run-master:" + run_id)` from a long-lived root secret the governor also generates on first start. Neither secret leaves the governor. `K_producer` is derived from the per-run master with the existing `admitProducerKey`, as the prototype did.
 - **Local storage.** One file, mode `0600`, in a directory only the governor's OS user can read:
-  - under the `_faffgov` user, its own home directory;
+  - under the governor's own OS user, `/var/db/commissaire` on macOS or `/var/lib/commissaire` on Linux (decision 2);
   - for a governor claude-box starts on the host, a host path outside every cage mount (decision 9).
 - **Strict mode key and sequencing.** The switch is `require_pinned_governor = true` in the trust file (decision 11). faff's repository turns it on only after its first governor fingerprint is merged into the list. The trust-file reader refuses strict mode with an empty list, because it would refuse every merge.
 - **Rotation.** An explicit operator command (`commissaire governor rotate`) generates a new key pair. The old fingerprint stays listed until a human-approved PR removes it, so earlier grants keep verifying. Keys from earlier in-process runs stay where they are.
@@ -180,7 +207,7 @@ Rejected:
 | Placement | Independent |
 |---|---|
 | Same OS user, as a separate process or a Docker container | No |
-| Separate OS user (`_faffgov` on macOS, a `faffgov` system user on Linux) | Yes, unless the runner can use sudo, or on Linux is in the `docker` group |
+| Separate OS user (`_commissaire` on macOS, the `commissaire` system user on Linux) | Yes, unless the runner can use sudo, or on Linux is in the `docker` group |
 | Separate machine (the Fly app, or any Linux host) | Yes |
 | Runner caged by claude-box, governor on the host outside the cage's Docker | Yes, but only once FAFF-1209 closes the cage's host routes (decision 9) |
 
@@ -204,7 +231,7 @@ A run that fails any condition still works and is still verified. It carries `in
 
 The human approving each pin PR vouches for that governor's placement. The run is recorded on the invocation-and-principal dimension of the master RFC's independence vector as "separate process and separate credential". Organisational independence is not claimed.
 
-**The sudo caveat.** A separate OS user is a boundary only while the runner's user cannot become root or `_faffgov` without a human. If the runner can use sudo, through cached credentials, a `NOPASSWD` rule, or any other route, it can read the key and the governor is not independent. The same holds for any root-equivalent path on the machine. The spike did not inspect the machine's sudo configuration, because doing so needs sudo.
+**The sudo caveat.** A separate OS user is a boundary only while the runner's user cannot become root or the governor's user without a human. If the runner can use sudo, through cached credentials, a `NOPASSWD` rule, or any other route, it can read the key and the governor is not independent. The same holds for any root-equivalent path on the machine. The spike did not inspect the machine's sudo configuration, because doing so needs sudo.
 
 **The Linux caveat (human, ded5c387).** Membership of the `docker` group is root-equivalent, because `docker run -v /:/host` can read any user's files. A separate-user governor counts as independent only when the runner's user is not in the `docker` group and has no sudo. Rootless Docker, which runs as the user, is fine. `commissaire governor install` checks both and records the result, so the record never over-claims.
 
@@ -224,7 +251,7 @@ A dishonest runner at L1 or L2 can claim `attended: true`. At L3, the level Fly 
 
 | Setup | Novice | Moderate | Expert on macOS | Expert on Linux |
 |---|---|---|---|---|
-| Bare Claude Code, no Docker | in-process | in-process | `sudo commissaire governor install` (`_faffgov`, launchd), or the Fly governor; then pin | `sudo commissaire governor install` (`faffgov`, systemd), or Fly or another Linux host; then pin |
+| Bare Claude Code, no Docker | in-process | in-process | `sudo commissaire governor install` (`_commissaire`, launchd), or the Fly governor; then pin | `sudo commissaire governor install` (`commissaire`, systemd), or Fly or another Linux host; then pin |
 | Bare Claude Code, with Docker | in-process | in-process | Same as above; Docker adds nothing to the claim | Same as above, and counts only if the runner's user is not in the `docker` group. Rootless Docker is fine |
 | claude-box (caged) | Governor started by claude-box on the host, unpinned | Plus `commissaire governor pin` once per machine, after FAFF-1209 | Plus the Fly governor | Same as macOS |
 
@@ -364,7 +391,7 @@ Two throwaway prototypes completed one `effect authorize` round trip across a pr
 
 | | Linux (RESULTS part 3) | macOS (RESULTS part 1) |
 |---|---|---|
-| Boundary | Separate OS users: `faffgov` owns the key (`0600`) and runs the governor; `runner` runs the runner | A Seatbelt profile (`sandbox-exec`) on the runner; same OS user. An experiment only (ded5c387) |
+| Boundary | Separate OS users: `faffgov` (the earlier name for `commissaire`) owns the key (`0600`) and runs the governor; `runner` runs the runner | A Seatbelt profile (`sandbox-exec`) on the runner; same OS user. An experiment only (ded5c387) |
 | Runner reads the key | `EACCES` | `EPERM` |
 | Runner signals the governor | Refused | Allowed |
 | Caller authentication | Peer credentials: a second user was refused by uid | None |
@@ -393,7 +420,7 @@ The Linux run proves the OS-user boundary on Linux. It does not show a deploymen
 | FAFF-1182 | faff | Gate 1 counting of faff's runs (decision 7), the evidence run, strict mode on in faff's repository, and docs | M (was S) |
 | FAFF-1210 | Commissaire | `.commissaire/trust.toml` and the built-in TOML-subset parser (decision 11), read only from committed history, no local override, git-only labelling | M |
 | FAFF-1211 | Commissaire | Peer-credential caller check on the socket | S |
-| FAFF-1216 | Commissaire | `commissaire governor install`: systemd and launchd, an immutable install, the `docker` group and sudo checks | L |
+| FAFF-1216 | Commissaire | `commissaire governor install`: the hidden `_commissaire` or `commissaire` account, systemd and launchd, an immutable install, the `docker` group and sudo checks | L |
 | FAFF-1217 | Commissaire | `commissaire governor pin` and `status`, including the three counting checks through `gh` | M (was S) |
 | FAFF-1218 | Commissaire | The pin-change human rule, in the governor and the verify function | M |
 | FAFF-1219 | Commissaire | Strict mode | S |

@@ -7,7 +7,7 @@
 
 Drafted by an agent from the FAFF-1109 spike. Each decision is marked with who made it:
 
-- **Human** decisions come from the six FAFF-1109 comments of 2026-10-06: 71b55ac3, 186e010e, 5bc1c730, c76c0d54, 236415f8 and ded5c387. They are binding. Comment 236415f8 answered the four open questions in the first draft of this ADR. Comment ded5c387 makes Linux a first-class platform.
+- **Human** decisions come from seven FAFF-1109 comments: 71b55ac3, 186e010e, 5bc1c730, c76c0d54, 236415f8 and ded5c387 (2026-10-06), and 4706c740 (2026-10-07). They are binding. Comment 236415f8 answered the four open questions in the first draft of this ADR. Comment ded5c387 makes Linux a first-class platform. Comment 4706c740 makes the governor part of Commissaire, with faff as one consumer.
 - **Agent proposal** decisions take the FAFF-1109 description's default, or the agent's choice where the default no longer fits. They stand only once the human accepts this ADR.
 
 ## Context
@@ -21,6 +21,25 @@ Here "the runner" means Claude Code and every shell command it runs (c76c0d54).
 Evidence for this ADR is in [`records/spikes/2026-10-06-faff-1109/RESULTS.md`](../spikes/2026-10-06-faff-1109/RESULTS.md): a macOS prototype round trip that is an experiment only (part 1), a read of the claude-box launcher (part 2), and a Linux prototype round trip across separate OS users (part 3).
 
 ## Decision
+
+### Ownership: Commissaire, faff and outside
+
+**Human (4706c740).** The governor belongs to Commissaire. faff is one consumer of it.
+
+| Owner | Owns |
+|---|---|
+| Commissaire | The governor process (admit, authorize, conclude); key generation, storage and rotation; the trusted-key list and the pin-change rule; custody labels; `audit verify` against the pins; strict mode; the socket caller check; the commands `commissaire governor install`, `start`, `pin` and `status` |
+| faff | The runner asking the governor; the `merge-gate` and `pr-create` call sites, which call Commissaire's verify function; faff's config switch that points at a governor; Gate 1 counting of faff's own runs |
+| Outside both | The claude-box host launch and hardening (FAFF-1209); the runner's GitHub identity and the Fly deployment, which are operator tasks |
+
+The pins live in a Commissaire-owned TOML file, not `.faffrc.yaml` (decision 11), so repositories without faff can use them, and Commissaire's code never imports faff's config reader. The commands run from the standalone `commissaire` binary (`plugin/skills/faff/bin/commissaire`). faff may wrap them.
+
+**Agent proposals:**
+
+- Commissaire exports one verify function from the governance region. faff's call sites in `merge-gate.js` (factory region) call it, which the region rule allows. The branch-delete leg is a `merge-gate` call site and uses the same function.
+- `commissaire governor status` prints the custody label, the governor's fingerprint, whether that fingerprint is pinned on the base branch, the install check result, and whether the socket answers.
+- Key rotation is a fifth command, `commissaire governor rotate`.
+- The trust-file parser and the governor's new modules must pass the standalone binary's import-independence guard (`test/commissaire-standalone.test.mjs`).
 
 ### 1. Two custody labels, opt-in governor
 
@@ -43,7 +62,7 @@ There is no same-user tier. A governor configured for a run never falls back to 
 
 | Boundary | Linux | macOS |
 |---|---|---|
-| Separate OS user | A system user with a systemd service, created by `faff governor install` | `_faffgov` with a launchd daemon, created by the same command (agent proposal) |
+| Separate OS user | A system user with a systemd service, created by `commissaire governor install` | `_faffgov` with a launchd daemon, created by the same command (agent proposal) |
 | Caller authentication on the Unix socket | Peer credentials (`SO_PEERCRED`) | Peer credentials (`getpeereid`, `LOCAL_PEERCRED`) (agent proposal) |
 | Separate machine | Fly, or any Linux host | Fly, or any Linux host |
 | Caged runner | A governor on the host, outside the cage | A governor on the host, outside the cage |
@@ -76,7 +95,7 @@ Rejected alternatives:
 - Locally, the caller's uid is checked by peer credentials (human, ded5c387), with socket file permissions as a second layer. On Fly, network placement and app identity.
 - No new credential.
 
-The Linux prototype (RESULTS part 3) refused a second user's connection by its peer uid before reading the request. Node has no peer-credential API, so the prototype used a helper process. The proposed peer-credential ticket picks the production route.
+The Linux prototype (RESULTS part 3) refused a second user's connection by its peer uid before reading the request. Node has no peer-credential API, so the prototype used a helper process. FAFF-1211 picks the production route.
 
 Admit is the one request without an HMAC, because the runner has no key before it. Any allowed caller can admit a new run and get that run's `K_producer`. This gives them no authority over other runs. The governor applies the same policy to every run, so admitting extra runs earns nothing a runner could not get on its own run.
 
@@ -121,19 +140,19 @@ Rejected:
 **Human (5bc1c730, 186e010e, 71b55ac3).**
 
 - Each independent governor generates one long-lived Ed25519 key pair inside itself on first start and never exports the private key.
-- `.faffrc.yaml` on the base branch holds `governor_key_fingerprints`, a list. `merge-gate` and `audit verify` accept a grant signed by any listed key.
+- `governor_key_fingerprints` is a list committed on the base branch. `merge-gate` and `audit verify` accept a grant signed by any listed key. Comment 5bc1c730 put the list in `.faffrc.yaml`; comment 4706c740 moves it to the Commissaire trust file (decision 11).
 - Adding or removing an entry is a pin change. A PR that changes the pin always needs human approval, at every level.
   - The governor refuses an unattended grant for any merge that touches the pin.
   - `merge-gate` checks the same thing independently.
 - Runs signed by an unlisted governor key still work. They are recorded as unpinned and do not count.
 - In-process custody keeps today's fresh key pair per run, checked against the run's own `pk.json`. It is never pinned.
 - With no pin present, `merge-gate` behaves as today.
-- `faff governor pin` writes a new fingerprint on a branch and opens the PR.
+- `commissaire governor pin` writes a new fingerprint on a branch and opens the PR (4706c740 renames the command).
 
 **Human (236415f8).**
 
 - **Fly storage.** The Fly governor's key lives on a Fly volume. It is generated inside the governor machine and never exported. It is not a Fly secret set from outside. Whether the runner's Fly credentials can reach that volume stays FAFF-1181's open question.
-- **Strict mode.** An opt-in config switch, off by default. When it is on, `merge-gate` refuses any grant not signed by a key on the pinned list, so in-process and unpinned grants are refused. faff's own repository turns it on.
+- **Strict mode.** An opt-in config switch, off by default. When it is on, `merge-gate` refuses any grant not signed by a key on the pinned list, so in-process and unpinned grants are refused. faff's own repository turns it on. Per 4706c740 the switch lives in the trust file and Commissaire owns it.
 
 **Agent proposals:**
 
@@ -141,18 +160,18 @@ Rejected:
 - **Local storage.** One file, mode `0600`, in a directory only the governor's OS user can read:
   - under the `_faffgov` user, its own home directory;
   - for a governor claude-box starts on the host, a host path outside every cage mount (decision 9).
-- **Strict mode key and sequencing.** The switch is `commissaire.require_pinned_governor: true` in `.faffrc.yaml`, read from the base branch like the pin. faff's repository turns it on only after its first governor fingerprint is merged into the list. Turning it on with an empty list would refuse every merge.
-- **Rotation.** An explicit operator command (`faff governor rotate`) generates a new key pair. The old fingerprint stays listed until a human-approved PR removes it, so earlier grants keep verifying. Keys from earlier in-process runs stay where they are.
-- **Pin location in the file.** Under the existing `commissaire:` block as `commissaire.governor_key_fingerprints`. The key name is the human's. The nesting is a proposal.
+- **Strict mode key and sequencing.** The switch is `require_pinned_governor = true` in the trust file (decision 11). faff's repository turns it on only after its first governor fingerprint is merged into the list. The trust-file reader refuses strict mode with an empty list, because it would refuse every merge.
+- **Rotation.** An explicit operator command (`commissaire governor rotate`) generates a new key pair. The old fingerprint stays listed until a human-approved PR removes it, so earlier grants keep verifying. Keys from earlier in-process runs stay where they are.
 - **Base-branch read.** The pin is read from the base branch's committed config, never the working tree. A local clone's base ref is under the runner's control, so a verifier that needs independence (Gate 1 evidence, an external `audit verify`) reads the pin from the remote base branch.
-- **What "touches the pin" means.** The PR changes `.faffrc.yaml` at all. The governor learns the PR's changed files from GitHub with its own read-only token, never from the runner. Human approval means an approving review on the PR's head commit by a GitHub account the governor's own configuration names. Decision 10 explains why that account must differ from the runner's GitHub identity.
-- **`faff governor pin` refuses to pin a governor whose key file the invoking user can read.** It tries the read itself, so a same-user governor cannot be pinned by accident.
+- **What "touches the pin" means.** The PR changes the trust file at all, including strict mode and the approver list, since switching strict mode off weakens trust as much as adding a key. The governor learns the PR's changed files from GitHub with its own read-only token, never from the runner. Human approval means an approving review on the PR's head commit by an account in `pin_change_approvers`, read from the base branch's trust file (decision 11). Decision 10 explains why that account must differ from the runner's GitHub identity.
+- **`commissaire governor pin` refuses to pin a governor whose key file the invoking user can read.** It tries the read itself, so a same-user governor cannot be pinned by accident.
 
 Rejected:
 
 - A single pinned key. Superseded by the list (5bc1c730).
 - A key set from outside as a secret, locally or on Fly. That conflicts with "generated inside, never exported" (5bc1c730, 236415f8).
 - Reading the pin from the working tree. A feature branch could move it.
+- Keeping the pins in `.faffrc.yaml`. Superseded by 4706c740.
 
 ### 7. What "independent" means for Gate 1
 
@@ -177,9 +196,9 @@ The human approving each pin PR vouches for that governor's placement. The run i
 
 **The sudo caveat.** A separate OS user is a boundary only while the runner's user cannot become root or `_faffgov` without a human. If the runner can use sudo, through cached credentials, a `NOPASSWD` rule, or any other route, it can read the key and the governor is not independent. The same holds for any root-equivalent path on the machine. The spike did not inspect the machine's sudo configuration, because doing so needs sudo.
 
-**The Linux caveat (human, ded5c387).** Membership of the `docker` group is root-equivalent, because `docker run -v /:/host` can read any user's files. A separate-user governor counts as independent only when the runner's user is not in the `docker` group and has no sudo. Rootless Docker, which runs as the user, is fine. `faff governor install` checks both and records the result, so the record never over-claims.
+**The Linux caveat (human, ded5c387).** Membership of the `docker` group is root-equivalent, because `docker run -v /:/host` can read any user's files. A separate-user governor counts as independent only when the runner's user is not in the `docker` group and has no sudo. Rootless Docker, which runs as the user, is fine. `commissaire governor install` checks both and records the result, so the record never over-claims.
 
-**Agent proposal: how install checks and records.** `faff governor install` takes the runner's user name as an argument. It records whether that user is in the `docker` group and whether `sudo -l -U <user>` lists any rule; the human is already running install under sudo, so this adds no privilege. It writes the result into the governor's own configuration, and the governor states it on every admission record. `faff governor pin` refuses to pin a governor whose recorded check failed. On macOS the same check covers the `admin` group and sudo.
+**Agent proposal: how install checks and records.** `commissaire governor install` takes the runner's user name as an argument. It records whether that user is in the `docker` group and whether `sudo -l -U <user>` lists any rule; the human is already running install under sudo, so this adds no privilege. It writes the result into the governor's own configuration, and the governor states it on every admission record. `commissaire governor pin` refuses to pin a governor whose recorded check failed. On macOS the same check covers the `admin` group and sudo.
 
 ### 8. Level-policy inputs
 
@@ -195,9 +214,9 @@ A dishonest runner at L1 or L2 can claim `attended: true`. At L3, the level Fly 
 
 | Setup | Novice | Moderate | Expert on macOS | Expert on Linux |
 |---|---|---|---|---|
-| Bare Claude Code, no Docker | in-process | in-process | `sudo faff governor install` (`_faffgov`, launchd), or the Fly governor; then pin | `sudo faff governor install` (`faffgov`, systemd), or Fly or another Linux host; then pin |
+| Bare Claude Code, no Docker | in-process | in-process | `sudo commissaire governor install` (`_faffgov`, launchd), or the Fly governor; then pin | `sudo commissaire governor install` (`faffgov`, systemd), or Fly or another Linux host; then pin |
 | Bare Claude Code, with Docker | in-process | in-process | Same as above; Docker adds nothing to the claim | Same as above, and counts only if the runner's user is not in the `docker` group. Rootless Docker is fine |
-| claude-box (caged) | Governor started by claude-box on the host, unpinned | Plus `faff governor pin` once per machine, after FAFF-1209 | Plus the Fly governor | Same as macOS |
+| claude-box (caged) | Governor started by claude-box on the host, unpinned | Plus `commissaire governor pin` once per machine, after FAFF-1209 | Plus the Fly governor | Same as macOS |
 
 Every cell assumes the runner's user has no sudo (decision 7). Windows is out of scope except through WSL2 (agent proposal, decision 2).
 
@@ -228,7 +247,7 @@ The hardening is tracked as FAFF-1209, an external dependency on the claude-box 
 1. claude-box starts the governor from an install the cage cannot write: a version-pinned copy outside every mount, never `~/.local/bin/faff` or the project checkout.
 2. claude-box keeps the key outside every mount and checks that mechanically against its own mount list before starting the container.
 
-`faff governor pin` should not pin a claude-box host governor until FAFF-1209 is done and both conditions hold.
+`commissaire governor pin` should not pin a claude-box host governor until FAFF-1209 is done and both conditions hold.
 
 ### 10. Prevention
 
@@ -246,6 +265,76 @@ In the master RFC's terms the merge stays E-C (detection) against a dishonest ru
 - the runner uses a GitHub identity that is neither that App nor an admin, and cannot bypass the ruleset.
 
 That moves merges through GitHub to E-A. It depends on the runner's separate GitHub identity (decision 7, 236415f8). claude-box today forwards the human's own GitHub token into the cage (`libcage.sh:889-893`), and while the runner acts as the human on GitHub, no GitHub-side human gate means anything. That includes the approving review the pin-change rule needs.
+
+### 11. The trust file and its parser
+
+**Human (4706c740).** Commissaire's configuration is TOML in a Commissaire-owned file, committed and read from the base branch. It holds `governor_key_fingerprints` and the strict-mode switch. Everything else about the pins stands: a list, human approval for every change, read from the base branch (71b55ac3, 5bc1c730).
+
+**Agent proposal: the name.** `.commissaire/trust.toml`. A directory leaves room for other Commissaire files without widening what the pin-change rule covers. The pin-change rule then covers exactly this file.
+
+Rejected names:
+
+- `.commissaire.toml` at the root. Any later Commissaire setting would land in the same file, and every change to it would need the pin-change approval.
+- A section in `.faffrc.yaml`. Superseded by 4706c740.
+
+**Agent proposal: schema 1.**
+
+```toml
+# .commissaire/trust.toml
+schema = 1
+
+# SHA-256 of each pinned governor's SPKI-DER public key, lowercase hex.
+governor_key_fingerprints = [
+  "c8585945163d2114c2883388517cf83247ce2e17c96248faa1ec2988d4db693b",  # Fly governor
+]
+
+# Strict mode: refuse any grant not signed by a pinned key.
+require_pinned_governor = false
+
+# GitHub accounts whose approving review authorises a change to this file.
+pin_change_approvers = ["example-maintainer"]
+```
+
+| Key | Type | Rule |
+|---|---|---|
+| `schema` | integer | Required. Must be `1` |
+| `governor_key_fingerprints` | array of strings | Optional, default empty. Each entry is 64 lowercase hex characters, the format `pkFingerprint` already produces. No duplicates |
+| `require_pinned_governor` | boolean | Optional, default `false`. `true` with an empty fingerprint list is refused |
+| `pin_change_approvers` | array of strings | Optional, default empty. GitHub logins. With none listed, the governor grants no merge that changes this file, so a human must merge it outside the governed path |
+
+Reading rules:
+
+- **No file:** no pins, strict mode off, no approvers. Zero-config is unchanged.
+- **Unknown key:** refused, so a misspelt `require_pinned_governor` cannot silently leave strict mode off.
+- **Malformed or invalid file:** every reader fails closed with `trust-file-invalid` and the line number. A reader never falls back to "no pins".
+- **Where it is read from:** the base branch's committed file. A local read uses `git show <base>:.commissaire/trust.toml`. The governor and any independent verifier read it from the remote base branch, since the runner controls the local clone's refs (decision 6).
+
+**Agent proposal: the parser.** A small built-in parser for a strict TOML subset, in a new governance-region module with its committed `.js` emit (ADR-0132). It follows the precedent of faff's built-in `parseYamlSubset` (`shared-infra.js`) and adds no runtime dependency. It lives in the governance region because only Commissaire reads the file. It can move to the shared-infra region if a second reader ever needs it.
+
+The subset:
+
+| Accepted | Refused, with a line-numbered error |
+|---|---|
+| UTF-8 text with LF or CRLF line endings | A byte-order mark |
+| Blank lines and `#` comments, on their own line or after a value | Table headers (`[x]`) and arrays of tables (`[[x]]`) |
+| Top-level `key = value` pairs with bare keys matching `[A-Za-z0-9_-]+` | Dotted keys, quoted keys and duplicate keys |
+| Basic strings in double quotes, with `\"` and `\\` as the only escapes | Literal strings, multi-line strings and other escapes |
+| Decimal integers with no sign, underscores or leading zeros | Floats, dates, times, and hex, octal or binary integers |
+| `true` and `false` | Inline tables |
+| Arrays of basic strings, on one line or several, with comments between elements and an optional trailing comma | Nested arrays and arrays mixing types |
+
+Every file the parser accepts is valid TOML with the same meaning, so standard TOML tools read it unchanged. The proposed test pairs a corpus of accepted and refused files with a full TOML parser as a test-only devDependency, beside `typescript`, to check that accepted files parse to the same values. That parser never enters the shipped closure.
+
+Rejected alternatives:
+
+| Alternative | Why rejected |
+|---|---|
+| A TOML library as a runtime dependency (`smol-toml`, `@iarna/toml`) | Commissaire ships with no runtime dependencies |
+| Vendoring a full TOML 1.0 parser | Hundreds of lines in the governance region to audit for features the trust file does not use |
+| A YAML file read by `parseYamlSubset` | The human chose TOML (4706c740). YAML's implicit typing, where `no` and `on` become booleans, is a hazard in a security file |
+| A JSON file | The human chose TOML. JSON has no comments, and a reviewer of a pin change is helped by a comment naming each key's governor |
+| Reading through `config.js` or `readGovernanceConfig` | Commissaire must not import faff's config reader (4706c740), and the file is not faff's |
+| Accepting tables in schema 1 | Schema 1 needs none. Single-level tables can be added in a later schema |
 
 ## Consequences
 
@@ -272,47 +361,55 @@ The Linux run proves the OS-user boundary on Linux. It does not show a deploymen
 
 ### Build tickets re-cut
 
-**Agent proposal.** The human decides which proposals to adopt.
+**Agent proposal, filed at the human's request (2026-10-07).** The tickets are split along the ownership line (4706c740) and are in Backlog in the project "Governed execution is compared with a strong one-shot control". FAFF-1109 blocks all of them. Each description states its domain in its first line.
 
-| Ticket | Proposed scope | Size |
-|---|---|---|
-| FAFF-1177 governor process | Confirmed, with changes: `governor.ts` serving `admit`, `authorize` and `conclude` over a Unix socket and a network listener (decision 2); a long-lived key pair and root secret generated on first start, and per-run masters (decision 6); ledger verification with the head-extension check (decision 4); position check (decision 5); its own log; shared composition code moved into a governance-region module; selftests per its done criteria plus `position-mismatch` and a truncated-ledger refusal. The pin-change refusal and the peer-credential check move to new tickets | M |
-| FAFF-1178 pinned verification | Re-cut to the list: verify against `governor_key_fingerprints` read from the base branch; classify each grant as pinned, unpinned or in-process; accept a verdict only at its signed chain position (orphaned grants); stop `verifyAuthLeg` falling back to the runner-written `pk.json` under governor custody; keep the adversarial self-grant test | M (was S) |
-| FAFF-1179 runner as client | Confirmed, with changes: label `custody: governor`; the append-signed-with-retry loop; fail closed when unreachable; no key material in the run directory. Configuration: `commissaire.governor` (the endpoint) in `.faffrc.yaml`, overridable by an environment variable claude-box sets | M |
-| FAFF-1181 placement | Re-cut to Fly only: the governor app, key generated on its own volume (236415f8), network path from the L3 runner, start on request, and the Fly token and organisation question. Local placements move to the new tickets below | M |
-| FAFF-1182 evidence and docs | Confirmed: label `custody: governor`; the evidence run is a Fly L3 run with a pinned key and the runner's own GitHub identity; the FAFF-830 note counts only runs that meet decision 7 | S |
-| New: strict mode | Its own ticket, not part of FAFF-1178, so FAFF-1178 stays about verification. `commissaire.require_pinned_governor` read from the base branch; when on, `merge-gate` and the pr-create and branch-delete legs refuse any grant not signed by a pinned key, with a named reason. Off by default and byte-identical when off. faff's own repository turns it on after its first pin merges (decision 6) | S |
-| New: runner GitHub identity | A configured GitHub credential for the runner, separate from the human's: a bot account token or a GitHub App installation token. The runner's GitHub calls use it when set. The run's evidence records the identity, and Gate 1 counting checks that the merge's actor is that identity and not the human's (236415f8). Zero-config keeps using the human's token. Creating the bot or App is a human task. The claude-box side is in FAFF-1209 | M |
-| New: peer-credential caller check | The governor checks each caller's uid against an allow list: `SO_PEERCRED` on Linux, `getpeereid` or `LOCAL_PEERCRED` on macOS. Picks a production route, since Node has no API for it; the prototype's per-connection helper process is a shortcut | S |
-| New: `faff governor install` | Creates the governor's system user with a systemd service on Linux, or `_faffgov` with a launchd daemon on macOS, and an immutable install. Records the runner user's `docker` group membership and sudo rules, and `admin` group on macOS (decision 7). The human runs it with sudo; faff never calls sudo itself. Prints the fingerprint to pin | L (was M: two service managers and the checks) |
-| New: `faff governor pin` | Reads the governor's public key over its socket. Refuses if the invoking user can read the key file, or if install recorded a failed check. Writes the fingerprint to `governor_key_fingerprints` on a branch and opens the PR | S |
-| New: pin-change human rule | The governor refuses an unattended grant for a merge whose PR changes `.faffrc.yaml`, using its own read-only GitHub token; it requires an approving review from a named human account; `merge-gate` checks the same independently. Tests at every level | M |
-| New: claude-box host-side launch (claude-box repo) | Start the governor on the host from an immutable install, key outside every mount with a mechanical check, socket relay (bind mount on Linux and Docker Desktop, the TCP relay on Colima). Closing the cage's host routes is FAFF-1209 | M |
-| New: prevention follow-on | Required status check posted only by a governor-owned GitHub App, with the runner on its own non-admin identity (decision 10) | M, human task |
-| New: bind `holdout` to an evaluator-signed verdict | Follow-on named in decision 8 | S |
+| Ticket | Domain | Scope | Size |
+|---|---|---|---|
+| FAFF-1177 | Commissaire | The governor process behind `commissaire governor start`: admit, authorize and conclude; key generation and rotation; per-run masters; chain, head-extension and position checks; its own log | M |
+| FAFF-1178 | Commissaire | The verify function: pinned, unpinned or in-process classification against the trust file; chain-position check for orphaned grants; no `pk.json` fallback; `audit verify` | M (was S) |
+| FAFF-1212 | faff | Split from FAFF-1178: `merge-gate`, pr-create and branch-delete call the verify function, with the adversarial self-grant test | S |
+| FAFF-1179 | faff | The runner asks the governor; faff's switch `commissaire.governor`; `custody: governor`; append with retry; fail closed | M |
+| FAFF-1181 | Outside (operator) | The Fly governor app, key generated on its own volume, pinned through a human-approved PR | M |
+| FAFF-1182 | faff | Gate 1 counting of faff's runs (decision 7), the evidence run, strict mode on in faff's repository, and docs | M (was S) |
+| FAFF-1210 | Commissaire | `.commissaire/trust.toml` and the built-in TOML-subset parser (decision 11) | M |
+| FAFF-1211 | Commissaire | Peer-credential caller check on the socket | S |
+| FAFF-1216 | Commissaire | `commissaire governor install`: systemd and launchd, an immutable install, the `docker` group and sudo checks | L |
+| FAFF-1217 | Commissaire | `commissaire governor pin` and `status` | S |
+| FAFF-1218 | Commissaire | The pin-change human rule, in the governor and the verify function | M |
+| FAFF-1219 | Commissaire | Strict mode | S |
+| FAFF-1213 | Outside (operator), small faff part | The runner's own GitHub identity (Human-task) | M |
+| FAFF-1220 | Commissaire, operator setup | Prevention: a required status check only the governor's App can post (Human-task follow-on) | M |
+| FAFF-1214 | Commissaire, with faff's evaluator | Bind `holdout` to an evaluator-signed verdict (follow-on) | M |
+| FAFF-1215 | External (claude-box) | Start the governor on the host from claude-box | M |
+| FAFF-1209 | External (claude-box) | Close the cage's host routes (filed by the human) | M |
+
+FAFF-1195 (owner-only key file modes) already existed and is not duplicated.
 
 ```mermaid
 flowchart LR
-    A[FAFF-1180 types] --> B[FAFF-1177 governor]
-    C[FAFF-1176 facade reads] --> D[FAFF-1179 runner client]
-    C --> E[FAFF-1178 pinned verification]
-    B --> D
-    B --> P[peer-credential check]
-    P --> F[governor install]
-    B --> G[governor pin]
-    B --> H[pin-change rule]
-    E --> H
-    E --> S[strict mode]
-    G --> S
-    D --> I[FAFF-1181 Fly]
-    E --> I
-    G --> I
-    B --> J[claude-box launch]
-    X[FAFF-1209 claude-box hardening] --> J
-    R[runner GitHub identity] --> H
-    I --> K[FAFF-1182 evidence]
-    H --> K
-    R --> K
+    G1109[FAFF-1109 this ADR] --> T1210[FAFF-1210 trust file]
+    G1109 --> T1177[FAFF-1177 governor]
+    T1210 --> T1178[FAFF-1178 verify]
+    T1177 --> T1211[FAFF-1211 caller check]
+    T1211 --> T1216[FAFF-1216 install]
+    T1177 --> T1217[FAFF-1217 pin and status]
+    T1210 --> T1217
+    T1178 --> T1212[FAFF-1212 faff call sites]
+    T1178 --> T1218[FAFF-1218 pin-change rule]
+    T1210 --> T1218
+    T1178 --> T1219[FAFF-1219 strict mode]
+    T1177 --> T1179[FAFF-1179 runner client]
+    T1179 --> T1181[FAFF-1181 Fly]
+    T1212 --> T1181
+    T1217 --> T1181
+    T1181 --> T1182[FAFF-1182 evidence]
+    T1213[FAFF-1213 runner GitHub identity] --> T1182
+    T1218 --> T1182
+    T1219 --> T1182
+    T1209[FAFF-1209 claude-box hardening] --> T1215[FAFF-1215 claude-box launch]
+    T1177 --> T1215
+    T1213 --> T1220[FAFF-1220 prevention]
+    T1177 --> T1214[FAFF-1214 holdout binding]
 ```
 
 ### Other consequences
@@ -321,7 +418,7 @@ flowchart LR
 - An operator who wants counted evidence configures a governor, pins its key through a human-approved PR, gives the runner its own GitHub identity, and runs on Fly, another Linux host, or under a separate OS user that passes the install checks.
 - With strict mode on, faff's own repository stops accepting in-process grants, so every governed merge there needs a reachable pinned governor.
 - `audit verify` on a governor run reports producer claims as `unverifiable_without_secret`, because only the governor holds the master. Verification on the governor side is a follow-on.
-- Until the prevention follow-on lands, a dishonest runner's merge without a grant is detected, not prevented.
+- Until the prevention follow-on (FAFF-1220) lands, a dishonest runner's merge without a grant is detected, not prevented.
 
 ### Open questions
 

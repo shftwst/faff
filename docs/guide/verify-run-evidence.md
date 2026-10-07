@@ -36,6 +36,10 @@ machine re-check producer claims.
 | `commissaire/producer/producers/<run-id>.json` | The producer record, including `key_hex` (the symmetric secret), `admitted_scope`, and `contract_revision`. This local secret is why *your own* run verifies its producer claims |
 | `<ISSUE>/` | Merge-floor artifacts: `ac-checklist.json`, `review-verdict.json`, `holdout-offer.json`, `build-progress.json`, `merge-record.json` |
 
+Runs admitted from this release onwards write `governor.json` and `producers/<run-id>.json`
+with mode `0600` inside `0700` directories, so other local users cannot read the keys. Runs
+admitted earlier keep the modes they were written with, and still verify.
+
 The live run directory has **no chain-head file** — the tamper-evident witnesses
 are written into the anchor, not here.
 

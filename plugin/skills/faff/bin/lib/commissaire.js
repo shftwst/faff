@@ -135,6 +135,46 @@ function readChokepointKeyRecord(runDir, producerDir) {
     }
 }
 const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(obj, null, 2) + "\n"); };
+// FAFF-1195: key material (SK, HMAC master, producer key) is owner-only. Only the key directory
+// itself is created 0700; its ancestors keep the default mode, and a directory that already
+// exists is never chmod-ed, so existing run directories stay byte-for-byte untouched.
+function ensureOwnerOnlyDir(dir) {
+    if (fs.existsSync(dir))
+        return;
+    fs.mkdirSync(path.dirname(dir), { recursive: true });
+    try {
+        fs.mkdirSync(dir, { mode: 0o700 });
+    }
+    catch (e) {
+        if (!(e instanceof Error && "code" in e && e.code === "EEXIST"))
+            throw e;
+    }
+}
+// The target only ever names an inode created 0600: an exclusive temp file is written, then
+// renamed over the target, so a --force rotation over a pre-existing 0644 file still lands 0600.
+function writeOwnerOnlyJson(target, value) {
+    const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${require("node:crypto").randomBytes(6).toString("hex")}.tmp`);
+    let fd = fs.openSync(tmp, "wx", 0o600);
+    try {
+        fs.writeFileSync(fd, JSON.stringify(value, null, 2) + "\n");
+        fs.closeSync(fd);
+        fd = null;
+        fs.renameSync(tmp, target);
+    }
+    catch (e) {
+        if (fd !== null) {
+            try {
+                fs.closeSync(fd);
+            }
+            catch { /* the original error wins */ }
+        }
+        try {
+            fs.unlinkSync(tmp);
+        }
+        catch { /* the original error wins */ }
+        throw e;
+    }
+}
 const readLedgerEntries = (runDir) => {
     const p = path.join(runDir, LEDGER_CFG.ledgerFile);
     if (!fs.existsSync(p))
@@ -669,7 +709,8 @@ function cmdAdmit(flags) {
         process.stderr.write(`faff commissaire admit: keypair/master mint failed: ${e instanceof Error ? e.message : String(e)}\n`);
         return 4;
     }
-    writeJson(governorFileOf(governorDir), { sk: kp.sk, pk: kp.pk, pk_fingerprint: kp.pk_fingerprint, master_secret: masterSecret });
+    ensureOwnerOnlyDir(governorDir);
+    writeOwnerOnlyJson(governorFileOf(governorDir), { sk: kp.sk, pk: kp.pk, pk_fingerprint: kp.pk_fingerprint, master_secret: masterSecret });
     // Producer half: derive + deliver K_producer (never SK, never master); publish PK. The branded
     // admission API is the mint/admission edge: producerId/contractRevision are freshly minted here
     // from trusted CLI input and a raw string would be a TS2345 on this production path.
@@ -677,7 +718,9 @@ function cmdAdmit(flags) {
     const admittedContractRevision = producerAuth.asContractRevisionId(contractRevision);
     const key = producerAuth.admitProducerKey(masterSecret, admittedProducerId, admittedContractRevision);
     const admittedAt = strFlag(flags, "--ts") || new Date().toISOString();
-    writeJson(producerFileOf(producerDir, producerId), {
+    ensureOwnerOnlyDir(producerDir);
+    ensureOwnerOnlyDir(path.dirname(producerFileOf(producerDir, producerId)));
+    writeOwnerOnlyJson(producerFileOf(producerDir, producerId), {
         producer_id: producerId, contract_revision: contractRevision, key_hex: key.toString("hex"),
         pk: kp.pk, pk_fingerprint: kp.pk_fingerprint, admitted_scope: scope, status: "admitted", admitted_at: admittedAt,
     });
@@ -1413,6 +1456,16 @@ function commissaireSelftest() {
                 if (prodJson.sk || prodJson.master_secret)
                     fail(`[${label}] producer file must NOT hold SK or master`);
             }
+            // FAFF-1195: key material is owner-only from the moment admit writes it.
+            const modeOf = (p) => fs.statSync(p).mode & 0o777;
+            for (const f of [governorFileOf(governorDirOf(runDir)), producerFileOf(producerDirOf(runDir), "P1")]) {
+                if (modeOf(f) !== 0o600)
+                    fail(`[${label}] ${path.basename(f)} is mode ${modeOf(f).toString(8)}, want 600`);
+            }
+            for (const d of [governorDirOf(runDir), producerDirOf(runDir)]) {
+                if (modeOf(d) !== 0o700)
+                    fail(`[${label}] ${path.basename(d)}/ is mode ${modeOf(d).toString(8)}, want 700`);
+            }
             // reconcile reports no escape on the fully-declared/observed-free run
             r = run([...tok.reconcile, "--run-dir", runDir, "--unit-id", "FAFF-1"]);
             if (r.status !== 0)
@@ -1506,5 +1559,6 @@ module.exports = {
     buildEnvelope, appendProducerRecords, appendCommissaireRecord,
     evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, hasGovernanceContext,
     readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf, readChokepointKeyRecord,
+    ensureOwnerOnlyDir, writeOwnerOnlyJson,
     cmdCommissaire, commissaireSelftest,
 };

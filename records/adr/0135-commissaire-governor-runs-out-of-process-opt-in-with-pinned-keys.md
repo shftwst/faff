@@ -1,9 +1,11 @@
 # ADR 0135 - Commissaire governor runs out of process, opt-in, with pinned keys
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-06
 - **Issue:** FAFF-1109
+
+Ratified by the human on 2026-10-08, FAFF-1109 comment 25072d80.
 
 Drafted by an agent from the FAFF-1109 spike. Each decision is marked with who made it:
 

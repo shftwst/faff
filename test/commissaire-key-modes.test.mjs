@@ -84,16 +84,20 @@ test("--governor-dir that already exists keeps its mode; a missing --producer-di
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("--force rotation over a 0644 governor.json leaves a 0600 file and no temp file", () => {
+test("--force rotation over 0644 secret files leaves both at 0600 and no temp file", () => {
   const { root, runDir } = mkRun("modes-force-");
   try {
     assert.equal(faff(admitArgs(runDir)).code, 0);
     const gov = governorFileOf(governorDirOf(runDir));
+    const prod = producerFileOf(producerDirOf(runDir), "P1");
     chmodSync(gov, 0o644);
+    chmodSync(prod, 0o644);
     const r = faff(admitArgs(runDir, ["--force"]));
     assert.equal(r.code, 0, r.stderr);
     assert.equal(octal(modeOf(gov)), "600");
+    assert.equal(octal(modeOf(prod)), "600");
     assert.deepEqual(tmpLeftovers(governorDirOf(runDir)), []);
+    assert.deepEqual(tmpLeftovers(join(producerDirOf(runDir), "producers")), []);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1195",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7d57fc0a098cf693177facc0f99faad1ceb422295386ba76d085dc1514cff640",
+    "branch": "FAFF-1195-write-commissaire-governor-key-material-with-owner-only-file-permissions",
+    "pushed_at": "2026-10-07T04:34:05.189Z"
+  },
+  "updated_at": "2026-10-07T04:34:05.189Z"
+}

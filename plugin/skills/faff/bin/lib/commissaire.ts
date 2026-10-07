@@ -630,8 +630,9 @@ function cmdAdmit(flags: CommissaireFlags): number {
   // Governor half: mint the keypair + master, hold SK + master in the governor dir only.
   // FAFF-1140 — guard the mint: a crypto failure here must surface as a clean exit 4 (admit internal
   // failure) with NOTHING written, never an unguarded throw the run-start prose cannot branch on. The
-  // guard wraps ONLY the mint — the first writeJson below is the earliest side-effect, so an exit 4
-  // leaves no partial governor.json. Exits 0/2/3 are unchanged.
+  // guard wraps ONLY the mint — the first secret write below (ensureOwnerOnlyDir, then
+  // writeOwnerOnlyJson) is the earliest side-effect, so an exit 4 leaves no partial governor.json.
+  // Exits 0/2/3 are unchanged.
   let kp: { sk: string; pk: string; pk_fingerprint: string };
   let masterSecret: string;
   try {

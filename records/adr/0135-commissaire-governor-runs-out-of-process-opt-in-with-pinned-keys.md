@@ -7,7 +7,7 @@
 
 Drafted by an agent from the FAFF-1109 spike. Each decision is marked with who made it:
 
-- **Human** decisions come from seven FAFF-1109 comments: 71b55ac3, 186e010e, 5bc1c730, c76c0d54, 236415f8 and ded5c387 (2026-10-06), and 4706c740 (2026-10-07). They are binding. Comment 236415f8 answered the four open questions in the first draft of this ADR. Comment ded5c387 makes Linux a first-class platform. Comment 4706c740 makes the governor part of Commissaire, with faff as one consumer.
+- **Human** decisions come from eight FAFF-1109 comments: 71b55ac3, 186e010e, 5bc1c730, c76c0d54, 236415f8 and ded5c387 (2026-10-06), and 4706c740 and 862cf5f5 (2026-10-07). They are binding. Comment 236415f8 answered the four open questions in the first draft of this ADR. Comment ded5c387 makes Linux a first-class platform. Comment 4706c740 makes the governor part of Commissaire, with faff as one consumer. Comment 862cf5f5 fixes how the trust file is read and when a run can count.
 - **Agent proposal** decisions take the FAFF-1109 description's default, or the agent's choice where the default no longer fits. They stand only once the human accepts this ADR.
 
 ## Context
@@ -37,7 +37,7 @@ The pins live in a Commissaire-owned TOML file, not `.faffrc.yaml` (decision 11)
 **Agent proposals:**
 
 - Commissaire exports one verify function from the governance region. faff's call sites in `merge-gate.js` (factory region) call it, which the region rule allows. The branch-delete leg is a `merge-gate` call site and uses the same function.
-- `commissaire governor status` prints the custody label, the governor's fingerprint, whether that fingerprint is pinned on the base branch, the install check result, and whether the socket answers.
+- `commissaire governor status` prints the custody label, the governor's fingerprint, whether that fingerprint is pinned on the base branch, the install check result, whether the socket answers, and whether each counting condition in decision 7 holds (the conditions are human, 862cf5f5; the output is a proposal).
 - Key rotation is a fifth command, `commissaire governor rotate`.
 - The trust-file parser and the governor's new modules must pass the standalone binary's import-independence guard (`test/commissaire-standalone.test.mjs`).
 
@@ -186,11 +186,21 @@ Rejected:
 
 **Human (236415f8).** A run counts as independent only when the runner uses a GitHub identity separate from the human's, such as a bot account or a GitHub App. Zero-config runs are unchanged. The reason: claude-box forwards the human's own `gh auth token`, so while the runner acts as the human, no "needs a human" rule enforced on GitHub can tell them apart.
 
-**Agent proposal.** A run counts for Gate 1 when all three hold:
+**Human (862cf5f5).** Counted runs need all three of:
+
+- the trust file read from a remote base branch;
+- branch protection on that branch that requires a PR, so nothing can push to it directly;
+- the runner's own GitHub identity (236415f8).
+
+`commissaire governor status` reports whether each condition holds.
+
+**Agent proposal.** A run counts for Gate 1 when it meets the three conditions above and also:
 
 - it is labelled `custody: governor`;
 - every Commissaire record verifies under a fingerprint pinned on the base branch at the time of the grant; and
-- the run's evidence records a runner GitHub identity different from the human's, and the merge's GitHub actor is that identity.
+- the run's evidence records the runner's GitHub identity, that identity is not in `pin_change_approvers`, and the merge's GitHub actor is that identity.
+
+A run that fails any condition still works and is still verified. It carries `independence: not-counted` with the failing conditions as reasons, for example `no-remote-base`, `base-not-protected` or `runner-identity-not-separate`. This field sits beside the custody label and does not add a third custody value.
 
 The human approving each pin PR vouches for that governor's placement. The run is recorded on the invocation-and-principal dimension of the master RFC's independence vector as "separate process and separate credential". Organisational independence is not claimed.
 
@@ -302,12 +312,22 @@ pin_change_approvers = ["example-maintainer"]
 | `require_pinned_governor` | boolean | Optional, default `false`. `true` with an empty fingerprint list is refused |
 | `pin_change_approvers` | array of strings | Optional, default empty. GitHub logins. With none listed, the governor grants no merge that changes this file, so a human must merge it outside the governed path |
 
+**Human (862cf5f5).**
+
+- The trust file is committed. Commissaire reads it only from the base branch's committed history, never from the working tree.
+- It holds no secrets: public-key fingerprints, a boolean and GitHub logins.
+- There is no local override of any kind. A local override would let a runner trust its own key.
+- **Git-only mode.** With no remote, or with a base branch the runner can push to directly, the pin proves nothing, because the runner can commit to the base branch itself. Commissaire still reads the file in that case, but labels the runs not independent (decision 7).
+
+Rejected (862cf5f5): a gitignored `.commissaire/trust.local.toml`, or any other local override such as an environment variable or a flag. The runner can write any file in the working tree and set any variable in its own environment, so an override would let it add its own key and strict mode would mean nothing.
+
 Reading rules:
 
 - **No file:** no pins, strict mode off, no approvers. Zero-config is unchanged.
 - **Unknown key:** refused, so a misspelt `require_pinned_governor` cannot silently leave strict mode off.
 - **Malformed or invalid file:** every reader fails closed with `trust-file-invalid` and the line number. A reader never falls back to "no pins".
-- **Where it is read from:** the base branch's committed file. A local read uses `git show <base>:.commissaire/trust.toml`. The governor and any independent verifier read it from the remote base branch, since the runner controls the local clone's refs (decision 6).
+- **Where it is read from:** the base branch's committed history only (862cf5f5). A local read uses `git show <base>:.commissaire/trust.toml` and is enough for git-only mode, but such runs do not count. The governor and any independent verifier read the file from the remote base branch, since the runner controls the local clone's refs (decision 6).
+- **How "remote" and "protected" are checked (agent proposal):** the remote read and the branch-protection check go through `gh api`, as `merge-gate` already does with `repos/{repo}/rules/branches/{branch}`. That endpoint returns the effective rules, covering both rulesets and classic protection, and a `pull_request` rule means a PR is required. Commissaire makes its own call and does not import `merge-gate.js`. The endpoint does not list bypass actors to a non-admin caller, so the check cannot prove the runner's identity has no bypass. That stays an operator responsibility under FAFF-1213.
 
 **Agent proposal: the parser.** A small built-in parser for a strict TOML subset, in a new governance-region module with its committed `.js` emit (ADR-0132). It follows the precedent of faff's built-in `parseYamlSubset` (`shared-infra.js`) and adds no runtime dependency. It lives in the governance region because only Commissaire reads the file. It can move to the shared-infra region if a second reader ever needs it.
 
@@ -371,10 +391,10 @@ The Linux run proves the OS-user boundary on Linux. It does not show a deploymen
 | FAFF-1179 | faff | The runner asks the governor; faff's switch `commissaire.governor`; `custody: governor`; append with retry; fail closed | M |
 | FAFF-1181 | Outside (operator) | The Fly governor app, key generated on its own volume, pinned through a human-approved PR | M |
 | FAFF-1182 | faff | Gate 1 counting of faff's runs (decision 7), the evidence run, strict mode on in faff's repository, and docs | M (was S) |
-| FAFF-1210 | Commissaire | `.commissaire/trust.toml` and the built-in TOML-subset parser (decision 11) | M |
+| FAFF-1210 | Commissaire | `.commissaire/trust.toml` and the built-in TOML-subset parser (decision 11), read only from committed history, no local override, git-only labelling | M |
 | FAFF-1211 | Commissaire | Peer-credential caller check on the socket | S |
 | FAFF-1216 | Commissaire | `commissaire governor install`: systemd and launchd, an immutable install, the `docker` group and sudo checks | L |
-| FAFF-1217 | Commissaire | `commissaire governor pin` and `status` | S |
+| FAFF-1217 | Commissaire | `commissaire governor pin` and `status`, including the three counting checks through `gh` | M (was S) |
 | FAFF-1218 | Commissaire | The pin-change human rule, in the governor and the verify function | M |
 | FAFF-1219 | Commissaire | Strict mode | S |
 | FAFF-1213 | Outside (operator), small faff part | The runner's own GitHub identity (Human-task) | M |

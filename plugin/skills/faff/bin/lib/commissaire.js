@@ -65,7 +65,7 @@ const { spawnSync } = require("node:child_process");
 const producerAuth = require("./producer-auth");
 const { deriveKey, signRecord, verifyRecord, mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, producerAuthSelftest, } = producerAuth;
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
-const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys, conclusionKindOf, CONCLUSION_KIND } = require("./effects");
+const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys, conclusionKindOf, isProtectedKind, CONCLUSION_KIND } = require("./effects");
 const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp } = require("./shared-infra");
 // FAFF-1140 — the run-start `admit-required` read resolves `unattended` from the SAME shared abort-axis
 // resolver the sentry-poller uses (never a second definition), and the governance config the same way
@@ -371,6 +371,37 @@ function chokepointPermit(effect, verdictRecord, pk, pinnedFingerprint) {
     }
     return { permit: true, reason: "valid-grant" };
 }
+function classifyUncovered(observeSeq, observedEffect, grants) {
+    const payloadOf = (g) => (isRecord(g.payload) ? g.payload : {});
+    const grantedEffect = (g) => { const e = payloadOf(g).effect; return isRecord(e) ? e : {}; };
+    const sameKind = grants.filter((g) => grantedEffect(g).kind === observedEffect.kind);
+    if (sameKind.length === 0)
+        return "no-grant";
+    const earlier = (g) => (num(g.seq) ?? Infinity) < observeSeq;
+    if (sameKind.some((g) => earlier(g) && payloadOf(g).verdict === "deny"))
+        return "denied";
+    if (sameKind.some((g) => earlier(g) && payloadOf(g).verdict === "grant" && !effectTargetMatches(grantedEffect(g).target, observedEffect.target)))
+        return "descriptor-mismatch";
+    if (sameKind.some((g) => (num(g.seq) ?? -Infinity) >= observeSeq && payloadOf(g).verdict === "grant"))
+        return "grant-after-effect";
+    return "no-grant";
+}
+function grantCoverage(ledger, unit, govPk, pinnedFingerprint) {
+    const grants = ledger
+        .filter((e) => e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" && matchesUnit(e, unit))
+        .sort((a, b) => (num(a.seq) ?? 0) - (num(b.seq) ?? 0));
+    const observed = ledger.filter((e) => e.kind_of_entry === "observe" && matchesUnit(e, unit) && isRecord(e.effect) && isProtectedKind(e.effect.kind));
+    const uncovered = [];
+    for (const o of observed) {
+        const oSeq = num(o.seq) ?? Infinity;
+        const effect = isRecord(o.effect) ? o.effect : {};
+        const candidates = grants.filter((g) => (num(g.seq) ?? Infinity) < oSeq);
+        if (candidates.some((c) => chokepointPermit(effect, c, govPk, pinnedFingerprint).permit))
+            continue;
+        uncovered.push({ effect: o.effect, seq: o.seq, sub_reason: classifyUncovered(oSeq, effect, grants) });
+    }
+    return { covered: uncovered.length === 0, uncovered };
+}
 // --- Auth leg (consumed by governance-check.js, factory→governance is legal) --------------
 // The Commissaire public key a run dir's records verify under, and whether the producer-dir
 // pk.json disagrees with the governor's fingerprint. Shared by the auth leg and `verdict conclude`.
@@ -619,7 +650,7 @@ function usage() {
         "  effect observe    --run-dir DIR --producer ID --unit-id U --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
         "  effect reconcile  --run-dir DIR --unit-id U   (alias: reconcile)\n" +
         "  verdict conclude  --run-dir DIR --unit-id U [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed conformed_to_contract record, or a refusal; alias: terminal-verdict)\n" +
-        "      conformed_to_contract: the run kept to its contract; every protected effect it observed was declared, with no escapes. It does not mean the work was accepted.\n" +
+        "      conformed_to_contract: the run kept to its contract; every protected effect was declared, granted and observed, with no escapes. It does not mean the work was accepted.\n" +
         "      kind_of_entry reports the name stored in the ledger; verdict reports the current name.\n" +
         "  audit seal        --run-dir DIR [--root R] [--bundle-store local]   (build + write the run-close recovery bundle in-process; alias: seal-bundle)\n" +
         "  audit export      --run-dir DIR --dest DIR [--root R] [--bundle-store local]   (copy an already-sealed bundle's manifest + members to DIR)\n" +
@@ -1031,6 +1062,20 @@ function cmdTerminalVerdict(flags) {
             governor_pk_fingerprint: gov.pk_fingerprint ?? null,
         });
     }
+    // FAFF-1225: grant coverage — refuse unless every observed protected effect (merge /
+    // branch-delete / pr-create) carries a signed covering grant earlier in the chain. Placed here
+    // because the check needs gov.pk_fingerprint, the pinned fingerprint the two checks above read
+    // and agree on; concludedKey (the governor PK) was already resolved at the idempotency read.
+    // chokepointPermit is the one grant verifier, reused not re-derived. A run observing no protected
+    // effect falls through unchanged; only an observed protected effect gates the conclusion.
+    const observedProtected = ledger.filter((e) => e.kind_of_entry === "observe" && matchesUnit(e, issue) && isRecord(e.effect) && isProtectedKind(e.effect.kind));
+    if (observedProtected.length > 0) {
+        if (concludedKey == null)
+            return refuseVerdict("no-governor-key", issue);
+        const coverage = grantCoverage(ledger, issue, concludedKey, str(gov.pk_fingerprint));
+        if (!coverage.covered)
+            return refuseVerdict("ungranted-protected-effect", issue, { uncovered: coverage.uncovered });
+    }
     // FAFF-1008 item 1: label the terminal record from the signed ledger, not the live admission
     // file. A single distinct revision over the issue's entries is the honest label; more than one
     // means the evidence spans revisions and there is no honest label to stamp — refuse rather than
@@ -1400,6 +1445,32 @@ function commissaireSelftest() {
     deny.commissaire_sig = signDecision(deny, gov.sk);
     if (chokepointPermit(effect, deny, gov.pk, gov.pk_fingerprint).permit)
         fail("chokepoint refuses a deny verdict");
+    // --- grantCoverage (FAFF-1225): every observed protected effect needs a signed covering grant ---
+    {
+        const mkGrant = (seq, kind, target, verdict = "grant") => {
+            const r = { schema: 3, author: "commissaire", kind_of_entry: "effect-decision-verdict", unit_id: "FAFF-1", step: "merge", seq, payload: { verdict, effect: { kind, target } } };
+            r.commissaire_sig = signDecision(r, gov.sk);
+            return r;
+        };
+        const mkObs = (seq, kind, target) => ({ schema: 3, author: "producer", kind_of_entry: "observe", unit_id: "FAFF-1", step: "merge", seq, effect: { kind, target } });
+        const cov = (ledger) => grantCoverage(ledger, "FAFF-1", gov.pk, gov.pk_fingerprint);
+        if (!cov([mkGrant(1, "merge", "main"), mkObs(2, "merge", "main")]).covered)
+            fail("grantCoverage: an earlier covering grant covers the observed merge");
+        let gc = cov([mkObs(2, "merge", "main")]);
+        if (gc.covered || gc.uncovered[0]?.sub_reason !== "no-grant")
+            fail("grantCoverage: a never-granted protected effect is uncovered/no-grant");
+        gc = cov([mkGrant(1, "merge", "main", "deny"), mkObs(2, "merge", "main")]);
+        if (gc.covered || gc.uncovered[0]?.sub_reason !== "denied")
+            fail("grantCoverage: a denied grant is uncovered/denied");
+        gc = cov([mkGrant(1, "merge", "other"), mkObs(2, "merge", "main")]);
+        if (gc.covered || gc.uncovered[0]?.sub_reason !== "descriptor-mismatch")
+            fail("grantCoverage: a different-target grant is uncovered/descriptor-mismatch");
+        gc = cov([mkObs(1, "merge", "main"), mkGrant(2, "merge", "main")]);
+        if (gc.covered || gc.uncovered[0]?.sub_reason !== "grant-after-effect")
+            fail("grantCoverage: a grant minted after the effect is uncovered/grant-after-effect");
+        if (!cov([mkObs(1, "tracker-write", "ISSUE-1")]).covered)
+            fail("grantCoverage: an unprotected observed effect is never gated");
+    }
     // --- evaluateLevelPolicy (FAFF-1034) — the L1/L2/L3/L4 truth table ---
     if (!evaluateLevelPolicy({ level: "L1", attended: true }).pass)
         fail("L1 attended → pass");

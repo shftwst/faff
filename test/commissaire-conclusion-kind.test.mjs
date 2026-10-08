@@ -24,8 +24,8 @@ const V02_EXAMPLES = join(HERE, "..", "verification", "commissaire-facade", "v0.
 const V01_EXAMPLES = join(HERE, "..", "verification", "commissaire-facade", "v0.1", "schema", "examples");
 const MERGE = { kind: "merge", target: "main" };
 
-const MEANING = "every protected effect it observed was declared, with no escapes";
-const EXPLANATION = "conformed_to_contract: the run kept to its contract; every protected effect it observed was declared, with no escapes. It does not mean the work was accepted.";
+const MEANING = "every protected effect was declared, granted and observed, with no escapes";
+const EXPLANATION = "conformed_to_contract: the run kept to its contract; every protected effect was declared, granted and observed, with no escapes. It does not mean the work was accepted.";
 
 const runCom = (args, input) => runCli(["commissaire", ...args], { input });
 const json = (r) => JSON.parse(r.stdout.trim());
@@ -42,14 +42,32 @@ function legacyRunDir() {
   return dir;
 }
 
-function governedCleanRun(unit) {
+// A governed run dir with nothing declared yet (admit + scope merge). The per-step helpers below
+// drive declare / authorize / observe so each scenario shapes its own chain of custody.
+function governedBase() {
   const root = mkdtempSync(join(tmpdir(), "conclusion-kind-governed-"));
   const runDir = join(root, ".faff", "runs", "RUN-KIND");
   mkdirSync(runDir, { recursive: true });
   assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-  assert.equal(runCom(["effect", "declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", unit, "--step", "merge"], JSON.stringify([MERGE])).code, 0);
-  assert.equal(runCom(["effect", "observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", unit, "--step", "merge"], JSON.stringify([MERGE])).code, 0);
   return { root, runDir, ledger: join(runDir, "declared-effects.jsonl") };
+}
+const declareEffects = (runDir, unit, effects) =>
+  assert.equal(runCom(["effect", "declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", unit, "--step", "merge"], JSON.stringify(effects)).code, 0);
+const observeEffects = (runDir, unit, effects) =>
+  assert.equal(runCom(["effect", "observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", unit, "--step", "merge"], JSON.stringify(effects)).code, 0);
+const authorizeEffect = (runDir, unit, effect, extraFlags = []) =>
+  runCom(["effect", "authorize", "--run-dir", runDir, "--producer", "P1", "--unit-id", unit, "--step", "merge", ...extraFlags], JSON.stringify({ effect }));
+
+// FAFF-1225: the canonical clean run now mints a merge grant BETWEEN declare and observe, so it
+// keeps concluding cleanly under the grant-coverage rule (declared, granted, then observed).
+function governedCleanRun(unit) {
+  const { root, runDir, ledger } = governedBase();
+  declareEffects(runDir, unit, [MERGE]);
+  const auth = authorizeEffect(runDir, unit, MERGE);
+  assert.equal(auth.code, 0, auth.stderr);
+  assert.equal(json(auth).verdict, "grant", auth.stdout);
+  observeEffects(runDir, unit, [MERGE]);
+  return { root, runDir, ledger };
 }
 
 test("1. audit verify passes over the frozen v0.2 ledger and reports the legacy conclusion as verified", () => {
@@ -194,5 +212,97 @@ test("7c. a producer-dir pk.json that disagrees with the governor never makes re
 
     const audit = runCom(["audit", "verify", "--run-dir", runDir, "--json"]);
     assert.equal(audit.code, 1, "audit verify still reports the tampered pk.json");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// FAFF-1225: conclude refuses unless every observed protected effect has a signed covering grant.
+test("8a. a governed run that declared, was granted, and observed a merge concludes cleanly", () => {
+  const { root, runDir } = governedCleanRun("FAFF-1");
+  try {
+    const r = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = json(r);
+    assert.equal(out.verdict, CONCLUSION_KIND);
+    assert.equal(out.kind_of_entry, CONCLUSION_KIND);
+    const audit = runCom(["audit", "verify", "--run-dir", runDir, "--json"]);
+    assert.equal(audit.code, 0, audit.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("8b. an observed protected merge that was never granted refuses ungranted-protected-effect / no-grant", () => {
+  const { root, runDir, ledger } = governedBase();
+  try {
+    declareEffects(runDir, "FAFF-1", [MERGE]);
+    observeEffects(runDir, "FAFF-1", [MERGE]);
+    const before = sha256File(ledger);
+    const r = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = json(r);
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "ungranted-protected-effect");
+    assert.equal(out.uncovered[0].sub_reason, "no-grant");
+    assert.equal(out.uncovered[0].effect.kind, "merge");
+    assert.equal(sha256File(ledger), before, "nothing was appended");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("8c. a denied grant with the merge observed anyway refuses ungranted-protected-effect / denied", () => {
+  const { root, runDir, ledger } = governedBase();
+  try {
+    declareEffects(runDir, "FAFF-1", [MERGE]);
+    // --level L1 with no attendance denies at the level policy, so the signed verdict is a deny.
+    const auth = authorizeEffect(runDir, "FAFF-1", MERGE, ["--level", "L1"]);
+    assert.equal(auth.code, 0, auth.stderr);
+    assert.equal(json(auth).verdict, "deny", auth.stdout);
+    observeEffects(runDir, "FAFF-1", [MERGE]);
+    const before = sha256File(ledger);
+    const r = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = json(r);
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "ungranted-protected-effect");
+    assert.equal(out.uncovered[0].sub_reason, "denied");
+    assert.equal(sha256File(ledger), before, "nothing was appended");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("8d. a grant for a different descriptor refuses ungranted-protected-effect / descriptor-mismatch", () => {
+  const { root, runDir, ledger } = governedBase();
+  const OTHER = { kind: "merge", target: "other" };
+  try {
+    // Both targets are declared (so observing "main" is not an escape), but only "other" is granted.
+    declareEffects(runDir, "FAFF-1", [MERGE, OTHER]);
+    const auth = authorizeEffect(runDir, "FAFF-1", OTHER);
+    assert.equal(auth.code, 0, auth.stderr);
+    assert.equal(json(auth).verdict, "grant", auth.stdout);
+    observeEffects(runDir, "FAFF-1", [MERGE]);
+    const before = sha256File(ledger);
+    const r = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = json(r);
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "ungranted-protected-effect");
+    assert.equal(out.uncovered[0].sub_reason, "descriptor-mismatch");
+    assert.equal(sha256File(ledger), before, "nothing was appended");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("8e. a grant minted after the effect (ask-forgiveness) refuses ungranted-protected-effect / grant-after-effect", () => {
+  const { root, runDir, ledger } = governedBase();
+  try {
+    declareEffects(runDir, "FAFF-1", [MERGE]);
+    observeEffects(runDir, "FAFF-1", [MERGE]);
+    // The grant is minted AFTER the observation — later in the chain, so it does not cover it.
+    const auth = authorizeEffect(runDir, "FAFF-1", MERGE);
+    assert.equal(auth.code, 0, auth.stderr);
+    assert.equal(json(auth).verdict, "grant", auth.stdout);
+    const before = sha256File(ledger);
+    const r = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = json(r);
+    assert.equal(out.verdict, "refused");
+    assert.equal(out.reason, "ungranted-protected-effect");
+    assert.equal(out.uncovered[0].sub_reason, "grant-after-effect");
+    assert.equal(sha256File(ledger), before, "nothing was appended");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

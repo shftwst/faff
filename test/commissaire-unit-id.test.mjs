@@ -17,7 +17,7 @@ import {
   governorFileOf, governorDirOf, producerFileOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { resolveCommissaireDecisionGrant, warnUncoveredMergeObserves } from "../plugin/skills/faff/bin/lib/merge-gate.js";
-import { computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys } from "../plugin/skills/faff/bin/lib/effects.js";
+import { computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys, CONCLUSION_KIND } from "../plugin/skills/faff/bin/lib/effects.js";
 import { appendRecordsUnderLock } from "../plugin/skills/faff/bin/lib/events.js";
 import { accountHumanMerge } from "../plugin/skills/faff/bin/lib/audit.js";
 import { readDeclaredMergeEffects as reconcileDeclaredMerges, segmentCovered } from "../plugin/skills/faff/bin/lib/effects-reconcile.js";
@@ -104,7 +104,8 @@ test("writer: new records carry unit_id, never issue; schema stays 3 and step is
     assert.equal(runCom(["effect", "authorize", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: MERGE })).code, 0);
     assert.equal(runCom(["effect", "observe", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([MERGE])).code, 0);
     const conc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
-    assert.equal(json(conc).verdict, "accepted_under_contract");
+    assert.equal(json(conc).verdict, CONCLUSION_KIND);
+    assert.equal(json(conc).kind_of_entry, CONCLUSION_KIND);
     const recs = records(ledger);
     assert.equal(recs.length, 6);
     for (const r of recs) {

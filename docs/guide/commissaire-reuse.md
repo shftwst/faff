@@ -26,7 +26,7 @@ hold different key material and author different records.
 | Custodian | Holds | Authors (`author` field) | Record kinds |
 |---|---|---|---|
 | Producer | Symmetric `K_producer`, HKDF-derived from the governor's `master_secret` | `producer` | `declare`, `observe`, `effect-decision-request`, each HMAC-authenticated |
-| Governor | Ed25519 `SK_commissaire` and the HMAC `master_secret` | `commissaire` | `admission`, `effect-decision-verdict`, [`conformed_to_contract`](../reference/GLOSSARY.md), each Ed25519-signed |
+| Governor | Ed25519 `SK_commissaire` and the HMAC `master_secret` | `commissaire` | `admission`, `effect-decision-verdict`, [`conformed_to_contract`](https://github.com/shftwst/faff/blob/main/docs/reference/GLOSSARY.md), each Ed25519-signed |
 
 Both authors append to one hash-chained `declared-effects.jsonl`, linked by
 `prev`, so any reordering or tamper is detectable. A party without

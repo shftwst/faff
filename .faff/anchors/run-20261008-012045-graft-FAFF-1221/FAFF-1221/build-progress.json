@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1221",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d0083ef94a5652c03314496c5388a03428ec3e16b8677dec40ce9e7b6513b0cc",
+    "branch": "FAFF-1221-rename-commissaire-conclude-verdict-to-conformed-to-contract",
+    "pushed_at": "2026-10-08T02:03:50.844Z"
+  },
+  "updated_at": "2026-10-08T02:03:50.844Z"
+}

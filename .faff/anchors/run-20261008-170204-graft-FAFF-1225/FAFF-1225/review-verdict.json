@@ -1,0 +1,5 @@
+{ "signal": "pass",
+  "findings": [
+    { "location_present": true, "action_present": true, "severity": "minor", "disposition": "fixed", "disposition_rationale": "Aligned spec section 4 precondition pseudocode to the implemented no-governor-key branch (commit 2d6cc33f).", "source": "standard", "model": "faffter-noon-review" },
+    { "location_present": true, "action_present": true, "severity": "minor", "disposition": "accepted-risk", "disposition_rationale": "DoD behaviour (granted->concludes; no-grant->refuses) is fully verified by Node scenarios 8a/8b; only the coverage location differs from the DoD letter.", "source": "standard", "model": "faffter-noon-review" }
+  ] }

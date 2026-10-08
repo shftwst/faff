@@ -67,6 +67,13 @@ const EFFECT_KINDS = new Set([
   "label-write", "tracker-write", "file-write", "pr-create", "push", "other",
 ]);
 
+// FAFF-1225: the protected-effect kinds — an observed effect of one of these needs a signed
+// Commissaire grant to conclude cleanly. One home both the chokepoints and `verdict conclude`
+// can consult, so the two enforcement points never drift. Exactly the kinds the runner governs
+// today; every other EFFECT_KIND (tracker-write, label-write, push, …) is unaffected.
+const PROTECTED_EFFECT_KINDS = new Set(["merge", "branch-delete", "pr-create"]);
+function isProtectedKind(kind) { return PROTECTED_EFFECT_KINDS.has(kind); }
+
 // Pure validator for one EffectDescriptor — returns violation strings (empty == valid).
 // Unknown kind / missing-or-empty target / non-boolean reversible are the invalid cases.
 function effectDescriptorViolations(d) {
@@ -118,6 +125,21 @@ function unitIdOf(rec) {
 // unresolvable sides can never match each other.
 function matchesUnit(rec, unit) {
   return typeof unit === "string" && unit !== "" && unitIdOf(rec) === unit;
+}
+
+// === FAFF-1221: the conclusion-kind compatibility read ====================
+// Commissaire's conclude record names its kind under CONCLUSION_KIND from FAFF-1221 on;
+// every record written before carries LEGACY_CONCLUSION_KIND. The kind is inside each
+// record's signed image, so frozen records are never rewritten; readers ask here.
+
+const CONCLUSION_KIND = "conformed_to_contract";
+const LEGACY_CONCLUSION_KIND = "accepted_under_contract";
+
+// The record's conclusion kind (current or legacy, exactly as stored), or null for any
+// other kind, a non-string kind, no kind, or a record that is not a plain object.
+function conclusionKindOf(rec) {
+  if (!rec || typeof rec !== "object" || Array.isArray(rec)) return null;
+  return rec.kind_of_entry === CONCLUSION_KIND || rec.kind_of_entry === LEGACY_CONCLUSION_KIND ? rec.kind_of_entry : null;
 }
 
 // Pure escape core: observed-MINUS-declared per (unit, step). `entries` is the parsed
@@ -830,6 +852,12 @@ function effectsSelftest() {
   ], "OTHER");
   if (r.escapes.length !== 2 || r.escapes.some((x) => x.signal !== "rejected-unit-key" || x.issue !== null)) fail("each dual-key record is its own rejected-unit-key escape, whatever the filter");
 
+  // --- FAFF-1221: the conclusion-kind compatibility read ---
+  if (conclusionKindOf({ kind_of_entry: CONCLUSION_KIND }) !== CONCLUSION_KIND) fail("conclusionKindOf: the current kind resolves to itself");
+  if (conclusionKindOf({ kind_of_entry: LEGACY_CONCLUSION_KIND }) !== LEGACY_CONCLUSION_KIND) fail("conclusionKindOf: the legacy kind resolves to itself");
+  if (conclusionKindOf({ kind_of_entry: "declare" }) !== null || conclusionKindOf({ kind_of_entry: "" }) !== null || conclusionKindOf({ kind_of_entry: 5 }) !== null) fail("conclusionKindOf: any other kind resolves to null");
+  if (conclusionKindOf({}) !== null || conclusionKindOf(null) !== null || conclusionKindOf([]) !== null) fail("conclusionKindOf: no kind, null or an array resolves to null");
+
   // --- appendEffectEntries (FAFF-383/621): the shared ledger-append core cmdEffects and
   // merge-gate's mechanical observe both call — now schema-2 CHAINED (per-line prev). ---
   {
@@ -873,4 +901,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };

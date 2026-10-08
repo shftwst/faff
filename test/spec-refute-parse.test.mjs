@@ -309,6 +309,13 @@ test("FAFF-1056: a body whose `###` sections are ALL severity-less still FAULTS 
   assert.doesNotMatch(r.fault.reason, /names no known severity/, "the old per-section reason is gone — the one-directional property");
 });
 
+test("FAFF-1222: a lone severity-less heading with a full finding body still faults, no severity assigned", () => {
+  const body = "## Refutation — QA\n\n### Appetite semantics undefined\n- claim: the mapping is asserted\n- evidence: WHAT\n- predicted_consequence: done cannot be decided\n- spec_anchor: what";
+  const r = parseRefutation(body, "QA");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, /no recognised finding section/);
+});
+
 test("FAFF-1056: headerModel still extracts the model past a severity-less `### Analysis` preamble", () => {
   const r = parseRefutation(fixture(reasoningHeading("Analysis"), majorSection()), "architectural");
   assert.equal(r.ok, true);

@@ -4153,3 +4153,36 @@ test("FAFF-1056: a spy writeFn that never throws (the default test double) write
   assert.equal(writes.length, 1);
   assert.equal(writes[0].path, "/raw/round-2.QA.1-gemini-gemma.clean.txt", "no collision ⇒ base name, no .retry suffix");
 });
+
+// ── FAFF-1222 same-line prose after the affirmation ──
+test("FAFF-1222 normaliseCleanRefutation: same-line prose after the affirmation normalises for every form", () => {
+  assert.deepEqual(
+    normaliseCleanRefutation("## Refutation — infosec\nNo infosec objection. The spec proposes a read-only endpoint."),
+    { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "infosec", form: "headed" },
+  );
+  const cases = [
+    ["No QA objection. I checked every DONE item.", "QA", "bare"],
+    ["## Refutation — methodology\nno methodology signal available.\nNo methodology objection. Sound.", "methodology", "headed+signal"],
+    ["## Second opinion\nNo architectural objection. Fine.", "architectural", "header-wrapped"],
+    ["No QA objection.\t", "QA", "bare"],
+    ["No QA objection.   ", "QA", "bare"],
+  ];
+  for (const [content, lens, form] of cases) {
+    assert.deepEqual(normaliseCleanRefutation(content), { content: CANONICAL_NO_FINDINGS, normalised: true, lens, form }, content);
+  }
+});
+test("FAFF-1222 normaliseCleanRefutation: same-line rejections stay byte-identical and unaccepted", () => {
+  const rejected = [
+    "No QA objection. ### major: real bug",
+    "No QA objection. Meanwhile ### major: real bug",
+    "No architectural objection. See ## Refutation — QA",
+    "No infosec objections. Fine.",
+    "No infosec objection.Fine",
+    "No infosec objection, but the lock is missing.",
+    "**No infosec objection.** Fine",
+    "## Refutation — architectural\nNo QA objection. Fine.",
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null }, JSON.stringify(content));
+  }
+});

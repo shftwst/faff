@@ -167,11 +167,11 @@ export const DEFAULT_BYTES_PER_TOKEN = 3.0;      // conservative divisor: OVER-e
 export const DEFAULT_WINDOW_SAFETY = 0.9;        // usable fraction of a declared window (response + estimate-error headroom)
 // Fixed token budget reserved for the per-lens --system brief when computing the trim target, so the
 // target never depends on the ACTUAL brief length and the trimmed shared prefix stays byte-identical
-// across the four spec-review lenses (the FAFF-903 cacheable prefix). MEASURED 2026-10-04 @ 3.0 B/tok:
-//   refute-infosec.md 6591 B ~2197 tok  <- binding   refute-architectural.md 6032 B ~2011 tok
-//   refute-qa.md      5687 B ~1896 tok             refute-methodology.md   3132 B ~1044 tok
+// across the four spec-review lenses (the FAFF-903 cacheable prefix). MEASURED 2026-10-08 @ 3.0 B/tok:
+//   refute-infosec.md 6795 B ~2265 tok  <- binding   refute-architectural.md 6236 B ~2079 tok
+//   refute-qa.md      5891 B ~1964 tok             refute-methodology.md   3336 B ~1112 tok
 //   code-review "## Review lens" section 2020 B ~673 tok
-// 2400 clears the 2197 binding constraint with ~9% headroom.
+// 2400 clears the 2265 binding constraint with ~6% headroom.
 export const DEFAULT_BRIEF_RESERVE_TOKENS = 2400;
 export const MIN_TRIM_TARGET_BYTES = 1024;       // trimTargetBytes never returns <= 0; this is its floor
 
@@ -734,6 +734,18 @@ export const CLEAN_REFUTATIONS = Object.freeze([
 const ATX_HEADING_RE = /^#{1,6}\s+\S/;
 const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
 const REFUTATION_NAMESPACE_RE = /^#{1,6}\s+Refutation\s+[—-]/i;
+const MID_LINE_SEVERITY_RE = /#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
+const MID_LINE_NAMESPACE_RE = /#{1,6}\s+Refutation\s+[—-]/i;
+
+function matchAffirmation(line) {
+  for (const entry of CLEAN_REFUTATIONS) {
+    if (line === entry.sentence) return { entry, remainder: "" };
+    if (line.startsWith(entry.sentence) && /[ \t]/.test(line[entry.sentence.length])) {
+      return { entry, remainder: line.slice(entry.sentence.length).trim() };
+    }
+  }
+  return null;
+}
 
 function isDecorativeHeader(line) {
   if (!ATX_HEADING_RE.test(line)) return false;
@@ -775,11 +787,13 @@ export function normaliseCleanRefutation(content) {
   // the trailing segment below is empty and the path is byte-identical to the previous behaviour.
   let affirmationIdx = -1;
   let entry = null;
+  let remainder = "";
   for (let i = lines.length - 1; i >= 0; i--) {
-    const candidate = CLEAN_REFUTATIONS.find((e) => e.sentence === lines[i]);
-    if (candidate) {
+    const match = matchAffirmation(lines[i]);
+    if (match) {
       affirmationIdx = i;
-      entry = candidate;
+      entry = match.entry;
+      remainder = match.remainder;
       break;
     }
   }
@@ -791,6 +805,9 @@ export function normaliseCleanRefutation(content) {
   // finding (`### <severity>:`, level-agnostic) or a wrong-lens/dangling `## Refutation —` heading
   // AFTER the affirmation must never be swallowed by rewriting the body to clean. Fails toward
   // rejection, matching the preamble scan's stance applied past the affirmation instead of before it.
+  if (remainder && (MID_LINE_SEVERITY_RE.test(remainder) || MID_LINE_NAMESPACE_RE.test(remainder))) {
+    return { content: original, normalised: false, lens: null, form: null };
+  }
   for (let i = affirmationIdx + 1; i < lines.length; i++) {
     if (SEVERITY_LIKE_HEADING_RE.test(lines[i]) || REFUTATION_NAMESPACE_RE.test(lines[i])) {
       return { content: original, normalised: false, lens: null, form: null };

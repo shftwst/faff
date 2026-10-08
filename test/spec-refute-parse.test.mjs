@@ -348,15 +348,119 @@ test("FAFF-1056: one-directional grammar — every gate-admitted body parses or 
 });
 
 // Documented (NOT asserted-as-fixed) residual the fixture does not pin (spec DONE): a severity-WORDED
-// but off-grammar heading (e.g. `### Critical Issue Found`) fails SEVERITY_HEADING_RE and is skipped as
-// prose — an out-of-scope follow-up (fuzzy-severity), named so a later reader does not misread the green
-// test as closing it. This asserts the current (tolerated-as-prose) behaviour, not a desired end-state.
+// but off-grammar heading (e.g. `### Critical Issue Found`) with a PROSE body fails SEVERITY_HEADING_RE
+// and is skipped as prose — an out-of-scope follow-up (fuzzy-severity), named so a later reader does not
+// misread the green test as closing it. FAFF-1223 closes the finding-shaped variant (same heading with a
+// `- claim:` body faults; see below); only this prose-bodied variant remains. This asserts the current
+// (tolerated-as-prose) behaviour, not a desired end-state.
 test("FAFF-1056 (documented residual, out of scope): a severity-WORDED off-grammar heading is skipped as prose, not gated", () => {
   const body = fixture("### Critical Issue Found\nThe env teardown never runs.", majorSection());
   const r = parseRefutation(body, "infosec");
   assert.equal(r.ok, true);
   assert.equal(r.entry.objections.length, 1, "only the well-formed `### major:` gates; `### Critical Issue Found` is prose");
   assert.equal(r.entry.objections[0].severity, "major");
+});
+
+// ---- FAFF-1223: a finding-shaped severity-less section faults the lens ----
+
+const NEW_REASON = /finding section without a recognised severity/;
+function bearerSection(title = "Logging raw bearer token", extra = "- claim: the token is logged") {
+  return [`### ${title}`, extra].join("\n");
+}
+
+test("FAFF-1223: the canonical clean token beside a finding-shaped severity-less section faults, never clear", () => {
+  const r = parseRefutation(fixture(CANONICAL_NO_FINDINGS, bearerSection()), "infosec");
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.fault, {
+    lens: "infosec",
+    severity: "unknown",
+    title: "Logging raw bearer token",
+    missing_field: null,
+    reason: "finding section without a recognised severity (### <severity>: ...)",
+  });
+  assert.doesNotMatch(r.fault.reason, /no recognised finding section/);
+  assert.doesNotMatch(r.fault.reason, /names no known severity/);
+});
+
+test("FAFF-1223: a severity-less `- claim:` section beside a well-formed `### major:` faults, naming the section", () => {
+  const r = parseRefutation(fixture(bearerSection("Appetite semantics undefined"), majorSection()), "architectural");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, NEW_REASON);
+  assert.equal(r.fault.title, "Appetite semantics undefined");
+});
+
+test("FAFF-1223: a severity-less section with only `- evidence:` (no claim) faults", () => {
+  const r = parseRefutation(fixture(bearerSection("Gap", "- evidence: WHAT"), majorSection()), "QA");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, NEW_REASON);
+});
+
+test("FAFF-1223: any key counts, including an empty `- spec_anchor:`", () => {
+  const r = parseRefutation(fixture(bearerSection("Anchor only", "- spec_anchor:"), majorSection()), "QA");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, NEW_REASON);
+});
+
+test("FAFF-1223: an emphasised `- **claim:**` bullet is finding-shaped", () => {
+  const r = parseRefutation(fixture(bearerSection("Emphasised", "- **claim:** the mapping is asserted"), majorSection()), "QA");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, NEW_REASON);
+});
+
+test("FAFF-1223 (residual pin): an indented `  - claim:` bullet is not finding-shaped, the section is still skipped as prose", () => {
+  const r = parseRefutation(fixture(bearerSection("Indented", "  - claim: indented bullet"), majorSection()), "QA");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections.length, 1);
+});
+
+test("FAFF-1223: a mid-line `claim:` or a `*` bullet is not finding-shaped", () => {
+  const r = parseRefutation(fixture(bearerSection("Mid", "The claim: here is prose.\n* claim: star bullet"), majorSection()), "QA");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections.length, 1);
+});
+
+test("FAFF-1223: with two finding-shaped severity-less sections, the first in document order is named", () => {
+  const r = parseRefutation(fixture(bearerSection("First one"), bearerSection("Second one"), majorSection()), "QA");
+  assert.equal(r.ok, false);
+  assert.equal(r.fault.title, "First one");
+});
+
+test("FAFF-1223: a finding-shaped severity-less section beside a claim-less gating section faults with the new reason (step 4 runs first)", () => {
+  const claimless = ["### major: no claim here", "- evidence: e"].join("\n");
+  const r = parseRefutation(fixture(bearerSection(), claimless), "QA");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, NEW_REASON);
+  assert.equal(r.fault.missing_field, null);
+});
+
+test("FAFF-1223: `### Critical Issue Found` with a `- claim:` body beside a well-formed `### major:` faults", () => {
+  const r = parseRefutation(fixture(bearerSection("Critical Issue Found", "- claim: teardown never runs"), majorSection()), "infosec");
+  assert.equal(r.ok, false);
+  assert.match(r.fault.reason, NEW_REASON);
+  assert.equal(r.fault.title, "Critical Issue Found");
+});
+
+test("FAFF-1223: a leaked prose-only `### Analysis` beside a well-formed `### major:` still parses exactly as before", () => {
+  const r = parseRefutation(fixture(reasoningHeading("Analysis"), majorSection()), "infosec");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections.length, 1);
+  assert.equal(r.entry.objections[0].severity, "major");
+});
+
+test("FAFF-1223 CLI: the mixed body exits 1 with a model-transient record and the new reason on stderr", () => {
+  const input = fixture(bearerSection("Appetite semantics undefined", "- **claim:** the mapping is asserted"), majorSection());
+  const res = spawnSync(process.execPath, [PARSE, "--lens", "architectural"], { input, encoding: "utf8" });
+  assert.equal(res.status, 1);
+  assert.deepEqual(JSON.parse(res.stdout), { lens: "architectural", outcome: "unavailable", kind: "model-transient", objections: [] });
+  assert.match(res.stderr, /reason=finding section without a recognised severity/);
+  assert.match(res.stderr, /Appetite semantics undefined/);
+});
+
+test("FAFF-1223 CLI: the same body WITH --truncated exits 3 with kind infra-configured", () => {
+  const input = fixture(CANONICAL_NO_FINDINGS, bearerSection());
+  const res = spawnSync(process.execPath, [PARSE, "--lens", "infosec", "--truncated"], { input, encoding: "utf8" });
+  assert.equal(res.status, 3);
+  assert.deepEqual(JSON.parse(res.stdout), { lens: "infosec", outcome: "unavailable", kind: "infra-configured", objections: [] });
 });
 
 test("FAFF-1056: a model-transient unavailable lens routes through aggregate.mjs to `unavailable`, never needs-human", () => {

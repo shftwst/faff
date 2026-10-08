@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1223",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f727677ce9baa7bfbe189b51f56704f96d0b3a30ecdb5ea9aea38a0a38b300b9",
+    "branch": "FAFF-1223-refuter-finding-without-severity-fails-the-lens",
+    "pushed_at": "2026-10-08T22:10:37.250Z"
+  },
+  "updated_at": "2026-10-08T22:10:37.250Z"
+}

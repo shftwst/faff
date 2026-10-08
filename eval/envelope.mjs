@@ -56,6 +56,33 @@ function tryEnvelopeJson(text) {
   return env;
 }
 
+const STRAY_FENCE_LINE = /^[ \t]*`{2,3}[ \t]*$/;
+const LABEL_LINE = /^[ \t`]*faff-eval:judgement[ \t`]*$/;
+const CLOSING_FENCE_LINE = /^[ \t]*`{2,}[ \t]*$/;
+
+// Label-anchored recovery: the label must open the output (after at most one stray empty fence line),
+// so untrusted text echoed further down can never supply the judgement.
+function recoverLabelled(raw, expectedCaseId) {
+  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
+  let i = 0;
+  while (i < lines.length && lines[i].trim() === "") i++;
+  if (i < lines.length && STRAY_FENCE_LINE.test(lines[i])) {
+    i++;
+    while (i < lines.length && lines[i].trim() === "") i++;
+  }
+  if (i >= lines.length || !LABEL_LINE.test(lines[i])) return null;
+  const bodyLines = lines.slice(i + 1);
+  const close = bodyLines.findIndex((line) => CLOSING_FENCE_LINE.test(line));
+  const body = (close === -1 ? bodyLines : bodyLines.slice(0, close))
+    .join("\n")
+    .trim()
+    .replace(/`+$/, "")
+    .trim();
+  const env = tryEnvelopeJson(body);
+  if (env && (expectedCaseId == null || env.case_id === expectedCaseId)) return { ...env, format: "noncompliant" };
+  return null;
+}
+
 export function parseJudgementEnvelope(rawText, { expectedCaseId } = {}) {
   const raw = String(rawText ?? "");
 
@@ -74,6 +101,10 @@ export function parseJudgementEnvelope(rawText, { expectedCaseId } = {}) {
   }
   if (recovered) return { ...recovered, format: "noncompliant" };
 
-  // 3. nothing usable.
+  // 3. label-anchored recovery: a misplaced fence label (label on the next line, two-backtick opener).
+  const labelled = recoverLabelled(raw, expectedCaseId);
+  if (labelled) return labelled;
+
+  // 4. nothing usable.
   throw new EnvelopeError("no faff-eval:judgement block (and no fenced JSON object with a case_id) in output");
 }

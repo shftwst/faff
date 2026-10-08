@@ -26,7 +26,7 @@ hold different key material and author different records.
 | Custodian | Holds | Authors (`author` field) | Record kinds |
 |---|---|---|---|
 | Producer | Symmetric `K_producer`, HKDF-derived from the governor's `master_secret` | `producer` | `declare`, `observe`, `effect-decision-request`, each HMAC-authenticated |
-| Governor | Ed25519 `SK_commissaire` and the HMAC `master_secret` | `commissaire` | `admission`, `effect-decision-verdict`, `accepted_under_contract`, each Ed25519-signed |
+| Governor | Ed25519 `SK_commissaire` and the HMAC `master_secret` | `commissaire` | `admission`, `effect-decision-verdict`, [`conformed_to_contract`](../reference/GLOSSARY.md), each Ed25519-signed |
 
 Both authors append to one hash-chained `declared-effects.jsonl`, linked by
 `prev`, so any reordering or tamper is detectable. A party without
@@ -82,7 +82,7 @@ moving sources of truth.
 | act | the reuser's own effect | the capture creates one protected file |
 | observe | `commissaire effect observe --run-dir D --unit-id U --step S` | stdin: `EffectDescriptor[]` |
 | reconcile | `commissaire effect reconcile --run-dir D --unit-id U` | prints escapes to stdout; **not** a ledger record |
-| conclude | `commissaire verdict conclude --run-dir D --unit-id U` | refuses on zero evidence; appends the signed `accepted_under_contract` |
+| conclude | `commissaire verdict conclude --run-dir D --unit-id U` | refuses on zero evidence; appends the signed `conformed_to_contract` record |
 | seal | `commissaire audit seal --run-dir D` | writes the run-close recovery bundle |
 | verify | `commissaire audit verify --run-dir D --json` | secret-free replay from `pk.json` alone |
 

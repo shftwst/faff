@@ -117,7 +117,7 @@ A pass on a live run directory looks like this:
 | `commissaire_decisions` | Ed25519-signed records, split into `verified` / `failed` |
 | `pk_fingerprint` | The Commissaire public-key fingerprint the replay ran against |
 | `ledger_failures` | Chain or structure failures — `[]` on a clean pass |
-| `records` | Per-record classification: `seq`, `author` (`commissaire` / `producer`), `kind_of_entry` (`admission`, `declare`, `effect-decision-request`, `effect-decision-verdict`, `observe`, `accepted_under_contract`), `classification`, and a `reason` |
+| `records` | Per-record classification: `seq`, `author` (`commissaire` / `producer`), `kind_of_entry` (`admission`, `declare`, `effect-decision-request`, `effect-decision-verdict`, `observe`, [`conformed_to_contract`](../reference/GLOSSARY.md); records written before the rename show the former name `accepted_under_contract`), `classification`, and a `reason` |
 
 **Read the counts:**
 

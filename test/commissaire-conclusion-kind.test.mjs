@@ -1,4 +1,4 @@
-// FAFF-1221 — Commissaire's conclude record kind is renamed `accepted_under_contract` ->
+// FAFF-1221: Commissaire's conclude record kind is renamed `accepted_under_contract` ->
 // `conformed_to_contract`.
 //
 // New records carry the current kind; records already written keep the legacy kind and stay

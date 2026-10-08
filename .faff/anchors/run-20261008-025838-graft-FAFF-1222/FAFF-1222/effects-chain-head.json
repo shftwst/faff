@@ -1,8 +1,8 @@
 {
   "run_id": "run-20261008-025838-graft-FAFF-1222",
   "issue": "FAFF-1222",
-  "head_seq": 6,
-  "head_sha256": "04258017d5be06f63c07c202a688319dd0ec9937f258773ee93d52f9a361807b",
-  "line_count": 7,
+  "head_seq": 12,
+  "head_sha256": "7c5a2d9268847ac6ca38515fde7af3c8948b8ba59ceab74276b2ce6d2dfbcdcf",
+  "line_count": 13,
   "schema_floor": 2
 }

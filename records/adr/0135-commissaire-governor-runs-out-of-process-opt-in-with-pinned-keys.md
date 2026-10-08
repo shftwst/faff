@@ -5,7 +5,7 @@
 - **Date:** 2026-10-06
 - **Issue:** FAFF-1109
 
-Ratified by the human on 2026-10-08, FAFF-1109 comment 25072d80.
+Ratified by the human on 2026-10-08 (FAFF-1109 comment 25072d80): accepted as drafted, including every agent proposal, with no amendments.
 
 Drafted by an agent from the FAFF-1109 spike. Each decision is marked with who made it:
 
@@ -471,4 +471,4 @@ flowchart LR
 
 ### Open questions
 
-The four open questions in the first draft were answered in FAFF-1109 comment 236415f8 and are recorded above as human decisions. None remain open. The agent proposals throughout still need the human's acceptance of this ADR.
+The four open questions in the first draft were answered in FAFF-1109 comment 236415f8 and are recorded above as human decisions. None remain open. The human accepted this ADR as drafted on 2026-10-08 (comment 25072d80), so the agent proposals throughout are now binding.

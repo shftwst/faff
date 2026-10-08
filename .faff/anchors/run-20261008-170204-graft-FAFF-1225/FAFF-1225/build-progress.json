@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1225",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4fa46ab8cd062e1d549c276ccc5fdc570be0f781b2310f240dce546b67f7a34a",
+    "branch": "faff-1225-make-commissaires-conclude-verdict-check-that-every",
+    "pushed_at": "2026-10-08T18:15:53.805Z"
+  },
+  "updated_at": "2026-10-08T18:15:53.805Z"
+}

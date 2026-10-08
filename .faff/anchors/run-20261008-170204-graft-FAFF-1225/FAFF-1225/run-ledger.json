@@ -1,0 +1,23 @@
+{
+  "run_id": "run-20261008-170204-graft-FAFF-1225",
+  "level": "L2",
+  "admitted": [
+    "FAFF-1225"
+  ],
+  "outcomes": {},
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop"
+    }
+  },
+  "base_sha": "ec676cfc468de9d7ca140cb0c08ec3b8ef1b196d",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261008-170204-graft-FAFF-1225",
+    "pid": 17286,
+    "started_at": "2026-10-08T17:02:04.206Z",
+    "last_heartbeat": "2026-10-08T17:02:04.206Z"
+  }
+}

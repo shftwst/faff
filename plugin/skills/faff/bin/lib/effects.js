@@ -67,6 +67,13 @@ const EFFECT_KINDS = new Set([
   "label-write", "tracker-write", "file-write", "pr-create", "push", "other",
 ]);
 
+// FAFF-1225: the protected-effect kinds — an observed effect of one of these needs a signed
+// Commissaire grant to conclude cleanly. One home both the chokepoints and `verdict conclude`
+// can consult, so the two enforcement points never drift. Exactly the kinds the runner governs
+// today; every other EFFECT_KIND (tracker-write, label-write, push, …) is unaffected.
+const PROTECTED_EFFECT_KINDS = new Set(["merge", "branch-delete", "pr-create"]);
+function isProtectedKind(kind) { return PROTECTED_EFFECT_KINDS.has(kind); }
+
 // Pure validator for one EffectDescriptor — returns violation strings (empty == valid).
 // Unknown kind / missing-or-empty target / non-boolean reversible are the invalid cases.
 function effectDescriptorViolations(d) {
@@ -894,4 +901,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, effectDescriptorViolations, effectTargetMatches, effectsSelftest, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };

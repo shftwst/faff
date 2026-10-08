@@ -56,6 +56,7 @@
 
 import type { ProducerAuthApi } from "./producer-auth";
 import type { ProducerId, ContractRevisionId } from "./ids";
+import type { GovernedRecord, AdmissionRecord } from "./decision-policy";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -71,8 +72,9 @@ const {
   producerAuthSelftest,
 } = producerAuth;
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
-const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys, conclusionKindOf, isProtectedKind, CONCLUSION_KIND } = require("./effects");
-const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp } = require("./shared-infra");
+const { effectDescriptorViolations, normEffect, computeEscapes, matchesUnit, conclusionKindOf, isProtectedKind, CONCLUSION_KIND } = require("./effects");
+const { evaluateDecisionRequest, evaluateLevelPolicy, composeDecision, chokepointPermit, grantCoverage } = require("./decision-policy");
+const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp, ensureOwnerOnlyDir, writeOwnerOnlyJson } = require("./shared-infra");
 // FAFF-1140 — the run-start `admit-required` read resolves `unattended` from the SAME shared abort-axis
 // resolver the sentry-poller uses (never a second definition), and the governance config the same way
 // the poller does. Both requires stay within the standalone-independence guard (sentry.js and budget.js
@@ -92,8 +94,6 @@ const { buildBundle, localBundleStore, requiredMembersFor } = require("./bundle-
 // Every field is read back through the `str`/`num`/isRecord narrowers below, never a cast — the
 // auth-relevant producer_id/contract_revision come back as plain `string` (never re-branded on the
 // ledger-read path).
-type GovernedRecord = { [k: string]: unknown };
-type AdmissionRecord = { [k: string]: unknown };
 type CommissaireFlags = { [k: string]: string | boolean | undefined };
 
 function isRecord(v: unknown): v is { [k: string]: unknown } {
@@ -144,35 +144,6 @@ function readChokepointKeyRecord(runDir: string, producerDir?: string): { ok: tr
 }
 const writeJson = (p: string, obj: unknown): void => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(obj, null, 2) + "\n"); };
 
-// FAFF-1195: key material (SK, HMAC master, producer key) is owner-only. Only the key directory
-// itself is created 0700; its ancestors keep the default mode, and a directory that already
-// exists is never chmod-ed, so existing run directories stay byte-for-byte untouched.
-function ensureOwnerOnlyDir(dir: string): void {
-  if (fs.existsSync(dir)) return;
-  fs.mkdirSync(path.dirname(dir), { recursive: true });
-  try {
-    fs.mkdirSync(dir, { mode: 0o700 });
-  } catch (e) {
-    if (!(e instanceof Error && "code" in e && e.code === "EEXIST")) throw e;
-  }
-}
-
-// The target only ever names an inode created 0600: an exclusive temp file is written, then
-// renamed over the target, so a --force rotation over a pre-existing 0644 file still lands 0600.
-function writeOwnerOnlyJson(target: string, value: unknown): void {
-  const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${require("node:crypto").randomBytes(6).toString("hex")}.tmp`);
-  let fd: number | null = fs.openSync(tmp, "wx", 0o600);
-  try {
-    fs.writeFileSync(fd, JSON.stringify(value, null, 2) + "\n");
-    fs.closeSync(fd);
-    fd = null;
-    fs.renameSync(tmp, target);
-  } catch (e) {
-    if (fd !== null) { try { fs.closeSync(fd); } catch { /* the original error wins */ } }
-    try { fs.unlinkSync(tmp); } catch { /* the original error wins */ }
-    throw e;
-  }
-}
 const readLedgerEntries = (runDir: string): GovernedRecord[] => {
   const p = path.join(runDir, LEDGER_CFG.ledgerFile);
   if (!fs.existsSync(p)) return [];
@@ -249,147 +220,6 @@ function appendCommissaireRecord(runDir: string, sk: unknown, producerId: unknow
     return rec;
   });
   return written === null ? null : written[0];
-}
-
-// --- Pure core: evaluate a protected-effect decision request (verb 3) --------------------
-
-// Given the admission record, the producer's (already-built, HMAC'd) request record, the
-// master-derived key, and the ledger entries so far, decide grant/deny with the first failing
-// leg's reason. PURE — no I/O. This is the born-verifiable heart of verb 3.
-function evaluateDecisionRequest(admission: AdmissionRecord | null, requestRecord: GovernedRecord | null, key: Buffer, ledgerEntries: GovernedRecord[]): { verdict: string; reason: string } {
-  // Leg 1 — admitted?
-  if (!admission || admission.status === "revoked") return { verdict: "deny", reason: "producer-not-admitted" };
-  // Assurance floor (step 6) — a weaker-class record (a J-D self-declaration, an E-C observation)
-  // MUST NOT stand in for an E-B grant request. Only a genuine effect-decision-request qualifies.
-  if (!requestRecord || requestRecord.kind_of_entry !== "effect-decision-request") {
-    return { verdict: "deny", reason: "assurance-floor" };
-  }
-  // Leg 2 — the producer's request authenticates under its own key.
-  if (!verifyRecord(requestRecord, key)) return { verdict: "deny", reason: "producer-auth-failed" };
-  // Unit identity (FAFF-1167) — the request must resolve to exactly one work unit, and no record in
-  // the snapshot may carry both unit keys (an unattributable record could belong to this unit).
-  const unit = unitIdOf(requestRecord);
-  if (unit === null || ledgerEntries.some(carriesBothUnitKeys)) return { verdict: "deny", reason: "invalid-unit-key" };
-  const payload = isRecord(requestRecord.payload) ? requestRecord.payload : undefined;
-  const effect = payload ? payload.effect : undefined;
-  const effectKind = isRecord(effect) ? str(effect.kind) : undefined;
-  const effectTarget = isRecord(effect) ? effect.target : undefined;
-  // Leg 4 — descriptor validity (run before scope so a malformed kind is named precisely).
-  const viol = effectDescriptorViolations(effect);
-  if (viol.length) return { verdict: "deny", reason: "invalid-effect-descriptor" };
-  // Leg 3 — scope.
-  const scope = Array.isArray(admission.admitted_scope) ? admission.admitted_scope : [];
-  if (effectKind === undefined || !scope.includes(effectKind)) return { verdict: "deny", reason: "effect-out-of-scope" };
-  // Leg 5a — freshness: a request resting on evidence older than the latest observation for
-  // (unit, step) is stale.
-  const step = requestRecord.step;
-  let latestObserveSeq = -1;
-  for (const e of ledgerEntries) {
-    const eSeq = num(e.seq);
-    if (e.kind_of_entry === "observe" && matchesUnit(e, unit) && e.step === step && eSeq !== undefined && Number.isInteger(eSeq)) {
-      latestObserveSeq = Math.max(latestObserveSeq, eSeq);
-    }
-  }
-  const evidenceSeq = payload ? num(payload.evidence_seq) : undefined;
-  if (evidenceSeq !== undefined && Number.isInteger(evidenceSeq) && latestObserveSeq >= 0 && evidenceSeq < latestObserveSeq) {
-    return { verdict: "deny", reason: "stale-evidence" };
-  }
-  // Leg 5b — coverage: the granted effect must be declared or wildcard-covered for (unit, step).
-  const covered = ledgerEntries.some((e) => {
-    if (!(e.kind_of_entry === "declare" && matchesUnit(e, unit) && e.step === step && isRecord(e.effect))) return false;
-    return e.effect.kind === effectKind && effectTargetMatches(e.effect.target, effectTarget);
-  });
-  if (!covered) return { verdict: "deny", reason: "effect-not-declared" };
-  // Every leg passes → grant.
-  return { verdict: "grant", reason: "all-legs-pass" };
-}
-
-// --- Pure composable leg: the per-level authorization policy (FAFF-1034) ------------------
-
-// PURE. Composed ABOVE evaluateDecisionRequest (never inside it): the born-verifiable pure core
-// stays effect-integrity-only, and this level-keyed leg gates the authorize verdict beside it, the
-// same way decideFloor keys its holdout leg on level without forking the pure core. The inputs
-// (level, attended, holdout) are recorded in the request/verdict payload so a deny whose pure legs
-// pass is replayable by a secret-free `audit verify` reviewer.
-//   L1 / L2 — pass iff the run is attended (human presence authorizes the merge)
-//   L3      — pass (the base floor governs; no extra authority required)
-//   L4      — pass iff the holdout verdict is "meets-spec"
-// An ABSENT level → pass (back-compat: an unsupplied level never newly denies).
-function evaluateLevelPolicy(opts: { level?: unknown; attended?: unknown; holdout?: unknown } = {}): { pass: boolean; reason: string } {
-  const { level, attended, holdout } = opts;
-  if (level == null) return { pass: true, reason: "no-level" };
-  if (level === "L1" || level === "L2") {
-    return attended ? { pass: true, reason: "attended" } : { pass: false, reason: "level-requires-attendance" };
-  }
-  if (level === "L3") return { pass: true, reason: "base-floor-governs" };
-  if (level === "L4") {
-    return holdout === "meets-spec"
-      ? { pass: true, reason: "holdout-meets-spec" }
-      : { pass: false, reason: "level-requires-holdout-meets-spec" };
-  }
-  return { pass: true, reason: "unknown-level-no-policy" };
-}
-
-// --- Pure core: chokepoint_permit -------------------------------------------------------
-
-// Where prevention happens (e.g. merge-gate). Holds only PK. Verifies a signed decision covers
-// the effect before permitting it. Returns { permit, reason }. A producer-authored or unverified
-// or wrong-fingerprint or non-grant or non-covering decision is REFUSED.
-function chokepointPermit(effect: { kind?: unknown; target?: unknown }, verdictRecord: GovernedRecord | null, pk: unknown, pinnedFingerprint?: string): { permit: boolean; reason: string } {
-  if (!verdictRecord || verdictRecord.author !== "commissaire") return { permit: false, reason: "not-a-commissaire-decision" };
-  if (!verifyDecision(verdictRecord, pk)) return { permit: false, reason: "decision-signature-invalid" };
-  // Fingerprint pin: the verdict carries no fingerprint of its own; the pin lives on the held PK.
-  if (pinnedFingerprint != null) {
-    let fp: string;
-    try { fp = pkFingerprint(pk); } catch { return { permit: false, reason: "pk-unreadable" }; }
-    if (fp !== pinnedFingerprint) return { permit: false, reason: "pk-fingerprint-mismatch" };
-  }
-  const p = isRecord(verdictRecord.payload) ? verdictRecord.payload : {};
-  if (p.verdict !== "grant") return { permit: false, reason: "decision-not-a-grant" };
-  const granted = p.effect;
-  const grantedKind = isRecord(granted) ? granted.kind : undefined;
-  const grantedTarget = isRecord(granted) ? granted.target : undefined;
-  if (!granted || grantedKind !== effect.kind || !effectTargetMatches(grantedTarget, effect.target)) {
-    return { permit: false, reason: "grant-does-not-cover-effect" };
-  }
-  return { permit: true, reason: "valid-grant" };
-}
-
-// --- Pure core: grant_coverage (FAFF-1225) ----------------------------------------------
-
-// Every observed protected effect for the unit must have a signed covering grant appended
-// EARLIER in the chain (grant.seq < observe.seq). Coverage is decided by reusing chokepointPermit
-// — the one signed-grant verifier — never a second signature/fingerprint/coverage check. The
-// grant filter mirrors merge-gate's resolveGrantByEffectKind. sub_reason is best-effort detail;
-// the top-level refusal reason is the same regardless of which explanation applies.
-type UncoveredEffect = { effect: unknown; seq: unknown; sub_reason: "no-grant" | "denied" | "descriptor-mismatch" | "grant-after-effect" };
-
-function classifyUncovered(observeSeq: number, observedEffect: { [k: string]: unknown }, grants: GovernedRecord[]): UncoveredEffect["sub_reason"] {
-  const payloadOf = (g: GovernedRecord) => (isRecord(g.payload) ? g.payload : {});
-  const grantedEffect = (g: GovernedRecord) => { const e = payloadOf(g).effect; return isRecord(e) ? e : {}; };
-  const sameKind = grants.filter((g) => grantedEffect(g).kind === observedEffect.kind);
-  if (sameKind.length === 0) return "no-grant";
-  const earlier = (g: GovernedRecord) => (num(g.seq) ?? Infinity) < observeSeq;
-  if (sameKind.some((g) => earlier(g) && payloadOf(g).verdict === "deny")) return "denied";
-  if (sameKind.some((g) => earlier(g) && payloadOf(g).verdict === "grant" && !effectTargetMatches(grantedEffect(g).target, observedEffect.target))) return "descriptor-mismatch";
-  if (sameKind.some((g) => (num(g.seq) ?? -Infinity) >= observeSeq && payloadOf(g).verdict === "grant")) return "grant-after-effect";
-  return "no-grant";
-}
-
-function grantCoverage(ledger: GovernedRecord[], unit: string, govPk: unknown, pinnedFingerprint?: string): { covered: boolean; uncovered: UncoveredEffect[] } {
-  const grants = ledger
-    .filter((e) => e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" && matchesUnit(e, unit))
-    .sort((a, b) => (num(a.seq) ?? 0) - (num(b.seq) ?? 0));
-  const observed = ledger.filter((e) => e.kind_of_entry === "observe" && matchesUnit(e, unit) && isRecord(e.effect) && isProtectedKind(e.effect.kind));
-  const uncovered: UncoveredEffect[] = [];
-  for (const o of observed) {
-    const oSeq = num(o.seq) ?? Infinity;
-    const effect = isRecord(o.effect) ? o.effect : {};
-    const candidates = grants.filter((g) => (num(g.seq) ?? Infinity) < oSeq);
-    if (candidates.some((c) => chokepointPermit(effect, c, govPk, pinnedFingerprint).permit)) continue;
-    uncovered.push({ effect: o.effect, seq: o.seq, sub_reason: classifyUncovered(oSeq, effect, grants) });
-  }
-  return { covered: uncovered.length === 0, uncovered };
 }
 
 // --- Auth leg (consumed by governance-check.js, factory→governance is legal) --------------
@@ -615,13 +445,15 @@ function usage(): void {
     "  audit export      --run-dir DIR --dest DIR [--root R] [--bundle-store local]   (copy an already-sealed bundle's manifest + members to DIR)\n" +
     "  (--issue is accepted as a deprecated alias of --unit-id for one release; passing both is a usage error)\n" +
     "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n" +
-    "  audit anchor      --run-dir DIR --unit-id U [--dest DIR] [--root R]   (mint ONE per-unit anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n");
+    "  audit anchor      --run-dir DIR --unit-id U [--dest DIR] [--root R]   (mint ONE per-unit anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n" +
+    "  governor start    [--key-dir D] [--socket P] [--listen HOST:PORT]   (run the out-of-process governor; the only holder of the signing key)\n" +
+    "  governor rotate   [--key-dir D]   (mint a new signing keypair, keep the root secret, archive the prior fingerprint)\n");
 }
 
 function parseCommissaireArgs(args: string[]): { flags: CommissaireFlags; rest: string[] } {
   const flags: CommissaireFlags = {};
   const rest: string[] = [];
-  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level"]);
+  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level", "--key-dir", "--socket", "--listen"]);
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === undefined) continue;
@@ -845,9 +677,7 @@ function cmdRequestDecision(flags: CommissaireFlags): number {
   // the first failing reason (the pure legs are named first, then the level policy). The policy
   // result AND its inputs are recorded in the verdict payload beside the pure reason for replay.
   const levelPolicy = evaluateLevelPolicy({ level, attended, holdout });
-  const composed = decision.verdict === "grant" && levelPolicy.pass
-    ? { verdict: "grant", reason: decision.reason }
-    : { verdict: "deny", reason: decision.verdict !== "grant" ? decision.reason : levelPolicy.reason };
+  const composed = composeDecision(decision, levelPolicy);
   // The pure-verdict/level-policy metadata is recorded only when a level was actually supplied, so a
   // no-level (ungoverned-style) authorize writes a verdict record byte-identical to today; undefined
   // level/attended/holdout drop out of both the JSON line and the signature image regardless.
@@ -1088,7 +918,7 @@ function cmdAuditExport(flags: CommissaireFlags): number {
 // verb → canonical-key alias map (an alias is a second spelling, never a second implementation).
 
 // First-token object namespaces.
-const OBJECT_TOKENS = new Set(["contract", "effect", "verdict", "audit"]);
+const OBJECT_TOKENS = new Set(["contract", "effect", "verdict", "audit", "governor"]);
 
 // Canonical key (object-verb string) → the single handler invocation. `audit verify` is FAFF-977's
 // handler, wired in here so the unified resolver keeps it working; its body is untouched.
@@ -1105,6 +935,8 @@ const COMMISSAIRE_DISPATCH: { [k: string]: (flags: CommissaireFlags) => number }
   "audit export": (flags) => cmdAuditExport(flags), // FAFF-1000
   "audit verify": (flags) => cmdAuditVerify(flags), // FAFF-977, retained (not this ticket's key)
   "audit anchor": (flags) => cmdAuditAnchor(flags), // FAFF-1015
+  "governor start": (flags) => require("./governor").governorStart(flags), // FAFF-1177
+  "governor rotate": (flags) => require("./governor").governorRotate(flags), // FAFF-1177
 };
 
 // Flat verb (FAFF-828 spelling) → canonical key. An alias never appears as a COMMISSAIRE_DISPATCH
@@ -1136,6 +968,8 @@ const REQUIRED_FLAGS_BY_CANONICAL: { [k: string]: string[] } = {
   "audit export": ["--dest"], // FAFF-1000
   "audit verify": ["--run-dir"], // FAFF-977, retained
   "audit anchor": ["--run-dir", "--unit-id"], // FAFF-1015
+  "governor start": [], // FAFF-1177
+  "governor rotate": [], // FAFF-1177
 };
 
 // Resolve one or two leading non-flag tokens to a canonical COMMISSAIRE_DISPATCH key, or null.
@@ -1187,6 +1021,7 @@ const COMMISSAIRE_SPEC = { flags: {
   "--scope": { arity: 1 }, "--unit-id": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--governor-dir": { arity: 1 },
   "--producer-dir": { arity: 1 }, "--ts": { arity: 1 },
   "--root": { arity: 1 }, "--dest": { arity: 1 }, "--bundle-store": { arity: 1 }, // FAFF-1000 (audit seal/export)
+  "--key-dir": { arity: 1 }, "--socket": { arity: 1 }, "--listen": { arity: 1 }, // FAFF-1177 (governor start/rotate)
   "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
 } };
 // Derive the declared surface from the single source (REQUIRED_FLAGS_BY_CANONICAL +
@@ -1220,6 +1055,7 @@ function commissaireSelftest(): number {
   const fail = (m: string): void => { process.stderr.write(`commissaire selftest FAIL: ${m}\n`); failed++; };
 
   if (producerAuthSelftest() !== 0) fail("producer-auth cores");
+  if (require("./governor").governorSelftest() !== 0) fail("governor");
 
   // --- pure evaluateDecisionRequest legs ---
   const admission = { status: "admitted", admitted_scope: ["merge"], contract_revision: "r1" };
@@ -1425,7 +1261,7 @@ module.exports = {
   KIND_AUTHOR, DECISION_VERDICTS, LEDGER_CFG, COMMISSAIRE_SPEC, COMMISSAIRE_SURFACE,
   OBJECT_TOKENS, COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, resolveCommissaireKey,
   buildEnvelope, appendProducerRecords, appendCommissaireRecord,
-  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, hasGovernanceContext,
+  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, grantCoverage, verifyAuthLeg, hasGovernanceContext,
   readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf, readChokepointKeyRecord,
   ensureOwnerOnlyDir, writeOwnerOnlyJson,
   cmdCommissaire, commissaireSelftest,

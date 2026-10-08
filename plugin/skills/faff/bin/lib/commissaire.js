@@ -65,7 +65,7 @@ const { spawnSync } = require("node:child_process");
 const producerAuth = require("./producer-auth");
 const { deriveKey, signRecord, verifyRecord, mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, producerAuthSelftest, } = producerAuth;
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
-const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys } = require("./effects");
+const { effectDescriptorViolations, normEffect, effectTargetMatches, computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys, conclusionKindOf, CONCLUSION_KIND } = require("./effects");
 const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp } = require("./shared-infra");
 // FAFF-1140 — the run-start `admit-required` read resolves `unattended` from the SAME shared abort-axis
 // resolver the sentry-poller uses (never a second definition), and the governance config the same way
@@ -92,7 +92,7 @@ const KIND_AUTHOR = {
     "effect-decision-request": "producer",
     "effect-decision-verdict": "commissaire",
     reconcile: "producer",
-    accepted_under_contract: "commissaire",
+    conformed_to_contract: "commissaire",
 };
 const DECISION_VERDICTS = new Set(["grant", "deny"]);
 // The declared-effects ledger the schema:3 records chain into — SAME file + lock as the
@@ -372,6 +372,30 @@ function chokepointPermit(effect, verdictRecord, pk, pinnedFingerprint) {
     return { permit: true, reason: "valid-grant" };
 }
 // --- Auth leg (consumed by governance-check.js, factory→governance is legal) --------------
+// The Commissaire public key a run dir's records verify under, and whether the producer-dir
+// pk.json disagrees with the governor's fingerprint. Shared by the auth leg and `verdict conclude`.
+function commissairePublicKey(runDir, governorDir, producerDir, gov = readGovernorRecord(runDir, governorDir)) {
+    const pkRec = parseGovernedRecord(readJson(pkFileOf(producerDirOf(runDir, producerDir))));
+    // FAFF-978: the governor file is the AUTHORITATIVE source of PK_commissaire — prefer it. The
+    // producer-dir pk.json is producer-writable (the less-trusted custodian), so it must never be
+    // the source of truth for verifying Commissaire signatures; a producer could otherwise swap it
+    // for their own key and self-sign a "commissaire" verdict. Fall back to it only when no governor
+    // material is present (a pure-audit context reading a published PK). When BOTH exist, cross-check
+    // the producer-dir fingerprint against the governor's and fail closed on a mismatch (tamper signal).
+    const pk = gov ? gov.pk : (pkRec ? pkRec.pk : null);
+    let fingerprintTampered = false;
+    if (gov && pkRec) {
+        let fp = null;
+        try {
+            fp = pkFingerprint(pkRec.pk);
+        }
+        catch {
+            fp = null;
+        }
+        fingerprintTampered = fp !== gov.pk_fingerprint;
+    }
+    return { pk, fingerprintTampered };
+}
 // Re-authenticate every schema:3 record in a run dir's ledger: producer records verify under
 // the master-re-derived key AND their producer must be admitted (non-revoked); commissaire
 // records verify under PK. Records at schema < 3 are skipped (frozen pre-cutover history —
@@ -386,27 +410,11 @@ function chokepointPermit(effect, verdictRecord, pk, pinnedFingerprint) {
 function verifyAuthLeg(runDir, governorDir, producerDir) {
     const entries = readLedgerEntries(runDir);
     const gov = readGovernorRecord(runDir, governorDir);
-    const pkRec = parseGovernedRecord(readJson(pkFileOf(producerDirOf(runDir, producerDir))));
-    // FAFF-978: the governor file is the AUTHORITATIVE source of PK_commissaire — prefer it. The
-    // producer-dir pk.json is producer-writable (the less-trusted custodian), so it must never be
-    // the source of truth for verifying Commissaire signatures; a producer could otherwise swap it
-    // for their own key and self-sign a "commissaire" verdict. Fall back to it only when no governor
-    // material is present (a pure-audit context reading a published PK). When BOTH exist, cross-check
-    // the producer-dir fingerprint against the governor's and fail closed on a mismatch (tamper signal).
-    const pk = gov ? gov.pk : (pkRec ? pkRec.pk : null);
+    const { pk, fingerprintTampered } = commissairePublicKey(runDir, governorDir, producerDir, gov);
     const failures = [];
     const unverifiable = [];
-    if (gov && pkRec) {
-        let fp = null;
-        try {
-            fp = pkFingerprint(pkRec.pk);
-        }
-        catch {
-            fp = null;
-        }
-        if (fp !== gov.pk_fingerprint)
-            failures.push({ seq: null, reason: "pk-fingerprint-tampered" });
-    }
+    if (fingerprintTampered)
+        failures.push({ seq: null, reason: "pk-fingerprint-tampered" });
     for (const e of entries) {
         if (e.schema !== 3)
             continue; // frozen pre-cutover line — never re-authenticated
@@ -610,7 +618,9 @@ function usage() {
         "  effect authorize  --run-dir DIR --producer ID --unit-id U --step S [--level L]   (stdin: {effect, evidence_seq?, level?, attended?, holdout?})   (alias: request-decision)\n" +
         "  effect observe    --run-dir DIR --producer ID --unit-id U --step S   (stdin: EffectDescriptor[])   (alias: observe)\n" +
         "  effect reconcile  --run-dir DIR --unit-id U   (alias: reconcile)\n" +
-        "  verdict conclude  --run-dir DIR --unit-id U [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed accepted_under_contract record, or a refusal; alias: terminal-verdict)\n" +
+        "  verdict conclude  --run-dir DIR --unit-id U [--producer ID] [--governor-dir D] [--producer-dir D] [--ts T]   (append the signed conformed_to_contract record, or a refusal; alias: terminal-verdict)\n" +
+        "      conformed_to_contract: the run kept to its contract; every protected effect it observed was declared, with no escapes. It does not mean the work was accepted.\n" +
+        "      kind_of_entry reports the name stored in the ledger; verdict reports the current name.\n" +
         "  audit seal        --run-dir DIR [--root R] [--bundle-store local]   (build + write the run-close recovery bundle in-process; alias: seal-bundle)\n" +
         "  audit export      --run-dir DIR --dest DIR [--root R] [--bundle-store local]   (copy an already-sealed bundle's manifest + members to DIR)\n" +
         "  (--issue is accepted as a deprecated alias of --unit-id for one release; passing both is a usage error)\n" +
@@ -956,7 +966,7 @@ function refuseVerdict(reason, unit, detail) {
 // `verdict conclude` — the record only Commissaire may issue (V5 master doc). Validate the run dir
 // and governor, resolve which producer's contract this concludes, check the three preconditions the
 // issue names against the EXISTING ledger (producer admitted, no unreconciled escape, evidence
-// present), and — only if all three pass — append one signed schema:3 `accepted_under_contract`
+// present), and — only if all three pass — append one signed schema:3 `conformed_to_contract`
 // record. Idempotent: a repeat call for an already-concluded issue returns the existing seq.
 function cmdTerminalVerdict(flags) {
     const runDir = requireRunDir(flags, "verdict conclude");
@@ -971,10 +981,13 @@ function cmdTerminalVerdict(flags) {
     const entries = ledger.filter((e) => matchesUnit(e, issue));
     if (entries.length === 0)
         return refuseVerdict("no-evidence", issue);
-    // Idempotent re-conclude: a prior `accepted_under_contract` for this issue is returned, never doubled.
-    const existing = entries.find((e) => e.kind_of_entry === "accepted_under_contract");
+    // Idempotent re-conclude: a prior authenticated conclusion (current or legacy kind) for this issue is
+    // returned, never doubled. The key is the governor's whenever governor material exists, so a
+    // tampered producer-dir pk.json never decides; audit verify still reports the tamper.
+    const { pk: concludedKey } = commissairePublicKey(runDir, strFlag(flags, "--governor-dir"), strFlag(flags, "--producer-dir"));
+    const existing = entries.find((e) => conclusionKindOf(e) !== null && e.author === "commissaire" && concludedKey != null && verifyDecision(e, concludedKey));
     if (existing) {
-        console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, unit_id: issue, idempotent: true, seq: existing.seq }));
+        console.log(JSON.stringify({ verdict: CONCLUSION_KIND, kind_of_entry: conclusionKindOf(existing), issue, unit_id: issue, idempotent: true, seq: existing.seq }));
         return 0;
     }
     const producerIds = [...new Set(entries.map((e) => str(e.producer_id)).filter((x) => x != null && x !== "-"))];
@@ -1030,14 +1043,14 @@ function cmdTerminalVerdict(flags) {
     const concludedRevision = (revs.length === 1 && firstRev !== undefined) ? firstRev : str(admission.contract_revision);
     const seqs = entries.map((e) => num(e.seq)).filter((s) => s !== undefined && Number.isInteger(s));
     const body = {
-        kind_of_entry: "accepted_under_contract", unit_id: issue, step: "conclude",
+        kind_of_entry: CONCLUSION_KIND, unit_id: issue, step: "conclude",
         payload: {
             producer_id: producerId, contract_revision: concludedRevision,
             evidence_seq_range: [Math.min(...seqs), Math.max(...seqs)], escapes_checked: true,
         },
     };
     const record = appendCommissaireRecord(runDir, gov.sk, producerId, concludedRevision, body, strFlag(flags, "--ts"));
-    console.log(JSON.stringify({ verdict: "accepted_under_contract", issue, unit_id: issue, producer_id: producerId, seq: record.seq }));
+    console.log(JSON.stringify({ verdict: CONCLUSION_KIND, kind_of_entry: CONCLUSION_KIND, issue, unit_id: issue, producer_id: producerId, seq: record.seq }));
     return 0;
 }
 // The facade reaches only the LOCAL BundleStore occupant in-process. The git-remote occupant lives

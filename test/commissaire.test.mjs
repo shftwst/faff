@@ -24,7 +24,7 @@ import {
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant } from "../plugin/skills/faff/bin/lib/merge-gate.js";
 import { mintGovernorKeypair as _mintKp } from "../plugin/skills/faff/bin/lib/producer-auth.js";
-import { appendEffectEntries, computeEscapes } from "../plugin/skills/faff/bin/lib/effects.js";
+import { appendEffectEntries, computeEscapes, conclusionKindOf, CONCLUSION_KIND } from "../plugin/skills/faff/bin/lib/effects.js";
 import { verifyEffectsChain, mintIssueAnchor } from "../plugin/skills/faff/bin/lib/events.js";
 import { decideFloor } from "../plugin/skills/faff/bin/lib/contract-defs.js";
 import { buildBundle } from "../plugin/skills/faff/bin/lib/bundle-seal-core.js";
@@ -573,7 +573,7 @@ function mintRunCloseAnchor(root, runDir, runId) {
   writeFileSync(join(anchorRoot, "summary.md"), "# run\n");
 }
 
-test("FAFF-1000 verdict conclude: a clean covered run appends one signed accepted_under_contract record; audit verify classifies it verified", () => {
+test("FAFF-1000 verdict conclude: a clean covered run appends one signed conformed_to_contract record; audit verify classifies it verified", () => {
   const { root, runDir, ledger } = mkRun("com-vc-ok-");
   try {
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
@@ -584,20 +584,22 @@ test("FAFF-1000 verdict conclude: a clean covered run appends one signed accepte
     const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0);
     const out = JSON.parse(vc.stdout.trim());
-    assert.equal(out.verdict, "accepted_under_contract");
+    assert.equal(out.verdict, CONCLUSION_KIND);
+    assert.equal(out.kind_of_entry, CONCLUSION_KIND);
     assert.equal(out.producer_id, "P1");
 
-    const accepted = records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract");
-    assert.equal(accepted.length, 1, "exactly one accepted_under_contract record");
-    assert.equal(accepted[0].author, "commissaire");
-    assert.equal(accepted[0].schema, 3);
-    assert.equal(accepted[0].step, "conclude");
-    assert.equal(accepted[0].payload.escapes_checked, true);
-    assert.ok(accepted[0].commissaire_sig, "the record is signed under the governor SK");
+    const concluded = records(ledger).filter((r) => conclusionKindOf(r) !== null);
+    assert.equal(concluded[0].kind_of_entry, CONCLUSION_KIND, "the stored kind is the current name");
+    assert.equal(concluded.length, 1, "exactly one conformed_to_contract record");
+    assert.equal(concluded[0].author, "commissaire");
+    assert.equal(concluded[0].schema, 3);
+    assert.equal(concluded[0].step, "conclude");
+    assert.equal(concluded[0].payload.escapes_checked, true);
+    assert.ok(concluded[0].commissaire_sig, "the record is signed under the governor SK");
 
     const av = JSON.parse(runCom(["audit", "verify", "--run-dir", runDir]).stdout.trim());
     assert.equal(av.result, "pass");
-    const rec = av.records.find((x) => x.kind_of_entry === "accepted_under_contract");
+    const rec = av.records.find((x) => x.kind_of_entry === CONCLUSION_KIND);
     assert.equal(rec.classification, "verified", "audit verify classifies the terminal record verified");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -615,7 +617,7 @@ test("FAFF-1000 verdict conclude: an unreconciled escape refuses (exit 0) and wr
     assert.equal(out.verdict, "refused");
     assert.equal(out.reason, "unreconciled-escape");
     assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
-    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -637,7 +639,7 @@ test("FAFF-1000 verdict conclude: no-evidence on a bare issue; ambiguous-produce
     // naming an unknown producer is a producer-not-admitted refusal (still exit 0, still no write)
     const named = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1", "--producer", "P2"]).stdout.trim());
     assert.equal(named.reason, "producer-not-admitted");
-    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0, "no refusal wrote a terminal record");
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 0, "no refusal wrote a terminal record");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -647,12 +649,12 @@ test("FAFF-1000 verdict conclude: a second call for an already-concluded issue r
     runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]);
     runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }]));
     const first = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]).stdout.trim());
-    assert.equal(first.verdict, "accepted_under_contract");
+    assert.equal(first.verdict, CONCLUSION_KIND);
     const second = JSON.parse(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]).stdout.trim());
-    assert.equal(second.verdict, "accepted_under_contract");
+    assert.equal(second.verdict, CONCLUSION_KIND);
     assert.equal(second.idempotent, true);
     assert.equal(second.seq, first.seq, "the idempotent re-conclude returns the existing record's seq");
-    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 1, "no second accepted_under_contract record");
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 1, "no second conformed_to_contract record");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -672,7 +674,7 @@ test("FAFF-1008 verdict conclude: a named producer with zero ledger entries refu
     assert.equal(out.reason, "no-evidence");
     assert.equal(out.producer_id, "GHOST");
     assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
-    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -696,19 +698,19 @@ test("FAFF-1008 verdict conclude: labels the terminal record from the ledger, no
 
     const vc = runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]);
     assert.equal(vc.code, 0, `conclude failed: ${vc.stderr}`);
-    assert.equal(JSON.parse(vc.stdout.trim()).verdict, "accepted_under_contract");
+    assert.equal(JSON.parse(vc.stdout.trim()).verdict, CONCLUSION_KIND);
 
-    const accepted = records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract");
-    assert.equal(accepted.length, 1);
-    assert.equal(accepted[0].payload.contract_revision, "r1", "payload.contract_revision is the ledger value, not the re-admitted r2");
-    assert.equal(accepted[0].contract_revision, "r1", "the record envelope's contract_revision is the ledger value too");
+    const concluded = records(ledger).filter((r) => conclusionKindOf(r) !== null);
+    assert.equal(concluded.length, 1);
+    assert.equal(concluded[0].payload.contract_revision, "r1", "payload.contract_revision is the ledger value, not the re-admitted r2");
+    assert.equal(concluded[0].contract_revision, "r1", "the record envelope's contract_revision is the ledger value too");
 
     // The whole run re-authenticates (exit 0) because no key was rotated, so "verified" here is not
     // a partial/false-confidence claim about only the terminal record.
     const avRun = runCom(["audit", "verify", "--run-dir", runDir]);
     assert.equal(avRun.code, 0, "the whole run re-authenticates at audit (no key rotation)");
     const av = JSON.parse(avRun.stdout.trim());
-    const rec = av.records.find((x) => x.kind_of_entry === "accepted_under_contract");
+    const rec = av.records.find((x) => x.kind_of_entry === CONCLUSION_KIND);
     assert.equal(rec.classification, "verified", "audit verify classifies the terminal record verified");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -733,7 +735,7 @@ test("FAFF-1008 verdict conclude: the issue's ledger entries spanning two revisi
     assert.equal(out.reason, "ambiguous-contract-revision");
     assert.deepEqual(out.contract_revisions, ["r1", "r2"]);
     assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
-    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -758,7 +760,7 @@ test("FAFF-1008 verdict conclude: an admission whose pk_fingerprint differs from
     assert.equal(out.producer_pk_fingerprint, "0".repeat(64));
     assert.equal(out.governor_pk_fingerprint, govFingerprint);
     assert.equal(records(ledger).length, before, "a refusal writes nothing to the ledger");
-    assert.equal(records(ledger).filter((r) => r.kind_of_entry === "accepted_under_contract").length, 0);
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

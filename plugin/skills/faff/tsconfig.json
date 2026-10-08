@@ -22,6 +22,8 @@
     "bin/lib/producer-auth.ts",
     "bin/lib/commissaire.ts",
     "bin/lib/ids.ts",
-    "bin/lib/result.ts"
+    "bin/lib/result.ts",
+    "bin/lib/decision-policy.ts",
+    "bin/lib/governor.ts"
   ]
 }

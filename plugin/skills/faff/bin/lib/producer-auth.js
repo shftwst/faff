@@ -120,6 +120,12 @@ function deriveKey(masterSecret, producerId, contractRevision) {
 function admitProducerKey(masterSecret, producerId, contractRevision) {
     return deriveKey(masterSecret, producerId, contractRevision);
 }
+// FAFF-1177: the out-of-process governor derives each run's HKDF master from one long-lived root
+// secret, so the per-run master is re-derivable (never stored) and neither secret leaves the governor.
+function deriveRunMaster(rootSecret, runId) {
+    const key = Buffer.isBuffer(rootSecret) ? rootSecret : Buffer.from(String(rootSecret), "utf8");
+    return crypto.createHmac("sha256", key).update(`faff-run-master:${runId}`, "utf8").digest();
+}
 // HMAC-SHA256 over canonicalBytes(record) under K_producer. `record` is the record WITHOUT
 // its auth field; the returned hex is what gets attached as producer_hmac.
 function signRecord(record, key) {
@@ -250,7 +256,7 @@ function producerAuthSelftest() {
 module.exports = {
     AUTH_FIELDS, ProducerAuth, CommissaireAuth,
     canonicalBytes, canonicalStringify,
-    deriveKey, admitProducerKey, signRecord, verifyRecord,
+    deriveKey, admitProducerKey, deriveRunMaster, signRecord, verifyRecord,
     asProducerId, asContractRevisionId, tryAsProducerId, tryAsContractRevisionId,
     mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision,
     producerAuthSelftest,

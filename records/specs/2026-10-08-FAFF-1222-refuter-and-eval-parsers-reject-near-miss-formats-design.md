@@ -38,6 +38,7 @@ This spec is for the build agent implementing FAFF-1222 and for the humans revie
 - **Inferring a severity from heading wording or bullet content.** Why: the ticket rules it out; it un-gates or gates on a guess. Extension point: none intended.
 - **Rewording the clean-affirmation instruction in the briefs.** Why: the normaliser fix makes same-line prose safe, and a second brief change adds eval drift for no parser benefit. Extension point: the closing "If you find nothing" sentence of each `refute-*.md`.
 - **Re-recording any eval baseline.** Why: recording a baseline is a separate human-supervised step. Extension point: `--update-baseline --kind refutation-spec,refutation-code`.
+- **The scoped `refutation-spec` drift run against `eval/baselines/frontier.json`.** Why: deferred by human decision (2026-10-08) to FAFF-1236, "Measure whether the refuter severity-heading sentence shifts Claude's refutation-spec judgements". A 5-rep run takes about 2 hours, and host memory pressure stopped the first attempt after 49 reps over 3 cases, all graded with 0 format errors and no baseline diff. Extension point: the scoped command in FAFF-1236.
 
 ## 3. WHAT
 
@@ -141,7 +142,7 @@ Then:
 
 ### Failure modes
 
-- **The brief sentence shifts refuter judgements.** How you'd know: the scoped `refutation-spec` run drifts from `eval/baselines/frontier.json`. What it means: proceed if the drift is format-only; otherwise narrow the sentence. The pre-merge run in DONE checks this before it ships. Re-baselining stays a human-supervised step.
+- **The brief sentence shifts refuter judgements.** How you'd know: the scoped `refutation-spec` run drifts from `eval/baselines/frontier.json`. What it means: proceed if the drift is format-only; otherwise narrow the sentence. FAFF-1236 runs this check after merge (deferred 2026-10-08). Re-baselining stays a human-supervised step.
 - **The label anchor is too strict.** How you'd know: errored reps whose captured `raw_text` shows prose before a misplaced label. What it means: proceed; those reps errored before this ticket too, and widening the anchor reopens the injection path.
 - **Label recovery masks a broken compliant path.** How you'd know: `format_adherence` for a kind that was 1.00 drops below 1.00, which the frontier gate already flags (`run-evals.mjs` :308). What it means: proceed; that is the honesty the `noncompliant` flag exists for.
 
@@ -231,7 +232,8 @@ Then it returns ok false with the "no recognised finding section" reason, and no
 - [ ] Each of the four `refute-*.md` briefs contains the new severity sentence
 - [ ] `test/review-bench-lens-parity.test.mjs` passes after the lens copies and payloads are regenerated
 - [ ] The `MEASURED` comment matches the new brief byte counts, and `refute-infosec.md` is under 7200 bytes
-- [ ] Before merge, one `refutation-spec` gate is run against `eval/baselines/frontier.json`, because the brief sentence can shift Claude's refuter output too. `--against` has no kind filter, so the scoped form is: copy `eval/baselines/frontier.json` to a scratch path, run `node eval/run-evals.mjs --driver frontier --update-baseline <scratch> --kind refutation-spec`, then `node eval/diff-baselines.mjs eval/baselines/frontier.json <scratch>`. The PR records the `refutation-spec` row: no drift, drift explained as format-only, or drift flagged for human review. `eval/baselines/frontier.json` itself is not rewritten
+
+The pre-merge `refutation-spec` gate against `eval/baselines/frontier.json` that this list once held was moved to FAFF-1236 by human decision (2026-10-08); see OUT OF SCOPE.
 
 ### Integration smoke test
 

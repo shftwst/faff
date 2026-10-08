@@ -129,11 +129,18 @@ Coverage is by descriptor (kind + target via `effectTargetMatches`), not by step
 
 ```
 # after the pk-fingerprint-mismatch check, before building `body`
-coverage = grant_coverage(ledger, issue, concludedKey, str(gov.pk_fingerprint))
-IF concludedKey == null OR NOT coverage.covered:
-    RETURN refuseVerdict("ungranted-protected-effect", issue,
-                         { uncovered: coverage.uncovered })   # exits 0, writes nothing
+observed_protected = observed protected effects for the unit (isProtectedKind)
+IF observed_protected is non-empty:
+    IF concludedKey == null:
+        RETURN refuseVerdict("no-governor-key", issue)            # distinct reason; fail closed
+    coverage = grant_coverage(ledger, issue, concludedKey, str(gov.pk_fingerprint))
+    IF NOT coverage.covered:
+        RETURN refuseVerdict("ungranted-protected-effect", issue,
+                             { uncovered: coverage.uncovered })   # exits 0, writes nothing
+# no observed protected effect -> fall through to the existing append
 ```
+
+A run with **no** observed protected effect never refuses here (the gate is scoped to `observed_protected`), so a null governor key only blocks when there is actually a protected effect to verify — surfaced with the distinct `no-governor-key` reason rather than an `ungranted-protected-effect` carrying an empty `uncovered` array.
 
 **Design decision — the refusal reason.**
 

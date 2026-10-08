@@ -901,6 +901,6 @@ test("FAFF-1222 envelope label recovery fails on invalid JSON, a mismatched case
   assert.throws(() => parseJudgementEnvelope(`I used the faff-eval:judgement label here.\n${labelEnv}`, { expectedCaseId: "c1" }), EnvelopeError);
 });
 test("FAFF-1222 envelope: the fence scan wins over a label-line envelope", () => {
-  const raw = `\`\`\`json\n{"case_id":"c1","findings":["fence"]}\n\`\`\`\n\`\`\`\nfaff-eval:judgement\n${labelEnv}\n\`\`\``;
+  const raw = `\`\`\`\nfaff-eval:judgement\n{"case_id":"c1","findings":["label"]}\n\`\`\`\n\`\`\`json\n{"case_id":"c1","findings":["fence"]}\n\`\`\``;
   assert.deepEqual(parseJudgementEnvelope(raw, { expectedCaseId: "c1" }).findings, ["fence"]);
 });

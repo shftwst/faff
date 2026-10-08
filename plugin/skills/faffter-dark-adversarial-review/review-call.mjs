@@ -765,14 +765,12 @@ function isDecorativeHeader(line) {
 // wrong-lens `## Refutation —` namespace hit or a severity-worded heading) stays rejected exactly as
 // the whole-body `headed` arm did — never silently falls through to `bare`.
 //
-// FAFF-1154: the affirmation need no longer be the final non-blank line — it is located as the last
-// line equal to an affirmation sentence, and guard-clean prose may follow it. Two guards keep clean
-// meaning clean, one on each side of the affirmation: a preamble severity guard
-// (`SEVERITY_LIKE_HEADING_RE` over every line before the matched segment) and a trailing-segment guard
-// (`SEVERITY_LIKE_HEADING_RE`/`REFUTATION_NAMESPACE_RE` over every line after the affirmation) stop a
-// body that ALSO carries a genuine finding or a wrong-lens heading from being swallowed as clean — the
-// whole-body premise made this hazard impossible for free (a body with a finding could never be 1–3
-// lines); segment matching removes that free guard, so both directions are re-added here.
+// The affirmation is the last line that is, or starts with, an affirmation sentence followed by
+// whitespace; guard-clean prose may follow it on the same line or on later lines. Three guards keep
+// clean meaning clean: a preamble guard (`SEVERITY_LIKE_HEADING_RE` over every line before the
+// affirmation), a same-line guard (the unanchored `MID_LINE_*_RE` forms, rejecting a severity heading
+// or `## Refutation —` token anywhere in the remainder), and a trailing guard
+// (`SEVERITY_LIKE_HEADING_RE`/`REFUTATION_NAMESPACE_RE` over every later line).
 export function normaliseCleanRefutation(content) {
   const original = String(content == null ? "" : content);
   const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
@@ -780,11 +778,7 @@ export function normaliseCleanRefutation(content) {
     return { content: original, normalised: false, lens: null, form: null };
   }
 
-  // FAFF-1154: locate the affirmation as the LAST line that exactly equals an affirmation sentence,
-  // not merely the final non-blank line, so guard-clean explanatory prose after the affirmation no
-  // longer pushes recognition off the tail. Scan from the end (last-affirmation-wins keeps the
-  // existing stacked-sentence tie-break); when the affirmation IS the final line — the common case —
-  // the trailing segment below is empty and the path is byte-identical to the previous behaviour.
+  // Scan from the end so the last affirmation wins when sentences are stacked.
   let affirmationIdx = -1;
   let entry = null;
   let remainder = "";

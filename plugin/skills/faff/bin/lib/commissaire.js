@@ -374,8 +374,7 @@ function chokepointPermit(effect, verdictRecord, pk, pinnedFingerprint) {
 // --- Auth leg (consumed by governance-check.js, factory→governance is legal) --------------
 // The Commissaire public key a run dir's records verify under, and whether the producer-dir
 // pk.json disagrees with the governor's fingerprint. Shared by the auth leg and `verdict conclude`.
-function commissairePublicKey(runDir, governorDir, producerDir) {
-    const gov = readGovernorRecord(runDir, governorDir);
+function commissairePublicKey(runDir, governorDir, producerDir, gov = readGovernorRecord(runDir, governorDir)) {
     const pkRec = parseGovernedRecord(readJson(pkFileOf(producerDirOf(runDir, producerDir))));
     // FAFF-978: the governor file is the AUTHORITATIVE source of PK_commissaire — prefer it. The
     // producer-dir pk.json is producer-writable (the less-trusted custodian), so it must never be
@@ -411,7 +410,7 @@ function commissairePublicKey(runDir, governorDir, producerDir) {
 function verifyAuthLeg(runDir, governorDir, producerDir) {
     const entries = readLedgerEntries(runDir);
     const gov = readGovernorRecord(runDir, governorDir);
-    const { pk, fingerprintTampered } = commissairePublicKey(runDir, governorDir, producerDir);
+    const { pk, fingerprintTampered } = commissairePublicKey(runDir, governorDir, producerDir, gov);
     const failures = [];
     const unverifiable = [];
     if (fingerprintTampered)

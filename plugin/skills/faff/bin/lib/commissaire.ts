@@ -359,8 +359,7 @@ function chokepointPermit(effect: { kind?: unknown; target?: unknown }, verdictR
 
 // The Commissaire public key a run dir's records verify under, and whether the producer-dir
 // pk.json disagrees with the governor's fingerprint. Shared by the auth leg and `verdict conclude`.
-function commissairePublicKey(runDir: string, governorDir?: string, producerDir?: string): { pk: unknown; fingerprintTampered: boolean } {
-  const gov = readGovernorRecord(runDir, governorDir);
+function commissairePublicKey(runDir: string, governorDir?: string, producerDir?: string, gov = readGovernorRecord(runDir, governorDir)): { pk: unknown; fingerprintTampered: boolean } {
   const pkRec = parseGovernedRecord(readJson(pkFileOf(producerDirOf(runDir, producerDir))));
   // FAFF-978: the governor file is the AUTHORITATIVE source of PK_commissaire — prefer it. The
   // producer-dir pk.json is producer-writable (the less-trusted custodian), so it must never be
@@ -392,7 +391,7 @@ function commissairePublicKey(runDir: string, governorDir?: string, producerDir?
 function verifyAuthLeg(runDir: string, governorDir?: string, producerDir?: string): { pass: boolean; failures: Array<{ seq: unknown; reason: string }>; unverifiable: Array<{ seq: unknown; reason: string }> } {
   const entries = readLedgerEntries(runDir);
   const gov = readGovernorRecord(runDir, governorDir);
-  const { pk, fingerprintTampered } = commissairePublicKey(runDir, governorDir, producerDir);
+  const { pk, fingerprintTampered } = commissairePublicKey(runDir, governorDir, producerDir, gov);
   const failures: Array<{ seq: unknown; reason: string }> = [];
   const unverifiable: Array<{ seq: unknown; reason: string }> = [];
   if (fingerprintTampered) failures.push({ seq: null, reason: "pk-fingerprint-tampered" });

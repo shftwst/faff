@@ -68,7 +68,7 @@ test("producer-auth keeps its module.exports key set", () => {
   assert.deepEqual(Object.keys(producerAuth).sort(), [
     "AUTH_FIELDS", "ProducerAuth", "CommissaireAuth",
     "canonicalBytes", "canonicalStringify",
-    "deriveKey", "admitProducerKey", "signRecord", "verifyRecord",
+    "deriveKey", "admitProducerKey", "deriveRunMaster", "signRecord", "verifyRecord",
     "asProducerId", "asContractRevisionId", "tryAsProducerId", "tryAsContractRevisionId",
     "mintGovernorKeypair", "pkFingerprint", "signDecision", "verifyDecision",
     "producerAuthSelftest",

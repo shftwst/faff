@@ -735,4 +735,35 @@ function runGovernedDispatch(label, handler, args) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+// FAFF-1195: key material (SK, HMAC master, producer key) is owner-only. Only the key directory
+// itself is created 0700; its ancestors keep the default mode, and a directory that already
+// exists is never chmod-ed, so existing run directories stay byte-for-byte untouched.
+// FAFF-1177: moved here from commissaire.ts so the governor shares the one implementation.
+function ensureOwnerOnlyDir(dir) {
+  if (fs.existsSync(dir)) return;
+  fs.mkdirSync(path.dirname(dir), { recursive: true });
+  try {
+    fs.mkdirSync(dir, { mode: 0o700 });
+  } catch (e) {
+    if (!(e instanceof Error && "code" in e && e.code === "EEXIST")) throw e;
+  }
+}
+
+// The target only ever names an inode created 0600: an exclusive temp file is written, then
+// renamed over the target, so a --force rotation over a pre-existing 0644 file still lands 0600.
+function writeOwnerOnlyJson(target, value) {
+  const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${require("node:crypto").randomBytes(6).toString("hex")}.tmp`);
+  let fd = fs.openSync(tmp, "wx", 0o600);
+  try {
+    fs.writeFileSync(fd, JSON.stringify(value, null, 2) + "\n");
+    fs.closeSync(fd);
+    fd = null;
+    fs.renameSync(tmp, target);
+  } catch (e) {
+    if (fd !== null) { try { fs.closeSync(fd); } catch { /* the original error wins */ } }
+    try { fs.unlinkSync(tmp); } catch { /* the original error wins */ }
+    throw e;
+  }
+}
+
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };

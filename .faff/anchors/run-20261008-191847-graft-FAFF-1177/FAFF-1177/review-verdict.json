@@ -1,0 +1,6 @@
+{ "signal": "pass",
+  "findings": [
+    { "location_present": true, "action_present": true, "severity": "minor", "disposition": "accepted-risk", "title": "buildEnvelope duplicated in governor.ts", "disposition_rationale": "Faithful copy (same field set/order; signatures use order-independent canonicalBytes so drift cannot break signing). Hoisting a shared envelope builder recorded as a follow-up (discovered scope).", "source": "standard", "model": "faffter-noon-review" },
+    { "location_present": true, "action_present": true, "severity": "minor", "disposition": "fixed", "title": "Spec did not note admissions are dropped on restart", "disposition_rationale": "Added a spec note: in-memory admissions are dropped on restart; authorize then returns producer-not-admitted (fail-closed, idempotent re-admit). Commit on branch.", "source": "standard", "model": "faffter-noon-review" },
+    { "location_present": true, "action_present": true, "severity": "minor", "disposition": "fixed", "title": "Spec section 4.10 overclaimed cross-rotate verification", "disposition_rationale": "Corrected section 4.10: producer-HMAC records re-verify (root unchanged) but commissaire-signed prior-key records fail chain-invalid across a rotate; prior-key breadth is the verifier's job (FAFF-1178). Commit on branch.", "source": "standard", "model": "faffter-noon-review" }
+  ] }

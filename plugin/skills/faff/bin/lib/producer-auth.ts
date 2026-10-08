@@ -40,8 +40,10 @@ const ids: IdsApi = require("./ids");
 export interface ProducerAuthApi {
   deriveKey(masterSecret: unknown, producerId: string | undefined, contractRevision: string | undefined): Buffer;
   admitProducerKey(masterSecret: unknown, producerId: ProducerId, contractRevision: ContractRevisionId): Buffer;
+  deriveRunMaster(rootSecret: unknown, runId: string): Buffer;
   asProducerId(v: unknown): ProducerId;
   asContractRevisionId(v: unknown): ContractRevisionId;
+  canonicalStringify(value: unknown): string;
   signRecord(record: unknown, key: Buffer): string;
   verifyRecord(record: unknown, key: Buffer): boolean;
   mintGovernorKeypair(): GovernorKeypair;
@@ -148,6 +150,13 @@ function deriveKey(masterSecret: unknown, producerId: string | undefined, contra
 // the branded parameter types, which make a raw `string` here a compile error on the admit path.
 function admitProducerKey(masterSecret: unknown, producerId: ProducerId, contractRevision: ContractRevisionId): Buffer {
   return deriveKey(masterSecret, producerId, contractRevision);
+}
+
+// FAFF-1177: the out-of-process governor derives each run's HKDF master from one long-lived root
+// secret, so the per-run master is re-derivable (never stored) and neither secret leaves the governor.
+function deriveRunMaster(rootSecret: unknown, runId: string): Buffer {
+  const key = Buffer.isBuffer(rootSecret) ? rootSecret : Buffer.from(String(rootSecret), "utf8");
+  return crypto.createHmac("sha256", key).update(`faff-run-master:${runId}`, "utf8").digest();
 }
 
 // HMAC-SHA256 over canonicalBytes(record) under K_producer. `record` is the record WITHOUT
@@ -261,7 +270,7 @@ function producerAuthSelftest(): number {
 module.exports = {
   AUTH_FIELDS, ProducerAuth, CommissaireAuth,
   canonicalBytes, canonicalStringify,
-  deriveKey, admitProducerKey, signRecord, verifyRecord,
+  deriveKey, admitProducerKey, deriveRunMaster, signRecord, verifyRecord,
   asProducerId, asContractRevisionId, tryAsProducerId, tryAsContractRevisionId,
   mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision,
   producerAuthSelftest,

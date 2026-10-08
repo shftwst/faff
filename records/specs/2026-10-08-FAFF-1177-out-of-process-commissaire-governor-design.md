@@ -282,7 +282,7 @@ PROCEDURE governorRotate(flags):
   write keyFile with the new sk/pk/pk_fingerprint, root_secret UNCHANGED, prior_fingerprints updated (0600)
 ```
 
-Rotate changes only the Ed25519 signing keypair; the root secret is untouched, so existing runs' `K_producer` still re-derives and their records still verify. The old fingerprint stays valid until a human-approved PR removes it from `.commissaire/trust.toml` (ADR 0135 decision 6); that removal is FAFF-1210/1218 and is out of scope here. New admissions and verdicts sign under the new key.
+Rotate changes only the Ed25519 signing keypair; the root secret is untouched, so existing runs' `K_producer` still re-derives and their **producer-HMAC'd** records still verify. Commissaire-signed records (admission / verdict) made under the *prior* key do **not** verify under the new `state.pk`, so a run cannot be authorized or concluded across a rotate — it fails closed (`chain-invalid`) rather than granting on an unverifiable chain. Prior-key verification breadth (accepting a grant signed by any still-pinned key) is the verifier's job (ADR 0135 decision 6 / FAFF-1178), out of scope here. The old fingerprint stays listed until a human-approved PR removes it from `.commissaire/trust.toml` (removal is FAFF-1210/1218). New admissions and verdicts sign under the new key.
 
 ### 4.11 What stays in-process
 
@@ -419,7 +419,7 @@ Options: a persisted per-run head file; in-memory only; rebuild from the governo
 - [ ] An authorize for an unadmitted `run_id` replies `producer-not-admitted`.
 - [ ] A request resting on evidence older than the latest observe denies with `stale-evidence`.
 - [ ] A forged request record fails chain verification and no verdict is signed.
-- [ ] `lastHead` advances only from the verified incoming ledger head, never the signed position; it is never rebuilt from the governor log; an absent entry on restart means "no prior head" and is set from the next verified incoming head.
+- [ ] `lastHead` advances only from the verified incoming ledger head, never the signed position; it is never rebuilt from the governor log; an absent entry on restart means "no prior head" and is set from the next verified incoming head. (In-memory per-run **admissions** are likewise dropped on restart; an authorize for a previously-admitted run then returns `producer-not-admitted` until the runner re-admits — fail-closed, and the deterministic per-run master makes re-admit idempotent.)
 
 ### From Build / discipline
 - [ ] `governorSelftest()` (wired into `commissaireSelftest`, riding `commissaire --selftest`) covers all seven cases: grant, deny, forged request, unadmitted producer, stale evidence, a lost race, and a truncated ledger (`ledger-not-extending-head`). **The lost-race case must drive recovery, not just the orphan:** two requests at the same position, one verdict becomes an orphan (logged, `lastHead` unchanged), then the loser re-requests at the new head built on the appended winner and **receives a signed verdict** — asserting the honest winner is not false-refused `ledger-not-extending-head`.

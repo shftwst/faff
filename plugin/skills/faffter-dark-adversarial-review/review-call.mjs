@@ -736,6 +736,10 @@ const SEVERITY_LIKE_HEADING_RE = /^#{1,6}\s*\[?(critical|major|minor|observation
 const REFUTATION_NAMESPACE_RE = /^#{1,6}\s+Refutation\s+[—-]/i;
 const MID_LINE_SEVERITY_RE = /#{1,6}\s*\[?(critical|major|minor|observation)\]?\s*[:—-]/i;
 const MID_LINE_NAMESPACE_RE = /#{1,6}\s+Refutation\s+[—-]/i;
+// FAFF-1223: a triple/anchor bullet. A LOCAL COPY of parse-refutation.mjs's BULLET_RE (this skill
+// imports nothing from faffter-dark-spec-review); test/adversarial-call.test.mjs pins the two to the
+// same grammar.
+export const FINDING_BULLET_RE = /^-\s*(?:\*{1,2}|_{1,2})?(claim|evidence|predicted_consequence|spec_anchor)(?:\*{1,2}|_{1,2})?\s*:\s*(?:\*{1,2}|_{1,2})?\s*(.*)$/i;
 
 function matchAffirmation(line) {
   for (const entry of CLEAN_REFUTATIONS) {
@@ -771,6 +775,11 @@ function isDecorativeHeader(line) {
 // affirmation), a same-line guard (the unanchored `MID_LINE_*_RE` forms, rejecting a severity heading
 // or `## Refutation —` token anywhere in the remainder), and a trailing guard
 // (`SEVERITY_LIKE_HEADING_RE`/`REFUTATION_NAMESPACE_RE` over every later line).
+//
+// FAFF-1223: a triple/anchor bullet (`- claim:`, `- evidence:`, ...) anywhere outside the affirmation
+// line, or in its same-line remainder, also rejects. A severity-less finding followed by a clean
+// sign-off is a contradiction, and normalising it to clean would drop the finding before the parser
+// ever sees it.
 export function normaliseCleanRefutation(content) {
   const original = String(content == null ? "" : content);
   const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
@@ -804,6 +813,16 @@ export function normaliseCleanRefutation(content) {
   }
   for (let i = affirmationIdx + 1; i < lines.length; i++) {
     if (SEVERITY_LIKE_HEADING_RE.test(lines[i]) || REFUTATION_NAMESPACE_RE.test(lines[i])) {
+      return { content: original, normalised: false, lens: null, form: null };
+    }
+  }
+
+  // FAFF-1223: a triple/anchor bullet beside the affirmation (same-line remainder, or any other line).
+  if (remainder && FINDING_BULLET_RE.test(remainder)) {
+    return { content: original, normalised: false, lens: null, form: null };
+  }
+  for (let i = 0; i < lines.length; i++) {
+    if (i !== affirmationIdx && FINDING_BULLET_RE.test(lines[i])) {
       return { content: original, normalised: false, lens: null, form: null };
     }
   }

@@ -41,10 +41,12 @@ const HEADING_LINE_RE = /^###\s(?!#)/;
 // the two grammars agree on what counts as a recognised severity word.
 const SEVERITY_HEADING_RE = /^###\s*\[?(critical|major|minor|observation)\]?\s*[:—-]\s*(.*)$/i;
 const GATING_SEVERITIES = new Set(["critical", "major", "minor"]);
+// FAFF-1223: the fault reason for a severity-less section that carries triple/anchor bullets.
+const UNRECOGNISED_FINDING_REASON = "finding section without a recognised severity (### <severity>: ...)";
 
 // A triple/anchor bullet: "- <key>: <value>". Case-insensitive key, same closed vocabulary the
 // refuter prompts emit. The key may carry markdown emphasis ("- **claim:**", "- _claim_:").
-const BULLET_RE = /^-\s*(?:\*{1,2}|_{1,2})?(claim|evidence|predicted_consequence|spec_anchor)(?:\*{1,2}|_{1,2})?\s*:\s*(?:\*{1,2}|_{1,2})?\s*(.*)$/i;
+export const BULLET_RE = /^-\s*(?:\*{1,2}|_{1,2})?(claim|evidence|predicted_consequence|spec_anchor)(?:\*{1,2}|_{1,2})?\s*:\s*(?:\*{1,2}|_{1,2})?\s*(.*)$/i;
 // A heading line of any level — stops a bullet-value continuation from swallowing past a section
 // boundary. Bodies are already sliced to one section, so this is a defensive guard only.
 const ANY_HEADING_RE = /^#{2,}\s(?!#)/;
@@ -124,7 +126,8 @@ function headerModel(content) {
 // RefutationEntry: { lens, outcome: "refuted"|"clear", objections: [Objection], model?: string }
 // Objection:       { severity, claim, evidence, predicted_consequence, spec_anchor? }  (gating)
 //                   { severity, claim?, evidence?, predicted_consequence?, spec_anchor? }  (observation)
-// ParseFault:       { lens, severity, title, missing_field: "claim"|null, reason? }  (FAFF-990: only `claim` gates)
+// ParseFault:       { lens, severity, title, missing_field: "claim"|null, reason? }  (FAFF-990: only `claim` gates;
+//                   FAFF-1223: a finding-shaped severity-less section faults with severity "unknown", missing_field null)
 export function parseRefutation(content, lens) {
   const text = String(content == null ? "" : content);
   const sections = splitSections(text);
@@ -136,9 +139,10 @@ export function parseRefutation(content, lens) {
   // shape-gate (validateFindingsShape) admits any body with >=1 severity-bearing section; the old
   // parser then demanded EVERY `### ` section carry a severity and faulted on the first that did not,
   // so a leaked reasoning heading ahead of a well-formed finding passed the gate but voided the whole
-  // lens (mis-attributed config-fault -> needs-human park). Tolerate the prose here; the parser is now
-  // strictly MORE permissive than the shape-gate (it skips every severity-less section; the gate only
-  // requires one severity-bearing section to exist), and that asymmetry is intended.
+  // lens (mis-attributed config-fault -> needs-human park). Tolerate the prose here: a severity-less
+  // section with no triple/anchor bullet is skipped. FAFF-1223: a severity-less section that IS
+  // finding-shaped (parseBullets reads at least one key) is a finding the model forgot to head with a
+  // severity, so it faults the lens below instead of being dropped; the parser never guesses a severity.
   const recognisedSections = sections.filter((s) => s.severity != null);
 
   // Fault iff NO recognised-severity section survives. This single truthful guard subsumes the old
@@ -151,6 +155,17 @@ export function parseRefutation(content, lens) {
     return {
       ok: false,
       fault: { lens, severity: "unknown", title: "(none)", missing_field: null, reason: "no recognised finding section (### <severity>: ...)" },
+    };
+  }
+
+  // FAFF-1223: fail closed on a finding-shaped severity-less section. Runs after the zero-recognised
+  // guard (which keeps priority on an all-severity-less body) and before the clean fast path, so the
+  // canonical clean token cannot mask a finding. The first such section in document order is named.
+  const unrecognisedFinding = sections.find((s) => s.severity == null && Object.keys(parseBullets(s.body)).length > 0);
+  if (unrecognisedFinding) {
+    return {
+      ok: false,
+      fault: { lens, severity: "unknown", title: unrecognisedFinding.title, missing_field: null, reason: UNRECOGNISED_FINDING_REASON },
     };
   }
 
@@ -204,8 +219,8 @@ export function parseRefutation(content, lens) {
 // ---- CLI ------------------------------------------------------------------------------------
 // `parse-refutation.mjs --lens <lens> [--truncated]` reads one refuter's raw exit-0 stdout on stdin.
 //   exit 0      -> the RefutationEntry JSON on stdout (objections may be degraded — claim-only).
-//   exit 1      -> a RESIDUAL parse fault (a gating section with no usable `claim`, or a body with no
-//                  recognised-severity section) WITHOUT --truncated:
+//   exit 1      -> a RESIDUAL parse fault (a gating section with no usable `claim`, a body with no
+//                  recognised-severity section, or a finding-shaped section without a severity, FAFF-1223) WITHOUT --truncated:
 //                  `{lens, outcome:"unavailable", kind:"model-transient", objections:[]}` on stdout, a
 //                  human diagnostic on stderr. FAFF-1056: a parser-stage residual fault is NEVER a
 //                  config fault — `parseRefutation` only ever sees a body the transport served and the

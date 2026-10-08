@@ -17,7 +17,7 @@ import {
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   RAW_BODY_MAX_BYTES, classifyCapturedResult, captureRawResponseBody, realWrite,
   ledgerMandatory, budgetWarnings,
-  splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS, TRUNCATION_SIGNAL,
+  splitFindings, validateFindingsShape, isProviderRefusal, normaliseCleanRefutation, FINDING_BULLET_RE, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS, TRUNCATION_SIGNAL,
   attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
@@ -27,6 +27,7 @@ import {
   DEFAULT_TRIM_HEAD_LINES, DEFAULT_MAX_ANCHOR_LINES, DEFAULT_RETAINED_CEILING,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import * as ReviewCallModule from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
+import { BULLET_RE } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
 
 test("FAFF-872: the native ollama transport family's exports are gone (buildChatPayload / modelServed / accumulateNdjson / the /api/tags preflight)", () => {
   assert.equal(typeof ReviewCallModule.runReviewOllama, "undefined", "runReviewOllama is not exported — deleted, never existed");
@@ -4185,4 +4186,51 @@ test("FAFF-1222 normaliseCleanRefutation: same-line rejections stay byte-identic
   for (const content of rejected) {
     assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null }, JSON.stringify(content));
   }
+});
+
+// ── FAFF-1223 triple bullet beside a clean affirmation ──
+test("FAFF-1223 normaliseCleanRefutation: a severity-less finding followed by a clean affirmation is declined", () => {
+  const bodies = [
+    "### Logging raw bearer token\n- claim: the token is logged\nNo infosec objection.",
+    "## Refutation — infosec\n### Logging raw bearer token\n- claim: the token is logged\nNo infosec objection.",
+    "## Refutation — infosec\nNo infosec objection.\n- claim: the token is logged",
+    "No QA objection. - claim: the token is logged",
+    "- **evidence:** x\nNo QA objection.",
+  ];
+  for (const content of bodies) {
+    assert.deepEqual(normaliseCleanRefutation(content), { content, normalised: false, lens: null, form: null }, JSON.stringify(content));
+  }
+});
+
+test("FAFF-1223 FINDING_BULLET_RE stays in parity with parse-refutation BULLET_RE", () => {
+  const lines = [
+    "- claim: x",
+    "- evidence: x",
+    "- predicted_consequence: x",
+    "- spec_anchor: x",
+    "- **claim:** x",
+    "- _evidence_: x",
+    "  - claim: indented",
+    "* claim: star bullet",
+    "The claim: mid-line",
+    "- unrelated: x",
+    "- CLAIM: upper-case key",
+    "- spec_anchor:",
+  ];
+  for (const line of lines) {
+    assert.equal(FINDING_BULLET_RE.test(line), BULLET_RE.test(line), JSON.stringify(line));
+  }
+  assert.equal(FINDING_BULLET_RE.test("- claim: x"), true, "sanity: the table is not all-reject");
+  assert.equal(FINDING_BULLET_RE.test("  - claim: indented"), false, "sanity: the table is not all-accept");
+});
+
+test("FAFF-1223 runReviewChain: a severity-less finding plus a clean affirmation is MALFORMED, never a clean exit 0", async () => {
+  const content = "### Logging raw bearer token\n- claim: the token is logged\nNo infosec objection.";
+  const res = await runReviewChain(
+    [{ provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" }],
+    { system: "S", user: "U", log: () => {}, runReviewFn: scriptedRunReview({ "https://primary/v1": { status: "ok", content } }) },
+  );
+  assert.notEqual(res.exit, EXIT.OK);
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.notEqual(res.content, CANONICAL_NO_FINDINGS);
 });

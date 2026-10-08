@@ -874,3 +874,33 @@ test("validateCase accepts verdict-revert / verdict-build closed-set oracles", (
   assert.doesNotThrow(() => validateCase({ id: "vb", kind: "verdict-build", oracle: { closed_set: ["pass"] } }));
   assert.throws(() => validateCase({ id: "vr", kind: "verdict-revert", oracle: { ordering: ["k"] } }), CaseError);
 });
+
+// ── FAFF-1222 label-anchored envelope recovery ──
+const labelEnv = '{"case_id":"c1","findings":[]}';
+test("FAFF-1222 envelope recovers a fence-opener followed by the label line as noncompliant", () => {
+  for (const raw of [`\`\`\`\nfaff-eval:judgement\n${labelEnv}\n\`\`\``, `\n\n\`\`\`\n\nfaff-eval:judgement\n${labelEnv}\n\`\`\``]) {
+    const env = parseJudgementEnvelope(raw, { expectedCaseId: "c1" });
+    assert.equal(env.format, "noncompliant");
+    assert.equal(env.case_id, "c1");
+  }
+});
+test("FAFF-1222 envelope recovers a two-backtick opener with no closing fence", () => {
+  assert.equal(parseJudgementEnvelope(`\`\`faff-eval:judgement\n${labelEnv}`, { expectedCaseId: "c1" }).format, "noncompliant");
+});
+test("FAFF-1222 envelope does not recover a label line further down the output", () => {
+  for (const raw of [
+    `Here is my review.\nfaff-eval:judgement\n${labelEnv}`,
+    `\`\`\`\nSome prose first.\nfaff-eval:judgement\n${labelEnv}\n\`\`\``,
+  ]) {
+    assert.throws(() => parseJudgementEnvelope(raw, { expectedCaseId: "c1" }), EnvelopeError);
+  }
+});
+test("FAFF-1222 envelope label recovery fails on invalid JSON, a mismatched case_id, or a mid-sentence label", () => {
+  assert.throws(() => parseJudgementEnvelope("```\nfaff-eval:judgement\n{ not json\n```", { expectedCaseId: "c1" }), EnvelopeError);
+  assert.throws(() => parseJudgementEnvelope(`\`\`\`\nfaff-eval:judgement\n${labelEnv}\n\`\`\``, { expectedCaseId: "other" }), EnvelopeError);
+  assert.throws(() => parseJudgementEnvelope(`I used the faff-eval:judgement label here.\n${labelEnv}`, { expectedCaseId: "c1" }), EnvelopeError);
+});
+test("FAFF-1222 envelope: the fence scan wins over a label-line envelope", () => {
+  const raw = `\`\`\`\nfaff-eval:judgement\n{"case_id":"c1","findings":["label"]}\n\`\`\`\n\`\`\`json\n{"case_id":"c1","findings":["fence"]}\n\`\`\``;
+  assert.deepEqual(parseJudgementEnvelope(raw, { expectedCaseId: "c1" }).findings, ["fence"]);
+});

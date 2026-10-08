@@ -864,9 +864,10 @@ function cmdTerminalVerdict(flags: CommissaireFlags): number {
   const ledger = readLedgerEntries(runDir);
   const entries = ledger.filter((e) => matchesUnit(e, issue));
   if (entries.length === 0) return refuseVerdict("no-evidence", issue);
-  // Idempotent re-conclude: a prior authenticated conclusion (current or legacy kind) for this issue is returned, never doubled.
-  const resolved = commissairePublicKey(runDir, strFlag(flags, "--governor-dir"), strFlag(flags, "--producer-dir"));
-  const concludedKey = resolved.fingerprintTampered ? null : resolved.pk;
+  // Idempotent re-conclude: a prior authenticated conclusion (current or legacy kind) for this issue is
+  // returned, never doubled. The key is the governor's whenever governor material exists, so a
+  // tampered producer-dir pk.json never decides; audit verify still reports the tamper.
+  const { pk: concludedKey } = commissairePublicKey(runDir, strFlag(flags, "--governor-dir"), strFlag(flags, "--producer-dir"));
   const existing = entries.find((e) => conclusionKindOf(e) !== null && e.author === "commissaire" && concludedKey != null && verifyDecision(e, concludedKey));
   if (existing) { console.log(JSON.stringify({ verdict: CONCLUSION_KIND, kind_of_entry: conclusionKindOf(existing), issue, unit_id: issue, idempotent: true, seq: existing.seq })); return 0; }
   const producerIds = [...new Set(entries.map((e) => str(e.producer_id)).filter((x): x is string => x != null && x !== "-"))];

@@ -13,9 +13,9 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./helpers/run-cli.mjs";
-import { verifyDecision } from "../plugin/skills/faff/bin/lib/producer-auth.js";
+import { verifyDecision, mintGovernorKeypair } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
-  KIND_AUTHOR, appendProducerRecords, governorFileOf, governorDirOf, producerFileOf, producerDirOf,
+  KIND_AUTHOR, appendProducerRecords, governorFileOf, governorDirOf, producerFileOf, producerDirOf, pkFileOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { CONCLUSION_KIND, LEGACY_CONCLUSION_KIND, conclusionKindOf } from "../plugin/skills/faff/bin/lib/effects.js";
 
@@ -175,4 +175,24 @@ test("7b. a legacy conclusion with one character of its signature altered does n
     assert.equal(out.reason, "producer-not-admitted", "conclude ran its ordinary checks");
     assert.equal(sha256File(ledger), before, "nothing was appended");
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("7c. a producer-dir pk.json that disagrees with the governor never makes re-conclude append a second conclusion", () => {
+  const { root, runDir, ledger } = governedCleanRun("FAFF-1");
+  try {
+    const first = json(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]));
+    assert.equal(first.verdict, CONCLUSION_KIND);
+    const other = mintGovernorKeypair();
+    writeFileSync(pkFileOf(producerDirOf(runDir)), JSON.stringify({ pk: other.pk, pk_fingerprint: other.pk_fingerprint }));
+    const countBefore = lines(ledger).length;
+
+    const second = json(runCom(["verdict", "conclude", "--run-dir", runDir, "--unit-id", "FAFF-1"]));
+    assert.equal(second.idempotent, true, "the governor key still authenticates the existing conclusion");
+    assert.equal(second.seq, first.seq);
+    assert.equal(lines(ledger).length, countBefore, "nothing was appended");
+    assert.equal(records(ledger).filter((r) => conclusionKindOf(r) !== null).length, 1);
+
+    const audit = runCom(["audit", "verify", "--run-dir", runDir, "--json"]);
+    assert.equal(audit.code, 1, "audit verify still reports the tampered pk.json");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

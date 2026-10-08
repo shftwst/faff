@@ -13,16 +13,16 @@
     "package.json": "ddf6ca8c29b2123750a2658d8d2eef7f9880a2f625098e3afce256c66f29ffae"
   },
   "inputs": {
-    "bin/lib/commissaire.ts": "75aa2d13564b8b38461517ee0198eecb8b06e37ec151f947582d056a4dd1be55",
+    "bin/lib/commissaire.ts": "4cc4b8bbaaed2af5369cadc2c3015e8d61447188a4988fef0f02e7388fd6cce9",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
     "bin/lib/producer-auth.ts": "8add549f95147a6dce124f80ad1dcc5dab9673500c50a5499fdd91617f3aa9bb",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3"
   },
   "outputs": {
-    "bin/lib/commissaire.js": "7aa1f1308234204da05945db713f35742e67851d201fd166ead3929581aea2b2",
+    "bin/lib/commissaire.js": "9939bbb43233e3af12748f9b1c78fba69b2f6a65a7f750a701b1703ab8f6abea",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
     "bin/lib/producer-auth.js": "6f5d723f891f021edc0bc46e56c6b044e969fbb01296e49c46f225f1a5ed028b",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "281f870594cb5d9f400dd3349ad84b760744d26cc83c0136b1a4f592754b07a6"
+  "output_digest": "971c207bb37f17f4eb06d54c767310ff5b034afe1f4bad4ee9229fdda9fa66dc"
 }

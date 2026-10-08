@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1222",
+  "build": {
+    "status": "complete",
+    "diff_hash": "deca62c0f568a4122dbb61764e451d850df161a7ca6ac145b7e230657beb225c",
+    "branch": "FAFF-1222-refuter-and-eval-parsers-accept-near-miss-formats",
+    "pushed_at": "2026-10-08T03:20:18.298Z"
+  },
+  "updated_at": "2026-10-08T03:20:18.298Z"
+}

@@ -77,6 +77,7 @@ test("FAFF-1244: a trickling one-backend chain parks with an (exit 8) cause afte
       {
         resolveAdversarialBackends: () => ({ chain: [{ provider: "openai", model: "A", host: `http://127.0.0.1:${port}/v1` }] }),
         resolveBuildJudgeClock: () => ({ deadline: 2, timeout: 120 }),
+        resolveBuildJudgeRetryLimit: () => 2,
       },
     ));
     const elapsed = Date.now() - t0;

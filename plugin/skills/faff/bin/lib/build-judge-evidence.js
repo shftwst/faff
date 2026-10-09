@@ -91,6 +91,16 @@ function positiveInt(v) {
   return null;
 }
 
+// nonNegativeInt(v) -> integer >= 0 | null: positiveInt's shape, but zero is valid (0 retries is meaningful).
+function nonNegativeInt(v) {
+  if (typeof v === "number" && Number.isInteger(v) && v >= 0) return v;
+  if (typeof v === "string") {
+    const t = v.trim();
+    if (/^\d+$/.test(t)) return parseInt(t, 10);
+  }
+  return null;
+}
+
 // resolveBuildJudgeClock(cfg) -> { deadline, timeout } (whole seconds, both > 0). Each value walks
 // adversarial.build_judge.* -> adversarial.* -> terminal default and takes the first valid tier; an
 // invalid value at one tier falls through to the next. Pure: cfg null / non-object yields defaults.
@@ -110,6 +120,19 @@ function resolveBuildJudgeClock(cfg) {
 function realResolveBuildJudgeClock() {
   const [cfg] = loadConfig(findRoot());
   return resolveBuildJudgeClock(cfg);
+}
+
+// resolveBuildJudgeRetryLimit(cfg) -> integer >= 0: graft.build_judge_retry_limit, else the default.
+// Pure: an invalid value (or cfg null / non-object / graft not a map) falls through to the default.
+function resolveBuildJudgeRetryLimit(cfg) {
+  return nonNegativeInt(dig(cfg, "graft.build_judge_retry_limit")) ?? DEFAULT_BUILD_JUDGE_RETRY_LIMIT;
+}
+
+// realResolveBuildJudgeRetryLimit() -> integer >= 0: the same config load as realResolveBuildJudgeClock.
+// Injectable via cmdAssemble's deps.resolveBuildJudgeRetryLimit.
+function realResolveBuildJudgeRetryLimit() {
+  const [cfg] = loadConfig(findRoot());
+  return resolveBuildJudgeRetryLimit(cfg);
 }
 
 // reviewCallSpawnOptions(deadlineSecs?) -> execFileSync options. A valid deadline arms the spawn
@@ -451,6 +474,7 @@ const BUILD_JUDGE_EVIDENCE_USAGE =
   "[--out <judge-dir>] [--acceptance-criteria <file>] [--repository-evidence <file>] [--window-start N] [--run-id ID] [--retry-limit N]\n" +
   "   or: faff build-judge-evidence --admit --dir <build-review-dir> --level <level> --run-dir <run-dir> [--out <judge-dir>]";
 
+// Pinned to config.js DEFAULTS["graft.build_judge_retry_limit"] by a parity test (FAFF-1245).
 const DEFAULT_BUILD_JUDGE_RETRY_LIMIT = 2;
 
 function cmdBuildJudgeEvidence(args) {
@@ -477,6 +501,16 @@ function cmdAssemble(values, deps = {}) {
   const windowStart = rawWindow == null ? 1 : parseInt(rawWindow, 10);
   if (rawWindow != null && (!/^\d+$/.test(String(rawWindow)) || windowStart < 1)) {
     return usageError([{ code: "invalid-value", detail: "--window-start expects an integer >= 1" }], BUILD_JUDGE_EVIDENCE_USAGE);
+  }
+
+  // Validate --retry-limit up front so a bad flag is a usage error on every path, early returns included.
+  const rawRetryLimit = values["--retry-limit"];
+  let flagRetryLimit = null;
+  if (rawRetryLimit != null) {
+    flagRetryLimit = nonNegativeInt(rawRetryLimit);
+    if (flagRetryLimit === null) {
+      return usageError([{ code: "invalid-value", detail: "--retry-limit expects an integer >= 0" }], BUILD_JUDGE_EVIDENCE_USAGE);
+    }
   }
 
   let files;
@@ -564,8 +598,8 @@ function cmdAssemble(values, deps = {}) {
     return 0;
   }
 
-  const rawRetryLimit = values["--retry-limit"];
-  const retryLimit = rawRetryLimit != null && /^\d+$/.test(String(rawRetryLimit)) ? parseInt(rawRetryLimit, 10) : DEFAULT_BUILD_JUDGE_RETRY_LIMIT;
+  // A valid flag wins (nullish coalescing: a flag of 0 must not fall through to config).
+  const retryLimit = flagRetryLimit ?? (deps.resolveBuildJudgeRetryLimit || realResolveBuildJudgeRetryLimit)();
   const dispatchDeps = {
     runReviewCall: deps.runReviewCall || realRunReviewCall,
     judgeDispatchDisposition: deps.judgeDispatchDisposition || realJudgeDispatchDisposition,
@@ -656,10 +690,13 @@ module.exports = {
   realResolveAdversarialBackends,
   realResolveBuildJudgeClock,
   resolveBuildJudgeClock,
+  realResolveBuildJudgeRetryLimit,
+  resolveBuildJudgeRetryLimit,
   reviewCallSpawnOptions,
   reviewCallExitFromError,
   DEFAULT_BUILD_JUDGE_DEADLINE_SECS,
   DEFAULT_BUILD_JUDGE_TIMEOUT_SECS,
+  DEFAULT_BUILD_JUDGE_RETRY_LIMIT,
   BUILD_JUDGE_SPAWN_GRACE_SECS,
   REVIEW_CALL_DEADLINE_EXIT,
 };

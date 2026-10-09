@@ -1,4 +1,7 @@
 // clean-refutation.mjs: the review bench's subset mirror of production's clean-refutation normaliser.
+// The subset guarantee (never clean where production rejects) covers heading-guard bodies only: this
+// mirror does not carry the FAFF-1223 triple-bullet guard, so a bullet-bearing body can read clean here
+// while production rejects it (pinned in test/adversarial-call.test.mjs).
 // Node built-ins only (none needed); kept importable on its own so test/adversarial-call.test.mjs can
 // pin it to production with a parity test, while the kit stays copyable as a directory.
 

@@ -4301,7 +4301,7 @@ test("FAFF-1238 runReviewChain: an indented severity heading before the affirmat
   assert.notEqual(res.content, CANONICAL_NO_FINDINGS);
 });
 
-test("FAFF-1238 review-bench mirror: parity with production over the heading-guard table (one-directional, the mirror is a subset)", () => {
+test("FAFF-1238 review-bench mirror: parity with production over the heading-guard table (one-directional, heading-guard bodies only)", () => {
   for (const [label, content] of FAFF_1238_REJECT) {
     assert.equal(isCleanRefutation(content), false, `mirror rejects: ${label}`);
   }
@@ -4310,6 +4310,12 @@ test("FAFF-1238 review-bench mirror: parity with production over the heading-gua
       assert.equal(normaliseCleanRefutation(content).normalised, true, `mirror true implies production true: ${label}`);
     }
   }
+});
+
+test("FAFF-1238 review-bench mirror: the subset guarantee stops at bullet bodies (no FAFF-1223 bullet guard in the mirror)", () => {
+  const body = "- claim: x\n- evidence: y\nNo QA objection.";
+  assert.equal(isCleanRefutation(body), true, "the mirror reads a bullet-bearing body as clean");
+  assert.equal(normaliseCleanRefutation(body).normalised, false, "production rejects it via the FAFF-1223 bullet guard");
 });
 
 test("FAFF-1238 review-bench mirror: still accepts every keep row whose production form is bare or headed", () => {

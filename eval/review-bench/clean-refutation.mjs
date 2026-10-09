@@ -1,4 +1,4 @@
-// clean-refutation.mjs — the review bench's subset mirror of production's clean-refutation normaliser.
+// clean-refutation.mjs: the review bench's subset mirror of production's clean-refutation normaliser.
 // Node built-ins only (none needed); kept importable on its own so test/adversarial-call.test.mjs can
 // pin it to production with a parity test, while the kit stays copyable as a directory.
 
@@ -18,14 +18,15 @@ export const CLEAN_REFUTATIONS = [
 // FAFF-1154: the affirmation need no longer be the final non-blank line — it is located as the last
 // line equal to an affirmation sentence, and guard-clean prose after it is tolerated; a trailing
 // severity or `## Refutation —` heading after the affirmation still rejects (the trailing twin of the
-// preamble severity guard), mirroring production. Still a subset mirror:
+// preamble guard), mirroring production. Still a subset mirror:
 // only the bare/headed forms move (this file never carried headed+signal/header-wrapped) — a heading
 // directly above the affirmation that isn't this entry's own heading stays unrecognised (production
 // would resolve it to either header-wrapped or a rejection; this mirror has no decorative-header
 // detection, so it conservatively stays "not clean" either way, exactly as before this change). The
-// preamble severity guard below is what stops a preceding genuine finding from being masked as a
-// clean-pass — shape() gives clean-pass precedence over SEV, so without the guard a preambled body
-// carrying a real finding would misclassify here exactly as it would in production without
+// preamble guard below (FAFF-1238: also another lens's `## Refutation —` heading, own heading exempt) is
+// what stops a preceding genuine finding from being masked as a clean-pass — shape() gives clean-pass
+// precedence over SEV, so without the guard a preambled body carrying a real finding would misclassify
+// here exactly as it would in production without
 // normaliseCleanRefutation's own guard. The guard reuses SEVERITY_LIKE_HEADING_RE below (level-agnostic,
 // #{1,6}) rather than the canonical-3-hash SEV — production's own preamble guard is level-agnostic (see
 // review-call.mjs's SEVERITY_LIKE_HEADING_RE), so a `## Critical: …` preamble line (2 hashes) must be
@@ -67,7 +68,7 @@ export function isCleanRefutation(content) {
   else start = affirmationIdx; // bare form — above1 is null or non-heading preamble, tolerated
   for (let i = 0; i < start; i++) {
     if (lines[i].trim() === entry.heading) continue; // the entry's own heading is exempt (exact, full trim)
-    if (isGuardHeading(lines[i])) return false; // preamble guard — never mask a genuine finding or another lens's section
+    if (isGuardHeading(lines[i])) return false; // preamble guard: never mask a genuine finding or another lens's section
   }
   return true;
 }

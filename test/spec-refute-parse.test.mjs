@@ -712,7 +712,7 @@ test("FAFF-1240: gating is identical to the pre-change parser over real-shaped b
       ok: true, outcome: "refuted", objections: [{ severity: "major", claim: true }] },
     { name: "fault: gating section with no claim", body: fixture("### major: t\n- evidence: e\n\ntrailing prose"), lens: "QA",
       ok: false },
-    { name: "fault: claim empty with only closing prose after a blank", body: fixture("### critical: t\n- claim:\n- evidence: e"), lens: "QA",
+    { name: "fault: claim bullet empty, next bullet follows directly", body: fixture("### critical: t\n- claim:\n- evidence: e"), lens: "QA",
       ok: false },
     { name: "observation only with auto-refuted splice", body: fixture("### observation: [auto-refuted] t\n- claim: c\n- spec_anchor: a\n> auto-refuted: x"), lens: "architectural",
       ok: true, outcome: "clear", objections: [{ severity: "observation", claim: true }] },

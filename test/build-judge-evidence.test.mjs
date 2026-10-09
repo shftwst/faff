@@ -195,6 +195,7 @@ const PAD = "this is filler text well past the forty non-whitespace character fl
 const RECON_STDOUT = `requirements_invariants: ${PAD}\nexisting_behaviour: ${PAD}\nvalid_solution_properties: ${PAD}\nundeterminable_facts: ${PAD}`;
 
 const FAKE_CHAIN = [{ provider: "openai", model: "m", host: "http://h" }];
+const FAKE_CLOCK = { deadline: 300, timeout: 90 };
 
 function fakeDepsAlwaysOverturn() {
   return {
@@ -209,6 +210,7 @@ function fakeDepsAlwaysOverturn() {
     },
     judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : "park"),
     resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+    resolveBuildJudgeClock: () => FAKE_CLOCK,
   };
 }
 
@@ -254,6 +256,7 @@ test("cmdAssemble: a Phase-1 reconstruction that fails validation parks the find
       },
       judgeDispatchDisposition: async () => "ruling",
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+      resolveBuildJudgeClock: () => FAKE_CLOCK,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
     assert.equal(code, 0);
@@ -279,6 +282,7 @@ test("cmdAssemble: judgeDispatchDisposition 'park' (a config-fault/malformed exi
       runReviewCall: () => { callCount++; return { code: 1, stdout: "", stderr: "boom" }; },
       judgeDispatchDisposition: async () => "park",
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+      resolveBuildJudgeClock: () => FAKE_CLOCK,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir, "--retry-limit": "2" }, deps));
     assert.equal(code, 0);
@@ -303,6 +307,7 @@ test("cmdAssemble: judgeDispatchDisposition 'retry' (UNREACHABLE/DEADLINE) retri
       runReviewCall: () => { callCount++; return { code: 5, stdout: "", stderr: "unreachable" }; },
       judgeDispatchDisposition: async () => "retry",
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+      resolveBuildJudgeClock: () => FAKE_CLOCK,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir, "--retry-limit": "2" }, deps));
     assert.equal(code, 0);
@@ -334,6 +339,7 @@ test("cmdAssemble: threads --backends-json (the resolved chain) into both phase 
       },
       judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : "park"),
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+      resolveBuildJudgeClock: () => FAKE_CLOCK,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
     assert.equal(code, 0);
@@ -483,4 +489,176 @@ test("faff build-judge-evidence --assemble: an unreadable --dir degrades to a pa
   const r = runCli(["build-judge-evidence", "--assemble", "--dir", "/does/not/exist/anywhere", "--issue", "TEST-1", "--diff", "/dev/null"]);
   assert.equal(r.code, 0, r.stderr);
   assert.equal(JSON.parse(r.stdout).park, true);
+});
+
+// --- FAFF-1244: judge clock resolution, argv threading, spawn backstop ----------------------
+
+const clockOf = (cfg) => bje.resolveBuildJudgeClock(cfg);
+
+test("resolveBuildJudgeClock: absent config resolves the terminal defaults", () => {
+  assert.deepEqual(clockOf({}), { deadline: 480, timeout: 120 });
+  assert.deepEqual(clockOf(null), { deadline: 480, timeout: 120 });
+});
+
+test("resolveBuildJudgeClock: shared adversarial.* tier, then per-consumer build_judge.* wins", () => {
+  assert.deepEqual(clockOf({ adversarial: { deadline: 300, timeout: 90 } }), { deadline: 300, timeout: 90 });
+  assert.deepEqual(
+    clockOf({ adversarial: { deadline: 300, timeout: 90, build_judge: { deadline: 600, timeout: 45 } } }),
+    { deadline: 600, timeout: 45 },
+  );
+});
+
+test("resolveBuildJudgeClock: an invalid per-consumer deadline falls through to the shared tier", () => {
+  for (const bad of [0, -5, "abc", "", 2.5, true]) {
+    const c = clockOf({ adversarial: { deadline: 300, build_judge: { deadline: bad } } });
+    assert.equal(c.deadline, 300, `build_judge.deadline ${JSON.stringify(bad)}`);
+  }
+});
+
+test("resolveBuildJudgeClock: a quoted digit string is accepted", () => {
+  assert.equal(clockOf({ adversarial: { build_judge: { deadline: "600" } } }).deadline, 600);
+});
+
+test("resolveBuildJudgeClock: invalid at both tiers lands on the terminal default; tiers resolve independently", () => {
+  assert.equal(clockOf({ adversarial: { timeout: 0, build_judge: { timeout: "x" } } }).timeout, 120);
+  assert.deepEqual(clockOf({ adversarial: { build_judge: { timeout: 45 } } }), { deadline: 480, timeout: 45 });
+});
+
+test("resolveBuildJudgeClock: adversarial.build_judge as a non-map scalar falls through to the shared tier", () => {
+  assert.deepEqual(
+    clockOf({ adversarial: { deadline: 300, timeout: 90, build_judge: "oops" } }),
+    { deadline: 300, timeout: 90 },
+  );
+});
+
+test("constants: spawn grace and deadline exit match killable-spawn.mjs / review-call.mjs", async () => {
+  const ks = await import("../plugin/skills/faff/bin/lib/killable-spawn.mjs");
+  const rc = await import("../plugin/skills/faffter-dark-adversarial-review/review-call.mjs");
+  assert.equal(bje.BUILD_JUDGE_SPAWN_GRACE_SECS, ks.DEFAULT_GRACE_SECONDS);
+  assert.equal(bje.REVIEW_CALL_DEADLINE_EXIT, rc.EXIT.DEADLINE);
+  assert.equal(bje.REVIEW_CALL_DEADLINE_EXIT, ks.WRAPPER_EXIT.DEADLINE);
+  assert.equal(bje.DEFAULT_BUILD_JUDGE_DEADLINE_SECS, 480);
+  assert.equal(bje.DEFAULT_BUILD_JUDGE_TIMEOUT_SECS, 120);
+});
+
+async function runDispatch(tmp, deps, extra = {}) {
+  const br = join(tmp, "br"); mkdirSync(br);
+  writeFileSync(join(br, "round-1.json"), JSON.stringify({
+    signal: "needs-human",
+    findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }],
+    author_replies: [],
+  }));
+  writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+  return Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": join(tmp, "judge"), ...extra }, deps));
+}
+
+function assertClockArgs(call, clock) {
+  const [args, opts] = call;
+  for (const [flag, val] of [["--timeout", clock.timeout], ["--deadline", clock.deadline]]) {
+    assert.equal(args.filter((a) => a === flag).length, 1, `${flag} appears exactly once`);
+    assert.equal(args[args.indexOf(flag) + 1], String(val));
+  }
+  assert.equal(opts.deadlineSecs, clock.deadline);
+}
+
+const VERDICT_STDOUT = "```faff-contract:build-judge-verdict\n" + JSON.stringify({ finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "" }) + "\n```";
+const isPhase1Args = (args) => args.some((a) => String(a).includes("adjudicate-build-phase1-reconstruct.md"));
+
+test("cmdAssemble: success path passes --timeout/--deadline and opts.deadlineSecs on both phases", async () => {
+  await withTmp(async (tmp) => {
+    const calls = [];
+    const deps = {
+      ...fakeDepsAlwaysOverturn(),
+      runReviewCall: (args, opts) => { calls.push([args, opts]); return isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 0, stdout: VERDICT_STDOUT, stderr: "" }; },
+    };
+    assert.equal(await runDispatch(tmp, deps), 0);
+    assert.equal(calls.length, 2);
+    for (const c of calls) assertClockArgs(c, FAKE_CLOCK);
+  });
+});
+
+test("cmdAssemble: every Phase-1 retry attempt carries the clock flags", async () => {
+  await withTmp(async (tmp) => {
+    const calls = [];
+    const deps = {
+      runReviewCall: (args, opts) => { calls.push([args, opts]); return { code: 5, stdout: "", stderr: "" }; },
+      judgeDispatchDisposition: async (exit) => (exit === 5 ? "retry" : "park"),
+      resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+      resolveBuildJudgeClock: () => ({ deadline: 300, timeout: 90 }),
+    };
+    assert.equal(await runDispatch(tmp, deps, { "--retry-limit": "2" }), 0);
+    assert.equal(calls.length, 3);
+    for (const c of calls) assertClockArgs(c, { deadline: 300, timeout: 90 });
+  });
+});
+
+test("cmdAssemble: every Phase-2 retry attempt carries the clock flags", async () => {
+  await withTmp(async (tmp) => {
+    const calls = [];
+    const deps = {
+      runReviewCall: (args, opts) => {
+        calls.push([args, opts]);
+        return isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 8, stdout: "", stderr: "" };
+      },
+      judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : exit === 8 ? "retry" : "park"),
+      resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+      resolveBuildJudgeClock: () => FAKE_CLOCK,
+    };
+    assert.equal(await runDispatch(tmp, deps, { "--retry-limit": "1" }), 0);
+    const phase2 = calls.filter((c) => !isPhase1Args(c[0]));
+    assert.equal(phase2.length, 2);
+    for (const c of phase2) assertClockArgs(c, FAKE_CLOCK);
+    const ledger = JSON.parse(readFileSync(join(tmp, "judge", "ledger.json"), "utf8"));
+    assert.match(ledger.entries["f-01"].park_cause, /phase-2 dispatch disposition "retry" \(exit 8\)/);
+  });
+});
+
+test("cmdAssemble: the unresolvable-chain path never calls resolveBuildJudgeClock", async () => {
+  await withTmp(async (tmp) => {
+    const deps = {
+      runReviewCall: () => { throw new Error("must not dispatch"); },
+      judgeDispatchDisposition: async () => "ruling",
+      resolveAdversarialBackends: () => ({ error: "unset" }),
+      resolveBuildJudgeClock: () => { throw new Error("clock must not be resolved"); },
+    };
+    assert.equal(await runDispatch(tmp, deps), 0);
+  });
+});
+
+test("reviewCallSpawnOptions: a valid deadline arms the backstop at deadline + grace; otherwise today's options", () => {
+  assert.deepEqual(bje.reviewCallSpawnOptions(480), { encoding: "utf8", timeout: 510000, killSignal: "SIGKILL" });
+  assert.deepEqual(bje.reviewCallSpawnOptions(undefined), { encoding: "utf8" });
+  assert.deepEqual(bje.reviewCallSpawnOptions("300"), { encoding: "utf8", timeout: 330000, killSignal: "SIGKILL" });
+});
+
+test("reviewCallExitFromError: only ETIMEDOUT maps to 8; ENOBUFS and bare signals stay 1; status passes through", () => {
+  assert.equal(bje.reviewCallExitFromError({ code: "ETIMEDOUT", signal: "SIGKILL", status: null }), 8);
+  assert.equal(bje.reviewCallExitFromError({ code: "ENOBUFS", signal: "SIGTERM", status: null }), 1);
+  assert.equal(bje.reviewCallExitFromError({ signal: "SIGTERM", status: null }), 1);
+  assert.equal(bje.reviewCallExitFromError({ status: 7 }), 7);
+  assert.equal(bje.reviewCallExitFromError({ status: 8 }), 8);
+});
+
+test("realRunReviewCall: wires the spawn options and exit mapping through the opts.exec seam", () => {
+  let seen = null;
+  const ok = bje.realRunReviewCall(["--x"], { deadlineSecs: 300, exec: (file, argv, options) => { seen = options; return "out"; } });
+  assert.deepEqual(seen, bje.reviewCallSpawnOptions(300));
+  assert.deepEqual(ok, { code: 0, stdout: "out", stderr: "" });
+
+  const writes = [];
+  const realWrite = process.stderr.write;
+  process.stderr.write = (s) => { writes.push(String(s)); return true; };
+  let killed, overflow;
+  try {
+    killed = bje.realRunReviewCall([], { deadlineSecs: 300, exec: () => { throw Object.assign(new Error("t"), { code: "ETIMEDOUT", signal: "SIGKILL", status: null }); } });
+    const afterKill = writes.length;
+    overflow = bje.realRunReviewCall([], { deadlineSecs: 300, exec: () => { throw Object.assign(new Error("b"), { code: "ENOBUFS", signal: "SIGTERM", status: null }); } });
+    assert.equal(writes.length, afterKill, "no stderr line for ENOBUFS");
+  } finally {
+    process.stderr.write = realWrite;
+  }
+  assert.equal(killed.code, 8);
+  assert.equal(writes.length, 1);
+  assert.match(writes[0], /review-call still alive at deadline\(300s\)\+grace\(30s\); killed, treated as exit 8/);
+  assert.equal(overflow.code, 1);
 });

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1244",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d8ff4d79682670cf5ca59293202d85e61dcc49d1621f5da08150d3ad56879733",
+    "branch": "FAFF-1244-build-judge-deadline",
+    "pushed_at": "2026-10-09T20:39:19.477Z"
+  },
+  "updated_at": "2026-10-09T20:39:19.477Z"
+}

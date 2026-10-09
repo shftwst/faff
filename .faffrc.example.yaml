@@ -455,7 +455,8 @@ prdr:
 # and its own timeout, so a prose-challenge altitude and a diff-challenge altitude can run
 # structurally different (or cheaper) models. UNSET per-consumer keys resolve BYTE-IDENTICALLY
 # to the shared adversarial.* chain / timeout — zero change for existing configs. Only the chain
-# (refs) and timeout split per-consumer; deadline and requires stay GLOBAL. e.g.:
+# (refs) and timeout split per-consumer; `requires` stays GLOBAL, and `deadline` splits for
+# spec_review (FAFF-1054) and build_judge (FAFF-1244). e.g.:
 #   adversarial:
 #     refs: [nvidia-glm, studio-ollama]   # the shared default chain (any unset consumer falls back here)
 #     requires: local                     # GLOBAL residency gate — applies to every consumer's refs
@@ -464,6 +465,14 @@ prdr:
 #       timeout: 240                      # OPTIONAL — overrides adversarial.timeout for this consumer only
 #     code_review:
 #       refs: [nvidia-glm, studio-ollama] # diff-altitude challenge — its own chain
+#     build_judge:                        # the build-review would-be-park judge (FAFF-1244)
+#       refs: [nvidia-glm]                # its own chain
+#       deadline: 480                     # TOTAL seconds per review-call dispatch (each of the judge's two phases, every retry)
+#       timeout: 120                      # seconds for ONE stream attempt
+#       # Fallback: adversarial.build_judge.* -> adversarial.* -> 480 / 120.
+#       # Worst case per case: (retry limit + 1) x 2 phases x deadline (about 48 minutes at the defaults).
+#       # At the defaults that per-case worst case exceeds graft's 600s foreground call (FAFF-1246);
+#       # until that lands, lower build_judge.deadline so a stuck backend parks inside the call.
 #     # prdr_review: { refs: [...] }      # any consumer name; unset => shared chain, byte-identical
 #   # NB a consumer name must NOT reuse a reserved adversarial field name (refs / backends /
 #   #    fallbacks / host / provider / model / api_key_env / reasoning_off / reasoning_effort /

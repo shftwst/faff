@@ -37,7 +37,7 @@ const { roundFilesInDir } = require("./spec-review-convergence");
 const { standingCriticalIds } = require("./build-review-churn");
 const { assembleBuildCaseFiles, admitBuildRollup } = require("./build-judge-casefile");
 const { parseVerdictBlock, validateReconstruction, imperativeScrub } = require("./adversarial-judge-scrub");
-const { findRoot } = require("./shared-infra");
+const { findRoot, dig } = require("./shared-infra");
 const { loadConfig } = require("./config");
 const { assembleAdversarialBackends } = require("./adversarial-backends");
 
@@ -66,16 +66,77 @@ function runFaff(args) {
   }
 }
 
+// Judge clock defaults and the spawn backstop (FAFF-1244). The deadline default matches code
+// review's `adversarial.deadline -d 480`; the grace mirrors killable-spawn.mjs
+// DEFAULT_GRACE_SECONDS and the exit mirrors review-call EXIT.DEADLINE / WRAPPER_EXIT.DEADLINE
+// (both pinned by a parity test, since this CJS module cannot import the ESM sources).
+const DEFAULT_BUILD_JUDGE_DEADLINE_SECS = 480;
+const DEFAULT_BUILD_JUDGE_TIMEOUT_SECS = 120;
+const BUILD_JUDGE_SPAWN_GRACE_SECS = 30;
+const REVIEW_CALL_DEADLINE_EXIT = 8;
+
+// positiveInt(v) -> integer > 0 | null: a YAML integer, or a string of ASCII digits, above zero.
+// Floats, "abc", "", 0, negatives, booleans, null and objects are all "not valid at this tier".
+function positiveInt(v) {
+  if (typeof v === "number" && Number.isInteger(v) && v > 0) return v;
+  if (typeof v === "string") {
+    const t = v.trim();
+    if (/^\d+$/.test(t) && parseInt(t, 10) > 0) return parseInt(t, 10);
+  }
+  return null;
+}
+
+// resolveBuildJudgeClock(cfg) -> { deadline, timeout } (whole seconds, both > 0). Each value walks
+// adversarial.build_judge.* -> adversarial.* -> terminal default and takes the first valid tier; an
+// invalid value at one tier falls through to the next. Pure: cfg null / non-object yields defaults.
+function resolveBuildJudgeClock(cfg) {
+  const get = (key) => dig(cfg, key);
+  const deadline = positiveInt(get("adversarial.build_judge.deadline"))
+    ?? positiveInt(get("adversarial.deadline"))
+    ?? DEFAULT_BUILD_JUDGE_DEADLINE_SECS;
+  const timeout = positiveInt(get("adversarial.build_judge.timeout"))
+    ?? positiveInt(get("adversarial.timeout"))
+    ?? DEFAULT_BUILD_JUDGE_TIMEOUT_SECS;
+  return { deadline, timeout };
+}
+
+// realResolveBuildJudgeClock() -> { deadline, timeout }: the same config load as
+// realResolveAdversarialBackends. Injectable via cmdAssemble's deps.resolveBuildJudgeClock.
+function realResolveBuildJudgeClock() {
+  const [cfg] = loadConfig(findRoot());
+  return resolveBuildJudgeClock(cfg);
+}
+
+// reviewCallSpawnOptions(deadlineSecs?) -> execFileSync options. A valid deadline arms the spawn
+// backstop strictly AFTER review-call's own --deadline (deadline + grace, FAFF-793 rule), so the
+// healthy path never reaches it; otherwise today's options, unchanged.
+function reviewCallSpawnOptions(deadlineSecs) {
+  if (positiveInt(deadlineSecs) === null) return { encoding: "utf8" };
+  return { encoding: "utf8", timeout: (deadlineSecs + BUILD_JUDGE_SPAWN_GRACE_SECS) * 1000, killSignal: "SIGKILL" };
+}
+
+// reviewCallExitFromError(e) -> exit code. Only the backstop kill (code ETIMEDOUT) maps to the
+// deadline exit; ENOBUFS, an external signal or a spawn failure keep the old exit 1 (park).
+function reviewCallExitFromError(e) {
+  if (e && e.code === "ETIMEDOUT") return REVIEW_CALL_DEADLINE_EXIT;
+  if (e && typeof e.status === "number") return e.status;
+  return 1;
+}
+
 // The REAL review-call.mjs transport — a thin execFileSync wrapper. Injectable (see
 // dispatchJudgeRulings' `deps` parameter) so tests never spawn a real subprocess or hit a
-// network backend.
-function realRunReviewCall(args) {
+// network backend. opts.deadlineSecs arms the spawn backstop; opts.exec is a test seam.
+function realRunReviewCall(args, opts = {}) {
+  const exec = opts.exec || execFileSync;
   try {
-    const stdout = execFileSync("node", [REVIEW_CALL_MJS, ...args], { encoding: "utf8" });
+    const stdout = exec("node", [REVIEW_CALL_MJS, ...args], reviewCallSpawnOptions(opts.deadlineSecs));
     return { code: 0, stdout, stderr: "" };
   } catch (e) {
+    if (e && e.code === "ETIMEDOUT") {
+      process.stderr.write(`faff build-judge-evidence: review-call still alive at deadline(${opts.deadlineSecs}s)+grace(${BUILD_JUDGE_SPAWN_GRACE_SECS}s); killed, treated as exit 8 (FAFF-1244)\n`);
+    }
     return {
-      code: typeof e.status === "number" ? e.status : 1,
+      code: reviewCallExitFromError(e),
       stdout: e.stdout != null ? String(e.stdout) : "",
       stderr: e.stderr != null ? String(e.stderr) : "",
     };
@@ -196,7 +257,9 @@ function writeTmp(tmpDir, name, content) {
 //   cause } — runs Phase 1 (bounded retry on UNREACHABLE/DEADLINE) then, on a valid
 // reconstruction, Phase 2 (same bounded retry), returning a park cause on any other disposition.
 async function dispatchOne(caseId, caseFile, tmpDir, deps) {
-  const { runReviewCall, judgeDispatchDisposition, retryLimit } = deps;
+  const { runReviewCall, judgeDispatchDisposition, retryLimit, clock } = deps;
+  const clockArgs = ["--timeout", String(clock.timeout), "--deadline", String(clock.deadline)];
+  const runOpts = { deadlineSecs: clock.deadline };
   const backendsArgs = deps.backendsJsonPath ? ["--backends-json", deps.backendsJsonPath] : [];
   const diffFile = writeTmp(tmpDir, `${caseId}-diff.txt`, caseFile.reconstruction_context.relevant_diff || "");
 
@@ -212,8 +275,8 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
     phase1Res = runReviewCall([
       "--system", PHASE1_PROMPT, "--diff", diffFile, "--context", reconContextFile,
       "--expect", "contract",
-      ...backendsArgs,
-    ]);
+      ...backendsArgs, ...clockArgs,
+    ], runOpts);
     const disp = await judgeDispatchDisposition(phase1Res.code);
     if (disp === "retry") continue;
     break;
@@ -241,8 +304,8 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
     phase2Res = runReviewCall([
       "--system", PHASE2_PROMPT, "--diff", diffFile, "--context", phase2ContextFile,
       "--expect", "contract",
-      ...backendsArgs,
-    ]);
+      ...backendsArgs, ...clockArgs,
+    ], runOpts);
     const disp = await judgeDispatchDisposition(phase2Res.code);
     if (disp === "retry") continue;
     break;
@@ -455,6 +518,7 @@ function cmdAssemble(values, deps = {}) {
     judgeDispatchDisposition: deps.judgeDispatchDisposition || realJudgeDispatchDisposition,
     retryLimit,
     backendsChain: backendsResult.chain,
+    clock: (deps.resolveBuildJudgeClock || realResolveBuildJudgeClock)(),
   };
 
   return dispatchJudgeRulings(ledger, caseFiles, outDir, dispatchDeps).then((finalLedger) => {
@@ -522,4 +586,12 @@ module.exports = {
   realRunReviewCall,
   realJudgeDispatchDisposition,
   realResolveAdversarialBackends,
+  realResolveBuildJudgeClock,
+  resolveBuildJudgeClock,
+  reviewCallSpawnOptions,
+  reviewCallExitFromError,
+  DEFAULT_BUILD_JUDGE_DEADLINE_SECS,
+  DEFAULT_BUILD_JUDGE_TIMEOUT_SECS,
+  BUILD_JUDGE_SPAWN_GRACE_SECS,
+  REVIEW_CALL_DEADLINE_EXIT,
 };

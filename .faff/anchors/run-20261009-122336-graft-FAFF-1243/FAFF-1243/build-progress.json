@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1243",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a23f617b9f5659845b6290e0ddcc1a76ad22f901dfee34026968aa5591f02255",
+    "branch": "FAFF-1243-refutation-spec-done-lists",
+    "pushed_at": "2026-10-09T13:26:51.469Z"
+  },
+  "updated_at": "2026-10-09T13:26:51.469Z"
+}

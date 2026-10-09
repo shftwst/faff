@@ -588,6 +588,8 @@ The write mirrors Step 5's mechanism exactly (live status re-read, agent-mediate
 
 **Anti-patterns:** introducing a `faff status set` CLI (status writes stay agent-mediated throughout faff — Step 5, this In Review transition, tidy's sweep; the merge-time `→ Done` is forge-driven via the PR's `Closes` keyword, not an agent write; no status-set verb exists and this doesn't add one); failing the build when the tracker lacks an In Review state (it is a forward-progress nicety, not a merge precondition — a missing state degrades to a no-op).
 
+_**Governed In Review tracker-write record (on a governed run).**_ When the governed-run check reports governed, bracket the step-4 `save_issue` write, per the *Governed tracker-write record* rule: `faff effects declare --run "$(basename "$run_dir")" --issue <ISSUE-XX> --step tracker-write` piping `[{kind:"tracker-write",target:"<ISSUE-XX>:In Progress->In Review",reversible:true}]` **before** the `save_issue` write, then `faff effects observe --run "$(basename "$run_dir")" --issue <ISSUE-XX> --step tracker-write` with the same payload **after** it succeeds. Fires only on the step-4 write branch, never on the step-2 or step-3 no-op branches. Record-only — DETECTED, never prevented: a non-zero exit from either is logged and the status write proceeds, never a precondition. Skip the whole bracket on an ungoverned run, and when there is no run substrate.
+
 Proceed to Step 10.
 
 ### Discovered scope (record, never file)

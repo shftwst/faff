@@ -205,8 +205,9 @@ may run it. Follow these six points exactly.
 
    **The one sanctioned narrowing is `--kind` (FAFF-712), for an oracle-only change.** When a change
    moves the *scoring* of a couple of kinds without touching any case id (correcting an oracle, like
-   FAFF-615), `--resume` can't help — it decides staleness by case-id changes and would skip exactly the
-   kinds you want re-run — and a full sweep re-measures ~27 unchanged kinds to fix two rows. Instead
+   FAFF-615, or editing a fixture's text in place, like FAFF-1243), `--resume` can't help — it decides
+   staleness by case-id changes and would skip exactly the kinds you want re-run — and a full sweep
+   re-measures ~27 unchanged kinds to fix two rows. Instead
    scope the sweep to the affected kinds; it folds their fresh rows into the existing baseline and leaves
    every other row byte-identical:
    ```sh

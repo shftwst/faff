@@ -258,26 +258,37 @@ test("FAFF-319 meta names the superseded FAFF-321 artifact", () => {
 });
 
 // FAFF-615 — the entries resolved against the operator's sweep carry a `resolved_by` field, while
-// `triage_ticket` stays at first-author provenance (Decision C). The guard is BIDIRECTIONAL and pinned
-// to the FAFF-615 extension record's explicit case list, so it can't be built toothless: the class
-// alone can't say which entries may carry the field (the flips land on both `oracle-defect` and
-// `sound`, and 31 other `sound` entries carry none). The extension list is the concrete anchor.
-test("FAFF-615 resolved_by is the literal ticket, cites the run, and matches the extension case list exactly", () => {
-  const rec = (meta.extensions || []).find((r) => r.ticket === "FAFF-615");
-  assert.ok(rec, "meta.extensions must hold a FAFF-615 record");
-  const listed = new Set(rec.resolved_case_ids || []);
-  assert.ok(listed.size > 0, "the FAFF-615 record must list a non-empty resolved_case_ids");
+// `triage_ticket` stays at first-author provenance (Decision C). FAFF-1243 added the second resolution
+// (refutation-spec-006, settled against the GLM 5.3 spike captures), so the guard is a small table.
+// It is BIDIRECTIONAL and pinned to each extension record's explicit case list, so it can't be built
+// toothless: the class alone can't say which entries may carry the field (the flips land on both
+// `oracle-defect` and `sound`, and most `sound` entries carry none). The extension list is the anchor.
+const RESOLUTIONS = {
+  "FAFF-615": /20260803-012238/,
+  "FAFF-1243": /2026-10-08-glm-5-3-refutation/,
+};
 
-  const carrying = new Set();
+test("FAFF-615/FAFF-1243 resolved_by names a known resolution, cites its evidence, and matches that extension's case list exactly", () => {
+  const listedBy = {};
+  for (const ticket of Object.keys(RESOLUTIONS)) {
+    const rec = (meta.extensions || []).find((r) => r.ticket === ticket);
+    assert.ok(rec, `meta.extensions must hold a ${ticket} record`);
+    listedBy[ticket] = new Set(rec.resolved_case_ids || []);
+    assert.ok(listedBy[ticket].size > 0, `the ${ticket} record must list a non-empty resolved_case_ids`);
+  }
+
+  const carryingBy = Object.fromEntries(Object.keys(RESOLUTIONS).map((k) => [k, new Set()]));
   for (const e of entries) {
     if (e.resolved_by == null) continue;
-    carrying.add(e.case_id);
-    assert.equal(e.resolved_by, "FAFF-615", `entry ${e.case_id}: resolved_by must be the literal "FAFF-615"`);
-    assert.ok(/20260803-012238/.test(e.rationale || ""), `entry ${e.case_id}: a resolved_by entry must cite run 20260803-012238 in its rationale`);
+    assert.ok(Object.hasOwn(RESOLUTIONS, e.resolved_by), `entry ${e.case_id}: resolved_by must be one of ${Object.keys(RESOLUTIONS).join(", ")}, got ${e.resolved_by}`);
+    carryingBy[e.resolved_by].add(e.case_id);
+    assert.ok(RESOLUTIONS[e.resolved_by].test(e.rationale || ""), `entry ${e.case_id}: a ${e.resolved_by} entry must cite its evidence (${RESOLUTIONS[e.resolved_by]}) in its rationale`);
   }
-  assert.ok(
-    setEq(carrying, listed),
-    `entries carrying resolved_by must equal the FAFF-615 extension list exactly; ` +
-      `carrying {${[...carrying].join(", ")}}, listed {${[...listed].join(", ")}}`,
-  );
+  for (const ticket of Object.keys(RESOLUTIONS)) {
+    assert.ok(
+      setEq(carryingBy[ticket], listedBy[ticket]),
+      `entries carrying resolved_by ${ticket} must equal its extension list exactly; ` +
+        `carrying {${[...carryingBy[ticket]].join(", ")}}, listed {${[...listedBy[ticket]].join(", ")}}`,
+    );
+  }
 });

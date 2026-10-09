@@ -2,7 +2,7 @@
   "id": "refutation-spec-009",
   "kind": "refutation-spec",
   "fixture": {
-    "spec": "WHY: the merge floor should only pass when the change was validated against its spec by a code-blind judge. WHAT: a `code_blind` attestation on the holdout verdict. HOW: the evaluator judges the running feature and, at the end of its own run, sets `code_blind: true` on the verdict it emits; the merge gate reads that flag and, when true, treats the verdict as a trustworthy code-blind judgement. DONE:\n## Scenarios\n- an evaluator emits a verdict with `code_blind: true`; the merge gate accepts it as code-blind\n- a verdict with `code_blind: false` is rejected"
+    "spec": "WHY: the merge floor should only pass when the change was validated against its spec by a code-blind judge. WHAT: a `code_blind` attestation on the holdout verdict. HOW: the evaluator judges the running feature and, at the end of its own run, sets `code_blind: true` on the verdict it emits; the merge gate reads that flag and, when true, treats the verdict as a trustworthy code-blind judgement.\n## Scenarios\n- an evaluator emits a verdict with `code_blind: true`; the merge gate accepts it as code-blind\n- a verdict with `code_blind: false` is rejected\n\n## DONE\n- [ ] A verdict the evaluator emits with `code_blind: true` is accepted by the merge gate as code-blind\n- [ ] A verdict with `code_blind: false` is rejected by the merge gate"
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {

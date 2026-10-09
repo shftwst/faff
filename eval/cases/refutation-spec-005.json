@@ -2,7 +2,7 @@
   "id": "refutation-spec-005",
   "kind": "refutation-spec",
   "fixture": {
-    "spec": "WHY: `faff eligible` has no machine-readable output. WHAT: add a --json flag. HOW: mirror the existing --json branch in `faff next` — print the verdict object instead of the human line; no other behaviour change. DONE:\n## Scenarios\n- `faff eligible --label faff-automate --json` prints {\"eligible\":true}\n- an unknown flag exits 2\nUnit test in test/eligible.test.mjs mirroring next's --json test."
+    "spec": "WHY: `faff eligible` has no machine-readable output. WHAT: add a --json flag. HOW: mirror the existing --json branch in `faff next` — print the verdict object instead of the human line; no other behaviour change.\n## Scenarios\n- `faff eligible --label faff-automate --json` prints {\"eligible\":true}\n- an unknown flag exits 2\nUnit test in test/eligible.test.mjs mirroring next's --json test.\n\n## DONE\n- [ ] `faff eligible --label faff-automate --json` prints {\"eligible\":true}\n- [ ] `faff eligible` with an unknown flag exits 2\n- [ ] test/eligible.test.mjs has a --json test mirroring next's --json test, and it passes"
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {

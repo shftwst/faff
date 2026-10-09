@@ -119,19 +119,16 @@ function buildSpecHeadingIndex(specText) {
   return index;
 }
 
-// FAFF-1240: resolve an anchor slug to an index key. An exact key always wins. Otherwise a key binds
-// when it equals the anchor once a leading "<digits>-" is removed from both sides, and only when
-// exactly one distinct key matches. That covers a refuter dropping the section number ("open-questions"
-// for "7-open-questions") and a stored numbered anchor surviving a renumber ("7-open-questions" after
-// the heading became "8. Open questions"). None or several: "" (unresolved, never a fault; FAFF-943).
+// FAFF-1240: resolve an anchor slug to an index key. An exact key always wins. Otherwise, a numbered
+// heading whose slug equals the anchor once its leading "<digits>-" is removed (the refuter dropped
+// the section number: "open-questions" for "7-open-questions") binds only when exactly one distinct
+// key matches. None or several: "" (the anchor stays unresolved, never a fault; FAFF-943).
 function resolveAnchorKey(index, anchorSlug) {
   if (!anchorSlug) return "";
   if (index.has(anchorSlug)) return anchorSlug;
-  const bare = (slug) => slug.replace(/^\d+-/, "");
-  const want = bare(anchorSlug);
   const candidates = [];
   for (const key of index.keys()) {
-    if (bare(key) === want) candidates.push(key);
+    if (/^\d+-/.test(key) && key.replace(/^\d+-/, "") === anchorSlug) candidates.push(key);
   }
   return candidates.length === 1 ? candidates[0] : "";
 }

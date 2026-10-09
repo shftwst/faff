@@ -495,13 +495,6 @@ test("FAFF-1240 deriveArgumentB: a number-dropped anchor binds the one numbered 
   assert.equal(r.resolved_slug, "7-open-questions-and-assumptions");
 });
 
-test("FAFF-1240 deriveArgumentB: a stored numbered anchor still binds after the section is renumbered", () => {
-  const spec = "# T\n\n## 8. OPEN QUESTIONS AND ASSUMPTIONS\n\n**Chosen:** keep it.\n";
-  const r = cf.deriveArgumentB(spec, "7-open-questions-and-assumptions", "redispatch");
-  assert.equal(r.source, "orchestrator:chosen");
-  assert.equal(r.resolved_slug, "8-open-questions-and-assumptions");
-});
-
 test("FAFF-1240 deriveArgumentB: a numbered anchor never binds a heading with a different or missing number", () => {
   for (const spec of ["# T\n\n## Out of scope\n\nx\n", "# T\n\n## 8. Out of scope\n\nx\n"]) {
     const r = cf.deriveArgumentB(spec, "2-out-of-scope", "assemble");

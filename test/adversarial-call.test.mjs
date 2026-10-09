@@ -6,6 +6,7 @@ import { writeFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import http from "node:http";
 import {
   assembleUserMessage,
   runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
@@ -25,6 +26,7 @@ import {
   trimContextFiles, trimOneFile, parseDiffTouched, elisionMarker, pathsMatch,
   DEFAULT_CONTEXT_TRIM_BYTES, DEFAULT_MIN_FILE_TRIM_BYTES, DEFAULT_TRIM_WINDOW,
   DEFAULT_TRIM_HEAD_LINES, DEFAULT_MAX_ANCHOR_LINES, DEFAULT_RETAINED_CEILING,
+  EXIT_BACKSTOP_GRACE_MS, armExitBackstop, runCli,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import * as ReviewCallModule from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import { BULLET_RE } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
@@ -4322,4 +4324,227 @@ test("FAFF-1238 review-bench mirror: still accepts every keep row whose producti
   for (const [label, content, , form] of FAFF_1238_KEEP) {
     if (form === "bare" || form === "headed") assert.equal(isCleanRefutation(content), true, label);
   }
+});
+
+// --- FAFF-1239: per-element cancellation, signal threading, exit backstop ---
+
+const FAFF_1239_OK_SSE = 'data: {"choices":[{"delta":{"content":"### observation: no findings"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n';
+
+// A 127.0.0.1 server: GET /v1/models lists `model` (or never answers when modelsHang); POST
+// /v1/chat/completions follows `onPost`. Records when each request's response is closed early.
+async function faff1239Server({ model = "m", modelsHang = false, onPost }) {
+  const events = { modelsClosed: false, postClosed: false, postSeen: false };
+  const server = http.createServer((req, res) => {
+    if (req.method === "GET") {
+      res.on("close", () => { if (!res.writableFinished) events.modelsClosed = true; });
+      if (!modelsHang) { res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ data: [{ id: model }] })); }
+      return;
+    }
+    events.postSeen = true;
+    res.on("close", () => { if (!res.writableFinished) events.postClosed = true; });
+    req.resume();
+    onPost(req, res);
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const host = `http://127.0.0.1:${server.address().port}/v1`;
+  const close = () => new Promise((r) => { server.closeAllConnections(); server.close(r); });
+  return { host, events, close };
+}
+
+const faff1239Sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+test("FAFF-1239 runReviewChain: element 0's signal aborts with 'chain slice exhausted', element 1's after its win", async () => {
+  const chain = [
+    { provider: "openai", model: "a", host: "https://a/v1", hostSource: "config" },
+    { provider: "openai", model: "b", host: "https://b/v1", hostSource: "config" },
+  ];
+  const signals = [];
+  const runReviewFn = (opts) => {
+    signals.push(opts.signal);
+    if (opts.host === "https://a/v1") return new Promise(() => {});
+    return Promise.resolve({ status: "ok", content: "### observation: no findings" });
+  };
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 200, log: () => {} });
+  assert.equal(r.exit, EXIT.OK);
+  assert.equal(signals[0].aborted, true);
+  assert.equal(signals[0].reason.message, "chain slice exhausted");
+  assert.equal(signals[1].aborted, true);
+  assert.equal(signals[1].reason.message, "chain element settled");
+  for (const sig of signals) assert.doesNotMatch(sig.reason.message, /timed out/);
+});
+
+test("FAFF-1239 runReviewChain: with no totalDeadlineMs the serving element's signal is aborted when the chain returns", async () => {
+  let sig;
+  const runReviewFn = async (opts) => { sig = opts.signal; return { status: "ok", content: "### observation: no findings" }; };
+  const r = await runReviewChain([{ provider: "openai", model: "a", host: "https://a/v1", hostSource: "config" }], { system: "s", user: "u", runReviewFn, log: () => {} });
+  assert.equal(r.exit, EXIT.OK);
+  assert.equal(sig.aborted, true);
+  assert.equal(sig.reason.message, "chain element settled");
+});
+
+for (const [label, firstByteMs] of [["no first-byte window", undefined], ["linked first-byte window", 60000]]) {
+  test(`FAFF-1239 runReview: aborting the signal destroys a hung real stream and resolves quickly (${label})`, async () => {
+    const srv = await faff1239Server({ onPost: (_req, res) => { res.writeHead(200, { "content-type": "text/event-stream" }); res.write(": hi\n\n"); } });
+    try {
+      const ac = new AbortController();
+      setTimeout(() => ac.abort(new Error("chain slice exhausted")), 100);
+      const t0 = Date.now();
+      const r = await runReview({ host: srv.host, model: "m", system: "s", user: "u", timeoutMs: 30000, firstByteMs, signal: ac.signal });
+      assert.notEqual(r.status, "ok");
+      assert.ok(Date.now() - t0 < 1000, `resolved in ${Date.now() - t0}ms`);
+      await faff1239Sleep(50);
+      assert.equal(srv.events.postClosed, true, "server saw the request close");
+    } finally { await srv.close(); }
+  });
+}
+
+test("FAFF-1239 streamWithFirstByte: a pre-aborted outer signal hands streamFn an already-aborted opts.signal", async () => {
+  const ac = new AbortController();
+  ac.abort(new Error("chain slice exhausted"));
+  let seen;
+  const streamFn = async (...args) => { seen = args; return "X"; };
+  await streamWithFirstByte(streamFn, "http://h/x", "b", 1000, {}, 60000, ac.signal);
+  assert.equal(seen[4].signal.aborted, true);
+  assert.equal(seen[4].signal.reason.message, "chain slice exhausted");
+});
+
+test("FAFF-1239 streamWithFirstByte: no window, a signal alone yields a fifth { signal } argument; neither yields four", async () => {
+  const ac = new AbortController();
+  let seen;
+  const streamFn = async (...args) => { seen = args; return "X"; };
+  await streamWithFirstByte(streamFn, "http://h/x", "b", 1000, {}, undefined, ac.signal);
+  assert.equal(seen.length, 5);
+  assert.equal(seen[4].signal, ac.signal);
+  await streamWithFirstByte(streamFn, "http://h/x", "b", 1000, {}, undefined, undefined);
+  assert.equal(seen.length, 4);
+});
+
+test("FAFF-1239 streamWithFirstByte: the outer-signal listener is removed once the stream settles; a breach aborts with 'first-byte breach'", async () => {
+  const ac = new AbortController();
+  let adds = 0, removes = 0;
+  const add = ac.signal.addEventListener.bind(ac.signal);
+  const rem = ac.signal.removeEventListener.bind(ac.signal);
+  ac.signal.addEventListener = (...a) => { adds++; return add(...a); };
+  ac.signal.removeEventListener = (...a) => { removes++; return rem(...a); };
+  await streamWithFirstByte(async () => "X", "http://h/x", "b", 1000, {}, 60000, ac.signal);
+  await faff1239Sleep(5);
+  assert.equal(adds, 1);
+  assert.equal(removes, 1);
+  let inner;
+  const hang = (_u, _b, _t, _h, opts) => { inner = opts.signal; return new Promise((_res, rej) => opts.signal.addEventListener("abort", () => setImmediate(() => rej(new Error("destroyed"))))); };
+  const hold = setTimeout(() => {}, 1000);   // the breach timer is unref'd; keep the loop open for it
+  try { await assert.rejects(streamWithFirstByte(hang, "http://h/x", "b", 1000, {}, 20), isFirstByteBreach); }
+  finally { clearTimeout(hold); }
+  assert.equal(inner.reason.message, "first-byte breach");
+  assert.doesNotMatch(inner.reason.message, /timed out/);
+});
+
+test("FAFF-1239 runReview: aborting during the preflight GET destroys it and resolves 'unreachable'", async () => {
+  const srv = await faff1239Server({ modelsHang: true, onPost: () => {} });
+  try {
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(new Error("chain slice exhausted")), 100);
+    const t0 = Date.now();
+    const r = await runReview({ host: srv.host, model: "m", system: "s", user: "u", timeoutMs: 30000, signal: ac.signal });
+    assert.equal(r.status, "unreachable");
+    assert.ok(Date.now() - t0 < 1000);
+    await faff1239Sleep(50);
+    assert.equal(srv.events.modelsClosed, true, "server saw the preflight request close");
+    assert.doesNotMatch(r.note, /timed out/);
+  } finally { await srv.close(); }
+});
+
+test("FAFF-1239 realStream/realGet: listeners are removed on settle and a later abort destroys nothing", async () => {
+  const srv = await faff1239Server({ onPost: (_req, res) => { res.writeHead(200, { "content-type": "text/event-stream" }); res.end(FAFF_1239_OK_SSE); } });
+  try {
+    const ac = new AbortController();
+    let adds = 0, removes = 0;
+    const add = ac.signal.addEventListener.bind(ac.signal);
+    const rem = ac.signal.removeEventListener.bind(ac.signal);
+    ac.signal.addEventListener = (t, ...a) => { if (t === "abort") adds++; return add(t, ...a); };
+    ac.signal.removeEventListener = (t, ...a) => { if (t === "abort") removes++; return rem(t, ...a); };
+    const r = await runReview({ host: srv.host, model: "m", system: "s", user: "u", timeoutMs: 30000, signal: ac.signal });
+    assert.equal(r.status, "ok");
+    assert.ok(adds >= 2, "preflight and stream each linked the signal");
+    assert.equal(removes, adds, "every transport listener was removed on settle");
+    ac.abort(new Error("chain element settled"));
+    await faff1239Sleep(50);
+    assert.equal(srv.events.postClosed, false, "no reset reached the server");
+    assert.equal(srv.events.modelsClosed, false);
+  } finally { await srv.close(); }
+});
+
+test("FAFF-1239 preflightOpenAi: getFn gets three arguments without a signal, four with one", async () => {
+  const seen = [];
+  const getFn = async (...args) => { seen.push(args); return JSON.stringify({ data: [{ id: "m" }] }); };
+  await preflightOpenAi({ host: "http://h/v1", model: "m", getFn });
+  const ac = new AbortController();
+  await preflightOpenAi({ host: "http://h/v1", model: "m", getFn, signal: ac.signal });
+  assert.equal(seen[0].length, 3);
+  assert.equal(seen[1].length, 4);
+  assert.equal(seen[1][3].signal, ac.signal);
+});
+
+test("FAFF-1239 runReview: an abort during the transient-retry backoff ends the loop with no further streamFn call", async () => {
+  let calls = 0;
+  const err = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+  const streamFn = async () => { calls++; throw err; };
+  const getFn = async () => JSON.stringify({ data: [{ id: "m" }] });
+  const ac = new AbortController();
+  setTimeout(() => ac.abort(new Error("chain slice exhausted")), 50);
+  const t0 = Date.now();
+  const r = await runReview({ host: "http://h/v1", model: "m", system: "s", user: "u", getFn, streamFn, timeoutMs: 30000, signal: ac.signal });
+  assert.equal(r.status, "transport-failed");
+  assert.equal(calls, 1);
+  assert.ok(Date.now() - t0 < 500, `resolved in ${Date.now() - t0}ms`);
+});
+
+test("FAFF-1239 armExitBackstop: fires once after the grace with a loud line, exits with the code, timer is unref'd", async () => {
+  assert.equal(EXIT_BACKSTOP_GRACE_MS, 2000);
+  const writes = [], exits = [];
+  const hold = setTimeout(() => {}, 1000);
+  const t = armExitBackstop(0, {
+    graceMs: 20,
+    write: (s) => writes.push(s),
+    exit: (c) => exits.push(c),
+    flush: (cb) => cb(),
+    activeResources: () => ["TCPSocketWrap", "Timeout"],
+  });
+  try {
+    assert.equal(t.hasRef(), false);
+    await faff1239Sleep(100);
+  } finally { clearTimeout(hold); }
+  assert.equal(writes.length, 1);
+  assert.ok(writes[0].startsWith("review-call: process still alive 20ms after main returned exit 0"));
+  assert.ok(writes[0].includes("leaked handle(s): TCPSocketWrap, Timeout"));
+  assert.deepEqual(exits, [0]);
+});
+
+test("FAFF-1239 armExitBackstop: an empty or throwing resource probe reports 'unknown'", async () => {
+  for (const activeResources of [() => [], () => { throw new Error("nope"); }]) {
+    const writes = [];
+    const hold = setTimeout(() => {}, 500);
+    armExitBackstop(3, { graceMs: 10, write: (s) => writes.push(s), exit: () => {}, flush: (cb) => cb(), activeResources });
+    await faff1239Sleep(60);
+    clearTimeout(hold);
+    assert.ok(writes[0].includes("leaked handle(s): unknown"));
+  }
+});
+
+test("FAFF-1239 runCli: a resolved main sets exitCode then arms the backstop; a rejected main sets EXIT.OTHER first", async () => {
+  const log = [];
+  const proc = { stderr: { write: (s) => log.push(["stderr", s]) } };
+  Object.defineProperty(proc, "exitCode", { set(v) { log.push(["exitCode", v]); }, get() { return undefined; } });
+  await runCli(Promise.resolve(EXIT.DEADLINE), { proc, arm: (c) => log.push(["arm", c]) });
+  assert.deepEqual(log, [["exitCode", EXIT.DEADLINE], ["arm", EXIT.DEADLINE]]);
+  log.length = 0;
+  await runCli(Promise.reject(new Error("boom")), { proc, arm: (c) => log.push(["arm", c]) });
+  assert.deepEqual(log, [["stderr", "review-call: boom\n"], ["exitCode", EXIT.OTHER], ["arm", EXIT.OTHER]]);
+});
+
+test("FAFF-1239: main and runReviewChain contain no process.exit, and no abort message says 'timed out'", () => {
+  const src = readFileSync(new URL("../plugin/skills/faffter-dark-adversarial-review/review-call.mjs", import.meta.url), "utf8");
+  const exits = src.split("\n").filter((l) => /process\.exit\(/.test(l) && !l.trim().startsWith("//"));
+  assert.equal(exits.length, 1, "only armExitBackstop's default exit seam calls process.exit");
+  for (const m of src.match(/new Error\("(?:chain [^"]*|first-byte breach)"\)/g) || []) assert.doesNotMatch(m, /timed out/);
 });

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1248",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0103ca7ddb979f213746dc9389c4b30c16c10ad5b33762a8316ec86c484000ab",
+    "branch": "FAFF-1248-build-judge-ruling-binding",
+    "pushed_at": "2026-10-09T22:43:07.678Z"
+  },
+  "updated_at": "2026-10-09T22:43:07.678Z"
+}

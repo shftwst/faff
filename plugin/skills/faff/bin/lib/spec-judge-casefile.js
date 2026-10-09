@@ -119,23 +119,40 @@ function buildSpecHeadingIndex(specText) {
   return index;
 }
 
+// FAFF-1240: resolve an anchor slug to an index key. An exact key always wins. Otherwise, a numbered
+// heading whose slug equals the anchor once its leading "<digits>-" is removed (the refuter dropped
+// the section number: "open-questions" for "7-open-questions") binds only when exactly one distinct
+// key matches. None or several: "" (the anchor stays unresolved, never a fault; FAFF-943).
+function resolveAnchorKey(index, anchorSlug) {
+  if (!anchorSlug) return "";
+  if (index.has(anchorSlug)) return anchorSlug;
+  const candidates = [];
+  for (const key of index.keys()) {
+    if (/^\d+-/.test(key) && key.replace(/^\d+-/, "") === anchorSlug) candidates.push(key);
+  }
+  return candidates.length === 1 ? candidates[0] : "";
+}
+
 // Derive Argument B (the orchestrator's defence) for an anchor slug from the CURRENT spec.
-// Returns { body, source } where source ∈ {chosen, undefended, anchor-lost}. `mode` selects the
-// assemble-time semantics ("assemble": zero-match/absent → undefended) vs the dispatch re-derive
-// semantics ("redispatch": a bound anchor whose heading is gone → anchor-lost).
+// Returns { body, source, resolved_slug } where source is one of chosen, undefended, anchor-lost and
+// resolved_slug is the index key that matched ("" when none did). The anchor binds by exact slug
+// first, then by the unique number-prefix fallback (see resolveAnchorKey). `mode` selects the
+// assemble-time semantics ("assemble": zero-match/absent -> undefended) vs the dispatch re-derive
+// semantics ("redispatch": a bound anchor whose heading is gone -> anchor-lost).
 function deriveArgumentB(specText, anchorSlug, mode) {
   const index = buildSpecHeadingIndex(specText);
-  if (!anchorSlug) return { body: "", source: "orchestrator:undefended" };
-  if (!index.has(anchorSlug)) {
+  if (!anchorSlug) return { body: "", source: "orchestrator:undefended", resolved_slug: "" };
+  const key = resolveAnchorKey(index, anchorSlug);
+  if (!key) {
     return mode === "redispatch"
-      ? { body: "", source: "orchestrator:anchor-lost" }
-      : { body: "", source: "orchestrator:undefended" };
+      ? { body: "", source: "orchestrator:anchor-lost", resolved_slug: "" }
+      : { body: "", source: "orchestrator:undefended", resolved_slug: "" };
   }
-  const blocks = index.get(anchorSlug);
+  const blocks = index.get(key);
   // Multiple blocks under one heading slug are concatenated in document order (order-stable).
   const body = blocks.join("\n\n").trim();
-  if (!body) return { body: "", source: "orchestrator:undefended" };
-  return { body, source: "orchestrator:chosen" };
+  if (!body) return { body: "", source: "orchestrator:undefended", resolved_slug: "" };
+  return { body, source: "orchestrator:chosen", resolved_slug: key };
 }
 
 // Build the Argument B triple from its derived body/source, scrubbed like any argument.
@@ -290,7 +307,7 @@ function assemble(opts) {
       blocking: blockingOf(severity),
       argument_A_source: presentedA.source,
       argument_B_source: presentedB.source,
-      case_file_anchor: bDerived.source === "orchestrator:chosen" ? anchor : "",
+      case_file_anchor: bDerived.source === "orchestrator:chosen" ? bDerived.resolved_slug : "",
       contested_source: reputationFlagged.includes(servingIdentity),
       order_seed: seed,
       pre_ruling_spec_sha: specSha,

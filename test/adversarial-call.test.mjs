@@ -28,6 +28,7 @@ import {
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import * as ReviewCallModule from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import { BULLET_RE } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
+import { isCleanRefutation } from "../eval/review-bench/clean-refutation.mjs";
 
 test("FAFF-872: the native ollama transport family's exports are gone (buildChatPayload / modelServed / accumulateNdjson / the /api/tags preflight)", () => {
   assert.equal(typeof ReviewCallModule.runReviewOllama, "undefined", "runReviewOllama is not exported — deleted, never existed");
@@ -4233,4 +4234,86 @@ test("FAFF-1223 runReviewChain: a severity-less finding plus a clean affirmation
   assert.notEqual(res.exit, EXIT.OK);
   assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
   assert.notEqual(res.content, CANONICAL_NO_FINDINGS);
+});
+
+// FAFF-1238: the preamble guard also rejects a `## Refutation —` heading for another lens, and both
+// guards ignore leading spaces and tabs. The own-lens heading before the affirmation stays exempt.
+const FAFF_1238_REJECT = [
+  ["wrong-lens heading then prose", "## Refutation — architectural\nSome prose here.\nNo QA objection."],
+  ["wrong-lens heading, plain hyphen", "## Refutation - architectural\nSome prose here.\nNo QA objection."],
+  ["wrong-lens heading, three hashes", "### Refutation — architectural\nSome prose here.\nNo QA objection."],
+  ["indented wrong-lens heading, not on line 0", "Prose.\n  ## Refutation — architectural\nSome prose here.\nNo QA objection."],
+  ["indented severity heading before the affirmation, not on line 0", "Prose.\n  ### major: x\nNo QA objection."],
+  ["indented severity heading after the affirmation", "No QA objection.\n  ### major: x"],
+  ["tab-indented severity heading after the affirmation", "No QA objection.\n\t## Critical: y"],
+  ["indented wrong-lens heading after the affirmation", "No QA objection.\n  ## Refutation — architectural"],
+  ["near-miss own heading in the preamble", "## refutation — qa\nSome prose here.\nNo QA objection."],
+  ["stacked architectural then QA", "## Refutation — architectural\nNo architectural objection.\n## Refutation — QA\nNo QA objection."],
+  ["fenced indented severity line", "```\n    ### major: example\n```\nNo QA objection."],
+];
+const FAFF_1238_KEEP = [
+  ["own heading then prose", "## Refutation — QA\nSome prose here.\nNo QA objection.", "QA", "bare"],
+  ["indented own heading then prose", "  ## Refutation — QA\nSome prose here.\nNo QA objection.", "QA", "bare"],
+  ["own heading repeated in the preamble", "## Refutation — QA\nSome prose here.\n## Refutation — QA\nMore prose.\nNo QA objection.", "QA", "bare"],
+  ["1902 methodology wrong casing", "## Refutation — methodology\nNo methodology signal available.\nNo methodology objection.", "methodology", "bare"],
+  ["1902 methodology missing period", "## Refutation — methodology\nno methodology signal available\nNo methodology objection.", "methodology", "bare"],
+  ["1902 architectural with methodology signal", "## Refutation — architectural\nno methodology signal available.\nNo architectural objection.", "architectural", "bare"],
+  ["1902 signal without heading", "no methodology signal available.\nNo methodology objection.", "methodology", "bare"],
+  ["1927 QA with methodology signal", "## Refutation — QA\nno methodology signal available.\nNo QA objection.", "QA", "bare"],
+  ["decorative # heading", "# Code review\nNo QA objection.", "QA", "header-wrapped"],
+  ["indented decorative heading on line 0", "  ## Summary\nNo QA objection.", "QA", "header-wrapped"],
+  ["indented decorative heading after prose", "Prose.\n  ## Summary\nNo QA objection.", "QA", "bare"],
+  ["own heading with trailing spaces then prose", "## Refutation — QA  \nSome prose here.\nNo QA objection.", "QA", "bare"],
+  ["canonical headed with trailing prose", "## Refutation — QA\nNo QA objection.\nTrailing prose.", "QA", "headed"],
+  ["canonical headed+signal with trailing prose", "## Refutation — methodology\nno methodology signal available.\nNo methodology objection.\nTrailing prose.", "methodology", "headed+signal"],
+];
+
+test("FAFF-1238 normaliseCleanRefutation: reject rows (wrong-lens and indented guard headings) return the original body unnormalised", () => {
+  for (const [label, content] of FAFF_1238_REJECT) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      label,
+    );
+  }
+});
+
+test("FAFF-1238 normaliseCleanRefutation: keep rows still normalise with their lens and form", () => {
+  for (const [label, content, lens, form] of FAFF_1238_KEEP) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content: CANONICAL_NO_FINDINGS, normalised: true, lens, form },
+      label,
+    );
+  }
+});
+
+test("FAFF-1238 runReviewChain: an indented severity heading before the affirmation is MALFORMED, not served as clean", async () => {
+  const res = await runReviewChain(
+    [{ provider: "openai", model: "only", host: "https://only/v1", hostSource: "config" }],
+    {
+      system: "S", user: "U", log: () => {},
+      runReviewFn: scriptedRunReview({ "https://only/v1": { status: "ok", content: "Prose.\n  ### major: x\nNo QA objection." } }),
+    },
+  );
+  assert.notEqual(res.exit, EXIT.OK);
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.notEqual(res.content, CANONICAL_NO_FINDINGS);
+});
+
+test("FAFF-1238 review-bench mirror: parity with production over the heading-guard table (one-directional, the mirror is a subset)", () => {
+  for (const [label, content] of FAFF_1238_REJECT) {
+    assert.equal(isCleanRefutation(content), false, `mirror rejects: ${label}`);
+  }
+  for (const [label, content] of [...FAFF_1238_REJECT, ...FAFF_1238_KEEP]) {
+    if (isCleanRefutation(content)) {
+      assert.equal(normaliseCleanRefutation(content).normalised, true, `mirror true implies production true: ${label}`);
+    }
+  }
+});
+
+test("FAFF-1238 review-bench mirror: still accepts every keep row whose production form is bare or headed", () => {
+  for (const [label, content, , form] of FAFF_1238_KEEP) {
+    if (form === "bare" || form === "headed") assert.equal(isCleanRefutation(content), true, label);
+  }
 });

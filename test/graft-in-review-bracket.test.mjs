@@ -30,7 +30,7 @@ test("In Review transition declares and observes a tracker-write around the save
   const observeAt = block.search(/faff effects observe .*--step tracker-write/);
   const bracketStart = block.indexOf("Governed In Review tracker-write record");
   assert.ok(bracketStart !== -1, "inline bracket paragraph not found");
-  assert.ok(declareAt > bracketStart || block.indexOf("save_issue") !== -1);
+  assert.ok(declareAt > bracketStart, "declare must appear within the inline bracket paragraph");
   assert.ok(declareAt < observeAt, "declare must precede observe");
   assert.match(block.slice(declareAt, observeAt + 200), /save_issue/, "bracket must be tied to the save_issue write");
 });

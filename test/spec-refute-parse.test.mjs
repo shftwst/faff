@@ -567,3 +567,168 @@ test("smoke: a parsed refutation entry pipes through aggregate.mjs to a founded 
   assert.equal(verdict.verdict, "revise");
   assert.equal(verdict.objections[0].claim, "the retry loop has no bound.");
 });
+
+// ---- FAFF-1240: field value extent ------------------------------------------------------------
+
+const MINOR_FIELDS = ["- claim: c", "- evidence: e", "- predicted_consequence: p"];
+
+function minorWith(...tail) {
+  return ["### minor: t", ...MINOR_FIELDS, ...tail].join("\n");
+}
+
+test("FAFF-1240: closing prose after a blank line under the last spec_anchor is dropped (FAFF-1223 shape)", () => {
+  const body = fixture(minorWith(
+    "- spec_anchor: open-questions-and-assumptions",
+    "",
+    "No methodology objection beyond this: the slice is otherwise right-sized.",
+  ));
+  const r = parseRefutation(body, "methodology");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.outcome, "refuted");
+  assert.equal(r.entry.objections[0].spec_anchor, "open-questions-and-assumptions");
+});
+
+test("FAFF-1240: prose directly under spec_anchor with no blank line is dropped", () => {
+  const r = parseRefutation(fixture(minorWith("- spec_anchor: how-the-loop", "No further objection.")), "QA");
+  assert.equal(r.entry.objections[0].spec_anchor, "how-the-loop");
+});
+
+test("FAFF-1240: trailing prose after a last predicted_consequence is dropped; value is the first paragraph", () => {
+  const section = [
+    "### minor: t",
+    "- claim: c",
+    "- evidence: e",
+    "- spec_anchor: a",
+    "- predicted_consequence: not separately stated",
+    "",
+    "No architectural objection beyond these.",
+  ].join("\n");
+  const r = parseRefutation(fixture(section), "architectural");
+  assert.equal(r.entry.objections[0].predicted_consequence, "not separately stated");
+});
+
+test("FAFF-1240: leaked reasoning between objections is dropped and the next objection parses whole", () => {
+  const first = [
+    "### major: first",
+    "- claim: c1",
+    "- evidence: e1",
+    "- predicted_consequence: p1",
+    "- spec_anchor: a1",
+    "",
+    "Wait, let me reconsider whether this is really a problem.",
+    "Actually it is.",
+    "",
+  ].join("\n");
+  const second = [
+    "### minor: second",
+    "- claim: c2",
+    "- evidence: e2",
+    "- predicted_consequence: p2",
+    "- spec_anchor: a2",
+  ].join("\n");
+  const r = parseRefutation(fixture(first, second), "QA");
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.entry.objections, [
+    { severity: "major", claim: "c1", evidence: "e1", predicted_consequence: "p1", spec_anchor: "a1" },
+    { severity: "minor", claim: "c2", evidence: "e2", predicted_consequence: "p2", spec_anchor: "a2" },
+  ]);
+});
+
+test("FAFF-1240: a spec_anchor followed directly by a spliced auto-refuted line equals the slug alone (FAFF-1085 shape)", () => {
+  const section = [
+    "### observation: [auto-refuted] t",
+    "- claim: c",
+    "- spec_anchor: 4-how-behaviour",
+    "> auto-refuted: node --check passed (was major)",
+  ].join("\n");
+  const r = parseRefutation(fixture(section), "architectural");
+  assert.equal(r.entry.objections[0].spec_anchor, "4-how-behaviour");
+});
+
+test("FAFF-1240: a blank line inside claim truncates claim to the text before it", () => {
+  const section = [
+    "### major: t",
+    "- claim: first paragraph",
+    "  still first",
+    "",
+    "second paragraph",
+    "- evidence: e",
+  ].join("\n");
+  const r = parseRefutation(fixture(section), "architectural");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections[0].claim, "first paragraph\n  still first");
+});
+
+test("FAFF-1240: an empty claim bullet, a blank line, then text gives that text and no fault", () => {
+  const section = [
+    "### major: t",
+    "- claim:",
+    "",
+    "the loop never ends.",
+    "- evidence: e",
+  ].join("\n");
+  const r = parseRefutation(fixture(section), "architectural");
+  assert.equal(r.ok, true);
+  assert.equal(r.entry.objections[0].claim, "the loop never ends.");
+});
+
+test("FAFF-1240: a --- rule and an operator heading under the last field are not in the value (FAFF-1027 shape)", () => {
+  const section = [
+    "### minor: t",
+    "- claim: c",
+    "- evidence: e",
+    "- spec_anchor: a",
+    "- predicted_consequence: p",
+    "",
+    "---",
+    "## Occupant verification pass",
+    "Verified.",
+  ].join("\n");
+  const r = parseRefutation(fixture(section), "QA");
+  assert.equal(r.entry.objections[0].predicted_consequence, "p");
+  assert.equal(r.entry.objections[0].spec_anchor, "a");
+});
+
+test("FAFF-1240: a whitespace-only line and a lone CR line each end a prose value after content", () => {
+  for (const blank of ["  \t", "\r"]) {
+    const section = ["### minor: t", "- claim: c", "- evidence: e", "- predicted_consequence: p", "- spec_anchor: a"].join("\n")
+      .replace("- evidence: e", `- evidence: e\n${blank}\nclosing prose`);
+    const r = parseRefutation(fixture(section), "QA");
+    assert.equal(r.ok, true);
+    assert.equal(r.entry.objections[0].evidence, "e", `blank ${JSON.stringify(blank)} ends the value`);
+    assert.equal(r.entry.objections[0].predicted_consequence, "p");
+  }
+});
+
+// Gating equivalence: hard-coded expectations captured from the pre-change parser for these bodies.
+test("FAFF-1240: gating is identical to the pre-change parser over real-shaped bodies", () => {
+  const closing = ["", "No objection beyond this: the slice is otherwise sound."];
+  const cases = [
+    { name: "clean canonical", body: [HEADER, "", CANONICAL_NO_FINDINGS].join("\n"), lens: "QA",
+      ok: true, outcome: "clear", objections: [] },
+    { name: "major with closing prose", body: fixture(majorSection(), ...closing), lens: "architectural",
+      ok: true, outcome: "refuted", objections: [{ severity: "major", claim: true }] },
+    { name: "empty claim, blank, text", body: fixture("### major: t\n- claim:\n\nthe text\n- evidence: e"), lens: "QA",
+      ok: true, outcome: "refuted", objections: [{ severity: "major", claim: true }] },
+    { name: "fault: gating section with no claim", body: fixture("### major: t\n- evidence: e\n\ntrailing prose"), lens: "QA",
+      ok: false },
+    { name: "fault: claim empty with only closing prose after a blank", body: fixture("### critical: t\n- claim:\n- evidence: e"), lens: "QA",
+      ok: false },
+    { name: "observation only with auto-refuted splice", body: fixture("### observation: [auto-refuted] t\n- claim: c\n- spec_anchor: a\n> auto-refuted: x"), lens: "architectural",
+      ok: true, outcome: "clear", objections: [{ severity: "observation", claim: true }] },
+    { name: "two objections, leaked reasoning between", body: fixture(majorSection("one") + "\n\nHmm, wait.\n", minorWith("- spec_anchor: a")), lens: "methodology",
+      ok: true, outcome: "refuted", objections: [{ severity: "major", claim: true }, { severity: "minor", claim: true }] },
+  ];
+  assert.ok(cases.length >= 5);
+  for (const c of cases) {
+    const r = parseRefutation(c.body, c.lens);
+    assert.equal(r.ok, c.ok, `${c.name}: ok`);
+    if (!c.ok) continue;
+    assert.equal(r.entry.outcome, c.outcome, `${c.name}: outcome`);
+    assert.equal(r.entry.objections.length, c.objections.length, `${c.name}: objection count`);
+    c.objections.forEach((o, i) => {
+      assert.equal(r.entry.objections[i].severity, o.severity, `${c.name}: severity ${i}`);
+      assert.equal("claim" in r.entry.objections[i], o.claim, `${c.name}: claim presence ${i}`);
+    });
+  }
+});

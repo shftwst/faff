@@ -160,6 +160,9 @@ test("CLI: unknown verb message and usage list route", () => {
   const r = runCli(["spec-review", "nope"]);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /route/);
+  const u = runCli(["spec-review", "route", "extra"]);
+  assert.equal(u.code, 2);
+  assert.match(u.stderr, /route \[--file/);
 });
 
 test("pipe: faff contract spec-review-verdict stdout routes (prep, then plot)", () => {

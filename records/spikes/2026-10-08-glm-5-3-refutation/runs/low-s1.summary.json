@@ -1,0 +1,1987 @@
+{
+ "status": "complete",
+ "cases": [
+  {
+   "case_id": "refutation-code-001",
+   "kind": "refutation-code",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 90,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 69,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 67,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 87,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\n  \"case_id\": \"refutation-code-001\",\n  \"findings\": [\n    { \"severity\": \"blocker\", \"title\": \"Hold label now returns true instead of false\" }\n  ]\n}\n```"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 62,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 95,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 91,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 75,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 78,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 96,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 120,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\n  \"case_id\": \"refutation-code-001\",\n  \"findings\": [\n    {\n      \"severity\": \"blocker\",\n      \"title\": \"Hold label now grants automation instead of blocking it, contradicting no-behaviour-change spec\"\n    }\n  ]\n}\n```"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 96,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 99,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 116,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 102,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 95,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 69,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 103,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 74,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 68,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 86,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 74,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 153,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 88,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 75,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\"case_id\": \"refutation-code-001\", \"findings\": [{\"severity\": \"blocker\", \"title\": \"Refactor inverts hold/automate precedence and returns true for hold\"}]}\n```"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 93,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 107,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 89,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 100,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 134,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\"case_id\": \"refutation-code-001\", \"findings\": [{\"severity\": \"blocker\", \"title\": \"Hold label now returns true instead of false — behaviour change contradicts spec\"}]}\n```"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 78,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 160,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 75,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 70,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 116,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 73,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 111,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 75,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 68,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 108,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 82,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\n  \"case_id\": \"refutation-code-001\",\n  \"findings\": [\n    {\n      \"severity\": \"major\",\n      \"title\": \"Hold label no longer blocks automation: reordered checks make 'faff-automation-hold' return true, and 'faff-automate' now overrides a hold, breaking the fail-safe semantics "
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 82,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 76,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 88,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 64,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.9,
+   "accuracy": 0.9,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 5,
+   "cost_tokens": 4077
+  },
+  {
+   "case_id": "refutation-code-005",
+   "kind": "refutation-code",
+   "rep_results": [
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 258,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 257,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 313,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 250,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 281,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 172,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 301,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\n  \"case_id\": \"refutation-code-005\",\n  \"findings\": [\n    { \"severity\": \"major\", \"title\": \"psql -c does not consume stdin as query parameters: execFileSync input will never reach the bound placeholders, so the seed fails or inserts nothing\" },\n    { \"severity\": \"major\", \"titl"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 330,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 209,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 411,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 253,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 224,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 282,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 194,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 392,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 267,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 272,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 272,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 241,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 343,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 260,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 173,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 203,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 187,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 254,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 172,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 253,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 238,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 286,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 177,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 324,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 302,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 224,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 237,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 236,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 421,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 246,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 238,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 248,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 217,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 450,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 87,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 255,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "no faff-eval:judgement block (and no fenced JSON object with a case_id) in output"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 331,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 171,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 325,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 489,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 298,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.96,
+   "accuracy": 0,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 2,
+   "cost_tokens": 12824
+  },
+  {
+   "case_id": "refutation-spec-004",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 926,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 999,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1105,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1107,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 873,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1175,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 896,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 766,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1115,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=infosec unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1118,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1029,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 816,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1249,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 594,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1065,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 764,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=infosec unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1209,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=infosec unparseable (no recognised finding section (### <severity>: ...))"
+    }
+   ],
+   "stability": 0.45,
+   "accuracy": 0.45,
+   "format_adherence": 1,
+   "escalated": false,
+   "errored": 3,
+   "cost_tokens": 16806
+  },
+  {
+   "case_id": "refutation-spec-008",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2289,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2008,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2061,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1907,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1874,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1779,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1780,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1917,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2084,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2248,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1838,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1719,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2244,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2020,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1700,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2013,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1730,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1984,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1830,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1711,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2226,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2260,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1821,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1840,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2051,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2249,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2423,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1965,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2147,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2417,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2138,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2174,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1716,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2274,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2414,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2420,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1647,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1807,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1959,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2042,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1776,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2124,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2037,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1842,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1861,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2125,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2300,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1944,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.74,
+   "accuracy": 0.96,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 2,
+   "cost_tokens": 96735
+  },
+  {
+   "case_id": "refutation-spec-012",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2292,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1807,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1892,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2196,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2155,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2486,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2456,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2020,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1768,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2638,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2346,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2126,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2611,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2285,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2160,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2694,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2174,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2679,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2061,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2438,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2160,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2041,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2575,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1942,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2515,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2608,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2484,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2372,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2062,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2867,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1865,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2230,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2375,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2527,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2393,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2129,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2392,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2192,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2502,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2271,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2204,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1865,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1658,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2846,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2223,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2499,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2328,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2118,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1903,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.72,
+   "accuracy": 0.92,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 1,
+   "cost_tokens": 111430
+  },
+  {
+   "case_id": "refutation-spec-016",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2513,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 3666,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2465,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2867,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2775,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2463,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3734,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2242,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2787,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3484,
+     "signature": "[\"QA\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1859,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2335,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2047,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2064,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2406,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2468,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2988,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2263,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2568,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2356,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2373,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2917,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2177,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2883,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2228,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2222,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2885,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2009,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2745,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2604,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2883,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2121,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2903,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2298,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2176,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2497,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2593,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2350,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2362,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2656,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2136,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2365,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1945,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2163,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2717,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2664,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3154,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2715,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2120,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.5,
+   "accuracy": 0.9,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 1,
+   "cost_tokens": 124211
+  }
+ ],
+ "per_kind": {
+  "refutation-code": {
+   "accuracy": 0.45,
+   "stability": 0.9299999999999999,
+   "format_adherence": 1
+  },
+  "refutation-spec": {
+   "accuracy": 0.8075,
+   "stability": 0.6025,
+   "format_adherence": 1
+  }
+ },
+ "total_cost_tokens": 366083,
+ "escalated_cases": [
+  "refutation-code-001",
+  "refutation-code-005",
+  "refutation-spec-008",
+  "refutation-spec-012",
+  "refutation-spec-016"
+ ]
+}

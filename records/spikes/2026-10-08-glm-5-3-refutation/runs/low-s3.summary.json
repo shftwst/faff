@@ -1,0 +1,1835 @@
+{
+ "status": "complete",
+ "cases": [
+  {
+   "case_id": "refutation-code-003",
+   "kind": "refutation-code",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 81,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 93,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 166,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\"case_id\": \"refutation-code-003\", \"findings\": [{\"severity\": \"major\", \"title\": \"Scope creep: diff bundles out-of-spec changes — 12 helper renames, COMMANDS registry reordering, and a major runtime dependency bump — none covered by the 'add --json to faff labels' spec\"}, {\"sev"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 122,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 143,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 126,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 161,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 123,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 106,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 76,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 115,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 151,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 98,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 146,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 189,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 145,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 135,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 90,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "``faff-eval:judgement\n{\n  \"case_id\": \"refutation-code-003\",\n  \"findings\": [\n    {\n      \"severity\": \"major\",\n      \"title\": \"Scope creep: dependency major-version bump bundled with a trivial flag addition\"\n    }\n  ]\n}\n```"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 236,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 141,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\"case_id\": \"refutation-code-003\", \"findings\": [{\"severity\": \"major\", \"title\": \"Scope creep: diff bundles unrelated renames, registry reordering, and a major dependency bump beyond the --json spec\"}, {\"severity\": \"major\", \"title\": \"Major version bump of runtime dependency unr"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\n  \"case_id\": \"refutation-code-003\",\n  \"findings\": [\n    { \"severity\": \"major\", \"title\": \"Scope creep: major runtime dependency version bump unrelated to spec\" },\n    { \"severity\": \"minor\", \"title\": \"Unrelated refactors: 12 helper renames and COMMANDS registry reordering bun"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 122,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 128,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 98,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 154,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "no faff-eval:judgement block (and no fenced JSON object with a case_id) in output"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 145,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 170,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 113,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 72,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 156,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 134,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 136,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "```\nfaff-eval:judgement\n{\"case_id\": \"refutation-code-003\", \"findings\": [{\"severity\": \"major\", \"title\": \"Scope creep: diff includes dependency major-version bump, 12 helper renames, and COMMANDS registry reorder not required by the spec\"}, {\"severity\": \"minor\", \"title\": \"Major dependency bump may int"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 119,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 77,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 101,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 101,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 124,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 109,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 151,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 128,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 160,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 131,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 123,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 172,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 121,
+     "signature": "[\"flagged\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.88,
+   "accuracy": 0.88,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 6,
+   "cost_tokens": 5688
+  },
+  {
+   "case_id": "refutation-spec-002",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2457,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2248,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2334,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1951,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1824,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2229,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1596,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1829,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1689,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1730,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1986,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2294,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1561,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1938,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2101,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2305,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1522,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1767,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1692,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1951,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1811,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2102,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1783,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1855,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1849,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1576,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2722,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1370,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1858,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1779,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1942,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2461,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1995,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2056,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2544,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1757,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1653,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1993,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1916,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2327,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2012,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1976,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1709,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2077,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1323,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2014,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2230,
+     "signature": "[\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2318,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1951,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2117,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.4,
+   "accuracy": 0.42,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 0,
+   "cost_tokens": 98080
+  },
+  {
+   "case_id": "refutation-spec-006",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1648,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1931,
+     "signature": "[]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1637,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2558,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2090,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2161,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2356,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1913,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1855,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2528,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1812,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2094,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1937,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2437,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1729,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1941,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2414,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1816,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2471,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2550,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3186,
+     "signature": "[\"QA\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2856,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1994,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2035,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2048,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2274,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2015,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1918,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1981,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2489,
+     "signature": "[\"QA\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "ERRORED",
+     "score": 0,
+     "tokens": 0,
+     "signature": "ERRORED",
+     "transcript": "driver-error:lens=architectural unparseable (no recognised finding section (### <severity>: ...))"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1895,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2128,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2252,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1655,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2290,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2326,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2378,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1808,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2144,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1810,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2077,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1837,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2173,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1921,
+     "signature": "[]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2301,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 1889,
+     "signature": "[\"QA\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2245,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.56,
+   "accuracy": 0.04,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 3,
+   "cost_tokens": 99803
+  },
+  {
+   "case_id": "refutation-spec-010",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3473,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3219,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3065,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2728,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2295,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2992,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2545,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3130,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2935,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3163,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2402,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3010,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2861,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2952,
+     "signature": "[\"QA\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2743,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2663,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3025,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2979,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2974,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2816,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3212,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2753,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2417,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3131,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2933,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3299,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2685,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3188,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2961,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2631,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2781,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3655,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2557,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3028,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2755,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2967,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2961,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2337,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3128,
+     "signature": "[\"QA\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2964,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3262,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 4013,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2890,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3154,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2987,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2227,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2994,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2674,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2823,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2486,
+     "signature": "[\"QA\",\"architectural\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.76,
+   "accuracy": 0,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 0,
+   "cost_tokens": 145823
+  },
+  {
+   "case_id": "refutation-spec-014",
+   "kind": "refutation-spec",
+   "rep_results": [
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2333,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2623,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2198,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2148,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2705,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2310,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2577,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2379,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2787,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3668,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3315,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2143,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2122,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 1717,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2333,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3630,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2450,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2029,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2561,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2941,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3113,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2708,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2210,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2771,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2565,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2063,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2699,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2568,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2638,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2965,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2222,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2636,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2264,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2314,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2259,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2161,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2645,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2552,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2164,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2267,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3117,
+     "signature": "[\"QA\",\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2381,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2955,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2162,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 2642,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2074,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2644,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "FAIL",
+     "score": 0,
+     "tokens": 3132,
+     "signature": "[\"architectural\",\"infosec\",\"methodology\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2214,
+     "signature": "[\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    },
+    {
+     "graded": "PASS",
+     "score": 1,
+     "tokens": 2201,
+     "signature": "[\"QA\",\"architectural\",\"infosec\"]",
+     "format": "compliant"
+    }
+   ],
+   "stability": 0.38,
+   "accuracy": 0.72,
+   "format_adherence": 1,
+   "escalated": true,
+   "errored": 0,
+   "cost_tokens": 126275
+  }
+ ],
+ "per_kind": {
+  "refutation-code": {
+   "accuracy": 0.88,
+   "stability": 0.88,
+   "format_adherence": 1
+  },
+  "refutation-spec": {
+   "accuracy": 0.295,
+   "stability": 0.525,
+   "format_adherence": 1
+  }
+ },
+ "total_cost_tokens": 475669,
+ "escalated_cases": [
+  "refutation-code-003",
+  "refutation-spec-002",
+  "refutation-spec-006",
+  "refutation-spec-010",
+  "refutation-spec-014"
+ ]
+}

@@ -1427,7 +1427,8 @@ function destroyOnAbort(r, signal) {
   const abortReq = () => r.destroy(new Error(`request aborted (${reasonText})`));
   if (signal.aborted) { abortReq(); return () => {}; }
   signal.addEventListener("abort", abortReq, { once: true });
-  return () => signal.removeEventListener("abort", abortReq);
+  let linked = true; // idempotent: several settle events (end, close, error) may each unlink
+  return () => { if (linked) { linked = false; signal.removeEventListener("abort", abortReq); } };
 }
 
 function realGet(url, timeoutMs = 5000, headers = {}, opts = {}) {
@@ -1438,6 +1439,7 @@ function realGet(url, timeoutMs = 5000, headers = {}, opts = {}) {
     const r = lib.request(u, { method: "GET", headers }, (res) => {
       let data = "";
       res.setEncoding("utf8");
+      res.on("close", () => unlink()); // every response settle path, including an aborted body
       res.on("data", (c) => (data += c));
       res.on("end", () => (unlink(), res.statusCode >= 200 && res.statusCode < 300
         ? resolve(data)
@@ -1465,6 +1467,7 @@ function realStream(url, body, timeoutMs = 580000, extraHeaders = {}, opts = {})
     const r = lib.request(u, { method: "POST", headers }, (res) => {
       let data = "";
       res.setEncoding("utf8");
+      res.on("close", () => unlink()); // every response settle path, including an aborted body
       res.on("data", (c) => {
         // FAFF-885: the FIRST body byte disarms the first-byte window. A buffering server that flushes
         // nothing until done never reaches here, so its window breaches and the chain fails over fast.

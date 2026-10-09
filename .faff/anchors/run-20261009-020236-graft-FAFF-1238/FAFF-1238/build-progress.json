@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1238",
+  "build": {
+    "status": "complete",
+    "diff_hash": "38c7b000b208bbc346b51c34b763bd61c29889c6b457111b5b321569e75ae67a",
+    "branch": "FAFF-1238-preamble-guard-wrong-lens-and-indented-headings",
+    "pushed_at": "2026-10-09T03:16:18.638Z"
+  },
+  "updated_at": "2026-10-09T03:16:18.638Z"
+}

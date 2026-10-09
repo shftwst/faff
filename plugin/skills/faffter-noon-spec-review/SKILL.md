@@ -64,7 +64,7 @@ PROCEDURE map_verdict(objections):
 
 The **founded-verdict invariant** (enforced by the contract): `approve` carries zero objections; every other verdict carries at least one. Keep the emitted objections consistent with the verdict — when a blocker drives the verdict, that blocker is in the array.
 
-Where a `reject-approach` routes (prep vs plot) is the **consumer's** concern, read off the objecting lens — this producer just emits the founded verdict.
+Where a `reject-approach` routes (prep vs plot) is the **consumer's** concern, computed by `faff spec-review route` from lens and severity — this producer just emits the founded verdict.
 
 ## Output (the contract artifact)
 

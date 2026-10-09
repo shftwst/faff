@@ -25,6 +25,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
+const { SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./contract-defs");
 
 const EVIDENCE_HEADING = "spec-review evidence";
 const EVIDENCE_FENCE_RE = /```faff-contract:spec-review-verdict\s*\n([\s\S]*?)\n```/;
@@ -83,8 +84,33 @@ function selectEvidenceVerdict(dir) {
   return { verdict: "approve", objections: [] };
 }
 
+// routeRejectApproach(record) -> { route } | { error }. Pure partition of a validated
+// `reject-approach` verdict's objections over {lens, severity}: a methodology objection at
+// blocker/major sends the spec to plot (carrying every design-lens objection as {lens, severity});
+// anything else re-specs in place on prep (nothing carried). Accepts the raw block body or the
+// `faff contract spec-review-verdict` stdout. No fs, no network.
+function routeRejectApproach(record) {
+  if (record === null || typeof record !== "object" || Array.isArray(record)) return { error: "verdict record must be a JSON object" };
+  if (record.verdict !== "reject-approach") return { error: `route applies to reject-approach only (got ${record.verdict})` };
+  if (record.conformant === false) return { error: "verdict is not conformant" };
+  if (!Array.isArray(record.objections) || record.objections.length === 0) return { error: "reject-approach carries no objections" };
+  for (let i = 0; i < record.objections.length; i++) {
+    const o = record.objections[i];
+    const lens = o && o.lens;
+    const severity = o && o.severity;
+    if (!SPEC_REVIEW_LENSES.includes(lens)) return { error: `objection[${i}] lens ${JSON.stringify(lens)} not in {${SPEC_REVIEW_LENSES.join(",")}}` };
+    if (!SPEC_REVIEW_SEVERITIES.includes(severity)) return { error: `objection[${i}] severity ${JSON.stringify(severity)} not in {${SPEC_REVIEW_SEVERITIES.join(",")}}` };
+  }
+  const scope = record.objections.filter((o) => o.lens === "methodology" && (o.severity === "blocker" || o.severity === "major"));
+  if (scope.length > 0) {
+    const design = record.objections.filter((o) => o.lens !== "methodology").map((o) => ({ lens: o.lens, severity: o.severity }));
+    return { route: { destination: "plot", reason: "methodology-major-or-above", carried_design_objections: design } };
+  }
+  return { route: { destination: "prep", reason: "no-methodology-major", carried_design_objections: [] } };
+}
+
 const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
-const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | select-evidence --dir <scratch>)";
+const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | select-evidence --dir <scratch> | route [--file <verdict.json> | --file -])";
 
 function cmdSpecReview(args) {
   if (args.includes("--selftest")) return specReviewSelftest();
@@ -100,8 +126,26 @@ function cmdSpecReview(args) {
     process.stdout.write(JSON.stringify(selectEvidenceVerdict(dir)) + "\n");
     return 0;
   }
+  if (action === "route") {
+    const routePath = values["--file"];
+    const fromFile = routePath != null && routePath !== "-";
+    let rec;
+    try {
+      rec = JSON.parse(fromFile ? fs.readFileSync(routePath, "utf8") : fs.readFileSync(0, "utf8"));
+    } catch (e) {
+      process.stderr.write(`faff spec-review route: cannot read verdict JSON from ${fromFile ? routePath : "stdin"}: ${e.message}\n`);
+      return 2;
+    }
+    const r = routeRejectApproach(rec);
+    if (r.error) {
+      process.stderr.write(`faff spec-review route: ${r.error}\n`);
+      return 2;
+    }
+    process.stdout.write(JSON.stringify(r.route) + "\n");
+    return 0;
+  }
   if (action !== "extract-evidence") {
-    process.stderr.write("faff spec-review: expected: extract-evidence | select-evidence (or --selftest)\n");
+    process.stderr.write("faff spec-review: expected: extract-evidence | select-evidence | route (or --selftest)\n");
     return 2;
   }
   const filePath = values["--file"];
@@ -229,8 +273,19 @@ function specReviewSelftest() {
     } finally { fs.rmSync(t5, { recursive: true, force: true }); }
   }
 
+  // --- route: severity-aware reject-approach destination ---
+  {
+    const rv = (objections, extra) => JSON.stringify({ verdict: "reject-approach", objections, ...extra });
+    const prep = runSpecReviewForSelftest(["route"], rv([{ lens: "methodology", severity: "minor" }, { lens: "QA", severity: "minor" }]));
+    ok("route: methodology minor + design → prep, nothing carried", prep.code === 0 && (() => { const j = JSON.parse(prep.stdout); return j.destination === "prep" && j.carried_design_objections.length === 0; })());
+    const plot = runSpecReviewForSelftest(["route"], rv([{ lens: "methodology", severity: "major" }, { lens: "QA", severity: "minor", claim: "x" }]));
+    ok("route: methodology major + design → plot, design carried", plot.code === 0 && (() => { const j = JSON.parse(plot.stdout); return j.destination === "plot" && JSON.stringify(j.carried_design_objections) === '[{"lens":"QA","severity":"minor"}]'; })());
+    const bad = runSpecReviewForSelftest(["route"], JSON.stringify({ verdict: "revise", objections: [{ lens: "architectural", severity: "major" }] }));
+    ok("route: non-reject-approach → exit 2, empty stdout", bad.code === 2 && bad.stdout === "");
+  }
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (spec-review, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
-module.exports = { extractSpecReviewEvidence, selectEvidenceVerdict, cmdSpecReview, specReviewSelftest };
+module.exports = { routeRejectApproach, extractSpecReviewEvidence, selectEvidenceVerdict, cmdSpecReview, specReviewSelftest };

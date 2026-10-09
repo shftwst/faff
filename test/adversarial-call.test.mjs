@@ -4841,3 +4841,9 @@ test("FAFF-1228 runReviewChain: cut-empty first element is retained in the raw p
   assert.match(empty.content, /# finish_reason: none \(stream ended without a finish\)\n# done: false\n/);
   assert.ok(trace.some((l) => l.endsWith(" finish_reason=none done=false reasoning_len=0 content_len=0")));
 });
+
+test("FAFF-1228 formatCompletionLog: a non-integer length renders as 0, so a hand-built record cannot split the line", () => {
+  const line = formatCompletionLog({ finish_reason: "stop", done: true, reasoning_len: "1\n# x", content_len: -3 });
+  assert.equal(line, " finish_reason=stop done=true reasoning_len=0 content_len=0");
+  assert.ok(!line.includes("\n"));
+});

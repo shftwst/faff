@@ -1232,11 +1232,14 @@ export function mergeUsage(a, b) {
   return finishUsage(scratch);
 }
 
+// A length rendered into a log line: a non-negative integer, else 0, so a future producer cannot split a line.
+function safeLen(n) { return Number.isInteger(n) && n >= 0 ? n : 0; }
+
 // PURE: the stderr suffix for an OK result's completion record; "" when there is none.
 export function formatCompletionLog(completion) {
   if (!completion || typeof completion !== "object") return "";
   const fr = sanitizeFinishReason(completion.finish_reason) ?? "none";
-  return ` finish_reason=${fr} done=${completion.done === true} reasoning_len=${completion.reasoning_len} content_len=${completion.content_len}`;
+  return ` finish_reason=${fr} done=${completion.done === true} reasoning_len=${safeLen(completion.reasoning_len)} content_len=${safeLen(completion.content_len)}`;
 }
 
 // A reasoning delta's text length: some vLLM builds mirror the same text under both field names, so take
@@ -2024,8 +2027,8 @@ function completionPreambleLines(result) {
   const lines = [
     `# finish_reason: ${fr}`,
     `# done: ${c.done === true}`,
-    `# content_len: ${c.content_len}`,
-    `# reasoning_len: ${c.reasoning_len}`,
+    `# content_len: ${safeLen(c.content_len)}`,
+    `# reasoning_len: ${safeLen(c.reasoning_len)}`,
     `# usage: ${c.usage ? JSON.stringify(c.usage) : "none"}`,
   ];
   if (typeof c.length_retried === "boolean") lines.push(`# length_retried: ${c.length_retried}`);

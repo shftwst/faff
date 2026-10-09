@@ -483,3 +483,66 @@ test("FAFF-995: L3 infosec floor stays byte-identical for both false and null in
   assert.deepEqual(rNull.floor_veto, ["floor_input_degraded"]);
   assert.equal(rNull.admit, false);
 });
+
+// --- FAFF-1240: number-prefix anchor fallback -------------------------------
+
+const NUMBERED_SPEC = "## 7. OPEN QUESTIONS AND ASSUMPTIONS\n\nA decision.\n";
+
+test("FAFF-1240 deriveArgumentB: a number-dropped anchor binds the one numbered heading", () => {
+  const r = cf.deriveArgumentB(NUMBERED_SPEC, "open-questions-and-assumptions", "assemble");
+  assert.equal(r.source, "orchestrator:chosen");
+  assert.equal(r.body, "A decision.");
+  assert.equal(r.resolved_slug, "7-open-questions-and-assumptions");
+});
+
+test("FAFF-1240 deriveArgumentB: a numbered anchor never binds a heading with a different or missing number", () => {
+  for (const spec of ["# T\n\n## Out of scope\n\nx\n", "# T\n\n## 8. Out of scope\n\nx\n"]) {
+    const r = cf.deriveArgumentB(spec, "2-out-of-scope", "assemble");
+    assert.equal(r.source, "orchestrator:undefended");
+    assert.equal(r.resolved_slug, "");
+  }
+});
+
+test("FAFF-1240 deriveArgumentB: an exact heading wins over a numbered one", () => {
+  const spec = "## Done\n\nexact body\n\n## 8. Done\n\nnumbered body\n";
+  const r = cf.deriveArgumentB(spec, "done", "assemble");
+  assert.equal(r.body, "exact body");
+  assert.equal(r.resolved_slug, "done");
+});
+
+test("FAFF-1240 deriveArgumentB: an ambiguous number-dropped anchor stays undefended (anchor-lost on redispatch)", () => {
+  const spec = "## 2. Out of scope\n\nfirst\n\n## 5. Out of scope\n\nsecond\n";
+  const a = cf.deriveArgumentB(spec, "out-of-scope", "assemble");
+  assert.equal(a.source, "orchestrator:undefended");
+  assert.equal(a.resolved_slug, "");
+  assert.equal(cf.deriveArgumentB(spec, "out-of-scope", "redispatch").source, "orchestrator:anchor-lost");
+});
+
+test("FAFF-1240 deriveArgumentB: identical numbered headings are one key, so the anchor resolves with both bodies", () => {
+  const spec = "## 3. What\n\nfirst\n\n## 3. What\n\nsecond\n";
+  const r = cf.deriveArgumentB(spec, "what", "assemble");
+  assert.equal(r.source, "orchestrator:chosen");
+  assert.equal(r.body, "first\n\nsecond");
+  assert.equal(r.resolved_slug, "3-what");
+});
+
+test("FAFF-1240 assemble: a fallback-matched objection records the bound heading slug as case_file_anchor", () => {
+  const obj = { lens: "methodology", severity: "minor", claim: "c", evidence: "e", predicted_consequence: "p", spec_anchor: "open-questions-and-assumptions" };
+  const { ledger } = cf.assemble({ standingObjections: [obj], specText: NUMBERED_SPEC, runId: "run-1", windowStart: 1 });
+  assert.equal(ledger.entries["p-01"].case_file_anchor, "7-open-questions-and-assumptions");
+  assert.equal(ledger.entries["p-01"].argument_B_source === "orchestrator:chosen" || ledger.entries["p-01"].argument_A_source === "orchestrator:chosen", true);
+  const miss = cf.assemble({ standingObjections: [{ ...obj, spec_anchor: "nowhere" }], specText: NUMBERED_SPEC });
+  assert.equal(miss.ledger.entries["p-01"].case_file_anchor, "");
+});
+
+test("FAFF-1240 assemble: exact-match anchors give a case file and ledger byte-identical to the pre-change module", () => {
+  const spec = "## 1. Intro\n\nintro\n\n## Empty dir handling\n\n**Chosen:** refuse an empty --dir.\n\n## The guard decision\n\n**Chosen:** guard.\n";
+  const objs = [
+    { lens: "architectural", severity: "major", claim: "the empty --dir crashes", evidence: "no path", predicted_consequence: "crashes", spec_anchor: "empty-dir-handling" },
+    { lens: "QA", severity: "minor", claim: "untested", evidence: "", predicted_consequence: "x", spec_anchor: "the-guard-decision" },
+  ];
+  const out = cf.assemble({ standingObjections: objs, specText: spec, runId: "run-1", windowStart: 1, servingIdentity: "id-x" });
+  // Digest of JSON.stringify(output) captured from the module before FAFF-1240.
+  const digest = require("node:crypto").createHash("sha256").update(JSON.stringify(out)).digest("hex");
+  assert.equal(digest, "bbb4fd3cf6d92694d7fa3ba2d8018f147e479dbf9ccdbfb8add038f9865e36b6");
+});

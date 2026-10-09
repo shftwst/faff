@@ -71,20 +71,26 @@ function splitSections(content) {
   return sections;
 }
 
-// PURE: extract the triple/anchor bullets from a section body. A value runs from after the bullet's
-// colon up to (but not including) the next recognised bullet or any heading line, then trimmed — so
-// a naturally wrapped multi-line value is captured deterministically without a greedy match. A
-// non-bullet, non-heading line encountered before any bullet has been seen is discarded (narrative
-// lead-in, not a field). A repeated key: last one wins.
+// PURE: extract the triple/anchor bullets from a section body. FAFF-1240 value extent: a
+// `spec_anchor` value is its bullet line only (it is a single slug by the prompt grammar). A
+// `claim`, `evidence` or `predicted_consequence` value is its bullet line plus following non-blank
+// lines (a naturally wrapped value stays whole), ending at the first blank line after content;
+// blank lines before any content are skipped, so a bare "- claim:" followed by a blank line and then
+// the text still yields that text. A closed field ignores lines until the next recognised bullet or
+// any heading line, so a refuter's closing prose is not stored in the last field. A non-bullet,
+// non-heading line before any bullet has been seen is discarded (narrative lead-in, not a field).
+// A repeated key: last one wins.
 function parseBullets(body) {
   const lines = String(body == null ? "" : body).split("\n");
   const fields = {};
   let key = null;
   let buf = [];
+  let closed = false;
   const flush = () => {
     if (key) fields[key] = buf.join("\n").trim();
     key = null;
     buf = [];
+    closed = false;
   };
   for (const line of lines) {
     const m = line.match(BULLET_RE);
@@ -92,13 +98,19 @@ function parseBullets(body) {
       flush();
       key = m[1].toLowerCase();
       buf = [m[2]];
+      closed = key === "spec_anchor";
       continue;
     }
     if (ANY_HEADING_RE.test(line)) {
       flush();
       continue;
     }
-    if (key) buf.push(line);
+    if (key === null || closed) continue;
+    if (/^\s*$/.test(line)) {
+      if (buf.join("").trim() !== "") closed = true;
+      continue;
+    }
+    buf.push(line);
   }
   flush();
   return fields;

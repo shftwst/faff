@@ -2,7 +2,7 @@
   "id": "refutation-spec-007",
   "kind": "refutation-spec",
   "fixture": {
-    "spec": "WHY: the orchestrator needs a per-issue 'corrective note' the build lane can leave when it self-detects a wrong turn, so a later re-dispatch resumes with the correction. WHAT: a corrective-note artifact the orchestrator reads before re-dispatch. HOW: the build subagent writes `.faff/runs/<run-id>/<issue>/corrective-note.json` from inside its worktree; the orchestrator reads that file at the next dispatch boundary and applies the correction verbatim. DONE:\n## Scenarios\n- a build lane writes a corrective-note; the orchestrator reads it and applies the correction on re-dispatch\n- an absent note is a no-op"
+    "spec": "WHY: the orchestrator needs a per-issue 'corrective note' the build lane can leave when it self-detects a wrong turn, so a later re-dispatch resumes with the correction. WHAT: a corrective-note artifact the orchestrator reads before re-dispatch. HOW: the build subagent writes `.faff/runs/<run-id>/<issue>/corrective-note.json` from inside its worktree; the orchestrator reads that file at the next dispatch boundary and applies the correction verbatim.\n## Scenarios\n- a build lane writes a corrective-note; the orchestrator reads it and applies the correction on re-dispatch\n- an absent note is a no-op\n\n## DONE\n- [ ] A corrective note the build lane writes to `.faff/runs/<run-id>/<issue>/corrective-note.json` is read by the orchestrator at the next dispatch boundary and its correction applied verbatim on re-dispatch\n- [ ] An absent corrective note is a no-op on re-dispatch"
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {

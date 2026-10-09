@@ -1209,15 +1209,14 @@ function finishUsage(scratch) {
 export function pickUsage(u) {
   if (!u || typeof u !== "object" || Array.isArray(u)) return null;
   const scratch = Object.create(null);
-  for (const k of Object.keys(u)) {
-    if (Object.keys(scratch).length >= USAGE_MAX_KEYS) break;
-    if (USAGE_SKIP_KEYS.has(k)) continue;
-    if (k.endsWith("_tokens") && typeof u[k] === "number" && Number.isFinite(u[k])) scratch[k] = u[k];
-  }
+  // reasoning_tokens first, so a provider with many *_tokens fields cannot crowd it out of the cap.
   const rt = u.completion_tokens_details && typeof u.completion_tokens_details === "object"
     ? u.completion_tokens_details.reasoning_tokens : undefined;
-  if (typeof rt === "number" && Number.isFinite(rt) && ("reasoning_tokens" in scratch || Object.keys(scratch).length < USAGE_MAX_KEYS)) {
-    scratch.reasoning_tokens = rt;
+  if (typeof rt === "number" && Number.isFinite(rt)) scratch.reasoning_tokens = rt;
+  for (const k of Object.keys(u)) {
+    if (Object.keys(scratch).length >= USAGE_MAX_KEYS) break;
+    if (USAGE_SKIP_KEYS.has(k) || k in scratch) continue;
+    if (k.endsWith("_tokens") && typeof u[k] === "number" && Number.isFinite(u[k])) scratch[k] = u[k];
   }
   return finishUsage(scratch);
 }
@@ -1272,11 +1271,13 @@ export function accumulateSse(text) {
     if (payload === "[DONE]") { done = true; continue; }
     let j;
     try { j = JSON.parse(payload); } catch { continue; }
-    if (j?.usage) { const u = pickUsage(j.usage); if (u != null) usage = u; }   // last non-null wins
+    // Last non-null wins. The request sends no stream_options, so usage appears only from a provider that
+    // reports it unasked (OpenRouter does; plain vLLM does not): `usage: none` means unreported, not zero.
+    if (j?.usage) { const u = pickUsage(j.usage); if (u != null) usage = u; }
     const choice = j?.choices?.[0];   // absent on a usage-only chunk
     const piece = choice?.delta?.content ?? choice?.message?.content;
     if (typeof piece === "string") content += piece;
-    reasoningLen += reasoningPieceLen(choice?.delta) + reasoningPieceLen(choice?.message);
+    reasoningLen += Math.max(reasoningPieceLen(choice?.delta), reasoningPieceLen(choice?.message));   // one frame, one count
     if (choice?.finish_reason) { finish = sanitizeFinishReason(choice.finish_reason); done = true; if (choice.finish_reason === "length") truncated = true; }
   }
   if (!sawData) {

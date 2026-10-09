@@ -4847,3 +4847,16 @@ test("FAFF-1228 formatCompletionLog: a non-integer length renders as 0, so a han
   assert.equal(line, " finish_reason=stop done=true reasoning_len=0 content_len=0");
   assert.ok(!line.includes("\n"));
 });
+
+test("FAFF-1228 accumulateSse: a frame carrying reasoning in both delta and message counts it once", () => {
+  const frame = `data: ${JSON.stringify({ choices: [{ delta: { reasoning: "abcdef" }, message: { reasoning: "abcdef" } }] })}\ndata: ${JSON.stringify({ choices: [{ delta: { content: "x" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+  assert.equal(accumulateSse(frame).completion.reasoning_len, 6);
+});
+
+test("FAFF-1228 pickUsage: reasoning_tokens survives a provider with more *_tokens fields than the cap", () => {
+  const u = { completion_tokens_details: { reasoning_tokens: 77 } };
+  for (let i = 0; i < 20; i++) u[`hop${i}_tokens`] = i;
+  const out = pickUsage(u);
+  assert.equal(out.reasoning_tokens, 77);
+  assert.equal(Object.keys(out).length, USAGE_MAX_KEYS);
+});

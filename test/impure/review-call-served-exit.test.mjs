@@ -1,4 +1,4 @@
-// FAFF-1239 — real-subprocess regression: a served fallback review must exit 0 promptly even though the
+// FAFF-1239: real-subprocess regression: a served fallback review must exit 0 promptly even though the
 // slice-exhausted primary was still trickling bytes. Runs review-call.mjs against an in-process 127.0.0.1
 // server where model A trickles SSE comments forever and model B serves findings. Without the per-element
 // abort the child outlives main (A's socket stays open); the exit backstop would hide that only after

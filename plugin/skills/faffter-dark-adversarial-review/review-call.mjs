@@ -1379,7 +1379,7 @@ export const TRANSPORT_RETRY = { attempts: 3, baseMs: 1500 };
 
 // FAFF-1239: resolves early (clearing its timer and listener) when the optional signal aborts, so an
 // abandoned chain element's backoff ends with the element instead of waking to start another attempt.
-export function sleep(ms, signal) {
+function sleep(ms, signal) {
   return new Promise((resolve) => {
     if (signal && signal.aborted) return resolve();
     let onAbort;

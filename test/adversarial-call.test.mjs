@@ -4361,7 +4361,13 @@ test("FAFF-1239 runReviewChain: element 0's signal aborts with 'chain slice exha
   const signals = [];
   const runReviewFn = (opts) => {
     signals.push(opts.signal);
-    if (opts.host === "https://a/v1") return new Promise(() => {});
+    if (opts.host === "https://a/v1") {
+      // A ref'd handle the element signal must release: holds the loop open, and resolves only on abort.
+      return new Promise((res) => {
+        const t = setTimeout(() => res({ status: "ok", content: "late" }), 5000);
+        opts.signal.addEventListener("abort", () => { clearTimeout(t); res({ status: "transport-failed" }); }, { once: true });
+      });
+    }
     return Promise.resolve({ status: "ok", content: "### observation: no findings" });
   };
   const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 200, log: () => {} });

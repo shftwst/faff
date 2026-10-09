@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1245",
+  "build": {
+    "status": "complete",
+    "diff_hash": "25315f6f0c6d79d727a71a0f0b85bb5ada1f48433a784ecf804e7fdf318cba92",
+    "branch": "FAFF-1245-build-judge-retry-limit-config",
+    "pushed_at": "2026-10-09T23:22:48.553Z"
+  },
+  "updated_at": "2026-10-09T23:22:48.553Z"
+}

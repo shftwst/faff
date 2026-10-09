@@ -791,7 +791,7 @@ test("all eval/cases load and validate", () => {
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");
 });
 
-// FAFF-1243 — a refutation-spec fixture is the spec the lenses read verbatim, so an empty DONE is a
+// FAFF-1243: a refutation-spec fixture is the spec the lenses read verbatim, so an empty DONE is a
 // flaw they are entitled to find. Structural guard: every fixture with a "## Scenarios" line needs a
 // "## DONE" section with a checklist item after it (and before any "## Ratified scope"), and no bare
 // "DONE:" label may dangle.

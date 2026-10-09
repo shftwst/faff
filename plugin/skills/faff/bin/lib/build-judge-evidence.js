@@ -382,11 +382,15 @@ async function dispatchJudgeRulings(ledger, caseFiles, judgeDir, deps) {
       if (!entry || entry.resolution === "parked") continue; // already parked at assemble
       const caseFile = caseFiles[cid];
       const result = await dispatchOne(cid, caseFile, tmpDir, { ...deps, backendsJsonPath });
-      entry.ruling = result.ruling;
+      // A `binding` key the model put in its verdict is dropped from the inline copy too, so the
+      // ledger and the ruling file carry the same verdict fields (only the file is stamped).
+      let verdict = result.ruling;
+      if (verdict && typeof verdict === "object") { const { binding: _modelBinding, ...rest } = verdict; verdict = rest; }
+      entry.ruling = verdict;
       entry.resolution = result.resolution;
       if (result.cause) entry.park_cause = result.cause;
-      if (result.ruling) {
-        fs.writeFileSync(path.join(judgeDir, `ruling-${cid}.json`), JSON.stringify({ ...result.ruling, binding: bindingFor(ledger, cid) }, null, 2) + "\n");
+      if (verdict) {
+        fs.writeFileSync(path.join(judgeDir, `ruling-${cid}.json`), JSON.stringify({ ...verdict, binding: bindingFor(ledger, cid) }, null, 2) + "\n");
       }
     }
   } finally {

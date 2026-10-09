@@ -263,6 +263,7 @@ test("cmdAssemble: faff's binding overwrites a binding the model put in its verd
     const ruling = JSON.parse(readFileSync(join(judgeDir, "ruling-f-01.json"), "utf8"));
     assert.equal(ruling.binding.finding_id, "a.js::x");
     assert.equal(ruling.binding.run_id, ledger.run_id);
+    assert.ok(!("binding" in ledger.entries["f-01"].ruling), "the inline ledger copy carries no model-written binding");
   });
 });
 

@@ -255,7 +255,7 @@ A lens is "refuted" only when it carries a **gating** objection (`critical`/`maj
 { "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker" } ] }
 ```
 
-The founded-verdict invariant holds by construction: `approve` carries `objections: []`; every other verdict carries at least one. Where a `reject-approach` routes (back to prep vs plot) is the consumer's concern, read off the objecting lens — this producer just emits the founded verdict. A swapped-in reviewer conforms by emitting the same block.
+The founded-verdict invariant holds by construction: `approve` carries `objections: []`; every other verdict carries at least one. Where a `reject-approach` routes (back to prep vs plot) is the consumer's concern, computed by `faff spec-review route` from lens and severity — this producer just emits the founded verdict. A swapped-in reviewer conforms by emitting the same block.
 
 ## Rendering
 

@@ -1321,32 +1321,49 @@ export class FirstByteBreachError extends Error {
 export function isFirstByteBreach(err) { return Boolean(err && err.firstByteBreach === true); }
 
 // FAFF-885: wrap the injected streamFn in a first-byte deadline. When firstByteMs is not a number the
-// wrapper is a PASS-THROUGH (no timer, opts absent) — byte-for-byte the pre-FAFF-885 call. Otherwise it
+// wrapper is a PASS-THROUGH (no timer): byte-for-byte the pre-FAFF-885 four-argument call when no outer
+// signal is given, and a fifth argument { signal } alone when one is (FAFF-1239: the chain's element
+// signal, so a slice abort still reaches the transport with no first-byte window). Otherwise it
 // arms a real timer and hands streamFn an { onFirstByte, signal } fifth argument: the first response byte
 // disarms the timer (the stream then proceeds under the existing inactivity timeoutMs, unchanged); if the
 // timer fires first it aborts the signal (tearing the real socket down) and rejects a FirstByteBreachError.
 // opts is ALWAYS passed at the FIFTH positional slot — every caller (streamOnceOpenAi/streamOnceAnthropic)
 // passes an explicit headers object so opts never collides with it. The timer is unref'd so it never
-// keeps the process alive.
-export function streamWithFirstByte(streamFn, url, body, timeoutMs, headers, firstByteMs) {
+// keeps the process alive. FAFF-1239: an outer signal is linked by hand (addEventListener, not
+// AbortSignal.any, which Node 20.0 to 20.2 lacks) into the first-byte controller, and unlinked on settle.
+export function streamWithFirstByte(streamFn, url, body, timeoutMs, headers, firstByteMs, signal) {
   // Pass-through unless a POSITIVE finite window is set (mirrors resolveFirstByteMs's <=0-disables
   // guard, and rejects a NaN a direct caller might pass — typeof NaN === "number" would else arm
   // setTimeout(NaN), an immediate breach).
-  if (!Number.isFinite(firstByteMs) || firstByteMs <= 0) return streamFn(url, body, timeoutMs, headers);
+  if (!Number.isFinite(firstByteMs) || firstByteMs <= 0) {
+    return signal === undefined ? streamFn(url, body, timeoutMs, headers) : streamFn(url, body, timeoutMs, headers, { signal });
+  }
   let firstByteSeen = false;
   let timer;
   const controller = new AbortController();
+  let onOuter;
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason);
+    else {
+      onOuter = () => controller.abort(signal.reason);
+      signal.addEventListener("abort", onOuter, { once: true });
+    }
+  }
+  const settle = () => {
+    if (timer) { clearTimeout(timer); timer = undefined; }
+    if (onOuter) { signal.removeEventListener("abort", onOuter); onOuter = undefined; }
+  };
   const onFirstByte = () => { firstByteSeen = true; if (timer) { clearTimeout(timer); timer = undefined; } };
   const breach = new Promise((_resolve, reject) => {
     timer = setTimeout(() => {
-      if (!firstByteSeen) { controller.abort(); reject(new FirstByteBreachError(`no first byte within ${firstByteMs}ms`)); }
+      if (!firstByteSeen) { controller.abort(new Error("first-byte breach")); reject(new FirstByteBreachError(`no first byte within ${firstByteMs}ms`)); }
     }, firstByteMs);
     if (timer && typeof timer.unref === "function") timer.unref();
   });
   const streamP = streamFn(url, body, timeoutMs, headers, { onFirstByte, signal: controller.signal });
   // The losing branch of the race can settle after the winner: swallow a post-breach streamFn rejection
   // (an aborted socket) so it never surfaces as an unhandledRejection, and always clear the timer.
-  streamP.then(() => { if (timer) { clearTimeout(timer); timer = undefined; } }, () => { if (timer) { clearTimeout(timer); timer = undefined; } });
+  streamP.then(settle, settle);
   return Promise.race([streamP, breach]);
 }
 
@@ -1360,18 +1377,33 @@ export function streamWithFirstByte(streamFn, url, body, timeoutMs, headers, fir
 // composition. There is no overall deadline across attempts (a true cap is a deferred behavioural change).
 export const TRANSPORT_RETRY = { attempts: 3, baseMs: 1500 };
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// FAFF-1239: resolves early (clearing its timer and listener) when the optional signal aborts, so an
+// abandoned chain element's backoff ends with the element instead of waking to start another attempt.
+function sleep(ms, signal) {
+  return new Promise((resolve) => {
+    if (signal && signal.aborted) return resolve();
+    let onAbort;
+    const t = setTimeout(() => { if (signal) signal.removeEventListener("abort", onAbort); resolve(); }, ms);
+    if (signal) {
+      onAbort = () => { clearTimeout(t); resolve(); };
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+}
 
 // Wrap a stream call (streamOnce + its truncation retry) in a bounded retry that fires solely on
 // isTransientTransport. Terminal faults (auth/4xx/usage) throw straight out — unchanged. On exhaustion,
 // or when no budget remains for the next backoff, returns a sentinel so the caller surfaces
 // status "transport-failed" (→ main() maps it through unreachableExit, never the unmapped EXIT.OTHER).
-async function streamWithTransportRetry(streamCall, { policy = TRANSPORT_RETRY, deadlineMs } = {}) {
+// FAFF-1239: an aborted signal ends the loop (never retried, never rethrown), checked before any other class.
+async function streamWithTransportRetry(streamCall, { policy = TRANSPORT_RETRY, deadlineMs, signal } = {}) {
   let lastErr;
   for (let attempt = 1; attempt <= policy.attempts; attempt++) {
+    if (signal && signal.aborted) { lastErr = lastErr ?? signal.reason; break; }
     try {
       return { ok: true, out: await streamCall() };
     } catch (e) {
+      if (signal && signal.aborted) { lastErr = e; break; }   // FAFF-1239: an abort is neither retried nor rethrown
       if (isFirstByteBreach(e)) { lastErr = e; break; }  // FAFF-885: fast-fail — no retry, surface transport-failed
       if (!isTransientTransport(e)) throw e;            // terminal → out immediately (auth handled by caller's catch)
       lastErr = e;
@@ -1379,7 +1411,7 @@ async function streamWithTransportRetry(streamCall, { policy = TRANSPORT_RETRY, 
       let delay = policy.baseMs * 2 ** (attempt - 1);
       if (typeof deadlineMs === "number") delay = Math.min(delay, deadlineMs - Date.now());
       if (delay <= 0) break;                            // no budget left to retry
-      await sleep(delay);
+      await sleep(delay, signal);
     }
   }
   return { ok: false, error: lastErr };
@@ -1387,23 +1419,38 @@ async function streamWithTransportRetry(streamCall, { policy = TRANSPORT_RETRY, 
 
 // --- transport (real impls; injectable in runReview for tests) ---
 
-function realGet(url, timeoutMs = 5000, headers = {}) {
+// FAFF-1239: destroy `r` when `signal` aborts, and drop the listener once the request has settled so a
+// later abort (the chain's element-settled one) cannot touch a request that already completed.
+function destroyOnAbort(r, signal) {
+  if (!signal) return () => {};
+  const reasonText = signal.reason?.message ?? String(signal.reason ?? "aborted");
+  const abortReq = () => r.destroy(new Error(`request aborted (${reasonText})`));
+  if (signal.aborted) { abortReq(); return () => {}; }
+  signal.addEventListener("abort", abortReq, { once: true });
+  let linked = true; // idempotent: several settle events (end, close, error) may each unlink
+  return () => { if (linked) { linked = false; signal.removeEventListener("abort", abortReq); } };
+}
+
+function realGet(url, timeoutMs = 5000, headers = {}, opts = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const lib = u.protocol === "https:" ? https : http;
+    let unlink = () => {};
     const r = lib.request(u, { method: "GET", headers }, (res) => {
       let data = "";
       res.setEncoding("utf8");
+      res.on("close", () => unlink()); // every response settle path, including an aborted body
       res.on("data", (c) => (data += c));
-      res.on("end", () => (res.statusCode >= 200 && res.statusCode < 300
+      res.on("end", () => (unlink(), res.statusCode >= 200 && res.statusCode < 300
         ? resolve(data)
         // FAFF-210: include the body (as realStream already does) so isAuthError can see a gemini
         // 400 API_KEY_INVALID at the preflight GET — without it that bad-key 400 would misroute to
         // unreachable/pass+skip and silently disable the gate.
         : reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 200)}`))));
     });
-    r.on("error", reject);
+    r.on("error", (e) => { unlink(); reject(e); });
     r.setTimeout(timeoutMs, () => r.destroy(new Error(`preflight timed out after ${timeoutMs}ms`)));
+    unlink = destroyOnAbort(r, opts.signal);
     r.end();
   });
 }
@@ -1416,27 +1463,27 @@ function realStream(url, body, timeoutMs = 580000, extraHeaders = {}, opts = {})
     const u = new URL(url);
     const lib = u.protocol === "https:" ? https : http;
     const headers = { "content-type": "application/json", "content-length": Buffer.byteLength(body), ...extraHeaders };
+    let unlink = () => {};
     const r = lib.request(u, { method: "POST", headers }, (res) => {
       let data = "";
       res.setEncoding("utf8");
+      res.on("close", () => unlink()); // every response settle path, including an aborted body
       res.on("data", (c) => {
         // FAFF-885: the FIRST body byte disarms the first-byte window. A buffering server that flushes
         // nothing until done never reaches here, so its window breaches and the chain fails over fast.
         if (firstByte) { firstByte = false; if (typeof opts.onFirstByte === "function") opts.onFirstByte(); }
         data += c;
       });
-      res.on("end", () => (res.statusCode >= 200 && res.statusCode < 300
+      res.on("end", () => (unlink(), res.statusCode >= 200 && res.statusCode < 300
         ? resolve(data)
         : reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 200)}`))));
     });
-    r.on("error", reject);
+    r.on("error", (e) => { unlink(); reject(e); });
     r.setTimeout(timeoutMs, () => r.destroy(new Error(`stream timed out after ${timeoutMs}ms`)));
-    // FAFF-885: on a first-byte breach the wrapper aborts this signal → tear the socket down promptly
-    // rather than leaving it to linger until the inactivity timeout above.
-    if (opts.signal) {
-      if (opts.signal.aborted) r.destroy(new Error("first-byte breach: aborted before send"));
-      else opts.signal.addEventListener("abort", () => r.destroy(new Error("first-byte breach: socket torn down")), { once: true });
-    }
+    // Two abort sources share this signal: the FAFF-885 first-byte breach, and (FAFF-1239) the chain
+    // cancelling an abandoned element. Either way tear the socket down promptly rather than leaving it to
+    // linger on the inactivity timeout above; the listener is removed once the request settles.
+    unlink = destroyOnAbort(r, opts.signal);
     r.write(body);
     r.end();
   });
@@ -1444,10 +1491,13 @@ function realStream(url, body, timeoutMs = 580000, extraHeaders = {}, opts = {})
 
 // OpenAI-compatible preflight: GET /v1/models with Bearer auth. unreachable (infra) and auth-failed
 // (401/403 creds) are distinct from not-served (config fault).
-export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, timeoutMs = 5000 }) {
+export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, timeoutMs = 5000, signal }) {
   const headers = apiKey ? { authorization: `Bearer ${apiKey}` } : {};
   let body;
-  try { body = await getFn(joinUrl(host, "/models"), timeoutMs, headers); }
+  try {
+    // FAFF-1239: the 4th argument is passed only when a signal exists, so direct callers see the old arity.
+    body = signal ? await getFn(joinUrl(host, "/models"), timeoutMs, headers, { signal }) : await getFn(joinUrl(host, "/models"), timeoutMs, headers);
+  }
   catch (e) {
     if (isAuthError(e)) return { authFailed: true, error: e.message };
     if (isRateLimited(e)) return { rateLimited: true, error: e.message };  // FAFF-942: advance the chain, don't retry the throttled host
@@ -1457,10 +1507,10 @@ export async function preflightOpenAi({ host, model, apiKey, getFn = realGet, ti
   return { unreachable: false, served, names };
 }
 
-async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs, firstByteMs }) {
+async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs, firstByteMs, signal }) {
   const headers = apiKey ? { authorization: `Bearer ${apiKey}` } : {};
   const body = JSON.stringify(buildOpenAiPayload({ model, system, user, maxTokens: numPredict, reasoningOff, reasoningEffort, reasoningExtra }));
-  const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/chat/completions"), body, timeoutMs, headers, firstByteMs);  // FAFF-885
+  const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/chat/completions"), body, timeoutMs, headers, firstByteMs, signal);  // FAFF-885, FAFF-1239
   return accumulateSse(raw);
 }
 
@@ -1472,9 +1522,9 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
 // documented exit, never EXIT.OTHER.
 async function runReviewOpenAi({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, reasoningEffort = null, reasoningExtra = null, apiKey,
-  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs, signal,
 }) {
-  const pf = await preflightOpenAi({ host, model, apiKey, getFn });
+  const pf = await preflightOpenAi({ host, model, apiKey, getFn, signal });
   if (pf.authFailed) return { status: "auth-failed", note: pf.error };
   if (pf.rateLimited) return { status: "rate-limited", note: pf.error };  // FAFF-942
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
@@ -1486,15 +1536,15 @@ async function runReviewOpenAi({
     : timeoutMs);
   try {
     const streamCall = async () => {
-      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
+      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
       if (out.truncated) {
-        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
+        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
       }
       return out;
     };
     const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
       : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
-    const r = await streamWithTransportRetry(streamCall, { deadlineMs });
+    const r = await streamWithTransportRetry(streamCall, { deadlineMs, signal });
     if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
     return { status: "ok", content: r.out.content, truncated: r.out.truncated };
   } catch (e) {
@@ -1504,11 +1554,11 @@ async function runReviewOpenAi({
   }
 }
 
-async function streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs, firstByteMs }) {
+async function streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs, firstByteMs, signal }) {
   const headers = { "anthropic-version": ANTHROPIC_VERSION };
   if (apiKey) headers["x-api-key"] = apiKey;   // absent key ⇒ the API 401s → auth-failed (mirrors openai's Bearer)
   const body = JSON.stringify(buildAnthropicPayload({ model, system, user, maxTokens: numPredict }));
-  const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/v1/messages"), body, timeoutMs, headers, firstByteMs);  // FAFF-885
+  const raw = await streamWithFirstByte(streamFn, joinUrl(host, "/v1/messages"), body, timeoutMs, headers, firstByteMs, signal);  // FAFF-885, FAFF-1239
   return accumulateAnthropic(raw);
 }
 
@@ -1521,7 +1571,7 @@ async function streamOnceAnthropic({ host, model, system, user, numPredict, apiK
 // into this catch); an exhausted transient fault surfaces transport-failed → a documented exit, never EXIT.OTHER.
 async function runReviewAnthropic({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, apiKey,
-  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs, firstByteMs, signal,
 }) {
   // FAFF-329: re-clamp every attempt to the remaining total budget (see runReviewOpenAi above for the full rationale).
   const perAttempt = () => (typeof hardDeadlineMs === "number"
@@ -1529,15 +1579,15 @@ async function runReviewAnthropic({
     : timeoutMs);
   try {
     const streamCall = async () => {
-      let out = await streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
+      let out = await streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
       if (out.truncated) {
-        out = await streamOnceAnthropic({ host, model, system, user, numPredict: numPredict * 2, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs });
+        out = await streamOnceAnthropic({ host, model, system, user, numPredict: numPredict * 2, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
       }
       return out;
     };
     const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
       : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
-    const r = await streamWithTransportRetry(streamCall, { deadlineMs });
+    const r = await streamWithTransportRetry(streamCall, { deadlineMs, signal });
     if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
     return { status: "ok", content: r.out.content, truncated: r.out.truncated };
   } catch (e) {
@@ -1992,7 +2042,7 @@ export async function runReviewChain(chain = [], shared = {}) {
     }
     // FAFF-617: PER-BACKEND SLICE. The whole chain shares one total budget (totalDeadlineMs), but each
     // backend is granted only an EQUAL SHARE of what REMAINS — divided by how many backends are still to
-    // try (this one plus the untried ones, n - i) — so a hung/slow backend is abandoned at its slice and
+    // try (this one plus the untried ones, n - i) — so a hung/slow backend is abandoned (cancelled, FAFF-1239) at its slice and
     // the healthy fallbacks still fit inside the deadline (the fail-over the chain exists for). The
     // division is recomputed each iteration, so it is WORK-CONSERVING: a fast-failing backend hands its
     // unspent budget back to be re-divided among the survivors. Edge cases fall out of the formula with no
@@ -2016,6 +2066,8 @@ export async function runReviewChain(chain = [], shared = {}) {
     // The backend is handed backendDeadline as its hardDeadlineMs; the per-family perAttempt clamp then
     // bounds every attempt to min(timeoutMs, backendDeadline - now) FOR FREE — so an over-large configured
     // timeout is clamped to the slice with no rewrite of the configured value (see the anti-pattern note).
+    // FAFF-1239: one controller per dispatched element; aborted on a slice win and again once it settles.
+    const ac = new AbortController();
     const callReview = () => runReviewFn({
       host: b.host, model: b.model, provider: b.provider,
       system: shared.system, user: shared.user, numPredict: shared.numPredict,
@@ -2023,17 +2075,25 @@ export async function runReviewChain(chain = [], shared = {}) {
       hardDeadlineMs: backendDeadline,   // FAFF-617: the per-backend SLICE, not the shared start+total deadline
       firstByteMs: b.firstByteMs,        // FAFF-885: per-attempt first-byte window (per-backend; undefined ⇒ pass-through)
       getFn: shared.getFn, streamFn: shared.streamFn,
+      signal: ac.signal,
     });
     let result;
     if (typeof totalDeadlineMs === "number") {
       // Race the backend against ITS SLICE (not the full remaining budget). On a slice win the in-flight
-      // backend is ABANDONED (its socket carries the perAttempt idle timeout, so it self-closes shortly;
-      // the timer is unref'd so it never keeps the process alive).
+      // backend is ABANDONED, meaning cancelled (FAFF-1239): the element's signal is aborted, which destroys
+      // its in-flight request or preflight and ends any retry backoff, so it cannot hold the process open
+      // (a trickling socket resets its inactivity timeout and used to outlive the chain). The sentinel timer
+      // stays unref'd.
       const SENTINEL = { __deadline: true };
       let timer;
       const deadlineP = new Promise((res) => { timer = setTimeout(() => res(SENTINEL), sliceMs); if (timer && timer.unref) timer.unref(); });
-      result = await Promise.race([safeCall(callReview), deadlineP]);
-      clearTimeout(timer);
+      try {
+        result = await Promise.race([safeCall(callReview), deadlineP]);
+        clearTimeout(timer);
+        if (result === SENTINEL) ac.abort(new Error("chain slice exhausted"));   // BEFORE logging or advancing
+      } finally {
+        if (!ac.signal.aborted) ac.abort(new Error("chain element settled"));
+      }
       if (result === SENTINEL) {
         // FAFF-617: this backend used its whole SLICE — NOT the whole deadline. Record a DEADLINE-class
         // failure and ADVANCE while untried backends remain (the behavioural inversion from FAFF-329, where
@@ -2054,7 +2114,8 @@ export async function runReviewChain(chain = [], shared = {}) {
         return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses, primarySkipped: primarySkipRecord(chain, -1, firstSkipReason) };   // FAFF-1039
       }
     } else {
-      result = await safeCall(callReview);
+      try { result = await safeCall(callReview); }
+      finally { ac.abort(new Error("chain element settled")); }
     }
     const exit = mapResultExit(result, b.hostSource);
     // FAFF-928: retain this backend's raw body BEFORE/independently of the classification branch below,
@@ -2432,8 +2493,35 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   return finalExit;
 }
 
+// FAFF-1239: CLI-only exit backstop. main's return value decides the exit code, but the process only ends
+// when the event loop drains; if some handle leaks, an unref'd timer forces the exit after a short grace,
+// naming the leak on stderr, so a served review is not turned into a deadline skip by review-spawn's hard
+// kill. It never fires on the healthy path (the unref'd timer does not keep the loop alive).
+export const EXIT_BACKSTOP_GRACE_MS = 2000;
+export function armExitBackstop(code, {
+  graceMs = EXIT_BACKSTOP_GRACE_MS,
+  write = (s) => process.stderr.write(s),
+  exit = (c) => process.exit(c),
+  flush = (cb) => process.stdout.write("", cb),
+  activeResources = () => (process.getActiveResourcesInfo ? process.getActiveResourcesInfo() : []),
+} = {}) {
+  const t = setTimeout(() => {
+    let kinds;
+    try { kinds = activeResources().join(", "); } catch { kinds = ""; }
+    write(`review-call: process still alive ${graceMs}ms after main returned exit ${code}; leaked handle(s): ${kinds || "unknown"}; forcing exit ${code} (FAFF-1239)\n`);
+    flush(() => exit(code));
+  }, graceMs);
+  t.unref();
+  return t;
+}
+
+// The CLI entry's settle handlers, extracted so a test can drive both paths.
+export function runCli(mainPromise, { proc = process, arm = armExitBackstop } = {}) {
+  return mainPromise
+    .then((code) => { proc.exitCode = code; arm(code); })
+    .catch((e) => { proc.stderr.write(`review-call: ${e.message}\n`); proc.exitCode = EXIT.OTHER; arm(EXIT.OTHER); });
+}
+
 if (process.argv[1] && process.argv[1].endsWith("review-call.mjs")) {
-  main(process.argv.slice(2))
-    .then((code) => { process.exitCode = code; })
-    .catch((e) => { process.stderr.write(`review-call: ${e.message}\n`); process.exitCode = EXIT.OTHER; });
+  runCli(main(process.argv.slice(2)));
 }

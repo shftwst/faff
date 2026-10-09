@@ -1171,15 +1171,98 @@ export function modelServedOpenAi(modelsJson, model) {
   return { served, names: ids };
 }
 
+// FAFF-1228: the per-call completion record's helpers. A finish_reason is an untrusted provider string
+// that reaches a file preamble and a stderr line, so it is reduced to a short token first; a usage block
+// is the one provider object whose KEYS reach a log line, so it is built prototype-safe and capped.
+export const USAGE_MAX_KEYS = 16;
+const USAGE_SKIP_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+// PURE: non-string or empty -> null; else every char outside [A-Za-z0-9_.:-] becomes "_", capped at 64.
+// Idempotent, so render sites can re-apply it to a Completion built by a future producer.
+export function sanitizeFinishReason(v) {
+  if (typeof v !== "string" || v === "") return null;
+  return v.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 64);
+}
+
+// Copy own entries of `from` into `into` (a null-prototype object) skipping the pollution keys, stopping at the cap.
+function copyUsageKeys(into, from) {
+  for (const k of Object.keys(from)) {
+    if (USAGE_SKIP_KEYS.has(k)) continue;
+    if (!(k in into) && Object.keys(into).length >= USAGE_MAX_KEYS) continue;
+    into[k] = from[k];
+  }
+}
+
+// Null-prototype scratch -> plain {} (same skip list); no keys -> null.
+function finishUsage(scratch) {
+  const keys = Object.keys(scratch);
+  if (keys.length === 0) return null;
+  const out = {};
+  for (const k of keys) {
+    if (USAGE_SKIP_KEYS.has(k)) continue;
+    Object.defineProperty(out, k, { value: scratch[k], enumerable: true, writable: true, configurable: true });
+  }
+  return out;
+}
+
+// PURE: numeric token counts only, keeping the provider's own field names (no renaming).
+export function pickUsage(u) {
+  if (!u || typeof u !== "object" || Array.isArray(u)) return null;
+  const scratch = Object.create(null);
+  // reasoning_tokens first, so a provider with many *_tokens fields cannot crowd it out of the cap.
+  const rt = u.completion_tokens_details && typeof u.completion_tokens_details === "object"
+    ? u.completion_tokens_details.reasoning_tokens : undefined;
+  if (typeof rt === "number" && Number.isFinite(rt)) scratch.reasoning_tokens = rt;
+  for (const k of Object.keys(u)) {
+    if (Object.keys(scratch).length >= USAGE_MAX_KEYS) break;
+    if (USAGE_SKIP_KEYS.has(k) || k in scratch) continue;
+    if (k.endsWith("_tokens") && typeof u[k] === "number" && Number.isFinite(u[k])) scratch[k] = u[k];
+  }
+  return finishUsage(scratch);
+}
+
+// PURE: merge two usage maps (b wins), prototype-safe and capped; never a bare spread of provider objects.
+export function mergeUsage(a, b) {
+  if (b == null) return a;
+  if (a == null) return b;
+  const scratch = Object.create(null);
+  copyUsageKeys(scratch, a);
+  copyUsageKeys(scratch, b);
+  return finishUsage(scratch);
+}
+
+// A length rendered into a log line: a non-negative integer, else 0, so a future producer cannot split a line.
+function safeLen(n) { return Number.isInteger(n) && n >= 0 ? n : 0; }
+
+// PURE: the stderr suffix for an OK result's completion record; "" when there is none.
+export function formatCompletionLog(completion) {
+  if (!completion || typeof completion !== "object") return "";
+  const fr = sanitizeFinishReason(completion.finish_reason) ?? "none";
+  return ` finish_reason=${fr} done=${completion.done === true} reasoning_len=${safeLen(completion.reasoning_len)} content_len=${safeLen(completion.content_len)}`;
+}
+
+// A reasoning delta's text length: some vLLM builds mirror the same text under both field names, so take
+// the larger of the two (never the sum). reasoning_details is ignored; `reasoning` carries the same text.
+function reasoningPieceLen(obj) {
+  const a = typeof obj?.reasoning === "string" ? obj.reasoning.length : 0;
+  const b = typeof obj?.reasoning_content === "string" ? obj.reasoning_content.length : 0;
+  return Math.max(a, b);
+}
+
 // PURE: fold an SSE stream (data: {json}\n\n … data: [DONE]) into the assistant text. Reads
 // choices[0].delta.content (streamed) and reports finish_reason==="length" truncation. Tolerant
 // fallback: if the body carries no SSE `data:` frames (a provider that ignored stream:true and
-// returned one JSON), parse it whole and read choices[0].message.content.
+// returned one JSON), parse it whole and read choices[0].message.content. FAFF-1228: also returns a
+// `completion` record (sanitised finish reason, done, content/reasoning lengths, usage); reasoning is
+// counted, never kept.
 export function accumulateSse(text) {
   let content = "";
   let truncated = false;
   let done = false;
   let sawData = false;
+  let finish = null;
+  let reasoningLen = 0;
+  let usage = null;
   for (const line of String(text).split("\n")) {
     const t = line.trim();
     if (!t.startsWith("data:")) continue;
@@ -1188,10 +1271,14 @@ export function accumulateSse(text) {
     if (payload === "[DONE]") { done = true; continue; }
     let j;
     try { j = JSON.parse(payload); } catch { continue; }
-    const choice = j?.choices?.[0];
+    // Last non-null wins. The request sends no stream_options, so usage appears only from a provider that
+    // reports it unasked (OpenRouter does; plain vLLM does not): `usage: none` means unreported, not zero.
+    if (j?.usage) { const u = pickUsage(j.usage); if (u != null) usage = u; }
+    const choice = j?.choices?.[0];   // absent on a usage-only chunk
     const piece = choice?.delta?.content ?? choice?.message?.content;
     if (typeof piece === "string") content += piece;
-    if (choice?.finish_reason) { done = true; if (choice.finish_reason === "length") truncated = true; }
+    reasoningLen += Math.max(reasoningPieceLen(choice?.delta), reasoningPieceLen(choice?.message));   // one frame, one count
+    if (choice?.finish_reason) { finish = sanitizeFinishReason(choice.finish_reason); done = true; if (choice.finish_reason === "length") truncated = true; }
   }
   if (!sawData) {
     // non-streamed fallback: a single completion object
@@ -1199,10 +1286,13 @@ export function accumulateSse(text) {
       const j = JSON.parse(String(text));
       const choice = j?.choices?.[0];
       if (typeof choice?.message?.content === "string") content = choice.message.content;
+      usage = pickUsage(j?.usage);
+      reasoningLen = reasoningPieceLen(choice?.message);
+      finish = sanitizeFinishReason(choice?.finish_reason);
       if (choice?.finish_reason) { done = true; if (choice.finish_reason === "length") truncated = true; }
     } catch { /* leave content empty — caller treats empty as needs-human */ }
   }
-  return { content, truncated, done };
+  return { content, truncated, done, completion: { finish_reason: finish, done, content_len: content.length, reasoning_len: reasoningLen, usage } };
 }
 
 // --- Anthropic (native /v1/messages) pure functions (FAFF-210) ---
@@ -1233,12 +1323,16 @@ export function buildAnthropicPayload({ model, system, user, maxTokens = DEFAULT
 // the model's hidden reasoning — dropped, we want only the answer). stop_reason==="max_tokens" on the late
 // message_delta reports truncation. Tolerant fallback: if the body carries no `data:` frames (a backend
 // that ignored stream:true and returned one Messages object), parse it whole and concatenate its
-// content[] text blocks. Same {content, truncated, done} contract as accumulateSse.
+// content[] text blocks. Same {content, truncated, done, completion} contract as accumulateSse (FAFF-1228:
+// thinking_delta text is still dropped from content; only its length is counted).
 export function accumulateAnthropic(text) {
   let content = "";
   let truncated = false;
   let done = false;
   let sawData = false;
+  let finish = null;
+  let reasoningLen = 0;
+  let usage = null;
   for (const line of String(text).split("\n")) {
     const t = line.trim();
     if (!t.startsWith("data:")) continue;
@@ -1248,8 +1342,14 @@ export function accumulateAnthropic(text) {
     try { j = JSON.parse(payload); } catch { continue; }
     if (j?.type === "content_block_delta" && j?.delta?.type === "text_delta" && typeof j.delta.text === "string") {
       content += j.delta.text;
+    } else if (j?.type === "content_block_delta" && j?.delta?.type === "thinking_delta" && typeof j.delta.thinking === "string") {
+      reasoningLen += j.delta.thinking.length;   // FAFF-1228: counted, never kept
+    } else if (j?.type === "message_start") {
+      if (j?.message?.usage) usage = mergeUsage(usage, pickUsage(j.message.usage));
     } else if (j?.type === "message_delta") {
       done = true;
+      if (j?.delta?.stop_reason) finish = sanitizeFinishReason(j.delta.stop_reason);
+      if (j?.usage) usage = mergeUsage(usage, pickUsage(j.usage));   // delta values override start
       if (j?.delta?.stop_reason === "max_tokens") truncated = true;
     } else if (j?.type === "message_stop") {
       done = true;
@@ -1261,11 +1361,14 @@ export function accumulateAnthropic(text) {
       const j = JSON.parse(String(text));
       for (const block of j?.content ?? []) {
         if (block?.type === "text" && typeof block.text === "string") content += block.text;
+        if (block?.type === "thinking" && typeof block.thinking === "string") reasoningLen += block.thinking.length;
       }
+      finish = sanitizeFinishReason(j?.stop_reason);
+      usage = pickUsage(j?.usage);
       if (j?.stop_reason) { done = true; if (j.stop_reason === "max_tokens") truncated = true; }
     } catch { /* leave content empty — caller treats empty as needs-human */ }
   }
-  return { content, truncated, done };
+  return { content, truncated, done, completion: { finish_reason: finish, done, content_len: content.length, reasoning_len: reasoningLen, usage } };
 }
 
 // PURE: an HTTP 401/403 from a cloud provider means broken credentials, not infra — needs-human, no retry.
@@ -1537,16 +1640,18 @@ async function runReviewOpenAi({
   try {
     const streamCall = async () => {
       let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
+      let retried = false;   // FAFF-1228: surfaced on the completion record
       if (out.truncated) {
         out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, reasoningEffort, reasoningExtra, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
+        retried = true;
       }
-      return out;
+      return { ...out, completion: { ...out.completion, length_retried: retried } };
     };
     const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
       : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
     const r = await streamWithTransportRetry(streamCall, { deadlineMs, signal });
     if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
-    return { status: "ok", content: r.out.content, truncated: r.out.truncated };
+    return { status: "ok", content: r.out.content, truncated: r.out.truncated, completion: r.out.completion };
   } catch (e) {
     if (isAuthError(e)) return { status: "auth-failed", note: e.message };
     if (isRateLimited(e)) return { status: "rate-limited", note: e.message };  // FAFF-942: no same-endpoint retry — advance the chain
@@ -1580,16 +1685,18 @@ async function runReviewAnthropic({
   try {
     const streamCall = async () => {
       let out = await streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
+      let retried = false;   // FAFF-1228: surfaced on the completion record
       if (out.truncated) {
         out = await streamOnceAnthropic({ host, model, system, user, numPredict: numPredict * 2, apiKey, streamFn, timeoutMs: perAttempt(), firstByteMs, signal });
+        retried = true;
       }
-      return out;
+      return { ...out, completion: { ...out.completion, length_retried: retried } };
     };
     const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
       : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
     const r = await streamWithTransportRetry(streamCall, { deadlineMs, signal });
     if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
-    return { status: "ok", content: r.out.content, truncated: r.out.truncated };
+    return { status: "ok", content: r.out.content, truncated: r.out.truncated, completion: r.out.completion };
   } catch (e) {
     if (isAuthError(e)) return { status: "auth-failed", note: e.message };
     if (isRateLimited(e)) return { status: "rate-limited", note: e.message };  // FAFF-942: no same-endpoint retry — advance the chain
@@ -1910,6 +2017,25 @@ export function classifyCapturedResult(result, hostSource, expectContract) {
   return { token: byStatus[status] || status || "failed", exit };
 }
 
+// PURE (FAFF-1228): the completion-record preamble lines for an OK result; [] for a stub, a non-ok result
+// or any result without a completion, so those keep today's preamble byte-for-byte. The finish reason is
+// re-sanitised here (a no-op on clean input) so a future producer cannot put a newline in a preamble line.
+function completionPreambleLines(result) {
+  const c = result && result.completion;
+  if (!c || typeof c !== "object") return [];
+  const safe = sanitizeFinishReason(c.finish_reason);
+  const fr = safe != null ? safe : (c.done ? "none" : "none (stream ended without a finish)");
+  const lines = [
+    `# finish_reason: ${fr}`,
+    `# done: ${c.done === true}`,
+    `# content_len: ${safeLen(c.content_len)}`,
+    `# reasoning_len: ${safeLen(c.reasoning_len)}`,
+    `# usage: ${c.usage ? JSON.stringify(c.usage) : "none"}`,
+  ];
+  if (typeof c.length_retried === "boolean") lines.push(`# length_retried: ${c.length_retried}`);
+  return lines;
+}
+
 // The one side-effecting capture call. No-op unless shared.rawDir is set — so an absent --raw-dir writes
 // NOTHING and never touches writeFn (the byte-for-byte-today invariant). Writes one file per lens ×
 // backend × round: a self-describing metadata preamble then the raw body, byte-capped at
@@ -1947,6 +2073,7 @@ export function captureRawResponseBody(shared, { chainIndex, backend, result, to
     `# truncated: ${truncated}`,
     `# byte_length: ${byteLength}`,
     `# sha256: ${sha256}`,
+    ...completionPreambleLines(result),
     "# ---",
     "",
   ].join("\n");
@@ -2150,9 +2277,10 @@ export async function runReviewChain(chain = [], shared = {}) {
         if (!originalContent.trim()) {
           failureClasses.push(EXIT.NO_FINDINGS_CONTENT);
           if (i === 0) firstSkipReason = "empty (contract mode: empty content)";   // FAFF-1039
+          const completionLog = formatCompletionLog(result.completion);   // FAFF-1228: appended, so every existing prefix and (exit N) stays intact
           log(verb === "advancing"
-            ? `[chain] ${tag} empty (contract mode: empty content) → advancing (exit ${EXIT.NO_FINDINGS_CONTENT})`
-            : `${verb}: ${tag} produced empty output (contract mode) (exit ${EXIT.NO_FINDINGS_CONTENT})`);
+            ? `[chain] ${tag} empty (contract mode: empty content) → advancing (exit ${EXIT.NO_FINDINGS_CONTENT})${completionLog}`
+            : `${verb}: ${tag} produced empty output (contract mode) (exit ${EXIT.NO_FINDINGS_CONTENT})${completionLog}`);
           continue;
         }
         if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced contract output (after ${i} skipped)`);
@@ -2165,9 +2293,10 @@ export async function runReviewChain(chain = [], shared = {}) {
         const label = shape.kind === "garbled" ? "malformed" : shape.kind;
         failureClasses.push(cls);
         if (i === 0) firstSkipReason = `${label} (${shape.reason})`;   // FAFF-1039
+        const completionLog = formatCompletionLog(result.completion);   // FAFF-1228
         log(verb === "advancing"
-          ? `[chain] ${tag} ${label} (${shape.reason}) → advancing (exit ${cls})`
-          : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${cls})`);
+          ? `[chain] ${tag} ${label} (${shape.reason}) → advancing (exit ${cls})${completionLog}`
+          : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${cls})${completionLog}`);
         continue;
       }
       if (normalisation.normalised) {

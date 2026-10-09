@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1246",
+  "build": {
+    "status": "complete",
+    "diff_hash": "02db6c1871d408e3848cb7e8e7aea9f7940fa5072382407448f2a516a58d9872",
+    "branch": "FAFF-1246-build-judge-resumable-assemble",
+    "pushed_at": "2026-10-09T23:52:28.162Z"
+  },
+  "updated_at": "2026-10-09T23:52:28.162Z"
+}

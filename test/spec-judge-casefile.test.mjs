@@ -495,6 +495,13 @@ test("FAFF-1240 deriveArgumentB: a number-dropped anchor binds the one numbered 
   assert.equal(r.resolved_slug, "7-open-questions-and-assumptions");
 });
 
+test("FAFF-1240 deriveArgumentB: a stored numbered anchor still binds after the section is renumbered", () => {
+  const spec = "# T\n\n## 8. OPEN QUESTIONS AND ASSUMPTIONS\n\n**Chosen:** keep it.\n";
+  const r = cf.deriveArgumentB(spec, "7-open-questions-and-assumptions", "redispatch");
+  assert.equal(r.source, "orchestrator:chosen");
+  assert.equal(r.resolved_slug, "8-open-questions-and-assumptions");
+});
+
 test("FAFF-1240 deriveArgumentB: an exact heading wins over a numbered one", () => {
   const spec = "## Done\n\nexact body\n\n## 8. Done\n\nnumbered body\n";
   const r = cf.deriveArgumentB(spec, "done", "assemble");

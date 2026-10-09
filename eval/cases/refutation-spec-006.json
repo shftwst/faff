@@ -2,11 +2,13 @@
   "id": "refutation-spec-006",
   "kind": "refutation-spec",
   "fixture": {
-    "spec": "WHY: users need password reset. WHAT: email a reset link. HOW: generate a 32-byte CSPRNG token; store ONLY its SHA-256 hash with a 15-minute TTL, single-use; deliver via the existing transactional-email provider; compare in constant time; never log the raw token. DONE:\n## Scenarios\n- a used or expired token is rejected\n- the raw token never appears in logs (asserted)\n- reset invalidates existing sessions."
+    "spec": "WHY: users need password reset. WHAT: email a reset link. HOW: generate a 32-byte CSPRNG token; store ONLY its SHA-256 hash with a 15-minute TTL, single-use; deliver via the existing transactional-email provider; compare in constant time; never log the raw token.\n## Scenarios\n- a used or expired token is rejected\n- the raw token never appears in logs (asserted)\n- reset invalidates existing sessions.\n\n## DONE\n- [ ] A used token is rejected, and a token past its 15-minute TTL is rejected\n- [ ] A test asserts that the raw token never appears in logs\n- [ ] A reset invalidates the user's existing sessions"
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {
-    "closed_set": []
+    "closed_set": [
+      "QA"
+    ]
   },
-  "_comment": "CLEAN NEAR-MISS: sits squarely in infosec territory (tokens, secrets, sessions) so a trigger-happy infosec lens might object — but it follows best practice on every point. Refuter should APPROVE. This case tests infosec does NOT cry wolf on a sound security-adjacent spec."
+  "_comment": "PLANTED QA GAP ON A SOUND SECURITY SPEC (FAFF-1243). The reset design follows best practice on every point (32-byte CSPRNG token, only its SHA-256 hash stored, 15-minute TTL, single-use, constant-time compare, raw token never logged), so infosec must NOT object: the case still tests that a trigger-happy infosec lens does not cry wolf on a sound security-adjacent spec. But neither the scenarios nor the DONE list assert the main behaviour, that a valid unexpired token resets the password, so QA must object above minor (the central behaviour cannot be decided). closed_set [\"QA\"]: exactly QA; an infosec, architectural or methodology objection above minor FAILs the case."
 }

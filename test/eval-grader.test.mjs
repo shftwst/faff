@@ -791,6 +791,51 @@ test("all eval/cases load and validate", () => {
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");
 });
 
+// FAFF-1243 — a refutation-spec fixture is the spec the lenses read verbatim, so an empty DONE is a
+// flaw they are entitled to find. Structural guard: every fixture with a "## Scenarios" line needs a
+// "## DONE" section with a checklist item after it (and before any "## Ratified scope"), and no bare
+// "DONE:" label may dangle.
+function doneSectionProblems(spec) {
+  const problems = [];
+  if (/DONE:[ \t]*(\r?\n|$)/.test(spec)) problems.push("bare DONE: label");
+  const lines = spec.split("\n");
+  const s = lines.indexOf("## Scenarios");
+  if (s >= 0) {
+    const d = lines.indexOf("## DONE", s + 1);
+    if (d < 0) {
+      problems.push("no ## DONE section after ## Scenarios");
+    } else {
+      const section = [];
+      for (let i = d + 1; i < lines.length && !lines[i].startsWith("## "); i++) section.push(lines[i]);
+      if (!section.some((l) => /^- \[ \] \S/.test(l))) problems.push("## DONE section has no checklist item");
+      const r = lines.indexOf("## Ratified scope");
+      if (r >= 0 && r < d) problems.push("## DONE section comes after ## Ratified scope");
+    }
+  }
+  return problems;
+}
+
+test("every refutation-spec fixture has a real ## DONE section (FAFF-1243)", () => {
+  // Negative controls: the helper must flag each defect.
+  const bare = doneSectionProblems("WHY: x. DONE:\n## Scenarios\n- y");
+  assert.ok(bare.includes("bare DONE: label") && bare.includes("no ## DONE section after ## Scenarios"), `bare label: ${bare}`);
+  const empty = doneSectionProblems("WHY: x.\n## Scenarios\n- y\n\n## DONE\n\n## Ratified scope");
+  assert.ok(empty.includes("## DONE section has no checklist item"), `empty section: ${empty}`);
+  const late = doneSectionProblems("WHY: x.\n## Scenarios\n- y\n\n## Ratified scope\n\n## DONE\n- [ ] y holds");
+  assert.ok(late.includes("## DONE section comes after ## Ratified scope"), `late section: ${late}`);
+  // Positive control.
+  assert.deepEqual(doneSectionProblems("WHY: x.\n## Scenarios\n- y\n\n## DONE\n- [ ] y holds"), []);
+
+  const specs = loadCases().filter((c) => c.kind === "refutation-spec");
+  let withScenarios = 0;
+  for (const c of specs) {
+    const spec = c.fixture.spec;
+    if (spec.split("\n").includes("## Scenarios")) withScenarios++;
+    assert.deepEqual(doneSectionProblems(spec), [], `${c.id}: DONE section problems`);
+  }
+  assert.ok(withScenarios >= 12, `expected at least 12 refutation-spec cases with a ## Scenarios line, saw ${withScenarios}`);
+});
+
 // ============================= FAFF-146 — prep judgement-eval kinds =============================
 
 // --- confidence: a single-element closed set over {high,medium,low}, graded by set-equality ---

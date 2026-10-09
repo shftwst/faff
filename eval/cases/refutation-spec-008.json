@@ -2,7 +2,7 @@
   "id": "refutation-spec-008",
   "kind": "refutation-spec",
   "fixture": {
-    "spec": "WHY: L4 runs should get a wider autonomy budget than L3. WHAT: resolve the run's appetite from its ledger level. HOW: read the run ledger at `$FAFF_RUN_DIR/run-ledger.json`; if `owner.level` is `L4`, grant `appetite: full`; otherwise `appetite: high`. DONE:\n## Scenarios\n- a ledger with `owner.level: L4` yields `appetite: full`\n- a ledger with `owner.level: L3` yields `appetite: high`\n- a missing ledger yields `appetite: high`"
+    "spec": "WHY: L4 runs should get a wider autonomy budget than L3. WHAT: resolve the run's appetite from its ledger level. HOW: read the run ledger at `$FAFF_RUN_DIR/run-ledger.json`; if `owner.level` is `L4`, grant `appetite: full`; otherwise `appetite: high`.\n## Scenarios\n- a ledger with `owner.level: L4` yields `appetite: full`\n- a ledger with `owner.level: L3` yields `appetite: high`\n- a missing ledger yields `appetite: high`\n\n## DONE\n- [ ] A ledger at `$FAFF_RUN_DIR/run-ledger.json` with `owner.level: L4` yields `appetite: full`\n- [ ] A ledger with `owner.level: L3` yields `appetite: high`\n- [ ] A missing ledger yields `appetite: high`"
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {

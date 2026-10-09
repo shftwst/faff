@@ -2,7 +2,7 @@
   "meta": {
     "ticket": "FAFF-319",
     "produced": "2026-07-23",
-    "method": "static prose triage — each oracle judged against its own fixture and the grader arm that reads it (eval/grader.mjs); zero paid model reps (ADR-0004); the resolved_by:\"FAFF-615\" entries were settled against the operator's 20260803-012238 sweep captures (still zero reps run BY this artifact — it read the captures, it did not sweep).",
+    "method": "static prose triage — each oracle judged against its own fixture and the grader arm that reads it (eval/grader.mjs); zero paid model reps (ADR-0004); the resolved_by:\"FAFF-615\" entries were settled against the operator's 20260803-012238 sweep captures (still zero reps run BY this artifact — it read the captures, it did not sweep); the resolved_by:\"FAFF-1243\" entry was settled against the GLM 5.3 spike captures (records/spikes/2026-10-08-glm-5-3-refutation), still with zero reps run by this artifact.",
     "supersedes": "triage-results.json (repo root, FAFF-321) — that artifact triaged the alphabetically-first 24 case files instead of the 8 target kinds, left 5 kinds untriaged, proposed one never-applied fix, and is deleted in this PR",
     "scope_kinds": [
       "architecture",
@@ -25,8 +25,8 @@
     "case_count": 49,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 40,
-      "oracle-defect": 9,
+      "sound": 39,
+      "oracle-defect": 10,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
     },
@@ -37,6 +37,7 @@
       "empty_case_set_guard": "FAFF-691 (guard eval/run-evals.mjs against a zero-case frontier sweep — resolve the driver after the --only filter and refuse a zero-case run, so a stale --only can never silently sweep nothing and exit 0)",
       "chain_gap_resolved_elsewhere_tolerance": "FAFF-692 (chain-gap and resolved-elsewhere grade binary via set-equality yet sit outside CLOSED_SET_KINDS and get the 0.03 free-text tolerance — reconcile the incoherent fractional tolerance on a binary grade)",
       "fixture_widening": "FAFF-693 (widen the single- and two-case fixtures for grouping, resolved-elsewhere and holdout-exercise; also removes holdout-exercise from policy.warn_kinds once the row is wide enough and retires TARGET_KINDS after FAFF-614 re-baselines)",
+      "rebaseline_faff_1243": "FAFF-937 (operator-owned Human-task: scoped `--kind refutation-spec` Opus re-baseline after FAFF-1243 edited 12 refutation-spec fixtures in place and moved refutation-spec-006 to closed_set [QA]; blocked by FAFF-1243 and FAFF-1236)",
       "remaining_kinds": "FAFF-614 (park-reconsider-classification and prd-readiness frontier baseline plus oracle triage deferred to the operator re-baseline sweep)"
     },
     "remaining_kinds": ["park-reconsider-classification", "prd-readiness"],
@@ -103,6 +104,15 @@
         ],
         "origin_commit": "7ed7f9a",
         "note": "Added the upper-gate YAGNI Phase-2 challenge kind (prdr-yagni), mirroring adr-drift's binary shape. Both new cases (survive + overturn) triaged immediately, zero model reps — the same static prose triage method as FAFF-319/670."
+      },
+      {
+        "ticket": "FAFF-1243",
+        "date": "2026-10-09",
+        "source": "records/spikes/2026-10-08-glm-5-3-refutation/results.md",
+        "resolved_case_ids": [
+          "refutation-spec-006"
+        ],
+        "note": "Empty DONE fixed in refutation-spec-005 to 016 (a fixture defect, no oracle change). refutation-spec-006's oracle moved from [] to [QA] for its missing happy path. Zero model reps run by this artifact."
       }
     ],
     "assumption_checks": [
@@ -289,9 +299,11 @@
       "case_id": "refutation-spec-006",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "sound",
-      "rationale": "A password-reset spec sitting squarely in infosec territory (CSPRNG token, store only the SHA-256 hash, 15-min TTL, single-use, constant-time compare) but following best practice on every point. Oracle [] is correct: it tests that a trigger-happy infosec lens does NOT object on a sound security-adjacent spec. Clean near-miss in the false-positive direction.",
-      "triage_ticket": "FAFF-319"
+      "class": "oracle-defect",
+      "rationale": "The GLM 5.3 refutation spike (records/spikes/2026-10-08-glm-5-3-refutation/results.md) showed the closed_set [] oracle marking a real catch wrong: none of 006's scenarios asserts the main behaviour, that a valid unexpired token resets the password, and GLM's QA lens said so in 32 runs beyond its empty-DONE objections. FAFF-1243 keeps that gap planted (the new DONE list mirrors the scenarios and omits the happy path) and makes a QA objection the expected answer, while infosec, architectural and methodology must still stay quiet on a sound reset design.",
+      "triage_ticket": "FAFF-319",
+      "resolved_by": "FAFF-1243",
+      "proposed_fix": "closed_set [\"QA\"]: QA must object above minor; an infosec, architectural or methodology objection above minor still FAILs, so the case keeps guarding against infosec crying wolf."
     },
     {
       "case_id": "refutation-spec-007",

@@ -582,7 +582,14 @@ test("cmdAdmit: a ruling file with no binding, or a mismatched one, is treated a
   await withTmp((tmp) => {
     const bare = { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "" };
     const { br, judgeDir } = admitFixture(tmp, BOUND_LEDGER, bare);
-    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 2);
+    const writes = [];
+    const orig = process.stderr.write;
+    process.stderr.write = (c) => { writes.push(String(c)); return true; };
+    let code;
+    try { code = bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }); }
+    finally { process.stderr.write = orig; }
+    assert.equal(code, 2);
+    assert.equal(writes.filter((w) => w.includes("ruling-f-01.json is not bound to this ledger entry")).length, 1);
     assert.ok(!existsSync(join(judgeDir, "admit-result.json")));
     // stale OVERTURN bound to a different finding
     writeFileSync(join(judgeDir, "ruling-f-01.json"), JSON.stringify({ ...bare, binding: { ...BOUND_BINDING, finding_id: "other.js::y" } }));
@@ -831,4 +838,18 @@ test("realRunReviewCall: wires the spawn options and exit mapping through the op
   assert.equal(writes.length, 1);
   assert.match(writes[0], /review-call still alive at deadline\(300s\)\+grace\(30s\); killed, treated as exit 8/);
   assert.equal(overflow.code, 1);
+});
+
+test("readBoundRuling: a bound ruling comes back without its binding key, so the roll-up sees verdict fields only", async () => {
+  await withTmp((tmp) => {
+    const verdict = { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "r", product_gap_citation: "" };
+    const { judgeDir } = admitFixture(tmp, BOUND_LEDGER, { ...verdict, binding: BOUND_BINDING });
+    const read = bje.readBoundRuling(judgeDir, BOUND_LEDGER, "f-01");
+    assert.equal(read.ok, true);
+    assert.ok(!("binding" in read.ruling));
+    assert.deepEqual(read.ruling, verdict);
+    const miss = bje.readBoundRuling(judgeDir, { ...BOUND_LEDGER, run_id: "OTHER" }, "f-01");
+    assert.equal(miss.ok, false);
+    assert.match(miss.error, /is not bound to this ledger entry/);
+  });
 });

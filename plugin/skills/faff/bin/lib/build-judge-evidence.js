@@ -580,6 +580,20 @@ function cmdAssemble(values, deps = {}) {
   });
 }
 
+// readBoundRuling(outDir, ledger, cid) -> { ok: true, ruling } | { ok: false, error }. Reads
+// ruling-<cid>.json and accepts it only when its binding matches the ledger entry; the returned ruling
+// has the binding stripped, so the roll-up and the floor see the verdict fields only (FAFF-1248).
+function readBoundRuling(outDir, ledger, cid) {
+  let ruling;
+  try { ruling = JSON.parse(fs.readFileSync(path.join(outDir, `ruling-${cid}.json`), "utf8")); }
+  catch (e) { return { ok: false, error: `missing/malformed ruling-${cid}.json in ${outDir}: ${e.message}` }; }
+  if (!ruling || !bindingMatches(ruling.binding, ledger, cid)) {
+    return { ok: false, error: `ruling-${cid}.json is not bound to this ledger entry (finding_id/pre_ruling_diff_sha/case_sha/run_id); treated as missing` };
+  }
+  const { binding: _binding, ...bare } = ruling;
+  return { ok: true, ruling: bare };
+}
+
 function cmdAdmit(values) {
   const level = values["--level"];
   if (level == null) return usageError([{ code: "missing-value", detail: "--admit requires --level" }], BUILD_JUDGE_EVIDENCE_USAGE);
@@ -599,16 +613,9 @@ function cmdAdmit(values) {
     const entry = ledger.entries[cid];
     if (entry && entry.resolution === "parked") { rulings[cid] = null; continue; }
     if (entry && entry.ruling) { rulings[cid] = entry.ruling; continue; }
-    const rp = path.join(outDir, `ruling-${cid}.json`);
-    let ruling;
-    try { ruling = JSON.parse(fs.readFileSync(rp, "utf8")); }
-    catch (e) { process.stderr.write(`faff build-judge-evidence --admit: missing/malformed ruling-${cid}.json in ${outDir}: ${e.message}\n`); return 2; }
-    if (!ruling || !bindingMatches(ruling.binding, ledger, cid)) {
-      process.stderr.write(`faff build-judge-evidence --admit: ruling-${cid}.json is not bound to this ledger entry (finding_id/pre_ruling_diff_sha/case_sha/run_id); treated as missing\n`);
-      return 2;
-    }
-    const { binding: _binding, ...bare } = ruling;
-    rulings[cid] = bare;
+    const read = readBoundRuling(outDir, ledger, cid);
+    if (!read.ok) { process.stderr.write(`faff build-judge-evidence --admit: ${read.error}\n`); return 2; }
+    rulings[cid] = read.ruling;
   }
 
   const criticalFreeLatest = dir ? computeCriticalFreeLatestFloor(dir, ledger, rulings) : null;
@@ -639,6 +646,7 @@ module.exports = {
   computeCriticalFreeLatestFloor,
   bindingFor,
   bindingMatches,
+  readBoundRuling,
   realRunReviewCall,
   realJudgeDispatchDisposition,
   realResolveAdversarialBackends,

@@ -63,7 +63,7 @@ const { spawnSync } = require("node:child_process");
 // flow in via `import type` above, and the runtime surface is pinned to ProducerAuthApi so a raw
 // string handed to the admission API is a TS2345 rather than silently degrading to `any`.
 const producerAuth = require("./producer-auth");
-const { deriveKey, signRecord, verifyRecord, mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, producerAuthSelftest, } = producerAuth;
+const { deriveKey, signRecord, verifyRecord, mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, producerAuthSelftest, buildEnvelope, assertEnvelopeBody, } = producerAuth;
 const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
 const { effectDescriptorViolations, normEffect, computeEscapes, matchesUnit, conclusionKindOf, isProtectedKind, CONCLUSION_KIND } = require("./effects");
 const { evaluateDecisionRequest, evaluateLevelPolicy, composeDecision, chokepointPermit, grantCoverage } = require("./decision-policy");
@@ -170,31 +170,7 @@ function parseAdmissionRecord(raw) {
         rec[k] = raw[k];
     return rec;
 }
-// Reject a body no schema:3 writer may emit: one carrying `issue` (or both unit keys), or one
-// whose `unit_id` is not a non-empty string. Runs before the append lock is taken.
-function assertEnvelopeBody(body) {
-    if (!isRecord(body))
-        throw new TypeError("commissaire: envelope body must be an object");
-    if (Object.prototype.hasOwnProperty.call(body, "issue"))
-        throw new TypeError("commissaire: envelope body must carry unit_id, not issue");
-    if (typeof body.unit_id !== "string" || body.unit_id === "")
-        throw new TypeError("commissaire: envelope body must carry a non-empty string unit_id");
-}
-// Build the common schema:3 envelope (WITHOUT the auth field), given the seq/prev the lock
-// assigned. `body` carries the verb-specific fields (kind_of_entry, unit_id, step, effect|payload).
-function buildEnvelope(runId, seq, prevHash, author, producerId, contractRevision, body, ts) {
-    assertEnvelopeBody(body);
-    const rec = {
-        schema: 3, run_id: runId, seq, ts: ts || new Date().toISOString(),
-        author, producer_id: producerId, contract_revision: contractRevision,
-        kind_of_entry: body.kind_of_entry, unit_id: body.unit_id, step: body.step, prev: prevHash,
-    };
-    if (body.effect !== undefined)
-        rec.effect = body.effect;
-    if (body.payload !== undefined)
-        rec.payload = body.payload;
-    return rec;
-}
+// --- Ledger append: mint schema:3 records, signing each inside the lock -------------------
 // Append N producer-authored records (HMAC'd under K_producer) as one atomic chained batch.
 function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts, opts) {
     bodies.forEach(assertEnvelopeBody);

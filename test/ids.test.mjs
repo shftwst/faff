@@ -71,7 +71,7 @@ test("producer-auth keeps its module.exports key set", () => {
     "deriveKey", "admitProducerKey", "deriveRunMaster", "signRecord", "verifyRecord",
     "asProducerId", "asContractRevisionId", "tryAsProducerId", "tryAsContractRevisionId",
     "mintGovernorKeypair", "pkFingerprint", "signDecision", "verifyDecision",
-    "producerAuthSelftest",
+    "assertEnvelopeBody", "buildEnvelope", "producerAuthSelftest",
   ].sort());
 });
 

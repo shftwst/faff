@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1241",
+  "build": {
+    "status": "complete",
+    "diff_hash": "181761d23932a5adc146a43de6d66e1c46eb909a75bb7c401decbf18d1dfdb02",
+    "branch": "faff-1241-hoist-shared-buildenvelope",
+    "pushed_at": "2026-10-09T13:02:10.247Z"
+  },
+  "updated_at": "2026-10-09T13:02:10.247Z"
+}

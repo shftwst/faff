@@ -861,6 +861,7 @@ const retryDeps = (calls, extra = {}) => ({
   judgeDispatchDisposition: async (exit) => (exit === 5 ? "retry" : "park"),
   resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
   resolveBuildJudgeClock: () => FAKE_CLOCK,
+  resolveBuildJudgeRetryLimit: () => 2,
   ...extra,
 });
 

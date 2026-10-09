@@ -471,8 +471,8 @@ prdr:
 #       timeout: 120                      # seconds for ONE stream attempt
 #       # Fallback: adversarial.build_judge.* -> adversarial.* -> 480 / 120.
 #       # Worst case per case: (graft.build_judge_retry_limit + 1) x 2 phases x deadline (about 48 minutes at the defaults).
-#       # At the defaults that per-case worst case exceeds graft's 600s foreground call (FAFF-1246);
-#       # until that lands, lower build_judge.deadline so a stuck backend parks inside the call.
+#       # Each --assemble call stops inside graft.build_judge_call_budget_secs (default 540) and exits 3
+#       # so graft re-invokes it (FAFF-1246); keep deadline + 30 at or under that budget so each call fits.
 #     # prdr_review: { refs: [...] }      # any consumer name; unset => shared chain, byte-identical
 #   # NB a consumer name must NOT reuse a reserved adversarial field name (refs / backends /
 #   #    fallbacks / host / provider / model / api_key_env / reasoning_off / reasoning_effort /

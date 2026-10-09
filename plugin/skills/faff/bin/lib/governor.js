@@ -122,22 +122,8 @@ function rotateKeyFile(keyDir) {
     return { ok: true, prior: key.pk_fingerprint, current: kp.pk_fingerprint };
 }
 // --- Records ------------------------------------------------------------------------------
-// The schema:3 envelope commissaire.ts builds, in the same field order. Kept local because this module
-// must not import commissaire.ts.
-function buildEnvelope(runId, seq, prev, author, producerId, contractRevision, body) {
-    const rec = {
-        schema: 3, run_id: runId, seq, ts: new Date().toISOString(),
-        author, producer_id: producerId, contract_revision: contractRevision,
-        kind_of_entry: body.kind_of_entry, unit_id: body.unit_id, step: body.step, prev,
-    };
-    if (body.effect !== undefined)
-        rec.effect = body.effect;
-    if (body.payload !== undefined)
-        rec.payload = body.payload;
-    return rec;
-}
 function signedByGovernor(state, runId, at, producerId, contractRevision, body) {
-    const rec = buildEnvelope(runId, at.seq, at.prev, "commissaire", producerId, contractRevision, body);
+    const rec = producerAuth.buildEnvelope(runId, at.seq, at.prev, "commissaire", producerId, contractRevision, body);
     rec.commissaire_sig = producerAuth.signDecision(rec, state.sk);
     return rec;
 }
@@ -498,7 +484,7 @@ function governorSelftest() {
                 text: () => lines.join("\n") + "\n",
                 producer: (unit, step, kind, body, signKey = key) => {
                     const pos = at();
-                    const rec = buildEnvelope(runId, pos.seq, pos.prev, "producer", "P1", "r1", { kind_of_entry: kind, unit_id: unit, step, ...body });
+                    const rec = producerAuth.buildEnvelope(runId, pos.seq, pos.prev, "producer", "P1", "r1", { kind_of_entry: kind, unit_id: unit, step, ...body });
                     rec.producer_hmac = producerAuth.signRecord(rec, signKey);
                     lines.push(JSON.stringify(rec));
                 },

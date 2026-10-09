@@ -29,6 +29,7 @@
 // ===========================================================================
 
 import type { ProducerId, ContractRevisionId, IdsApi } from "./ids";
+import type { GovernedRecord } from "./decision-policy";
 
 const crypto = require("node:crypto");
 const ids: IdsApi = require("./ids");
@@ -50,6 +51,8 @@ export interface ProducerAuthApi {
   pkFingerprint(pkPem: unknown): string;
   signDecision(record: unknown, sk: unknown): string;
   verifyDecision(record: unknown, pk: unknown): boolean;
+  assertEnvelopeBody(body: unknown): void;
+  buildEnvelope(runId: unknown, seq: unknown, prevHash: unknown, author: string, producerId: unknown, contractRevision: unknown, body: EnvelopeBody, ts?: unknown): GovernedRecord;
   producerAuthSelftest(): number;
 }
 
@@ -220,6 +223,33 @@ function verifyDecision(record: unknown, pk: unknown): boolean {
 const ProducerAuth = { deriveKey, signRecord, verifyRecord, canonicalBytes };
 const CommissaireAuth = { mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, canonicalBytes };
 
+// The verb-specific fields a writer supplies. The work unit is `unit_id` (FAFF-1167); `issue` is a
+// read-side legacy key only, so a body carrying it is rejected rather than silently re-keyed.
+export type EnvelopeBody = { kind_of_entry?: unknown; unit_id?: unknown; step?: unknown; effect?: unknown; payload?: unknown };
+
+// Reject a body no schema:3 writer may emit: one carrying `issue` (or both unit keys), or one
+// whose `unit_id` is not a non-empty string. Runs before the append lock is taken.
+function assertEnvelopeBody(body: unknown): void {
+  if (!isRecord(body)) throw new TypeError("envelope: body must be an object");
+  if (Object.prototype.hasOwnProperty.call(body, "issue")) throw new TypeError("envelope: body must carry unit_id, not issue");
+  if (typeof body.unit_id !== "string" || body.unit_id === "") throw new TypeError("envelope: body must carry a non-empty string unit_id");
+}
+
+// Build the common schema:3 envelope (WITHOUT the auth field), given the seq/prev the lock
+// assigned. `body` carries the verb-specific fields (kind_of_entry, unit_id, step, effect|payload).
+// `ts` is optional: omitted stamps now.
+function buildEnvelope(runId: unknown, seq: unknown, prevHash: unknown, author: string, producerId: unknown, contractRevision: unknown, body: EnvelopeBody, ts?: unknown): GovernedRecord {
+  assertEnvelopeBody(body);
+  const rec: GovernedRecord = {
+    schema: 3, run_id: runId, seq, ts: ts || new Date().toISOString(),
+    author, producer_id: producerId, contract_revision: contractRevision,
+    kind_of_entry: body.kind_of_entry, unit_id: body.unit_id, step: body.step, prev: prevHash,
+  };
+  if (body.effect !== undefined) rec.effect = body.effect;
+  if (body.payload !== undefined) rec.payload = body.payload;
+  return rec;
+}
+
 // In-memory selftest of the pure split-key cores (mirrors the effects/events selftest style).
 // Not a REGION_MAP command (this module is a pure lib, not a subcommand), so it is exercised
 // both here and by test/commissaire-auth.test.mjs; commissaire.js's --selftest also calls it.
@@ -273,5 +303,6 @@ module.exports = {
   deriveKey, admitProducerKey, deriveRunMaster, signRecord, verifyRecord,
   asProducerId, asContractRevisionId, tryAsProducerId, tryAsContractRevisionId,
   mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision,
+  assertEnvelopeBody, buildEnvelope,
   producerAuthSelftest,
 };

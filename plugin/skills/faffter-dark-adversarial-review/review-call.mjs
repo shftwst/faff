@@ -700,7 +700,8 @@ export const TRUNCATION_SIGNAL = "[faff:truncated]";
 // refuter emits alongside its no-objection sentence. Only methodology has one (the no-critique case).
 // It extends the closed grammar by exactly one recognised three-line `heading` + `signal` + `sentence`
 // form; every substantive byte stays exact. Guard-clean prose AFTER the affirmation is tolerated
-// (FAFF-1154), but a genuine finding or a wrong-lens heading after it still rejects.
+// (FAFF-1154), but a genuine finding, or a `## Refutation —` heading after it or for another lens before it,
+// still rejects, indented or not.
 export const CLEAN_REFUTATIONS = Object.freeze([
   Object.freeze({ lens: "architectural", heading: "## Refutation — architectural", sentence: "No architectural objection." }),
   Object.freeze({ lens: "infosec", heading: "## Refutation — infosec", sentence: "No infosec objection." }),
@@ -751,6 +752,15 @@ function matchAffirmation(line) {
   return null;
 }
 
+// FAFF-1238: the guard scans (preamble and trailing) test a line with its leading spaces and tabs
+// removed, so an indented severity or `## Refutation —` heading cannot slip past the column-0 regexes.
+// Strips `[ \t]` only (not `trimStart()`): Markdown indentation is spaces and tabs, and a non-breaking
+// space is not an indent. The regexes themselves stay column-0 for `isDecorativeHeader`.
+function isGuardHeading(line) {
+  const t = line.replace(/^[ \t]+/, "");
+  return SEVERITY_LIKE_HEADING_RE.test(t) || REFUTATION_NAMESPACE_RE.test(t);
+}
+
 function isDecorativeHeader(line) {
   if (!ATX_HEADING_RE.test(line)) return false;
   if (SEVERITY_LIKE_HEADING_RE.test(line)) return false;
@@ -771,10 +781,12 @@ function isDecorativeHeader(line) {
 //
 // The affirmation is the last line that is, or starts with, an affirmation sentence followed by
 // whitespace; guard-clean prose may follow it on the same line or on later lines. Three guards keep
-// clean meaning clean: a preamble guard (`SEVERITY_LIKE_HEADING_RE` over every line before the
-// affirmation), a same-line guard (the unanchored `MID_LINE_*_RE` forms, rejecting a severity heading
-// or `## Refutation —` token anywhere in the remainder), and a trailing guard
-// (`SEVERITY_LIKE_HEADING_RE`/`REFUTATION_NAMESPACE_RE` over every later line).
+// clean meaning clean: a preamble guard (a severity or `## Refutation —` heading on any line before the
+// matched form, except the entry's own heading), a same-line guard (the unanchored `MID_LINE_*_RE`
+// forms, rejecting a severity heading or `## Refutation —` token anywhere in the remainder), and a
+// trailing guard (the same heading test over every later line, own lens included). The preamble and
+// trailing guards ignore leading spaces and tabs (FAFF-1238); that is deliberately stricter than the
+// column-0 parsers, because rejection is fail-safe (the body is classed garbled and the chain advances).
 //
 // FAFF-1223: a triple/anchor bullet (`- claim:`, `- evidence:`, ...) anywhere outside the affirmation
 // line, or in its same-line remainder, also rejects. A severity-less finding followed by a clean
@@ -804,15 +816,15 @@ export function normaliseCleanRefutation(content) {
     return { content: original, normalised: false, lens: null, form: null };
   }
 
-  // Trailing-segment guard (the bidirectional twin of the preamble severity guard below): a genuine
-  // finding (`### <severity>:`, level-agnostic) or a wrong-lens/dangling `## Refutation —` heading
-  // AFTER the affirmation must never be swallowed by rewriting the body to clean. Fails toward
-  // rejection, matching the preamble scan's stance applied past the affirmation instead of before it.
+  // Trailing-segment guard (the bidirectional twin of the preamble guard below): a genuine finding
+  // (`### <severity>:`, level-agnostic via SEVERITY_LIKE_HEADING_RE) or a wrong-lens/dangling
+  // `## Refutation —` heading (REFUTATION_NAMESPACE_RE), indented or not, AFTER the affirmation must
+  // never be swallowed by rewriting the body to clean. Fails toward rejection.
   if (remainder && (MID_LINE_SEVERITY_RE.test(remainder) || MID_LINE_NAMESPACE_RE.test(remainder))) {
     return { content: original, normalised: false, lens: null, form: null };
   }
   for (let i = affirmationIdx + 1; i < lines.length; i++) {
-    if (SEVERITY_LIKE_HEADING_RE.test(lines[i]) || REFUTATION_NAMESPACE_RE.test(lines[i])) {
+    if (isGuardHeading(lines[i])) {
       return { content: original, normalised: false, lens: null, form: null };
     }
   }
@@ -854,10 +866,13 @@ export function normaliseCleanRefutation(content) {
     start = affirmationIdx;
   }
 
-  // Preamble severity guard (clean means clean): a real `### <severity>:`-shaped finding anywhere
-  // before the matched tail segment must never be discarded by a trailing clean affirmation.
+  // Preamble guard (clean means clean): a severity-worded heading (SEVERITY_LIKE_HEADING_RE) or any
+  // `## Refutation —` heading (REFUTATION_NAMESPACE_RE) anywhere before the matched tail segment,
+  // indented or not, must never be discarded by a trailing clean affirmation. The one exemption is this
+  // entry's own heading, matched exactly after a full trim.
   for (let i = 0; i < start; i++) {
-    if (SEVERITY_LIKE_HEADING_RE.test(lines[i])) {
+    if (lines[i].trim() === entry.heading) continue;
+    if (isGuardHeading(lines[i])) {
       return { content: original, normalised: false, lens: null, form: null };
     }
   }

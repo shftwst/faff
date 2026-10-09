@@ -502,6 +502,14 @@ test("FAFF-1240 deriveArgumentB: a stored numbered anchor still binds after the 
   assert.equal(r.resolved_slug, "8-open-questions-and-assumptions");
 });
 
+test("FAFF-1240 deriveArgumentB: a numbered anchor never binds a heading with a different or missing number", () => {
+  for (const spec of ["# T\n\n## Out of scope\n\nx\n", "# T\n\n## 8. Out of scope\n\nx\n"]) {
+    const r = cf.deriveArgumentB(spec, "2-out-of-scope", "assemble");
+    assert.equal(r.source, "orchestrator:undefended");
+    assert.equal(r.resolved_slug, "");
+  }
+});
+
 test("FAFF-1240 deriveArgumentB: an exact heading wins over a numbered one", () => {
   const spec = "## Done\n\nexact body\n\n## 8. Done\n\nnumbered body\n";
   const r = cf.deriveArgumentB(spec, "done", "assemble");

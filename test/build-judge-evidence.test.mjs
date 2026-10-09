@@ -11,6 +11,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, existsSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import { runCli } from "./helpers/run-cli.mjs";
 
 const require = createRequire(import.meta.url);
@@ -211,6 +212,7 @@ function fakeDepsAlwaysOverturn() {
     judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : "park"),
     resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
     resolveBuildJudgeClock: () => FAKE_CLOCK,
+    resolveBuildJudgeRetryLimit: () => 2,
   };
 }
 
@@ -387,6 +389,7 @@ test("cmdAssemble: a Phase-1 reconstruction that fails validation parks the find
       judgeDispatchDisposition: async () => "ruling",
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
       resolveBuildJudgeClock: () => FAKE_CLOCK,
+      resolveBuildJudgeRetryLimit: () => 2,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
     assert.equal(code, 0);
@@ -413,6 +416,7 @@ test("cmdAssemble: judgeDispatchDisposition 'park' (a config-fault/malformed exi
       judgeDispatchDisposition: async () => "park",
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
       resolveBuildJudgeClock: () => FAKE_CLOCK,
+      resolveBuildJudgeRetryLimit: () => 2,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir, "--retry-limit": "2" }, deps));
     assert.equal(code, 0);
@@ -438,6 +442,7 @@ test("cmdAssemble: judgeDispatchDisposition 'retry' (UNREACHABLE/DEADLINE) retri
       judgeDispatchDisposition: async () => "retry",
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
       resolveBuildJudgeClock: () => FAKE_CLOCK,
+      resolveBuildJudgeRetryLimit: () => 2,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir, "--retry-limit": "2" }, deps));
     assert.equal(code, 0);
@@ -470,6 +475,7 @@ test("cmdAssemble: threads --backends-json (the resolved chain) into both phase 
       judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : "park"),
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
       resolveBuildJudgeClock: () => FAKE_CLOCK,
+      resolveBuildJudgeRetryLimit: () => 2,
     };
     const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps));
     assert.equal(code, 0);
@@ -763,6 +769,7 @@ test("cmdAssemble: every Phase-1 retry attempt carries the clock flags", async (
       judgeDispatchDisposition: async (exit) => (exit === 5 ? "retry" : "park"),
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
       resolveBuildJudgeClock: () => ({ deadline: 300, timeout: 90 }),
+      resolveBuildJudgeRetryLimit: () => 2,
     };
     assert.equal(await runDispatch(tmp, deps, { "--retry-limit": "2" }), 0);
     assert.equal(calls.length, 3);
@@ -781,6 +788,7 @@ test("cmdAssemble: every Phase-2 retry attempt carries the clock flags", async (
       judgeDispatchDisposition: async (exit) => (exit === 0 ? "ruling" : exit === 8 ? "retry" : "park"),
       resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
       resolveBuildJudgeClock: () => FAKE_CLOCK,
+      resolveBuildJudgeRetryLimit: () => 2,
     };
     assert.equal(await runDispatch(tmp, deps, { "--retry-limit": "1" }), 0);
     const phase2 = calls.filter((c) => !isPhase1Args(c[0]));
@@ -798,8 +806,125 @@ test("cmdAssemble: the unresolvable-chain path never calls resolveBuildJudgeCloc
       judgeDispatchDisposition: async () => "ruling",
       resolveAdversarialBackends: () => ({ error: "unset" }),
       resolveBuildJudgeClock: () => { throw new Error("clock must not be resolved"); },
+      resolveBuildJudgeRetryLimit: () => { throw new Error("retry limit must not be resolved"); },
     };
     assert.equal(await runDispatch(tmp, deps), 0);
+  });
+});
+
+// --- FAFF-1245: retry limit resolution, flag validation -------------------------------------
+
+const limitOf = (cfg) => bje.resolveBuildJudgeRetryLimit(cfg);
+
+test("resolveBuildJudgeRetryLimit: absent config resolves the default", () => {
+  assert.equal(limitOf({}), 2);
+  assert.equal(limitOf(null), 2);
+});
+
+test("resolveBuildJudgeRetryLimit: integers, digit strings (padded too) and zero are accepted", () => {
+  assert.equal(limitOf({ graft: { build_judge_retry_limit: 1 } }), 1);
+  assert.equal(limitOf({ graft: { build_judge_retry_limit: "3" } }), 3);
+  assert.equal(limitOf({ graft: { build_judge_retry_limit: " 4 " } }), 4);
+  assert.equal(limitOf({ graft: { build_judge_retry_limit: 0 } }), 0);
+  assert.equal(limitOf({ graft: { build_judge_retry_limit: "0" } }), 0);
+});
+
+test("resolveBuildJudgeRetryLimit: invalid values and a non-map graft fall through to the default", () => {
+  for (const v of [-1, 1.5, "abc", "", "1.5", true]) {
+    assert.equal(limitOf({ graft: { build_judge_retry_limit: v } }), 2, `value ${JSON.stringify(v)}`);
+  }
+  assert.equal(limitOf({ graft: "oops" }), 2);
+});
+
+test("constants: the retry limit default matches config.js DEFAULTS", () => {
+  const { DEFAULTS } = require("../plugin/skills/faff/bin/lib/config.js");
+  assert.equal(bje.DEFAULT_BUILD_JUDGE_RETRY_LIMIT, 2);
+  assert.equal(DEFAULTS["graft.build_judge_retry_limit"], String(bje.DEFAULT_BUILD_JUDGE_RETRY_LIMIT));
+});
+
+test("realResolveBuildJudgeRetryLimit: reads graft.build_judge_retry_limit from the repo config (child process)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bje-rl-"));
+  try {
+    mkdirSync(join(tmp, ".faff"));
+    writeFileSync(join(tmp, ".faffrc.yaml"), "graft:\n  build_judge_retry_limit: 0\n");
+    const lib = join(process.cwd(), "plugin/skills/faff/bin/lib/build-judge-evidence.js");
+    const r = spawnSync(process.execPath, ["-e", `console.log(require(${JSON.stringify(lib)}).realResolveBuildJudgeRetryLimit())`], { cwd: tmp, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout.trim(), "0");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+const retryDeps = (calls, extra = {}) => ({
+  runReviewCall: (args, opts) => { calls.push([args, opts]); return { code: 5, stdout: "", stderr: "" }; },
+  judgeDispatchDisposition: async (exit) => (exit === 5 ? "retry" : "park"),
+  resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
+  resolveBuildJudgeClock: () => FAKE_CLOCK,
+  resolveBuildJudgeRetryLimit: () => 2,
+  ...extra,
+});
+
+test("cmdAssemble: --retry-limit abc, 1.5 and -1 are usage errors (exit 2) and write no ledger", async () => {
+  for (const bad of ["abc", "1.5", "-1"]) {
+    await withTmp(async (tmp) => {
+      const calls = [];
+      assert.equal(await runDispatch(tmp, retryDeps(calls, { resolveBuildJudgeRetryLimit: () => 2 }), { "--retry-limit": bad }), 2, bad);
+      assert.equal(calls.length, 0);
+      assert.equal(existsSync(join(tmp, "judge", "ledger.json")), false, bad);
+    });
+  }
+});
+
+test("cmdAssemble: an invalid --retry-limit is a usage error even on a zero-criticals round", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({ signal: "clean", findings: [], author_replies: [] }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": join(tmp, "judge"), "--retry-limit": "abc" }, retryDeps([])));
+    assert.equal(code, 2);
+    assert.equal(existsSync(join(tmp, "judge", "ledger.json")), false);
+  });
+});
+
+test("cmdAssemble: a zero-criticals round never reaches the retry limit resolver", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({ signal: "clean", findings: [], author_replies: [] }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const deps = retryDeps([], { resolveBuildJudgeRetryLimit: () => { throw new Error("retry limit must not be resolved"); } });
+    const code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": join(tmp, "judge") }, deps));
+    assert.equal(code, 0);
+  });
+});
+
+test("cmdAssemble: no flag, the resolver value bounds the Phase-1 retries (0 -> 1 call, parked; 1 -> 2 calls)", async () => {
+  for (const [limit, expected] of [[0, 1], [1, 2]]) {
+    await withTmp(async (tmp) => {
+      const calls = [];
+      assert.equal(await runDispatch(tmp, retryDeps(calls, { resolveBuildJudgeRetryLimit: () => limit })), 0);
+      assert.equal(calls.length, expected);
+      const ledger = JSON.parse(readFileSync(join(tmp, "judge", "ledger.json"), "utf8"));
+      assert.equal(ledger.entries["f-01"].resolution, "parked");
+      assert.match(ledger.entries["f-01"].park_cause, /phase-1 dispatch disposition "retry" \(exit 5\)/);
+    });
+  }
+});
+
+test("cmdAssemble: a valid flag wins and the resolver is never called", async () => {
+  await withTmp(async (tmp) => {
+    const calls = [];
+    const deps = retryDeps(calls, { resolveBuildJudgeRetryLimit: () => { throw new Error("resolver must not be called"); } });
+    assert.equal(await runDispatch(tmp, deps, { "--retry-limit": "2" }), 0);
+    assert.equal(calls.length, 3);
+  });
+});
+
+test("cmdAssemble: --retry-limit 0 beats a configured 5 (guards against flag || resolver)", async () => {
+  await withTmp(async (tmp) => {
+    const calls = [];
+    assert.equal(await runDispatch(tmp, retryDeps(calls, { resolveBuildJudgeRetryLimit: () => 5 }), { "--retry-limit": "0" }), 0);
+    assert.equal(calls.length, 1);
   });
 });
 

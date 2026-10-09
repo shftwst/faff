@@ -252,7 +252,8 @@ const DEFAULTS = {
   "graft.build_review_hold_limit": "2",
   // FAFF-996: the build-judge dispatch's IN-TURN transport-outage retry ceiling — the build-side
   // twin of prep.spec_review_judge_retry_limit above. UNREACHABLE/DEADLINE exits retry up to this
-  // bound before that finding parks; every other non-OK exit parks directly (never retried).
+  // bound before that finding parks; every other non-OK exit parks directly (never retried). Read
+  // in-process by `build-judge-evidence --assemble`; a valid `--retry-limit` flag wins.
   "graft.build_judge_retry_limit": "2",
   // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
   // false (refuse on positive evidence of a mounted host socket). true is the operator taking

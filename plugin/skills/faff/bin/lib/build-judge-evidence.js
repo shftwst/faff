@@ -111,8 +111,9 @@ function realResolveBuildJudgeClock() {
 // backstop strictly AFTER review-call's own --deadline (deadline + grace, FAFF-793 rule), so the
 // healthy path never reaches it; otherwise today's options, unchanged.
 function reviewCallSpawnOptions(deadlineSecs) {
-  if (positiveInt(deadlineSecs) === null) return { encoding: "utf8" };
-  return { encoding: "utf8", timeout: (deadlineSecs + BUILD_JUDGE_SPAWN_GRACE_SECS) * 1000, killSignal: "SIGKILL" };
+  const secs = positiveInt(deadlineSecs);
+  if (secs === null) return { encoding: "utf8" };
+  return { encoding: "utf8", timeout: (secs + BUILD_JUDGE_SPAWN_GRACE_SECS) * 1000, killSignal: "SIGKILL" };
 }
 
 // reviewCallExitFromError(e) -> exit code. Only the backstop kill (code ETIMEDOUT) maps to the
@@ -323,7 +324,7 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
 }
 
 // dispatchJudgeRulings(ledger, caseFiles, judgeDir, { runReviewCall, judgeDispatchDisposition,
-//   retryLimit }) -> mutates ledger.entries[*].{ruling,resolution} in place, writes
+//   retryLimit, backendsChain, clock: { deadline, timeout } }) (cmdAssemble sets clock) -> mutates ledger.entries[*].{ruling,resolution} in place, writes
 //   ruling-<case_id>.json for every dispatched (non-parked-at-assemble) case. Returns the
 //   mutated ledger. Every dependency is injectable so a test never spawns review-call.mjs.
 async function dispatchJudgeRulings(ledger, caseFiles, judgeDir, deps) {

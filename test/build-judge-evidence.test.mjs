@@ -628,6 +628,7 @@ test("cmdAssemble: the unresolvable-chain path never calls resolveBuildJudgeCloc
 test("reviewCallSpawnOptions: a valid deadline arms the backstop at deadline + grace; otherwise today's options", () => {
   assert.deepEqual(bje.reviewCallSpawnOptions(480), { encoding: "utf8", timeout: 510000, killSignal: "SIGKILL" });
   assert.deepEqual(bje.reviewCallSpawnOptions(undefined), { encoding: "utf8" });
+  assert.deepEqual(bje.reviewCallSpawnOptions("300"), { encoding: "utf8", timeout: 330000, killSignal: "SIGKILL" });
 });
 
 test("reviewCallExitFromError: only ETIMEDOUT maps to 8; ENOBUFS and bare signals stay 1; status passes through", () => {

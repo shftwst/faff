@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1240",
+  "build": {
+    "status": "complete",
+    "diff_hash": "52e5492a212b4d4352a78b7c29f4a697c04b5b517fe0805c583d7ad639b938a9",
+    "branch": "FAFF-1240-refuter-field-value-extent",
+    "pushed_at": "2026-10-09T12:46:11.171Z"
+  },
+  "updated_at": "2026-10-09T12:46:11.171Z"
+}

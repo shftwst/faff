@@ -10,7 +10,10 @@
 //     `build-judge-casefile.js`), writes `case-<case_id>.json` + `ledger.json` (mode 0600) —
 //     THEN, for each non-parked case_id in ledger order, dispatches the two-phase judge via
 //     `review-call.mjs` (Phase 1 blind reconstruction, Phase 2 rule), writing
-//     `ruling-<case_id>.json` per finding. Unlike the spec side (whose per-proposition dispatch
+//     `ruling-<case_id>.json` per finding, stamped with a `binding` (finding_id, pre_ruling_diff_sha,
+//     case_sha, run_id) so --admit can tell which ledger entry the file was made for. --assemble
+//     first clears earlier `ruling-*.json` and `admit-result.json` (best-effort; the binding is the
+//     guard). Unlike the spec side (whose per-proposition dispatch
 //     is driven by faff-prep's own SKILL.md loop), the build side's dispatch is embedded HERE —
 //     a deliberate shape departure the FAFF-996 spec calls for, not a refactor of the spec side.
 //
@@ -19,6 +22,8 @@
 //     (critical-free-latest, p-17) from the last dialogue round record here (never inside the
 //     deterministic roll-up, which stays a pure fn over its floor INPUT). Prints the AdmitResult
 //     and exits 0 (admit) / 1 (not admit) — mirroring spec-judge-evidence's --admit convention.
+//     An on-disk ruling whose binding does not match its ledger entry is treated as missing (exit 2);
+//     an inline `entry.ruling` is trusted as written by the same --assemble run (FAFF-1248).
 //
 // Degrade discipline mirrors spec-judge-evidence.js: an unreadable --dir is fail-SAFE (a
 // park-direction bundle, exit 0 — the loop parks, the judge is never consulted on unassemblable
@@ -35,7 +40,7 @@ const { parseArgs, usageError } = require("./argv");
 const { readRoundRecord } = require("./spec-review-churn");
 const { roundFilesInDir } = require("./spec-review-convergence");
 const { standingCriticalIds } = require("./build-review-churn");
-const { assembleBuildCaseFiles, admitBuildRollup } = require("./build-judge-casefile");
+const { assembleBuildCaseFiles, admitBuildRollup, sha256Text } = require("./build-judge-casefile");
 const { parseVerdictBlock, validateReconstruction, imperativeScrub } = require("./adversarial-judge-scrub");
 const { findRoot, dig } = require("./shared-infra");
 const { loadConfig } = require("./config");
@@ -323,6 +328,44 @@ async function dispatchOne(caseId, caseFile, tmpDir, deps) {
   return { ruling: parsed.json, resolution: outcome === "OVERTURN" ? "overturned" : "pending", cause: null };
 }
 
+// The binding ties a ruling file to the exact case it was made on. Case ids are positional, so the
+// file name alone cannot say which finding a ruling belongs to across assemblies. A guardrail
+// against accidental reuse, not a tamper boundary (every input lives in the same writable dir).
+function bindingFor(ledger, cid) {
+  const entry = ledger.entries[cid];
+  return {
+    finding_id: entry.finding_id,
+    pre_ruling_diff_sha: entry.pre_ruling_diff_sha,
+    case_sha: entry.case_sha,
+    run_id: ledger.run_id,
+  };
+}
+
+function bindingMatches(binding, ledger, cid) {
+  const entry = ledger.entries[cid];
+  if (!entry || binding === null || typeof binding !== "object" || Array.isArray(binding)) return false;
+  for (const k of ["finding_id", "pre_ruling_diff_sha", "case_sha"]) {
+    if (typeof binding[k] !== "string" || typeof entry[k] !== "string" || binding[k] !== entry[k]) return false;
+  }
+  return typeof binding.run_id === "string" && typeof ledger.run_id === "string" && binding.run_id === ledger.run_id;
+}
+
+// Best-effort: clear rulings and the admit result of an earlier assembly. A failed unlink only
+// warns; the --admit binding check is what guarantees safety.
+function sweepStaleRulings(outDir) {
+  let names;
+  try { names = fs.readdirSync(outDir); }
+  catch (e) { process.stderr.write(`faff build-judge-evidence --assemble: warning: could not list ${outDir} to clear stale rulings: ${e.message}\n`); return; }
+  for (const name of names) {
+    if (!/^ruling-.+\.json$/.test(name) && name !== "admit-result.json") continue;
+    try { fs.unlinkSync(path.join(outDir, name)); }
+    catch (e) {
+      if (e && e.code === "ENOENT") continue;
+      process.stderr.write(`faff build-judge-evidence --assemble: warning: could not remove stale ${name}: ${e.message}\n`);
+    }
+  }
+}
+
 // dispatchJudgeRulings(ledger, caseFiles, judgeDir, { runReviewCall, judgeDispatchDisposition,
 //   retryLimit, backendsChain, clock: { deadline, timeout } }) (cmdAssemble sets clock) -> mutates ledger.entries[*].{ruling,resolution} in place, writes
 //   ruling-<case_id>.json for every dispatched (non-parked-at-assemble) case. Returns the
@@ -339,11 +382,15 @@ async function dispatchJudgeRulings(ledger, caseFiles, judgeDir, deps) {
       if (!entry || entry.resolution === "parked") continue; // already parked at assemble
       const caseFile = caseFiles[cid];
       const result = await dispatchOne(cid, caseFile, tmpDir, { ...deps, backendsJsonPath });
-      entry.ruling = result.ruling;
+      // A `binding` key the model put in its verdict is dropped from the inline copy too, so the
+      // ledger and the ruling file carry the same verdict fields (only the file is stamped).
+      let verdict = result.ruling;
+      if (verdict && typeof verdict === "object") { const { binding: _modelBinding, ...rest } = verdict; verdict = rest; }
+      entry.ruling = verdict;
       entry.resolution = result.resolution;
       if (result.cause) entry.park_cause = result.cause;
-      if (result.ruling) {
-        fs.writeFileSync(path.join(judgeDir, `ruling-${cid}.json`), JSON.stringify(result.ruling, null, 2) + "\n");
+      if (verdict) {
+        fs.writeFileSync(path.join(judgeDir, `ruling-${cid}.json`), JSON.stringify({ ...verdict, binding: bindingFor(ledger, cid) }, null, 2) + "\n");
       }
     }
   } finally {
@@ -476,6 +523,11 @@ function cmdAssemble(values, deps = {}) {
   catch (e) { process.stderr.write(`faff build-judge-evidence --assemble: cannot create --out ${JSON.stringify(outDir)}: ${e.message}\n`); return 2; }
 
   for (const cid of ledger.order) {
+    ledger.entries[cid].case_sha = caseFiles[cid] ? sha256Text(JSON.stringify(caseFiles[cid])) : "";
+  }
+  sweepStaleRulings(outDir);
+
+  for (const cid of ledger.order) {
     if (caseFiles[cid]) fs.writeFileSync(path.join(outDir, `case-${cid}.json`), JSON.stringify(caseFiles[cid], null, 2) + "\n");
   }
   const writeLedger = () => {
@@ -532,6 +584,20 @@ function cmdAssemble(values, deps = {}) {
   });
 }
 
+// readBoundRuling(outDir, ledger, cid) -> { ok: true, ruling } | { ok: false, error }. Reads
+// ruling-<cid>.json and accepts it only when its binding matches the ledger entry; the returned ruling
+// has the binding stripped, so the roll-up and the floor see the verdict fields only (FAFF-1248).
+function readBoundRuling(outDir, ledger, cid) {
+  let ruling;
+  try { ruling = JSON.parse(fs.readFileSync(path.join(outDir, `ruling-${cid}.json`), "utf8")); }
+  catch (e) { return { ok: false, error: `missing/malformed ruling-${cid}.json in ${outDir}: ${e.message}` }; }
+  if (!ruling || !bindingMatches(ruling.binding, ledger, cid)) {
+    return { ok: false, error: `ruling-${cid}.json is not bound to this ledger entry (finding_id/pre_ruling_diff_sha/case_sha/run_id); treated as missing` };
+  }
+  const { binding: _binding, ...bare } = ruling;
+  return { ok: true, ruling: bare };
+}
+
 function cmdAdmit(values) {
   const level = values["--level"];
   if (level == null) return usageError([{ code: "missing-value", detail: "--admit requires --level" }], BUILD_JUDGE_EVIDENCE_USAGE);
@@ -551,11 +617,9 @@ function cmdAdmit(values) {
     const entry = ledger.entries[cid];
     if (entry && entry.resolution === "parked") { rulings[cid] = null; continue; }
     if (entry && entry.ruling) { rulings[cid] = entry.ruling; continue; }
-    const rp = path.join(outDir, `ruling-${cid}.json`);
-    let ruling;
-    try { ruling = JSON.parse(fs.readFileSync(rp, "utf8")); }
-    catch (e) { process.stderr.write(`faff build-judge-evidence --admit: missing/malformed ruling-${cid}.json in ${outDir}: ${e.message}\n`); return 2; }
-    rulings[cid] = ruling;
+    const read = readBoundRuling(outDir, ledger, cid);
+    if (!read.ok) { process.stderr.write(`faff build-judge-evidence --admit: ${read.error}\n`); return 2; }
+    rulings[cid] = read.ruling;
   }
 
   const criticalFreeLatest = dir ? computeCriticalFreeLatestFloor(dir, ledger, rulings) : null;
@@ -584,6 +648,9 @@ module.exports = {
   dispatchOne,
   dispatchJudgeRulings,
   computeCriticalFreeLatestFloor,
+  bindingFor,
+  bindingMatches,
+  readBoundRuling,
   realRunReviewCall,
   realJudgeDispatchDisposition,
   realResolveAdversarialBackends,

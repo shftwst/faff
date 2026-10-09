@@ -7,7 +7,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
@@ -233,7 +233,137 @@ test("cmdAssemble: dispatches the two-phase judge per non-parked case_id and wri
     assert.equal(ledger.entries["f-01"].resolution, "overturned");
     const ruling = JSON.parse(readFileSync(join(judgeDir, "ruling-f-01.json"), "utf8"));
     assert.equal(ruling.outcome, "OVERTURN");
+    const entry = ledger.entries["f-01"];
+    assert.match(entry.case_sha, /^[0-9a-f]{64}$/);
+    assert.deepEqual(ruling.binding, {
+      finding_id: entry.finding_id,
+      pre_ruling_diff_sha: entry.pre_ruling_diff_sha,
+      case_sha: entry.case_sha,
+      run_id: ledger.run_id,
+    });
+    assert.equal(ruling.finding_id, "a.js::x", "verdict fields stay top-level");
   });
+});
+
+test("cmdAssemble: faff's binding overwrites a binding the model put in its verdict", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRound(tmp, "a.js::x");
+    const judgeDir = join(tmp, "judge");
+    const deps = fakeDepsAlwaysOverturn();
+    const base = deps.runReviewCall;
+    deps.runReviewCall = (args) => {
+      const r = base(args);
+      if (r.stdout.includes("build-judge-verdict")) {
+        r.stdout = "```faff-contract:build-judge-verdict\n" + JSON.stringify({ finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "", binding: { finding_id: "evil" } }) + "\n```";
+      }
+      return r;
+    };
+    assert.equal(await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, deps)), 0);
+    const ledger = JSON.parse(readFileSync(join(judgeDir, "ledger.json"), "utf8"));
+    const ruling = JSON.parse(readFileSync(join(judgeDir, "ruling-f-01.json"), "utf8"));
+    assert.equal(ruling.binding.finding_id, "a.js::x");
+    assert.equal(ruling.binding.run_id, ledger.run_id);
+    assert.ok(!("binding" in ledger.entries["f-01"].ruling), "the inline ledger copy carries no model-written binding");
+  });
+});
+
+function writeBrRound(tmp, findingId) {
+  const br = join(tmp, "br"); mkdirSync(br, { recursive: true });
+  writeFileSync(join(br, "round-1.json"), JSON.stringify({
+    signal: "needs-human",
+    findings: [{ finding_id: findingId, severity: "critical", location: "a.js:1", title: "X" }],
+    author_replies: [],
+  }));
+  writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+  return br;
+}
+
+test("cmdAssemble: a second assemble over a changed set sweeps earlier rulings and admit-result before the first call; --admit then exits 2", async () => {
+  await withTmp(async (tmp) => {
+    const judgeDir = join(tmp, "judge");
+    const br = writeBrRound(tmp, "a.js::x");
+    const args = () => ({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir });
+    assert.equal(await Promise.resolve(bje.cmdAssemble(args(), fakeDepsAlwaysOverturn())), 0);
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 0);
+    assert.ok(existsSync(join(judgeDir, "ruling-f-01.json")));
+    assert.ok(existsSync(join(judgeDir, "admit-result.json")));
+    const oldRuling = readFileSync(join(judgeDir, "ruling-f-01.json"), "utf8");
+
+    writeBrRound(tmp, "b.js::y");
+    let seen = null;
+    const deps = {
+      ...fakeDepsAlwaysOverturn(),
+      runReviewCall: () => {
+        seen = readdirSync(judgeDir).filter((n) => /^ruling-.+\.json$/.test(n) || n === "admit-result.json");
+        throw new Error("killed");
+      },
+    };
+    assert.equal(await Promise.resolve(bje.cmdAssemble(args(), deps)), 2);
+    assert.deepEqual(seen, []);
+    const ledger = JSON.parse(readFileSync(join(judgeDir, "ledger.json"), "utf8"));
+    assert.equal(ledger.entries["f-01"].finding_id, "b.js::y");
+    assert.equal(ledger.entries["f-01"].ruling, null);
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 2);
+    assert.ok(!existsSync(join(judgeDir, "admit-result.json")));
+
+    // smoke step 6: the old (a.js::x) ruling copied back is "not bound"
+    writeFileSync(join(judgeDir, "ruling-f-01.json"), oldRuling);
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 2);
+    assert.ok(!existsSync(join(judgeDir, "admit-result.json")));
+  });
+});
+
+test("cmdAssemble: a sweep that cannot unlink a file warns once and assemble carries on", async () => {
+  await withTmp(async (tmp) => {
+    const judgeDir = join(tmp, "judge"); mkdirSync(judgeDir);
+    // A directory named like a ruling file cannot be unlinked.
+    mkdirSync(join(judgeDir, "ruling-zz.json"));
+    const br = writeBrRound(tmp, "a.js::x");
+    const writes = [];
+    const orig = process.stderr.write;
+    process.stderr.write = (c) => { writes.push(String(c)); return true; };
+    let code;
+    try {
+      code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }, fakeDepsAlwaysOverturn()));
+    } finally { process.stderr.write = orig; }
+    assert.equal(code, 0);
+    assert.equal(writes.filter((w) => w.includes("could not remove stale ruling-zz.json")).length, 1);
+    assert.ok(existsSync(join(judgeDir, "ruling-f-01.json")));
+  });
+});
+
+test("cmdAssemble: early exits leave existing ruling files in place", async () => {
+  await withTmp(async (tmp) => {
+    const judgeDir = join(tmp, "judge"); mkdirSync(judgeDir);
+    writeFileSync(join(judgeDir, "ruling-f-01.json"), "{}");
+    assert.equal(bje.cmdAssemble({ "--dir": join(tmp, "br"), "--out": judgeDir }), 2); // usage error
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), "not json");
+    writeFileSync(join(tmp, "diff.txt"), "d\n");
+    assert.equal(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": judgeDir }), 2);
+    assert.ok(existsSync(join(judgeDir, "ruling-f-01.json")));
+  });
+});
+
+// --- bindingFor / bindingMatches ------------------------------------------------
+
+const BLEDGER = { run_id: "R1", order: ["f-01"], entries: { "f-01": { finding_id: "a.js::x", pre_ruling_diff_sha: "d1", case_sha: "c1" } } };
+
+test("bindingFor/bindingMatches: full match; each of the four fields mismatching; missing, non-object and non-string cases", () => {
+  const good = bje.bindingFor(BLEDGER, "f-01");
+  assert.deepEqual(good, { finding_id: "a.js::x", pre_ruling_diff_sha: "d1", case_sha: "c1", run_id: "R1" });
+  assert.equal(bje.bindingMatches(good, BLEDGER, "f-01"), true);
+  for (const k of Object.keys(good)) {
+    assert.equal(bje.bindingMatches({ ...good, [k]: "other" }, BLEDGER, "f-01"), false, k);
+  }
+  assert.equal(bje.bindingMatches(undefined, BLEDGER, "f-01"), false);
+  assert.equal(bje.bindingMatches(null, BLEDGER, "f-01"), false);
+  assert.equal(bje.bindingMatches("str", BLEDGER, "f-01"), false);
+  assert.equal(bje.bindingMatches([good], BLEDGER, "f-01"), false);
+  const badEntry = { ...BLEDGER, entries: { "f-01": { ...BLEDGER.entries["f-01"], case_sha: undefined } } };
+  assert.equal(bje.bindingMatches({ ...good, case_sha: undefined }, badEntry, "f-01"), false);
+  const numEntry = { ...BLEDGER, entries: { "f-01": { ...BLEDGER.entries["f-01"], case_sha: 5 } } };
+  assert.equal(bje.bindingMatches({ ...good, case_sha: 5 }, numEntry, "f-01"), false);
 });
 
 test("cmdAssemble: a Phase-1 reconstruction that fails validation parks the finding, never runs Phase 2", async () => {
@@ -434,14 +564,62 @@ function writeLedgerAndRulings(judgeDir, ledger, rulings) {
   }
 }
 
+const BOUND_LEDGER = {
+  run_id: "R1",
+  order: ["f-01"],
+  entries: { "f-01": { finding_id: "a.js::x", blocking: true, resolution: "pending", pre_ruling_diff_sha: "d1", case_sha: "c1" } },
+};
+const BOUND_BINDING = { finding_id: "a.js::x", pre_ruling_diff_sha: "d1", case_sha: "c1", run_id: "R1" };
+
+function admitFixture(tmp, ledger, ruling) {
+  const br = join(tmp, "br"); mkdirSync(br);
+  writeFileSync(join(br, "round-1.json"), JSON.stringify({ signal: "needs-human", findings: [{ finding_id: "a.js::x", severity: "critical" }], author_replies: [] }));
+  const judgeDir = join(tmp, "judge");
+  writeLedgerAndRulings(judgeDir, ledger, ruling ? { "f-01": ruling } : {});
+  return { br, judgeDir };
+}
+
+test("cmdAdmit: a ruling file with no binding, or a mismatched one, is treated as missing (exit 2, no admit-result)", async () => {
+  await withTmp((tmp) => {
+    const bare = { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "" };
+    const { br, judgeDir } = admitFixture(tmp, BOUND_LEDGER, bare);
+    const writes = [];
+    const orig = process.stderr.write;
+    process.stderr.write = (c) => { writes.push(String(c)); return true; };
+    let code;
+    try { code = bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }); }
+    finally { process.stderr.write = orig; }
+    assert.equal(code, 2);
+    assert.equal(writes.filter((w) => w.includes("ruling-f-01.json is not bound to this ledger entry")).length, 1);
+    assert.ok(!existsSync(join(judgeDir, "admit-result.json")));
+    // stale OVERTURN bound to a different finding
+    writeFileSync(join(judgeDir, "ruling-f-01.json"), JSON.stringify({ ...bare, binding: { ...BOUND_BINDING, finding_id: "other.js::y" } }));
+    const ledger = { ...BOUND_LEDGER, entries: { "f-01": { ...BOUND_LEDGER.entries["f-01"], finding_id: "b.js::y" } } };
+    writeFileSync(join(judgeDir, "ledger.json"), JSON.stringify(ledger));
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 2);
+    assert.ok(!existsSync(join(judgeDir, "admit-result.json")));
+  });
+});
+
+test("cmdAdmit: an inline ledger ruling wins even when its ruling file is missing or mismatched", async () => {
+  await withTmp((tmp) => {
+    const inline = { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "" };
+    const ledger = { ...BOUND_LEDGER, entries: { "f-01": { ...BOUND_LEDGER.entries["f-01"], ruling: inline, resolution: "overturned" } } };
+    const { br, judgeDir } = admitFixture(tmp, ledger, null);
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 0);
+    writeFileSync(join(judgeDir, "ruling-f-01.json"), JSON.stringify({ ...inline, outcome: "UPHOLD", binding: { finding_id: "evil" } }));
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir }), 0);
+  });
+});
+
 test("cmdAdmit: reads ledger + ruling files from disk, admits on an all-OVERTURN ledger with a clean floor", async () => {
   await withTmp((tmp) => {
     const br = join(tmp, "br"); mkdirSync(br);
     writeFileSync(join(br, "round-1.json"), JSON.stringify({ signal: "needs-human", findings: [{ finding_id: "a.js::x", severity: "critical" }], author_replies: [] }));
     const judgeDir = join(tmp, "judge");
     writeLedgerAndRulings(judgeDir,
-      { order: ["f-01"], entries: { "f-01": { finding_id: "a.js::x", blocking: true, resolution: "pending" } } },
-      { "f-01": { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "" } });
+      BOUND_LEDGER,
+      { "f-01": { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "", product_gap_citation: "", binding: BOUND_BINDING } });
     const code = bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir });
     assert.equal(code, 0);
     const result = JSON.parse(readFileSync(join(judgeDir, "admit-result.json"), "utf8"));
@@ -466,8 +644,8 @@ test("cmdAdmit: exit code mirrors admit (0) / not-admit (1) — a standing UPHOL
     writeFileSync(join(br, "round-1.json"), JSON.stringify({ signal: "needs-human", findings: [{ finding_id: "a.js::x", severity: "critical" }], author_replies: [] }));
     const judgeDir = join(tmp, "judge");
     writeLedgerAndRulings(judgeDir,
-      { order: ["f-01"], entries: { "f-01": { finding_id: "a.js::x", blocking: true, resolution: "pending" } } },
-      { "f-01": { finding_id: "a.js::x", outcome: "UPHOLD", rationale: "stands", product_gap_citation: "" } });
+      BOUND_LEDGER,
+      { "f-01": { finding_id: "a.js::x", outcome: "UPHOLD", rationale: "stands", product_gap_citation: "", binding: BOUND_BINDING } });
     const code = bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": judgeDir });
     assert.equal(code, 1);
   });
@@ -661,4 +839,18 @@ test("realRunReviewCall: wires the spawn options and exit mapping through the op
   assert.equal(writes.length, 1);
   assert.match(writes[0], /review-call still alive at deadline\(300s\)\+grace\(30s\); killed, treated as exit 8/);
   assert.equal(overflow.code, 1);
+});
+
+test("readBoundRuling: a bound ruling comes back without its binding key, so the roll-up sees verdict fields only", async () => {
+  await withTmp((tmp) => {
+    const verdict = { finding_id: "a.js::x", outcome: "OVERTURN", rationale: "r", product_gap_citation: "" };
+    const { judgeDir } = admitFixture(tmp, BOUND_LEDGER, { ...verdict, binding: BOUND_BINDING });
+    const read = bje.readBoundRuling(judgeDir, BOUND_LEDGER, "f-01");
+    assert.equal(read.ok, true);
+    assert.ok(!("binding" in read.ruling));
+    assert.deepEqual(read.ruling, verdict);
+    const miss = bje.readBoundRuling(judgeDir, { ...BOUND_LEDGER, run_id: "OTHER" }, "f-01");
+    assert.equal(miss.ok, false);
+    assert.match(miss.error, /is not bound to this ledger entry/);
+  });
 });

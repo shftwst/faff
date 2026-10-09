@@ -4554,3 +4554,309 @@ test("FAFF-1239: main and runReviewChain contain no process.exit, and no abort m
   assert.equal(exits.length, 1, "only armExitBackstop's default exit seam calls process.exit");
   for (const m of src.match(/new Error\("(?:chain [^"]*|first-byte breach)"\)/g) || []) assert.doesNotMatch(m, /timed out/);
 });
+
+// --- FAFF-1228: completion record (finish reason, done, content/reasoning lengths, usage) ---
+import {
+  sanitizeFinishReason, pickUsage, mergeUsage, formatCompletionLog, USAGE_MAX_KEYS,
+} from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
+
+const sseFrames = (...frames) => frames.map((f) => `data: ${typeof f === "string" ? f : JSON.stringify(f)}\n\n`).join("");
+
+test("FAFF-1228 sanitizeFinishReason: clean passes, controls become _, capped at 64, non-strings are null, idempotent", () => {
+  assert.equal(sanitizeFinishReason("stop"), "stop");
+  assert.equal(sanitizeFinishReason("a\nb"), "a_b");
+  assert.equal(sanitizeFinishReason("x".repeat(100)).length, 64);
+  for (const v of ["", null, 5, {}, undefined]) assert.equal(sanitizeFinishReason(v), null);
+  const once = sanitizeFinishReason("a b\r\nc/d");
+  assert.equal(sanitizeFinishReason(once), once);
+});
+
+test("FAFF-1228 pickUsage: numeric *_tokens verbatim plus lifted reasoning_tokens; everything else dropped", () => {
+  assert.deepEqual(pickUsage({ prompt_tokens: 10, completion_tokens: 2000, total_tokens: 2010, cost: 0.1, id: "x", completion_tokens_details: { reasoning_tokens: 1990 } }),
+    { prompt_tokens: 10, completion_tokens: 2000, total_tokens: 2010, reasoning_tokens: 1990 });
+  assert.equal(pickUsage({ cost: 1 }), null);
+  assert.equal(pickUsage(null), null);
+  assert.deepEqual(pickUsage({ prompt_tokens: "10", total_tokens: 3 }), { total_tokens: 3 }, "a string-valued *_tokens is dropped");
+});
+
+test("FAFF-1228 pickUsage / mergeUsage: prototype-safe against __proto__ keys, and capped at USAGE_MAX_KEYS", () => {
+  const hostile = JSON.parse('{"__proto__": {"polluted_tokens": 1}, "prompt_tokens": 3}');
+  const before = Object.getOwnPropertyNames(Object.prototype).sort();
+  assert.deepEqual(pickUsage(hostile), { prompt_tokens: 3 });
+  assert.deepEqual(mergeUsage({ prompt_tokens: 1 }, hostile), { prompt_tokens: 3 });
+  assert.deepEqual(mergeUsage(pickUsage(hostile), { output_tokens: 2 }), { prompt_tokens: 3, output_tokens: 2 });
+  assert.equal(({}).polluted_tokens, undefined);
+  assert.deepEqual(Object.getOwnPropertyNames(Object.prototype).sort(), before);
+  assert.equal(USAGE_MAX_KEYS, 16);
+  const wide = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`k${i}_tokens`, i]));
+  assert.equal(Object.keys(pickUsage(wide)).length, 16);
+  assert.equal(Object.keys(mergeUsage(pickUsage(wide), { extra_tokens: 1, another_tokens: 2 })).length, 16);
+});
+
+test("FAFF-1228 mergeUsage: null handling and b winning", () => {
+  assert.deepEqual(mergeUsage(null, { a_tokens: 1 }), { a_tokens: 1 });
+  assert.deepEqual(mergeUsage({ a_tokens: 1 }, null), { a_tokens: 1 });
+  assert.equal(mergeUsage(null, null), null);
+  assert.deepEqual(mergeUsage({ a_tokens: 1, b_tokens: 2 }, { b_tokens: 9 }), { a_tokens: 1, b_tokens: 9 });
+});
+
+test("FAFF-1228 formatCompletionLog: empty for no record, fixed suffix otherwise, finish reason re-sanitised", () => {
+  assert.equal(formatCompletionLog(undefined), "");
+  assert.equal(formatCompletionLog({ finish_reason: null, done: false, content_len: 0, reasoning_len: 0, usage: null }),
+    " finish_reason=none done=false reasoning_len=0 content_len=0");
+  const out = formatCompletionLog({ finish_reason: "a\nb", done: true, content_len: 1, reasoning_len: 2, usage: null });
+  assert.equal(out, " finish_reason=a_b done=true reasoning_len=2 content_len=1");
+  assert.ok(!out.includes("\n"));
+});
+
+test("FAFF-1228 accumulateSse: stop with content, reasoning-only length cut, cut stream", () => {
+  const stop = accumulateSse(sseFrames({ choices: [{ delta: { content: "x" }, finish_reason: "stop" }] }, "[DONE]"));
+  assert.deepEqual(stop.completion, { finish_reason: "stop", done: true, content_len: 1, reasoning_len: 0, usage: null });
+  const cut = accumulateSse(sseFrames({ choices: [{ delta: { reasoning: "abcd" } }] }, { choices: [{ delta: { reasoning: "efgh" } }] }, { choices: [{ delta: {}, finish_reason: "length" }] }, "[DONE]"));
+  assert.equal(cut.content, "");
+  assert.equal(cut.truncated, true);
+  assert.deepEqual(cut.completion, { finish_reason: "length", done: true, content_len: 0, reasoning_len: 8, usage: null });
+  const nodone = accumulateSse(sseFrames({ choices: [{ delta: { content: "partial" } }] }));
+  assert.equal(nodone.done, false);
+  assert.equal(nodone.completion.done, false);
+  assert.equal(nodone.completion.finish_reason, null);
+  const doneOnly = accumulateSse(sseFrames({ choices: [{ delta: { content: "a" } }] }, "[DONE]"));
+  assert.deepEqual([doneOnly.completion.done, doneOnly.completion.finish_reason], [true, null]);
+});
+
+test("FAFF-1228 accumulateSse: reasoning is a per-frame max of the two field names, never a sum; no reasoning text is kept", () => {
+  assert.equal(accumulateSse(sseFrames({ choices: [{ delta: { reasoning_content: "abcd" } }] })).completion.reasoning_len, 4);
+  const mirrored = accumulateSse(sseFrames({ choices: [{ delta: { reasoning: "abc", reasoning_content: "abc" } }] }));
+  assert.equal(mirrored.completion.reasoning_len, 3);
+  assert.doesNotMatch(JSON.stringify(mirrored.completion), /abc/);
+});
+
+test("FAFF-1228 accumulateSse: usage from a choices-less final chunk, last non-null wins; hostile finish_reason sanitised", () => {
+  const one = accumulateSse(sseFrames({ choices: [{ delta: { content: "x" }, finish_reason: "stop" }] }, { choices: [], usage: { prompt_tokens: 1, completion_tokens: 2 } }));
+  assert.deepEqual(one.completion.usage, { prompt_tokens: 1, completion_tokens: 2 });
+  const two = accumulateSse(sseFrames({ choices: [{ delta: { content: "x" } }], usage: { completion_tokens: 1 } }, { choices: [], usage: { completion_tokens: 5 } }));
+  assert.deepEqual(two.completion.usage, { completion_tokens: 5 });
+  const evil = accumulateSse(sseFrames({ choices: [{ delta: { content: "x" }, finish_reason: "a\nb" }] }));
+  assert.equal(evil.completion.finish_reason, "a_b");
+});
+
+test("FAFF-1228 accumulateSse: non-streamed fallback reads reasoning, finish_reason and usage", () => {
+  const r = accumulateSse(JSON.stringify({ choices: [{ message: { content: "", reasoning: "zz" }, finish_reason: "length" }], usage: { completion_tokens: 5 } }));
+  assert.equal(r.truncated, true);
+  assert.deepEqual(r.completion, { finish_reason: "length", done: true, content_len: 0, reasoning_len: 2, usage: { completion_tokens: 5 } });
+});
+
+test("FAFF-1228 accumulateAnthropic: thinking length counted but not in content; stop_reason and merged usage", () => {
+  const r = accumulateAnthropic(sseFrames(
+    { type: "message_start", message: { usage: { input_tokens: 10, output_tokens: 1 } } },
+    { type: "content_block_delta", delta: { type: "thinking_delta", thinking: "hmm" } },
+    { type: "content_block_delta", delta: { type: "thinking_delta", thinking: "ok" } },
+    { type: "content_block_delta", delta: { type: "text_delta", text: "ans" } },
+    { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 7 } },
+    { type: "message_stop" },
+  ));
+  assert.equal(r.content, "ans");
+  assert.deepEqual(r.completion, { finish_reason: "end_turn", done: true, content_len: 3, reasoning_len: 5, usage: { input_tokens: 10, output_tokens: 7 } });
+});
+
+test("FAFF-1228 accumulateAnthropic: non-streamed fallback and cut stream", () => {
+  const ns = accumulateAnthropic(JSON.stringify({ content: [{ type: "thinking", thinking: "abc" }, { type: "redacted_thinking" }, { type: "text", text: "hi" }], stop_reason: "max_tokens", usage: { output_tokens: 4 } }));
+  assert.equal(ns.truncated, true);
+  assert.deepEqual(ns.completion, { finish_reason: "max_tokens", done: true, content_len: 2, reasoning_len: 3, usage: { output_tokens: 4 } });
+  const cut = accumulateAnthropic(sseFrames({ type: "content_block_delta", delta: { type: "text_delta", text: "x" } }));
+  assert.equal(cut.completion.done, false);
+  assert.equal(cut.completion.finish_reason, null);
+});
+
+const okOpenAi = (finish, content = "x") => `data: ${JSON.stringify({ choices: [{ delta: { content }, finish_reason: finish }], usage: { completion_tokens: 3 } })}\ndata: [DONE]`;
+const okAnth = (stop, text = "x") => sseFrames({ type: "content_block_delta", delta: { type: "text_delta", text } }, { type: "message_delta", delta: { stop_reason: stop } }, { type: "message_stop" });
+
+test("FAFF-1228 runReview (openai): completion passes through with length_retried false, then true on the length re-call", async () => {
+  const getFn = async () => JSON.stringify({ data: [{ id: "m" }] });
+  const happy = await runReview({ host: "http://h:1/v1", model: "m", system: "S", user: "U", getFn, streamFn: async () => okOpenAi("stop") });
+  assert.deepEqual(happy.completion, { ...accumulateSse(okOpenAi("stop")).completion, length_retried: false });
+  let n = 0;
+  const re = await runReview({ host: "http://h:1/v1", model: "m", system: "S", user: "U", getFn, streamFn: async () => okOpenAi(++n === 1 ? "length" : "stop") });
+  assert.equal(re.completion.finish_reason, "stop");
+  assert.equal(re.completion.length_retried, true);
+});
+
+test("FAFF-1228 runReview (anthropic): completion passes through with length_retried false, then true on the max_tokens re-call", async () => {
+  const opts = { provider: "anthropic", host: "http://h:1", model: "m", system: "S", user: "U" };
+  const happy = await runReview({ ...opts, streamFn: async () => okAnth("end_turn") });
+  assert.deepEqual(happy.completion, { ...accumulateAnthropic(okAnth("end_turn")).completion, length_retried: false });
+  let n = 0;
+  const re = await runReview({ ...opts, streamFn: async () => okAnth(++n === 1 ? "max_tokens" : "end_turn") });
+  assert.equal(re.completion.finish_reason, "end_turn");
+  assert.equal(re.completion.length_retried, true);
+});
+
+test("FAFF-1228 runReview: non-ok statuses carry no completion key", async () => {
+  const unreachable = await runReview({ host: "http://h:1/v1", model: "m", system: "S", user: "U", getFn: async () => { throw new Error("ECONNREFUSED"); } });
+  assert.equal(unreachable.status, "unreachable");
+  assert.ok(!("completion" in unreachable));
+  const auth = await runReview({ host: "http://h:1/v1", model: "m", system: "S", user: "U", getFn: async () => { throw new Error("HTTP 401: nope"); } });
+  assert.equal(auth.status, "auth-failed");
+  assert.ok(!("completion" in auth));
+  const tf = await runReview({
+    host: "http://h:1/v1", model: "m", system: "S", user: "U", timeoutMs: 1,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => { throw new Error("HTTP 503: down"); },
+  });
+  assert.equal(tf.status, "transport-failed");
+  assert.ok(!("completion" in tf));
+});
+
+const rawCtx = () => {
+  const writes = [];
+  return { writes, shared: { rawDir: "/raw", lens: "QA", round: 1, writeFn: (p, c) => writes.push({ path: p, content: c }) } };
+};
+const preambleOf = (content) => content.slice(0, content.indexOf("# ---\n"));
+
+test("FAFF-1228 captureRawResponseBody: completion lines follow # sha256: in order and immediately precede # ---", () => {
+  const { writes, shared } = rawCtx();
+  captureRawResponseBody(shared, {
+    chainIndex: 0, backend: { provider: "openai", model: "A" }, token: "empty", exit: 11,
+    result: { status: "ok", content: "", completion: { finish_reason: "length", done: true, content_len: 0, reasoning_len: 200, usage: { completion_tokens: 9 }, length_retried: true } },
+  });
+  const lines = writes[0].content.split("\n");
+  const i = lines.findIndex((l) => l.startsWith("# sha256:"));
+  assert.deepEqual(lines.slice(i + 1, i + 8), [
+    "# finish_reason: length", "# done: true", "# content_len: 0", "# reasoning_len: 200",
+    `# usage: ${JSON.stringify({ completion_tokens: 9 })}`, "# length_retried: true", "# ---",
+  ]);
+});
+
+test("FAFF-1228 captureRawResponseBody: null finish renders none / none (stream ended...), usage none, length_retried omitted when unset", () => {
+  const mk = (done) => {
+    const { writes, shared } = rawCtx();
+    captureRawResponseBody(shared, { chainIndex: 0, backend: {}, token: "empty", exit: 11, result: { status: "ok", content: "", completion: { finish_reason: null, done, content_len: 0, reasoning_len: 0, usage: null } } });
+    return preambleOf(writes[0].content);
+  };
+  assert.match(mk(true), /# finish_reason: none\n# done: true\n/);
+  assert.match(mk(false), /# finish_reason: none \(stream ended without a finish\)\n# done: false\n/);
+  assert.match(mk(true), /# usage: none\n$/);
+  assert.doesNotMatch(mk(true), /length_retried/);
+});
+
+test("FAFF-1228 captureRawResponseBody: a hostile finish_reason adds no extra preamble line; findings results carry the lines too", () => {
+  const { writes, shared } = rawCtx();
+  captureRawResponseBody(shared, {
+    chainIndex: 0, backend: {}, token: "findings", exit: 0,
+    result: { status: "ok", content: "### critical: x", completion: { finish_reason: "a\nb", done: true, content_len: 14, reasoning_len: 0, usage: null } },
+  });
+  const pre = preambleOf(writes[0].content);
+  assert.match(pre, /^# finish_reason: a_b$/m);
+  assert.equal(pre.split("\n").filter((l) => l.startsWith("# finish_reason")).length, 1);
+  assert.equal(pre.split("\n").length, 12 + 5 + 1, "twelve existing lines, five completion lines, trailing empty from the final newline");
+});
+
+test("FAFF-1228 captureRawResponseBody: no completion and a null result keep today's preamble", () => {
+  const a = rawCtx();
+  captureRawResponseBody(a.shared, { chainIndex: 0, backend: {}, token: "findings", exit: 0, result: { status: "ok", content: "### critical: x" } });
+  const b = rawCtx();
+  captureRawResponseBody(b.shared, { chainIndex: 0, backend: {}, token: "unreachable", exit: 5, result: null });
+  for (const w of [a.writes[0], b.writes[0]]) {
+    assert.doesNotMatch(w.content, /# (finish_reason|done|content_len|reasoning_len|usage|length_retried):/);
+    assert.match(w.content, /# sha256: [0-9a-f]{64}\n# ---\n/);
+  }
+});
+
+const cmp = (extra = {}) => ({ finish_reason: "length", done: true, content_len: 0, reasoning_len: 7, usage: null, ...extra });
+const SUFFIX = " finish_reason=length done=true reasoning_len=7 content_len=0";
+
+test("FAFF-1228 runReviewChain: refuter empty advancing and exhausted lines end with the completion suffix", async () => {
+  const chain = [{ provider: "p", model: "m1", host: "https://a/v1" }, { provider: "p", model: "m2", host: "https://b/v1" }];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async () => ({ status: "ok", content: "", completion: cmp() }),
+  });
+  assert.equal(res.exit, EXIT.NO_FINDINGS_CONTENT);
+  const adv = trace.find((l) => l.startsWith("[chain] p/m1 empty"));
+  const exh = trace.find((l) => l.startsWith("exhausted: p/m2 produced non-findings output"));
+  assert.ok(adv.endsWith(`→ advancing (exit 11)${SUFFIX}`), adv);
+  assert.ok(exh.endsWith(`(exit 11)${SUFFIX}`), exh);
+});
+
+test("FAFF-1228 runReviewChain: contract-mode empty advancing and exhausted lines carry the suffix", async () => {
+  const chain = [{ provider: "p", model: "m1", host: "https://a/v1" }, { provider: "p", model: "m2", host: "https://b/v1" }];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", expectContract: true, log: (m) => trace.push(m),
+    runReviewFn: async () => ({ status: "ok", content: "", completion: cmp() }),
+  });
+  assert.equal(res.exit, EXIT.NO_FINDINGS_CONTENT);
+  assert.ok(trace.some((l) => l === `[chain] p/m1 empty (contract mode: empty content) → advancing (exit 11)${SUFFIX}`), trace.join("\n"));
+  assert.ok(trace.some((l) => l === `exhausted: p/m2 produced empty output (contract mode) (exit 11)${SUFFIX}`), trace.join("\n"));
+});
+
+test("FAFF-1228 runReviewChain: refusal and malformed lines carry the suffix", async () => {
+  for (const [content, re, exit] of [["I cannot assist with this request.", /^\[chain\] p\/m1 refusal/, 11], ["no structured findings here", /^\[chain\] p\/m1 malformed/, 10]]) {
+    const trace = [];
+    await runReviewChain([{ provider: "p", model: "m1", host: "https://a/v1" }, { provider: "p", model: "m2", host: "https://b/v1" }], {
+      system: "S", user: "U", log: (m) => trace.push(m),
+      runReviewFn: async (o) => (o.host === "https://a/v1" ? { status: "ok", content, completion: cmp({ content_len: content.length }) } : { status: "ok", content: "### observation: no findings" }),
+    });
+    const line = trace.find((l) => re.test(l));
+    assert.ok(line.endsWith(` finish_reason=length done=true reasoning_len=7 content_len=${content.length}`), line);
+    assert.match(line, new RegExp(`\\(exit ${exit}\\) finish_reason=length`));
+  }
+});
+
+test("FAFF-1228 runReviewChain: a result without a completion logs a line byte-identical to today", async () => {
+  const trace = [];
+  await runReviewChain([{ provider: "p", model: "m1", host: "https://a/v1" }], {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async () => ({ status: "ok", content: "" }),
+  });
+  assert.ok(trace.includes("exhausted: p/m1 produced non-findings output (empty content) (exit 11)"), trace.join("\n"));
+});
+
+test("FAFF-1228 runReviewChain: all-empty chain exits 11 whether done is true or false; cut-empty says done=false", async () => {
+  for (const done of [true, false]) {
+    const trace = [];
+    const res = await runReviewChain([{ provider: "p", model: "m1", host: "https://a/v1" }], {
+      system: "S", user: "U", log: (m) => trace.push(m),
+      runReviewFn: async () => ({ status: "ok", content: "", completion: { finish_reason: null, done, content_len: 0, reasoning_len: 0, usage: null } }),
+    });
+    assert.equal(res.exit, EXIT.NO_FINDINGS_CONTENT);
+    assert.ok(trace.some((l) => l.startsWith("exhausted:") && l.includes(`finish_reason=none done=${done}`)));
+  }
+});
+
+test("FAFF-1228 runReviewChain: cut-empty first element is retained in the raw preamble and the chain still serves the fallback", async () => {
+  const { writes, shared } = rawCtx();
+  const trace = [];
+  const res = await runReviewChain([{ provider: "openai", model: "A", host: "https://a/v1" }, { provider: "openai", model: "B", host: "https://b/v1" }], {
+    ...shared, system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async (o) => (o.host === "https://a/v1"
+      ? { status: "ok", content: "", completion: { finish_reason: null, done: false, content_len: 0, reasoning_len: 0, usage: null, length_retried: false } }
+      : { status: "ok", content: "### critical: real issue\n\nbody" }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1);
+  assert.deepEqual(res.failureClasses, [11]);
+  const empty = writes.find((w) => w.path.endsWith(".empty.txt"));
+  assert.match(empty.content, /# finish_reason: none \(stream ended without a finish\)\n# done: false\n/);
+  assert.ok(trace.some((l) => l.endsWith(" finish_reason=none done=false reasoning_len=0 content_len=0")));
+});
+
+test("FAFF-1228 formatCompletionLog: a non-integer length renders as 0, so a hand-built record cannot split the line", () => {
+  const line = formatCompletionLog({ finish_reason: "stop", done: true, reasoning_len: "1\n# x", content_len: -3 });
+  assert.equal(line, " finish_reason=stop done=true reasoning_len=0 content_len=0");
+  assert.ok(!line.includes("\n"));
+});
+
+test("FAFF-1228 accumulateSse: a frame carrying reasoning in both delta and message counts it once", () => {
+  const frame = `data: ${JSON.stringify({ choices: [{ delta: { reasoning: "abcdef" }, message: { reasoning: "abcdef" } }] })}\ndata: ${JSON.stringify({ choices: [{ delta: { content: "x" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+  assert.equal(accumulateSse(frame).completion.reasoning_len, 6);
+});
+
+test("FAFF-1228 pickUsage: reasoning_tokens survives a provider with more *_tokens fields than the cap", () => {
+  const u = { completion_tokens_details: { reasoning_tokens: 77 } };
+  for (let i = 0; i < 20; i++) u[`hop${i}_tokens`] = i;
+  const out = pickUsage(u);
+  assert.equal(out.reasoning_tokens, 77);
+  assert.equal(Object.keys(out).length, USAGE_MAX_KEYS);
+});

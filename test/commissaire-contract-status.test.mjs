@@ -99,7 +99,7 @@ test("a run dir that does not exist, a path to a regular file, or no --run-dir a
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("--governor-dir D reads D/governor.json; without it the same run reads not governed", () => {
+test("--governor-dir D reads D/governor.json for the fingerprint; the run is governed regardless of a default-path governor.json (FAFF-1179: custody is the admission record, governed no longer depends on governor.json)", () => {
   const { root, runDir } = mkRun("status-govdir-");
   try {
     const g = join(root, "elsewhere-governor");
@@ -107,8 +107,12 @@ test("--governor-dir D reads D/governor.json; without it the same run reads not 
     const withDir = faff(["contract", "status", "--run-dir", runDir, "--governor-dir", g]);
     assert.equal(withDir.code, 0, withDir.stderr);
     assert.deepEqual(parseOne(withDir.stdout), { governed: true, custody: "in-process", pk_fingerprint: admitted.pk_fingerprint });
+    // Without --governor-dir the default governor.json is absent, but the in-process admission
+    // record is in the ledger, so the run still reads governed/in-process (FAFF-1179: the predicate
+    // is the admission record, not governor-file existence); the fingerprint is null because it is
+    // read from the default-path governor.json, which does not exist here.
     const without = faff(["contract", "status", "--run-dir", runDir]);
-    assert.deepEqual(parseOne(without.stdout), { governed: false, custody: null, pk_fingerprint: null });
+    assert.deepEqual(parseOne(without.stdout), { governed: true, custody: "in-process", pk_fingerprint: null });
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

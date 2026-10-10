@@ -64,7 +64,7 @@ const { spawnSync } = require("node:child_process");
 // string handed to the admission API is a TS2345 rather than silently degrading to `any`.
 const producerAuth = require("./producer-auth");
 const { deriveKey, signRecord, verifyRecord, mintGovernorKeypair, pkFingerprint, signDecision, verifyDecision, producerAuthSelftest, buildEnvelope, assertEnvelopeBody, } = producerAuth;
-const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor } = require("./events");
+const { appendRecordsUnderLock, verifyEffectsChain, sha256Hex, parseJsonlEntries, mintIssueAnchor, tailReadState } = require("./events");
 const { effectDescriptorViolations, normEffect, computeEscapes, matchesUnit, conclusionKindOf, isProtectedKind, CONCLUSION_KIND } = require("./effects");
 const { evaluateDecisionRequest, evaluateLevelPolicy, composeDecision, chokepointPermit, grantCoverage } = require("./decision-policy");
 const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp, ensureOwnerOnlyDir, writeOwnerOnlyJson } = require("./shared-infra");
@@ -74,6 +74,11 @@ const { ENTRYPOINT, findRoot, readLedger, requiresSelfConsistencyStamp, ensureOw
 // reach no orchestration module — proven by the FAFF-999 require-graph walk).
 const { resolveAbortAxisUnattended } = require("./sentry");
 const { readGovernanceConfig } = require("./budget");
+// FAFF-1179 — the runner-side governor client. When a governor is configured, admit / request-decision
+// / verdict conclude ask it for a signed record instead of signing in-process. The client reaches only
+// budget / shared-infra / producer-auth (NEVER config.js) and stays out of the denylisted closure; the
+// ledger mechanics (position read, append-under-lock) are built here and injected into its retry driver.
+const governorClient = require("./commissaire-governor-client");
 // FAFF-1000 — `audit seal`/`export` build and read the run-close recovery bundle IN-PROCESS via the
 // denylist-clean sealing core (never `faff bundle publish`, never `./bundle`, `./config`, or
 // `./contract-defs`, all of which reach the standalone-commissaire DENYLIST). This is the ONLY new
@@ -191,6 +196,64 @@ function appendCommissaireRecord(runDir, sk, producerId, contractRevision, body,
         return rec;
     });
     return written === null ? null : written[0];
+}
+// --- Governor-client mode (FAFF-1179): ask the governor instead of signing in-process -----
+// Resolve the governor switch for a verb. A governance read-error (legacy-config-name /
+// base-parse-error) PROPAGATES unchanged to the dispatch boundary (fail-closed, exit 2, never a
+// silent degrade to in-process); a malformed switch VALUE is a config fault the verb surfaces as a
+// clean exit 2. The marker `governorConfigFault` separates the two.
+function resolveGovernorForVerb(runDir) {
+    try {
+        return { kind: "ok", resolved: governorClient.resolveGovernor(findRoot(runDir), process.env) };
+    }
+    catch (e) {
+        if (isRecord(e) && (e.message === "base-parse-error" || e.message === "legacy-config-name"))
+            throw e;
+        if (isRecord(e) && e.governorConfigFault === true)
+            return { kind: "fault", message: str(e.message) ?? "malformed commissaire.governor" };
+        throw e;
+    }
+}
+// Human-readable endpoint label for stderr / the governor-unreachable signal the orchestrator names.
+function endpointLabel(ep) {
+    return ep.kind === "unix" ? ep.socket_path : `${ep.host}:${ep.port}`;
+}
+// The raw NDJSON bytes sent to the governor VERBATIM (never re-serialised — a JSON round trip would
+// reorder keys / restyle whitespace and fail the governor's chain + HMAC re-verification) plus the
+// next (seq, prev) the append lock will assign. The position is taken from the lock's OWN tail-read
+// (`tailReadState` + the identical `sha256Hex(prevLineBuf ?? sha256(run_id))` genesis rule), so it
+// matches the lock by construction on every ledger shape — including a torn tail, where a
+// physical-line count would diverge and park spuriously. The governor independently rejects a torn
+// ledger as chain-invalid, so the position only has to be right on a ledger it accepts.
+function governorLedgerSnapshot(runDir) {
+    const ledgerPath = path.join(runDir, LEDGER_CFG.ledgerFile);
+    const { seq, prevLineBuf } = tailReadState(ledgerPath);
+    const prev = sha256Hex(prevLineBuf === null ? Buffer.from(path.basename(runDir), "utf8") : prevLineBuf);
+    let ledger = "";
+    try {
+        ledger = fs.readFileSync(ledgerPath, "utf8");
+    }
+    catch (e) {
+        if (!(isRecord(e) && e.code === "ENOENT"))
+            throw e;
+    }
+    return { ledger, at: { seq, prev } };
+}
+// Append a governor-returned record VERBATIM under the ledger lock. The callback compares the record's
+// signed (seq, prev) to the lock-assigned position and returns null on a mismatch — a clean abort that
+// writes nothing (never relying on appendRecordsUnderLock's thrown Error), so the driver can retry.
+function appendVerbatimGovernorRecord(runDir, record) {
+    const written = appendRecordsUnderLock(runDir, LEDGER_CFG, 1, (_i, seq, _prev, prevHash) => (record.seq === seq && record.prev === prevHash) ? record : null);
+    return written === null ? null : written[0];
+}
+// Print a governor-mode park (a named, needs-human stop that writes no verdict) and exit non-zero.
+// The orchestrator's run-start / graft prose performs the park ceremony (park event, andon); the CLI
+// names the reason so they can be told apart (governor-unreachable-at-authorize vs governor-lost-race
+// vs governor-admission-lost vs governor-record-unverified).
+function parkGovernor(reason, unit) {
+    console.log(JSON.stringify({ parked: true, reason, unit_id: unit, issue: unit }));
+    process.stderr.write(`faff commissaire: governor park — ${reason}\n`);
+    return 2;
 }
 // --- Auth leg (consumed by governance-check.js, factory→governance is legal) --------------
 // The Commissaire public key a run dir's records verify under, and whether the producer-dir
@@ -502,6 +565,59 @@ function requireRunDir(flags, verb) {
     }
     return dir;
 }
+// FAFF-1179 — admit in governor-client mode: ask the governor to admit, verify the reply (admission
+// signature under the reply's pk AND a matching pk_fingerprint), write the reply's producer key and
+// public key locally (owner-only), append the signed admission record at seq 0, and write NO secret.
+// Fail-closed throughout: a verification failure, a refusal, or an unreachable governor writes and
+// appends nothing and exits non-zero (an unreachable admit is what the run-start path stops on).
+function clientAdmit(runDir, producerId, contractRevision, scope, endpoint, force, producerDir, ts) {
+    // Re-admit guard — gated on the producer file / pk.json only (no local governor.json in client mode);
+    // the governor's admit mints a fresh key, so a second admit without --force would orphan prior records.
+    if (!force && (fs.existsSync(producerFileOf(producerDir, producerId)) || fs.existsSync(pkFileOf(producerDir)))) {
+        process.stderr.write(`faff commissaire admit: producer ${producerId} is already admitted — re-admit mints a fresh governor key and orphans every record signed under the old material. Pass --force to rotate deliberately.\n`);
+        return 2;
+    }
+    const timeouts = governorClient.resolveTimeouts(findRoot(runDir));
+    const res = governorClient.governorRequest(endpoint, { op: "admit", run_id: path.basename(runDir), producer_id: producerId, contract_revision: contractRevision, admitted_scope: scope }, timeouts);
+    if (res.unreachable) {
+        console.log(JSON.stringify({ admitted: false, governor_unreachable: true, governor: endpointLabel(endpoint) }));
+        process.stderr.write(`faff commissaire admit: governor unreachable at ${endpointLabel(endpoint)} (${res.detail})\n`);
+        return 2;
+    }
+    const reply = res.reply;
+    if (reply.ok === false) {
+        process.stderr.write(`faff commissaire admit: governor refused: ${str(reply.reason) ?? "unknown"}\n`);
+        return 2;
+    }
+    if (!governorClient.verifyAdmitReply(reply)) {
+        process.stderr.write("faff commissaire admit: governor admission record failed signature/fingerprint verification — refusing, nothing written\n");
+        return 2;
+    }
+    // The admission record appends at seq 0, so refuse BEFORE persisting any key material when the
+    // ledger is already non-empty — otherwise a failed seq-0 append would orphan the producer key /
+    // pk.json with no matching admission, and the re-admit guard would then demand --force for nothing.
+    const ledgerPath = path.join(runDir, LEDGER_CFG.ledgerFile);
+    if (fs.existsSync(ledgerPath) && fs.statSync(ledgerPath).size > 0) {
+        process.stderr.write("faff commissaire admit: the ledger is not empty — a governor admission must be the first record (nothing written)\n");
+        return 2;
+    }
+    const admittedScope = Array.isArray(reply.admitted_scope) ? reply.admitted_scope : scope;
+    const admittedAt = ts || new Date().toISOString();
+    ensureOwnerOnlyDir(producerDir);
+    ensureOwnerOnlyDir(path.dirname(producerFileOf(producerDir, producerId)));
+    writeOwnerOnlyJson(producerFileOf(producerDir, producerId), {
+        producer_id: producerId, contract_revision: contractRevision, key_hex: str(reply.k_producer_hex),
+        pk: reply.pk, pk_fingerprint: reply.pk_fingerprint, admitted_scope: admittedScope, status: "admitted", admitted_at: admittedAt,
+    });
+    writeOwnerOnlyJson(pkFileOf(producerDir), { pk: reply.pk, pk_fingerprint: reply.pk_fingerprint });
+    const appended = appendVerbatimGovernorRecord(runDir, isRecord(reply.admission_record) ? reply.admission_record : {});
+    if (appended === null) {
+        process.stderr.write("faff commissaire admit: could not append the governor admission record at seq 0 (ledger not empty?)\n");
+        return 2;
+    }
+    console.log(JSON.stringify({ admitted: true, producer_id: producerId, admitted_scope: admittedScope, pk_fingerprint: str(reply.pk_fingerprint) ?? null, custody: "governor" }));
+    return 0;
+}
 function cmdAdmit(flags) {
     const runDir = requireRunDir(flags, "admit");
     if (!runDir)
@@ -515,6 +631,17 @@ function cmdAdmit(flags) {
     const scope = (strFlag(flags, "--scope") || "").split(",").map((s) => s.trim()).filter((s) => s !== "");
     const governorDir = governorDirOf(runDir, strFlag(flags, "--governor-dir"));
     const producerDir = producerDirOf(runDir, strFlag(flags, "--producer-dir"));
+    // FAFF-1179 — governor-client mode: a configured governor is asked to admit (the runner holds no
+    // secret); a not-configured run is in-process below, unchanged. A read-error fails closed (the
+    // throw propagates to the dispatch boundary); a malformed switch value is a clean exit 2.
+    const g = resolveGovernorForVerb(runDir);
+    if (g.kind === "fault") {
+        process.stderr.write(`faff commissaire admit: ${g.message}\n`);
+        return 2;
+    }
+    if (g.resolved.configured) {
+        return clientAdmit(runDir, producerId, contractRevision, scope, g.resolved.endpoint, !!flags["--force"], producerDir, strFlag(flags, "--ts"));
+    }
     if (path.resolve(governorDir) === path.resolve(producerDir)) {
         process.stderr.write("faff commissaire admit: --governor-dir and --producer-dir must differ (the SK and a producer key must never share one custodian)\n");
         return 2;
@@ -613,18 +740,37 @@ function cmdAdmitRequired(flags) {
     console.log(JSON.stringify({ governance_required, unattended, dispatch_state }));
     return 0;
 }
-// FAFF-1176 — `contract status`: the read the runner's skills use to decide whether a run is governed,
-// instead of testing for the governor file by path. `governed` is file existence, whatever the file holds
-// (the exact predicate the skills used before), and the output is built from three named fields only, so
-// the governor file's SK and master never reach stdout. Read-only; exit 0 for any existing run dir.
+// FAFF-1176 / FAFF-1179 — `contract status`: the read the runner's skills use to decide whether a run
+// is governed and under which custody. Custody is READ from the admission record (the authoritative,
+// present-for-both-custodies source): `payload.custody: "governor"` ⇒ governor, absent ⇒ in-process
+// by convention. A governor run writes pk.json but NO governor.json, so `governed` can no longer be
+// mere governor-file existence; it is `custody != null`, where custody is governor (the admission
+// label), else in-process when an admission record, a governor.json, or a pk.json exists, else null.
+// The output is built from three named fields only, so SK / master never reach stdout. For a governor
+// run, where pk.json is available the read verifies the admission signature under it before reporting
+// governor, and never claims more than the bytes on disk support. Read-only; exit 0 for any run dir.
 function cmdContractStatus(flags) {
     const runDir = requireRunDir(flags, "contract status");
     if (!runDir)
         return 2;
     const override = strFlag(flags, "--governor-dir");
-    const governed = fs.existsSync(governorFileOf(governorDirOf(runDir, override)));
+    const producerDir = strFlag(flags, "--producer-dir");
+    const admission = readLedgerEntries(runDir).find((e) => e.kind_of_entry === "admission" && e.author === "commissaire") ?? null;
+    const admissionCustody = admission && isRecord(admission.payload) ? str(admission.payload.custody) : undefined;
+    const govFileExists = fs.existsSync(governorFileOf(governorDirOf(runDir, override)));
+    const pkExists = fs.existsSync(pkFileOf(producerDirOf(runDir, producerDir)));
     let out;
-    if (governed) {
+    if (admissionCustody === "governor") {
+        // Governor custody: the label is the authoritative, recorded value (contract status reads the
+        // ledger, it never probes the socket). The fingerprint is a stronger claim, so it is presented
+        // ONLY when the held public key actually verifies the admission signature — where pk.json is
+        // absent or does not verify, the read reports null rather than claim more than the bytes support.
+        const pkRec = parseGovernedRecord(readJson(pkFileOf(producerDirOf(runDir, producerDir))));
+        const verified = pkRec != null && admission != null && verifyDecision(admission, pkRec.pk);
+        const recordedFp = (admission && isRecord(admission.payload) ? str(admission.payload.pk_fingerprint) : undefined) ?? null;
+        out = { governed: true, custody: "governor", pk_fingerprint: verified ? recordedFp : null };
+    }
+    else if (admission || govFileExists || pkExists) {
         const gov = readGovernorRecord(runDir, override);
         out = { governed: true, custody: "in-process", pk_fingerprint: (gov && str(gov.pk_fingerprint)) ?? null };
     }
@@ -703,9 +849,23 @@ function cmdRequestDecision(flags) {
     const loaded = loadProducerKey(runDir, flags, producerId, "request-decision");
     if (!loaded)
         return 2;
-    const gov = readGovernorRecord(runDir, strFlag(flags, "--governor-dir"));
-    if (!gov) {
+    // FAFF-1179 — resolve the governor switch. In-process mode needs the local governor material
+    // (SK + master); governor-client mode needs the public key (pk.json) to verify the returned
+    // verdict. A read-error propagates (fail-closed); a malformed switch value is a clean exit 2.
+    const g = resolveGovernorForVerb(runDir);
+    if (g.kind === "fault") {
+        process.stderr.write(`faff commissaire request-decision: ${g.message}\n`);
+        return 2;
+    }
+    const governed = g.resolved.configured;
+    const gov = governed ? null : readGovernorRecord(runDir, strFlag(flags, "--governor-dir"));
+    const governorPk = governed ? commissairePublicKey(runDir, strFlag(flags, "--governor-dir"), strFlag(flags, "--producer-dir")).pk : null;
+    if (!governed && !gov) {
         process.stderr.write("faff commissaire request-decision: no governor material (run `admit` first)\n");
+        return 2;
+    }
+    if (governed && !governorPk) {
+        process.stderr.write("faff commissaire request-decision: no governor public key (run `admit` against the governor first)\n");
         return 2;
     }
     const payload = readStdinJson();
@@ -740,8 +900,40 @@ function cmdRequestDecision(flags) {
         }
         catch { /* seam is best-effort */ }
     }
-    // Commissaire half: re-derive the key from master, authenticate, evaluate, sign the verdict.
-    const key = deriveKey(str(gov.master_secret), producerId, contractRevision);
+    // FAFF-1179 — governor-client mode: the request is chained; now ask the governor to sign the
+    // verdict at the next position, verify it under the held pk.json, and append it under the lock
+    // with the lost-race retry. No in-process signing on this path (ADR 0135 decision 1).
+    if (governed && g.resolved.configured) {
+        const endpoint = g.resolved.endpoint;
+        const timeouts = governorClient.resolveTimeouts(findRoot(runDir));
+        const buildAuthorizeRequest = () => {
+            const snap = governorLedgerSnapshot(runDir);
+            return {
+                op: "authorize", run_id: path.basename(runDir), producer_id: producerId, unit_id: unit, step,
+                ledger: snap.ledger, at: snap.at, request_seq: requestRecord.seq,
+                effect: req.effect, declared_ref: req.declared_ref ?? null, evidence_seq: req.evidence_seq, level, attended, holdout,
+            };
+        };
+        const result = governorClient.appendGovernorRecordWithRetry({
+            ask: () => governorClient.classifyAskResult(governorClient.governorRequest(endpoint, buildAuthorizeRequest(), timeouts)),
+            verify: (rec) => verifyDecision(rec, governorPk),
+            appendVerbatim: (rec) => appendVerbatimGovernorRecord(runDir, rec),
+        });
+        if ("unreachable" in result)
+            return parkGovernor("governor-unreachable-at-authorize", unit);
+        if ("park" in result)
+            return parkGovernor(result.park, unit);
+        if ("refused" in result) {
+            process.stderr.write(`faff commissaire request-decision: governor refused: ${result.refused.reason}\n`);
+            return 2;
+        }
+        const rec = result.record;
+        const vp = isRecord(rec.payload) ? rec.payload : {};
+        console.log(JSON.stringify({ verdict: str(vp.verdict) ?? null, reason: str(vp.reason) ?? null, verdict_seq: rec.seq, request_seq: requestRecord.seq }));
+        return 0;
+    }
+    // Commissaire half (in-process): re-derive the key from master, authenticate, evaluate, sign the verdict.
+    const key = deriveKey(str(gov && gov.master_secret), producerId, contractRevision);
     const decision = evaluateDecisionRequest(loaded.admission, requestRecord, key, snapshot);
     // FAFF-1034: compose the level policy ABOVE the pure verdict. grant iff BOTH pass; else deny with
     // the first failing reason (the pure legs are named first, then the level policy). The policy
@@ -758,7 +950,7 @@ function cmdRequestDecision(flags) {
         verdictPayload.pure_reason = decision.reason;
     }
     const verdictBody = { kind_of_entry: "effect-decision-verdict", unit_id: unit, step, payload: verdictPayload };
-    const verdictRecord = appendCommissaireRecord(runDir, gov.sk, producerId, contractRevision, verdictBody, strFlag(flags, "--ts"));
+    const verdictRecord = appendCommissaireRecord(runDir, gov && gov.sk, producerId, contractRevision, verdictBody, strFlag(flags, "--ts"));
     console.log(JSON.stringify({ verdict: composed.verdict, reason: composed.reason, verdict_seq: verdictRecord.seq, request_seq: requestRecord.seq }));
     return 0;
 }
@@ -836,6 +1028,70 @@ function cmdTerminalVerdict(flags) {
     const escapeResult = computeEscapes(ledger, issue);
     if (escapeResult.any_escape)
         return refuseVerdict("unreconciled-escape", issue, { escapes: withUnitId(escapeResult.escapes) });
+    // FAFF-1179 — governor-client conclude: the local preconditions above (admitted, no escape,
+    // evidence present, idempotency) ran as today; now run the remaining checks that do NOT need the
+    // local governor file (grant coverage + a single honest revision, keyed on pk.json), then ask the
+    // governor to sign the conclusion, verify it under pk.json, and append with the lost-race retry. An
+    // idempotent reply returns the existing seq without appending; an unreachable governor parks —
+    // conclude NEVER signs in-process on a configured run (ADR 0135 decision 1, the terminal record).
+    {
+        const gc = resolveGovernorForVerb(runDir);
+        if (gc.kind === "fault") {
+            process.stderr.write(`faff commissaire verdict conclude: ${gc.message}\n`);
+            return 2;
+        }
+        if (gc.resolved.configured) {
+            if (concludedKey == null)
+                return refuseVerdict("no-governor-key", issue);
+            const admissionFp = str(admission.pk_fingerprint);
+            // Fail closed at the SAME fingerprint invariant the in-process path enforces (FAFF-1008): the
+            // admission record's recorded fingerprint must match the governor public key (pk.json) that will
+            // verify the returned conclusion. In governor mode the pinned key IS pk.json, so compare against
+            // pkFingerprint(concludedKey) — unconditional, not only when a protected effect was observed.
+            let keyFp = null;
+            try {
+                keyFp = pkFingerprint(concludedKey);
+            }
+            catch {
+                keyFp = null;
+            }
+            if (admissionFp == null || keyFp == null || admissionFp !== keyFp) {
+                return refuseVerdict("pk-fingerprint-mismatch", issue, { producer_id: producerId, producer_pk_fingerprint: admission.pk_fingerprint ?? null, governor_pk_fingerprint: keyFp });
+            }
+            const observedProtectedG = ledger.filter((e) => e.kind_of_entry === "observe" && matchesUnit(e, issue) && isRecord(e.effect) && isProtectedKind(e.effect.kind));
+            if (observedProtectedG.length > 0) {
+                const coverage = grantCoverage(ledger, issue, concludedKey, admissionFp);
+                if (!coverage.covered)
+                    return refuseVerdict("ungranted-protected-effect", issue, { uncovered: coverage.uncovered });
+            }
+            const revsG = [...new Set(entries.map((e) => str(e.contract_revision)).filter((x) => x != null))];
+            if (revsG.length > 1)
+                return refuseVerdict("ambiguous-contract-revision", issue, { contract_revisions: revsG.slice().sort() });
+            const endpoint = gc.resolved.endpoint;
+            const timeouts = governorClient.resolveTimeouts(findRoot(runDir));
+            const buildConcludeRequest = () => {
+                const snap = governorLedgerSnapshot(runDir);
+                return { op: "conclude", run_id: path.basename(runDir), unit_id: issue, producer_id: producerId, ledger: snap.ledger, at: snap.at };
+            };
+            const result = governorClient.appendGovernorRecordWithRetry({
+                ask: () => governorClient.classifyAskResult(governorClient.governorRequest(endpoint, buildConcludeRequest(), timeouts)),
+                verify: (rec) => verifyDecision(rec, concludedKey),
+                appendVerbatim: (rec) => appendVerbatimGovernorRecord(runDir, rec),
+            });
+            if ("unreachable" in result)
+                return parkGovernor("governor-unreachable-at-conclude", issue);
+            if ("park" in result)
+                return parkGovernor(result.park, issue);
+            if ("refused" in result)
+                return refuseVerdict(result.refused.reason, issue, { producer_id: producerId });
+            if ("idempotent" in result) {
+                console.log(JSON.stringify({ verdict: CONCLUSION_KIND, kind_of_entry: conclusionKindOf(result.record) ?? CONCLUSION_KIND, issue, unit_id: issue, idempotent: true, seq: result.record.seq }));
+                return 0;
+            }
+            console.log(JSON.stringify({ verdict: CONCLUSION_KIND, kind_of_entry: CONCLUSION_KIND, issue, unit_id: issue, producer_id: producerId, seq: result.record.seq }));
+            return 0;
+        }
+    }
     const gov = readGovernorRecord(runDir, strFlag(flags, "--governor-dir"));
     if (!gov)
         return refuseVerdict("no-governor", issue); // setup error — exit 2, not a governed refusal

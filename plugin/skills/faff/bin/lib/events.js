@@ -133,6 +133,15 @@ const DISPATCH_ALLOWED_DATA_KEYS = new Set([
   "tokens", "tokens_source", "effort", "gate", "rework_turns",
 ]);
 
+// FAFF-1213: the closed vocabularies + allowed top-level data.* field set for a
+// `runner-identity` event's data (mirrors the agent-dispatch non-leak scan above —
+// the record carries a login + source classification only, never the token).
+const RUNNER_IDENTITY_CREDENTIAL_SOURCES = new Set(["runner-credential", "ambient"]);
+const RUNNER_IDENTITY_LOGIN_SOURCES = new Set(["configured", "gh-api-user", "unresolved"]);
+const RUNNER_IDENTITY_ALLOWED_DATA_KEYS = new Set([
+  "github_login", "github_login_source", "credential_source", "credential_unresolved", "verified",
+]);
+
 // FAFF-564: the chain-hash shape — 64 lowercase hex chars (SHA-256). Shared by the
 // `prev` envelope check, the `ledger-write` data.ledger_sha256 check, and (FAFF-821)
 // decision-capture's `causation.sha256` check — exported so decision-capture.js's own
@@ -229,6 +238,27 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
     const extraTop = Object.keys(d).filter((k) => !DISPATCH_ALLOWED_DATA_KEYS.has(k));
     if (extraTop.length) {
       v.push(`agent-dispatch data has unexpected field(s) {${extraTop.join(", ")}} — allowed {${[...DISPATCH_ALLOWED_DATA_KEYS].join(", ")}}`);
+    }
+  }
+  // FAFF-1213: runner-identity — the run-level GitHub-identity evidence record. Mirrors the
+  // agent-dispatch closed-vocab + top-level data.* allow-set scan above: credential_source and
+  // github_login_source are closed enums, verified/credential_unresolved are booleans,
+  // github_login is a string or null (unresolved), and no other top-level data field may appear
+  // (the non-leak invariant — the token NEVER rides this record).
+  if (obj.type === "runner-identity") {
+    const d = obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) ? obj.data : {};
+    if (typeof d.credential_source !== "string" || !RUNNER_IDENTITY_CREDENTIAL_SOURCES.has(d.credential_source)) {
+      v.push(`data.credential_source ${JSON.stringify(d.credential_source)} not in {${[...RUNNER_IDENTITY_CREDENTIAL_SOURCES].join(", ")}}`);
+    }
+    if (typeof d.github_login_source !== "string" || !RUNNER_IDENTITY_LOGIN_SOURCES.has(d.github_login_source)) {
+      v.push(`data.github_login_source ${JSON.stringify(d.github_login_source)} not in {${[...RUNNER_IDENTITY_LOGIN_SOURCES].join(", ")}}`);
+    }
+    if (typeof d.verified !== "boolean") v.push("data.verified must be a boolean");
+    if (typeof d.credential_unresolved !== "boolean") v.push("data.credential_unresolved must be a boolean");
+    if (!(d.github_login === null || typeof d.github_login === "string")) v.push("data.github_login must be a string or null");
+    const extraTop = Object.keys(d).filter((k) => !RUNNER_IDENTITY_ALLOWED_DATA_KEYS.has(k));
+    if (extraTop.length) {
+      v.push(`runner-identity data has unexpected field(s) {${extraTop.join(", ")}} — allowed {${[...RUNNER_IDENTITY_ALLOWED_DATA_KEYS].join(", ")}}`);
     }
   }
   // FAFF-408: optional token-tag telemetry under data (additive; schema stays 1).

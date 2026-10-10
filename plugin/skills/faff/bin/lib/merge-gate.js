@@ -416,6 +416,21 @@ function resolveRunnerIdentity(runnerGhConfig, resolvedEnv, probeOverride) {
   return { github_login: null, github_login_source: "unresolved", credential_source: "runner-credential", credential_unresolved: false, verified: false };
 }
 
+// FAFF-1213: resolve the acting identity ONCE per process and cache it. The merge-record and
+// pr-create convenience copies call this (rather than re-resolving per write), so a runner-
+// credential merge flow issues at most one `gh api user` probe, not one per writeMergeRecord call.
+// The login/source is stable for the run even if the underlying token refreshes, so caching the
+// classification (never the token) is safe.
+let _runnerIdentityMemo;
+function resolveRunnerIdentityMemoised() {
+  if (_runnerIdentityMemo !== undefined) return _runnerIdentityMemo;
+  try {
+    const cfg = readRunnerGhConfig();
+    _runnerIdentityMemo = resolveRunnerIdentity(cfg, resolveRunnerGhEnv(cfg, process.env));
+  } catch { _runnerIdentityMemo = null; }
+  return _runnerIdentityMemo;
+}
+
 // FAFF-1213: append the run-level `runner-identity` evidence record to the run's
 // hash-chained events.jsonl (via appendEventRecord, which scrubs data through the
 // known-secret redactor by construction). The record is run-level (no `issue`), so
@@ -628,11 +643,8 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githu
     // harness identity above) unless injected (tests). A resolution fault omits the field.
     let actor = githubActor;
     if (actor === undefined) {
-      try {
-        const cfg = readRunnerGhConfig();
-        const ev = resolveRunnerIdentity(cfg, resolveRunnerGhEnv(cfg, process.env));
-        actor = { login: ev.github_login, source: ev.credential_source };
-      } catch { actor = null; }
+      const ev = resolveRunnerIdentityMemoised(); // resolved once per process (no per-write gh probe)
+      actor = ev ? { login: ev.github_login, source: ev.credential_source } : null;
     }
     if (actor) record.github_actor = { login: actor.login ?? null, source: actor.source };
     // FAFF-1213: route the WHOLE record through the known-secret redaction core before the
@@ -1957,12 +1969,8 @@ function cmdPrCreate(args) {
     // the effect descriptor — normEffect canonicalises a descriptor to {kind,target,reversible},
     // so descriptor extras would be dropped. A NON-authoritative convenience copy ({login, source},
     // never the token); a resolution fault omits it.
-    let prCreateActor = null;
-    try {
-      const cfg = readRunnerGhConfig();
-      const ev = resolveRunnerIdentity(cfg, resolveRunnerGhEnv(cfg, process.env));
-      prCreateActor = { login: ev.github_login ?? null, source: ev.credential_source };
-    } catch { prCreateActor = null; }
+    const prCreateEv = resolveRunnerIdentityMemoised(); // resolved once per process
+    const prCreateActor = prCreateEv ? { login: prCreateEv.github_login ?? null, source: prCreateEv.credential_source } : null;
     const prCreateFields = prCreateActor ? { origin: "pr-create-auto", github_actor: prCreateActor } : { origin: "pr-create-auto" };
     try {
       const dec = appendEffectEntries(runDir, "declare", issue, "pr-create", effects, undefined, prCreateFields);

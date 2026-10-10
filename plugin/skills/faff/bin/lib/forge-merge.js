@@ -5,8 +5,6 @@
 // (merge-gate.js) reads a dependency PR's state through the SAME primitive lights-out's resume
 // reconcile uses, rather than a second `gh pr view` spelling that could drift.
 
-const { spawnSync } = require("node:child_process");
-
 // Observe a PR's live merge state from the forge (best-effort). `recorded` carries `.pr` (the
 // resume merge-record shape, or a bare { pr } the interlock builds). Returns
 // { pr_merged, merged_head_sha, state }: `state` is the raw forge state (OPEN | CLOSED | MERGED)

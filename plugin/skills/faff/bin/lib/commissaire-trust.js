@@ -323,11 +323,11 @@ function gitShow(repoDir, ref, filePath) {
     const detail = stderr.replace(/[\r\n]+/g, " ").trim() || `git show exited ${r.status}`;
     return { status: "OtherFailure", detail };
 }
-// Read the REAL HTTP status of a `gh api` call via a headers-only `-I` probe — never match `gh`'s
+// Read the REAL HTTP status of a `gh api` call via a headers-only `-i` probe — never match `gh`'s
 // stderr text (merge-gate abandoned that in FAFF-747). `gh` exits non-zero on any HTTP error but still
-// writes the response status line to stdout under `-I`; capture stdout regardless of exit code and read
-// the FIRST `HTTP/<ver> <code> <reason>` line. Returns the numeric status, or null (no status line:
-// network failure, `gh` missing, odd output) — the caller fails closed on null.
+// writes the response status line to stdout under `-i` (`--include`); capture stdout regardless of exit
+// code and read the FIRST `HTTP/<ver> <code> <reason>` line. Returns the numeric status, or null (no
+// status line: network failure, `gh` missing, odd output) — the caller fails closed on null.
 function ghHttpStatus(args) {
     const r = childProcess.spawnSync("gh", args, { encoding: "utf8", timeout: 60000 });
     const out = r && typeof r.stdout === "string" ? r.stdout : "";
@@ -360,11 +360,11 @@ function ghApiContents(repoSlug, ref, filePath) {
         // Strip the Contents API's embedded newlines before decode (mirrors merge-gate.js's Contents read).
         return { status: "Ok", bytes: Buffer.from(b64.replace(/\n/g, ""), "base64") };
     }
-    const fileStatus = ghHttpStatus(["api", "-I", fileArg]);
+    const fileStatus = ghHttpStatus(["api", "-i", fileArg]);
     if (fileStatus !== 404) {
         return { status: "OtherFailure", detail: `contents read failed (http ${fileStatus ?? "none"})` };
     }
-    const rootStatus = ghHttpStatus(["api", "-I", `repos/${repoSlug}/contents?ref=${ref}`]);
+    const rootStatus = ghHttpStatus(["api", "-i", `repos/${repoSlug}/contents?ref=${ref}`]);
     if (rootStatus === 200) {
         return { status: "FileAbsent" };
     }

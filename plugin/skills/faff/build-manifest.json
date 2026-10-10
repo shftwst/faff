@@ -13,7 +13,7 @@
     "package.json": "249331b02133d368292b2a867c07f4fce92083acd3d892850b74e23f95b2ea7c"
   },
   "inputs": {
-    "bin/lib/commissaire-trust.ts": "2c341dc111576a24abb91ca6b0397673de43a6ba5d5df5b6f79cb3966f463da5",
+    "bin/lib/commissaire-trust.ts": "933436534cd8450f0ecac153a2a7016c3bdf6fa4c98771eb3844b202d6fdb4c5",
     "bin/lib/commissaire.ts": "54a02077c1fd3bb449267bb3934df38bca74d38bdc34f19ac2dcc82426a54539",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
     "bin/lib/governor.ts": "19b07a0fc1363e5bab0853cf842aa65b167d1e5865552bad9c06ec384c615522",
@@ -22,7 +22,7 @@
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3"
   },
   "outputs": {
-    "bin/lib/commissaire-trust.js": "88b176bc121b1dd7beba2a027abc7a8f7096f6da82fb4efd059a1b1715020fb0",
+    "bin/lib/commissaire-trust.js": "11cf0e3fed82357021596e5a881d8798cd5306d2630033b7c2596aab66886c25",
     "bin/lib/commissaire.js": "ba9e54918f3d7799aad512380b33ba7fd6cf0b8740af51cfbebaa5796efc0ed3",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
     "bin/lib/governor.js": "31394c5e4ac0de00533ed5046e92dc46ba9a935ef2028408e050fcaa36f681ac",
@@ -30,5 +30,5 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "463039c5f88d51a0e1ebac847bbead92a7a77cf9e103c3833f8498ac93cb924e"
+  "output_digest": "652c4c30afdb53d0656f8937836f45ec62ae0a6df15b9cdb8b7a1d2aae46470c"
 }

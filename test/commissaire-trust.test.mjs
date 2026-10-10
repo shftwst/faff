@@ -372,7 +372,7 @@ test("remote reader: a successful contents read strips base64 newlines, decodes,
   const r = withStubbedGh(
     (args) => {
       // Only the primary `gh api <path>` call should fire on success (no -I probe).
-      assert.ok(!args.includes("-I"), "no headers probe on the success path");
+      assert.ok(!args.includes("-i"), "no headers probe on the success path");
       return { status: 0, stdout: contentsBody(toml), stderr: "" };
     },
     () => readTrustFile({ repoDir: "/unused", ref: "main", transport: "remote", repoSlug: "owner/name" }),
@@ -387,7 +387,7 @@ test("remote reader: a successful contents read strips base64 newlines, decodes,
 test("remote reader: a 404 proven file-absent by a 200 repo-root probe returns present:false", () => {
   const r = withStubbedGh(
     (args) => {
-      if (!args.includes("-I")) return { status: 1, stdout: "", stderr: "gh: Not Found (HTTP 404)" };
+      if (!args.includes("-i")) return { status: 1, stdout: "", stderr: "gh: Not Found (HTTP 404)" };
       // headers probe: the file path -> 404; the repo-root path -> 200
       const isRoot = args.some((a) => /\/contents\?ref=/.test(a));
       return { status: isRoot ? 0 : 1, stdout: `HTTP/2.0 ${isRoot ? 200 : 404} ${isRoot ? "OK" : "Not Found"}\n`, stderr: "" };
@@ -404,7 +404,7 @@ test("remote reader: a 404 with a non-200 repo-root probe is trust-file-invalid,
   for (const rootCode of [404, 403]) {
     const r = withStubbedGh(
       (args) => {
-        if (!args.includes("-I")) return { status: 1, stdout: "", stderr: "gh: Not Found (HTTP 404)" };
+        if (!args.includes("-i")) return { status: 1, stdout: "", stderr: "gh: Not Found (HTTP 404)" };
         const isRoot = args.some((a) => /\/contents\?ref=/.test(a));
         const code = isRoot ? rootCode : 404;
         return { status: 1, stdout: `HTTP/2.0 ${code} x\n`, stderr: "" };
@@ -421,7 +421,7 @@ test("remote reader: a 404 with a non-200 repo-root probe is trust-file-invalid,
 test("remote reader: a non-404 file status (e.g. 403) is trust-file-invalid", () => {
   const r = withStubbedGh(
     (args) => {
-      if (!args.includes("-I")) return { status: 1, stdout: "", stderr: "gh: Forbidden (HTTP 403)" };
+      if (!args.includes("-i")) return { status: 1, stdout: "", stderr: "gh: Forbidden (HTTP 403)" };
       return { status: 1, stdout: "HTTP/2.0 403 Forbidden\n", stderr: "" };
     },
     () => readTrustFile({ repoDir: "/unused", ref: "main", transport: "remote", repoSlug: "owner/name" }),
@@ -433,7 +433,7 @@ test("remote reader: a non-404 file status (e.g. 403) is trust-file-invalid", ()
 test("remote reader: a null status line (network down / gh missing) fails closed", () => {
   const r = withStubbedGh(
     (args) => {
-      if (!args.includes("-I")) return { status: 1, stdout: "", stderr: "network error" };
+      if (!args.includes("-i")) return { status: 1, stdout: "", stderr: "network error" };
       return { status: 1, stdout: "", stderr: "could not resolve host" };
     },
     () => readTrustFile({ repoDir: "/unused", ref: "main", transport: "remote", repoSlug: "owner/name" }),
@@ -512,15 +512,20 @@ test("the shipped emit never requires the test-only smol-toml library", () => {
 });
 
 test("the closure guard fires against a tainted ./config require (proves it is not vacuous)", () => {
-  const taint = join(LIB, `commissaire-trust-taint-${process.pid}.js`);
+  // Write the taint into a temp SUBDIRECTORY of bin/lib, not the scanned top level: `faff regions
+  // check`'s live scan (regionSources) reads bin/lib non-recursively, so a subdir .js is invisible to
+  // a concurrent whole-suite run — while `require("../config")` still resolves to the real config.js
+  // so the walk visits it and the denylist proof stays non-vacuous.
+  const taintDir = mkdtempSync(join(LIB, "trusttaint-"));
+  const taint = join(taintDir, "taint.js");
   try {
-    const body = readFileSync(MODULE_JS, "utf8") + '\nrequire("./config");\n';
+    const body = readFileSync(MODULE_JS, "utf8") + '\nrequire("../config");\n';
     writeFileSync(taint, body);
     const { visited } = walk([taint], libSourceSet([taint]));
     const denyHits = [...visited].filter((f) => DENYLIST.has(basename(f, ".js")));
     assert.ok(denyHits.some((f) => basename(f) === "config.js"), "tainted fixture must trip the denylist on config.js");
   } finally {
-    rmSync(taint, { force: true });
+    rmSync(taintDir, { recursive: true, force: true });
   }
 });
 

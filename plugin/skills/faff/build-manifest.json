@@ -6,13 +6,14 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "b996328edcfeadd5a108b734283a5c5c7c854c6e709e4cb8576f97adb94032ee"
+    "tsconfig.json": "e76f9dadf1efca28e33ad9100922c0feace41d6a0bd96903707b39f5206516b4"
   },
   "lock": {
-    "package-lock.json": "45bca19e1e2d6929f96e2609e1e5c4fc9b7f53dd0448cc4e9f0a13e627768733",
-    "package.json": "ddf6ca8c29b2123750a2658d8d2eef7f9880a2f625098e3afce256c66f29ffae"
+    "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
+    "package.json": "249331b02133d368292b2a867c07f4fce92083acd3d892850b74e23f95b2ea7c"
   },
   "inputs": {
+    "bin/lib/commissaire-trust.ts": "2c341dc111576a24abb91ca6b0397673de43a6ba5d5df5b6f79cb3966f463da5",
     "bin/lib/commissaire.ts": "54a02077c1fd3bb449267bb3934df38bca74d38bdc34f19ac2dcc82426a54539",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
     "bin/lib/governor.ts": "19b07a0fc1363e5bab0853cf842aa65b167d1e5865552bad9c06ec384c615522",
@@ -21,6 +22,7 @@
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3"
   },
   "outputs": {
+    "bin/lib/commissaire-trust.js": "88b176bc121b1dd7beba2a027abc7a8f7096f6da82fb4efd059a1b1715020fb0",
     "bin/lib/commissaire.js": "ba9e54918f3d7799aad512380b33ba7fd6cf0b8740af51cfbebaa5796efc0ed3",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
     "bin/lib/governor.js": "31394c5e4ac0de00533ed5046e92dc46ba9a935ef2028408e050fcaa36f681ac",
@@ -28,5 +30,5 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "d0c728437d681844395999587bb13132d45f4d958d400159abe3865de01a5249"
+  "output_digest": "463039c5f88d51a0e1ebac847bbead92a7a77cf9e103c3833f8498ac93cb924e"
 }

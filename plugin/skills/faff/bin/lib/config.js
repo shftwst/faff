@@ -255,6 +255,11 @@ const DEFAULTS = {
   // bound before that finding parks; every other non-OK exit parks directly (never retried). Read
   // in-process by `build-judge-evidence --assemble`; a valid `--retry-limit` flag wins.
   "graft.build_judge_retry_limit": "2",
+  // FAFF-1246: the per-call wall-clock budget (seconds) of one `build-judge-evidence --assemble`
+  // invocation. It stops before any attempt that would not fit (the first attempt of a call always
+  // runs), persists its ledger and exits 3 so faff-graft re-invokes it; a valid `--budget-secs` flag
+  // wins. Keep it under graft's 600s foreground Bash cap and at or above adversarial.build_judge.deadline + 30.
+  "graft.build_judge_call_budget_secs": "540",
   // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
   // false (refuse on positive evidence of a mounted host socket). true is the operator taking
   // responsibility that a same-path socket is a BOUNDED nested engine, not the host daemon;
@@ -3148,7 +3153,7 @@ function cmdConfig(args) {
           "prep.spec_review_judge_retry_limit",
           // FAFF-996: the build-review dialogue loop's config gate + its four bounding knobs.
           "graft.build_review_judge", "graft.review_rebuttal_round_cap", "graft.rebuttal_max_chars",
-          "graft.build_review_hold_limit", "graft.build_judge_retry_limit",
+          "graft.build_review_hold_limit", "graft.build_judge_retry_limit", "graft.build_judge_call_budget_secs",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
           // FAFF-717: the L3 Sentry-abort opt-in (default false) — retained alias.

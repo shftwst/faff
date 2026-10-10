@@ -7,9 +7,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, existsSync, readdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -213,6 +213,7 @@ function fakeDepsAlwaysOverturn() {
     resolveAdversarialBackends: () => ({ chain: FAKE_CHAIN }),
     resolveBuildJudgeClock: () => FAKE_CLOCK,
     resolveBuildJudgeRetryLimit: () => 2,
+    resolveBuildJudgeCallBudget: () => 540,
   };
 }
 
@@ -977,5 +978,384 @@ test("readBoundRuling: a bound ruling comes back without its binding key, so the
     const miss = bje.readBoundRuling(judgeDir, { ...BOUND_LEDGER, run_id: "OTHER" }, "f-01");
     assert.equal(miss.ok, false);
     assert.match(miss.error, /is not bound to this ledger entry/);
+  });
+});
+
+// --- FAFF-1246: budgeted, resumable --assemble ------------------------------------------------
+
+test("constants: the call budget default matches config.js DEFAULTS and exit 3 means incomplete", () => {
+  const { DEFAULTS } = require("../plugin/skills/faff/bin/lib/config.js");
+  assert.equal(DEFAULTS["graft.build_judge_call_budget_secs"], String(bje.DEFAULT_BUILD_JUDGE_CALL_BUDGET_SECS));
+  assert.equal(bje.DEFAULT_BUILD_JUDGE_CALL_BUDGET_SECS, 540);
+  assert.equal(bje.ASSEMBLE_INCOMPLETE_EXIT, 3);
+  assert.equal(typeof bje.bindingMatches, "function");
+  assert.equal(typeof bje.adjudicationIdentity, "function");
+});
+
+test("resolveBuildJudgeCallBudget: absent, valid and invalid config values", () => {
+  const r = bje.resolveBuildJudgeCallBudget;
+  assert.equal(r({}), 540);
+  assert.equal(r(null), 540);
+  assert.equal(r({ graft: { build_judge_call_budget_secs: 300 } }), 300);
+  assert.equal(r({ graft: { build_judge_call_budget_secs: "300" } }), 300);
+  for (const bad of [0, -5, "abc", 2.5]) assert.equal(r({ graft: { build_judge_call_budget_secs: bad } }), 540, JSON.stringify(bad));
+  assert.equal(r({ graft: "oops" }), 540);
+});
+
+// Multi-case fixture + a per-case call counter + a fake clock.
+function writeBrRounds(tmp, ids) {
+  const br = join(tmp, "br"); mkdirSync(br, { recursive: true });
+  writeFileSync(join(br, "round-1.json"), JSON.stringify({
+    signal: "needs-human",
+    findings: ids.map((id, i) => ({ finding_id: id, severity: "critical", location: `f${i}.js:1`, title: `T${i}` })),
+    author_replies: [],
+  }));
+  writeFileSync(join(tmp, "diff.txt"), ids.map((_, i) => `diff --git a/f${i}.js b/f${i}.js\n@@ -1,1 +1,1 @@\n-old\n+new\n`).join(""));
+  return br;
+}
+
+function trackedDeps(over = {}) {
+  const clk = { t: 0, step: 0 };
+  const calls = [];
+  const base = fakeDepsAlwaysOverturn();
+  const deps = {
+    ...base,
+    now: () => clk.t,
+    runReviewCall: (args) => {
+      const cid = basename(args[args.indexOf("--diff") + 1]).replace(/-diff\.txt$/, "");
+      const phase = isPhase1Args(args) ? 1 : 2;
+      const ctx = JSON.parse(readFileSync(args[args.indexOf("--context") + 1], "utf8"));
+      calls.push({ cid, phase, ctx });
+      clk.t += clk.step * 1000;
+      return over.respond ? over.respond({ cid, phase, args }) : base.runReviewCall(args);
+    },
+    ...over.deps,
+  };
+  return { deps, clk, calls };
+}
+
+async function callAssemble(tmp, br, extra, deps) {
+  const lines = []; const errs = [];
+  const log = console.log; const ew = process.stderr.write;
+  console.log = (s) => { lines.push(String(s)); };
+  process.stderr.write = (c) => { errs.push(String(c)); return true; };
+  let code;
+  try {
+    code = await Promise.resolve(bje.cmdAssemble({ "--dir": br, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), "--out": join(tmp, "judge"), ...extra }, deps));
+  } finally { console.log = log; process.stderr.write = ew; }
+  return { code, out: lines.length ? JSON.parse(lines[lines.length - 1]) : null, err: errs.join("") };
+}
+const readLedger = (tmp) => JSON.parse(readFileSync(join(tmp, "judge", "ledger.json"), "utf8"));
+
+test("cmdAssemble --budget-secs: 0, abc and 2.5 are usage errors that write nothing under --out", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    for (const bad of ["0", "abc", "2.5"]) {
+      const { code } = await callAssemble(tmp, br, { "--budget-secs": bad }, trackedDeps().deps);
+      assert.equal(code, 2, bad);
+      assert.ok(!existsSync(join(tmp, "judge")), bad);
+    }
+  });
+});
+
+test("cmdAssemble: --budget-secs wins over the resolver, which is then never called", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const t = trackedDeps();
+    t.clk.step = 100;
+    t.deps.resolveBuildJudgeCallBudget = () => { throw new Error("resolver must not be called"); };
+    // deadline 300 + 30 = 330 per attempt; budget 120 fits only the progress-guarantee attempt.
+    const r = await callAssemble(tmp, br, { "--budget-secs": "120" }, t.deps);
+    assert.equal(r.code, 3);
+    assert.equal(t.calls.length, 1);
+  });
+});
+
+test("cmdAssemble: a budget stop persists the ledger, exit 3 prints the progress keys, and the next call resumes without redoing ruled work", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y", "c.js::z"]);
+    const t = trackedDeps();
+    t.clk.step = 400; // each attempt costs 400s; deadline 300 + 30 means the next never fits in 540
+    const seen = [];
+    let r;
+    for (let i = 0; i < 8; i++) {
+      r = await callAssemble(tmp, br, {}, t.deps);
+      seen.push(r);
+      if (r.code !== 3) break;
+    }
+    assert.equal(seen.length, 6, "two attempts per case, one attempt per call");
+    assert.deepEqual(seen.map((x) => x.code), [3, 3, 3, 3, 3, 0]);
+    assert.deepEqual(seen.map((x) => x.out.resumed), [false, true, true, true, true, true]);
+    const falling = seen.map((x) => x.out.attempts_remaining);
+    for (let i = 1; i < falling.length; i++) assert.ok(falling[i] < falling[i - 1], `attempts_remaining falls: ${falling}`);
+    assert.equal(falling[falling.length - 1], 0);
+    assert.deepEqual(seen[0].out.remaining, ["f-01", "f-02", "f-03"]);
+    assert.deepEqual(seen[5].out.remaining, []);
+    assert.equal(seen[5].out.incomplete, false);
+    assert.equal(t.calls.length, 6);
+    assert.deepEqual(t.calls.map((c) => `${c.cid}:${c.phase}`), ["f-01:1", "f-01:2", "f-02:1", "f-02:2", "f-03:1", "f-03:2"]);
+    const ledger = readLedger(tmp);
+    for (const cid of ledger.order) {
+      assert.equal(ledger.entries[cid].resolution, "overturned");
+      const ruling = JSON.parse(readFileSync(join(tmp, "judge", `ruling-${cid}.json`), "utf8"));
+      assert.deepEqual(ruling.binding, bje.bindingFor(ledger, cid));
+      const recon = JSON.parse(readFileSync(join(tmp, "judge", `recon-${cid}.json`), "utf8"));
+      assert.deepEqual(recon.binding, bje.bindingFor(ledger, cid));
+      assert.equal(recon.stdout, RECON_STDOUT);
+      assert.equal(statSync(join(tmp, "judge", `recon-${cid}.json`)).mode & 0o777, 0o600);
+    }
+    // Phase 2 ran from the persisted reconstruction (scrubbed), with zero Phase-1 re-runs.
+    assert.equal(t.calls.filter((c) => c.phase === 2 && typeof c.ctx.reconstruction === "string").length, 3);
+    assert.equal(t.calls.filter((c) => c.phase === 1).length, 3);
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": join(tmp, "judge") }), 0);
+  });
+});
+
+test("cmdAssemble: a call that stopped mid-pass leaves a judge dir that --admit refuses (exit 2)", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t = trackedDeps(); t.clk.step = 400;
+    const r = await callAssemble(tmp, br, {}, t.deps);
+    assert.equal(r.code, 3);
+    assert.equal(bje.cmdAdmit({ "--dir": br, "--level": "L3", "--out": join(tmp, "judge") }), 2);
+  });
+});
+
+test("cmdAssemble: a call over a fully decided ledger makes no call, exits 0 with attempts_remaining 0", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const first = trackedDeps();
+    assert.equal((await callAssemble(tmp, br, {}, first.deps)).code, 0);
+    const again = trackedDeps();
+    const r = await callAssemble(tmp, br, {}, again.deps);
+    assert.equal(r.code, 0);
+    assert.equal(again.calls.length, 0);
+    assert.equal(r.out.resumed, true);
+    assert.equal(r.out.attempts_remaining, 0);
+    assert.equal(r.out.dispatched, 2);
+  });
+});
+
+test("cmdAssemble: always-retry across calls makes exactly retryLimit + 1 Phase-1 calls and parks with the single-call cause", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t = trackedDeps({ respond: () => ({ code: 5, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async () => "retry", resolveBuildJudgeClock: () => ({ deadline: 300, timeout: 90 }) } });
+    t.clk.step = 600;
+    const rs = [];
+    for (let i = 0; i < 6; i++) { const r = await callAssemble(tmp, br, { "--retry-limit": "2" }, t.deps); rs.push(r); if (r.code !== 3) break; }
+    assert.deepEqual(rs.map((r) => r.code), [3, 3, 0]);
+    assert.deepEqual(rs.slice(0, 2).map((r) => r.out.attempts_remaining), [5, 4]);
+    assert.equal(rs[2].out.attempts_remaining, 0);
+    assert.equal(t.calls.length, 3);
+    assert.ok(t.calls.every((c) => c.phase === 1));
+    const e = readLedger(tmp).entries["f-01"];
+    assert.equal(e.resolution, "parked");
+    assert.equal(e.park_cause, 'phase-1 dispatch disposition "retry" (exit 5)');
+    assert.equal(e.judge_progress.phase1_attempts, 3);
+  });
+});
+
+test("cmdAssemble: a budget smaller than one attempt runs exactly one attempt per call, with a stderr advisory naming both numbers", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t = trackedDeps({ deps: { resolveBuildJudgeClock: () => ({ deadline: 300, timeout: 90 }) } });
+    const rs = [];
+    for (let i = 0; i < 5; i++) { const before = t.calls.length; const r = await callAssemble(tmp, br, { "--budget-secs": "10" }, t.deps); assert.equal(t.calls.length - before, 1); rs.push(r); if (r.code !== 3) break; }
+    assert.deepEqual(rs.map((r) => r.code), [3, 0]);
+    for (const r of rs) {
+      assert.equal(r.err.split("\n").filter((l) => l.includes("each call will run one attempt")).length, 1);
+      assert.match(r.err, /330s.*10s|\(300s\)\+grace\(30s\).*\(10s\)/);
+    }
+    assert.ok(rs[0].out.attempts_remaining > rs[1].out.attempts_remaining);
+  });
+});
+
+test("cmdAssemble: the started-attempt counter is per invocation, so an attempt-less exhausted case does not defeat the progress guarantee", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const t = trackedDeps({ respond: ({ cid }) => (cid === "f-01" ? { code: 5, stdout: "", stderr: "" } : null) });
+    // f-01: retry exit that is killed after its count was bumped (simulated by a throw), f-02 untouched.
+    const base = t.deps.runReviewCall;
+    let boom = true;
+    t.deps.runReviewCall = (args) => { if (boom) { boom = false; throw new Error("killed"); } return base(args); };
+    t.deps.judgeDispatchDisposition = async (exit) => (exit === 0 ? "ruling" : "retry");
+    t.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, { "--retry-limit": "0" }, t.deps)).code, 2);
+    t.deps.runReviewCall = (args) => {
+      const cid = basename(args[args.indexOf("--diff") + 1]).replace(/-diff\.txt$/, "");
+      t.calls.push({ cid, phase: isPhase1Args(args) ? 1 : 2 });
+      t.clk.t += 400000;
+      return isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 0, stdout: VERDICT_STDOUT, stderr: "" };
+    };
+    const r = await callAssemble(tmp, br, { "--retry-limit": "0" }, t.deps);
+    // f-01 exhausts at resume with no attempt (did not complete); f-02 then still gets its guaranteed attempt, then the budget stops.
+    assert.equal(readLedger(tmp).entries["f-01"].park_cause, "phase-1 attempts exhausted: attempt 1 of 1 did not complete");
+    assert.equal(r.code, 3);
+    assert.equal(t.calls.length, 1);
+    assert.equal(t.calls[0].cid, "f-02");
+  });
+});
+
+test("cmdAssemble: a kill mid-dispatch keeps earlier park causes and the in-flight attempt count; a later call with --retry-limit 0 parks it without a call", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const t = trackedDeps({
+      respond: ({ cid, args }) => {
+        if (cid === "f-02") throw new Error("killed");
+        return { code: 1, stdout: "", stderr: "" }; // f-01: a park disposition
+      },
+    });
+    t.deps.judgeDispatchDisposition = async () => "park";
+    const r = await callAssemble(tmp, br, {}, t.deps);
+    assert.equal(r.code, 2);
+    const ledger = readLedger(tmp);
+    assert.equal(ledger.entries["f-01"].resolution, "parked");
+    assert.equal(ledger.entries["f-01"].park_cause, 'phase-1 dispatch disposition "park" (exit 1)');
+    assert.equal(ledger.entries["f-02"].judge_progress.phase1_attempts, 1);
+    assert.equal(ledger.entries["f-02"].judge_progress.last_exit, null);
+
+    const again = trackedDeps();
+    const r2 = await callAssemble(tmp, br, { "--retry-limit": "0" }, again.deps);
+    assert.equal(r2.code, 0);
+    assert.equal(again.calls.length, 0);
+    assert.equal(readLedger(tmp).entries["f-02"].park_cause, "phase-1 attempts exhausted: attempt 1 of 1 did not complete");
+  });
+});
+
+test("cmdAssemble: a pre-judge_progress ledger with the same identity resumes from zero counts", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps(); t0.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t0.deps)).code, 3);
+    const ledger = readLedger(tmp);
+    delete ledger.entries["f-01"].judge_progress;
+    rmSync(join(tmp, "judge", "recon-f-01.json"));
+    writeFileSync(join(tmp, "judge", "ledger.json"), JSON.stringify(ledger));
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, {}, t.deps);
+    assert.equal(r.code, 0);
+    assert.equal(r.out.resumed, true);
+    assert.deepEqual(t.calls.map((c) => c.phase), [1, 2]);
+  });
+});
+
+test("cmdAssemble: a missing or wrongly bound recon file on resume parks the case with no call", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps(); t0.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t0.deps)).code, 3);
+    const reconPath = join(tmp, "judge", "recon-f-01.json");
+    const recon = JSON.parse(readFileSync(reconPath, "utf8"));
+    assert.deepEqual(recon.binding, bje.bindingFor(readLedger(tmp), "f-01"));
+    writeFileSync(reconPath, JSON.stringify({ ...recon, binding: { ...recon.binding, case_sha: "other" } }));
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, {}, t.deps);
+    assert.equal(r.code, 0);
+    assert.equal(t.calls.length, 0);
+    assert.equal(readLedger(tmp).entries["f-01"].park_cause, "phase-1 reconstruction missing or unbound on resume");
+  });
+});
+
+test("cmdAssemble: a missing recon file on resume also parks", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps(); t0.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t0.deps)).code, 3);
+    rmSync(join(tmp, "judge", "recon-f-01.json"));
+    const t = trackedDeps();
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 0);
+    assert.equal(t.calls.length, 0);
+    assert.equal(readLedger(tmp).entries["f-01"].park_cause, "phase-1 reconstruction missing or unbound on resume");
+  });
+});
+
+test("cmdAssemble: identity mismatch (changed set, changed case content, malformed ledger, pre-case_sha ledger) starts fresh and sweeps ruling, recon and admit-result files first", async () => {
+  const stage = async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps(); t0.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t0.deps)).code, 3); // leaves recon-f-01.json
+    writeFileSync(join(tmp, "judge", "ruling-f-01.json"), "{}");
+    writeFileSync(join(tmp, "judge", "admit-result.json"), "{}");
+    return br;
+  };
+  const sweptThenKilled = (tmp) => {
+    const seen = { names: null };
+    const deps = trackedDeps({ respond: () => { seen.names = readdirSync(join(tmp, "judge")).filter((n) => /^(ruling|recon)-.+\.json$/.test(n) || n === "admit-result.json"); throw new Error("killed"); } }).deps;
+    return { seen, deps };
+  };
+  const variants = {
+    "changed adjudication set": async (tmp, br) => { writeBrRounds(tmp, ["b.js::y"]); return {}; },
+    "changed case content, same finding and diff": async (tmp) => { writeFileSync(join(tmp, "ac.md"), "new acceptance criteria"); return { "--acceptance-criteria": join(tmp, "ac.md") }; },
+    "malformed ledger": async (tmp) => { writeFileSync(join(tmp, "judge", "ledger.json"), "{not json"); return {}; },
+    "pre-case_sha ledger": async (tmp) => {
+      const l = readLedger(tmp); delete l.entries["f-01"].case_sha; writeFileSync(join(tmp, "judge", "ledger.json"), JSON.stringify(l)); return {};
+    },
+  };
+  for (const [name, mutate] of Object.entries(variants)) {
+    await withTmp(async (tmp) => {
+      const br = await stage(tmp);
+      const extra = await mutate(tmp, br);
+      const { seen, deps } = sweptThenKilled(tmp);
+      const r = await callAssemble(tmp, br, extra, deps);
+      assert.equal(r.code, 2, name);
+      assert.deepEqual(seen.names, [], name);
+      const e = readLedger(tmp).entries["f-01"];
+      assert.equal(e.judge_progress.phase1_attempts, 1, `${name}: counts restart at 0 then bump`);
+    });
+  }
+});
+
+test("cmdAssemble: on an identity match no ruling or recon file of the pass is deleted", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const t = trackedDeps(); t.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 3);
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 3);
+    const before = readdirSync(join(tmp, "judge")).filter((n) => /^(ruling|recon)-/.test(n)).sort();
+    assert.deepEqual(before, ["recon-f-01.json", "ruling-f-01.json"]);
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 3);
+    for (const n of before) assert.ok(existsSync(join(tmp, "judge", n)), n);
+  });
+});
+
+test("cmdAssemble: an unresolvable backend chain on resume parks only pending-unruled entries", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const t = trackedDeps(); t.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 3);
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 3); // f-01 overturned; f-02 pending-unruled
+    const r = await callAssemble(tmp, br, {}, { ...t.deps, resolveAdversarialBackends: () => ({ error: "unset" }) });
+    assert.equal(r.code, 0);
+    const ledger = readLedger(tmp);
+    assert.equal(ledger.entries["f-01"].resolution, "overturned");
+    assert.equal(ledger.entries["f-01"].ruling.outcome, "OVERTURN");
+    assert.equal(ledger.entries["f-02"].resolution, "parked");
+    assert.match(ledger.entries["f-02"].park_cause, /backend config unset/);
+  });
+});
+
+test("cmdAssemble: ledger.json is written through a .tmp file and rename, stays mode 0600, and leaves no .tmp behind", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const fsMod = require("node:fs");
+    const origRename = fsMod.renameSync;
+    const renames = [];
+    fsMod.renameSync = (from, to) => { renames.push([basename(from), basename(to)]); return origRename(from, to); };
+    try { assert.equal((await callAssemble(tmp, br, {}, trackedDeps().deps)).code, 0); }
+    finally { fsMod.renameSync = origRename; }
+    assert.ok(renames.length >= 4 && renames.every(([f, t]) => f === "ledger.json.tmp" && t === "ledger.json"));
+    assert.equal(statSync(join(tmp, "judge", "ledger.json")).mode & 0o777, 0o600);
+    assert.ok(!existsSync(join(tmp, "judge", "ledger.json.tmp")));
+  });
+});
+
+test("cmdAssemble: a ledger persisted mid-call names each phase's progress before the attempt runs", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const snaps = [];
+    const t = trackedDeps({ respond: ({ phase, args }) => { snaps.push(readLedger(tmp).entries["f-01"].judge_progress); return isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 0, stdout: VERDICT_STDOUT, stderr: "" }; } });
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 0);
+    assert.deepEqual(snaps[0], { phase1_attempts: 1, phase2_attempts: 0, last_exit: null, reconstruction: null });
+    assert.deepEqual(snaps[1], { phase1_attempts: 1, phase2_attempts: 1, last_exit: null, reconstruction: "recon-f-01.json" });
   });
 });

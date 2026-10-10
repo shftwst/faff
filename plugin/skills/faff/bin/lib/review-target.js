@@ -71,7 +71,8 @@ function matchWorktreeForIssue(root, issue) {
 // pre-PR worktree/branch target, which is still a correct (if less specific) target, never a wrong
 // one. `cwd` should be a path inside the repo (any worktree works; gh resolves the remote itself).
 function resolvePrNumber(cwd, branch) {
-  const r = spawnSync("gh", ["pr", "list", "--head", branch, "--state", "open", "--json", "number"], { cwd, encoding: "utf8", timeout: 60000 });
+  const { runGh } = require("./merge-gate"); // FAFF-1213: route through the single gh chokepoint (lazy require)
+  const r = runGh(["pr", "list", "--head", branch, "--state", "open", "--json", "number"], { cwd, timeout: 60000 });
   if (r.status !== 0 || typeof r.stdout !== "string") return { found: false };
   let data;
   try { data = JSON.parse(r.stdout); } catch { return { found: false }; }

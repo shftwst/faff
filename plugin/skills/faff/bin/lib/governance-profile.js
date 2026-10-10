@@ -126,6 +126,12 @@ const DELIVERY_PROFILE = {
     // the base record (a run-level marker supplies the `__run__` sentinel). See
     // decision-capture.js's `action` verb.
     "decision-capture-action",
+    // FAFF-1213: the run-level runner-identity evidence record — which GitHub identity
+    // (runner-credential vs ambient human) faff's gh calls acted under, recorded in the
+    // hash-chained events.jsonl so mintIssueAnchor freezes it into the committed, head-sha-
+    // pinned anchor Gate 1 (FAFF-1182) trusts. Run-scoped (no issue), so NOT in
+    // issue_scoped_types / outcome_required_types.
+    "runner-identity",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",

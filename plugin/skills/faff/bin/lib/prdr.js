@@ -266,7 +266,8 @@ function prdrGitTier(dir, root, cfg) {
 
 // Resolve the base branch to land off (merge-gate.js:566-567 precedent: gh → origin/HEAD → "main").
 function resolveDefaultBase(root) {
-  const gh = spawnSync("gh", ["repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name"], { cwd: root, encoding: "utf8" });
+  const { runGh } = require("./merge-gate"); // FAFF-1213: route through the single gh chokepoint (lazy require)
+  const gh = runGh(["repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name"], { cwd: root });
   if (gh.status === 0 && gh.stdout.trim()) return gh.stdout.trim();
   const originHead = gitOut(root, ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"]);
   if (originHead) return originHead.replace(/^origin\//, "");

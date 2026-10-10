@@ -16,7 +16,8 @@ const { spawnSync } = require("node:child_process");
 function observeForgeMerge(recorded) {
   if (!recorded || recorded.pr == null) return { pr_merged: false, merged_head_sha: null, state: null };
   try {
-    const r = spawnSync("gh", ["pr", "view", String(recorded.pr), "--json", "state,mergeCommit"], { encoding: "utf8" });
+    const { runGh } = require("./merge-gate"); // FAFF-1213: lazy — merge-gate requires this module, so a top-level require would cycle
+    const r = runGh(["pr", "view", String(recorded.pr), "--json", "state,mergeCommit"]);
     if (r.status !== 0 || !r.stdout) return { pr_merged: false, merged_head_sha: null, state: null };
     const j = JSON.parse(r.stdout);
     const merged = j.state === "MERGED";

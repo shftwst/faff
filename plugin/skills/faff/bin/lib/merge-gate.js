@@ -324,7 +324,10 @@ function readRunnerGhConfig() {
     return { tokenEnvName: pick(auto.runner_github_token_env), configuredLogin: pick(auto.runner_github_login), configFault: false };
   };
   try {
-    const [data] = require("./config").loadConfig(); // lazy — matches this file's config-read convention
+    // loadConfig REQUIRES a root (loadConfig() with no arg throws on findConfig(undefined)); resolve
+    // it via the canonical findRoot(), matching resolveKnownSecretValues' own default.
+    const { findRoot } = require("./shared-infra");
+    const [data] = require("./config").loadConfig(findRoot()); // lazy — matches this file's config-read convention
     _runnerGhConfigMemo = two(data);
   } catch {
     // Any config fault (malformed base/overlay, legacy name, …) degrades to ambient

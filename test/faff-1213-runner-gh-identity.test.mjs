@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -224,4 +225,35 @@ test("readRunnerGhConfig: returns the fault-tolerant shape and memoises (stable 
   const b = readRunnerGhConfig();
   assert.equal(a, b, "memoised: same reference across calls");
   assert.ok("tokenEnvName" in a && "configuredLogin" in a && "configFault" in a);
+});
+
+// readRunnerGhConfig actually reads a REAL .faffrc (not just the hand-built-config path). Run in a
+// fresh subprocess so the per-process memo is clean and cwd is the fixture root. This is the
+// regression guard for the loadConfig()-needs-a-root bug: a no-arg loadConfig() always threw, which
+// would have silently forced configFault (zero-config) forever, so a configured credential would
+// never be read.
+const MG_PATH = join(LIB, "merge-gate.js");
+function readConfigInDir(dir, extraEnv = {}) {
+  const out = execFileSync(process.execPath, ["-e", `process.stdout.write(JSON.stringify(require(${JSON.stringify(MG_PATH)}).readRunnerGhConfig()))`], { cwd: dir, encoding: "utf8", env: { ...process.env, NODE_EXTRA_CA_CERTS: "", ...extraEnv } });
+  return JSON.parse(out);
+}
+
+test("readRunnerGhConfig: reads a configured runner credential from a real .faffrc (configFault false)", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff1213-cfg-"));
+  try {
+    mkdirSync(join(root, ".git"));
+    writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  runner_github_token_env: RUNNER_GH_TOKEN\n  runner_github_login: my-runner-bot\n");
+    const cfg = readConfigInDir(root);
+    assert.deepEqual(cfg, { tokenEnvName: "RUNNER_GH_TOKEN", configuredLogin: "my-runner-bot", configFault: false });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("readRunnerGhConfig: a repo with no runner keys reads clean (zero-config, no spurious configFault)", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff1213-cfg0-"));
+  try {
+    mkdirSync(join(root, ".git"));
+    writeFileSync(join(root, ".faffrc.yaml"), "appetite: high\n");
+    const cfg = readConfigInDir(root);
+    assert.deepEqual(cfg, { tokenEnvName: null, configuredLogin: null, configFault: false });
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

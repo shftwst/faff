@@ -17,6 +17,7 @@ import type { Server, Socket } from "node:net";
 import type { ProducerAuthApi } from "./producer-auth";
 import type { IdsApi } from "./ids";
 import type { GovernedRecord } from "./decision-policy";
+import type { PeerCredReader } from "./peer-cred";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -29,6 +30,7 @@ const { evaluateDecisionRequest, evaluateLevelPolicy, composeDecision, grantCove
 const { computeEscapes, matchesUnit, conclusionKindOf, isProtectedKind, CONCLUSION_KIND } = require("./effects");
 const { sha256Hex, walkPhysicalChain, splitPhysicalLines } = require("./events");
 const { ensureOwnerOnlyDir, writeOwnerOnlyJson } = require("./shared-infra");
+const { makePeerCredReader, resolveTrustedInterpreter, TRUSTED_PYTHON_PATHS } = require("./peer-cred");
 
 type Json = { [k: string]: unknown };
 type Position = { seq: number; prev: string };
@@ -67,6 +69,7 @@ type LedgerView = { records: GovernedRecord[]; lines: Buffer[]; head: Head; next
 type Accepted = { ok: true; view: LedgerView } | { ok: false; reply: Json };
 
 const KEY_FILE_NAME = "governor-key.json";
+const CONFIG_FILE_NAME = "governor-config.json";
 const SOCKET_FILE_NAME = "governor.sock";
 const LOG_FILE_NAME = "governor-log.jsonl";
 const MAX_REQUEST_CHARS = 64 * 1024 * 1024;
@@ -142,6 +145,43 @@ function openState(keyDir: string): { ok: true; state: GovernorState } | { ok: f
       lastHead: new Map(), admissions: new Map(),
     },
   };
+}
+
+// --- Allow-list config: the ONLY trusted source of the socket caller allow list (FAFF-1211) ---------
+//
+// The allow list lives in a root-owned governor-config.json in the 0700 key dir — a different writer
+// from the key file (install, FAFF-1216), holding no secret. Nothing the runner can influence (argv,
+// env, or the socket wire) contributes to it. A missing file is not an error: it yields an empty allow
+// list, so the governor serves no caller (fail closed). A wrong mode or wrong owner refuses to start,
+// mirroring loadKeyFile's discipline — a looser mode means the runner could have written the list.
+
+interface GovernorConfig {
+  allow_uids: number[];
+}
+
+function parseGovernorConfig(raw: unknown): GovernorConfig | null {
+  if (!isRecord(raw)) return null;
+  const a = raw.allow_uids;
+  if (a === undefined) return { allow_uids: [] };
+  if (!Array.isArray(a) || !a.every((u): u is number => typeof u === "number" && Number.isInteger(u) && u >= 0)) return null;
+  return { allow_uids: a };
+}
+
+function loadGovernorConfig(keyDir: string): { ok: true; config: GovernorConfig } | { ok: false; error: string } {
+  const configFile = path.join(keyDir, CONFIG_FILE_NAME);
+  if (modeOf(keyDir) !== 0o700) return { ok: false, error: `${keyDir} is mode ${modeOf(keyDir).toString(8)}, want 700` };
+  if (!fs.existsSync(configFile)) return { ok: true, config: { allow_uids: [] } };
+  if (modeOf(configFile) !== 0o600) return { ok: false, error: `${configFile} is mode ${modeOf(configFile).toString(8)}, want 600` };
+  let stat: { uid: number };
+  try { stat = fs.statSync(configFile); } catch { return { ok: false, error: `${configFile} is unreadable` }; }
+  const myUid = typeof process.getuid === "function" ? process.getuid() : undefined;
+  if (myUid !== undefined && stat.uid !== myUid) {
+    return { ok: false, error: `${configFile} is owned by uid ${stat.uid}, want ${myUid} (the governor's own user)` };
+  }
+  let raw: unknown;
+  try { raw = JSON.parse(fs.readFileSync(configFile, "utf8")); } catch { return { ok: false, error: `${configFile} is not valid JSON` }; }
+  const config = parseGovernorConfig(raw);
+  return config ? { ok: true, config } : { ok: false, error: `${configFile} allow_uids must be an array of non-negative integers` };
 }
 
 function rotateKeyFile(keyDir: string): { ok: true; prior: string; current: string } | { ok: false; error: string } {
@@ -354,11 +394,12 @@ function handleConclude(state: GovernorState, req: Json): Json {
 // One line per request, signed verdicts (orphans the runner never appends included) in `signed_record`.
 // The governor is the log's sole writer and appendFileSync is synchronous, so appends are serialised.
 // The log never feeds lastHead.
-function appendLog(state: GovernorState, request: Json, reply: Json): void {
+function appendLog(state: GovernorState, request: Json, reply: Json, peerUid?: number): void {
   const { ledger, ...summary } = request;
   const signed = [reply.verdict_record, reply.record, reply.admission_record].find(isRecord);
   const line = {
     ts: new Date().toISOString(), op: request.op, run_id: request.run_id, unit_id: request.unit_id,
+    peer_uid: peerUid === undefined ? null : peerUid,
     request_summary: { ...summary, ledger_bytes: typeof ledger === "string" ? Buffer.byteLength(ledger, "utf8") : undefined },
     verdict: reply.ok === true ? reply.verdict : undefined,
     refusal: reply.ok === true ? undefined : reply.reason,
@@ -366,6 +407,19 @@ function appendLog(state: GovernorState, request: Json, reply: Json): void {
     appended_hint: signed ? { seq: signed.seq, prev: signed.prev } : undefined,
   };
   fs.appendFileSync(state.logPath, JSON.stringify(line) + "\n", { mode: 0o600 });
+}
+
+// A connection-level log line for a caller refused BEFORE its request is read (no request/reply to
+// summarise, so appendLog does not fit). A failed uid read logs peer_uid null. Best-effort: a throw
+// is swallowed rather than crashing the accept loop, since the socket is already being refused.
+function appendConnectLog(state: GovernorState, entry: { peer_uid: number | null; refusal: string; error?: string }): void {
+  const line: Json = { ts: new Date().toISOString(), op: "connect", peer_uid: entry.peer_uid, refusal: entry.refusal };
+  if (entry.error !== undefined) line.error = entry.error;
+  try {
+    fs.appendFileSync(state.logPath, JSON.stringify(line) + "\n", { mode: 0o600 });
+  } catch {
+    /* best-effort — never crash the accept loop on a log append */
+  }
 }
 
 function dispatchOp(state: GovernorState, request: Json): Json {
@@ -377,12 +431,14 @@ function dispatchOp(state: GovernorState, request: Json): Json {
   }
 }
 
-// The selftest seam: a request in, a reply out, no socket involved.
-function handleRequest(state: GovernorState, request: unknown): Json {
+// The selftest seam: a request in, a reply out, no socket involved. peerUid is the kernel-read uid of
+// the allowed caller when the request arrived over the guarded Unix socket (stamped on the log line);
+// it is undefined on the socket-less selftest path.
+function handleRequest(state: GovernorState, request: unknown, peerUid?: number): Json {
   if (!isRecord(request)) return refuse("malformed-request");
   const reply = dispatchOp(state, request);
   try {
-    appendLog(state, request, reply);
+    appendLog(state, request, reply, peerUid);
   } catch {
     return refuse("governor-log-failed");
   }
@@ -391,20 +447,20 @@ function handleRequest(state: GovernorState, request: unknown): Json {
 
 // --- Server ------------------------------------------------------------------------------
 
-function answer(state: GovernorState, socket: Socket, raw: string): void {
+function answer(state: GovernorState, socket: Socket, raw: string, peerUid?: number): void {
   let reply: Json;
   try {
-    reply = handleRequest(state, JSON.parse(raw));
+    reply = handleRequest(state, JSON.parse(raw), peerUid);
   } catch (e) {
     reply = e instanceof SyntaxError ? refuse("malformed-request") : refuse("internal-error");
   }
   socket.end(JSON.stringify(reply) + "\n");
 }
 
-function onConnection(state: GovernorState, socket: Socket): void {
+function onConnection(state: GovernorState, socket: Socket, peerUid?: number): void {
   let buffered = "";
   let answered = false;
-  const answerOnce = (raw: string): void => { if (!answered) { answered = true; answer(state, socket, raw); } };
+  const answerOnce = (raw: string): void => { if (!answered) { answered = true; answer(state, socket, raw, peerUid); } };
   socket.setEncoding("utf8");
   socket.on("data", (chunk: string) => {
     if (answered) return;
@@ -415,6 +471,27 @@ function onConnection(state: GovernorState, socket: Socket): void {
   });
   socket.on("end", () => { if (buffered.trim() !== "") answerOnce(buffered); });
   socket.on("error", () => socket.destroy());
+}
+
+// The Unix-listener guard (FAFF-1211). Reads the peer uid synchronously — before any `data` listener
+// attaches, so no request bytes can arrive before the decision (net does not flow a socket until a
+// data listener is attached). A caller whose uid cannot be read, or whose uid is not on the allow
+// list, is refused here and never reaches onConnection / handleRequest. The check is independent of
+// the socket's file mode: even a socket widened past 0600 is still gated by the uid. An allowed
+// caller carries its uid forward so every accepted request's log line is stamped with it.
+function guardUnixConnection(state: GovernorState, allowUids: Set<number>, reader: PeerCredReader, socket: Socket): void {
+  const result = reader.readPeerUid(socket);
+  if (!result.ok) {
+    appendConnectLog(state, { peer_uid: null, refusal: "peer-credentials-unreadable", error: result.error });
+    socket.end(JSON.stringify({ ok: false, reason: "peer-credentials-unreadable" }) + "\n");
+    return;
+  }
+  if (!allowUids.has(result.uid)) {
+    appendConnectLog(state, { peer_uid: result.uid, refusal: "caller-not-allowed" });
+    socket.end(JSON.stringify({ ok: false, reason: "caller-not-allowed", peer: { uid: result.uid } }) + "\n");
+    return;
+  }
+  onConnection(state, socket, result.uid);
 }
 
 function parseListen(spec: string): { host: string; port: number } | null {
@@ -429,6 +506,20 @@ function governorStart(flags: FlagBag): number {
   const opened = openState(keyDir);
   if (!opened.ok) { process.stderr.write(`faff commissaire governor start: ${opened.error}\n`); return 2; }
   const { state } = opened;
+  const configLoaded = loadGovernorConfig(keyDir);
+  if (!configLoaded.ok) { process.stderr.write(`faff commissaire governor start: ${configLoaded.error}\n`); return 2; }
+  const allowUids = new Set<number>(configLoaded.config.allow_uids);
+  const reader = makePeerCredReader();
+
+  // Start-time interpreter probe: without a trusted python3 the governor would bind, print `listening`,
+  // then silently refuse every Unix caller `peer-credentials-unreadable`. Surface it loudly instead.
+  if (resolveTrustedInterpreter() === null) {
+    process.stderr.write(`faff commissaire governor start: WARNING no trusted python3 interpreter at ${TRUSTED_PYTHON_PATHS.join(", ")}; every Unix caller will be refused peer-credentials-unreadable\n`);
+    try {
+      fs.appendFileSync(path.join(keyDir, LOG_FILE_NAME), JSON.stringify({ ts: new Date().toISOString(), op: "start", warning: "interpreter-missing", trusted_paths: TRUSTED_PYTHON_PATHS }) + "\n", { mode: 0o600 });
+    } catch { /* best-effort start-time record */ }
+  }
+
   const socketFlag = flags["--socket"];
   const socketPath = typeof socketFlag === "string" && socketFlag !== "" ? socketFlag : path.join(keyDir, SOCKET_FILE_NAME);
   const listenFlag = flags["--listen"];
@@ -441,18 +532,20 @@ function governorStart(flags: FlagBag): number {
   try { if (fs.lstatSync(socketPath).isSocket()) fs.unlinkSync(socketPath); } catch { /* no stale socket to clear */ }
   const servers: Server[] = [];
   const stop = (): void => { for (const s of servers) s.close(); try { fs.unlinkSync(socketPath); } catch { /* already gone */ } };
-  const make = (): Server => {
-    const server: Server = net.createServer({ allowHalfOpen: true }, (socket: Socket) => onConnection(state, socket));
+  const make = (connectionListener: (socket: Socket) => void): Server => {
+    const server: Server = net.createServer({ allowHalfOpen: true }, connectionListener);
     server.on("error", (e: Error) => { process.stderr.write(`faff commissaire governor start: ${e.message}\n`); process.exitCode = 1; stop(); });
     servers.push(server);
     return server;
   };
-  make().listen(socketPath, () => {
+  // The Unix listener is guarded by the peer-credential check; the optional TCP listener keeps the
+  // bare onConnection with NO peer check (TCP has no SO_PEERCRED — its caller auth is FAFF-1181).
+  make((socket: Socket) => guardUnixConnection(state, allowUids, reader, socket)).listen(socketPath, () => {
     fs.chmodSync(socketPath, 0o600);
     console.log(JSON.stringify({ listening: { socket: socketPath }, pk_fingerprint: state.pk_fingerprint }));
   });
   if (listen) {
-    make().listen(listen.port, listen.host, () => console.log(JSON.stringify({ listening: { tcp: `${listen.host}:${listen.port}` } })));
+    make((socket: Socket) => onConnection(state, socket)).listen(listen.port, listen.host, () => console.log(JSON.stringify({ listening: { tcp: `${listen.host}:${listen.port}` } })));
   }
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
@@ -635,4 +728,4 @@ function governorSelftest(): number {
   return 0;
 }
 
-module.exports = { governorStart, governorRotate, handleRequest, governorSelftest, openState };
+module.exports = { governorStart, governorRotate, handleRequest, governorSelftest, openState, loadGovernorConfig, guardUnixConnection, appendConnectLog, onConnection };

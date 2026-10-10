@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "b996328edcfeadd5a108b734283a5c5c7c854c6e709e4cb8576f97adb94032ee"
+    "tsconfig.json": "66e1b8a9eaa5b4140526a47e6dd19a41ed2a9007c939b64c4ec087221fa82fc7"
   },
   "lock": {
     "package-lock.json": "45bca19e1e2d6929f96e2609e1e5c4fc9b7f53dd0448cc4e9f0a13e627768733",
@@ -15,18 +15,20 @@
   "inputs": {
     "bin/lib/commissaire.ts": "54a02077c1fd3bb449267bb3934df38bca74d38bdc34f19ac2dcc82426a54539",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
-    "bin/lib/governor.ts": "19b07a0fc1363e5bab0853cf842aa65b167d1e5865552bad9c06ec384c615522",
+    "bin/lib/governor.ts": "d1376ab707241c25fc3721b9a4f0896a84bc31eb3670a9604df7904dcc46a5a6",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
+    "bin/lib/peer-cred.ts": "a07d0afe4ae9c0f899c34cbf1ebf2b89ff296f57b8c678082c966f2fcd642607",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3"
   },
   "outputs": {
     "bin/lib/commissaire.js": "ba9e54918f3d7799aad512380b33ba7fd6cf0b8740af51cfbebaa5796efc0ed3",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
-    "bin/lib/governor.js": "31394c5e4ac0de00533ed5046e92dc46ba9a935ef2028408e050fcaa36f681ac",
+    "bin/lib/governor.js": "437ef2f86167c144aa3fa1a21412843c91406a647d88bd443254ab20f92aa5af",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
+    "bin/lib/peer-cred.js": "48507a5dfb882726a5fed476f1bee303511f31d9268557be437ec0bd212a90c2",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "d0c728437d681844395999587bb13132d45f4d958d400159abe3865de01a5249"
+  "output_digest": "2cc9b3a62457f42b1969b4c9b70338a600d3f6588047aef4fb5b33e036e955b3"
 }

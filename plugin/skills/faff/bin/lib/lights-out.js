@@ -1209,6 +1209,11 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   // FAFF-966: routed through the shared `emitGenesisRunStart` helper (never a hand-duplicated
   // emit) — byte-identical shape to before the extraction (schema 2, `data.level:"L4"`).
   emitGenesisRunStart(runDir, { level: "L4" });
+  // FAFF-1213: record the run-level GitHub runner identity into events.jsonl right after genesis
+  // (run-start/preflight), so mintIssueAnchor freezes it into the committed, head-sha-pinned anchor
+  // Gate 1 (FAFF-1182) consumes. Lazy require (cycle-safe) + best-effort (recordRunnerIdentity
+  // never throws out, so a recording fault never fails the mint).
+  try { require("./merge-gate").recordRunnerIdentity(runDir); } catch { /* best-effort — identity recording never blocks a mint */ }
 
   if (json) {
     // FAFF-679: ledger_sha256_before is always null on a mint (nothing existed to bracket

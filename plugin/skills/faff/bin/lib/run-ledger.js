@@ -353,6 +353,10 @@ function initInteractive(values) {
   // mint has never carried one; see the regression assertion in
   // run-ledger-init-interactive.test.mjs).
   emitGenesisRunStart(runDir);
+  // FAFF-1213: record the run-level GitHub runner identity right after genesis (run-start), so it
+  // rides mintIssueAnchor into the committed anchor Gate 1 reads. Lazy require (cycle-safe) +
+  // best-effort (never throws out, never fails the mint).
+  try { require("./merge-gate").recordRunnerIdentity(runDir); } catch { /* best-effort */ }
 
   if (values["--json"]) {
     process.stdout.write(
@@ -489,6 +493,10 @@ function initSelfDrain(values) {
     process.stderr.write(`faff run-ledger init-self-drain: could not append the genesis run-start event in ${runDir}${genesisErr ? `: ${genesisErr.message}` : ""} (ledger written, no chain) — mint NOT reported successful\n`);
     return 3;
   }
+  // FAFF-1213: record the run-level GitHub runner identity right after genesis (run-start), so it
+  // rides mintIssueAnchor into the committed anchor Gate 1 reads. Lazy require (cycle-safe) +
+  // best-effort (never throws out, never fails the mint).
+  try { require("./merge-gate").recordRunnerIdentity(runDir); } catch { /* best-effort */ }
 
   if (values["--json"]) {
     process.stdout.write(

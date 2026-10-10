@@ -43,7 +43,7 @@ const REDACTED_PLACEHOLDER = "[REDACTED]";
 
 // The collector is allowlisted to exactly these two handle-field NAMES —
 // never every `*_env` key, never every `*_TOKEN`/`*_KEY`-shaped env var name.
-const SECRET_ENV_HANDLE_KEYS = new Set(["api_key_env", "seat_token_env"]);
+const SECRET_ENV_HANDLE_KEYS = new Set(["api_key_env", "seat_token_env", "runner_github_token_env"]);
 
 // Direct secret-bearing config fields (dotted paths) — the value itself is
 // the known secret, no env-var indirection.

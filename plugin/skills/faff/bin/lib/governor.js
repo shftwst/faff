@@ -457,6 +457,11 @@ function onConnection(state, socket, peerUid) {
 // the socket's file mode: even a socket widened past 0600 is still gated by the uid. An allowed
 // caller carries its uid forward so every accepted request's log line is stamped with it.
 function guardUnixConnection(state, allowUids, reader, socket) {
+    // A refused caller is handled before onConnection attaches its own error handler, so attach one
+    // first: a refused peer that resets the connection (the socket.end write fails ECONNRESET/EPIPE)
+    // would otherwise emit an unhandled 'error' and crash the single-runner governor — a trivial DoS
+    // from exactly the untrusted callers this guard exists to refuse.
+    socket.on("error", () => socket.destroy());
     const result = reader.readPeerUid(socket);
     if (!result.ok) {
         appendConnectLog(state, { peer_uid: null, refusal: "peer-credentials-unreadable", error: result.error });

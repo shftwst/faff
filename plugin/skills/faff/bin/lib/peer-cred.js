@@ -16,6 +16,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+function isRecord(v) {
+    return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+const isUid = (v) => typeof v === "number" && Number.isInteger(v) && v >= 0;
 // Fixed, operator-and-root-controlled absolute paths only. No element is derived from PATH or any
 // user-writable directory: a runner-writable shim must never be reachable here.
 const TRUSTED_PYTHON_PATHS = ["/usr/bin/python3"];
@@ -35,9 +39,12 @@ function resolveTrustedInterpreter() {
     return null;
 }
 function socketFd(socket) {
+    if (!isRecord(socket))
+        return null;
     const handle = socket._handle;
-    const fd = handle && typeof handle.fd === "number" ? handle.fd : null;
-    return fd !== null && Number.isInteger(fd) && fd >= 0 ? fd : null;
+    if (!isRecord(handle))
+        return null;
+    return isUid(handle.fd) ? handle.fd : null;
 }
 function readPeerUid(socket) {
     if (process.platform !== "linux" && process.platform !== "darwin") {
@@ -67,17 +74,13 @@ function readPeerUid(socket) {
     catch {
         return { ok: false, error: "unparseable" };
     }
-    if (typeof parsed !== "object" || parsed === null)
+    if (!isRecord(parsed) || !isUid(parsed.uid))
         return { ok: false, error: "unparseable" };
-    const rec = parsed;
-    if (typeof rec.uid !== "number" || !Number.isInteger(rec.uid) || rec.uid < 0) {
-        return { ok: false, error: "unparseable" };
-    }
-    const result = { ok: true, uid: rec.uid };
-    if (typeof rec.gid === "number" && Number.isInteger(rec.gid) && rec.gid >= 0)
-        result.gid = rec.gid;
-    if (typeof rec.pid === "number" && Number.isInteger(rec.pid) && rec.pid >= 0)
-        result.pid = rec.pid;
+    const result = { ok: true, uid: parsed.uid };
+    if (isUid(parsed.gid))
+        result.gid = parsed.gid;
+    if (isUid(parsed.pid))
+        result.pid = parsed.pid;
     return result;
 }
 function makePeerCredReader() {

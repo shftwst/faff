@@ -12,8 +12,6 @@
 // gains no runtime dependency.
 // ===========================================================================
 
-import type { Socket } from "node:net";
-
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
@@ -22,9 +20,19 @@ export type PeerCredResult =
   | { ok: true; uid: number; gid?: number; pid?: number }
   | { ok: false; error: string };
 
+// The reader takes the connecting socket as `unknown` and narrows at runtime: net.Socket exposes its
+// accepted descriptor only through the undocumented `_handle.fd`, which is not on the public Socket
+// type, so reading it structurally (rather than through a cast) means an `unknown` parameter plus
+// isRecord narrowing. A real net.Socket is assignable to `unknown` at the call site.
 export interface PeerCredReader {
-  readPeerUid(socket: Socket): PeerCredResult;
+  readPeerUid(socket: unknown): PeerCredResult;
 }
+
+function isRecord(v: unknown): v is { [k: string]: unknown } {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+const isUid = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 // Fixed, operator-and-root-controlled absolute paths only. No element is derived from PATH or any
 // user-writable directory: a runner-writable shim must never be reachable here.
@@ -44,13 +52,14 @@ function resolveTrustedInterpreter(): string | null {
   return null;
 }
 
-function socketFd(socket: Socket): number | null {
-  const handle = (socket as unknown as { _handle?: { fd?: unknown } })._handle;
-  const fd = handle && typeof handle.fd === "number" ? handle.fd : null;
-  return fd !== null && Number.isInteger(fd) && fd >= 0 ? fd : null;
+function socketFd(socket: unknown): number | null {
+  if (!isRecord(socket)) return null;
+  const handle = socket._handle;
+  if (!isRecord(handle)) return null;
+  return isUid(handle.fd) ? handle.fd : null;
 }
 
-function readPeerUid(socket: Socket): PeerCredResult {
+function readPeerUid(socket: unknown): PeerCredResult {
   if (process.platform !== "linux" && process.platform !== "darwin") {
     return { ok: false, error: "unsupported-platform" };
   }
@@ -58,7 +67,7 @@ function readPeerUid(socket: Socket): PeerCredResult {
   if (fd === null) return { ok: false, error: "no-socket-fd" };
   const interpreter = resolveTrustedInterpreter();
   if (interpreter === null) return { ok: false, error: "interpreter-missing" };
-  let r: { error?: unknown; status: number | null; stdout?: unknown };
+  let r;
   try {
     r = spawnSync(interpreter, [HELPER_PATH], { stdio: [fd, "pipe", "pipe"], timeout: HELPER_TIMEOUT_MS, killSignal: "SIGKILL" });
   } catch {
@@ -72,14 +81,10 @@ function readPeerUid(socket: Socket): PeerCredResult {
   } catch {
     return { ok: false, error: "unparseable" };
   }
-  if (typeof parsed !== "object" || parsed === null) return { ok: false, error: "unparseable" };
-  const rec = parsed as { uid?: unknown; gid?: unknown; pid?: unknown };
-  if (typeof rec.uid !== "number" || !Number.isInteger(rec.uid) || rec.uid < 0) {
-    return { ok: false, error: "unparseable" };
-  }
-  const result: { ok: true; uid: number; gid?: number; pid?: number } = { ok: true, uid: rec.uid };
-  if (typeof rec.gid === "number" && Number.isInteger(rec.gid) && rec.gid >= 0) result.gid = rec.gid;
-  if (typeof rec.pid === "number" && Number.isInteger(rec.pid) && rec.pid >= 0) result.pid = rec.pid;
+  if (!isRecord(parsed) || !isUid(parsed.uid)) return { ok: false, error: "unparseable" };
+  const result: { ok: true; uid: number; gid?: number; pid?: number } = { ok: true, uid: parsed.uid };
+  if (isUid(parsed.gid)) result.gid = parsed.gid;
+  if (isUid(parsed.pid)) result.pid = parsed.pid;
   return result;
 }
 

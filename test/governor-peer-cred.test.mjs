@@ -124,6 +124,23 @@ test("guard: a failed uid read is refused peer-credentials-unreadable and logs p
   }
 });
 
+test("guard: a refused socket that errors (reset peer / EPIPE) does not crash the accept loop", () => {
+  const { dir, state } = keyDir();
+  try {
+    const sock = new FakeSocket();
+    guardUnixConnection(state, new Set([4242]), { readPeerUid: () => ({ ok: true, uid: 1002 }) }, sock);
+    assert.equal(JSON.parse(sock.ended).reason, "caller-not-allowed");
+    // The guard refuses before onConnection attaches its handler, so it must attach its own error
+    // listener: a refused peer that resets (its end() write fails ECONNRESET/EPIPE) would otherwise
+    // emit an unhandled 'error' and crash the single-runner governor.
+    assert.ok(sock.listenerCount("error") >= 1, "the refused socket has an error listener");
+    assert.doesNotThrow(() => sock.emit("error", new Error("ECONNRESET")));
+    assert.equal(sock.destroyed, true, "the errored socket is destroyed");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("guard: the check is independent of socket file mode (a disallowed uid is refused regardless)", () => {
   // The guard takes no socket-mode input at all: the uid alone decides. A disallowed uid is refused
   // whatever the socket mode, which is exactly the "widened past 0600 still refuses" property.

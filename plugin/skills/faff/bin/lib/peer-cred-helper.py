@@ -17,7 +17,8 @@ import sys
 
 def read_linux(sock):
     # struct ucred { pid_t pid; uid_t uid; gid_t gid; } — three native 32-bit ints.
-    SO_PEERCRED = 17
+    # Prefer the kernel constant the socket module exposes; 17 is the x86_64/arm fallback.
+    SO_PEERCRED = getattr(socket, "SO_PEERCRED", 17)
     raw = sock.getsockopt(socket.SOL_SOCKET, SO_PEERCRED, struct.calcsize("iii"))
     pid, uid, gid = struct.unpack("iii", raw)
     return {"uid": uid, "gid": gid, "pid": pid}

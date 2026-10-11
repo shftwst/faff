@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, statSync, readdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, rmSync, existsSync, statSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -25,6 +25,13 @@ const COMMISSAIRE = join(BIN, "commissaire");
 const CLEAN_ENV = { ...process.env };
 delete CLEAN_ENV.COMMISSAIRE_GOVERNOR; // never let an ambient switch leak into a test
 
+// FAFF-1211's peer-cred guard admits only callers whose uid is on the governor's allow list, and it
+// reads that list via a real SO_PEERCRED read through a trusted /usr/bin/python3. The governed e2e
+// tests below therefore need both (same gate 1211's own linux real-peer test uses).
+const LINUX = process.platform === "linux";
+const HAS_TRUSTED_PY = existsSync("/usr/bin/python3");
+const GOVERNED_SKIP = !(LINUX && HAS_TRUSTED_PY) ? "needs linux + /usr/bin/python3 for the peer-cred guard" : false;
+
 function runCom(args, { input, env } = {}) {
   const r = spawnSync(process.execPath, [COMMISSAIRE, ...args], { encoding: "utf8", input: input ?? "", env: { ...CLEAN_ENV, ...(env || {}) } });
   return { stdout: r.stdout ?? "", stderr: r.stderr ?? "", code: r.status };
@@ -33,6 +40,15 @@ const ledgerOf = (runDir) => readFileSync(join(runDir, "declared-effects.jsonl")
 const walkFiles = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walkFiles(join(d, e.name)) : [join(d, e.name)]));
 
 function startGovernor(keyDir, sock) {
+  // Sanctioned allow path (mirrors FAFF-1211's test/governor-peer-cred.test.mjs): seed the governor's
+  // state dir with a mode-0600 governor-config.json listing this process's own uid, so the test is an
+  // allowed caller. openState re-creates the key dir early-returning when it already exists, so the
+  // dir must already be 0700 for loadGovernorConfig to accept the config.
+  mkdirSync(keyDir, { recursive: true });
+  chmodSync(keyDir, 0o700);
+  const cfg = join(keyDir, "governor-config.json");
+  writeFileSync(cfg, JSON.stringify({ allow_uids: [process.getuid()] }));
+  chmodSync(cfg, 0o600);
   const child = spawn(process.execPath, [COMMISSAIRE, "governor", "start", "--key-dir", keyDir, "--socket", sock], { stdio: ["ignore", "pipe", "pipe"], env: CLEAN_ENV });
   const ready = new Promise((resolve, reject) => {
     let out = "";
@@ -199,7 +215,7 @@ test("ungoverned: an explicit-disabled run is in-process — governor.json prese
 
 // --- Governed end-to-end against a real governor --------------------------------------------
 
-test("governed: admit→authorize→conclude asks the governor, verifies every record, holds no secret, labels custody governor", async () => {
+test("governed: admit→authorize→conclude asks the governor, verifies every record, holds no secret, labels custody governor", { skip: GOVERNED_SKIP }, async () => {
   const root = mkdtempSync(join(tmpdir(), "gov-governed-"));
   const keyDir = join(root, "keys");
   const sock = join(root, "gov.sock");
@@ -265,7 +281,7 @@ test("governed: admit→authorize→conclude asks the governor, verifies every r
   } finally { stopGovernor(g); rmSync(root, { recursive: true, force: true }); }
 });
 
-test("governed conclude fails closed on an admission/key fingerprint mismatch, even with no observed protected effect (parity with in-process)", async () => {
+test("governed conclude fails closed on an admission/key fingerprint mismatch, even with no observed protected effect (parity with in-process)", { skip: GOVERNED_SKIP }, async () => {
   const root = mkdtempSync(join(tmpdir(), "gov-fpmismatch-"));
   const keyDir = join(root, "keys");
   const sock = join(root, "gov.sock");
@@ -305,7 +321,7 @@ test("unreachable at admit: a configured governor that cannot be reached exits n
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("unreachable at authorize and conclude parks with the named reason; no verdict/conclusion is signed in-process", async () => {
+test("unreachable at authorize and conclude parks with the named reason; no verdict/conclusion is signed in-process", { skip: GOVERNED_SKIP }, async () => {
   const root = mkdtempSync(join(tmpdir(), "gov-rpc-unreach-"));
   const keyDir = join(root, "keys");
   const sock = join(root, "gov.sock");

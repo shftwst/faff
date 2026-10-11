@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.41.0](https://github.com/shftwst/faff/compare/faff--v0.40.0...faff--v0.41.0) (2026-10-10)
+
+
+### Features
+
+* **commissaire:** add the out-of-process governor server (FAFF-1177) ([#1025](https://github.com/shftwst/faff/issues/1025)) ([ea720f8](https://github.com/shftwst/faff/commit/ea720f84c11d39d6b8401f9ff9fde6f1ce7cbb8e))
+* **commissaire:** conclude refuses unless every observed protected effect was granted (FAFF-1225) ([#1023](https://github.com/shftwst/faff/issues/1023)) ([1a0b261](https://github.com/shftwst/faff/commit/1a0b261dd27ebca751dddb2c56e2adb810a1c40b))
+* **commissaire:** rename the conclude record kind to conformed_to_contract (FAFF-1221) ([#1022](https://github.com/shftwst/faff/issues/1022)) ([ec676cf](https://github.com/shftwst/faff/commit/ec676cfc468de9d7ca140cb0c08ec3b8ef1b196d))
+
+
+### Bug Fixes
+
+* **build-judge:** bind each ruling file to its finding so --admit cannot reuse a stale one (FAFF-1248) ([#1036](https://github.com/shftwst/faff/issues/1036)) ([6d25784](https://github.com/shftwst/faff/commit/6d25784f8e1ebdd0df4e21164c7035e762dc735c))
+* **build-judge:** bound each judge dispatch with a resolved deadline and a spawn backstop (FAFF-1244) ([#1035](https://github.com/shftwst/faff/issues/1035)) ([a84dedb](https://github.com/shftwst/faff/commit/a84dedbe8abacafea04834c335108f73bf053859))
+* **build-judge:** make --assemble budgeted and resumable so graft can chunk it under its 600s call (FAFF-1246) ([#1039](https://github.com/shftwst/faff/issues/1039)) ([def5747](https://github.com/shftwst/faff/commit/def57470179d2169b361b51b1863db97208894e6))
+* **build-judge:** read graft.build_judge_retry_limit in-process, with the flag still winning (FAFF-1245) ([#1038](https://github.com/shftwst/faff/issues/1038)) ([d526d79](https://github.com/shftwst/faff/commit/d526d7986ceac3fc49f99c57d20db900cfbd97d8))
+* **commissaire:** write governor key material with owner-only file permissions (FAFF-1195) ([#1019](https://github.com/shftwst/faff/issues/1019)) ([774b7ae](https://github.com/shftwst/faff/commit/774b7ae7826db5100fbcbf10dc91a5a833faf1fe))
+* **eval:** give the refutation-spec cases a real DONE list and expect QA on 006 (FAFF-1243) ([#1034](https://github.com/shftwst/faff/issues/1034)) ([712ec35](https://github.com/shftwst/faff/commit/712ec358f99c6439f7757322bbcf6acc21c00272))
+* **graft:** bracket the Step-9b In Review tracker-write on governed runs (FAFF-1242) ([#1029](https://github.com/shftwst/faff/issues/1029)) ([3861159](https://github.com/shftwst/faff/commit/3861159cbc8530c47b4f5ff8abc3dc7168f3f722))
+* **review:** accept near-miss refuter and eval formats from non-Claude reviewers (FAFF-1222) ([#1024](https://github.com/shftwst/faff/issues/1024)) ([2e9117c](https://github.com/shftwst/faff/commit/2e9117c896deca9e470b7e8ee213e6cff6244ebf))
+* **review:** cancel an abandoned backend's request so review-call exits once a fallback serves (FAFF-1239) ([#1032](https://github.com/shftwst/faff/issues/1032)) ([7bcbd8c](https://github.com/shftwst/faff/commit/7bcbd8c71307343d25b0bfd44ad57dda916c76e1))
+* **review:** fail a refuter lens on a finding without a severity instead of dropping it (FAFF-1223) ([#1026](https://github.com/shftwst/faff/issues/1026)) ([c890f6d](https://github.com/shftwst/faff/commit/c890f6df88be20012ce4bb7dc68342d26438c6b1))
+* **review:** record why a reviewer response was empty before deciding on a retry (FAFF-1228) ([#1037](https://github.com/shftwst/faff/issues/1037)) ([1f7b353](https://github.com/shftwst/faff/commit/1f7b3532c03833f6e7d5f338311235ebd0c3a737))
+* **review:** reject wrong-lens and indented headings around a clean refuter affirmation (FAFF-1238) ([#1028](https://github.com/shftwst/faff/issues/1028)) ([8e48202](https://github.com/shftwst/faff/commit/8e48202b4492270590a349c3478c4d7fc7c58117))
+* **spec-review:** route reject-approach by methodology severity, not lens name (FAFF-1204) ([#1033](https://github.com/shftwst/faff/issues/1033)) ([7265996](https://github.com/shftwst/faff/commit/726599618f022df3a481596ef554f983d2aa49e9))
+* **spec-review:** stop a refuter's closing prose running on into the last objection field (FAFF-1240) ([#1030](https://github.com/shftwst/faff/issues/1030)) ([f33c812](https://github.com/shftwst/faff/commit/f33c8129879fb4096659040346ab494d7a10925f))
+
 ## [0.40.0](https://github.com/shftwst/faff/compare/faff--v0.39.0...faff--v0.40.0) (2026-10-06)
 
 

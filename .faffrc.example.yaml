@@ -325,6 +325,18 @@ convergence:
   enabled: true    # true (default) | false (L3 opt-out only; inert at L4)
   max_waves: 6     # runaway backstop K — consecutive no-progress waves before non-convergence escalate
 
+# Runner GitHub identity (FAFF-1213). Let faff's own `gh` calls act under a runner credential
+# separate from the human's, and record which identity acted into tamper-evident run evidence.
+# Both keys are OPTIONAL and default ABSENT — with neither set, faff touches no `gh` environment
+# (zero-config is byte-identical to today, the ambient human-token path). `runner_github_token_env`
+# NAMES an environment variable whose VALUE is the opaque bearer token (a PAT, bot-account token,
+# or App installation token); the value is read fresh from the environment per `gh` call and is
+# never stored in config (the `_env`-handle convention, like api_key_env). Creating the runner
+# identity and provisioning its token is the operator's job, out of band (FAFF-1209).
+autonomous:
+  runner_github_token_env: RUNNER_GH_TOKEN   # env var holding the runner token; absent => ambient (zero-config)
+  runner_github_login: my-runner-bot         # optional expected login of the runner identity (e.g. octocat or my-app[bot])
+
 # Opt-in interactive high-assurance verification (FAFF-1061). Independently enable faff's L4
 # confidence machinery on an ATTENDED (interactive) session, so a hands-on operator gets the real
 # floor verdict on their own work. VERIFICATION CONFIDENCE ONLY — enabling a leg confers NO

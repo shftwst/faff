@@ -1,0 +1,18 @@
+{
+  "signal": "pass",
+  "findings": [
+    {
+      "location_present": true,
+      "action_present": true,
+      "source": "standard",
+      "severity": "critical",
+      "title": "Unhandled 'error' on a refused socket crashes the single-runner governor (DoS)",
+      "location": "plugin/skills/faff/bin/lib/governor.ts:487",
+      "disposition": "fixed",
+      "disposition_rationale": "guardUnixConnection now attaches socket.on('error', () => socket.destroy()) BEFORE reading the peer uid, so a refused/disallowed caller that resets the connection (the socket.end write failing ECONNRESET/EPIPE) cannot emit an unhandled 'error' and crash the accept loop — a trivial DoS from exactly the untrusted callers the guard refuses. Regression test added: test/governor-peer-cred.test.mjs::\"guard: a refused socket that errors (reset peer / EPIPE) does not crash the accept loop\" (commit f4f55a11).",
+      "model": "faffter-dark-adversarial-review (in-build)"
+    }
+  ],
+  "phase1_summary": "Phase-1 structural re-review of the rebased diff is clean. AC coverage complete for the auto-verifiable §5 scenarios; the uid read is fail-closed on every error path (unsupported-platform, no-socket-fd, interpreter-missing, helper-timeout-or-spawn, helper-nonzero, unparseable); the interpreter resolves only from TRUSTED_PYTHON_PATHS (never PATH); loadGovernorConfig refuses to start (exit 2) on a wrong dir/file mode or wrong owner and fails closed on a missing/empty allow list; the helper detaches fd 0 in a finally so the parent socket is never closed; the TCP listener keeps the bare onConnection with no guard. 67 pass / 0 fail / 1 skip across test/governor-peer-cred.test.mjs, test/check-no-boundary-cast.test.mjs, test/commissaire-standalone.test.mjs.",
+  "adversarial_note": "Phase-2 adversarial second opinion skipped (review-call.mjs exit 5, pass+skip): both configured OpenRouter backends (z-ai/glm-5.3-flash, deepseek/deepseek-v4-flash) returned finish_reason=length with no recognised finding section on the ~65KB diff — the documented large-diff reasoning-overrun caveat, an availability/degradation symptom, not a code defect or config fault. Interactive run (autonomous=false): the adversarial phase never blocks and no escalation applies. The in-build adversarial pass ran earlier and surfaced the B1 DoS above, now fixed."
+}

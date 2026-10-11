@@ -295,9 +295,168 @@ function classifyBranchProtection(probe) {
   return { status: "unprotected", required_checks: [], basis: probe.basis || "no branch protection" };
 }
 
+// ===========================================================================
+// FAFF-1213: the single `gh` env chokepoint — give the runner a GitHub identity
+// separate from the human's. Every `gh` invocation faff makes routes through
+// `runGh`, which injects a configured runner credential as GH_TOKEN when one is
+// configured and otherwise leaves the ambient environment byte-identical. The
+// token is an opaque bearer string faff never interprets, reads fresh per call,
+// and never persists. Zero-config (no runner credential) touches no `gh` env.
+// ===========================================================================
+
+// Per-process config memo + warn-once flags (module-level, so each distinct
+// warning fires at most once per process). The CONFIG read is memoised; the
+// token VALUE is never cached — it is read fresh from process.env per call so an
+// externally-refreshed App installation token is always picked up.
+let _runnerGhConfigMemo = null;
+let _warnedConfigFault = false;
+let _warnedUnresolved = false;
+
+// FAFF-1213: narrow, fault-tolerant reader of ONLY the two `autonomous` keys,
+// decoupled from the throwing loadConfig() so a malformed `.faffrc` cannot break
+// GitHub diagnostics or the merge. Memoised once per process. Returns
+// { tokenEnvName, configuredLogin, configFault }.
+function readRunnerGhConfig() {
+  if (_runnerGhConfigMemo) return _runnerGhConfigMemo;
+  const two = (data) => {
+    const auto = data && typeof data.autonomous === "object" && !Array.isArray(data.autonomous) ? data.autonomous : {};
+    const pick = (v) => (typeof v === "string" && v !== "" ? v : null);
+    return { tokenEnvName: pick(auto.runner_github_token_env), configuredLogin: pick(auto.runner_github_login), configFault: false };
+  };
+  try {
+    // loadConfig REQUIRES a root (loadConfig() with no arg throws on findConfig(undefined)); resolve
+    // it via the canonical findRoot(), matching resolveKnownSecretValues' own default.
+    const { findRoot } = require("./shared-infra");
+    const [data] = require("./config").loadConfig(findRoot()); // lazy — matches this file's config-read convention
+    _runnerGhConfigMemo = two(data);
+  } catch {
+    // Any config fault (malformed base/overlay, legacy name, …) degrades to ambient
+    // with tokenEnvName null — a broken `.faffrc` is an environment problem, never a
+    // separation signal, and GitHub diagnostics keep running.
+    _runnerGhConfigMemo = { tokenEnvName: null, configuredLogin: null, configFault: true };
+  }
+  return _runnerGhConfigMemo;
+}
+
+// FAFF-1213: PURE over its inputs — decides the `gh` identity from the config read
+// plus the current environment. The token VALUE is read from the passed `env`, so a
+// refreshed token is always current. Returns the `RunnerGhEnv` record. In every
+// ambient branch `env` is returned by REFERENCE (never spread/copied), so the spawned
+// `gh` environment stays byte-identical to the ambient process environment.
+function resolveRunnerGhEnv(runnerGhConfig, env) {
+  if (runnerGhConfig && runnerGhConfig.configFault) {
+    return { env, redactedEnv: env, identitySource: "ambient", tokenEnvName: null, credentialUnresolved: false, configFault: true };
+  }
+  const name = runnerGhConfig ? runnerGhConfig.tokenEnvName : null;
+  if (!name) {
+    return { env, redactedEnv: env, identitySource: "ambient", tokenEnvName: null, credentialUnresolved: false, configFault: false };
+  }
+  const token = env ? env[name] : undefined;
+  if (token === undefined || token === null || token === "") {
+    return { env, redactedEnv: env, identitySource: "ambient", tokenEnvName: name, credentialUnresolved: true, configFault: false };
+  }
+  const built = { ...env, GH_TOKEN: token };
+  const redacted = { ...built, GH_TOKEN: "***REDACTED***" };
+  return { env: built, redactedEnv: redacted, identitySource: "runner-credential", tokenEnvName: name, credentialUnresolved: false, configFault: false };
+}
+
+// FAFF-1213: THE single `gh` spawn wrapper. All 9 of faff's `gh` sites route here.
+// Reuses the memoised config, reads the token value fresh, warns once on a config
+// fault or a named-but-empty credential, and spawns `gh` with the resolved env. The
+// per-site timeout / cwd ride `opts`; `env` is the only addition over the bare call.
+function runGh(args, opts) {
+  const cfg = readRunnerGhConfig();
+  const resolved = resolveRunnerGhEnv(cfg, process.env);
+  if (resolved.configFault && !_warnedConfigFault) {
+    _warnedConfigFault = true;
+    process.stderr.write("faff: .faffrc could not be read; proceeding as the ambient GitHub identity\n");
+  } else if (resolved.credentialUnresolved && !_warnedUnresolved) {
+    _warnedUnresolved = true;
+    process.stderr.write(`faff: runner_github_token_env names ${resolved.tokenEnvName} but it is empty; proceeding as the ambient identity\n`);
+  }
+  return spawnSync("gh", args, { encoding: "utf8", env: resolved.env, ...(opts || {}) });
+}
+
+// FAFF-1213: PURE comparator for FAFF-1182 independence counting — normalises a
+// trailing `[bot]` on EITHER argument before comparing, so `my-app[bot]` and
+// `my-app` match. null/non-string inputs never match.
+function githubActorMatches(recordedLogin, observedActorLogin) {
+  const norm = (s) => (typeof s === "string" ? s.replace(/\[bot\]$/, "") : null);
+  const a = norm(recordedLogin);
+  const b = norm(observedActorLogin);
+  return a !== null && b !== null && a === b;
+}
+
+// FAFF-1213: resolve the acting GitHub login into a RunnerIdentityEvidence record
+// (never the token). The configured `runner_github_login` is the source of truth;
+// `gh api user` is a best-effort verifier that also auto-fills the login for PAT /
+// bot-account tokens. An App installation token makes `gh api user` return 403, so
+// for Apps the configured login stands unverified rather than failing.
+function resolveRunnerIdentity(runnerGhConfig, resolvedEnv, probeOverride) {
+  const configuredLogin = runnerGhConfig ? runnerGhConfig.configuredLogin : null;
+  if (!resolvedEnv || resolvedEnv.identitySource === "ambient") {
+    return {
+      github_login: configuredLogin || null,
+      github_login_source: configuredLogin ? "configured" : "unresolved",
+      credential_source: "ambient",
+      credential_unresolved: !!(resolvedEnv && resolvedEnv.credentialUnresolved),
+      verified: false,
+    };
+  }
+  // `probeOverride` is injectable (tests only) — the real call path always runs the probe fresh
+  // UNDER the runner credential; tests drive the authed / App-403 / unresolved branches with a
+  // pre-classified result rather than a live forge.
+  const probe = probeOverride !== undefined ? probeOverride : classifyGithubAuth(runGh(["api", "user"], { timeout: 60000 }));
+  if (probe.status === "authed" && probe.login) {
+    if (configuredLogin && !githubActorMatches(configuredLogin, probe.login)) {
+      process.stderr.write(`faff: configured runner_github_login (${configuredLogin}) != gh api user login (${probe.login})\n`);
+    }
+    return { github_login: probe.login, github_login_source: "gh-api-user", credential_source: "runner-credential", credential_unresolved: false, verified: true };
+  }
+  if (configuredLogin) {
+    return { github_login: configuredLogin, github_login_source: "configured", credential_source: "runner-credential", credential_unresolved: false, verified: false };
+  }
+  return { github_login: null, github_login_source: "unresolved", credential_source: "runner-credential", credential_unresolved: false, verified: false };
+}
+
+// FAFF-1213: resolve the acting identity ONCE per process and cache it. The merge-record and
+// pr-create convenience copies call this (rather than re-resolving per write), so a runner-
+// credential merge flow issues at most one `gh api user` probe, not one per writeMergeRecord call.
+// The login/source is stable for the run even if the underlying token refreshes, so caching the
+// classification (never the token) is safe.
+let _runnerIdentityMemo;
+function resolveRunnerIdentityMemoised() {
+  if (_runnerIdentityMemo !== undefined) return _runnerIdentityMemo;
+  try {
+    const cfg = readRunnerGhConfig();
+    _runnerIdentityMemo = resolveRunnerIdentity(cfg, resolveRunnerGhEnv(cfg, process.env));
+  } catch { _runnerIdentityMemo = null; }
+  return _runnerIdentityMemo;
+}
+
+// FAFF-1213: append the run-level `runner-identity` evidence record to the run's
+// hash-chained events.jsonl (via appendEventRecord, which scrubs data through the
+// known-secret redactor by construction). The record is run-level (no `issue`), so
+// `mintIssueAnchor`'s verbatim events.jsonl byte-copy carries it into every per-PR
+// anchor — the only identity source Gate 1 (FAFF-1182) trusts. Best-effort: never
+// throws out, so a recording fault never blocks a run.
+function recordRunnerIdentity(runDir, opts) {
+  try {
+    const cfg = readRunnerGhConfig();
+    const resolved = resolveRunnerGhEnv(cfg, (opts && opts.env) || process.env);
+    const evidence = resolveRunnerIdentity(cfg, resolved);
+    const { appendEventRecord } = require("./events"); // lazy — avoids a load-time cycle
+    appendEventRecord(runDir, path.basename(runDir), { phase: "run", type: "runner-identity", data: evidence });
+    return evidence;
+  } catch (e) {
+    process.stderr.write(`faff: warning — could not record runner identity: ${e.message}\n`);
+    return null;
+  }
+}
+
 // Impure gh helper: run `gh <args>`, JSON-parse stdout. Returns { ok, data, status, stderr }.
 function ghJson(args) {
-  const r = spawnSync("gh", args, { encoding: "utf8", timeout: 60000 });
+  const r = runGh(args, { timeout: 60000 }); // FAFF-1213: route through the single gh chokepoint
   if (r.error || r.status !== 0) return { ok: false, data: null, status: r.status, stderr: (r.stderr || (r.error && r.error.message) || "").trim() };
   try { return { ok: true, data: JSON.parse(r.stdout), status: 0, stderr: "" }; }
   catch { return { ok: false, data: null, status: 0, stderr: "unparseable gh JSON" }; }
@@ -318,7 +477,7 @@ function ghRepoSlug(explicit) {
 // this. Returns the 3-digit numeric status, or null if no status line is present (network failure,
 // `gh` missing, unexpected output) — the caller treats null as indeterminate and fails safe.
 function anchorHttpStatus(repo, anchorPath, headSha) {
-  const r = spawnSync("gh", ["api", "-I", `repos/${repo}/contents/${anchorPath}?ref=${headSha}`], { encoding: "utf8", timeout: 60000 });
+  const r = runGh(["api", "-I", `repos/${repo}/contents/${anchorPath}?ref=${headSha}`], { timeout: 60000 }); // FAFF-1213
   const out = String((r && r.stdout) || "");
   const m = out.match(/^HTTP\/[\d.]+\s+(\d{3})\b/m);
   return m ? Number(m[1]) : null;
@@ -472,7 +631,7 @@ function mergeRecordPath(runDir, issue) {
 // convention as harness.js's own lazy `require("./config")`). A resolution fault degrades to
 // omitting both fields (mirrors the prep-marker's owner-omit-when-unset rule) rather than
 // blocking the merge-record write the rest of `faff merge-gate` depends on.
-function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity) {
+function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor) {
   try {
     const dir = path.join(runDir, issue);
     fs.mkdirSync(dir, { recursive: true });
@@ -482,7 +641,24 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity) {
       try { id = require("./harness").harnessIdentify(); } catch { id = null; }
     }
     if (id && id.harness) { record.harness = id.harness; record.model = id.model; }
-    fs.writeFileSync(mergeRecordPath(runDir, issue), JSON.stringify(record, null, 2) + "\n");
+    // FAFF-1213: record the acting GitHub identity as a NON-authoritative convenience copy
+    // — login + credential_source only, NEVER the token. Resolved internally (lazy, like the
+    // harness identity above) unless injected (tests). A resolution fault omits the field.
+    let actor = githubActor;
+    if (actor === undefined) {
+      const ev = resolveRunnerIdentityMemoised(); // resolved once per process (no per-write gh probe)
+      actor = ev ? { login: ev.github_login, source: ev.credential_source } : null;
+    }
+    if (actor) record.github_actor = { login: actor.login ?? null, source: actor.source };
+    // FAFF-1213: route the WHOLE record through the known-secret redaction core before the
+    // write, so the token cannot reach the merge record even via a future token-bearing field
+    // (the {login, source}-only construction above is the first line of defence). A config-read
+    // fault degrades to an empty secret set rather than failing the merge-record write.
+    const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
+    let secretValues = [];
+    try { secretValues = resolveKnownSecretValues(); } catch { secretValues = []; }
+    const safe = redactKnownSecrets(record, secretValues);
+    fs.writeFileSync(mergeRecordPath(runDir, issue), JSON.stringify(safe, null, 2) + "\n");
   } catch (e) {
     process.stderr.write(`faff merge-gate: warning — could not write merge-record.json: ${e.message}\n`);
   }
@@ -1688,7 +1864,7 @@ function cmdMergeGate(args) {
     process.stderr.write(`faff merge-gate: no merge method — pass one via --merge-args "--squash" (or --merge/--rebase), or as a bare --squash/--merge/--rebase flag\n`);
     return 2;
   }
-  const m = spawnSync("gh", ["pr", "merge", String(pr), ...resolved.flags, "--match-head-commit", headSha], { encoding: "utf8", timeout: 120000 });
+  const m = runGh(["pr", "merge", String(pr), ...resolved.flags, "--match-head-commit", headSha], { timeout: 120000 }); // FAFF-1213
   if (m.status !== 0) {
     const mergeStderr = (m.stderr || "").trim();
     // FAFF-365: a non-zero `gh pr merge` exit does not by itself mean the merge failed — it can mean
@@ -1782,7 +1958,7 @@ function cmdPrCreate(args) {
     return emit({ verdict: "refuse", opened: false, blockers: ["faff pr-create: --title is required (gh pr create needs --title in a non-interactive session); pass --title resolved from the build's pr_title/commit_subject convention"] }, 2);
   }
   const ghArgs = ["pr", "create", "--body-file", bodyFile, "--title", title];
-  const r = spawnSync("gh", ghArgs, { encoding: "utf8", timeout: 120000 });
+  const r = runGh(ghArgs, { timeout: 120000 }); // FAFF-1213: route through the single gh chokepoint
   if (r.status !== 0) {
     return emit({ verdict: "refuse", opened: false, blockers: [`gh pr create failed: ${(r.stderr || "").trim() || "non-zero exit"}`] }, 1);
   }
@@ -1792,8 +1968,15 @@ function cmdPrCreate(args) {
   // covered-merge suppression). Every failure is swallowed — the PR is already open by now.
   if (!prCreateCoveredBySchema3Grant(runDir, issue, base)) {
     const effects = [{ kind: "pr-create", target: base, reversible: true }];
+    // FAFF-1213: the acting GitHub identity rides the pr-create ENVELOPE (recordFields), never
+    // the effect descriptor — normEffect canonicalises a descriptor to {kind,target,reversible},
+    // so descriptor extras would be dropped. A NON-authoritative convenience copy ({login, source},
+    // never the token); a resolution fault omits it.
+    const prCreateEv = resolveRunnerIdentityMemoised(); // resolved once per process
+    const prCreateActor = prCreateEv ? { login: prCreateEv.github_login ?? null, source: prCreateEv.credential_source } : null;
+    const prCreateFields = prCreateActor ? { origin: "pr-create-auto", github_actor: prCreateActor } : { origin: "pr-create-auto" };
     try {
-      const dec = appendEffectEntries(runDir, "declare", issue, "pr-create", effects, undefined, { origin: "pr-create-auto" });
+      const dec = appendEffectEntries(runDir, "declare", issue, "pr-create", effects, undefined, prCreateFields);
       if (dec.violations) process.stderr.write(`faff pr-create: effects ledger declare rejected internally-built descriptors: ${JSON.stringify(dec.violations)}\n`);
       const obs = appendEffectEntries(runDir, "observe", issue, "pr-create", effects);
       if (obs.violations) process.stderr.write(`faff pr-create: effects ledger observe rejected internally-built descriptors: ${JSON.stringify(obs.violations)}\n`);
@@ -1818,7 +2001,7 @@ function cmdBranchProtectionCheck(args) {
   }
   // FAFF-503: probe the effective-rules endpoint — the documented union of classic protection +
   // rulesets — not the classic protection API (which 404s on ruleset-only protection).
-  const r = spawnSync("gh", ["api", `repos/${repo}/rules/branches/${branch}`], { encoding: "utf8", timeout: 60000 });
+  const r = runGh(["api", `repos/${repo}/rules/branches/${branch}`], { timeout: 60000 }); // FAFF-1213
   let probe;
   if (r.error) probe = { ok: false, basis: `gh unavailable: ${r.error.message}` };
   else if (r.status === 0) {
@@ -1892,10 +2075,23 @@ function cmdGithubAuthCheck(args) {
   const parsed = parseArgs(args, GITHUB_AUTH_SPEC);
   if (parsed.errors.length) return usageError(parsed.errors, "usage: faff github-auth-check [--json]");
   const json = !!parsed.values["--json"];
-  const r = spawnSync("gh", ["api", "user"], { encoding: "utf8", timeout: 60000 });
+  // FAFF-1213: the probe now runs UNDER the runner credential when one is configured
+  // (routed through runGh). Resolve which identity it reflects and augment the output
+  // WITHOUT losing the existing status/basis/login "is gh auth working" signal.
+  const cfg = readRunnerGhConfig();
+  const resolvedEnv = resolveRunnerGhEnv(cfg, process.env);
+  const r = runGh(["api", "user"], { timeout: 60000 });
   const st = classifyGithubAuth({ error: r.error || null, status: r.status, stdout: r.stdout || "", stderr: r.stderr || "" });
-  if (json) process.stdout.write(JSON.stringify(st) + "\n");
-  else console.log(`${st.status} (basis: ${st.basis})${st.status === "authed" && st.login ? ` — ${st.login}` : ""}`);
+  const identitySource = resolvedEnv.identitySource;
+  if (json) {
+    process.stdout.write(JSON.stringify({ ...st, identity_source: identitySource, credential_source: identitySource, credential_unresolved: resolvedEnv.credentialUnresolved, config_fault: resolvedEnv.configFault }) + "\n");
+  } else {
+    const loginPart = st.status === "authed" && st.login ? ` — ${st.login}` : "";
+    let reason = "";
+    if (resolvedEnv.configFault) reason = " (config fault: .faffrc unreadable; proceeding ambient)";
+    else if (resolvedEnv.credentialUnresolved) reason = ` (runner_github_token_env ${resolvedEnv.tokenEnvName} empty; proceeding ambient)`;
+    console.log(`${st.status} (basis: ${st.basis})${loginPart} [${identitySource}]${reason}`);
+  }
   return st.status === "authed" ? 0 : 1;
 }
 
@@ -2842,4 +3038,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };

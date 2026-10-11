@@ -291,6 +291,15 @@ const DEFAULTS = {
   // sentry_acting above (resolved by sentry.js's declaredUnattendedFromConfig, which
   // OR-s this with the sentry_acting alias); surface/pause/correct stay L4-only-acts.
   "autonomous.unattended": "false",
+  // FAFF-1213: the runner-GitHub-identity handles. Both default ABSENT (empty string) —
+  // absent `runner_github_token_env` is zero-config (faff touches no gh environment, the ambient
+  // human token path, byte-identical to today). `runner_github_token_env` NAMES an env var whose
+  // VALUE is the opaque bearer token (never stored in config, read fresh per gh call); the
+  // `_env`-suffixed handle convention mirrors api_key_env / seat_token_env. `runner_github_login`
+  // is the optional expected login of the runner identity. Registry entries drive `config get`'s
+  // DISPLAY value (empty string, exit 0); the gh chokepoint reads the raw config, not DEFAULTS.
+  "autonomous.runner_github_token_env": "",
+  "autonomous.runner_github_login": "",
   // FAFF-624: the code-side default for the convergence brace (resolveConvergence below) —
   // matches the FAFF-534-flipped `.faffrc.example.yaml` default, so a config-less repo's
   // `faff config get convergence.enabled` answers "true"/exit 0 rather than exit 3.

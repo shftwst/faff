@@ -1,0 +1,30 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "§5 scenario 1 — an allowed caller (uid on the governor's allow list) opens the Unix socket and sends an admit request; the governor reads the request and replies as it does today, and the accepted request's log line carries peer_uid.",
+      "verified": "test/governor-peer-cred.test.mjs::\"guard: an allowed uid proceeds and the accepted request's log line carries peer_uid\", \"allow-list source: served when the root-owned governor-config.json lists the uid\", and the real kernel read \"linux real-peer: a real kernel SO_PEERCRED read serves the caller's own uid and refuses others, mode-independent\" — all passing (node --test, Linux CI).",
+      "passed": true
+    },
+    {
+      "ac": "§5 scenario 2 — a caller whose uid is NOT on the allow list is replied { ok: false, reason: \"caller-not-allowed\" } without the request being read, and a connect log line is written with op \"connect\", refusal \"caller-not-allowed\", and the peer uid.",
+      "verified": "test/governor-peer-cred.test.mjs::\"guard: a disallowed uid is refused caller-not-allowed before the request is read\" plus the refuse-others half of the \"linux real-peer\" real-kernel test — passing.",
+      "passed": true
+    },
+    {
+      "ac": "§5 scenario 3 — the allow list is sourced solely from the root-owned governor-config.json (mode 0600) in the 0700 key dir: served when it lists the uid, every caller refused when it is missing or allow_uids is empty (fail closed), with no runner-influenceable input (argv/env/wire) able to authorize a caller.",
+      "verified": "test/governor-peer-cred.test.mjs::\"allow-list source: served when the root-owned governor-config.json lists the uid\", \"...a missing file yields an empty list and an empty list refuses every caller\", \"...a wrong file mode refuses to start (exit-2 class)\", \"...a non-array allow_uids is refused\", \"interpreter policy: TRUSTED_PYTHON_PATHS are absolute and outside any user-writable home\", and \"interpreter policy: a python3 shim on PATH is never executed\" — all passing.",
+      "passed": true
+    },
+    {
+      "ac": "§5 assertion — the TCP --listen listener applies no peer check and is unchanged by this ticket.",
+      "verified": "Static/structural verification: plugin/skills/faff/bin/lib/governor.ts wires guardUnixConnection only onto the Unix listener (governorStart, the make((socket) => guardUnixConnection(...)).listen(socketPath, ...) call) while the optional TCP listener keeps the bare make((socket) => onConnection(state, socket)).listen(port, host, ...); no guard is attached to the TCP path. The full peer-cred suite passing confirms no regression to the Unix guard.",
+      "passed": true
+    },
+    {
+      "ac": "§5 assertion — the shipped require closure gains no runtime dependency: the import-independence guard stays green with the new peer-cred module in the governor's walk.",
+      "verified": "test/commissaire-standalone.test.mjs import-independence guard — passing (node --test, with NODE_EXTRA_CA_CERTS unset); peer-cred.js is present in the lib source set walked and introduces no cross-region require edge (faff regions check also PASS).",
+      "passed": true
+    }
+  ]
+}

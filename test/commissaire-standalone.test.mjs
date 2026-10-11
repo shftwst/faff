@@ -151,6 +151,16 @@ test("the standalone commissaire require graph never reaches an orchestration mo
   assert.deepEqual(outside, [], `files resolved outside plugin/skills/faff/bin/: ${outside.join(", ")}`);
 });
 
+// FAFF-1179: the runner-side governor client is a literal-required member of the facade closure, and
+// config.js stays OUT of it (ADR 0135 decision 11 — Commissaire-adjacent code reads the switch via
+// readGovernanceConfig in budget.js, never faff's config reader, and must stay denylist-clean).
+test("FAFF-1179: the governor client is reachable (literal require) and config.js is not in the closure", () => {
+  const { visited } = walk([COMMISSAIRE, join(LIB, "commissaire.js")], libSourceSet());
+  const names = new Set([...visited].map((f) => basename(f)));
+  assert.ok(names.has("commissaire-governor-client.js"), "the FAFF-1179 governor client must be reachable from the facade (a literal require edge)");
+  assert.ok(!names.has("config.js"), "config.js must never enter the commissaire closure (ADR 0135 decision 11)");
+});
+
 // --- FAFF-1000: runtime spawn-guard --------------------------------------------------------------
 // The static walk proves commissaire.js never REQUIRES the faff bin's graph; this proves the
 // depth'd `verdict conclude` / `audit seal` never EXEC it either (a require-graph guard cannot catch

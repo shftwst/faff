@@ -277,7 +277,8 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   // and ./budget (readGovernanceConfig); both reach no orchestration module (proven by the
   // standalone independence walk), and requiresSelfConsistencyStamp comes from ./shared-infra.
   // FAFF-1177 — ./decision-policy holds the moved evaluators; ./governor is the `governor start|rotate` dispatch target.
-  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor"]);
+  // FAFF-1179 — ./commissaire-governor-client is the runner-side governor client (budget/shared-infra/producer-auth only, denylist-clean).
+  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./commissaire-governor-client"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
 });
 

@@ -1535,8 +1535,9 @@ const WRITABLE_NAMESPACES = new Set([
 // fails loud on drift instead of silently reintroducing this bug (FAFF-949 added the `capture`
 // read without this entry; `provenance` was already dormant the same way).
 const READ_ONLY_NAMESPACES = new Set([
-  "capture",    // decision-capture.js: dig(data, "capture.decision_kernel")
-  "provenance", // harness.js: dig(cfgData, "provenance.harness" | "provenance.model")
+  "capture",     // decision-capture.js: dig(data, "capture.decision_kernel")
+  "provenance",  // harness.js: dig(cfgData, "provenance.harness" | "provenance.model")
+  "commissaire", // commissaire-governor-client.js (FAFF-1179): dig(cfg, "commissaire.governor" | ".connect_timeout_ms" | ".reply_timeout_ms")
 ]);
 
 // The known-key lint's notion of "not a typo" — every namespace `config set` may write, PLUS

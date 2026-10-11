@@ -1,0 +1,50 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A run with no commissaire.governor configured and no COMMISSAIRE_GOVERNOR env signs every record in-process, carries no payload.custody field, and is byte-identical to today's ungoverned records.",
+      "verified": "test/commissaire-governor-client.test.mjs \"ungoverned: an explicit-disabled run is in-process — governor.json present, admission carries no custody, chain verifies\" — passing (16/16)",
+      "passed": true
+    },
+    {
+      "ac": "A run pointing at a reachable governor admits: the client verifies the admission record's Ed25519 signature under the reply's pk and that pkFingerprint(pk) matches pk_fingerprint, the record carries payload.custody \"governor\", pk.json holds the governor pk owner-only, and no governor.json / sk / master / root secret exists under the run dir or in the runner env.",
+      "verified": "test/commissaire-governor-client.test.mjs \"governed: admit→authorize→conclude asks the governor, verifies every record, holds no secret, labels custody governor\" — passing against a real governor over main's FAFF-1211 peer-cred guard, admitted via the sanctioned mode-0600 governor-config.json allow-list of the test's own uid",
+      "passed": true
+    },
+    {
+      "ac": "A reachable governor whose admit reply carries a record whose signature does not verify under the reply's pk, or whose pkFingerprint(pk) does not match pk_fingerprint, is refused (no pk.json / producer file persisted, nothing appended).",
+      "verified": "test/commissaire-governor-client.test.mjs \"verifyAdmitReply accepts a genuine reply and refuses a tampered record, a fingerprint mismatch, and a producer-HMAC'd fake\" plus \"governed conclude fails closed on an admission/key fingerprint mismatch…\" — both passing",
+      "passed": true
+    },
+    {
+      "ac": "A governed run whose governor restarts and replies producer-not-admitted at authorize writes no verdict and parks with reason \"governor-admission-lost\", distinct from governor-lost-race.",
+      "verified": "test/commissaire-governor-client.test.mjs \"driver: a position-mismatch refusal is a lost race; ledger-not-extending-head and producer-not-admitted park immediately\" — passing",
+      "passed": true
+    },
+    {
+      "ac": "A governed run whose conclude receives an idempotent reply returns the existing sequence and exits 0 without appending or entering the lost-race retry.",
+      "verified": "test/commissaire-governor-client.test.mjs \"driver: unreachable surfaces unreachable; an idempotent reply is verified, then returned without appending or retrying\" and the idempotent re-conclude assertions in the governed admit→authorize→conclude test — passing",
+      "passed": true
+    },
+    {
+      "ac": "A governance-required run whose governor is unreachable at run-start admit refuses before building: it names the governor, exits non-zero, and persists nothing (no pk.json, no ledger line).",
+      "verified": "test/commissaire-governor-client.test.mjs \"unreachable at admit: a configured governor that cannot be reached exits non-zero and names the governor; nothing is persisted\" — passing",
+      "passed": true
+    },
+    {
+      "ac": "A governed run whose governor is unreachable at authorize/conclude signs no verdict/conclusion in-process and parks with the named reason; custody never falls back.",
+      "verified": "test/commissaire-governor-client.test.mjs \"unreachable at authorize and conclude parks with the named reason; no verdict/conclusion is signed in-process\" — passing",
+      "passed": true
+    },
+    {
+      "ac": "The frozen secret-free replay fixture and the banked schema:3 evidence verify unchanged through audit verify.",
+      "verified": "test/commissaire.test.mjs schema:3 chain, \"seeded-governance-block: a pre-cutover schema:2 ledger stays frozen…\" and \"replay-determinism: … byte-identical\" — 55/55 passing; the governed e2e test also runs `audit verify --json` to exit 0",
+      "passed": true
+    },
+    {
+      "ac": "`faff commissaire …` and the standalone `commissaire …` produce byte-identical stdout/stderr/exit; the import-independence guard and `faff regions check` pass (the client reads the switch through readGovernanceConfig in budget.js, never config.js, and stays denylist-clean).",
+      "verified": "test/commissaire-standalone.test.mjs 10/10 passing incl. \"FAFF-1179: the governor client is reachable (literal require) and config.js is not in the closure\"; `faff regions check` PASS. Local-only: 4 byte-identical stderr-parity cases are red under this cage's NODE_EXTRA_CA_CERTS pointing at a missing cert file — an environment artifact that leaks a TLS warning into one entrypoint's stderr; green with it unset and in CI.",
+      "passed": true
+    }
+  ]
+}

@@ -4,6 +4,8 @@
 
 Revised on 2026-10-12 after four adversarial spec-review rounds (architectural, infosec, QA): binds every key to the seq-0 admission for both custodies, binds records to the run directory, requires the effect target, keys applicability on governance material, and defaults `audit verify` to the remote trust read. Final verdict: approve.
 
+Amended on 2026-10-12 during the build (operator decision, option 3): the run id that records are bound to is an explicit input, defaulting to the run directory's basename. `audit verify` derives it from an anchor path and accepts `--run-id`, so committed anchors and the frozen fixture verify while the copied-admission check stays in every reader.
+
 This spec is for the build agent and human reviewers of FAFF-1178. It defines the one grant-verify function Commissaire exports from the governance region, the change to `verifyAuthLeg`, and the new fields in `audit verify`. FAFF-1212 (faff's `merge-gate`, pr-create and branch-delete call sites) and FAFF-1219 (strict mode) are prepped against the interface in section 3.
 
 ## 1. Why
@@ -62,8 +64,9 @@ This spec is for the build agent and human reviewers of FAFF-1178. It defines th
 | Admitted key | The public key whose fingerprint equals the admission's `pk_fingerprint` and under which the admission's signature verifies |
 | Pinned | Governor custody, and the admitted key's fingerprint is in the base branch's `governor_key_fingerprints` |
 | Unpinned | Governor custody, and the fingerprint is not listed, or the trust file was not read |
-| Run binding | Every schema:3 record's `run_id` equals the run directory's basename, the same rule the governor applies before it signs (`governor.ts`, "record is not schema 3 of this run at its line position") |
-| Signed position | The `seq` and `prev` inside a signed record. A record at zero-based physical line index `i` is at its signed position when its `run_id` equals the run directory's basename, its `seq` equals `i`, exactly one physical line carries that record, and the chain walk finds no break at or before one-based line `i + 1`. Line 0's `prev` must equal `sha256(basename(run_dir))`, computed from the directory, never from the record's own `run_id` |
+| Expected run id | The run id records are bound to: the caller's `run_id` input when given, else `basename(run_dir)`. `audit verify` sets it from `--run-id`, else from an anchor path `.faff/anchors/<run>/<unit>/` (the `<run>` segment), else the basename |
+| Run binding | Every schema:3 record's `run_id` equals the expected run id, the same rule the governor applies before it signs (`governor.ts`, "record is not schema 3 of this run at its line position") |
+| Signed position | The `seq` and `prev` inside a signed record. A record at zero-based physical line index `i` is at its signed position when its `run_id` equals the expected run id, its `seq` equals `i`, exactly one physical line carries that record, and the chain walk finds no break at or before one-based line `i + 1`. Line 0's `prev` must equal `sha256(expected run id)`, computed from the input or directory, never from the record's own `run_id` |
 
 ### The new module
 
@@ -97,7 +100,7 @@ ENUM KeyFailureReason:
   "admission-missing"           # governance material exists but seq 0 is not a Commissaire admission,
                                 #   including a missing, emptied or fully garbled ledger
   "admission-position-invalid"  # the admission is not at its signed position (for example copied from another run)
-  "run-id-mismatch"             # a schema:3 record up to the checked one carries a run_id other than basename(run_dir)
+  "run-id-mismatch"             # a schema:3 record up to the checked one carries a run_id other than the expected run id
   "governor-key-not-admitted"   # governor custody: pk.json missing, its fingerprint != the admission's,
                                 #   or the admission does not verify under it
   "key-not-admitted"            # in-process custody: the same binding fails for the governor.json / pk.json key
@@ -106,6 +109,7 @@ ENUM KeyFailureReason:
 
 INTERFACE GrantVerifyInput:                    # argument to verifyGrant
   run_dir: Path
+  run_id?: String                              # expected run id; defaults to basename(run_dir)
   unit_id: String
   step: String                                 # "merge" | "pr-create"
   effect: { kind: String, target: String }   # kind: "merge" | "pr-create" | "branch-delete"; target required
@@ -134,7 +138,7 @@ ENUM GrantReason:
     | "decision-not-a-grant" | "grant-does-not-cover-effect" | "pk-unreadable"
 
 FUNCTION verifyGrant(input: GrantVerifyInput) -> GrantVerifyResult
-FUNCTION resolveAdmittedKey(run_dir, trust: TrustInput, governor_dir?, producer_dir?) -> KeyResolution
+FUNCTION resolveAdmittedKey(run_dir, trust: TrustInput, governor_dir?, producer_dir?, run_id?) -> KeyResolution
 ```
 
 Both functions are pure apart from reading files under `run_dir`. Neither reads the trust file itself: the caller passes the `readTrustFile` result, and `verifyGrant` ignores it on an ungoverned run (FAFF-1212 may skip the read when the run has no governance context). Neither throws on a malformed run directory; unreadable inputs become an `absent-or-invalid` outcome with a named reason.
@@ -145,12 +149,13 @@ Both functions are pure apart from reading files under `run_dir`. Neither reads 
 
 ### `audit verify` output additions
 
-`cmdAuditVerify` gains three optional flags and four fields. Existing fields keep their names and meaning.
+`cmdAuditVerify` gains four optional flags and four fields. Existing fields keep their names and meaning.
 
 | Flag | Meaning |
 |---|---|
 | `--base <ref>` | Read the trust file from this ref. Absent: no trust read, `trust_source: "not-read"` |
 | `--trust-transport remote\|local` | Default `remote` (`gh api` contents, ADR 0135 decision 6: an independent verifier reads the remote base branch). `local` (`git show <base>:.commissaire/trust.toml`) is opt-in and reported as `trust.source: "local-ref"` |
+| `--run-id <id>` | The expected run id. Absent: the `<run>` segment when `--run-dir` is an anchor path `.faff/anchors/<run>/<unit>/`, else the directory's basename. Must match `^[A-Za-z0-9_][A-Za-z0-9_.-]*$`; anything else exits 2 |
 | `--repo <owner/name>` | Required with the remote transport. Missing: exit 2 with a stderr diagnostic, like every other setup error, never a `trust-file-invalid` result |
 
 `--repo` must match `^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*$` with no `..`. `--base` must match `^[A-Za-z0-9_][A-Za-z0-9_./-]*$` with no `..`, so it cannot start with `-` or carry `?`, `#`, `&`, `%`, spaces or control characters. Anything else exits 2 before any read, since both reach `git show` and `gh api` as arguments and URL segments.
@@ -189,7 +194,7 @@ PROCEDURE resolveAdmittedKey(run_dir, trust, governor_dir, producer_dir):
         custody := governor.json present ? "in-process" : "governor"   # an unauthenticated label on a failing run;
                                                                           #   it never changes an outcome
                                                                           # never fall through to pk.json
-  3. IF admission.run_id != basename(run_dir) -> failure "run-id-mismatch", pk null
+  3. IF admission.run_id != expected run id -> failure "run-id-mismatch", pk null
      IF NOT atSignedPosition(run_dir, admission) -> failure "admission-position-invalid", pk null
   4. custody := admission.payload.custody == "governor" ? "governor" : "in-process"
   5. candidates := IF custody == "governor": [pk.json key]
@@ -211,7 +216,7 @@ PROCEDURE resolveAdmittedKey(run_dir, trust, governor_dir, producer_dir):
  12. RETURN the KeyResolution (the first failure set wins)
 ```
 
-**Chosen:** one binding rule for both custodies. Every governed run, in-process or governor, has a seq-0 admission carrying `pk_fingerprint` (in-process `admit` and the governor both write it, as the `secret-free-replay` fixture shows). The key is accepted only when its fingerprint equals that value and the admission verifies under it at its genesis position. Removing or displacing the admission fails `admission-missing` or `admission-position-invalid` instead of falling through to `pk.json`. Deleting, emptying or garbling the whole ledger does the same: applicability keys on governance material (including `pk.json`, which every `admit` writes), not on finding parseable schema:3 records, so a governed run can never be downgraded to `not-applicable` by damaging the one runner-writable ledger file. Copying another run's admission into this directory fails `run-id-mismatch`: the signed `run_id` names the other run, and the genesis `prev` is checked against this directory's basename, not the record's own field (`walkPhysicalChain` alone takes genesis from the record, so the explicit check is required).
+**Chosen:** one binding rule for both custodies. Every governed run, in-process or governor, has a seq-0 admission carrying `pk_fingerprint` (in-process `admit` and the governor both write it, as the `secret-free-replay` fixture shows). The key is accepted only when its fingerprint equals that value and the admission verifies under it at its genesis position. Removing or displacing the admission fails `admission-missing` or `admission-position-invalid` instead of falling through to `pk.json`. Deleting, emptying or garbling the whole ledger does the same: applicability keys on governance material (including `pk.json`, which every `admit` writes), not on finding parseable schema:3 records, so a governed run can never be downgraded to `not-applicable` by damaging the one runner-writable ledger file. Copying another run's admission into this directory fails `run-id-mismatch`: the signed `run_id` names the other run, and the genesis `prev` is checked against the expected run id (the directory's basename unless the caller names it), not the record's own field (`walkPhysicalChain` alone takes genesis from the record, so the explicit check is required).
 
 **Chosen:** under in-process custody, key selection keeps today's FAFF-978 precedence (`governor.json` first, then `pk.json`) and the tamper cross-check, with the admission binding added. Decision 6 says in-process custody keeps checking against the run's own key, and the frozen fixture depends on it.
 
@@ -241,18 +246,18 @@ PROCEDURE verifyGrant(input):
   5. verdict := last of verdicts whose payload.effect.kind == input.effect.kind   # latest wins, as today: a later deny refuses
      IF none -> RETURN absent-or-invalid, "no-verdict-for-kind"
   6. IF key.failure != null -> RETURN absent-or-invalid, key.failure
-  7. IF any schema:3 record up to the verdict has run_id != basename(run_dir) -> RETURN absent-or-invalid, "run-id-mismatch"
+  7. IF any schema:3 record up to the verdict has run_id != expected run id -> RETURN absent-or-invalid, "run-id-mismatch"
      IF NOT atSignedPosition(input.run_dir, verdict) -> RETURN absent-or-invalid, "chain-position-invalid"
   8. res := chokepointPermit({ kind: input.effect.kind, target: input.effect.target }, verdict, key.pk, key.signer_fingerprint)
   9. RETURN { outcome: res.permit ? "valid-grant" : "absent-or-invalid", reason: res.reason,
               custody, classification, signer_fingerprint, verdict_seq: verdict.seq, trust_source }
 
-PROCEDURE atSignedPosition(run_dir, record):
+PROCEDURE atSignedPosition(run_dir, record, expected_run_id):
   1. walk := walkPhysicalChain(bytes of <run_dir>/declared-effects.jsonl)   # first_break.line is ONE-based
   2. IF walk.status == "malformed" -> false        # a mid-file non-record; a torn FINAL line is not malformed:
                                                    #   the walk stops before it and reports torn_tail
-  2a. IF the line-0 record's prev != sha256(basename(run_dir)) -> false      # genesis bound to the directory
-  2b. IF any parsed record at index <= the record's index has run_id != basename(run_dir) -> false
+  2a. IF the line-0 record's prev != sha256(expected run id) -> false        # genesis bound to the expected run
+  2b. IF any parsed record at index <= the record's index has run_id != expected run id -> false
   3. matches := zero-based indices i where walk.records[i] has the same seq AND the same commissaire_sig as record
      IF matches has no element or more than one -> false                    # duplicates are refused, never guessed
   4. i := the single match
@@ -398,7 +403,9 @@ Then verifyGrant returns "absent-or-invalid" with reason "chain-position-invalid
 - [ ] A run with no governance material returns `not-applicable`. A run with `pk.json` or `governor.json` but a missing, empty or garbled ledger returns `admission-missing` (or `ledger-malformed` for a mid-file non-record), never `not-applicable`.
 - [ ] With a grant followed by a deny for the same unit, step and kind, `verifyGrant` refuses with `decision-not-a-grant`, matching today's latest-wins selection.
 - [ ] A verdict after a chain break, whose `seq` differs from its zero-based line index, or that appears on more than one physical line, gives `chain-position-invalid`. An honest grant on the line immediately before a broken line, or before a torn final line, still passes; a malformed ledger (a non-record mid-file) refuses. Tests pin the one-based `first_break.line` boundary.
-- [ ] Line 0's `prev` is checked against `sha256(basename(run_dir))`, and any record with another `run_id` up to the checked record gives `run-id-mismatch`.
+- [ ] Line 0's `prev` is checked against `sha256(expected run id)`, and any record with another `run_id` up to the checked record gives `run-id-mismatch`.
+- [ ] `verifyGrant` and `resolveAdmittedKey` default the expected run id to `basename(run_dir)`; `audit verify` takes it from `--run-id`, else an anchor path's `<run>` segment, else the basename. `audit verify --run-dir <committed anchor>` verifies, and the frozen fixture verifies with `--run-id RUN-SMOKE` (or its test's equivalent input).
+- [ ] A garbled mid-file ledger line on a governed run gives `ledger-malformed`; the older malformed-parity test that expected dropped lines never to fail auth is updated to expect it.
 - [ ] `classification` and `signer_fingerprint` are null whenever no key is bound; `classification` is null on `trust-file-invalid`.
 - [ ] `verifyAuthLeg` uses `resolveAdmittedKey` and no longer reads `pk.json` as the trust source under governor custody.
 - [ ] `require_pinned_governor` is reported but changes no outcome.

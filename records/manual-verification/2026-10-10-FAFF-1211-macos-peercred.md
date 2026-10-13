@@ -39,7 +39,7 @@ path is relied on in production. CI itself uses the stubbed reader for the cross
 
 ### 2. Multi-user intruder refusal (the gate holds across users)
 
-1. As the governor's own user, hand-write a root-owned `governor-config.json` (mode `0600`) in the
+1. As the governor's own user, hand-write a governor-owned `governor-config.json` (mode `0600`) in the
    `0700` key dir listing only the allowed runner's uid.
 2. Start the governor (`commissaire governor start --key-dir <dir>`).
 3. Connect from the allowed uid → the admit reply is normal and the log line carries `peer_uid`.

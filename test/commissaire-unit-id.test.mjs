@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./helpers/run-cli.mjs";
+import { trustRepo, localTrustCtx } from "./helpers/trust-context.mjs";
 import { deriveKey, signRecord, signDecision } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
   LEDGER_CFG, appendProducerRecords, appendCommissaireRecord, buildEnvelope, evaluateDecisionRequest,
@@ -143,10 +144,13 @@ test("writer: a body carrying issue, both keys, or no string unit_id throws befo
 test("frozen fixture: the issue-keyed verdict resolves valid-grant, conclude finds FAFF-1's records, and no byte changes", () => {
   const before = treeDigest(FIXTURE_ROOT);
   const root = mkdtempSync(join(tmpdir(), "unit-frozen-"));
+  const trust = trustRepo("main");
   try {
     const copy = join(root, "secret-free-replay");
     cpSync(FIXTURE_ROOT, copy, { recursive: true });
-    assert.equal(resolveCommissaireDecisionGrant(copy, "FAFF-1", "main"), "valid-grant", "the compatibility read resolves the frozen grant");
+    const governed = join(root, "RUN-SMOKE"); // the frozen ledger is bound to the run id RUN-SMOKE (the directory name)
+    cpSync(FIXTURE_ROOT, governed, { recursive: true });
+    assert.equal(resolveCommissaireDecisionGrant(governed, "FAFF-1", "main", localTrustCtx(trust)), "valid-grant", "the compatibility read resolves the frozen grant");
     const c1 = runCom(["verdict", "conclude", "--run-dir", copy, "--unit-id", "FAFF-1"]);
     assert.equal(c1.code, 0);
     assert.equal(json(c1).verdict, "refused");
@@ -159,7 +163,7 @@ test("frozen fixture: the issue-keyed verdict resolves valid-grant, conclude fin
     const v = runCom(["audit", "verify", "--run-dir", FIXTURE_ROOT, "--run-id", "RUN-SMOKE", "--json"]);
     assert.equal(v.code, 0);
     assert.equal(json(v).result, "pass");
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(trust, { recursive: true, force: true }); }
   assert.deepEqual(treeDigest(FIXTURE_ROOT), before, "the committed fixture is byte-identical");
 });
 
@@ -206,15 +210,16 @@ test("pure core: a signed dual-key request is denied invalid-unit-key, ahead of 
 
 test("grant resolver: a governor-signed dual-key verdict never resolves a grant", () => {
   const { root, runDir } = mkRun("unit-dual-grant-");
+  const trust = trustRepo("main");
   try {
     admit(runDir);
     const verdict = (unitKeys) => ({ kind_of_entry: "effect-decision-verdict", ...unitKeys, step: "merge", payload: { verdict: "grant", reason: "all-legs-pass", effect: MERGE } });
     plant(runDir, verdict({ issue: "X", unit_id: "U" }), signAsCommissaire(runDir));
-    assert.equal(resolveCommissaireDecisionGrant(runDir, "U", "main"), "absent-or-invalid");
-    assert.equal(resolveCommissaireDecisionGrant(runDir, "X", "main"), "absent-or-invalid");
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "U", "main", localTrustCtx(trust)), "absent-or-invalid");
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "X", "main", localTrustCtx(trust)), "absent-or-invalid");
     plant(runDir, verdict({ unit_id: "V" }), signAsCommissaire(runDir));
-    assert.equal(resolveCommissaireDecisionGrant(runDir, "V", "main"), "valid-grant", "positive control: the same verdict keyed on unit_id alone grants");
-  } finally { rmSync(root, { recursive: true, force: true }); }
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "V", "main", localTrustCtx(trust)), "valid-grant", "positive control: the same verdict keyed on unit_id alone grants");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(trust, { recursive: true, force: true }); }
 });
 
 test("computeEscapes: each dual-key record is its own rejected-unit-key escape; a no-unit record is not", () => {

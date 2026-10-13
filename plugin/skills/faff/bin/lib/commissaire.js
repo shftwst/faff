@@ -125,25 +125,6 @@ catch {
 // The one read of the governor file (SK + master + PK). Every in-module consumer goes through it, so a
 // later custody move (FAFF-1177: SK out of the run dir) changes this function and nothing else.
 const readGovernorRecord = (runDir, governorDirOverride) => parseGovernedRecord(readJson(governorFileOf(governorDirOf(runDir, governorDirOverride))));
-// FAFF-1176: the chokepoint-key resolver merge-gate reads instead of building the pk.json path itself.
-// The parsed value is returned unvalidated on purpose: merge-gate keeps reading `.pk`/`.pk_fingerprint`
-// exactly as before, so a pk.json holding JSON `null` still throws there (behaviour parity). FAFF-1178
-// replaces this with verification against a pinned key.
-function readChokepointKeyRecord(runDir, producerDir) {
-    let raw;
-    try {
-        raw = fs.readFileSync(pkFileOf(producerDirOf(runDir, producerDir)), "utf8");
-    }
-    catch {
-        return { ok: false };
-    }
-    try {
-        return { ok: true, record: JSON.parse(raw) };
-    }
-    catch {
-        return { ok: false };
-    }
-}
 const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(obj, null, 2) + "\n"); };
 const readLedgerEntries = (runDir) => {
     const p = path.join(runDir, LEDGER_CFG.ledgerFile);
@@ -1772,7 +1753,7 @@ module.exports = {
     OBJECT_TOKENS, COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, resolveCommissaireKey,
     buildEnvelope, appendProducerRecords, appendCommissaireRecord,
     evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, grantCoverage, verifyAuthLeg, hasGovernanceContext, expectedRunIdForDir,
-    readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf, readChokepointKeyRecord,
+    readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf,
     ensureOwnerOnlyDir, writeOwnerOnlyJson,
     cmdCommissaire, commissaireSelftest,
 };

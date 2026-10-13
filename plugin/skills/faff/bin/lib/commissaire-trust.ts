@@ -67,15 +67,29 @@ export interface TrustRead {
   source: TrustSource;
 }
 
+// `gitBin` / `ghBin` let a caller that has already resolved and vetted the binaries (FAFF-1217 pin)
+// read through those exact paths instead of whatever PATH names.
+export interface TrustReadArgs {
+  repoDir: string;
+  ref: string;
+  transport: "local" | "remote";
+  repoSlug?: string;
+  gitBin?: string;
+  ghBin?: string;
+}
+
+// The committed bytes before parsing (FAFF-1217): `text` is null only when the file is genuinely absent.
+export interface TrustText {
+  present: boolean;
+  text: string | null;
+  source: TrustSource;
+}
+
 export interface CommissaireTrustApi {
   parseTrustToml(text: string): Result<TomlDocument, TrustFileError>;
   validateSchema1(doc: TomlDocument): Result<TrustConfig, TrustFileError>;
-  readTrustFile(args: {
-    repoDir: string;
-    ref: string;
-    transport: "local" | "remote";
-    repoSlug?: string;
-  }): Result<TrustRead, TrustFileError>;
+  readTrustFile(args: TrustReadArgs): Result<TrustRead, TrustFileError>;
+  readTrustFileText(args: TrustReadArgs): Result<TrustText, TrustFileError>;
 }
 
 const TRUST_FILE_PATH = ".commissaire/trust.toml";
@@ -400,8 +414,8 @@ type ReadBytes = { status: "Ok"; bytes: Buffer } | { status: "FileAbsent" } | { 
 // `git show <ref>:<path>` reads the committed blob from the content-addressed local object store. A
 // non-zero exit whose stderr is NOT a recognised "path does not exist" phrasing is OtherFailure (fail
 // closed): a bad ref, a shallow clone lacking the object, or any other git error never reads as absent.
-function gitShow(repoDir: string, ref: string, filePath: string): ReadBytes {
-  const r = childProcess.spawnSync("git", ["-C", repoDir, "show", `${ref}:${filePath}`], { encoding: "buffer" });
+function gitShow(repoDir: string, ref: string, filePath: string, gitBin: string): ReadBytes {
+  const r = childProcess.spawnSync(gitBin, ["-C", repoDir, "show", `${ref}:${filePath}`], { encoding: "buffer" });
   if (r.status === 0) {
     const stdout: Buffer = r.stdout instanceof Buffer ? r.stdout : Buffer.from(r.stdout ?? "");
     return { status: "Ok", bytes: stdout };
@@ -419,8 +433,8 @@ function gitShow(repoDir: string, ref: string, filePath: string): ReadBytes {
 // writes the response status line to stdout under `-i` (`--include`); capture stdout regardless of exit
 // code and read the FIRST `HTTP/<ver> <code> <reason>` line. Returns the numeric status, or null (no
 // status line: network failure, `gh` missing, odd output) — the caller fails closed on null.
-function ghHttpStatus(args: string[]): number | null {
-  const r = childProcess.spawnSync("gh", args, { encoding: "utf8", timeout: 60000 });
+function ghHttpStatus(args: string[], ghBin: string): number | null {
+  const r = childProcess.spawnSync(ghBin, args, { encoding: "utf8", timeout: 60000 });
   const out = r && typeof r.stdout === "string" ? r.stdout : "";
   const m = out.match(/^HTTP\/[\d.]+\s+(\d{3})\b/m);
   return m && m[1] !== undefined ? Number(m[1]) : null;
@@ -431,9 +445,9 @@ function ghHttpStatus(args: string[]): number | null {
 // probe at the same ref returns 200 (repo reachable, token authorized, ref present). Every other
 // outcome is OtherFailure → trust-file-invalid (fail closed; an undisambiguated 404 would be a fail-open
 // that silently disables strict mode on an unreachable or forbidden repo).
-function ghApiContents(repoSlug: string, ref: string, filePath: string): ReadBytes {
+function ghApiContents(repoSlug: string, ref: string, filePath: string, ghBin: string): ReadBytes {
   const fileArg = `repos/${repoSlug}/contents/${filePath}?ref=${ref}`;
-  const r = childProcess.spawnSync("gh", ["api", fileArg], { encoding: "utf8", timeout: 60000 });
+  const r = childProcess.spawnSync(ghBin, ["api", fileArg], { encoding: "utf8", timeout: 60000 });
   if (r.status === 0) {
     let obj: unknown;
     try {
@@ -452,51 +466,53 @@ function ghApiContents(repoSlug: string, ref: string, filePath: string): ReadByt
     return { status: "Ok", bytes: Buffer.from(b64.replace(/\n/g, ""), "base64") };
   }
 
-  const fileStatus = ghHttpStatus(["api", "-i", fileArg]);
+  const fileStatus = ghHttpStatus(["api", "-i", fileArg], ghBin);
   if (fileStatus !== 404) {
     return { status: "OtherFailure", detail: `contents read failed (http ${fileStatus ?? "none"})` };
   }
-  const rootStatus = ghHttpStatus(["api", "-i", `repos/${repoSlug}/contents?ref=${ref}`]);
+  const rootStatus = ghHttpStatus(["api", "-i", `repos/${repoSlug}/contents?ref=${ref}`], ghBin);
   if (rootStatus === 200) {
     return { status: "FileAbsent" };
   }
   return { status: "OtherFailure", detail: `404 not provably file-absent: repo-root probe http ${rootStatus ?? "none"}` };
 }
 
-function readTrustFile(args: {
-  repoDir: string;
-  ref: string;
-  transport: "local" | "remote";
-  repoSlug?: string;
-}): Result<TrustRead, TrustFileError> {
+function readTrustFileText(args: TrustReadArgs): Result<TrustText, TrustFileError> {
   let read: ReadBytes;
   let source: TrustSource;
   if (args.transport === "local") {
-    read = gitShow(args.repoDir, args.ref, TRUST_FILE_PATH);
+    read = gitShow(args.repoDir, args.ref, TRUST_FILE_PATH, args.gitBin ?? "git");
     source = "local-ref";
   } else {
     if (args.repoSlug === undefined || args.repoSlug.length === 0) {
       return result.err(makeError("Read", null, "remote transport requires a repoSlug"));
     }
-    read = ghApiContents(args.repoSlug, args.ref, TRUST_FILE_PATH);
+    read = ghApiContents(args.repoSlug, args.ref, TRUST_FILE_PATH, args.ghBin ?? "gh");
     source = "remote-base";
   }
 
   if (read.status === "FileAbsent") {
-    return result.ok({ present: false, config: null, source });
+    return result.ok({ present: false, text: null, source });
   }
   if (read.status === "OtherFailure") {
     return result.err(makeError("Read", null, `could not read trust file from ${source}: ${read.detail}`));
   }
+  return result.ok({ present: true, text: read.bytes.toString("utf8"), source });
+}
 
-  const text = read.bytes.toString("utf8");
-  const parsed = parseTrustToml(text);
+function readTrustFile(args: TrustReadArgs): Result<TrustRead, TrustFileError> {
+  const read = readTrustFileText(args);
+  if (!read.ok) return read;
+  if (!read.value.present || read.value.text === null) {
+    return result.ok({ present: false, config: null, source: read.value.source });
+  }
+  const parsed = parseTrustToml(read.value.text);
   if (!parsed.ok) return parsed;
   const config = validateSchema1(parsed.value);
   if (!config.ok) return config;
-  return result.ok({ present: true, config: config.value, source });
+  return result.ok({ present: true, config: config.value, source: read.value.source });
 }
 
-const api: CommissaireTrustApi = { parseTrustToml, validateSchema1, readTrustFile };
+const api: CommissaireTrustApi = { parseTrustToml, validateSchema1, readTrustFile, readTrustFileText };
 
 module.exports = api;

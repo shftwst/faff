@@ -14,8 +14,9 @@
 // appended, so a substituted key or a man-in-the-middle on the cleartext TCP path is caught.
 //
 // Region FACTORY (committed .js emit, ADR-0132): it reaches only budget (readGovernanceConfig — the
-// switch read path ADR 0135 decision 11 mandates, NOT config.js), shared-infra (dig), and
-// producer-auth (verifyDecision / pkFingerprint). It MUST NOT require config.js, MUST NOT be
+// switch read path ADR 0135 decision 11 mandates, NOT config.js), shared-infra (dig), producer-auth
+// (verifyDecision / pkFingerprint), and peer-cred (FAFF-1217: the kernel-reported uid of the governor
+// process at the other end of a Unix socket, read in the request subprocess). It MUST NOT require config.js, MUST NOT be
 // required by governor.ts, and stays out of the standalone binary's denylisted closure — the ledger
 // mechanics (position read, append-under-lock) are injected by commissaire.ts, so this module needs
 // no events import either. node:net transport runs only in the self-spawned request subprocess, so
@@ -144,6 +145,28 @@ export function governorRequest(endpoint: GovernorEndpoint, request: Json, timeo
   return { unreachable: true, detail: "transport-bad-output" };
 }
 
+export type PeerTransportResult = { ok: true; reply: Json; peer_uid: number } | { unreachable: true; detail: string };
+
+// governorRequest for a Unix endpoint that also returns the kernel's answer to "which user runs the
+// process I am talking to" (FAFF-1217). SO_PEERCRED / LOCAL_PEERCRED report the server's credentials
+// when read on the client end of the connected socket. A peer read that fails is `unreachable` with
+// detail `peer-credentials-unreadable`; it never falls back to an unchecked call.
+export function governorRequestWithPeer(endpoint: GovernorEndpoint, request: Json, timeouts: { connect_ms: number; reply_ms: number }): PeerTransportResult {
+  if (endpoint.kind !== "unix") return { unreachable: true, detail: "peer-credentials-unix-only" };
+  const payload = JSON.stringify({ endpoint, request, connect_ms: timeouts.connect_ms, reply_ms: timeouts.reply_ms, peer: true });
+  const r = spawnSync(process.execPath, [__filename, GOVERNOR_REQUEST_FLAG], { input: payload, encoding: "utf8", maxBuffer: TRANSPORT_MAX_BUFFER });
+  if (r.status !== 0 || typeof r.stdout !== "string" || r.stdout === "") return { unreachable: true, detail: "transport-subprocess-failed" };
+  let out: unknown;
+  try { out = JSON.parse(r.stdout); } catch { return { unreachable: true, detail: "transport-bad-output" }; }
+  if (!isRecord(out)) return { unreachable: true, detail: "transport-bad-output" };
+  if (out.unreachable === true) return { unreachable: true, detail: str(out.detail) ?? "unreachable" };
+  const peerUid = out.peer_uid;
+  if (out.ok === true && isRecord(out.reply) && typeof peerUid === "number" && Number.isInteger(peerUid) && peerUid >= 0) {
+    return { ok: true, reply: out.reply, peer_uid: peerUid };
+  }
+  return { unreachable: true, detail: "transport-bad-output" };
+}
+
 // Classify a transport result into the shape the append driver consumes: unreachable, a governor
 // refusal, an idempotent reply (conclude), or an ok reply carrying the signed record (the authorize
 // verdict_record or the conclude record).
@@ -227,9 +250,10 @@ function runRequestSubprocess(): void {
   const net = require("node:net");
   let input = "";
   try { input = fs.readFileSync(0, "utf8"); } catch { process.stdout.write(JSON.stringify({ unreachable: true, detail: "no-input" })); return; }
-  let payload: { endpoint: GovernorEndpoint; request: Json; connect_ms: number; reply_ms: number };
+  let payload: { endpoint: GovernorEndpoint; request: Json; connect_ms: number; reply_ms: number; peer?: boolean };
   try { payload = JSON.parse(input); } catch { process.stdout.write(JSON.stringify({ unreachable: true, detail: "bad-input" })); return; }
-  const { endpoint, request, connect_ms, reply_ms } = payload;
+  const { endpoint, request, connect_ms, reply_ms, peer } = payload;
+  let peerUid: number | null = null;
   const connectOpts = endpoint.kind === "unix" ? { path: endpoint.socket_path } : { host: endpoint.host, port: endpoint.port };
 
   const socket = net.connect(connectOpts);
@@ -244,16 +268,22 @@ function runRequestSubprocess(): void {
     try { socket.destroy(); } catch { /* best-effort */ }
     process.stdout.write(JSON.stringify(r));
   };
+  const replyOf = (reply: unknown): Json => (peerUid === null ? { ok: true, reply } : { ok: true, reply, peer_uid: peerUid });
   const connectTimer = setTimeout(() => emit({ unreachable: true, detail: "connect-timeout" }), connect_ms);
   const tryParse = (): boolean => {
     const nl = buffered.indexOf("\n");
     if (nl === -1) return false;
     const line = buffered.slice(0, nl);
-    try { emit({ ok: true, reply: JSON.parse(line) }); } catch { emit({ unreachable: true, detail: "reply-not-json" }); }
+    try { emit(replyOf(JSON.parse(line))); } catch { emit({ unreachable: true, detail: "reply-not-json" }); }
     return true;
   };
   socket.on("connect", () => {
     clearTimeout(connectTimer);
+    if (peer === true) {
+      const read = require("./peer-cred").makePeerCredReader().readPeerUid(socket);
+      if (!read.ok) { emit({ unreachable: true, detail: "peer-credentials-unreadable" }); return; }
+      peerUid = read.uid;
+    }
     try { socket.write(JSON.stringify(request) + "\n"); } catch { emit({ unreachable: true, detail: "write-failed" }); return; }
     replyTimer = setTimeout(() => emit({ unreachable: true, detail: "reply-timeout" }), reply_ms);
   });
@@ -262,7 +292,7 @@ function runRequestSubprocess(): void {
     if (settled) return;
     if (!tryParse()) {
       const t = buffered.trim();
-      if (t) { try { emit({ ok: true, reply: JSON.parse(t) }); } catch { emit({ unreachable: true, detail: "reply-not-json" }); } }
+      if (t) { try { emit(replyOf(JSON.parse(t))); } catch { emit({ unreachable: true, detail: "reply-not-json" }); } }
       else emit({ unreachable: true, detail: "closed-before-reply" });
     }
   });
@@ -273,5 +303,5 @@ if (require.main === module && process.argv.includes(GOVERNOR_REQUEST_FLAG)) run
 
 module.exports = {
   governorConfigError, parseEndpoint, resolveGovernor, runStartGovernorDecision, resolveTimeouts,
-  verifyAdmitReply, governorRequest, classifyAskResult, appendGovernorRecordWithRetry,
+  verifyAdmitReply, governorRequest, governorRequestWithPeer, classifyAskResult, appendGovernorRecordWithRetry,
 };

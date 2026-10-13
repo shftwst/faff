@@ -550,13 +550,15 @@ function usage(): void {
     "  governor start    [--key-dir D] [--socket P] [--listen HOST:PORT] [--socket-group-access]   (run the out-of-process governor; the only holder of the signing key)\n" +
     "  governor rotate   [--key-dir D]   (mint a new signing keypair, keep the root secret, archive the prior fingerprint)\n" +
     "  governor install  --runner-user U --from-tag faff--vX.Y.Z [--admin-user U] [--key-dir D] [--socket-dir D] [--install-prefix D] [--node P] [--json]   (Linux, run as root: install the governor as its own OS user behind a systemd service)\n" +
+    "  governor pin      --socket PATH --runner-user NAME --repo OWNER/NAME [--base BRANCH] [--dry-run]   (run as the human: open a pull request pinning the governor's key fingerprint in .commissaire/trust.toml; refuses a governor it can show is not independent)\n" +
+    "  governor status   [--socket PATH] [--runner-user NAME] [--repo OWNER/NAME] [--base BRANCH] [--runner-login LOGIN]   (run as the human: report whether a governor's runs can count as independent evidence; exit 0)\n" +
     "  governor uninstall [--purge-key] [--key-dir D] [--socket-dir D] [--install-prefix D] [--json]   (Linux, run as root: remove the service and account; the key directory is kept, owned by root, unless --purge-key)\n");
 }
 
 function parseCommissaireArgs(args: string[]): { flags: CommissaireFlags; rest: string[] } {
   const flags: CommissaireFlags = {};
   const rest: string[] = [];
-  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level", "--key-dir", "--socket", "--listen", "--run-id", "--base", "--trust-transport", "--repo", "--runner-user", "--admin-user", "--from-tag", "--socket-dir", "--install-prefix", "--node"]);
+  const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level", "--key-dir", "--socket", "--listen", "--run-id", "--base", "--trust-transport", "--repo", "--runner-user", "--admin-user", "--from-tag", "--socket-dir", "--install-prefix", "--node", "--runner-login"]);
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === undefined) continue;
@@ -564,6 +566,7 @@ function parseCommissaireArgs(args: string[]): { flags: CommissaireFlags; rest: 
     else if (a === "--json") flags["--json"] = true;
     else if (a === "--force") flags["--force"] = true;
     else if (a === "--purge-key") flags["--purge-key"] = true;
+    else if (a === "--dry-run") flags["--dry-run"] = true;
     else if (a === "--socket-group-access") flags["--socket-group-access"] = true;
     else rest.push(a);
   }
@@ -1203,6 +1206,8 @@ const COMMISSAIRE_DISPATCH: { [k: string]: (flags: CommissaireFlags) => number }
   "governor rotate": (flags) => require("./governor").governorRotate(flags), // FAFF-1177
   "governor install": (flags) => require("./governor-install").governorInstall(flags), // FAFF-1216
   "governor uninstall": (flags) => require("./governor-install").governorUninstall(flags), // FAFF-1216
+  "governor pin": (flags) => require("./governor-admin").governorPin(flags), // FAFF-1217
+  "governor status": (flags) => require("./governor-admin").governorStatus(flags), // FAFF-1217
 };
 
 // Flat verb (FAFF-828 spelling) → canonical key. An alias never appears as a COMMISSAIRE_DISPATCH
@@ -1238,6 +1243,8 @@ const REQUIRED_FLAGS_BY_CANONICAL: { [k: string]: string[] } = {
   "governor rotate": [], // FAFF-1177
   "governor install": ["--runner-user", "--from-tag"], // FAFF-1216
   "governor uninstall": [], // FAFF-1216
+  "governor pin": ["--runner-user", "--repo"], // FAFF-1217
+  "governor status": [], // FAFF-1217
 };
 
 // Resolve one or two leading non-flag tokens to a canonical COMMISSAIRE_DISPATCH key, or null.
@@ -1282,7 +1289,7 @@ function cmdCommissaire(args: string[]): number {
   if (!handler) { usage(); return 2; }
   // The install commands take no positional arguments: an unrecognised flag (for instance a clone
   // source override, which does not exist) is refused rather than silently ignored.
-  if ((key === "governor install" || key === "governor uninstall") && rest.length > 2) {
+  if ((key === "governor install" || key === "governor uninstall" || key === "governor pin" || key === "governor status") && rest.length > 2) {
     process.stderr.write(`faff commissaire ${key}: unknown argument: ${rest.slice(2).join(" ")}\n`);
     return 2;
   }
@@ -1298,6 +1305,7 @@ const COMMISSAIRE_SPEC = { flags: {
   "--key-dir": { arity: 1 }, "--socket": { arity: 1 }, "--listen": { arity: 1 }, // FAFF-1177 (governor start/rotate)
   "--runner-user": { arity: 1 }, "--admin-user": { arity: 1 }, "--from-tag": { arity: 1 }, "--socket-dir": { arity: 1 }, // FAFF-1216 (governor install/uninstall)
   "--install-prefix": { arity: 1 }, "--node": { arity: 1 }, "--purge-key": { arity: 0 }, "--socket-group-access": { arity: 0 },
+  "--dry-run": { arity: 0 }, "--runner-login": { arity: 1 }, // FAFF-1217 (governor pin/status)
   "--run-id": { arity: 1 }, "--base": { arity: 1 }, "--trust-transport": { arity: 1 }, "--repo": { arity: 1 }, // FAFF-1178 (audit verify trust read)
   "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
 } };

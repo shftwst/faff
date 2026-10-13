@@ -61,6 +61,7 @@ export interface GovernorState {
   pk_fingerprint: string;
   root_secret: Buffer;
   logPath: string;
+  keyFile: string;
   lastHead: Map<string, Head>;
   admissions: Map<string, RunAdmission>;
   runnerChecks?: Json;
@@ -152,6 +153,7 @@ function openState(keyDir: string): { ok: true; state: GovernorState } | { ok: f
       sk: key.sk, pk: key.pk, pk_fingerprint: key.pk_fingerprint,
       root_secret: Buffer.from(key.root_secret, "hex"),
       logPath: path.join(keyDir, LOG_FILE_NAME),
+      keyFile: path.resolve(keyDir, KEY_FILE_NAME),
       lastHead: new Map(), admissions: new Map(),
     },
   };
@@ -487,8 +489,17 @@ function appendConnectLog(state: GovernorState, entry: { peer_uid: number | null
   }
 }
 
-function dispatchOp(state: GovernorState, request: Json): Json {
+// FAFF-1217: the read-only key lookup `commissaire governor pin|status` makes. Answered on the Unix
+// listener only (a caller carries a role there); the unauthenticated TCP listener never discloses the
+// key path or the runner checks record. It writes no admission and mints no run state.
+function handleIdentify(state: GovernorState, role: CallerRole | undefined): Json {
+  if (role === undefined) return refuse("op-unix-only");
+  return { ok: true, pk: state.pk, pk_fingerprint: state.pk_fingerprint, key_file: state.keyFile, runner_checks: state.runnerChecks ?? null };
+}
+
+function dispatchOp(state: GovernorState, request: Json, role?: CallerRole): Json {
   switch (request.op) {
+    case "identify": return handleIdentify(state, role);
     case "admit": return handleAdmit(state, request);
     case "authorize": return handleAuthorize(state, request);
     case "conclude": return handleConclude(state, request);
@@ -504,7 +515,7 @@ function dispatchOp(state: GovernorState, request: Json): Json {
 function handleRequest(state: GovernorState, request: unknown, peerUid?: number, role?: CallerRole): Json {
   if (!isRecord(request)) return refuse("malformed-request");
   const permitted = role !== "admin" || (typeof request.op === "string" && ADMIN_OPS.has(request.op));
-  const reply = permitted ? dispatchOp(state, request) : refuse("op-not-permitted-for-admin", { op: request.op });
+  const reply = permitted ? dispatchOp(state, request, role) : refuse("op-not-permitted-for-admin", { op: request.op });
   try {
     appendLog(state, request, reply, peerUid, role);
   } catch {

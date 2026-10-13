@@ -281,8 +281,9 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   // FAFF-1177 — ./decision-policy holds the moved evaluators; ./governor is the `governor start|rotate` dispatch target.
   // FAFF-1178 — ./commissaire-verify (key resolution) and ./commissaire-trust (trust-file read) are governance cores.
   // FAFF-1216 — ./governor-install is the `governor install|uninstall` dispatch target (lazy, node built-ins only).
+  // FAFF-1217 — ./governor-admin is the `governor pin|status` dispatch target (lazy; own git/gh/id calls, no merge-gate/config/budget).
   // FAFF-1179 — ./commissaire-governor-client is the runner-side governor client (budget/shared-infra/producer-auth only, denylist-clean).
-  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./governor-install", "./commissaire-governor-client", "./commissaire-verify", "./commissaire-trust"]);
+  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./governor-install", "./governor-admin", "./commissaire-governor-client", "./commissaire-verify", "./commissaire-trust"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
 });
 

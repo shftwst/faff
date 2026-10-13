@@ -170,11 +170,11 @@ test("a trust-file read error on a governed run is trust-file-invalid under both
   }
 });
 
-test("require_pinned_governor is reported and changes no outcome", () => {
+test("require_pinned_governor is reported on the key resolution (the refusal it drives is covered in commissaire-strict-mode.test.mjs)", () => {
   const run = grantedRun();
   try {
     const strict = verify(run, trustFile(["a".repeat(64)], { requirePinned: true }));
-    assert.equal(strict.outcome, "valid-grant");
+    assert.equal(strict.reason, "grant-not-pinned");
     assert.equal(strict.classification, "unpinned");
     assert.equal(resolveAdmittedKey(run.runDir, trustFile([], { requirePinned: true })).require_pinned_governor, true);
     assert.equal(resolveAdmittedKey(run.runDir, trustFile([], { requirePinned: false })).require_pinned_governor, false);
@@ -489,16 +489,15 @@ test("a null or empty effect.target is effect-target-missing, checked first; the
   } finally { run.rm(); rmSync(root, { recursive: true, force: true }); }
 });
 
-test("reasons only ever come from GrantReason, and grant-not-pinned is never returned", () => {
+test("reasons only ever come from GrantReason", () => {
   const allowed = new Set([
-    "valid-grant", "not-governed", "no-verdict-for-step", "no-verdict-for-kind", "chain-position-invalid", "effect-target-missing",
+    "valid-grant", "not-governed", "no-verdict-for-step", "no-verdict-for-kind", "chain-position-invalid", "effect-target-missing", "grant-not-pinned",
     "ledger-malformed", "admission-missing", "admission-position-invalid", "run-id-mismatch", "governor-key-not-admitted", "key-not-admitted",
     "pk-fingerprint-tampered", "trust-file-invalid",
     "not-a-commissaire-decision", "decision-signature-invalid", "decision-not-a-grant", "grant-does-not-cover-effect", "pk-unreadable",
   ]);
   assert.ok(seenReasons.size >= 12, `the suite exercised ${seenReasons.size} distinct reasons`);
   for (const reason of seenReasons) assert.ok(allowed.has(reason), `unexpected reason ${reason}`);
-  assert.ok(!seenReasons.has("grant-not-pinned"));
 });
 
 // --- verifyAuthLeg ------------------------------------------------------------------------------------

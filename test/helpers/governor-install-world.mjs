@@ -19,7 +19,7 @@ export function makeWorld(options = {}) {
   const fsTable = new Map();
   for (const d of ["/", "/usr", "/usr/bin", "/usr/sbin", "/sbin", "/bin", "/etc", "/etc/systemd", "/etc/systemd/system", "/var", "/var/lib", "/opt", "/home", "/opt/installer", "/opt/installer/bin", "/opt/installer/bin/lib"]) fsTable.set(d, dir());
   fsTable.set("/root", dir(0, 0, 0o700));
-  for (const f of ["/usr/sbin/useradd", "/usr/sbin/userdel", "/usr/sbin/groupadd", "/usr/sbin/groupdel", "/usr/bin/gpasswd", "/usr/bin/getent", "/usr/bin/git", "/usr/bin/systemctl", "/usr/bin/python3", "/usr/sbin/nologin", "/usr/bin/node", "/opt/installer/bin/commissaire"]) fsTable.set(f, file());
+  for (const f of ["/usr/sbin/useradd", "/usr/sbin/userdel", "/usr/sbin/groupadd", "/usr/sbin/groupdel", "/usr/bin/gpasswd", "/usr/bin/getent", "/usr/bin/id", "/usr/bin/git", "/usr/bin/systemctl", "/usr/bin/python3", "/usr/sbin/nologin", "/usr/bin/node", "/opt/installer/bin/commissaire"]) fsTable.set(f, file());
   fsTable.set("/opt/installer/bin/lib/governor-install.js", file("", 0, 0, 0o644));
   fsTable.set("/etc/login.defs", file("UID_MIN 1000\nGID_MIN 1000\n", 0, 0, 0o644));
   const users = new Map([
@@ -66,6 +66,7 @@ export function makeWorld(options = {}) {
         if (args[0] === "-u") return ok(`${u.uid}\n`);
         if (args[0] === "-g") return ok(`${u.gid}\n`);
         if (world.idFails) return fail(1);
+        if (args[0] === "-G") return ok(`${(userGroups.get(args[args.length - 1]) ?? [args[args.length - 1]]).map((n) => groups.get(n)?.gid ?? u.gid).join(" ")}\n`);
         return ok(`${(userGroups.get(args[args.length - 1]) ?? [args[args.length - 1]]).join(" ")}\n`);
       }
       if (cmd === "/usr/bin/python3") return world.python ? ok() : fail(1, "No module");
@@ -87,6 +88,7 @@ export function makeWorld(options = {}) {
       return real ? statReal(real) : null;
     },
     realpath(p) {
+      for (let hops = 0; fsTable.get(p)?.kind === "symlink" && hops < 8; hops++) p = fsTable.get(p).target;
       if (fsTable.has(p)) return p;
       const real = mapped(p);
       return real && existsSync(real) ? p : null;

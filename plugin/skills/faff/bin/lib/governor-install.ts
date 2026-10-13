@@ -30,10 +30,10 @@ const DEFAULT_SOCKET_DIR = "/var/lib/commissaire-socket";
 const DEFAULT_PREFIX = "/opt/commissaire";
 const UNIT_NAME = "commissaire-governor.service";
 const UNIT_PATH = `/etc/systemd/system/${UNIT_NAME}`;
-const TOOL_DIRS = ["/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"];
+const TOOL_DIRS = ["/usr/sbin", "/usr/bin", "/sbin", "/bin"];
 const SYSTEM_PATH = "/usr/sbin:/usr/bin:/sbin:/bin";
 const SEARCH_PATH = `${SYSTEM_PATH}:/usr/local/sbin:/usr/local/bin`;
-const REQUIRED_TOOLS = ["useradd", "userdel", "groupadd", "groupdel", "gpasswd", "systemctl", "getent", "git"];
+const REQUIRED_TOOLS = ["useradd", "userdel", "groupadd", "groupdel", "gpasswd", "systemctl", "getent", "id", "git"];
 const NOLOGIN_PATHS = ["/usr/sbin/nologin", "/sbin/nologin"];
 const SUDO_PATHS = ["/usr/bin/sudo", "/usr/local/bin/sudo", "/bin/sudo", "/usr/sbin/sudo", "/usr/local/sbin/sudo"];
 const DOAS_PATHS = ["/usr/bin/doas", "/usr/local/bin/doas", "/bin/doas", "/usr/sbin/doas", "/usr/local/sbin/doas"];
@@ -41,6 +41,7 @@ const DOAS_CONF_PATHS = ["/etc/doas.conf", "/usr/local/etc/doas.conf"];
 const RUNTIME_ASSETS = ["bin/lib/peer-cred-helper.py"];
 const TRUSTED_PYTHON = "/usr/bin/python3";
 const VERSION_DIR = /^[0-9a-f]{64}$/;
+const SAFE_PATH = /^\/[A-Za-z0-9._/-]+$/;
 const USER_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const FINGERPRINT_TIMEOUT_MS = 30_000;
 const FINGERPRINT_POLL_MS = 250;
@@ -70,6 +71,7 @@ export type Op =
   | { kind: "create_group"; name: string }
   | { kind: "create_account"; name: string; shell: string; home: string }
   | { kind: "set_group_members"; group: string; members: string[] }
+  | { kind: "restrict_group"; group: string }
   | { kind: "create_dir"; path: string; owner: string; group: string; mode: number }
   | { kind: "chown"; path: string; owner: string; group: string; recursive: boolean }
   | { kind: "chmod"; path: string; mode: number }
@@ -140,10 +142,10 @@ export interface EscapeChecks { docker_group: boolean; sudo_rules: boolean; sudo
 
 // --- Host and executor (production) -----------------------------------------------------------------
 
-const probeEnv = (): Env => ({ PATH: SEARCH_PATH, LC_ALL: "C" });
+const probeEnv = (): Env => ({ PATH: SYSTEM_PATH, LC_ALL: "C" });
 
 function runProcess(cmd: string, args: string[], env: Env, timeoutMs: number): ExecResult {
-  const r = spawnSync(cmd, args, { encoding: "utf8", env, timeout: timeoutMs, killSignal: "SIGKILL" });
+  const r = spawnSync(cmd, args, { encoding: "utf8", env, timeout: timeoutMs, killSignal: "SIGKILL", cwd: "/" });
   if (r.error) return { status: null, stdout: String(r.stdout ?? ""), stderr: String(r.error.message) };
   return { status: r.status, stdout: String(r.stdout ?? ""), stderr: String(r.stderr ?? "") };
 }
@@ -261,6 +263,10 @@ function createExecutor(host: Host): Executor {
       case "create_group": return command("groupadd", ["--system", op.name]);
       case "create_account": return command("useradd", ["--system", "--user-group", "--shell", op.shell, "--home-dir", op.home, "--no-create-home", op.name]);
       case "set_group_members": return command("gpasswd", ["-M", op.members.join(","), op.group]);
+      case "restrict_group": {
+        const admins = command("gpasswd", ["-A", "", op.group]);
+        return admins.ok ? command("gpasswd", ["-r", op.group]) : admins;
+      }
       case "delete_account": return command("userdel", [op.name]);
       case "delete_group": return command("groupdel", [op.name]);
       case "service_op": return command("systemctl", op.args);
@@ -344,7 +350,8 @@ function dirChain(p: string): string[] {
 function firstLooseOnChain(host: Host, p: string): string | null {
   for (const d of dirChain(p)) {
     const st = host.lstat(d);
-    if (st !== null && (st.uid !== 0 || looseMode(st.mode))) return d;
+    // A symlink's own mode bits are always 0777 and mean nothing; its owner still counts, and its target is checked separately.
+    if (st !== null && (st.uid !== 0 || (st.kind !== "symlink" && looseMode(st.mode)))) return d;
   }
   return null;
 }
@@ -389,11 +396,27 @@ function checkInterpreter(host: Host, node: string): void {
   if (real !== null && host.lstat(real)?.kind !== "file") abort(`interpreter-not-root-owned: ${real} (not a regular file)\n${hint}`);
 }
 
-function preflight(host: Host, interpreters: string[]): void {
+// Root runs these tools, so each must come from a system directory and sit under a root-owned chain.
+function trustedBinaryLoose(host: Host, p: string): string | null {
+  const real = host.realpath(p);
+  if (real === null) return p;
+  return firstLooseOnChain(host, p) ?? firstLooseOnChain(host, real);
+}
+
+function requireTools(host: Host): void {
   for (const tool of REQUIRED_TOOLS) {
-    if (toolOnSystemPath(host, tool) === null) abort(`missing tool: ${tool} (not found under ${TOOL_DIRS.join(", ")})`);
+    const found = toolOnSystemPath(host, tool);
+    if (found === null) abort(`missing tool: ${tool} (not found under ${TOOL_DIRS.join(", ")})`);
+    const loose = trustedBinaryLoose(host, found);
+    if (loose !== null) abort(`tool-not-root-owned: ${tool} at ${found} (${loose} is missing, not root-owned, or group- or world-writable)`);
   }
-  const py = host.probe(TRUSTED_PYTHON, ["-c", "import socket, struct"]);
+}
+
+function preflight(host: Host, interpreters: string[]): void {
+  requireTools(host);
+  const pyLoose = trustedBinaryLoose(host, TRUSTED_PYTHON);
+  if (pyLoose !== null) abort(`tool-not-root-owned: python3 at ${TRUSTED_PYTHON} (${pyLoose} is missing, not root-owned, or group- or world-writable)`);
+  const py = host.probe(TRUSTED_PYTHON, ["-I", "-c", "import socket, struct"]);
   if (py.status !== 0) abort(`python3-missing: ${TRUSTED_PYTHON} cannot import socket and struct; the governor reads peer credentials through it`);
   for (const node of new Set(interpreters)) checkInterpreter(host, node);
 }
@@ -416,7 +439,7 @@ function releaseClone(tag: string, repoUrl: string = RELEASE_REPO_URL, deps: { h
   const isFile = repoUrl.startsWith("file://");
   if (repoUrl !== RELEASE_REPO_URL && !isFile) abort(`release clone source must be ${RELEASE_REPO_URL}`);
   const rootHome = host.lstat("/root");
-  if (rootHome === null || rootHome.uid !== 0 || (rootHome.mode & 0o077) !== 0) abort("/root must be owned by root with mode 0700 or stricter");
+  if (rootHome === null || rootHome.uid !== 0 || rootHome.gid !== 0 || looseMode(rootHome.mode)) abort("/root must be owned by root:root and not group- or world-writable");
   const made = executor.run({ kind: "make_temp_dir", under: "/root", prefix: "commissaire-release-" });
   if (!made.ok || made.value === undefined) return abort(`cannot create the release clone directory: ${made.message ?? "unknown error"}`, 1);
   const dir = made.value;
@@ -444,48 +467,79 @@ function userGroups(host: Host, user: string): string[] | null {
   return r.status === 0 ? r.stdout.trim().split(/\s+/).filter((g) => g !== "") : null;
 }
 
-const DOAS_OPTIONS = new Set(["nopass", "nolog", "persist", "nopersist", "keepenv"]);
+function userGids(host: Host, user: string): number[] | null {
+  const r = host.probe("id", ["-G", user]);
+  if (r.status !== 0) return null;
+  const ids = r.stdout.trim().split(/\s+/).filter((g) => g !== "").map(toInt);
+  return ids.length > 0 && ids.every((g) => g >= 0) ? ids : null;
+}
 
-function doasPermits(conf: string, user: string, groups: string[]): boolean {
-  for (const raw of conf.split("\n")) {
-    const tokens = raw.replace(/#.*/, "").trim().split(/\s+/).filter((t) => t !== "");
-    if (tokens[0] !== "permit") continue;
+const DOAS_OPTIONS = new Set(["nopass", "nolog", "persist", "nopersist"]);
+const DOAS_IDENTITY = /^:?[A-Za-z0-9_.-]+$/;
+
+export interface DoasIdentity { user: string; uid: number; groups: string[]; gids: number[] }
+
+// True when the config permits the runner, or holds a rule this parser does not understand (fail closed).
+function doasPermits(conf: string, who: DoasIdentity): boolean {
+  const lines = conf.replace(/\\\r?\n/g, " ").split("\n");
+  for (const raw of lines) {
+    const tokens = raw.replace(/#.*/, "").replace(/([{}])/g, " $1 ").trim().split(/\s+/).filter((t) => t !== "");
+    if (tokens.length === 0) continue;
+    if (tokens[0] === "deny") continue;
+    if (tokens[0] !== "permit") return true;
     let i = 1;
     while (i < tokens.length) {
       const t = tokens[i] ?? "";
       if (DOAS_OPTIONS.has(t)) { i++; continue; }
-      if (t === "setenv") { while (i < tokens.length && !(tokens[i] ?? "").includes("}")) i++; i++; continue; }
+      if (t === "setenv" || t === "keepenv") {
+        i++;
+        if (tokens[i] === "{") { while (i < tokens.length && tokens[i] !== "}") i++; if (i >= tokens.length) return true; i++; }
+        else if (t === "setenv") return true;
+        continue;
+      }
       break;
     }
     const identity = tokens[i];
-    if (identity === undefined) continue;
-    if (identity === user || (identity.startsWith(":") && groups.includes(identity.slice(1)))) return true;
+    if (identity === undefined || !DOAS_IDENTITY.test(identity)) return true;
+    if (identity.startsWith(":")) {
+      const g = identity.slice(1);
+      if (who.groups.includes(g) || (/^[0-9]+$/.test(g) && who.gids.includes(Number(g)))) return true;
+    } else if (identity === who.user || (/^[0-9]+$/.test(identity) && Number(identity) === who.uid)) return true;
   }
   return false;
 }
 
-function locateTool(host: Host, name: string, candidates: string[]): string | null {
-  const known = findTool(host, candidates);
-  if (known !== null) return known;
+// A tool root will execute must be found in the fixed list and sit under a root-owned chain.
+function trustedTool(host: Host, candidates: string[]): { found: string | null; trusted: boolean } {
+  const found = findTool(host, candidates);
+  return { found, trusted: found !== null && trustedBinaryLoose(host, found) === null };
+}
+
+function presentByPath(host: Host, name: string): boolean {
   const r = host.probe("/bin/sh", ["-c", `command -v ${name}`], { env: { PATH: SEARCH_PATH, LC_ALL: "C" } });
-  const found = r.stdout.trim().split("\n")[0] ?? "";
-  return r.status === 0 && found.startsWith("/") ? found : null;
+  return r.status === 0 && (r.stdout.trim().split("\n")[0] ?? "").startsWith("/");
 }
 
 // "sudo or doas grants the runner a rule", failing closed. The one sudo call is the read-only
-// `sudo -n -l -U <user>`, made while already root; it grants nothing.
+// `sudo -n -l -U <user>`, made while already root; it grants nothing. A sudo that cannot be trusted to
+// run as root is never executed and counts as a rule.
 function escalationRules(host: Host, user: string): { sudo_rules: boolean; sudo_absent: boolean } {
-  const sudo = locateTool(host, "sudo", SUDO_PATHS);
-  const doas = locateTool(host, "doas", DOAS_PATHS);
-  if (doas !== null) {
+  const sudo = trustedTool(host, SUDO_PATHS);
+  const doasKnown = findTool(host, DOAS_PATHS) !== null;
+  const doas = doasKnown || presentByPath(host, "doas");
+  if (doas) {
     const confPath = findTool(host, DOAS_CONF_PATHS);
     const conf = confPath === null ? null : host.readFile(confPath);
-    const groups = userGroups(host, user);
-    if (conf === null || groups === null) return { sudo_rules: true, sudo_absent: false };
-    if (doasPermits(conf.toString("utf8"), user, groups)) return { sudo_rules: true, sudo_absent: false };
+    const groups = userGroups(host, user), gids = userGids(host, user), account = getUser(host, user);
+    if (conf === null || groups === null || gids === null || account === null) return { sudo_rules: true, sudo_absent: false };
+    if (doasPermits(conf.toString("utf8"), { user, uid: account.uid, groups, gids })) return { sudo_rules: true, sudo_absent: false };
   }
-  if (sudo === null) return { sudo_rules: false, sudo_absent: doas === null };
-  const r = host.probe(sudo, ["-n", "-l", "-U", user], { env: { PATH: SEARCH_PATH, LC_ALL: "C" }, timeoutMs: 15_000 });
+  if (sudo.found === null) {
+    if (presentByPath(host, "sudo")) return { sudo_rules: true, sudo_absent: false };
+    return { sudo_rules: false, sudo_absent: !doas };
+  }
+  if (!sudo.trusted) return { sudo_rules: true, sudo_absent: false };
+  const r = host.probe(sudo.found, ["-n", "-l", "-U", user], { env: { PATH: SYSTEM_PATH, LC_ALL: "C" }, timeoutMs: 15_000 });
   if (r.status === 0 && r.stdout.includes("may run the following commands")) return { sudo_rules: true, sudo_absent: false };
   if (r.status === 0 && r.stdout.includes("is not allowed to run sudo")) return { sudo_rules: false, sudo_absent: false };
   return { sudo_rules: true, sudo_absent: false };
@@ -695,6 +749,7 @@ function planLinux(host: Host, inp: PlanInputs): InstallPlan {
   if (existing === null) ops.push({ kind: "create_account", name: GOVERNOR_USER, shell: nologin, home: inp.keyDir });
   ops.push({ kind: "assert", check: { type: "account", name: GOVERNOR_USER, shell: nologin, home: inp.keyDir } });
   if (group === null) ops.push({ kind: "create_group", name: CLIENT_GROUP });
+  if (group !== null) ops.push({ kind: "restrict_group", group: CLIENT_GROUP });
   ops.push({ kind: "set_group_members", group: CLIENT_GROUP, members });
   ops.push({ kind: "assert", check: { type: "group_members", group: CLIENT_GROUP, members } });
 
@@ -816,6 +871,7 @@ function absolutePath(flags: FlagBag, name: string, fallback: string): string {
   const v = flagString(flags, name);
   if (v === undefined) return fallback;
   if (!path.isAbsolute(v)) abort(`${name} must be an absolute path`);
+  if (!SAFE_PATH.test(v) || v.split("/").includes("..")) abort(`${name} must match ${SAFE_PATH.source} with no .. segments`);
   return path.normalize(v);
 }
 
@@ -929,7 +985,39 @@ function governorInstall(flags: FlagBag, deps: InstallDeps = {}): number {
 
 // --- Uninstall ------------------------------------------------------------------------------------------------
 
+// Uninstall removes and re-owns whole trees named by flags, so each target must be a real directory
+// that Commissaire owns, under a root-owned chain, before any op is planned.
+function requireOwnedDir(host: Host, target: string, label: string, owners: number[], groups: number[]): void {
+  const st = host.lstat(target);
+  if (st === null) return;
+  if (st.kind !== "dir") abort(`${label} ${target} is not a real directory (symlinks and files are refused)`);
+  if (!owners.includes(st.uid)) abort(`${label} ${target} is owned by uid ${st.uid}, expected root or ${GOVERNOR_USER}`);
+  if (!groups.includes(st.gid)) abort(`${label} ${target} has group ${st.gid}, expected root or ${CLIENT_GROUP}`);
+  const loose = firstLooseOnChain(host, nearestExistingReal(host, path.dirname(target)));
+  if (loose !== null) abort(`${loose} must be root-owned and not group- or world-writable (ancestor of ${label} ${target})`);
+}
+
+const KEY_DIR_FILES = ["governor-key.json", "governor-config.json"];
+
+function verifyUninstallTargets(host: Host, opts: { keyDir: string; socketDir: string; prefix: string }, account: UserEntry | null): void {
+  const owners = account === null ? [0] : [0, account.uid];
+  const clients = getGroup(host, CLIENT_GROUP);
+  requireOwnedDir(host, opts.keyDir, "key directory", owners, account === null ? [0] : [0, account.gid]);
+  if (host.lstat(opts.keyDir) !== null) {
+    walkEntries(host, opts.keyDir, owners, []);
+    const names = host.readdir(opts.keyDir);
+    if (names.length > 0 && !names.some((n) => KEY_DIR_FILES.includes(n))) abort(`key directory ${opts.keyDir} holds no Commissaire key or config; refusing to touch it`);
+  }
+  requireOwnedDir(host, opts.socketDir, "socket directory", owners, clients === null ? [0] : [0, clients.gid]);
+  if (host.lstat(opts.socketDir) !== null) {
+    const stray = host.readdir(opts.socketDir).find((n) => n !== "governor.sock");
+    if (stray !== undefined) abort(`socket directory ${opts.socketDir} holds ${stray}, which is not a governor socket; refusing to remove it`);
+  }
+  requireOwnedDir(host, opts.prefix, "install prefix", [0], [0]);
+}
+
 function planUninstall(host: Host, opts: { keyDir: string; socketDir: string; prefix: string; purgeKey: boolean }): Op[] {
+  verifyUninstallTargets(host, opts, getUser(host, GOVERNOR_USER));
   const ops: Op[] = [];
   const unitExists = host.lstat(UNIT_PATH) !== null;
   if (unitExists) {
@@ -964,9 +1052,7 @@ function governorUninstall(flags: FlagBag, deps: InstallDeps = {}): number {
   try {
     requireRoot(ctx, "uninstall");
     selfCustodyCheck(ctx.host, ctx.moduleDir, "faff--vX.Y.Z");
-    for (const tool of REQUIRED_TOOLS) {
-      if (toolOnSystemPath(ctx.host, tool) === null) abort(`missing tool: ${tool} (not found under ${TOOL_DIRS.join(", ")})`);
-    }
+    requireTools(ctx.host);
     const keyDir = absolutePath(flags, "--key-dir", DEFAULT_KEY_DIR);
     const socketDir = absolutePath(flags, "--socket-dir", DEFAULT_SOCKET_DIR);
     const prefix = absolutePath(flags, "--install-prefix", DEFAULT_PREFIX);

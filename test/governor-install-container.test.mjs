@@ -100,9 +100,9 @@ cd /work; git init -q -b main; git add -A; git commit -q -m v1; git tag ${TAGS[0
 echo "# 9.9.2" >> plugin/skills/faff/bin/lib/peer-cred-helper.py; git commit -qam v2; git tag ${TAGS[1]}
 echo "# 9.9.3" >> plugin/skills/faff/bin/lib/peer-cred-helper.py; git commit -qam v3; git tag ${TAGS[2]}
 git clone -q --bare /work /srv/repo.git
-cat > /usr/local/bin/systemctl <<'SHIM'
+cat > /usr/sbin/systemctl <<'SHIM'
 ${SYSTEMCTL_SHIM}SHIM
-chmod 755 /usr/local/bin/systemctl
+chmod 755 /usr/sbin/systemctl
 cat > /root/driver.js <<'DRV'
 ${DRIVER}DRV
 `), "container setup");

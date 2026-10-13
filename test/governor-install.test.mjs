@@ -174,6 +174,92 @@ test("preflight: a missing tool is named; python3 that cannot import socket and 
   assert.equal(noPy.ops.length, 0);
 });
 
+test("preflight: python is probed in isolated mode so a caller's directory never reaches sys.path", () => {
+  const world = makeWorld();
+  assert.equal(run(world, {}), 0);
+  const call = world.calls.find((c) => c.cmd === "/usr/bin/python3");
+  assert.equal(call.args[0], "-I");
+  assert.deepEqual(call.args, ["-I", "-c", "import socket, struct"]);
+});
+
+test("runProcess: every child of the real host and executor starts in / whatever the caller's cwd", () => {
+  const here = process.cwd();
+  const scratch = mkdtempSync(join(tmpdir(), "gi-cwd-"));
+  try {
+    process.chdir(scratch);
+    const host = install.createHost();
+    assert.equal(host.probe("/bin/sh", ["-c", "pwd"]).stdout.trim(), "/");
+    const exec = install.createExecutor(host).run({ kind: "run_command", cmd: "/bin/sh", args: ["-c", "pwd"], env: { PATH: "/usr/bin:/bin" } });
+    assert.equal(exec.value.trim(), "/");
+  } finally { process.chdir(here); rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("path flags: a space, newline, percent sign, .. segment or other unit-unsafe character exits 2 before any op", () => {
+  for (const flag of ["--key-dir", "--socket-dir", "--install-prefix", "--node"]) {
+    for (const bad of ["/var/lib/a b", "/var/lib/a\nExecStartPre=/bin/evil", "/var/lib/a%h", "/var/lib/../etc", "/var/lib/$x", "/var/lib/a\"b"]) {
+      const world = makeWorld();
+      assert.equal(run(world, { [flag]: bad }), 2, `${flag} ${JSON.stringify(bad)}`);
+      assert.match(world.err, /must match/);
+      assert.equal(world.ops.length, 0);
+      const un = makeWorld();
+      if (flag !== "--node") {
+        assert.equal(install.governorUninstall({ [flag]: bad }, un.deps()), 2);
+        assert.equal(un.ops.length, 0);
+      }
+    }
+  }
+});
+
+test("preflight: a tool root would run from a writable place is refused, naming the tool", () => {
+  const owned = makeWorld();
+  owned.fs.set("/usr/sbin/useradd", fakeFile("", 1000, 1000, 0o755));
+  assert.equal(run(owned, {}), 2);
+  assert.match(owned.err, /tool-not-root-owned: useradd/);
+  assert.equal(owned.ops.length, 0);
+  const writableDir = makeWorld();
+  writableDir.fs.set("/usr/sbin", fakeDir(0, 0, 0o775));
+  assert.equal(run(writableDir, {}), 2);
+  assert.match(writableDir.err, /tool-not-root-owned: /);
+  const python = makeWorld();
+  python.fs.set("/usr/bin/python3", fakeFile("", 0, 0, 0o777));
+  assert.equal(run(python, {}), 2);
+  assert.match(python.err, /tool-not-root-owned: python3/);
+  const viaUninstall = makeWorld();
+  viaUninstall.fs.set("/usr/bin/systemctl", fakeFile("", 1000, 1000, 0o755));
+  assert.equal(install.governorUninstall({}, viaUninstall.deps()), 2);
+  assert.match(viaUninstall.err, /tool-not-root-owned: systemctl/);
+  assert.equal(viaUninstall.ops.length, 0);
+});
+
+test("preflight: a root-owned symlinked tool is accepted on its target's custody, a runner-owned link or target is refused", () => {
+  const link = (target, uid = 0) => ({ uid, gid: 0, mode: 0o777, kind: "symlink", target });
+  const ok = makeWorld();
+  ok.fs.set("/usr/bin/python3.11", fakeFile("", 0, 0, 0o755));
+  ok.fs.set("/usr/bin/python3", link("/usr/bin/python3.11"));
+  run(ok, {});
+  assert.doesNotMatch(ok.err, /tool-not-root-owned/);
+  const runnerLink = makeWorld();
+  runnerLink.fs.set("/usr/bin/python3.11", fakeFile("", 0, 0, 0o755));
+  runnerLink.fs.set("/usr/bin/python3", link("/usr/bin/python3.11", 1000));
+  assert.equal(run(runnerLink, {}), 2);
+  assert.match(runnerLink.err, /tool-not-root-owned: python3/);
+  const runnerTarget = makeWorld();
+  runnerTarget.fs.set("/usr/bin/python3.11", fakeFile("", 1000, 1000, 0o755));
+  runnerTarget.fs.set("/usr/bin/python3", link("/usr/bin/python3.11"));
+  assert.equal(run(runnerTarget, {}), 2);
+  assert.match(runnerTarget.err, /tool-not-root-owned: python3/);
+});
+
+test("preflight: tools are resolved from the system directories only, never /usr/local", () => {
+  const world = makeWorld();
+  world.fs.delete("/usr/sbin/useradd");
+  world.fs.set("/usr/local", fakeDir());
+  world.fs.set("/usr/local/sbin", fakeDir());
+  world.fs.set("/usr/local/sbin/useradd", fakeFile());
+  assert.equal(run(world, {}), 2);
+  assert.match(world.err, /missing tool: useradd/);
+});
+
 test("preflight: an interpreter, or an ancestor of it, that the runner can write aborts interpreter-not-root-owned", () => {
   const nvm = makeWorld();
   nvm.fs.set("/home/alice", fakeDir(1000, 1000, 0o755));
@@ -250,12 +336,18 @@ test("release clone: a tag that is not a release tag aborts before anything is m
   assert.equal(world.ops.length, 0);
 });
 
-test("release clone: /root must be root-owned and 0700 or stricter", () => {
-  for (const entry of [fakeDir(1000, 1000, 0o700), fakeDir(0, 0, 0o755), fakeDir(0, 0, 0o750)]) {
+test("release clone: /root must be root:root and not group- or world-writable (0550 on RHEL and Fedora is fine)", () => {
+  for (const entry of [fakeDir(1000, 1000, 0o700), fakeDir(0, 0, 0o770), fakeDir(0, 0, 0o777), fakeDir(0, 1000, 0o700)]) {
     const world = makeWorld();
     world.fs.set("/root", entry);
     assert.throws(() => install.releaseClone(TAG, undefined, { host: world.host, executor: world.executor }), /\/root must be owned by root/);
     assert.equal(world.ops.length, 0);
+  }
+  for (const mode of [0o550, 0o700, 0o750]) {
+    const world = makeWorld();
+    world.fs.set("/root", fakeDir(0, 0, mode));
+    const clone = install.releaseClone(TAG, undefined, { host: world.host, executor: world.executor });
+    assert.equal(clone.dir, CLONE, mode.toString(8));
   }
 });
 
@@ -313,9 +405,24 @@ test("escape check: sudo listing a rule fails, 'not allowed' passes, anything el
 test("escape check: no sudo and no doas passes with sudo_absent true; sudo found only via command -v is still queried", () => {
   const absent = check(() => {}).result;
   assert.deepEqual(absent, { docker_group: false, sudo_rules: false, sudo_absent: true });
-  const viaPath = check((w) => { w.commandV.set("sudo", "/opt/odd/bin/sudo"); w.sudoOutput = "User alice may run the following commands on host:\n"; });
-  assert.equal(viaPath.result.sudo_rules, true);
-  assert.deepEqual(viaPath.world.callsTo("sudo")[0].args, ["-n", "-l", "-U", "alice"]);
+});
+
+test("escape check: a sudo found only via command -v is recorded as a rule and never executed", () => {
+  const viaPath = check((w) => { w.commandV.set("sudo", "/opt/odd/bin/sudo"); });
+  assert.deepEqual([viaPath.result.sudo_rules, viaPath.result.sudo_absent], [true, false]);
+  assert.equal(viaPath.world.callsTo("sudo").length, 0);
+});
+
+test("escape check: a sudo under a runner-writable path or owned by the runner is never executed and records a rule", () => {
+  for (const mutate of [
+    (w) => { w.fs.set("/usr/bin/sudo", fakeFile("", 1000, 1000, 0o755)); },
+    (w) => { w.fs.set("/usr/bin/sudo", fakeFile("", 0, 0, 0o775)); },
+    (w) => { w.fs.set("/usr/local", fakeDir(0, 0, 0o777)); w.fs.set("/usr/local/bin", fakeDir()); w.fs.set("/usr/local/bin/sudo", fakeFile()); },
+  ]) {
+    const r = check((w) => { w.fs.delete("/usr/bin/sudo"); mutate(w); });
+    assert.deepEqual([r.result.sudo_rules, r.result.sudo_absent], [true, false]);
+    assert.equal(r.world.callsTo("sudo").length, 0);
+  }
 });
 
 test("escape check: doas is read from its config, failing closed when the file cannot be read", () => {
@@ -336,6 +443,25 @@ test("escape check: doas is read from its config, failing closed when the file c
   alpine.fs.set("/usr/local/etc", fakeDir());
   alpine.fs.set("/usr/local/etc/doas.conf", fakeFile("permit alice\n"));
   assert.equal(install.escalationRules(alpine.host, "alice").sudo_rules, true, "the /usr/local/etc location is read too");
+});
+
+test("escape check: doas matches numeric uid and gid, joins continuation lines and fails closed on constructs it does not know", () => {
+  const who = { user: "alice", uid: 1000, groups: ["alice"], gids: [1000, 1001] };
+  const permits = (conf) => install.doasPermits(conf, who);
+  assert.equal(permits("permit 1000\n"), true);
+  assert.equal(permits("permit :1001\n"), true);
+  assert.equal(permits("permit 1002\npermit :1002\n"), false);
+  assert.equal(permits("permit nopass \\\n  alice as root\n"), true, "a continued line is one rule");
+  assert.equal(permits("permit nopass \\\n  hal\n"), false);
+  assert.equal(permits("permit keepenv { FOO } alice\n"), true);
+  assert.equal(permits("permit hal\n"), false);
+  for (const odd of ["frobnicate alice\n", "permit\n", "permit setenv alice\n", "permit setenv { A \n", 'permit "al ice"\n', "permit nopass !alice\n"]) assert.equal(permits(odd), true, JSON.stringify(odd));
+  const world = makeWorld();
+  world.fs.set("/usr/bin/doas", fakeFile());
+  world.fs.set("/etc/doas.conf", fakeFile("permit 1000\n", 0, 0, 0o600));
+  assert.equal(install.escalationRules(world.host, "alice").sudo_rules, true, "the runner's uid is passed through");
+  world.fs.set("/etc/doas.conf", fakeFile("mystery alice\n", 0, 0, 0o600));
+  assert.equal(install.escalationRules(world.host, "hal").sudo_rules, true, "an unknown construct fails closed");
 });
 
 test("escape check: the only escalation tool ever run is sudo -n -l -U <runner>, read-only, with a fixed environment", () => {
@@ -496,6 +622,12 @@ test("plan: group members other than the runner and admin are replaced and repor
   assert.equal(world.opKinds().includes("create_group"), false, "an existing group is reused");
   assert.equal(world.opKinds().includes("create_account"), false, "an existing account is reused");
   assert.deepEqual(world.ops.find((o) => o.kind === "set_group_members").members, ["alice", "hal"]);
+  const kinds = world.opKinds();
+  assert.deepEqual(world.ops.find((o) => o.kind === "restrict_group"), { kind: "restrict_group", group: "commissaire-clients" }, "no gshadow admins and no password on a reused group");
+  assert.ok(kinds.indexOf("restrict_group") < kinds.indexOf("set_group_members"));
+  const fresh = makeWorld();
+  run(fresh, {});
+  assert.equal(fresh.opKinds().includes("restrict_group"), false, "a group install creates itself has nothing to clear");
 });
 
 // --- Directories: custody of what is already there -------------------------------------------------------------------------------
@@ -826,4 +958,44 @@ test("uninstall: needs root, the self-custody guard and the tools; on a host tha
   const clean = makeWorld();
   assert.equal(install.governorUninstall({}, clean.deps()), 0);
   assert.deepEqual(clean.opKinds(), ["remove", "remove"], "only the socket directory and prefix removals, both no-ops on a clean host");
+});
+
+test("uninstall: a user-owned socket directory aborts with exit 2 and removes nothing", () => {
+  const world = installedWorld();
+  world.fs.set("/var/lib/commissaire-socket", fakeDir(1000, 990, 0o2750));
+  assert.equal(install.governorUninstall({}, world.deps()), 2);
+  assert.match(world.err, /socket directory .* owned by uid 1000/);
+  assert.equal(world.ops.length, 0);
+});
+
+test("uninstall: key and socket directories that are symlinks, runner-writable, in a loose chain, or hold foreign content abort", () => {
+  const cases = [
+    ["symlinked key dir", (w) => w.fs.set("/var/lib/commissaire", { uid: 0, gid: 0, mode: 0o777, kind: "symlink" }), {}],
+    ["symlinked socket dir", (w) => w.fs.set("/var/lib/commissaire-socket", { uid: 0, gid: 0, mode: 0o777, kind: "symlink" }), {}],
+    ["wrong socket group", (w) => w.fs.set("/var/lib/commissaire-socket", fakeDir(300, 1000, 0o2750)), {}],
+    ["group-writable ancestor", (w) => w.fs.set("/var/lib", fakeDir(0, 0, 0o775)), {}],
+    ["key dir entry owned by the runner", (w) => w.fs.set("/var/lib/commissaire/x", fakeFile("", 1000, 1000, 0o600)), { "--purge-key": true }],
+    ["stray socket dir entry", (w) => w.fs.set("/var/lib/commissaire-socket/notes", fakeFile("", 0, 0, 0o600)), {}],
+    ["key dir with no commissaire files", (w) => w.fs.set("/var/lib/commissaire/other", fakeFile("", 0, 0, 0o644)), { "--purge-key": true }],
+    ["prefix owned by the runner", (w) => w.fs.set("/opt/commissaire", fakeDir(1000, 1000, 0o755)), {}],
+  ];
+  for (const [label, mutate, flags] of cases) {
+    const world = installedWorld();
+    mutate(world);
+    assert.equal(install.governorUninstall(flags, world.deps()), 2, label);
+    assert.equal(world.ops.length, 0, label);
+  }
+});
+
+test("uninstall: --key-dir pointing at a shared directory like /home aborts and removes or re-owns nothing", () => {
+  for (const flags of [{ "--key-dir": "/home" }, { "--key-dir": "/home", "--purge-key": true }]) {
+    const world = installedWorld();
+    world.fs.set("/home/alice", fakeDir(1000, 1000, 0o755));
+    assert.equal(install.governorUninstall(flags, world.deps()), 2);
+    assert.equal(world.ops.length, 0);
+  }
+  const socket = installedWorld();
+  socket.fs.set("/home/alice", fakeDir(1000, 1000, 0o755));
+  assert.equal(install.governorUninstall({ "--socket-dir": "/home" }, socket.deps()), 2);
+  assert.equal(socket.ops.length, 0);
 });

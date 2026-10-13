@@ -211,7 +211,7 @@ So `sudo ~/.local/bin/commissaire governor install` from a dev checkout refuses.
 PROCEDURE releaseClone(tag, repoUrl := RELEASE_REPO_URL):   # the CLI always passes the default
   1. IF tag does not match ^faff--v[0-9]+\.[0-9]+\.[0-9]+$: abort "from-tag must be a release tag (faff--vX.Y.Z)"
   2. IF repoUrl is not RELEASE_REPO_URL and does not start with file:// : abort   # file:// only via the exported function (tests)
-  3. dir := mkdtemp under /root (root:root, 0700); verify /root is root-owned and 0700 or stricter
+  3. dir := mkdtemp under /root (root:root, 0700); verify /root is root:root with no group- or world-write bits (RHEL and Fedora ship 0550; the clone directory itself stays 0700)
   4. run as root with a replaced, not inherited, environment, and with -c http.sslVerify=true -c protocol.allow=never -c protocol.https.allow=always: exactly PATH=/usr/sbin:/usr/bin:/sbin:/bin,
      HOME=/root, LC_ALL=C, GIT_CONFIG_NOSYSTEM=1, GIT_CONFIG_GLOBAL=/dev/null, GIT_TERMINAL_PROMPT=0
      (so GIT_CONFIG_COUNT/KEY/VALUE, GIT_SSL_*, proxy and askpass variables from the caller never reach git):

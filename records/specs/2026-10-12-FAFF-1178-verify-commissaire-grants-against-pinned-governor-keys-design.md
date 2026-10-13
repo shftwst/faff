@@ -239,6 +239,8 @@ PROCEDURE verifyGrant(input):
   1. IF input.effect.target is null or empty -> RETURN absent-or-invalid, "effect-target-missing"
   2. key := resolveAdmittedKey(input.run_dir, input.trust, input.governor_dir, input.producer_dir)
   3. IF key.custody == null -> RETURN not-applicable, reason "not-governed"
+  3a. IF key.failure IN {"admission-missing", "ledger-malformed"} -> RETURN absent-or-invalid, key.failure
+                                               # a destroyed ledger has no verdicts; report the cause, not no-verdict-for-step
   4. verdicts := schema-3 records from the same walk resolveAdmittedKey used (one reader, never readLedgerEntries),
                  with author "commissaire", kind_of_entry "effect-decision-verdict",
                  matchesUnit(record, input.unit_id), step == input.step
@@ -265,7 +267,7 @@ PROCEDURE atSignedPosition(run_dir, record, expected_run_id):
   6. RETURN record.seq == i
 ```
 
-Step order matters. Steps 4 and 5 run before the key failure so that a governed run with no verdict reports the more specific reason, matching today's `merge-gate`. Every refusal names one reason from `GrantReason`.
+Step order matters. A missing admission or malformed ledger (step 3a) is reported first, because a deleted or garbled ledger has no verdicts to look up. Otherwise steps 4 and 5 run before the key failure so that a governed run with no verdict reports the more specific reason, matching today's `merge-gate`. Every refusal names one reason from `GrantReason`.
 
 **Chosen:** `effect.target` is required, and the grant is checked against the caller's target only. Falling back to the verdict's own target, as `merge-gate` does today, compares the grant with itself, so coverage is always true. FAFF-1212 must resolve the base branch (merge, pr-create) or head ref (branch-delete) before calling.
 

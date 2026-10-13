@@ -66,6 +66,7 @@ export type GrantReason =
   | "no-verdict-for-kind"
   | "chain-position-invalid"
   | "effect-target-missing"
+  | "grant-not-pinned"
   | KeyFailureReason
   | PermitReason;
 
@@ -285,6 +286,7 @@ function verifyGrant(input: GrantVerifyInput): GrantVerifyResult {
 
   const permit = chokepointPermit({ kind: input.effect.kind, target }, verdict, key.pk, key.signer_fingerprint);
   const verdictSeq = typeof verdict.seq === "number" ? verdict.seq : null;
+  if (permit.permit && key.require_pinned_governor && key.classification !== "pinned") return report("absent-or-invalid", "grant-not-pinned", verdictSeq);
   return permit.permit ? report("valid-grant", "valid-grant", verdictSeq) : report("absent-or-invalid", permitReason(permit.reason), verdictSeq);
 }
 

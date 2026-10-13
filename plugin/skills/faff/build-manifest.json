@@ -18,7 +18,7 @@
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
     "bin/lib/commissaire.ts": "cb7cdf081c113216dff81bbb0410cfe9c1d9814740b4bc37b39cf0fee691d911",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
-    "bin/lib/governor-admin.ts": "491d630c07ff5384660c3c9c5c3cb9f60ed5ffe9094dd60d40af5c62f24c7334",
+    "bin/lib/governor-admin.ts": "ff7e0b244a1e0d07dad6d952aa24098012deaf4b103b96f108c3567c4a4b7813",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bc45d09e4c2cb2d72c614f2970a88ac2775a13370ef9c4f56544f983610fc748",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
@@ -32,7 +32,7 @@
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
     "bin/lib/commissaire.js": "609b4154adee708408d2484e2c0ab31e6274ec0b015a629d89a148045d6032e3",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
-    "bin/lib/governor-admin.js": "b46290343fa359f718c6ba210f67d5c5b66a4528a38f8dbf052d801f449ff90d",
+    "bin/lib/governor-admin.js": "d3ac84717d2b0cf24c6e7d69d9948264ca166c184ce0b5cbd0174a022fe9c08c",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "8786293829feadf5312e74e0aa551448d28c059298bc76c17c966ca1884fb93a",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
@@ -40,5 +40,5 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "9757b16f54c0645c76791fb10c93763d21ffe06266be0019e3e7d68f9bba22c3"
+  "output_digest": "3118c8762a14439b6776fff602319dc2867ed0dd90f32b1f2b3fcdd77453495e"
 }

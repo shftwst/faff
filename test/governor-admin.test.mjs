@@ -548,6 +548,8 @@ test("pin refuses repo-runner-writable for a runner-writable gitfile, working-tr
   const linked = linkedWorktree(w);
   const linkedGitDir = admin.DEFAULT_DEPS.gitDir(linked);
   writeFileSync(join(linkedGitDir, "config.worktree"), "");
+  writeFileSync(join(linkedGitDir, "config"), "");
+  const repoLstat = (p) => (p.startsWith(w.work) || p.startsWith(realpathSync(w.work)) ? admin.DEFAULT_DEPS.lstat(p) : null);
   const cases = [
     ["gitfile", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linked), ".git")],
     ["working-tree root", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === realpathSync(linked)],
@@ -557,7 +559,7 @@ test("pin refuses repo-runner-writable for a runner-writable gitfile, working-tr
     [".git/config", {}, (p) => p === join(realpathSync(w.work), ".git", "config")],
   ];
   for (const [label, deps, predicate] of cases) {
-    const r = pin(w, {}, { ...noGit, ...deps, runnerCanWrite: predicate });
+    const r = pin(w, {}, { ...noGit, lstat: repoLstat, ...deps, runnerCanWrite: predicate });
     assert.equal(r.reason, "repo-runner-writable", label);
     assert.equal(r.pinned, "refused", label);
   }
@@ -586,7 +588,7 @@ test("status skips gh for a runner-writable gh binary: remote_base, branch_prote
 
 test("status skips git for a runner-writable repository and says so", () => {
   const w = world();
-  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { runGit: noCalls("runGit"), runnerCanWrite: (p) => p === join(realpathSync(w.work), ".git", "config") })).result;
+  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { runGit: noCalls("runGit"), lstat: (p) => (p.startsWith(w.work) || p.startsWith(realpathSync(w.work)) ? admin.DEFAULT_DEPS.lstat(p) : null), runnerCanWrite: (p) => p === join(realpathSync(w.work), ".git", "config") })).result;
   assert.deepEqual(s.counting.remote_base, { state: "unknown", reason: "repo-runner-writable" });
   assert.equal(s.trust_source, null);
   assert.ok(s.caveats.some((c) => c.startsWith("pin would refuse repo-runner-writable:")));
@@ -648,6 +650,19 @@ test("a plain clone is not refused repo-runner-writable when the optional config
   assert.equal(r.pinned, "opened-pr", r.detail);
   const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { ancestors })).result;
   assert.notEqual(s.counting.remote_base.reason, "repo-runner-writable");
+});
+
+test("a linked worktree with no config of its own is not refused repo-runner-writable (real ancestors)", () => {
+  const w = world();
+  const linked = linkedWorktree(w);
+  const linkedGitDir = admin.DEFAULT_DEPS.gitDir(linked);
+  assert.equal(existsSync(join(linkedGitDir, "config")), false);
+  const split = (p) => { const out = []; for (let c = p; ; c = c.replace(/\/[^/]*$/, "") || "/") { out.push(c); if (c === "/") break; } return out; };
+  const inRepo = (p) => p.startsWith(w.work) || p.startsWith(realpathSync(w.work));
+  const ancestors = (p) => (inRepo(p) ? admin.DEFAULT_DEPS.ancestors(p) : split(p));
+  const lstat = (p) => (inRepo(p) ? admin.DEFAULT_DEPS.lstat(p) : null);
+  const r = pin(w, { "--dry-run": true }, { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked, ancestors, lstat });
+  assert.notEqual(r.reason, "repo-runner-writable", r.detail);
 });
 
 test("gh pr create printing no PR URL for the repo refuses gh-failed and never views or closes a PR", () => {

@@ -384,16 +384,19 @@ function binWritable(deps, runner, name, bin) {
 function repoCustodyPaths(deps, gitDir) {
     const top = deps.workTreeTop(deps.cwd());
     const common = deps.commonDir(gitDir);
-    const paths = [gitDir, path.join(gitDir, "config")];
-    // Optional: when absent, creating it needs write access to gitDir, which is already checked.
-    const worktreeConfig = path.join(gitDir, "config.worktree");
-    if (deps.lstat(worktreeConfig) !== null)
-        paths.push(worktreeConfig);
+    const paths = [gitDir];
     if (top !== null)
         paths.push(top, path.join(top, ".git"));
     if (common !== null)
-        paths.push(common, path.join(common, "config"));
-    return paths;
+        paths.push(common);
+    // Config files are optional leaves: when absent, creating one needs write access to its directory, which is listed above.
+    const leaves = [path.join(gitDir, "config"), path.join(gitDir, "config.worktree")];
+    if (common !== null)
+        leaves.push(path.join(common, "config"));
+    for (const leaf of leaves)
+        if (deps.lstat(leaf) !== null)
+            paths.push(leaf);
+    return [...new Set(paths)];
 }
 function repoWritable(deps, runner) {
     const gitDir = deps.gitDir(deps.cwd());

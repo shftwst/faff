@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1178",
+  "build": {
+    "status": "complete",
+    "diff_hash": "493828852cd0d6e86bff358ffcad54e6495d165804b6f68cb613fae1d1b0f40d",
+    "branch": "FAFF-1178-verify-commissaire-grants-against-pinned-governor-keys",
+    "pushed_at": "2026-10-13T00:22:56.076Z"
+  },
+  "updated_at": "2026-10-13T00:22:56.076Z"
+}

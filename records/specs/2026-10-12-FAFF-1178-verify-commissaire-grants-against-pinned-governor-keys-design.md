@@ -165,7 +165,7 @@ RECORD AuditVerifyOutput (version 1, additive fields marked +):
   ...existing fields unchanged...
   + custody: Custody | null
   + signer_fingerprint: String | null
-  + trust: { source: TrustSource, present: Boolean | null, require_pinned_governor: Boolean }   # present null iff source "not-read"
+  + trust: { source: TrustSource, present: Boolean | null, require_pinned_governor: Boolean }   # present null when source is "not-read" or the trust read failed (trust-file-invalid)
   records[i] for author "commissaire":
   + key_classification: Classification | null
 ```

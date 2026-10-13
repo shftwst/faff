@@ -636,6 +636,7 @@ test("audit verify remote read: --base main --trust-transport remote --repo clas
     assert.ok(invalid, "trust-file-invalid is reported");
     assert.match(invalid.detail, /could not read trust file from remote-base/, "the read error message is carried");
     assert.equal(b.trust.source, "remote-base", "the attempted source is reported, not not-read");
+    assert.equal(b.trust.present, null, "a failed read reports present as null");
     assert.ok(b.records.filter((x) => x.author === "commissaire").every((x) => x.key_classification === null));
   } finally { run.rm(); for (const g of [present, absent, down, unlisted]) rmSync(g.dir, { recursive: true, force: true }); }
 });

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1219",
+  "build": {
+    "status": "complete",
+    "diff_hash": "124b9d06d80a35a91f66e5ae1b56de49cf3e558575ab97eaa9c56152ca8d07e6",
+    "branch": "FAFF-1219-refuse-unpinned-grants-under-strict-mode",
+    "pushed_at": "2026-10-13T02:05:21.479Z"
+  },
+  "updated_at": "2026-10-13T02:05:21.479Z"
+}

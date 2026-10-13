@@ -47,7 +47,7 @@ function repoWith(toml) {
   if (toml !== undefined) {
     mkdirSync(join(dir, ".commissaire"), { recursive: true });
     writeFileSync(join(dir, ".commissaire", "trust.toml"), toml);
-    for (const a of [["add", "."], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "trust"]]) spawnSync("git", ["-C", dir, ...a]);
+    for (const a of [["add", "."], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "trust"]]) assert.equal(spawnSync("git", ["-C", dir, ...a]).status, 0, `git ${a.join(" ")}`);
   }
   return dir;
 }
@@ -57,7 +57,7 @@ function scenarios() {
   const out = {};
   out.governor = governed();
   out.inProcess = governed({ custody: "in-process" });
-  out.noStep = governed();
+  out.granted = governed();
   out.swapped = governed(); swapInRunnerKey(out.swapped);
   out.deny = bare(); out.deny.grant("merge", "merge", "main"); out.deny.add("effect-decision-verdict", "merge", { verdict: "deny", effect: MERGE }); out.deny.flush();
   out.orphan = bare();
@@ -117,7 +117,7 @@ test("strict off, trust file absent and not-read leave every result identical ac
     "absent file": { trust: trustFile([], { present: false }), source: "remote-base" },
     "flag false, key unlisted": { trust: trustFile([OTHER]), source: "remote-base" },
   };
-  const expected = { governor: "valid-grant", inProcess: "valid-grant", noStep: "valid-grant", swapped: "governor-key-not-admitted", deny: "decision-not-a-grant", orphan: "chain-position-invalid", ungoverned: "not-governed" };
+  const expected = { governor: "valid-grant", inProcess: "valid-grant", granted: "valid-grant", swapped: "governor-key-not-admitted", deny: "decision-not-a-grant", orphan: "chain-position-invalid", ungoverned: "not-governed" };
   for (const [name, run] of Object.entries(runs)) {
     const baseline = verify(run, NOT_READ);
     assert.equal(baseline.reason, expected[name], name);
@@ -155,7 +155,7 @@ test("integration smoke: an in-process run is refused under strict mode and pass
   const read = () => ({ read: readTrustFile({ repoDir: dir, ref: "main", transport: "local" }) });
   assert.deepEqual(summary(verify(run, read())), { outcome: "absent-or-invalid", reason: "grant-not-pinned", custody: "in-process", classification: "in-process" });
   writeFileSync(join(dir, ".commissaire", "trust.toml"), trustToml([OTHER], "require_pinned_governor = false\n"));
-  for (const a of [["add", "."], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "off"]]) spawnSync("git", ["-C", dir, ...a]);
+  for (const a of [["add", "."], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "off"]]) assert.equal(spawnSync("git", ["-C", dir, ...a]).status, 0, `git ${a.join(" ")}`);
   assert.deepEqual(summary(verify(run, read())), { outcome: "valid-grant", reason: "valid-grant", custody: "in-process", classification: "in-process" });
 });
 
@@ -265,7 +265,9 @@ test("strict on: existing leg refusals keep their reasons", () => {
   }
   const merged = governed();
   assert.equal(MG.checkLeg(merged.runDir, UNIT, "merge", "release", localTrustCtx(strictRepo)).detail.reason, "grant-does-not-cover-effect");
-  assert.equal(MG.checkLeg(merged.runDir, UNIT, "merge", "main", undefined).detail.reason, "trust-context-missing");
+  for (const [leg, target] of LEGS) {
+    assert.equal(MG.checkLeg(merged.runDir, UNIT, leg, target, undefined).detail.reason, "trust-context-missing", leg);
+  }
 });
 
 // --- the switch lives only in the trust argument ----------------------------------------------------------------------

@@ -210,9 +210,13 @@ function toolOnSystemPath(host: Host, tool: string): string | null {
   return findTool(host, TOOL_DIRS.map((d) => path.join(d, tool)));
 }
 
-function systemTool(tool: string): string {
-  for (const d of TOOL_DIRS) if (fs.existsSync(path.join(d, tool))) return path.join(d, tool);
-  return tool;
+// The verified real path of a system tool; refuses a tool whose custody chain is loose.
+function systemTool(host: Host, tool: string): string {
+  const found = toolOnSystemPath(host, tool);
+  if (found === null) return tool;
+  const checked = trustedBinary(host, found);
+  if (checked.real === null) throw new Error(`tool-not-root-owned: ${tool} at ${found} (${checked.loose} is missing, not root-owned, or group- or world-writable)`);
+  return checked.real;
 }
 
 function chownTree(p: string, uid: number, gid: number, recursive: boolean): void {
@@ -229,7 +233,7 @@ function createExecutor(host: Host): Executor {
     return { uid: u.uid, gid: g.gid };
   };
   const command = (cmd: string, args: string[]): OpResult => {
-    const r = runProcess(systemTool(cmd), args, { PATH: SYSTEM_PATH, LC_ALL: "C" }, 120_000);
+    const r = runProcess(systemTool(host, cmd), args, { PATH: SYSTEM_PATH, LC_ALL: "C" }, 120_000);
     return r.status === 0 ? { ok: true, value: r.stdout } : { ok: false, message: `${cmd} ${args.join(" ")} failed (${r.status === null ? "no exit" : `exit ${r.status}`}): ${r.stderr.trim() || r.stdout.trim()}` };
   };
   const mkdirParents = (dir: string): void => {
@@ -388,20 +392,29 @@ function selfCustodyCheck(host: Host, moduleDir: string, tag: string): void {
   }
 }
 
-function checkInterpreter(host: Host, node: string): void {
-  const real = host.realpath(node);
-  const loose = real === null ? node : firstLooseOnChain(host, real);
+// The real path of an interpreter whose literal and resolved chains are both tight; aborts otherwise.
+// The unit's ExecStart= names the returned path, so the verified file is the one that runs.
+function checkInterpreter(host: Host, node: string): string {
   const hint = "Pass --node <path> with a Node binary from a root-owned system prefix.";
-  if (loose !== null) abort(`interpreter-not-root-owned: ${real ?? node} (${loose} is missing, not root-owned, or group- or world-writable)\n${hint}`);
-  if (real !== null && host.lstat(real)?.kind !== "file") abort(`interpreter-not-root-owned: ${real} (not a regular file)\n${hint}`);
+  const checked = trustedBinary(host, node);
+  if (checked.real === null) return abort(`interpreter-not-root-owned: ${host.realpath(node) ?? node} (${checked.loose} is missing, not root-owned, or group- or world-writable)\n${hint}`);
+  if (host.lstat(checked.real)?.kind !== "file") return abort(`interpreter-not-root-owned: ${checked.real} (not a regular file)\n${hint}`);
+  return checked.real;
 }
 
+type CheckedBinary = { real: string; loose: null } | { real: null; loose: string };
+
 // Root runs these tools, so each must come from a system directory and sit under a root-owned chain.
-function trustedBinaryLoose(host: Host, p: string): string | null {
+// Both the literal path's chain and the resolved path's chain must be tight. Callers execute the returned
+// real path, never the literal one, so a link in between cannot be swapped after the check.
+function trustedBinary(host: Host, p: string): CheckedBinary {
   const real = host.realpath(p);
-  if (real === null) return p;
-  return firstLooseOnChain(host, p) ?? firstLooseOnChain(host, real);
+  if (real === null) return { real: null, loose: p };
+  const loose = firstLooseOnChain(host, p) ?? firstLooseOnChain(host, real);
+  return loose === null ? { real, loose: null } : { real: null, loose };
 }
+
+const trustedBinaryLoose = (host: Host, p: string): string | null => trustedBinary(host, p).loose;
 
 function requireTools(host: Host): void {
   for (const tool of REQUIRED_TOOLS) {
@@ -412,13 +425,16 @@ function requireTools(host: Host): void {
   }
 }
 
-function preflight(host: Host, interpreters: string[]): void {
-  requireTools(host);
-  const pyLoose = trustedBinaryLoose(host, TRUSTED_PYTHON);
-  if (pyLoose !== null) abort(`tool-not-root-owned: python3 at ${TRUSTED_PYTHON} (${pyLoose} is missing, not root-owned, or group- or world-writable)`);
-  const py = host.probe(TRUSTED_PYTHON, ["-I", "-c", "import socket, struct"]);
+// Tool custody (requireTools) runs earlier, before root executes any tool; this adds python3 and the interpreters.
+// Returns the verified real path of `node`.
+function preflight(host: Host, node: string, execPath: string): string {
+  const python = trustedBinary(host, TRUSTED_PYTHON);
+  if (python.real === null) return abort(`tool-not-root-owned: python3 at ${TRUSTED_PYTHON} (${python.loose} is missing, not root-owned, or group- or world-writable)`);
+  const py = host.probe(python.real, ["-I", "-c", "import socket, struct"]);
   if (py.status !== 0) abort(`python3-missing: ${TRUSTED_PYTHON} cannot import socket and struct; the governor reads peer credentials through it`);
-  for (const node of new Set(interpreters)) checkInterpreter(host, node);
+  const real = checkInterpreter(host, node);
+  if (execPath !== node) checkInterpreter(host, execPath);
+  return real;
 }
 
 // --- Release clone ----------------------------------------------------------------------------------
@@ -510,13 +526,17 @@ function doasPermits(conf: string, who: DoasIdentity): boolean {
 }
 
 // A tool root will execute must be found in the fixed list and sit under a root-owned chain.
-function trustedTool(host: Host, candidates: string[]): { found: string | null; trusted: boolean } {
+// `real` is the verified real path to execute; null when the tool is absent or not trusted.
+function trustedTool(host: Host, candidates: string[]): { found: string | null; real: string | null } {
   const found = findTool(host, candidates);
-  return { found, trusted: found !== null && trustedBinaryLoose(host, found) === null };
+  return { found, real: found === null ? null : trustedBinary(host, found).real };
 }
 
+// A /bin/sh that cannot be trusted is never executed and counts as "present", which fails closed.
 function presentByPath(host: Host, name: string): boolean {
-  const r = host.probe("/bin/sh", ["-c", `command -v ${name}`], { env: { PATH: SEARCH_PATH, LC_ALL: "C" } });
+  const sh = trustedBinary(host, "/bin/sh").real;
+  if (sh === null) return true;
+  const r = host.probe(sh, ["-c", `command -v ${name}`], { env: { PATH: SEARCH_PATH, LC_ALL: "C" } });
   return r.status === 0 && (r.stdout.trim().split("\n")[0] ?? "").startsWith("/");
 }
 
@@ -538,8 +558,8 @@ function escalationRules(host: Host, user: string): { sudo_rules: boolean; sudo_
     if (presentByPath(host, "sudo")) return { sudo_rules: true, sudo_absent: false };
     return { sudo_rules: false, sudo_absent: !doas };
   }
-  if (!sudo.trusted) return { sudo_rules: true, sudo_absent: false };
-  const r = host.probe(sudo.found, ["-n", "-l", "-U", user], { env: { PATH: SYSTEM_PATH, LC_ALL: "C" }, timeoutMs: 15_000 });
+  if (sudo.real === null) return { sudo_rules: true, sudo_absent: false };
+  const r = host.probe(sudo.real, ["-n", "-l", "-U", user], { env: { PATH: SYSTEM_PATH, LC_ALL: "C" }, timeoutMs: 15_000 });
   if (r.status === 0 && r.stdout.includes("may run the following commands")) return { sudo_rules: true, sudo_absent: false };
   if (r.status === 0 && r.stdout.includes("is not allowed to run sudo")) return { sudo_rules: false, sudo_absent: false };
   return { sudo_rules: true, sudo_absent: false };
@@ -939,6 +959,7 @@ function governorInstall(flags: FlagBag, deps: InstallDeps = {}): number {
     const tag = flagString(flags, "--from-tag");
     if (tag === undefined || !TAG_PATTERN.test(tag)) abort("from-tag must be a release tag (faff--vX.Y.Z)");
     selfCustodyCheck(ctx.host, ctx.moduleDir, tag);
+    requireTools(ctx.host);
     const runnerName = flagString(flags, "--runner-user");
     if (runnerName === undefined) abort("pass --runner-user <name>: the non-root user that runs faff");
     const runner = resolveUser(ctx, runnerName);
@@ -953,11 +974,11 @@ function governorInstall(flags: FlagBag, deps: InstallDeps = {}): number {
     const socketDir = absolutePath(flags, "--socket-dir", DEFAULT_SOCKET_DIR);
     const prefix = absolutePath(flags, "--install-prefix", DEFAULT_PREFIX);
     const node = absolutePath(flags, "--node", ctx.execPath);
-    preflight(ctx.host, [node, ctx.execPath]);
+    const realNode = preflight(ctx.host, node, ctx.execPath);
 
     clone = releaseClone(tag, ctx.repoUrl, { host: ctx.host, executor: ctx.executor });
     const checks = escapeCheck(ctx.host, runner.name);
-    const plan = planLinux(ctx.host, { runner, admin, keyDir, socketDir, prefix, node, clone, checks, checkedAt: finishTimestamp(ctx.now()) });
+    const plan = planLinux(ctx.host, { runner, admin, keyDir, socketDir, prefix, node: realNode, clone, checks, checkedAt: finishTimestamp(ctx.now()) });
     executePlan(plan.ops, ctx.executor);
     ctx.executor.run({ kind: "remove", path: clone.dir, recursive: true, onlyIfEmpty: false });
     clone = null;

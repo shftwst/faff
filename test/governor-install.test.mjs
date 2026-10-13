@@ -282,6 +282,68 @@ test("preflight: an interpreter, or an ancestor of it, that the runner can write
   assert.match(missing.err, /interpreter-not-root-owned/);
 });
 
+const symlink = (target, uid = 0) => ({ uid, gid: 0, mode: 0o777, kind: "symlink", target });
+
+test("preflight: --node is checked through its literal chain too, and ExecStart= names the verified real path", () => {
+  const swappable = makeWorld();
+  swappable.fs.set("/srv", fakeDir());
+  swappable.fs.set("/srv/ci", fakeDir(1000, 1000, 0o755));
+  swappable.fs.set("/srv/ci/node", symlink("/usr/bin/node"));
+  assert.equal(run(swappable, { "--node": "/srv/ci/node" }), 2);
+  assert.match(swappable.err, /interpreter-not-root-owned: .*\/srv\/ci is/);
+  assert.equal(swappable.ops.length, 0);
+
+  const tight = makeWorld();
+  tight.fs.set("/srv", fakeDir());
+  tight.fs.set("/srv/ci", fakeDir());
+  tight.fs.set("/srv/ci/node", symlink("/usr/bin/node"));
+  assert.equal(run(tight, { "--node": "/srv/ci/node" }), 0, tight.err);
+  const unit = tight.ops.find((o) => o.kind === "write_file" && o.path === "/etc/systemd/system/commissaire-governor.service");
+  assert.match(unit.content, /^ExecStart=\/usr\/bin\/node /m);
+  assert.doesNotMatch(unit.content, /\/srv\/ci/);
+});
+
+test("preflight: tool custody runs before root probes getent or id, and a loose /bin/sh is never executed", () => {
+  const early = makeWorld();
+  early.fs.set("/usr/sbin/useradd", fakeFile("", 1000, 1000, 0o755));
+  assert.equal(run(early, {}), 2);
+  assert.match(early.err, /tool-not-root-owned: useradd/);
+  assert.equal(early.callsTo("getent").length + early.callsTo("id").length, 0, "no probe ran before the custody failure");
+
+  const loose = makeWorld();
+  loose.fs.set("/bin/sh", fakeFile("", 1000, 1000, 0o755));
+  loose.commandV.set("doas", "/usr/bin/doas");
+  const rules = install.escalationRules(loose.host, "alice");
+  assert.equal(rules.sudo_rules, true, "a loose sh counts as a rule");
+  assert.equal(rules.sudo_absent, false);
+  assert.equal(loose.callsTo("sh").length, 0, "the loose sh was not run");
+});
+
+test("preflight: root executes the resolved real path of a symlinked tool, not the literal link", () => {
+  const world = makeWorld();
+  world.fs.set("/usr/bin/python3.11", fakeFile("", 0, 0, 0o755));
+  world.fs.set("/usr/bin/python3", symlink("/usr/bin/python3.11"));
+  world.fs.set("/usr/bin/sudo.real", fakeFile("", 0, 0, 0o755));
+  world.fs.set("/usr/bin/sudo", symlink("/usr/bin/sudo.real"));
+  assert.equal(run(world, {}), 0, world.err);
+  assert.equal(world.calls.filter((c) => c.args.includes("import socket, struct")).map((c) => c.cmd)[0], "/usr/bin/python3.11");
+  assert.deepEqual(world.calls.filter((c) => c.args[0] === "-n").map((c) => c.cmd), ["/usr/bin/sudo.real"]);
+});
+
+test("executor: a system tool with a loose chain is refused, and a tight link resolves to its real path", () => {
+  const loose = makeWorld();
+  loose.fs.set("/usr/bin/systemctl", fakeFile("", 1000, 1000, 0o755));
+  const refused = install.createExecutor(loose.host).run({ kind: "service_op", args: ["daemon-reload"] });
+  assert.equal(refused.ok, false);
+  assert.match(refused.message, /tool-not-root-owned: systemctl/);
+
+  const linked = makeWorld();
+  linked.fs.set("/usr/bin/systemctl.real", fakeFile("", 0, 0, 0o755));
+  linked.fs.set("/usr/bin/systemctl", symlink("/usr/bin/systemctl.real"));
+  const res = install.createExecutor(linked.host).run({ kind: "service_op", args: ["daemon-reload"] });
+  assert.doesNotMatch(res.message ?? "", /tool-not-root-owned/, "a root-owned link passes custody and is spawned by its real path");
+});
+
 // --- Release clone --------------------------------------------------------------------------------------------------------
 
 const GIT_ENV = { PATH: "/usr/sbin:/usr/bin:/sbin:/bin", HOME: "/root", LC_ALL: "C", GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", GIT_TERMINAL_PROMPT: "0" };

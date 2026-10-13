@@ -150,7 +150,7 @@ ENUM RefusalReason:
   key-readable-by-invoker, key-read-check-inconclusive,
   install-record-missing, install-check-failed,
   base-not-protected, base-protection-unknown,
-  no-remote-base, repo-mismatch, base-moved, trust-file-invalid, git-failed, gh-failed
+  no-remote-base, repo-mismatch, base-moved, trust-file-invalid, git-failed, gh-failed, pr-head-mismatch
 ```
 
 Exit codes: `pin` exits 0 for `opened-pr`, `already-pinned` and `dry-run`, 1 for `refused`, 2 for a usage error. `status` exits 0 whenever it produced a `StatusResult`, including one with unmet conditions. On an invalid trust file `status` prints `{ "error": "trust-file-invalid", "detail": "<reader message with line number>" }` on stdout and exits 2; a usage error exits 2 with stderr only.

@@ -45,7 +45,7 @@ const ENV = "GIT_SSH_COMMAND=/usr/local/bin/fakessh GIT_CONFIG_GLOBAL=/dev/null"
 const asUser = (user, script) => sh(`cd /home/${user}/proj 2>/dev/null || cd /tmp; runuser -u ${user} -- env ${ENV} bash -c '${script.replace(/'/g, "'\\''")}'`);
 const pinAs = (user, extra = "", sock = SOCK) => asUser(user, `node ${COMMISSAIRE} governor pin --socket ${sock} --runner-user runner --repo acme/widgets ${extra}`);
 const statusAs = (user, extra = "") => asUser(user, `node ${COMMISSAIRE} governor status --socket ${SOCK} --runner-user runner --runner-login runner-bot ${extra}`);
-const setGh = (cfg) => ok(sh(`cat > /srv/gh-config.json <<'EOF'\n${JSON.stringify({ defaultBranch: "main", rules: [{ type: "pull_request" }], trustMode: "absent", human: "human-login", prUrl: "https://github.com/acme/widgets/pull/7", ...cfg })}\nEOF`), "gh config");
+const setGh = (cfg) => ok(sh(`cat > /srv/gh-config.json <<'EOF'\n${JSON.stringify({ defaultBranch: "main", rules: [{ type: "pull_request" }], trustMode: "absent", human: "human-login", bare: "/srv/acme/widgets.git", prUrl: "https://github.com/acme/widgets/pull/7", ...cfg })}\nEOF`), "gh config");
 const bareShow = (ref, file) => ok(sh(`git -c safe.directory='*' -C /srv/acme/widgets.git show ${ref}:${file}`), `show ${ref}`);
 
 describe("governor pin and status against a governor on a second OS user", { skip: SKIP }, () => {
@@ -139,6 +139,9 @@ for i in $(seq 1 50); do [ -S ${RELAY_SOCK} ] && exit 0; sleep 0.2; done; cat /t
     assert.ok(body.includes(`governor process uid: ${uid.gov}`));
     assert.ok(body.includes(`runner user: runner (uid ${uid.runner})`));
     assert.ok(body.includes("key directory: /var/lib/gov, owner uid " + uid.gov + ", mode 0700"));
+    const sha = ok(sh(`git -c safe.directory='*' -C /srv/acme/widgets.git rev-parse refs/heads/${branch}`), "rev-parse");
+    assert.ok(body.includes(`Pushed commit: \`${sha}\``), "the body names the pushed commit");
+    assert.ok(calls.some((c) => c[0] === "pr" && c[1] === "view"), "the PR head was read back");
     assert.ok(!calls.some((c) => c[0] === "pr" && c[1] === "merge"), "pin never merges");
     assert.match(ok(sh(`git -c safe.directory='*' -C /srv/acme/widgets.git log -1 --format=%B ${branch}`), "log"), /Signed-off-by: Test Human <human@example\.invalid>/);
   });

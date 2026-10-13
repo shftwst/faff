@@ -35,6 +35,8 @@ const ROOT_EQUIVALENT_GROUPS = {
 const REPO_RE = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 const BASE_RE = /^[A-Za-z0-9_][A-Za-z0-9._/-]*$/;
 const FINGERPRINT_RE = /^[0-9a-f]{64}$/;
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+const GITHUB_HOST = "github.com";
 const TIMEOUTS = { connect_ms: 3000, reply_ms: 10000 };
 const HOOKS_OFF = ["-c", "core.hooksPath=/dev/null"];
 const TRUST_PATH = ".commissaire/trust.toml";
@@ -107,21 +109,32 @@ function defaultRunnerCanWrite(p, runner) {
         return true;
     return (st.mode & 0o020) !== 0 && runner.gids.includes(st.gid);
 }
-function defaultGitDir(cwd) {
+function findDotGit(cwd) {
     for (let dir = path.resolve(cwd);; dir = path.dirname(dir)) {
         const candidate = path.join(dir, ".git");
         try {
             const st = fs.lstatSync(candidate);
             if (st.isDirectory())
-                return candidate;
+                return { top: dir, gitDir: candidate };
             if (st.isFile()) {
                 const m = /^gitdir:\s*(.+)$/m.exec(fs.readFileSync(candidate, "utf8"));
-                return m && m[1] ? path.resolve(dir, m[1].trim()) : null;
+                return { top: dir, gitDir: m && m[1] ? path.resolve(dir, m[1].trim()) : null };
             }
         }
         catch { /* not at this level */ }
         if (path.dirname(dir) === dir)
             return null;
+    }
+}
+const defaultGitDir = (cwd) => findDotGit(cwd)?.gitDir ?? null;
+const defaultWorkTreeTop = (cwd) => findDotGit(cwd)?.top ?? null;
+function defaultCommonDir(gitDir) {
+    try {
+        const rel = fs.readFileSync(path.join(gitDir, "commondir"), "utf8").trim();
+        return rel === "" ? null : path.resolve(gitDir, rel);
+    }
+    catch {
+        return null;
     }
 }
 function defaultResolveBin(name) {
@@ -164,7 +177,8 @@ const DEFAULT_DEPS = {
     },
     ancestors: defaultAncestors,
     runnerCanWrite: defaultRunnerCanWrite,
-    requireClosure: () => [...Object.keys(require.cache), path.join(__dirname, "peer-cred-helper.py")],
+    // peer-cred is loaded lazily inside the request subprocess, so it is never in require.cache here.
+    requireClosure: () => [...new Set([...Object.keys(require.cache), require.resolve("./peer-cred"), path.join(__dirname, "peer-cred-helper.py")])],
     execPath: () => process.execPath,
     uidMin: () => {
         try {
@@ -185,6 +199,8 @@ const DEFAULT_DEPS = {
     },
     resolveBin: defaultResolveBin,
     gitDir: defaultGitDir,
+    workTreeTop: defaultWorkTreeTop,
+    commonDir: defaultCommonDir,
     runGit: (bin, args, cwd) => exec(bin, [...HOOKS_OFF, ...args], { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }),
     runGh: (bin, args) => exec(bin, args),
     hostname: () => os.hostname(),
@@ -229,14 +245,14 @@ function parseTarget(verb, flags, requireAll) {
     }
     return { endpoint, runnerUser: runnerUser === "" ? undefined : runnerUser, repo, base };
 }
-// OWNER/NAME from an origin URL (https, ssh:// and scp-like forms), or null.
+// OWNER/NAME from a github.com origin URL (https, ssh:// and scp-like forms), or null.
 function repoFromRemoteUrl(url) {
     const trimmed = url.trim();
-    const m = /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?[^/:]+(?::\d+)?\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(trimmed)
-        ?? /^(?:[^@/\s]+@)?[^/:\s]+:([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(trimmed);
-    if (!m || !m[1] || !m[2])
+    const m = /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(trimmed)
+        ?? /^(?:[^@/\s]+@)?([^/:\s]+):([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(trimmed);
+    if (!m || !m[1] || !m[2] || !m[3] || m[1].toLowerCase() !== GITHUB_HOST)
         return null;
-    const slug = `${m[1]}/${m[2]}`;
+    const slug = `${m[2]}/${m[3]}`;
     return REPO_RE.test(slug) && !slug.includes("..") ? slug : null;
 }
 function readOrigin(deps, gitBin) {
@@ -358,12 +374,28 @@ function binWritable(deps, runner, name, bin) {
     const hit = writablePath(deps, runner, bin);
     return hit === null ? null : refusal("code-runner-writable", `the runner user can write ${name} (${printable(hit, 200)})`);
 }
+// Everything the runner could edit to steer git: the git directory, the working-tree root, the `.git`
+// entry (directory or gitfile), the config files, and for a linked worktree the shared directory.
+function repoCustodyPaths(deps, gitDir) {
+    const top = deps.workTreeTop(deps.cwd());
+    const common = deps.commonDir(gitDir);
+    const paths = [gitDir, path.join(gitDir, "config"), path.join(gitDir, "config.worktree")];
+    if (top !== null)
+        paths.push(top, path.join(top, ".git"));
+    if (common !== null)
+        paths.push(common, path.join(common, "config"));
+    return paths;
+}
 function repoWritable(deps, runner) {
     const gitDir = deps.gitDir(deps.cwd());
     if (gitDir === null)
         return refusal("git-failed", "not inside a git repository");
-    const hit = writablePath(deps, runner, gitDir);
-    return hit === null ? null : refusal("repo-runner-writable", `the runner user can write ${printable(hit, 200)}; run pin from your own clone`);
+    for (const candidate of repoCustodyPaths(deps, gitDir)) {
+        const hit = writablePath(deps, runner, candidate);
+        if (hit !== null)
+            return refusal("repo-runner-writable", `the runner user can write ${printable(hit, 200)}; run pin from your own clone`);
+    }
+    return null;
 }
 function runnerGroupCheck(runner, platform) {
     const hits = runner.groups.filter((g) => (ROOT_EQUIVALENT_GROUPS[platform] ?? []).includes(g));
@@ -542,7 +574,7 @@ function ageOf(checkedAt, now) {
         return "age unknown";
     return days === 1 ? "1 day" : `${days} days`;
 }
-function prBody(f) {
+function prBody(f, commit) {
     const rc = f.runnerChecks;
     const reported = [
         `docker_group: ${printable(rc.docker_group)}`, `sudo_rules: ${printable(rc.sudo_rules)}`, `sudo_absent: ${printable(rc.sudo_absent)}`,
@@ -552,6 +584,7 @@ function prBody(f) {
     const parts = [
         `Target repository: ${f.repo}, base branch: ${f.base}`,
         `Governor key fingerprint: \`${f.fingerprint}\``,
+        `Pushed commit: \`${commit}\``,
         [
             "Checked by `commissaire governor pin`:",
             `- host: ${f.host}`,
@@ -560,12 +593,48 @@ function prBody(f) {
             `- runner groups (${printable(f.runner.groups.join(", "), 200)}) checked against the root-equivalent list (${f.groupsChecked.join(", ")}): none match`,
             `- key directory: ${printable(f.keyDir.dir, 200)}, owner uid ${f.keyDir.owner}, mode ${f.keyDir.mode.toString(8).padStart(4, "0")}`,
         ].join("\n"),
-        ["Reported by the governor:", `checked_at ${printable(rc.checked_at)}, record age ${ageOf(rc.checked_at, f.now)}`, "```", ...reported, "```"].join("\n"),
+        ["Reported by the governor:", ISO_UTC.test(rc.checked_at) ? `checked_at ${rc.checked_at}, record age ${ageOf(rc.checked_at, f.now)}` : "record age unknown", "```", ...reported, "```"].join("\n"),
     ];
     if (f.reformatted)
         parts.push(REFORMAT_LINE);
     parts.push(APPROVE_SENTENCE);
     return `${parts.join("\n\n")}\n`;
+}
+const COMMIT_RE = /^[0-9a-f]{40,64}$/;
+function prHeadOid(stdout) {
+    try {
+        const parsed = JSON.parse(stdout);
+        const oid = isRecord(parsed) ? str(parsed.headRefOid) : undefined;
+        return oid !== undefined && COMMIT_RE.test(oid) ? oid : null;
+    }
+    catch {
+        return null;
+    }
+}
+// The trust file is written into a fresh checkout of the base branch, which can carry symlinks.
+function trustPathProblem(dir, file) {
+    const real = (p, want) => {
+        let st;
+        try {
+            st = fs.lstatSync(p);
+        }
+        catch {
+            return null;
+        }
+        if (st.isSymbolicLink() || !(want === "directory" ? st.isDirectory() : st.isFile()))
+            return `${path.basename(p)} on the base branch is a symlink or not a regular ${want}; refusing to write ${TRUST_PATH} through it`;
+        return null;
+    };
+    return real(dir, "directory") ?? real(file, "file");
+}
+function writeNoFollow(file, text) {
+    const fd = fs.openSync(file, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC | fs.constants.O_NOFOLLOW, 0o644);
+    try {
+        fs.writeFileSync(fd, text);
+    }
+    finally {
+        fs.closeSync(fd);
+    }
 }
 function openPullRequest(deps, c) {
     const branch = `commissaire/pin-${c.fingerprint.slice(0, 12)}`;
@@ -586,11 +655,14 @@ function openPullRequest(deps, c) {
             return gitFailed("git worktree add", added);
         branchCreated = true;
         const file = path.join(worktree, TRUST_PATH);
+        const unsafe = trustPathProblem(path.dirname(file), file);
+        if (unsafe !== null)
+            return fail("trust-file-invalid", unsafe);
         const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
         if (current !== c.originalText)
             return fail("base-moved", "the base branch changed since the trust file was read; re-run pin");
         fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, c.newText);
+        writeNoFollow(file, c.newText);
         const staged = git(["add", "--", TRUST_PATH], worktree);
         if (staged.status !== 0)
             return gitFailed("git add", staged);
@@ -600,13 +672,28 @@ function openPullRequest(deps, c) {
         const push = git(["push", "-u", "origin", branch], worktree);
         if (push.status !== 0)
             return gitFailed("git push", push);
-        const created = deps.runGh(c.gh, ["pr", "create", "--repo", c.repo, "--base", c.base, "--head", branch, "--title", title, "--body", c.body]);
+        const head = git(["rev-parse", "HEAD"], worktree);
+        const commit = head.stdout.trim();
+        if (head.status !== 0 || !COMMIT_RE.test(commit))
+            return gitFailed("git rev-parse", head);
+        const created = deps.runGh(c.gh, ["pr", "create", "--repo", c.repo, "--base", c.base, "--head", branch, "--title", title, "--body", c.makeBody(commit)]);
         if (created.status !== 0) {
             const removal = git(["push", "origin", "--delete", branch], worktree);
             const where = removal.status === 0 ? "the remote branch was deleted" : `the remote branch ${branch} could not be deleted and remains`;
             return fail("gh-failed", `gh pr create: ${printable(created.stderr.trim() || `exit ${created.status}`, 300)}; ${where}`);
         }
         const url = created.stdout.trim().split("\n").pop() ?? "";
+        const opened = deps.runGh(c.gh, ["pr", "view", url, "--repo", c.repo, "--json", "headRefOid"]);
+        const openedOid = opened.status === 0 ? prHeadOid(opened.stdout) : null;
+        if (openedOid !== commit) {
+            const closed = deps.runGh(c.gh, ["pr", "close", url, "--repo", c.repo, "--delete-branch"]);
+            const removal = closed.status === 0 ? closed : git(["push", "origin", "--delete", branch], worktree);
+            const cleanup = closed.status === 0 ? "the PR was closed and its branch deleted"
+                : removal.status === 0 ? `gh pr close failed; the remote branch ${branch} was deleted, which closes the PR`
+                    : `the PR ${printable(url, 200)} could not be closed and the remote branch ${branch} remains`;
+            const seen = openedOid === null ? "its head commit could not be read" : `its head is ${openedOid}`;
+            return fail("pr-head-mismatch", `the PR does not carry the pushed commit ${commit}: ${seen}; ${cleanup}`);
+        }
         return { pinned: "opened-pr", pk_fingerprint: c.fingerprint, reason: null, detail: null, pr_url: url, branch };
     }
     finally {
@@ -721,11 +808,11 @@ function pinCore(flags, deps = DEFAULT_DEPS) {
         return { result: { pinned: "dry-run", pk_fingerprint: id.fingerprint, reason: null, detail: edited.text, pr_url: null, branch: null } };
     }
     // 13. branch and PR
-    const body = prBody({
+    const facts = {
         repo, base, fingerprint: id.fingerprint, host: sanitisedHost(deps.hostname()), runnerUser, runner, peerUid: id.peerUid,
         invokerUid: deps.getuid(), groupsChecked: ROOT_EQUIVALENT_GROUPS[platform] ?? [], keyDir: host.facts, runnerChecks, now, reformatted: edited.reformatted,
-    });
-    return { result: openPullRequest(deps, { git, gh, repo, base, fingerprint: id.fingerprint, newText: edited.text, originalText: existing.text, body }) };
+    };
+    return { result: openPullRequest(deps, { git, gh, repo, base, fingerprint: id.fingerprint, newText: edited.text, originalText: existing.text, makeBody: (commit) => prBody(facts, commit) }) };
 }
 // --- status -------------------------------------------------------------------------------------
 const normaliseLogin = (login) => login.replace(/\[bot\]$/, "").toLowerCase();
@@ -745,16 +832,25 @@ function statusCore(flags, deps = DEFAULT_DEPS) {
         counting: { remote_base: { state: "unknown", reason: null }, branch_protection: { state: "unknown", reason: null }, runner_identity: { state: "unknown", reason: null } },
         ready_to_count: false, caveats,
     };
-    const gitBin = deps.resolveBin("git"), ghBin = deps.resolveBin("gh");
+    const foundGit = deps.resolveBin("git"), foundGh = deps.resolveBin("gh");
+    // pin would refuse to run git or gh from a place the runner can edit; status then does not run them.
+    const runnerLookup = runnerUser === undefined ? null : invokerChecks(deps, runnerUser);
+    const custodyRunner = runnerLookup !== null && runnerLookup.ok ? runnerLookup.runner : null;
+    const gitProblem = custodyRunner !== null && foundGit !== null ? binWritable(deps, custodyRunner, "git", foundGit) : null;
+    const ghProblem = custodyRunner !== null && foundGh !== null ? binWritable(deps, custodyRunner, "gh", foundGh) : null;
+    const repoCustody = custodyRunner === null ? null : repoWritable(deps, custodyRunner);
+    const repoProblem = repoCustody !== null && repoCustody.reason === "repo-runner-writable" ? repoCustody : null;
+    const gitBlock = gitProblem !== null ? "git-runner-writable" : repoProblem !== null ? "repo-runner-writable" : null;
+    const ghBlock = ghProblem !== null ? "gh-runner-writable" : null;
+    const gitBin = gitBlock === null ? foundGit : null, ghBin = ghBlock === null ? foundGh : null;
     // 1 and 2. the governor and the host facts
     let runner = null;
     let invokerFailure = null;
-    if (runnerUser !== undefined) {
-        const who = invokerChecks(deps, runnerUser);
-        if (who.ok)
-            runner = who.runner;
-        else if (who.refusal.reason !== "runner-user-unknown")
-            invokerFailure = `failed:${who.refusal.reason}`;
+    if (runnerLookup !== null) {
+        if (runnerLookup.ok)
+            runner = runnerLookup.runner;
+        else if (runnerLookup.refusal.reason !== "runner-user-unknown")
+            invokerFailure = `failed:${runnerLookup.refusal.reason}`;
     }
     else if (deps.getuid() === 0)
         invokerFailure = "failed:invoked-as-root";
@@ -800,7 +896,11 @@ function statusCore(flags, deps = DEFAULT_DEPS) {
     let remoteRead = false;
     const remote = result.counting.remote_base;
     let readLocal = true;
-    if (origin.kind === "none") {
+    if (gitBlock !== null) {
+        remote.state = "unknown";
+        remote.reason = gitBlock;
+    }
+    else if (origin.kind === "none") {
         remote.state = "not-met";
         remote.reason = "no-remote-base";
     }
@@ -810,7 +910,7 @@ function statusCore(flags, deps = DEFAULT_DEPS) {
     }
     else if (repo === null || ghBin === null || gitBin === null || base === null) {
         remote.state = "unknown";
-        remote.reason = "gh-unavailable";
+        remote.reason = ghBlock ?? "gh-unavailable";
     }
     else {
         const read = trust.readTrustFile({ repoDir: deps.cwd(), ref: base, transport: "remote", repoSlug: repo, gitBin, ghBin });
@@ -843,7 +943,11 @@ function statusCore(flags, deps = DEFAULT_DEPS) {
     }
     // 6. branch protection
     const protection = result.counting.branch_protection;
-    if (repo === null) {
+    if (ghBlock !== null) {
+        protection.state = "unknown";
+        protection.reason = ghBlock;
+    }
+    else if (repo === null) {
         protection.state = "unknown";
         protection.reason = "repo-unknown";
     }
@@ -858,6 +962,10 @@ function statusCore(flags, deps = DEFAULT_DEPS) {
     if (runnerLogin === undefined) {
         identity.state = "unknown";
         identity.reason = "runner-login-not-given";
+    }
+    else if (ghBlock !== null) {
+        identity.state = "unknown";
+        identity.reason = ghBlock;
     }
     else {
         const me = ghBin === null ? null : deps.runGh(ghBin, ["api", "user"]);
@@ -897,13 +1005,10 @@ function statusCore(flags, deps = DEFAULT_DEPS) {
     if (platform === "macos")
         caveats.push("macOS governors are not supported until FAFF-1251.");
     if (runner !== null) {
-        const code = codeWritable(deps, runner);
-        if (code !== null)
-            caveats.push(`pin would refuse ${code.reason}: ${code.detail ?? ""}`);
-        const gitDir = deps.gitDir(deps.cwd());
-        const repoProblem = gitDir === null ? null : writablePath(deps, runner, gitDir);
-        if (repoProblem !== null)
-            caveats.push(`pin would refuse repo-runner-writable: the runner user can write ${printable(repoProblem, 200)}`);
+        for (const problem of [codeWritable(deps, runner), gitProblem, ghProblem, repoProblem]) {
+            if (problem !== null)
+                caveats.push(`pin would refuse ${problem.reason}: ${problem.detail ?? ""}`);
+        }
     }
     // 9. ready_to_count
     const conditionsMet = Object.values(result.counting).every((c) => c.state === "met");

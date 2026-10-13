@@ -6,7 +6,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, chmodSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { realpathSync, existsSync, mkdirSync, mkdtempSync, readFileSync, chmodSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { join, basename, dirname } from "node:path";
@@ -527,6 +527,160 @@ test("a git failure refuses git-failed and never touches the remote branch it di
   assert.match(r.detail, /git push/);
   assert.equal(w.worktrees().length, 1);
   assert.ok(!w.localBranches().includes(branch));
+});
+
+// --- FAFF-1217 review fixes -----------------------------------------------------------------------
+
+const gitIn = (cwd, ...args) => require("node:child_process").execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+const linkedWorktree = (w) => { const dir = join(w.root, "linked"); gitIn(w.work, "worktree", "add", "-q", "--detach", dir); return dir; };
+const noGit = { peerRequest: noCalls("peerRequest"), runGit: noCalls("runGit"), runGh: noCalls("runGh") };
+
+test("the default require closure covers the lazily loaded peer-cred module, its helper and the governor client", () => {
+  const closure = admin.DEFAULT_DEPS.requireClosure();
+  for (const name of ["peer-cred.js", "peer-cred-helper.py", "commissaire-governor-client.js", "governor-admin.js"]) {
+    assert.ok(closure.some((f) => basename(f) === name), `${name} is in the closure`);
+  }
+  assert.equal(new Set(closure).size, closure.length, "no duplicates");
+});
+
+test("pin refuses repo-runner-writable for a runner-writable gitfile, working-tree root, .git/config or config.worktree", () => {
+  const w = world();
+  const linked = linkedWorktree(w);
+  const linkedGitDir = admin.DEFAULT_DEPS.gitDir(linked);
+  writeFileSync(join(linkedGitDir, "config.worktree"), "");
+  const cases = [
+    ["gitfile", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linked), ".git")],
+    ["working-tree root", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === realpathSync(linked)],
+    ["linked worktree's own config", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linkedGitDir), "config")],
+    ["linked worktree's config.worktree", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linkedGitDir), "config.worktree")],
+    ["common dir config", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(w.work), ".git", "config")],
+    [".git/config", {}, (p) => p === join(realpathSync(w.work), ".git", "config")],
+  ];
+  for (const [label, deps, predicate] of cases) {
+    const r = pin(w, {}, { ...noGit, ...deps, runnerCanWrite: predicate });
+    assert.equal(r.reason, "repo-runner-writable", label);
+    assert.equal(r.pinned, "refused", label);
+  }
+  assert.equal(w.gitCalls().length, 0);
+});
+
+test("status skips git for a runner-writable git binary and says so, exit 0", () => {
+  const w = world();
+  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { runGit: noCalls("runGit"), runnerCanWrite: (p) => p === realpathSync(w.gitShim) })).result;
+  assert.deepEqual(s.counting.remote_base, { state: "unknown", reason: "git-runner-writable" });
+  assert.equal(s.trust_source, null);
+  assert.ok(s.caveats.some((c) => c.startsWith("pin would refuse code-runner-writable:") && c.includes("git")));
+  assert.equal(s.ready_to_count, false);
+  assert.equal(w.gitCalls().length, 0);
+});
+
+test("status skips gh for a runner-writable gh binary: remote_base, branch_protection and runner_identity are unknown by name", () => {
+  const w = world();
+  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { runGh: noCalls("runGh"), runnerCanWrite: (p) => p === realpathSync(w.gh) })).result;
+  assert.deepEqual(s.counting.remote_base, { state: "unknown", reason: "gh-runner-writable" });
+  assert.deepEqual(s.counting.branch_protection, { state: "unknown", reason: "gh-runner-writable" });
+  assert.deepEqual(s.counting.runner_identity, { state: "unknown", reason: "gh-runner-writable" });
+  assert.ok(s.caveats.some((c) => c.startsWith("pin would refuse code-runner-writable:") && c.includes("gh")));
+  assert.equal(s.ready_to_count, false);
+});
+
+test("status skips git for a runner-writable repository and says so", () => {
+  const w = world();
+  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { runGit: noCalls("runGit"), runnerCanWrite: (p) => p === join(realpathSync(w.work), ".git", "config") })).result;
+  assert.deepEqual(s.counting.remote_base, { state: "unknown", reason: "repo-runner-writable" });
+  assert.equal(s.trust_source, null);
+  assert.ok(s.caveats.some((c) => c.startsWith("pin would refuse repo-runner-writable:")));
+  assert.equal(w.gitCalls().length, 0);
+  assert.equal(s.counting.branch_protection.state, "met", "gh does not depend on the repository");
+});
+
+test("repoFromRemoteUrl accepts only github.com, in https, ssh and scp forms", () => {
+  for (const ok of ["https://github.com/acme/widgets.git", "ssh://git@github.com/acme/widgets", "git@github.com:acme/widgets.git", "https://GitHub.com/acme/widgets"]) {
+    assert.equal(admin.repoFromRemoteUrl(ok), "acme/widgets", ok);
+  }
+  for (const no of ["git@gitlab.com:acme/widgets.git", "https://evil.example/acme/widgets", "https://github.com.evil.example/acme/widgets", "ssh://git@ghe.corp.example:2222/acme/widgets.git", "git@evil.example:acme/widgets"]) {
+    assert.equal(admin.repoFromRemoteUrl(no), null, no);
+  }
+});
+
+test("pin and status refuse an origin on another host with repo-mismatch, before any push", () => {
+  const w = world();
+  w.git("remote", "set-url", "origin", "git@evil.example:acme/widgets.git");
+  const r = pin(w);
+  assert.equal(r.reason, "repo-mismatch");
+  assert.deepEqual(w.remoteBranches(), ["main"]);
+  assert.equal(w.ghCalls().filter((c) => c[0] === "pr").length, 0);
+  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w)).result;
+  assert.deepEqual(s.counting.remote_base, { state: "not-met", reason: "repo-mismatch" });
+});
+
+test("the PR body names the pushed commit, and the PR's head is read back and matches it", () => {
+  const w = world();
+  const r = pin(w);
+  assert.equal(r.pinned, "opened-pr", r.detail);
+  const sha = gitIn(w.bare, "rev-parse", `refs/heads/${r.branch}`);
+  assert.ok(flagValue(prCreate(w), "--body").includes(`Pushed commit: \`${sha}\``));
+  const view = w.ghCalls().find((c) => c[0] === "pr" && c[1] === "view");
+  assert.deepEqual(view, ["pr", "view", r.pr_url, "--repo", REPO, "--json", "headRefOid"]);
+});
+
+test("a PR whose head is not the pushed commit is closed, its branch deleted, and pin refuses pr-head-mismatch", () => {
+  const w = world();
+  w.setGh({ prHeadOid: "f".repeat(40) });
+  const r = pin(w);
+  assert.equal(r.pinned, "refused");
+  assert.equal(r.reason, "pr-head-mismatch");
+  assert.equal(r.pr_url, null);
+  assert.match(r.detail, /closed and its branch deleted/);
+  const close = w.ghCalls().find((c) => c[0] === "pr" && c[1] === "close");
+  assert.deepEqual(close, ["pr", "close", "https://github.com/acme/widgets/pull/7", "--repo", REPO, "--delete-branch"]);
+  assert.deepEqual(w.remoteBranches(), ["main"]);
+  assert.deepEqual(w.localBranches(), ["main"]);
+});
+
+test("an unreadable PR head also refuses pr-head-mismatch, and a failed close falls back to deleting the remote branch", () => {
+  const w = world();
+  w.setGh({ prViewFails: true, prCloseFails: true });
+  const r = pin(w);
+  assert.equal(r.reason, "pr-head-mismatch");
+  assert.match(r.detail, /could not be read/);
+  assert.match(r.detail, /was deleted/);
+  assert.deepEqual(w.remoteBranches(), ["main"]);
+});
+
+test("a markdown-link checked_at is never printed outside the fence; the age reads unknown", () => {
+  const w = world();
+  const r = pin(w, {}, { peerRequest: peer(w, { runner_checks: runnerChecks({ checked_at: "[click](http://evil.example)" }) }) });
+  assert.equal(r.pinned, "opened-pr", r.detail);
+  const parts = flagValue(prCreate(w), "--body").split("```");
+  assert.ok(!parts[0].includes("evil.example") && !parts[2].includes("evil.example"));
+  assert.ok(parts[0].includes("Reported by the governor:\nrecord age unknown"));
+});
+
+test("a symlinked .commissaire or trust.toml on the base branch is refused trust-file-invalid and nothing is written through it", () => {
+  const w = world();
+  const outside = join(w.root, "outside");
+  mkdirSync(outside);
+  symlinkSync(outside, join(w.work, ".commissaire"));
+  gitIn(w.work, "add", "-A");
+  gitIn(w.work, "commit", "-q", "-m", "symlink");
+  gitIn(w.work, "push", "-q", "origin", "main");
+  let r = pin(w);
+  assert.equal(r.reason, "trust-file-invalid");
+  assert.match(r.detail, /symlink/);
+  assert.deepEqual(readdirSync(outside), []);
+  assert.deepEqual(w.remoteBranches(), ["main"]);
+
+  const v = world();
+  mkdirSync(join(v.work, ".commissaire"));
+  symlinkSync(join(v.root, "elsewhere.toml"), join(v.work, ".commissaire", "trust.toml"));
+  gitIn(v.work, "add", "-A");
+  gitIn(v.work, "commit", "-q", "-m", "symlink");
+  gitIn(v.work, "push", "-q", "origin", "main");
+  r = pin(v);
+  assert.equal(r.reason, "trust-file-invalid");
+  assert.ok(!existsSync(join(v.root, "elsewhere.toml")));
+  assert.deepEqual(v.remoteBranches(), ["main"]);
 });
 
 // --- status ---------------------------------------------------------------------------------------

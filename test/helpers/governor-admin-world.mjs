@@ -34,7 +34,19 @@ if (args[0] === "repo" && args[1] === "view") {
 }
 if (args[0] === "pr" && args[1] === "create") {
   if (cfg.prCreateFails) done(1, "gh: pr create failed");
+  fs.writeFileSync(${JSON.stringify(configPath)} + ".head", args[args.indexOf("--head") + 1]);
   out(cfg.prUrl + "\\n"); done(0);
+}
+if (args[0] === "pr" && args[1] === "view") {
+  if (cfg.prViewFails) done(1, "gh: pr view failed");
+  const head = fs.readFileSync(${JSON.stringify(configPath)} + ".head", "utf8");
+  const oid = cfg.prHeadOid ?? require("node:child_process").execFileSync("git", ["--git-dir", cfg.bare, "rev-parse", "refs/heads/" + head], { encoding: "utf8" }).trim();
+  out(JSON.stringify({ headRefOid: oid })); done(0);
+}
+if (args[0] === "pr" && args[1] === "close") {
+  if (cfg.prCloseFails) done(1, "gh: pr close failed");
+  require("node:child_process").execFileSync("git", ["--git-dir", cfg.bare, "branch", "-D", fs.readFileSync(${JSON.stringify(configPath)} + ".head", "utf8")]);
+  done(0);
 }
 if (args[0] === "api") {
   const probe = args.includes("-i");
@@ -119,7 +131,7 @@ export function makeWorld({ trustToml = null } = {}) {
     setGh(cfg) {
       writeFileSync(ghConfig, JSON.stringify({
         defaultBranch: "main", rules: [{ type: "pull_request" }], trustMode: trustToml === null ? "absent" : "present", trustToml,
-        human: "human-login", prUrl: "https://github.com/acme/widgets/pull/7", ...cfg,
+        human: "human-login", bare, prUrl: "https://github.com/acme/widgets/pull/7", ...cfg,
       }));
     },
     ghCalls: () => readFileSync(ghLog, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)),

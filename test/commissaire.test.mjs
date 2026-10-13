@@ -12,14 +12,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./helpers/run-cli.mjs";
 import {
   deriveKey, signRecord, verifyRecord, mintGovernorKeypair, signDecision, verifyDecision,
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
-  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, appendProducerRecords, readLedgerEntries,
+  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, expectedRunIdForDir, appendProducerRecords, readLedgerEntries,
   governorFileOf, producerFileOf, pkFileOf, governorDirOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant } from "../plugin/skills/faff/bin/lib/merge-gate.js";
@@ -28,6 +28,7 @@ import { appendEffectEntries, computeEscapes, conclusionKindOf, CONCLUSION_KIND 
 import { verifyEffectsChain, mintIssueAnchor } from "../plugin/skills/faff/bin/lib/events.js";
 import { decideFloor } from "../plugin/skills/faff/bin/lib/contract-defs.js";
 import { buildBundle } from "../plugin/skills/faff/bin/lib/bundle-seal-core.js";
+import { evaluateIntegrityLeg, evaluateAnchorDir } from "../plugin/skills/faff/bin/lib/governance-check.js";
 import { sha256 } from "../plugin/skills/faff/bin/lib/integrity-digest.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -277,8 +278,9 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   // and ./budget (readGovernanceConfig); both reach no orchestration module (proven by the
   // standalone independence walk), and requiresSelfConsistencyStamp comes from ./shared-infra.
   // FAFF-1177 — ./decision-policy holds the moved evaluators; ./governor is the `governor start|rotate` dispatch target.
+  // FAFF-1178 — ./commissaire-verify (key resolution) and ./commissaire-trust (trust-file read) are governance cores.
   // FAFF-1179 — ./commissaire-governor-client is the runner-side governor client (budget/shared-infra/producer-auth only, denylist-clean).
-  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./commissaire-governor-client"]);
+  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./commissaire-governor-client", "./commissaire-verify", "./commissaire-trust"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
 });
 
@@ -363,7 +365,7 @@ function mintGovernedRun(prefix) {
 }
 
 test("audit verify: the checked-in secret-free fixture replays — exit 0, buckets as specified, never folds unverifiable", () => {
-  const r = runCom(["audit", "verify", "--run-dir", FIXTURE_ROOT]);
+  const r = runCom(["audit", "verify", "--run-dir", FIXTURE_ROOT, "--run-id", "RUN-SMOKE"]);
   assert.equal(r.code, 0, `secret-free fixture verifies (${r.stderr})`);
   const out = JSON.parse(r.stdout.trim());
   assert.equal(out.version, 1);
@@ -849,9 +851,23 @@ test("FAFF-976 anchor-path PERMIT: a committed anchor carries the PUBLIC pk.json
     assert.ok(mint.copiedFloorFiles.includes("commissaire/producer/pk.json"), "the mint reports the copied public key");
     // the governor secret is NEVER in the anchor
     assert.equal(existsSync(join(anchorDir, "commissaire", "governor", "governor.json")), false, "the governor file is never anchored");
-    // the CI re-verification leg PERMITS: verifyAuthLeg over the anchor dir passes (governor absent -> public-key fallback)
-    const auth = verifyAuthLeg(anchorDir);
+    // the CI re-verification leg PERMITS: `audit verify` over the anchor dir derives the expected run id
+    // from `.faff/anchors/<run>/<unit>/` (FAFF-1178) and passes with the admitted public key
+    const v = runCom(["audit", "verify", "--run-dir", anchorDir]);
+    assert.equal(v.code, 0, `audit verify PERMITS the governed anchor (${v.stderr}${v.stdout})`);
+    assert.equal(JSON.parse(v.stdout.trim()).result, "pass");
+    const auth = verifyAuthLeg(anchorDir, undefined, undefined, undefined, expectedRunIdForDir(anchorDir));
     assert.ok(auth.pass, `verifyAuthLeg PERMITS the governed anchor (${JSON.stringify(auth.failures)})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1178 governance-check integrity leg PERMITS a minted governed anchor (run id derived from the anchor path)", () => {
+  const { root, anchorDir } = mintGovernedAnchor("com-1178-integrity-");
+  try {
+    const leg = evaluateIntegrityLeg(anchorDir, "pass", { requireWitness: true });
+    assert.equal(leg.pass, true, `integrity leg PERMITS the governed anchor (${JSON.stringify(leg)})`);
+    const anchor = evaluateAnchorDir(anchorDir);
+    assert.equal(anchor.legs.integrity.pass, true, `evaluateAnchorDir integrity PERMITS (${JSON.stringify(anchor.legs.integrity)})`);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

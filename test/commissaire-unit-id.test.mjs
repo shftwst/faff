@@ -156,7 +156,7 @@ test("frozen fixture: the issue-keyed verdict resolves valid-grant, conclude fin
     const c2 = runCom(["verdict", "conclude", "--run-dir", copy, "--unit-id", "FAFF-2"]);
     assert.equal(json(c2).reason, "no-evidence");
     assert.deepEqual(treeDigest(copy), before, "the scratch copy is byte-identical after the reads");
-    const v = runCom(["audit", "verify", "--run-dir", FIXTURE_ROOT, "--json"]);
+    const v = runCom(["audit", "verify", "--run-dir", FIXTURE_ROOT, "--run-id", "RUN-SMOKE", "--json"]);
     assert.equal(v.code, 0);
     assert.equal(json(v).result, "pass");
   } finally { rmSync(root, { recursive: true, force: true }); }

@@ -38,7 +38,7 @@ const { auditLedger, TERMINAL_STATES } = require("./runcheck");
 const { readAcComplete, readReviewVerdict, resolveHoldoutLeg } = require("./merge-gate");
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
-const { verifyAuthLeg, hasGovernanceContext } = require("./commissaire");
+const { verifyAuthLeg, hasGovernanceContext, expectedRunIdForDir } = require("./commissaire");
 const { findRoot, readLedger } = require("./shared-infra");
 const { computeChainHead, sha256Hex, verifyChain, verifyEffectsChain } = require("./events");
 
@@ -225,7 +225,7 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
   // producer-auth mismatch, or a revoked/unadmitted producer fails-closed here, gating the merge
   // exactly as a broken chain does. An ordinary run with no schema:3 record is a clean no-op.
   if (hasGovernanceContext(dir)) {
-    const auth = verifyAuthLeg(dir);
+    const auth = verifyAuthLeg(dir, undefined, undefined, undefined, expectedRunIdForDir(dir));
     if (!auth.pass) {
       const first = auth.failures[0];
       return {

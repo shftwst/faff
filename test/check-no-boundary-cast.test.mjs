@@ -70,8 +70,8 @@ test("S3: each assertion FORM is detected (not just `as`)", { skip }, () => {
   }
 });
 
-test("S3: realSources() lists the nine tsconfig include entries", () => {
-  assert.deepEqual(realSources().map((f) => path.relative(LIB, f)), ["producer-auth.ts", "commissaire.ts", "commissaire-governor-client.ts", "commissaire-trust.ts", "ids.ts", "result.ts", "decision-policy.ts", "governor.ts", "peer-cred.ts"]);
+test("S3: realSources() lists the ten tsconfig include entries", () => {
+  assert.deepEqual(realSources().map((f) => path.relative(LIB, f)), ["producer-auth.ts", "commissaire.ts", "commissaire-governor-client.ts", "commissaire-trust.ts", "commissaire-verify.ts", "ids.ts", "result.ts", "decision-policy.ts", "governor.ts", "peer-cred.ts"]);
 });
 
 test("S3: the real cluster sources are clean (exit 0)", { skip }, () => {
@@ -111,7 +111,7 @@ function runRealSources(dir) {
   return spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8" });
 }
 
-const ALL_INCLUDE = ["bin/lib/producer-auth.ts", "bin/lib/commissaire.ts", "bin/lib/commissaire-governor-client.ts", "bin/lib/commissaire-trust.ts", "bin/lib/ids.ts", "bin/lib/result.ts", "bin/lib/decision-policy.ts", "bin/lib/governor.ts", "bin/lib/peer-cred.ts"];
+const ALL_INCLUDE = ["bin/lib/producer-auth.ts", "bin/lib/commissaire.ts", "bin/lib/commissaire-governor-client.ts", "bin/lib/commissaire-trust.ts", "bin/lib/commissaire-verify.ts", "bin/lib/ids.ts", "bin/lib/result.ts", "bin/lib/decision-policy.ts", "bin/lib/governor.ts", "bin/lib/peer-cred.ts"];
 
 test("S3: realSources() exits 2 naming a bin/lib .ts that include omits", () => {
   const r = runRealSources(packageWithInclude(ALL_INCLUDE, ["extra.ts"]));

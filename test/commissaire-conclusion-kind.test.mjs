@@ -73,7 +73,8 @@ function governedCleanRun(unit) {
 test("1. audit verify passes over the frozen v0.2 ledger and reports the legacy conclusion as verified", () => {
   const dir = legacyRunDir();
   try {
-    const v = runCom(["audit", "verify", "--run-dir", dir, "--json"]);
+    // the frozen ledger's records name their original run, not this temp directory (FAFF-1178 expected run id)
+    const v = runCom(["audit", "verify", "--run-dir", dir, "--run-id", "run-20261005-063237-graft-DEMO-1", "--json"]);
     assert.equal(v.code, 0, v.stderr);
     const out = json(v);
     assert.equal(out.result, "pass");

@@ -72,7 +72,7 @@ function mintIssueAnchorRange(lines) {
 test("seam: outside commissaire.ts/.js, only events.js's mintIssueAnchor names a key-file path or path helper", () => {
   const offenders = [];
   for (const file of readdirSync(LIB).filter((f) => f.endsWith(".js") || f.endsWith(".ts"))) {
-    if (file === "commissaire.js" || file === "commissaire.ts") continue;
+    if (/^commissaire(-verify)?\.(js|ts)$/.test(file)) continue; // commissaire-verify reads the key files by design (FAFF-1178)
     const lines = readFileSync(join(LIB, file), "utf8").split("\n");
     const allowed = file === "events.js" ? mintIssueAnchorRange(lines) : [0, 0];
     lines.forEach((line, i) => {

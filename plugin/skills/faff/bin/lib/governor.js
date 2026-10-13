@@ -31,6 +31,13 @@ const CONFIG_FILE_NAME = "governor-config.json";
 const SOCKET_FILE_NAME = "governor.sock";
 const LOG_FILE_NAME = "governor-log.jsonl";
 const MAX_REQUEST_CHARS = 64 * 1024 * 1024;
+// The operations an admin caller (the human who installed the governor) may send. A code constant,
+// never configuration: widening what a human may ask the governor is a reviewed code change.
+const ADMIN_OPS = new Set(["identify"]);
+const SPAWN_BURST = 20;
+const SPAWN_REFILL_PER_MS = SPAWN_BURST / 1000;
+const MAX_REFUSAL_LINES_PER_MINUTE = 60;
+const WINDOW_MS = 60_000;
 function isRecord(v) {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -109,22 +116,78 @@ function openState(keyDir) {
         },
     };
 }
+const RUNNER_CHECK_KEYS = ["schema", "runner_user", "runner_uid", "platform", "socket_group", "docker_group", "sudo_rules", "sudo_absent", "admin_group", "independent", "checked_at", "install_version", "source_tag"];
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+const isUidList = (v) => Array.isArray(v) && v.every((u) => typeof u === "number" && Number.isInteger(u) && u >= 0);
+const nonEmptyString = (v) => typeof v === "string" && v !== "";
+function runnerChecksProblem(rc) {
+    if (!isRecord(rc))
+        return "runner_checks must be an object";
+    const keys = Object.keys(rc);
+    const missing = RUNNER_CHECK_KEYS.filter((k) => !keys.includes(k));
+    if (missing.length > 0)
+        return `runner_checks is missing ${missing.join(", ")}`;
+    const extra = keys.filter((k) => !RUNNER_CHECK_KEYS.includes(k));
+    if (extra.length > 0)
+        return `runner_checks has unknown keys ${extra.join(", ")}`;
+    if (rc.schema !== 1)
+        return "runner_checks.schema must be 1";
+    if (!nonEmptyString(rc.runner_user))
+        return "runner_checks.runner_user must be a non-empty string";
+    if (typeof rc.runner_uid !== "number" || !Number.isInteger(rc.runner_uid) || rc.runner_uid < 0)
+        return "runner_checks.runner_uid must be a non-negative integer";
+    if (rc.platform !== "linux" && rc.platform !== "macos")
+        return "runner_checks.platform must be linux or macos";
+    if (!nonEmptyString(rc.socket_group))
+        return "runner_checks.socket_group must be a non-empty string";
+    for (const k of ["docker_group", "sudo_rules", "sudo_absent", "independent"]) {
+        if (typeof rc[k] !== "boolean")
+            return `runner_checks.${k} must be a boolean`;
+    }
+    if (rc.admin_group !== null && typeof rc.admin_group !== "boolean")
+        return "runner_checks.admin_group must be a boolean or null";
+    if (typeof rc.checked_at !== "string" || !ISO_UTC.test(rc.checked_at))
+        return "runner_checks.checked_at must be an ISO-8601 UTC timestamp";
+    if (!nonEmptyString(rc.install_version))
+        return "runner_checks.install_version must be a non-empty string";
+    if (!nonEmptyString(rc.source_tag))
+        return "runner_checks.source_tag must be a non-empty string";
+    if (rc.sudo_absent === true && rc.sudo_rules !== false)
+        return "runner_checks.sudo_absent true requires sudo_rules false";
+    if (rc.platform === "linux" && rc.admin_group !== null)
+        return "runner_checks.admin_group must be null on linux";
+    if (rc.independent !== (rc.sudo_rules !== true && rc.docker_group !== true && rc.admin_group !== true))
+        return "runner_checks.independent contradicts sudo_rules, docker_group and admin_group";
+    return null;
+}
 function parseGovernorConfig(raw) {
     if (!isRecord(raw))
-        return null;
-    const a = raw.allow_uids;
-    if (a === undefined)
-        return { allow_uids: [] };
-    if (!Array.isArray(a) || !a.every((u) => typeof u === "number" && Number.isInteger(u) && u >= 0))
-        return null;
-    return { allow_uids: a };
+        return { ok: false, error: "must be a JSON object" };
+    const allow = raw.allow_uids === undefined ? [] : raw.allow_uids;
+    if (!isUidList(allow))
+        return { ok: false, error: "allow_uids must be an array of non-negative integers" };
+    const admin = raw.admin_uids === undefined ? [] : raw.admin_uids;
+    if (!isUidList(admin))
+        return { ok: false, error: "admin_uids must be an array of non-negative integers" };
+    const shared = admin.filter((u) => allow.includes(u));
+    if (shared.length > 0)
+        return { ok: false, error: `admin_uids and allow_uids both list uid ${shared.join(", ")}; a uid has exactly one role` };
+    const config = { allow_uids: allow, admin_uids: admin };
+    if (raw.runner_checks !== undefined) {
+        const problem = runnerChecksProblem(raw.runner_checks);
+        if (problem !== null)
+            return { ok: false, error: problem };
+        if (isRecord(raw.runner_checks))
+            config.runner_checks = raw.runner_checks;
+    }
+    return { ok: true, config };
 }
 function loadGovernorConfig(keyDir) {
     const configFile = path.join(keyDir, CONFIG_FILE_NAME);
     if (modeOf(keyDir) !== 0o700)
         return { ok: false, error: `${keyDir} is mode ${modeOf(keyDir).toString(8)}, want 700` };
     if (!fs.existsSync(configFile))
-        return { ok: true, config: { allow_uids: [] } };
+        return { ok: true, config: { allow_uids: [], admin_uids: [] } };
     if (modeOf(configFile) !== 0o600)
         return { ok: false, error: `${configFile} is mode ${modeOf(configFile).toString(8)}, want 600` };
     let stat;
@@ -145,8 +208,8 @@ function loadGovernorConfig(keyDir) {
     catch {
         return { ok: false, error: `${configFile} is not valid JSON` };
     }
-    const config = parseGovernorConfig(raw);
-    return config ? { ok: true, config } : { ok: false, error: `${configFile} allow_uids must be an array of non-negative integers` };
+    const parsed = parseGovernorConfig(raw);
+    return parsed.ok ? parsed : { ok: false, error: `${configFile} ${parsed.error}` };
 }
 function rotateKeyFile(keyDir) {
     if (!fs.existsSync(path.join(keyDir, KEY_FILE_NAME)))
@@ -232,6 +295,14 @@ function acceptLedger(state, runId, ledgerText) {
 }
 const positionMatches = (view, at) => at.seq === view.next.seq && at.prev === view.next.prev;
 // --- admit ------------------------------------------------------------------------------
+// runner_checks is the install-time snapshot, copied verbatim; a governor started without one emits the
+// payload it always has.
+function admissionPayload(state, producerId, revision, scope) {
+    const payload = { producer_id: producerId, contract_revision: revision, admitted_scope: scope, pk_fingerprint: state.pk_fingerprint, admitted_at: new Date().toISOString(), custody: "governor" };
+    if (state.runnerChecks !== undefined)
+        payload.runner_checks = state.runnerChecks;
+    return payload;
+}
 function handleAdmit(state, req) {
     const runId = ids.parseRunId(req.run_id), producerId = ids.parseProducerId(req.producer_id), revision = ids.parseContractRevisionId(req.contract_revision);
     const scope = req.admitted_scope;
@@ -242,7 +313,7 @@ function handleAdmit(state, req) {
     const key = producerAuth.admitProducerKey(runMasterOf(state, runId.value), producerId.value, revision.value);
     const record = signedByGovernor(state, runId.value, { seq: 0, prev: sha256Hex(Buffer.from(runId.value, "utf8")) }, producerId.value, revision.value, {
         kind_of_entry: "admission", unit_id: "-", step: "admit",
-        payload: { producer_id: producerId.value, contract_revision: revision.value, admitted_scope: scope, pk_fingerprint: state.pk_fingerprint, admitted_at: new Date().toISOString(), custody: "governor" },
+        payload: admissionPayload(state, producerId.value, revision.value, scope),
     });
     state.admissions.set(admissionKey(runId.value, producerId.value), {
         producer_id: producerId.value, contract_revision: revision.value, admitted_scope: scope, pk_fingerprint: state.pk_fingerprint, status: "admitted",
@@ -363,12 +434,13 @@ function handleConclude(state, req) {
 // One line per request, signed verdicts (orphans the runner never appends included) in `signed_record`.
 // The governor is the log's sole writer and appendFileSync is synchronous, so appends are serialised.
 // The log never feeds lastHead.
-function appendLog(state, request, reply, peerUid) {
+function appendLog(state, request, reply, peerUid, role) {
     const { ledger, ...summary } = request;
     const signed = [reply.verdict_record, reply.record, reply.admission_record].find(isRecord);
     const line = {
         ts: new Date().toISOString(), op: request.op, run_id: request.run_id, unit_id: request.unit_id,
         peer_uid: peerUid === undefined ? null : peerUid,
+        caller_role: role,
         request_summary: { ...summary, ledger_bytes: typeof ledger === "string" ? Buffer.byteLength(ledger, "utf8") : undefined },
         verdict: reply.ok === true ? reply.verdict : undefined,
         refusal: reply.ok === true ? undefined : reply.reason,
@@ -402,12 +474,15 @@ function dispatchOp(state, request) {
 // The selftest seam: a request in, a reply out, no socket involved. peerUid is the kernel-read uid of
 // the allowed caller when the request arrived over the guarded Unix socket (stamped on the log line);
 // it is undefined on the socket-less selftest path.
-function handleRequest(state, request, peerUid) {
+// The role check runs before dispatchOp: an admin caller never reaches an operation that signs, so
+// nothing it sends is written to governor state.
+function handleRequest(state, request, peerUid, role) {
     if (!isRecord(request))
         return refuse("malformed-request");
-    const reply = dispatchOp(state, request);
+    const permitted = role !== "admin" || (typeof request.op === "string" && ADMIN_OPS.has(request.op));
+    const reply = permitted ? dispatchOp(state, request) : refuse("op-not-permitted-for-admin", { op: request.op });
     try {
-        appendLog(state, request, reply, peerUid);
+        appendLog(state, request, reply, peerUid, role);
     }
     catch {
         return refuse("governor-log-failed");
@@ -415,22 +490,22 @@ function handleRequest(state, request, peerUid) {
     return reply;
 }
 // --- Server ------------------------------------------------------------------------------
-function answer(state, socket, raw, peerUid) {
+function answer(state, socket, raw, peerUid, role) {
     let reply;
     try {
-        reply = handleRequest(state, JSON.parse(raw), peerUid);
+        reply = handleRequest(state, JSON.parse(raw), peerUid, role);
     }
     catch (e) {
         reply = e instanceof SyntaxError ? refuse("malformed-request") : refuse("internal-error");
     }
     socket.end(JSON.stringify(reply) + "\n");
 }
-function onConnection(state, socket, peerUid) {
+function onConnection(state, socket, peerUid, role) {
     let buffered = "";
     let answered = false;
     const answerOnce = (raw) => { if (!answered) {
         answered = true;
-        answer(state, socket, raw, peerUid);
+        answer(state, socket, raw, peerUid, role);
     } };
     socket.setEncoding("utf8");
     socket.on("data", (chunk) => {
@@ -450,30 +525,96 @@ function onConnection(state, socket, peerUid) {
         answerOnce(buffered); });
     socket.on("error", () => socket.destroy());
 }
+function makeConnectionBounds(state, now = Date.now) {
+    let tokens = SPAWN_BURST;
+    let lastRefill = now();
+    let window = Math.floor(lastRefill / WINDOW_MS);
+    let spawnLimited = 0;
+    let refusalLines = 0;
+    let suppressed = 0;
+    const summary = (event, count, closed) => {
+        appendEventLog(state, { event, count, window_start: new Date(closed * WINDOW_MS).toISOString(), window_end: new Date((closed + 1) * WINDOW_MS).toISOString() });
+    };
+    const roll = () => {
+        const current = Math.floor(now() / WINDOW_MS);
+        if (current === window)
+            return;
+        if (spawnLimited > 0)
+            summary("spawn-limited", spawnLimited, window);
+        if (suppressed > 0)
+            summary("refusals-suppressed", suppressed, window);
+        window = current;
+        spawnLimited = 0;
+        refusalLines = 0;
+        suppressed = 0;
+    };
+    return {
+        allowSpawn() {
+            roll();
+            const t = now();
+            tokens = Math.min(SPAWN_BURST, tokens + Math.max(0, t - lastRefill) * SPAWN_REFILL_PER_MS);
+            lastRefill = t;
+            if (tokens < 1) {
+                spawnLimited++;
+                return false;
+            }
+            tokens -= 1;
+            return true;
+        },
+        allowRefusalLine() {
+            roll();
+            if (refusalLines >= MAX_REFUSAL_LINES_PER_MINUTE) {
+                suppressed++;
+                return false;
+            }
+            refusalLines++;
+            return true;
+        },
+        flush: roll,
+    };
+}
+function appendEventLog(state, entry) {
+    try {
+        fs.appendFileSync(state.logPath, JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n", { mode: 0o600 });
+    }
+    catch {
+        /* best-effort — never crash the accept loop on a log append */
+    }
+}
 // The Unix-listener guard (FAFF-1211). Reads the peer uid synchronously — before any `data` listener
 // attaches, so no request bytes can arrive before the decision (net does not flow a socket until a
-// data listener is attached). A caller whose uid cannot be read, or whose uid is not on the allow
-// list, is refused here and never reaches onConnection / handleRequest. The check is independent of
-// the socket's file mode: even a socket widened past 0600 is still gated by the uid. An allowed
-// caller carries its uid forward so every accepted request's log line is stamped with it.
-function guardUnixConnection(state, allowUids, reader, socket) {
+// data listener is attached). A caller whose uid cannot be read, or whose uid has no role, is refused
+// here and never reaches onConnection / handleRequest. The check is independent of the socket's file
+// mode: even a socket widened past 0600 is still gated by the uid. An allowed caller carries its uid and
+// role forward so every accepted request's log line is stamped with them. With `bounds`, a connection
+// over the spawn cap is closed before the helper is spawned.
+function guardUnixConnection(state, callers, reader, socket, bounds) {
     // A refused caller is handled before onConnection attaches its own error handler, so attach one
     // first: a refused peer that resets the connection (the socket.end write fails ECONNRESET/EPIPE)
     // would otherwise emit an unhandled 'error' and crash the single-runner governor — a trivial DoS
     // from exactly the untrusted callers this guard exists to refuse.
     socket.on("error", () => socket.destroy());
+    if (bounds !== undefined && !bounds.allowSpawn()) {
+        socket.destroy();
+        return;
+    }
+    const logRefusal = (entry) => {
+        if (bounds === undefined || bounds.allowRefusalLine())
+            appendConnectLog(state, entry);
+    };
     const result = reader.readPeerUid(socket);
     if (!result.ok) {
-        appendConnectLog(state, { peer_uid: null, refusal: "peer-credentials-unreadable", error: result.error });
+        logRefusal({ peer_uid: null, refusal: "peer-credentials-unreadable", error: result.error });
         socket.end(JSON.stringify({ ok: false, reason: "peer-credentials-unreadable" }) + "\n");
         return;
     }
-    if (!allowUids.has(result.uid)) {
-        appendConnectLog(state, { peer_uid: result.uid, refusal: "caller-not-allowed" });
+    const role = callers.get(result.uid);
+    if (role === undefined) {
+        logRefusal({ peer_uid: result.uid, refusal: "caller-not-allowed" });
         socket.end(JSON.stringify({ ok: false, reason: "caller-not-allowed", peer: { uid: result.uid } }) + "\n");
         return;
     }
-    onConnection(state, socket, result.uid);
+    onConnection(state, socket, result.uid, role);
 }
 function parseListen(spec) {
     const at = spec.lastIndexOf(":");
@@ -494,7 +635,15 @@ function governorStart(flags) {
         process.stderr.write(`faff commissaire governor start: ${configLoaded.error}\n`);
         return 2;
     }
-    const allowUids = new Set(configLoaded.config.allow_uids);
+    const callers = new Map();
+    for (const uid of configLoaded.config.allow_uids)
+        callers.set(uid, "runner");
+    for (const uid of configLoaded.config.admin_uids)
+        callers.set(uid, "admin");
+    if (configLoaded.config.runner_checks !== undefined)
+        state.runnerChecks = configLoaded.config.runner_checks;
+    const groupAccess = flags["--socket-group-access"] === true;
+    const bounds = groupAccess ? makeConnectionBounds(state) : undefined;
     const reader = makePeerCredReader();
     // Start-time interpreter probe: without a trusted python3 the governor would bind, print `listening`,
     // then silently refuse every Unix caller `peer-credentials-unreadable`. Surface it loudly instead.
@@ -532,13 +681,15 @@ function governorStart(flags) {
     };
     // The Unix listener is guarded by the peer-credential check; the optional TCP listener keeps the
     // bare onConnection with NO peer check (TCP has no SO_PEERCRED — its caller auth is FAFF-1181).
-    make((socket) => guardUnixConnection(state, allowUids, reader, socket)).listen(socketPath, () => {
-        fs.chmodSync(socketPath, 0o600);
+    make((socket) => guardUnixConnection(state, callers, reader, socket, bounds)).listen(socketPath, () => {
+        fs.chmodSync(socketPath, groupAccess ? 0o660 : 0o600);
         console.log(JSON.stringify({ listening: { socket: socketPath }, pk_fingerprint: state.pk_fingerprint }));
     });
     if (listen) {
         make((socket) => onConnection(state, socket)).listen(listen.port, listen.host, () => console.log(JSON.stringify({ listening: { tcp: `${listen.host}:${listen.port}` } })));
     }
+    if (bounds !== undefined)
+        setInterval(bounds.flush, 1000).unref();
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
     return 0;
@@ -730,4 +881,4 @@ function governorSelftest() {
     console.log("governor selftest: ok");
     return 0;
 }
-module.exports = { governorStart, governorRotate, handleRequest, governorSelftest, openState, loadGovernorConfig, guardUnixConnection, appendConnectLog, onConnection };
+module.exports = { governorStart, governorRotate, handleRequest, governorSelftest, openState, loadGovernorConfig, parseGovernorConfig, guardUnixConnection, makeConnectionBounds, appendConnectLog, onConnection, ADMIN_OPS };

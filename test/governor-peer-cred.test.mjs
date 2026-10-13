@@ -45,6 +45,9 @@ function readLog(dir) {
   return readFileSync(p, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 }
 
+// The caller set is a Map<uid, role> since FAFF-1216; every uid these tests allow is a runner.
+const runners = (uids) => new Map(uids.map((uid) => [uid, "runner"]));
+
 const ADMIT = { op: "admit", run_id: "RUN-PEERCRED", producer_id: "P1", contract_revision: "r1", admitted_scope: ["merge"] };
 
 // A minimal in-memory socket: enough of net.Socket's surface for onConnection (setEncoding/on/end)
@@ -67,7 +70,7 @@ test("guard: an allowed uid proceeds and the accepted request's log line carries
   try {
     const reader = { readPeerUid: () => ({ ok: true, uid: 4242 }) };
     const sock = new FakeSocket();
-    guardUnixConnection(state, new Set([4242]), reader, sock);
+    guardUnixConnection(state, runners([4242]), reader, sock);
     // onConnection attached a data listener; feed one NDJSON request.
     assert.equal(sock.listenerCount("data"), 1, "allowed caller reaches onConnection (data listener attached)");
     sock.emit("data", JSON.stringify(ADMIT) + "\n");
@@ -88,7 +91,7 @@ test("guard: a disallowed uid is refused caller-not-allowed before the request i
   try {
     const reader = { readPeerUid: () => ({ ok: true, uid: 1002 }) };
     const sock = new FakeSocket();
-    guardUnixConnection(state, new Set([4242]), reader, sock);
+    guardUnixConnection(state, runners([4242]), reader, sock);
     assert.equal(sock.listenerCount("data"), 0, "refused caller never reaches onConnection (no data listener)");
     const reply = JSON.parse(sock.ended);
     assert.equal(reply.ok, false);
@@ -108,7 +111,7 @@ test("guard: a failed uid read is refused peer-credentials-unreadable and logs p
   try {
     const reader = { readPeerUid: () => ({ ok: false, error: "interpreter-missing" }) };
     const sock = new FakeSocket();
-    guardUnixConnection(state, new Set([4242]), reader, sock);
+    guardUnixConnection(state, runners([4242]), reader, sock);
     assert.equal(sock.listenerCount("data"), 0);
     const reply = JSON.parse(sock.ended);
     assert.equal(reply.ok, false);
@@ -128,7 +131,7 @@ test("guard: a refused socket that errors (reset peer / EPIPE) does not crash th
   const { dir, state } = keyDir();
   try {
     const sock = new FakeSocket();
-    guardUnixConnection(state, new Set([4242]), { readPeerUid: () => ({ ok: true, uid: 1002 }) }, sock);
+    guardUnixConnection(state, runners([4242]), { readPeerUid: () => ({ ok: true, uid: 1002 }) }, sock);
     assert.equal(JSON.parse(sock.ended).reason, "caller-not-allowed");
     // The guard refuses before onConnection attaches its handler, so it must attach its own error
     // listener: a refused peer that resets (its end() write fails ECONNRESET/EPIPE) would otherwise
@@ -148,7 +151,7 @@ test("guard: the check is independent of socket file mode (a disallowed uid is r
   try {
     const reader = { readPeerUid: () => ({ ok: true, uid: 777 }) };
     const sock = new FakeSocket();
-    guardUnixConnection(state, new Set([4242]), reader, sock);
+    guardUnixConnection(state, runners([4242]), reader, sock);
     assert.equal(JSON.parse(sock.ended).reason, "caller-not-allowed");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -161,7 +164,7 @@ test("guard: a connect-log append that throws does not crash the accept loop", (
     // Point the log at a directory so appendFileSync throws EISDIR; the guard must still refuse cleanly.
     const badState = { ...state, logPath: dir };
     const sock = new FakeSocket();
-    assert.doesNotThrow(() => guardUnixConnection(badState, new Set([1]), { readPeerUid: () => ({ ok: false, error: "x" }) }, sock));
+    assert.doesNotThrow(() => guardUnixConnection(badState, runners([1]), { readPeerUid: () => ({ ok: false, error: "x" }) }, sock));
     assert.equal(JSON.parse(sock.ended).reason, "peer-credentials-unreadable");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -196,7 +199,7 @@ test("allow-list source: a missing file yields an empty list and an empty list r
     assert.deepEqual(empty.config.allow_uids, []);
     // An empty allow set refuses every caller at the guard.
     const sock = new FakeSocket();
-    guardUnixConnection(state, new Set(empty.config.allow_uids), { readPeerUid: () => ({ ok: true, uid: 4242 }) }, sock);
+    guardUnixConnection(state, runners(empty.config.allow_uids), { readPeerUid: () => ({ ok: true, uid: 4242 }) }, sock);
     assert.equal(JSON.parse(sock.ended).reason, "caller-not-allowed");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -287,7 +290,7 @@ test("linux real-peer: a real kernel SO_PEERCRED read serves the caller's own ui
     async function roundTrip(allowSet) {
       return await new Promise((resolveP, rejectP) => {
         const sockPath = join(dir, `g-${allowSet.has(myUid) ? "ok" : "no"}.sock`);
-        const server = net.createServer({ allowHalfOpen: true }, (socket) => guardUnixConnection(state, allowSet, reader, socket));
+        const server = net.createServer({ allowHalfOpen: true }, (socket) => guardUnixConnection(state, runners([...allowSet]), reader, socket));
         server.on("error", rejectP);
         server.listen(sockPath, () => {
           chmodSync(sockPath, 0o666); // widen the socket: the uid check must still decide

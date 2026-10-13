@@ -23,6 +23,7 @@
     "bin/lib/commissaire.ts",
     "bin/lib/commissaire-governor-client.ts",
     "bin/lib/commissaire-trust.ts",
+    "bin/lib/commissaire-verify.ts",
     "bin/lib/ids.ts",
     "bin/lib/result.ts",
     "bin/lib/decision-policy.ts",

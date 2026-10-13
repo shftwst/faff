@@ -39,7 +39,7 @@ test("S8: a schema-3 producer record with missing/invalid producer_id -> produce
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 });
 
-test("S8b(a): a non-object / non-parseable JSONL line is dropped (never reaches the auth leg)", () => {
+test("S8b(a): a non-object / non-parseable JSONL line is dropped from records; mid-file it fails a governed run as ledger-malformed", () => {
   const { tmp, runDir } = admittedRun();
   try {
     const before = readLedgerEntries(runDir).length;
@@ -47,7 +47,11 @@ test("S8b(a): a non-object / non-parseable JSONL line is dropped (never reaches 
     appendLine(runDir, "{not json");    // non-parseable
     const after = readLedgerEntries(runDir);
     assert.equal(after.length, before, "non-object / non-parseable lines are dropped, not surfaced as records");
-    assert.equal(verifyAuthLeg(runDir).pass, true, "dropped lines never cause an auth failure");
+    // FAFF-1178: the lines are still dropped from the record view, but a garbled mid-file line on a
+    // governed run is a ledger failure (the tail line is only torn, the "5" line sits before it).
+    const auth = verifyAuthLeg(runDir);
+    assert.equal(auth.pass, false, "a garbled mid-file line fails the governed auth leg");
+    assert.ok(auth.failures.some((f) => f.seq === null && f.reason === "ledger-malformed"), `expected ledger-malformed, got ${JSON.stringify(auth.failures)}`);
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 });
 

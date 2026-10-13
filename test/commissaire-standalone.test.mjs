@@ -158,6 +158,7 @@ test("FAFF-1179: the governor client is reachable (literal require) and config.j
   const { visited } = walk([COMMISSAIRE, join(LIB, "commissaire.js")], libSourceSet());
   const names = new Set([...visited].map((f) => basename(f)));
   assert.ok(names.has("commissaire-governor-client.js"), "the FAFF-1179 governor client must be reachable from the facade (a literal require edge)");
+  assert.ok(names.has("commissaire-verify.js"), "FAFF-1178: the grant-verify core must be reachable from the facade (a literal require edge)");
   assert.ok(!names.has("config.js"), "config.js must never enter the commissaire closure (ADR 0135 decision 11)");
 });
 

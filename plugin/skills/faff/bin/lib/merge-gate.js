@@ -45,7 +45,8 @@ const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, compu
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, computeEscapes, effectTargetMatches, matchesUnit } = require("./effects");
-const { chokepointPermit: commissaireChokepointPermit, readLedgerEntries: commissaireReadLedger, readChokepointKeyRecord: commissaireReadChokepointKey, hasGovernanceContext: commissaireHasGovernanceContext } = require("./commissaire");
+const commissaireVerify = require("./commissaire-verify");
+const commissaireTrust = require("./commissaire-trust");
 const { runLadder } = require("./gates");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { parseWorktreeEntries } = require("./worktree-prune");
@@ -1105,20 +1106,13 @@ function observeMergeEffects(runDir, issue, effects) {
   }
 }
 
-// FAFF-828/1118: the worked chokepoint core, shared by every per-effect resolver. Resolve the
-// Commissaire protected-effect decision leg for ONE (issue, step, effectKind) — a three-state
-// signal decideFloor / cmdPrCreate consume. "not-applicable" (an ordinary effect the external
-// facade never governed: no schema:3 effect-decision-verdict for this issue's step) is a no-op, so
-// ungoverned runs are byte-for-byte unaffected. When governance DOES apply, the latest signed
-// verdict FOR THIS EFFECT KIND is verified through chokepoint_permit against the pinned public PK:
-// a genuine covering grant → "valid-grant" (no-op), anything else (missing/forged/deny/non-covering
-// grant, an unreadable pinned PK, or no verdict covering this kind) → "absent-or-invalid", which
-// the caller refuses BEFORE the effect. Any read error is swallowed to "not-applicable" — the leg
-// never itself crashes an effect the facade was never governing. `target` (the base branch / head
-// ref) is what the grant must cover; when unresolved, the grant's own declared target is used
-// (the governor's signed intent). FAFF-1118: the verdict is selected by `payload.effect.kind`, not
-// merely the last step verdict, so a branch-delete verdict at step="merge" cannot shadow the merge
-// verdict — byte-identical to last-wins on a one-verdict-per-kind ledger.
+// FAFF-1212: the chokepoint legs. faff owns WHERE and WHEN a leg runs; Commissaire's
+// commissaire-verify owns whether a grant is trustworthy (ADR 0135). Each leg resolves to a
+// three-state signal decideFloor / cmdPrCreate consume ("not-applicable" for an ungoverned run, so
+// it stays byte-for-byte unaffected and makes no trust-file read) plus a detail record the
+// commands report beside it. A governed leg always takes its answer from a verifyGrant call that
+// saw the trust read.
+
 // FAFF-1140 — the run-start "governance-required" sentinel reader. A governance-required run whose
 // run-start Commissaire admit failed writes <run_dir>/commissaire/governance-required.json before it
 // refuses (belt-and-braces: the primary defence is the run-start refuse never reaching the floor).
@@ -1132,52 +1126,166 @@ function governanceRequiredSentinelPresent(runDir) {
   } catch { return false; }
 }
 
-function resolveGrantByEffectKind(runDir, issue, step, effectKind, target) {
-  let entries;
-  try { entries = commissaireReadLedger(runDir); } catch { return "not-applicable"; }
-  const verdicts = entries.filter((e) =>
-    e && e.schema === 3 && e.author === "commissaire" && e.kind_of_entry === "effect-decision-verdict" &&
-    matchesUnit(e, issue) && e.step === step);
-  if (verdicts.length === 0) {
-    // FAFF-1034 — fail closed on a GOVERNED run. A run whose runner has `admit`ted (any schema:3
-    // record ⇒ hasGovernanceContext) but produced NO verdict at this step is exactly the hole the
-    // protocol exists to prevent — "absent-or-invalid" so the caller refuses BEFORE the effect.
-    // An UNGOVERNED run (no schema:3 records at all) stays "not-applicable" ⇒ pass, byte-for-byte.
-    // FAFF-1140 — defence-in-depth: a run bearing the run-start governance-required sentinel (its
-    // admit failed on a required run) fails closed EVEN with no schema:3 records, in case the
-    // run-start refuse is ever bypassed. A run with neither context is unchanged (not-applicable).
-    return (commissaireHasGovernanceContext(runDir) || governanceRequiredSentinelPresent(runDir))
-      ? "absent-or-invalid" : "not-applicable";
+// The ref-name and owner/name patterns FAFF-1178 applies to `audit verify --base` / `--repo`
+// (commissaire.ts AUDIT_BASE_RE / AUDIT_REPO_RE, not exported).
+const TRUST_BASE_REF_RE = /^[A-Za-z0-9_][A-Za-z0-9_./-]*$/;
+const TRUST_REPO_SLUG_RE = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
+const validBaseRef = (ref) => typeof ref === "string" && TRUST_BASE_REF_RE.test(ref) && !ref.includes("..");
+const validRepoSlug = (slug) => typeof slug === "string" && TRUST_REPO_SLUG_RE.test(slug) && !slug.includes("..");
+
+// The repository a PR belongs to, parsed from the `url` of `gh pr view` (https://host/owner/name/pull/N);
+// "" when the url does not parse.
+function repoSlugFromPrUrl(url) {
+  const m = typeof url === "string" ? url.match(/^https:\/\/[^/]+\/([^/]+)\/([^/]+)\/pull\/\d+(?:[/?#].*)?$/) : null;
+  return m ? `${m[1]}/${m[2]}` : "";
+}
+
+// PURE: true when an effective-rules array (the branch rules endpoint payload) carries a pull_request rule.
+function hasPullRequestRule(rules) {
+  return Array.isArray(rules) && rules.some((r) => !!r && r.type === "pull_request");
+}
+
+// One TrustContext per command invocation. `resolve_slug` (pr-create only) lets the first governed
+// leg resolve the slug with `gh repo view`; the trust read and the rules read are memoised on it.
+function makeTrustContext({ transport, repo_dir, repo_slug = null, base_ref, resolve_slug = false }) {
+  return { transport, repo_dir, repo_slug, base_ref, resolve_slug, trustMemo: null, rulesMemo: null };
+}
+
+function memoisedTrustRead(ctx) {
+  if (!ctx.trustMemo) {
+    const remote = ctx.transport === "remote";
+    ctx.trustMemo = {
+      read: commissaireTrust.readTrustFile({ repoDir: ctx.repo_dir, ref: ctx.base_ref, transport: remote ? "remote" : "local", ...(remote ? { repoSlug: ctx.repo_slug } : {}) }),
+      attempted: remote ? "remote-base" : "local-ref",
+    };
   }
-  const covering = verdicts.filter((v) => v.payload && v.payload.effect && v.payload.effect.kind === effectKind);
-  const verdict = covering[covering.length - 1]; // the latest decision FOR THIS effect kind
-  if (!verdict) return "absent-or-invalid"; // governed, step verdicts exist, but none covers this kind — fail-closed
-  const key = commissaireReadChokepointKey(runDir);
-  if (!key.ok) return "absent-or-invalid"; // governance applies but the pinned PK is unreadable — fail-closed
-  const pkRec = key.record;
-  const grantedTarget = verdict.payload && verdict.payload.effect && verdict.payload.effect.target;
-  const effect = { kind: effectKind, target: target || grantedTarget };
-  const res = commissaireChokepointPermit(effect, verdict, pkRec.pk, pkRec.pk_fingerprint);
-  return res.permit ? "valid-grant" : "absent-or-invalid";
+  return ctx.trustMemo;
 }
 
-// FAFF-828: the merge chokepoint leg — the schema:3 grant covering THIS merge. `mergeTarget` (the
-// base branch) is the effect target; when unresolved the grant's own declared target is used.
-function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) {
-  return resolveGrantByEffectKind(runDir, issue, "merge", "merge", mergeTarget);
+// Whether the base branch's effective rules require a pull request; one rules-endpoint call per invocation.
+function memoisedPullRequestProtection(ctx) {
+  if (!ctx.rulesMemo) {
+    const r = runGh(["api", `repos/${ctx.repo_slug}/rules/branches/${ctx.base_ref}`], { timeout: 60000 });
+    let rules;
+    if (!r.error && r.status === 0) { try { rules = JSON.parse(r.stdout); } catch { rules = undefined; } }
+    if (r.error || r.status !== 0) ctx.rulesMemo = { evidence: false, basis: `protection-unreadable: gh api failed (${r.error ? "gh unavailable" : `exit ${r.status}`})` };
+    else if (!Array.isArray(rules)) ctx.rulesMemo = { evidence: false, basis: "protection-unreadable: unparseable rules JSON" };
+    else if (!hasPullRequestRule(rules)) ctx.rulesMemo = { evidence: false, basis: "no-pull-request-rule" };
+    else ctx.rulesMemo = { evidence: true, basis: "pinned grant read from a remote base that requires a pull request" };
+  }
+  return ctx.rulesMemo;
 }
 
-// FAFF-1118: the pr-create chokepoint leg — a structural mirror at step="pr-create", kind="pr-create".
-// `prTarget` is the base branch the PR opens against (the merge grant's base-branch convention).
-function resolvePrCreateGrant(runDir, issue, prTarget) {
-  return resolveGrantByEffectKind(runDir, issue, "pr-create", "pr-create", prTarget);
+// The detail for a refusal faff decided without a verifyGrant answer. `from` is the governance probe
+// (custody, and the signer only when it bound a key), `trust` the trust input once a read was attempted.
+function faffLegDetail(leg, reason, from, trust, ctx) {
+  return {
+    leg, outcome: "absent-or-invalid", reason,
+    custody: from ? from.custody : null,
+    classification: null,
+    signer_fingerprint: from && from.pk ? from.signer_fingerprint : null,
+    verdict_seq: null,
+    trust_source: trust ? trust.attempted : "not-read",
+    base_ref: ctx ? ctx.base_ref : null,
+    repo_slug: trust && ctx && ctx.transport === "remote" ? ctx.repo_slug : null,
+    evidence: false,
+    evidence_basis: reason,
+  };
 }
 
-// FAFF-1118: the branch-delete coattail leg — the branch-delete grant lives at step="merge" (where
-// the branch-delete is declared), selected by kind so it never shadows (or is shadowed by) the
-// merge verdict. `branchTarget` is the head ref the delete removes.
-function resolveBranchDeleteGrant(runDir, issue, branchTarget) {
-  return resolveGrantByEffectKind(runDir, issue, "merge", "branch-delete", branchTarget);
+function verifiedLegDetail(leg, res, ctx) {
+  const detail = {
+    leg, outcome: res.outcome, reason: res.reason, custody: res.custody, classification: res.classification,
+    signer_fingerprint: res.signer_fingerprint, verdict_seq: res.verdict_seq, trust_source: res.trust_source,
+    base_ref: ctx.base_ref, repo_slug: ctx.transport === "remote" ? ctx.repo_slug : null,
+    evidence: false, evidence_basis: "",
+  };
+  if (res.outcome !== "valid-grant") detail.evidence_basis = res.reason;
+  else if (res.classification !== "pinned") detail.evidence_basis = "not-pinned";
+  else if (res.trust_source !== "remote-base") detail.evidence_basis = "not-remote-base";
+  else { const p = memoisedPullRequestProtection(ctx); detail.evidence = p.evidence; detail.evidence_basis = p.basis; }
+  return detail;
+}
+
+const LEG_EFFECTS = { "pr-create": ["pr-create", "pr-create"], merge: ["merge", "merge"], "branch-delete": ["merge", "branch-delete"] };
+
+function refuseLeg(detail) { return { state: "absent-or-invalid", detail }; }
+
+// Check one leg. `deps` is the test seam for the two Commissaire calls; production callers omit it.
+function checkLeg(runDir, issue, leg, target, trustCtx, deps) {
+  const { resolveAdmittedKey: probe, verifyGrant: verify } = deps || commissaireVerify;
+  const [step, kind] = LEG_EFFECTS[leg];
+  const crashed = (e, from, trust) => {
+    process.stderr.write(`faff: Commissaire ${leg} grant check failed unexpectedly (${e && e.name ? e.name : "Error"})\n`);
+    return refuseLeg(faffLegDetail(leg, "verify-error", from, trust, trustCtx));
+  };
+  let first;
+  try { first = probe(runDir, { not_read: true }); } catch (e) { return crashed(e, null, null); }
+  if (first.custody == null) {
+    if (first.failure != null) return refuseLeg(faffLegDetail(leg, first.failure, first, null, trustCtx));
+    if (governanceRequiredSentinelPresent(runDir)) return refuseLeg(faffLegDetail(leg, "governance-required-sentinel", first, null, trustCtx));
+    return { state: "not-applicable", detail: null };
+  }
+  if (!trustCtx) return refuseLeg(faffLegDetail(leg, "trust-context-missing", first, null, null));
+  if (!validBaseRef(trustCtx.base_ref)) return refuseLeg(faffLegDetail(leg, "base-ref-invalid", first, null, trustCtx));
+  if (trustCtx.transport === "remote") {
+    if (!trustCtx.repo_slug && trustCtx.resolve_slug) {
+      trustCtx.resolve_slug = false;
+      try { trustCtx.repo_slug = ghRepoSlug(null); } catch (e) { return crashed(e, first, null); }
+    }
+    if (!validRepoSlug(trustCtx.repo_slug)) return refuseLeg(faffLegDetail(leg, "repo-slug-unresolved", first, null, trustCtx));
+  }
+  let trust;
+  let res;
+  try {
+    trust = memoisedTrustRead(trustCtx);
+    res = verify({ run_dir: runDir, unit_id: issue, step, effect: { kind, target }, trust });
+  } catch (e) { return crashed(e, first, trust || { attempted: trustCtx.transport === "remote" ? "remote-base" : "local-ref" }); }
+  if (res.outcome === "not-applicable") return refuseLeg(faffLegDetail(leg, "governance-changed-during-check", first, trust, trustCtx));
+  return { state: res.outcome, detail: verifiedLegDetail(leg, res, trustCtx) };
+}
+
+function resolveCommissaireDecisionGrantDetail(runDir, issue, mergeTarget, trustCtx, deps) {
+  return checkLeg(runDir, issue, "merge", mergeTarget, trustCtx, deps);
+}
+function resolvePrCreateGrantDetail(runDir, issue, prTarget, trustCtx, deps) {
+  return checkLeg(runDir, issue, "pr-create", prTarget, trustCtx, deps);
+}
+function resolveBranchDeleteGrantDetail(runDir, issue, branchTarget, trustCtx, deps) {
+  return checkLeg(runDir, issue, "branch-delete", branchTarget, trustCtx, deps);
+}
+
+// FAFF-828: the merge chokepoint leg. `mergeTarget` is the PR's base branch, never the grant's own.
+function resolveCommissaireDecisionGrant(runDir, issue, mergeTarget, trustCtx, deps) {
+  return resolveCommissaireDecisionGrantDetail(runDir, issue, mergeTarget, trustCtx, deps).state;
+}
+
+// FAFF-1118: the pr-create chokepoint leg; `prTarget` is the base branch the PR opens against.
+function resolvePrCreateGrant(runDir, issue, prTarget, trustCtx, deps) {
+  return resolvePrCreateGrantDetail(runDir, issue, prTarget, trustCtx, deps).state;
+}
+
+// FAFF-1118: the branch-delete coattail leg (grant at step="merge", kind "branch-delete");
+// `branchTarget` is the head ref the delete removes.
+function resolveBranchDeleteGrant(runDir, issue, branchTarget, trustCtx, deps) {
+  return resolveBranchDeleteGrantDetail(runDir, issue, branchTarget, trustCtx, deps).state;
+}
+
+// The command-output view of a list of LegChecks: the `commissaire_grants` details (empty when every
+// leg is not-applicable) and one blocker line per refusing leg.
+function legReport(checks) {
+  return {
+    details: checks.filter((c) => c.detail).map((c) => c.detail),
+    blockers: checks.filter((c) => c.state === "absent-or-invalid" && c.detail).map((c) => `Commissaire ${c.detail.leg} grant refused: ${c.detail.reason}`),
+  };
+}
+
+// True when the run carries governance material or the FAFF-1140 sentinel (a probe failure counts as governed).
+function runIsGoverned(runDir) {
+  try {
+    const k = commissaireVerify.resolveAdmittedKey(runDir, { not_read: true });
+    return k.custody != null || k.failure != null || governanceRequiredSentinelPresent(runDir);
+  } catch { return true; }
 }
 
 // FAFF-1118: the fail-closed AND monoid over three-valued grants. "valid-grant" iff EVERY input is
@@ -1193,24 +1301,20 @@ function andGrants(...grants) {
   return "absent-or-invalid";
 }
 
-// FAFF-1034 — per-covered-merge schema:2 suppression predicate. TRUE iff THIS (issue, merge)
-// carries a covering, verified schema:3 grant (resolved the same way the chokepoint selects the
-// verdict + verifies coverage). When true, the merge's schema:2 auto-declare/observe is suppressed
-// so the covered merge has a SINGLE declaration lineage (schema:3) and computeEscapes never double-
-// counts. An uncovered merge (no grant / a governed-but-ungranted merge / an ungoverned run) keeps
-// its schema:2 trail as defence-in-depth — an ungoverned run has no schema:3 verdict, so this is
-// always false there and the schema:2 path is byte-for-byte unchanged.
-function mergeCoveredBySchema3Grant(runDir, issue, mergeTarget) {
-  try { return resolveCommissaireDecisionGrant(runDir, issue, mergeTarget) === "valid-grant"; }
+// FAFF-1034 — per-covered-merge schema:2 suppression predicate. TRUE iff THIS (issue, merge) carries
+// a covering, verified schema:3 grant, so the covered merge keeps a SINGLE declaration lineage
+// (schema:3) and computeEscapes never double-counts. The commands apply `legCovered` to the merge
+// leg's pre-merge LegCheck instead of re-checking, so a later gh degradation cannot flip the answer.
+function legCovered(check) { return !!check && check.state === "valid-grant"; }
+
+function mergeCoveredBySchema3Grant(runDir, issue, mergeTarget, trustCtx, deps) {
+  try { return legCovered(resolveCommissaireDecisionGrantDetail(runDir, issue, mergeTarget, trustCtx, deps)); }
   catch { return false; }
 }
 
-// FAFF-1118 — the pr-create sibling of mergeCoveredBySchema3Grant: TRUE iff THIS (issue, pr-create)
-// carries a covering, verified schema:3 grant, so cmdPrCreate suppresses its own schema:2 trail on
-// a covered create (single schema:3 lineage). False on an ungoverned/ungranted create → the schema:2
-// trail is written as defence-in-depth, byte-for-byte the pre-slice behaviour.
-function prCreateCoveredBySchema3Grant(runDir, issue, prTarget) {
-  try { return resolvePrCreateGrant(runDir, issue, prTarget) === "valid-grant"; }
+// FAFF-1118 — the pr-create sibling: cmdPrCreate suppresses its own schema:2 trail on a covered create.
+function prCreateCoveredBySchema3Grant(runDir, issue, prTarget, trustCtx, deps) {
+  try { return legCovered(resolvePrCreateGrantDetail(runDir, issue, prTarget, trustCtx, deps)); }
   catch { return false; }
 }
 
@@ -1444,6 +1548,9 @@ async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLeve
   const ci_state = gatesSignalToCiState(gatesOutcome);
 
   const holdoutLeg = resolveHoldoutLeg(runDir, issue); // FAFF-1040: posture from run facts, not the L4 label
+  // FAFF-1212: the git-only path has no remote, so the trust file is read from the local base ref (never evidence).
+  const mergeLeg = resolveCommissaireDecisionGrantDetail(runDir, issue, base, makeTrustContext({ transport: "local", repo_dir: cwd, base_ref: base }));
+  const grantReport = legReport([mergeLeg]);
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
@@ -1456,10 +1563,11 @@ async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLeve
     holdout_fault: holdoutLeg.holdout_fault,
     no_ci_policy: noCiPolicy,
     integrity: integrity.state,
-    decision_grant: resolveCommissaireDecisionGrant(runDir, issue, base),
+    decision_grant: mergeLeg.state,
   };
-  const { verdict, blockers } = decideFloor(floor); // UNCHANGED pure core
-  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [], holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault };
+  const { verdict, blockers: floorBlockers } = decideFloor(floor); // UNCHANGED pure core
+  const blockers = [...floorBlockers, ...grantReport.blockers];
+  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [], holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault, ...(grantReport.details.length ? { commissaire_grants: grantReport.details } : {}) };
 
   if (verdict === "refuse") {
     if (interactive && acceptReviewUnavailable) {
@@ -1720,8 +1828,12 @@ function cmdMergeGate(args) {
   if (!repo) { process.stderr.write("faff merge-gate: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
   // headRefName (FAFF-383): the branch-delete observe target, derived mechanically alongside the
   // identity fetch that already runs on every path — never a second gh call.
-  const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,headRefName,state,url"]);
+  const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,headRefName,baseRefName,state,url"]);
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
+  // FAFF-1212: a governed run's legs need the PR's base (and, under --delete-branch, head) ref from this
+  // same response; an ungoverned run never reads them for a leg, so its handling is unchanged.
+  const missingLegField = !hv.data.baseRefName ? "baseRefName" : (resolved.flags.includes("--delete-branch") && !hv.data.headRefName ? "headRefName" : null);
+  if (missingLegField && runIsGoverned(runDir)) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: response lacks ${missingLegField}\n`); return 2; }
   let headSha = hv.data.headRefOid; // FAFF-1087: reassigned below when the stacked-dependency interlock's bounded rebase advances D's head
   const headRefName = hv.data.headRefName || null;
 
@@ -1787,10 +1899,15 @@ function cmdMergeGate(args) {
   // and {branch-delete}. The shell ANDs the two independently-verified grants into the single
   // decision_grant field (decideFloor untouched). A non-delete merge resolves from the merge grant
   // alone, byte-for-byte the FAFF-1034 path.
-  const mergeGrant = resolveCommissaireDecisionGrant(runDir, issue, null);
-  const decisionGrant = resolved.flags.includes("--delete-branch")
-    ? andGrants(mergeGrant, resolveBranchDeleteGrant(runDir, issue, headRefName))
-    : mergeGrant;
+  // FAFF-1212: the trust file is read from the repository the PR belongs to (its own url), never from the
+  // separately resolved `repo`, which a fork checkout can point elsewhere.
+  const trustCtx = makeTrustContext({ transport: "remote", repo_dir: cwd, repo_slug: repoSlugFromPrUrl(hv.data.url), base_ref: hv.data.baseRefName || "" });
+  const mergeLeg = resolveCommissaireDecisionGrantDetail(runDir, issue, hv.data.baseRefName, trustCtx);
+  const legChecks = resolved.flags.includes("--delete-branch")
+    ? [mergeLeg, resolveBranchDeleteGrantDetail(runDir, issue, headRefName, trustCtx)]
+    : [mergeLeg];
+  const decisionGrant = andGrants(...legChecks.map((c) => c.state));
+  const grantReport = legReport(legChecks);
   const floor = {
     ac_complete: readAcComplete(runDir, issue),
     review_verdict: readReviewVerdict(runDir, issue),
@@ -1806,8 +1923,9 @@ function cmdMergeGate(args) {
     decision_grant: decisionGrant,
     dependency_gate: interlock.gate,
   };
-  const { verdict, blockers } = decideFloor(floor);
-  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display, holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault };
+  const { verdict, blockers: floorBlockers } = decideFloor(floor);
+  const blockers = [...floorBlockers, ...grantReport.blockers];
+  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display, holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault, ...(grantReport.details.length ? { commissaire_grants: grantReport.details } : {}) };
   // FAFF-1077: surface the interlock's owner-park intent (never enacted here) and any transient
   // note so the owning layer can escalate a "leave pr-open" refuse to a park at the merge locus.
   if (interlock.park) { result.dependency_park = interlock.park; result.remedy = `park the dependent: ${interlock.park.cause}`; }
@@ -1883,7 +2001,7 @@ function cmdMergeGate(args) {
       // exited non-zero here), so observe the merge only, never branch-delete.
       // FAFF-1034: suppress the schema:2 auto-declare/observe for a merge covered by a schema:3 grant
       // (the covered merge's schema:3 lineage is authoritative — single lineage, no double-count).
-      if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
+      if (!legCovered(mergeLeg)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
       return emit(result, 0);
     }
     // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
@@ -1899,14 +2017,15 @@ function cmdMergeGate(args) {
   // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
   // merge-args carried --delete-branch (resolved.flags, not the raw --merge-args string).
   // FAFF-1034: suppressed for a merge covered by a schema:3 grant (single schema:3 lineage).
-  if (!mergeCoveredBySchema3Grant(runDir, issue, null)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
+  if (!legCovered(mergeLeg)) observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
   return emit(result, 0);
 }
 
 // FAFF-1118: the flag grammar for `faff pr-create`. `--base` is the grant-coverage target (the
-// base branch the PR opens against), NOT forwarded to `gh pr create` — the gh invocation is
-// `--body-file` + a REQUIRED `--title` (gh demands a title in a non-interactive session; see the
-// title guard in cmdPrCreate), so an ungoverned PR-open is identical to a raw titled gh pr create.
+// base branch the PR opens against). The gh invocation is `--body-file` + a REQUIRED `--title` (gh
+// demands a title in a non-interactive session; see the title guard in cmdPrCreate), so an
+// ungoverned PR-open is identical to a raw titled gh pr create; a governed leg also forwards
+// `--base` and `--repo` (FAFF-1212) so the checked target is the acted target.
 const PR_CREATE_SPEC = { flags: {
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--base": { arity: 1 },
   "--body-file": { arity: 1 }, "--title": { arity: 1 }, "--level": { arity: 1 }, "--json": { arity: 0 },
@@ -1945,9 +2064,13 @@ function cmdPrCreate(args) {
   if (gitRemoteEmpty(process.cwd()) === true) return emit({ verdict: "no-op", opened: false, note: "git-only (no remote) — no PR to open" }, 0);
 
   // (2)+(3) the fail-closed pr-create chokepoint — a governed-but-uncovered create opens NOTHING.
-  const grant = resolvePrCreateGrant(runDir, issue, base);
-  if (grant === "absent-or-invalid") {
-    return emit({ verdict: "refuse", opened: false, blockers: ["Commissaire pr-create decision absent or invalid — a governed run must carry a covering signed pr-create grant for this base branch before the PR opens"] }, 1);
+  // FAFF-1212: governed legs read the trust file over gh from the remote base branch; the slug resolves once.
+  const trustCtx = makeTrustContext({ transport: "remote", repo_dir: process.cwd(), base_ref: base, resolve_slug: true });
+  const prLeg = resolvePrCreateGrantDetail(runDir, issue, base, trustCtx);
+  const grantReport = legReport([prLeg]);
+  const grantFields = grantReport.details.length ? { commissaire_grants: grantReport.details } : {};
+  if (prLeg.state === "absent-or-invalid") {
+    return emit({ verdict: "refuse", opened: false, blockers: [...grantReport.blockers, "Commissaire pr-create decision absent or invalid — a governed run must carry a covering signed pr-create grant for this base branch before the PR opens"], ...grantFields }, 1);
   }
 
   // (4) THE SOLE gh pr create invocation. On not-applicable (ungoverned) / valid-grant the PR opens.
@@ -1955,18 +2078,21 @@ function cmdPrCreate(args) {
   // derive one from the head commit) — a title-less call there dumps gh's usage text and opens
   // nothing. Fail loud with the remedy instead of shelling that guaranteed-to-fail call.
   if (!title) {
-    return emit({ verdict: "refuse", opened: false, blockers: ["faff pr-create: --title is required (gh pr create needs --title in a non-interactive session); pass --title resolved from the build's pr_title/commit_subject convention"] }, 2);
+    return emit({ verdict: "refuse", opened: false, blockers: ["faff pr-create: --title is required (gh pr create needs --title in a non-interactive session); pass --title resolved from the build's pr_title/commit_subject convention"], ...grantFields }, 2);
   }
   const ghArgs = ["pr", "create", "--body-file", bodyFile, "--title", title];
+  // FAFF-1212: on a governed leg the checked target is the acted target: open against the base the grant
+  // covered, in the repository the trust file was read from. An ungoverned create keeps today's arguments.
+  if (prLeg.state !== "not-applicable") ghArgs.push("--base", base, "--repo", trustCtx.repo_slug);
   const r = runGh(ghArgs, { timeout: 120000 }); // FAFF-1213: route through the single gh chokepoint
   if (r.status !== 0) {
-    return emit({ verdict: "refuse", opened: false, blockers: [`gh pr create failed: ${(r.stderr || "").trim() || "non-zero exit"}`] }, 1);
+    return emit({ verdict: "refuse", opened: false, blockers: [`gh pr create failed: ${(r.stderr || "").trim() || "non-zero exit"}`], ...grantFields }, 1);
   }
 
   // (5) declare + observe the schema:2 pr-create effect UNLESS a covering schema:3 grant already
   // owns the lineage (single schema:3 lineage for a covered create — mirrors merge-gate.js's own
   // covered-merge suppression). Every failure is swallowed — the PR is already open by now.
-  if (!prCreateCoveredBySchema3Grant(runDir, issue, base)) {
+  if (!legCovered(prLeg)) {
     const effects = [{ kind: "pr-create", target: base, reversible: true }];
     // FAFF-1213: the acting GitHub identity rides the pr-create ENVELOPE (recordFields), never
     // the effect descriptor — normEffect canonicalises a descriptor to {kind,target,reversible},
@@ -1983,7 +2109,7 @@ function cmdPrCreate(args) {
     } catch (e) { process.stderr.write(`faff pr-create: effects ledger append failed (PR already open): ${e.message}\n`); }
   }
   // (6)
-  return emit({ verdict: "opened", opened: true, pr_url: (r.stdout || "").trim() }, 0);
+  return emit({ verdict: "opened", opened: true, pr_url: (r.stdout || "").trim(), ...grantFields }, 0);
 }
 
 function cmdBranchProtectionCheck(args) {
@@ -2300,6 +2426,12 @@ async function mergeGateSelftest() {
   check("andGrants: a non-uniform valid+not-applicable mix fails closed to absent-or-invalid", andGrants("valid-grant", "not-applicable") === "absent-or-invalid");
   check("andGrants: single valid grant → valid-grant (non-delete merge, the FAFF-1034 path)", andGrants("valid-grant") === "valid-grant");
   check("andGrants: single not-applicable → not-applicable (ungoverned non-delete merge)", andGrants("not-applicable") === "not-applicable");
+  // FAFF-1212 hasPullRequestRule — pure; true only when a pull_request rule is present.
+  check("hasPullRequestRule: a pull_request rule → true", hasPullRequestRule([{ type: "deletion" }, { type: "pull_request" }]) === true);
+  check("hasPullRequestRule: no pull_request rule → false", hasPullRequestRule([{ type: "deletion" }, { type: "required_status_checks" }]) === false);
+  check("hasPullRequestRule: empty / non-array / null entries → false", hasPullRequestRule([]) === false && hasPullRequestRule(null) === false && hasPullRequestRule([null]) === false);
+  check("repoSlugFromPrUrl: parses owner/name from a PR url", repoSlugFromPrUrl("https://github.com/acme/widgets/pull/12") === "acme/widgets");
+  check("repoSlugFromPrUrl: an unparseable url → empty", repoSlugFromPrUrl("not a url") === "" && repoSlugFromPrUrl(undefined) === "");
   check("andGrants: zero args → absent-or-invalid (fail-closed, never a vacuous valid-grant)", andGrants() === "absent-or-invalid");
 
   // classifyHeadShaChecks
@@ -3038,4 +3170,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, resolveCommissaireDecisionGrantDetail, resolvePrCreateGrantDetail, resolveBranchDeleteGrantDetail, checkLeg, makeTrustContext, hasPullRequestRule, repoSlugFromPrUrl, legCovered, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };

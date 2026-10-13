@@ -16,6 +16,12 @@ import { fileURLToPath } from "node:url";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 const MG = await import("../plugin/skills/faff/bin/lib/merge-gate.js");
+const { trustRepo, localTrustCtx } = await import("./helpers/trust-context.mjs");
+
+// FAFF-1212: a governed leg needs a TrustContext; a local transport against a temp repo with no trust file is enough.
+const trustDirs = [];
+const ctx = () => { const d = trustRepo("main"); trustDirs.push(d); return localTrustCtx(d); };
+process.on("exit", () => { for (const d of trustDirs) rmSync(d, { recursive: true, force: true }); });
 
 // run the CLI in `cwd`; `input` is fed to stdin. returns { code, out, err }
 function run(cwd, args, input) {
@@ -92,7 +98,7 @@ test("resolvePrCreateGrant: a governed run (admit ran) with NO pr-create verdict
   const root = tmp();
   try {
     const rd = admit(root, "RUN-GOV-NOVERDICT", "merge,branch-delete,pr-create");
-    assert.equal(MG.resolvePrCreateGrant(rd, "FAFF-1", "main"), "absent-or-invalid");
+    assert.equal(MG.resolvePrCreateGrant(rd, "FAFF-1", "main", ctx()), "absent-or-invalid");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -101,9 +107,9 @@ test("resolvePrCreateGrant: a governed run with a valid covering pr-create grant
   try {
     const rd = admit(root, "RUN-GOV-COVERED", "merge,branch-delete,pr-create");
     grantPrCreate(root, rd, "FAFF-1", "main");
-    assert.equal(MG.resolvePrCreateGrant(rd, "FAFF-1", "main"), "valid-grant");
+    assert.equal(MG.resolvePrCreateGrant(rd, "FAFF-1", "main", ctx()), "valid-grant");
     // the covered create suppresses its schema:2 trail (single schema:3 lineage)
-    assert.equal(MG.prCreateCoveredBySchema3Grant(rd, "FAFF-1", "main"), true);
+    assert.equal(MG.prCreateCoveredBySchema3Grant(rd, "FAFF-1", "main", ctx()), true);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -120,10 +126,10 @@ test("resolveBranchDeleteGrant: a branch-delete verdict at step=merge is selecte
     r = run(root, ["commissaire", "effect", "authorize", "--run-dir", rd, "--producer", producer, "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "branch-delete", target: "feature-x" } }));
     assert.equal(r.code, 0, r.err);
     // both are selected by kind — the branch-delete verdict does not shadow the merge verdict.
-    assert.equal(MG.resolveCommissaireDecisionGrant(rd, "FAFF-1", "main"), "valid-grant");
-    assert.equal(MG.resolveBranchDeleteGrant(rd, "FAFF-1", "feature-x"), "valid-grant");
+    assert.equal(MG.resolveCommissaireDecisionGrant(rd, "FAFF-1", "main", ctx()), "valid-grant");
+    assert.equal(MG.resolveBranchDeleteGrant(rd, "FAFF-1", "feature-x", ctx()), "valid-grant");
     // andGrants over both → valid-grant (a covered --delete-branch merge).
-    assert.equal(MG.andGrants(MG.resolveCommissaireDecisionGrant(rd, "FAFF-1", "main"), MG.resolveBranchDeleteGrant(rd, "FAFF-1", "feature-x")), "valid-grant");
+    assert.equal(MG.andGrants(MG.resolveCommissaireDecisionGrant(rd, "FAFF-1", "main", ctx()), MG.resolveBranchDeleteGrant(rd, "FAFF-1", "feature-x", ctx())), "valid-grant");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -137,8 +143,8 @@ test("coattail: a valid merge grant but NO branch-delete grant → andGrants abs
     assert.equal(r.code, 0, r.err);
     r = run(root, ["commissaire", "effect", "authorize", "--run-dir", rd, "--producer", producer, "--issue", "FAFF-1", "--step", "merge"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     assert.equal(r.code, 0, r.err);
-    assert.equal(MG.resolveCommissaireDecisionGrant(rd, "FAFF-1", "main"), "valid-grant");
-    assert.equal(MG.resolveBranchDeleteGrant(rd, "FAFF-1", "feature-x"), "absent-or-invalid");
+    assert.equal(MG.resolveCommissaireDecisionGrant(rd, "FAFF-1", "main", ctx()), "valid-grant");
+    assert.equal(MG.resolveBranchDeleteGrant(rd, "FAFF-1", "feature-x", ctx()), "absent-or-invalid");
     assert.equal(MG.andGrants("valid-grant", "absent-or-invalid"), "absent-or-invalid");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

@@ -1,8 +1,8 @@
 // FAFF-1176 — `commissaire contract status` (the governed/custody read the runner's skills use instead of
-// testing for the governor file by path) and `readChokepointKeyRecord` (the key resolver merge-gate reads
-// instead of building the pk.json path). Both must reach exactly the decision today's file reads reach for
-// every on-disk state, including malformed files.
-import { test } from "node:test";
+// testing for the governor file by path). It must reach exactly the decision today's file reads reach for
+// every on-disk state, including malformed files. FAFF-1212 retired `readChokepointKeyRecord`: the merge
+// chokepoint now asks FAFF-1178's verifyGrant, so the parity tests below pin the new key-binding rules.
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -10,12 +10,14 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./helpers/run-cli.mjs";
+import { trustRepo, localTrustCtx } from "./helpers/trust-context.mjs";
 import {
-  readChokepointKeyRecord, governorFileOf, governorDirOf, pkFileOf, producerDirOf,
+  governorFileOf, governorDirOf, pkFileOf, producerDirOf,
   COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, COMMISSAIRE_SURFACE,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import {
   resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant,
+  resolveCommissaireDecisionGrantDetail,
   mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant,
 } from "../plugin/skills/faff/bin/lib/merge-gate.js";
 
@@ -148,26 +150,7 @@ test("contract status is a canonical dispatch key requiring --run-dir, with no f
   assert.match(usage.stderr, /contract status\s+--run-dir DIR/);
 });
 
-// --- The resolver and merge-gate parity ------------------------------------------------------
-
-test("readChokepointKeyRecord: ok:false for a missing or unparseable pk.json, else the parsed value unvalidated", () => {
-  const { root, runDir } = mkRun("status-resolver-");
-  try {
-    assert.deepEqual(readChokepointKeyRecord(runDir), { ok: false });
-    mkdirSync(producerDirOf(runDir), { recursive: true });
-    const pk = pkFileOf(producerDirOf(runDir));
-    writeFileSync(pk, "{not json");
-    assert.deepEqual(readChokepointKeyRecord(runDir), { ok: false });
-    writeFileSync(pk, "null");
-    assert.deepEqual(readChokepointKeyRecord(runDir), { ok: true, record: null });
-    writeFileSync(pk, JSON.stringify({ pk: "P", pk_fingerprint: "F" }));
-    assert.deepEqual(readChokepointKeyRecord(runDir), { ok: true, record: { pk: "P", pk_fingerprint: "F" } });
-    const other = join(root, "other-producer");
-    mkdirSync(other, { recursive: true });
-    writeFileSync(join(other, "pk.json"), JSON.stringify({ pk: "Q" }));
-    assert.deepEqual(readChokepointKeyRecord(runDir, other), { ok: true, record: { pk: "Q" } });
-  } finally { rmSync(root, { recursive: true, force: true }); }
-});
+// --- Merge-gate key-binding parity ---------------------------------------------------------
 
 // A governed run with covering grants for merge, branch-delete (both at step merge) and pr-create.
 function grantedRun(prefix) {
@@ -184,40 +167,44 @@ function grantedRun(prefix) {
   step("pr-create", "pr-create", "main");
   return { root, runDir, pk: pkFileOf(producerDirOf(runDir)) };
 }
+const trustDirs = [];
+const ctx = () => { const d = trustRepo("main"); trustDirs.push(d); return localTrustCtx(d); };
 const legs = (runDir) => ({
-  merge: resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main"),
-  prCreate: resolvePrCreateGrant(runDir, "FAFF-1", "main"),
-  branchDelete: resolveBranchDeleteGrant(runDir, "FAFF-1", "feature"),
+  merge: resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main", ctx()),
+  prCreate: resolvePrCreateGrant(runDir, "FAFF-1", "main", ctx()),
+  branchDelete: resolveBranchDeleteGrant(runDir, "FAFF-1", "feature", ctx()),
 });
+after(() => { for (const d of trustDirs) rmSync(d, { recursive: true, force: true }); });
 
 test("parity: a valid pk.json grants all three legs", () => {
   const { root, runDir } = grantedRun("parity-valid-");
   try {
     assert.deepEqual(legs(runDir), { merge: "valid-grant", prCreate: "valid-grant", branchDelete: "valid-grant" });
-    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main"), true);
-    assert.equal(prCreateCoveredBySchema3Grant(runDir, "FAFF-1", "main"), true);
+    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main", ctx()), true);
+    assert.equal(prCreateCoveredBySchema3Grant(runDir, "FAFF-1", "main", ctx()), true);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("parity: a missing or invalid-JSON pk.json fails every leg closed", () => {
-  for (const mutate of [(pk) => rmSync(pk), (pk) => writeFileSync(pk, "{not json")]) {
+test("parity: pk.json no longer decides trust, so a missing, invalid-JSON or JSON-null pk.json leaves an in-process run's legs verified by governor.json", () => {
+  for (const mutate of [(pk) => rmSync(pk), (pk) => writeFileSync(pk, "{not json"), (pk) => writeFileSync(pk, "null")]) {
     const { root, runDir, pk } = grantedRun("parity-unreadable-");
     try {
       mutate(pk);
-      assert.deepEqual(legs(runDir), { merge: "absent-or-invalid", prCreate: "absent-or-invalid", branchDelete: "absent-or-invalid" });
+      assert.deepEqual(legs(runDir), { merge: "valid-grant", prCreate: "valid-grant", branchDelete: "valid-grant" });
+      assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main", ctx()), true);
     } finally { rmSync(root, { recursive: true, force: true }); }
   }
 });
 
-test("parity: a pk.json holding JSON null still throws TypeError from the three resolvers, and the two covered-by helpers still catch it", () => {
-  const { root, runDir, pk } = grantedRun("parity-null-");
+test("parity: with neither governor.json nor pk.json no key is admitted, so every leg fails closed without throwing", () => {
+  const { root, runDir, pk } = grantedRun("parity-nokey-");
   try {
-    writeFileSync(pk, "null");
-    assert.throws(() => resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main"), TypeError);
-    assert.throws(() => resolvePrCreateGrant(runDir, "FAFF-1", "main"), TypeError);
-    assert.throws(() => resolveBranchDeleteGrant(runDir, "FAFF-1", "feature"), TypeError);
-    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main"), false);
-    assert.equal(prCreateCoveredBySchema3Grant(runDir, "FAFF-1", "main"), false);
+    rmSync(pk);
+    rmSync(governorFileOf(governorDirOf(runDir)));
+    assert.deepEqual(legs(runDir), { merge: "absent-or-invalid", prCreate: "absent-or-invalid", branchDelete: "absent-or-invalid" });
+    assert.equal(resolveCommissaireDecisionGrantDetail(runDir, "FAFF-1", "main", ctx()).detail.reason, "key-not-admitted");
+    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main", ctx()), false);
+    assert.equal(prCreateCoveredBySchema3Grant(runDir, "FAFF-1", "main", ctx()), false);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -230,5 +217,6 @@ test("parity: a pk.json swapped for a foreign key with its own matching fingerpr
       writeFileSync(pk, readFileSync(pkFileOf(producerDirOf(foreign.runDir)), "utf8"));
     } finally { rmSync(foreign.root, { recursive: true, force: true }); }
     assert.deepEqual(legs(runDir), { merge: "absent-or-invalid", prCreate: "absent-or-invalid", branchDelete: "absent-or-invalid" });
+    assert.equal(resolveCommissaireDecisionGrantDetail(runDir, "FAFF-1", "main", ctx()).detail.reason, "pk-fingerprint-tampered");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

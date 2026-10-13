@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./helpers/run-cli.mjs";
+import { trustRepo, localTrustCtx } from "./helpers/trust-context.mjs";
 import {
   deriveKey, signRecord, verifyRecord, mintGovernorKeypair, signDecision, verifyDecision,
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
@@ -1018,29 +1019,32 @@ test("evaluateLevelPolicy: L1/L2 pass iff attended; L3 always passes; L4 passes 
 // --- resolveCommissaireDecisionGrant: governed+covered → valid-grant --------------------
 test("resolveCommissaireDecisionGrant: a governed run with a covering merge grant → valid-grant", () => {
   const { runDir } = mkRun("com-fc-grant-");
+  const trust = trustRepo("main");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
     assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
     const rd = runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } }));
     assert.equal(rd.code, 0);
     assert.equal(JSON.parse(rd.stdout.trim()).verdict, "grant");
-    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main"), "valid-grant");
-    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", null), "valid-grant"); // grant's own target used
-  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", "main", localTrustCtx(trust)), "valid-grant");
+    // FAFF-1212: a missing target refuses; the grant's own declared target is never used instead.
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-1", null, localTrustCtx(trust)), "absent-or-invalid");
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); rmSync(trust, { recursive: true, force: true }); }
 });
 
 // --- resolveCommissaireDecisionGrant: governed + no verdict → absent-or-invalid (FAIL CLOSED) ---
 test("resolveCommissaireDecisionGrant: a governed run with NO covering verdict → absent-or-invalid (fail closed)", () => {
   const { runDir } = mkRun("com-fc-block-");
+  const trust = trustRepo("main");
   try {
     // admit alone writes a schema:3 admission record ⇒ hasGovernanceContext, but no merge verdict exists
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
-    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-2", "main"), "absent-or-invalid");
+    assert.equal(resolveCommissaireDecisionGrant(runDir, "FAFF-2", "main", localTrustCtx(trust)), "absent-or-invalid");
     // decideFloor blocks on that state
     const base = { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "needs-human", integrity: "unasserted-ok" };
     const blocked = decideFloor({ ...base, decision_grant: "absent-or-invalid" });
     assert.equal(blocked.verdict, "refuse");
-  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); rmSync(trust, { recursive: true, force: true }); }
 });
 
 // --- resolveCommissaireDecisionGrant: ungoverned → not-applicable (byte-for-byte pass) --------
@@ -1113,13 +1117,14 @@ test("a governed schema:3 merge trail — including a deny whose pure legs pass 
 // --- per-covered-merge schema:2 suppression predicate (FAFF-1034) -----------------------
 test("mergeCoveredBySchema3Grant: true for a covered merge, false for a governed-but-ungranted merge and for an ungoverned run", () => {
   const { runDir } = mkRun("com-suppress-");
+  const trust = trustRepo("main");
   try {
     assert.equal(runCom(["admit", "--run-dir", runDir, "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
     assert.equal(runCom(["declare", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge"], JSON.stringify([{ kind: "merge", target: "main" }])).code, 0);
     assert.equal(runCom(["request-decision", "--run-dir", runDir, "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--level", "L3"], JSON.stringify({ effect: { kind: "merge", target: "main" } })).code, 0);
-    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main"), true);   // covered → suppress schema:2
-    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-2", "main"), false);  // governed but ungranted → keep schema:2 (and blocks)
-  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); }
+    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-1", "main", localTrustCtx(trust)), true);   // covered → suppress schema:2
+    assert.equal(mergeCoveredBySchema3Grant(runDir, "FAFF-2", "main", localTrustCtx(trust)), false);  // governed but ungranted → keep schema:2 (and blocks)
+  } finally { rmSync(join(runDir, "..", "..", ".."), { recursive: true, force: true }); rmSync(trust, { recursive: true, force: true }); }
   const { runDir: ungov } = mkRun("com-suppress-ungov-");
   try {
     assert.equal(mergeCoveredBySchema3Grant(ungov, "FAFF-1", "main"), false);   // ungoverned → never suppressed

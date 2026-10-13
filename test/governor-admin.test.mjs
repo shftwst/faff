@@ -665,6 +665,23 @@ test("a linked worktree with no config of its own is not refused repo-runner-wri
   assert.notEqual(r.reason, "repo-runner-writable", r.detail);
 });
 
+test("neither command calls sudo or doas: the only process launches are id, getent, git and gh", () => {
+  const src = readFileSync(require.resolve("../plugin/skills/faff/bin/lib/governor-admin.js"), "utf8");
+  assert.equal((src.match(/spawnSync\(/g) || []).length, 1, "one spawn site, inside exec");
+  const callees = [...src.matchAll(/[^\w.]exec\(\s*([\w.]+)/g)].map((m) => m[1]).filter((n) => n !== "bin");
+  assert.deepEqual(callees.sort(), ["getent", "idBin"]);
+  assert.doesNotMatch(src, /resolveBin\(\s*["'`](?:sudo|doas)/);
+  assert.doesNotMatch(src, /exec\(\s*["'`][^"'`]*(?:sudo|doas)/);
+  const w = world();
+  const bins = [];
+  const spy = (orig) => (bin, ...rest) => { bins.push(bin); return orig(bin, ...rest); };
+  const base = passingDeps(w, {});
+  pin(w, {}, { runGit: spy(base.runGit), runGh: spy(base.runGh) });
+  admin.statusCore(STATUS_FLAGS, passingDeps(w, { runGit: spy(base.runGit), runGh: spy(base.runGh) }));
+  assert.ok(bins.length > 0);
+  for (const bin of bins) assert.ok(bin === w.gitShim || bin === w.gh, `unexpected binary ${bin}`);
+});
+
 test("gh pr create printing no PR URL for the repo refuses gh-failed and never views or closes a PR", () => {
   for (const prUrl of ["", "Creating pull request...", "https://github.com/other/repo/pull/7"]) {
     const w = world();

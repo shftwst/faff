@@ -188,7 +188,8 @@ ${DRIVER}DRV
     assert.equal(line.signed_record, undefined, "nothing was signed");
     const identify = connect("hal", { op: "identify" });
     assert.notEqual(identify.reason, "op-not-permitted-for-admin");
-    assert.equal(identify.reason, "unknown-op");
+    assert.equal(identify.ok, true);
+    assert.equal(identify.key_file, "/var/lib/commissaire/governor-key.json");
   });
 
   test("a user outside commissaire-clients cannot connect (EACCES, no log line); added by hand she is refused caller-not-allowed with her uid logged", () => {

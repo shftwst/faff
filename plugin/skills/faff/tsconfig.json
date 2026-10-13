@@ -29,6 +29,7 @@
     "bin/lib/decision-policy.ts",
     "bin/lib/governor.ts",
     "bin/lib/governor-install.ts",
+    "bin/lib/governor-admin.ts",
     "bin/lib/peer-cred.ts"
   ]
 }

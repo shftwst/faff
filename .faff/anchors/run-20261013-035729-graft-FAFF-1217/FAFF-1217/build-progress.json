@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1217",
+  "build": {
+    "status": "complete",
+    "diff_hash": "508e0aa9bc7a6fe61987012f0cfe5cc6ab13ed2511b9f159cd333cdd126c9219",
+    "branch": "FAFF-1217-commissaire-governor-pin-and-status",
+    "pushed_at": "2026-10-13T08:19:22.966Z"
+  },
+  "updated_at": "2026-10-13T08:19:22.966Z"
+}

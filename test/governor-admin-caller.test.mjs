@@ -81,13 +81,14 @@ test("admin caller: admit, authorize and conclude are refused op-not-permitted-f
   } finally { cleanup(); }
 });
 
-test("admin caller: identify passes the role check (unknown-op until FAFF-1217 adds the op)", () => {
+test("admin caller: identify passes the role check and is answered", () => {
   const { state, cleanup } = fixture();
   try {
     assert.deepEqual([...ADMIN_OPS], ["identify"]);
     const reply = send(state, MAP, 1001, { op: "identify" });
     assert.notEqual(reply.reason, "op-not-permitted-for-admin");
-    assert.equal(reply.reason, "unknown-op");
+    assert.equal(reply.ok, true);
+    assert.equal(reply.pk_fingerprint, state.pk_fingerprint);
   } finally { cleanup(); }
 });
 

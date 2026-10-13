@@ -15,8 +15,9 @@
 // appended, so a substituted key or a man-in-the-middle on the cleartext TCP path is caught.
 //
 // Region FACTORY (committed .js emit, ADR-0132): it reaches only budget (readGovernanceConfig — the
-// switch read path ADR 0135 decision 11 mandates, NOT config.js), shared-infra (dig), and
-// producer-auth (verifyDecision / pkFingerprint). It MUST NOT require config.js, MUST NOT be
+// switch read path ADR 0135 decision 11 mandates, NOT config.js), shared-infra (dig), producer-auth
+// (verifyDecision / pkFingerprint), and peer-cred (FAFF-1217: the kernel-reported uid of the governor
+// process at the other end of a Unix socket, read in the request subprocess). It MUST NOT require config.js, MUST NOT be
 // required by governor.ts, and stays out of the standalone binary's denylisted closure — the ledger
 // mechanics (position read, append-under-lock) are injected by commissaire.ts, so this module needs
 // no events import either. node:net transport runs only in the self-spawned request subprocess, so
@@ -30,6 +31,7 @@ exports.runStartGovernorDecision = runStartGovernorDecision;
 exports.resolveTimeouts = resolveTimeouts;
 exports.verifyAdmitReply = verifyAdmitReply;
 exports.governorRequest = governorRequest;
+exports.governorRequestWithPeer = governorRequestWithPeer;
 exports.classifyAskResult = classifyAskResult;
 exports.appendGovernorRecordWithRetry = appendGovernorRecordWithRetry;
 const { spawnSync } = require("node:child_process");
@@ -154,6 +156,34 @@ function governorRequest(endpoint, request, timeouts) {
         return { ok: true, reply: out.reply };
     return { unreachable: true, detail: "transport-bad-output" };
 }
+// governorRequest for a Unix endpoint that also returns the kernel's answer to "which user runs the
+// process I am talking to" (FAFF-1217). SO_PEERCRED / LOCAL_PEERCRED report the server's credentials
+// when read on the client end of the connected socket. A peer read that fails is `unreachable` with
+// detail `peer-credentials-unreadable`; it never falls back to an unchecked call.
+function governorRequestWithPeer(endpoint, request, timeouts) {
+    if (endpoint.kind !== "unix")
+        return { unreachable: true, detail: "peer-credentials-unix-only" };
+    const payload = JSON.stringify({ endpoint, request, connect_ms: timeouts.connect_ms, reply_ms: timeouts.reply_ms, peer: true });
+    const r = spawnSync(process.execPath, [__filename, GOVERNOR_REQUEST_FLAG], { input: payload, encoding: "utf8", maxBuffer: TRANSPORT_MAX_BUFFER });
+    if (r.status !== 0 || typeof r.stdout !== "string" || r.stdout === "")
+        return { unreachable: true, detail: "transport-subprocess-failed" };
+    let out;
+    try {
+        out = JSON.parse(r.stdout);
+    }
+    catch {
+        return { unreachable: true, detail: "transport-bad-output" };
+    }
+    if (!isRecord(out))
+        return { unreachable: true, detail: "transport-bad-output" };
+    if (out.unreachable === true)
+        return { unreachable: true, detail: str(out.detail) ?? "unreachable" };
+    const peerUid = out.peer_uid;
+    if (out.ok === true && isRecord(out.reply) && typeof peerUid === "number" && Number.isInteger(peerUid) && peerUid >= 0) {
+        return { ok: true, reply: out.reply, peer_uid: peerUid };
+    }
+    return { unreachable: true, detail: "transport-bad-output" };
+}
 function classifyAskResult(res) {
     if ("unreachable" in res)
         return { unreachable: true, detail: res.detail };
@@ -244,7 +274,8 @@ function runRequestSubprocess() {
         process.stdout.write(JSON.stringify({ unreachable: true, detail: "bad-input" }));
         return;
     }
-    const { endpoint, request, connect_ms, reply_ms } = payload;
+    const { endpoint, request, connect_ms, reply_ms, peer } = payload;
+    let peerUid = null;
     const connectOpts = endpoint.kind === "unix" ? { path: endpoint.socket_path } : { host: endpoint.host, port: endpoint.port };
     const socket = net.connect(connectOpts);
     socket.setEncoding("utf8");
@@ -263,6 +294,7 @@ function runRequestSubprocess() {
         catch { /* best-effort */ }
         process.stdout.write(JSON.stringify(r));
     };
+    const replyOf = (reply) => (peerUid === null ? { ok: true, reply } : { ok: true, reply, peer_uid: peerUid });
     const connectTimer = setTimeout(() => emit({ unreachable: true, detail: "connect-timeout" }), connect_ms);
     const tryParse = () => {
         const nl = buffered.indexOf("\n");
@@ -270,7 +302,7 @@ function runRequestSubprocess() {
             return false;
         const line = buffered.slice(0, nl);
         try {
-            emit({ ok: true, reply: JSON.parse(line) });
+            emit(replyOf(JSON.parse(line)));
         }
         catch {
             emit({ unreachable: true, detail: "reply-not-json" });
@@ -279,6 +311,14 @@ function runRequestSubprocess() {
     };
     socket.on("connect", () => {
         clearTimeout(connectTimer);
+        if (peer === true) {
+            const read = require("./peer-cred").makePeerCredReader().readPeerUid(socket);
+            if (!read.ok) {
+                emit({ unreachable: true, detail: "peer-credentials-unreadable" });
+                return;
+            }
+            peerUid = read.uid;
+        }
         try {
             socket.write(JSON.stringify(request) + "\n");
         }
@@ -296,7 +336,7 @@ function runRequestSubprocess() {
             const t = buffered.trim();
             if (t) {
                 try {
-                    emit({ ok: true, reply: JSON.parse(t) });
+                    emit(replyOf(JSON.parse(t)));
                 }
                 catch {
                     emit({ unreachable: true, detail: "reply-not-json" });
@@ -312,5 +352,5 @@ if (require.main === module && process.argv.includes(GOVERNOR_REQUEST_FLAG))
     runRequestSubprocess();
 module.exports = {
     governorConfigError, parseEndpoint, resolveGovernor, runStartGovernorDecision, resolveTimeouts,
-    verifyAdmitReply, governorRequest, classifyAskResult, appendGovernorRecordWithRetry,
+    verifyAdmitReply, governorRequest, governorRequestWithPeer, classifyAskResult, appendGovernorRecordWithRetry,
 };

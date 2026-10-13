@@ -36,7 +36,7 @@ const REPO_RE = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 const BASE_RE = /^[A-Za-z0-9_][A-Za-z0-9._/-]*$/;
 const FINGERPRINT_RE = /^[0-9a-f]{64}$/;
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-const GITHUB_HOST = "github.com";
+const GITHUB_HOSTS = ["github.com", "ssh.github.com"];
 const TIMEOUTS = { connect_ms: 3000, reply_ms: 10000 };
 const HOOKS_OFF = ["-c", "core.hooksPath=/dev/null"];
 const TRUST_PATH = ".commissaire/trust.toml";
@@ -245,15 +245,20 @@ function parseTarget(verb, flags, requireAll) {
     }
     return { endpoint, runnerUser: runnerUser === "" ? undefined : runnerUser, repo, base };
 }
-// OWNER/NAME from a github.com origin URL (https, ssh:// and scp-like forms), or null.
+// OWNER/NAME from a github.com (or ssh.github.com) origin URL (https, ssh:// and scp-like forms), or null.
 function repoFromRemoteUrl(url) {
     const trimmed = url.trim();
     const m = /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(trimmed)
         ?? /^(?:[^@/\s]+@)?([^/:\s]+):([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(trimmed);
-    if (!m || !m[1] || !m[2] || !m[3] || m[1].toLowerCase() !== GITHUB_HOST)
+    if (!m || !m[1] || !m[2] || !m[3] || !GITHUB_HOSTS.includes(m[1].toLowerCase()))
         return null;
     const slug = `${m[2]}/${m[3]}`;
     return REPO_RE.test(slug) && !slug.includes("..") ? slug : null;
+}
+// True when url is a github.com pull request URL in repo (compared case-insensitively).
+function prUrlFor(url, repo) {
+    const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/\d+$/.exec(url);
+    return m !== null && m[1] !== undefined && m[1].toLowerCase() === repo.toLowerCase();
 }
 function readOrigin(deps, gitBin) {
     const r = deps.runGit(gitBin, ["remote", "get-url", "origin"], deps.cwd());
@@ -379,7 +384,11 @@ function binWritable(deps, runner, name, bin) {
 function repoCustodyPaths(deps, gitDir) {
     const top = deps.workTreeTop(deps.cwd());
     const common = deps.commonDir(gitDir);
-    const paths = [gitDir, path.join(gitDir, "config"), path.join(gitDir, "config.worktree")];
+    const paths = [gitDir, path.join(gitDir, "config")];
+    // Optional: when absent, creating it needs write access to gitDir, which is already checked.
+    const worktreeConfig = path.join(gitDir, "config.worktree");
+    if (deps.lstat(worktreeConfig) !== null)
+        paths.push(worktreeConfig);
     if (top !== null)
         paths.push(top, path.join(top, ".git"));
     if (common !== null)
@@ -682,7 +691,12 @@ function openPullRequest(deps, c) {
             const where = removal.status === 0 ? "the remote branch was deleted" : `the remote branch ${branch} could not be deleted and remains`;
             return fail("gh-failed", `gh pr create: ${printable(created.stderr.trim() || `exit ${created.status}`, 300)}; ${where}`);
         }
-        const url = created.stdout.trim().split("\n").pop() ?? "";
+        const url = (created.stdout.trim().split("\n").pop() ?? "").trim();
+        if (!prUrlFor(url, c.repo)) {
+            const removal = git(["push", "origin", "--delete", branch], worktree);
+            const where = removal.status === 0 ? "the remote branch was deleted" : `the remote branch ${branch} could not be deleted and remains`;
+            return fail("gh-failed", `gh pr create printed no PR URL for ${c.repo} (${printable(url || "empty output", 200)}); ${where}`);
+        }
         const opened = deps.runGh(c.gh, ["pr", "view", url, "--repo", c.repo, "--json", "headRefOid"]);
         const openedOid = opened.status === 0 ? prHeadOid(opened.stdout) : null;
         if (openedOid !== commit) {
@@ -766,7 +780,7 @@ function pinCore(flags, deps = DEFAULT_DEPS) {
     if (origin.kind === "none")
         return refused(refusal("no-remote-base", "no git remote named origin"));
     if (origin.kind === "unparseable")
-        return refused(refusal("repo-mismatch", `origin ${printable(origin.url, 200)} does not name a GitHub OWNER/NAME; --repo is ${repo}`));
+        return refused(refusal("repo-mismatch", `origin ${printable(origin.url, 200)} does not name a github.com OWNER/NAME (another host, an SSH host alias, or an unparseable URL); set origin to https://github.com/${repo} or git@github.com:${repo}; --repo is ${repo}`));
     if (!sameRepo(origin.repo, repo))
         return refused(refusal("repo-mismatch", `origin names ${origin.repo} but --repo is ${repo}`));
     const base = baseFlag ?? defaultBranch(deps, gh, repo);

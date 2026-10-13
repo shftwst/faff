@@ -552,7 +552,7 @@ test("pin refuses repo-runner-writable for a runner-writable gitfile, working-tr
     ["gitfile", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linked), ".git")],
     ["working-tree root", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === realpathSync(linked)],
     ["linked worktree's own config", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linkedGitDir), "config")],
-    ["linked worktree's config.worktree", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(linkedGitDir), "config.worktree")],
+    ["linked worktree's config.worktree", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked, lstat: admin.DEFAULT_DEPS.lstat }, (p) => p === join(realpathSync(linkedGitDir), "config.worktree")],
     ["common dir config", { gitDir: admin.DEFAULT_DEPS.gitDir, cwd: () => linked }, (p) => p === join(realpathSync(w.work), ".git", "config")],
     [".git/config", {}, (p) => p === join(realpathSync(w.work), ".git", "config")],
   ];
@@ -595,10 +595,10 @@ test("status skips git for a runner-writable repository and says so", () => {
 });
 
 test("repoFromRemoteUrl accepts only github.com, in https, ssh and scp forms", () => {
-  for (const ok of ["https://github.com/acme/widgets.git", "ssh://git@github.com/acme/widgets", "git@github.com:acme/widgets.git", "https://GitHub.com/acme/widgets"]) {
+  for (const ok of ["https://github.com/acme/widgets.git", "ssh://git@github.com/acme/widgets", "git@github.com:acme/widgets.git", "https://GitHub.com/acme/widgets", "ssh://git@ssh.github.com:443/acme/widgets.git"]) {
     assert.equal(admin.repoFromRemoteUrl(ok), "acme/widgets", ok);
   }
-  for (const no of ["git@gitlab.com:acme/widgets.git", "https://evil.example/acme/widgets", "https://github.com.evil.example/acme/widgets", "ssh://git@ghe.corp.example:2222/acme/widgets.git", "git@evil.example:acme/widgets"]) {
+  for (const no of ["git@gitlab.com:acme/widgets.git", "https://evil.example/acme/widgets", "https://github.com.evil.example/acme/widgets", "ssh://git@ghe.corp.example:2222/acme/widgets.git", "git@evil.example:acme/widgets", "git@github-work:acme/widgets.git"]) {
     assert.equal(admin.repoFromRemoteUrl(no), null, no);
   }
 });
@@ -636,6 +636,29 @@ test("a PR whose head is not the pushed commit is closed, its branch deleted, an
   assert.deepEqual(close, ["pr", "close", "https://github.com/acme/widgets/pull/7", "--repo", REPO, "--delete-branch"]);
   assert.deepEqual(w.remoteBranches(), ["main"]);
   assert.deepEqual(w.localBranches(), ["main"]);
+});
+
+test("a plain clone is not refused repo-runner-writable when the optional config.worktree is absent (real ancestors)", () => {
+  const w = world();
+  const split = (p) => { const out = []; for (let c = p; ; c = c.replace(/\/[^/]*$/, "") || "/") { out.push(c); if (c === "/") break; } return out; };
+  const inRepo = (p) => p.startsWith(w.work) || p.startsWith(realpathSync(w.work));
+  const ancestors = (p) => (inRepo(p) ? admin.DEFAULT_DEPS.ancestors(p) : split(p));
+  assert.equal(existsSync(join(w.work, ".git", "config.worktree")), false);
+  const r = pin(w, {}, { ancestors });
+  assert.equal(r.pinned, "opened-pr", r.detail);
+  const s = admin.statusCore(STATUS_FLAGS, passingDeps(w, { ancestors })).result;
+  assert.notEqual(s.counting.remote_base.reason, "repo-runner-writable");
+});
+
+test("gh pr create printing no PR URL for the repo refuses gh-failed and never views or closes a PR", () => {
+  for (const prUrl of ["", "Creating pull request...", "https://github.com/other/repo/pull/7"]) {
+    const w = world();
+    w.setGh({ prUrl });
+    const r = pin(w);
+    assert.equal(r.reason, "gh-failed", prUrl);
+    assert.ok(!w.ghCalls().some((c) => c[0] === "pr" && (c[1] === "view" || c[1] === "close")), prUrl);
+    assert.deepEqual(w.remoteBranches(), ["main"], prUrl);
+  }
 });
 
 test("an unreadable PR head also refuses pr-head-mismatch, and a failed close falls back to deleting the remote branch", () => {

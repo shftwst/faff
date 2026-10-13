@@ -291,6 +291,22 @@ test("a throwing verifyGrant refuses with verify-error and stderr carries the ex
   assert.doesNotMatch(stderr, /SECRET/);
 });
 
+test("a trust read that throws refuses with verify-error and reports the attempted source, not not-read", () => {
+  const run = governed();
+  const repo = trustedMainRepo();
+  const trustModule = requireCjs("../plugin/skills/faff/bin/lib/commissaire-trust.js");
+  const original = trustModule.readTrustFile;
+  const stderr = process.stderr.write;
+  trustModule.readTrustFile = () => { throw new Error("spawn failed"); };
+  process.stderr.write = () => true;
+  let check;
+  try { check = MG.checkLeg(run.runDir, ISSUE, "branch-delete", "feature", localTrustCtx(repo)); }
+  finally { trustModule.readTrustFile = original; process.stderr.write = stderr; }
+  assert.equal(check.state, "absent-or-invalid");
+  assert.equal(check.detail.reason, "verify-error");
+  assert.equal(check.detail.trust_source, "local-ref");
+});
+
 test("the trust read happens once per context across legs, whether they pass or refuse", () => {
   const run = governed({ custody: "in-process" });
   const repo = trustedMainRepo();

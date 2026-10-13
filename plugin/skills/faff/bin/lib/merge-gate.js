@@ -1240,7 +1240,7 @@ function checkLeg(runDir, issue, leg, target, trustCtx, deps) {
   try {
     trust = memoisedTrustRead(trustCtx);
     res = verify({ run_dir: runDir, unit_id: issue, step, effect: { kind, target }, trust });
-  } catch (e) { return crashed(e, first, trust || null); }
+  } catch (e) { return crashed(e, first, trust || { attempted: trustCtx.transport === "remote" ? "remote-base" : "local-ref" }); }
   if (res.outcome === "not-applicable") return refuseLeg(faffLegDetail(leg, "governance-changed-during-check", first, trust, trustCtx));
   return { state: res.outcome, detail: verifiedLegDetail(leg, res, trustCtx) };
 }

@@ -34,7 +34,7 @@ export function makeWorld(options = {}) {
   const world = {
     fs: fsTable, users, groups, userGroups, calls: [], ops: [], out: "", err: "",
     python: true, sudoOutput: null, gitHead: COMMIT, gitTag: COMMIT, keyAppears: true, failKind: null,
-    commandV: new Map(),
+    serviceInactive: false,
     ...options,
   };
   const mapped = (p) => (p === CLONE || p.startsWith(`${CLONE}/`) ? join(REPO, p.slice(CLONE.length)) : null);
@@ -75,17 +75,16 @@ export function makeWorld(options = {}) {
         if (args.includes("HEAD")) return ok(`${world.gitHead}\n`);
         return ok(`${world.gitTag}\n`);
       }
-      if (base === "sh") {
-        const m = /command -v (\w+)/.exec(args[1] ?? "");
-        const found = m && world.commandV.get(m[1]);
-        return found ? ok(`${found}\n`) : fail(1);
-      }
       return fail(127);
     },
     lstat(p) {
       if (fsTable.has(p)) return fsTable.get(p);
       const real = mapped(p);
       return real ? statReal(real) : null;
+    },
+    readlink(p) {
+      const entry = fsTable.get(p);
+      return entry?.kind === "symlink" ? entry.target : null;
     },
     realpath(p) {
       for (let hops = 0; fsTable.get(p)?.kind === "symlink" && hops < 8; hops++) p = fsTable.get(p).target;
@@ -114,6 +113,7 @@ export function makeWorld(options = {}) {
       world.ops.push(op);
       if (world.failKind === op.kind) return { ok: false, message: `${op.kind} refused by the test` };
       if (op.kind === "make_temp_dir") return { ok: true, value: CLONE };
+      if (op.kind === "service_op" && op.args[0] === "is-active" && world.serviceInactive) return { ok: false, message: "systemctl is-active failed (exit 3): inactive" };
       if (op.kind === "service_op" && op.args[0] === "enable" && world.keyAppears) {
         const keyDir = world.keyDir ?? "/var/lib/commissaire";
         fsTable.set(join(keyDir, "governor-key.json"), file(JSON.stringify({ pk_fingerprint: FINGERPRINT }), 300, 300, 0o600));

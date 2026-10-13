@@ -46,6 +46,7 @@ case "$1" in
   enable) [ "$2" = "--now" ] && start; exit 0 ;;
   restart) start; exit 0 ;;
   disable) [ "$2" = "--now" ] && stop; exit 0 ;;
+  is-active) pgrep -f "bin/commissaire governor start" >/dev/null; exit $? ;;
 esac
 exit 0
 `;

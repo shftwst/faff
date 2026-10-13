@@ -42,6 +42,8 @@ const USER_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const FINGERPRINT_TIMEOUT_MS = 30_000;
 const FINGERPRINT_POLL_MS = 250;
 const PROBE_TIMEOUT_MS = 30_000;
+const MAX_LINK_HOPS = 40;
+const SERVICE_SETTLE_MS = 1_000;
 class Abort extends Error {
     exit;
     constructor(message, exit) {
@@ -75,6 +77,12 @@ function createHost() {
         },
         realpath(p) { try {
             return fs.realpathSync(p);
+        }
+        catch {
+            return null;
+        } },
+        readlink(p) { try {
+            return fs.readlinkSync(p);
         }
         catch {
             return null;
@@ -134,15 +142,15 @@ function findTool(host, candidates) {
 function toolOnSystemPath(host, tool) {
     return findTool(host, TOOL_DIRS.map((d) => path.join(d, tool)));
 }
-// The verified real path of a system tool; refuses a tool whose custody chain is loose.
+// The literal path of a system tool once every hop of its custody chain is verified; refuses a loose one.
 function systemTool(host, tool) {
     const found = toolOnSystemPath(host, tool);
     if (found === null)
         return tool;
-    const checked = trustedBinary(host, found);
-    if (checked.real === null)
-        throw new Error(`tool-not-root-owned: ${tool} at ${found} (${checked.loose} is missing, not root-owned, or group- or world-writable)`);
-    return checked.real;
+    const loose = trustedBinaryLoose(host, found);
+    if (loose !== null)
+        throw new Error(`tool-not-root-owned: ${tool} at ${found} (${loose} is missing, not root-owned, or group- or world-writable)`);
+    return found;
 }
 function chownTree(p, uid, gid, recursive) {
     fs.lchownSync(p, uid, gid);
@@ -344,26 +352,42 @@ function selfCustodyCheck(host, moduleDir, tag) {
             abort(`install-code-not-root-owned: ${loose}\n${bootstrapText(tag)}`);
     }
 }
-// The real path of an interpreter whose literal and resolved chains are both tight; aborts otherwise.
-// The unit's ExecStart= names the returned path, so the verified file is the one that runs.
+// An interpreter whose every hop is verified; the unit's ExecStart= and root's execs name the literal path.
 function checkInterpreter(host, node) {
     const hint = "Pass --node <path> with a Node binary from a root-owned system prefix.";
     const checked = trustedBinary(host, node);
-    if (checked.real === null)
-        return abort(`interpreter-not-root-owned: ${host.realpath(node) ?? node} (${checked.loose} is missing, not root-owned, or group- or world-writable)\n${hint}`);
-    if (host.lstat(checked.real)?.kind !== "file")
-        return abort(`interpreter-not-root-owned: ${checked.real} (not a regular file)\n${hint}`);
-    return checked.real;
+    if (checked.loose !== null)
+        return abort(`interpreter-not-root-owned: ${node} (${checked.loose} is missing, not root-owned, or group- or world-writable)\n${hint}`);
+    if (host.lstat(checked.final)?.kind !== "file")
+        return abort(`interpreter-not-root-owned: ${checked.final} (not a regular file)\n${hint}`);
 }
-// Root runs these tools, so each must come from a system directory and sit under a root-owned chain.
-// Both the literal path's chain and the resolved path's chain must be tight. Callers execute the returned
-// real path, never the literal one, so a link in between cannot be swapped after the check.
+// Root executes the literal path, so every hop is verified: each symlink and the final file must be
+// root-owned (a link's mode bits mean nothing, a file must not be group- or world-writable), and each
+// hop's whole parent chain must be tight. `loose` is the first offending path, null when the path is
+// trusted; `final` is where the chain ends. A cycle or more than MAX_LINK_HOPS links aborts.
 function trustedBinary(host, p) {
-    const real = host.realpath(p);
-    if (real === null)
-        return { real: null, loose: p };
-    const loose = firstLooseOnChain(host, p) ?? firstLooseOnChain(host, real);
-    return loose === null ? { real, loose: null } : { real: null, loose };
+    const seen = new Set();
+    let current = p;
+    for (;;) {
+        if (seen.has(current) || seen.size >= MAX_LINK_HOPS)
+            return abort(`symlink-chain-too-long-or-cyclic: ${p} (at ${current})`);
+        seen.add(current);
+        const st = host.lstat(current);
+        if (st === null)
+            return { loose: current, final: current };
+        const parent = path.dirname(current);
+        const loose = firstLooseOnChain(host, parent) ?? firstLooseOnChain(host, nearestExistingReal(host, parent));
+        if (loose !== null)
+            return { loose, final: current };
+        if (st.uid !== 0)
+            return { loose: current, final: current };
+        if (st.kind !== "symlink")
+            return { loose: looseMode(st.mode) ? current : null, final: current };
+        const target = host.readlink(current);
+        if (target === null)
+            return { loose: current, final: current };
+        current = path.resolve(parent, target);
+    }
 }
 const trustedBinaryLoose = (host, p) => trustedBinary(host, p).loose;
 function requireTools(host) {
@@ -377,18 +401,16 @@ function requireTools(host) {
     }
 }
 // Tool custody (requireTools) runs earlier, before root executes any tool; this adds python3 and the interpreters.
-// Returns the verified real path of `node`.
 function preflight(host, node, execPath) {
     const python = trustedBinary(host, TRUSTED_PYTHON);
-    if (python.real === null)
+    if (python.loose !== null)
         return abort(`tool-not-root-owned: python3 at ${TRUSTED_PYTHON} (${python.loose} is missing, not root-owned, or group- or world-writable)`);
-    const py = host.probe(python.real, ["-I", "-c", "import socket, struct"]);
+    const py = host.probe(TRUSTED_PYTHON, ["-I", "-c", "import socket, struct"]);
     if (py.status !== 0)
         abort(`python3-missing: ${TRUSTED_PYTHON} cannot import socket and struct; the governor reads peer credentials through it`);
-    const real = checkInterpreter(host, node);
+    checkInterpreter(host, node);
     if (execPath !== node)
         checkInterpreter(host, execPath);
-    return real;
 }
 const gitEnv = () => ({
     PATH: SYSTEM_PATH, HOME: "/root", LC_ALL: "C", GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", GIT_TERMINAL_PROMPT: "0",
@@ -492,18 +514,14 @@ function doasPermits(conf, who) {
     return false;
 }
 // A tool root will execute must be found in the fixed list and sit under a root-owned chain.
-// `real` is the verified real path to execute; null when the tool is absent or not trusted.
+// `trusted` says whether every hop of the literal path is verified; false when absent or loose.
 function trustedTool(host, candidates) {
     const found = findTool(host, candidates);
-    return { found, real: found === null ? null : trustedBinary(host, found).real };
+    return { found, trusted: found !== null && trustedBinaryLoose(host, found) === null };
 }
-// A /bin/sh that cannot be trusted is never executed and counts as "present", which fails closed.
+// Presence is an lstat of each directory on the search path; no shell runs, so no probe can fail open.
 function presentByPath(host, name) {
-    const sh = trustedBinary(host, "/bin/sh").real;
-    if (sh === null)
-        return true;
-    const r = host.probe(sh, ["-c", `command -v ${name}`], { env: { PATH: SEARCH_PATH, LC_ALL: "C" } });
-    return r.status === 0 && (r.stdout.trim().split("\n")[0] ?? "").startsWith("/");
+    return SEARCH_PATH.split(":").some((dir) => host.lstat(path.join(dir, name)) !== null);
 }
 // "sudo or doas grants the runner a rule", failing closed. The one sudo call is the read-only
 // `sudo -n -l -U <user>`, made while already root; it grants nothing. A sudo that cannot be trusted to
@@ -526,9 +544,9 @@ function escalationRules(host, user) {
             return { sudo_rules: true, sudo_absent: false };
         return { sudo_rules: false, sudo_absent: !doas };
     }
-    if (sudo.real === null)
+    if (!sudo.trusted)
         return { sudo_rules: true, sudo_absent: false };
-    const r = host.probe(sudo.real, ["-n", "-l", "-U", user], { env: { PATH: SYSTEM_PATH, LC_ALL: "C" }, timeoutMs: 15_000 });
+    const r = host.probe(sudo.found, ["-n", "-l", "-U", user], { env: { PATH: SYSTEM_PATH, LC_ALL: "C" }, timeoutMs: 15_000 });
     if (r.status === 0 && r.stdout.includes("may run the following commands"))
         return { sudo_rules: true, sudo_absent: false };
     if (r.status === 0 && r.stdout.includes("is not allowed to run sudo"))
@@ -939,13 +957,20 @@ function governorInstall(flags, deps = {}) {
         const socketDir = absolutePath(flags, "--socket-dir", DEFAULT_SOCKET_DIR);
         const prefix = absolutePath(flags, "--install-prefix", DEFAULT_PREFIX);
         const node = absolutePath(flags, "--node", ctx.execPath);
-        const realNode = preflight(ctx.host, node, ctx.execPath);
+        preflight(ctx.host, node, ctx.execPath);
         clone = releaseClone(tag, ctx.repoUrl, { host: ctx.host, executor: ctx.executor });
         const checks = escapeCheck(ctx.host, runner.name);
-        const plan = planLinux(ctx.host, { runner, admin, keyDir, socketDir, prefix, node: realNode, clone, checks, checkedAt: finishTimestamp(ctx.now()) });
+        const plan = planLinux(ctx.host, { runner, admin, keyDir, socketDir, prefix, node, clone, checks, checkedAt: finishTimestamp(ctx.now()) });
+        const keyExisted = ctx.host.lstat(path.join(keyDir, "governor-key.json")) !== null;
         executePlan(plan.ops, ctx.executor);
         ctx.executor.run({ kind: "remove", path: clone.dir, recursive: true, onlyIfEmpty: false });
         clone = null;
+        if (keyExisted) {
+            ctx.clock.sleep(SERVICE_SETTLE_MS);
+            const active = ctx.executor.run({ kind: "service_op", args: ["is-active", UNIT_NAME] });
+            if (!active.ok)
+                abort(`${UNIT_NAME} is not running after install (${active.message ?? "unknown error"}); inspect with: systemctl status ${UNIT_NAME}`, 1);
+        }
         const account = getUser(ctx.host, GOVERNOR_USER);
         const socketPath = path.join(socketDir, "governor.sock");
         const fingerprint = learnFingerprint(ctx.host, keyDir, ctx.clock, ctx.fingerprintTimeoutMs);

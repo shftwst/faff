@@ -284,7 +284,7 @@ test("preflight: an interpreter, or an ancestor of it, that the runner can write
 
 const symlink = (target, uid = 0) => ({ uid, gid: 0, mode: 0o777, kind: "symlink", target });
 
-test("preflight: --node is checked through its literal chain too, and ExecStart= names the verified real path", () => {
+test("preflight: --node is checked through its literal chain too, and ExecStart= names the literal path", () => {
   const swappable = makeWorld();
   swappable.fs.set("/srv", fakeDir());
   swappable.fs.set("/srv/ci", fakeDir(1000, 1000, 0o755));
@@ -299,8 +299,74 @@ test("preflight: --node is checked through its literal chain too, and ExecStart=
   tight.fs.set("/srv/ci/node", symlink("/usr/bin/node"));
   assert.equal(run(tight, { "--node": "/srv/ci/node" }), 0, tight.err);
   const unit = tight.ops.find((o) => o.kind === "write_file" && o.path === "/etc/systemd/system/commissaire-governor.service");
+  assert.match(unit.content, /^ExecStart=\/srv\/ci\/node /m);
+});
+
+test("preflight: a root-owned link chain through a root-owned intermediate dir is accepted and ExecStart= names the literal path", () => {
+  const world = makeWorld();
+  for (const d of ["/etc/alternatives", "/usr/lib", "/usr/lib/node", "/usr/lib/node/bin"]) world.fs.set(d, fakeDir());
+  world.fs.set("/usr/lib/node/bin/node", fakeFile());
+  world.fs.set("/etc/alternatives/node", symlink("/usr/lib/node/bin/node"));
+  world.fs.set("/usr/bin/node", symlink("../../etc/alternatives/node"));
+  assert.equal(run(world, {}), 0, world.err);
+  const unit = world.ops.find((o) => o.kind === "write_file" && o.path === "/etc/systemd/system/commissaire-governor.service");
   assert.match(unit.content, /^ExecStart=\/usr\/bin\/node /m);
-  assert.doesNotMatch(unit.content, /\/srv\/ci/);
+});
+
+test("preflight: an intermediate link in a runner-writable dir, or owned by the runner, is refused naming it", () => {
+  const writable = makeWorld();
+  writable.fs.set("/srv", fakeDir());
+  writable.fs.set("/srv/shared", fakeDir(0, 0, 0o777));
+  writable.fs.set("/srv/shared/node", symlink("/usr/bin/real-node"));
+  writable.fs.set("/usr/bin/real-node", fakeFile());
+  writable.fs.set("/usr/bin/node", symlink("/srv/shared/node"));
+  assert.equal(run(writable, {}), 2);
+  assert.match(writable.err, /interpreter-not-root-owned: \/usr\/bin\/node \(\/srv\/shared is/);
+  assert.equal(writable.ops.length, 0);
+
+  const owned = makeWorld();
+  owned.fs.set("/etc/alternatives", fakeDir());
+  owned.fs.set("/usr/lib-node", fakeFile());
+  owned.fs.set("/etc/alternatives/node", symlink("/usr/lib-node", 1000));
+  owned.fs.set("/usr/bin/node", symlink("/etc/alternatives/node"));
+  assert.equal(run(owned, {}), 2);
+  assert.match(owned.err, /interpreter-not-root-owned: \/usr\/bin\/node \(\/etc\/alternatives\/node is/);
+  assert.equal(owned.ops.length, 0);
+});
+
+test("preflight: a symlink cycle aborts", () => {
+  const world = makeWorld();
+  world.fs.set("/usr/bin/node", symlink("/etc/node-a"));
+  world.fs.set("/etc/node-a", symlink("/usr/bin/node"));
+  assert.equal(run(world, {}), 2);
+  assert.match(world.err, /symlink-chain-too-long-or-cyclic/);
+  assert.equal(world.ops.length, 0);
+});
+
+test("presence: presentByPath never probes /bin/sh and detects a tool by lstat", () => {
+  const world = makeWorld();
+  assert.equal(install.escalationRules(world.host, "alice").sudo_absent, true);
+  world.fs.set("/sbin/sudo", fakeFile());
+  const rules = install.escalationRules(world.host, "alice");
+  assert.deepEqual([rules.sudo_rules, rules.sudo_absent], [true, false]);
+  assert.equal(world.callsTo("sh").length, 0, "no shell was probed");
+});
+
+test("reinstall: an existing key with an inactive service exits 1 with a clear message", () => {
+  const world = makeWorld({ serviceInactive: true });
+  world.fs.set("/var/lib/commissaire", fakeDir(300, 300, 0o700));
+  world.fs.set("/var/lib/commissaire/governor-key.json", fakeFile(JSON.stringify({ pk_fingerprint: FINGERPRINT }), 300, 300, 0o600));
+  world.users.set("commissaire", { uid: 300, gid: 300, home: "/var/lib/commissaire", shell: "/usr/sbin/nologin" });
+  world.groups.set("commissaire", { gid: 300, members: [] });
+  assert.equal(run(world, {}), 1);
+  assert.match(world.err, /commissaire-governor\.service is not running after install/);
+  const active = makeWorld();
+  active.fs.set("/var/lib/commissaire", fakeDir(300, 300, 0o700));
+  active.fs.set("/var/lib/commissaire/governor-key.json", fakeFile(JSON.stringify({ pk_fingerprint: FINGERPRINT }), 300, 300, 0o600));
+  active.users.set("commissaire", { uid: 300, gid: 300, home: "/var/lib/commissaire", shell: "/usr/sbin/nologin" });
+  active.groups.set("commissaire", { gid: 300, members: [] });
+  assert.equal(run(active, {}), 0, active.err);
+  assert.ok(active.ops.some((o) => o.kind === "service_op" && o.args[0] === "is-active"));
 });
 
 test("preflight: tool custody runs before root probes getent or id, and a loose /bin/sh is never executed", () => {
@@ -312,25 +378,25 @@ test("preflight: tool custody runs before root probes getent or id, and a loose 
 
   const loose = makeWorld();
   loose.fs.set("/bin/sh", fakeFile("", 1000, 1000, 0o755));
-  loose.commandV.set("doas", "/usr/bin/doas");
+  loose.fs.set("/sbin/doas", fakeFile());
   const rules = install.escalationRules(loose.host, "alice");
-  assert.equal(rules.sudo_rules, true, "a loose sh counts as a rule");
+  assert.equal(rules.sudo_rules, true, "a doas found by lstat with no readable config is a rule");
   assert.equal(rules.sudo_absent, false);
   assert.equal(loose.callsTo("sh").length, 0, "the loose sh was not run");
 });
 
-test("preflight: root executes the resolved real path of a symlinked tool, not the literal link", () => {
+test("preflight: root executes the literal path of a symlinked tool once every hop is verified", () => {
   const world = makeWorld();
   world.fs.set("/usr/bin/python3.11", fakeFile("", 0, 0, 0o755));
   world.fs.set("/usr/bin/python3", symlink("/usr/bin/python3.11"));
   world.fs.set("/usr/bin/sudo.real", fakeFile("", 0, 0, 0o755));
   world.fs.set("/usr/bin/sudo", symlink("/usr/bin/sudo.real"));
   assert.equal(run(world, {}), 0, world.err);
-  assert.equal(world.calls.filter((c) => c.args.includes("import socket, struct")).map((c) => c.cmd)[0], "/usr/bin/python3.11");
-  assert.deepEqual(world.calls.filter((c) => c.args[0] === "-n").map((c) => c.cmd), ["/usr/bin/sudo.real"]);
+  assert.equal(world.calls.filter((c) => c.args.includes("import socket, struct")).map((c) => c.cmd)[0], "/usr/bin/python3");
+  assert.deepEqual(world.calls.filter((c) => c.args[0] === "-n").map((c) => c.cmd), ["/usr/bin/sudo"]);
 });
 
-test("executor: a system tool with a loose chain is refused, and a tight link resolves to its real path", () => {
+test("executor: a system tool with a loose chain is refused, and a tight link is accepted by its literal path", () => {
   const loose = makeWorld();
   loose.fs.set("/usr/bin/systemctl", fakeFile("", 1000, 1000, 0o755));
   const refused = install.createExecutor(loose.host).run({ kind: "service_op", args: ["daemon-reload"] });
@@ -341,7 +407,7 @@ test("executor: a system tool with a loose chain is refused, and a tight link re
   linked.fs.set("/usr/bin/systemctl.real", fakeFile("", 0, 0, 0o755));
   linked.fs.set("/usr/bin/systemctl", symlink("/usr/bin/systemctl.real"));
   const res = install.createExecutor(linked.host).run({ kind: "service_op", args: ["daemon-reload"] });
-  assert.doesNotMatch(res.message ?? "", /tool-not-root-owned/, "a root-owned link passes custody and is spawned by its real path");
+  assert.doesNotMatch(res.message ?? "", /tool-not-root-owned/, "a root-owned link passes custody and is spawned by its literal path");
 });
 
 // --- Release clone --------------------------------------------------------------------------------------------------------
@@ -464,13 +530,13 @@ test("escape check: sudo listing a rule fails, 'not allowed' passes, anything el
   assert.equal(odd.sudo_rules, true);
 });
 
-test("escape check: no sudo and no doas passes with sudo_absent true; sudo found only via command -v is still queried", () => {
+test("escape check: no sudo and no doas passes with sudo_absent true; sudo absent everywhere is reported absent", () => {
   const absent = check(() => {}).result;
   assert.deepEqual(absent, { docker_group: false, sudo_rules: false, sudo_absent: true });
 });
 
-test("escape check: a sudo found only via command -v is recorded as a rule and never executed", () => {
-  const viaPath = check((w) => { w.commandV.set("sudo", "/opt/odd/bin/sudo"); });
+test("escape check: a sudo found only by lstat outside the fixed list is recorded as a rule and never executed", () => {
+  const viaPath = check((w) => { w.fs.set("/sbin/sudo", fakeFile()); });
   assert.deepEqual([viaPath.result.sudo_rules, viaPath.result.sudo_absent], [true, false]);
   assert.equal(viaPath.world.callsTo("sudo").length, 0);
 });

@@ -578,7 +578,7 @@ test("audit verify rejects a malformed --run-id, --repo, --base or --trust-trans
     ];
     for (const [flag, values] of cases) {
       for (const value of values) {
-        const extra = flag === "--repo" ? ["--base", "main"] : flag === "--trust-transport" ? ["--base", "main", "--repo", "o/n"] : flag === "--base" ? ["--repo", "o/n"] : [];
+        const extra = flag === "--repo" ? ["--base", "main"] : flag === "--trust-transport" ? ["--base", "main", "--repo", "o/n"] : flag === "--base" ? ["--repo", "o/n"] : flag === "--run-id" ? ["--base", "main", "--repo", "o/n"] : [];
         const r = audit(["--run-dir", run.runDir, flag, value, ...extra], { env: gh.env });
         assert.equal(r.code, 2, `${flag} ${JSON.stringify(value)} -> ${r.code} ${r.stderr}`);
         assert.equal(r.stdout, "", "nothing is written to stdout on a setup error");
@@ -632,7 +632,10 @@ test("audit verify remote read: --base main --trust-transport remote --repo clas
     const broken = audit(flags, { env: down.env });
     assert.equal(broken.code, 1, "an unreadable trust file fails closed");
     const b = json(broken);
-    assert.ok(b.ledger_failures.some((f) => f.reason === "trust-file-invalid"));
+    const invalid = b.ledger_failures.find((f) => f.reason === "trust-file-invalid");
+    assert.ok(invalid, "trust-file-invalid is reported");
+    assert.match(invalid.detail, /could not read trust file from remote-base/, "the read error message is carried");
+    assert.equal(b.trust.source, "remote-base", "the attempted source is reported, not not-read");
     assert.ok(b.records.filter((x) => x.author === "commissaire").every((x) => x.key_classification === null));
   } finally { run.rm(); for (const g of [present, absent, down, unlisted]) rmSync(g.dir, { recursive: true, force: true }); }
 });

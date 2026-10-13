@@ -19,7 +19,7 @@ import {
   deriveKey, signRecord, verifyRecord, mintGovernorKeypair, signDecision, verifyDecision,
 } from "../plugin/skills/faff/bin/lib/producer-auth.js";
 import {
-  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, appendProducerRecords, readLedgerEntries,
+  evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, verifyAuthLeg, expectedRunIdForDir, appendProducerRecords, readLedgerEntries,
   governorFileOf, producerFileOf, pkFileOf, governorDirOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { resolveCommissaireDecisionGrant, mergeCoveredBySchema3Grant } from "../plugin/skills/faff/bin/lib/merge-gate.js";
@@ -28,6 +28,7 @@ import { appendEffectEntries, computeEscapes, conclusionKindOf, CONCLUSION_KIND 
 import { verifyEffectsChain, mintIssueAnchor } from "../plugin/skills/faff/bin/lib/events.js";
 import { decideFloor } from "../plugin/skills/faff/bin/lib/contract-defs.js";
 import { buildBundle } from "../plugin/skills/faff/bin/lib/bundle-seal-core.js";
+import { evaluateIntegrityLeg, evaluateAnchorDir } from "../plugin/skills/faff/bin/lib/governance-check.js";
 import { sha256 } from "../plugin/skills/faff/bin/lib/integrity-digest.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -855,8 +856,18 @@ test("FAFF-976 anchor-path PERMIT: a committed anchor carries the PUBLIC pk.json
     const v = runCom(["audit", "verify", "--run-dir", anchorDir]);
     assert.equal(v.code, 0, `audit verify PERMITS the governed anchor (${v.stderr}${v.stdout})`);
     assert.equal(JSON.parse(v.stdout.trim()).result, "pass");
-    const auth = verifyAuthLeg(anchorDir, undefined, undefined, undefined, basename(dirname(anchorDir)));
+    const auth = verifyAuthLeg(anchorDir, undefined, undefined, undefined, expectedRunIdForDir(anchorDir));
     assert.ok(auth.pass, `verifyAuthLeg PERMITS the governed anchor (${JSON.stringify(auth.failures)})`);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1178 governance-check integrity leg PERMITS a minted governed anchor (run id derived from the anchor path)", () => {
+  const { root, anchorDir } = mintGovernedAnchor("com-1178-integrity-");
+  try {
+    const leg = evaluateIntegrityLeg(anchorDir, "pass", { requireWitness: true });
+    assert.equal(leg.pass, true, `integrity leg PERMITS the governed anchor (${JSON.stringify(leg)})`);
+    const anchor = evaluateAnchorDir(anchorDir);
+    assert.equal(anchor.legs.integrity.pass, true, `evaluateAnchorDir integrity PERMITS (${JSON.stringify(anchor.legs.integrity)})`);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

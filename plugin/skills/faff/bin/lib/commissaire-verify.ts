@@ -41,7 +41,8 @@ const events: EventsApi = require("./events");
 const { matchesUnit } = require("./effects");
 const { chokepointPermit } = require("./decision-policy");
 
-export type TrustInput = { read: Result<TrustRead, TrustFileError> } | { not_read: true };
+// `attempted` names the transport a failed read went through, so a failure still reports its source.
+export type TrustInput = { read: Result<TrustRead, TrustFileError>; attempted?: TrustSource } | { not_read: true };
 export type Custody = "governor" | "in-process";
 export type Classification = "pinned" | "unpinned" | "in-process";
 export type TrustSource = "remote-base" | "local-ref" | "not-read";
@@ -76,6 +77,7 @@ export interface KeyResolution {
   trust_source: TrustSource;
   require_pinned_governor: boolean;
   failure: KeyFailureReason | null;
+  failure_detail: string | null;
 }
 
 export interface GrantVerifyInput {
@@ -179,7 +181,8 @@ function fingerprintOf(pk: unknown): string | null {
 }
 
 function trustFacts(trust: TrustInput): { source: TrustSource; requirePinned: boolean } {
-  if ("not_read" in trust || !trust.read.ok) return { source: "not-read", requirePinned: false };
+  if ("not_read" in trust) return { source: "not-read", requirePinned: false };
+  if (!trust.read.ok) return { source: trust.attempted ?? "not-read", requirePinned: false };
   const read = trust.read.value;
   return { source: read.source, requirePinned: read.config !== null && read.config.requirePinnedGovernor };
 }
@@ -196,6 +199,7 @@ function resolveOn(view: LedgerView, runDir: string, trust: TrustInput, governor
   const settle = (custody: Custody | null, failure: KeyFailureReason | null, key: { pk: string; fingerprint: string } | null = null, classification: Classification | null = null): KeyResolution => ({
     custody, pk: key ? key.pk : null, signer_fingerprint: key ? key.fingerprint : null, classification,
     trust_source: facts.source, require_pinned_governor: facts.requirePinned, failure,
+    failure_detail: failure === "trust-file-invalid" && "read" in trust && !trust.read.ok ? trust.read.error.message : null,
   });
 
   const governorFile = path.join(governorDir || path.join(runDir, "commissaire", "governor"), "governor.json");

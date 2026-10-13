@@ -357,28 +357,41 @@ function hasGovernanceContext(runDir) {
 const AUDIT_REPO_RE = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 const AUDIT_BASE_RE = /^[A-Za-z0-9_][A-Za-z0-9_./-]*$/;
 const AUDIT_RUN_ID_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/;
-// FAFF-1178: the run id records are bound to. --run-id wins; else the <run> segment of an anchor path
-// `.faff/anchors/<run>/<unit>/`; else the directory's basename (null => invalid --run-id, a setup error).
-function auditExpectedRunId(flags, runDir) {
-    const given = strFlag(flags, "--run-id");
-    if (given !== undefined) {
-        if (AUDIT_RUN_ID_RE.test(given))
-            return given;
-        process.stderr.write(`faff commissaire audit verify: --run-id ${JSON.stringify(given)} is not a valid run id\n`);
-        return null;
-    }
-    const segments = path.resolve(runDir).split(path.sep);
+// FAFF-1178: the run id a directory's records are bound to: the <run> segment of an anchor path
+// `.faff/anchors/<run>/<unit>/`, else the directory's basename.
+function expectedRunIdForDir(dir) {
+    const segments = path.resolve(dir).split(path.sep);
     const n = segments.length;
     const run = segments[n - 2];
     if (n >= 4 && segments[n - 4] === ".faff" && segments[n - 3] === "anchors" && run !== undefined && AUDIT_RUN_ID_RE.test(run))
         return run;
-    return path.basename(runDir);
+    return path.basename(dir);
+}
+// --run-id wins over the directory-derived id (null => invalid --run-id, a setup error).
+function auditExpectedRunId(flags, runDir) {
+    const given = strFlag(flags, "--run-id");
+    if (given === undefined)
+        return expectedRunIdForDir(runDir);
+    if (AUDIT_RUN_ID_RE.test(given))
+        return given;
+    process.stderr.write(`faff commissaire audit verify: --run-id ${JSON.stringify(given)} is not a valid run id\n`);
+    return null;
 }
 // FAFF-1178: turn --base / --trust-transport / --repo into the trust input verifyAuthLeg classifies
-// against. Both values reach `git show` and `gh api` as arguments and URL segments, so they are
-// validated before any read; a bad value is a setup error (null), never a trust-file-invalid result.
+// against. Flags are validated by auditTrustFlagsValid first: both values reach `git show` and
+// `gh api` as arguments and URL segments, so a bad value is a setup error, never a trust-file-invalid result.
 function auditTrustInput(flags) {
-    const fail = (msg) => { process.stderr.write(`faff commissaire audit verify: ${msg}\n`); return null; };
+    const base = strFlag(flags, "--base");
+    const repo = strFlag(flags, "--repo");
+    const transport = strFlag(flags, "--trust-transport") ?? "remote";
+    if (base === undefined)
+        return { not_read: true };
+    const attempted = transport === "local" ? "local-ref" : "remote-base";
+    return { read: commissaireTrust.readTrustFile({ repoDir: findRoot(), ref: base, transport: transport === "local" ? "local" : "remote", ...(repo === undefined ? {} : { repoSlug: repo }) }), attempted };
+}
+// The flag-shape checks that need no filesystem or network; false (after a stderr line) is a setup error.
+function auditTrustFlagsValid(flags) {
+    const fail = (msg) => { process.stderr.write(`faff commissaire audit verify: ${msg}\n`); return false; };
     const base = strFlag(flags, "--base");
     const repo = strFlag(flags, "--repo");
     const transport = strFlag(flags, "--trust-transport") ?? "remote";
@@ -388,19 +401,16 @@ function auditTrustInput(flags) {
         return fail(`--repo ${JSON.stringify(repo)} is not a valid owner/name`);
     if (base !== undefined && (!AUDIT_BASE_RE.test(base) || base.includes("..")))
         return fail(`--base ${JSON.stringify(base)} is not a valid ref name`);
-    if (base === undefined)
-        return { not_read: true };
-    if (transport === "remote" && repo === undefined)
+    if (base !== undefined && transport === "remote" && repo === undefined)
         return fail("--repo <owner/name> is required with --base on the remote trust transport");
-    return { read: commissaireTrust.readTrustFile({ repoDir: findRoot(), ref: base, transport, ...(repo === undefined ? {} : { repoSlug: repo }) }) };
+    return true;
 }
 // Governance material in the FAFF-1178 sense: a schema:3 record, producer/pk.json or governor/governor.json.
 function hasGovernanceMaterial(runDir, governorDir, producerDir) {
     return hasGovernanceContext(runDir) || fs.existsSync(pkFileOf(producerDirOf(runDir, producerDir))) || fs.existsSync(governorFileOf(governorDirOf(runDir, governorDir)));
 }
 function cmdAuditVerify(flags) {
-    const trust = auditTrustInput(flags);
-    if (trust === null)
+    if (!auditTrustFlagsValid(flags))
         return 2;
     const runDir = strFlag(flags, "--run-dir");
     if (!runDir || !fs.existsSync(runDir) || !fs.statSync(runDir).isDirectory()) {
@@ -416,6 +426,7 @@ function cmdAuditVerify(flags) {
     const runId = auditExpectedRunId(flags, runDir);
     if (runId === null)
         return 2;
+    const trust = auditTrustInput(flags);
     const auth = verifyAuthLeg(runDir, strFlag(flags, "--governor-dir"), strFlag(flags, "--producer-dir"), trust, runId);
     // Split the core's failures into record-level (a seq) and ledger-level (seq == null, e.g. the
     // FAFF-978 pk-fingerprint-tampered cross-check) — the latter matches no ledger record, so it is
@@ -424,7 +435,7 @@ function cmdAuditVerify(flags) {
     const failBySeq = new Map();
     for (const f of auth.failures) {
         if (f.seq == null)
-            ledgerFailures.push({ reason: f.reason });
+            ledgerFailures.push({ reason: f.reason, ...(f.reason === "trust-file-invalid" && auth.key.failure_detail !== null ? { detail: auth.key.failure_detail } : {}) });
         else
             failBySeq.set(f.seq, f.reason);
     }
@@ -1760,7 +1771,7 @@ module.exports = {
     KIND_AUTHOR, DECISION_VERDICTS, LEDGER_CFG, COMMISSAIRE_SPEC, COMMISSAIRE_SURFACE,
     OBJECT_TOKENS, COMMISSAIRE_DISPATCH, COMMISSAIRE_ALIASES, REQUIRED_FLAGS_BY_CANONICAL, resolveCommissaireKey,
     buildEnvelope, appendProducerRecords, appendCommissaireRecord,
-    evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, grantCoverage, verifyAuthLeg, hasGovernanceContext,
+    evaluateDecisionRequest, evaluateLevelPolicy, chokepointPermit, grantCoverage, verifyAuthLeg, hasGovernanceContext, expectedRunIdForDir,
     readLedgerEntries, governorDirOf, producerDirOf, governorFileOf, producerFileOf, pkFileOf, readChokepointKeyRecord,
     ensureOwnerOnlyDir, writeOwnerOnlyJson,
     cmdCommissaire, commissaireSelftest,

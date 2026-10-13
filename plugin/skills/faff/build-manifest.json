@@ -15,8 +15,8 @@
   "inputs": {
     "bin/lib/commissaire-governor-client.ts": "3b6dde98b4e29a286f0d58ee8a1a4286a03d43fd4f6227a3d6532e9696c35467",
     "bin/lib/commissaire-trust.ts": "933436534cd8450f0ecac153a2a7016c3bdf6fa4c98771eb3844b202d6fdb4c5",
-    "bin/lib/commissaire-verify.ts": "4bc5ea07cb484d3f9bc6f7e3dce354fe0228ce91852ac14a3581c8d628edf33b",
-    "bin/lib/commissaire.ts": "a618778ad3227d59c02d73167de4f9ec35577ca0aa6895832711f3d01059bcc9",
+    "bin/lib/commissaire-verify.ts": "fa393d949f4f23bdd0786fb20e465ebc3040fa932aa735f305969ce7f1ce4ce1",
+    "bin/lib/commissaire.ts": "794d12590c97a07988cbc968349477a2b708be87cf31345e4d635d5f4988df8f",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
     "bin/lib/governor.ts": "3697bd21e0b0caa73bd92cf455e839cb712a28d60a875374c900d2e1900ad3fb",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
@@ -27,8 +27,8 @@
   "outputs": {
     "bin/lib/commissaire-governor-client.js": "4f7ef060e2370ac838572df2d46f04577f3c962edf6e426f2d757b8603000776",
     "bin/lib/commissaire-trust.js": "11cf0e3fed82357021596e5a881d8798cd5306d2630033b7c2596aab66886c25",
-    "bin/lib/commissaire-verify.js": "b860a992379134f552c66c27f5d839b27f22788b246299e5382150644851d1d6",
-    "bin/lib/commissaire.js": "3ac69deb27fe28b39e559948faceeedc728cfca689283da3a4b4c22267386bb2",
+    "bin/lib/commissaire-verify.js": "1630ff4ed99853e08975aba344dcbbc7c5ccf08b30e5c56d748ec958656592de",
+    "bin/lib/commissaire.js": "c0e4d81df2e6413663468aee349ee759977571367354b6588537e7fc0882ff57",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
     "bin/lib/governor.js": "35bc0f47706aeefa8782ee95fce1f5b066e196ba7b59353118a1fb2b694635b5",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
@@ -36,5 +36,5 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "e9129f077172f126a837224a04a35371148720bd9a4c181fbb1c8861c857811b"
+  "output_digest": "4e0e910d6515683de6690d14a872c7a71ab8de9c66e874332bb4a85210325e92"
 }

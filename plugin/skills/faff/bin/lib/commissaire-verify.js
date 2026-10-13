@@ -107,8 +107,10 @@ function fingerprintOf(pk) {
     }
 }
 function trustFacts(trust) {
-    if ("not_read" in trust || !trust.read.ok)
+    if ("not_read" in trust)
         return { source: "not-read", requirePinned: false };
+    if (!trust.read.ok)
+        return { source: trust.attempted ?? "not-read", requirePinned: false };
     const read = trust.read.value;
     return { source: read.source, requirePinned: read.config !== null && read.config.requirePinnedGovernor };
 }
@@ -125,6 +127,7 @@ function resolveOn(view, runDir, trust, governorDir, producerDir) {
     const settle = (custody, failure, key = null, classification = null) => ({
         custody, pk: key ? key.pk : null, signer_fingerprint: key ? key.fingerprint : null, classification,
         trust_source: facts.source, require_pinned_governor: facts.requirePinned, failure,
+        failure_detail: failure === "trust-file-invalid" && "read" in trust && !trust.read.ok ? trust.read.error.message : null,
     });
     const governorFile = path.join(governorDir || path.join(runDir, "commissaire", "governor"), "governor.json");
     const pkFile = path.join(producerDir || path.join(runDir, "commissaire", "producer"), "pk.json");

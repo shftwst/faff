@@ -30,10 +30,10 @@ test("the mint establishes level; a later mutation raising L3->L4 is refused and
     assert.equal(readLedger(dir).level, "L3", "the ledger retains its launch level after a refused raise");
 
     // (c) a mutation that does NOT touch level still succeeds and preserves the launch level
-    const res = mutateLedgerUnderLock(dir, (fresh) => ({ ...fresh, note: "edited" }));
+    const res = mutateLedgerUnderLock(dir, (fresh) => ({ ...fresh, stop_reason: "edited" }));
     assert.equal(res.written, true);
     assert.equal(readLedger(dir).level, "L3");
-    assert.equal(readLedger(dir).note, "edited");
+    assert.equal(readLedger(dir).stop_reason, "edited");
 
     // (d) a mutation that omits level re-inherits the launch value (never a silent drop)
     mutateLedgerUnderLock(dir, () => ({ run_id: "r", owner: { status: "running" } }));

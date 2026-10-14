@@ -31,7 +31,7 @@
 // ===========================================================================
 
 const path = require("node:path");
-const { overlayHeartbeat, readHeartbeatFile, mutateLedgerUnderLock } = require("./heartbeat");
+const { isLedgerSchemaError, overlayHeartbeat, readHeartbeatFile, mutateLedgerUnderLock } = require("./heartbeat");
 const { runIsOwned, resolveRunDir } = require("./runcheck");
 const { tailReadNextSeq, appendRecordUnderLock } = require("./events");
 const { findRoot, readLedger } = require("./shared-infra");
@@ -166,6 +166,8 @@ function cmdResumecheck(args) {
     // A busy ledger lock is non-blocking here — the read-side backstop / staleness still
     // recover the claim; never let a lock contention throw out of a Stop hook.
     if (e && e.code === "LEDGER_LOCKED") return emit(0);
+    // a Stop hook never blocks the session over bookkeeping: report the schema refusal and release nothing
+    if (isLedgerSchemaError(e)) { process.stderr.write(`faff resume-check: ${e.message} — claim not released\n`); return emit(0); }
     throw e;
   }
 

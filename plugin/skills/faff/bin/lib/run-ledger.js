@@ -34,7 +34,7 @@ const path = require("path");
 
 const { parseArgs, usageError } = require("./argv");
 const { findRoot, latestRunDir } = require("./shared-infra");
-const { mutateLedgerUnderLock } = require("./heartbeat");
+const { isLedgerSchemaError, mutateLedgerUnderLock } = require("./heartbeat");
 const { appendRecordUnderLock, appendEventRecord, computeChainHead, emitGenesisRunStart, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
 // FAFF-1028: lazy-resolved at mint time (not required at module top) — merge-gate.js is a much
 // heavier module (contract-defs/container-check/commissaire/gates/…) than run-ledger.js needs
@@ -340,7 +340,13 @@ function initInteractive(values) {
   });
   // Route through the SAME locked core every ledger write uses (uniformity; a just-minted
   // dir cannot contend). The trivial mutate ignores the fresh read (initial creation).
-  const mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger);
+  let mintWriteRes;
+  try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
+  catch (e) {
+    if (!isLedgerSchemaError(e)) throw e;
+    process.stderr.write(`faff run-ledger init-interactive: ${e.message} — no ledger minted\n`);
+    return 1;
+  }
   // Fail-closed on a non-write (lock-budget exhaustion yields without throwing) — never report a
   // successful mint over an absent ledger, which would build a level-less anchor merge-gate refuses.
   if (!mintWriteRes.written) {
@@ -473,6 +479,10 @@ function initSelfDrain(values) {
   let mintWriteRes;
   try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
   catch (e) {
+    if (isLedgerSchemaError(e)) {
+      process.stderr.write(`faff run-ledger init-self-drain: ${e.message} — no ledger minted\n`);
+      return 1;
+    }
     process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")}${e && e.code === "LEDGER_LOCKED" ? " (lock contention/abort)" : `: ${e && e.message}`} — no ledger minted\n`);
     return 3;
   }
@@ -560,7 +570,8 @@ function recordOutcome(values) {
   // lock against the fresh admitted[], captured out via a flag (mutateLedgerUnderLock returns no
   // ledger), so a genuine lock/malformed failure still reports its own distinct message below.
   let admittedMismatch = false;
-  const res = mutateLedgerUnderLock(runDir, (fresh) => {
+  let res;
+  try { res = mutateLedgerUnderLock(runDir, (fresh) => {
     if (!fresh || typeof fresh !== "object") return null; // vanished/malformed → abort (no write)
     if (typeof fresh.run_id === "string") runId = fresh.run_id;
     const admitted = Array.isArray(fresh.admitted) ? fresh.admitted : [];
@@ -568,7 +579,11 @@ function recordOutcome(values) {
     const next = applyTerminalOutcome(fresh, issue, outcome, nowIso);
     resultingOwnerStatus = next && next.owner && next.owner.status;
     return next;
-  });
+  }); } catch (e) {
+    if (!isLedgerSchemaError(e)) throw e;
+    process.stderr.write(`faff run-ledger record-outcome: ${e.message} — nothing written\n`);
+    return 1;
+  }
   if (admittedMismatch) {
     process.stderr.write(`faff run-ledger record-outcome: issue ${JSON.stringify(issue)} is not in run ${JSON.stringify(runId)} admitted[] (resolved run dir ${runDir}) — pass --run-dir for the correct run\n`);
     return 2;
@@ -619,14 +634,19 @@ function captureCapability(values) {
     return 3;
   }
   let runId = path.basename(runDir);
-  const res = mutateLedgerUnderLock(runDir, (fresh) => {
+  let res;
+  try { res = mutateLedgerUnderLock(runDir, (fresh) => {
     if (!fresh || typeof fresh !== "object") return null; // vanished/malformed → abort (no write)
     if (typeof fresh.run_id === "string") runId = fresh.run_id;
     const caps = (fresh.capabilities && typeof fresh.capabilities === "object") ? fresh.capabilities : {};
     const prior = (caps[issue] && typeof caps[issue] === "object") ? caps[issue] : {};
     fresh.capabilities = { ...caps, [issue]: { ...prior, sut_env_stood: standable } };
     return fresh; // `level` deliberately NOT set → mutateLedgerUnderLock re-inherits it (no LEVEL_WRITE_ONCE)
-  });
+  }); } catch (e) {
+    if (!isLedgerSchemaError(e)) throw e;
+    process.stderr.write(`faff run-ledger capture-capability: ${e.message} — nothing written\n`);
+    return 1;
+  }
   if (!res.written) {
     process.stderr.write(`faff run-ledger capture-capability: could not write ${path.join(runDir, "run-ledger.json")} (missing/locked/malformed)\n`);
     return 3;

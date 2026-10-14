@@ -439,6 +439,12 @@
           "status": {
             "type": "string"
           },
+          "pid": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "session_id": {
             "type": [
               "string",
@@ -450,6 +456,15 @@
           },
           "last_heartbeat": {
             "type": "string"
+          },
+          "harness": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "epoch": {
+            "type": "integer"
           }
         }
       }
@@ -463,6 +478,21 @@
         },
         "at": {
           "type": "string"
+        },
+        "issue": {
+          "type": "string"
+        },
+        "signal": {
+          "type": "string"
+        },
+        "wip_commit": {
+          "type": "string"
+        },
+        "wip_skipped_secret_class": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -483,6 +513,15 @@
           },
           "signal": {
             "type": "string"
+          },
+          "wip_commit": {
+            "type": "string"
+          },
+          "wip_skipped_secret_class": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -785,6 +824,90 @@
             },
             "degraded": {
               "type": "boolean"
+            }
+          }
+        },
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "session_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "baseline_by_model_class": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "input": {
+                      "type": "integer"
+                    },
+                    "output": {
+                      "type": "integer"
+                    },
+                    "cache_write": {
+                      "type": "integer"
+                    },
+                    "cache_read": {
+                      "type": "integer"
+                    },
+                    "cache_write_5m": {
+                      "type": "integer"
+                    },
+                    "cache_write_1h": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "closed_delta_by_model_class": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "input": {
+                      "type": "integer"
+                    },
+                    "output": {
+                      "type": "integer"
+                    },
+                    "cache_write": {
+                      "type": "integer"
+                    },
+                    "cache_read": {
+                      "type": "integer"
+                    },
+                    "cache_write_5m": {
+                      "type": "integer"
+                    },
+                    "cache_write_1h": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "closed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "close_source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         }

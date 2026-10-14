@@ -16,7 +16,7 @@ from a single pinned checkout.
   granted the same descriptor once declared.
 - The consumer complied: it created the protected file only after the grant.
 - `commissaire verdict conclude` refused to call the run done while it held no evidence, then
-  appended one signed `accepted_under_contract` verdict on the clean path.
+  appended one signed `conformed_to_contract` verdict on the clean path.
 - The run ledger closed, a run-close bundle sealed, and the published evidence replays from public
   material alone, from any directory outside a SuperDomestique checkout and from inside a clone via
   `replay.sh`.

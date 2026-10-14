@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1224",
+  "build": {
+    "status": "complete",
+    "diff_hash": "96b8599ba33c5eef074e9692655edafdae17e2946b0c82f2431d9edab1c24740",
+    "branch": "FAFF-1224-publish-facade-schema-v03-conformed-to-contract",
+    "pushed_at": "2026-10-14T13:20:33.430Z"
+  },
+  "updated_at": "2026-10-14T13:20:33.430Z"
+}

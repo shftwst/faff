@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "run_id": "run-20261014-130122-graft-DEMO-1",
+  "seq": 4,
+  "ts": "2026-10-14T13:01:22.916Z",
+  "author": "producer",
+  "producer_id": "bare-claude",
+  "contract_revision": "r1",
+  "kind_of_entry": "effect-decision-request",
+  "unit_id": "DEMO-1",
+  "step": "write",
+  "prev": "b9c70b26223ba66523017a084926c83b88d96207fcf70bc8b9a74831081cf342",
+  "payload": {
+    "effect": {
+      "kind": "file-write",
+      "target": "protected-output.txt"
+    },
+    "declared_ref": null
+  },
+  "producer_hmac": "723bc4520657008eec63378161fb16721a44c31b0be788aef11566897e497d04"
+}

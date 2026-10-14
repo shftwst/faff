@@ -22,9 +22,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The pinned driver revision the harness was proven against. The scaffolder substitutes this
 // value; kept as a real SHA here so a static "same SHA in scaffolder and verifier" check holds.
-const EXPECTED_COMMISSAIRE_REVISION = "475c0362aa2f67f8aef4ad0b13c618fe956bce78";
+const EXPECTED_COMMISSAIRE_REVISION = "ec676cfc468de9d7ca140cb0c08ec3b8ef1b196d";
 // FAFF-828 facade commit; preflight requires it to be an ancestor of the driver revision.
 const FAFF828_ANCESTOR = "881f4a2555aa919947ec7e52a15b093478ed8110";
+// The conclusion kind the pinned driver writes; every conclusion check compares against it.
+const CONCLUSION_KIND = "conformed_to_contract";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const SUT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -396,14 +398,14 @@ function complete() {
     die(1, `complete: pinned live buckets != 4/3 (got ${live.json.producer_claims.verified}/${live.json.commissaire_decisions.verified})`);
   }
 
-  // 10. conclude -> accepted_under_contract, last record, seq = count-1.
+  // 10. conclude -> CONCLUSION_KIND, last record, seq = count-1.
   const conc = invoke("terminal-verdict", "commissaire", ["verdict", "conclude", "--run-dir", absRun, "--unit-id", ISSUE]);
-  if (conc.exit !== 0 || !conc.json || conc.json.verdict !== "accepted_under_contract" || conc.json.unit_id !== ISSUE || conc.json.producer_id !== PRODUCER) {
-    die(1, "complete: verdict conclude did not accept_under_contract");
+  if (conc.exit !== 0 || !conc.json || conc.json.verdict !== CONCLUSION_KIND || conc.json.kind_of_entry !== CONCLUSION_KIND || conc.json.unit_id !== ISSUE || conc.json.producer_id !== PRODUCER) {
+    die(1, `complete: verdict conclude did not conclude ${CONCLUSION_KIND}`);
   }
   const records = readJsonLines(path.join(absRun, "declared-effects.jsonl"));
   const last = records[records.length - 1];
-  if (last.kind_of_entry !== "accepted_under_contract" || conc.json.seq !== records.length - 1 || last.seq !== records.length - 1) {
+  if (last.kind_of_entry !== CONCLUSION_KIND || conc.json.seq !== records.length - 1 || last.seq !== records.length - 1) {
     die(1, "complete: terminal record is not last or seq != count-1");
   }
   if (pf.countsPinned && conc.json.seq !== 7) die(1, `complete: pinned terminal seq != 7 (got ${conc.json.seq})`);
@@ -450,7 +452,7 @@ function complete() {
     covered_decision: { verdict: "grant", reason: "all-legs-pass" },
     reconciliation: { any_escape: false },
     live_audit_verify: { result: "pass", producer_claims: live.json.producer_claims, commissaire_decisions: live.json.commissaire_decisions },
-    terminal_verdict: { verdict: "accepted_under_contract", issue: ISSUE, producer_id: PRODUCER, seq: conc.json.seq },
+    terminal_verdict: { verdict: CONCLUSION_KIND, issue: ISSUE, producer_id: PRODUCER, seq: conc.json.seq },
     sealed_bundle: { sealed: true, idempotent: false, bundle_manifest_digest: seal.json.bundle_manifest_digest },
     bundle_identity: {
       run_id: seal.json.identity.run_id, run_segment_id: seal.json.identity.run_segment_id,
@@ -863,7 +865,7 @@ function verify(opts) {
       covered_decision: { verdict: "grant", reason: "all-legs-pass" },
       reconciliation: { any_escape: false },
       live_audit_verify: identity.live_buckets,
-      terminal_verdict: { verdict: "accepted_under_contract", issue: ISSUE, producer_id: PRODUCER, seq: identity.terminal_seq },
+      terminal_verdict: { verdict: CONCLUSION_KIND, issue: ISSUE, producer_id: PRODUCER, seq: identity.terminal_seq },
       sealed_bundle: { sealed: true, idempotent: false, bundle_manifest_digest: identity.bundle_manifest_digest },
       second_stop_hook: "allow",
       terminal_runcheck: { clean: true },
@@ -1055,10 +1057,10 @@ function driveWrapper(stdinObj) {
 export function driftShapeFindings(records, liveBuckets, replayBuckets) {
   const f = [];
   if (!records.length || records[0].kind_of_entry !== "admission") f.push("admission-not-first");
-  const accepted = records.filter((r) => r.kind_of_entry === "accepted_under_contract");
-  if (accepted.length !== 1) f.push("not-exactly-one-accepted_under_contract");
-  else if (records[records.length - 1].kind_of_entry !== "accepted_under_contract") f.push("accepted_under_contract-not-last");
-  else if (accepted[0].seq !== records.length - 1) f.push("terminal-seq-ne-count-minus-1");
+  const conclusions = records.filter((r) => r.kind_of_entry === CONCLUSION_KIND);
+  if (conclusions.length !== 1) f.push(`not-exactly-one-${CONCLUSION_KIND}`);
+  else if (records[records.length - 1].kind_of_entry !== CONCLUSION_KIND) f.push(`${CONCLUSION_KIND}-not-last`);
+  else if (conclusions[0].seq !== records.length - 1) f.push("terminal-seq-ne-count-minus-1");
   const decisions = records
     .filter((r) => r.kind_of_entry === "effect-decision-verdict")
     .map((r) => (r.payload && r.payload.verdict) || r.verdict);

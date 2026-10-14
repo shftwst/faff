@@ -19,7 +19,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(HERE, "..", "..");
 const SCAFFOLDER = path.join(REPO_ROOT, "verification", "external-verification", "scaffold-commissaire-bare-claude.sh");
 const SRC_DIR = path.join(REPO_ROOT, "verification", "external-verification", "commissaire-bare-claude");
-const EXPECTED = "475c0362aa2f67f8aef4ad0b13c618fe956bce78";
+const EXPECTED = "ec676cfc468de9d7ca140cb0c08ec3b8ef1b196d";
 
 const cleanups = [];
 process.on("exit", () => {
@@ -657,7 +657,7 @@ test("Revision drift shape: the shape-assertion function passes over a fabricate
     { seq: 6, kind_of_entry: "observe" },
     { seq: 7, kind_of_entry: "observe" },
     { seq: 8, kind_of_entry: "observe" },
-    { seq: 9, kind_of_entry: "accepted_under_contract" },
+    { seq: 9, kind_of_entry: "conformed_to_contract" },
   ];
   const live = { producer_claims: { verified: 6, unverifiable_without_secret: 0, failed: 0 }, commissaire_decisions: { verified: 3, failed: 0 } };
   const replay = { producer_claims: { verified: 0, unverifiable_without_secret: 6, failed: 0 }, commissaire_decisions: { verified: 4, failed: 0 } };

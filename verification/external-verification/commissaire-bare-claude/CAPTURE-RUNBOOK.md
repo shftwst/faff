@@ -10,14 +10,14 @@ residual human oracle that the two Stop firings came from two real Claude Code t
 
 - `claude` on PATH (`command -v claude`).
 - A full SuperDomestique checkout at the pinned driver revision
-  `475c0362aa2f67f8aef4ad0b13c618fe956bce78`, supplied below as `COMMISSAIRE_ROOT`. The scaffolder
+  `ec676cfc468de9d7ca140cb0c08ec3b8ef1b196d`, supplied below as `COMMISSAIRE_ROOT`. The scaffolder
   refuses a revision mismatch at preflight, so a wrong checkout fails loudly.
 - Run every step from **outside** any SuperDomestique checkout for the capture directory itself.
 
 Set once:
 
 ```sh
-COMMISSAIRE_ROOT=/path/to/checkout-at-475c0362
+COMMISSAIRE_ROOT=/path/to/checkout-at-ec676cfc
 VE=$COMMISSAIRE_ROOT/verification/external-verification
 ```
 

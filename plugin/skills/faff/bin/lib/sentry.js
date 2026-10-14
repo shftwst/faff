@@ -1368,7 +1368,7 @@ function cmdSentry(args) {
         if (!fresh) { const e = new Error(`run-ledger.json missing in ${runDir} at lock time`); e.code = "ENOENT"; throw e; }
         applySentryAbort(fresh, abortRec);
         return fresh;
-      });
+      }, undefined, { schema: "warn" }); // the abort mark is the safety brake: bookkeeping schema never stops it landing
     } catch (e) {
       // The abort mark IS the abort — a silent skip would leave a killed run looking
       // alive. Loud exit 1 naming the lock; the poller/operator retries.

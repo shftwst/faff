@@ -1,7 +1,8 @@
 # Evidence documents
 
 An evidence document is an anchor file whose manifest entry has `versioned_by: "field"`. Each
-requires `schema_version` with the value `1`. No writer stamps it yet.
+requires `schema_version` with the value `1`. The three run-state documents are stamped from
+FAFF-1258; the rest are not yet.
 
 | File | Schema | Writer today | Starts stamping |
 |---|---|---|---|
@@ -37,8 +38,13 @@ The list does not grow without a reviewer agreeing the writer documents a differ
 
 ## Run-state documents
 
-`build-progress` and `landing-progress` require every key their writers emit. They are resume
-checkpoints, so slice 3 may narrow them further.
+`build-progress` and `landing-progress` require every key their writers emit, and the writers
+(`effects.js`) stamp `schema_version: 1` and validate against these schemas before writing. They are
+resume checkpoints, so a later slice may narrow them further.
+
+Every `run-ledger.json` write goes through `mutateLedgerUnderLock` (`heartbeat.js`), which stamps
+`schema_version`, validates, and refuses only the violations the current mutation introduces.
+`bundle-recover` upgrades a restored legacy snapshot through the same path.
 
 ## Review and test documents
 

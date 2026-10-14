@@ -179,18 +179,18 @@ test("mutateLedgerUnderLock (FAFF-575): a stale fenced writer YIELDS through the
   // seed the on-disk ledger owned by epoch 1 (a newer resume took over)
   fs.writeFileSync(path.join(dir, "run-ledger.json"), JSON.stringify({ run_id: "R", owner: { epoch: 1, session_id: "new" } }, null, 2) + "\n");
   let staleMutateRan = false;
-  const stale = mutateLedgerUnderLock(dir, (fresh) => { staleMutateRan = true; return { ...fresh, clobbered: true }; }, { epoch: 0, session_id: "old" });
+  const stale = mutateLedgerUnderLock(dir, (fresh) => { staleMutateRan = true; return { ...fresh, stop_reason: "clobbered" }; }, { epoch: 0, session_id: "old" });
   assert.equal(stale.yielded, true);
   assert.equal(stale.written, false);
   assert.equal(staleMutateRan, false, "the fence yields BEFORE the mutate transform runs — nothing derived, nothing written");
   const onDisk = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
-  assert.equal(onDisk.clobbered, undefined, "stale writer did not clobber the resumed ledger");
+  assert.equal(onDisk.stop_reason, undefined, "stale writer did not clobber the resumed ledger");
   assert.equal(onDisk.owner.epoch, 1);
   // the owning writer (epoch 1) mutates cleanly, deriving from the under-lock fresh read
-  const ok = mutateLedgerUnderLock(dir, (fresh) => ({ ...fresh, updated: true }), { epoch: 1, session_id: "new" });
+  const ok = mutateLedgerUnderLock(dir, (fresh) => ({ ...fresh, stop_reason: "updated" }), { epoch: 1, session_id: "new" });
   assert.equal(ok.written, true);
   const after = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
-  assert.equal(after.updated, true);
+  assert.equal(after.stop_reason, "updated");
   assert.equal(after.owner.epoch, 1, "the mutation derived from the fresh read keeps the on-disk owner");
   assert.ok(!fs.existsSync(path.join(dir, "run-ledger.json.lock")), "the ledger lock is released after the mutation");
   fs.rmSync(dir, { recursive: true, force: true });

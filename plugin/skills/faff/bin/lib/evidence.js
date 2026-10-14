@@ -17,7 +17,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
-const { validateAgainstSchema } = require("./contract-engine");
+const { validateAgainstSchema, validateAgainstSchemaDetailed } = require("./contract-engine");
 const { eventViolations, splitPhysicalLines } = require("./events");
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
@@ -31,6 +31,7 @@ const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
 const EVIDENCE_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--require-evidence-schema": { arity: 0 },
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 },
+  "--candidate-schemas": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "argument(s)" } };
 
 // Per-line validators for the JSONL files the schema subset cannot fully express. A jsonl
@@ -139,12 +140,247 @@ function validateJsonlFile(file, schema, lineValidator) {
   return tornTail ? { violations, torn_tail: true } : { violations };
 }
 
+// ---------------------------------------------------------------------------
+// Shared document validator (FAFF-1258). The bundled manifest and schemas load once per
+// process; a load fault is cached too, so the in-lock callers never retry file I/O.
+// ---------------------------------------------------------------------------
+
+let bundleCache = null;
+
+function bundleFor(bundleDir) {
+  if (bundleDir !== BUNDLE_DIR) return loadBundle(bundleDir);
+  if (!bundleCache) {
+    try {
+      bundleCache = { bundle: loadBundle(BUNDLE_DIR) };
+    } catch (e) {
+      if (!(e instanceof SchemaUnavailable)) throw e;
+      bundleCache = { unavailable: e.where };
+    }
+  }
+  if (bundleCache.unavailable) throw new SchemaUnavailable(bundleCache.unavailable);
+  return bundleCache.bundle;
+}
+
+// Warms the cache so no file I/O happens inside a writer's lock. Never throws.
+function preloadEvidenceSchemas() {
+  try { bundleFor(BUNDLE_DIR); } catch { /* the cached fault surfaces as `unavailable` at validation */ }
+}
+
+function resetEvidenceSchemaCache() {
+  bundleCache = null;
+}
+
+// anchorPath is a manifest key such as "run-ledger.json". Violation messages are exactly the
+// strings validateAgainstSchema returns; paths are segment lists from the document root.
+function validateEvidenceDocument(anchorPath, doc) {
+  let loaded;
+  try {
+    loaded = bundleFor(BUNDLE_DIR);
+  } catch (e) {
+    if (e instanceof SchemaUnavailable) return { ok: false, violations: [], unavailable: e.where };
+    throw e;
+  }
+  const entry = loaded.manifest.files[anchorPath];
+  const schema = entry && loaded.schemas.get(entry.schema);
+  if (!entry || !schema) return { ok: false, violations: [], unavailable: anchorPath };
+  const violations = validateAgainstSchemaDetailed(doc, schema);
+  return { ok: violations.length === 0, violations };
+}
+
+const stripVersion = (doc) => {
+  if (!isObject(doc)) return doc;
+  const { schema_version: _ignored, ...rest } = doc;
+  return rest;
+};
+
+const kindOf = (v) => (Array.isArray(v) ? "array" : v === null ? "null" : typeof v);
+
+// Minimal differing paths between two documents, as segment lists.
+function changedPaths(a, b, segs, out) {
+  const ka = kindOf(a);
+  if (ka !== kindOf(b)) {
+    out.push(segs);
+    return out;
+  }
+  if (ka === "object") {
+    for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (key in a && key in b) changedPaths(a[key], b[key], [...segs, key], out);
+      else out.push([...segs, key]);
+    }
+  } else if (ka === "array") {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      if (i < a.length && i < b.length) changedPaths(a[i], b[i], [...segs, i], out);
+      else out.push([...segs, i]);
+    }
+  } else if (a !== b) {
+    out.push(segs);
+  }
+  return out;
+}
+
+const sameSegs = (a, b) => a.length === b.length && a.every((s, i) => s === b[i]);
+const isPrefixOf = (a, b) => a.length <= b.length && a.every((s, i) => s === b[i]);
+
+// The violations the current write is answerable for. before/after are in written form (stamped,
+// redacted) and are what gets validated; rawBefore/rawAfter are the same documents pre-redaction
+// and are what gets diffed. before and rawBefore are null on a mint.
+function introducedViolations(anchorPath, before, after, violations, rawBefore, rawAfter) {
+  void after;
+  if (before === null || before === undefined || rawBefore === null || rawBefore === undefined || kindOf(rawBefore) !== kindOf(rawAfter)) {
+    return violations.map((v) => v.message);
+  }
+  const prior = validateEvidenceDocument(anchorPath, before).violations;
+  const changed = changedPaths(stripVersion(rawBefore), stripVersion(rawAfter), [], []);
+  return violations
+    .filter((v) => !prior.some((p) => p.message === v.message && sameSegs(p.path, v.path))
+      || changed.some((c) => isPrefixOf(c, v.path) || isPrefixOf(v.path, c)))
+    .map((v) => v.message);
+}
+
+// ---------------------------------------------------------------------------
+// Additive schema evolution (FAFF-1258). An allowlist: anything not named below is non-additive.
+// Reasons name a JSON pointer and a rule, never a data value.
+// ---------------------------------------------------------------------------
+
+const ANNOTATION_KEYWORDS = new Set(["description", "title", "$comment", "examples"]);
+const SUBSET_KEYWORDS = new Set([
+  "$schema", "$id", "type", "required", "properties", "enum", "additionalProperties", "items",
+  "minItems", "pattern", "discriminator",
+]);
+
+const deepEqual = (a, b) => {
+  const ka = kindOf(a);
+  if (ka !== kindOf(b)) return false;
+  if (ka === "array") return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]));
+  if (ka === "object") {
+    const keys = Object.keys(a);
+    return keys.length === Object.keys(b).length && keys.every((k) => k in b && deepEqual(a[k], b[k]));
+  }
+  return a === b;
+};
+
+const pointerOf = (segs) => segs.map((s) => String(s).replace(/~/g, "~0").replace(/\//g, "~1")).map((s) => `/${s}`).join("");
+
+const typesOf = (node) => (Array.isArray(node.type) ? node.type : node.type ? [node.type] : []);
+
+// A new optional property's sub-schema must be closed: typed at every node reached through
+// properties, items and a schema-valued additionalProperties, and every object node closed.
+function closedSubschema(node) {
+  if (!isObject(node)) return false;
+  if (Object.keys(node).some((k) => !SUBSET_KEYWORDS.has(k) && !ANNOTATION_KEYWORDS.has(k))) return false;
+  if ("discriminator" in node || typesOf(node).length === 0) return false;
+  const types = typesOf(node);
+  if (types.includes("object")) {
+    const extra = node.additionalProperties;
+    if (extra !== false && !(isObject(extra) && closedSubschema(extra))) return false;
+  }
+  if (isObject(node.properties) && !Object.values(node.properties).every(closedSubschema)) return false;
+  if ("items" in node && !closedSubschema(node.items)) return false;
+  if (isObject(node.additionalProperties) && !closedSubschema(node.additionalProperties)) return false;
+  return true;
+}
+
+function walkSchemaChange(base, head, segs, reasons) {
+  const at = pointerOf(segs) || "/";
+  if (!isObject(base) || !isObject(head)) {
+    if (!deepEqual(base, head)) reasons.push(`${at}: schema node changed`);
+    return;
+  }
+  for (const key of Object.keys(head)) {
+    if (!SUBSET_KEYWORDS.has(key) && !ANNOTATION_KEYWORDS.has(key)) reasons.push(`${at}: keyword "${key}" is outside the supported subset`);
+  }
+  const keys = new Set([...Object.keys(base), ...Object.keys(head)].filter((k) => !ANNOTATION_KEYWORDS.has(k)));
+  for (const key of keys) {
+    if (!(key in head)) { reasons.push(`${at}: keyword "${key}" removed`); continue; }
+    if (!(key in base)) { reasons.push(`${at}: keyword "${key}" added`); continue; }
+    const b = base[key];
+    const h = head[key];
+    if (key === "properties" && isObject(b) && isObject(h)) {
+      for (const name of new Set([...Object.keys(b), ...Object.keys(h)])) {
+        const where = [...segs, "properties", name];
+        if (name in b && name in h) walkSchemaChange(b[name], h[name], where, reasons);
+        else if (name in b) reasons.push(`${pointerOf(where)}: property removed`);
+        else if (base.additionalProperties !== false) reasons.push(`${pointerOf(where)}: property added where additionalProperties is not false`);
+        else if (Array.isArray(head.required) && head.required.includes(name)) reasons.push(`${pointerOf(where)}: new property is required`);
+        else if (!closedSubschema(h[name])) reasons.push(`${pointerOf(where)}: new property is not closed`);
+      }
+    } else if ((key === "items" || key === "additionalProperties") && isObject(b) && isObject(h)) {
+      walkSchemaChange(b, h, [...segs, key], reasons);
+    } else if (!deepEqual(b, h)) {
+      reasons.push(`${pointerOf([...segs, key])}: ${key} changed`);
+    }
+  }
+}
+
+function classifySchemaChange(base, head) {
+  const reasons = [];
+  try {
+    if (!isObject(head)) return { additive: false, reasons: ["/: head schema is not an object"] };
+    walkSchemaChange(base, head, [], reasons);
+  } catch {
+    return { additive: false, reasons: ["/: schema comparison failed"] };
+  }
+  return { additive: reasons.length === 0, reasons };
+}
+
+const MANIFEST_DIFFERS = { path: "anchor-manifest.json", reasons: ["manifest differs"] };
+
+function insideRealpath(root, file) {
+  const real = fs.realpathSync(file);
+  return real === root || real.startsWith(root + path.sep) ? real : null;
+}
+
+// Resolves which schema each manifest entry is checked against. Candidate faults only fall back
+// to the base set; they are listed, never an error.
+function resolveSchemaSet(base, candidateDir) {
+  const sourceOf = new Map();
+  const schemas = new Map(base.schemas);
+  const rejected = [];
+  for (const entry of Object.values(base.manifest.files)) sourceOf.set(entry.schema, "base");
+  if (!candidateDir) return { schemas, sourceOf, rejected };
+  let root;
+  try {
+    root = fs.realpathSync(candidateDir);
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, "anchor-manifest.json"), "utf8"));
+    if (!deepEqual(manifest, base.manifest)) throw new Error("differs");
+  } catch {
+    rejected.push(MANIFEST_DIFFERS);
+    return { schemas, sourceOf, rejected };
+  }
+  for (const schemaPath of sourceOf.keys()) {
+    let head = null;
+    try {
+      const file = insideRealpath(root, path.join(root, schemaPath));
+      if (file) head = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch { head = null; }
+    if (head === null) {
+      rejected.push({ path: schemaPath, reasons: ["candidate schema unloadable"] });
+      continue;
+    }
+    const verdict = classifySchemaChange(base.schemas.get(schemaPath), head);
+    if (verdict.additive) {
+      schemas.set(schemaPath, head);
+      sourceOf.set(schemaPath, "candidate");
+    } else {
+      rejected.push({ path: schemaPath, reasons: verdict.reasons });
+    }
+  }
+  return { schemas, sourceOf, rejected };
+}
+
 // Pure of side effects beyond reading the anchor directory. Throws SchemaUnavailable when the
 // bundled manifest or a schema it names cannot be used.
 function validateAnchorDir(anchorDir, opts = {}) {
-  const { manifest, schemas } = loadBundle(opts.bundleDir || BUNDLE_DIR);
+  const base = loadBundle(opts.bundleDir || BUNDLE_DIR);
+  const { manifest } = base;
+  const withCandidate = !!opts.candidateDir;
+  const { schemas, sourceOf, rejected } = resolveSchemaSet(base, opts.candidateDir);
   const files = listFiles(anchorDir);
-  const report = (status, entries) => ({ status, anchor_dir: anchorDir, spec_version: SPEC_VERSION, files: entries });
+  const report = (status, entries) => {
+    const out = { status, anchor_dir: anchorDir, spec_version: SPEC_VERSION, files: entries };
+    if (withCandidate) out.candidate_rejected = rejected;
+    return out;
+  };
 
   const evidenceDocs = files.filter((f) => manifest.files[f] && manifest.files[f].versioned_by === "field");
   if (!evidenceDocs.some((f) => carriesSchemaVersion(path.join(anchorDir, f)))) {
@@ -158,6 +394,7 @@ function validateAnchorDir(anchorDir, opts = {}) {
     const schema = schemas.get(entry.schema);
     const result = entry.format === "jsonl" ? validateJsonlFile(file, schema, LINE_VALIDATORS[rel]) : validateJsonFile(file, schema);
     const out = { path: rel, status: result.violations.length === 0 ? "ok" : "fail", violations: result.violations };
+    if (withCandidate) out.schema_source = sourceOf.get(entry.schema);
     if (result.torn_tail) out.torn_tail = true;
     return out;
   });
@@ -363,7 +600,7 @@ function evidenceSelftest() {
   return 0;
 }
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json]\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -381,7 +618,7 @@ function cmdEvidence(args) {
       process.stderr.write(`evidence validate: ${anchorDir} is not a directory\n`);
       return 2;
     }
-    const report = validateAnchorDir(anchorDir);
+    const report = validateAnchorDir(anchorDir, { candidateDir: values["--candidate-schemas"] });
     process.stdout.write(values["--json"] ? JSON.stringify(report) + "\n" : renderHuman(report));
     return exitCodeFor(report, !!values["--require-evidence-schema"]);
   } catch (e) {
@@ -393,4 +630,8 @@ function cmdEvidence(args) {
   }
 }
 
-module.exports = { EVIDENCE_SPEC, SchemaUnavailable, WriterFault, cmdEvidence, evidenceSelftest, exitCodeFor, guardWriterPaths, validateAnchorDir, writeEvidenceFile, writeSpecReviewVerdict };
+module.exports = {
+  EVIDENCE_SPEC, SchemaUnavailable, WriterFault, classifySchemaChange, cmdEvidence, evidenceSelftest, exitCodeFor,
+  guardWriterPaths, introducedViolations, preloadEvidenceSchemas, resetEvidenceSchemaCache, validateAnchorDir,
+  validateEvidenceDocument, writeEvidenceFile, writeSpecReviewVerdict,
+};

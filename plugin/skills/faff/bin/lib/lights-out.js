@@ -49,7 +49,7 @@ const { appendEventRecord, appendRecordUnderLock, emitGenesisRunStart } = requir
 // merge-order interlock in merge-gate.js too); lights-out's resume reconcile keeps calling it here.
 const { observeForgeMerge } = require("./forge-merge");
 const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
-const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
+const { isLedgerSchemaError, mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
 const { dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
 
@@ -1388,6 +1388,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
     // A busy ledger lock is retryable by construction — same refuse shape as the
     // concurrent-takeover yield below; the operator re-runs --resume.
     if (e && e.code === "LEDGER_LOCKED") return emitRefuse(1, `lights-out --resume: ${e.message} — retry the resume`, { state: priorState });
+    if (isLedgerSchemaError(e)) return emitRefuse(1, `lights-out --resume: ${e.message} — nothing written`, { state: priorState });
     throw e;
   }
   if (writeRes.yielded) return emitRefuse(1, `lights-out --resume: a concurrent resume already took over ${resumeId} — yielding (no write)`, { state: priorState });

@@ -59,7 +59,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { CANONICAL_CONFIG, dig, findConfig, findRoot, homeDir, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
-const { mutateLedgerUnderLock } = require("./heartbeat");
+const { isLedgerSchemaError, mutateLedgerUnderLock } = require("./heartbeat");
 const { parseArgs, usageError } = require("./argv");
 // budget check / baseline always emit JSON; --json is accepted-and-ignored for CLI-convention
 // parity (live callers — sentry.js, lights-out.js — pass `budget check --json`).
@@ -1404,6 +1404,10 @@ function cmdBudgetBaseline(args) {
       process.stderr.write(`faff budget baseline: ${e.message} — baseline not written this attempt\n`);
       console.log(JSON.stringify({ baseline_written: false, reason: "ledger-locked" }));
       return 0;
+    }
+    if (isLedgerSchemaError(e)) {
+      process.stderr.write(`faff budget baseline: ${e.message} — baseline not written\n`);
+      return 1;
     }
     throw e;
   }

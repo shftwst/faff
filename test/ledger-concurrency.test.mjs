@@ -144,9 +144,9 @@ test("a stale ledger lock (mtime past the bound) is taken over; the mutation suc
     writeFileSync(lockPath, JSON.stringify({ pid: 999999, ts: "dead" }));
     const old = (Date.now() - (STALE_LOCK_MS + 60000)) / 1000;
     utimesSync(lockPath, old, old); // a holder that died mid-section long ago
-    const res = mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, taken_over: true }));
+    const res = mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, stop_reason: "taken-over" }));
     assert.equal(res.written, true, "the stale lock was taken over and the mutation landed");
-    assert.equal(JSON.parse(readFileSync(ledgerPath, "utf8")).taken_over, true);
+    assert.equal(JSON.parse(readFileSync(ledgerPath, "utf8")).stop_reason, "taken-over");
     assert.ok(!existsSync(lockPath), "the lock is released after the mutation");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -158,7 +158,7 @@ test("a fresh live ledger lock is waited on until the acquisition budget is spen
     const before = readFileSync(ledgerPath, "utf8");
     const t0 = Date.now();
     assert.throws(
-      () => mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, clobbered: true })),
+      () => mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, stop_reason: "clobbered" })),
       (e) => e.code === "LEDGER_LOCKED",
       "budget exhaustion throws the tagged error",
     );
@@ -174,10 +174,10 @@ test("mutateLedgerUnderLock on an absent ledger hands the mutate a null fresh re
   mkdirSync(runDir, { recursive: true });
   try {
     let sawNull = false;
-    const res = mutateLedgerUnderLock(runDir, (fresh) => { sawNull = fresh === null; return { run_id: "RUN-M", minted: true }; });
+    const res = mutateLedgerUnderLock(runDir, (fresh) => { sawNull = fresh === null; return { run_id: "RUN-M", stop_reason: "minted" }; });
     assert.equal(sawNull, true, "an absent ledger reaches the mutate as null (mint-from-scratch)");
     assert.equal(res.written, true);
-    assert.equal(JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).minted, true);
+    assert.equal(JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).stop_reason, "minted");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

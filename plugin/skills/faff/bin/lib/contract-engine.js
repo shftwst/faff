@@ -39,60 +39,64 @@ function describeKind(data) {
   return Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
 }
 
-// Returns an array of human-readable violation strings (empty = valid). No message
-// contains a data value: enum, pattern and discriminator misses name the schema text only.
-function validateAgainstSchema(data, schema, path = "") {
+// Returns Violation records { path: (string|number)[], message } (empty = valid). The path is the
+// segment list from the document root; a `required` violation reports the missing property's own
+// path and an `additionalProperties` violation the extra property's own path, every other keyword
+// the node's path. No message contains a data value: enum, pattern and discriminator misses name
+// the schema text only.
+function validateAgainstSchemaDetailed(data, schema, path = "", segs = []) {
   const where = path || "<root>";
   const errs = [];
+  const add = (at, message) => errs.push({ path: at, message });
   const types = typeNames(schema);
   const isUnion = Array.isArray(schema.type);
 
   if (isUnion) {
     for (const name of types) {
       if (!TYPE_CHECK[name]) {
-        errs.push(`${where}: schema error: unknown type ${name}`);
+        add(segs, `${where}: schema error: unknown type ${name}`);
         return errs;
       }
     }
   }
   const checked = types.filter((name) => TYPE_CHECK[name]);
   if (checked.length > 0 && !checked.some((name) => TYPE_CHECK[name](data))) {
-    errs.push(`${where}: expected type ${types.join("|")}, got ${describeKind(data)}`);
+    add(segs, `${where}: expected type ${types.join("|")}, got ${describeKind(data)}`);
     return errs; // type is wrong, so don't cascade into properties/items
   }
 
   if (schema.enum && !schema.enum.includes(data)) {
-    errs.push(`${where}: value not in enum [${schema.enum.join(", ")}]`);
+    add(segs, `${where}: value not in enum [${schema.enum.join(", ")}]`);
   }
 
   if (TYPE_CHECK.object(data)) {
     if (types.includes("object")) {
       for (const key of schema.required || []) {
-        if (!(key in data)) errs.push(`${where}: missing required property "${key}"`);
+        if (!(key in data)) add([...segs, key], `${where}: missing required property "${key}"`);
       }
       const props = schema.properties || {};
       const extra = schema.additionalProperties;
       for (const key of Object.keys(data)) {
         if (key in props) continue;
-        if (extra === false) errs.push(`${where}: additional property "${key}" not allowed`);
+        if (extra === false) add([...segs, key], `${where}: additional property "${key}" not allowed`);
         else if (extra && typeof extra === "object") {
-          errs.push(...validateAgainstSchema(data[key], extra, path ? `${path}.${key}` : key));
+          errs.push(...validateAgainstSchemaDetailed(data[key], extra, path ? `${path}.${key}` : key, [...segs, key]));
         }
       }
       for (const [key, sub] of Object.entries(props)) {
-        if (key in data) errs.push(...validateAgainstSchema(data[key], sub, path ? `${path}.${key}` : key));
+        if (key in data) errs.push(...validateAgainstSchemaDetailed(data[key], sub, path ? `${path}.${key}` : key, [...segs, key]));
       }
     }
     const disc = schema.discriminator;
     if (disc) {
       if (!(disc.field in data)) {
-        errs.push(`${where}: missing discriminator property "${disc.field}"`);
+        add(segs, `${where}: missing discriminator property "${disc.field}"`);
       } else {
         const key = String(data[disc.field]);
         if (!Object.hasOwn(disc.mapping, key)) {
-          errs.push(`${where}: discriminator "${disc.field}" value not in mapping [${Object.keys(disc.mapping).join(", ")}]`);
+          add(segs, `${where}: discriminator "${disc.field}" value not in mapping [${Object.keys(disc.mapping).join(", ")}]`);
         } else {
-          errs.push(...validateAgainstSchema(data, disc.mapping[key], path));
+          errs.push(...validateAgainstSchemaDetailed(data, disc.mapping[key], path, segs));
         }
       }
     }
@@ -100,10 +104,10 @@ function validateAgainstSchema(data, schema, path = "") {
 
   if (Array.isArray(data) && types.includes("array")) {
     if (typeof schema.minItems === "number" && data.length < schema.minItems) {
-      errs.push(`${where}: expected at least ${schema.minItems} items, got ${data.length}`);
+      add(segs, `${where}: expected at least ${schema.minItems} items, got ${data.length}`);
     }
     if (schema.items) {
-      data.forEach((item, i) => errs.push(...validateAgainstSchema(item, schema.items, `${where}[${i}]`)));
+      data.forEach((item, i) => errs.push(...validateAgainstSchemaDetailed(item, schema.items, `${where}[${i}]`, [...segs, i])));
     }
   }
 
@@ -112,12 +116,17 @@ function validateAgainstSchema(data, schema, path = "") {
     try {
       re = new RegExp(schema.pattern);
     } catch {
-      errs.push(`${where}: schema error: invalid pattern ${schema.pattern}`);
+      add(segs, `${where}: schema error: invalid pattern ${schema.pattern}`);
     }
-    if (re && !re.test(data)) errs.push(`${where}: does not match pattern ${schema.pattern}`);
+    if (re && !re.test(data)) add(segs, `${where}: does not match pattern ${schema.pattern}`);
   }
 
   return errs;
+}
+
+// Returns an array of human-readable violation strings (empty = valid).
+function validateAgainstSchema(data, schema, path = "") {
+  return validateAgainstSchemaDetailed(data, schema, path).map((v) => v.message);
 }
 
 // Shared: validate emitted contract data against its on-disk schema (belt-and-braces).
@@ -141,4 +150,4 @@ function exitFor(result) {
 }
 
 
-module.exports = { exitFor, schemaCheck, validateAgainstSchema };
+module.exports = { exitFor, schemaCheck, validateAgainstSchema, validateAgainstSchemaDetailed };

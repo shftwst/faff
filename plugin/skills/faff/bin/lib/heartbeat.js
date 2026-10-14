@@ -175,6 +175,13 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 //   - `events append --tokens` (events.js) — the token-checkpoint advance
 //   - `budget baseline` (budget.js) — the FAFF-552 write-once baseline merge
 //   - `lights-out` mint + `--resume` (lights-out.js) — run creation and epoch takeover
+//   - `run-ledger` mints / `record-outcome` / `capture-capability` (run-ledger.js), the
+//     `park-reconsider`, `resumecheck` and `run-record-prd` writes, and the `bundle-recover`
+//     legacy-snapshot upgrade
+// FAFF-1258 — this chokepoint is also the SHARED SERIALISER. Inside the lock, after the
+// caller's mutation and before the bytes land: snapshot the pre-mutation ledger, redact once,
+// stamp `schema_version`, validate against the v0.3 run-ledger schema, refuse only the
+// violations THIS mutation introduces (pre-existing ones are reported on stderr), then write.
 // The next writer added MUST route through mutateLedgerUnderLock too — a direct
 // atomicWriteLedger call from production code reintroduces the lost-update race.
 // Out-of-scope residual (ADR-0077 territory): the ORCHESTRATOR SESSION's own ledger
@@ -225,7 +232,7 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 // ledger-write event fold below records, so a caller composing a before/after digest
 // pair (mutateLedgerUnderLock) never re-hashes independently and can never drift from
 // the chained event's own value.
-function atomicWriteLedger(runDir, ledger) {
+function atomicWriteLedger(runDir, ledger, opts) {
   // FAFF-107: redact known secret values out of the ledger BEFORE serialize +
   // hash, so `ledger_sha256` (below, and the chained ledger-write event's own
   // data.ledger_sha256) describes the bytes actually persisted, never the
@@ -233,8 +240,9 @@ function atomicWriteLedger(runDir, ledger) {
   // reason the "./events" require just below it is: heartbeat.js requires
   // ./redact would otherwise cycle back through ./budget → ./heartbeat (a
   // top-level import here would deadlock module init).
-  const { resolveKnownSecretValues, redactKnownSecrets } = require("./redact");
-  const redactedLedger = redactKnownSecrets(ledger, resolveKnownSecretValues());
+  // FAFF-1258: the serialiser redacts in its own step 4 (so the validated document, the written
+  // bytes and the ledger-write hash describe one object) and passes alreadyRedacted.
+  const redactedLedger = opts && opts.alreadyRedacted ? ledger : redactLedgerDocument(ledger);
   const body = JSON.stringify(redactedLedger, null, 2) + "\n";
   const sha = crypto.createHash("sha256").update(body).digest("hex");
   atomicWriteSingleValueFile(path.join(runDir, "run-ledger.json"), body);
@@ -246,6 +254,11 @@ function atomicWriteLedger(runDir, ledger) {
     process.stderr.write(`ledger-write event append failed in ${runDir}: ${e && e.message ? e.message : e} — the ledger IS written; the chain gap will surface at FAFF-568 verification\n`);
   }
   return sha;
+}
+
+function redactLedgerDocument(doc) {
+  const { resolveKnownSecretValues, redactKnownSecrets } = require("./redact");
+  return redactKnownSecrets(doc, resolveKnownSecretValues());
 }
 
 // FAFF-527 — owner-epoch write fence (takeover safety). A resume of a *dead-running*
@@ -313,7 +326,26 @@ function ownerEpochFenceStale(diskOwner, expected) {
 // nothing was written — yielded or a null-mutate abort). The before-hash is read from
 // raw bytes, never a re-serialize of the parsed object, so it reflects exactly what a
 // concurrent tamperer would have left — a byte comparison needs no JSON semantics.
-function mutateLedgerUnderLock(runDir, mutate, expectedOwner) {
+const LEDGER_SCHEMA_CODES = new Set(["LEDGER_SCHEMA", "LEDGER_SCHEMA_VERSION", "LEDGER_SCHEMA_UNAVAILABLE"]);
+const isLedgerSchemaError = (e) => !!e && LEDGER_SCHEMA_CODES.has(e.code);
+
+function schemaError(code, message) {
+  return Object.assign(new Error(message), { code });
+}
+
+const withoutSchemaVersion = (doc) => {
+  const { schema_version: _ignored, ...rest } = doc;
+  return rest;
+};
+
+// FAFF-1258: `opts.schema` is "enforce" (default) or "warn". Warn mode is for the one caller whose
+// write must land regardless of bookkeeping schema state (`sentry abort`, the safety brake).
+// The lazy require keeps heartbeat.js out of an init cycle: evidence.js requires events.js,
+// which requires this module.
+function mutateLedgerUnderLock(runDir, mutate, expectedOwner, opts) {
+  const mode = opts && opts.schema === "warn" ? "warn" : "enforce";
+  const evidence = require("./evidence");
+  evidence.preloadEvidenceSchemas(); // file I/O happens here, never inside the lock
   const lockPath = path.join(runDir, "run-ledger.json.lock");
   return withFileLock(lockPath, () => {
     let fresh = null;
@@ -323,6 +355,8 @@ function mutateLedgerUnderLock(runDir, mutate, expectedOwner) {
       beforeSha256 = crypto.createHash("sha256").update(raw).digest("hex");
       fresh = JSON.parse(raw);
     } catch (e) { if (!e || e.code !== "ENOENT") throw e; } // absent ⇒ mint-from-scratch (fresh stays null); malformed throws
+    // callers mutate `fresh` in place, so the pre-mutation state is captured before mutate runs
+    const snapshot = fresh ? structuredClone(fresh) : null;
     if (expectedOwner && fresh && ownerEpochFenceStale(fresh.owner, expectedOwner)) {
       process.stderr.write(`ledger write yielded: owner epoch/session moved on in ${runDir} ` +
         `(writer epoch ${expectedOwner.epoch ?? 0}/${expectedOwner.session_id ?? "?"}, on-disk epoch ${(fresh.owner && fresh.owner.epoch) ?? 0}/${(fresh.owner && fresh.owner.session_id) ?? "?"}) — a newer resume owns this run\n`);
@@ -345,7 +379,37 @@ function mutateLedgerUnderLock(runDir, mutate, expectedOwner) {
       }
       if (!Object.prototype.hasOwnProperty.call(next, "level")) next.level = fresh.level;
     }
-    const afterSha256 = atomicWriteLedger(runDir, next);
+
+    // FAFF-1258 serialiser steps 3-6. The version comes from the pre-mutation snapshot, never from
+    // `next`: a caller cannot bump or drop it, and a newer ledger is never restamped.
+    const version = snapshot && "schema_version" in snapshot ? snapshot.schema_version : 1;
+    let validate = true;
+    if (version !== 1) {
+      if (mode === "enforce") throw schemaError("LEDGER_SCHEMA_VERSION", "run-ledger schema_version is not 1; this CLI writes version 1 only");
+      process.stderr.write("run-ledger: schema_version is not 1; written unchanged and unvalidated (warn mode)\n");
+      validate = false;
+    }
+    const stamp = (doc) => ({ schema_version: version, ...withoutSchemaVersion(doc) });
+    const doc = redactLedgerDocument(stamp(next));
+    if (validate) {
+      const result = evidence.validateEvidenceDocument("run-ledger.json", doc);
+      if (result.unavailable) {
+        if (mode === "enforce") throw schemaError("LEDGER_SCHEMA_UNAVAILABLE", `run-ledger schema unavailable: cannot load ${result.unavailable}`);
+        process.stderr.write(`run-ledger: schema unavailable (cannot load ${result.unavailable}); written unvalidated (warn mode)\n`);
+      } else {
+        const before = snapshot ? redactLedgerDocument(stamp(snapshot)) : null;
+        const introduced = evidence.introducedViolations("run-ledger.json", before, doc, result.violations, snapshot, next);
+        if (introduced.length > 0) {
+          const shown = introduced.slice(0, 5).join("; ");
+          if (mode === "enforce") throw schemaError("LEDGER_SCHEMA", `run-ledger failed schema: ${shown}`);
+          process.stderr.write(`run-ledger: schema warning (warn mode): ${shown}\n`);
+        }
+        const remaining = result.violations.map((v) => v.message);
+        for (const m of introduced) { const i = remaining.indexOf(m); if (i >= 0) remaining.splice(i, 1); }
+        if (remaining.length > 0) process.stderr.write(`run-ledger: ${remaining.length} pre-existing schema violation(s), first: ${remaining[0]}\n`);
+      }
+    }
+    const afterSha256 = atomicWriteLedger(runDir, doc, { alreadyRedacted: true });
     return { written: true, yielded: false, before_sha256: beforeSha256, after_sha256: afterSha256 };
   }, { code: "LEDGER_LOCKED", label: "ledger lock" });
 }
@@ -614,15 +678,15 @@ function heartbeatSelftest() {
       check("mint: after_sha256 equals an independent digest of the written bytes", mintRes.written &&
         mintRes.after_sha256 === crypto.createHash("sha256").update(fs.readFileSync(path.join(tmp, "run-ledger.json"), "utf8")).digest("hex"));
       const preEditBytes = fs.readFileSync(path.join(tmp, "run-ledger.json"), "utf8");
-      const editRes = mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, note: "edited" }));
+      const editRes = mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, stop_reason: "edited" }));
       check("edit: before_sha256 equals the digest of the pre-write bytes", editRes.before_sha256 ===
         crypto.createHash("sha256").update(preEditBytes).digest("hex"));
       check("edit: before_sha256 differs from after_sha256 on a real content change", editRes.before_sha256 !== editRes.after_sha256);
       // Simulate an out-of-band edit landing between an orchestrator's baseline and its
       // next write: a caller holding the mint's after_sha256 as its baseline should see
       // the next writer's before_sha256 disagree once a third party has touched the file.
-      fs.writeFileSync(path.join(tmp, "run-ledger.json"), JSON.stringify({ run_id: "t", tampered: true }) + "\n");
-      const afterTamperRes = mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, note: "post-tamper" }));
+      fs.writeFileSync(path.join(tmp, "run-ledger.json"), JSON.stringify({ run_id: "t", notes: ["tampered"] }) + "\n");
+      const afterTamperRes = mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, stop_reason: "post-tamper" }));
       check("a baseline held from the mint no longer matches the before-hash after an out-of-band edit",
         afterTamperRes.before_sha256 !== mintRes.after_sha256);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
@@ -656,7 +720,7 @@ function heartbeatSelftest() {
 
 
 module.exports = {
-  atomicWriteLedger, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
-  isValidIssueId, memberHeartbeatFileName, mutateLedgerUnderLock, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
+  atomicWriteLedger, atomicWriteSingleValueFile, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
+  isLedgerSchemaError, isValidIssueId, memberHeartbeatFileName, mutateLedgerUnderLock, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
   readMemberHeartbeatFile, resolveHeartbeatRunDir, writeHeartbeatFile, writeMemberHeartbeatFile,
 };

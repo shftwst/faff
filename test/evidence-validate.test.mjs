@@ -203,3 +203,257 @@ test("evidence validate: integration smoke", () => {
   assert.ok(existsSync(dir) && readdirSync(dir).length > 0);
   rmSync(dir, { recursive: true, force: true });
 });
+
+// ---- FAFF-1258: --candidate-schemas and classifySchemaChange ----
+import path from "node:path";
+import { symlinkSync } from "node:fs";
+const { classifySchemaChange } = require("../plugin/skills/faff/bin/lib/evidence.js");
+const { validateAgainstSchema } = require("../plugin/skills/faff/bin/lib/contract-engine.js");
+const PLUGIN = path.join(REPO, "plugin", "skills", "faff");
+const BUNDLE = path.join(PLUGIN, "contracts", "evidence-v0.3");
+
+const cliValidate = (args) => {
+  const r = spawnSync("node", [path.join(PLUGIN, "bin", "faff"), "evidence", "validate", ...args], { encoding: "utf8", cwd: REPO });
+  return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
+};
+
+const NOW = "2026-10-14T00:00:00.000Z";
+const ledger = (extra = {}, owner = {}) => ({
+  schema_version: 1, run_id: "RUN-E", level: "L3", admitted: [], outcomes: {},
+  owner: { status: "running", session_id: "S", pid: 1, started_at: NOW, last_heartbeat: NOW, ...owner }, ...extra,
+});
+
+function anchor(doc) {
+  const dir = mkdtempSync(path.join(tmpdir(), "faff-1258-anchor-"));
+  writeFileSync(path.join(dir, "run-ledger.json"), JSON.stringify(doc));
+  return dir;
+}
+
+function candidateSet(edit) {
+  const dir = mkdtempSync(path.join(tmpdir(), "faff-1258-cand-"));
+  cpSync(BUNDLE, dir, { recursive: true });
+  edit(dir, (name, mutate) => {
+    const p = path.join(dir, "schema", `${name}.schema.json`);
+    const s = JSON.parse(readFileSync(p, "utf8"));
+    mutate(s);
+    writeFileSync(p, JSON.stringify(s, null, 2));
+  });
+  return dir;
+}
+
+test("Scenario: an additive candidate is used (schema_source candidate); without it the unlisted key fails", () => {
+  const cand = candidateSet((_d, edit) => edit("run-ledger", (s) => { s.properties.foo = { type: "string" }; }));
+  const dir = anchor(ledger({ foo: "x" }));
+  try {
+    const withCand = cliValidate([dir, "--candidate-schemas", cand, "--json"]);
+    assert.equal(withCand.code, 0, withCand.out + withCand.err);
+    const report = JSON.parse(withCand.out);
+    assert.equal(report.files.find((f) => f.path === "run-ledger.json").schema_source, "candidate");
+    assert.deepEqual(report.candidate_rejected, []);
+    const without = cliValidate([dir, "--json"]);
+    assert.equal(without.code, 1);
+    assert.match(JSON.parse(without.out).files[0].violations.join(" "), /"foo"/);
+  } finally { rmSync(cand, { recursive: true, force: true }); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("Scenario: a loosened owner additionalProperties is rejected and the base schema decides", () => {
+  const cand = candidateSet((_d, edit) => edit("run-ledger", (s) => { s.properties.owner.additionalProperties = true; }));
+  const dir = anchor(ledger({}, { x: 1 }));
+  try {
+    const r = cliValidate([dir, "--candidate-schemas", cand, "--json"]);
+    assert.equal(r.code, 1, r.out + r.err);
+    const report = JSON.parse(r.out);
+    assert.equal(report.files.find((f) => f.path === "run-ledger.json").schema_source, "base");
+    const rejected = report.candidate_rejected.find((c) => c.path === "schema/run-ledger.schema.json");
+    assert.ok(rejected.reasons.some((m) => /owner/.test(m) && /additionalProperties/.test(m)), JSON.stringify(rejected));
+  } finally { rmSync(cand, { recursive: true, force: true }); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a candidate whose manifest differs rejects the whole set", () => {
+  const cand = candidateSet((d) => {
+    const p = path.join(d, "anchor-manifest.json");
+    const m = JSON.parse(readFileSync(p, "utf8"));
+    m.note = "changed";
+    writeFileSync(p, JSON.stringify(m));
+  });
+  const dir = anchor(ledger());
+  try {
+    const r = cliValidate([dir, "--candidate-schemas", cand, "--json"]);
+    assert.equal(r.code, 0, r.out + r.err);
+    const report = JSON.parse(r.out);
+    assert.ok(report.files.every((f) => f.schema_source === "base"));
+    assert.deepEqual(report.candidate_rejected, [{ path: "anchor-manifest.json", reasons: ["manifest differs"] }]);
+  } finally { rmSync(cand, { recursive: true, force: true }); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a candidate schema that escapes the directory by symlink is treated as unloadable; the exit code matches base alone", () => {
+  const outside = mkdtempSync(path.join(tmpdir(), "faff-1258-outside-"));
+  const loose = JSON.parse(readFileSync(path.join(BUNDLE, "schema", "run-ledger.schema.json"), "utf8"));
+  loose.additionalProperties = true;
+  writeFileSync(path.join(outside, "run-ledger.schema.json"), JSON.stringify(loose));
+  const cand = candidateSet((d) => {
+    rmSync(path.join(d, "schema", "run-ledger.schema.json"));
+    symlinkSync(path.join(outside, "run-ledger.schema.json"), path.join(d, "schema", "run-ledger.schema.json"));
+  });
+  const dir = anchor(ledger({ scratch: 1 }));
+  try {
+    const baseOnly = cliValidate([dir, "--json"]);
+    const r = cliValidate([dir, "--candidate-schemas", cand, "--json"]);
+    assert.equal(r.code, baseOnly.code);
+    assert.equal(r.code, 1);
+    const report = JSON.parse(r.out);
+    assert.equal(report.files.find((f) => f.path === "run-ledger.json").schema_source, "base");
+    assert.ok(report.candidate_rejected.some((c) => c.path === "schema/run-ledger.schema.json"));
+  } finally { rmSync(cand, { recursive: true, force: true }); rmSync(outside, { recursive: true, force: true }); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a missing or unreadable candidate directory never changes the exit code", () => {
+  const dir = anchor(ledger());
+  try {
+    const r = cliValidate([dir, "--candidate-schemas", path.join(dir, "nope"), "--json"]);
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.deepEqual(JSON.parse(r.out).candidate_rejected, [{ path: "anchor-manifest.json", reasons: ["manifest differs"] }]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("without --candidate-schemas the report shape is unchanged", () => {
+  const dir = anchor(ledger());
+  try {
+    const report = JSON.parse(cliValidate([dir, "--json"]).out);
+    assert.equal("candidate_rejected" in report, false);
+    assert.equal("schema_source" in report.files[0], false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("no candidate_rejected reason contains a value from the candidate schema", () => {
+  const cand = candidateSet((_d, edit) => edit("run-ledger", (s) => {
+    s.properties.owner.properties.status = { type: "string", const: SENTINEL, description: SENTINEL };
+    s.properties.level = { type: "string", enum: [SENTINEL] };
+  }));
+  const dir = anchor(ledger());
+  try {
+    const r = cliValidate([dir, "--candidate-schemas", cand, "--json"]);
+    assert.equal(r.code, 0, r.err);
+    assert.ok(JSON.parse(r.out).candidate_rejected.length > 0);
+    assert.doesNotMatch(r.out + r.err, new RegExp(SENTINEL));
+  } finally { rmSync(cand, { recursive: true, force: true }); rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---- classifySchemaChange unit table ----
+
+const base = () => ({
+  type: "object", additionalProperties: false, required: ["a"],
+  properties: {
+    a: { type: "string" },
+    e: { type: "string", enum: ["x", "y"] },
+    m: { type: "object", additionalProperties: { type: "string" } },
+    o: { type: "object", additionalProperties: false, properties: { x: { type: "string" } } },
+    open: { type: "object", properties: {} },
+    d: { type: "object", discriminator: { field: "k", mapping: { one: { type: "object", additionalProperties: false, properties: { k: { type: "string" } } } } } },
+  },
+});
+const closedString = { type: "string" };
+
+const additiveCases = {
+  "identical": (h) => h,
+  "description edit": (h) => { h.description = "new"; h.properties.a.description = "x"; h.properties.o.title = "t"; return h; },
+  "new optional typed closed property on a closed object": (h) => { h.properties.n = closedString; return h; },
+  "new optional property on a nested closed object": (h) => { h.properties.o.properties.z = { type: ["string", "null"] }; return h; },
+  "new optional object property with a typed, closed map value": (h) => { h.properties.n = { type: "object", additionalProperties: { type: "string" } }; return h; },
+  "new optional closed object property": (h) => { h.properties.n = { type: "object", additionalProperties: false, properties: { q: { type: "integer" } } }; return h; },
+};
+const nonAdditiveCases = {
+  "new property in required": (h) => { h.properties.n = closedString; h.required.push("n"); return h; },
+  "new untyped property": (h) => { h.properties.n = {}; return h; },
+  "new property on a map node": (h) => { h.properties.m.properties = { z: closedString }; return h; },
+  "new optional object property with additionalProperties {}": (h) => { h.properties.n = { type: "object", additionalProperties: {} }; return h; },
+  "new optional object property with additionalProperties true": (h) => { h.properties.n = { type: "object", additionalProperties: true }; return h; },
+  "new object property whose nested object has no additionalProperties": (h) => { h.properties.n = { type: "object", additionalProperties: false, properties: { inner: { type: "object", properties: {} } } }; return h; },
+  "new object property without closure": (h) => { h.properties.n = { type: "object", properties: {} }; return h; },
+  "new property on a node with no additionalProperties": (h) => { h.properties.open.properties.k = closedString; return h; },
+  "new optional property inside a discriminator mapping": (h) => { h.properties.d.discriminator.mapping.one.properties.k2 = closedString; return h; },
+  "minLength added": (h) => { h.properties.a.minLength = 1; return h; },
+  "const added": (h) => { h.properties.a.const = "z"; return h; },
+  "additionalProperties false to true": (h) => { h.additionalProperties = true; return h; },
+  "enum value added": (h) => { h.properties.e.enum.push("z"); return h; },
+  "enum value removed": (h) => { h.properties.e.enum.pop(); return h; },
+  "enum reordered": (h) => { h.properties.e.enum.reverse(); return h; },
+  "type changed": (h) => { h.properties.a.type = "integer"; return h; },
+  "property removed": (h) => { delete h.properties.e; return h; },
+  "required dropped": (h) => { h.required = []; return h; },
+  "unknown keyword": (h) => { h.properties.a.format = "email"; return h; },
+  "$id changed": (h) => { h.$id = "other"; return h; },
+};
+
+for (const [name, edit] of Object.entries(additiveCases)) {
+  test(`classifySchemaChange: ${name} is additive`, () => {
+    const head = edit(structuredClone(base()));
+    const verdict = classifySchemaChange(base(), head);
+    assert.deepEqual(verdict, { additive: true, reasons: [] });
+  });
+}
+
+for (const [name, edit] of Object.entries(nonAdditiveCases)) {
+  test(`classifySchemaChange: ${name} is non-additive and the reasons name a pointer, not a value`, () => {
+    const head = edit(structuredClone(base()));
+    const verdict = classifySchemaChange(base(), head);
+    assert.equal(verdict.additive, false);
+    assert.ok(verdict.reasons.length > 0);
+    for (const reason of verdict.reasons) assert.match(reason, /^\//, reason);
+  });
+}
+
+test("classifySchemaChange: a keyword the table does not name, dropped from head, is non-additive", () => {
+  const withMin = base();
+  withMin.properties.a.minLength = 1;
+  const verdict = classifySchemaChange(withMin, base());
+  assert.equal(verdict.additive, false);
+  assert.match(verdict.reasons[0], /^\/properties\/a: keyword "minLength" removed/);
+});
+
+test("classifySchemaChange: an unparseable or non-object head is non-additive", () => {
+  for (const head of [null, "text", 5, [], undefined]) assert.equal(classifySchemaChange(base(), head).additive, false);
+});
+
+test("classifySchemaChange: a walk that throws is non-additive with a recorded reason", () => {
+  const head = structuredClone(base());
+  Object.defineProperty(head.properties, "boom", { enumerable: true, get() { throw new Error("explode"); } });
+  const verdict = classifySchemaChange(base(), head);
+  assert.equal(verdict.additive, false);
+  assert.equal(verdict.reasons.length, 1);
+});
+
+test("classifySchemaChange: reasons never carry a schema value", () => {
+  const head = base();
+  head.properties.a.const = SENTINEL;
+  head.properties.e.enum = [SENTINEL];
+  head.description = SENTINEL;
+  head.properties.o.default = SENTINEL;
+  const verdict = classifySchemaChange(base(), head);
+  assert.equal(verdict.additive, false);
+  assert.doesNotMatch(verdict.reasons.join("\n"), new RegExp(SENTINEL));
+});
+
+test("property test: for each additive pair, every document valid under base is valid under head", () => {
+  const docs = [
+    { a: "x" },
+    { a: "x", e: "y", m: { k: "v" }, o: { x: "q" }, open: {}, d: { k: "one" } },
+    { a: "x", o: {} },
+  ];
+  const stray = [{}, { a: 1 }, { a: "x", zzz: 1 }, { a: "x", e: "bad" }];
+  for (const [name, edit] of Object.entries(additiveCases)) {
+    const head = edit(structuredClone(base()));
+    for (const doc of docs) {
+      assert.deepEqual(validateAgainstSchema(doc, base()), [], "fixture doc is valid under base");
+      assert.deepEqual(validateAgainstSchema(doc, head), [], `${name}: valid under base implies valid under head`);
+    }
+    for (const doc of stray) {
+      if (validateAgainstSchema(doc, base()).length === 0) assert.deepEqual(validateAgainstSchema(doc, head), []);
+    }
+  }
+});
+
+test("evidence --selftest still passes", () => {
+  const r = spawnSync("node", [path.join(PLUGIN, "bin", "faff"), "evidence", "--selftest"], { encoding: "utf8", cwd: REPO });
+  assert.equal(r.status, 0, r.stderr);
+});

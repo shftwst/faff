@@ -338,12 +338,13 @@ test("bundle-recover: landing-progress.json rides the anchor and is copied up in
     // ...AND copied up into <run-dir>/<issue>/ (Option A, owned by FAFF-845).
     const landedPath = path.join(freshRoot, ".faff", "runs", run_id, "FAFF-1", "landing-progress.json");
     assert.ok(existsSync(landedPath));
-    assert.deepEqual(JSON.parse(readFileSync(landedPath, "utf8")), landingRecord);
+    // FAFF-1258: the legacy record is stamped on restore (the anchor copy above stays immutable legacy).
+    assert.deepEqual(JSON.parse(readFileSync(landedPath, "utf8")), { schema_version: 1, ...landingRecord });
 
     // `faff landing-progress read <run-dir> <issue>` returns the record unchanged.
     const read = runCli(["landing-progress", "read", path.join(freshRoot, ".faff", "runs", run_id), "FAFF-1"], { cwd: freshRoot });
     assert.equal(read.code, 0, read.stderr);
-    assert.deepEqual(JSON.parse(read.stdout), landingRecord);
+    assert.deepEqual(JSON.parse(read.stdout), { schema_version: 1, ...landingRecord });
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(freshRoot, { recursive: true, force: true });

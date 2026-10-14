@@ -5,11 +5,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
+const { findRoot, mainWorktreeRoot } = require("./shared-infra");
+const { buildHoldoutRecord, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord } = require("./holdout-record");
 const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 }, "--persist": { arity: 0 }, "--prdr-dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const HOLDOUT_RECORD_SPEC = { flags: { "--json": { arity: 0 }, "--issue": { arity: 1 }, "--key": { arity: 1 }, "--run-dir": { arity: 1 }, "--credentials-env": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 // FAFF-628 — declared grammar for the two subcommand-dispatch verbs this module owns. `spec`
 // carries BOTH per-subcommand CommandSpecs (a List<CommandSpec>) so the accepted-flag union
@@ -24,10 +27,11 @@ const DOD_SURFACE = {
 };
 const HOLDOUT_SURFACE = {
   kind: "subcommand_dispatch",
-  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC],
+  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, HOLDOUT_RECORD_SPEC],
   subcommands: {
     verdicts: { required_flags: ["--association"] },
     verdict: { required_flags: ["--issue"] },
+    record: { required_flags: ["--issue"] },
   },
 };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
@@ -263,6 +267,13 @@ function dodClassify(specText) {
     const c = criteria[i];
     c.verification_tier = resolveVerificationTier(c.text, markerTiers[i]);
     verification_tier_counts[c.verification_tier]++;
+  }
+  // FAFF-1259: additive `id` per criterion, "<source>:<n>" with n the 1-based position among that
+  // source's criteria in classify order. Minted here, not by the evaluator, so the value is mechanical.
+  const seenPerSource = {};
+  for (const c of criteria) {
+    seenPerSource[c.source] = (seenPerSource[c.source] || 0) + 1;
+    c.id = `${c.source}:${seenPerSource[c.source]}`;
   }
   return { criteria, counts, holdout_counts, oracle_less_count, verification_tier_counts };
 }
@@ -901,7 +912,10 @@ function dodSelftest() {
   // Coherence invariant: dodClassify(dodSplit(spec, builder)) == full classification minus the holdout criteria.
   const bviewClassified = dodClassify(builderView.text);
   const expectedRemaining = hc.criteria.filter((c) => !c.holdout);
-  check("FAFF-275 coherence invariant: builder-view classification == full minus holdout criteria", JSON.stringify(bviewClassified.criteria) === JSON.stringify(expectedRemaining));
+  // FAFF-1259: `id` numbers a spec's own criteria, so the builder view renumbers its survivors; the invariant compares everything else.
+  const withoutId = (list) => JSON.stringify(list.map(({ id, ...rest }) => rest));
+  check("FAFF-275 coherence invariant: builder-view classification == full minus holdout criteria", withoutId(bviewClassified.criteria) === withoutId(expectedRemaining));
+  check("FAFF-1259: criterion ids are <source>:<n>, numbered per source in classify order", hc.criteria.every((c, i, all) => c.id === `${c.source}:${all.slice(0, i + 1).filter((x) => x.source === c.source).length}`));
   check("FAFF-275 coherence invariant: builder-view holdout_counts.holdout is 0", bviewClassified.holdout_counts.holdout === 0);
 
   // A marker-free spec's builder view MUST be a byte-identical no-op.
@@ -1004,11 +1018,12 @@ function cmdHoldout(args) {
   if (args.includes("--selftest")) return holdoutVerdictsSelftest();
   const action = args.find((a) => !a.startsWith("--"));
   if (action === "verdict") return cmdHoldoutVerdict(args);   // FAFF-311: the singular per-issue graft gate
+  if (action === "record") return cmdHoldoutRecord(args);     // FAFF-1259: the one writer of the v0.3 holdout record
   const parsed = parseArgs(args, HOLDOUT_VERDICTS_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]");
+  if (parsed.errors.length) return usageError(parsed.errors, "faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n  faff holdout record --issue <id> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   if (action !== "verdicts") {
-    process.stderr.write("faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n");
+    process.stderr.write("faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n  faff holdout record --issue <id> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]\n");
     return 2;
   }
   // --association (required): inline JSON, @path, or - for stdin. A broken association is operator error
@@ -1114,6 +1129,105 @@ function cmdHoldoutVerdict(args) {
   return emit(res, res.gate === "pass" ? 0 : 1);
 }
 
+// faff holdout record — FAFF-1259: pipe the evaluator's holdout block through the one shared writer
+// (holdout-record.js) and persist the v0.3 `holdout-anchored` record. Exit 0 = accepted, 1 = refused (a
+// fail-closed `needs-human` record is still written, because an absent holdout verdict reads as "did not
+// run" at every consumer), 2 = usage / path guard / identity guard / IO fault (nothing further written).
+function parseHoldoutBlock(text) {
+  try { return JSON.parse(text); } catch { /* fall through to the fenced form */ }
+  const fences = [...text.matchAll(/^```faff-contract:holdout-verdict[ \t]*\r?\n([\s\S]*?)\r?\n```/gm)];
+  if (fences.length !== 1) return null;
+  try { return JSON.parse(fences[0][1]); } catch { return null; }
+}
+
+function holdoutRunDirContained(root, runDirArg) {
+  const abs = path.resolve(runDirArg);
+  const mainRoot = mainWorktreeRoot(root);
+  for (const top of [root, mainRoot].filter(Boolean)) {
+    const base = path.join(top, ".faff", "runs");
+    let rel = path.relative(base, abs);
+    if (rel.startsWith("..") || path.isAbsolute(rel)) {
+      const real = (p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
+      rel = path.relative(real(base), real(abs));
+    }
+    if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) continue;
+    const contained = resolveContained(base, rel);
+    if (contained) return contained;
+  }
+  return null;
+}
+
+function cmdHoldoutRecord(args) {
+  const usage = "faff holdout record: usage: faff holdout record --issue <id> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]  (evaluator block on stdin)";
+  const parsed = parseArgs(args, HOLDOUT_RECORD_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, usage);
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const reqErr = requireFlags(parsed.values, HOLDOUT_SURFACE.subcommands.record, "holdout", "record");
+  if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
+  const issue = get("--issue");
+  const key = get("--key") || issue;
+  for (const [flag, value] of [["--issue", issue], ["--key", key]]) {
+    if (!isSafeHoldoutKey(value)) {
+      process.stderr.write(`faff holdout record: ${flag} ${JSON.stringify(value)} is not a valid id (letters/digits/._- only, no path separators)\n`);
+      return 2;
+    }
+  }
+  const root = findRoot();
+  const storeFile = resolveContained(path.join(root, ".faff", "holdout"), `${key}.json`);
+  if (!storeFile) { process.stderr.write("faff holdout record: the store path resolves outside .faff/holdout/\n"); return 2; }
+  let runFile = null;
+  const runDirArg = get("--run-dir");
+  if (runDirArg) {
+    const runDir = holdoutRunDirContained(root, runDirArg);
+    if (!runDir) { process.stderr.write("faff holdout record: --run-dir resolves outside .faff/runs/ (or through a symlink)\n"); return 2; }
+    const issueDir = resolveContained(runDir, issue);
+    if (!issueDir) { process.stderr.write("faff holdout record: the run copy directory is not contained in --run-dir\n"); return 2; }
+    runFile = path.join(issueDir, "holdout.json");
+  }
+  const extraSecrets = [];
+  const credentialsEnv = get("--credentials-env");
+  if (credentialsEnv !== null) {
+    const raw = /^[A-Za-z_][A-Za-z0-9_]*$/.test(credentialsEnv) ? process.env[credentialsEnv] : undefined;
+    let credentials;
+    try { credentials = raw ? JSON.parse(raw) : undefined; } catch { credentials = undefined; }
+    if (credentials === null || typeof credentials !== "object" || Array.isArray(credentials)) {
+      process.stderr.write("faff holdout record: --credentials-env must name an environment variable holding a JSON object\n");
+      return 2;
+    }
+    if (credentials.scheme === "bearer" && typeof credentials.token === "string" && credentials.token) extraSecrets.push(credentials.token);
+  }
+  let existing = null;
+  try { existing = fs.readFileSync(storeFile, "utf8"); } catch (e) { if (e.code !== "ENOENT") { process.stderr.write(`faff holdout record: cannot read the existing store file: ${e.message}\n`); return 2; } }
+  let unparseable = false;
+  if (existing !== null) {
+    let prior = null;
+    try { prior = JSON.parse(existing); } catch { unparseable = true; }
+    if (prior && typeof prior === "object" && typeof prior.issue === "string" && prior.issue !== issue) {
+      process.stderr.write(`faff holdout record: ${path.relative(root, storeFile)} already records a different issue; refusing to overwrite it\n`);
+      return 2;
+    }
+  }
+  let built;
+  try {
+    let stdin = "";
+    try { stdin = fs.readFileSync(0, "utf8"); } catch { /* no stdin reads as an unparseable block */ }
+    built = buildHoldoutRecord(parseHoldoutBlock(stdin), { issue, extraSecrets });
+  } catch (e) { process.stderr.write(`faff holdout record: cannot build the record: ${e.message}\n`); return 2; }
+  try {
+    fs.mkdirSync(path.dirname(storeFile), { recursive: true });
+    if (unparseable) fs.renameSync(storeFile, `${storeFile}.unparseable-${new Date().toISOString().replace(/[:.]/g, "-")}`);
+    writeHoldoutRecord(storeFile, built.bytes);
+    if (runFile) {
+      fs.mkdirSync(path.dirname(runFile), { recursive: true });
+      writeHoldoutRecord(runFile, built.bytes);
+    }
+  } catch (e) { process.stderr.write(`faff holdout record: write failed: ${e.message}\n`); return 2; }
+  if (!built.ok) process.stderr.write(`faff holdout record: block REFUSED (fail-closed record written):\n${built.refusals.map((r) => `  - ${r}`).join("\n")}\n`);
+  if (args.includes("--json")) process.stdout.write(built.bytes);
+  else process.stdout.write(`faff holdout record: ${built.ok ? "accepted" : "refused"} -> ${[storeFile, runFile].filter(Boolean).map((f) => path.relative(root, f)).join(", ")}\n`);
+  return built.ok ? 0 : 1;
+}
+
 // In-memory selftest of computeHoldoutVerdictsMap + holdoutGateResult — the gate + translate + conservative
 // fold + the singular per-issue gate (mirrors dod --selftest; the map/gate fns are pure).
 function holdoutVerdictsSelftest() {
@@ -1194,6 +1308,18 @@ function holdoutVerdictsSelftest() {
   check("bridge: self-attested, ratchet ON → contract-rejected", !("0007" in rOn.verdicts) && rOn.skipped.some((s) => s.reason === "contract-rejected"));
   const rOnA = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, [{ key: "FAFF-34", text: attested }], { requireSpawnerAttested: true });
   check("bridge: spawner-attested, ratchet ON → met", rOnA.verdicts["0007"] === "met");
+
+  // FAFF-1259: the record writer — accepted, refused and attested cases, and the gate reading them unchanged.
+  const detailed = { id: "scenarios:1", text: "t", holdout: true, class: "scenario", verdict: "met", evidence_present: true, exercised: "GET /x", expected: "200", observed: "200" };
+  const accepted = buildHoldoutRecord({ aggregate: "meets-spec", code_blind: true, violations: [], criteria: [detailed] }, { issue: "FAFF-1", secretValues: [] });
+  check("record: accepted block gate-passes", accepted.ok && holdoutGateResult(accepted.doc).gate === "pass");
+  const refused = buildHoldoutRecord({ aggregate: "meets-spec", code_blind: true, violations: [], criteria: [{ ...detailed, exercised: null }] }, { issue: "FAFF-1", secretValues: [] });
+  check("record: refused block writes a gate-blocked fail-closed record", !refused.ok && holdoutGateResult(refused.doc).gate === "block");
+  const attestationEnvelope = { code_blind: true, spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" }, violations: [] };
+  const stamped = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed], violations: [] }, { issue: "FAFF-1", secretValues: [], envelope: attestationEnvelope });
+  check("record: attested record passes the ratchet", stamped.ok && holdoutGateResult(stamped.doc, { requireSpawnerAttested: true }).gate === "pass");
+  check("record: unattested record fails the ratchet", holdoutGateResult(accepted.doc, { requireSpawnerAttested: true }).gate === "block");
+  if (holdoutRecordSelftest() !== 0) failed++;
 
   if (failed) { console.log(`holdout --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("holdout --selftest: ok"); return 0;
@@ -1331,4 +1457,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderOracleLessWarning, renderProseDoneWarning, resolveVerificationTier, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderOracleLessWarning, renderProseDoneWarning, resolveVerificationTier, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

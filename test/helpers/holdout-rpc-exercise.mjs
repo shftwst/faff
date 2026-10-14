@@ -110,14 +110,19 @@ function deepEqual(a, b) {
 export async function buildVerdict({ classified, endpoint, script, authHeader }) {
   const criteria = [];
   for (const c of classified) {
+    // FAFF-1259: like the evaluator, carry id/text/holdout from `dod classify` and report what was run.
+    const identity = { id: c.id, text: c.text, holdout: c.holdout === true };
     if (c.class === "prose") {
-      criteria.push({ class: "prose", verdict: "needs-human", evidence_present: false });
+      criteria.push({ ...identity, class: "prose", verdict: "needs-human", evidence_present: false, reason: "prose criterion" });
       continue;
     }
     const { results } = await runSequence(endpoint, script.steps, { authHeader });
     const target = assertTarget(results, script);
     const { verdict, evidence_present } = verdictFor(target, script.expect);
-    criteria.push({ class: c.class, verdict, evidence_present });
+    const detail = verdict === "needs-human"
+      ? { reason: "wire error from the bridge" }
+      : { exercised: JSON.stringify(script.steps), expected: JSON.stringify(script.expect), observed: JSON.stringify(target && target.result) };
+    criteria.push({ ...identity, class: c.class, verdict, evidence_present, ...detail });
   }
   return { aggregate: deriveAggregate(criteria.map((c) => c.verdict)), code_blind: true, criteria, violations: [] };
 }

@@ -18,6 +18,8 @@ import { fileURLToPath } from "node:url";
 // coupling (documented minor, see the FAFF-931 spec §6): if contract-defs.js later moves, this import
 // path is a one-line fix.
 import { SPEC_JUDGE_OUTCOMES, BUILD_JUDGE_OUTCOMES } from "../plugin/skills/faff/bin/lib/contract-defs.js";
+// FAFF-1259 — the holdout-exercise opt-in detail check reuses the record writer's per-criterion rules.
+import { holdoutRecordViolations } from "../plugin/skills/faff/bin/lib/holdout-record.js";
 
 // FAFF-146 — prep's three judgement surfaces join tidy's six. confidence + marker are isolatable
 // (black-box lane); reconciliation is execution-entangled (live-driver lane). All three grade through
@@ -667,6 +669,25 @@ function pairsOf(map) {
   if (!map || typeof map !== "object") return [];
   return Object.entries(map).map(([k, v]) => `${k}:${v}`);
 }
+// FAFF-1259 — `<key>:detail-ok` for each judged criterion whose detail passes holdoutRecordViolations'
+// per-criterion rules (met/unmet need exercised, expected and observed; needs-human needs reason; strings
+// at most 2000 characters). Blank strings do not count as detail. A missing or garbage map yields no pairs.
+function detailOkPairs(classes, details) {
+  if (!classes || typeof classes !== "object" || !details || typeof details !== "object") return [];
+  const present = (v) => typeof v === "string" && v.trim() !== "";
+  const out = [];
+  for (const [key, verdict] of Object.entries(classes)) {
+    const d = details[key];
+    if (!d || typeof d !== "object") continue;
+    const detail = { exercised: null, expected: null, observed: null, evidence_ref: null, reason: null };
+    for (const field of Object.keys(detail)) if (d[field] !== undefined && d[field] !== null) detail[field] = d[field];
+    const criterion = { id: "done:1", text: key, holdout: false, class: "assertion", verdict, evidence_present: verdict !== "needs-human", ...detail };
+    const record = { schema_version: 1, issue: "eval", aggregate: "needs-human", code_blind: true, spawner_attested: false, attestation: null, violations: [], criteria: [criterion] };
+    const filled = verdict === "needs-human" ? present(detail.reason) : present(detail.exercised) && present(detail.expected) && present(detail.observed);
+    if (filled && holdoutRecordViolations(record).length === 0) out.push(`${key}:detail-ok`);
+  }
+  return out;
+}
 // FAFF-283 — "above minor": the two refutation surfaces both treat an objection/finding as load-bearing
 // only when its severity clears minor. `minor` is the spec-review-verdict floor severity (the
 // {blocker, major, minor} vocabulary `faff contract spec-review-verdict` enforces), so blocker|major are
@@ -737,9 +758,15 @@ function predictedSet(c, env) {
     // normalises it into the EXISTING `env["holdout-exercise"]` field (spec §6 D3), so a live-lane score
     // is directly comparable to the recorded-lane score. It JOINS holdout-exercise's arm — zero new grade
     // math — exactly as routing/verdict-build/spec-verdict share the `env.verdict` arm.
+    // FAFF-1259 — a case whose fixture sets `check_detail: true` also scores the criterion detail: each
+    // criterion whose `env["holdout-exercise-detail"]` entry passes the record writer's per-criterion rules
+    // adds a `<key>:detail-ok` pair, so the oracle can require detail. Cases without the flag are unaffected.
     case "holdout-exercise":
-    case "holdout-live":
-      return pairsOf(env["holdout-exercise"]);
+    case "holdout-live": {
+      const pairs = pairsOf(env["holdout-exercise"]);
+      if (!(c.fixture && c.fixture.check_detail === true)) return pairs;
+      return [...pairs, ...detailOkPairs(env["holdout-exercise"], env["holdout-exercise-detail"])];
+    }
     // FAFF-283 — refutation-spec: the objecting-lens SET (not a single verdict — that is spec-verdict's
     // job, one altitude down). Each independent lens-refuter contributes an objection {lens, severity};
     // a lens "objects" for the eval iff its severity is ABOVE minor (blocker|major — the

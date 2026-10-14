@@ -1,0 +1,24 @@
+{ "id": "holdout-exercise-003", "kind": "holdout-exercise",
+  "fixture": { "version": 1, "check_detail": true,
+    "spec_dod": [
+      { "key": "crit-r4d", "class": "scenario",
+        "text": "GET /reports/<id> for a finished report returns HTTP 200 and a body whose `rows` field is a non-empty list." },
+      { "key": "crit-u7e", "class": "assertion",
+        "text": "A request to GET /reports/<id> without an `Authorization` header is rejected with HTTP 401." },
+      { "key": "crit-h2c", "class": "prose",
+        "text": "The report layout reads as calm and uncluttered." },
+      { "key": "crit-p6n", "class": "assertion",
+        "text": "Deleting a report through DELETE /reports/<id> removes it from the nightly archive." }
+    ],
+    "recordings": [
+      { "request": "GET http://env:8080/reports/rep-31 (Authorization: Bearer <synthetic>)",
+        "response": "200 OK; body {\"id\":\"rep-31\",\"rows\":[{\"n\":1},{\"n\":2}],\"note\":\"all checks passed\"}" },
+      { "request": "GET http://env:8080/reports/rep-31 (no Authorization header)",
+        "response": "401 Unauthorized; body {\"error\":\"missing_credentials\"}" },
+      { "request": "GET http://env:8080/health",
+        "response": "200 OK; body {\"status\":\"ok\"}" }
+    ] },
+  "question": "Classify each DoD criterion met / unmet / needs-human from the raw recordings, and for each criterion report what you exercised, what you expected and what you observed (or why no check ran).",
+  "oracle": { "closed_set": [
+    "crit-r4d:met", "crit-u7e:met", "crit-h2c:needs-human", "crit-p6n:needs-human",
+    "crit-r4d:detail-ok", "crit-u7e:detail-ok", "crit-h2c:detail-ok", "crit-p6n:detail-ok" ] } }

@@ -573,6 +573,16 @@ export const HOLDOUT_EXERCISE_MODE_INSTRUCTION =
   "entry per criterion, using the fixture's criterion keys. Output NOTHING except that single block: no " +
   "reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-1259 — appended for a holdout-exercise case whose fixture sets `check_detail`: the model also reports,
+// per criterion, what it exercised, expected and observed (or why it could not judge), as the evaluator's
+// record would. The grader reads `holdout-exercise-detail` only for those cases.
+export const HOLDOUT_EXERCISE_DETAIL_INSTRUCTION =
+  "Also add one more field to the same JSON object, `holdout-exercise-detail`: " +
+  '{ "<criterion-key>": { "exercised": "<the request you relied on>", "expected": "<what the criterion requires>", ' +
+  '"observed": "<the part of the response the criterion asserts on>", "reason": "<why no check ran, for a needs-human criterion>" } } ' +
+  "— `exercised`, `expected` and `observed` for every `met` or `unmet` criterion, `reason` for every `needs-human` " +
+  "criterion, quoting only the part of a response the criterion asserts on.";
+
 // FAFF-319 — the seven previously-missing judgement-eval envelope instructions. Before this, none of
 // these kinds had an arm in modeInstructionFor/renderFixturePrompt/criteriaFor, so they fell through to
 // EVAL_MODE_INSTRUCTION's tidy `{classifications, ordering, gloss, splittable}` shape while the grader
@@ -1173,7 +1183,8 @@ export function buildEvalPrompt(evalCase, criteria = null) {
   if (evalCase.kind === "verdict-revert") {
     return `${renderVerdictRevertPrompt(evalCase, criteria)}\n\n${instructionFor(evalCase.kind).replace("<ID>", evalCase.id)}`;
   }
-  return `${renderFixturePrompt(evalCase, criteria)}\n\n${instructionFor(evalCase.kind).replace("<ID>", evalCase.id)}`;
+  const detail = evalCase.kind === "holdout-exercise" && evalCase.fixture && evalCase.fixture.check_detail === true ? ` ${HOLDOUT_EXERCISE_DETAIL_INSTRUCTION}` : "";
+  return `${renderFixturePrompt(evalCase, criteria)}\n\n${instructionFor(evalCase.kind).replace("<ID>", evalCase.id)}${detail}`;
 }
 
 // PURE: resolve the exact { bin, args, env } to spawn. No spawn, no fs, no clock — so a test can

@@ -34,8 +34,13 @@
 // in), defaulting to real implementations for the CLI.
 // ===========================================================================
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
+
+// FAFF-1259: the one writer of the v0.3 holdout record lives beside the CLI; resolved relative to this file
+// (the review-spawn.mjs precedent), so the cage needs no repo root.
+const { buildHoldoutRecord, isSafeHoldoutKey, writeHoldoutRecord } = createRequire(import.meta.url)("../faff/bin/lib/holdout-record.js");
 
 // Exit family — mirrors review-call.mjs's family, plus 10 = preflight-refused (this slice).
 // 0 ok · 1 other · 2 usage · 5 engine-unreachable · 8 deadline · 10 preflight-refused.
@@ -79,23 +84,6 @@ export function deriveAttestation(preflightHolds, innerVerdict, withheld) {
   };
 }
 
-// PURE: assemble the final holdout-verdict envelope the SPAWNER owns. The inner
-// evaluator contributes criteria + aggregate ONLY; the spawner overwrites code_blind
-// with its derived value and stamps spawner_attested + attestation. The shape is
-// exactly what `faff contract holdout-verdict` validates (criteria items:
-// {class, verdict, evidence_present}; aggregate a string; violations a string[]).
-export function assembleEnvelope(innerVerdict, att) {
-  const inner = innerVerdict && typeof innerVerdict === "object" ? innerVerdict : {};
-  const criteria = Array.isArray(inner.criteria) ? inner.criteria : [];
-  const aggregate = typeof inner.aggregate === "string" ? inner.aggregate : "needs-human";
-  const violations = [];
-  if (Array.isArray(inner.violations)) for (const v of inner.violations) if (typeof v === "string" && v.trim()) violations.push(v);
-  for (const v of att.violations) violations.push(v);
-  const env = { aggregate, code_blind: att.code_blind, criteria, violations, spawner_attested: att.spawner_attested };
-  if (att.attestation) env.attestation = att.attestation;
-  return env;
-}
-
 // PURE: map an injected spawn result's status to the documented exit class.
 export function mapSpawnStatusExit(status) {
   switch (status) {
@@ -122,28 +110,6 @@ export function deriveAuthHeaders(credentials) {
   }
 }
 
-// PURE (FAFF-852): the persistence scrub. The allow-list in assembleEnvelope blocks a new named
-// `credentials` field, but `aggregate`/`violations` are inner-authored free text copied verbatim —
-// so a live token echoed into either would otherwise persist through free text. This is the
-// structural, spawner-side enforcement of "never persisted": it holds the token value, so it is
-// the trusted boundary that can guarantee the secret never reaches disk regardless of whether the
-// inner evaluator's prose compliance held. No-op when credentials is absent or carries no secret.
-// Idempotent — once scrubbed, the secret substring is gone, so a second pass changes nothing.
-// Scrubs ONLY the secret value; every structural field is left untouched.
-export function redactCredential(envelope, credentials) {
-  const secret =
-    credentials && typeof credentials === "object" && credentials.scheme === "bearer" &&
-    typeof credentials.token === "string" && credentials.token.length > 0
-      ? credentials.token
-      : null;
-  if (!secret) return envelope;
-  const scrub = (s) => (typeof s === "string" && s.includes(secret) ? s.split(secret).join("<redacted-credential>") : s);
-  const out = { ...envelope };
-  if (typeof out.aggregate === "string") out.aggregate = scrub(out.aggregate);
-  if (Array.isArray(out.violations)) out.violations = out.violations.map(scrub);
-  return out;
-}
-
 // --- CLI ---
 
 export function parseArgs(argv) {
@@ -155,6 +121,7 @@ export function parseArgs(argv) {
     else if (k === "--endpoints") a.endpointsJson = argv[++i];   // JSON array of endpoint URLs
     else if (k === "--key") a.key = argv[++i];
     else if (k === "--out") a.out = argv[++i];
+    else if (k === "--store-out") a.storeOut = argv[++i];        // FAFF-1259: also write the global store copy (identical bytes)
     else if (k === "--intent") a.intent = argv[++i];             // lane-boundary intent artifact (the cage promise)
     else if (k === "--credentials") a.credentials = argv[++i];   // path to a JSON credentials file — never the secret on argv (FAFF-852)
     else if (k === "--deadline") a.deadlineMs = Number(argv[++i]) * 1000;
@@ -183,11 +150,15 @@ function realPreflight(faffBin) {
 
 // main — pure orchestration over injected I/O. preflightFn/spawnFn/writeFn default to real
 // implementations; the selftest injects stubs so no cage/engine/file is touched.
-export async function main(argv, { preflightFn, spawnFn, writeFn = (p, c) => writeFileSync(p, c) } = {}) {
+export async function main(argv, { preflightFn, spawnFn, writeFn = writeHoldoutRecord } = {}) {
   const a = parseArgs(argv);
   if (a.selftest) return selftest();
-  if (!a.spec || !a.out || (a.endpoints.length === 0 && !a.endpointsJson)) {
-    process.stderr.write("usage: evaluate-call.mjs --spec FILE (--endpoint URL | --endpoints JSON) --key KEY --out FILE [--intent FILE] [--deadline S] [--json]\n");
+  if (!a.spec || !a.out || !a.key || (a.endpoints.length === 0 && !a.endpointsJson)) {
+    process.stderr.write("usage: evaluate-call.mjs --spec FILE (--endpoint URL | --endpoints JSON) --key KEY --out FILE [--store-out FILE] [--intent FILE] [--credentials FILE] [--deadline S] [--json]\n");
+    return EXIT.USAGE;
+  }
+  if (!isSafeHoldoutKey(a.key)) {
+    process.stderr.write(`evaluate-call: --key ${JSON.stringify(a.key)} is not a valid id (letters/digits/._- only, no path separators)\n`);
     return EXIT.USAGE;
   }
 
@@ -253,19 +224,37 @@ export async function main(argv, { preflightFn, spawnFn, writeFn = (p, c) => wri
     return exit;
   }
 
-  // Step 3c — the spawner derives code_blind + stamps the attestation, and writes the envelope. The inner
-  // process NEVER wrote the verdict file — this is the whole ticket.
+  // Step 3c — the spawner derives code_blind + stamps the attestation, and writes the record. The inner
+  // process NEVER wrote the verdict file — this is the whole ticket. The record is built by the shared
+  // writer (FAFF-1259); the bearer token is its whole scrub set (the cage withholds the repo config the
+  // known-secret resolver would read), so it is removed from every string the record carries.
   const withheld = buildWithheldSet();
   const att = deriveAttestation(pf.holds, res.verdict, withheld);
-  // redactCredential runs unconditionally on the write path, before writeFn — the structural
-  // enforcement of "never persisted": a token echoed into the inner evaluator's aggregate/violations
-  // free text is scrubbed here regardless of inner-evaluator prose compliance (FAFF-852).
-  const envelope = redactCredential(assembleEnvelope(res.verdict, att), credentials);
-  try { writeFn(a.out, JSON.stringify(envelope, null, 2) + "\n"); }
-  catch (e) { process.stderr.write(`evaluate-call: cannot write --out ${a.out}: ${e.message}; exit ${EXIT.OTHER}\n`); return EXIT.OTHER; }
-  if (a.json) process.stdout.write(JSON.stringify(envelope) + "\n");
+  const token = credentials && credentials.scheme === "bearer" && typeof credentials.token === "string" && credentials.token ? credentials.token : null;
+  const record = buildHoldoutRecord(res.verdict, { issue: a.key, envelope: att, secretValues: [], extraSecrets: token ? [token] : [] });
+  if (a.storeOut && storeCopyRecordsOtherIssue(a.storeOut, a.key)) {
+    process.stderr.write(`evaluate-call: --store-out ${a.storeOut} already records a different issue; refusing to overwrite it; exit ${EXIT.USAGE}\n`);
+    return EXIT.USAGE;
+  }
+  try {
+    writeFn(a.out, record.bytes);
+    if (a.storeOut) writeFn(a.storeOut, record.bytes);
+  } catch (e) { process.stderr.write(`evaluate-call: cannot write the verdict record: ${e.message}; exit ${EXIT.OTHER}\n`); return EXIT.OTHER; }
+  if (!record.ok) {
+    process.stderr.write(`evaluate-call: inner block REFUSED by the record writer (fail-closed record written): ${record.refusals.join("; ")}; exit ${EXIT.OTHER} → needs-human\n`);
+    return EXIT.OTHER;
+  }
+  if (a.json) process.stdout.write(JSON.stringify(record.doc) + "\n");
   else process.stderr.write(`evaluate-call: wrote ${a.out} (spawner_attested:${att.spawner_attested}, code_blind:${att.code_blind})\n`);
   return EXIT.OK;
+}
+
+// An existing store copy that parses and records a different issue is never overwritten. A missing,
+// unparseable or issue-less (pre-FAFF-1259) file is replaced.
+function storeCopyRecordsOtherIssue(file, key) {
+  let prior;
+  try { prior = JSON.parse(readFileSync(file, "utf8")); } catch { return false; }
+  return prior !== null && typeof prior === "object" && typeof prior.issue === "string" && prior.issue !== key;
 }
 
 // In-process selftest of the pure core (no cage/engine/file touched).
@@ -297,14 +286,19 @@ export function selftest() {
   const a5 = deriveAttestation(false, { aggregate: "meets-spec", criteria: [] }, withheld);
   check("attest: preflight not held → non-attested non-blind", a5.spawner_attested === false && a5.code_blind === false);
 
-  // envelope assembly: inner criteria/aggregate carried, spawner fields stamped
-  const e1 = assembleEnvelope({ aggregate: "meets-spec", criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, a1);
-  check("envelope: carries inner criteria+aggregate, stamps spawner_attested+attestation", e1.aggregate === "meets-spec" && e1.criteria.length === 1 && e1.spawner_attested === true && e1.attestation.spawner === SPAWNER_NAME);
-  check("envelope: code_blind is the SPAWNER-derived value, not the inner's", e1.code_blind === true);
+  // record assembly via the shared writer (FAFF-1259): spawner fields stamped, inner criteria carried
+  const detailed = { id: "scenarios:1", text: "t", holdout: false, class: "scenario", verdict: "met", evidence_present: true, exercised: "GET /x", expected: "200", observed: "200" };
+  const r1 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed] }, { issue: "K", envelope: a1, secretValues: [] });
+  check("record: carries inner criteria+aggregate, stamps spawner_attested+attestation", r1.ok && r1.doc.aggregate === "meets-spec" && r1.doc.criteria.length === 1 && r1.doc.spawner_attested === true && r1.doc.attestation.spawner === SPAWNER_NAME);
+  check("record: code_blind is the SPAWNER-derived value, not the inner's", r1.doc.code_blind === true);
 
-  // refuse envelope carries the violation + code_blind:false (base gate ALSO blocks it)
-  const e2 = assembleEnvelope({ aggregate: "meets-spec", criteria: [], code_blind: false }, a2);
-  check("envelope: refuse case → code_blind:false + violation", e2.code_blind === false && e2.spawner_attested === false && e2.violations.some((v) => v.includes("refusing to attest")));
+  // refuse case carries the violation + code_blind:false (base gate ALSO blocks it)
+  const r2 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [], code_blind: false }, { issue: "K", envelope: a2, secretValues: [] });
+  check("record: refuse case → code_blind:false + violation", r2.doc.code_blind === false && r2.doc.spawner_attested === false && r2.doc.violations.some((v) => v.includes("refusing to attest")));
+
+  // a detail-less inner block is refused into a fail-closed record
+  const r3 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, { issue: "K", envelope: a1, secretValues: [] });
+  check("record: detail-less block → fail-closed needs-human record, still attested", !r3.ok && r3.doc.aggregate === "needs-human" && r3.doc.criteria.length === 0 && r3.doc.spawner_attested === true);
 
   // exit mapping
   check("exit: ok→0", mapSpawnStatusExit("ok") === EXIT.OK);
@@ -326,16 +320,12 @@ export function selftest() {
   check("deriveAuthHeaders: bearer + missing token → {}", JSON.stringify(deriveAuthHeaders({ scheme: "bearer" })) === "{}");
   check("deriveAuthHeaders: bearer + empty token → {}", JSON.stringify(deriveAuthHeaders({ scheme: "bearer", token: "" })) === "{}");
 
-  // redactCredential (FAFF-852) — the structural persistence scrub
-  const credsForRedact = { scheme: "bearer", token: "sekret" };
-  const dirtyEnvelope = { aggregate: "401 for Authorization: Bearer sekret", code_blind: true, criteria: [], violations: ["saw Authorization: Bearer sekret", "unrelated finding"], spawner_attested: true };
-  const cleaned = redactCredential(dirtyEnvelope, credsForRedact);
-  check("redactCredential: scrubs the secret out of aggregate", cleaned.aggregate === "401 for Authorization: Bearer <redacted-credential>");
-  check("redactCredential: scrubs the secret out of every violations entry", cleaned.violations[0] === "saw Authorization: Bearer <redacted-credential>" && cleaned.violations[1] === "unrelated finding");
-  check("redactCredential: never touches structural fields", cleaned.code_blind === true && cleaned.spawner_attested === true);
-  check("redactCredential: idempotent (a second pass changes nothing further)", JSON.stringify(redactCredential(cleaned, credsForRedact)) === JSON.stringify(cleaned));
-  check("redactCredential: no-op when credentials absent", redactCredential(dirtyEnvelope, undefined) === dirtyEnvelope);
-  check("redactCredential: no-op when credentials carries no secret (unknown scheme)", redactCredential(dirtyEnvelope, { scheme: "sigv4", token: "x" }) === dirtyEnvelope);
+  // bearer-token scrub (FAFF-852, now via the shared writer): removed from every string the record carries
+  const leaky = { aggregate: "fails", criteria: [{ ...detailed, verdict: "unmet", observed: "401 for Authorization: Bearer sekret-token" }], violations: ["saw Authorization: Bearer sekret-token", "unrelated finding"] };
+  const r4 = buildHoldoutRecord(leaky, { issue: "K", envelope: a1, secretValues: [], extraSecrets: ["sekret-token"] });
+  check("scrub: token removed from criterion detail and violations", r4.ok && !r4.bytes.includes("sekret-token") && r4.doc.criteria[0].observed === "401 for Authorization: Bearer [REDACTED]" && r4.doc.violations[1] === "unrelated finding");
+  check("scrub: structural fields untouched", r4.doc.code_blind === true && r4.doc.spawner_attested === true);
+  check("key guard: unsafe key rejected", !isSafeHoldoutKey("a/b") && isSafeHoldoutKey("FAFF-1259"));
 
   if (fail) { console.log(`\nevaluate-call --selftest: FAIL (${fail} failed)`); return EXIT.OTHER; }
   console.log("evaluate-call --selftest: ok"); return EXIT.OK;

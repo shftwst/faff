@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1259",
+  "build": {
+    "status": "complete",
+    "diff_hash": "61702ffe52c668c377e2170091671ba850fe6287b04377e239b728f9df45ed15",
+    "branch": "faff-1259-anchor-evidence-slice-4-record-what-each-holdout-criterion",
+    "pushed_at": "2026-10-14T08:07:03.748Z"
+  },
+  "updated_at": "2026-10-14T08:07:03.748Z"
+}

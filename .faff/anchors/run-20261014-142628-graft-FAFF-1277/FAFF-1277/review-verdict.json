@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::terminalreviewrefusal crashes on an unreadable review-rounds path",
+      "title": "terminalReviewRefusal crashes on an unreadable review-rounds path",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Treat any readdir error other than ENOENT as a refusal",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "readdir failures other than ENOENT now refuse with exit 1; covered by a test that makes review-rounds a file.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "terminalReviewRefusal crashes on an unreadable review-rounds path",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::event appended before the file leaves the chain ahead of a failed file write",
+      "title": "Event appended before the file leaves the chain ahead of a failed file write",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "State in the write-failure message that the evidence-terminal-only event was already recorded",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The event-first order is the spec's chosen design (spec review round 1): a trace without a file fails the merge floor closed. The write-failure message now says the event was already recorded.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Event appended before the file leaves the chain ahead of a failed file write",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::interactive unavailable park still names review-verdict.json without the raw-block carve-out",
+      "title": "Interactive unavailable park still names review-verdict.json without the raw-block carve-out",
+      "location": "plugin/skills/faff-graft/SKILL.md",
+      "action": "Say the interactive park writes the raw unavailable block",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The interactive outage park sentence now says it writes the raw unavailable block, which the evidence writer refuses.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Interactive unavailable park still names review-verdict.json without the raw-block carve-out",
+          "location": "plugin/skills/faff-graft/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/evidence-validate.test.mjs::committed-anchor test dereferences an absent legacy anchor and keys the cutoff on run-start time",
+      "title": "Committed-anchor test dereferences an absent legacy anchor and keys the cutoff on run-start time",
+      "location": "test/evidence-validate.test.mjs",
+      "action": "Assert a legacy anchor exists before using it",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added the assertion. The run-start timestamp as the cutoff key is the spec's chosen rule (Committed-anchor test section), so that half is refuted.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Committed-anchor test dereferences an absent legacy anchor and keys the cutoff on run-start time",
+          "location": "test/evidence-validate.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::evidence writers read stdin without a size cap",
+      "title": "Evidence writers read stdin without a size cap",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Cap stdin consistently with other readers",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Inputs are agent-built blocks from graft, and the existing spec-review-verdict writer reads stdin the same way; a cap is a separate hardening change.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Evidence writers read stdin without a size cap",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::terminalreviewrefusal ordering can mask the primary refusal cause",
+      "title": "terminalReviewRefusal ordering can mask the primary refusal cause",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Validate signal before probing review-rounds",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Every ordering refuses and writes nothing; only the first reported reason differs.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "terminalReviewRefusal ordering can mask the primary refusal cause",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

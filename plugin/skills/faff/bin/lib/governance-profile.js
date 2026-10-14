@@ -132,6 +132,10 @@ const DELIVERY_PROFILE = {
     // pinned anchor Gate 1 (FAFF-1182) trusts. Run-scoped (no issue), so NOT in
     // issue_scoped_types / outcome_required_types.
     "runner-identity",
+    // FAFF-1277: appended by `faff evidence write review-verdict --terminal-only` before it writes a
+    // review-verdict.json whose earlier rounds were not recorded, so a file edit alone cannot hide
+    // the missing history. Issue-scoped (data.{issue,writer}).
+    "evidence-terminal-only",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
@@ -141,6 +145,7 @@ const DELIVERY_PROFILE = {
     // FAFF-956: the action marker is about the same work item as its base record; a
     // run-level marker supplies the `__run__` sentinel so `issue` is always present.
     "decision-capture-action",
+    "evidence-terminal-only",
   ],
   outcome_required_types: ["issue-outcome"],
   ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded", "parked-window"],

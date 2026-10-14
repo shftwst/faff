@@ -2,16 +2,17 @@
 
 An evidence document is an anchor file whose manifest entry has `versioned_by: "field"`. Each
 requires `schema_version` with the value `1`. The three run-state documents are stamped from
-FAFF-1258; the rest are not yet.
+FAFF-1258, and graft's three review documents from FAFF-1267 and FAFF-1277; `holdout.json` from
+FAFF-1259.
 
 | File | Schema | Writer today | Starts stamping |
 |---|---|---|---|
 | `run-ledger.json` | `run-ledger` | `run-ledger.js` and several other CLI writers, plus agents following SKILL prose | FAFF-1258 |
 | `build-progress.json` | `build-progress` | `buildProgressApplyComplete` (`effects.js`) | FAFF-1258 |
 | `landing-progress.json` | `landing-progress` | `landingProgressApplyFixCycle` (`effects.js`) | FAFF-1258 |
-| `ac-checklist.json` | `ac-checklist` | graft Step 8 | FAFF-1257 |
-| `review-verdict.json` | `review-verdict-anchored` | graft Step 9 | FAFF-1257 |
-| `spec-review-verdict.json` | `spec-review-verdict-anchored` | faff-prep | FAFF-1257 |
+| `ac-checklist.json` | `ac-checklist` | `faff evidence write ac-checklist`, called by graft Step 8 | FAFF-1277 |
+| `review-verdict.json` | `review-verdict-anchored` | `faff evidence write review-verdict --terminal-only`, called by graft Step 9 | FAFF-1277 |
+| `spec-review-verdict.json` | `spec-review-verdict-anchored` | `faff evidence write spec-review-verdict`, called by graft Step 9b | FAFF-1267 |
 | `holdout.json` | `holdout-anchored` | `holdout_step` | FAFF-1259 |
 
 ## Run ledger
@@ -59,6 +60,12 @@ Every merged finding and objection keeps an `occurrences` list with one entry pe
 raised in, so nothing a reviewer raised in any round is overwritten by a later round.
 `review-round` is the shape of one round record, published so the collator's input is pinned;
 round records are never anchored.
+
+Until code-review rounds are recorded (FAFF-1268), `review-verdict.json` is written with
+`round_history: "terminal-only"` and `rounds_total: 1`, and the writer appends one
+`evidence-terminal-only` event to `events.jsonl` first, so the missing history is visible in the
+hash chain as well as the file. Its optional `adversarial_outcome` (`chain-outage-skipped`) is
+present only when the adversarial review chain was skipped for an outage.
 
 Constraints the validator subset cannot express are enforced by the writer, not the schema:
 for a holdout criterion, `met` and `unmet` need `exercised`, `expected` and `observed`,

@@ -21,8 +21,8 @@ const governanceCheck = require("./governance-check");
 const SPEC_VERSION = "v0.3";
 const DEFAULT_ANCHORS_ROOT = ".faff/anchors";
 
-// The six writer slices of FAFF-1255. FAFF-1257 is an umbrella since its split and is not listed.
-const WRITER_TICKETS = ["FAFF-1266", "FAFF-1267", "FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260"];
+// The writer slices of FAFF-1255. FAFF-1257 is an umbrella since its split and is not listed.
+const WRITER_TICKETS = ["FAFF-1266", "FAFF-1267", "FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260", "FAFF-1277"];
 const ROUTINE_FILES = ["events.jsonl", "run-ledger.json", "build-progress.json", "ac-checklist.json", "review-verdict.json", "declared-effects.jsonl", "chain-head.json", "effects-chain-head.json"];
 const WRITER_PROOF_FILES = ["spec-review-verdict.json", "holdout.json"];
 // Occasional files are whatever the bundled manifest names beyond the routine and writer-proof sets.

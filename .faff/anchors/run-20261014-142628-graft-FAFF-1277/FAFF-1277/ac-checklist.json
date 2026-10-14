@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "The FAFF-1277 graft's own per-PR anchor validates as pass with faff evidence validate",
+      "verified": "Verified: test/evidence-write.test.mjs (smoke) mints a writer-built anchor that validates pass; this run's own anchor is checked with faff evidence validate before the PR opens",
+      "passed": true
+    },
+    {
+      "ac": "MIXED_ANCHORS keeps its committed rows and gains none for anchors after MIXED_CUTOFF",
+      "verified": "Verified: test/evidence-validate.test.mjs (MIXED_ANCHORS is frozen at MIXED_CUTOFF; every git-tracked anchor) passing, two committed rows unchanged",
+      "passed": true
+    },
+    {
+      "ac": "faff evidence write ac-checklist stamps schema_version 1, omits criteria for zero-AC input, refuses [], null and a disagreeing all_verified",
+      "verified": "Verified: test/evidence-write.test.mjs (ac-checklist: stamps, zero-AC, refused inputs) passing",
+      "passed": true
+    },
+    {
+      "ac": "faff evidence write review-verdict --terminal-only writes rounds_total 1, round_history terminal-only, null-filled findings with finding_id and one occurrence, valid against the bundled schema",
+      "verified": "Verified: test/evidence-write.test.mjs (null-fills every finding key and records one round) passing",
+      "passed": true
+    },
+    {
+      "ac": "It keeps adversarial_outcome, drops other unknown keys, refuses unavailable and a run dir with review-rounds/round-*.json",
+      "verified": "Verified: test/evidence-write.test.mjs (keeps adversarial_outcome; refused inputs) passing",
+      "passed": true
+    },
+    {
+      "ac": "Bare faff evidence write review-verdict exits 2 with a usage line",
+      "verified": "Verified: test/evidence-write.test.mjs (bare review-verdict exits 2 with a usage line) passing",
+      "passed": true
+    },
+    {
+      "ac": "review-verdict-anchored declares optional adversarial_outcome and run-event lists evidence-terminal-only; both schema trees byte-identical",
+      "verified": "Verified: diff -r verification/evidence/v0.3 plugin/skills/faff/contracts/evidence-v0.3 empty; test/evidence-v0.3.test.mjs passing",
+      "passed": true
+    },
+    {
+      "ac": "evidence-terminal-only is in DELIVERY_PROFILE.event_types and issue_scoped_types",
+      "verified": "Verified: test/evidence-v0.3.test.mjs (schema enums mirror DELIVERY_PROFILE) and test/evidence-write.test.mjs (appends exactly one event, events verify exit 0) passing",
+      "passed": true
+    },
+    {
+      "ac": "computeReviewVerdict reports no violation for a null severity, disposition or source and routes on signal unchanged",
+      "verified": "Verified: test/evidence-write.test.mjs (computeReviewVerdict treats null as absent) passing",
+      "passed": true
+    },
+    {
+      "ac": "WRITER_TICKETS includes FAFF-1277",
+      "verified": "Verified: test/faff-1263-evidence-readiness.test.mjs (writer matching) passing; faff evidence-readiness --selftest OK",
+      "passed": true
+    },
+    {
+      "ac": "The committed-anchor test enforces the MIXED_CUTOFF rules, and a fixture anchor dated after the cutoff with a mixed file fails it",
+      "verified": "Verified: test/evidence-validate.test.mjs (a mixed anchor dated after the cutoff fails the committed-anchor rules) passing",
+      "passed": true
+    },
+    {
+      "ac": "Every writer refuses a bad --issue or a --run-dir outside .faff/runs/ with exit 2 and writes nothing",
+      "verified": "Verified: test/evidence-write.test.mjs (both writers exit 2 for a bad issue id or run dir) and test/evidence-collate.test.mjs passing",
+      "passed": true
+    },
+    {
+      "ac": "A known secret in a criterion's verified text or a finding's disposition_rationale is written as [REDACTED]",
+      "verified": "Verified: test/evidence-write.test.mjs (known secret written as [REDACTED]) passing",
+      "passed": true
+    },
+    {
+      "ac": "A successful terminal-only write appends exactly one evidence-terminal-only event before the file lands; a forced append failure exits 2 and leaves no review-verdict.json",
+      "verified": "Verified: test/evidence-write.test.mjs (appends exactly one event; a failed event append exits 2) passing",
+      "passed": true
+    },
+    {
+      "ac": "graft Step 8 and the Step 9 terminal, needs-human and hold-limit writes call the writers; no SKILL text hand-serialises either file; faff validate-adapters passes",
+      "verified": "Verified: plugin/skills/faff-graft/SKILL.md Step 8 and Step 9 edits (959 lines, under the 960 baseline); faff validate-adapters PASS",
+      "passed": true
+    },
+    {
+      "ac": "node --test test/evidence-validate.test.mjs test/evidence-v0.3.test.mjs and the new writer tests pass; faff evidence --selftest passes",
+      "verified": "Verified: all four test shards passing (node --import ./test/hermetic-env.mjs --test --test-shard=N/4); faff evidence --selftest OK",
+      "passed": true
+    }
+  ]
+}

@@ -11,7 +11,7 @@ import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { example, repoRoot } from "./helpers/evidence-anchor-fixtures.mjs";
 
-const WRITERS = ["FAFF-1266", "FAFF-1268", "FAFF-1267", "FAFF-1258", "FAFF-1259", "FAFF-1260"];
+const WRITERS = ["FAFF-1266", "FAFF-1268", "FAFF-1267", "FAFF-1258", "FAFF-1259", "FAFF-1260", "FAFF-1277"];
 const BEEP = "run-20261014-100000-beepboop-list-aaaaaa";
 const GRAFT = "run-20261014-090000-graft-FAFF-9";
 const oneLine = (name) => JSON.stringify(JSON.parse(example(name))) + "\n";
@@ -56,7 +56,7 @@ function makeRepo() {
 
 function parse(r) { return JSON.parse(r.stdout); }
 
-// The spec's scenario: six writers, a legacy graft anchor, then two conforming beep-boop anchors.
+// The spec's scenario: every writer, a legacy graft anchor, then two conforming beep-boop anchors.
 function scenario(repo) {
   const w = repo.writers();
   const graft = repo.commit("feat: graft change (FAFF-9) (#2)", repo.anchor(GRAFT, "FAFF-9", { "events.jsonl": oneLine("run-event"), "ac-checklist.json": JSON.stringify({ all_verified: true }) }));
@@ -69,7 +69,7 @@ test("scenario: a legacy graft anchor blocks, moving the cutover past it makes t
   const repo = makeRepo();
   try {
     const { w, graft } = scenario(repo);
-    const r = repo.readiness(["--since", w["FAFF-1260"], "--json"]);
+    const r = repo.readiness(["--since", w["FAFF-1277"], "--json"]);
     assert.equal(r.code, 1, r.stderr);
     const report = parse(r);
     assert.equal(report.warnings, 1);
@@ -78,7 +78,7 @@ test("scenario: a legacy graft anchor blocks, moving the cutover past it makes t
     assert.ok(report.unmet.some((u) => u.includes("warning")));
     assert.deepEqual(report.warning_anchors.map((x) => [x.anchor, x.status]), [[`${GRAFT}/FAFF-9`, "legacy"]]);
     for (const issue of WRITERS) assert.equal(report.writers.find((x) => x.issue === issue).commit, w[issue]);
-    assert.equal(report.since, w["FAFF-1260"]);
+    assert.equal(report.since, w["FAFF-1277"]);
     assert.equal(report.head, repo.git("rev-parse", "HEAD"));
     assert.equal(report.spec_version, "v0.3");
 
@@ -102,7 +102,7 @@ test("a fail anchor with several bad files counts as one warning, a legacy one a
   try {
     const w = repo.writers();
     repo.commit("feat: (FAFF-1)", repo.anchor(BEEP, "FAFF-1", { ...FULL, "ac-checklist.json": "{}", "review-verdict.json": "{}", "build-progress.json": "{}" }));
-    const report = parse(repo.readiness(["--since", w["FAFF-1260"], "--json"]));
+    const report = parse(repo.readiness(["--since", w["FAFF-1277"], "--json"]));
     assert.equal(report.warnings, 1);
     assert.equal(report.warning_anchors[0].status, "fail");
     assert.deepEqual(report.warning_anchors[0].files.sort(), ["ac-checklist.json", "build-progress.json", "review-verdict.json"]);
@@ -113,7 +113,7 @@ test("ready follows the constraint: empty window, no qualifying run, unobserved 
   const repo = makeRepo();
   try {
     const w = repo.writers();
-    const since = w["FAFF-1260"];
+    const since = w["FAFF-1277"];
     const empty = repo.readiness(["--since", since, "--json"]);
     assert.equal(empty.code, 1);
     assert.match(parse(empty).unmet.join("\n"), /no anchors in window/);
@@ -139,10 +139,10 @@ test("a window without holdout.json is not ready, and one interactive-graft anch
   try {
     const w = repo.writers();
     repo.commit("feat: (FAFF-1)", repo.anchor(BEEP, "FAFF-1", without("holdout.json", "spec-review-verdict.json")));
-    const missing = parse(repo.readiness(["--since", w["FAFF-1260"], "--json"]));
+    const missing = parse(repo.readiness(["--since", w["FAFF-1277"], "--json"]));
     assert.match(missing.unmet.join("\n"), /writer-proof file holdout\.json not observed in window/);
     repo.commit("feat: (FAFF-2)", repo.anchor("run-20261014-110000-interactive-FAFF-2", "FAFF-2", { "holdout.json": FULL["holdout.json"], "spec-review-verdict.json": FULL["spec-review-verdict.json"] }));
-    const r = repo.readiness(["--since", w["FAFF-1260"], "--json"]);
+    const r = repo.readiness(["--since", w["FAFF-1277"], "--json"]);
     const report = parse(r);
     assert.equal(report.writer_proof_files["holdout.json"].observed, true);
     assert.ok(!report.unmet.some((u) => u.includes("holdout.json")));
@@ -155,9 +155,9 @@ test("writer matching: exact parenthesised ticket, two tickets in one subject, n
     const a = repo.commit("feat: (FAFF-12660) not it");
     const first = repo.commit("feat: old (FAFF-1266)", {});
     const second = repo.commit("feat: both (FAFF-1266) (FAFF-1267)");
-    for (const w of ["FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260"]) repo.commit(`feat: (${w})`);
+    for (const w of ["FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260", "FAFF-1277"]) repo.commit(`feat: (${w})`);
     const report = parse(repo.readiness(["--since", "HEAD", "--json"]));
-    assert.deepEqual(report.writers.map((x) => x.issue), ["FAFF-1266", "FAFF-1267", "FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260"]);
+    assert.deepEqual(report.writers.map((x) => x.issue), ["FAFF-1266", "FAFF-1267", "FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260", "FAFF-1277"]);
     assert.equal(report.writers[0].commit, second);
     assert.equal(report.writers[1].commit, second);
     assert.notEqual(report.writers[0].commit, a);
@@ -226,7 +226,7 @@ test("dirty or untracked anchors root and an escaping symlinked root exit 2", ()
   try {
     const w = repo.writers();
     repo.commit("feat: (FAFF-1)", repo.anchor(BEEP, "FAFF-1", FULL));
-    const since = w["FAFF-1260"];
+    const since = w["FAFF-1277"];
     repo.write(`.faff/anchors/${BEEP}/FAFF-1/ac-checklist.json`, "{}");
     const dirty = repo.readiness(["--since", since]);
     assert.equal(dirty.code, 2);
@@ -257,7 +257,7 @@ test("a README under the anchors root is ignored, a symlink-escape anchor is dro
     symlinkSync(outside, path.join(repo.dir, `.faff/anchors/${BEEP}/FAFF-4`));
     repo.git("add", "-A");
     repo.git("commit", "-qm", "chore: swap for a symlink");
-    const report = parse(repo.readiness(["--since", w["FAFF-1260"], "--json"]));
+    const report = parse(repo.readiness(["--since", w["FAFF-1277"], "--json"]));
     assert.ok(report.ignored.some((x) => x.path === ".faff/anchors/README.md"));
     assert.ok(report.ignored.every((x) => x.path.split("/").length < 5));
     assert.equal(report.dropped.length, 1);
@@ -272,7 +272,7 @@ test("a newline or | in an added path is dropped and blocks", () => {
   try {
     const w = repo.writers();
     repo.commit("feat: (FAFF-1)", { ...repo.anchor(BEEP, "FAFF-1", FULL), [`.faff/anchors/${BEEP}/FAFF-1/we|rd.txt`]: "x", [`.faff/anchors/${BEEP}/FAFF-1/new\nline.txt`]: "x" });
-    const report = parse(repo.readiness(["--since", w["FAFF-1260"], "--json"]));
+    const report = parse(repo.readiness(["--since", w["FAFF-1277"], "--json"]));
     assert.equal(report.dropped.length, 2);
     assert.ok(report.dropped.every((d) => d.reason === "unsafe path characters"));
     assert.ok(report.dropped.every((d) => !d.path.includes("\n")));
@@ -285,7 +285,7 @@ test("an anchor added before the cutover is not counted; one added then deleted 
   try {
     repo.commit("feat: old (FAFF-1)", repo.anchor(GRAFT, "FAFF-1", { "events.jsonl": oneLine("run-event") }));
     const w = repo.writers();
-    const report = parse(repo.readiness(["--since", w["FAFF-1260"], "--json"]));
+    const report = parse(repo.readiness(["--since", w["FAFF-1277"], "--json"]));
     assert.equal(report.window_anchors, 0);
     assert.equal(report.warnings, 0);
   } finally { repo.cleanup(); }
@@ -295,7 +295,7 @@ test("the report is the same from a subdirectory and with an absolute --anchors-
   const repo = makeRepo();
   try {
     const { w } = scenario(repo);
-    const since = w["FAFF-1260"];
+    const since = w["FAFF-1277"];
     const root = parse(repo.readiness(["--since", since, "--json"]));
     mkdirSync(path.join(repo.dir, "sub", "deeper"), { recursive: true });
     const sub = parse(repo.readiness(["--since", since, "--json"], { cwd: path.join(repo.dir, "sub", "deeper") }));
@@ -309,7 +309,7 @@ test("binding: an anchor added under a subject not naming its issue is unbound, 
   const repo = makeRepo();
   try {
     const w = repo.writers();
-    const since = w["FAFF-1260"];
+    const since = w["FAFF-1277"];
     repo.commit("feat: unrelated work", repo.anchor("run-20261014-100000-beepboop-list-x", "FAFF-9", FULL));
     let report = parse(repo.readiness(["--since", since, "--json"]));
     assert.deepEqual(report.unbound_anchors.map((u) => u.anchor), ["run-20261014-100000-beepboop-list-x/FAFF-9"]);
@@ -333,7 +333,7 @@ test("a straddling run is not qualifying and its legacy anchor is listed", () =>
     const w = repo.writers();
     repo.commit("feat: (FAFF-1)", repo.anchor(BEEP, "FAFF-1", FULL));
     repo.commit("feat: (FAFF-2)", repo.anchor(BEEP, "FAFF-2", { "events.jsonl": oneLine("run-event") }));
-    const report = parse(repo.readiness(["--since", w["FAFF-1260"], "--json"]));
+    const report = parse(repo.readiness(["--since", w["FAFF-1277"], "--json"]));
     assert.equal(report.runs.find((r) => r.run === BEEP).qualifying, false);
     assert.deepEqual(report.warning_anchors.map((x) => x.anchor), [`${BEEP}/FAFF-2`]);
   } finally { repo.cleanup(); }
@@ -355,7 +355,7 @@ test("the drop decision never reads deriveAnchorDirs's reason text", () => {
       const gov = require(${JSON.stringify(path.join(repoRoot, "plugin/skills/faff/bin/lib/governance-check.js"))});
       const real = gov.deriveAnchorDirs;
       gov.deriveAnchorDirs = (...a) => { const r = real(...a); return { dirs: r.dirs, dropped: r.dropped.map((d) => ({ path: d.path, reason: "XYZ" })) }; };
-      process.exitCode = require(${JSON.stringify(path.join(repoRoot, "plugin/skills/faff/bin/lib/evidence-readiness.js"))}).cmdEvidenceReadiness(["--since", ${JSON.stringify(w["FAFF-1260"])}, "--json"]);`;
+      process.exitCode = require(${JSON.stringify(path.join(repoRoot, "plugin/skills/faff/bin/lib/evidence-readiness.js"))}).cmdEvidenceReadiness(["--since", ${JSON.stringify(w["FAFF-1277"])}, "--json"]);`;
     let out;
     try { out = execFileSync(process.execPath, ["-e", script], { cwd: repo.dir, encoding: "utf8" }); } catch (e) { out = e.stdout; }
     const report = JSON.parse(out);
@@ -382,7 +382,7 @@ test("no sentinel planted in an evidence field reaches readiness output", () => 
       "ac-checklist.json": JSON.stringify({ schema_version: 1, all_verified: "S3CR3T-SENTINEL" }),
     }));
     for (const args of [["--json"], []]) {
-      const r = repo.readiness(["--since", w["FAFF-1260"], ...args]);
+      const r = repo.readiness(["--since", w["FAFF-1277"], ...args]);
       assert.ok(!(r.stdout + r.stderr).includes("S3CR3T-SENTINEL"));
     }
   } finally { repo.cleanup(); }
@@ -401,7 +401,7 @@ test("human output names READY or NOT READY and each unmet reason", () => {
   const repo = makeRepo();
   try {
     const w = repo.writers();
-    const r = repo.readiness(["--since", w["FAFF-1260"]]);
+    const r = repo.readiness(["--since", w["FAFF-1277"]]);
     assert.equal(r.code, 1);
     assert.match(r.stdout, /^evidence-readiness since [0-9a-f]{12}: NOT READY\n/);
     assert.match(r.stdout, /unmet: no anchors in window/);

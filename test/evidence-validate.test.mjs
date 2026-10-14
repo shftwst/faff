@@ -38,33 +38,79 @@ function stampedCopy() {
 
 const validate = (dir, ...extra) => runCli(["evidence", "validate", dir, "--json", ...extra]);
 
-// Anchors minted after the FAFF-1258 serialiser stamp run-ledger.json and build-progress.json, but the
-// graft writers of these files do not stamp v0.3 shapes yet, so the anchor reports fail rather than legacy.
+// Anchors minted after the FAFF-1258 serialiser stamp run-ledger.json and build-progress.json; until the
+// FAFF-1277 writers, graft hand-wrote the other evidence files, so those anchors report fail. The list is
+// frozen at MIXED_CUTOFF, the run timestamp of the FAFF-1277 graft: a run started later has the writers
+// and its anchor must pass. A new row needs a reviewed cutoff change, never a quiet list edit.
+const MIXED_CUTOFF = "20261014-142628";
 const MIXED_ANCHORS = new Map([
   [".faff/anchors/run-20261014-125129-graft-FAFF-1274/FAFF-1274", ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json"]],
   [".faff/anchors/run-20261014-125614-graft-FAFF-1224/FAFF-1224", ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json"]],
 ]);
 
-test("evidence validate: every git-tracked anchor directory is legacy (exit 0, exit 1 under --require-evidence-schema)", () => {
+const runTimestamp = (rel) => (rel.match(/\/run-(\d{8}-\d{6})-/) || [])[1] ?? null;
+const notAfterCutoff = (rel) => runTimestamp(rel) === null || runTimestamp(rel) <= MIXED_CUTOFF;
+const failingFiles = (report) => report.files.filter((f) => f.status !== "ok").map((f) => f.path).sort();
+
+// committedAnchorProblems(root, rels) -> one message per anchor directory that breaks the rules: a listed
+// anchor must fail on exactly its listed files and predate the cutoff; any other anchor must pass, or be
+// legacy and predate the cutoff.
+function committedAnchorProblems(root, rels, mixed = MIXED_ANCHORS) {
+  const problems = [];
+  for (const rel of rels) {
+    const report = validateAnchorDir(join(root, rel));
+    if (mixed.has(rel)) {
+      if (!notAfterCutoff(rel)) problems.push(`${rel}: listed in MIXED_ANCHORS but dated after MIXED_CUTOFF`);
+      if (report.status !== "fail" || JSON.stringify(failingFiles(report)) !== JSON.stringify(mixed.get(rel))) {
+        problems.push(`${rel}: listed as mixed on ${mixed.get(rel).join(", ")} but reports ${report.status} on ${failingFiles(report).join(", ") || "nothing"}`);
+      }
+      continue;
+    }
+    if (report.status === "pass") continue;
+    if (report.status === "legacy" && notAfterCutoff(rel)) continue;
+    problems.push(`${rel}: ${report.status} on ${failingFiles(report).join(", ") || "nothing"}`);
+  }
+  return problems;
+}
+
+test("evidence validate: MIXED_ANCHORS is frozen at MIXED_CUTOFF", () => {
+  for (const rel of MIXED_ANCHORS.keys()) assert.ok(notAfterCutoff(rel) && runTimestamp(rel) !== null, rel);
+});
+
+test("evidence validate: every git-tracked anchor passes, or is legacy or a listed mixed anchor from before the cutoff", () => {
   const tracked = execFileSync("git", ["ls-files", ".faff/anchors"], { cwd: REPO, encoding: "utf8" })
     .split("\n").filter(Boolean)
     .map((f) => f.split("/").slice(0, 4).join("/"));
   const dirs = [...new Set(tracked)].sort();
   assert.ok(dirs.length > 100, `expected the committed anchors, found ${dirs.length}`);
-  for (const rel of dirs) {
-    const report = validateAnchorDir(join(REPO, rel));
-    if (MIXED_ANCHORS.has(rel)) {
-      assert.equal(report.status, "fail", rel);
-      assert.deepEqual(report.files.filter((f) => f.status === "fail").map((f) => f.path).sort(), MIXED_ANCHORS.get(rel), rel);
-      continue;
-    }
-    assert.equal(report.status, "legacy", rel);
-    assert.equal(exitCodeFor(report, false), 0, rel);
-    assert.equal(exitCodeFor(report, true), 1, rel);
-  }
-  const sample = join(REPO, dirs[0]);
-  assert.equal(validate(sample).code, 0);
-  assert.equal(validate(sample, "--require-evidence-schema").code, 1);
+  assert.deepEqual(committedAnchorProblems(REPO, dirs), []);
+  const legacy = dirs.find((rel) => validateAnchorDir(join(REPO, rel)).status === "legacy");
+  assert.ok(legacy, "expected at least one legacy anchor for the exit-code checks");
+  const report = validateAnchorDir(join(REPO, legacy));
+  assert.equal(exitCodeFor(report, false), 0, legacy);
+  assert.equal(exitCodeFor(report, true), 1, legacy);
+  assert.equal(validate(join(REPO, legacy)).code, 0);
+  assert.equal(validate(join(REPO, legacy), "--require-evidence-schema").code, 1);
+});
+
+test("evidence validate: a mixed anchor dated after the cutoff fails the committed-anchor rules, listed or not", () => {
+  const root = scratch();
+  const rel = ".faff/anchors/run-20991231-000000-graft-FAFF-9/FAFF-9";
+  const dir = join(root, rel);
+  const stamped = stampedCopy();
+  cpSync(stamped, dir, { recursive: true });
+  const review = JSON.parse(example("review-verdict-anchored"));
+  delete review.schema_version;
+  writeFileSync(join(dir, "review-verdict.json"), JSON.stringify(review));
+  const [problem] = committedAnchorProblems(root, [rel]);
+  assert.ok(problem.startsWith(rel) && problem.includes("review-verdict.json"), problem);
+  const listed = committedAnchorProblems(root, [rel], new Map([[rel, ["review-verdict.json"]]]));
+  assert.deepEqual(listed, [`${rel}: listed in MIXED_ANCHORS but dated after MIXED_CUTOFF`]);
+  rmSync(dir, { recursive: true, force: true });
+  cpSync(stamped, dir, { recursive: true });
+  assert.deepEqual(committedAnchorProblems(root, [rel]), []);
+  rmSync(root, { recursive: true, force: true });
+  rmSync(stamped, { recursive: true, force: true });
 });
 
 test("evidence validate: scenario 1, a stamped copy of a real anchor passes with every file ok", () => {

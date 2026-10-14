@@ -1,0 +1,95 @@
+{
+  "kind": "finding-identity",
+  "commit": "10a8ece4ad9a675c81fdead6fab8ccfaa447ca4b",
+  "run_at": "2026-10-14T12:43:04.324Z",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "fixtures": 13,
+  "stable": 6,
+  "drifted": 7,
+  "undetected": 0,
+  "errored": 0,
+  "rate": 0.46,
+  "bar": 0.9,
+  "pass": false,
+  "cases": [
+    {
+      "id": "finding-identity-001",
+      "outcome": "stable",
+      "id_a": "src/cli/export.js::--quiet flag not implemented in runexport",
+      "id_b": "src/cli/export.js::--quiet flag not implemented in runexport"
+    },
+    {
+      "id": "finding-identity-002",
+      "outcome": "drifted",
+      "id_a": "lib/page.js::pagecount truncates partial last page with math.floor",
+      "id_b": "lib/page.js::pagecount rounds down a partial last page"
+    },
+    {
+      "id": "finding-identity-003",
+      "outcome": "stable",
+      "id_a": "bin/validate.js::invalid manifest exits 0 instead of 2 in main",
+      "id_b": "bin/validate.js::invalid manifest exits 0 instead of 2 in main"
+    },
+    {
+      "id": "finding-identity-004",
+      "outcome": "drifted",
+      "id_a": "lib/settings.js::invalid json throws instead of falling back to defaults with a warning in loadsettings",
+      "id_b": "lib/settings.js::unhandled json.parse error in loadsettings for invalid json"
+    },
+    {
+      "id": "finding-identity-005",
+      "outcome": "drifted",
+      "id_a": "src/build/write.js::missing outside-dist rejection for out name in writebundle",
+      "id_b": "src/build/write.js::output path not confined to dist in writebundle"
+    },
+    {
+      "id": "finding-identity-006",
+      "outcome": "stable",
+      "id_a": "src/http/logger.js::authorization header written to log line in logrequest",
+      "id_b": "src/http/logger.js::authorization header written to log line in logrequest"
+    },
+    {
+      "id": "finding-identity-007",
+      "outcome": "stable",
+      "id_a": "src/billing/totals.js::out-of-scope rounding change in invoicetotal",
+      "id_b": "src/billing/totals.js::out-of-scope rounding change in invoicetotal"
+    },
+    {
+      "id": "finding-identity-008",
+      "outcome": "drifted",
+      "id_a": "test/http-retry.test.js::missing test for the retry-after: n wait in retrydelayms",
+      "id_b": "test/http-retry.test.js::missing test for retry-after: n delay in retrydelayms"
+    },
+    {
+      "id": "finding-identity-009",
+      "outcome": "stable",
+      "id_a": "lib/semver.js::lexicographic string comparison instead of numeric segment comparison in compareversions",
+      "id_b": "lib/semver.js::lexicographic string comparison instead of numeric segment comparison in compareversions"
+    },
+    {
+      "id": "finding-identity-010",
+      "outcome": "drifted",
+      "id_a": "lib/reader.js::file descriptor leaked on empty-file early return in readfirstline",
+      "id_b": "lib/reader.js::file descriptor leaked on empty-file and read-error paths in readfirstline"
+    },
+    {
+      "id": "finding-identity-011",
+      "outcome": "stable",
+      "id_a": "src/db/users.js::sql injection via string-concatenated name in finduserbyname",
+      "id_b": "src/db/users.js::sql injection via string-concatenated name in finduserbyname"
+    },
+    {
+      "id": "finding-identity-012",
+      "outcome": "drifted",
+      "id_a": "src/cache/lookup.js::updateaccount does not invalidate cached entry in getaccount cache",
+      "id_b": "src/cache/lookup.js::updateaccount does not invalidate cached entry"
+    },
+    {
+      "id": "finding-identity-013",
+      "outcome": "drifted",
+      "id_a": "lib/port.js::off-by-one lower bound accepts port 0 and empty string in parseport",
+      "id_b": "lib/port.js::parseport lower bound accepts port 0 and empty string"
+    }
+  ]
+}

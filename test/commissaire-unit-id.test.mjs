@@ -18,7 +18,7 @@ import {
   governorFileOf, governorDirOf, producerFileOf, producerDirOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { resolveCommissaireDecisionGrant, warnUncoveredMergeObserves } from "../plugin/skills/faff/bin/lib/merge-gate.js";
-import { computeEscapes, unitIdOf, matchesUnit, carriesBothUnitKeys, CONCLUSION_KIND } from "../plugin/skills/faff/bin/lib/effects.js";
+import { computeEscapes, declaredEffectViolations, unitIdOf, matchesUnit, carriesBothUnitKeys, CONCLUSION_KIND } from "../plugin/skills/faff/bin/lib/effects.js";
 import { appendRecordsUnderLock } from "../plugin/skills/faff/bin/lib/events.js";
 import { accountHumanMerge } from "../plugin/skills/faff/bin/lib/audit.js";
 import { readDeclaredMergeEffects as reconcileDeclaredMerges, segmentCovered } from "../plugin/skills/faff/bin/lib/effects-reconcile.js";
@@ -374,5 +374,20 @@ test("--issue together with --unit-id is a usage error, with equal or different 
       assert.match(r.stderr, /pass --unit-id only/);
     }
     assert.ok(readFileSync(ledger).equals(before));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- FAFF-1262: the whole-record validator accepts what Commissaire mints ---------------
+
+test("declaredEffectViolations accepts schema:3 records minted by appendCommissaireRecord and appendProducerRecords", () => {
+  const { root, runDir, ledger } = mkRun("unit-validator-roundtrip-");
+  try {
+    admit(runDir);
+    const body = { kind_of_entry: "declare", unit_id: "FAFF-1", step: "merge", effect: MERGE };
+    assert.ok(appendProducerRecords(runDir, producerKey(runDir), "P1", "r1", [body], "t"));
+    assert.ok(appendCommissaireRecord(runDir, governor(runDir).sk, "P1", "r1", { ...body, payload: { note: "n" } }, "t"));
+    const minted = records(ledger).filter((r) => r.author === "producer" || r.author === "commissaire").slice(-2);
+    assert.deepEqual(minted.map((r) => r.author), ["producer", "commissaire"]);
+    for (const rec of minted) assert.deepEqual(declaredEffectViolations(rec), []);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

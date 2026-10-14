@@ -158,7 +158,7 @@
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "description": "free-form per-issue detail; any keys, any JSON values; never read by a gate"
+        "description": "free-form per-issue detail; the entry must be an object, with any keys and any JSON values inside it; never read by a gate"
       }
     },
     "routing_verdicts": {

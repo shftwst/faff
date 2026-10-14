@@ -186,3 +186,14 @@ spec-review: accept (human preference, L2; round-1 minors fixed, not re-reviewed
 ```faff-contract:spec-readiness
 { "confidence": "high", "decisions": [ { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "assumes" } ] }
 ```
+
+## Product-owner override (2026-10-14)
+
+After this spec was attached, the product owner decided that `outcome_details` entries stay objects only. This override supersedes the parts of the spec above that allow string entries or remove the FAFF-959 exception:
+
+- Each entry is an open object (any keys, any JSON values). A bare string entry is refused, like a number, boolean, array or null.
+- The FAFF-959 committed ledger keeps its `outcome_details.` row in `LEDGER_EXCEPTIONS`. Its string entries are a historical writer bug in an immutable anchor, per the FAFF-1256 ruling. The other five `outcome_details` rows (FAFF-1258, FAFF-1259, FAFF-1263, FAFF-1266, FAFF-1267) are removed.
+- `LEDGER_EXCEPTIONS` holds seven rows, and `evidence-documents.md` keeps "Seven committed ledgers" and the FAFF-959 table row.
+- A test proves a string entry is refused.
+
+Superseded by this override: section 3's second decision ("allow `object` or `string`"), section 4 steps 3a, 3b and 5 where they name FAFF-959 or six rows, section 6's "Allow string entries?" rationale, the section 8 DONE items naming six rows or FAFF-959, and the smoke test's `Y: "note"` entry, which now fails validation.

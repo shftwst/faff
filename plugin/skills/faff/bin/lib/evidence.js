@@ -84,19 +84,32 @@ function parseJson(buf) {
   }
 }
 
+function readBytes(file) {
+  try {
+    return fs.readFileSync(file);
+  } catch {
+    return null;
+  }
+}
+
 function carriesSchemaVersion(file) {
-  const parsed = parseJson(fs.readFileSync(file));
+  const bytes = readBytes(file);
+  const parsed = bytes ? parseJson(bytes) : { ok: false };
   return parsed.ok && isObject(parsed.value) && "schema_version" in parsed.value;
 }
 
 function validateJsonFile(file, schema) {
-  const parsed = parseJson(fs.readFileSync(file));
+  const bytes = readBytes(file);
+  if (!bytes) return { violations: ["unreadable file"] };
+  const parsed = parseJson(bytes);
   if (!parsed.ok) return { violations: ["not valid JSON"] };
   return { violations: validateAgainstSchema(parsed.value, schema).map(tidy) };
 }
 
 function validateJsonlFile(file, schema, lineValidator) {
-  const { lines, lastHasNewline } = splitPhysicalLines(fs.readFileSync(file));
+  const bytes = readBytes(file);
+  if (!bytes) return { violations: ["unreadable file"] };
+  const { lines, lastHasNewline } = splitPhysicalLines(bytes);
   const violations = [];
   let tornTail = false;
   lines.forEach((buf, index) => {
@@ -193,7 +206,7 @@ function evidenceSelftest() {
   const stamped = { "run-ledger.json": example("run-ledger"), "events.jsonl": oneLine("run-event"), "declared-effects.jsonl": oneLine("declared-effect") };
   const statusOf = (dir) => validateAnchorDir(dir).status;
   try {
-    check("every manifest entry has a bundled schema", Object.keys(manifest.files).length === 12);
+    check("the manifest names twelve files", Object.keys(manifest.files).length === 12);
     check("a stamped anchor passes", statusOf(build("pass", stamped)) === "pass");
     check("an anchor with no stamped document is legacy", statusOf(build("legacy", { "events.jsonl": oneLine("run-event"), "stray.txt": "x" })) === "legacy");
     check("an unmanifested file fails a stamped anchor", statusOf(build("unschemaed", { ...stamped, "stray.txt": "x" })) === "fail");
@@ -219,7 +232,7 @@ function cmdEvidence(args) {
   if (parsed.errors.length) return usageError(parsed.errors, USAGE.trim());
   const values = parsed.values;
   try {
-    if (values["--selftest"]) return evidenceSelftest();
+    if (values["--selftest"] && parsed.positionals.length === 0) return evidenceSelftest();
     const [sub, anchorDir, ...rest] = parsed.positionals;
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);

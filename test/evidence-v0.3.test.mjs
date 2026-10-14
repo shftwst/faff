@@ -22,7 +22,8 @@ const { DELIVERY_PROFILE } = lib("governance-profile");
 const { eventViolations } = lib("events");
 const { declaredEffectViolations } = lib("effects");
 const { redactKnownSecrets, resolveKnownSecretValues } = lib("redact");
-const { runResumeEvent, runClaimAbandonedEvent } = { ...lib("resume"), ...lib("resumecheck") };
+const { runResumeEvent } = lib("resume");
+const { runClaimAbandonedEvent } = lib("resumecheck");
 
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 const schemaPath = (name) => join(SRC, "schema", `${name}.schema.json`);

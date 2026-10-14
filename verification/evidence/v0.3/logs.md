@@ -28,6 +28,6 @@ issue-scoped event types, exactly one of `unit_id` or `issue`, and the authentic
 
 ## Torn tail
 
-The final physical line of a file with no trailing newline that does not parse as a JSON object is
+The final physical line of a file with no trailing newline that does not parse as JSON is
 a torn tail. It is skipped and reported, using the same rule as `walkPhysicalChain`. Any other
 unparseable or non-object line fails the file.

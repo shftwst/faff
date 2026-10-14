@@ -363,3 +363,55 @@ test("introducedViolations: ownership is per changed path", () => {
   assert.equal(evidence.introducedViolations("run-ledger.json", before, changed, cv, before, changedRaw).length, 1);
   assert.equal(evidence.introducedViolations("run-ledger.json", null, after, violations, null, afterRaw).length, 1, "a mint owns every violation");
 });
+
+// ---- rules that need a schema with required owner keys and minItems: a narrowed copy of the plugin ----
+
+function withNarrowedSchema(narrow, scriptBody) {
+  const tmp = mkdtempSync(path.join(tmpdir(), "faff-1258-narrowed-"));
+  try {
+    const copy = path.join(tmp, "faff");
+    require("node:fs").cpSync(path.join(REPO, "plugin", "skills", "faff"), copy, { recursive: true, filter: (src) => !src.includes("node_modules") });
+    const p = path.join(copy, "contracts", "evidence-v0.3", "schema", "run-ledger.schema.json");
+    const schema = JSON.parse(readFileSync(p, "utf8"));
+    narrow(schema.properties);
+    writeFileSync(p, JSON.stringify(schema));
+    const dir = path.join(tmp, "run");
+    mkdirSync(dir);
+    const script = `
+      const fs = require("node:fs");
+      const { mutateLedgerUnderLock } = require(${JSON.stringify(path.join(copy, "bin", "lib", "heartbeat.js"))});
+      const base = ${JSON.stringify(validLedger())};
+      const dir = process.argv[1];
+      const attempt = (label, fn) => { try { fn(); console.log(label + ":ok"); } catch (e) { console.log(label + ":" + e.code + ":" + e.message); } };
+      ${scriptBody}
+    `;
+    const r = spawnSync("node", ["-e", script, dir], { encoding: "utf8", cwd: tmp });
+    return { stdout: r.stdout, stderr: r.stderr };
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+}
+
+test("removing a required owner key is introduced (path owner.status); a write onto an owner already missing one succeeds", () => {
+  const r = withNarrowedSchema((p) => { p.owner.required = ["status"]; }, `
+    mutateLedgerUnderLock(dir, () => base);
+    attempt("remove", () => mutateLedgerUnderLock(dir, (f) => { const n = structuredClone(f); delete n.owner.status; return n; }));
+    const led = JSON.parse(fs.readFileSync(dir + "/run-ledger.json", "utf8"));
+    delete led.owner.status;
+    fs.writeFileSync(dir + "/run-ledger.json", JSON.stringify(led));
+    attempt("heartbeat", () => mutateLedgerUnderLock(dir, (f) => ({ ...f, owner: { ...f.owner, last_heartbeat: "2026-10-14T01:00:00.000Z" } })));
+    attempt("clear", () => mutateLedgerUnderLock(dir, (f) => ({ ...f, owner: { ...f.owner, status: 5 } })));
+  `);
+  assert.match(r.stdout, /remove:LEDGER_SCHEMA:.*owner: missing required property "status"/);
+  assert.match(r.stdout, /heartbeat:ok/);
+  assert.match(r.stderr, /pre-existing schema violation.*status/);
+  assert.match(r.stdout, /clear:LEDGER_SCHEMA/);
+});
+
+test("a minItems violation on an array the mutation shrank is introduced", () => {
+  const r = withNarrowedSchema((p) => { p.admitted.minItems = 2; }, `
+    mutateLedgerUnderLock(dir, () => base);
+    attempt("shrink", () => mutateLedgerUnderLock(dir, (f) => ({ ...f, admitted: ["FAFF-1"] })));
+    attempt("grow", () => mutateLedgerUnderLock(dir, (f) => ({ ...f, admitted: [...f.admitted, "FAFF-3"] })));
+  `);
+  assert.match(r.stdout, /shrink:LEDGER_SCHEMA:.*at least 2 items/);
+  assert.match(r.stdout, /grow:ok/);
+});

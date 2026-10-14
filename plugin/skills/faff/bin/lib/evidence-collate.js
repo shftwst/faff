@@ -128,12 +128,10 @@ function applyDispositions(record, dispositions, secrets = []) {
     const entry = byKey.get(o.key);
     if (!entry) throw new EvidenceRefusal(`uncovered key ${o.key}`);
     if (entry.lens !== o.lens) throw new EvidenceRefusal(`key ${o.key}: lens does not match the keyed objection`);
-    const folded = {};
-    for (const [field, value] of Object.entries(o)) {
-      if (field === "first_round") for (const r of RESOLUTION_FIELDS) if (entry[r] !== undefined) folded[r] = entry[r];
-      folded[field] = value;
-    }
-    return folded;
+    const { first_round, last_round, occurrences, ...text } = o;
+    const resolution = {};
+    for (const field of RESOLUTION_FIELDS) if (entry[field] !== undefined) resolution[field] = entry[field];
+    return { ...text, ...resolution, first_round, last_round, occurrences };
   });
   return { ...record, objections };
 }

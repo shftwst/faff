@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1267",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3361dfab1ef704fb2a235d5747116dc571cf6356d7afdbfee70bd3f84656bb88",
+    "branch": "FAFF-1267-anchor-evidence-2c-collate-every-spec-review-round-and-carry",
+    "pushed_at": "2026-10-14T08:05:22.019Z"
+  },
+  "updated_at": "2026-10-14T08:05:22.019Z"
+}

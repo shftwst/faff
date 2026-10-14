@@ -1,0 +1,58 @@
+{
+  "run_id": "run-20261014-065523-beepboop-list-10835a",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1256",
+    "FAFF-1266",
+    "FAFF-1258",
+    "FAFF-1259",
+    "FAFF-1267",
+    "FAFF-1263",
+    "FAFF-1268"
+  ],
+  "outcomes": {
+    "FAFF-1260": "routed-out",
+    "FAFF-1261": "routed-out"
+  },
+  "base_sha": "f6212944eaf232b75b6f9ade4d89990932e45d13",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261014-065523-beepboop-list-10835a",
+    "pid": 689134,
+    "started_at": "2026-10-14T06:55:23.297Z",
+    "last_heartbeat": "2026-10-14T06:55:23.297Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "3a55112b-0588-4e3c-933f-6fc84debfdbb",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-5-5": {
+        "input": 1368,
+        "output": 917283,
+        "cache_write_5m": 0,
+        "cache_write_1h": 11263212,
+        "cache_read": 277224458
+      }
+    },
+    "tokens_at_start": 289406321
+  },
+  "outcome_details": {
+    "FAFF-1260": {
+      "reason": "blocked by FAFF-1224 (Backlog)"
+    },
+    "FAFF-1261": {
+      "reason": "blocked by FAFF-1270 (not automation-eligible, unprepped)"
+    },
+    "FAFF-1270": {
+      "on_hold": "ineligible: no faff-automate"
+    }
+  },
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": []
+}

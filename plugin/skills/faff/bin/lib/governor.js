@@ -690,7 +690,7 @@ function guardTcpConnection(state, allowed, bounds, socket) {
         socket.destroy();
     }, () => socket.destroy());
 }
-const isLoopbackHost = (host) => host === "localhost" || /^127\.\d+\.\d+\.\d+$/.test(host) || normaliseAddress(host) === "::1";
+const isLoopbackHost = (host) => host === "localhost" || (net.isIPv4(host) && host.startsWith("127.")) || normaliseAddress(host) === "::1";
 const HOSTNAME_OR_IP = /^[A-Za-z0-9._:-]+$/;
 function parseListen(spec) {
     const at = spec.lastIndexOf(":");

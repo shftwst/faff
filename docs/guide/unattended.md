@@ -338,11 +338,13 @@ Read the secret and variable names (and the token list) for any Fly token (`FLY_
 - **IPv6 on the cage's Docker network**, with IPv6 NAT enabled so the cage's traffic leaves with the runner machine's own 6PN address as its source.
 - **A TCP relay** started in `drain.sh` on the runner machine, outside the cage. It listens on the Docker bridge address and forwards to `commissaire-governor.internal:7650`, for example `socat TCP-LISTEN:7650,bind=<bridge-ip>,fork,reuseaddr TCP6:commissaire-governor.internal:7650`. The relay's connections arrive from the runner machine's own address, so the governor accepts them. Point `COMMISSAIRE_GOVERNOR` at `<bridge-ip>:7650`.
 
-Either way, the governor only accepts connections whose source address is one of the runner app's 6PN addresses. A cage that connects from its own routed (non-NAT) address is refused with a `tcp-refused` line in the governor's log. Then set the endpoint in the runner's environment:
+Either way, the governor only accepts connections whose source address is one of the runner app's 6PN addresses. A cage that connects from its own routed (non-NAT) address is refused with a `tcp-refused` line in the governor's log. Then set the endpoint in the runner's environment. With IPv6 on the cage network:
 
 ```sh
 COMMISSAIRE_GOVERNOR=commissaire-governor.internal:7650
 ```
+
+With the relay, use the bridge address instead: `COMMISSAIRE_GOVERNOR=<bridge-ip>:7650`.
 
 From inside a cage started by `drain.sh`, check name resolution and a TCP connect before the first firing:
 
@@ -363,7 +365,7 @@ The governor keeps each run's admission and last ledger head in memory. A redepl
 
 ### Using the shared GitHub App (optional)
 
-When the governor-posted status check or the approval step for trust-file changes is in use, the governor holds one GitHub App key. It is optional: with no App configured the governor behaves as above. The key is a file on the governor's volume, never a Fly secret. A Fly secret is set from outside, stored in Fly's secret store and exposed as an environment variable to every process in the machine, whereas a mode 0600 file is readable only by the governor's account and by root in your own SSH session. Both are reachable only by whoever can manage the governor app, which the runner must never be able to do.
+When the governor-posted status check or the approval step for trust-file changes is in use, the governor holds one GitHub App key. It is optional: with no App configured the governor behaves as above. This section applies only once your installed release includes the governor's GitHub App support; before that, `governor start` ignores a `github_app` block and `governor status` reports no `app_token`. The key is a file on the governor's volume, never a Fly secret. A Fly secret is set from outside, stored in Fly's secret store and exposed as an environment variable to every process in the machine, whereas a mode 0600 file is readable only by the governor's account and by root in your own SSH session. Both are reachable only by whoever can manage the governor app, which the runner must never be able to do.
 
 1. **Place the key first.** Copy it to `/data/commissaire/github-app.pem` with `fly ssh sftp` (or `fly ssh console`) as root, then set the owner and mode:
 
@@ -372,7 +374,7 @@ When the governor-posted status check or the approval step for trust-file change
    fly ssh console -a commissaire-governor -C "chmod 0600 /data/commissaire/github-app.pem"
    ```
 
-   The entrypoint refuses to start if anything in the key directory has another owner, and `governor start` refuses a key file that is a symlink or has the wrong mode, so a mis-placed file stops the machine rather than being served.
+   The entrypoint refuses to start if anything in the key directory has another owner, so a file with the wrong owner stops the machine rather than being served. With the App support installed, `governor start` also refuses a key file that is a symlink or has the wrong mode.
 2. **Then add the `github_app` block** to the image's `governor-config.json` and deploy it from a release tag. The block carries the App and installation ids, `"private_key_file": "github-app.pem"`, and `repos`, a non-empty list of `OWNER/NAME@branch` bindings that the governor treats as governed. Until both the file and the block are present, the governor runs without the App.
 3. **Prove it.** Fly has no `governor install` that mints a test token, so run this in a `fly ssh console` session (root is the admin caller) and confirm `github_app: configured` and `app_token: ok`, plus the ruleset fields it reports. Fix any `failed` or `unknown` before relying on the status check.
 

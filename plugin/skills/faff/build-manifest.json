@@ -18,9 +18,9 @@
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
     "bin/lib/commissaire.ts": "dfdc8f5c216438de1e436485ed9fa82290b2512f271f643ab9f0ecb6e05b66a3",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
-    "bin/lib/governor-admin.ts": "56e06bd71e044505a04ecaaf9918874c090367cc66fed997f394967d80843828",
+    "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
-    "bin/lib/governor.ts": "206874e3e56ec3a450dad9a706a243041f9c1ac50144943321d64de3753d2010",
+    "bin/lib/governor.ts": "4ef561fcca8a1e32c67b8584512d1ebc0a172957e9abbecc4c82e5352f04c369",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
@@ -32,13 +32,13 @@
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
     "bin/lib/commissaire.js": "094ae4a52789f02427bcc924a00f0f88d978cd8dbe727c9fe8e81b60cfd9c3f7",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
-    "bin/lib/governor-admin.js": "9788999f1883e37a8eb31ace0946dcb655062d0564664ff96f8e406055ecd491",
+    "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
-    "bin/lib/governor.js": "a1e54feaf5ba3075f53adc5b7252879a0e2b27811195a7a85fa25bc845377586",
+    "bin/lib/governor.js": "8816adf970078b740c9223becf95f7a4413086fbc784c646588fa8cac4b9a0bf",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "9339448be675ad4a3a88b3705bf4404849dc08bf53c3e649788ac826d9a1ddcc"
+  "output_digest": "bd19c44cb97f3d3595737a4dcd6ffdd1199570d204427ad2818c7e70b4817611"
 }

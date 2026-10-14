@@ -1165,7 +1165,7 @@ function installSourceCommit(): string | null {
 function governorIdentify(flags: FlagBag, request: typeof governorClient.governorRequest = governorClient.governorRequest): number {
   const socketFlag = flagStr(flags, "--socket");
   const keyDirFlag = flagStr(flags, "--key-dir");
-  const keyDir = keyDirFlag ?? process.env.COMMISSAIRE_KEY_DIR ?? path.join(os.homedir(), ".local", "state", "commissaire");
+  const keyDir = keyDirFlag ?? (process.env.COMMISSAIRE_KEY_DIR || path.join(os.homedir(), ".local", "state", "commissaire"));
   const socket = socketFlag ?? path.join(keyDir, "governor.sock");
   const res = request({ kind: "unix", socket_path: socket }, { op: "identify" }, TIMEOUTS);
   if ("unreachable" in res) {

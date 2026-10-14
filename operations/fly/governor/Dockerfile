@@ -6,7 +6,7 @@
 #
 # Only plugin/skills/faff and operations/fly/governor enter the image (Dockerfile.dockerignore).
 
-FROM node:20-slim
+FROM node:22-slim
 
 ARG SOURCE_COMMIT
 RUN echo "$SOURCE_COMMIT" | grep -Eq '^[0-9a-f]{40,64}$' \

@@ -40,7 +40,7 @@ test("governor-config.json lists only uid 0 as an admin and no allowed runner ui
 
 test("the Dockerfile runs a fixed non-root user from a root-owned code tree and labels the source commit", () => {
   const docker = uncommented(read("operations", "fly", "governor", "Dockerfile"));
-  assert.match(docker, /^FROM node:20-slim$/m);
+  assert.match(docker, /^FROM node:22-slim$/m);
   assert.match(docker, /useradd .*--uid 10001 .*commissaire/);
   assert.match(docker, /apt-get install -y --no-install-recommends python3/);
   assert.match(docker, /chown -R root:root \/opt\/commissaire/);

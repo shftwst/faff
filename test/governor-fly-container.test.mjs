@@ -5,8 +5,8 @@
 // A named Docker volume stands in for the Fly volume. Nothing leaves the host except the base image's apt
 // fetch while building.
 //
-// SKIPS cleanly when Docker is not reachable or the node:20-slim base image is not already present
-// locally (the test never pulls). Run it on any host with `docker pull node:20-slim`.
+// SKIPS cleanly when Docker is not reachable or the node:22-slim base image is not already present
+// locally (the test never pulls). Run it on any host with `docker pull node:22-slim`.
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
@@ -18,7 +18,7 @@ import { createRequire } from "node:module";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
 const producerAuth = require(join(REPO_ROOT, "plugin", "skills", "faff", "bin", "lib", "producer-auth.js"));
-const BASE_IMAGE = "node:20-slim";
+const BASE_IMAGE = "node:22-slim";
 const SOURCE_COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const TAG = `commissaire-governor-test:${process.pid}`;
 const PREFIX = `faff1181-${process.pid}`;

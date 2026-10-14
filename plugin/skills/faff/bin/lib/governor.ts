@@ -714,7 +714,7 @@ function guardTcpConnection(state: GovernorState, allowed: SourceAllowList, boun
   }, () => socket.destroy());
 }
 
-const isLoopbackHost = (host: string): boolean => host === "localhost" || /^127\.\d+\.\d+\.\d+$/.test(host) || normaliseAddress(host) === "::1";
+const isLoopbackHost = (host: string): boolean => host === "localhost" || (net.isIPv4(host) && host.startsWith("127.")) || normaliseAddress(host) === "::1";
 const HOSTNAME_OR_IP = /^[A-Za-z0-9._:-]+$/;
 
 export interface GovernorStartDeps { resolver?: AddressResolver; now?: () => number }

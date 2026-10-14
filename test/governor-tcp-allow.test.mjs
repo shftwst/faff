@@ -255,7 +255,7 @@ function startCli(args, dir = keyDir()) {
 
 test("a non-loopback --listen without --listen-allow-dns exits 2 naming both flags and serves nothing", async () => {
   const port = await freePort();
-  for (const host of ["0.0.0.0", "10.0.0.5", "fly-local-6pn", "::", "fdaa:0:1::2"]) {
+  for (const host of ["0.0.0.0", "10.0.0.5", "fly-local-6pn", "::", "fdaa:0:1::2", "127.0.0.256", "127.999.1.1", "127.0.0.1.evil", "::ffff:127.0.0.1", "localhost."]) {
     const g = startCli(["--listen", `${host}:${port}`]);
     assert.equal(await g.exited, 2, host);
     assert.match(g.err(), /--listen-allow-dns/, host);

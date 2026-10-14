@@ -41,6 +41,7 @@ const { FLOOR_LEVELS } = require("./contract-defs");
 const { verifyAuthLeg, hasGovernanceContext, expectedRunIdForDir } = require("./commissaire");
 const { findRoot, readLedger } = require("./shared-infra");
 const { computeChainHead, sha256Hex, verifyChain, verifyEffectsChain } = require("./events");
+const { checkAnchorDir, sanitiseDisplay } = require("./evidence");
 
 // ---------------------------------------------------------------------------
 // Leg: budget — the ledger envelope + the LAST recorded budget-checkpoint event.
@@ -314,9 +315,23 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
       coherence: { clean: true },
       liveness: { pass: true, detail: naDetail("liveness"), status: null, heartbeat_age_secs: null },
       integrity,
+      evidence_schema: evidenceSchemaLeg(dir),
     },
     pass: integrity.pass && merge_floor.pass,
   };
+}
+
+// FAFF-1263: the report-only evidence-schema leg. It validates the anchor's evidence documents against the
+// bundled v0.3 schemas and reports; it never reaches `pass`, `reasons` or the annotations (FAFF-1261 folds it
+// in). Every path placed in files[] or detail is sanitised first: anchor file names are PR-authored.
+function evidenceSchemaLeg(dir) {
+  const check = checkAnchorDir(dir, {});
+  if (check.status === "error") return { report_only: true, status: "error", files: [], detail: `validator error: ${check.reason}` };
+  const files = check.files.map((f) => ({ path: f.path, status: f.status }));
+  const detail = check.status === "pass" ? "all files conform to v0.3"
+    : check.status === "legacy" ? "legacy anchor (no evidence document carries schema_version)"
+    : `${files.length} file(s) non-conforming: ${files.slice(0, 3).map((f) => f.path).join(", ")}`;
+  return { report_only: true, status: check.status, files, detail: sanitiseDisplay(detail) };
 }
 
 // ---------------------------------------------------------------------------
@@ -554,6 +569,7 @@ function renderGovernanceCheckText(verdict) {
     console.log(`  coherence:    ${r.legs.coherence.clean ? "clean" : "findings"} (report-only)`);
     console.log(`  liveness:     ${r.legs.liveness.pass ? "pass" : "FAIL"} — ${r.legs.liveness.detail}`);
     if (r.legs.integrity) console.log(`  integrity:    ${r.legs.integrity.pass ? "pass" : "FAIL"} — ${r.legs.integrity.detail}`);
+    if (r.legs.evidence_schema) console.log(`  evidence_schema: ${r.legs.evidence_schema.status} (report-only) — ${r.legs.evidence_schema.detail}`);
   }
   console.log(`\nverdict: ${verdict.pass ? "PASS" : "FAIL"}`);
   for (const reason of verdict.reasons) console.log(`  ✗ ${reason}`);
@@ -575,6 +591,7 @@ function renderGovernanceCheckSummaryMd(verdict) {
     lines.push(`| coherence _(report-only)_ | ${r.legs.coherence.clean ? "clean" : "findings"} | ${r.legs.coherence.clean ? "—" : "see \`faff audit ${r.run_id}\`"} |`);
     lines.push(`| liveness | ${r.legs.liveness.pass ? "pass" : "**FAIL**"} | ${r.legs.liveness.detail} |`);
     if (r.legs.integrity) lines.push(`| integrity | ${r.legs.integrity.pass ? "pass" : "**FAIL**"} | ${r.legs.integrity.detail} |`);
+    if (r.legs.evidence_schema) lines.push(`| evidence_schema _(report-only)_ | ${r.legs.evidence_schema.status} | ${r.legs.evidence_schema.detail.replaceAll("|", "\\|")} |`);
     lines.push("");
   }
   if (verdict.reasons.length) {

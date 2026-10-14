@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A fixture with only executable script/test and bin/lint gives discoverRungsReporting discovery confident, a UNIT rung ./script/test and a LINT rung ./bin/lint",
+      "verified": "gates.js --selftest: runner: script/test + bin/lint → confident; CLI smoke: faff gates discover --root <tmp> --json → confident, 2 runner_file rungs",
+      "passed": true
+    },
+    {
+      "ac": "Faff own repo: discoverRungs, discoverRungsReporting and selectRunnableRungs return the same rungs as before",
+      "verified": "md5 of discover --json and of discoverRungs+selectRunnableRungs JSON identical between main and branch; test/gates-ci-source.test.mjs passes unchanged",
+      "passed": true
+    },
+    {
+      "ac": "runnerKindForName returns UNIT/LINT/null for the listed names",
+      "verified": "gates.js --selftest: runner kind: wildcard and token UNIT names / LINT names / non-gate names → null",
+      "passed": true
+    },
+    {
+      "ac": "Executable scripts/lint.sh gives a LINT rung ./scripts/lint.sh",
+      "verified": "gates.js --selftest: runner: scripts/lint.sh → LINT ./scripts/lint.sh",
+      "passed": true
+    },
+    {
+      "ac": "Rungs carry source runner_file, cost_rank GATE_COST[kind] + 2, required true, and the documented name",
+      "verified": "gates.js --selftest: runner: rung shape (source, cost_rank, required, name)",
+      "passed": true
+    },
+    {
+      "ac": "bin/test + bin/test.sh yields ./bin/test; script/test + bin/test yields ./script/test",
+      "verified": "gates.js --selftest: runner: bin/test + bin/test.sh → one rung; script/test + bin/test → one rung",
+      "passed": true
+    },
+    {
+      "ac": "Two runners of one kind both appear in reporting and execution; cap 1 keeps ./bin/test-e2e",
+      "verified": "gates.js --selftest: runner: two UNIT runners both appear; max_rungs_per_kind 1 keeps ./bin/test-e2e",
+      "passed": true
+    },
+    {
+      "ac": "pkg, Makefile or pre-commit suppress runner rungs of the kind; runner suppresses CI; discoverRungs picks pkg over runner over CI",
+      "verified": "gates.js --selftest: package.json/Makefile/pre-commit suppress cases; runner UNIT suppresses CI; discoverRungs picks pkg over runner and runner over CI",
+      "passed": true
+    },
+    {
+      "ac": "Names with whitespace or shell metacharacters produce no rung",
+      "verified": "gates.js --selftest: runner: names with whitespace or shell metacharacters produce no rung (te st, test;rm, $(x)test)",
+      "passed": true
+    },
+    {
+      "ac": "Symlink outside the repo produces no rung; symlink inside to an executable does",
+      "verified": "gates.js --selftest: runner: symlink resolving outside / inside cases",
+      "passed": true
+    },
+    {
+      "ac": "Non-executable bin/test (0644) produces no rung on POSIX",
+      "verified": "gates.js --selftest: runner: non-executable bin/test (0644) produces no rung",
+      "passed": true
+    },
+    {
+      "ac": "With hostOs windows, selectRunnableRungs emits no runner rung and records os-mismatch",
+      "verified": "gates.js --selftest: runner windows: no runner rung, each candidate excluded os-mismatch",
+      "passed": true
+    },
+    {
+      "ac": "gates.exclude removes a runner with reason configured; an excluded runner takes no cap slot",
+      "verified": "gates.js --selftest: runner: excluded runner is configured and takes no cap slot",
+      "passed": true
+    },
+    {
+      "ac": "CI rungs displaced by a runner appear as runner-covered; CI dropped by a local rung does not",
+      "verified": "gates.js --selftest: displaced CI rung recorded as runner-covered; CI dropped by a local rung is not runner-covered; CLI smoke prints excluded (runner-covered): node --test",
+      "passed": true
+    },
+    {
+      "ac": "runLadder on script/test + bin/lint returns pass; a runner exiting 1 gives fail",
+      "verified": "gates.js --selftest: runner ladder cases; CLI smoke faff gates run --root <tmp> → exit 0, signal pass",
+      "passed": true
+    },
+    {
+      "ac": "All the above are new gates.js --selftest cases; POSIX-only cases guarded by process.platform",
+      "verified": "gates.js --selftest: RESULT PASS (183 cases, 0 failed); POSIX cases return early on win32",
+      "passed": true
+    },
+    {
+      "ac": "docs/guide/cli.md and faff-graft SKILL.md Step 7.5 and Step 8 name runner files as a trusted source; validate-adapters passes",
+      "verified": "diff in both files; faff validate-adapters RESULT: PASS; lint-cli-doc PASS",
+      "passed": true
+    }
+  ]
+}

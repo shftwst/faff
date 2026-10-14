@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1277",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9075223c2cbe8cec469ba8dbff79608ecde0204fe49ffc8288c1ca5bf1a08699",
+    "branch": "FAFF-1277-graft-verdict-files-schema-version",
+    "pushed_at": "2026-10-14T15:26:56.959Z"
+  },
+  "updated_at": "2026-10-14T15:26:56.959Z"
+}

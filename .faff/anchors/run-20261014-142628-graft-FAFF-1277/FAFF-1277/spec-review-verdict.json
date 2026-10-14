@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 1,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The writer appends the `evidence-terminal-only` event after writing `review-verdict.json` and, on append failure, removes the file just written. The rollback is incomplete: a partial append can leave a torn final line in `events.jsonl` with no file to pair it with, and the validator's torn-tail rule *skips* a torn last line (status still `ok`), so the anchor can pass with the event half of the honesty pair missing or corrupt.",
+      "evidence": "HOW step 2 — \"if the append fails, remove the file just written and exit 2 (no file without its trace)\"; `evidence.js` `validateJsonlFile` treats a torn final line as skipped (`torn_tail: true`, no violation, anchor still `pass`). The DESIGN DECISION RATIONALE explicitly names the event as \"the tamper-evident half of the honesty rule\", which a skipped torn tail defeats.",
+      "predicted_consequence": "an anchor validates `pass` while its `round_history: \"terminal-only\"` claim is no longer backed by a readable chained event — exactly the state the event exists to prevent — and nothing in the spec's writer-only checks catches it.",
+      "spec_anchor": "`the-evidence-terminal-only-event`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid in narrow form. The events library appends one line under its lock with a single appendFileSync and repairs a crashed holder's torn tail on the next append, so a torn tail only follows a crash. The spec now appends the event before writing review-verdict.json, so a crash or append failure never leaves a written file without its trace; a missing file already fails the merge floor closed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The writer appends the `evidence-terminal-only` event after writing `review-verdict.json` and, on append failure, removes the file just written. The rollback is incomplete: a partial append can leave a torn final line in `events.jsonl` with no file to pair it with, and the validator's torn-tail rule *skips* a torn last line (status still `ok`), so the anchor can pass with the event half of the honesty pair missing or corrupt.",
+          "spec_anchor": "`the-evidence-terminal-only-event`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The writer-only constraint refuses `criteria: []` precisely because an empty list is a laundering shape (\"zero-AC input omits the key instead\"), but the blessed omission form is the identical laundering shape: any build agent with unmet acceptance criteria can pipe `{all_verified: true}` with no `criteria` key and the writer accepts it, producing a checklist that `readAcComplete` reads as fully verified with no criteria listed. The writer is now the *sole* writer (the hand-write is removed), so this constraint is the only place the anti-laundering check lives, and the spec's own input contract provides the bypass. The writer cannot distinguish \"issue genuinely has zero ACs\" from \"ACs withheld\", and the spec does not name any cross-check (tracker ACs, build-progress) that would.",
+      "evidence": "`### faff evidence write ac-checklist --run-dir D --issue I` — \"criteria present and [] or null # zero-AC input omits the key instead\"; DONE item \"`faff evidence write ac-checklist` writes `schema_version: 1`, omits `criteria` for zero-AC input, refuses `criteria: []`\"; edge case \"Zero-AC issue: input `{all_verified: true}` writes `{schema_version: 1, all_verified: true}`; `readAcComplete` returns true.\"",
+      "predicted_consequence": "an issue with unmet ACs gets an `ac-checklist.json` asserting `all_verified: true` with no criteria, the merge floor's `readAcComplete` returns true, and the anchor validates `pass` — the exact outcome the `criteria: []` refusal was written to prevent.",
+      "spec_anchor": "faff-evidence-write-ac-checklist---run-dir-d---issue-i",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Checked against the code: today's hand-written ac-checklist.json has the same exposure, since readAcComplete returns all_verified when the criteria key is absent. The writer cannot be an acceptance-criteria oracle; criteria come from graft's per-AC source, and the parent FAFF-1255 design keeps the omitted key as the zero-AC form because readAcComplete fails [] and null closed. The spec's zero-AC edge case now says so; the infosec observation on value-free error messages was folded in.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The writer-only constraint refuses `criteria: []` precisely because an empty list is a laundering shape (\"zero-AC input omits the key instead\"), but the blessed omission form is the identical laundering shape: any build agent with unmet acceptance criteria can pipe `{all_verified: true}` with no `criteria` key and the writer accepts it, producing a checklist that `readAcComplete` reads as fully verified with no criteria listed. The writer is now the *sole* writer (the hand-write is removed), so this constraint is the only place the anti-laundering check lives, and the spec's own input contract provides the bypass. The writer cannot distinguish \"issue genuinely has zero ACs\" from \"ACs withheld\", and the spec does not name any cross-check (tracker ACs, build-progress) that would.",
+          "spec_anchor": "faff-evidence-write-ac-checklist---run-dir-d---issue-i"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "this slice re-cuts FAFF-1268's scope (moving two writers, an event type and the normaliser into FAFF-1277) but records the boundary only in prose, leaving the two tickets merely \"related\". The next agent picking up FAFF-1268 reads its unchanged ticket text and builds the bare `faff evidence write review-verdict` form against a writer that does not exist yet, or lands first and collides with this slice's routing of `faff evidence write <name>`.",
+      "evidence": "Methodology critique, \"Dependencies surfaced? (principle 6)\": \"FAFF-1268 now extends this ticket's `faff evidence write review-verdict` … so FAFF-1277 should block FAFF-1268; today they are only related. … Recommended: add … once the product owner confirms the boundary.\" Also Boundary with FAFF-1268: \"FAFF-1268's ticket text is not edited; the boundary is reported for the product owner to record there.\"",
+      "predicted_consequence": "FAFF-1268 can be scheduled and built before or against this slice, producing a duplicate/conflicting writer route in `evidence.js` that one of the two PRs must rework; the dependency gap is exactly the failure the critique's principle 6 flags, and it ships unless a human edits the tracker mid-flight.",
+      "spec_anchor": "boundary-with-faff-1268",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Resolved by product-owner decision on 2026-10-14 (Option A): FAFF-1277 now blocks FAFF-1268 and is related to FAFF-1260, and FAFF-1268's description records which writers moved to FAFF-1277.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "this slice re-cuts FAFF-1268's scope (moving two writers, an event type and the normaliser into FAFF-1277) but records the boundary only in prose, leaving the two tickets merely \"related\". The next agent picking up FAFF-1268 reads its unchanged ticket text and builds the bare `faff evidence write review-verdict` form against a writer that does not exist yet, or lands first and collides with this slice's routing of `faff evidence write <name>`.",
+          "spec_anchor": "boundary-with-faff-1268"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "the committed-anchor test hard-fails any post-cutoff anchor that is not `pass`, and the spec's own mitigation for the in-flight FAFF-1260 anchor is \"can still be listed\" — i.e. a manual `MIXED_ANCHORS` row plus a cutoff edit, the exact silent-growth pattern the cutoff was chosen to prevent.",
+      "evidence": "Committed-anchor test rule \"ELSE: test fails, naming the anchor and its failing files\"; critique-adjacent clause \"An anchor minted by a run that started before the cutoff (for example FAFF-1260, building in parallel) can still be listed\"; and the surfaced dependency \"FAFF-1260 and this ticket both touch the run-event type list\".",
+      "predicted_consequence": "if FAFF-1260 merges after this slice, its graft anchor (minted post-cutoff, still hand-writing ac-checklist/review-verdict) fails CI and someone adds a dated MIXED_ANCHORS row under time pressure — or, worse, \"fixes\" the anchor by hand-stamping files, recreating the mixed shape this ticket exists to remove.",
+      "spec_anchor": "committed-anchor-test",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The committed-anchor test section now states the one intended allowance: a graft run that started before the FAFF-1277 graft run (such as FAFF-1260) minted with the old CLI and may be listed; any later row needs a reviewed cutoff change.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "the committed-anchor test hard-fails any post-cutoff anchor that is not `pass`, and the spec's own mitigation for the in-flight FAFF-1260 anchor is \"can still be listed\" — i.e. a manual `MIXED_ANCHORS` row plus a cutoff edit, the exact silent-growth pattern the cutoff was chosen to prevent.",
+          "spec_anchor": "committed-anchor-test"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "the WHY outcome (\"a freshly minted graft anchor validates as pass\") is achieved only if the harness loads the repo's graft SKILL, but the stale-copy condition is an assumption with a grep check, not a dependency or a test; the spec itself documents that the 2026-10-14 harness loaded a stale copy and that \"no code change fixes a stale copy\".",
+      "evidence": "Assumptions: \"On 2026-10-14 it was a stale copy without the line\"; Failure mode: \"a harness keeps loading an outdated graft SKILL, so the writers exist but are not called … do not add a MIXED_ANCHORS row.\"",
+      "predicted_consequence": "the merge lands, writers exist and pass their tests, yet the next graft run hand-writes the files again and the tightened committed-anchor test fails in CI — the outcome is not delivered by this increment alone, and the recovery step (refresh the skill install) lives outside any tracked work.",
+      "spec_anchor": "assumes-the-harness-that-runs-later-graft-builds-loads-the-repos-plugin-skills-faff-graft-skill-md-through-the-scripts-link-skills-sh-symlinks-not-a-stale-copy",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Valid; the stale global copy of the graft SKILL is outside the repo. The spec carries it as an assumption with a validation check, and the fix (re-running scripts/link-skills.sh --global --replace) is reported to the product owner.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "the WHY outcome (\"a freshly minted graft anchor validates as pass\") is achieved only if the harness loads the repo's graft SKILL, but the stale-copy condition is an assumption with a grep check, not a dependency or a test; the spec itself documents that the 2026-10-14 harness loaded a stale copy and that \"no code change fixes a stale copy\".",
+          "spec_anchor": "assumes-the-harness-that-runs-later-graft-builds-loads-the-repos-plugin-skills-faff-graft-skill-md-through-the-scripts-link-skills-sh-symlinks-not-a-stale-copy"
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@
 - **Provenance:** human
 - **Date:** 2026-10-06
 - **Issue:** FAFF-1109
+- **Amended:** 2026-10-14: decision 2 amended by FAFF-1181 (the Fly governor is always on, not started on request); every other decision unchanged.
 
 Ratified by the human on 2026-10-08 (FAFF-1109 comment 25072d80): accepted as drafted, including every agent proposal, with no amendments.
 
@@ -73,6 +74,8 @@ There is no same-user tier. A governor configured for a run never falls back to 
 
 - **Local**, on Linux or macOS. A long-running process that listens on a Unix socket. It checks each caller's uid by peer credentials against an allow list before reading the request, and the socket file is also restricted to the runner's group.
 - **Remote.** The same program on a separate machine: its own Fly app for unattended L3 runs, starting on request and stopping when idle, or any Linux host the operator runs.
+
+**Amendment (2026-10-14, FAFF-1181).** The Fly governor is always on: one machine that is never stopped when idle, in place of "starting on request and stopping when idle". Starting on request would route each connection through the Fly proxy, which hides the caller's real source address that the governor's app-identity check needs. An unreachable governor still fails closed (FAFF-1179).
 
 **Agent proposal: Windows.** Native Windows is out of scope. Windows users run faff and the governor inside WSL2, where the Linux forms apply.
 

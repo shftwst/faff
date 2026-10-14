@@ -958,6 +958,28 @@ function computeChainHead(eventsBuf, runId, issue) {
   };
 }
 
+// FAFF-1258: the agent hand-edit path. A ledger-write note records an on-disk ledger an agent may
+// have edited directly, so report its schema state on stderr. Never refuses: refusing would leave the
+// edit unchained, which the integrity leg treats as worse. A legacy ledger (no schema_version) gets one
+// line and no validation, so a run minted before the serialiser does not repeat a missing-key warning.
+function reportLedgerSchema(ledgerRaw) {
+  let doc;
+  try { doc = JSON.parse(ledgerRaw.toString("utf8")); } catch { return; }
+  if (doc === null || typeof doc !== "object" || Array.isArray(doc)) return;
+  if (!("schema_version" in doc)) {
+    process.stderr.write("faff events append: run-ledger.json has no schema_version (legacy ledger); schema not checked\n");
+    return;
+  }
+  const result = require("./evidence").validateEvidenceDocument("run-ledger.json", doc);
+  if (result.unavailable) {
+    process.stderr.write(`faff events append: run-ledger schema unavailable (cannot load ${result.unavailable}); schema not checked\n`);
+    return;
+  }
+  const messages = result.violations.map((v) => v.message);
+  for (const m of messages.slice(0, 5)) process.stderr.write(`faff events append: run-ledger.json schema: ${m}\n`);
+  if (messages.length > 5) process.stderr.write(`faff events append: run-ledger.json schema: +${messages.length - 5} more\n`);
+}
+
 function cmdEvents(args) {
   // FAFF-576: fail-closed flag gate — unknown flag / missing value exits 2 before any sub-verb work
   // (the append/read bodies below then read validated flags via the existing manual scan).
@@ -1109,6 +1131,7 @@ function cmdEvents(args) {
       const base = { ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}) };
       base.ledger_sha256 = sha256Hex(ledgerRaw);
       data = base;
+      reportLedgerSchema(ledgerRaw);
     }
     let record;
     try {

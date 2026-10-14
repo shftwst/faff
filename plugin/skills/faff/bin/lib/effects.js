@@ -441,6 +441,50 @@ function buildProgressApplyComplete(existing, issue, diffHash, branch, nowIso) {
   return { issue, build: { status: "complete", diff_hash: String(diffHash), branch: String(branch), pushed_at: nowIso }, updated_at: nowIso };
 }
 
+// === FAFF-1258: the shared run-state writer ===============================
+// build-progress.json and landing-progress.json are stamped `schema_version: 1`, redacted once and
+// validated against their closed v0.3 schemas before any bytes land. Only violations THIS write
+// introduces refuse it; a legacy fault in carried-forward bytes is reported, never blamed on the
+// current writer. A file stamped with a version this CLI does not know is never rewritten.
+// evidence.js requires this module at load (declaredEffectViolations), so it is required lazily here.
+function writeRunState(cmd, anchorPath, file, existing, rec, diffBase, opts = {}) {
+  const evidence = require("./evidence");
+  const { resolveKnownSecretValues, redactKnownSecrets } = require("./redact");
+  const { atomicWriteSingleValueFile } = require("./heartbeat");
+  const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const prior = isRecord(existing) ? existing : null;
+  const stamp = (r) => {
+    const { schema_version: _ignored, ...rest } = r;
+    return redactKnownSecrets({ schema_version: 1, ...rest }, resolveKnownSecretValues());
+  };
+
+  if (prior && "schema_version" in prior && prior.schema_version !== 1) {
+    process.stderr.write(`faff ${cmd}: ${anchorPath} schema_version is not 1\n`);
+    return 1;
+  }
+  const doc = stamp(rec);
+  const result = evidence.validateEvidenceDocument(anchorPath, doc);
+  if (result.unavailable) {
+    process.stderr.write(`faff ${cmd}: ${anchorPath} schema unavailable (cannot load ${result.unavailable})\n`);
+    return 1;
+  }
+  const base = diffBase === undefined ? prior : diffBase;
+  const introduced = evidence.introducedViolations(anchorPath, base ? stamp(base) : null, doc, result.violations, base, rec);
+  if (introduced.length > 0) {
+    process.stderr.write(`faff ${cmd}: ${anchorPath} failed schema: ${introduced.slice(0, 5).join("; ")}\n`);
+    return 1;
+  }
+  const remaining = result.violations.map((v) => v.message);
+  for (const m of introduced) { const i = remaining.indexOf(m); if (i >= 0) remaining.splice(i, 1); }
+  if (remaining.length > 0) {
+    process.stderr.write(`faff ${cmd}: ${anchorPath} has ${remaining.length} pre-existing schema violation(s), first: ${remaining[0]}\n`);
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  atomicWriteSingleValueFile(file, JSON.stringify(doc, null, 2) + "\n");
+  if (!opts.quiet) console.log(JSON.stringify(doc));
+  return 0;
+}
+
 function cmdBuildProgress(args) {
   if (args.includes("--selftest")) return buildProgressSelftest();
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
@@ -474,13 +518,10 @@ function cmdBuildProgress(args) {
   if (!diffHash) { process.stderr.write("faff build-progress write --build-complete requires --diff-hash <h>\n"); return 2; }
   if (!branch) { process.stderr.write("faff build-progress write --build-complete requires --branch <b>\n"); return 2; }
   const nowIso = new Date().toISOString();
-  const rec = buildProgressApplyComplete(readExisting(), issue, diffHash, branch, nowIso);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = file + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
-  fs.renameSync(tmp, file);
-  console.log(JSON.stringify(rec));
-  return 0;
+  const existing = readExisting();
+  const rec = buildProgressApplyComplete(existing, issue, diffHash, branch, nowIso);
+  // build-progress replaces the whole record, so every path is this write's own: any violation refuses
+  return writeRunState("build-progress write", "build-progress.json", file, existing, rec, null);
 }
 
 function buildProgressSelftest() {
@@ -588,12 +629,7 @@ function cmdLandingProgress(args) {
   const tried = splitCsv(get("--tried"));
   const nowIso = new Date().toISOString();
   const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, nowIso);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = file + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
-  fs.renameSync(tmp, file);
-  console.log(JSON.stringify(rec));
-  return 0;
+  return writeRunState("landing-progress record-fix-cycle", "landing-progress.json", file, existing, rec);
 }
 
 function landingProgressSelftest() {
@@ -1072,4 +1108,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };

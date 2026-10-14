@@ -102,11 +102,63 @@ function selectMostRecent(candidates) {
 // to write); `match` when the existing bytes equal the bundle's own (idempotent no-op);
 // `conflict` when they differ (never overwritten — surfaced as an identity-conflict refusal).
 // ---------------------------------------------------------------------------
+// FAFF-1258: a third match case keeps a second recovery a no-op after the legacy-snapshot upgrade
+// stamped the restored ledger. The comparison is semantic (never the serialiser's formatting): the
+// snapshot parses with no schema_version, the existing ledger parses with schema_version 1, and the
+// existing ledger minus its stamp deep-equals the snapshot, or the snapshot after redaction with the
+// currently known secret values. A changed set of known secrets between recoveries reads as `conflict`.
+function isStampedUpgradeOf(existingBytes, snapshotBytes) {
+  const parse = (buf) => { try { return JSON.parse(buf.toString("utf8")); } catch { return undefined; } };
+  const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const snapshot = parse(snapshotBytes);
+  const existing = parse(existingBytes);
+  if (!isRecord(snapshot) || !isRecord(existing) || "schema_version" in snapshot || existing.schema_version !== 1) return false;
+  const { schema_version: _stamp, ...unstamped } = existing;
+  const { isDeepStrictEqual } = require("node:util");
+  if (isDeepStrictEqual(unstamped, snapshot)) return true;
+  const { resolveKnownSecretValues, redactKnownSecrets } = require("./redact");
+  return isDeepStrictEqual(unstamped, redactKnownSecrets(snapshot, resolveKnownSecretValues()));
+}
+
+function hasSchemaVersion(bytes) {
+  try { const v = JSON.parse(bytes.toString("utf8")); return v !== null && typeof v === "object" && "schema_version" in v; } catch { return true; }
+}
+
 function idempotencyDecision(existingLedgerBytes, bundleLedgerBytes) {
   if (existingLedgerBytes === null || existingLedgerBytes === undefined) return "absent";
   const a = Buffer.isBuffer(existingLedgerBytes) ? existingLedgerBytes : Buffer.from(String(existingLedgerBytes));
   const b = Buffer.isBuffer(bundleLedgerBytes) ? bundleLedgerBytes : Buffer.from(String(bundleLedgerBytes));
-  return a.equals(b) ? "match" : "conflict";
+  if (a.equals(b)) return "match";
+  return isStampedUpgradeOf(a, b) ? "match" : "conflict";
+}
+
+// FAFF-1258: the restore stays a byte copy; a legacy (unstamped) snapshot is then upgraded through the
+// shared serialisers. Runs after events.jsonl is in place, because the identity mutation appends a
+// ledger-write event that re-syncs the ledger fold to the upgraded bytes. A failed upgrade leaves the
+// restored bytes untouched and never changes the recovery's disposition or exit code.
+function upgradeRestored(runDir, issueDir) {
+  const warn = (what, e) => process.stderr.write(`bundle-recover: ${what}: ${e && e.message ? e.message : e}\n`);
+  const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+  const evidence = require("./evidence");
+  const ledgerPath = path.join(runDir, "run-ledger.json");
+  const ledger = readJson(ledgerPath);
+  if (ledger && typeof ledger === "object" && !("schema_version" in ledger)) {
+    try {
+      const { mutateLedgerUnderLock } = require("./heartbeat");
+      mutateLedgerUnderLock(runDir, (fresh) => fresh);
+    } catch (e) { warn("legacy ledger snapshot not upgraded", e); }
+  } else if (ledger && typeof ledger === "object") {
+    const r = evidence.validateEvidenceDocument("run-ledger.json", ledger);
+    if (r.violations.length > 0) process.stderr.write(`bundle-recover: restored run-ledger.json has ${r.violations.length} schema violation(s), first: ${r.violations[0].message}\n`);
+  }
+  const landingPath = path.join(issueDir, "landing-progress.json");
+  const landing = fs.existsSync(landingPath) ? readJson(landingPath) : null;
+  if (landing && typeof landing === "object" && !Array.isArray(landing) && !("schema_version" in landing)) {
+    try {
+      const { writeRunState } = require("./effects");
+      writeRunState("bundle-recover", "landing-progress.json", landingPath, landing, landing, undefined, { quiet: true });
+    } catch (e) { warn("legacy landing-progress.json not upgraded", e); }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -347,6 +399,7 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
     fs.copyFileSync(landingSrc, path.join(issueDir, "landing-progress.json"));
   }
 
+  upgradeRestored(runDir, path.join(runDir, boundaryKey));
   return { runDir, anchorDir };
 }
 
@@ -500,6 +553,8 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
   }
 
   if (decision === "match") {
+    // a first recovery whose upgrade failed leaves the unstamped snapshot bytes in place; finish it now
+    if (!dryRun && !hasSchemaVersion(existingLedgerBytes)) upgradeRestored(realRunDir, path.join(realRunDir, identity.boundary_key));
     const preview = previewResume(realRunDir, resolvedRoot, identity.boundary_key);
     return {
       verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: identity,
@@ -716,7 +771,8 @@ function bundleRecoverSelftest() {
     ok(!fs.existsSync(path.join(freshRoot, ".faff", "runs", run_id)), "selftest fixture: freshRoot has no prior run directory");
     const disp1 = bundleRecover({ issue: "FAFF-1", runId: null, root: freshRoot, dryRun: false, storeName: "local", store: localBundleStore(freshRoot) });
     ok(disp1.disposition === "reconstructed" && disp1.bundle_verdict === "CLEAN", `bundleRecover: reconstructs from a CLEAN local-store bundle (got ${disp1.disposition}/${disp1.bundle_verdict})`);
-    ok(fs.existsSync(path.join(freshRoot, ".faff", "runs", run_id, "run-ledger.json")), "bundleRecover: run-ledger.json written verbatim");
+    ok(fs.existsSync(path.join(freshRoot, ".faff", "runs", run_id, "run-ledger.json")), "bundleRecover: run-ledger.json restored");
+    ok(JSON.parse(fs.readFileSync(path.join(freshRoot, ".faff", "runs", run_id, "run-ledger.json"), "utf8")).schema_version === 1, "bundleRecover: a legacy snapshot is upgraded and stamped schema_version 1");
     ok(fs.existsSync(path.join(freshRoot, ".faff", "anchors", run_id, "FAFF-1", "events.jsonl")), "bundleRecover: anchor directory reconstructed");
     ok(fs.existsSync(path.join(freshRoot, ".faff", "runs", run_id, "events.jsonl")), "bundleRecover: events.jsonl copied to the run directory");
     ok(disp1.resume_preview && disp1.resume_preview.park.some((p) => p.issue === "FAFF-1") && !disp1.resume_preview.skip.includes("FAFF-1"), "bundleRecover: a shipped issue with no bundle-carried merge-record.json parks (unproven-merge), never skips");

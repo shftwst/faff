@@ -75,7 +75,8 @@
               "bundle-store-unavailable",
               "decision-capture",
               "decision-capture-action",
-              "runner-identity"
+              "runner-identity",
+              "evidence-terminal-only"
             ]
           },
           "issue": {
@@ -153,7 +154,8 @@
               "bundle-store-unavailable",
               "decision-capture",
               "decision-capture-action",
-              "runner-identity"
+              "runner-identity",
+              "evidence-terminal-only"
             ]
           },
           "issue": {

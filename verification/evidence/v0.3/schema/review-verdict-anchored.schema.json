@@ -29,6 +29,13 @@
       ],
       "description": "terminal round's signal"
     },
+    "adversarial_outcome": {
+      "type": "string",
+      "enum": [
+        "chain-outage-skipped"
+      ],
+      "description": "present only when the adversarial review chain was skipped for an outage; faff-beep-boop reads it for review_adversarial_skipped"
+    },
     "rounds_total": {
       "type": "integer"
     },

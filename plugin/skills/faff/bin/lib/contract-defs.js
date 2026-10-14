@@ -102,9 +102,10 @@ function computeReviewVerdict(extraction) {
     const out = { location_present: !!obj.location_present, action_present: !!obj.action_present };
     // FAFF-1146: enum-checked enrichment. A field is copied only when PRESENT: a valid value passes
     // through, an out-of-enum value is preserved in string form (or "" if non-string) AND pushes a
-    // violation naming the finding index; an ABSENT field is omitted, never defaulted.
+    // violation naming the finding index; an ABSENT field is omitted, never defaulted. A null field is
+    // absent (FAFF-1277): the anchored evidence writer null-fills every documented key.
     for (const [field, enumVals] of [["severity", REVIEW_SEVERITIES], ["disposition", REVIEW_DISPOSITIONS], ["source", REVIEW_FINDING_SOURCES]]) {
-      if (obj[field] !== undefined) {
+      if (obj[field] !== undefined && obj[field] !== null) {
         if (typeof obj[field] === "string" && enumVals.includes(obj[field])) {
           out[field] = obj[field];
         } else {

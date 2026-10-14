@@ -12,25 +12,28 @@
 // `## Spec-review evidence` comment (or a committed spec holding one), verifies its sha256 line, and
 // writes the v0.3 `spec-review-verdict.json` into a run dir. The path guards and the atomic file write
 // are shared cores (`guardWriterPaths`, `writeEvidenceFile`) any later evidence writer reuses.
+// `faff evidence write ac-checklist` and `faff evidence write review-verdict --terminal-only`
+// (FAFF-1277) write graft's other two verdict files in the v0.3 shape through the same cores.
 // ===========================================================================
 
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
 const { validateAgainstSchema, validateAgainstSchemaDetailed } = require("./contract-engine");
-const { eventViolations, splitPhysicalLines } = require("./events");
+const { appendEventRecord, eventViolations, splitPhysicalLines } = require("./events");
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
 const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
 const { EvidenceRefusal, parseSpecReviewComment } = require("./evidence-collate");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
+const { assignFindingIds } = require("./finding-id");
 
 const SPEC_VERSION = "v0.3";
 const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
 
 const EVIDENCE_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--require-evidence-schema": { arity: 0 },
-  "--run-dir": { arity: 1 }, "--issue": { arity: 1 },
+  "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--terminal-only": { arity: 0 },
   "--candidate-schemas": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "argument(s)" } };
 
@@ -563,6 +566,11 @@ function specReviewWriterViolations(doc) {
   return out;
 }
 
+function schemaFor(name) {
+  const { schemas, manifest } = loadBundle(BUNDLE_DIR);
+  return schemas.get(manifest.files[name].schema);
+}
+
 // writeSpecReviewVerdict(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
 // Throws WriterFault (exit 2) on a path or IO fault. Nothing is written unless every check passes.
 function writeSpecReviewVerdict(runDir, issue, text, secrets) {
@@ -573,22 +581,145 @@ function writeSpecReviewVerdict(runDir, issue, text, secrets) {
     throw e;
   }
   const doc = anchoredSpecReview(redactKnownSecrets(collated, secrets));
-  const { schemas, manifest } = loadBundle(BUNDLE_DIR);
-  const schema = schemas.get(manifest.files["spec-review-verdict.json"].schema);
-  const violations = [...validateAgainstSchema(doc, schema).map(tidy), ...specReviewWriterViolations(doc)];
+  const violations = [...validateAgainstSchema(doc, schemaFor("spec-review-verdict.json")).map(tidy), ...specReviewWriterViolations(doc)];
   if (violations.length > 0) return { refused: violations };
   return { written: writeEvidenceFile(issueDir, "spec-review-verdict.json", doc) };
 }
 
+// parseStdinObject(text) -> the parsed object, or null. A parse failure is never echoed: the JSON
+// parser's message quotes the input, and the input may hold a secret.
+function parseStdinObject(text) {
+  try {
+    const value = JSON.parse(text);
+    return isObject(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+const NOT_AN_OBJECT = "stdin: expected one JSON object";
+const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
+const orNull = (v) => (v === undefined ? null : v);
+
+// anchoredAcChecklist(input) -> the v1 document: schema_version stamped, unknown keys dropped,
+// `criteria` present only when the input carries it.
+function anchoredAcChecklist(input) {
+  const doc = { schema_version: 1, all_verified: input.all_verified };
+  if ("criteria" in input) {
+    doc.criteria = Array.isArray(input.criteria)
+      ? input.criteria.map((c) => (isObject(c) ? pick(c, ["ac", "verified", "passed"]) : c))
+      : input.criteria;
+  }
+  return doc;
+}
+
+function acChecklistWriterViolations(doc) {
+  if (!("criteria" in doc)) return [];
+  if (!Array.isArray(doc.criteria) || doc.criteria.length === 0) return ["criteria: omit the key for a zero-AC issue, never [] or null"];
+  const everyPassed = doc.criteria.every((c) => isObject(c) && c.passed === true);
+  return doc.all_verified === everyPassed ? [] : ["all_verified: must equal every criterion passed"];
+}
+
+// writeAcChecklist(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
+function writeAcChecklist(runDir, issue, text, secrets) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  const input = parseStdinObject(text);
+  if (input === null) return { refused: [NOT_AN_OBJECT] };
+  const doc = anchoredAcChecklist(redactKnownSecrets(input, secrets));
+  const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy), ...acChecklistWriterViolations(doc)];
+  if (violations.length > 0) return { refused: violations };
+  return { written: writeEvidenceFile(issueDir, "ac-checklist.json", doc) };
+}
+
+const TERMINAL_ONLY_WRITER = "faff evidence write review-verdict --terminal-only";
+
+// anchoredTerminalReview(block) -> the v1 document for a review whose earlier rounds were not
+// recorded: one round, every finding raised and settled in it, every documented key present.
+function anchoredTerminalReview(block) {
+  const findings = Array.isArray(block.findings) ? block.findings : block.findings === undefined ? [] : block.findings;
+  const doc = { schema_version: 1, signal: block.signal };
+  if (block.adversarial_outcome !== undefined) doc.adversarial_outcome = block.adversarial_outcome;
+  doc.rounds_total = 1;
+  doc.round_history = "terminal-only";
+  if (!Array.isArray(findings)) return { ...doc, findings };
+  const ids = assignFindingIds(findings, 1);
+  doc.findings = findings.map((raw, i) => {
+    const f = isObject(raw) ? raw : {};
+    const title = nullable(f.title);
+    const location = nullable(f.location);
+    const severity = orNull(f.severity);
+    const disposition = orNull(f.disposition);
+    return {
+      finding_id: ids[i],
+      title,
+      location,
+      action: nullable(f.action),
+      location_present: !!f.location_present,
+      action_present: !!f.action_present,
+      severity,
+      source: orNull(f.source),
+      model: orNull(f.model),
+      disposition,
+      refutation: orNull(f.refutation),
+      disposition_rationale: orNull(f.disposition_rationale),
+      first_round: 1,
+      last_round: 1,
+      occurrences: [{ round: 1, title, location, severity, disposition }],
+    };
+  });
+  return doc;
+}
+
+function terminalReviewRefusal(issueDir, block) {
+  if (block.signal === "unavailable") return "signal: unavailable is not an anchored verdict; the outage park keeps the raw review-verdict block";
+  const roundsDir = path.join(issueDir, "review-rounds");
+  const rounds = fs.existsSync(roundsDir) ? fs.readdirSync(roundsDir).filter((f) => /^round-.*\.json$/.test(f)) : [];
+  if (rounds.length > 0) return "review-rounds/: round records exist, so a terminal-only verdict would hide them";
+  if (Array.isArray(block.findings) && block.findings.some((f) => !isObject(f))) return "findings: every finding must be a JSON object";
+  return null;
+}
+
+// writeTerminalReviewVerdict(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
+// The evidence-terminal-only event is appended before the file lands, so a written file always has
+// its trace; an append failure throws WriterFault (exit 2) with nothing written.
+function writeTerminalReviewVerdict(runDir, issue, text, secrets) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  const block = parseStdinObject(text);
+  if (block === null) return { refused: [NOT_AN_OBJECT] };
+  const refusal = terminalReviewRefusal(issueDir, block);
+  if (refusal !== null) return { refused: [refusal] };
+  const doc = anchoredTerminalReview(redactKnownSecrets(block, secrets));
+  const violations = validateAgainstSchema(doc, schemaFor("review-verdict.json")).map(tidy);
+  if (violations.length > 0) return { refused: violations };
+  const realRunDir = path.dirname(issueDir);
+  if (!fs.existsSync(path.join(realRunDir, "events.jsonl"))) throw new WriterFault("--run-dir has no events.jsonl to record the evidence-terminal-only event in");
+  try {
+    appendEventRecord(realRunDir, path.basename(realRunDir), { phase: "build", type: "evidence-terminal-only", issue, data: { issue, writer: TERMINAL_ONLY_WRITER } });
+  } catch {
+    throw new WriterFault("cannot append the evidence-terminal-only event; nothing written");
+  }
+  return { written: writeEvidenceFile(issueDir, "review-verdict.json", doc) };
+}
+
+const WRITERS = {
+  "spec-review-verdict": writeSpecReviewVerdict,
+  "ac-checklist": writeAcChecklist,
+  "review-verdict": writeTerminalReviewVerdict,
+};
+
 function cmdEvidenceWrite(values, name) {
   const fail = (code, message) => { process.stderr.write(`faff evidence write ${name}: ${message}\n`); return code; };
-  if (name !== "spec-review-verdict") return fail(2, "expected: spec-review-verdict");
+  if (!Object.hasOwn(WRITERS, name)) return fail(2, `expected one of: ${Object.keys(WRITERS).join(", ")}`);
+  if (name === "review-verdict" && !values["--terminal-only"]) {
+    return fail(2, "round collation is not available yet; usage: faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>");
+  }
+  if (name !== "review-verdict" && values["--terminal-only"]) return fail(2, "--terminal-only applies to review-verdict only");
   if (values["--run-dir"] == null || values["--issue"] == null) return fail(2, "--run-dir and --issue are required");
   try {
     guardWriterPaths(values["--run-dir"], values["--issue"]);
     let secrets;
     try { secrets = resolveKnownSecretValues(findRoot()); } catch { return fail(2, "the redaction config could not be read; nothing written"); }
-    const result = writeSpecReviewVerdict(values["--run-dir"], values["--issue"], fs.readFileSync(0, "utf8"), secrets);
+    const result = WRITERS[name](values["--run-dir"], values["--issue"], fs.readFileSync(0, "utf8"), secrets);
     if (result.refused) {
       for (const message of result.refused) process.stderr.write(`faff evidence write ${name}: refused: ${message}\n`);
       return 1;
@@ -643,6 +774,11 @@ function evidenceSelftest() {
     const torn = validateAnchorDir(build("torn", { ...stamped, "events.jsonl": oneLine("run-event") + '{"sch' }));
     check("a torn tail is skipped and reported", torn.status === "pass" && torn.files.find((f) => f.path === "events.jsonl").torn_tail === true);
     check("a mid-file unparseable line fails", statusOf(build("mid", { ...stamped, "events.jsonl": "not json\n" + oneLine("run-event") })) === "fail");
+    const ac = anchoredAcChecklist({ all_verified: true, criteria: [{ ac: "a", verified: "Verified: t", passed: true, extra: 1 }], ac_complete: true });
+    check("the ac-checklist writer's document passes its schema", validateAgainstSchema(ac, schemaFor("ac-checklist.json")).length === 0);
+    check("the ac-checklist writer refuses an empty criteria list", acChecklistWriterViolations(anchoredAcChecklist({ all_verified: true, criteria: [] })).length === 1);
+    const review = anchoredTerminalReview({ signal: "pass", adversarial_outcome: "chain-outage-skipped", findings: [{ title: "x", location: "a.js:1", severity: "minor" }] });
+    check("the terminal-only review writer's document passes its schema", validateAgainstSchema(review, schemaFor("review-verdict.json")).length === 0);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -654,7 +790,7 @@ function evidenceSelftest() {
   return 0;
 }
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?} on stdin)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -685,7 +821,7 @@ function cmdEvidence(args) {
 }
 
 module.exports = {
-  EVIDENCE_SPEC, SchemaUnavailable, WriterFault, checkAnchorDir, classifySchemaChange, cmdEvidence, evidenceSelftest, exitCodeFor,
+  EVIDENCE_SPEC, SchemaUnavailable, WriterFault, anchoredAcChecklist, anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, evidenceSelftest, exitCodeFor,
   guardWriterPaths, introducedViolations, manifestFileNames, preloadEvidenceSchemas, resetEvidenceSchemaCache, sanitiseDisplay,
-  validateAnchorDir, validateEvidenceDocument, writeEvidenceFile, writeSpecReviewVerdict,
+  validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile, writeSpecReviewVerdict, writeTerminalReviewVerdict,
 };

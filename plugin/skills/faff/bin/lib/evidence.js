@@ -23,6 +23,7 @@ const { validateAgainstSchema, validateAgainstSchemaDetailed } = require("./cont
 const { appendEventRecord, eventViolations, splitPhysicalLines } = require("./events");
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
+const { DELIVERY_PROFILE, activeProfile } = require("./governance-profile");
 const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
 const { EvidenceRefusal, parseSpecReviewComment } = require("./evidence-collate");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
@@ -188,6 +189,56 @@ function validateEvidenceDocument(anchorPath, doc) {
   if (!entry || !schema) return { ok: false, violations: [], unavailable: anchorPath };
   const violations = validateAgainstSchemaDetailed(doc, schema);
   return { ok: violations.length === 0, violations };
+}
+
+// ---------------------------------------------------------------------------
+// Log-writer payload check (FAFF-1260). Every writer of events.jsonl and declared-effects.jsonl
+// runs this on each minted record inside its append lock. Payload schemas describe the delivery
+// profile only, so a $FAFF_GOVERNANCE_PROFILE override skips the check.
+// ---------------------------------------------------------------------------
+
+const SCHEMA_UNAVAILABLE_MARKER = "evidence-schema-unavailable.json";
+const announcedUnavailable = new Set();
+
+// Resolves the profile and warms the schema cache, so call it before taking the lock. Returns null
+// when no check applies, else a function from a record to { ok, violations, unavailable? } with
+// violations as plain message strings. The record is checked as the bytes that land (a key whose
+// value is undefined is not written).
+function logRecordChecker(anchorPath) {
+  if (activeProfile() !== DELIVERY_PROFILE) return null;
+  preloadEvidenceSchemas();
+  return (record) => {
+    const r = validateEvidenceDocument(anchorPath, JSON.parse(JSON.stringify(record)));
+    return { ...r, violations: r.violations.map((v) => tidy(v.message)) };
+  };
+}
+
+// One stderr line per unavailable path per process, whichever writer meets it first.
+function announceSchemaUnavailable(where, line = `schema-unavailable ${where}`) {
+  if (announcedUnavailable.has(where)) return;
+  announcedUnavailable.add(where);
+  process.stderr.write(`${line}\n`);
+}
+
+// A degraded write: the record went out under the line validator alone. Leaves a run-dir marker
+// (first write only, never anchored) and one stderr line per process.
+function noteSchemaUnavailable(runDir, writer, where) {
+  announceSchemaUnavailable(where);
+  const marker = JSON.stringify({ first_at: new Date().toISOString(), writer, path: where }) + "\n";
+  try { fs.writeFileSync(path.join(runDir, SCHEMA_UNAVAILABLE_MARKER), marker, { flag: "wx" }); } catch { /* already marked, or no run dir to mark */ }
+}
+
+// The top-level data keys the bundled run-event schema allows for one event type, or null when
+// the bundle is unavailable or the type has no mapping (the writer's own check then decides).
+function eventDataKeys(type) {
+  let loaded;
+  try { loaded = bundleFor(BUNDLE_DIR); } catch (e) { if (e instanceof SchemaUnavailable) return null; throw e; }
+  const entry = loaded.manifest.files["events.jsonl"];
+  const schema = entry && loaded.schemas.get(entry.schema);
+  const byType = schema && schema.discriminator && schema.discriminator.mapping["2"];
+  const mapped = byType && byType.discriminator && Object.hasOwn(byType.discriminator.mapping, type) ? byType.discriminator.mapping[type] : null;
+  const data = mapped && mapped.properties && mapped.properties.data;
+  return data && data.properties ? Object.keys(data.properties) : null;
 }
 
 const stripVersion = (doc) => {
@@ -751,9 +802,11 @@ function evidenceSelftest() {
   const { manifest } = loadBundle(BUNDLE_DIR);
   const exampleDir = path.join(BUNDLE_DIR, "schema", "examples");
 
-  for (const file of fs.readdirSync(exampleDir).sort()) {
+  // FAFF-1260: per-type payload examples sit in subdirectories mirroring schema/events|effects|commissaire.
+  for (const file of listFiles(exampleDir)) {
     const invalid = file.endsWith(".invalid.example.json");
-    const schema = readJsonFile(path.join(BUNDLE_DIR, "schema", `${exampleSchemaName(file)}.schema.json`), file);
+    const schemaRel = path.join(path.dirname(file), `${exampleSchemaName(path.basename(file))}.schema.json`);
+    const schema = readJsonFile(path.join(BUNDLE_DIR, "schema", schemaRel), file);
     const errs = validateAgainstSchema(readJsonFile(path.join(exampleDir, file), file), schema);
     check(`${file} ${invalid ? "fails" : "passes"} its schema`, invalid ? errs.length > 0 : errs.length === 0);
   }
@@ -827,7 +880,9 @@ function cmdEvidence(args) {
 }
 
 module.exports = {
-  EVIDENCE_SPEC, SchemaUnavailable, WriterFault, anchoredAcChecklist, anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, evidenceSelftest, exitCodeFor,
-  guardWriterPaths, introducedViolations, manifestFileNames, preloadEvidenceSchemas, resetEvidenceSchemaCache, sanitiseDisplay,
-  validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile, writeSpecReviewVerdict, writeTerminalReviewVerdict,
+  EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, announceSchemaUnavailable, anchoredAcChecklist,
+  anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evidenceSelftest, exitCodeFor,
+  guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
+  resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
+  writeSpecReviewVerdict, writeTerminalReviewVerdict,
 };

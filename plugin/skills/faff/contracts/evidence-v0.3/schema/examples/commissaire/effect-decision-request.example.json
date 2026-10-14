@@ -1,0 +1,24 @@
+{
+  "schema": 3,
+  "run_id": "run-20260101-000000-example",
+  "seq": 3,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "author": "producer",
+  "producer_id": "run-20260101-000000-example",
+  "contract_revision": "example-v1",
+  "kind_of_entry": "effect-decision-request",
+  "unit_id": "FAFF-1",
+  "step": "merge",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "payload": {
+    "effect": {
+      "kind": "merge",
+      "target": "main"
+    },
+    "declared_ref": null,
+    "level": "L3",
+    "attended": false,
+    "holdout": null
+  },
+  "producer_hmac": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+}

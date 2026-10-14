@@ -1,0 +1,5 @@
+{
+  "kind": "email",
+  "target": "example-target",
+  "reversible": true
+}

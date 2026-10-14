@@ -1049,7 +1049,10 @@ function publishBundle(runDir, boundaryKind, boundaryKey, opts = {}) {
         type: "bundle-store-unavailable",
         data: { boundary_kind: boundaryKind, boundary_key: boundaryKey, detail: String(result.detail || "").slice(0, 500) },
       });
-    } catch { /* best-effort — the store_unavailable disposition is still returned below */ }
+    } catch (e) {
+      // best-effort — the store_unavailable disposition is still returned below
+      if (e && e.code === "EVENT_SCHEMA") process.stderr.write(`faff bundle publish: bundle-store-unavailable event not recorded — ${e.message}\n`);
+    }
   }
   return { ...result, identity: manifest.identity, manifest };
 }

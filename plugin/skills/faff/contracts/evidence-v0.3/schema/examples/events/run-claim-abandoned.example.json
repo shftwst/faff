@@ -1,0 +1,15 @@
+{
+  "schema": 2,
+  "run_id": "run-20260101-000000-example",
+  "seq": 7,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "phase": "run",
+  "type": "run-claim-abandoned",
+  "data": {
+    "released_from": "running",
+    "to": "aborted-resumable",
+    "reason": "no-work-since-run-resume"
+  },
+  "epoch": 2
+}

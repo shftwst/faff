@@ -1,0 +1,6 @@
+{
+  "kind": "merge",
+  "target": "pr:12",
+  "reversible": true,
+  "reason": "a key no descriptor carries"
+}

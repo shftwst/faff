@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "run_id": "run-20260101-000000-example",
+  "seq": 3,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "author": "commissaire",
+  "producer_id": "run-20260101-000000-example",
+  "contract_revision": "example-v1",
+  "kind_of_entry": "effect-decision-verdict",
+  "unit_id": "FAFF-1",
+  "step": "merge",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "payload": {
+    "request_seq": 2,
+    "verdict": "allow",
+    "reason": "all-legs-pass",
+    "effect": {
+      "kind": "merge",
+      "target": "main"
+    },
+    "level": "L3",
+    "attended": false,
+    "holdout": null,
+    "level_policy": {
+      "pass": true,
+      "reason": "base-floor-governs"
+    },
+    "pure_verdict": "grant",
+    "pure_reason": "all-legs-pass"
+  },
+  "commissaire_sig": "c2lnbmF0dXJlLWV4YW1wbGU="
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "branch-delete",
+  "target": "FAFF-1-example",
+  "reversible": true,
+  "reason": "a key no descriptor carries"
+}

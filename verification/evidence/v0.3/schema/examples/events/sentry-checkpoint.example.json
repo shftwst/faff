@@ -1,0 +1,44 @@
+{
+  "schema": 2,
+  "run_id": "run-20260101-000000-example",
+  "seq": 7,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "phase": "run",
+  "type": "sentry-checkpoint",
+  "data": {
+    "run_dir": null,
+    "verdicts": [
+      {
+        "signal": "wall-clock-runaway",
+        "severity": "trip",
+        "evidence": {
+          "heartbeat_source": "heartbeat-file",
+          "heartbeat_age_secs": 913,
+          "run_elapsed_secs": 1194,
+          "tripped_on": "heartbeat-staleness"
+        }
+      }
+    ],
+    "intervention": "pause",
+    "tripped": true,
+    "thresholds": {
+      "thrash_n": 3,
+      "failure_k": 3,
+      "stall_window_secs": 900,
+      "run_elapsed_ceiling_secs": 14400,
+      "estimate_metering_exposure_secs": 1800
+    },
+    "authority": "channel-D-only",
+    "detection_trust": {
+      "trusted": false,
+      "disposition": "reconcile-only",
+      "basis": "no-run-dir"
+    },
+    "reconcile_check": {
+      "checked": false
+    },
+    "config_malformed": false,
+    "stall_window_env_ignored": false
+  }
+}

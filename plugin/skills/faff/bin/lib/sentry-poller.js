@@ -69,6 +69,7 @@ const FAULT_CAP = 20;
 const LOG_TOKENS = new Set([
   "spawned", "poll-ok", "poll-trip", "advisory-trip", "abort-actioned", "abort-failed",
   "indeterminate", "self-stop-owner-status", "stop-sentinel", "run-dir-gone", "fault-cap-exit",
+  "event-schema-refused",
 ]);
 
 function handlePath(runDir) { return path.join(runDir, "sentry-poller.json"); }
@@ -112,6 +113,15 @@ function appendLog(runDir, token, detail) {
     const line = `${new Date().toISOString()} ${tok}${detail !== undefined ? ` ${JSON.stringify(detail)}` : ""}\n`;
     fs.appendFileSync(logPathFor(runDir), line);
   } catch { /* telemetry must never wedge the watchdog */ }
+}
+
+// FAFF-1260: the poller's stdio is ignored, so a refused or degraded event write is logged here;
+// the never-block contract stands (the abort has already landed).
+function logEventSchemaRefused(runDir, type, e) {
+  if (e && e.code === "EVENT_SCHEMA") appendLog(runDir, "event-schema-refused", { type, violations: e.violations });
+}
+function schemaUnavailableLog(runDir, type) {
+  return { onSchemaUnavailable: (where) => appendLog(runDir, "event-schema-refused", { type, schema_unavailable: where }) };
 }
 
 // -----------------------------------------------------------------------------
@@ -295,8 +305,8 @@ async function runLoop(runDir, intervalSecs) {
           let ledger = null;
           try { ledger = readLedger(runDir); } catch { /* best-effort — the abort already landed */ }
           const runId = (ledger && ledger.run_id) || path.basename(runDir);
-          appendEventRecord(runDir, runId, { phase: "run", type: "sentry-checkpoint", data: decision.payload });
-        } catch { /* best-effort */ }
+          appendEventRecord(runDir, runId, { phase: "run", type: "sentry-checkpoint", data: decision.payload }, undefined, schemaUnavailableLog(runDir, "sentry-checkpoint"));
+        } catch (e) { logEventSchemaRefused(runDir, "sentry-checkpoint", e); }
         appendLog(runDir, "abort-actioned", { signals: (decision.payload.verdicts || []).map((v) => v.signal) });
         // FAFF-472: page andon in real time on the landing tick. Best-effort, same
         // try/catch discipline as the sentry-checkpoint append above — a fault here
@@ -308,10 +318,15 @@ async function runLoop(runDir, intervalSecs) {
           let ledger = null;
           try { ledger = readLedger(runDir); } catch { /* best-effort */ }
           const runId = (ledger && ledger.run_id) || path.basename(runDir);
-          appendEventRecord(runDir, runId, {
-            phase: "run", type: "sentry-trip",
-            data: { verdicts: decision.payload.verdicts || [], intervention: decision.payload.intervention },
-          });
+          try {
+            appendEventRecord(runDir, runId, {
+              phase: "run", type: "sentry-trip",
+              data: { verdicts: decision.payload.verdicts || [], intervention: decision.payload.intervention },
+            }, undefined, schemaUnavailableLog(runDir, "sentry-trip"));
+          } catch (e) {
+            if (!(e && e.code === "EVENT_SCHEMA")) throw e;
+            logEventSchemaRefused(runDir, "sentry-trip", e);
+          }
           // --root explicit (mirrors the readGovernanceConfig(findRoot(runDir)) call
           // above): the detached poller's own cwd at spawn time is not load-bearing,
           // so config resolution must derive from runDir, never an inherited cwd.

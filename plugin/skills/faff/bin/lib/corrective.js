@@ -378,6 +378,7 @@ function appendCorrectiveEvent(runDir, type, issue, data) {
     // The lock could not be acquired — recording is load-bearing, so surface it loudly in
     // the same {appended:false, violations} shape rather than throwing past the caller.
     if (e && e.code === "EVENTS_LOCKED") return { appended: false, violations: [`events lock: ${e.message}`] };
+    if (e && e.code === "EVENT_SCHEMA") return { appended: false, violations: e.violations };
     throw e;
   }
   if (violations) return { appended: false, violations };

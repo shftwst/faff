@@ -6,7 +6,7 @@
   "author": "producer",
   "producer_id": "run-20260101-000000-example",
   "contract_revision": "example-v1",
-  "kind_of_entry": "effect-declared",
+  "kind_of_entry": "declare",
   "step": "merge",
   "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "unit_id": "FAFF-1",

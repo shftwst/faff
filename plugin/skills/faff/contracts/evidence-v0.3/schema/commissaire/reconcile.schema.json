@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/commissaire/reconcile",
+  "title": "declared-effects.jsonl schema-3 record, kind_of_entry reconcile",
+  "description": "Reserved for the producer by KIND_AUTHOR, with no writer in code (cmdReconcile prints and never appends). The strictest shape: no effect and no payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "author",
+    "producer_id",
+    "contract_revision",
+    "kind_of_entry",
+    "step",
+    "prev",
+    "producer_hmac"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string",
+      "enum": [
+        "producer"
+      ]
+    },
+    "producer_id": {
+      "type": "string"
+    },
+    "contract_revision": {
+      "type": "string"
+    },
+    "kind_of_entry": {
+      "type": "string",
+      "enum": [
+        "reconcile"
+      ]
+    },
+    "step": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "producer_hmac": {
+      "type": "string"
+    }
+  }
+}

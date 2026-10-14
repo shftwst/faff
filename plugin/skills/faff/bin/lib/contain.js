@@ -183,7 +183,7 @@ function cmdContain(args) {
     try {
       appendEventRecord(recordDir, recordRunId, payload);
     } catch (e) {
-      if (e && e.code === "EVENTS_LOCKED") {
+      if (e && (e.code === "EVENTS_LOCKED" || e.code === "EVENT_SCHEMA")) {
         process.stderr.write(`faff contain --record: could not record containment-check — ${e.message}\n`);
         return 2;
       }

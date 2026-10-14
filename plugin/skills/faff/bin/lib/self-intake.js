@@ -187,7 +187,7 @@ function cmdSelfIntake(args) {
     try {
       appendEventRecord(recordDir, recordRunId, payload);
     } catch (e) {
-      if (e && e.code === "EVENTS_LOCKED") {
+      if (e && (e.code === "EVENTS_LOCKED" || e.code === "EVENT_SCHEMA")) {
         process.stderr.write(`faff self-intake --record: could not record self-intake-check — ${e.message}\n`);
         return 2;
       }

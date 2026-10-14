@@ -1,0 +1,23 @@
+{
+  "schema": 3,
+  "run_id": "run-20260101-000000-example",
+  "seq": 3,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "author": "commissaire",
+  "producer_id": "run-20260101-000000-example",
+  "contract_revision": "example-v1",
+  "kind_of_entry": "accepted_under_contract",
+  "step": "conclude",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "payload": {
+    "producer_id": "run-20260101-000000-example",
+    "contract_revision": "example-v1",
+    "evidence_seq_range": [
+      0,
+      6
+    ],
+    "escapes_checked": "yes"
+  },
+  "commissaire_sig": "c2lnbmF0dXJlLWV4YW1wbGU=",
+  "issue": "FAFF-1"
+}

@@ -1,0 +1,5 @@
+{
+  "kind": "registry-publish",
+  "target": "example-target",
+  "reversible": true
+}

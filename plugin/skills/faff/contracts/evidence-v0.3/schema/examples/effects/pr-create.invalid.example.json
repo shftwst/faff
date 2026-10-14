@@ -1,0 +1,6 @@
+{
+  "kind": "pr-create",
+  "target": "main",
+  "reversible": true,
+  "reason": "a key no descriptor carries"
+}

@@ -277,9 +277,9 @@ test("--listen-unrestricted starts a non-loopback listener and logs exactly one 
   } finally { await g.stop(); }
 });
 
-test("--listen-allow-dns and --listen-unrestricted without --listen exit 2; a malformed allow value exits 2", async () => {
+test("--listen-allow-dns and --listen-unrestricted without --listen, or together, exit 2; a malformed allow value exits 2", async () => {
   const listen = `127.0.0.1:${await freePort()}`;
-  for (const args of [["--listen-allow-dns", "runner.internal"], ["--listen-unrestricted"], ["--listen", listen, "--listen-allow-dns", "bad name;"], ["--listen", listen, "--listen-allow-dns"]]) {
+  for (const args of [["--listen-allow-dns", "runner.internal"], ["--listen-unrestricted"], ["--listen", listen, "--listen-allow-dns", "bad name;"], ["--listen", listen, "--listen-allow-dns"], ["--listen", listen, "--listen-allow-dns", "::1", "--listen-unrestricted"]]) {
     const g = startCli(args);
     assert.equal(await g.exited, 2, args.join(" "));
     assert.equal(g.out(), "");

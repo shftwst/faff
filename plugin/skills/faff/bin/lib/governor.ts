@@ -769,6 +769,10 @@ function governorStart(flags: FlagBag, deps: GovernorStartDeps = {}): number {
     process.stderr.write("faff commissaire governor start: --listen-allow-dns and --listen-unrestricted apply only with --listen\n");
     return 2;
   }
+  if (allowDns !== null && unrestricted) {
+    process.stderr.write("faff commissaire governor start: --listen-allow-dns and --listen-unrestricted contradict each other; pass one\n");
+    return 2;
+  }
   if (listen !== null && allowDns === null && !unrestricted && !isLoopbackHost(listen.host)) {
     process.stderr.write("faff commissaire governor start: --listen on a non-loopback address needs --listen-allow-dns <runner-app>.internal (or --listen-unrestricted)\n");
     return 2;

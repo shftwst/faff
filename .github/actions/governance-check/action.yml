@@ -69,11 +69,28 @@ inputs:
     description: "Floor level (L1|L2|L3|L4)."
     required: false
     default: "L3"
+  evidence-schema:
+    description: >-
+      How evidence-schema findings on the PR's anchors are treated (FAFF-1278): "report" (the
+      default) runs the base-commit evidence leg and the head verb's report-only leg and never
+      fails on a schema finding; "require" passes --require-evidence-schema to the head verb and
+      fails on the base-commit leg. Integrity findings of the base-commit leg (anchor discovery
+      failed, an anchor path left unvalidated, an edit to a committed anchor, no trusted
+      validator) fail under either value.
+    required: false
+    default: "report"
 
 outputs:
   verdict:
-    description: "pass | fail | no-artifacts — mirrors the step's exit code / on-missing outcome."
-    value: ${{ steps.governance-check.outputs.verdict || steps.anchor-missing.outputs.verdict || steps.on-missing.outputs.verdict }}
+    description: >-
+      pass | fail | no-artifacts — mirrors the step's exit code / on-missing outcome, and is fail
+      whenever the PR touches anchors and the base-commit evidence leg is not positively clean.
+    value: ${{ (steps.anchors-touched.outputs.touched == 'false' || (steps.evidence-schema-base.outcome == 'success' && steps.evidence-schema-base.outputs.verdict == 'pass')) && (steps.governance-check.outputs.verdict || steps.anchor-missing.outputs.verdict || steps.on-missing.outputs.verdict) || 'fail' }}
+  evidence-result:
+    description: >-
+      pass | fail — what the base-commit evidence leg's validator found, in either evidence-schema
+      mode. Empty when the PR touches no anchors.
+    value: ${{ steps.evidence-schema-base.outputs.evidence_result }}
 
 runs:
   using: "composite"
@@ -167,6 +184,26 @@ runs:
         # string literal in an `if:` expression — an ambiguity worth avoiding entirely
         # rather than relying on).
         if [ -n "$DIRS" ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
+
+    # FAFF-1278: whether the PR diff touches the anchors path, computed in shell with no faff
+    # binary, so a crashing or rewritten head binary cannot stop it being written. It gates the
+    # base-commit evidence leg below; `error` (git diff itself failed) fails that leg closed.
+    - name: Check whether the PR touches anchors
+      id: anchors-touched
+      shell: bash
+      env:
+        ANCHORS_PATH: ${{ inputs.anchors-path }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -uo pipefail
+        if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
+          echo "touched=false" >> "$GITHUB_OUTPUT"
+        elif CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "$ANCHORS_PATH" 2>/dev/null)"; then
+          if [ -n "$CHANGED" ]; then echo "touched=true" >> "$GITHUB_OUTPUT"; else echo "touched=false" >> "$GITHUB_OUTPUT"; fi
+        else
+          echo "touched=error" >> "$GITHUB_OUTPUT"
+        fi
 
     # FAFF-568: discover carried ANCHOR dirs from the PR diff, same base...head diff as
     # run dirs. Anchors route to the integrity leg ONLY (never the run-dir sweep), so
@@ -286,6 +323,9 @@ runs:
         fi
         ARGS+=(--level "${{ inputs.level }}")
         ARGS+=(--legacy-policy "${{ inputs.legacy-policy }}")
+        if [ "${{ inputs.evidence-schema }}" = "require" ]; then
+          ARGS+=(--require-evidence-schema)
+        fi
         # FAFF-568 fix pass: the CLI re-asserts anchors-path containment on every
         # --anchor-dir (defence-in-depth behind the discovery step's own check).
         if [ "${{ steps.discover-anchors.outputs.found }}" = "true" ]; then
@@ -299,3 +339,236 @@ runs:
           echo "verdict=fail" >> "$GITHUB_OUTPUT"
         fi
         exit "$CODE"
+
+    # FAFF-1278: the base-commit evidence leg. Everything above runs PR-head code; these two
+    # steps judge the PR's anchors with the PR BASE commit's faff CLI, so a PR cannot weaken the
+    # validator, manifest or schemas that judge it. Both run after the head verb under
+    # !cancelled(), so a head verb that failed or found nothing cannot skip them. The plugin path
+    # is a constant here, never derived from the faff-binary input: changing where trusted code
+    # comes from means editing .github/, which code-owner review covers.
+    - name: Resolve trusted faff CLI
+      id: resolve-trusted-cli
+      if: ${{ !cancelled() && steps.anchors-touched.outputs.touched != 'false' }}
+      shell: bash
+      env:
+        IN_CHECKOUT: ${{ steps.check-binary.outputs.in-checkout }}
+        PINNED_BIN: ${{ steps.fetch-pinned.outputs.bin }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        set -euo pipefail
+        PLUGIN="plugin/skills/faff"
+        if [ "$IN_CHECKOUT" = "true" ]; then
+          if ! git cat-file -e "$BASE_SHA:$PLUGIN/bin/faff" 2>/dev/null; then
+            echo "unavailable=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          rm -rf "$RUNNER_TEMP/faff-base"
+          mkdir -p "$RUNNER_TEMP/faff-base"
+          git archive "$BASE_SHA" -- "$PLUGIN" | tar -x -C "$RUNNER_TEMP/faff-base"
+          TRUSTED="$RUNNER_TEMP/faff-base/$PLUGIN/bin/faff"
+          CANDIDATE="$GITHUB_WORKSPACE/$PLUGIN/contracts/evidence-v0.3"
+        else
+          TRUSTED="$PINNED_BIN"
+          CANDIDATE=""
+        fi
+        mkdir -p "$RUNNER_TEMP/faff-trusted-cwd" "$RUNNER_TEMP/faff-home"
+        run_trusted() { (cd "$RUNNER_TEMP/faff-trusted-cwd" && env -i PATH="$PATH" HOME="$RUNNER_TEMP/faff-home" node "$TRUSTED" "$@"); }
+        CAPS="$(run_trusted evidence capabilities --json 2>/dev/null || true)"
+        has_cap() {
+          node -e 'let c; try { c = JSON.parse(process.argv[1]); } catch { c = null; }
+            process.exit(c && Array.isArray(c.validate) && c.validate.includes(process.argv[2]) ? 0 : 1);' "$CAPS" "$1"
+        }
+        has_cap candidate-schemas || CANDIDATE=""
+        if has_cap holdout-binding; then HOLDOUT_BINDING=true; else HOLDOUT_BINDING=false; fi
+        {
+          echo "unavailable=false"
+          echo "trusted=$TRUSTED"
+          echo "candidate=$CANDIDATE"
+          echo "holdout-binding=$HOLDOUT_BINDING"
+        } >> "$GITHUB_OUTPUT"
+
+    # Re-discovers the anchors with the trusted CLI, refuses changed anchor files no validated
+    # dir covers and edits to committed anchors (integrity findings, failing in either mode), then
+    # validates each anchor. Reports are captured to files and never echoed: they hold violation
+    # text that can carry evidence values. Only paths, statuses and counts reach the log and
+    # summary, each through `clean`, which applies sanitiseDisplay's rules and escapes `|`.
+    - name: Evidence schema (base commit)
+      id: evidence-schema-base
+      if: ${{ !cancelled() && steps.anchors-touched.outputs.touched != 'false' }}
+      shell: bash
+      env:
+        MODE: ${{ inputs.evidence-schema }}
+        TOUCHED: ${{ steps.anchors-touched.outputs.touched }}
+        UNAVAILABLE: ${{ steps.resolve-trusted-cli.outputs.unavailable }}
+        TRUSTED: ${{ steps.resolve-trusted-cli.outputs.trusted }}
+        CANDIDATE: ${{ steps.resolve-trusted-cli.outputs.candidate }}
+        HOLDOUT_BINDING: ${{ steps.resolve-trusted-cli.outputs.holdout-binding }}
+        ANCHORS_PATH: ${{ inputs.anchors-path }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -euo pipefail
+        REPORTS="$RUNNER_TEMP/faff-evidence"
+        VERDICT_WRITTEN=false
+        finish() {
+          local rc=$?
+          rm -rf "$REPORTS"
+          if [ "$VERDICT_WRITTEN" != true ]; then
+            echo "verdict=fail" >> "$GITHUB_OUTPUT"
+            echo "::error::faff governance-check: the base-commit evidence leg stopped before reaching a verdict"
+            exit 1
+          fi
+          exit "$rc"
+        }
+        trap finish EXIT
+        rm -rf "$REPORTS"
+        mkdir -p "$REPORTS" "$RUNNER_TEMP/faff-trusted-cwd" "$RUNNER_TEMP/faff-home"
+        run_trusted() { (cd "$RUNNER_TEMP/faff-trusted-cwd" && env -i PATH="$PATH" HOME="$RUNNER_TEMP/faff-home" node "$TRUSTED" "$@"); }
+        CLEAN='const clean = (v) => String(v).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replaceAll("::", ": :").replaceAll("|", "\\|");'
+        clean() { node -e "$CLEAN"' process.stdout.write(clean(process.argv[1]));' "$1"; }
+        # One line per report: status, candidate status, failing files. Unreadable reports read as error.
+        REPORT_LINE="$CLEAN"'
+          let r; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); } catch { r = null; }
+          const ok = r !== null && typeof r === "object" && !Array.isArray(r);
+          const status = ok && ["pass", "fail", "legacy"].includes(r.status) ? r.status : "error";
+          let candidate = "n/a";
+          if (ok && Array.isArray(r.candidate_rejected)) {
+            const rejected = r.candidate_rejected.map((c) => (c && typeof c.path === "string" ? c.path : "?"));
+            candidate = rejected.length === 0 ? "accepted"
+              : rejected.includes("anchor-manifest.json") ? "rejected"
+              : `partial (${rejected.map(clean).join(", ")})`;
+          }
+          const failing = ok && Array.isArray(r.files)
+            ? r.files.filter((f) => f && f.status !== "ok").map((f) => `${clean(f.path)} (${clean(f.status)})`) : [];
+          const shown = failing.slice(0, 5).join(", ") + (failing.length > 5 ? ` (+${failing.length - 5} more)` : "");
+          process.stdout.write([status, candidate, shown || "-"].join("\t") + "\n");'
+
+        INTEGRITY=()
+        DIRS=()
+        ANCHORS="${ANCHORS_PATH%/}"
+        prefix_workspace() { while IFS= read -r line; do printf '%s/%s\n' "$GITHUB_WORKSPACE" "$line"; done; }
+        covered() {
+          local abs="$GITHUB_WORKSPACE/$1" d
+          for d in "${DIRS[@]}"; do
+            case "$abs" in "$d"/*) return 0 ;; esac
+          done
+          return 1
+        }
+        # The run-level summary `faff events anchor-run` writes at <anchors>/<run>/summary.md.
+        is_run_summary() {
+          local rest="${1#"$ANCHORS"/}"
+          [ "$rest" != "$1" ] && [[ "$rest" =~ ^[^/]+/summary\.md$ ]]
+        }
+
+        case "$MODE" in
+          report|require) ;;
+          *) INTEGRITY+=("evidence-schema-input-invalid: expected report or require") ;;
+        esac
+        if [ "$TOUCHED" = "error" ]; then
+          INTEGRITY+=("anchor-discovery-failed: git diff exited non-zero")
+        elif [ "$UNAVAILABLE" != "false" ] || [ -z "$TRUSTED" ]; then
+          INTEGRITY+=("evidence-validator-unavailable: base commit has no faff CLI")
+        else
+          if CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "$ANCHORS")" \
+            && DERIVED="$(printf '%s\n' "$CHANGED" | prefix_workspace | run_trusted governance-check --derive-anchor-dirs "$GITHUB_WORKSPACE/$ANCHORS" 2>/dev/null)"; then
+            while IFS= read -r d; do
+              if [ -n "$d" ]; then DIRS+=("$d"); fi
+            done <<< "$DERIVED"
+          else
+            INTEGRITY+=("anchor-discovery-failed: trusted anchor discovery exited non-zero")
+          fi
+
+          # Coverage: every changed anchors-path file present in head sits inside a validated dir.
+          if git diff -z --name-only --diff-filter=AM "$BASE_SHA" "$HEAD_SHA" -- "$ANCHORS" > "$REPORTS/changed.z" \
+            && git diff -z --raw --no-renames "$BASE_SHA" "$HEAD_SHA" -- "$ANCHORS" > "$REPORTS/raw.z"; then
+            while IFS= read -r -d '' p; do
+              covered "$p" || is_run_summary "$p" || INTEGRITY+=("anchor-path-unvalidated $(clean "$p")")
+            done < "$REPORTS/changed.z"
+            while IFS= read -r -d '' meta && IFS= read -r -d '' p; do
+              read -r _ mode _ <<< "$meta"
+              if [ "$mode" = "120000" ]; then INTEGRITY+=("anchor-path-unvalidated $(clean "$p")"); fi
+            done < "$REPORTS/raw.z"
+          else
+            INTEGRITY+=("anchor-discovery-failed: git diff exited non-zero")
+          fi
+
+          # Immutability: a PR never modifies, deletes or adds to an anchor committed at the merge base.
+          if MB="$(git merge-base "$BASE_SHA" "$HEAD_SHA")" \
+            && git diff -z --name-status --no-renames "$MB" "$HEAD_SHA" -- "$ANCHORS" > "$REPORTS/status.z"; then
+            while IFS= read -r -d '' status && IFS= read -r -d '' p; do
+              if [ "$status" != "A" ]; then
+                INTEGRITY+=("anchor-immutable $(clean "$p")")
+                continue
+              fi
+              rest="${p#"$ANCHORS"/}"
+              run="${rest%%/*}"
+              below="${rest#*/}"
+              issue="${below%%/*}"
+              if [ "$below" != "$rest" ] && [ "$issue" != "$below" ] && git cat-file -e "$MB:$ANCHORS/$run/$issue" 2>/dev/null; then
+                INTEGRITY+=("anchor-immutable $(clean "$p")")
+              fi
+            done < "$REPORTS/status.z"
+          else
+            INTEGRITY+=("anchor-discovery-failed: git merge-base exited non-zero")
+          fi
+        fi
+
+        # Nothing was validated when discovery or the trusted CLI was missing, so the result is fail.
+        if [ "$TOUCHED" = "error" ] || [ "$UNAVAILABLE" != "false" ] || [ -z "$TRUSTED" ]; then EVIDENCE_RESULT=fail; else EVIDENCE_RESULT=pass; fi
+        ROWS=()
+        HOLDOUT_SEEN=false
+        n=0
+        for d in "${DIRS[@]}"; do
+          n=$((n + 1))
+          ARGS=(evidence validate "$d" --require-evidence-schema --json)
+          if [ -n "$CANDIDATE" ]; then ARGS+=(--candidate-schemas "$CANDIDATE"); fi
+          rc=0
+          run_trusted "${ARGS[@]}" > "$REPORTS/$n.json" 2> /dev/null || rc=$?
+          IFS=$'\t' read -r status candidate failing < <(node -e "$REPORT_LINE" "$REPORTS/$n.json")
+          name="$(clean "${d#"$GITHUB_WORKSPACE"/}")"
+          if [ -e "$d/holdout.json" ]; then HOLDOUT_SEEN=true; fi
+          if [ "$rc" -eq 0 ]; then
+            ROWS+=("| $name | ok | $status | $failing | $candidate |")
+          else
+            EVIDENCE_RESULT=fail
+            ROWS+=("| $name | **fail** | $status | $failing | $candidate |")
+            if [ "$MODE" = "require" ]; then level=error; else level=warning; fi
+            echo "::$level::faff governance-check: evidence-schema (base commit) $name: $status"
+          fi
+        done
+
+        HOLDOUT_NOTE=""
+        if [ "$MODE" = "require" ] && [ "$HOLDOUT_SEEN" = true ] && [ "$HOLDOUT_BINDING" != "true" ]; then
+          HOLDOUT_NOTE="holdout binding not checked: base CLI predates FAFF-1261"
+          echo "::warning::faff governance-check: $HOLDOUT_NOTE"
+        fi
+        for finding in "${INTEGRITY[@]}"; do
+          echo "::error::faff governance-check: $finding"
+        done
+
+        {
+          echo ""
+          echo "### Evidence schema (base commit ${BASE_SHA:0:12})"
+          echo ""
+          echo "mode: \`$(clean "$MODE")\` · validator result: $EVIDENCE_RESULT"
+          echo ""
+          for finding in "${INTEGRITY[@]}"; do echo "- **integrity:** $finding"; done
+          if [ -n "$HOLDOUT_NOTE" ]; then echo "- $HOLDOUT_NOTE"; fi
+          if [ "${#ROWS[@]}" -gt 0 ]; then
+            echo ""
+            echo "| anchor | result | status | non-conforming files | candidate schemas |"
+            echo "|---|---|---|---|---|"
+            printf '%s\n' "${ROWS[@]}"
+          fi
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        VERDICT=pass
+        if [ "${#INTEGRITY[@]}" -gt 0 ]; then VERDICT=fail; fi
+        if [ "$EVIDENCE_RESULT" = "fail" ] && [ "$MODE" = "require" ]; then VERDICT=fail; fi
+        {
+          echo "evidence_result=$EVIDENCE_RESULT"
+          echo "verdict=$VERDICT"
+        } >> "$GITHUB_OUTPUT"
+        VERDICT_WRITTEN=true
+        if [ "$VERDICT" != "pass" ]; then exit 1; fi

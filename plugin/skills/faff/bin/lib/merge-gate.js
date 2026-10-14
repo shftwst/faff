@@ -277,13 +277,17 @@ function classifyPostMerge({ merge_ok, post_state, merge_stderr }) {
 // rulesets). Operates on an already-fetched array; no network. `protected` is defined precisely as
 // "a required_status_checks rule applies" — the rule's presence is the signal, even with an empty
 // contexts list (a well-formed, if unusual, ruleset the probe does not second-guess).
+// `code_owner_review` (FAFF-1278) reads `require_code_owner_review` from the pull_request rule(s):
+// true when any applying rule requires it, false when none does, null when no pull_request rule applies.
 function extractRequiredChecks(rules) {
-  if (!Array.isArray(rules)) return { protected: false, required_checks: [] }; // defensive; caller guarantees array
+  if (!Array.isArray(rules)) return { protected: false, required_checks: [], code_owner_review: null }; // defensive; caller guarantees array
+  const prRules = rules.filter((r) => r && r.type === "pull_request");
+  const code_owner_review = prRules.length ? prRules.some((r) => !!(r.parameters && r.parameters.require_code_owner_review === true)) : null;
   const rsc = rules.find((r) => r && r.type === "required_status_checks");
-  if (!rsc) return { protected: false, required_checks: [] };
+  if (!rsc) return { protected: false, required_checks: [], code_owner_review };
   const raw = (rsc.parameters && rsc.parameters.required_status_checks) || [];
   const contexts = raw.filter((c) => c && typeof c.context === "string" && c.context.length > 0).map((c) => c.context);
-  return { protected: true, required_checks: contexts };
+  return { protected: true, required_checks: contexts, code_owner_review };
 }
 
 // PURE: the probe result → BranchProtectionState. ok:true + protected → protected;
@@ -2129,6 +2133,7 @@ function cmdBranchProtectionCheck(args) {
   // rulesets — not the classic protection API (which 404s on ruleset-only protection).
   const r = runGh(["api", `repos/${repo}/rules/branches/${branch}`], { timeout: 60000 }); // FAFF-1213
   let probe;
+  let codeOwnerReview = null;
   if (r.error) probe = { ok: false, basis: `gh unavailable: ${r.error.message}` };
   else if (r.status === 0) {
     let rules;
@@ -2137,7 +2142,8 @@ function cmdBranchProtectionCheck(args) {
       // Unparseable / non-array body: never read a shape change as [] → unprotected. Fail-closed.
       probe = { ok: false, basis: `unparseable rules JSON from gh api repos/${repo}/rules/branches/${branch}` };
     } else {
-      const { protected: prot, required_checks } = extractRequiredChecks(rules);
+      const { protected: prot, required_checks, code_owner_review } = extractRequiredChecks(rules);
+      codeOwnerReview = code_owner_review;
       probe = prot
         ? { ok: true, protected: true, required_checks, basis: `gh api repos/${repo}/rules/branches/${branch} — required_status_checks rule present` }
         : { ok: true, protected: false, basis: `no required-status-check rule on ${branch} (rules endpoint returned ${rules.length} rule(s))` };
@@ -2151,9 +2157,9 @@ function cmdBranchProtectionCheck(args) {
     probe = { ok: false, basis: `gh api error (${r.status}): ${(r.stderr || "").split("\n")[0]}` };
   }
   const st = classifyBranchProtection(probe);
-  st.branch = branch; st.repo = repo;
+  st.branch = branch; st.repo = repo; st.code_owner_review = codeOwnerReview;
   if (json) process.stdout.write(JSON.stringify(st) + "\n");
-  else console.log(`${st.status} (basis: ${st.basis})${st.required_checks.length ? ` — required: ${st.required_checks.join(", ")}` : ""}`);
+  else console.log(`${st.status} (basis: ${st.basis})${st.required_checks.length ? ` — required: ${st.required_checks.join(", ")}` : ""} — code-owner review: ${codeOwnerReview === true ? "required" : "not required"}`);
   return st.status === "protected" ? 0 : 1;
 }
 
@@ -3166,6 +3172,11 @@ function branchProtectionSelftest() {
   check("rules without required_status_checks → not protected", extractRequiredChecks([{ type: "deletion" }, { type: "pull_request" }]).protected === false);
   check("required_status_checks rule with empty contexts → protected, []", (() => { const e = extractRequiredChecks([{ type: "required_status_checks", parameters: { required_status_checks: [] } }]); return e.protected === true && e.required_checks.length === 0; })());
   check("non-array rules → not protected (defensive)", extractRequiredChecks(null).protected === false);
+  // FAFF-1278: code_owner_review from the ruleset pull_request rule.
+  const prRule = (params) => [{ type: "required_status_checks", parameters: { required_status_checks: [] } }, { type: "pull_request", parameters: params }];
+  check("pull_request rule requiring code-owner review → code_owner_review true", extractRequiredChecks(prRule({ require_code_owner_review: true })).code_owner_review === true);
+  check("pull_request rule not requiring code-owner review → code_owner_review false", extractRequiredChecks(prRule({ require_code_owner_review: false })).code_owner_review === false);
+  check("no pull_request rule → code_owner_review null", extractRequiredChecks([{ type: "deletion" }]).code_owner_review === null);
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (branch-protection pure classifier, ${fail} failed)`);
   return fail ? 1 : 0;
 }

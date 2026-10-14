@@ -672,8 +672,10 @@ function anchoredTerminalReview(block) {
 
 function terminalReviewRefusal(issueDir, block) {
   if (block.signal === "unavailable") return "signal: unavailable is not an anchored verdict; the outage park keeps the raw review-verdict block";
-  const roundsDir = path.join(issueDir, "review-rounds");
-  const rounds = fs.existsSync(roundsDir) ? fs.readdirSync(roundsDir).filter((f) => /^round-.*\.json$/.test(f)) : [];
+  let rounds;
+  try { rounds = fs.readdirSync(path.join(issueDir, "review-rounds")).filter((f) => /^round-.*\.json$/.test(f)); } catch (e) {
+    rounds = e && e.code === "ENOENT" ? [] : ["unreadable"];
+  }
   if (rounds.length > 0) return "review-rounds/: round records exist, so a terminal-only verdict would hide them";
   if (Array.isArray(block.findings) && block.findings.some((f) => !isObject(f))) return "findings: every finding must be a JSON object";
   return null;

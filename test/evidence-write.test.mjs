@@ -160,6 +160,10 @@ test("review-verdict --terminal-only: exits 1 and writes nothing for each refuse
   writeFileSync(join(f.runDir, ISSUE, "review-rounds", "round-1.json"), "{}");
   assert.equal(f.review({ signal: "pass", findings: [] }).code, 1);
   assert.ok(!existsSync(f.out("review-verdict.json")));
+  rmSync(join(f.runDir, ISSUE, "review-rounds"), { recursive: true });
+  writeFileSync(join(f.runDir, ISSUE, "review-rounds"), "not a directory");
+  assert.equal(f.review({ signal: "pass", findings: [] }).code, 1);
+  assert.ok(!existsSync(f.out("review-verdict.json")));
   assert.equal(f.events().length, before);
 });
 

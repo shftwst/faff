@@ -125,6 +125,107 @@ function discoverPreCommit(root) {
   return rungs;
 }
 
+// FAFF-1269: executable runner files directly under repo-root script/, scripts/ and bin/ (the
+// "Scripts to Rule Them All" layout). Names only, like the Makefile source: a file body is never
+// read. RUNNER_DIRS order is the precedence on a stem clash. The cost offset sits between the local
+// sources (base) and CI (base + CI_COST_PENALTY), so pkg/Makefile/pre-commit win and CI loses.
+const RUNNER_DIRS = ["script", "scripts", "bin"];
+const SAFE_RUNNER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const RUNNER_COST_OFFSET = 2;
+const RUNNER_KEYWORDS = { LINT: ["lint", "lints"], UNIT: ["test", "tests"] };
+const RUNNER_QUALIFIERS = new Set(["unit", "integration", "e2e", "smoke", "system", "acceptance",
+  "functional", "regression", "all", "run", "js", "ts", "py", "go", "rb", "css", "style"]);
+// gateKindForName's LINT and UNIT vocabularies, minus `check` (often a whole pre-push suite).
+const RUNNER_TOKENS = {
+  LINT: /(^|[^a-z])(lint|eslint|flake8|ruff|clippy|vet|rubocop|standard)([^a-z]|$)/,
+  UNIT: /(^|[^a-z])(test|tests|unit|spec|pytest|jest|vitest)([^a-z]|$)/,
+};
+
+// A stem matches kind K by a keyword prefix (`test*`), a keyword suffix whose lead is empty, ends in
+// a separator, or is one qualifier word (`unittests`, `run-tests`, never `latest`), or a bounded
+// vocabulary token (`eslint`). Only LINT and UNIT: FORMAT runners often rewrite files.
+function runnerKindForName(stem) {
+  const s = String(stem).toLowerCase();
+  for (const kind of ["LINT", "UNIT"]) {
+    for (const kw of RUNNER_KEYWORDS[kind]) {
+      if (s.startsWith(kw)) return kind;
+      if (s.endsWith(kw)) {
+        const lead = s.slice(0, -kw.length);
+        if (lead === "" || /[-_.]$/.test(lead) || RUNNER_QUALIFIERS.has(lead)) return kind;
+      }
+    }
+    if (RUNNER_TOKENS[kind].test(s)) return kind;
+  }
+  return null;
+}
+
+function runnerStem(name) {
+  return String(name).replace(/\.[A-Za-z0-9]{1,4}$/, "").toLowerCase();
+}
+
+function isExecutableFileInside(file, realRoot) {
+  let real;
+  try { real = fs.realpathSync(file); } catch { return false; }
+  const rel = path.relative(realRoot, real);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return false;
+  try {
+    if (!fs.statSync(real).isFile()) return false;
+    fs.accessSync(real, fs.constants.X_OK);
+  } catch { return false; }
+  return true;
+}
+
+function discoverRunnerFiles(root, { hostOs = localOs(), cap = 5, exclude = [] } = {}) {
+  const rungs = [];
+  const exclusions = [];
+  let realRoot;
+  try { realRoot = fs.realpathSync(root); } catch { return { rungs, exclusions }; }
+  const seenStems = new Set();
+  const perKind = new Map();
+  for (const dir of RUNNER_DIRS) {
+    const abs = path.join(root, dir);
+    let names;
+    try {
+      if (!fs.statSync(abs).isDirectory()) continue;
+      names = fs.readdirSync(abs).sort();
+    } catch { continue; }
+    for (const name of names) {
+      if (!SAFE_RUNNER_NAME.test(name)) continue;
+      const stem = runnerStem(name);
+      const kind = runnerKindForName(stem);
+      if (!kind || seenStems.has(stem)) continue;
+      const command = `./${dir}/${name}`;
+      if (hostOs === "windows") { exclusions.push({ command, reason: "os-mismatch" }); continue; }
+      if (!isExecutableFileInside(path.join(abs, name), realRoot)) continue;
+      seenStems.add(stem);
+      if (exclude.some((pat) => pat && command.includes(pat))) { exclusions.push({ command, reason: "configured" }); continue; }
+      const used = perKind.get(kind) || 0;
+      if (used >= cap) continue;
+      perKind.set(kind, used + 1);
+      rungs.push({ kind, name: `${kind.toLowerCase()} (runner: ${command})`, command, source: "runner_file", cost_rank: GATE_COST[kind] + RUNNER_COST_OFFSET, required: true });
+    }
+  }
+  return { rungs, exclusions };
+}
+
+// The three-tier dedup shared by the reporting and execution resolvers: local rungs (already
+// collapsed by kind) suppress runner rungs of their kind; local and runner rungs together suppress
+// CI rungs of their kind. Each CI rung a runner took over is reported as `runner-covered`, so a
+// false-positive runner displacing the real suite is visible in `faff gates run`.
+function mergeRunnerTier(dedupedLocal, runnerRungs, dedupedCi) {
+  const localKinds = new Set(dedupedLocal.map((r) => r.kind));
+  const keptRunners = runnerRungs.filter((r) => !localKinds.has(r.kind));
+  const runnerKinds = new Set(keptRunners.map((r) => r.kind));
+  const keptCi = [];
+  const displaced = [];
+  for (const r of dedupedCi) {
+    if (localKinds.has(r.kind)) continue;
+    if (runnerKinds.has(r.kind)) { displaced.push({ command: r.command, reason: "runner-covered" }); continue; }
+    keptCi.push(r);
+  }
+  return { rungs: [...dedupedLocal, ...keptRunners, ...keptCi], displaced };
+}
+
 // FAFF-533: the curated recognised-runner allow-list. Ordered — first match wins. This matches a
 // full COMMAND line (not a script/target NAME like gateKindForName), because gateKindForName's loose
 // name tokens (`check`, `test`) over-match arbitrary command text (`git checkout`, `container-check`),
@@ -346,7 +447,6 @@ function discoverRungsReporting(root) {
     if (!localByKind.has(r.kind)) localByKind.set(r.kind, r);
   }
   const dedupedLocal = [...localByKind.values()];
-  const localKinds = new Set(dedupedLocal.map((r) => r.kind));
 
   const { rungs: ciReportRungs, eligibleSteps, recognisedSteps } = discoverCiWorkflowsReporting(root);
   const ciByKindCommand = new Map();
@@ -354,9 +454,9 @@ function discoverRungsReporting(root) {
     const key = `${r.kind} ${r.command}`;
     if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r); // first occurrence wins (stable)
   }
-  const dedupedCi = [...ciByKindCommand.values()].filter((r) => !localKinds.has(r.kind));
-
-  const rungs = [...dedupedLocal, ...dedupedCi].sort((a, b) => a.cost_rank - b.cost_rank);
+  const { rungs: runnerRungs } = discoverRunnerFiles(root, { cap: readGatesConfig(root).max_rungs_per_kind });
+  const rungs = mergeRunnerTier(dedupedLocal, runnerRungs, [...ciByKindCommand.values()]).rungs
+    .sort((a, b) => a.cost_rank - b.cost_rank);
   const ratio = eligibleSteps === 0 ? 1.0 : recognisedSteps / eligibleSteps;
   const coverage = { eligible_steps: eligibleSteps, recognised_steps: recognisedSteps, ratio };
   let discovery;
@@ -434,6 +534,7 @@ function discoverRungs(root) {
     ...discoverPreCommit(root),
     ...discoverPkgScripts(root),
     ...discoverMakefile(root),
+    ...discoverRunnerFiles(root).rungs,
     ...discoverCiWorkflows(root),   // FAFF-533: CI-workflow source (fallback — local sources win dedup)
   ];
   // Deduplicate by kind, preferring the cheapest source (lowest cost_rank) for each kind.
@@ -966,7 +1067,6 @@ function selectRunnableRungs(root, cfg, hostOs = localOs()) {
     if (!localByKind.has(r.kind)) localByKind.set(r.kind, r);
   }
   const dedupedLocal = [...localByKind.values()];
-  const localKinds = new Set(dedupedLocal.map((r) => r.kind));
 
   const { rungs: ciRunnable, exclusions, eligibleSteps, recognisedSteps } = discoverCiWorkflowsRunnable(root, cfg, hostOs);
   const ciByKindCommand = new Map();
@@ -974,10 +1074,11 @@ function selectRunnableRungs(root, cfg, hostOs = localOs()) {
     const key = `${r.kind} ${r.cwd || "."} ${r.command}`;
     if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r);   // two-tier: keep distinct commands
   }
-  const dedupedCi = [...ciByKindCommand.values()].filter((r) => !localKinds.has(r.kind)); // FAFF-533
+  const runner = discoverRunnerFiles(root, { hostOs, cap: cfg.max_rungs_per_kind, exclude: cfg.exclude });
+  const merged = mergeRunnerTier(dedupedLocal, runner.rungs, [...ciByKindCommand.values()]); // FAFF-533
+  exclusions.push(...runner.exclusions, ...merged.displaced);
 
-  let rungs = [...dedupedLocal, ...dedupedCi];
-  rungs = aggregateSelftest(rungs);
+  let rungs = aggregateSelftest(merged.rungs);
   rungs = capPerKind(rungs, cfg.max_rungs_per_kind);
   rungs = rungs.sort((a, b) => a.cost_rank - b.cost_rank);
 
@@ -1596,12 +1697,121 @@ async function gatesSelftest() {
   cases.push(["signal: confident discovery is a pass-through", applyPartialPolicy("pass", "confident", { ratio: 1.0 }, cfgNH).signal === "pass" && applyPartialPolicy("pass", "confident", { ratio: 1.0 }, cfgNH).partialWarning === false]);
   cases.push(["signal: ratio at/above threshold is a pass-through", applyPartialPolicy("pass", "partial", { ratio: 0.6 }, cfgNH).signal === "pass"]);
 
+  await runnerFileSelftestCases(cases, mk, tmp);
+
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
 
   let failed = 0;
   for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
   console.log(`RESULT: ${failed ? "FAIL" : "PASS"} (${cases.length} cases, ${failed} failed)`);
   return failed ? 1 : 0;
+}
+
+// FAFF-1269: runner-file source cases. Fixtures are 0755 unless listed in `plain`; the
+// executable-bit and symlink cases need POSIX file modes, so win32 asserts only the os-mismatch skip.
+async function runnerFileSelftestCases(cases, mk, tmp) {
+  const OK = "#!/bin/sh\nexit 0\n";
+  const mkRunners = (name, files, plain = []) => {
+    const d = mk(name, files);
+    for (const f of Object.keys(files)) if (!plain.includes(f)) fs.chmodSync(path.join(d, f), 0o755);
+    return d;
+  };
+  const cfgFor = (over = {}) => ({ fallback: "fail-closed", partial: "warn", exclude: [], max_rungs_per_kind: 5, partial_threshold: 0.5, ...over });
+  const cmds = (rungs, kind) => rungs.filter((r) => !kind || r.kind === kind).map((r) => r.command).join(",");
+
+  const unitNames = ["testall", "test-e2e", "unittests", "tests", "run-tests", "test-unit"];
+  const lintNames = ["linter", "lint-js", "lint", "eslint"];
+  const nullNames = ["setup", "rails", "cibuild", "latest", "attestation", "contest", "splint", "check", "format"];
+  cases.push(["runner kind: wildcard and token UNIT names", unitNames.every((n) => runnerKindForName(n) === "UNIT")]);
+  cases.push(["runner kind: wildcard and token LINT names", lintNames.every((n) => runnerKindForName(n) === "LINT")]);
+  cases.push(["runner kind: non-gate names, check and format → null", nullNames.every((n) => runnerKindForName(n) === null)]);
+
+  const winBase = mkRunners("runner-win", { "script/test": OK, "bin/lint": OK });
+  const win = selectRunnableRungs(winBase, cfgFor(), "windows");
+  cases.push(["runner windows: no runner rung, each candidate excluded os-mismatch",
+    !win.rungs.some((r) => r.source === "runner_file") &&
+    win.exclusions.filter((e) => e.reason === "os-mismatch").map((e) => e.command).sort().join(",") === "./bin/lint,./script/test"]);
+  if (process.platform === "win32") return;
+
+  const dBase = mkRunners("runner-base", { "script/test": OK, "bin/lint": OK });
+  const rep = discoverRungsReporting(dBase);
+  const unit = rep.rungs.find((r) => r.kind === "UNIT");
+  const lint = rep.rungs.find((r) => r.kind === "LINT");
+  cases.push(["runner: script/test + bin/lint → confident, UNIT ./script/test, LINT ./bin/lint",
+    rep.discovery === "confident" && rep.rungs.length === 2 && unit && unit.command === "./script/test" && lint && lint.command === "./bin/lint"]);
+  cases.push(["runner: rung shape (source, cost_rank, required, name)",
+    unit.source === "runner_file" && unit.cost_rank === GATE_COST.UNIT + 2 && unit.required === true && unit.name === "unit (runner: ./script/test)" &&
+    lint.source === "runner_file" && lint.cost_rank === GATE_COST.LINT + 2 && lint.name === "lint (runner: ./bin/lint)"]);
+  cases.push(["runner: command matches the safe relative-path shape",
+    rep.rungs.every((r) => /^\.\/(script|scripts|bin)\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(r.command))]);
+
+  const dSh = mkRunners("runner-sh", { "scripts/lint.sh": OK });
+  cases.push(["runner: scripts/lint.sh → LINT ./scripts/lint.sh", cmds(discoverRungsReporting(dSh).rungs, "LINT") === "./scripts/lint.sh"]);
+
+  const dWild = mkRunners("runner-wild", { "bin/testall": OK, "bin/test-e2e": OK, "bin/unittests": OK, "bin/linter": OK, "bin/lint-js": OK });
+  const wild = discoverRungsReporting(dWild).rungs;
+  cases.push(["runner: wildcard files each give a rung of the right kind",
+    cmds(wild, "UNIT") === "./bin/test-e2e,./bin/testall,./bin/unittests" && cmds(wild, "LINT") === "./bin/lint-js,./bin/linter"]);
+
+  const dNeg = mkRunners("runner-neg", { "bin/setup": OK, "bin/rails": OK, "script/cibuild": OK, "bin/latest": OK, "bin/attestation": OK, "bin/contest": OK, "bin/splint": OK });
+  cases.push(["runner: non-gate names produce no rung", discoverRungsReporting(dNeg).rungs.length === 0]);
+
+  const dExt = mkRunners("runner-ext", { "bin/test": OK, "bin/test.sh": OK });
+  cases.push(["runner: bin/test + bin/test.sh → one rung ./bin/test", cmds(discoverRungsReporting(dExt).rungs) === "./bin/test"]);
+  const dDirs = mkRunners("runner-dirs", { "script/test": OK, "bin/test": OK });
+  cases.push(["runner: script/test + bin/test → one rung ./script/test", cmds(discoverRungsReporting(dDirs).rungs) === "./script/test"]);
+
+  const dTwo = mkRunners("runner-two", { "bin/test-unit": OK, "bin/test-e2e": OK });
+  cases.push(["runner: two UNIT runners both appear in reporting and execution",
+    cmds(discoverRungsReporting(dTwo).rungs) === "./bin/test-e2e,./bin/test-unit" &&
+    cmds(selectRunnableRungs(dTwo, cfgFor(), "linux").rungs) === "./bin/test-e2e,./bin/test-unit"]);
+  cases.push(["runner: max_rungs_per_kind 1 keeps ./bin/test-e2e", cmds(selectRunnableRungs(dTwo, cfgFor({ max_rungs_per_kind: 1 }), "linux").rungs) === "./bin/test-e2e"]);
+  const exCap = selectRunnableRungs(dTwo, cfgFor({ max_rungs_per_kind: 1, exclude: ["./bin/test-e2e"] }), "linux");
+  cases.push(["runner: excluded runner is configured and takes no cap slot",
+    cmds(exCap.rungs) === "./bin/test-unit" && exCap.exclusions.some((e) => e.command === "./bin/test-e2e" && e.reason === "configured")]);
+
+  const ciNodeTest = "jobs:\n  u:\n    steps:\n      - run: node --test\n";
+  const dPkgWins = mkRunners("runner-pkg-wins", { "package.json": JSON.stringify({ scripts: { test: "true" } }), "script/test": OK, "bin/test-e2e": OK, ".github/workflows/ci.yml": ciNodeTest }, ["package.json", ".github/workflows/ci.yml"]);
+  const pkgWins = selectRunnableRungs(dPkgWins, cfgFor(), "linux");
+  cases.push(["runner: package.json UNIT suppresses every runner UNIT rung",
+    cmds(discoverRungsReporting(dPkgWins).rungs, "UNIT") === "npm run test" && cmds(pkgWins.rungs, "UNIT") === "npm run test"]);
+  cases.push(["runner: CI dropped by a local rung is not runner-covered", !pkgWins.exclusions.some((e) => e.reason === "runner-covered")]);
+  const dMake = mkRunners("runner-make", { "Makefile": "lint:\n\ttrue\n", "bin/lint": OK }, ["Makefile"]);
+  cases.push(["runner: Makefile LINT suppresses the runner LINT rung", cmds(discoverRungsReporting(dMake).rungs, "LINT") === "make lint"]);
+  const dPre = mkRunners("runner-pre", { ".pre-commit-config.yaml": "repos:\n  - hooks:\n      - id: eslint\n", "bin/lint": OK }, [".pre-commit-config.yaml"]);
+  cases.push(["runner: pre-commit LINT suppresses the runner LINT rung", cmds(discoverRungsReporting(dPre).rungs, "LINT") === "pre-commit run eslint --all-files"]);
+
+  const dCi = mkRunners("runner-ci", { "bin/test-unit": OK, "bin/test-e2e": OK, ".github/workflows/ci.yml": ciNodeTest }, [".github/workflows/ci.yml"]);
+  const ciSel = selectRunnableRungs(dCi, cfgFor(), "linux");
+  cases.push(["runner: runner UNIT suppresses the CI UNIT rung (reporting and execution)",
+    cmds(discoverRungsReporting(dCi).rungs, "UNIT") === "./bin/test-e2e,./bin/test-unit" && cmds(ciSel.rungs, "UNIT") === "./bin/test-e2e,./bin/test-unit"]);
+  cases.push(["runner: displaced CI rung recorded as runner-covered", ciSel.exclusions.some((e) => e.command === "node --test" && e.reason === "runner-covered")]);
+  const dOrder = mkRunners("runner-order", { "package.json": JSON.stringify({ scripts: { lint: "true" } }), "bin/lint": OK, "bin/test": OK, ".github/workflows/ci.yml": ciNodeTest }, ["package.json", ".github/workflows/ci.yml"]);
+  cases.push(["runner: discoverRungs picks pkg over runner and runner over CI", cmds(discoverRungs(dOrder).rungs) === "npm run lint,./bin/test"]);
+
+  const dUnsafe = mkRunners("runner-unsafe", { "bin/te st": OK, "bin/test;rm": OK, "bin/$(x)test": OK });
+  cases.push(["runner: names with whitespace or shell metacharacters produce no rung", discoverRungsReporting(dUnsafe).rungs.length === 0]);
+
+  const outside = path.join(tmp, "runner-outside-target");
+  fs.writeFileSync(outside, OK);
+  fs.chmodSync(outside, 0o755);
+  const dOut = mk("runner-symlink-out", {});
+  fs.mkdirSync(path.join(dOut, "bin"));
+  fs.symlinkSync(outside, path.join(dOut, "bin", "test"));
+  cases.push(["runner: symlink resolving outside the repo produces no rung", discoverRungsReporting(dOut).rungs.length === 0]);
+  const dIn = mkRunners("runner-symlink-in", { "tools/run-tests": OK });
+  fs.mkdirSync(path.join(dIn, "bin"));
+  fs.symlinkSync(path.join("..", "tools", "run-tests"), path.join(dIn, "bin", "test"));
+  cases.push(["runner: symlink inside the repo to an executable file gives a rung", cmds(discoverRungsReporting(dIn).rungs) === "./bin/test"]);
+
+  const dPlain = mkRunners("runner-plain", { "bin/test": OK }, ["bin/test"]);
+  cases.push(["runner: non-executable bin/test (0644) produces no rung", discoverRungsReporting(dPlain).rungs.length === 0]);
+
+  const lad = await runLadder(dBase);
+  cases.push(["runner ladder: script/test + bin/lint → pass, both rungs pass",
+    lad.signal === "pass" && lad.rungs.length === 2 && lad.rungs.every((r) => r.status === "pass")]);
+  const dFail = mkRunners("runner-fail", { "script/test": "#!/bin/sh\nexit 1\n" });
+  cases.push(["runner ladder: a runner exiting 1 → fail", (await runLadder(dFail)).signal === "fail"]);
 }
 
 // FAFF-190: install-health check. The faff skills can be installed as real-dir COPIES (e.g. a
@@ -2178,4 +2388,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, aggregateShardResults, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, aggregateShardResults, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runnerKindForName, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };

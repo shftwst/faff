@@ -30,7 +30,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
 
-const SPEC_REVIEW_LENSES = ["architectural", "infosec", "methodology", "QA"];
+const { SPEC_REVIEW_LENSES } = require("./review-vocab");
 
 // lensSet(objections) -> sorted, deduped array of lens strings appearing in a round
 // record's `objections` array. Defensive against a missing/malformed `objections` field

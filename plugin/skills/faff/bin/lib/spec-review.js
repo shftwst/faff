@@ -8,16 +8,11 @@
 // block (the caller pipes the output to `faff contract spec-review-verdict`). Pure: fs/stdin
 // read only, no tracker, no network, no git.
 //
-// `faff spec-review select-evidence --dir <scratch>` is the deterministic EVIDENCE SELECTOR
-// prep runs at its terminal review seam before stamping dispositions. It picks the highest-`n`
-// objection-bearing `round-<n>.json` across the WHOLE loop, else the empty terminal approve.
-// It deliberately does NOT scope to the convergence `window_start`: FAFF-1157 scoped selection
-// to `[window_start .. n]`, but that window resets to the current round on a reviewer swap /
-// unpinnable-reset / pin-capture miss (spec-review-window --govern), so a genuinely multi-round
-// review anchored EMPTY evidence whenever every objection-bearing round sat before the last
-// reset. Selection only — prep still stamps `disposition` mechanically on the returned record.
-// Pure + fail-safe: a malformed round file is skipped, an absent/unreadable dir yields the
-// empty approve (audit-only, never blocks).
+// `faff spec-review collate-evidence --dir <scratch>` (FAFF-1267) is the deterministic collator prep
+// runs at its terminal review seam: every objection from every valid `round-<n>.json` as its own
+// item, optionally with a dispositions file folded in, and `--comment` renders the whole carried
+// comment with its sha256 line. The collator and renderer live in the governance module
+// `evidence-collate.js`; this verb is the thin factory shell over them.
 // ===========================================================================
 
 "use strict";
@@ -25,64 +20,12 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
-const { SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./contract-defs");
-
-const EVIDENCE_HEADING = "spec-review evidence";
-const EVIDENCE_FENCE_RE = /```faff-contract:spec-review-verdict\s*\n([\s\S]*?)\n```/;
-
-// extractSpecReviewEvidence(text) -> the JSON body of the `faff-contract:spec-review-verdict`
-// fenced block found under a `## Spec-review evidence` heading (case-insensitive, any heading
-// level), or null when no such section or no fenced block is present. The section runs to the
-// next heading at the same-or-shallower level, so a fenced block after the section is ignored.
-function extractSpecReviewEvidence(text) {
-  const lines = String(text).split(/\r?\n/);
-  const headingRe = /^(#{1,6})\s+(.+?)\s*$/;
-  let startIdx = -1;
-  let startLevel = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(headingRe);
-    if (m && m[2].trim().toLowerCase() === EVIDENCE_HEADING) {
-      startIdx = i;
-      startLevel = m[1].length;
-      break;
-    }
-  }
-  if (startIdx === -1) return null;
-  let endIdx = lines.length;
-  for (let i = startIdx + 1; i < lines.length; i++) {
-    const m = lines[i].match(headingRe);
-    if (m && m[1].length <= startLevel) { endIdx = i; break; }
-  }
-  const section = lines.slice(startIdx, endIdx).join("\n");
-  const fence = section.match(EVIDENCE_FENCE_RE);
-  return fence ? fence[1] : null;
-}
-
-// selectEvidenceVerdict(dir) -> the raw { verdict, objections } evidence record prep stamps.
-// The highest-`n` round-<n>.json whose `objections` array is non-empty, scanned across EVERY
-// round in the dir (never the convergence window — see the header), else the empty terminal
-// approve `{verdict:"approve", objections:[]}`. Pure + fail-safe: a malformed round is skipped,
-// an absent/unreadable dir yields the empty approve.
-function selectEvidenceVerdict(dir) {
-  let names;
-  try { names = fs.readdirSync(dir); }
-  catch { return { verdict: "approve", objections: [] }; }
-  const rounds = [];
-  for (const name of names) {
-    const m = name.match(/^round-(\d+)\.json$/);
-    if (m) rounds.push({ n: parseInt(m[1], 10), path: path.join(dir, name) });
-  }
-  rounds.sort((a, b) => b.n - a.n); // highest-n first
-  for (const r of rounds) {
-    let rec;
-    try { rec = JSON.parse(fs.readFileSync(r.path, "utf8")); }
-    catch { continue; } // malformed round — skip, never crash
-    if (rec && typeof rec === "object" && !Array.isArray(rec) && Array.isArray(rec.objections) && rec.objections.length > 0) {
-      return { verdict: typeof rec.verdict === "string" ? rec.verdict : "revise", objections: rec.objections };
-    }
-  }
-  return { verdict: "approve", objections: [] };
-}
+const { SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
+const { resolveKnownSecretValues } = require("./redact");
+const { findRoot } = require("./shared-infra");
+const {
+  EvidenceRefusal, applyDispositions, collateSpecReviewRounds, extractSpecReviewEvidence, renderSpecReviewComment,
+} = require("./evidence-collate");
 
 // routeRejectApproach(record) -> { route } | { error }. Pure partition of a validated
 // `reject-approach` verdict's objections over {lens, severity}: a methodology objection at
@@ -109,23 +52,40 @@ function routeRejectApproach(record) {
   return { route: { destination: "prep", reason: "no-methodology-major", carried_design_objections: [] } };
 }
 
-const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
-const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | select-evidence --dir <scratch> | route [--file <verdict.json> | --file -])";
+const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
+const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file>] [--comment] | route [--file <verdict.json> | --file -])";
+
+function cmdCollateEvidence(values) {
+  const fail = (code, message) => { process.stderr.write(`faff spec-review collate-evidence: ${message}\n`); return code; };
+  const dir = values["--dir"];
+  if (dir == null) return fail(2, "--dir <scratch> is required");
+  let secrets;
+  try { secrets = resolveKnownSecretValues(findRoot()); } catch { return fail(2, "the redaction config could not be read; nothing printed"); }
+  let collated;
+  try { collated = collateSpecReviewRounds(dir, secrets); } catch { return fail(2, `cannot read round files from ${dir}`); }
+  for (const name of collated.skipped) process.stderr.write(`faff spec-review collate-evidence: skipped ${name} (not a conformant round)\n`);
+  let record = collated.record;
+  const dispositionsPath = values["--dispositions"];
+  if (dispositionsPath != null) {
+    let raw;
+    try { raw = fs.readFileSync(dispositionsPath, "utf8"); } catch { return fail(2, `cannot read ${dispositionsPath}`); }
+    let dispositions;
+    try { dispositions = JSON.parse(raw); } catch { return fail(1, "the dispositions file is not valid JSON"); }
+    try { record = applyDispositions(record, dispositions, secrets); } catch (e) {
+      if (e instanceof EvidenceRefusal) return fail(1, e.message);
+      throw e;
+    }
+  }
+  process.stdout.write(values["--comment"] ? renderSpecReviewComment(record, collated.rounds) : JSON.stringify(record) + "\n");
+  return 0;
+}
 
 function cmdSpecReview(args) {
   if (args.includes("--selftest")) return specReviewSelftest();
   const { values, positionals, errors } = parseArgs(args, SPEC_REVIEW_SPEC);
   if (errors.length) return usageError(errors, SPEC_REVIEW_USAGE);
   const action = positionals[0];
-  if (action === "select-evidence") {
-    const dir = values["--dir"];
-    if (dir == null) {
-      process.stderr.write("faff spec-review select-evidence: --dir <scratch> is required\n");
-      return 2;
-    }
-    process.stdout.write(JSON.stringify(selectEvidenceVerdict(dir)) + "\n");
-    return 0;
-  }
+  if (action === "collate-evidence") return cmdCollateEvidence(values);
   if (action === "route") {
     const routePath = values["--file"];
     const fromFile = routePath != null && routePath !== "-";
@@ -145,7 +105,7 @@ function cmdSpecReview(args) {
     return 0;
   }
   if (action !== "extract-evidence") {
-    process.stderr.write("faff spec-review: expected: extract-evidence | select-evidence | route (or --selftest)\n");
+    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | route (or --selftest)\n");
     return 2;
   }
   const filePath = values["--file"];
@@ -210,67 +170,27 @@ function specReviewSelftest() {
   const cliBadVerb = runSpecReviewForSelftest(["nope"], withEvidence);
   ok("CLI unknown verb → exit 2", cliBadVerb.code === 2);
 
-  // --- select-evidence: whole-loop selection, never window-scoped ---
+  // --- collate-evidence: whole-loop collation, one item per objection ---
   {
     const os = require("node:os");
-    const objs = (lens) => [{ lens, severity: "major", claim: "c" }];
     const mk = (dir, n, verdict, objections) => fs.writeFileSync(path.join(dir, `round-${n}.json`), JSON.stringify({ verdict, objections }));
-
-    // The regression this verb exists to kill: an objection-bearing round-1 followed by a
-    // clean round-2 approve. A window-scoped selector that reset window_start to 2 would
-    // anchor EMPTY evidence; the whole-loop selector picks round-1's objections.
-    const t1 = fs.mkdtempSync(path.join(os.tmpdir(), "faff-sel-reset-"));
+    const obj = (lens) => ({ lens, severity: "major", claim: "c" });
+    const t = fs.mkdtempSync(path.join(os.tmpdir(), "faff-collate-"));
     try {
-      mk(t1, 1, "revise", objs("architectural"));
-      mk(t1, 2, "approve", []);
-      const r = selectEvidenceVerdict(t1);
-      ok("select: objection-bearing round-1 before a clean approve is NOT dropped", r.verdict === "revise" && r.objections.length === 1 && r.objections[0].lens === "architectural");
-    } finally { fs.rmSync(t1, { recursive: true, force: true }); }
-
-    // Highest-n objection-bearing round wins, numerically (round-10 beats round-2).
-    const t2 = fs.mkdtempSync(path.join(os.tmpdir(), "faff-sel-maxn-"));
-    try {
-      mk(t2, 2, "revise", objs("qa"));
-      mk(t2, 10, "reject-approach", objs("infosec"));
-      mk(t2, 11, "approve", []);
-      const r = selectEvidenceVerdict(t2);
-      ok("select: highest-n objection-bearing round wins (numeric, not lexical)", r.verdict === "reject-approach" && r.objections[0].lens === "infosec");
-    } finally { fs.rmSync(t2, { recursive: true, force: true }); }
-
-    // No objection-bearing round (only a clean approve) → the empty terminal approve.
-    const t3 = fs.mkdtempSync(path.join(os.tmpdir(), "faff-sel-clean-"));
-    try {
-      mk(t3, 1, "approve", []);
-      const r = selectEvidenceVerdict(t3);
-      ok("select: no objections anywhere → empty terminal approve", r.verdict === "approve" && r.objections.length === 0);
-    } finally { fs.rmSync(t3, { recursive: true, force: true }); }
-
-    // Malformed round is skipped, never crashes; a lower-n valid round still wins.
-    const t4 = fs.mkdtempSync(path.join(os.tmpdir(), "faff-sel-malformed-"));
-    try {
-      mk(t4, 1, "revise", objs("architectural"));
-      fs.writeFileSync(path.join(t4, "round-2.json"), "{ not json");
-      const r = selectEvidenceVerdict(t4);
-      ok("select: malformed highest round skipped, lower valid round selected", r.objections.length === 1 && r.objections[0].lens === "architectural");
-    } finally { fs.rmSync(t4, { recursive: true, force: true }); }
-
-    // Absent/unreadable dir → empty approve (audit-only, never blocks).
-    ok("select: absent dir → empty approve, no throw", (() => { const r = selectEvidenceVerdict(path.join(os.tmpdir(), "faff-sel-nope-" + Date.now())); return r.verdict === "approve" && r.objections.length === 0; })());
-
-    // CLI round-trip.
-    const t5 = fs.mkdtempSync(path.join(os.tmpdir(), "faff-sel-cli-"));
-    try {
-      mk(t5, 1, "revise", objs("architectural"));
-      mk(t5, 2, "approve", []);
+      mk(t, 1, "revise", [obj("architectural"), obj("QA")]);
+      mk(t, 2, "approve", []);
+      const { record } = collateSpecReviewRounds(t, []);
+      ok("collate: an objection-bearing round before a clean approve is kept, one item per objection", record.verdict === "revise" && record.final_verdict === "approve" && record.rounds_total === 2 && record.objections.length === 2);
+      ok("collate: objection keys are <round>#<index>", record.objections[0].key === "1#0" && record.objections[1].key === "1#1");
+      fs.writeFileSync(path.join(t, "round-3.json"), "{ not json");
+      ok("collate: a malformed round is skipped and named", collateSpecReviewRounds(t, []).skipped.join() === "round-3.json");
       const origWrite = process.stdout.write.bind(process.stdout);
-      let out = "";
-      process.stdout.write = (s) => { out += String(s); return true; };
+      process.stdout.write = () => true;
       let code;
-      try { code = cmdSpecReview(["select-evidence", "--dir", t5]); } finally { process.stdout.write = origWrite; }
-      ok("CLI select-evidence → exit 0, prints the objection-bearing record", code === 0 && JSON.parse(out).objections[0].lens === "architectural");
-      const noDir = cmdSpecReview(["select-evidence"]);
-      ok("CLI select-evidence without --dir → exit 2", noDir === 2);
-    } finally { fs.rmSync(t5, { recursive: true, force: true }); }
+      try { code = cmdSpecReview(["collate-evidence", "--dir", t]); } finally { process.stdout.write = origWrite; }
+      ok("CLI collate-evidence → exit 0", code === 0);
+      ok("CLI collate-evidence without --dir → exit 2", cmdSpecReview(["collate-evidence"]) === 2);
+    } finally { fs.rmSync(t, { recursive: true, force: true }); }
   }
 
   // --- route: severity-aware reject-approach destination ---
@@ -288,4 +208,4 @@ function specReviewSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { routeRejectApproach, extractSpecReviewEvidence, selectEvidenceVerdict, cmdSpecReview, specReviewSelftest };
+module.exports = { routeRejectApproach, extractSpecReviewEvidence, cmdSpecReview, specReviewSelftest };

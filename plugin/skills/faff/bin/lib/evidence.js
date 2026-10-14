@@ -7,6 +7,11 @@
 // the working checkout belongs to the party being audited. Nothing here refuses a mint, fails a
 // governance-check leg or changes merge-gate routing; slices 5 and 6 of FAFF-1255 call
 // validateAnchorDir for that.
+//
+// `faff evidence write spec-review-verdict` (FAFF-1267) is the writer: it reads a carried
+// `## Spec-review evidence` comment (or a committed spec holding one), verifies its sha256 line, and
+// writes the v0.3 `spec-review-verdict.json` into a run dir. The path guards and the atomic file write
+// are shared cores (`guardWriterPaths`, `writeEvidenceFile`) any later evidence writer reuses.
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -15,13 +20,17 @@ const { parseArgs, usageError } = require("./argv");
 const { validateAgainstSchema } = require("./contract-engine");
 const { eventViolations, splitPhysicalLines } = require("./events");
 const { declaredEffectViolations } = require("./effects");
-const { HERE } = require("./shared-infra");
+const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
+const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
+const { EvidenceRefusal, parseSpecReviewComment } = require("./evidence-collate");
+const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 
 const SPEC_VERSION = "v0.3";
 const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
 
 const EVIDENCE_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--require-evidence-schema": { arity: 0 },
+  "--run-dir": { arity: 1 }, "--issue": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "argument(s)" } };
 
 // Per-line validators for the JSONL files the schema subset cannot fully express. A jsonl
@@ -172,6 +181,135 @@ function renderHuman(report) {
   return out.join("\n") + "\n";
 }
 
+// --- writers ----------------------------------------------------------------
+
+class WriterFault extends Error {}
+
+const ISSUE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const within = (parent, child) => child === parent || child.startsWith(parent + path.sep);
+
+function realpathOrNull(p) {
+  try { return fs.realpathSync(p); } catch { return null; }
+}
+
+// guardWriterPaths(runDir, issue) -> the real per-issue directory the writer may write into. Throws
+// WriterFault (exit 2) before anything is read or written: the issue id must be a bare token, the run
+// dir must resolve inside <root>/.faff/runs/ for the working checkout or its main checkout (graft runs
+// in a linked worktree whose run dir may sit in either), and the issue directory must stay inside it.
+function guardWriterPaths(runDir, issue) {
+  if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue) || issue.includes("..")) throw new WriterFault("--issue is not a valid issue id");
+  if (typeof runDir !== "string" || runDir === "") throw new WriterFault("--run-dir is required");
+  const realRunDir = realpathOrNull(runDir);
+  if (realRunDir === null || !fs.statSync(realRunDir).isDirectory()) throw new WriterFault("--run-dir is not a directory");
+  const root = findRoot();
+  const roots = [root];
+  const main = mainWorktreeRoot(root);
+  if (main && path.resolve(main) !== path.resolve(root)) roots.push(main);
+  const runsDirs = roots.map((r) => realpathOrNull(path.join(r, ".faff", "runs"))).filter((d) => d !== null);
+  if (!runsDirs.some((d) => realRunDir !== d && within(d, realRunDir))) throw new WriterFault("--run-dir is not inside .faff/runs/");
+  const issueDir = path.join(realRunDir, issue);
+  const realIssueDir = realpathOrNull(issueDir);
+  if (realIssueDir !== null && (realIssueDir === realRunDir || !within(realRunDir, realIssueDir))) throw new WriterFault("the issue directory resolves outside --run-dir");
+  return issueDir;
+}
+
+// writeEvidenceFile(issueDir, name, document) writes the document as two-space JSON with a trailing
+// newline, through a temp file in the same directory and a rename, so a reader never sees a torn file.
+function writeEvidenceFile(issueDir, name, document) {
+  fs.mkdirSync(issueDir, { recursive: true });
+  const target = path.join(issueDir, name);
+  const temp = path.join(issueDir, `.${name}.tmp-${process.pid}`);
+  try {
+    fs.writeFileSync(temp, JSON.stringify(document, null, 2) + "\n");
+    fs.renameSync(temp, target);
+  } catch (e) {
+    fs.rmSync(temp, { force: true });
+    throw new WriterFault(`cannot write ${name}: ${e.code || "io error"}`);
+  }
+  return target;
+}
+
+const nullable = (v) => (typeof v === "string" ? v : null);
+
+// anchoredSpecReview(collated) -> the v1 anchored document: every documented key present, null when
+// absent, unknown keys dropped, keys in schema order.
+function anchoredSpecReview(collated) {
+  return {
+    schema_version: 1,
+    verdict: collated.verdict,
+    final_verdict: collated.final_verdict,
+    rounds_total: collated.rounds_total,
+    objections: collated.objections.map((o) => ({
+      lens: o.lens,
+      severity: o.severity,
+      claim: nullable(o.claim),
+      evidence: nullable(o.evidence),
+      predicted_consequence: nullable(o.predicted_consequence),
+      spec_anchor: nullable(o.spec_anchor),
+      disposition: nullable(o.disposition),
+      refutation: nullable(o.refutation),
+      disposition_rationale: nullable(o.disposition_rationale),
+      first_round: o.first_round,
+      last_round: o.last_round,
+      occurrences: o.occurrences.map((occ) => ({ round: occ.round, severity: occ.severity, claim: nullable(occ.claim), spec_anchor: nullable(occ.spec_anchor) })),
+    })),
+  };
+}
+
+function specReviewWriterViolations(doc) {
+  const out = [];
+  if ((doc.verdict === "approve") !== (doc.objections.length === 0)) out.push("verdict: approve exactly when objections is empty");
+  doc.objections.forEach((o, i) => {
+    const at = `objections[${i}]`;
+    if (!SPEC_REVIEW_LENSES.includes(o.lens)) out.push(`${at}.lens: not in the lens enum`);
+    if (!SPEC_REVIEW_SEVERITIES.includes(o.severity)) out.push(`${at}.severity: not in the severity enum`);
+    if (o.disposition !== null && !REVIEW_DISPOSITIONS.includes(o.disposition)) out.push(`${at}.disposition: not in the disposition enum`);
+    if (!(o.first_round >= 1 && o.first_round <= o.last_round && o.last_round <= doc.rounds_total)) out.push(`${at}: needs 1 <= first_round <= last_round <= rounds_total`);
+    o.occurrences.forEach((occ, j) => {
+      if (!(occ.round >= o.first_round && occ.round <= o.last_round)) out.push(`${at}.occurrences[${j}].round: outside first_round..last_round`);
+    });
+  });
+  return out;
+}
+
+// writeSpecReviewVerdict(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
+// Throws WriterFault (exit 2) on a path or IO fault. Nothing is written unless every check passes.
+function writeSpecReviewVerdict(runDir, issue, text, secrets) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  let collated;
+  try { collated = parseSpecReviewComment(text); } catch (e) {
+    if (e instanceof EvidenceRefusal) return { refused: [e.message] };
+    throw e;
+  }
+  const doc = anchoredSpecReview(redactKnownSecrets(collated, secrets));
+  const { schemas, manifest } = loadBundle(BUNDLE_DIR);
+  const schema = schemas.get(manifest.files["spec-review-verdict.json"].schema);
+  const violations = [...validateAgainstSchema(doc, schema).map(tidy), ...specReviewWriterViolations(doc)];
+  if (violations.length > 0) return { refused: violations };
+  return { written: writeEvidenceFile(issueDir, "spec-review-verdict.json", doc) };
+}
+
+function cmdEvidenceWrite(values, name) {
+  const fail = (code, message) => { process.stderr.write(`faff evidence write ${name}: ${message}\n`); return code; };
+  if (name !== "spec-review-verdict") return fail(2, "expected: spec-review-verdict");
+  if (values["--run-dir"] == null || values["--issue"] == null) return fail(2, "--run-dir and --issue are required");
+  try {
+    guardWriterPaths(values["--run-dir"], values["--issue"]);
+    let secrets;
+    try { secrets = resolveKnownSecretValues(findRoot()); } catch { return fail(2, "the redaction config could not be read; nothing written"); }
+    const result = writeSpecReviewVerdict(values["--run-dir"], values["--issue"], fs.readFileSync(0, "utf8"), secrets);
+    if (result.refused) {
+      for (const message of result.refused) process.stderr.write(`faff evidence write ${name}: refused: ${message}\n`);
+      return 1;
+    }
+    process.stdout.write(`${result.written}\n`);
+    return 0;
+  } catch (e) {
+    if (e instanceof WriterFault || e instanceof SchemaUnavailable) return fail(2, e.message);
+    throw e;
+  }
+}
+
 // --- selftest ---------------------------------------------------------------
 
 function exampleSchemaName(file) {
@@ -225,7 +363,7 @@ function evidenceSelftest() {
   return 0;
 }
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json]\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json]\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -234,6 +372,7 @@ function cmdEvidence(args) {
   try {
     if (values["--selftest"] && parsed.positionals.length === 0) return evidenceSelftest();
     const [sub, anchorDir, ...rest] = parsed.positionals;
+    if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);
       return 2;
@@ -254,4 +393,4 @@ function cmdEvidence(args) {
   }
 }
 
-module.exports = { EVIDENCE_SPEC, SchemaUnavailable, cmdEvidence, evidenceSelftest, exitCodeFor, validateAnchorDir };
+module.exports = { EVIDENCE_SPEC, SchemaUnavailable, WriterFault, cmdEvidence, evidenceSelftest, exitCodeFor, guardWriterPaths, validateAnchorDir, writeEvidenceFile, writeSpecReviewVerdict };

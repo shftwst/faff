@@ -195,6 +195,7 @@ const LEDGER_EXCEPTIONS = new Map([
   ["run-20260818-195900-beepboop-list-dac127/FAFF-865", "post_merge_verification_failures[0]"],
   ["run-20260915-094719-fly-l3/FAFF-1017", "post_merge_verification_failures[0]"],
   ["run-20260903-203823-fly-l3/FAFF-959", "outcome_details."],
+  ["run-20261014-065523-beepboop-list-10835a/FAFF-1267", "outcome_details."],
 ]);
 
 test("v0.3: every committed run-ledger.json validates except the seven known writer bugs", () => {

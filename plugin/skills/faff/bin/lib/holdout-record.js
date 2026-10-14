@@ -171,6 +171,7 @@ function buildHoldoutRecord(block, opts) {
     base.attestation = normaliseAttestation(envelope.attestation);
   }
   if (!isObject(block)) return failClosed(base, ["evaluator block is not a JSON object"]);
+  if (!envelope) base.code_blind = block.code_blind === true;
 
   const secrets = [...(opts.secretValues || resolveKnownSecretValues()), ...(opts.extraSecrets || [])]
     .filter((s) => typeof s === "string" && s.length > 0);

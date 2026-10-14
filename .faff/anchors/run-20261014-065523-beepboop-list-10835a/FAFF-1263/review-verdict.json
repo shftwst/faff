@@ -1,0 +1,55 @@
+{
+  "signal": "pass",
+  "findings": [
+    {
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "title": "resolveWriters test does not exercise author-date ordering",
+      "disposition": "refuted",
+      "disposition_rationale": "git log --first-parent walks the parent chain, so the nearer commit wins whatever its author date; the test sets an older author date on the nearer commit and asserts it is chosen, which a date-ordered implementation would fail."
+    },
+    {
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "title": "binding uses the oldest adding commit, so a shared run dir can falsely unbind a per-PR anchor",
+      "disposition": "accepted-risk",
+      "disposition_rationale": "The oldest-first-parent-adding-commit definition is the spec's; per-PR anchors land in their own issue's squash merge. A false unbind only fails closed (the run does not qualify) and is reported in unbound_anchors."
+    },
+    {
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "title": "unbound anchors do not gate readiness",
+      "disposition": "refuted",
+      "disposition_rationale": "An unbound anchor can never make a run qualifying or a writer-proof file observed, and it still counts as a warning if it fails, so a fabricated anchor outside the reviewed PR contributes nothing to the criterion."
+    },
+    {
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "title": "dangling-symlink anchors root falls back to the unresolved path",
+      "disposition": "fixed",
+      "disposition_rationale": "resolveAnchorsRoot now exits 2 when the root exists but does not resolve; covered by the dangling-root case in the readiness test."
+    },
+    {
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "title": "symlink inside the anchors root passes the clean-tree check",
+      "disposition": "accepted-risk",
+      "disposition_rationale": "deriveAnchorDirs drops a symlink-escaping anchor dir and the drop blocks readiness, so the symlink cannot produce a ready report; covered by the symlink-escape test."
+    }
+  ]
+}

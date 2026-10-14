@@ -1318,6 +1318,7 @@ function cmdEvents(args) {
     const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
     const effectsNote = effectsAnchored ? " + declared-effects.jsonl, effects-chain-head.json" : "";
     console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}${effectsNote}`);
+    warnOnEvidenceSchema(destArg, issueArg);
     return 0;
   }
 
@@ -1509,6 +1510,31 @@ function validateAnchorGenesis(runDir) {
     return { valid: false, code: "genesis-invalid", message: `${runDir} has no valid genesis chain (${verify.detail}) — refusing to anchor` };
   }
   return { valid: true, eventsBuf: buf };
+}
+
+// FAFF-1263: the warn-only evidence-schema check. Runs after a successful mint on the minted
+// destination (the bytes that get committed), writes to stderr only, and never changes the exit
+// code, stdout or the anchor. A fault inside the check is itself only a warning. evidence.js requires
+// this module, so it is required lazily here to avoid handing either module a half-loaded exports.
+const WARN_ONLY_MAX_FILES = 5;
+function warnOnEvidenceSchema(dest, issue) {
+  const say = (line) => process.stderr.write(line + "\n");
+  try {
+    const { checkAnchorDir, sanitiseDisplay } = require("./evidence");
+    const check = checkAnchorDir(dest, {});
+    const who = sanitiseDisplay(issue);
+    if (check.status === "pass") return;
+    if (check.status === "error") {
+      say(`faff events anchor: evidence-schema warn-only: error ${who}: ${check.reason}; not a refusal`);
+      return;
+    }
+    say(`faff events anchor: evidence-schema warn-only: ${check.status} ${who} (${check.files.length} non-conforming file(s)); not a refusal; details: faff evidence validate ${sanitiseDisplay(dest)}`);
+    for (const f of check.files.slice(0, WARN_ONLY_MAX_FILES)) say(`  ${f.path}: ${f.status}, ${f.violations} violation(s)`);
+    if (check.files.length > WARN_ONLY_MAX_FILES) say(`  (+${check.files.length - WARN_ONLY_MAX_FILES} more files)`);
+  } catch (e) {
+    const name = e && typeof e.name === "string" && /^[A-Za-z][A-Za-z0-9_$]{0,63}$/.test(e.name) ? e.name : "Error";
+    try { say(`faff events anchor: evidence-schema warn-only: error ${String(issue).replace(/[^A-Za-z0-9._-]/g, "?")}: ${name}; not a refusal`); } catch { /* stderr closed: nothing left to warn on */ }
+  }
 }
 
 // FAFF-796: the shared per-issue anchor mint core — byte-copy events.jsonl + run-ledger.json

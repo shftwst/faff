@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1263",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0943dbed4c844c10bf2bd07add2120f3f8e1eff98c4f12e576cf6b037737dfca",
+    "branch": "FAFF-1263-anchor-evidence-warn-only-schema-check",
+    "pushed_at": "2026-10-14T09:16:14.032Z"
+  },
+  "updated_at": "2026-10-14T09:16:14.032Z"
+}

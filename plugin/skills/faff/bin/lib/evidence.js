@@ -401,6 +401,60 @@ function validateAnchorDir(anchorDir, opts = {}) {
   return report(entries.every((e) => e.status === "ok") ? "pass" : "fail", entries);
 }
 
+// --- warn-only observation (FAFF-1263) ---------------------------------------
+//
+// checkAnchorDir never throws and never prints. It folds validateAnchorDir into a small summary the
+// mint, the governance-check leg and `faff evidence-readiness` share, carrying paths, statuses and
+// violation counts only: no violation text and no exception message ever leaves this function, so a
+// later change to a message cannot leak evidence content into a CI log.
+
+// Anchor file names are PR-authored. Control characters (CR and LF included) become a space and "::"
+// becomes ": :", so no rendered line can be read as a GitHub Actions workflow command.
+function sanitiseDisplay(value) {
+  return String(value).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replaceAll("::", ": :");
+}
+
+const SCHEMA_UNAVAILABLE_PREFIX = "schema-unavailable";
+const SAFE_ERROR_NAME = /^[A-Za-z][A-Za-z0-9_$]{0,63}$/;
+
+// The reason an error is reported: the bundled path for a schema-unavailable fault, else the
+// exception's class name only, never its message.
+function errorReason(e) {
+  if (e instanceof SchemaUnavailable) return sanitiseDisplay(`${SCHEMA_UNAVAILABLE_PREFIX} ${e.where}`);
+  const name = e && typeof e.name === "string" && SAFE_ERROR_NAME.test(e.name) ? e.name : "Error";
+  return name;
+}
+
+function schemaUnavailableResultReason(result) {
+  if (!isObject(result)) return null;
+  const message = [result.message, result.error, result.reason].find((m) => typeof m === "string" && m.startsWith(SCHEMA_UNAVAILABLE_PREFIX));
+  if (message === undefined && result.status !== "error") return null;
+  return sanitiseDisplay(message === undefined ? SCHEMA_UNAVAILABLE_PREFIX : message.split("\n")[0]);
+}
+
+function checkAnchorDir(anchorDir, opts = {}) {
+  let report;
+  try {
+    report = module.exports.validateAnchorDir(anchorDir, opts); // via exports so a test double is honoured
+  } catch (e) {
+    return { status: "error", files: [], reason: errorReason(e), schema_unavailable: e instanceof SchemaUnavailable };
+  }
+  const unavailable = schemaUnavailableResultReason(report);
+  if (unavailable !== null) return { status: "error", files: [], reason: unavailable, schema_unavailable: true };
+  if (!isObject(report) || !["pass", "legacy", "fail"].includes(report.status) || !Array.isArray(report.files)) {
+    return { status: "error", files: [], reason: "unrecognised validator result", schema_unavailable: false };
+  }
+  const files = report.files
+    .filter((f) => f.status !== "ok")
+    .map((f) => ({ path: sanitiseDisplay(f.path), status: f.status, violations: Array.isArray(f.violations) ? f.violations.length : 0 }));
+  return { status: report.status, files, reason: null, schema_unavailable: false };
+}
+
+// The file paths the bundled manifest names; throws SchemaUnavailable when the manifest cannot be used.
+function manifestFileNames(opts = {}) {
+  return Object.keys(loadBundle(opts.bundleDir || BUNDLE_DIR).manifest.files);
+}
+
 function exitCodeFor(report, requireEvidenceSchema) {
   if (report.status === "pass") return 0;
   if (report.status === "legacy") return requireEvidenceSchema ? 1 : 0;
@@ -631,7 +685,7 @@ function cmdEvidence(args) {
 }
 
 module.exports = {
-  EVIDENCE_SPEC, SchemaUnavailable, WriterFault, classifySchemaChange, cmdEvidence, evidenceSelftest, exitCodeFor,
-  guardWriterPaths, introducedViolations, preloadEvidenceSchemas, resetEvidenceSchemaCache, validateAnchorDir,
-  validateEvidenceDocument, writeEvidenceFile, writeSpecReviewVerdict,
+  EVIDENCE_SPEC, SchemaUnavailable, WriterFault, checkAnchorDir, classifySchemaChange, cmdEvidence, evidenceSelftest, exitCodeFor,
+  guardWriterPaths, introducedViolations, manifestFileNames, preloadEvidenceSchemas, resetEvidenceSchemaCache, sanitiseDisplay,
+  validateAnchorDir, validateEvidenceDocument, writeEvidenceFile, writeSpecReviewVerdict,
 };

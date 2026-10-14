@@ -60,6 +60,7 @@ const { cmdFixtures } = require("./lib/fixtures");
 const { cmdDoctor, cmdGates, cmdSync } = require("./lib/gates");
 const { cmdGitignoreEnsure } = require("./lib/gitignore-ensure");
 const { cmdGovernanceCheck } = require("./lib/governance-check");
+const { cmdEvidenceReadiness } = require("./lib/evidence-readiness");
 const { cmdLandingComment } = require("./lib/landing-comment");
 const { cmdProfiles } = require("./lib/governance-profile");
 const { cmdHarness } = require("./lib/harness");
@@ -208,6 +209,7 @@ const COMMANDS = {
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,
+  "evidence-readiness": cmdEvidenceReadiness,
   "landing-comment": cmdLandingComment,
   "harness": (args) => cmdHarness(args, COMMANDS),
   "native-map": cmdNativeMap,

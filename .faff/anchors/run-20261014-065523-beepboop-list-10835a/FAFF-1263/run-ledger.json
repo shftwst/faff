@@ -1,0 +1,111 @@
+{
+  "run_id": "run-20261014-065523-beepboop-list-10835a",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1256",
+    "FAFF-1266",
+    "FAFF-1258",
+    "FAFF-1259",
+    "FAFF-1267",
+    "FAFF-1263",
+    "FAFF-1268"
+  ],
+  "outcomes": {
+    "FAFF-1260": "routed-out",
+    "FAFF-1261": "routed-out",
+    "FAFF-1266": "parked",
+    "FAFF-1256": "shipped",
+    "FAFF-1268": "parked",
+    "FAFF-1267": "shipped",
+    "FAFF-1259": "shipped"
+  },
+  "base_sha": "f6212944eaf232b75b6f9ade4d89990932e45d13",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261014-065523-beepboop-list-10835a",
+    "pid": 689134,
+    "started_at": "2026-10-14T06:55:23.297Z",
+    "last_heartbeat": "2026-10-14T06:55:23.297Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "3a55112b-0588-4e3c-933f-6fc84debfdbb",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-5-5": {
+        "input": 1368,
+        "output": 917283,
+        "cache_write_5m": 0,
+        "cache_write_1h": 11263212,
+        "cache_read": 277224458
+      }
+    },
+    "tokens_at_start": 289406321
+  },
+  "outcome_details": {
+    "FAFF-1260": {
+      "reason": "blocked by FAFF-1224 (Backlog)"
+    },
+    "FAFF-1261": {
+      "reason": "blocked by FAFF-1270 (not automation-eligible, unprepped)"
+    },
+    "FAFF-1270": {
+      "on_hold": "ineligible: no faff-automate"
+    },
+    "FAFF-1266": {
+      "reason": "adversarial review critical on eval fixture finding-identity-011.json (planted defect); author believes false positive; branch pushed, no PR"
+    },
+    "FAFF-1256": {
+      "pr": 1052,
+      "merge": "2695d5af",
+      "post_merge": "verified-ok"
+    },
+    "FAFF-1268": {
+      "reason": "in-run blocker FAFF-1266 did not merge"
+    },
+    "FAFF-1267": {
+      "pr": 1053,
+      "merge": "35e2de21"
+    },
+    "FAFF-1259": {
+      "pr": 1054,
+      "merge": "e1b6f4c7"
+    }
+  },
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "spec_review_outage_pending": [],
+  "landing_resumable": [],
+  "post_merge_verification_failures": [
+    {
+      "issue": "FAFF-1259",
+      "pr": 1054,
+      "merge_sha": "e1b6f4c727905c0e5d2ff1a435077ebc74c710cb",
+      "command": "node --import ./test/hermetic-env.mjs --test"
+    }
+  ],
+  "post_merge_verification_unverified": [],
+  "evidence_persisted": [
+    {
+      "issue": "FAFF-1266",
+      "ac_sha256": "875743bea34f78fbfb2337a95b39a1ef312294f3f813882efdb3c7a2f1ec35be",
+      "review_verdict_sha256": "f1cf15fbffb21162ea5d34fbdf441032bea10eeae75e23ac6bff53471cc002b4"
+    },
+    {
+      "issue": "FAFF-1256",
+      "ac_sha256": "915d9505738c29dbfd61004a893c81cd2b72bdc1832c0e59a77806f4faabf2e5",
+      "review_verdict_sha256": "d717fd6c22263424dae5162f9095aebb6cc979fe99b9fff9ab4f5618a1042e82"
+    },
+    {
+      "issue": "FAFF-1267",
+      "ac_sha256": "db3e4609f667e39b328264c322108e52596535719665b29c590a9dd485f94137",
+      "review_verdict_sha256": "17ae07005104f3167aab4e5a22267de27d2ff8a4c184ec82983832574604cba2"
+    },
+    {
+      "issue": "FAFF-1259",
+      "ac_sha256": "b414b403491846d40347169bef8cd90adff611ccc7a3fcc11a4b23f90b22eafa",
+      "review_verdict_sha256": "077d56439afad6e7f101b24f159f886d2ed4cdd693825df5b14b20d4705eadac"
+    }
+  ]
+}

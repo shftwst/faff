@@ -15,7 +15,7 @@
 
 import type { ProducerAuthApi } from "./producer-auth";
 import type { CommissaireTrustApi, TrustConfig, TrustText } from "./commissaire-trust";
-import type { GovernorEndpoint, PeerTransportResult } from "./commissaire-governor-client";
+import type { GovernorEndpoint, PeerTransportResult, TransportResult } from "./commissaire-governor-client";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -26,6 +26,7 @@ const trust: CommissaireTrustApi = require("./commissaire-trust");
 const governorClient: {
   parseEndpoint(raw: string): GovernorEndpoint;
   governorRequestWithPeer(endpoint: GovernorEndpoint, request: Json, timeouts: { connect_ms: number; reply_ms: number }): PeerTransportResult;
+  governorRequest(endpoint: GovernorEndpoint, request: Json, timeouts: { connect_ms: number; reply_ms: number }): TransportResult;
 } = require("./commissaire-governor-client");
 
 type Json = { [k: string]: unknown };
@@ -37,7 +38,7 @@ type Platform = "linux" | "macos";
 export type RefusalReason =
   | "governor-unreachable" | "governor-refused" | "identify-invalid" | "fingerprint-mismatch"
   | "invoked-as-root" | "invoked-as-runner" | "runner-user-unknown" | "runner-root-equivalent"
-  | "code-runner-writable" | "repo-runner-writable" | "platform-unsupported" | "remote-governor-unsupported"
+  | "code-runner-writable" | "repo-runner-writable" | "platform-unsupported" | "remote-governor-unsupported" | "fly-failed"
   | "governor-same-user" | "governor-is-root" | "governor-not-system-user" | "key-dir-untrusted"
   | "key-readable-by-invoker" | "key-read-check-inconclusive"
   | "install-record-missing" | "install-check-failed"
@@ -112,6 +113,16 @@ const REFORMAT_LINE = "Reformatted the single-line governor_key_fingerprints arr
 const BYPASS_CAVEAT = "The rules endpoint hides bypass actors from non-admin callers, so status cannot prove the runner's identity has no bypass. Check bypass lists by hand (FAFF-1213).";
 const LOGIN_CAVEAT = "runner_identity is judged from --runner-login as given; a run counts only on its recorded GitHub actor (FAFF-1182).";
 const KEY_OPEN_CAVEAT = "host_checks does not try to open the key file; commissaire governor pin does.";
+const FLY_APP_RE = /^[a-z0-9][a-z0-9-]*$/;
+const FLY_IDENTIFY_COMMAND = "/opt/commissaire/current/bin/commissaire governor identify --json";
+const FLY_INSTALL_COMMIT_RE = /^\/opt\/commissaire\/([0-9a-f]{40,64})\//;
+const FLY_CHECKLIST = [
+  "The runbook records the Fly documentation on isolation between custom private networks and the operator's 2026-10-14 basis for the same-network question (only the governor and runner apps on the network).",
+  "`fly ips list -a <app>` shows no public address.",
+  "The governor app and the runner app share one custom private network that no other app is on.",
+  "The runner app's machines hold no Fly token that can deploy to, SSH into, or manage volumes of the governor app.",
+  "The governor was deployed from a clean checkout of a release tag.",
+];
 
 const isRecord = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
 const isUid = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
@@ -147,6 +158,7 @@ export interface AdminDeps {
   commonDir(gitDir: string): string | null;
   runGit(bin: string, args: string[], cwd: string): ExecResult;
   runGh(bin: string, args: string[]): ExecResult;
+  runFly(bin: string, args: string[]): ExecResult;
   hostname(): string;
   now(): Date;
   cwd(): string;
@@ -275,6 +287,7 @@ const DEFAULT_DEPS: AdminDeps = {
   commonDir: defaultCommonDir,
   runGit: (bin, args, cwd) => exec(bin, [...HOOKS_OFF, ...args], { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }),
   runGh: (bin, args) => exec(bin, args),
+  runFly: (bin, args) => exec(bin, args),
   hostname: () => os.hostname(),
   now: () => new Date(),
   cwd: () => process.cwd(),
@@ -296,14 +309,15 @@ const isUsage = (v: unknown): v is Usage => isRecord(v) && typeof v.usage === "s
 interface Target { endpoint: GovernorEndpoint | null; runnerUser: string | undefined; repo: string | undefined; base: string | undefined }
 
 // Flag shapes shared by both commands. A usage error never reaches a socket, git or gh.
-function parseTarget(verb: string, flags: FlagBag, requireAll: boolean): Target | Usage {
+function parseTarget(verb: string, flags: FlagBag, requireAll: boolean, viaFly = false): Target | Usage {
   const fail = (m: string): Usage => ({ usage: `faff commissaire governor ${verb}: ${m}` });
-  const socket = flagStr(flags, "--socket") ?? process.env.COMMISSAIRE_GOVERNOR;
+  if (viaFly && "--socket" in flags) return fail("--fly-app and --socket are mutually exclusive");
+  const socket = viaFly ? undefined : flagStr(flags, "--socket") ?? process.env.COMMISSAIRE_GOVERNOR;
   let endpoint: GovernorEndpoint | null = null;
   if (socket !== undefined && socket !== "") {
     try { endpoint = governorClient.parseEndpoint(socket); } catch (e) { return fail(e instanceof Error ? e.message : "invalid governor endpoint"); }
   }
-  if (requireAll && endpoint === null) return fail("--socket PATH (or COMMISSAIRE_GOVERNOR) is required");
+  if (requireAll && !viaFly && endpoint === null) return fail("--socket PATH (or COMMISSAIRE_GOVERNOR) is required");
   const runnerUser = flagStr(flags, "--runner-user");
   if (requireAll && (runnerUser === undefined || runnerUser === "")) return fail("--runner-user NAME is required");
   const repo = flagStr(flags, "--repo");
@@ -397,7 +411,10 @@ function parseRunnerChecks(v: unknown): RunnerChecks | null | undefined {
 function identify(deps: AdminDeps, endpoint: GovernorEndpoint): IdentifyOutcome {
   const res = deps.peerRequest(endpoint, { op: "identify" }, TIMEOUTS);
   if ("unreachable" in res) return { kind: "unreachable", detail: res.detail };
-  const reply = res.reply;
+  return readIdentifyReply(res.reply, res.peer_uid);
+}
+
+function readIdentifyReply(reply: Json, peerUid: number): IdentifyOutcome {
   if (reply.ok === false) return { kind: "refused", reason: printable(str(reply.reason) ?? "unknown") };
   const pk = str(reply.pk), fingerprint = str(reply.pk_fingerprint), keyFile = str(reply.key_file);
   const runnerChecks = parseRunnerChecks(reply.runner_checks);
@@ -406,7 +423,7 @@ function identify(deps: AdminDeps, endpoint: GovernorEndpoint): IdentifyOutcome 
   let actual: string;
   try { actual = producerAuth.pkFingerprint(pk); } catch { return { kind: "invalid" }; }
   if (actual !== fingerprint) return { kind: "mismatch" };
-  return { kind: "ok", identified: { pk, fingerprint, keyFile, runnerChecks, peerUid: res.peer_uid } };
+  return { kind: "ok", identified: { pk, fingerprint, keyFile, runnerChecks, peerUid } };
 }
 
 // --- Host-fact checks (shared by pin and status) ------------------------------------------------
@@ -755,7 +772,145 @@ function openPullRequest(deps: AdminDeps, c: PrContext): PinResult {
 
 export type PinOutcome = { usage: string } | { result: PinResult };
 
+// What differs between a local pin and a Fly pin once the governor's key is known: the trust-file
+// comment, and the pull request body.
+interface PinVariant {
+  comment: (now: Date) => string;
+  body: (facts: { repo: string; base: string; fingerprint: string; now: Date; reformatted: boolean }, commit: string) => string;
+}
+
+interface PinTail { flags: FlagBag; deps: AdminDeps; git: string; gh: string; repo: string; baseFlag: string | undefined; fingerprint: string; variant: PinVariant }
+
+// pin steps 9 to 13, shared by both transports: repository, base, branch protection, trust file, then the PR.
+function pinTail(t: PinTail): PinOutcome {
+  const { flags, deps, git, gh, repo, fingerprint } = t;
+  const refused = (r: Refusal): PinOutcome => ({ result: { pinned: "refused", pk_fingerprint: fingerprint, reason: r.reason, detail: r.detail, pr_url: null, branch: null } });
+
+  // 9. repository, base, branch protection, trust file
+  const origin = readOrigin(deps, git);
+  if (origin.kind === "none") return refused(refusal("no-remote-base", "no git remote named origin"));
+  if (origin.kind === "unparseable") return refused(refusal("repo-mismatch", `origin ${printable(origin.url, 200)} does not name a github.com OWNER/NAME (another host, an SSH host alias, or an unparseable URL); set origin to https://github.com/${repo} or git@github.com:${repo}; --repo is ${repo}`));
+  if (!sameRepo(origin.repo, repo)) return refused(refusal("repo-mismatch", `origin names ${origin.repo} but --repo is ${repo}`));
+  const base = t.baseFlag ?? defaultBranch(deps, gh, repo);
+  if (base === null) return refused(refusal("gh-failed", `could not read the default branch of ${repo}`));
+  const protection = branchProtection(deps, gh, repo, base);
+  if (protection.state === "not-met") return refused(refusal("base-not-protected", `${base} has no pull_request rule; a pin on a base the runner can push to proves nothing`));
+  if (protection.state === "unknown") return refused(refusal("base-protection-unknown", `the rules for ${base} could not be read`));
+  const read = trust.readTrustFileText({ repoDir: deps.cwd(), ref: base, transport: "remote", repoSlug: repo, gitBin: git, ghBin: gh });
+  if (!read.ok) return refused(refusal("gh-failed", read.error.message));
+  const existing: TrustText = read.value;
+  let currentConfig: TrustConfig | null = null;
+  if (existing.present && existing.text !== null) {
+    const parsed = parseTrustText(existing.text);
+    if (!parsed.ok) return refused(refusal("trust-file-invalid", parsed.message));
+    currentConfig = parsed.config;
+  }
+
+  // 10 and 11. already pinned, or edit in place
+  if (currentConfig !== null && currentConfig.governorKeyFingerprints.includes(fingerprint)) {
+    return { result: { pinned: "already-pinned", pk_fingerprint: fingerprint, reason: null, detail: null, pr_url: null, branch: null } };
+  }
+  const now = deps.now();
+  const edited = insertFingerprint(existing.text, fingerprint, t.variant.comment(now));
+  if ("error" in edited) return refused(refusal("trust-file-invalid", edited.error));
+  const reparsed = parseTrustText(edited.text);
+  if (!reparsed.ok) return refused(refusal("trust-file-invalid", reparsed.message));
+  const expected = [...(currentConfig?.governorKeyFingerprints ?? []), fingerprint];
+  if (reparsed.config.governorKeyFingerprints.join(",") !== expected.join(",")) return refused(refusal("trust-file-invalid", "the edited trust file does not list exactly the old fingerprints plus the new one"));
+
+  // 12. dry run
+  if (flags["--dry-run"] === true) {
+    return { result: { pinned: "dry-run", pk_fingerprint: fingerprint, reason: null, detail: edited.text, pr_url: null, branch: null } };
+  }
+
+  // 13. branch and PR
+  const facts = { repo, base, fingerprint, now, reformatted: edited.reformatted };
+  return { result: openPullRequest(deps, { git, gh, repo, base, fingerprint, newText: edited.text, originalText: existing.text, makeBody: (commit) => t.variant.body(facts, commit) }) };
+}
+
+function parseFlyIdentify(stdout: string): Json | null {
+  const line = stdout.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("{")).pop();
+  if (line === undefined) return null;
+  try { const parsed: unknown = JSON.parse(line); return isRecord(parsed) ? parsed : null; } catch { return null; }
+}
+
+function flyBody(app: string, sourceCommit: string | null): PinVariant["body"] {
+  return (f, commit) => {
+    const parts = [
+      `Target repository: ${f.repo}, base branch: ${f.base}`,
+      `Governor key fingerprint: \`${f.fingerprint}\``,
+      `Pushed commit: \`${commit}\``,
+      [
+        `Fly app: \`${app}\``,
+        `Image source commit: ${sourceCommit === null ? "not reported by the governor" : `\`${sourceCommit}\``}`,
+      ].join("\n"),
+      [
+        "Read by `commissaire governor pin --fly-app` from its own `fly ssh console` session inside the governor machine, and checked against the SHA-256 of the SPKI-DER public key the governor reported.",
+        "To read the same fingerprint independently before approving, run:",
+        "```",
+        `fly ssh console -a ${app} -C "${FLY_IDENTIFY_COMMAND}"`,
+        "```",
+      ].join("\n"),
+      ["Checklist for the approving human (pin cannot observe these Fly facts):", ...FLY_CHECKLIST.map((item) => `- [ ] ${item}`)].join("\n"),
+    ];
+    if (f.reformatted) parts.push(REFORMAT_LINE);
+    parts.push(APPROVE_SENTENCE);
+    return `${parts.join("\n\n")}\n`;
+  };
+}
+
+// `pin --fly-app APP`: the identify reply is read from the operator's own `fly ssh console` process,
+// never from a file, and the local host-fact checks (peer uid, key directory, runner groups, install
+// record, key readability) are skipped because they describe a governor on this machine.
+function pinViaFly(flags: FlagBag, deps: AdminDeps, app: string): PinOutcome {
+  const target = parseTarget("pin", flags, true, true);
+  if (isUsage(target)) return target;
+  const { runnerUser, repo, base: baseFlag } = target;
+  if (runnerUser === undefined || repo === undefined) return { usage: "faff commissaire governor pin: missing required flag" };
+  const refused = (r: Refusal, fingerprint: string | null = null): PinOutcome => ({ result: { pinned: "refused", pk_fingerprint: fingerprint, reason: r.reason, detail: r.detail, pr_url: null, branch: null } });
+
+  const who = invokerChecks(deps, runnerUser);
+  if (!who.ok) return refused(who.refusal);
+  const runner = who.runner;
+  const codeProblem = codeWritable(deps, runner);
+  if (codeProblem !== null) return refused(codeProblem);
+  const git = deps.resolveBin("git"), gh = deps.resolveBin("gh"), fly = deps.resolveBin("fly");
+  if (git === null) return refused(refusal("git-failed", "git was not found on PATH"));
+  if (gh === null) return refused(refusal("gh-failed", "gh was not found on PATH"));
+  if (fly === null) return refused(refusal("fly-failed", "fly was not found on PATH"));
+  const binProblem = binWritable(deps, runner, "git", git) ?? binWritable(deps, runner, "gh", gh) ?? binWritable(deps, runner, "fly", fly);
+  if (binProblem !== null) return refused(binProblem);
+  const repoProblem = repoWritable(deps, runner);
+  if (repoProblem !== null) return refused(repoProblem);
+
+  const ran = deps.runFly(fly, ["ssh", "console", "-a", app, "-C", FLY_IDENTIFY_COMMAND]);
+  if (ran.status !== 0) return refused(refusal("governor-unreachable", `fly ssh console failed: ${printable(ran.stderr.trim() || `exit ${ran.status}`, 300)}`));
+  const reply = parseFlyIdentify(ran.stdout);
+  if (reply === null) return refused(refusal("identify-invalid", "fly ssh console printed no identify reply"));
+  const found = readIdentifyReply(reply, -1);
+  if (found.kind === "refused") return refused(refusal("governor-refused", found.reason));
+  if (found.kind === "invalid") return refused(refusal("identify-invalid", "the identify reply is missing or mistypes a field"));
+  if (found.kind === "mismatch") return refused(refusal("fingerprint-mismatch", "the reported fingerprint does not match the reported public key"));
+  if (found.kind !== "ok") return refused(refusal("identify-invalid", "the identify reply could not be read"));
+  const fingerprint = found.identified.fingerprint;
+  const reported = str(reply.source_commit);
+  const sourceCommit = reported !== undefined && COMMIT_RE.test(reported) ? reported : null;
+
+  return pinTail({
+    flags, deps, git, gh, repo, baseFlag, fingerprint,
+    variant: {
+      comment: (now) => `fly app ${app}, pinned ${now.toISOString().slice(0, 10)}`,
+      body: flyBody(app, sourceCommit),
+    },
+  });
+}
+
 export function pinCore(flags: FlagBag, deps: AdminDeps = DEFAULT_DEPS): PinOutcome {
+  if ("--fly-app" in flags) {
+    const app = flagStr(flags, "--fly-app");
+    if (app === undefined || !FLY_APP_RE.test(app)) return { usage: "faff commissaire governor pin: --fly-app must be a Fly app name matching ^[a-z0-9-]+$" };
+    return pinViaFly(flags, deps, app);
+  }
   const target = parseTarget("pin", flags, true);
   if (isUsage(target)) return target;
   const { endpoint, runnerUser, repo, base: baseFlag } = target;
@@ -801,50 +956,16 @@ export function pinCore(flags: FlagBag, deps: AdminDeps = DEFAULT_DEPS): PinOutc
   const runnerChecks = id.runnerChecks;
   if (runnerChecks === null) return refused(refusal("install-record-missing"));
 
-  // 9. repository, base, branch protection, trust file
-  const origin = readOrigin(deps, git);
-  if (origin.kind === "none") return refused(refusal("no-remote-base", "no git remote named origin"));
-  if (origin.kind === "unparseable") return refused(refusal("repo-mismatch", `origin ${printable(origin.url, 200)} does not name a github.com OWNER/NAME (another host, an SSH host alias, or an unparseable URL); set origin to https://github.com/${repo} or git@github.com:${repo}; --repo is ${repo}`));
-  if (!sameRepo(origin.repo, repo)) return refused(refusal("repo-mismatch", `origin names ${origin.repo} but --repo is ${repo}`));
-  const base = baseFlag ?? defaultBranch(deps, gh, repo);
-  if (base === null) return refused(refusal("gh-failed", `could not read the default branch of ${repo}`));
-  const protection = branchProtection(deps, gh, repo, base);
-  if (protection.state === "not-met") return refused(refusal("base-not-protected", `${base} has no pull_request rule; a pin on a base the runner can push to proves nothing`));
-  if (protection.state === "unknown") return refused(refusal("base-protection-unknown", `the rules for ${base} could not be read`));
-  const read = trust.readTrustFileText({ repoDir: deps.cwd(), ref: base, transport: "remote", repoSlug: repo, gitBin: git, ghBin: gh });
-  if (!read.ok) return refused(refusal("gh-failed", read.error.message));
-  const existing: TrustText = read.value;
-  let currentConfig: TrustConfig | null = null;
-  if (existing.present && existing.text !== null) {
-    const parsed = parseTrustText(existing.text);
-    if (!parsed.ok) return refused(refusal("trust-file-invalid", parsed.message));
-    currentConfig = parsed.config;
-  }
-
-  // 10 and 11. already pinned, or edit in place
-  if (currentConfig !== null && currentConfig.governorKeyFingerprints.includes(id.fingerprint)) {
-    return { result: { pinned: "already-pinned", pk_fingerprint: id.fingerprint, reason: null, detail: null, pr_url: null, branch: null } };
-  }
-  const now = deps.now();
-  const comment = `${sanitisedHost(deps.hostname())} governor uid ${id.peerUid}, pinned ${now.toISOString().slice(0, 10)}`;
-  const edited = insertFingerprint(existing.text, id.fingerprint, comment);
-  if ("error" in edited) return refused(refusal("trust-file-invalid", edited.error));
-  const reparsed = parseTrustText(edited.text);
-  if (!reparsed.ok) return refused(refusal("trust-file-invalid", reparsed.message));
-  const expected = [...(currentConfig?.governorKeyFingerprints ?? []), id.fingerprint];
-  if (reparsed.config.governorKeyFingerprints.join(",") !== expected.join(",")) return refused(refusal("trust-file-invalid", "the edited trust file does not list exactly the old fingerprints plus the new one"));
-
-  // 12. dry run
-  if (flags["--dry-run"] === true) {
-    return { result: { pinned: "dry-run", pk_fingerprint: id.fingerprint, reason: null, detail: edited.text, pr_url: null, branch: null } };
-  }
-
-  // 13. branch and PR
-  const facts: BodyFacts = {
-    repo, base, fingerprint: id.fingerprint, host: sanitisedHost(deps.hostname()), runnerUser, runner, peerUid: id.peerUid,
-    invokerUid: deps.getuid(), groupsChecked: ROOT_EQUIVALENT_GROUPS[platform] ?? [], keyDir: host.facts, runnerChecks, now, reformatted: edited.reformatted,
-  };
-  return { result: openPullRequest(deps, { git, gh, repo, base, fingerprint: id.fingerprint, newText: edited.text, originalText: existing.text, makeBody: (commit) => prBody(facts, commit) }) };
+  return pinTail({
+    flags, deps, git, gh, repo, baseFlag, fingerprint: id.fingerprint,
+    variant: {
+      comment: (now) => `${sanitisedHost(deps.hostname())} governor uid ${id.peerUid}, pinned ${now.toISOString().slice(0, 10)}`,
+      body: (f, commit) => prBody({
+        repo: f.repo, base: f.base, fingerprint: f.fingerprint, host: sanitisedHost(deps.hostname()), runnerUser, runner, peerUid: id.peerUid,
+        invokerUid: deps.getuid(), groupsChecked: ROOT_EQUIVALENT_GROUPS[platform] ?? [], keyDir: host.facts, runnerChecks, now: f.now, reformatted: f.reformatted,
+      }, commit),
+    },
+  });
 }
 
 // --- status -------------------------------------------------------------------------------------
@@ -1030,7 +1151,33 @@ function governorStatus(flags: FlagBag, deps?: AdminDeps): number {
   return 0;
 }
 
+// The thin client behind `commissaire governor identify --json`: one identify request over the governor's
+// local Unix socket, the reply printed as JSON. On a Fly machine it runs inside the operator's own
+// `fly ssh console` session as uid 0, the governor's admin caller. `source_commit` names the install
+// directory the running code was loaded from, when that directory is /opt/commissaire/<commit>/.
+function installSourceCommit(): string | null {
+  try {
+    const m = FLY_INSTALL_COMMIT_RE.exec(`${fs.realpathSync(__dirname)}/`);
+    return m !== null && m[1] !== undefined ? m[1] : null;
+  } catch { return null; }
+}
+
+function governorIdentify(flags: FlagBag, request: typeof governorClient.governorRequest = governorClient.governorRequest): number {
+  const socketFlag = flagStr(flags, "--socket");
+  const keyDirFlag = flagStr(flags, "--key-dir");
+  const keyDir = keyDirFlag ?? (process.env.COMMISSAIRE_KEY_DIR || path.join(os.homedir(), ".local", "state", "commissaire"));
+  const socket = socketFlag ?? path.join(keyDir, "governor.sock");
+  const res = request({ kind: "unix", socket_path: socket }, { op: "identify" }, TIMEOUTS);
+  if ("unreachable" in res) {
+    console.log(JSON.stringify({ ok: false, reason: "governor-unreachable", detail: res.detail }));
+    return 1;
+  }
+  const commit = installSourceCommit();
+  console.log(JSON.stringify(res.reply.ok === true && commit !== null ? { ...res.reply, source_commit: commit } : res.reply));
+  return res.reply.ok === true ? 0 : 1;
+}
+
 module.exports = {
-  governorPin, governorStatus, pinCore, statusCore, insertFingerprint, repoFromRemoteUrl, rulesRequirePullRequest,
+  governorPin, governorStatus, governorIdentify, pinCore, statusCore, insertFingerprint, repoFromRemoteUrl, rulesRequirePullRequest,
   ROOT_EQUIVALENT_GROUPS, DEFAULT_DEPS,
 };

@@ -566,17 +566,18 @@ function usage() {
         "      --base reads .commissaire/trust.toml from REF: remote (default, needs --repo) via gh api, local via git show. Only trust.source \"remote-base\" with key_classification \"pinned\" is evidence of a pinned governor;\n" +
         "      \"local-ref\" and \"not-read\" never are. signer_fingerprint is bound to the seq-0 admission; pk_fingerprint is read from pk.json and is unauthenticated.\n" +
         "  audit anchor      --run-dir DIR --unit-id U [--dest DIR] [--root R]   (mint ONE per-unit anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n" +
-        "  governor start    [--key-dir D] [--socket P] [--listen HOST:PORT] [--socket-group-access]   (run the out-of-process governor; the only holder of the signing key)\n" +
+        "  governor start    [--key-dir D] [--socket P] [--listen HOST:PORT [--listen-allow-dns NAME|IP | --listen-unrestricted]] [--socket-group-access]   (run the out-of-process governor; the only holder of the signing key; a non-loopback --listen needs one of the two)\n" +
         "  governor rotate   [--key-dir D]   (mint a new signing keypair, keep the root secret, archive the prior fingerprint)\n" +
         "  governor install  --runner-user U --from-tag faff--vX.Y.Z [--admin-user U] [--key-dir D] [--socket-dir D] [--install-prefix D] [--node P] [--json]   (Linux, run as root: install the governor as its own OS user behind a systemd service)\n" +
-        "  governor pin      --socket PATH --runner-user NAME --repo OWNER/NAME [--base BRANCH] [--dry-run]   (run as the human: open a pull request pinning the governor's key fingerprint in .commissaire/trust.toml; refuses a governor it can show is not independent)\n" +
+        "  governor pin      (--socket PATH | --fly-app APP) --runner-user NAME --repo OWNER/NAME [--base BRANCH] [--dry-run]   (run as the human: open a pull request pinning the governor's key fingerprint in .commissaire/trust.toml; refuses a governor it can show is not independent; --fly-app reads the key through fly ssh console)\n" +
+        "  governor identify [--socket PATH] [--key-dir D] --json   (print the local governor's identify reply as JSON; run inside the governor's machine)\n" +
         "  governor status   [--socket PATH] [--runner-user NAME] [--repo OWNER/NAME] [--base BRANCH] [--runner-login LOGIN]   (run as the human: report whether a governor's runs can count as independent evidence; exit 0)\n" +
         "  governor uninstall [--purge-key] [--key-dir D] [--socket-dir D] [--install-prefix D] [--json]   (Linux, run as root: remove the service and account; the key directory is kept, owned by root, unless --purge-key)\n");
 }
 function parseCommissaireArgs(args) {
     const flags = {};
     const rest = [];
-    const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level", "--key-dir", "--socket", "--listen", "--run-id", "--base", "--trust-transport", "--repo", "--runner-user", "--admin-user", "--from-tag", "--socket-dir", "--install-prefix", "--node", "--runner-login"]);
+    const single = new Set(["--run-dir", "--run", "--producer", "--contract-revision", "--scope", "--unit-id", "--issue", "--step", "--governor-dir", "--producer-dir", "--ts", "--root", "--dest", "--bundle-store", "--level", "--key-dir", "--socket", "--listen", "--run-id", "--base", "--trust-transport", "--repo", "--runner-user", "--admin-user", "--from-tag", "--socket-dir", "--install-prefix", "--node", "--runner-login", "--listen-allow-dns", "--fly-app"]);
     for (let i = 0; i < args.length; i++) {
         const a = args[i];
         if (a === undefined)
@@ -593,6 +594,8 @@ function parseCommissaireArgs(args) {
             flags["--dry-run"] = true;
         else if (a === "--socket-group-access")
             flags["--socket-group-access"] = true;
+        else if (a === "--listen-unrestricted")
+            flags["--listen-unrestricted"] = true;
         else
             rest.push(a);
     }
@@ -1367,6 +1370,7 @@ const COMMISSAIRE_DISPATCH = {
     "governor uninstall": (flags) => require("./governor-install").governorUninstall(flags), // FAFF-1216
     "governor pin": (flags) => require("./governor-admin").governorPin(flags), // FAFF-1217
     "governor status": (flags) => require("./governor-admin").governorStatus(flags), // FAFF-1217
+    "governor identify": (flags) => require("./governor-admin").governorIdentify(flags), // FAFF-1181
 };
 // Flat verb (FAFF-828 spelling) → canonical key. An alias never appears as a COMMISSAIRE_DISPATCH
 // key: it resolves to one before dispatch, so there is exactly one handler per operation.
@@ -1402,6 +1406,7 @@ const REQUIRED_FLAGS_BY_CANONICAL = {
     "governor uninstall": [], // FAFF-1216
     "governor pin": ["--runner-user", "--repo"], // FAFF-1217
     "governor status": [], // FAFF-1217
+    "governor identify": [], // FAFF-1181
 };
 // Resolve one or two leading non-flag tokens to a canonical COMMISSAIRE_DISPATCH key, or null.
 function resolveCommissaireKey(rest) {
@@ -1453,7 +1458,7 @@ function cmdCommissaire(args) {
     }
     // The install commands take no positional arguments: an unrecognised flag (for instance a clone
     // source override, which does not exist) is refused rather than silently ignored.
-    if ((key === "governor install" || key === "governor uninstall" || key === "governor pin" || key === "governor status") && rest.length > 2) {
+    if ((key === "governor install" || key === "governor uninstall" || key === "governor pin" || key === "governor status" || key === "governor identify") && rest.length > 2) {
         process.stderr.write(`faff commissaire ${key}: unknown argument: ${rest.slice(2).join(" ")}\n`);
         return 2;
     }
@@ -1468,6 +1473,7 @@ const COMMISSAIRE_SPEC = { flags: {
         "--key-dir": { arity: 1 }, "--socket": { arity: 1 }, "--listen": { arity: 1 }, // FAFF-1177 (governor start/rotate)
         "--runner-user": { arity: 1 }, "--admin-user": { arity: 1 }, "--from-tag": { arity: 1 }, "--socket-dir": { arity: 1 }, // FAFF-1216 (governor install/uninstall)
         "--install-prefix": { arity: 1 }, "--node": { arity: 1 }, "--purge-key": { arity: 0 }, "--socket-group-access": { arity: 0 },
+        "--listen-allow-dns": { arity: 1 }, "--listen-unrestricted": { arity: 0 }, "--fly-app": { arity: 1 }, // FAFF-1181 (governor start / pin)
         "--dry-run": { arity: 0 }, "--runner-login": { arity: 1 }, // FAFF-1217 (governor pin/status)
         "--run-id": { arity: 1 }, "--base": { arity: 1 }, "--trust-transport": { arity: 1 }, "--repo": { arity: 1 }, // FAFF-1178 (audit verify trust read)
         "--force": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },

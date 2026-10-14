@@ -204,6 +204,197 @@ Two things are worth understanding before you run it:
 
 The workflow's final step tells a mid-run segment boundary (exit green — more to come) apart from a finished-or-stuck run (handed to `faff disposition`, which turns a genuinely stuck run red). It needs a **persistent single-runner workspace** (the run's ledger lives under `.faff/runs/` between firings), a **sequential** dispatch slot, and the same adversarial `spec_review` overlay the section above describes. The auth matrix is in the workflow's own comments: a solo self-hosted seat, or a team hosted runner with an API key — never a pooled seat.
 
+## Run the governor as its own Fly app
+
+This section is optional. It applies when an unattended L3 run on Fly should have its merge grants signed by a governor that the runner cannot reach (the governor is part of Commissaire, SuperDomestique's governance system), so that its governed merges can count as independent evidence. A repository that never deploys this app, and a runner that never points at it, behaves as before: nothing in Commissaire's lower tiers needs Fly, a GitHub App, a user-provided key or a network allow list.
+
+The governor runs as a separate Fly app (default name `commissaire-governor`). It generates its signing key on its own volume and never exports it. The runner (`fly-ci-l3-runner` in these examples) asks it for grants over Fly's private network. The committed config is in `operations/fly/governor/`.
+
+Anyone who can reach the governor's TCP port can obtain any run's producer key and move any run's head, which is the same as being the runner. Every step below exists to make the runner app's machines the only callers.
+
+### Never on the default organisation network
+
+Put the governor on a custom private network that holds only the governor app and the runner app. On the default organisation network every app in the organisation can reach the governor's port, and the source-address check would then be the only barrier. An app's network is fixed when it is created: you cannot move an existing app, so a runner that is on the default network has to be recreated on the custom one.
+
+### The Fly network basis
+
+Fly documents isolation between custom private networks:
+
+- "Apps on separate 6PNs can never communicate unless explicitly configured to do so." ([Custom private networks](https://docs.fly.io/networking/custom-private-networks)). The same page says "You can't add an existing app to a custom 6PN or change an app's 6PN."
+- "The Fly.io platform won't forward packets between different 6PNs, unless you explicitly allow it" ([Private networking](https://docs.fly.io/networking/private-networking)).
+- Fly enforces this with BPF access control ([Incoming! 6PN private networks](https://fly.io/blog/incoming-6pn-private-networks/)).
+
+Fly does not document whether one machine can send packets carrying another machine's 6PN address on the same network. That gap does not matter here: the network holds only the governor and the runner, so the only addresses a runner machine could fake are other runner machines', and the governor already allows those (`--listen-allow-dns` admits the runner app's own addresses). The source-address check therefore rests on placement for everything outside the runner app. The operator accepted this basis on 2026-10-14.
+
+It holds only while both operator conditions stay true:
+
+1. No other app is ever created on the custom network.
+2. The runner app's machines hold no Fly token that can create an app, or that can deploy to, SSH into or manage volumes of the governor app.
+
+If either fails, the identity check stops being a control. Stop and re-plan the placement before relying on the governor.
+
+Check both before every redeploy (steps 1 and 7 give the commands).
+
+### What you need
+
+- A Fly organisation, `flyctl` logged in as you, and permission to create apps and volumes.
+- The runner app's name (the examples use `fly-ci-l3-runner`; if yours differs, change `GOVERNOR_ALLOW_DNS` in `fly.toml` through a reviewed commit and release tag).
+- `git` and `gh` on the machine where you run `commissaire governor pin`, plus the `fly` binary. None of the three may be writable by the runner's OS user.
+- A clean checkout of a release tag of this repository.
+
+### Steps
+
+**1. Create the network and the two apps.**
+
+```sh
+fly apps create commissaire-governor --network commissaire-l3
+# The runner app must already be on the same network. If it is on the default
+# network, recreate it there: an app's network cannot be changed.
+fly apps create fly-ci-l3-runner --network commissaire-l3
+```
+
+Confirm both apps report the same network and no other app does:
+
+```sh
+fly apps list --json
+```
+
+Read each app's network in the output (the field name depends on your `flyctl` version). Exactly two apps may show `commissaire-l3`. Run this again before every redeploy.
+
+**2. Create the volume and a deploy token.** The volume is attached only to the governor app. Allocate no IP addresses.
+
+```sh
+fly volumes create commissaire_data -a commissaire-governor --region <region> --size 1
+fly tokens create deploy -a commissaire-governor
+```
+
+Keep the deploy token yourself. Do not put it in the runner app, in a CI secret or on a machine the runner can read.
+
+**3. Deploy from a clean release-tag checkout.** The key is generated inside the machine on first start. Never set it as a Fly secret.
+
+```sh
+git clone --branch faff--vX.Y.Z --depth 1 https://github.com/shftwst/faff.git governor-release
+cd governor-release
+test -z "$(git status --porcelain)"
+fly deploy . --config operations/fly/governor/fly.toml \
+  --dockerfile operations/fly/governor/Dockerfile \
+  --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" \
+  --ha=false --no-public-ips
+```
+
+The image records the commit in its `org.opencontainers.image.revision` label, and the build refuses a missing `SOURCE_COMMIT`. The entrypoint creates `/data/commissaire` (owner `commissaire`, mode 0700) on a fresh volume and refuses to start if the directory is a symlink, has another mode, or holds anything owned by another user. It copies the image's `governor-config.json` over the volume copy on every start, so changing who may call the governor is a redeploy from a reviewed release tag, never an edit on the volume.
+
+**4. Confirm the app has no public address and one machine.**
+
+```sh
+fly ips list -a commissaire-governor
+fly machines list -a commissaire-governor
+```
+
+`fly ips list` must show no address. If it lists one, release it with `fly ips release <address> -a commissaire-governor`. Never add a `[[services]]` section or an IP "to make the runner reach it": the TCP listener has no transport security.
+
+**5. Check access to the machine and its network setup.**
+
+```sh
+fly ssh console -a commissaire-governor -C "getent hosts fly-local-6pn"
+fly ssh console -a commissaire-governor -C "/opt/commissaire/current/bin/commissaire governor identify --json"
+```
+
+The first shows the machine's own 6PN address, which the governor listens on (port 7650). If `governor start` exits with a listen error, bind to the address from `/etc/hosts` explicitly by setting `GOVERNOR_LISTEN` in `fly.toml`. The second prints the governor's public key, its `pk_fingerprint` and the commit it was built from. It is also the command `pin` runs.
+
+**6. Pin the governor's key.** Run this as yourself, from your own clone, never as the runner's user. `--runner-user` is the OS user the runner agent runs as on this machine: it is used to refuse a `git`, `gh` or `fly` binary, a clone or a Commissaire install that user could edit.
+
+```sh
+commissaire governor pin --fly-app commissaire-governor \
+  --runner-user <runner-os-user> --repo OWNER/NAME --dry-run
+commissaire governor pin --fly-app commissaire-governor \
+  --runner-user <runner-os-user> --repo OWNER/NAME
+```
+
+`pin` runs `fly ssh console -a commissaire-governor -C "/opt/commissaire/current/bin/commissaire governor identify --json"` itself and reads the reply from that process, never from a saved file. It checks that the reported fingerprint is the SHA-256 of the SPKI-DER public key it reports, skips only the checks that describe a governor on this machine, keeps the repository, base-branch and branch-protection checks, and opens a pull request that adds the fingerprint to `.commissaire/trust.toml`.
+
+Before approving, run the `fly ssh console` command printed in the pull request body and check that it prints the same fingerprint. Then tick the five unticked boxes in the body, which `pin` cannot observe for you:
+
+- The runbook records the Fly documentation on isolation between custom private networks and the operator's 2026-10-14 basis for the same-network question (only the governor and runner apps on the network).
+- `fly ips list -a <app>` shows no public address.
+- The governor app and the runner app share one custom private network that no other app is on.
+- The runner app's machines hold no Fly token that can deploy to, SSH into, or manage volumes of the governor app.
+- The governor was deployed from a clean checkout of a release tag.
+
+The runner must not merge this pull request.
+
+**7. Check the runner holds nothing that reaches the governor app.** Do this before the first firing and before every redeploy.
+
+```sh
+fly secrets list -a fly-ci-l3-runner
+fly tokens list
+fly ssh console -a fly-ci-l3-runner -C "printenv"
+```
+
+Read the secret and variable names (and the token list) for any Fly token (`FLY_API_TOKEN`, `FLY_ACCESS_TOKEN` or similar) on the runner app. A token that is org-scoped, or whose scope includes the governor app or the ability to create apps, must be removed from the runner. If the runner genuinely needs organisation-wide Fly access, the governor needs a separate organisation; that also ends the shared private network, and this design has to be revisited.
+
+**8. Give the runner's cage a path to the governor.** The runner runs `claude -p` inside a `docker --rm` cage on its Fly machine, and Docker's default bridge has no IPv6, so the cage cannot reach the governor's 6PN address or resolve `.internal` names. This change is made in the runner (outside this repository). Pick one:
+
+- **IPv6 on the cage's Docker network**, with IPv6 NAT enabled so the cage's traffic leaves with the runner machine's own 6PN address as its source.
+- **A TCP relay** started in `drain.sh` on the runner machine, outside the cage. It listens on the Docker bridge address and forwards to `commissaire-governor.internal:7650`, for example `socat TCP-LISTEN:7650,bind=<bridge-ip>,fork,reuseaddr TCP6:commissaire-governor.internal:7650`. The relay's connections arrive from the runner machine's own address, so the governor accepts them. Point `COMMISSAIRE_GOVERNOR` at `<bridge-ip>:7650`.
+
+Either way, the governor only accepts connections whose source address is one of the runner app's 6PN addresses. A cage that connects from its own routed (non-NAT) address is refused with a `tcp-refused` line in the governor's log. Then set the endpoint in the runner's environment. With IPv6 on the cage network:
+
+```sh
+COMMISSAIRE_GOVERNOR=commissaire-governor.internal:7650
+```
+
+With the relay, use the bridge address instead: `COMMISSAIRE_GOVERNOR=<bridge-ip>:7650`.
+
+From inside a cage started by `drain.sh`, check name resolution and a TCP connect before the first firing:
+
+```sh
+getent ahosts commissaire-governor.internal
+timeout 5 bash -c '</dev/tcp/commissaire-governor.internal/7650' && echo reachable
+```
+
+**9. Trigger one L3 firing and check it.** Confirm the run's admission record says custody `governor`, that `commissaire audit verify --run-dir <run> --base main --repo OWNER/NAME --json` classifies the grant as `pinned`, and that the governor's log shows the requests:
+
+```sh
+fly ssh console -a commissaire-governor -C "tail -n 20 /data/commissaire/governor-log.jsonl"
+```
+
+### Redeploying
+
+The governor keeps each run's admission and last ledger head in memory. A redeploy, or Fly replacing the machine, loses them: a run already in flight is then refused `producer-not-admitted` on its next request and parks as `governor-admission-lost`, while every later run admits normally. Redeploy between firings. Before each redeploy, re-run the checks in steps 1 and 7.
+
+### Using the shared GitHub App (optional)
+
+When the governor-posted status check or the approval step for trust-file changes is in use, the governor holds one GitHub App key. It is optional: with no App configured the governor behaves as above. This section applies only once your installed release includes the governor's GitHub App support; before that, `governor start` ignores a `github_app` block and `governor status` reports no `app_token`. The key is a file on the governor's volume, never a Fly secret. A Fly secret is set from outside, stored in Fly's secret store and exposed as an environment variable to every process in the machine, whereas a mode 0600 file is readable only by the governor's account and by root in your own SSH session. Both are reachable only by whoever can manage the governor app, which the runner must never be able to do.
+
+1. **Place the key first.** Copy it to `/data/commissaire/github-app.pem` with `fly ssh sftp` (or `fly ssh console`) as root, then set the owner and mode:
+
+   ```sh
+   fly ssh console -a commissaire-governor -C "chown commissaire:commissaire /data/commissaire/github-app.pem"
+   fly ssh console -a commissaire-governor -C "chmod 0600 /data/commissaire/github-app.pem"
+   ```
+
+   The entrypoint refuses to start if anything in the key directory has another owner, so a file with the wrong owner stops the machine rather than being served. With the App support installed, `governor start` also refuses a key file that is a symlink or has the wrong mode.
+2. **Then add the `github_app` block** to the image's `governor-config.json` and deploy it from a release tag. The block carries the App and installation ids, `"private_key_file": "github-app.pem"`, and `repos`, a non-empty list of `OWNER/NAME@branch` bindings that the governor treats as governed. Until both the file and the block are present, the governor runs without the App.
+3. **Prove it.** Fly has no `governor install` that mints a test token, so run this in a `fly ssh console` session (root is the admin caller) and confirm `github_app: configured` and `app_token: ok`, plus the ruleset fields it reports. Fix any `failed` or `unknown` before relying on the status check.
+
+   ```sh
+   fly ssh console -a commissaire-governor -C "/opt/commissaire/current/bin/commissaire governor status --repo OWNER/NAME --base main"
+   ```
+
+   The governor needs outbound HTTPS to `api.github.com` once the App is configured. If `app_token` is `failed` and governed merges are refused `github-unreachable`, check the machine's outbound connectivity, or remove the `github_app` block to return to running without the App.
+4. **Rotate.** Generate a new key in the App's GitHub settings, copy it over the old file the same way, run `fly machine restart`, confirm `app_token: ok` as above, then delete the old key in GitHub.
+5. **Remove.** Remove the `github_app` block (redeploy), then delete the file from the volume.
+
+### When something fails
+
+| Symptom | Cause | What to do |
+|---|---|---|
+| The first firing stops at run start with `governance-admit-failed` and `governor_unreachable: true` | The cage cannot resolve `.internal` or reach 6PN IPv6 | Step 8 |
+| `governor start` exits with a listen error at boot | `fly-local-6pn` does not resolve in the image | Bind to the address from `/etc/hosts` by setting `GOVERNOR_LISTEN` |
+| The machine stops at start naming a key file | The App key file has the wrong owner, mode or type | `chown commissaire` and `chmod 0600` it (replacing any symlink with the file itself) from your SSH session, then restart |
+| `fly tokens list` or the runner's environment shows a token that reaches the governor app | The runner can manage the governor | Remove the token from the runner (step 7) |
+
 ## Running over SSH
 
 If you run `claude` over a plain SSH session — laptop on the sofa, server in the cupboard — the `claude` process is a *child of that SSH connection*. Close the lid, switch networks, or drop Wi-Fi for a moment and the connection dies, taking the run with it. `/faff-beep-boop` is built for exactly the away-from-keyboard case (overnight, fire-and-forget), so it's exactly where a dropped link bites.

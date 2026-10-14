@@ -14,6 +14,7 @@
 // decision 7); the caller check on the socket and the install are separate tickets.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.makeSourceAllowList = makeSourceAllowList;
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -38,6 +39,8 @@ const SPAWN_BURST = 20;
 const SPAWN_REFILL_PER_MS = SPAWN_BURST / 1000;
 const MAX_REFUSAL_LINES_PER_MINUTE = 60;
 const WINDOW_MS = 60_000;
+const DNS_CACHE_MS = 30_000;
+const FORCED_RESOLVE_MIN_GAP_MS = 5_000;
 function isRecord(v) {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -626,13 +629,76 @@ function guardUnixConnection(state, callers, reader, socket, bounds) {
     }
     onConnection(state, socket, result.uid, role);
 }
+const MAPPED_V4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i;
+function normaliseAddress(address) {
+    const bare = address.replace(/%.*$/, "");
+    const mapped = MAPPED_V4.exec(bare);
+    if (mapped !== null && mapped[1] !== undefined)
+        return mapped[1];
+    if (net.isIPv6(bare)) {
+        try {
+            return new URL(`http://[${bare}]/`).hostname.slice(1, -1);
+        }
+        catch {
+            return bare.toLowerCase();
+        }
+    }
+    return bare;
+}
+const systemResolver = async (name) => {
+    const found = await require("node:dns").promises.lookup(name, { all: true });
+    return found.map((f) => f.address);
+};
+function makeSourceAllowList(target, resolver, now) {
+    const literal = net.isIP(target) !== 0 ? normaliseAddress(target) : null;
+    let cache = null;
+    let lastForced = Number.NEGATIVE_INFINITY;
+    let inflight = null;
+    const lookup = () => {
+        inflight ??= resolver(target).then((list) => { cache = { addresses: new Set(list.map(normaliseAddress)), at: now() }; return cache.addresses; }, () => { cache = null; return null; }).finally(() => { inflight = null; });
+        return inflight;
+    };
+    return async (source) => {
+        if (source === undefined)
+            return false;
+        const from = normaliseAddress(source);
+        if (literal !== null)
+            return from === literal;
+        const fresh = cache !== null && now() - cache.at < DNS_CACHE_MS;
+        const addresses = fresh && cache !== null ? cache.addresses : await lookup();
+        if (addresses === null)
+            return false;
+        if (addresses.has(from))
+            return true;
+        if (fresh && now() - lastForced >= FORCED_RESOLVE_MIN_GAP_MS) {
+            lastForced = now();
+            return (await lookup())?.has(from) ?? false;
+        }
+        return false;
+    };
+}
+function guardTcpConnection(state, allowed, bounds, socket) {
+    socket.on("error", () => socket.destroy());
+    const source = socket.remoteAddress;
+    allowed(source).then((ok) => {
+        if (ok) {
+            onConnection(state, socket);
+            return;
+        }
+        if (bounds.allowRefusalLine())
+            appendEventLog(state, { op: "tcp-refused", source: source === undefined ? null : normaliseAddress(source) });
+        socket.destroy();
+    }, () => socket.destroy());
+}
+const isLoopbackHost = (host) => host === "localhost" || (net.isIPv4(host) && host.startsWith("127.")) || normaliseAddress(host) === "::1";
+const HOSTNAME_OR_IP = /^[A-Za-z0-9._:-]+$/;
 function parseListen(spec) {
     const at = spec.lastIndexOf(":");
     const port = Number(spec.slice(at + 1));
     const host = spec.slice(0, at);
     return at > 0 && Number.isInteger(port) && port > 0 && port < 65536 ? { host, port } : null;
 }
-function governorStart(flags) {
+function governorStart(flags, deps = {}) {
     const keyDir = keyDirOf(flags);
     const opened = openState(keyDir);
     if (!opened.ok) {
@@ -672,6 +738,25 @@ function governorStart(flags) {
         process.stderr.write("faff commissaire governor start: --listen must be host:port\n");
         return 2;
     }
+    const allowFlag = flags["--listen-allow-dns"];
+    const unrestricted = flags["--listen-unrestricted"] === true;
+    const allowDns = typeof allowFlag === "string" && allowFlag !== "" ? allowFlag : null;
+    if ("--listen-allow-dns" in flags && (allowDns === null || !HOSTNAME_OR_IP.test(allowDns))) {
+        process.stderr.write("faff commissaire governor start: --listen-allow-dns needs a DNS name or an IP address\n");
+        return 2;
+    }
+    if (listen === null && (allowDns !== null || unrestricted)) {
+        process.stderr.write("faff commissaire governor start: --listen-allow-dns and --listen-unrestricted apply only with --listen\n");
+        return 2;
+    }
+    if (allowDns !== null && unrestricted) {
+        process.stderr.write("faff commissaire governor start: --listen-allow-dns and --listen-unrestricted contradict each other; pass one\n");
+        return 2;
+    }
+    if (listen !== null && allowDns === null && !unrestricted && !isLoopbackHost(listen.host)) {
+        process.stderr.write("faff commissaire governor start: --listen on a non-loopback address needs --listen-allow-dns <runner-app>.internal (or --listen-unrestricted)\n");
+        return 2;
+    }
     try {
         if (fs.lstatSync(socketPath).isSocket())
             fs.unlinkSync(socketPath);
@@ -689,17 +774,32 @@ function governorStart(flags) {
         servers.push(server);
         return server;
     };
-    // The Unix listener is guarded by the peer-credential check; the optional TCP listener keeps the
-    // bare onConnection with NO peer check (TCP has no SO_PEERCRED — its caller auth is FAFF-1181).
+    // The Unix listener is guarded by the peer-credential check. The optional TCP listener has no
+    // SO_PEERCRED: it is source-address checked with --listen-allow-dns, and otherwise runs unchecked
+    // (loopback only, or an explicit --listen-unrestricted that leaves one log line).
     make((socket) => guardUnixConnection(state, callers, reader, socket, bounds)).listen(socketPath, () => {
         fs.chmodSync(socketPath, groupAccess ? 0o660 : 0o600);
         console.log(JSON.stringify({ listening: { socket: socketPath }, pk_fingerprint: state.pk_fingerprint }));
     });
+    let tcpBounds;
     if (listen) {
-        make((socket) => onConnection(state, socket)).listen(listen.port, listen.host, () => console.log(JSON.stringify({ listening: { tcp: `${listen.host}:${listen.port}` } })));
+        let connectionListener = (socket) => onConnection(state, socket);
+        if (allowDns !== null) {
+            const now = deps.now ?? Date.now;
+            const allowed = makeSourceAllowList(allowDns, deps.resolver ?? systemResolver, now);
+            tcpBounds = makeConnectionBounds(state, now);
+            const refusals = tcpBounds;
+            connectionListener = (socket) => guardTcpConnection(state, allowed, refusals, socket);
+        }
+        else if (!isLoopbackHost(listen.host)) {
+            appendEventLog(state, { op: "tcp-unrestricted", listen: `${listen.host}:${listen.port}` });
+        }
+        make(connectionListener).listen(listen.port, listen.host, () => console.log(JSON.stringify({ listening: { tcp: `${listen.host}:${listen.port}` } })));
     }
     if (bounds !== undefined)
         setInterval(bounds.flush, 1000).unref();
+    if (tcpBounds !== undefined)
+        setInterval(tcpBounds.flush, 1000).unref();
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
     return 0;
@@ -891,4 +991,4 @@ function governorSelftest() {
     console.log("governor selftest: ok");
     return 0;
 }
-module.exports = { governorStart, governorRotate, handleRequest, governorSelftest, openState, loadGovernorConfig, parseGovernorConfig, guardUnixConnection, makeConnectionBounds, appendConnectLog, onConnection, ADMIN_OPS };
+module.exports = { governorStart, governorRotate, handleRequest, governorSelftest, openState, loadGovernorConfig, parseGovernorConfig, guardUnixConnection, makeConnectionBounds, appendConnectLog, onConnection, makeSourceAllowList, ADMIN_OPS };

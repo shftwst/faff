@@ -1,0 +1,28 @@
+# The Commissaire governor as its own Fly app. Deploy from a clean release-tag checkout; the runbook
+# is "Run the governor as its own Fly app" in docs/guide/unattended.md.
+#
+# There is deliberately no [[services]] and no [http_service] section, and the app is never given a
+# public IP: the governor's TCP listener has no transport security, so it is reachable only over the
+# private network. With no service section Fly's proxy never stops the machine, and the restart
+# policy below brings it back after a crash, so it stays running on one machine.
+
+app = "commissaire-governor"
+
+[env]
+  # The Fly app whose machines may call the governor, resolved to their 6PN addresses (required).
+  GOVERNOR_ALLOW_DNS = "fly-ci-l3-runner.internal"
+  # Lets `fly ssh console` sessions find the governor's local socket.
+  COMMISSAIRE_KEY_DIR = "/data/commissaire"
+
+# The signing key lives on this volume, attached only to this app. Create it before the first deploy.
+[mounts]
+  source = "commissaire_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+[[restart]]
+  policy = "always"

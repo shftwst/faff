@@ -14,7 +14,7 @@ const CLI = join(REPO, "plugin", "skills", "faff", "bin", "faff");
 function committedLedgerLines() {
   const files = execFileSync("git", ["ls-files", ".faff/anchors/*/*/declared-effects.jsonl"], { cwd: REPO, encoding: "utf8" })
     .split("\n").filter(Boolean);
-  return files.flatMap((file) => readFileSync(join(REPO, file), "utf8").split("\n")
+  return files.flatMap((file) => execFileSync("git", ["show", `HEAD:${file}`], { cwd: REPO, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).split("\n")
     .map((text, i) => ({ file, line: i + 1, text }))
     .filter(({ text }) => text.trim() !== ""));
 }
@@ -40,7 +40,13 @@ test("every committed declared-effects line passes declaredEffectViolations", ()
   const schemas = new Set();
   const failures = [];
   for (const { file, line, text } of lines) {
-    const rec = JSON.parse(text);
+    let rec;
+    try {
+      rec = JSON.parse(text);
+    } catch {
+      failures.push(`${file}:${line}: not valid JSON`);
+      continue;
+    }
     schemas.add(rec.schema);
     const violations = declaredEffectViolations(rec);
     if (violations.length) failures.push(`${file}:${line}: ${violations.join("; ")}`);

@@ -1,0 +1,20 @@
+{
+  "escapes": [
+    {
+      "signal": "rejected-unit-key",
+      "issue": null,
+      "step": "push",
+      "seq": 1,
+      "escaped": [
+        {
+          "kind": "push",
+          "target": "dual-key-branch",
+          "reversible": true
+        }
+      ],
+      "event_seq": null,
+      "unit_id": null
+    }
+  ],
+  "any_escape": true
+}

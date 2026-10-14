@@ -144,14 +144,17 @@ A holder of `pk.json` alone then runs `commissaire audit verify --run-dir <dir>
 
 The citable record shapes and keypair custody model are the shipped counterpart
 to this narrative:
-[`verification/commissaire-facade/v0.2/`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.2/)
+[`verification/commissaire-facade/v0.3/`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.3/)
 (with
-[`records.md`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.2/records.md),
-[`keypair.md`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.2/keypair.md),
-[`conformance.md`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.2/conformance.md),
+[`records.md`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.3/records.md),
+[`keypair.md`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.3/keypair.md),
+[`conformance.md`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.3/conformance.md),
 and the `schema/` JSON). Cite it for a field table; this page never restates one.
-[`v0.1/`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.1/) stays
-published as the read shape for records written before the `unit_id` rename, which carry `issue`.
+[`v0.2/`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.2/) and
+[`v0.1/`](https://github.com/shftwst/faff/blob/main/verification/commissaire-facade/v0.1/) stay
+published as the read shapes for older records: v0.2 for conclusions written before the kind was
+renamed to `conformed_to_contract`, which carry `accepted_under_contract`, and v0.1 for records
+written before the unit key was renamed to `unit_id`, which carry `issue`.
 
 ## Related pages
 

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1262",
+  "build": {
+    "status": "complete",
+    "diff_hash": "185101c648885fdb5a092313883ff34480c5b9e8fae572e25fe4a96ac77fd8dd",
+    "branch": "FAFF-1262-per-line-validator-declared-effects",
+    "pushed_at": "2026-10-14T03:47:10.205Z"
+  },
+  "updated_at": "2026-10-14T03:47:10.205Z"
+}

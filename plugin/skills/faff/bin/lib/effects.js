@@ -24,7 +24,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { requireFlags } = require("./argv");
-const { appendRecordsUnderLock, sha256Hex, verifyEffectsChain, verifyExitCode } = require("./events");
+const { HEX64_RE, RUNNER_IDENTITY_CREDENTIAL_SOURCES, appendRecordsUnderLock, sha256Hex, verifyEffectsChain, verifyExitCode } = require("./events");
 const { findRoot, resolveRunDir } = require("./shared-infra");
 
 // FAFF-628 — declared grammar for `faff cli-surface --json`. `effects` reads its own fixed
@@ -119,6 +119,86 @@ function unitIdOf(rec) {
   if (carriesBothUnitKeys(rec)) return null;
   const unit = hasUnitKey(rec, "unit_id") ? rec.unit_id : rec.issue;
   return typeof unit === "string" && unit !== "" ? unit : null;
+}
+
+// === FAFF-1262: the whole-record validator ================================
+// effectDescriptorViolations checks the {kind,target,reversible} descriptor; this checks the
+// full declared-effects.jsonl record around it. Shape only: a present commissaire_sig or
+// producer_hmac is not a verified one (the governance-check schema-3 auth leg verifies).
+
+const COMMON_ENVELOPE_KEYS = ["schema", "run_id", "seq", "ts", "step", "effect"];
+const LEGACY_ENVELOPE_KEYS = new Set([...COMMON_ENVELOPE_KEYS, "kind_of_entry", "issue"]);
+const CHAINED_LEGACY_ENVELOPE_KEYS = new Set([...LEGACY_ENVELOPE_KEYS, "prev", "origin", "github_actor"]);
+const COMMISSAIRE_ENVELOPE_KEYS = new Set([
+  ...COMMON_ENVELOPE_KEYS, "author", "producer_id", "contract_revision", "kind_of_entry", "unit_id",
+  "issue", "prev", "payload", "commissaire_sig", "producer_hmac",
+]);
+
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+const isNonEmptyString = (v) => typeof v === "string" && v !== "";
+
+function unexpectedFieldViolations(rec, allowedKeys) {
+  return Object.keys(rec).filter((k) => !allowedKeys.has(k)).map((k) => `unexpected field ${JSON.stringify(k)}`);
+}
+
+function nonEmptyStringViolations(rec, fields) {
+  return fields.filter((f) => !isNonEmptyString(rec[f])).map((f) => `${f} must be a non-empty string`);
+}
+
+function effectFieldViolations(rec) {
+  return effectDescriptorViolations(rec.effect).map((m) => `effect: ${m}`);
+}
+
+function githubActorViolations(actor) {
+  const wellFormed = isPlainObject(actor)
+    && Object.keys(actor).length === 2
+    && (typeof actor.login === "string" || actor.login === null)
+    && RUNNER_IDENTITY_CREDENTIAL_SOURCES.has(actor.source);
+  return wellFormed ? [] : ["github_actor must be exactly {login, source} with login a string or null and source in {runner-credential, ambient}"];
+}
+
+function prevViolations(rec) {
+  return typeof rec.prev === "string" && HEX64_RE.test(rec.prev) ? [] : ["prev must be 64 lowercase hex characters"];
+}
+
+function legacyRecordViolations(rec) {
+  const v = unexpectedFieldViolations(rec, rec.schema === 1 ? LEGACY_ENVELOPE_KEYS : CHAINED_LEGACY_ENVELOPE_KEYS);
+  if (rec.kind_of_entry !== "declare" && rec.kind_of_entry !== "observe") v.push("kind_of_entry must be declare or observe");
+  v.push(...nonEmptyStringViolations(rec, ["issue"]), ...effectFieldViolations(rec));
+  if (rec.schema === 2) {
+    v.push(...prevViolations(rec));
+    if (hasUnitKey(rec, "origin") && !isNonEmptyString(rec.origin)) v.push("origin must be a non-empty string");
+    if (hasUnitKey(rec, "github_actor")) v.push(...githubActorViolations(rec.github_actor));
+  }
+  return v;
+}
+
+function commissaireRecordViolations(rec) {
+  const v = unexpectedFieldViolations(rec, COMMISSAIRE_ENVELOPE_KEYS);
+  if (rec.author !== "commissaire" && rec.author !== "producer") v.push("author must be commissaire or producer");
+  v.push(...nonEmptyStringViolations(rec, ["producer_id", "contract_revision", "kind_of_entry"]), ...prevViolations(rec));
+  if (unitIdOf(rec) === null) v.push("exactly one of unit_id or issue must be a non-empty string");
+  if (rec.author === "commissaire" && !(isNonEmptyString(rec.commissaire_sig) && !hasUnitKey(rec, "producer_hmac"))) {
+    v.push("author commissaire requires commissaire_sig and no producer_hmac");
+  }
+  if (rec.author === "producer" && !(isNonEmptyString(rec.producer_hmac) && !hasUnitKey(rec, "commissaire_sig"))) {
+    v.push("author producer requires producer_hmac and no commissaire_sig");
+  }
+  if (hasUnitKey(rec, "effect")) v.push(...effectFieldViolations(rec));
+  if (hasUnitKey(rec, "payload") && !isPlainObject(rec.payload)) v.push("payload must be a JSON object");
+  return v;
+}
+
+// Pure validator for one whole declared-effects.jsonl record — returns violation strings
+// (empty == valid). Messages name fields and keys, never values.
+function declaredEffectViolations(rec) {
+  if (!isPlainObject(rec)) return ["record must be a JSON object"];
+  if (![1, 2, 3].includes(rec.schema)) return ["schema must be 1, 2 or 3"];
+  const v = nonEmptyStringViolations(rec, ["run_id"]);
+  if (!Number.isInteger(rec.seq) || rec.seq < 0) v.push("seq must be a non-negative integer");
+  v.push(...nonEmptyStringViolations(rec, ["ts", "step"]));
+  v.push(...(rec.schema === 3 ? commissaireRecordViolations(rec) : legacyRecordViolations(rec)));
+  return v;
 }
 
 // The only unit comparison readers use: false for a missing or non-string comparand, so two
@@ -591,16 +671,24 @@ function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, t
   if (effects.length === 0) return { written: [] }; // nothing to declare — touch nothing
 
   const runId = path.basename(runDirAbsPath);
+  let recordViolation = null;
   const written = appendRecordsUnderLock(
     runDirAbsPath,
     { ledgerFile: "declared-effects.jsonl", lock: { code: "EFFECTS_LOCKED", label: "effects lock" } },
     effects.length,
-    (index, seq, _prevRecord, prevHash) => ({
-      ...(recordFields || {}),
-      schema: 2, run_id: runId, seq, ts: ts || new Date().toISOString(),
-      kind_of_entry: kindOfEntry, issue, step, effect: normEffect(effects[index]), prev: prevHash,
-    }),
+    (index, seq, _prevRecord, prevHash) => {
+      const record = {
+        ...(recordFields || {}),
+        schema: 2, run_id: runId, seq, ts: ts || new Date().toISOString(),
+        kind_of_entry: kindOfEntry, issue, step, effect: normEffect(effects[index]), prev: prevHash,
+      };
+      const recordViolations = declaredEffectViolations(record);
+      if (recordViolations.length === 0) return record;
+      recordViolation = { index, violations: recordViolations, scope: "record" };
+      return null; // null aborts the whole batch; nothing is written
+    },
   );
+  if (written === null) return { violations: [recordViolation] };
   return { written };
 }
 
@@ -689,7 +777,7 @@ function cmdEffects(args) {
     if (result.violations) {
       // Validate ALL before writing ANY (all-or-nothing; a bad descriptor writes nothing) —
       // reproduce the original per-descriptor stderr lines verbatim from the violation indices.
-      for (const v of result.violations) for (const x of v.violations) process.stderr.write(`- descriptor[${v.index}]: ${x}\n`);
+      for (const v of result.violations) for (const x of v.violations) process.stderr.write(`- ${v.scope === "record" ? "record" : "descriptor"}[${v.index}]: ${x}\n`);
       return 1;
     }
     console.log(JSON.stringify(result.written.length === 1 ? result.written[0] : result.written));
@@ -895,10 +983,93 @@ function effectsSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
+  // --- declaredEffectViolations (FAFF-1262): one failing record per rule, exact messages ---
+  {
+    const effect = { kind: "merge", target: "pr:1", reversible: true };
+    const schema1 = { schema: 1, run_id: "r", seq: 0, ts: "t", kind_of_entry: "declare", issue: "I", step: "s", effect };
+    const schema2 = { ...schema1, schema: 2, prev: "a".repeat(64) };
+    const commissaire3 = {
+      schema: 3, run_id: "r", seq: 0, ts: "t", author: "commissaire", producer_id: "P", contract_revision: "c1",
+      kind_of_entry: "verdict", unit_id: "U1", step: "s", prev: "a".repeat(64), payload: {}, commissaire_sig: "sig",
+    };
+    const producer3 = {
+      ...commissaire3, author: "producer", issue: "U1", effect, commissaire_sig: undefined, unit_id: undefined, payload: undefined, producer_hmac: "h",
+    };
+    const variant = (base, patch) => {
+      const rec = { ...base, ...patch };
+      for (const k of Object.keys(rec)) if (rec[k] === undefined) delete rec[k];
+      return rec;
+    };
+    const actorMessage = "github_actor must be exactly {login, source} with login a string or null and source in {runner-credential, ambient}";
+    const unitMessage = "exactly one of unit_id or issue must be a non-empty string";
+    const failing = [
+      ["non-object", [1, 2], ["record must be a JSON object"]],
+      ["null", null, ["record must be a JSON object"]],
+      ["schema 4", { ...schema2, schema: 4, bogus: 1 }, ["schema must be 1, 2 or 3"]],
+      ["empty run_id", variant(schema2, { run_id: "" }), ["run_id must be a non-empty string"]],
+      ["empty ts", variant(schema2, { ts: "" }), ["ts must be a non-empty string"]],
+      ["empty step", variant(schema2, { step: "" }), ["step must be a non-empty string"]],
+      ["seq -1", variant(schema2, { seq: -1 }), ["seq must be a non-negative integer"]],
+      ["seq 1.5", variant(schema2, { seq: 1.5 }), ["seq must be a non-negative integer"]],
+      ["schema-1 unknown key", variant(schema1, { extra: 1 }), ['unexpected field "extra"']],
+      ["schema-2 unknown key", variant(schema2, { extra: 1 }), ['unexpected field "extra"']],
+      ["schema-1 prev", variant(schema1, { prev: "a".repeat(64) }), ['unexpected field "prev"']],
+      ["schema-2 missing prev", variant(schema2, { prev: undefined }), ["prev must be 64 lowercase hex characters"]],
+      ["schema-2 malformed prev", variant(schema2, { prev: "ABC" }), ["prev must be 64 lowercase hex characters"]],
+      ["empty origin", variant(schema2, { origin: "" }), ["origin must be a non-empty string"]],
+      ["github_actor extra key", variant(schema2, { github_actor: { login: null, source: "ambient", extra: 1 } }), [actorMessage]],
+      ["github_actor numeric login", variant(schema2, { github_actor: { login: 7, source: "ambient" } }), [actorMessage]],
+      ["github_actor source token", variant(schema2, { github_actor: { login: null, source: "token" } }), [actorMessage]],
+      ["kind_of_entry x", variant(schema2, { kind_of_entry: "x" }), ["kind_of_entry must be declare or observe"]],
+      ["empty issue", variant(schema2, { issue: "" }), ["issue must be a non-empty string"]],
+      ["bad descriptor", variant(schema2, { effect: { kind: "merge", target: "" } }), ["effect: missing or empty target"]],
+      ["schema-1 absent effect", variant(schema1, { effect: undefined }), ["effect: effect must be a JSON object"]],
+      ["schema-2 absent effect", variant(schema2, { effect: undefined }), ["effect: effect must be a JSON object"]],
+      ["schema-3 unknown key", variant(commissaire3, { extra: 1 }), ['unexpected field "extra"']],
+      ["schema-3 bad author", variant(commissaire3, { author: "x" }), ["author must be commissaire or producer"]],
+      ["schema-3 empty producer_id", variant(commissaire3, { producer_id: "" }), ["producer_id must be a non-empty string"]],
+      ["schema-3 both unit keys", variant(commissaire3, { issue: "U1" }), [unitMessage]],
+      ["schema-3 no unit key", variant(commissaire3, { unit_id: undefined }), [unitMessage]],
+      ["schema-3 commissaire with producer_hmac", variant(commissaire3, { producer_hmac: "h" }), ["author commissaire requires commissaire_sig and no producer_hmac"]],
+      ["schema-3 producer without producer_hmac", variant(producer3, { producer_hmac: undefined }), ["author producer requires producer_hmac and no commissaire_sig"]],
+      ["schema-3 array payload", variant(commissaire3, { payload: [] }), ["payload must be a JSON object"]],
+      ["scenario: dual unit keys on a producer", variant(producer3, { unit_id: "U1" }), [unitMessage]],
+    ];
+    for (const [label, rec, want] of failing) {
+      const got = declaredEffectViolations(rec);
+      if (JSON.stringify(got) !== JSON.stringify(want)) fail(`declaredEffectViolations ${label}: want ${JSON.stringify(want)}, got ${JSON.stringify(got)}`);
+    }
+    const passing = [
+      ["schema 1", schema1],
+      ["schema 2 bare", schema2],
+      ["schema 2 with origin", variant(schema2, { origin: "merge-gate-auto" })],
+      ["schema 2 with origin and github_actor", variant(schema2, { origin: "pr-create-auto", github_actor: { login: null, source: "ambient" } })],
+      ["schema 3 commissaire", commissaire3],
+      ["schema 3 producer", producer3],
+    ];
+    for (const [label, rec] of passing) {
+      const got = declaredEffectViolations(rec);
+      if (got.length) fail(`declaredEffectViolations accepts ${label}, got ${JSON.stringify(got)}`);
+    }
+
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-effects-record-"));
+    try {
+      const d = { kind: "pr-create", target: "main", reversible: true };
+      appendEffectEntries(tmp, "declare", "FAFF-1", "pr-create", [d, d], "t", { origin: "x" });
+      const ledger = path.join(tmp, "declared-effects.jsonl");
+      const before = fs.readFileSync(ledger);
+      const r = appendEffectEntries(tmp, "declare", "FAFF-1", "pr-create", [d, d], "t", { origin: "x", extra: 1 });
+      if (JSON.stringify(r) !== JSON.stringify({ violations: [{ index: 0, violations: ['unexpected field "extra"'], scope: "record" }] })) {
+        fail(`appendEffectEntries: an unknown recordFields key returns one record-scoped violation, got ${JSON.stringify(r)}`);
+      }
+      if (!fs.readFileSync(ledger).equals(before)) fail("appendEffectEntries: a record violation leaves the ledger byte-identical");
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+
   if (failed) return 1;
   console.log("effects --selftest: ok");
   return 0;
 }
 
 
-module.exports = { CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };

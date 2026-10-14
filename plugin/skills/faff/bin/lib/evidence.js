@@ -700,7 +700,11 @@ function writeTerminalReviewVerdict(runDir, issue, text, secrets) {
   } catch {
     throw new WriterFault("cannot append the evidence-terminal-only event; nothing written");
   }
-  return { written: writeEvidenceFile(issueDir, "review-verdict.json", doc) };
+  try {
+    return { written: writeEvidenceFile(issueDir, "review-verdict.json", doc) };
+  } catch (e) {
+    throw e instanceof WriterFault ? new WriterFault(`${e.message}; the evidence-terminal-only event was already recorded`) : e;
+  }
 }
 
 const WRITERS = {

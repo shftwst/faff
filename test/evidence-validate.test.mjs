@@ -85,6 +85,7 @@ test("evidence validate: every git-tracked anchor passes, or is legacy or a list
   assert.ok(dirs.length > 100, `expected the committed anchors, found ${dirs.length}`);
   assert.deepEqual(committedAnchorProblems(REPO, dirs), []);
   const legacy = dirs.find((rel) => validateAnchorDir(join(REPO, rel)).status === "legacy");
+  assert.ok(legacy, "expected at least one legacy anchor for the exit-code checks");
   const report = validateAnchorDir(join(REPO, legacy));
   assert.equal(exitCodeFor(report, false), 0, legacy);
   assert.equal(exitCodeFor(report, true), 1, legacy);

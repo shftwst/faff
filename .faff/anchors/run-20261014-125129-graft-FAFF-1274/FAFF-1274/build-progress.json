@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1274",
+  "build": {
+    "status": "complete",
+    "diff_hash": "cd2ad3574380b9feadd2da57ca1a57ae17d5671a2451515187d4b54898d78eee",
+    "branch": "FAFF-1274-anchor-evidence-let-the-v03-run-ledger-schema-accept-free",
+    "pushed_at": "2026-10-14T13:16:10.519Z"
+  },
+  "updated_at": "2026-10-14T13:16:10.519Z"
+}

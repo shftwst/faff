@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/declared-effect",
+  "title": "<anchor-dir>/declared-effects.jsonl (one record per line)",
+  "description": "Envelope only, one closed shape per record version. `effect` and `payload` stay open until the per-kind schemas land. The line validator `declaredEffectViolations` (effects.js) enforces what the subset cannot.",
+  "type": "object",
+  "required": [
+    "schema"
+  ],
+  "discriminator": {
+    "field": "schema",
+    "mapping": {
+      "1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "run_id",
+          "seq",
+          "ts",
+          "kind_of_entry",
+          "issue",
+          "step",
+          "effect"
+        ],
+        "properties": {
+          "schema": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "kind_of_entry": {
+            "type": "string",
+            "enum": [
+              "declare",
+              "observe"
+            ]
+          },
+          "issue": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "object",
+            "description": "per-kind effect descriptor; closed per kind by a later slice"
+          }
+        }
+      },
+      "2": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "run_id",
+          "seq",
+          "ts",
+          "kind_of_entry",
+          "issue",
+          "step",
+          "effect",
+          "prev"
+        ],
+        "properties": {
+          "schema": {
+            "type": "integer",
+            "enum": [
+              2
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "kind_of_entry": {
+            "type": "string",
+            "enum": [
+              "declare",
+              "observe"
+            ]
+          },
+          "issue": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "object",
+            "description": "per-kind effect descriptor; closed per kind by a later slice"
+          },
+          "prev": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "github_actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "login",
+              "source"
+            ],
+            "properties": {
+              "login": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "runner-credential",
+                  "ambient"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "3": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "run_id",
+          "seq",
+          "ts",
+          "author",
+          "producer_id",
+          "contract_revision",
+          "kind_of_entry",
+          "step",
+          "prev"
+        ],
+        "properties": {
+          "schema": {
+            "type": "integer",
+            "enum": [
+              3
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string",
+            "enum": [
+              "commissaire",
+              "producer"
+            ]
+          },
+          "producer_id": {
+            "type": "string"
+          },
+          "contract_revision": {
+            "type": "string"
+          },
+          "kind_of_entry": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "prev": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "unit_id": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "object",
+            "description": "per-kind effect descriptor; closed per kind by a later slice"
+          },
+          "payload": {
+            "type": "object",
+            "description": "per-record payload; closed by a later slice"
+          },
+          "commissaire_sig": {
+            "type": "string"
+          },
+          "producer_hmac": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

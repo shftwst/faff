@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/landing-progress",
+  "title": "<anchor-dir>/landing-progress.json",
+  "description": "Written by `faff landing-progress record-fix-cycle`. Matches landingProgressApplyFixCycle (effects.js).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue",
+    "fix_cycles",
+    "last_head_sha",
+    "history",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "fix_cycles": {
+      "type": "integer"
+    },
+    "last_head_sha": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cycle",
+          "kind",
+          "failing_checks",
+          "tried",
+          "at"
+        ],
+        "properties": {
+          "cycle": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "conflict",
+              "regression"
+            ]
+          },
+          "failing_checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tried": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  }
+}

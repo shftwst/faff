@@ -17,6 +17,7 @@ license to relax the validator.
 |---|---|---|
 | [`v0.1/`](v0.1/) | current baseline | The nine artifacts a governed run produces at construction time: `run-ledger.json`, `events.jsonl`, and the five per-issue floor artifacts (`ac-checklist.json`, `review-verdict.json`, `holdout.json`, `merge-record.json`, `supersession.json`), plus the two supporting artifacts (`build-progress.json`, `lane-boundary.json`) the L4 holdout leg transitively reads. |
 | [`v0.2/`](v0.2/) | current | Adds the `chain-head.json` witness artifact, the `faff events verify` / `faff events anchor` verbs, and governance-check's sixth `integrity` leg — the hash-chain anchoring/verification surface FAFF-568 shipped after v0.1 was approved. v0.1's nine pages are otherwise unchanged; see `v0.2/conformance.md` for the six-leg conformance statement FAFF-610's Action should cite going forward. |
+| [`v0.3/`](v0.3/) | draft | A closed schema for every file a per-PR anchor can hold, the anchor manifest, and the read-only `faff evidence validate` command (FAFF-1256, slice 1 of FAFF-1255). A copy ships with the plugin. Draft until FAFF-1261 (enforcement) lands. |
 
 Each version directory is a **full, self-contained description of its own scope** —
 `v0.2/` does not restate v0.1's unchanged pages; it documents only what's new and points
@@ -37,6 +38,10 @@ statement may land in place). Published version directories are **immutable** on
 landed — this durable rule binds FAFF-610 (the Action names the spec version it checks),
 FAFF-611 (per-unit release plumbing), and the flight-recorder extraction (v2 is reserved
 for the `issue`→`unit` rename).
+
+**Draft rule:** a version marked draft in the table above may be edited in place by the
+FAFF-1255 slices, and freezes when FAFF-1261 (enforcement) lands. Nothing refuses on a draft
+version, so an in-place edit breaks no consumer. v0.3 is the only draft version.
 
 v1.0 is reserved for the first version an external consumer pins.
 
@@ -71,6 +76,12 @@ cross-link rather than merge.
 
 ## Changelog
 
+- **v0.3 — 2026-10-14 (FAFF-1256, draft).** Adds `v0.3/`: closed schemas for every file the
+  per-PR mint can place in an anchor, `anchor-manifest.json`, four prose pages and the
+  read-only `faff evidence validate` command. The subset validator gains `type` unions
+  including `null`, `additionalProperties` as a schema, `minItems`, `pattern` and
+  `discriminator`; its `enum` message no longer prints the offending value. v0.1 and v0.2 are
+  not edited.
 - **v0.2 — 2026-07-24 (FAFF-601, documenting FAFF-568).** Adds the `chain-head.json`
   witness artifact, `faff events verify`/`faff events anchor`, and governance-check's
   sixth `integrity` leg. v0.1's OUT OF SCOPE bullet excluding this surface (written before

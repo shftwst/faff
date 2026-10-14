@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "files": {
+    "events.jsonl": {
+      "schema": "schema/run-event.schema.json",
+      "format": "csv",
+      "versioned_by": "manifest"
+    },
+    "declared-effects.jsonl": {
+      "schema": "schema/declared-effect.schema.json",
+      "format": "jsonl",
+      "versioned_by": "manifest"
+    },
+    "chain-head.json": {
+      "schema": "schema/chain-head.schema.json",
+      "format": "json",
+      "versioned_by": "manifest"
+    },
+    "effects-chain-head.json": {
+      "schema": "schema/chain-head.schema.json",
+      "format": "json",
+      "versioned_by": "manifest"
+    },
+    "commissaire/producer/pk.json": {
+      "schema": "schema/producer-pk.schema.json",
+      "format": "json",
+      "versioned_by": "manifest"
+    },
+    "run-ledger.json": {
+      "schema": "schema/run-ledger.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    },
+    "build-progress.json": {
+      "schema": "schema/build-progress.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    },
+    "landing-progress.json": {
+      "schema": "schema/landing-progress.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    },
+    "ac-checklist.json": {
+      "schema": "schema/ac-checklist.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    },
+    "review-verdict.json": {
+      "schema": "schema/review-verdict-anchored.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    },
+    "spec-review-verdict.json": {
+      "schema": "schema/spec-review-verdict-anchored.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    },
+    "holdout.json": {
+      "schema": "schema/holdout-anchored.schema.json",
+      "format": "json",
+      "versioned_by": "field"
+    }
+  }
+}

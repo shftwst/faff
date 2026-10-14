@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1256",
+  "build": {
+    "status": "complete",
+    "diff_hash": "47c25b9859fce2a08d8e7456d07a3dc9b9ee0b8b8614539cdedcc750289fb02b",
+    "branch": "FAFF-1256-anchor-evidence-slice-1-v03-evidence-schemas",
+    "pushed_at": "2026-10-14T07:22:58.522Z"
+  },
+  "updated_at": "2026-10-14T07:22:58.522Z"
+}

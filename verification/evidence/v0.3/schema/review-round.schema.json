@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/review-round",
+  "title": "<run-dir>/<ISSUE>/review-rounds/round-<n>.json",
+  "description": "One review round as the collator reads it. Published for the writer's input check; round records are never anchored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "round",
+    "signal",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "round": {
+      "type": "integer"
+    },
+    "signal": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "needs-human"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "title",
+          "location",
+          "action",
+          "location_present",
+          "action_present",
+          "severity",
+          "source",
+          "model",
+          "disposition",
+          "refutation",
+          "disposition_rationale"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location_present": {
+            "type": "boolean"
+          },
+          "action_present": {
+            "type": "boolean"
+          },
+          "severity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "critical",
+              "major",
+              "minor",
+              "observation",
+              null
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "standard",
+              "adversarial",
+              null
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disposition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "fixed",
+              "refuted",
+              "accepted-risk",
+              "open",
+              null
+            ]
+          },
+          "refutation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disposition_rationale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

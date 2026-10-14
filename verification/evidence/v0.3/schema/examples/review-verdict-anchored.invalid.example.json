@@ -1,0 +1,39 @@
+{
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "src/example.js::missing null check",
+      "title": "Missing null check",
+      "location": "src/example.js:10",
+      "action": "Guard the null case",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Missing null check",
+          "location": "src/example.js:10",
+          "severity": "major",
+          "disposition": "fixed"
+        },
+        {
+          "round": 2,
+          "title": "Missing null check",
+          "location": "src/example.js:10",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

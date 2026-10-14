@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "branch": "faff-1-example",
+    "pushed_at": "2026-01-01T00:00:00.000Z"
+  },
+  "updated_at": "2026-01-01T00:00:00.000Z"
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/anchor-manifest",
+  "title": "anchor-manifest.json",
+  "description": "Maps each anchor-relative path to the schema that validates it. Schema paths are relative to the manifest's own directory so the bundled copy resolves inside an install.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "format",
+          "versioned_by"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "description": "path relative to the manifest's directory"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "jsonl"
+            ]
+          },
+          "versioned_by": {
+            "type": "string",
+            "enum": [
+              "field",
+              "manifest"
+            ],
+            "description": "field: the document carries schema_version; manifest: the manifest versions the file"
+          }
+        }
+      }
+    }
+  }
+}

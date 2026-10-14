@@ -49,6 +49,7 @@ const { cmdDisposition } = require("./lib/disposition");
 const { cmdEconomics } = require("./lib/economics");
 const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = require("./lib/effects");
 const { cmdEligible } = require("./lib/eligible");
+const { cmdEvidence } = require("./lib/evidence");
 const { cmdEngine } = require("./lib/engine");
 const { cmdEnv } = require("./lib/env");
 const { cmdEval } = require("./lib/eval-affected");
@@ -237,6 +238,7 @@ const COMMANDS = {
   "eval": cmdEval,
   "engine": cmdEngine,
   "events": cmdEvents,
+  "evidence": cmdEvidence,
   "effects": cmdEffects,
   "review-progress": cmdReviewProgress,
   "build-progress": cmdBuildProgress,

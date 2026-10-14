@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/ac-checklist",
+  "title": "<anchor-dir>/ac-checklist.json",
+  "description": "`criteria` is the one optional key and is omitted only for a zero-AC issue (readAcComplete treats an absent key as schema-1 and rejects [] and null).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "all_verified"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "all_verified": {
+      "type": "boolean"
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ac",
+          "verified",
+          "passed"
+        ],
+        "properties": {
+          "ac": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "string",
+            "description": "evidence line, or `Needs human verification: <reason>`"
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

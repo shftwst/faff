@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/review-verdict-anchored",
+  "title": "<anchor-dir>/review-verdict.json",
+  "description": "The terminal review verdict collated across every round. Every merged finding keeps one occurrence per round it was raised in.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "signal",
+    "rounds_total",
+    "round_history",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "signal": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "needs-human"
+      ],
+      "description": "terminal round's signal"
+    },
+    "rounds_total": {
+      "type": "integer"
+    },
+    "round_history": {
+      "type": "string",
+      "enum": [
+        "recorded",
+        "terminal-only"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "title",
+          "location",
+          "action",
+          "location_present",
+          "action_present",
+          "severity",
+          "source",
+          "model",
+          "disposition",
+          "refutation",
+          "disposition_rationale",
+          "first_round",
+          "last_round",
+          "occurrences"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location_present": {
+            "type": "boolean"
+          },
+          "action_present": {
+            "type": "boolean"
+          },
+          "severity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "critical",
+              "major",
+              "minor",
+              "observation",
+              null
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "standard",
+              "adversarial",
+              null
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disposition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "fixed",
+              "refuted",
+              "accepted-risk",
+              "open",
+              null
+            ]
+          },
+          "refutation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disposition_rationale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_round": {
+            "type": "integer"
+          },
+          "last_round": {
+            "type": "integer"
+          },
+          "occurrences": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round",
+                "title",
+                "location",
+                "severity",
+                "disposition"
+              ],
+              "properties": {
+                "round": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "severity": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "critical",
+                    "major",
+                    "minor",
+                    "observation",
+                    null
+                  ]
+                },
+                "disposition": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "fixed",
+                    "refuted",
+                    "accepted-risk",
+                    "open",
+                    null
+                  ]
+                }
+              }
+            },
+            "minItems": 1
+          }
+        }
+      }
+    }
+  }
+}

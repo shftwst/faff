@@ -42,6 +42,7 @@ const validate = (dir, ...extra) => runCli(["evidence", "validate", dir, "--json
 // graft writers of these files do not stamp v0.3 shapes yet, so the anchor reports fail rather than legacy.
 const MIXED_ANCHORS = new Map([
   [".faff/anchors/run-20261014-125129-graft-FAFF-1274/FAFF-1274", ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json"]],
+  [".faff/anchors/run-20261014-125614-graft-FAFF-1224/FAFF-1224", ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json"]],
 ]);
 
 test("evidence validate: every git-tracked anchor directory is legacy (exit 0, exit 1 under --require-evidence-schema)", () => {

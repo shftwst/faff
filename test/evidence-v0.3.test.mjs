@@ -109,23 +109,39 @@ test("v0.3: every type value in every schema is one of the seven known names", (
   }
 });
 
-test("v0.3: every object node is closed, apart from the open JSONL payloads and discriminator bases", () => {
-  for (const file of schemaFiles()) {
-    walkSchema(readJson(join(SRC, "schema", file)), (node, trail) => {
-      if (!node.type || ![].concat(node.type).includes("object")) return;
-      if (trail[trail.length - 1] === "properties") return;
-      const name = trail[trail.length - 1];
-      if (JSONL_SCHEMAS.has(file) && OPEN_PAYLOADS.has(name) && trail[trail.length - 2] === "properties") return;
-      if (node.discriminator) {
-        for (const mapped of Object.values(node.discriminator.mapping)) {
-          assert.equal(mapped.additionalProperties, false, `${file}: mapped sub-schema is open`);
-        }
-        return;
+const OPEN_ENTRIES = new Map([["run-ledger.schema.json", "properties.outcome_details.additionalProperties"]]);
+
+function openObjectNodes(file, root) {
+  const open = [];
+  walkSchema(root, (node, trail) => {
+    if (!node.type || ![].concat(node.type).includes("object")) return;
+    if (trail[trail.length - 1] === "properties") return;
+    const name = trail[trail.length - 1];
+    if (JSONL_SCHEMAS.has(file) && OPEN_PAYLOADS.has(name) && trail[trail.length - 2] === "properties") return;
+    if (OPEN_ENTRIES.get(file) === trail.join(".")) return;
+    if (node.discriminator) {
+      for (const mapped of Object.values(node.discriminator.mapping)) {
+        if (mapped.additionalProperties !== false) open.push(`${trail.join(".")} (mapped sub-schema)`);
       }
-      const ap = node.additionalProperties;
-      assert.ok(ap === false || (ap && typeof ap === "object"), `${file} ${trail.join(".")} (${name}) is not closed`);
-    });
-  }
+      return;
+    }
+    const ap = node.additionalProperties;
+    if (!(ap === false || (ap && typeof ap === "object"))) open.push(trail.join("."));
+  });
+  return open;
+}
+
+test("v0.3: every object node is closed, apart from the open JSONL payloads, discriminator bases and outcome_details entries", () => {
+  for (const file of schemaFiles()) assert.deepEqual(openObjectNodes(file, readJson(join(SRC, "schema", file))), [], file);
+});
+
+test("v0.3: the closure lint exempts only the run-ledger outcome_details entries", () => {
+  const ledger = schema("run-ledger");
+  ledger.properties.outcomes.additionalProperties = { type: "object" };
+  ledger.properties.extra = { type: "object" };
+  assert.deepEqual(openObjectNodes("run-ledger.schema.json", ledger).sort(), ["properties.extra", "properties.outcomes.additionalProperties"]);
+  const elsewhere = { type: "object", additionalProperties: false, properties: { outcome_details: schema("run-ledger").properties.outcome_details } };
+  assert.deepEqual(openObjectNodes("build-progress.schema.json", elsewhere), ["properties.outcome_details.additionalProperties"]);
 });
 
 test("v0.3: every evidence-document schema requires schema_version with enum [1]", () => {
@@ -195,13 +211,6 @@ const LEDGER_EXCEPTIONS = new Map([
   ["run-20260818-195900-beepboop-list-dac127/FAFF-865", "post_merge_verification_failures[0]"],
   ["run-20260915-094719-fly-l3/FAFF-1017", "post_merge_verification_failures[0]"],
   ["run-20260903-203823-fly-l3/FAFF-959", "outcome_details."],
-  ["run-20261014-065523-beepboop-list-10835a/FAFF-1267", "outcome_details."],
-  ["run-20261014-065523-beepboop-list-10835a/FAFF-1263", "outcome_details."],
-  // The live ledger of a run whose FAFF-1256 had already merged carries outcome_details.FAFF-1256.merge, which the
-  // v0.3 schema does not allow; the writer-side fix belongs to the ledger-writer slice.
-  ["run-20261014-065523-beepboop-list-10835a/FAFF-1259", "outcome_details.FAFF-1256"],
-  ["run-20261014-065523-beepboop-list-10835a/FAFF-1258", "outcome_details."],
-  ["run-20261014-065523-beepboop-list-10835a/FAFF-1266", "outcome_details."],
 ]);
 
 test("v0.3: every committed run-ledger.json validates except the seven known writer bugs", () => {
@@ -222,6 +231,26 @@ test("v0.3: a ledger minted by the L4 fixture validates", () => {
   const { root, ledger } = mintL4Ledger();
   assert.deepEqual(validateAgainstSchema({ schema_version: 1, ...ledger }, schema("run-ledger")), []);
   rmSync(root, { recursive: true, force: true });
+});
+
+test("v0.3: outcome_details entries are free-form objects while outcomes stays a terminal-state string", () => {
+  const ledger = (extra) => validateAgainstSchema({ schema_version: 1, run_id: "r", ...extra }, schema("run-ledger"));
+  assert.deepEqual(ledger({
+    outcomes: { "FAFF-1": "shipped", "FAFF-2": "parked" },
+    outcome_details: {
+      "FAFF-1": { merge: { sha: "abc1234", pr: 1 }, superseded_by: ["FAFF-2"] },
+      "FAFF-2": { attempts: [1, 2], unlisted_key: null },
+    },
+  }), []);
+  assert.deepEqual(ledger({ outcome_details: {} }), []);
+  const fails = (doc, key) => {
+    const errs = ledger(doc);
+    assert.ok(errs.some((e) => e.startsWith(key)), `should fail naming ${key}: ${errs}`);
+  };
+  fails({ outcome_details: { "FAFF-1": 5 } }, "outcome_details.FAFF-1");
+  fails({ outcome_details: { "FAFF-1": "bare string note" } }, "outcome_details.FAFF-1");
+  fails({ outcome_details: ["FAFF-1"] }, "outcome_details");
+  fails({ outcomes: { "FAFF-1": { state: "shipped" } } }, "outcomes.FAFF-1");
 });
 
 test("v0.3: every committed event line eventViolations accepts also passes run-event", () => {

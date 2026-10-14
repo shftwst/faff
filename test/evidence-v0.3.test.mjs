@@ -196,6 +196,9 @@ const LEDGER_EXCEPTIONS = new Map([
   ["run-20260915-094719-fly-l3/FAFF-1017", "post_merge_verification_failures[0]"],
   ["run-20260903-203823-fly-l3/FAFF-959", "outcome_details."],
   ["run-20261014-065523-beepboop-list-10835a/FAFF-1267", "outcome_details."],
+  // The live ledger of a run whose FAFF-1256 had already merged carries outcome_details.FAFF-1256.merge, which the
+  // v0.3 schema does not allow; the writer-side fix belongs to the ledger-writer slice.
+  ["run-20261014-065523-beepboop-list-10835a/FAFF-1259", "outcome_details.FAFF-1256"],
 ]);
 
 test("v0.3: every committed run-ledger.json validates except the seven known writer bugs", () => {

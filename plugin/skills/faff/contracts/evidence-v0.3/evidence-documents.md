@@ -55,3 +55,7 @@ round records are never anchored.
 Constraints the validator subset cannot express are enforced by the writer, not the schema:
 for a holdout criterion, `met` and `unmet` need `exercised`, `expected` and `observed`,
 `needs-human` needs `reason`, and each string is at most 2000 characters.
+
+A `holdout.json` record's `issue` is the id of the call that wrote it: the issue id for the per-issue
+graft gate, and the run id for the per-run phase that is keyed by the run. The `--issue` of
+`faff holdout record` (or the `--key` of the caged spawner) is that id.

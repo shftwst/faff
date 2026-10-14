@@ -150,7 +150,9 @@ test("dod split: coherence invariant — classify(split(spec, builder)) == full 
   const builderText = run(["split", "--spec", "-", "--view", "builder"], HOLDOUT_SPEC).stdout;
   const builderClassified = JSON.parse(run(["classify", "--spec", "-", "--json"], builderText).stdout);
   const expected = full.criteria.filter((c) => !c.holdout);
-  assert.deepEqual(builderClassified.criteria, expected);
+  // FAFF-1259: `id` numbers a spec's own criteria, so the builder view renumbers its survivors.
+  const withoutId = (list) => list.map(({ id, ...rest }) => rest);
+  assert.deepEqual(withoutId(builderClassified.criteria), withoutId(expected));
   assert.equal(builderClassified.holdout_counts.holdout, 0);
 });
 
@@ -195,4 +197,15 @@ test("dod: an unknown action prints usage naming both classify and split, exit 2
   assert.equal(r.status, 2);
   assert.match(r.stderr, /dod classify/);
   assert.match(r.stderr, /dod split/);
+});
+
+test("dod classify: every criterion carries an id <source>:<n>, numbered per source in classify order (FAFF-1259)", () => {
+  const out = JSON.parse(run(["classify", "--spec", "-", "--json"], HOLDOUT_SPEC).stdout);
+  const seen = {};
+  for (const c of out.criteria) {
+    seen[c.source] = (seen[c.source] || 0) + 1;
+    assert.match(c.id, /^(scenarios|done):[1-9][0-9]*$/);
+    assert.equal(c.id, `${c.source}:${seen[c.source]}`);
+  }
+  assert.ok(out.criteria.some((c) => c.source === "scenarios") && out.criteria.some((c) => c.source === "done"));
 });

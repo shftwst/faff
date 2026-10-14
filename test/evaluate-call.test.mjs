@@ -10,7 +10,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { main, EXIT, deriveAttestation, assembleEnvelope, buildWithheldSet, deriveAuthHeaders, redactCredential } from "../plugin/skills/faffter-noon-evaluate/evaluate-call.mjs";
+import { main, EXIT, deriveAttestation, buildWithheldSet, deriveAuthHeaders } from "../plugin/skills/faffter-noon-evaluate/evaluate-call.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
@@ -23,7 +23,9 @@ function scratch() {
 }
 
 // An inner evaluator output: criteria + aggregate ONLY (the spawner owns code_blind).
-const innerBlind = { aggregate: "meets-spec", criteria: [{ class: "scenario", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "met", evidence_present: true }] };
+// FAFF-1259: every met criterion reports what it exercised, expected and observed.
+const detailed = (n, klass, extra = {}) => ({ id: `scenarios:${n}`, text: `criterion ${n}`, holdout: false, class: klass, verdict: "met", evidence_present: true, exercised: "GET /x", expected: "200", observed: "200", ...extra });
+const innerBlind = { aggregate: "meets-spec", criteria: [detailed(1, "scenario"), detailed(2, "assertion")] };
 
 test("evaluate-call --selftest passes", () => {
   const r = spawnSync(process.execPath, [join(HERE, "..", "plugin", "skills", "faffter-noon-evaluate", "evaluate-call.mjs"), "--selftest"], { encoding: "utf8" });
@@ -120,8 +122,7 @@ test("pure core: the inner code_blind:true claim is ignored, never laundered", (
   // spawner derives its OWN true from the withheld-set + preflight, not from the inner's claim
   assert.equal(att.spawner_attested, true);
   assert.equal(att.attestation.spawner, "evaluate-call.mjs");
-  const env = assembleEnvelope({ aggregate: "meets-spec", criteria: [] }, att);
-  assert.equal(env.code_blind, true);
+  assert.equal(att.code_blind, true);
 });
 
 // --- FAFF-852: evaluator per-request auth plumbing ---
@@ -198,22 +199,92 @@ test("--credentials FILE missing, invalid JSON, or a non-object → EXIT.USAGE, 
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("redaction: a token echoed into the inner verdict's aggregate/violations is scrubbed before writeFn — the round-1 structural fix", async () => {
+test("redaction: a token echoed into aggregate, violations and criterion detail is scrubbed from the record (FAFF-852, FAFF-1259)", async () => {
   const dir = scratch();
   const out = join(dir, "holdout.json");
+  const store = join(dir, "store.json");
   const credsPath = join(dir, "credentials.json");
   writeFileSync(credsPath, JSON.stringify({ scheme: "bearer", token: "sekret" }));
-  const tokenEchoingInner = { aggregate: "unmet", criteria: [{ class: "scenario", verdict: "unmet", evidence_present: true }], violations: ["401 for Authorization: Bearer sekret"] };
-  const code = await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://localhost:8080", "--key", "K", "--out", out, "--credentials", credsPath], {
+  const tokenEchoingInner = {
+    aggregate: "fails",
+    criteria: [detailed(1, "scenario", { verdict: "unmet", observed: "401 for Authorization: Bearer sekret" })],
+    violations: ["401 for Authorization: Bearer sekret"],
+  };
+  const code = await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://localhost:8080", "--key", "K", "--out", out, "--store-out", store, "--credentials", credsPath], {
     preflightFn: () => ({ holds: true, refusals: [] }),
     spawnFn: async () => ({ status: "ok", verdict: tokenEchoingInner }),
   });
   assert.equal(code, EXIT.OK);
   const written = readFileSync(out, "utf8");
-  assert.equal(written.includes("sekret"), false, "the raw token substring must never reach the persisted envelope");
-  assert.equal(written.includes("<redacted-credential>"), true, "the scrubbed placeholder must replace the token in the persisted envelope");
+  assert.equal(written.includes("sekret"), false, "the raw token substring must never reach the persisted record");
   const v = JSON.parse(written);
-  assert.equal(v.violations[0], "401 for Authorization: Bearer <redacted-credential>");
+  assert.equal(v.violations[0], "401 for Authorization: Bearer [REDACTED]");
+  assert.equal(v.criteria[0].observed, "401 for Authorization: Bearer [REDACTED]");
+  assert.equal(v.spawner_attested, true);
+  assert.equal(readFileSync(store, "utf8"), written, "the store copy is byte-identical");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("--key is required and must be a safe id (exit 2, nothing written)", async () => {
+  const dir = scratch();
+  const out = join(dir, "holdout.json");
+  const mustNotWrite = () => { throw new Error("must not write"); };
+  const hooks = { preflightFn: () => ({ holds: true, refusals: [] }), spawnFn: async () => ({ status: "ok", verdict: innerBlind }), writeFn: mustNotWrite };
+  assert.equal(await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://x", "--out", out], hooks), EXIT.USAGE);
+  assert.equal(await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://x", "--key", "../escape", "--out", out], hooks), EXIT.USAGE);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("--store-out writes bytes identical to --out on the accepted path", async () => {
+  const dir = scratch();
+  const out = join(dir, "holdout.json");
+  const store = join(dir, "store.json");
+  const code = await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://x", "--key", "FAFF-9", "--out", out, "--store-out", store], {
+    preflightFn: () => ({ holds: true, refusals: [] }),
+    spawnFn: async () => ({ status: "ok", verdict: innerBlind }),
+  });
+  assert.equal(code, EXIT.OK);
+  assert.equal(readFileSync(store, "utf8"), readFileSync(out, "utf8"));
+  const v = JSON.parse(readFileSync(out, "utf8"));
+  assert.equal(v.issue, "FAFF-9");
+  assert.equal(v.criteria[0].id, "scenarios:1");
+  assert.equal(contract(["holdout-verdict", "--require-spawner-attested"], readFileSync(out, "utf8")).status, 0);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a block the writer refuses: exit 1, and --out and --store-out hold the same fail-closed record", async () => {
+  const dir = scratch();
+  const out = join(dir, "holdout.json");
+  const store = join(dir, "store.json");
+  const detailless = { aggregate: "meets-spec", criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] };
+  const code = await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://x", "--key", "FAFF-9", "--out", out, "--store-out", store], {
+    preflightFn: () => ({ holds: true, refusals: [] }),
+    spawnFn: async () => ({ status: "ok", verdict: detailless }),
+  });
+  assert.equal(code, EXIT.OTHER);
+  const written = readFileSync(out, "utf8");
+  assert.equal(readFileSync(store, "utf8"), written);
+  const v = JSON.parse(written);
+  assert.equal(v.aggregate, "needs-human");
+  assert.deepEqual(v.criteria, []);
+  assert.match(v.violations[0], /^holdout record refused:/);
+  assert.equal(v.spawner_attested, true, "the spawner still stamps its attestation on a refused record");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("--store-out recording a different issue: exit 2 and neither file is written", async () => {
+  const dir = scratch();
+  const out = join(dir, "holdout.json");
+  const store = join(dir, "store.json");
+  const prior = JSON.stringify({ schema_version: 1, issue: "FAFF-OTHER" });
+  writeFileSync(store, prior);
+  const code = await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://x", "--key", "FAFF-9", "--out", out, "--store-out", store], {
+    preflightFn: () => ({ holds: true, refusals: [] }),
+    spawnFn: async () => ({ status: "ok", verdict: innerBlind }),
+  });
+  assert.equal(code, EXIT.USAGE);
+  assert.equal(readFileSync(store, "utf8"), prior);
+  assert.throws(() => readFileSync(out, "utf8"), /ENOENT/);
   rmSync(dir, { recursive: true, force: true });
 });
 

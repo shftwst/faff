@@ -433,8 +433,8 @@ PROCEDURE holdout_run(spec_path, run_dir, issue, prdr_id):   # marker := <run-di
   trigger := verif.unattended OR (marker.attended AND marker.decision == accept)   # unattended: the LIVE fact ALONE (a lost/forged marker never suppresses it); attended: marker, advisory
   IF NOT trigger: RETURN                                                           # decline/skip or autonomous-not-unattended ⇒ no run, no artifact
   IF `faff dod classify --spec <full_spec>` zero born-verifiable: RETURN           # SOLE born-verifiable gate — live, never marker.born_verifiable_count (full_spec := faff dod split --view full)
-  IF a fresh holdout.json exists (mtime > build-progress.json): RETURN             # idempotent on resume
-  holdout_step(full_spec, prdr_id, key=<issue>, run_dir)                           # SHARED engine (gateway → faff-beep-boop Per-run holdout phase) — writes holdout.json to .faff/holdout/<issue>.json AND <run-dir>/<issue>/holdout.json; env torn down on every exit
+  IF a fresh holdout.json exists (mtime > build-progress.json) AND its violations list is empty: RETURN   # idempotent on resume; a record carrying violations (writer refusal, refuse-to-attest, env never up) is retried
+  holdout_step(full_spec, prdr_id, key=<issue>, run_dir)                           # SHARED engine (gateway → faff-beep-boop Per-run holdout phase) — `faff holdout record` (inline) or the evaluate-call.mjs spawner (caged) writes .faff/holdout/<issue>.json AND <run-dir>/<issue>/holdout.json; env torn down on every exit
 ```
 
 Never key the unattended run on `verif.legs.holdout` — hard-zeroed unattended (`resolveInteractiveVerification`), so dead code; `verif.unattended` == `(ledger.level=="L4") || declaredUnattendedFromConfig(cfg)`. An `env-handle status:failed` is an env-lane fault, not a feature `fails`. Autonomous: tick `faff heartbeat "$run_dir" --unit <issue>` before/after (a long, quiet sub-step).

@@ -22,10 +22,10 @@
       "resolved-elsewhere",
       "prdr-yagni"
     ],
-    "case_count": 49,
+    "case_count": 50,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 39,
+      "sound": 40,
       "oracle-defect": 10,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
@@ -430,6 +430,14 @@
       "class": "sound",
       "triage_ticket": "FAFF-670",
       "rationale": "The oracle classes crit-z3v:unmet, and that is the trap the case is built around: the POST /jobs recording carries queued:true but the same body reports status:'failed' with a contradictory 'job accepted successfully' message, so the job was not actually enqueued and a judge reading the whole body must call it unmet. crit-k9p:needs-human is the forced prose criterion. crit-w5h:needs-human is correct because no recording exercises DELETE /jobs or the completed-jobs log, so the cancellation claim cannot be confirmed. Oracle sound; a met on crit-z3v in the sweep would be the judge missing the buried contradiction, not an oracle defect."
+    },
+    {
+      "case_id": "holdout-exercise-003",
+      "kind": "holdout-exercise",
+      "grader_shape": "closed-set: key:class pairs plus key:detail-ok pairs (env[\"holdout-exercise\"] and env[\"holdout-exercise-detail\"], check_detail fixture flag)",
+      "class": "sound",
+      "triage_ticket": "FAFF-1259",
+      "rationale": "Each pinned pair is decidable from the recordings. crit-r4d:met — the authenticated GET returns 200 with a non-empty rows list; the 'all checks passed' note is not evidence. crit-u7e:met — the header-less GET returns 401. crit-h2c:needs-human — a prose criterion. crit-p6n:needs-human — no recording exercises DELETE or the archive, so it fails closed. The /health call is a distractor. The four detail-ok pairs are decidable too: each born-verifiable criterion has a bearing recording to quote for exercised, expected and observed, and each needs-human criterion has a reason to state. Sound."
     },
     {
       "case_id": "prep-architecture-trigger-001",

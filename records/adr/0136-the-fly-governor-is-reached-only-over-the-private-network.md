@@ -1,6 +1,6 @@
 # ADR 0136 — The Fly governor is reached only over the private network
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-14
 - **Issue:** FAFF-1181

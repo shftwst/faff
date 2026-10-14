@@ -1,6 +1,6 @@
 # ADR 0137 — Remote governor keys are pinned from an identify reply read inside the governor machine
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-14
 - **Issue:** FAFF-1181

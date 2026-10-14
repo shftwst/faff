@@ -1,0 +1,533 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec routes the new throw through the same caller contracts as lock exhaustion: \"best-effort callers such as `bundle.js` and `sentry-poller.js` swallow it … so a thrown `EVENT_SCHEMA` takes the same routes.\" That defeats the slice's own detection story. The failure-modes section says you'd know a missed shape by \"an `EVENT_SCHEMA` throw or exit 1 in a real run\" — but for the swallowed callers you know nothing: the supervision event (`sentry-checkpoint`, `sentry-trip`) is silently absent from a hash-chained, append-only log, which is the one class of loss this whole ticket exists to prevent. The drift trigger is realistic: the coverage test checks that every *type* has a schema, not that every key a code writer emits is in it; a PR adding a sentry signal's evidence key updates the builder code and can forget the JSON schema, and the poller then drops every subsequent checkpoint without a trace.",
+      "evidence": "\"Throw or return null from the events core? … **Chosen:** throw `EVENT_SCHEMA`, mirroring `EVENTS_LOCKED`\" plus the Writers table row \"Nothing written; throws an error with `code: \"EVENT_SCHEMA\"`\"; failure modes, \"A writer emits a shape the survey missed.\"",
+      "predicted_consequence": "a future sentry-vocabulary change silently removes `sentry-checkpoint`/`sentry-trip` records from `events.jsonl`; the spec's own \"how you'd know\" never fires, and the gap is found only when reporting notices missing supervision events.",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Spec revised: best-effort callers no longer swallow EVENT_SCHEMA; sentry-poller logs it under a new event-schema-refused token and bundle.js writes it to stderr; sentry schemas are proved per signal.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec routes the new throw through the same caller contracts as lock exhaustion: \"best-effort callers such as `bundle.js` and `sentry-poller.js` swallow it … so a thrown `EVENT_SCHEMA` takes the same routes.\" That defeats the slice's own detection story. The failure-modes section says you'd know a missed shape by \"an `EVENT_SCHEMA` throw or exit 1 in a real run\" — but for the swallowed callers you know nothing: the supervision event (`sentry-checkpoint`, `sentry-trip`) is silently absent from a hash-chained, append-only log, which is the one class of loss this whole ticket exists to prevent. The drift trigger is realistic: the coverage test checks that every *type* has a schema, not that every key a code writer emits is in it; a PR adding a sentry signal's evidence key updates the builder code and can forget the JSON schema, and the poller then drops every subsequent checkpoint without a trace.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The rule pins `data.tokens` as \"a closed object with `input`, `output` and `cache_read` required\" — no null alternative. But `eventViolations` explicitly accepts `tokens: null` with `tokens_source: \"estimate\"`, and Appendix A records committed telemetry as \"`tokens` object or null\". As written, the proof test (\"every committed `events.jsonl` line … passes composed `run-event`\") cannot pass without the builder silently widening the schema beyond what the spec states.",
+      "evidence": "\"**Chosen:** `data.tokens` is a closed object with `input`, `output` and `cache_read` required…\" vs. `eventViolations`'s `tok === null` branch and Appendix A's budget-checkpoint row.",
+      "predicted_consequence": "the committed-line proof test fails on first run; the builder must choose between widening the schema (unrecorded deviation) and the spec's stated rule.",
+      "spec_anchor": "chosen-data-tokens-is-a-closed-object-with-input-output-and-cache_read-required-and-cache_write_5m-cache_write_1h-and-the-legacy-cache_write-optional-all-non-negative-integers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "data.tokens is now [\"object\",\"null\"]; null is the estimate form eventViolations accepts.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The rule pins `data.tokens` as \"a closed object with `input`, `output` and `cache_read` required\" — no null alternative. But `eventViolations` explicitly accepts `tokens: null` with `tokens_source: \"estimate\"`, and Appendix A records committed telemetry as \"`tokens` object or null\". As written, the proof test (\"every committed `events.jsonl` line … passes composed `run-event`\") cannot pass without the builder silently widening the schema beyond what the spec states.",
+          "spec_anchor": "chosen-data-tokens-is-a-closed-object-with-input-output-and-cache_read-required-and-cache_write_5m-cache_write_1h-and-the-legacy-cache_write-optional-all-non-negative-integers"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Each event-type file pins `phase` to \"enum of the type's phases\", but no type→phase mapping exists anywhere in the supplied system — `DELIVERY_PROFILE` carries `event_phases` as one flat list, and `eventViolations` checks phase membership globally, never per type. The spec never says where a type's phase set comes from (committed lines? writer code? all five phases?). A builder who derives it narrowly from observed committed data turns every legitimate write of an unobserved phase (e.g. an `issue-outcome` emitted in `tidy`) into an `EVENT_SCHEMA` throw — which, per the first objection, is silent for the swallowed callers.",
+      "evidence": "\"`phase(enum of the type's phases)`\" in the composition block; no source is named anywhere in §3 or §4; `governance-profile.js` has no per-type phase data.",
+      "predicted_consequence": "a schema authored from the survey's observed phases refuses a phase the writer legitimately emits, failing writes the spec's rules cannot explain.",
+      "spec_anchor": "how-the-discriminators-compose",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Every event-type schema now accepts all five event_phases; no type-to-phase table exists in code.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Each event-type file pins `phase` to \"enum of the type's phases\", but no type→phase mapping exists anywhere in the supplied system — `DELIVERY_PROFILE` carries `event_phases` as one flat list, and `eventViolations` checks phase membership globally, never per type. The spec never says where a type's phase set comes from (committed lines? writer code? all five phases?). A builder who derives it narrowly from observed committed data turns every legitimate write of an unobserved phase (e.g. an `issue-outcome` emitted in `tidy`) into an `EVENT_SCHEMA` throw — which, per the first objection, is silent for the swallowed callers.",
+          "spec_anchor": "how-the-discriminators-compose"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The writer drops unknown top-level `data` keys from agent payloads with only a stderr warning. An agent appending a `park` or `issue-outcome` event that carries a key the schema does not yet list (a new field a producer legitimately emits, or a field the survey missed) loses that data permanently. The event is hash-chained and append-only, so the dropped bytes can never be recovered. The spec's own failure mode (\"The drop hides information an agent meant to record\") acknowledges this, and its remedy is to add the key to the schema later — but the already-written line is gone. This is a data-loss path on the audit record the whole FAFF-1255 effort exists to make reliable.",
+      "evidence": "Spec §3 \"Writers\" — \"`faff events append` drops unknown top-level `data` keys from the agent's payload, writing one stderr line that names the dropped keys (never their values)\"; §4 \"Failure modes\" — \"The drop hides information an agent meant to record. How you'd know: repeated 'dropped data key(s)' lines for the same key in run logs. What it means: proceed; if a key recurs, add it to the type's schema and the prose table.\" The event log is append-only and hash-chained (spec §1 \"Both logs are hash-chained and append-only, so a line that is written can never be corrected\").",
+      "predicted_consequence": "A real run loses a field an agent recorded (e.g. a `park` cause, a `prep-done` disposition) with no way to recover it; the anchor's audit record is silently incomplete, and the loss is only discoverable by reading stderr lines that may not survive the run.",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Dropped key names are recorded in data.dropped_keys on the chained record, so the loss is visible in the anchor (bounded in round 2).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The writer drops unknown top-level `data` keys from agent payloads with only a stderr warning. An agent appending a `park` or `issue-outcome` event that carries a key the schema does not yet list (a new field a producer legitimately emits, or a field the survey missed) loses that data permanently. The event is hash-chained and append-only, so the dropped bytes can never be recovered. The spec's own failure mode (\"The drop hides information an agent meant to record\") acknowledges this, and its remedy is to add the key to the schema later — but the already-written line is gone. This is a data-loss path on the audit record the whole FAFF-1255 effort exists to make reliable.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec says `declared_ref` is \"string, integer or null (no reader interprets it; the governor compares it by equality)\". If the governor compares by equality, then a producer can supply any type for `declared_ref` — a string, an integer, or null — and the governor will compare it against whatever it holds. If the governor holds a string and the producer sends an integer, the comparison fails (deny), which is safe. But if the governor holds nothing (null) and the producer sends null, the comparison passes vacuously. More importantly, the spec does not say what the governor compares `declared_ref` against, or whether a missing `declared_ref` on the request is treated as \"no reference\" (pass) or \"unverifiable\" (fail). A producer that omits `declared_ref` entirely could get a grant on a request that should have been tied to a specific declared effect.",
+      "evidence": "Spec §3 \"Schema-3 Commissaire record schemas\" — \"`effect-decision-request` | `producer` | absent | `effect` (EFFECT), `declared_ref` string, integer or null (no reader interprets it; the governor compares it by equality)\". The spec does not state what happens when `declared_ref` is absent.",
+      "predicted_consequence": "A producer can mint a request with no `declared_ref` and receive a grant for an effect that was never declared, bypassing the declare-before-authorize invariant the whole Commissaire facade exists to enforce.",
+      "spec_anchor": "schema-3-commissaire-record-schemas",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Checked decision-policy.ts: leg 5b grants only when a matching declare record exists for (unit, step, effect), independent of declared_ref; governor.ts only cross-checks declared_ref by equality between the chained request and the socket request. This slice types the field and changes no decision logic.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec says `declared_ref` is \"string, integer or null (no reader interprets it; the governor compares it by equality)\". If the governor compares by equality, then a producer can supply any type for `declared_ref` — a string, an integer, or null — and the governor will compare it against whatever it holds. If the governor holds a string and the producer sends an integer, the comparison fails (deny), which is safe. But if the governor holds nothing (null) and the producer sends null, the comparison passes vacuously. More importantly, the spec does not say what the governor compares `declared_ref` against, or whether a missing `declared_ref` on the request is treated as \"no reference\" (pass) or \"unverifiable\" (fail). A producer that omits `declared_ref` entirely could get a grant on a request that should have been tied to a specific declared effect.",
+          "spec_anchor": "schema-3-commissaire-record-schemas"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec registers `evidence-terminal-only` in `DELIVERY_PROFILE.event_types` and gives it a schema, but the writer that emits it is FAFF-1257 (slice 2). The methodology critique says \"If FAFF-1257 lands first, its terminal-only path fails at the event append.\" That is a fail-closed outcome (the append fails), which is safe, but it means a legitimate recovery path (the `--terminal-only` writer) is broken until this slice lands. The spec's remedy — \"have whichever lands first register the type and its schema\" — is not a spec change, it is a coordination instruction that can be missed.",
+      "evidence": "Spec §3 \"Event `data` schemas\" — \"`evidence-terminal-only` | FAFF-1257 (new) | `{issue, writer}`, both required non-empty strings; phase `build`\"; §4 \"Methodology critique\" — \"If FAFF-1257 lands first, its terminal-only path fails at the event append.\"",
+      "predicted_consequence": "A run that straddles the two slices cannot use the `--terminal-only` recovery path, and the failure is only visible as an event-append error, not as a clear \"this slice is not yet landed\" message.",
+      "spec_anchor": "event-data-schemas",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Spec now states whichever of FAFF-1257 and FAFF-1260 merges first registers evidence-terminal-only; either order keeps the terminal-only append working.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec registers `evidence-terminal-only` in `DELIVERY_PROFILE.event_types` and gives it a schema, but the writer that emits it is FAFF-1257 (slice 2). The methodology critique says \"If FAFF-1257 lands first, its terminal-only path fails at the event append.\" That is a fail-closed outcome (the append fails), which is safe, but it means a legitimate recovery path (the `--terminal-only` writer) is broken until this slice lands. The spec's remedy — \"have whichever lands first register the type and its schema\" — is not a spec change, it is a coordination instruction that can be missed.",
+          "spec_anchor": "event-data-schemas"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "\"A static scan of `bin/lib/*.js` and `plugin/skills/**/SKILL.md` / `references/*.md` finds no emitted event type literal outside `event_types` and no effect kind literal outside `EFFECT_KINDS`\" does not say what the scan matches. Event-type strings appear legitimately in many forms the criterion would seemingly flag: `sentry.thrash.start_type: \"build-start\"` and `sentry.progress.forward_types` in `governance-profile.js`, comments and prose naming types, `SECOND_PROFILE`'s disjoint vocabulary, and the schema files themselves. Without a stated pattern (quoted string literals only? comments excluded? which directories?), two compliant builds can run different scans and reach different verdicts.",
+      "evidence": "DONE, \"From WHAT (schemas)\", third bullet.",
+      "predicted_consequence": "the criterion's pass/fail depends on an implementation choice the spec leaves entirely open; a reviewer cannot confirm or refute \"no emitted type literal outside event_types\" without first inventing the scanner, and two scanners disagree.",
+      "spec_anchor": "8-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Static-scan DONE item removed: eventViolations and effectDescriptorViolations already refuse out-of-vocabulary types and kinds at write time, so the file-per-member assertion is the coverage proof.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "\"A static scan of `bin/lib/*.js` and `plugin/skills/**/SKILL.md` / `references/*.md` finds no emitted event type literal outside `event_types` and no effect kind literal outside `EFFECT_KINDS`\" does not say what the scan matches. Event-type strings appear legitimately in many forms the criterion would seemingly flag: `sentry.thrash.start_type: \"build-start\"` and `sentry.progress.forward_types` in `governance-profile.js`, comments and prose naming types, `SECOND_PROFILE`'s disjoint vocabulary, and the schema files themselves. Without a stated pattern (quoted string literals only? comments excluded? which directories?), two compliant builds can run different scans and reach different verdicts.",
+          "spec_anchor": "8-done"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The slice's own DONE items collide. One requires every v0.3 payload schema \"closed at every object level (slice 1's closure test extended to the new files)\"; another requires every committed `events.jsonl` line that `eventViolations` accepts to pass the composed `run-event` schema. `decision-capture` (613 committed lines) carries `data.normalised_inputs` — which `eventViolations` checks only as \"must be a plain object\" — and `data.verdict` / `data.selected_action` in their object forms, all arbitrary kernel-dependent objects with no key set anywhere in code. Closing them means inventing a key set no writer enforces (refusing future kernel inputs at write time, mid-run, via `EVENT_SCHEMA`); leaving them open (`{\"type\":\"object\"}`) fails the closure test. The same pattern likely recurs in `sentry-checkpoint`'s per-signal `verdicts[].evidence` objects and `corrective-authored`'s embedded corrective record, wherever the producer's shape is open-ended.",
+      "evidence": "DONE \"Every v0.3 payload schema is closed at every object level (slice 1's closure test extended to the new files)\" vs DONE \"Every committed `events.jsonl` line accepted by `eventViolations(line, true)` passes composed `run-event`\"; the `decision-capture` row of the event `data` table (\"As `eventViolations` checks them; `verdict` and `selected_action` object or string\") — and `eventViolations` in `events.js` enforces only `isStringOrObject` / \"must be a plain object\" for these.",
+      "predicted_consequence": "the builder cannot satisfy both criteria as written; either the proof test fails on 613 committed lines, or the closure test is silently weakened in the build (the spec's own anti-pattern list forbids the exceptions-list escape for lines, and \"never by loosening `additionalProperties`\" forbids the schema-side escape) — the PR comes back anyway.",
+      "spec_anchor": "from-what-schemas",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Closure test now allows exactly three named open nodes (decision-capture normalised_inputs and the object forms of verdict and selected_action), owned and checked by decision-capture.js; sentry verdicts[] items discriminate on signal.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The slice's own DONE items collide. One requires every v0.3 payload schema \"closed at every object level (slice 1's closure test extended to the new files)\"; another requires every committed `events.jsonl` line that `eventViolations` accepts to pass the composed `run-event` schema. `decision-capture` (613 committed lines) carries `data.normalised_inputs` — which `eventViolations` checks only as \"must be a plain object\" — and `data.verdict` / `data.selected_action` in their object forms, all arbitrary kernel-dependent objects with no key set anywhere in code. Closing them means inventing a key set no writer enforces (refusing future kernel inputs at write time, mid-run, via `EVENT_SCHEMA`); leaving them open (`{\"type\":\"object\"}`) fails the closure test. The same pattern likely recurs in `sentry-checkpoint`'s per-signal `verdicts[].evidence` objects and `corrective-authored`'s embedded corrective record, wherever the producer's shape is open-ended.",
+          "spec_anchor": "from-what-schemas"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`appendVerbatimGovernorRecord`'s `null` return is the lost-race signal the retry driver (`appendGovernorRecordWithRetry`) retries on. The spec places the schema check \"before the verbatim append\" in that same function and specifies the outcome \"not appended; exits 2\" — but a refusal signalled the only way the function can signal (null) is indistinguishable from a position mismatch, so a governor record that will never pass is retried rather than refused, or the builder must invent a distinct signal the spec never names.",
+      "evidence": "Writers table row \"`appendVerbatimGovernorRecord` | Before the verbatim append | Not appended; `request-decision` / `conclude` exits 2 with `governor record failed schema`\" vs `commissaire.ts`'s `appendVerbatimGovernorRecord` (returns null on seq/prev mismatch → the retry driver's retry path).",
+      "predicted_consequence": "a schema-drifted governor record is retried to the retry budget and then parked as `governor-lost-race` instead of exiting 2 with the named violations — the diagnosis the spec promises is not the one delivered.",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Governor-record schema check moved into the verify seam of appendGovernorRecordWithRetry, reusing its governor-record-unverified park, so a schema failure is never retried as a lost race.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`appendVerbatimGovernorRecord`'s `null` return is the lost-race signal the retry driver (`appendGovernorRecordWithRetry`) retries on. The spec places the schema check \"before the verbatim append\" in that same function and specifies the outcome \"not appended; exits 2\" — but a refusal signalled the only way the function can signal (null) is indistinguishable from a position mismatch, so a governor record that will never pass is retried rather than refused, or the builder must invent a distinct signal the spec never names.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec makes every writer refuse all writes when the bundled schema is missing or unparseable (`schema-unavailable`), including the events core inside the append lock. A run whose plugin install is corrupted mid-run (partial deploy, disk fault, bad upgrade) can no longer append any event — including the `ledger-write` event that `atomicWriteLedger`'s fold emits on every ledger mutation. The run cannot close, cannot anchor, and the recovery path named in slice 1 (`faff evidence write …` from the run dir) is itself a writer that would hit the same refusal. The spec names no recovery for a run already in flight when the schema becomes unavailable.",
+      "evidence": "\"a missing, unreadable or unparseable bundled schema yields `[\\\"schema-unavailable <path>\\\"]` (fails closed)\"; \"the events core throws rather than returning `null`\"; \"a missing or unparseable bundled schema refuses every write (fails closed), as the parent requires of every check. It is an install fault, so `faff events append`'s stderr names the path, and `faff doctor`'s existing install check is where an operator meets it first.\" The spec's only remedy is `faff doctor`, which is a diagnostic, not a recovery.",
+      "predicted_consequence": "A mid-run install fault (the exact class of fault the spec itself names) permanently bricks the run: no event, no ledger-write, no anchor, no recovery writer. The operator's only option is to abandon the run and lose its evidence.",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "At the writer a missing bundled schema now degrades to today's checks with a loud warning instead of halting every event write; slice 6 mint and CI stay fail-closed.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec makes every writer refuse all writes when the bundled schema is missing or unparseable (`schema-unavailable`), including the events core inside the append lock. A run whose plugin install is corrupted mid-run (partial deploy, disk fault, bad upgrade) can no longer append any event — including the `ledger-write` event that `atomicWriteLedger`'s fold emits on every ledger mutation. The run cannot close, cannot anchor, and the recovery path named in slice 1 (`faff evidence write …` from the run dir) is itself a writer that would hit the same refusal. The spec names no recovery for a run already in flight when the schema becomes unavailable.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`faff events append` drops unknown top-level `data` keys and records only their names in `data.dropped_keys`. For `issue-outcome`, `park`, `sentry-checkpoint` and `sentry-trip` — the events the merge gate, sentry and reporting read — an agent that emits a key the schema does not list (a misspelled `outcome`, a `gate` value the schema's enum rejects, a `verdicts` array with an extra field) loses that field silently from the chained record. The schema then validates the *dropped* record, so the loss is invisible to every downstream reader that checks the schema; only a human reading `dropped_keys` on the line can tell. The spec's own failure mode (\"The drop hides information an agent meant to record\") is accepted with \"proceed\", but for `issue-outcome` the dropped key can be the outcome itself, and the merge gate routes on `data.outcome`.",
+      "evidence": "\"`faff events append` drops unknown top-level `data` keys from the agent's payload, records their names (never their values) in `data.dropped_keys` … then the core check\"; \"an agent that adds a stray note loses the note, not the whole `issue-outcome` or `park` event\"; \"The drop hides information an agent meant to record. How you'd know: `dropped_keys` on committed event lines … What it means: proceed.\"",
+      "predicted_consequence": "A misspelled or schema-unlisted key on a terminal event (e.g. `outcome: \"shipped\"` written as `outcome: \"shipped \"` with a trailing space, or `gate` with a value the enum rejects) is silently removed, and the event validates as a clean `issue-outcome` with a different or missing outcome. Reporting and the merge gate read a record that no longer says what the agent recorded, with no failure signal.",
+      "spec_anchor": "writers",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The drop applies only to unknown key names after eventViolations runs: a known key with a bad value (outcome outside ledger_outcomes, gate outside QUALITY_GATE_CATCHES) is refused by eventViolations, and a missing required key such as issue-outcome.outcome is refused by the core check. The spec now states this explicitly.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "`faff events append` drops unknown top-level `data` keys and records only their names in `data.dropped_keys`. For `issue-outcome`, `park`, `sentry-checkpoint` and `sentry-trip` — the events the merge gate, sentry and reporting read — an agent that emits a key the schema does not list (a misspelled `outcome`, a `gate` value the schema's enum rejects, a `verdicts` array with an extra field) loses that field silently from the chained record. The schema then validates the *dropped* record, so the loss is invisible to every downstream reader that checks the schema; only a human reading `dropped_keys` on the line can tell. The spec's own failure mode (\"The drop hides information an agent meant to record\") is accepted with \"proceed\", but for `issue-outcome` the dropped key can be the outcome itself, and the merge gate routes on `data.outcome`.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`dropped_keys` is allowed on every event type except `agent-dispatch` and `runner-identity`, and its content is the sorted list of dropped key names. The spec does not bound its length or content. An agent that sends a payload with thousands of unknown keys produces a `dropped_keys` array of thousands of strings on the chained record, and the names themselves are agent-controlled strings that land in the anchor and in any reporting that reads it. The spec's own \"no violation message contains a field value\" rule (slice 1) is not applied to this field.",
+      "evidence": "\"records their names (never their values) in `data.dropped_keys` (a sorted array of strings, allowed on every type except `agent-dispatch` and `runner-identity`)\". No length cap or content validation is specified for the array or its strings.",
+      "predicted_consequence": "A hostile or buggy agent can bloat any event line with an unbounded `dropped_keys` array, and inject arbitrary strings into the anchor's committed evidence — strings that are then treated as data by any reader, with no validation that they are even plausible key names.",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "dropped_keys is bounded: more than 16 dropped keys or a name outside ^[A-Za-z0-9_.-]{1,64}$ refuses the append; the schema pins the item pattern.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`dropped_keys` is allowed on every event type except `agent-dispatch` and `runner-identity`, and its content is the sorted list of dropped key names. The spec does not bound its length or content. An agent that sends a payload with thousands of unknown keys produces a `dropped_keys` array of thousands of strings on the chained record, and the names themselves are agent-controlled strings that land in the anchor and in any reporting that reads it. The spec's own \"no violation message contains a field value\" rule (slice 1) is not applied to this field.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec repeatedly pins \"27\" event-type schema files, but `DELIVERY_PROFILE.event_types` in `governance-profile.js` currently holds 25 members (run-start … runner-identity), so after adding `evidence-terminal-only` the true count is 26, not 27. The DONE criterion asserts the count as part of the coverage proof, so a builder following it literally either creates a bogus 27th file or writes a test that fails against the real profile.",
+      "evidence": "\"### Files\" (\"27 files\"), \"### Event `data` schemas\" reference row (\"The 26 event types (27 after this slice)\"), DONE: \"`events/` holds exactly one file per `DELIVERY_PROFILE.event_types` member (27)\".",
+      "predicted_consequence": "The coverage test as specified cannot pass as written (27 ≠ 26), or passes only by counting members rather than the pinned number — in which case the pinned number is dead text a reviewer cannot use to check the build.",
+      "spec_anchor": "files",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Checked on 2026-10-13: DELIVERY_PROFILE.event_types has 26 members (node count), so 27 after evidence-terminal-only is correct.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec repeatedly pins \"27\" event-type schema files, but `DELIVERY_PROFILE.event_types` in `governance-profile.js` currently holds 25 members (run-start … runner-identity), so after adding `evidence-terminal-only` the true count is 26, not 27. The DONE criterion asserts the count as part of the coverage proof, so a builder following it literally either creates a bogus 27th file or writes a test that fails against the real profile.",
+          "spec_anchor": "files"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The compose script, its `--check` drift test, and the two mirrored generated artifact trees exist to work around the subset validator lacking `$ref` — but the spec's own design makes the composition redundant. Each `events/<type>.schema.json` is already \"the whole closed record\" (envelope restated per file), so both the writers and `faff evidence validate` could select the schema directly by record type in code (`loadBundled(\"events/\" + record.type + \".schema.json\")`) and validate the whole record against it — exactly the lookup `eventRecordViolations` already performs to decide *which* composed mapping applies. The generator adds a permanent authored/generated sync surface, a new anti-pattern (\"hand-editing composed files\"), and a second copy-mirroring step, to produce a file whose only unique consumer is a slice-1 reader this programme owns and could edit.",
+      "evidence": "\"the per-type files are the authored source and the two composed schemas are generated from them\"; \"each event-type file is the whole record\"; the anti-pattern against hand-editing the composed files; `evidence-schemas.js` already resolves per-type schemas by name.",
+      "predicted_consequence": "every future type addition requires authoring the per-type file *and* regenerating two composed files in two locations, with a `--check` test as the only drift guard — a standing coordination cost the direct-lookup design does not have.",
+      "spec_anchor": "how-the-discriminators-compose",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The ticket requires the discriminator to select the payload schema, and FAFF-1256's anchor manifest maps each anchor file to one schema that faff evidence validate and slice 6 consume; composition keeps that one-schema-per-file contract without reopening slice 1.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The compose script, its `--check` drift test, and the two mirrored generated artifact trees exist to work around the subset validator lacking `$ref` — but the spec's own design makes the composition redundant. Each `events/<type>.schema.json` is already \"the whole closed record\" (envelope restated per file), so both the writers and `faff evidence validate` could select the schema directly by record type in code (`loadBundled(\"events/\" + record.type + \".schema.json\")`) and validate the whole record against it — exactly the lookup `eventRecordViolations` already performs to decide *which* composed mapping applies. The generator adds a permanent authored/generated sync surface, a new anti-pattern (\"hand-editing composed files\"), and a second copy-mirroring step, to produce a file whose only unique consumer is a slice-1 reader this programme owns and could edit.",
+          "spec_anchor": "how-the-discriminators-compose"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "When the bundled schema is missing or unparseable, the writer degrades to today's checks and writes the record anyway. That line is permanently chained, and slice 6's mint will then refuse the run's anchor with `schema-mismatch` — the exact permanent-unmintability outcome this slice exists to prevent. The spec reasons correctly that fail-closed would strand an in-flight run, but it names no recovery for the *resulting* run: the parent's straddling-upgrade edge case lists recovery commands for legacy floor files, and this case has none (a chained line cannot be rewritten, and re-running the writer produces a second, conforming line without removing the first).",
+      "evidence": "\"a missing or unparseable bundled schema degrades to today's checks… the record is written after `eventViolations`… alone\"; \"slice 6's mint and CI checks refuse any line that does not match, so a line written during the outage cannot reach a committed anchor unchecked\".",
+      "predicted_consequence": "a mid-run install fault produces a run whose anchor can never mint, with no documented remedy in either this spec or the parent's edge-case list.",
+      "spec_anchor": "chosen-at-the-writer-a-missing-or-unparseable-bundled-schema-degrades",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A degraded write now creates evidence-schema-unavailable.json in the run dir once, and the spec names the recovery (re-run the issue in a fresh run dir; FAFF-1261's drain treats the marker as re-run).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "When the bundled schema is missing or unparseable, the writer degrades to today's checks and writes the record anyway. That line is permanently chained, and slice 6's mint will then refuse the run's anchor with `schema-mismatch` — the exact permanent-unmintability outcome this slice exists to prevent. The spec reasons correctly that fail-closed would strand an in-flight run, but it names no recovery for the *resulting* run: the parent's straddling-upgrade edge case lists recovery commands for legacy floor files, and this case has none (a chained line cannot be rewritten, and re-running the writer produces a second, conforming line without removing the first).",
+          "spec_anchor": "chosen-at-the-writer-a-missing-or-unparseable-bundled-schema-degrades"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "When the bundled composed schema is missing or unparseable, the writer degrades to `eventViolations` alone and prints `schema-unavailable` to stderr \"once per process\". For the CLI that is ephemeral; for the long-lived sentry-poller it is one log line. Nothing durable in the run (no ledger note, no chained event) records that the payload check was off. The spec's own WHY establishes the consequence of unchecked lines: \"one non-conforming line in a run makes that run's anchor unmintable for good\" once slice 6 enforces. So the degrade does not merely \"degrade to today's checks\" — it can silently poison a run's anchor permanently, and at slice 6 the operator sees `schema-mismatch` with no artifact telling them the schema was unavailable during the window. The failure-as-bypass checklist item is satisfied by design here; the gap is that the bypass leaves no forensic trace in the run itself.",
+      "evidence": "\"a missing or unparseable bundled schema degrades to today's checks rather than refusing: the record is written after `eventViolations` … alone, and the writer prints `schema-unavailable <path>` to stderr once per process\"; WHY: \"one non-conforming line in a run makes that run's anchor unmintable for good\".",
+      "predicted_consequence": "a run whose plugin install breaks mid-run accumulates unchecked chained lines; at FAFF-1261 the anchor is refused with `schema-mismatch` and no in-run record of the cause, forcing manual log archaeology (or, worst case, a re-run of work to produce a mintable anchor).",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Same fix as the architectural round-3 objection: a durable evidence-schema-unavailable.json marker in the run dir records the degrade window.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "When the bundled composed schema is missing or unparseable, the writer degrades to `eventViolations` alone and prints `schema-unavailable` to stderr \"once per process\". For the CLI that is ephemeral; for the long-lived sentry-poller it is one log line. Nothing durable in the run (no ledger note, no chained event) records that the payload check was off. The spec's own WHY establishes the consequence of unchecked lines: \"one non-conforming line in a run makes that run's anchor unmintable for good\" once slice 6 enforces. So the degrade does not merely \"degrade to today's checks\" — it can silently poison a run's anchor permanently, and at slice 6 the operator sees `schema-mismatch` with no artifact telling them the schema was unavailable during the window. The failure-as-bypass checklist item is satisfied by design here; the gap is that the bypass leaves no forensic trace in the run itself.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item \"Every signal the sentry verdict builder can emit, with each signal's `evidence` object, passes the `sentry-checkpoint` and `sentry-trip` schemas (driven from the sentry selftest fixtures)\" is only decidable as written if the fixture set is exhaustive over the builder's signals — and the spec never asserts that it is. A signal the selftest fixtures do not exercise makes the test pass vacuously, while the first live poller tick emitting that signal throws `EVENT_SCHEMA` (or, worse, is refused with nothing written at the abort path).",
+      "evidence": "DONE, \"From WHAT (schemas)\", the sentry-coverage bullet; the `sentry-checkpoint`/`sentry-trip` rows in the event `data` schemas table (\"each signal's `evidence` keys from the sentry verdict builder\"); the failure mode \"A writer emits a shape the survey missed\" names exactly this class but only as a proceed-and-widen response, not as a test-completeness requirement.",
+      "predicted_consequence": "The coverage test exits 0, the slice ships, and a real `sentry abort` tick writes an `event-schema-refused` poller-log line instead of the supervision event — discoverable only in a live run, after the slice is merged.",
+      "spec_anchor": "from-what-schemas",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The sentry verdicts[] signal mapping must equal the keys of SIGNAL_TRIP_INTERVENTION, with one eval*-built fixture per key, so a new signal without a schema fails the test.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The DONE item \"Every signal the sentry verdict builder can emit, with each signal's `evidence` object, passes the `sentry-checkpoint` and `sentry-trip` schemas (driven from the sentry selftest fixtures)\" is only decidable as written if the fixture set is exhaustive over the builder's signals — and the spec never asserts that it is. A signal the selftest fixtures do not exercise makes the test pass vacuously, while the first live poller tick emitting that signal throws `EVENT_SCHEMA` (or, worse, is refused with nothing written at the abort path).",
+          "spec_anchor": "from-what-schemas"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec classifies `heartbeat.js` `atomicWriteLedger` as a caller that already \"write[s] a stderr warning\" on an `EVENT_SCHEMA` throw — i.e. it continues. But the `ledger-write` event is not telemetry; per FAFF-564 it is the mechanism by which the mutable ledger's post-write hash joins the events tamper-evidence chain. If the payload check refuses that record and the fold continues, the ledger is written with no chain join, the stderr line is ephemeral, and the exact ledger bytes at that moment are never attested anywhere — silently, and with no durable trace (the `evidence-schema-unavailable.json` marker covers only the unavailable-bundle path, not the violation path). The spec's own principle (\"`ledger-write` … how the mutable ledger's history joins the events tamper-evidence chain\") makes this a correctness gap, not a logging nit.",
+      "evidence": "Writers table row for `heartbeat.js` (\"write a stderr warning\"); the `ledger-write` row in the event `data` schemas table; the degraded-mode marker defined only for the unavailable case.",
+      "predicted_consequence": "A schema-authoring gap in the `ledger-write` schema produces ledger writes whose state no committed anchor can attest, discovered only at slice-6 mint as an unexplainable chain gap.",
+      "spec_anchor": "chosen-the-events-core-throws-rather-than-returning-null",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a ledger-write record from atomicWriteLedger to the code-writer fixture DONE item and a failure mode naming a refused ledger-write as a schema bug that blocks. The record data is CLI-computed, so the fixture proves the one shape it can take.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec classifies `heartbeat.js` `atomicWriteLedger` as a caller that already \"write[s] a stderr warning\" on an `EVENT_SCHEMA` throw — i.e. it continues. But the `ledger-write` event is not telemetry; per FAFF-564 it is the mechanism by which the mutable ledger's post-write hash joins the events tamper-evidence chain. If the payload check refuses that record and the fold continues, the ledger is written with no chain join, the stderr line is ephemeral, and the exact ledger bytes at that moment are never attested anywhere — silently, and with no durable trace (the `evidence-schema-unavailable.json` marker covers only the unavailable-bundle path, not the violation path). The spec's own principle (\"`ledger-write` … how the mutable ledger's history joins the events tamper-evidence chain\") makes this a correctness gap, not a logging nit.",
+          "spec_anchor": "chosen-the-events-core-throws-rather-than-returning-null"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's guardrail covers adding an event *type* without a schema file. But the payload schemas also hardcode closed enums sourced from code constants — `issue-outcome.gate` from `QUALITY_GATE_CATCHES`, the sentry `signal` discriminator from `SIGNAL_TRIP_INTERVENTION` — and the enum-mirror test the spec extends covers only event types, phases and ledger outcomes. Adding a gate catch or a sentry signal in code without touching the authored schema file produces `EVENT_SCHEMA` refusals in live runs, exactly the failure the type-level guardrail exists to prevent, with no test failing before it.",
+      "evidence": "DONE item \"The `signal` discriminator mapping … has exactly the keys of `SIGNAL_TRIP_INTERVENTION`\" (a one-off assertion, not a mirror test); the enum-mirror DONE item lists only `event_types`, `event_phases`, `ledger_outcomes`; the `issue-outcome` row pins `gate` to `QUALITY_GATE_CATCHES`.",
+      "predicted_consequence": "The next `QUALITY_GATE_CATCHES` addition merges green and then refuses every subsequent `issue-outcome` write until someone correlates a live `EVENT_SCHEMA` throw back to the enum.",
+      "spec_anchor": "from-what-schemas",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The enum-mirror DONE item now asserts every schema enum sourced from a code constant (ledger_outcomes, QUALITY_GATE_CATCHES, DISPATCH_KINDS, DECISION_CAPTURE_COVERAGE_VALUES, RUNNER_IDENTITY_CREDENTIAL_SOURCES, EFFECT_KINDS, KIND_AUTHOR, DECISION_VERDICTS) equals that constant.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec's guardrail covers adding an event *type* without a schema file. But the payload schemas also hardcode closed enums sourced from code constants — `issue-outcome.gate` from `QUALITY_GATE_CATCHES`, the sentry `signal` discriminator from `SIGNAL_TRIP_INTERVENTION` — and the enum-mirror test the spec extends covers only event types, phases and ledger outcomes. Adding a gate catch or a sentry signal in code without touching the authored schema file produces `EVENT_SCHEMA` refusals in live runs, exactly the failure the type-level guardrail exists to prevent, with no test failing before it.",
+          "spec_anchor": "from-what-schemas"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec moves the events payload check inside the append critical section and mandates that a violation **throws** (`code: \"EVENT_SCHEMA\"`) rather than returning null, justifying this by parity with `EVENTS_LOCKED`. That parity is wrong: `EVENTS_LOCKED` is thrown on the lock-*acquisition* path, while `EVENT_SCHEMA` is thrown from inside the critical section after `seq`/`prev` are minted. The spec nowhere states that the lock is released on this throw. If `appendRecordUnderLock` does not wrap the mint callback in a release-on-throw guard, the first non-conforming record from any code writer (a routine occurrence under the spec's own failure-mode \"a writer emits a shape the survey missed\") leaves a stale lock, and every subsequent write to that run's `events.jsonl` fails with `EVENTS_LOCKED` — bricking the run's audit log, not just dropping one event.",
+      "evidence": "\"Chosen: the events core throws rather than returning `null`. Callers already handle a thrown `EVENTS_LOCKED` under their own loudness contract, so a thrown `EVENT_SCHEMA` takes the same routes\" and the `append_core` pseudocode (\"inside the lock: … throw { code: \"EVENT_SCHEMA\", violations }\") — both under `### Writers` / the HOW procedures.",
+      "predicted_consequence": "one refused record permanently locks a run dir's events ledger (stale lock file), so `park`, `sentry-checkpoint` and every later supervision event for that run can never be appended — a self-inflicted denial of the very events the governance chain exists to record.",
+      "spec_anchor": "chosen-the-events-core-throws-rather-than-returning-null",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "appendRecordsUnderLock runs the mint callback inside withFileLock, and fs-lock.js releases the lock in a finally block (unlinkSync at lines 82-83), so a throw from the critical section releases the lock. FAFF-1258 already throws LEDGER_SCHEMA from inside the same lock helper.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec moves the events payload check inside the append critical section and mandates that a violation **throws** (`code: \"EVENT_SCHEMA\"`) rather than returning null, justifying this by parity with `EVENTS_LOCKED`. That parity is wrong: `EVENTS_LOCKED` is thrown on the lock-*acquisition* path, while `EVENT_SCHEMA` is thrown from inside the critical section after `seq`/`prev` are minted. The spec nowhere states that the lock is released on this throw. If `appendRecordUnderLock` does not wrap the mint callback in a release-on-throw guard, the first non-conforming record from any code writer (a routine occurrence under the spec's own failure-mode \"a writer emits a shape the survey missed\") leaves a stale lock, and every subsequent write to that run's `events.jsonl` fails with `EVENTS_LOCKED` — bricking the run's audit log, not just dropping one event.",
+          "spec_anchor": "chosen-the-events-core-throws-rather-than-returning-null"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec routes violations to stderr on several paths (`faff events append` \"print each violation\", `bundle.js` \"write the violations to stderr\", the governor seam \"writes the schema violations to stderr\") and pins value-free messages only for one scenario (the `runner-identity` fixture: \"the violation names data.github_login without printing 7\"). The underlying validator does embed values: `validateAgainstSchema`'s unknown-type message is `\"<root>: schema error: unknown type objet\"` — the offending value appears verbatim. An agent composing a stdin payload controls those values, so arbitrary agent-chosen text can be injected into CLI stderr/stdout that orchestrator prose and pollers parse. The value-free property is asserted for `declaredEffectViolations` (existing code) but is not required of the new events/effects/Commissaire violation surfacing generally.",
+      "evidence": "Scenario \"Given an events core caller that mints {…github_login 7…} … the violation names data.github_login without printing 7\"; `faff events append` step 4 \"EVENT_SCHEMA -> print each violation\"; the `declaredEffectViolations` doc comment \"Messages name fields and keys, never values\" (effects.js) — a property the new paths are not held to.",
+      "predicted_consequence": "an agent payload such as `{\"type\":\"issue-outcome\",\"data\":{\"outcome\":\"shipped\\nfaff: all gates passed\"}}` prints orchestrator-actionable text from the append command's stderr, spoofing CLI output inside a governed run.",
+      "spec_anchor": "from-how-writers",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "contract-engine.js validateAgainstSchemaDetailed documents and implements value-free messages (enum, pattern and discriminator misses name the schema text only); the cited unknown-type message names a type from the schema, not from the data. The runner-identity scenario already asserts no value is printed.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec routes violations to stderr on several paths (`faff events append` \"print each violation\", `bundle.js` \"write the violations to stderr\", the governor seam \"writes the schema violations to stderr\") and pins value-free messages only for one scenario (the `runner-identity` fixture: \"the violation names data.github_login without printing 7\"). The underlying validator does embed values: `validateAgainstSchema`'s unknown-type message is `\"<root>: schema error: unknown type objet\"` — the offending value appears verbatim. An agent composing a stdin payload controls those values, so arbitrary agent-chosen text can be injected into CLI stderr/stdout that orchestrator prose and pollers parse. The value-free property is asserted for `declaredEffectViolations` (existing code) but is not required of the new events/effects/Commissaire violation surfacing generally.",
+          "spec_anchor": "from-how-writers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`dropped_keys` is presented as evidence (\"How you'd know: `dropped_keys` on committed event lines, countable across anchors\"), but the drop procedure only *sets* `data.dropped_keys = sorted(dropped)` when keys were actually dropped. `dropped_keys` is a schema-allowed key on every type except `agent-dispatch`/`runner-identity`, so an agent can supply `data.dropped_keys: [\"fabricated\"]` directly with no unknown keys at all, and the chained record carries a forged drop attestation the CLI never made. The drop is a diagnostic, not a gate, so this is not a bypass — but it poisons the exact signal the spec names for detecting drop abuse, inside a hash-chained log that can never be corrected.",
+      "evidence": "PROCEDURE `events_append` step 2 (\"IF dropped: … set data.dropped_keys = sorted(dropped)\") — conditional on `dropped` being non-empty; \"allowed on every type except `agent-dispatch` and `runner-identity`\".",
+      "predicted_consequence": "committed anchors carry `dropped_keys` entries the CLI never produced, so the count-across-anchors signal the spec's own failure mode relies on reports drops that did not happen (and can mask real ones by normalising noise).",
+      "spec_anchor": "procedure-events-appendpayload-flags",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "dropped_keys is now reserved for the CLI: an agent payload that already carries data.dropped_keys exits 1, with a DONE item.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "`dropped_keys` is presented as evidence (\"How you'd know: `dropped_keys` on committed event lines, countable across anchors\"), but the drop procedure only *sets* `data.dropped_keys = sorted(dropped)` when keys were actually dropped. `dropped_keys` is a schema-allowed key on every type except `agent-dispatch`/`runner-identity`, so an agent can supply `data.dropped_keys: [\"fabricated\"]` directly with no unknown keys at all, and the chained record carries a forged drop attestation the CLI never made. The drop is a diagnostic, not a gate, so this is not a bypass — but it poisons the exact signal the spec names for detecting drop abuse, inside a hash-chained log that can never be corrected.",
+          "spec_anchor": "procedure-events-appendpayload-flags"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The degrade-on-`{unavailable}` decision is stated \"at the events and effects writers\". The Writers table also mandates the payload check inside `appendProducerRecords`, `appendCommissaireRecord` and the governor `verify` seam, but the spec never says what those do when `validateEvidenceDocument` returns `{ unavailable }`: refuse (fail-closed, potentially parking a governed run's authorize/conclude) or degrade (chaining a signed, unchecked schema-3 record). These are signed, append-only records where the two options have materially different consequences, and leaving it undetermined means the builder picks one silently — a fail-open-or-closed coin flip on the signed ledger.",
+      "evidence": "\"Chosen: at the events and effects writers, an unavailable bundle … degrades to today's checks\" — scoped to those two; the Writers table rows for the Commissaire writers specify only the on-*violation* behaviour, not the on-*unavailable* behaviour.",
+      "predicted_consequence": "during a bundle outage, a schema-3 record is either silently chained unchecked (anchor later refused with no writer-side trace, since the `evidence-schema-unavailable.json` marker is specified only for the events degrade path) or a governed run parks with no specified diagnostic — neither behaviour is the one the spec reviewed.",
+      "spec_anchor": "chosen-at-the-events-and-effects-writers-an-unavailable-bundle",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The unavailable-bundle rule now covers every writer of both logs, Commissaire writers and governor seams included, with the reason (a refused producer observe would lose the record of an effect that already happened) and the run-dir marker for a degraded Commissaire write.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The degrade-on-`{unavailable}` decision is stated \"at the events and effects writers\". The Writers table also mandates the payload check inside `appendProducerRecords`, `appendCommissaireRecord` and the governor `verify` seam, but the spec never says what those do when `validateEvidenceDocument` returns `{ unavailable }`: refuse (fail-closed, potentially parking a governed run's authorize/conclude) or degrade (chaining a signed, unchecked schema-3 record). These are signed, append-only records where the two options have materially different consequences, and leaving it undetermined means the builder picks one silently — a fail-open-or-closed coin flip on the signed ledger.",
+          "spec_anchor": "chosen-at-the-events-and-effects-writers-an-unavailable-bundle"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The Writers table's governor row names only \"request-decision, conclude in governor mode\", but `clientAdmit` also appends a governor-signed record (`appendVerbatimGovernorRecord` of the admission at seq 0) with no verify seam and no schema check. The WHY DONE item asserts \"Every write path for both logs runs the payload check\", yet this path is absent from the table the DONE test drives — so the admission payload (`admitted_scope`, `pk_fingerprint`, `custody`, …) can enter the chained log permanently unchecked, and the DONE test cannot catch it because the table never names admit.",
+      "evidence": "\"Governor-signed records (`request-decision`, `conclude` in governor mode)\" row in the Writers table vs the DONE item \"Every write path for both logs runs the payload check: a test drives each writer in the Writers table\".",
+      "predicted_consequence": "A governor-custody admission record with a non-conforming payload is chained and can never be corrected; slice 6 then refuses that run's anchor, and the \"every write path\" DONE is reported green while the gap ships.",
+      "spec_anchor": "writers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Checked clientAdmit in commissaire.ts: it appends the governor admission record verbatim with no verify seam. Added a Writers row checking the admission record before the producer files and the ledger line are written, and a DONE item.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The Writers table's governor row names only \"request-decision, conclude in governor mode\", but `clientAdmit` also appends a governor-signed record (`appendVerbatimGovernorRecord` of the admission at seq 0) with no verify seam and no schema check. The WHY DONE item asserts \"Every write path for both logs runs the payload check\", yet this path is absent from the table the DONE test drives — so the admission payload (`admitted_scope`, `pk_fingerprint`, `custody`, …) can enter the chained log permanently unchecked, and the DONE test cannot catch it because the table never names admit.",
+          "spec_anchor": "writers"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item requires the discriminator mapping to have \"exactly the keys of `SIGNAL_TRIP_INTERVENTION`\", and the fixture test holds one verdict per those keys. But the survey shows `sentry-checkpoint` carries a `verdicts` array on every consult (tripped or not), and the spec nowhere asserts that the set of signals the sentry verdict builder can emit equals `SIGNAL_TRIP_INTERVENTION`. If the builder emits any advisory/non-trip signal outside that set, the composed schema has no mapping for it, the record fails the core check, and the poller's never-block contract drops the checkpoint event in a live run — exactly the \"writer emits a shape the survey missed\" failure mode, but reachable by a DONE-mandated construction, not an accident.",
+      "evidence": "DONE item \"The `signal` discriminator mapping … has exactly the keys of `SIGNAL_TRIP_INTERVENTION` … one fixture verdict per key\"; survey row `sentry-checkpoint` (168 lines, `verdicts` array).",
+      "predicted_consequence": "`sentry-checkpoint` lines are refused and lost at the poller during real runs (logged under `event-schema-refused`), surfacing only as missing supervision evidence in a committed anchor — after merge, not in the suite.",
+      "spec_anchor": "event-data-schemas",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "SIGNAL_TRIP_INTERVENTION in sentry.js maps all eight signals the verdict builders emit (budget-breach, wall-clock-runaway, repeated-identical-failure, forbidden-side-effect-attempt, fix-review-thrash, scope-drift, budget-metering-degraded, heartbeat-progress-mismatch); every committed verdict signal is among them, and the DONE item builds one fixture per key with its eval function.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The DONE item requires the discriminator mapping to have \"exactly the keys of `SIGNAL_TRIP_INTERVENTION`\", and the fixture test holds one verdict per those keys. But the survey shows `sentry-checkpoint` carries a `verdicts` array on every consult (tripped or not), and the spec nowhere asserts that the set of signals the sentry verdict builder can emit equals `SIGNAL_TRIP_INTERVENTION`. If the builder emits any advisory/non-trip signal outside that set, the composed schema has no mapping for it, the record fails the core check, and the poller's never-block contract drops the checkpoint event in a live run — exactly the \"writer emits a shape the survey missed\" failure mode, but reachable by a DONE-mandated construction, not an accident.",
+          "spec_anchor": "event-data-schemas"
+        }
+      ]
+    }
+  ]
+}

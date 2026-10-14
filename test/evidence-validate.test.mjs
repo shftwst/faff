@@ -46,6 +46,7 @@ const MIXED_CUTOFF = "20261014-142628";
 const MIXED_ANCHORS = new Map([
   [".faff/anchors/run-20261014-125129-graft-FAFF-1274/FAFF-1274", ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json"]],
   [".faff/anchors/run-20261014-125614-graft-FAFF-1224/FAFF-1224", ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json"]],
+  [".faff/anchors/run-20261014-140913-graft-FAFF-1260/FAFF-1260", ["ac-checklist.json", "review-verdict.json"]],
 ]);
 
 const runTimestamp = (rel) => (rel.match(/\/run-(\d{8}-\d{6})-/) || [])[1] ?? null;

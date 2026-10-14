@@ -5,9 +5,11 @@
 // with zero installed dependencies, using only `JSON.parse` + Node builtins, mirroring
 // the existing hand-rolled `parseYamlSubset()` in skills/faff/bin/faff.
 //
-// Supported keywords (the subset the flat contract shapes need): type, required,
-// properties, enum, additionalProperties, items. Unknown keywords ($schema, $id,
-// title, description, ...) are ignored.
+// Supported keywords: type (string or array of names, including "null"), required,
+// properties, enum, additionalProperties (false or a schema), items, minItems, pattern
+// and discriminator. Unknown keywords ($schema, $id, title, description, ...) are
+// ignored. Keep in step with bin/lib/contract-engine.js; test/validator-parity.test.mjs
+// is the guard.
 //
 // SCOPE: this is the spike's proof harness, NOT the production validator. Porting
 // `validateAgainstSchema` into the faff CLI (`faff validate-contract` / the wiring
@@ -17,7 +19,7 @@
 //   node validate-schema.mjs <data.json> <schema.json>   # exit 0 = valid, 1 = violations
 //   node validate-schema.mjs --selftest                  # good example passes, bad fails
 
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -28,40 +30,94 @@ const TYPE_CHECK = {
   boolean: (v) => typeof v === "boolean",
   number: (v) => typeof v === "number",
   integer: (v) => Number.isInteger(v),
+  null: (v) => v === null,
 };
 
-// Returns an array of human-readable violation strings (empty = valid).
+function typeNames(schema) {
+  if (Array.isArray(schema.type)) return schema.type;
+  return schema.type ? [schema.type] : [];
+}
+
+function describeKind(data) {
+  return Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
+}
+
+// Returns an array of human-readable violation strings (empty = valid). No message
+// contains a data value: enum, pattern and discriminator misses name the schema text only.
 export function validateAgainstSchema(data, schema, path = "") {
   const where = path || "<root>";
   const errs = [];
+  const types = typeNames(schema);
+  const isUnion = Array.isArray(schema.type);
 
-  if (schema.type && TYPE_CHECK[schema.type] && !TYPE_CHECK[schema.type](data)) {
-    const got = Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
-    errs.push(`${where}: expected type ${schema.type}, got ${got}`);
-    return errs; // type is wrong — don't cascade into properties/items
+  if (isUnion) {
+    for (const name of types) {
+      if (!TYPE_CHECK[name]) {
+        errs.push(`${where}: schema error: unknown type ${name}`);
+        return errs;
+      }
+    }
+  }
+  const checked = types.filter((name) => TYPE_CHECK[name]);
+  if (checked.length > 0 && !checked.some((name) => TYPE_CHECK[name](data))) {
+    errs.push(`${where}: expected type ${types.join("|")}, got ${describeKind(data)}`);
+    return errs; // type is wrong, so don't cascade into properties/items
   }
 
   if (schema.enum && !schema.enum.includes(data)) {
-    errs.push(`${where}: ${JSON.stringify(data)} not in enum [${schema.enum.join(", ")}]`);
+    errs.push(`${where}: value not in enum [${schema.enum.join(", ")}]`);
   }
 
-  if (schema.type === "object" && TYPE_CHECK.object(data)) {
-    for (const key of schema.required || []) {
-      if (!(key in data)) errs.push(`${where}: missing required property "${key}"`);
-    }
-    const props = schema.properties || {};
-    if (schema.additionalProperties === false) {
+  if (TYPE_CHECK.object(data)) {
+    if (types.includes("object")) {
+      for (const key of schema.required || []) {
+        if (!(key in data)) errs.push(`${where}: missing required property "${key}"`);
+      }
+      const props = schema.properties || {};
+      const extra = schema.additionalProperties;
       for (const key of Object.keys(data)) {
-        if (!(key in props)) errs.push(`${where}: additional property "${key}" not allowed`);
+        if (key in props) continue;
+        if (extra === false) errs.push(`${where}: additional property "${key}" not allowed`);
+        else if (extra && typeof extra === "object") {
+          errs.push(...validateAgainstSchema(data[key], extra, path ? `${path}.${key}` : key));
+        }
+      }
+      for (const [key, sub] of Object.entries(props)) {
+        if (key in data) errs.push(...validateAgainstSchema(data[key], sub, path ? `${path}.${key}` : key));
       }
     }
-    for (const [key, sub] of Object.entries(props)) {
-      if (key in data) errs.push(...validateAgainstSchema(data[key], sub, path ? `${path}.${key}` : key));
+    const disc = schema.discriminator;
+    if (disc) {
+      if (!(disc.field in data)) {
+        errs.push(`${where}: missing discriminator property "${disc.field}"`);
+      } else {
+        const key = String(data[disc.field]);
+        if (!Object.hasOwn(disc.mapping, key)) {
+          errs.push(`${where}: discriminator "${disc.field}" value not in mapping [${Object.keys(disc.mapping).join(", ")}]`);
+        } else {
+          errs.push(...validateAgainstSchema(data, disc.mapping[key], path));
+        }
+      }
     }
   }
 
-  if (schema.type === "array" && Array.isArray(data) && schema.items) {
-    data.forEach((item, i) => errs.push(...validateAgainstSchema(item, schema.items, `${where}[${i}]`)));
+  if (Array.isArray(data) && types.includes("array")) {
+    if (typeof schema.minItems === "number" && data.length < schema.minItems) {
+      errs.push(`${where}: expected at least ${schema.minItems} items, got ${data.length}`);
+    }
+    if (schema.items) {
+      data.forEach((item, i) => errs.push(...validateAgainstSchema(item, schema.items, `${where}[${i}]`)));
+    }
+  }
+
+  if (typeof data === "string" && typeof schema.pattern === "string") {
+    let re = null;
+    try {
+      re = new RegExp(schema.pattern);
+    } catch {
+      errs.push(`${where}: schema error: invalid pattern ${schema.pattern}`);
+    }
+    if (re && !re.test(data)) errs.push(`${where}: does not match pattern ${schema.pattern}`);
   }
 
   return errs;
@@ -112,4 +168,13 @@ function main() {
   process.exit(1);
 }
 
-main();
+function isEntrypoint() {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint()) main();

@@ -80,7 +80,8 @@ const KIND_SCHEMA = {
   "effect-decision-verdict": "effect-decision-verdict",
 };
 const envelope = (version) => `${version}/schema/facade-envelope.schema.json`;
-const kindSchemaName = (version, rec) => KIND_SCHEMA[rec.kind_of_entry] ?? CONCLUSION_SCHEMA[version];
+const isConclusion = (rec) => conclusionKindOf(rec) !== null;
+const kindSchemaName = (version, rec) => (isConclusion(rec) ? CONCLUSION_SCHEMA[version] : KIND_SCHEMA[rec.kind_of_entry]);
 const kindSchema = (version, rec) => `${version}/schema/${kindSchemaName(version, rec)}.schema.json`;
 const conclusionSchema = (version) => `${version}/schema/${CONCLUSION_SCHEMA[version]}.schema.json`;
 

@@ -1,0 +1,21 @@
+{
+  "id": "finding-identity-004",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: JSON.parse of the user config has no error handling, but the spec requires a corrupt file to fall back to defaults with a warning. The unhandled error path is in lib/settings.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Read user settings from ~/.toolrc.json.",
+    "spec": "## WHAT\n`loadSettings()` reads `~/.toolrc.json` and merges it over the defaults.\n\n## DONE\n- [ ] a missing file yields the defaults\n- [ ] a file that is not valid JSON yields the defaults and prints one warning to stderr\n- [ ] known keys override defaults; unknown keys are ignored",
+    "diff": "diff --git a/lib/settings.js b/lib/settings.js\nindex 3b18e51..a7c94d2 100644\n--- a/lib/settings.js\n+++ b/lib/settings.js\n@@ -10,5 +10,9 @@ function loadSettings(home) {\n   const file = path.join(home, '.toolrc.json');\n   if (!fs.existsSync(file)) return { ...DEFAULTS };\n+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));\n+  const merged = { ...DEFAULTS };\n+  for (const k of Object.keys(DEFAULTS)) if (k in raw) merged[k] = raw[k];\n+  return merged;\n }\n \n module.exports = { loadSettings, DEFAULTS };\ndiff --git a/test/settings.test.js b/test/settings.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/settings.test.js\n@@ -1,0 +1,5 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { loadSettings, DEFAULTS } = require('../lib/settings');\n+\n+test('missing file yields defaults', () => assert.deepEqual(loadSettings('/nonexistent'), DEFAULTS));\n",
+    "test_results": "node --test: 1 pass, 0 fail.",
+    "defect_file": "lib/settings.js",
+    "diff_b": "diff --git a/lib/settings.js b/lib/settings.js\nindex 3b18e51..a7c94d2 100644\n--- a/lib/settings.js\n+++ b/lib/settings.js\n@@ -1,2 +1,3 @@\n 'use strict';\n+// Defaults are frozen so callers cannot mutate them.\n const fs = require('node:fs');\n@@ -10,5 +11,9 @@ function loadSettings(home) {\n   const file = path.join(home, '.toolrc.json');\n   if (!fs.existsSync(file)) return { ...DEFAULTS };\n+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));\n+  const merged = { ...DEFAULTS };\n+  for (const k of Object.keys(DEFAULTS)) if (k in raw) merged[k] = raw[k];\n+  return merged;\n }\n \n module.exports = { loadSettings, DEFAULTS };\ndiff --git a/test/settings.test.js b/test/settings.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/settings.test.js\n@@ -1,0 +1,5 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { loadSettings, DEFAULTS } = require('../lib/settings');\n+\n+test('missing file yields defaults', () => assert.deepEqual(loadSettings('/nonexistent'), DEFAULTS));\n"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

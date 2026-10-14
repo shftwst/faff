@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-010",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: the file descriptor opened for reading is not closed on the early-return path for an empty file; the spec requires no descriptor leak on any return. The leak is in lib/reader.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `readFirstLine(file)` for the log tailer.",
+    "spec": "## WHAT\n`readFirstLine(file)` returns the first line of a file, or null if the file is empty.\n\n## DONE\n- [ ] returns the first line without the newline\n- [ ] returns null for an empty file\n- [ ] no file descriptor is left open on any return path",
+    "diff": "diff --git a/lib/reader.js b/lib/reader.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/lib/reader.js\n@@ -1,0 +1,15 @@\n+'use strict';\n+const fs = require('node:fs');\n+\n+function readFirstLine(file) {\n+  const fd = fs.openSync(file, 'r');\n+  const buf = Buffer.alloc(4096);\n+  const n = fs.readSync(fd, buf, 0, buf.length, 0);\n+  if (n === 0) return null;\n+  fs.closeSync(fd);\n+  const text = buf.toString('utf8', 0, n);\n+  const nl = text.indexOf('\\n');\n+  return nl === -1 ? text : text.slice(0, nl);\n+}\n+\n+module.exports = { readFirstLine };\ndiff --git a/test/reader.test.js b/test/reader.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/reader.test.js\n@@ -1,0 +1,5 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { readFirstLine } = require('../lib/reader');\n+\n+test('empty file yields null', () => assert.equal(readFirstLine(emptyFixture()), null));\n",
+    "test_results": "node --test: 1 pass, 0 fail.",
+    "defect_file": "lib/reader.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

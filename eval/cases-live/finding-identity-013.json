@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-013",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: the parser treats an empty string as a valid port and returns 0, but the spec requires rejecting it with a RangeError. The wrong handling of the empty-input boundary is in lib/port.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `parsePort` for the --port flag.",
+    "spec": "## WHAT\n`parsePort(text)` returns an integer port.\n\n## DONE\n- [ ] `parsePort('8080')` is 8080\n- [ ] `parsePort('0')`, `parsePort('65536')` and `parsePort('')` throw RangeError\n- [ ] a non-numeric string throws TypeError",
+    "diff": "diff --git a/lib/port.js b/lib/port.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/lib/port.js\n@@ -1,0 +1,10 @@\n+'use strict';\n+\n+function parsePort(text) {\n+  const n = Number(text);\n+  if (Number.isNaN(n)) throw new TypeError(`not a number: ${text}`);\n+  if (n < 0 || n > 65535) throw new RangeError(`port out of range: ${n}`);\n+  return n;\n+}\n+\n+module.exports = { parsePort };\ndiff --git a/test/port.test.js b/test/port.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/port.test.js\n@@ -1,0 +1,6 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { parsePort } = require('../lib/port');\n+\n+test('parses a port', () => assert.equal(parsePort('8080'), 8080));\n+test('rejects a word', () => assert.throws(() => parsePort('abc'), TypeError));\n",
+    "test_results": "node --test: 2 pass, 0 fail.",
+    "defect_file": "lib/port.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

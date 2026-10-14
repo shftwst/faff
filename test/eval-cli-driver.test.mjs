@@ -846,6 +846,7 @@ const ANCHOR_REGISTRY = {
   MARKER_DIALECT_START: { skill: "faff", file: "references/kernel.md", end: "MARKER_DIALECT_END" },
   RECONCILIATION_RUBRIC_START: { skill: "faff-prep", end: "RECONCILIATION_RUBRIC_END" },
   REVIEW_VERDICT_START: { skill: "faffter-noon-review", end: "REVIEW_VERDICT_END" },
+  FINDING_RUBRIC_START: { skill: "faffter-noon-review", end: "FINDING_RUBRIC_END" },
   GATEWAY_VERDICT_START: { skill: "faff", file: "references/kernel.md", end: "GATEWAY_VERDICT_END" },
   GATEWAY_ROUTING_START: { skill: "faff", file: "references/kernel.md", end: "GATEWAY_ROUTING_END" },
   ADAPTOR_ROUTING_START: { skill: "faffidavit-routing", end: "ADAPTOR_ROUTING_END" },
@@ -898,7 +899,7 @@ test("FAFF-669 every registered start anchor occurs exactly once in the file its
 // A hand-maintained registry with no forcing function is a list that goes stale on the next commit.
 test("FAFF-669 the anchor registry covers every start-anchor constant declared in the driver", () => {
   const declared = [...DRIVER_SRC.matchAll(/const (\w+_START) = /g)].map((m) => m[1]);
-  assert.equal(declared.length, 30, "FAFF-731 removed REFUTATION_SPEC_PROSE_START (the collapsed refutation-spec prose loader)");
+  assert.equal(declared.length, 31, "FAFF-731 removed REFUTATION_SPEC_PROSE_START (the collapsed refutation-spec prose loader); FAFF-1266 added FINDING_RUBRIC_START");
   for (const name of declared) {
     assert.ok(name in ANCHOR_REGISTRY, `${name} is declared in the driver but missing from the anchor registry`);
   }
@@ -958,7 +959,7 @@ test("FAFF-687 a duplicate end-anchor spliced inside a section is caught (demons
 // the end-anchor mirror of the start-anchor coverage test above.
 test("FAFF-687 the anchor registry covers every end-anchor constant declared in the driver", () => {
   const declaredEnds = [...DRIVER_SRC.matchAll(/const (\w+_END) = /g)].map((m) => m[1]);
-  assert.equal(declaredEnds.length, 29, "one END const per START const, minus the sole extractSectionToEnd loader (FAFF-731 removed REFUTATION_SPEC_PROSE_END)");
+  assert.equal(declaredEnds.length, 30, "one END const per START const, minus the sole extractSectionToEnd loader (FAFF-731 removed REFUTATION_SPEC_PROSE_END); FAFF-1266 added FINDING_RUBRIC_END");
   const registered = Object.values(ANCHOR_REGISTRY).map((row) => row.end).filter((end) => end !== null);
   assert.deepEqual(new Set(registered), new Set(declaredEnds),
     "every *_END const declared in the driver must be on exactly one registry row, and vice versa");

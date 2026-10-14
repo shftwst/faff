@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-008",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: the test file covers only one of the two stated ACs; the Retry-After handling has no test. The missing coverage is in test/http-retry.test.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Honour the Retry-After header on 429 responses.",
+    "spec": "## WHAT\nThe client waits before retrying a 429.\n\n## DONE\n- [ ] a 429 with `Retry-After: N` waits N seconds before the retry (test required)\n- [ ] a 429 without the header waits one second (test required)\n- [ ] other statuses are unaffected",
+    "diff": "diff --git a/src/http/retry.js b/src/http/retry.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/http/retry.js\n+++ b/src/http/retry.js\n@@ -9,2 +9,5 @@ function retryDelayMs(res) {\n-  return 1000;\n+  if (res.status !== 429) return 0;\n+  const h = res.headers.get('retry-after');\n+  const n = Number(h);\n+  return Number.isFinite(n) && n > 0 ? n * 1000 : 1000;\n }\ndiff --git a/test/http-retry.test.js b/test/http-retry.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/http-retry.test.js\n@@ -1,0 +1,7 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { retryDelayMs } = require('../src/http/retry');\n+\n+test('429 without Retry-After waits one second', () => {\n+  assert.equal(retryDelayMs({ status: 429, headers: new Map() }), 1000);\n+});\n",
+    "test_results": "node --test: 2 pass, 0 fail.",
+    "defect_file": "test/http-retry.test.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

@@ -37,6 +37,7 @@ const {
   secretRedact,
   hasDiffMarkers,
 } = require("./adversarial-judge-scrub");
+const { normaliseFindingPath } = require("./finding-id");
 
 // The sentinel argument_B carries when the author never rebutted a still-standing critical
 // (it can still reach the would-be-park point via the churn/convergence/cap stops, p-05/HOW).
@@ -117,7 +118,7 @@ function assembleBuildCaseFiles(opts) {
       : `finding at ${location || "(no location given)"}`;
     const hasRebuttal = finding && typeof finding.rebuttal_text === "string" && finding.rebuttal_text.trim().length > 0;
     const requiresConfirm = !!(finding && finding.requires_confirm);
-    const filePath = (location || "").split(":")[0];
+    const filePath = normaliseFindingPath(location);
 
     // Scrub every field individually; a single field failing the fixpoint/diff-marker gate parks
     // the WHOLE finding (never a partial/unsafe case file).

@@ -1,0 +1,21 @@
+{
+  "id": "finding-identity-001",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: a stated AC (a --quiet flag) is not implemented at all; only --json is. The AC is explicit in the spec, so the missed requirement is unambiguous and sits in src/cli/export.js.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `--json` and `--quiet` flags to the `export` command.",
+    "spec": "## WHAT\n`faff-lite export` prints a report table. Add two flags.\n\n## DONE\n- [ ] `export --json` prints the report as a JSON array and nothing else\n- [ ] `export --quiet` suppresses all output except errors and exits 0 on success\n- [ ] with neither flag the output is byte-identical to before",
+    "diff": "diff --git a/src/cli/export.js b/src/cli/export.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/cli/export.js\n+++ b/src/cli/export.js\n@@ -14,5 +14,9 @@ function runExport(args) {\n   const rows = loadRows(args.source);\n   const report = buildReport(rows);\n-  console.log(renderTable(report));\n+  if (args.json) {\n+    console.log(JSON.stringify(report));\n+    return 0;\n+  }\n+  console.log(renderTable(report));\n   return 0;\n }\ndiff --git a/test/export.test.js b/test/export.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/export.test.js\n+++ b/test/export.test.js\n@@ -22,3 +22,8 @@\n test('export prints a table', () => {\n   assert.match(run(['export']).stdout, /NAME/);\n });\n+\n+test('export --json prints a JSON array', () => {\n+  const out = JSON.parse(run(['export', '--json']).stdout);\n+  assert.ok(Array.isArray(out));\n+});\n",
+    "test_results": "node --test: 11 pass, 0 fail. Lint clean.",
+    "defect_file": "src/cli/export.js",
+    "diff_b": "diff --git a/src/cli/export.js b/src/cli/export.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/cli/export.js\n+++ b/src/cli/export.js\n@@ -3,4 +3,5 @@\n const { loadRows } = require('../lib/rows');\n const { buildReport } = require('../lib/report');\n+const USAGE = 'usage: faff-lite export [--source <file>]';\n \n function usage() {\n@@ -14,5 +15,9 @@ function runExport(args) {\n   const rows = loadRows(args.source);\n   const report = buildReport(rows);\n-  console.log(renderTable(report));\n+  if (args.json) {\n+    console.log(JSON.stringify(report));\n+    return 0;\n+  }\n+  console.log(renderTable(report));\n   return 0;\n }\ndiff --git a/test/export.test.js b/test/export.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/export.test.js\n+++ b/test/export.test.js\n@@ -22,3 +22,8 @@\n test('export prints a table', () => {\n   assert.match(run(['export']).stdout, /NAME/);\n });\n+\n+test('export --json prints a JSON array', () => {\n+  const out = JSON.parse(run(['export', '--json']).stdout);\n+  assert.ok(Array.isArray(out));\n+});\n"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-006",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: the new request logger writes the Authorization header value to the log line; the spec forbids logging credentials. The leak is in src/http/logger.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Log every outbound HTTP request for debugging.",
+    "spec": "## WHAT\nAdd a request logger to the HTTP client.\n\n## DONE\n- [ ] each request logs method, URL and status on one line\n- [ ] credentials (the Authorization header and any token query parameter) never appear in logs\n- [ ] logging is off unless `DEBUG_HTTP=1`",
+    "diff": "diff --git a/src/http/logger.js b/src/http/logger.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/src/http/logger.js\n@@ -1,0 +1,9 @@\n+'use strict';\n+\n+function logRequest(req, res) {\n+  if (process.env.DEBUG_HTTP !== '1') return;\n+  const auth = req.headers['authorization'];\n+  console.error(`${req.method} ${req.url} -> ${res.status} auth=${auth}`);\n+}\n+\n+module.exports = { logRequest };\ndiff --git a/src/http/client.js b/src/http/client.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/http/client.js\n+++ b/src/http/client.js\n@@ -30,2 +30,3 @@\n   const res = await send(req);\n+  logRequest(req, res);\n   return res;\n",
+    "test_results": "node --test: 14 pass, 0 fail.",
+    "defect_file": "src/http/logger.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

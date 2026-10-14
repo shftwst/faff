@@ -74,6 +74,10 @@
       "surface": "faffter-noon-review",
       "status": "designed"
     },
+    "finding-identity": {
+      "surface": "faffter-noon-review",
+      "status": "designed"
+    },
     "architecture": {
       "surface": "faffter-noon-architecture",
       "status": "covered"

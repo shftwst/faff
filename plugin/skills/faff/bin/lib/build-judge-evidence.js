@@ -46,6 +46,7 @@ const { parseArgs, usageError } = require("./argv");
 const { readRoundRecord } = require("./spec-review-churn");
 const { roundFilesInDir } = require("./spec-review-convergence");
 const { standingCriticalIds } = require("./build-review-churn");
+const { readerFindingIds } = require("./finding-id");
 const { assembleBuildCaseFiles, admitBuildRollup, sha256Text } = require("./build-judge-casefile");
 const { parseVerdictBlock, validateReconstruction, imperativeScrub } = require("./adversarial-judge-scrub");
 const { findRoot, dig } = require("./shared-infra");
@@ -221,27 +222,48 @@ async function realJudgeDispatchDisposition(exit) {
 
 // --- adjudication-set derivation (which findings need a judge pass) --------
 
-// findLastKnownFinding(findingId, rounds) -> {location, title} | null — scans rounds NEWEST-
-// first for a `findings[]` entry carrying this finding_id, so a withdrawn finding's identity
-// fields (needed to build its case file) are recovered from its last known appearance.
+// findLastKnownFinding(findingId, rounds) -> {location, title, stored} | null — scans rounds
+// NEWEST-first for a `findings[]` entry whose reader id (`readerFindingIds`, scoped to the round's
+// 1-based position) is this id, so a withdrawn finding's identity fields (needed to build its case
+// file) are recovered from its last known appearance. `stored` is the finding's own `finding_id`
+// alias, which an author reply may have cited instead.
 function findLastKnownFinding(findingId, rounds) {
   for (let i = rounds.length - 1; i >= 0; i--) {
     const findings = Array.isArray(rounds[i].findings) ? rounds[i].findings : [];
-    const hit = findings.find((f) => f && f.finding_id === findingId);
-    if (hit) return { location: hit.location || "", title: hit.title || "" };
+    const ids = readerFindingIds(findings, i + 1);
+    const at = ids.findIndex((x) => x.id === findingId);
+    if (at !== -1) {
+      const hit = findings[at] || {};
+      return { location: hit.location || "", title: hit.title || "", stored: ids[at].stored };
+    }
   }
   return null;
 }
 
-// latestRebuttalFor(findingId, rounds) -> the most recent rebuttal_text authored for this
-// finding_id (newest-round-first scan of author_replies), or undefined.
-function latestRebuttalFor(findingId, rounds) {
+// latestRebuttalFor(findingId, rounds, alias) -> the most recent rebuttal_text authored for this
+// finding (newest-round-first scan of author_replies), or undefined. A reply's `finding_ref`
+// matches when it equals the reader id or the finding's stored `alias`.
+function latestRebuttalFor(findingId, rounds, alias) {
+  const matches = (ref) => ref === findingId || (alias != null && ref === alias);
   for (let i = rounds.length - 1; i >= 0; i--) {
     const replies = Array.isArray(rounds[i].author_replies) ? rounds[i].author_replies : [];
-    const hit = [...replies].reverse().find((r) => r && r.kind === "rebuttal" && r.finding_ref === findingId);
+    const hit = [...replies].reverse().find((r) => r && r.kind === "rebuttal" && matches(r.finding_ref));
     if (hit) return hit.rebuttal_text;
   }
   return undefined;
+}
+
+// refToReaderId(rounds) -> Map from every id a reply may cite (reader id or stored alias) to the
+// finding's reader id.
+function refToReaderId(rounds) {
+  const map = new Map();
+  rounds.forEach((round, i) => {
+    for (const x of readerFindingIds(Array.isArray(round.findings) ? round.findings : [], i + 1)) {
+      if (x.stored && !map.has(x.stored)) map.set(x.stored, x.id);
+      map.set(x.id, x.id);
+    }
+  });
+  return map;
 }
 
 // collectAdjudicationSet(rounds) -> [{finding_id, location, title, rebuttal_text, requires_confirm}]
@@ -261,34 +283,37 @@ function latestRebuttalFor(findingId, rounds) {
 function collectAdjudicationSet(rounds) {
   if (!rounds.length) return [];
   const latest = rounds[rounds.length - 1];
+  const latestFindings = Array.isArray(latest.findings) ? latest.findings : [];
+  const latestIds = readerFindingIds(latestFindings, rounds.length);
   const standingNow = new Set(
-    (Array.isArray(latest.findings) ? latest.findings : [])
-      .filter((f) => f && f.severity === "critical")
-      .map((f) => f.finding_id),
+    latestFindings.map((f, i) => (f && f.severity === "critical" ? latestIds[i].id : null)).filter((id) => id !== null),
   );
   const out = [...standingNow].map((id) => {
-    const info = findLastKnownFinding(id, rounds) || { location: "", title: "" };
+    const info = findLastKnownFinding(id, rounds) || { location: "", title: "", stored: null };
     return {
       finding_id: id, location: info.location, title: info.title,
-      rebuttal_text: latestRebuttalFor(id, rounds), requires_confirm: false,
+      rebuttal_text: latestRebuttalFor(id, rounds, info.stored), requires_confirm: false,
     };
   });
 
   // For each round i's rebuttal reply, that finding is a rebuttal-driven withdrawal (needs
   // confirming) iff it never appears as a standing critical in any round AFTER i (i.e. the
   // reviewer genuinely dropped it, rather than re-raising it after all). A finding standing
-  // right now is already covered above via `standingNow`, never duplicated here.
+  // right now is already covered above via `standingNow`, never duplicated here. A reply's
+  // `finding_ref` resolves to the finding's reader id through its stored alias.
+  const refMap = refToReaderId(rounds);
   const withdrawnSeen = new Set();
   for (let i = 0; i < rounds.length - 1; i++) {
     const repliesI = Array.isArray(rounds[i].author_replies) ? rounds[i].author_replies : [];
     for (const r of repliesI) {
       if (!r || r.kind !== "rebuttal") continue;
-      const id = r.finding_ref;
+      const id = refMap.get(r.finding_ref) || r.finding_ref;
       if (!id || withdrawnSeen.has(id) || standingNow.has(id)) continue;
-      const reappearedLater = rounds.slice(i + 1).some((round) =>
-        (Array.isArray(round.findings) ? round.findings : []).some(
-          (f) => f && f.finding_id === id && f.severity === "critical",
-        ));
+      const reappearedLater = rounds.slice(i + 1).some((round, k) => {
+        const fs_ = Array.isArray(round.findings) ? round.findings : [];
+        const ids = readerFindingIds(fs_, i + 2 + k);
+        return fs_.some((f, j) => f && ids[j].id === id && f.severity === "critical");
+      });
       if (reappearedLater) continue;
       withdrawnSeen.add(id);
       const info = findLastKnownFinding(id, rounds) || { location: "", title: "" };
@@ -526,7 +551,7 @@ function computeCriticalFreeLatestFloor(dir, ledger, rulings) {
   const latestFile = files[files.length - 1];
   const read = readRoundRecord(latestFile.path);
   if (read.malformed || read.missing) return null;
-  const standingIds = standingCriticalIds(read.record && read.record.findings);
+  const standingIds = standingCriticalIds(read.record && read.record.findings, latestFile.n != null ? latestFile.n : files.length);
   if (standingIds.length === 0) return true;
   const entries = (ledger && ledger.entries) || {};
   const overturnedIds = new Set();

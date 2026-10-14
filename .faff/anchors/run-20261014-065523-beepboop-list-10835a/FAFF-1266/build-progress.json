@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-1266",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7a2fcb0fe63cbf84545d01c934d0e8c836e420d9df5ec4f762c64ccdf477c1c6",
+    "branch": "FAFF-1266-anchor-evidence-2a-reviewer-finding-fields-one-finding-id",
+    "pushed_at": "2026-10-14T07:23:17.010Z"
+  },
+  "updated_at": "2026-10-14T07:23:17.010Z"
+}

@@ -24,19 +24,21 @@
 
 const { parseArgs, usageError } = require("./argv");
 const { readRoundRecord, roundNumberFromPath } = require("./spec-review-churn");
+const { readerFindingIds } = require("./finding-id");
 
-// standingCriticalIds(findings) -> sorted, deduped array of finding_id strings for every
-// finding at severity=="critical". Defensive against a missing/malformed `findings` field (an
-// absent or non-array `findings`, or an entry with no string finding_id, contributes nothing
-// rather than throwing) — this module validates SHAPE for its own purposes only.
-function standingCriticalIds(findings) {
+// standingCriticalIds(findings, round) -> sorted, deduped array of finding ids for every finding
+// at severity=="critical". The id of each finding is its `readerFindingIds` id (computed from
+// `title` + `location`, else the stored `finding_id`, else the round-scoped `round-<n>#<i>`), so
+// an untitled, id-less critical still counts as standing. `round` scopes that last fallback.
+// Defensive against a missing/malformed `findings` field — it contributes nothing rather than
+// throwing.
+function standingCriticalIds(findings, round = "unknown") {
   const arr = Array.isArray(findings) ? findings : [];
+  const ids = readerFindingIds(arr, round);
   const set = new Set();
-  for (const f of arr) {
-    if (f && typeof f === "object" && f.severity === "critical" && typeof f.finding_id === "string" && f.finding_id) {
-      set.add(f.finding_id);
-    }
-  }
+  arr.forEach((f, i) => {
+    if (f && typeof f === "object" && f.severity === "critical") set.add(ids[i].id);
+  });
   return Array.from(set).sort();
 }
 
@@ -45,16 +47,19 @@ function standingCriticalIds(findings) {
 //                       or `null` when no prior round exists on disk (round 1 — nothing to compare).
 //   curr             — the parsed current DialogueRoundRecord. Required.
 //   prevRoundNumber  — the prior round's 1-indexed number (from its filename), or `null`.
-//                       Cosmetic only — never affects the `churn` verdict.
+//                       Scopes the round-token of a prior finding's fallback id; otherwise cosmetic.
+//   currRoundNumber  — optional: the current round's number. When a number is absent the round
+//                       token is the literal `prev` or `curr`, keeping the two rounds' fallback
+//                       ids distinct.
 // Pure: no I/O. `churn` is true iff `curr`'s standing-critical finding_id set contains an id
 // that was NOT standing-critical in `prev` — i.e. the standing-critical set grew a new identity,
 // never merely held steady or shrank.
-function computeChurn(prev, curr, prevRoundNumber) {
-  const currIds = standingCriticalIds(curr && curr.findings);
+function computeChurn(prev, curr, prevRoundNumber, currRoundNumber) {
+  const currIds = standingCriticalIds(curr && curr.findings, currRoundNumber != null ? currRoundNumber : "curr");
   if (prev === null || prev === undefined) {
     return { churn: false, prev_critical_ids: [], curr_critical_ids: currIds, new_critical_ids: [], reason: "no prior round on disk" };
   }
-  const prevIds = standingCriticalIds(prev.findings);
+  const prevIds = standingCriticalIds(prev.findings, prevRoundNumber != null ? prevRoundNumber : "prev");
   const prevAsSet = new Set(prevIds);
   const newIds = currIds.filter((id) => !prevAsSet.has(id));
   const churn = newIds.length > 0;
@@ -215,7 +220,7 @@ function cmdBuildReviewChurn(args) {
   const prevRecord = prevRead.missing ? null : prevRead.record;
   const prevRoundNumber = prevRead.missing ? null : roundNumberFromPath(prevPath);
 
-  const result = computeChurn(prevRecord, currRead.record, prevRoundNumber);
+  const result = computeChurn(prevRecord, currRead.record, prevRoundNumber, roundNumberFromPath(currPath));
   console.log(JSON.stringify(result));
   return 0;
 }

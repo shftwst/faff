@@ -1,0 +1,21 @@
+{
+  "id": "finding-identity-005",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: the --out argument is joined onto the working directory without checking that the result stays inside it, so `--out ../../etc/x` escapes; the spec requires output to stay under ./dist. The unvalidated path is in src/build/write.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Let `build` write its bundle to a caller-chosen file name under ./dist.",
+    "spec": "## WHAT\n`build --out <name>` writes the bundle to `./dist/<name>`.\n\n## DONE\n- [ ] `--out app.js` writes `./dist/app.js`\n- [ ] a name that resolves outside `./dist` (for example `../x` or an absolute path) is rejected with exit 2 and nothing is written\n- [ ] without `--out` the bundle is `./dist/bundle.js`",
+    "diff": "diff --git a/src/build/write.js b/src/build/write.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/build/write.js\n+++ b/src/build/write.js\n@@ -6,6 +6,6 @@ function writeBundle(bundle, out) {\n   const dist = path.resolve('dist');\n   fs.mkdirSync(dist, { recursive: true });\n-  const target = path.join(dist, 'bundle.js');\n+  const target = path.join(dist, out || 'bundle.js');\n   fs.writeFileSync(target, bundle);\n   return target;\n }\ndiff --git a/src/cli/build.js b/src/cli/build.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/cli/build.js\n+++ b/src/cli/build.js\n@@ -12,3 +12,3 @@\n   const bundle = compile(args.entry);\n-  writeBundle(bundle);\n+  writeBundle(bundle, args.out);\n   return 0;\n",
+    "test_results": "node --test: 8 pass, 0 fail.",
+    "defect_file": "src/build/write.js",
+    "diff_b": "diff --git a/src/build/write.js b/src/build/write.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/build/write.js\n+++ b/src/build/write.js\n@@ -1,2 +1,3 @@\n 'use strict';\n+// Writes compiled output; callers pass an already-built bundle string.\n const fs = require('node:fs');\n@@ -6,6 +7,6 @@ function writeBundle(bundle, out) {\n   const dist = path.resolve('dist');\n   fs.mkdirSync(dist, { recursive: true });\n-  const target = path.join(dist, 'bundle.js');\n+  const target = path.join(dist, out || 'bundle.js');\n   fs.writeFileSync(target, bundle);\n   return target;\n }\ndiff --git a/src/cli/build.js b/src/cli/build.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/cli/build.js\n+++ b/src/cli/build.js\n@@ -12,3 +12,3 @@\n   const bundle = compile(args.entry);\n-  writeBundle(bundle);\n+  writeBundle(bundle, args.out);\n   return 0;\n"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

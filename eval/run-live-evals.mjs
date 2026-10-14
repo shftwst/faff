@@ -29,11 +29,12 @@
 // model (zero spawn) to prove the wiring. Zero-dependency: node builtins + repo siblings only.
 
 import { writeFileSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { grade, aggregateCase, hasDisagreement, erroredRep } from "./grader.mjs";
-import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize, assertNonEmptyCases } from "./run-evals.mjs";
-import { driveReconciliationCase, driveRoutingCase, driveVerdictBuildCase, makeLiveModel } from "./live-driver.mjs";
+import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize, assertNonEmptyCases, resolveEvalModel, resolveEffort } from "./run-evals.mjs";
+import { driveReconciliationCase, driveRoutingCase, driveVerdictBuildCase, driveFindingIdentityCase, makeLiveModel } from "./live-driver.mjs";
 import { driveHoldoutLiveRep } from "./live-agent-driver.mjs";
 import { frontierOpts } from "./cli-driver.mjs";
 
@@ -117,6 +118,16 @@ export const LIVE_KINDS = {
       return { env, tokens };
     },
   },
+  // FAFF-1266 — the finding-identity adapter: one rep is a pair of independent review passes over a
+  // fixture (driveFindingIdentityCase makes two model calls), graded stable only when the defect finding
+  // keeps the same id in both. It returns the rep-loop's `{ env, tokens, detail }`; the runner keeps
+  // `detail` on the rep result so the result file can list each case's ids.
+  "finding-identity": {
+    loader: () => loadLiveCases().filter((c) => c.kind === "finding-identity"),
+    async driveCase(evalCase, ctx) {
+      return driveFindingIdentityCase(evalCase, ctx);
+    },
+  },
   // FAFF-474 — the live holdout adapter: drive the real faffter-noon-evaluate rubric against a live docker
   // env (stood up per rep, torn down on every path) instead of a recorded transcript. Unlike the three
   // siblings above (a one-shot completion over a static fixture), driveHoldoutLiveRep runs a host-mediated
@@ -147,9 +158,10 @@ async function runLiveCase(c, adapter, ctx, { baseReps, maxReps }) {
   let escalated = false;
   for (let i = 0; i < target; i++) {
     try {
-      const { env, tokens } = await adapter.driveCase(c, { ...ctx, repIndex: i });
+      const { env, tokens, detail } = await adapter.driveCase(c, { ...ctx, repIndex: i });
       const rr = grade(c, env);
       rr.tokens = tokens ?? rr.tokens ?? 0;
+      if (detail !== undefined) rr.detail = detail;
       // The live-driver path records a structured bucket (not an envelope text), so there is no
       // format-tag to score — format_adherence is n/a for the live lane (aggregateCase yields null).
       reps.push(rr);
@@ -256,6 +268,53 @@ function perCommentBreakdown(caseResult) {
   return rows;
 }
 
+// ----------------------------- finding-identity result (the title-stability record) -----------------------------
+
+export const FINDING_IDENTITY_BAR = 0.9;
+export const FINDING_IDENTITY_MIN_FIXTURES = 10;
+
+// FAFF-1266 — pure: fold a finding-identity summary into the FindingIdentityResult record the operator
+// commits as eval/baselines/finding-identity-result.json. A case whose rep errored counts as "errored";
+// "undetected" and "errored" both count as not stable. pass = fixtures >= 10 AND rate >= bar.
+export function buildFindingIdentityResult(summary, { commit, runAt, model, effort }) {
+  const cases = summary.cases
+    .filter((cr) => cr.kind === "finding-identity")
+    .map((cr) => {
+      const rep = (cr.rep_results || [])[0] || {};
+      const d = rep.detail;
+      if (!d) return { id: cr.case_id, outcome: "errored" };
+      return { id: cr.case_id, outcome: d.outcome, id_a: d.id_a, id_b: d.id_b };
+    });
+  const count = (o) => cases.filter((c) => c.outcome === o).length;
+  const fixtures = cases.length;
+  const stable = count("stable");
+  const rate = fixtures ? Math.round((stable / fixtures) * 100) / 100 : 0;
+  return {
+    kind: "finding-identity",
+    commit,
+    run_at: runAt,
+    model,
+    effort: effort ?? "inherit",
+    fixtures,
+    stable,
+    drifted: count("drifted"),
+    undetected: count("undetected"),
+    errored: count("errored"),
+    rate,
+    bar: FINDING_IDENTITY_BAR,
+    pass: fixtures >= FINDING_IDENTITY_MIN_FIXTURES && rate >= FINDING_IDENTITY_BAR,
+    cases,
+  };
+}
+
+// FAFF-1266 — pure: the frontier options the live model is built from. --model resolves flag > eval.model
+// config > pinned fallback and --effort flag > eval.effort config > none, as run-evals.mjs resolves them.
+export function resolveLiveFrontier(argv, { bin = "claude", pluginDir, run } = {}) {
+  const model = resolveEvalModel(argv, { run });
+  const effort = resolveEffort(argv, { run });
+  return { model, effort, opts: frontierOpts({ bin, pluginDir, model, effort }) };
+}
+
 // CLI — the REAL run (human-supervised; spawns claude -p). Never triggered by a test import.
 // `node eval/run-live-evals.mjs --kind reconciliation [--reps N] [--only ID] [--plugin-dir P | --no-plugin] [--bin claude]`
 async function main(argv) {
@@ -281,7 +340,9 @@ async function main(argv) {
   // OAuth `.credentials.json` into the isolated CLAUDE_CONFIG_DIR. Without it, `forwardCreds` defaulted
   // falsy and every rep landed "Not logged in" in the isolated dir (the FAFF-138 gap the live-runner
   // path missed — the proven cli-driver frontierDriver already wraps frontierOpts; this matches it).
-  const model = makeLiveModel(frontierOpts({ bin, pluginDir }));
+  const frontier = resolveLiveFrontier(argv, { bin, pluginDir });
+  console.log(`[run-live-evals] frontier model: ${frontier.model}${frontier.effort ? ` · effort: ${frontier.effort}` : ""}`);
+  const model = makeLiveModel(frontier.opts);
 
   try {
     const summary = await runLiveEvals({ kind, ctx: { runSkill, tracker, repo, model }, only, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
@@ -296,6 +357,12 @@ async function main(argv) {
     writeFileSync(join(reportDir, `${kind}-live-baseline.json`), JSON.stringify(summary, null, 2));
     writeFileSync(join(reportDir, `FAFF-163-${kind}-baseline.md`), renderBaselineMarkdown(kind, summary));
     printHeadline(kind, summary);
+    if (kind === "finding-identity") {
+      const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: join(HERE, ".."), encoding: "utf8" }).trim();
+      const result = buildFindingIdentityResult(summary, { commit, runAt: new Date().toISOString(), model: frontier.model, effort: frontier.effort });
+      writeFileSync(join(reportDir, "finding-identity-result.json"), JSON.stringify(result, null, 2) + "\n");
+      console.log(`\n  ${result.stable}/${result.fixtures} stable (${result.rate.toFixed(2)}), bar ${result.bar.toFixed(2)}: ${result.pass ? "PASS" : "FAIL"}\n  eval/report/finding-identity-result.json written`);
+    }
     console.log(`\nReports written:\n  eval/report/${kind}-live-baseline.json (gitignored summarize dump)\n  eval/report/FAFF-163-${kind}-baseline.md (gitignored — copy the table into records/adr/0004 addendum)`);
     return summary.status === "complete" ? 0 : 1;
   } finally {

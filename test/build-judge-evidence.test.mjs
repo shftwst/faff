@@ -114,6 +114,39 @@ test("collectAdjudicationSet: a rebuttal-withdrawn finding that LATER reappears 
   assert.equal(set[0].requires_confirm, false, "standing-now findings are never requires_confirm, regardless of an earlier rebuttal in their history");
 });
 
+test("latestRebuttalFor: a rebuttal citing the stored id of a finding whose computed id differs is still found and lands in the case file", () => {
+  const bjc = require("../plugin/skills/faff/bin/lib/build-judge-casefile.js");
+  const rounds = [
+    { signal: "needs-human", findings: [{ finding_id: "hand-derived", severity: "critical", location: "a.js:1", title: "Leaks fd" }], author_replies: [{ finding_ref: "hand-derived", kind: "rebuttal", rebuttal_text: "fd is closed in finally" }] },
+    { signal: "needs-human", findings: [{ finding_id: "hand-derived", severity: "critical", location: "a.js:2", title: "Leaks fd" }], author_replies: [] },
+  ];
+  assert.equal(bje.latestRebuttalFor("a.js::leaks fd", rounds), undefined);
+  assert.equal(bje.latestRebuttalFor("a.js::leaks fd", rounds, "hand-derived"), "fd is closed in finally");
+  const set = bje.collectAdjudicationSet(rounds);
+  assert.equal(set.length, 1);
+  assert.equal(set[0].finding_id, "a.js::leaks fd");
+  assert.equal(set[0].rebuttal_text, "fd is closed in finally");
+  const { caseFiles } = bjc.assembleBuildCaseFiles({ criticalsToAdjudicate: set, diffText: "diff --git a/a.js b/a.js\n@@ -1 +1 @@\n-a\n+b\n", acceptanceCriteria: "AC", runId: "r", windowStart: 1 });
+  assert.ok(JSON.stringify(caseFiles["f-01"].arguments).includes("fd is closed in finally"));
+});
+
+test("collectAdjudicationSet: a withdrawn finding rebutted under its stored id is still surfaced for confirmation", () => {
+  const rounds = [
+    { signal: "needs-human", findings: [{ finding_id: "hand-derived", severity: "critical", location: "a.js:1", title: "Leaks fd" }], author_replies: [{ finding_ref: "hand-derived", kind: "rebuttal", rebuttal_text: "closed in finally" }] },
+    { signal: "pass", findings: [], author_replies: [] },
+  ];
+  const set = bje.collectAdjudicationSet(rounds);
+  assert.equal(set.length, 1);
+  assert.deepEqual([set[0].finding_id, set[0].requires_confirm], ["a.js::leaks fd", true]);
+});
+
+test("computeCriticalFreeLatestFloor: an untitled, id-less critical is standing, so the floor is false", async () => {
+  await withTmp((tmp) => {
+    writeFileSync(join(tmp, "round-1.json"), JSON.stringify({ signal: "needs-human", findings: [{ severity: "critical" }], author_replies: [] }));
+    assert.equal(bje.computeCriticalFreeLatestFloor(tmp, { entries: {} }, {}), false);
+  });
+});
+
 // --- computeCriticalFreeLatestFloor -------------------------------------------
 
 test("computeCriticalFreeLatestFloor: every standing critical has an OVERTURN ruling -> true", async () => {
@@ -274,7 +307,7 @@ function writeBrRound(tmp, findingId) {
   const br = join(tmp, "br"); mkdirSync(br, { recursive: true });
   writeFileSync(join(br, "round-1.json"), JSON.stringify({
     signal: "needs-human",
-    findings: [{ finding_id: findingId, severity: "critical", location: "a.js:1", title: "X" }],
+    findings: [{ finding_id: findingId, severity: "critical", location: `${findingId.split("::")[0]}:1`, title: findingId.split("::")[1] }],
     author_replies: [],
   }));
   writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
@@ -1007,7 +1040,7 @@ function writeBrRounds(tmp, ids) {
   const br = join(tmp, "br"); mkdirSync(br, { recursive: true });
   writeFileSync(join(br, "round-1.json"), JSON.stringify({
     signal: "needs-human",
-    findings: ids.map((id, i) => ({ finding_id: id, severity: "critical", location: `f${i}.js:1`, title: `T${i}` })),
+    findings: ids.map((id, i) => ({ finding_id: id, severity: "critical", location: `f${i}.js:1`, title: id.split("::")[1] || `T${i}` })),
     author_replies: [],
   }));
   writeFileSync(join(tmp, "diff.txt"), ids.map((_, i) => `diff --git a/f${i}.js b/f${i}.js\n@@ -1,1 +1,1 @@\n-old\n+new\n`).join(""));

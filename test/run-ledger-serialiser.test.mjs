@@ -133,10 +133,19 @@ test("removing a required key is introduced; an unrelated write onto a ledger al
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("an invalid field inside an outcome_details entry the mutation added is introduced", () => {
+test("a numeric outcome_details entry the mutation added is introduced", () => {
   const { root, runDir } = minted();
   try {
-    assert.throws(() => mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, outcome_details: { "FAFF-1": { bogus_key: "x" } } })), (e) => e.code === "LEDGER_SCHEMA");
+    assert.throws(() => mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, outcome_details: { "FAFF-1": 5 } })), (e) => e.code === "LEDGER_SCHEMA");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("an outcome_details entry with an unlisted key and a nested object writes", () => {
+  const { root, runDir } = minted();
+  try {
+    const entry = { merge: { sha: "abc1234", pr: 1 }, superseded_by: ["FAFF-2"] };
+    mutateLedgerUnderLock(runDir, (fresh) => ({ ...fresh, outcome_details: { "FAFF-1": entry } }));
+    assert.deepEqual(readLedger(runDir).outcome_details["FAFF-1"], entry);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -304,6 +313,26 @@ test("a known secret in a field is written redacted", () => {
     const raw = readFileSync(path.join(runDir, "run-ledger.json"), "utf8");
     assert.doesNotMatch(raw, /S3CR3T-SENTINEL/);
     assert.match(raw, /leaked \[REDACTED\] here/);
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test("a known secret nested inside an outcome_details entry is written redacted", () => {
+  const tmp = mkdtempSync(path.join(tmpdir(), "faff-1274-secret-"));
+  try {
+    mkdirSync(path.join(tmp, ".git"));
+    writeFileSync(path.join(tmp, ".faffrc.yaml"), "andon:\n  token: S3CR3T-SENTINEL\n");
+    const runDir = path.join(tmp, ".faff", "runs", "RUN-S");
+    mkdirSync(runDir, { recursive: true });
+    const details = { "FAFF-1": { merge: { sha: "abc1234", note: "leaked S3CR3T-SENTINEL here" } } };
+    const script = `
+      const { mutateLedgerUnderLock } = require(${JSON.stringify(path.join(REPO, "plugin/skills/faff/bin/lib/heartbeat.js"))});
+      mutateLedgerUnderLock(process.argv[1], () => ({ ...${JSON.stringify(validLedger())}, outcome_details: ${JSON.stringify(details)} }));
+    `;
+    const r = spawnSync("node", ["-e", script, runDir], { encoding: "utf8", cwd: tmp });
+    assert.equal(r.status, 0, r.stderr);
+    const raw = readFileSync(path.join(runDir, "run-ledger.json"), "utf8");
+    assert.doesNotMatch(raw, /S3CR3T-SENTINEL/);
+    assert.equal(JSON.parse(raw).outcome_details["FAFF-1"].merge.note, "leaked [REDACTED] here");
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 });
 

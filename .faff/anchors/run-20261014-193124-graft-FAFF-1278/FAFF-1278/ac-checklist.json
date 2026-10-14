@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "faff merge-gate routes identically on test/merge-gate-local.test.mjs and test/holdout-*.test.mjs with no fixture edits",
+      "verified": "Verified: node --test test/merge-gate-local.test.mjs test/holdout-*.test.mjs passing; no fixture files changed",
+      "passed": true
+    },
+    {
+      "ac": "faff evidence capabilities --json prints the documented object",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::faff evidence capabilities --json prints the documented object",
+      "passed": true
+    },
+    {
+      "ac": "The classifySchemaChange table gains the array rows; existing rows pass unedited",
+      "verified": "Verified: test/evidence-validate.test.mjs (58/58), new rows for items-less and closed-items arrays",
+      "passed": true
+    },
+    {
+      "ac": "governance-check --require-evidence-schema fails a legacy anchor, an invalid file and a validator error with a reasons line; without the flag the result equals FAFF-1263's",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::FAFF-1263's report-only leg is unchanged ...; test/faff-1263-*.test.mjs pass unedited",
+      "passed": true
+    },
+    {
+      "ac": "Structural test: anchors-touched before discovery, no faff binary; the two new steps after governance-check, gated on !cancelled() && touched != 'false'",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs structural tests 1 and 2",
+      "passed": true
+    },
+    {
+      "ac": "Extracted resolve-trusted-cli and evidence-schema-base bodies run against a temp repo: no base CLI, no capabilities, hidden anchor",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::a base commit with no faff CLI..., ::a base CLI without capabilities..., ::Scenario 3",
+      "passed": true
+    },
+    {
+      "ac": "Default report; flag only under require; require fail gives exit 1 and verdict fail; report gives exit 0, verdict pass, evidence_result fail, Action verdict equal to the head verb's",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::the evidence-schema input defaults to report..., ::Scenario 1, ::Scenario 4; spike #1064",
+      "passed": true
+    },
+    {
+      "ac": "No .gitattributes export-ignore under plugin/skills/faff/",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::the repo has no .gitattributes export-ignore...",
+      "passed": true
+    },
+    {
+      "ac": "Base extraction path is the literal plugin/skills/faff; no run_trusted call reads inputs.faff-binary",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::the base extraction path is the literal plugin/skills/faff...",
+      "passed": true
+    },
+    {
+      "ac": "S3CR3T-SENTINEL in events.jsonl never reaches the base step's stdout or stderr",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::no violation text or evidence value reaches the job log or summary",
+      "passed": true
+    },
+    {
+      "ac": "Adding a file inside an anchor dir present at the merge base fails with anchor-immutable",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::adding a file to an anchor dir present at the merge base...",
+      "passed": true
+    },
+    {
+      "ac": "run_trusted runs with an empty cwd and env -i; .faffrc.yaml and FAFF_* in the checkout leave the result unchanged",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::run_trusted runs node with an empty cwd..., ::a .faffrc.yaml and FAFF_* variables...",
+      "passed": true
+    },
+    {
+      "ac": "Modifying or deleting a committed anchor file fails with anchor-immutable in both modes; anchors the base gained after the fork do not",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::modifying or deleting a file of a committed anchor...",
+      "passed": true
+    },
+    {
+      "ac": "A failing git diff sets touched=error and fails with anchor-discovery-failed in both modes; a non-zero trusted derive does the same",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::a failing git diff sets touched=error...",
+      "passed": true
+    },
+    {
+      "ac": "Action verdict expression pinned to the fail-closed form; spike crash case shows verdict=fail; report Scenario passes the harness",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::the Action verdict output is pinned..., ::Scenario 5; spike #1066 (run 38632174617) verdict=fail",
+      "passed": true
+    },
+    {
+      "ac": "Too shallow, traversing, symlink-escaping and quoted non-ASCII paths fail with anchor-path-unvalidated in both modes",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::changed anchor paths that are too shallow... (git cannot record a .. segment, so traversal is covered by a derive that drops paths)",
+      "passed": true
+    },
+    {
+      "ac": "Under require, a base CLI without holdout-binding and an anchor with holdout.json warns and notes it in the summary",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::under require a base CLI without holdout-binding warns...",
+      "passed": true
+    },
+    {
+      "ac": "A run-level summary.md passes coverage; a symlink inside a new anchor dir fails with anchor-path-unvalidated",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::a run-level summary.md passes coverage...",
+      "passed": true
+    },
+    {
+      "ac": "Anchor dir names with ::, a control character or | are neutralised in annotations and summary rows",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::anchor dir names carrying ::, a control character or |...",
+      "passed": true
+    },
+    {
+      "ac": "--candidate-schemas and every validate dir argument are absolute; partial, accepted and n/a candidate statuses",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::--candidate-schemas and every validate dir argument are absolute, ::Scenario 1 (partial), ::Scenario 2 (accepted), ::a base CLI without capabilities (n/a)",
+      "passed": true
+    },
+    {
+      "ac": "test/faff-924 and test/faff-1047 pass unedited",
+      "verified": "Verified: node --test test/faff-924-*.mjs test/faff-1047-*.mjs passing, files unchanged",
+      "passed": true
+    },
+    {
+      "ac": ".github/CODEOWNERS lists /.github/ and /verification/ with human owners only; the runner login never appears",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::CODEOWNERS lists /.github/ and /verification/ with human owners only (no runner_github_login configured today)",
+      "passed": true
+    },
+    {
+      "ac": "extractRequiredChecks reports code_owner_review; selftest rows for true, false and no rule",
+      "verified": "Verified: faff branch-protection-check --selftest PASS; live run prints code-owner review: not required",
+      "passed": true
+    },
+    {
+      "ac": "governance-check.md section 2 has the code-owner runbook step and documents the base-commit leg and evidence-schema input; cli.md documents evidence capabilities and --require-evidence-schema",
+      "verified": "Verified: docs/guide/governance-check.md section 2 (code-owner step) and section 5 (base-commit leg, evidence-schema input); docs/guide/cli.md rows; faff lint-cli-doc PASS",
+      "passed": true
+    },
+    {
+      "ac": "The PR body links the spike runs and states that every runner behaviour held",
+      "verified": "Verified: PR body Spike section links runs 38632156582, 38632164772, 38632174617",
+      "passed": true
+    },
+    {
+      "ac": "The Scenarios pass through the Action-body harness against a temp repo whose base commit carries this ticket's CLI",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::Scenario 1 to Scenario 5",
+      "passed": true
+    },
+    {
+      "ac": "Integration smoke test",
+      "verified": "Verified: test/faff-1278-governance-check-base-commit-leg.test.mjs::smoke: a conforming anchor passes under require...",
+      "passed": true
+    }
+  ]
+}

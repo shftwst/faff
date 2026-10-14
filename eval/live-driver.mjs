@@ -20,18 +20,22 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import {
   buildInvocation,
   loadJudgementCriteria,
   loadReconciliationProse,
   loadRoutingVerdictProse,
   loadReviewVerdictProse,
+  loadReviewFindingProse,
   loadShapingProse,
   loadDecompositionProse,
   EVAL_MODE_INSTRUCTION,
   ROUTING_MODE_INSTRUCTION,
   VERDICT_BUILD_INSTRUCTION,
+  FINDING_IDENTITY_INSTRUCTION,
   SHAPING_MODE_INSTRUCTION,
   DECOMPOSITION_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
@@ -39,6 +43,12 @@ import {
 } from "./cli-driver.mjs";
 import { parseJudgementEnvelope } from "./envelope.mjs";
 import { CLOSED_SET_KINDS } from "./grader.mjs";
+
+// The shipped identity helper (CommonJS, governance region): the eval measures this exact code over
+// model-chosen titles and locations.
+const requireCjs = createRequire(import.meta.url);
+const findingIdModule = () =>
+  requireCjs(join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "lib", "finding-id.js"));
 
 // Build the faff-tidy judgement prompt from faff's real criteria (classification + synthesis gloss,
 // FAFF-140) + the issues read from the fixture + the shared envelope instruction. pluginDir null → no
@@ -564,4 +574,96 @@ export function decompositionLiveDriver({ model, fixture, pluginDir = DEFAULT_PL
     // items must be an array); the grader reads env.decomposition, so the caller unwraps items[0].
     readEnvelope: (env) => [{ name: "decomposition", items: [env.decomposition ?? {}] }],
   });
+}
+
+/**
+ * FAFF-1266 — the finding-identity prompt builder: the review rubric with the contract's finding fields
+ * (loadReviewFindingProse), the rendered change material, then the output-only instruction. A pure
+ * function of (fixture, diff, pluginDir, caseId): it reads nothing from the harness, so no pass can
+ * observe another. `diff` overrides `fixture.diff` (the second pass may review `diff_b`).
+ */
+export function buildFindingIdentityPrompt(fixture, { diff, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  const rubric = pluginDir
+    ? `Apply faff's review rubric and contract below — these are the review producer's + gateway's rules, verbatim:\n\n${loadReviewFindingProse(pluginDir)}\n\n---\n\n`
+    : "";
+  const { change_summary, spec, test_results } = fixture;
+  return (
+    `${rubric}Run faff-graft's Step-9 review passes over the whole change below and report your findings.\n\n` +
+    `Change summary:\n${change_summary ?? "(none)"}\n\n` +
+    `Spec (the change is reviewed against this):\n${spec ?? "(none)"}\n\n` +
+    `Diff (unified):\n${diff ?? fixture.diff ?? "(none)"}\n\n` +
+    `Test results:\n${test_results ?? "(none)"}\n\n` +
+    `${FINDING_IDENTITY_INSTRUCTION.replace("<ID>", caseId)}`
+  );
+}
+
+/**
+ * FAFF-1266 — one independent review pass as a live SkillDriver: a thin wrapper over makeLiveDriver that
+ * records the pass's findings as a `finding-identity-findings` bucket and its signal as
+ * `finding-identity-signal`. `findings` is never given an id by the model; a missing or non-array
+ * `findings` reads as none.
+ */
+export function findingIdentityLiveDriver({ model, fixture, diff, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  if (typeof model !== "function") {
+    throw new Error("findingIdentityLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
+  }
+  if (!fixture || fixture.spec == null || fixture.diff == null) {
+    throw new Error("findingIdentityLiveDriver requires a BuildFixture { spec, diff, … }");
+  }
+  return makeLiveDriver({
+    model,
+    skill: "faff-graft",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, opts) => buildFindingIdentityPrompt(fixture, { ...opts, diff: diff ?? fixture.diff }),
+    readEnvelope: (env) => [
+      { name: "finding-identity-findings", items: Array.isArray(env.findings) ? env.findings.filter((f) => f && typeof f === "object") : [] },
+      { name: "finding-identity-signal", items: env.signal == null ? [] : [String(env.signal)] },
+    ],
+  });
+}
+
+const SEVERITY_RANK = { critical: 4, major: 3, minor: 2, observation: 1 };
+
+// The pass's defect finding: among findings whose normalised path equals defect_file, the highest
+// severity (a missing severity ranks last), ties to the first emitted. Returns { finding, id } | null.
+function defectFindingOf(findings, defectFile) {
+  const { assignFindingIds, normaliseFindingPath } = findingIdModule();
+  const ids = assignFindingIds(findings, 1);
+  let best = null;
+  findings.forEach((f, i) => {
+    if (normaliseFindingPath(f.location) !== defectFile) return;
+    const rank = SEVERITY_RANK[f.severity] ?? 0;
+    if (best === null || rank > best.rank) best = { finding: f, id: ids[i], rank };
+  });
+  return best;
+}
+
+/**
+ * FAFF-1266 — drive one finding-identity rep: two independent review passes (each its own runSkill and
+ * model invocation, nothing from pass A passed into pass B), compare the defect finding's id across them.
+ * Returns the rep-loop's `{ env, tokens, detail }`; `env["finding-identity"]` is "stable" | "drifted" |
+ * "undetected". A pass whose output does not parse throws (the runner records an errored rep).
+ */
+export async function driveFindingIdentityCase(evalCase, { runSkill, tracker, repo, model, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
+  if (!evalCase || evalCase.kind !== "finding-identity" || !evalCase.fixture) {
+    throw new Error("driveFindingIdentityCase requires a finding-identity EvalCase with a `fixture`");
+  }
+  if (typeof runSkill !== "function") {
+    throw new Error("driveFindingIdentityCase requires the FAFF-93 runSkill (injected, not imported)");
+  }
+  const { fixture } = evalCase;
+  const runPass = async (diff) => {
+    const driver = findingIdentityLiveDriver({ model, fixture, diff, pluginDir, caseId: evalCase.id });
+    const record = await runSkill({ skill: "faff-graft", tracker, repo, driver });
+    return defectFindingOf(record.buckets["finding-identity-findings"] ?? [], fixture.defect_file);
+  };
+  const a = await runPass(fixture.diff);
+  const b = await runPass(fixture.diff_b ?? fixture.diff);
+  const outcome = !a || !b ? "undetected" : a.id === b.id ? "stable" : "drifted";
+  return {
+    env: { "finding-identity": outcome },
+    tokens: 0,
+    detail: { outcome, id_a: a ? a.id : null, id_b: b ? b.id : null, title_a: a ? a.finding.title ?? null : null, title_b: b ? b.finding.title ?? null : null },
+  };
 }

@@ -36,8 +36,8 @@ const { standingCriticalIds } = require("./build-review-churn");
 
 // standingCriticalCount(findings) -> the standing-critical count for a round (the number of
 // distinct standing-critical finding_id's — dedupes a same-identity double-report).
-function standingCriticalCount(findings) {
-  return standingCriticalIds(findings).length;
+function standingCriticalCount(findings, round) {
+  return standingCriticalIds(findings, round).length;
 }
 
 // computeConvergence(rounds) -> BuildReviewConvergenceResult
@@ -48,8 +48,8 @@ function standingCriticalCount(findings) {
 // at any step.
 function computeConvergence(rounds) {
   const list = Array.isArray(rounds) ? rounds : [];
-  const totals = list.map((r) => standingCriticalCount(r && r.findings));
-  const idSets = list.map((r) => standingCriticalIds(r && r.findings));
+  const totals = list.map((r, i) => standingCriticalCount(r && r.findings, i + 1));
+  const idSets = list.map((r, i) => standingCriticalIds(r && r.findings, i + 1));
 
   if (list.length < 2) {
     return {

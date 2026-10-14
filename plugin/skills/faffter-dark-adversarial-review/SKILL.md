@@ -330,7 +330,7 @@ After the output above, append **one** fenced code block — tagged `faff-contra
 ````
 ```faff-contract:review-verdict
 { "signal": "<Phase 1's verdict — faff contract review-verdict --describe>",
-  "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per Phase-1 finding ],
+  "findings": [ { "title": "...", "location": "...", "action": "...", "location_present": <bool>, "action_present": <bool> }, ... one per Phase-1 finding ],
   "adversarial_outcome": "chain-outage-skipped",   // OPTIONAL — omit unless the autonomous full-chain-outage case fired
   "escalated_criticals": [ { "severity": "critical", "location": "...", "title": "..." } ]  // OPTIONAL — one per escalating critical, see Autonomous-run escalation
 }
@@ -338,6 +338,7 @@ After the output above, append **one** fenced code block — tagged `faff-contra
 ````
 
 - **Phase 1's verdict only** — *except on the autonomous path*, where a Phase-2 `critical` escalates `signal` to the human-judgement verdict (see **Autonomous-run escalation**). Otherwise `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
+- **Finding fields (all optional, non-gating):** each finding, Phase-1 and folded Phase-2 alike, carries `title`, `location` and `action` as `faffter-noon-review` defines them: `title` names the defect and the symbol it is in as a short noun phrase (no line numbers, severity words or category), `location` is `path[:line]` as the file appears in the repo, and `action` is the one-sentence fix. Omit `location` or `action` when the finding names none; `location_present` and `action_present` stay true exactly when the field is present. `escalated_criticals[]` keeps its own shape.
 - **Phase-2 adversarial hypotheses never drive the hard verdict.** The hard `signal` is Phase 1's (plus the autonomous `critical` escalation below) — a soft Phase-2 finding never moves it. Phase-2 findings ARE folded into `findings[]` per *Folding both passes into one `findings` array* above (tagged `source:"adversarial"` with their severity and best-known `disposition`); they ride as audit entries that cannot touch the gate, because `faff merge-gate` and faff-graft route on `signal` alone, so a soft Phase-2 finding in `findings[]` can never masquerade as the hard verdict. (You keep the prose under `## Adversarial findings` too — the human-readable detail — alongside the structured entries.) The autonomous `critical` escalation below is the one case a Phase-2 finding *drives* the signal: there the escalating `critical` sets `signal` to `needs-human` **because of** it, entered honestly as the verdict-driver.
 - **`adversarial_outcome` is OPTIONAL and additive** — include it **only** in the autonomous full-chain-outage case, set to `"chain-outage-skipped"` (see **Full-chain outage annotation**); omit it on every other path. The contract validator (`faff contract review-verdict`) reads only `signal`+`findings` and **neither rejects nor forwards** unknown fields — its output is rebuilt from `signal`+`findings` alone, so `adversarial_outcome` **never gates the verdict**. It rides instead on the **raw verdict block** graft persists per-issue (`review-verdict.json`), which the beep-boop orchestrator reads **directly** during its reconciliation to populate the ledger's `review_adversarial_skipped` array — not from the contract script's stdout.
 - **`escalated_criticals` is OPTIONAL and additive** — same non-gating shape as `adversarial_outcome`, emitted only at the autonomous escalation point (see **the `escalated_criticals[]` additive block** under Autonomous-run escalation).
@@ -366,7 +367,7 @@ The contract preserves a finding's optional enrichment but guarantees no stable 
 ]
 ```
 
-This is **additive and contract-safe**: the contract validator reads only `signal`+`findings` and neither rejects nor forwards an unknown field, exactly as `adversarial_outcome` already rides alongside it. `severity`/`location`/`title` are machine-guaranteed at authoring — you wrote the finding, so these are your own values, never a downstream prose reconstruction — and graft derives `finding_id` from them (`normalize(location's file) + "::" + normalize_title(title)`). This does not change the underlying Phase-2 critical-raising logic; it only names, structurally, what you already decided to escalate.
+This is **additive and contract-safe**: the contract validator reads only `signal`+`findings` and neither rejects nor forwards an unknown field, exactly as `adversarial_outcome` already rides alongside it. `severity`/`location`/`title` are machine-guaranteed at authoring — you wrote the finding, so these are your own values, never a downstream prose reconstruction — and `finding_id` is computed from them by `findingId` in `bin/lib/finding-id.js`. This does not change the underlying Phase-2 critical-raising logic; it only names, structurally, what you already decided to escalate.
 
 ### Rebuttal re-evaluation entry point
 

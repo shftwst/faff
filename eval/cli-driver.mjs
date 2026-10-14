@@ -283,6 +283,31 @@ export function loadReviewVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return `${gatewayContract}\n\n---\n\n${reviewRubric}`;
 }
 
+// FAFF-1266 — the review rubric for the `finding-identity` eval: the gateway's fixed review-verdict
+// contract plus faffter-noon-review from its five passes through its Contract artifact (so the
+// title/location/action field guidance is in the prompt). Both anchors fail loud if moved.
+const FINDING_RUBRIC_START = "\n## The five review passes\n";
+const FINDING_RUBRIC_END = "\n## Appetite integration\n";
+
+export function loadReviewFindingProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const reviewPath = join(pluginDir, "skills", "faffter-noon-review", "SKILL.md");
+  const gatewayPath = join(pluginDir, "skills", "faff", "references", "kernel.md");
+  let reviewMd, gatewayMd;
+  try {
+    reviewMd = readFileSync(reviewPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadReviewFindingProse: cannot read ${reviewPath}: ${e.message}`);
+  }
+  try {
+    gatewayMd = readFileSync(gatewayPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadReviewFindingProse: cannot read ${gatewayPath}: ${e.message}`);
+  }
+  const reviewRubric = sliceAnchored(reviewMd, reviewPath, "loadReviewFindingProse(review)", FINDING_RUBRIC_START, FINDING_RUBRIC_END);
+  const gatewayContract = sliceAnchored(gatewayMd, gatewayPath, "loadReviewFindingProse(gateway)", GATEWAY_VERDICT_START, GATEWAY_VERDICT_END);
+  return `${gatewayContract}\n\n---\n\n${reviewRubric}`;
+}
+
 // FAFF-149 — the AUTOMATION-ROUTING verdict rubric, verbatim from BOTH shipped sources, folded the
 // same two-source way loadReviewVerdictProse does (gateway = the fixed contract; the adaptor = the
 // assignment conditions). This is the criteria the `routing` (verdict-assign) eval measures: given an
@@ -476,6 +501,18 @@ export const VERDICT_BUILD_INSTRUCTION =
   "fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the " +
   'shape { "case_id": "<ID>", "verdict": "pass|fail|needs-human" } — exactly one verdict. Output NOTHING ' +
   "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
+// FAFF-1266 — the envelope instruction for the finding-identity surface. The model runs the review
+// passes over the change and reports its findings with the contract's title/location/action fields;
+// it never emits an id (the eval computes ids with the shipped helper). Same OUTPUT-ONLY hardening.
+export const FINDING_IDENTITY_INSTRUCTION =
+  "Run the review passes above over this whole change and report every finding you raise. Then OUTPUT " +
+  "ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing " +
+  'JSON of the shape { "case_id": "<ID>", "signal": "pass|fail|needs-human", "findings": [ { "title": ' +
+  '"<defect and symbol, per the title guidance>", "location": "<path[:line]>", "action": "<the concrete ' +
+  'fix>", "severity": "critical|major|minor|observation" } ] } — one entry per finding, none for a clean ' +
+  "change. Do not emit an id. Output NOTHING except that single block: no reasoning, no preamble, no " +
+  "prose, nothing before or after it.";
 
 // FAFF-150 — the envelope instruction for the modedetect surface. The model classifies the
 // ModeScenario as EXACTLY ONE of greenfield / single-item / ambiguous, emitting a single `mode`

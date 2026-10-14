@@ -287,8 +287,8 @@ import { holdoutRecordViolations } from "../plugin/skills/faff/bin/lib/holdout-r
 //                     (plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/)
 //                     stay in the skill dir, exercised by test/grader-build-adjudication-discrimination
 //                     .test.mjs, not copied into eval/cases/. Surface = faffter-dark-adversarial-review.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination", "build-adjudication"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni", "park-reconsider-classification"]);
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "finding-identity", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination", "build-adjudication"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "finding-identity", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni", "park-reconsider-classification"]);
 
 // FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
 // gradeSplittable / gradeChainGap) but deliberately NOT in CLOSED_SET_KINDS above, because they grade
@@ -411,6 +411,9 @@ const FIXTURE_SHAPE = {
   // being challenged. validateCase asserts all three are present; the binary survived/overturned
   // verdict rides env.challenge_outcome (shares adr-drift's closed-set arm — see predictedSet below).
   "prdr-yagni": ["authored_prdr", "prd_goals", "phase1_proposal"],
+  // FAFF-1266 — finding-identity: the BuildFixture fields the review prompt renders plus the one
+  // planted `defect_file` the eval selects each pass's defect finding by.
+  "finding-identity": ["spec", "diff", "defect_file"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -731,6 +734,12 @@ function predictedSet(c, env) {
     // out-of-enum value is passed through verbatim so setEqual fails it cleanly with a distinct signature.
     case "park-reconsider-classification":
       return env.reconsider == null ? [] : [String(env.reconsider)];
+    // FAFF-1266 — finding-identity: the title-stability outcome of one rep (two independent review
+    // passes) is one closed token ("stable" is the only passing value) riding its own env field. A
+    // missing outcome → empty set → clean FAIL; any other token ("drifted", "undetected") is passed
+    // through verbatim so setEqual fails it with a distinct signature.
+    case "finding-identity":
+      return env["finding-identity"] == null ? [] : [String(env["finding-identity"])];
     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum
     // value (e.g. "feature") is passed through verbatim so setEqual fails it cleanly with a distinct

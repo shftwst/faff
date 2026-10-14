@@ -208,3 +208,13 @@ test("admitBuildRollup: throws {failLoud} when the ledger lists an order entry w
   const ledger = { order: ["f-01"], entries: {} };
   assert.throws(() => bjc.admitBuildRollup({ ledger, rulings: {}, floors: {} }), (e) => !!e.failLoud);
 });
+
+test("assembleBuildCaseFiles: a ./-prefixed location with a line suffix still extracts that file's diff", () => {
+  const { caseFiles } = bjc.assembleBuildCaseFiles({
+    criticalsToAdjudicate: [{ finding_id: "evidence.js::t", location: "./evidence.js:1", title: "T" }],
+    diffText: DIFF, acceptanceCriteria: "AC", runId: "r", windowStart: 1,
+  });
+  const diff = caseFiles["f-01"].reconstruction_context.relevant_diff;
+  assert.ok(diff.includes("evidence.js"));
+  assert.ok(!diff.includes("spec-judge-casefile.js"));
+});

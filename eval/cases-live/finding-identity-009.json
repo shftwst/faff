@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-009",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: versions are compared as strings, so '10.0.0' sorts before '9.0.0'; the spec's AC requires numeric comparison per segment. The wrong comparison is in lib/semver.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `compareVersions` for the update checker.",
+    "spec": "## WHAT\n`compareVersions(a, b)` returns -1, 0 or 1 for dotted numeric versions.\n\n## DONE\n- [ ] `compareVersions('1.2.0', '1.10.0')` is -1\n- [ ] `compareVersions('2.0.0', '2.0.0')` is 0\n- [ ] `compareVersions('10.0.0', '9.0.0')` is 1",
+    "diff": "diff --git a/lib/semver.js b/lib/semver.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/lib/semver.js\n@@ -1,0 +1,8 @@\n+'use strict';\n+\n+function compareVersions(a, b) {\n+  if (a === b) return 0;\n+  return a < b ? -1 : 1;\n+}\n+\n+module.exports = { compareVersions };\ndiff --git a/test/semver.test.js b/test/semver.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/semver.test.js\n@@ -1,0 +1,6 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { compareVersions } = require('../lib/semver');\n+\n+test('equal versions', () => assert.equal(compareVersions('2.0.0', '2.0.0'), 0));\n+test('patch order', () => assert.equal(compareVersions('1.2.0', '1.3.0'), -1));\n",
+    "test_results": "node --test: 2 pass, 0 fail.",
+    "defect_file": "lib/semver.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

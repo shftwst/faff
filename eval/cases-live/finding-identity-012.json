@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-012",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: the memoised lookup never expires or invalidates an entry when a record is updated, so reads return stale data after writes; the spec's AC requires invalidation on update. The stale cache is in src/cache/lookup.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Cache `getAccount` lookups.",
+    "spec": "## WHAT\n`getAccount(id)` is memoised to cut database reads.\n\n## DONE\n- [ ] a second `getAccount(id)` does not hit the database\n- [ ] after `updateAccount(id, patch)` the next `getAccount(id)` returns the updated record\n- [ ] the cache holds at most 500 entries",
+    "diff": "diff --git a/src/cache/lookup.js b/src/cache/lookup.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/src/cache/lookup.js\n@@ -1,0 +1,16 @@\n+'use strict';\n+\n+const cache = new Map();\n+\n+function getAccount(db, id) {\n+  if (cache.has(id)) return cache.get(id);\n+  const row = db.get('accounts', id);\n+  if (cache.size < 500) cache.set(id, row);\n+  return row;\n+}\n+\n+function updateAccount(db, id, patch) {\n+  return db.update('accounts', id, patch);\n+}\n+\n+module.exports = { getAccount, updateAccount };\ndiff --git a/test/lookup.test.js b/test/lookup.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/lookup.test.js\n@@ -1,0 +1,9 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { getAccount } = require('../src/cache/lookup');\n+\n+test('second lookup is served from cache', () => {\n+  const db = countingDb();\n+  getAccount(db, 1); getAccount(db, 1);\n+  assert.equal(db.reads, 1);\n+});\n",
+    "test_results": "node --test: 1 pass, 0 fail.",
+    "defect_file": "src/cache/lookup.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

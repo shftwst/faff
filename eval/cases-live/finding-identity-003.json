@@ -1,0 +1,21 @@
+{
+  "id": "finding-identity-003",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: validation failure exits 0; the spec requires exit code 2 for invalid input. The wrong exit code is in bin/validate.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add a `validate` subcommand that checks a manifest file.",
+    "spec": "## WHAT\n`tool validate <file>` checks a manifest.\n\n## DONE\n- [ ] a valid manifest prints `ok` and exits 0\n- [ ] an invalid manifest prints each error to stderr and exits 2\n- [ ] a missing file prints `not found` to stderr and exits 3",
+    "diff": "diff --git a/bin/validate.js b/bin/validate.js\nindex 3b18e51..a7c94d2 100644\n--- a/bin/validate.js\n+++ b/bin/validate.js\n@@ -8,8 +8,13 @@ function main(argv) {\n   const file = argv[0];\n   if (!fs.existsSync(file)) {\n     console.error('not found');\n     return 3;\n   }\n   const errors = check(JSON.parse(fs.readFileSync(file, 'utf8')));\n+  if (errors.length) {\n+    for (const e of errors) console.error(e);\n+    return 0;\n+  }\n+  console.log('ok');\n   return 0;\n }\ndiff --git a/docs/validate.md b/docs/validate.md\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/docs/validate.md\n@@ -1,0 +1,3 @@\n+# validate\n+\n+Checks a manifest against the schema. Exit codes: 0 ok, 2 invalid, 3 missing file.\n",
+    "test_results": "node --test: 6 pass, 0 fail.",
+    "defect_file": "bin/validate.js",
+    "diff_b": "diff --git a/bin/validate.js b/bin/validate.js\nindex 3b18e51..a7c94d2 100644\n--- a/bin/validate.js\n+++ b/bin/validate.js\n@@ -2,2 +2,3 @@\n const fs = require('node:fs');\n+const path = require('node:path');\n const { check } = require('../lib/check');\n@@ -8,8 +9,13 @@ function main(argv) {\n   const file = argv[0];\n   if (!fs.existsSync(file)) {\n     console.error('not found');\n     return 3;\n   }\n   const errors = check(JSON.parse(fs.readFileSync(file, 'utf8')));\n+  if (errors.length) {\n+    for (const e of errors) console.error(e);\n+    return 0;\n+  }\n+  console.log('ok');\n   return 0;\n }\ndiff --git a/docs/validate.md b/docs/validate.md\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/docs/validate.md\n@@ -1,0 +1,3 @@\n+# validate\n+\n+Checks a manifest against the schema. Exit codes: 0 ok, 2 invalid, 3 missing file.\n"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

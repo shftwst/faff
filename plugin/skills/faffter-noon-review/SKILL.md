@@ -2,7 +2,7 @@
 name: faffter-noon-review
 description: "Default code review for the `review` slot — a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns a review verdict (faff contract review-verdict --describe). Runs via faff-graft, not the user `/` menu."
 user-invocable: false
-judgement_seam: verdict-revert, verdict-build
+judgement_seam: verdict-revert, verdict-build, finding-identity
 ---
 
 # faffter-noon-review
@@ -124,7 +124,9 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 ````
 ```faff-contract:review-verdict
 { "signal": "<your verdict — faff contract review-verdict --describe>",
-  "findings": [ { "location_present": <bool>, "action_present": <bool>,
+  "findings": [ { "title": "<defect and symbol, optional>", "location": "<path[:line], optional>",
+                  "action": "<the concrete fix, optional>",
+                  "location_present": <bool>, "action_present": <bool>,
                   "severity": "<critical|major|minor|observation, optional>",
                   "disposition": "<fixed|refuted|accepted-risk|open, optional>",
                   "source": "standard", "model": "<your reviewer handle, optional>" },
@@ -133,6 +135,7 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 ````
 
 - **One** block, at the very end. `signal` is the same value as your `signal:` line. `findings` carries one entry per finding you raised, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`) — you raised the finding, so you know both directly.
+- **Finding fields (all optional, non-gating):** `title` is the `[title]` part of the finding's `### [category]: [title]` heading, without the category; name the defect and the symbol it is in, in a short noun phrase, with no line numbers, severity words or category. `location` is `path[:line]` for the file the defect is in, as it appears in the repo, not the diff header; omit it when the finding names no file. `action` is the concrete fix in one sentence; omit it when there is none. `location_present` is true exactly when `location` is present, and `action_present` exactly when `action` is. A finding's cross-round identity is computed from `title` and `location` by `findingId` in `bin/lib/finding-id.js`; never emit an id.
 - **Optional per-finding enrichment (all optional — an un-enriched emit still validates):** `severity` ∈ {critical, major, minor, observation}, `disposition` ∈ {fixed, refuted, accepted-risk, open}, `disposition_rationale` (free-text reasoning behind the disposition — SHOULD accompany a `disposition`, especially `accepted-risk`/`refuted`), `source` (this single-model in-session pass sets `"standard"`), and `model` (your reviewer handle). This standard pass raises no `refutation`. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block — the floor branches only on `signal`.
 - the approving verdict may carry zero findings; the fixable-issues and human-judgement verdicts carry ≥1 (the contract script enforces this).
 - Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction is `{ signal, findings }` (findings optionally enriched per above).

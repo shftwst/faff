@@ -1,0 +1,20 @@
+{
+  "id": "finding-identity-002",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: an off-by-one in pageCount (Math.floor instead of Math.ceil) drops the last partial page; the spec's AC gives 101 items at 50 per page = 3 pages. Sits in lib/page.js only.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add pagination helpers for the list endpoint.",
+    "spec": "## WHAT\nAdd `pageCount(total, perPage)` and `pageSlice(items, page, perPage)`.\n\n## DONE\n- [ ] `pageCount(101, 50)` is 3 and `pageCount(100, 50)` is 2\n- [ ] `pageCount(0, 50)` is 0\n- [ ] `pageSlice(items, 2, 50)` returns items 50..99",
+    "diff": "diff --git a/lib/page.js b/lib/page.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/lib/page.js\n@@ -1,0 +1,13 @@\n+'use strict';\n+\n+function pageCount(total, perPage) {\n+  if (total <= 0) return 0;\n+  return Math.floor(total / perPage);\n+}\n+\n+function pageSlice(items, page, perPage) {\n+  const start = (page - 1) * perPage;\n+  return items.slice(start, start + perPage);\n+}\n+\n+module.exports = { pageCount, pageSlice };\ndiff --git a/test/page.test.js b/test/page.test.js\nnew file mode 100644\nindex 0000000..4f2a1c9\n--- /dev/null\n+++ b/test/page.test.js\n@@ -1,0 +1,10 @@\n+const { test } = require('node:test');\n+const assert = require('node:assert/strict');\n+const { pageCount, pageSlice } = require('../lib/page');\n+\n+test('pageCount of an exact multiple', () => assert.equal(pageCount(100, 50), 2));\n+test('pageCount of zero', () => assert.equal(pageCount(0, 50), 0));\n+test('pageSlice second page', () => {\n+  const items = Array.from({ length: 120 }, (_, i) => i);\n+  assert.deepEqual(pageSlice(items, 2, 50)[0], 50);\n+});\n",
+    "test_results": "node --test: 3 pass, 0 fail.",
+    "defect_file": "lib/page.js"
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

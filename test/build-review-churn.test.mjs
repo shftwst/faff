@@ -145,3 +145,49 @@ test("faff build-review-churn --selftest exits 0 and reports PASS", () => {
   assert.equal(r.code, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /RESULT: PASS/);
 });
+
+// --- FAFF-1266: ids come from title + location (finding-id.js) ----------------------------------
+
+test("churn: a title/location-derived id wins over a stale stored finding_id; a line shift does not churn", () => {
+  const prev = { signal: "needs-human", findings: [{ severity: "critical", location: "a.js:9", title: "Missing null check" }] };
+  const curr = { signal: "needs-human", findings: [{ severity: "critical", location: "./a.js:14", title: "Missing `null` check.", finding_id: "a.js::missing null check" }] };
+  const res = computeChurn(prev, curr, 1, 2);
+  assert.equal(res.churn, false);
+  assert.deepEqual(res.curr_critical_ids, ["a.js::missing null check"]);
+});
+
+test("standingCriticalIds: two same-round criticals with equal normalised titles in one file are two standing ids", () => {
+  const ids = standingCriticalIds([
+    { severity: "critical", location: "src/x.js:3", title: "Leaks fd" },
+    { severity: "critical", location: "./src/x.js:40", title: "leaks  FD" },
+  ], 1);
+  assert.deepEqual(ids, ["src/x.js::leaks fd", "src/x.js::leaks fd#2"]);
+});
+
+test("standingCriticalIds: an untitled, id-less critical counts as standing under a round-scoped id", () => {
+  assert.deepEqual(standingCriticalIds([{ severity: "major" }, { severity: "critical" }], 2), ["round-2#1"]);
+});
+
+test("computeChurn: an untitled, id-less critical recurring in a later round churns", () => {
+  const prev = { signal: "needs-human", findings: [{ severity: "critical" }] };
+  const curr = { signal: "needs-human", findings: [{ severity: "critical" }] };
+  assert.equal(computeChurn(prev, curr, 1, 2).churn, true);
+  assert.equal(computeChurn(prev, curr, null).churn, true);
+});
+
+test("faff build-review-churn smoke: the same critical at a shifted location with a wrong stored id does not churn", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "faff-build-review-churn-ids-"));
+  try {
+    const round1 = join(tmp, "round-1.json");
+    const round2 = join(tmp, "round-2.json");
+    writeFileSync(round1, JSON.stringify({ signal: "needs-human", findings: [{ severity: "critical", location: "./a.js:3", title: "Leaks fd" }] }));
+    writeFileSync(round2, JSON.stringify({ signal: "needs-human", findings: [{ severity: "critical", location: "a.js:30", title: "leaks FD", finding_id: "wrong" }] }));
+    const r = runCli(["build-review-churn", "--prev", round1, "--curr", round2]);
+    assert.equal(r.code, 0, r.stderr);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.churn, false);
+    assert.deepEqual(parsed.curr_critical_ids, ["a.js::leaks fd"]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

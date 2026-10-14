@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::parent-directory test in isexecutablefileinside",
+      "title": "parent-directory test in isExecutableFileInside",
+      "location": "plugin/skills/faff/bin/lib/gates.js:170",
+      "action": "Compare the first path segment to \"..\" exactly instead of a startsWith prefix test",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A repo-root directory named like ..x would have been wrongly rejected; fixed in 25aa7e70, selftest 183/183",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "parent-directory test in isExecutableFileInside",
+          "location": "plugin/skills/faff/bin/lib/gates.js:170",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::runner files read from the working tree rather than committed content in discoverrunnerfiles",
+      "title": "runner files read from the working tree rather than committed content in discoverRunnerFiles",
+      "location": "plugin/skills/faff/bin/lib/gates.js",
+      "action": "Filter runner candidates through git ls-files, or document the working-tree posture",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Every existing local source (package.json, Makefile, pre-commit config) is also read from the working tree, so an uncommitted edit already shapes the local ladder; the spec procedure has no tracked-file check; graft stages selectively and the PR CI run is unaffected. Logged as a possible follow-up.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "runner files read from the working tree rather than committed content in discoverRunnerFiles",
+          "location": "plugin/skills/faff/bin/lib/gates.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::windows os-mismatch recorded before file checks in discoverrunnerfiles; discover drops runner exclusions",
+      "title": "Windows os-mismatch recorded before file checks in discoverRunnerFiles; discover drops runner exclusions",
+      "location": "plugin/skills/faff/bin/lib/gates.js",
+      "action": "Run the file checks before the Windows branch and surface exclusions in discover",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Spec section 4 step v places the Windows branch before the realpath and executable checks (each name-matched candidate is recorded os-mismatch, since there is no executable bit to check), and the discoverRungsReporting bullet fixes that the discover JSON gains no field.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Windows os-mismatch recorded before file checks in discoverRunnerFiles; discover drops runner exclusions",
+          "location": "plugin/skills/faff/bin/lib/gates.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::discover/run divergence for runner exclude and displacement in discoverrungsreporting",
+      "title": "discover/run divergence for runner exclude and displacement in discoverRungsReporting",
+      "location": "plugin/skills/faff/bin/lib/gates.js",
+      "action": "Keep as specified; surface runner exclusions in discover only if a follow-up asks for it",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Matches the spec letter: reporting passes only cap, and displaced is used only by the execution path; the existing discover>run gap already covers configured exclusions for CI rungs.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "discover/run divergence for runner exclude and displacement in discoverRungsReporting",
+          "location": "plugin/skills/faff/bin/lib/gates.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

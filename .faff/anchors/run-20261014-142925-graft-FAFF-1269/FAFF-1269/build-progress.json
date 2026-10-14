@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1269",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6d40fde3d5a3349840a7445f64793f81eb9378289254ed7a142efaa72e382918",
+    "branch": "FAFF-1269-gates-discovery-runner-files",
+    "pushed_at": "2026-10-14T15:51:31.752Z"
+  },
+  "updated_at": "2026-10-14T15:51:31.752Z"
+}

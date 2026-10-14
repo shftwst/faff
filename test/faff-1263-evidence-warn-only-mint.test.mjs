@@ -13,6 +13,8 @@ import { mkChainedRun, writeEvidence, example, repoRoot } from "./helpers/eviden
 
 const require = createRequire(import.meta.url);
 const SENTINEL = "S3CR3T-SENTINEL";
+// Under GitHub Actions governance-check prints real ::error:: annotation commands; the tests read plain output.
+delete process.env.GITHUB_ACTIONS;
 
 function fixture(shape, { mutate } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "faff-1263-"));

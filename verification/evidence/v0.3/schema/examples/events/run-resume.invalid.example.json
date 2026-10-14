@@ -1,0 +1,18 @@
+{
+  "schema": 2,
+  "run_id": "run-20260101-000000-example",
+  "seq": 7,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "phase": "run",
+  "type": "run-resume",
+  "epoch": 2,
+  "prior_state": "aborted-resumable",
+  "skipped_shipped": [
+    "FAFF-1"
+  ],
+  "rebuilt_coarse": [],
+  "data": {
+    "epoch": "2"
+  }
+}

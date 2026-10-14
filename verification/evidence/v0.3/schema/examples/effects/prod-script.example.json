@@ -1,0 +1,5 @@
+{
+  "kind": "prod-script",
+  "target": "example-target",
+  "reversible": true
+}

@@ -1,0 +1,5 @@
+{
+  "kind": "pr-create",
+  "target": "main",
+  "reversible": true
+}

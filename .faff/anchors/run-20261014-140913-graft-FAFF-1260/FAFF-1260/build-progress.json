@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1260",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ad4ed7201d9dad39bdb364d9fc16685d33b21161f5e92680599cfc07f1eabc2a",
+    "branch": "FAFF-1260-closed-payload-schemas",
+    "pushed_at": "2026-10-14T15:01:19.291Z"
+  },
+  "updated_at": "2026-10-14T15:01:19.291Z"
+}

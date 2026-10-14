@@ -580,14 +580,58 @@ function appendRecordsUnderLock(dir, cfg, mintCount, mintOne, opts) {
   }, cfg.lock);
 }
 
+// FAFF-1260: an agent payload's top-level data keys outside its type's schema are dropped and named
+// (never their values) in data.dropped_keys, so the chained record shows the agent tried to record
+// more. The drop is bounded, applies to top-level keys only, and dropped_keys is reserved for this
+// CLI. Without a loaded schema for the type nothing is dropped and the writer's own check decides.
+const DROPPED_KEY_RE = /^[A-Za-z0-9_.-]{1,64}$/;
+const MAX_DROPPED_KEYS = 16;
+function dropUnknownDataKeys(type, data) {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return { data };
+  if ("dropped_keys" in data) return { error: "data.dropped_keys is reserved for the CLI and may not be supplied" };
+  const allowed = require("./evidence").eventDataKeys(type); // lazy — evidence.js requires this module at load
+  if (!allowed) return { data };
+  const dropped = Object.keys(data).filter((k) => !allowed.includes(k)).sort();
+  if (dropped.length === 0) return { data };
+  if (dropped.length > MAX_DROPPED_KEYS) return { error: `${dropped.length} data keys are outside the ${type} schema; at most ${MAX_DROPPED_KEYS} may be dropped` };
+  if (!dropped.every((k) => DROPPED_KEY_RE.test(k))) return { error: `a data key outside the ${type} schema has a name outside ${DROPPED_KEY_RE}` };
+  const kept = Object.fromEntries(Object.entries(data).filter(([k]) => allowed.includes(k)));
+  return { data: { ...kept, dropped_keys: dropped }, dropped };
+}
+
 // FAFF-574/621: the single-record shim — RETAINED byte-unchanged in signature + semantics
 // over the batch core, so `appendEventRecord`, corrective.js's mint, and both lights-out
 // mints need zero edits. A null mintRecord return aborts (batch of 1 → null) and writes
 // nothing — today's abort path, preserved. GUARD the unwrap: a batch-of-1 abort returns
 // null, never [null].
-function appendRecordUnderLock(dir, mintRecord) {
-  const r = appendRecordsUnderLock(dir, EVENTS_CFG, 1, (index, seq, prevRecord, prevHash) => mintRecord(seq, prevRecord, prevHash));
+// FAFF-1260: every events.jsonl write passes through here, so the v0.3 payload check runs on each
+// minted record inside the lock. A refused record throws EVENT_SCHEMA (nothing written), the same
+// route callers already take for EVENTS_LOCKED. An unavailable schema bundle degrades the write to
+// eventViolations alone; `opts.onSchemaUnavailable(path)` lets a caller with no stderr log it.
+function appendRecordUnderLock(dir, mintRecord, opts = {}) {
+  const evidence = require("./evidence"); // lazy — evidence.js requires this module at load
+  const check = evidence.logRecordChecker("events.jsonl");
+  let unavailable = null;
+  const r = appendRecordsUnderLock(dir, EVENTS_CFG, 1, (index, seq, prevRecord, prevHash) => {
+    const record = mintRecord(seq, prevRecord, prevHash);
+    if (!record || !check) return record;
+    const result = check(record);
+    if (result.unavailable) unavailable = result.unavailable;
+    else if (!result.ok) throw eventSchemaError(record, result.violations);
+    return record;
+  });
+  if (unavailable) {
+    evidence.noteSchemaUnavailable(dir, "events", unavailable);
+    if (opts.onSchemaUnavailable) opts.onSchemaUnavailable(unavailable);
+  }
   return r === null ? null : r[0];
+}
+
+function eventSchemaError(record, violations) {
+  const e = new Error(`${record.type} event refused by the v0.3 run-event schema: ${violations.join("; ")}`);
+  e.code = "EVENT_SCHEMA";
+  e.violations = violations;
+  return e;
 }
 
 // Classify a seq against the previous seq for `events validate` (FAFF-574). Returns a
@@ -625,7 +669,7 @@ function seqFinding(prevSeq, seq) {
 // chain hash. `resolveKnownSecretValues()` resolves fresh each call — a
 // malformed base config fails loud (never silently caught here), matching
 // the existing governance config-read contract (readGovernanceConfig).
-function appendEventRecord(dir, run, payload, ts) {
+function appendEventRecord(dir, run, payload, ts, opts) {
   const redactedData = payload.data !== undefined
     ? redactKnownSecrets(payload.data, resolveKnownSecretValues())
     : undefined;
@@ -634,7 +678,7 @@ function appendEventRecord(dir, run, payload, ts) {
     if (payload.issue !== undefined) record.issue = payload.issue;
     if (redactedData !== undefined) record.data = redactedData;
     return record;
-  });
+  }, opts);
 }
 
 // FAFF-966 — the shared genesis-emit helper: the ONE home for the `run-start` emit every
@@ -970,9 +1014,10 @@ function reportLedgerSchema(ledgerRaw) {
     process.stderr.write("faff events append: run-ledger.json has no schema_version (legacy ledger); schema not checked\n");
     return;
   }
-  const result = require("./evidence").validateEvidenceDocument("run-ledger.json", doc);
+  const evidence = require("./evidence");
+  const result = evidence.validateEvidenceDocument("run-ledger.json", doc);
   if (result.unavailable) {
-    process.stderr.write(`faff events append: run-ledger schema unavailable (cannot load ${result.unavailable}); schema not checked\n`);
+    evidence.announceSchemaUnavailable(result.unavailable, `faff events append: run-ledger schema unavailable (cannot load ${result.unavailable}); schema not checked`);
     return;
   }
   const messages = result.violations.map((v) => v.message);
@@ -1037,6 +1082,12 @@ function cmdEvents(args) {
       return 1;
     }
     let data = payload.data;
+    if (activeProfile() === DELIVERY_PROFILE) {
+      const pruned = dropUnknownDataKeys(payload.type, data);
+      if (pruned.error) { process.stderr.write(`faff events append: ${pruned.error}\n`); return 1; }
+      if (pruned.dropped) process.stderr.write(`faff events append: dropped data key(s) {${pruned.dropped.join(", ")}} not in the ${payload.type} schema\n`);
+      data = pruned.data;
+    }
     // FAFF-408: opt-in token-tagging. Absent --tokens ⇒ NO measurement, NO ledger
     // read, and `data` is exactly payload.data — the record is byte-identical to the
     // pre-change CLI (backward-compat). With --tokens, the CLI (which owns the
@@ -1140,6 +1191,10 @@ function cmdEvents(args) {
       // FAFF-574: a lock-budget exhaustion is loud — exit 1, mirroring the validation-failure
       // exit above; never a silent unlocked append.
       if (e && e.code === "EVENTS_LOCKED") { process.stderr.write(`faff events append: ${e.message}\n`); return 1; }
+      if (e && e.code === "EVENT_SCHEMA") {
+        for (const x of e.violations) process.stderr.write(`- ${x}\n`);
+        return 1;
+      }
       throw e;
     }
     console.log(JSON.stringify(record));

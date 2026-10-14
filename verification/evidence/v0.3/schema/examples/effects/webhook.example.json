@@ -1,0 +1,5 @@
+{
+  "kind": "webhook",
+  "target": "example-target",
+  "reversible": true
+}

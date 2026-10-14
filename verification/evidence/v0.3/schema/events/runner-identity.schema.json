@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/events/runner-identity",
+  "title": "events.jsonl schema-2 record, type runner-identity",
+  "description": "merge-gate.js recordRunnerIdentity. The key set is exactly RUNNER_IDENTITY_ALLOWED_DATA_KEYS (events.js); github_login is null when unresolved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "phase",
+    "type",
+    "prev",
+    "data"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        2
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "run",
+        "tidy",
+        "prep",
+        "build",
+        "plot"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "runner-identity"
+      ]
+    },
+    "issue": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github_login",
+        "github_login_source",
+        "credential_source",
+        "credential_unresolved",
+        "verified"
+      ],
+      "properties": {
+        "github_login": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "github_login_source": {
+          "type": "string",
+          "enum": [
+            "configured",
+            "gh-api-user",
+            "unresolved"
+          ]
+        },
+        "credential_source": {
+          "type": "string",
+          "enum": [
+            "runner-credential",
+            "ambient"
+          ]
+        },
+        "credential_unresolved": {
+          "type": "boolean"
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

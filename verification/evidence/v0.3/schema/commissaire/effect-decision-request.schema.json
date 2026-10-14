@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/commissaire/effect-decision-request",
+  "title": "declared-effects.jsonl schema-3 record, kind_of_entry effect-decision-request",
+  "description": "A producer's request for a decision (commissaire.ts cmdRequestDecision). payload.effect is the caller's raw descriptor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "author",
+    "producer_id",
+    "contract_revision",
+    "kind_of_entry",
+    "step",
+    "prev",
+    "producer_hmac",
+    "payload"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string",
+      "enum": [
+        "producer"
+      ]
+    },
+    "producer_id": {
+      "type": "string"
+    },
+    "contract_revision": {
+      "type": "string"
+    },
+    "kind_of_entry": {
+      "type": "string",
+      "enum": [
+        "effect-decision-request"
+      ]
+    },
+    "step": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "producer_hmac": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "description": "Named open node: the caller's raw effect descriptor, chained as given. evaluateDecisionRequest judges it and denies a malformed one invalid-effect-descriptor."
+        },
+        "declared_ref": {
+          "type": [
+            "string",
+            "integer",
+            "null"
+          ],
+          "description": "No reader interprets it; the governor compares it by equality."
+        },
+        "evidence_seq": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "string"
+        },
+        "attended": {
+          "type": "boolean"
+        },
+        "holdout": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

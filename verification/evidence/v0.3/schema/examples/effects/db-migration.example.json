@@ -1,0 +1,5 @@
+{
+  "kind": "db-migration",
+  "target": "example-target",
+  "reversible": true
+}

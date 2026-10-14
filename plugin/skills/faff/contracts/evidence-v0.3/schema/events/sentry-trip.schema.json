@@ -1,0 +1,583 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/events/sentry-trip",
+  "title": "events.jsonl schema-2 record, type sentry-trip",
+  "description": "A tripped sentry consult: verdicts and intervention from the same payload (sentry-poller.js, the agent), or a refused downgrade mint (run-ledger.js guard fields).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "phase",
+    "type",
+    "prev"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        2
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "run",
+        "tidy",
+        "prep",
+        "build",
+        "plot"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "sentry-trip"
+      ]
+    },
+    "issue": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "verdicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One DerailmentVerdict from sentry.js, discriminated on signal. Summaries relayed by hand carry only signal, scope and member.",
+            "required": [
+              "signal"
+            ],
+            "discriminator": {
+              "field": "signal",
+              "mapping": {
+                "budget-breach": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "budget-breach"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "budget_outcome": {
+                          "type": "string"
+                        },
+                        "breached": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "wall-clock-runaway": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "wall-clock-runaway"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "heartbeat_source": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "heartbeat_age_secs": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "run_elapsed_secs": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "tripped_on": {
+                          "type": "string"
+                        },
+                        "in_flight": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "grace": {
+                          "type": "string"
+                        },
+                        "ceiling_skip": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "heartbeat_age_secs": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "repeated-identical-failure": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "repeated-identical-failure"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "fingerprint": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "event_seq": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "forbidden-side-effect-attempt": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "forbidden-side-effect-attempt"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "event_seq": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "fix-review-thrash": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "fix-review-thrash"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "issue": {
+                          "type": "string"
+                        },
+                        "build_starts": {
+                          "type": "integer"
+                        },
+                        "event_seq": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "scope-drift": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "scope-drift"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "drift_kind": {
+                          "type": "string"
+                        },
+                        "accepted_root": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "detective": {
+                          "type": "boolean"
+                        },
+                        "seq": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "issue": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "recorded": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "recomputed": {
+                          "type": "string"
+                        },
+                        "discovered_scope_filed": {
+                          "type": "number"
+                        },
+                        "mandate": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "parent": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "budget-metering-degraded": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "budget-metering-degraded"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "tokens_source": {
+                          "type": "string"
+                        },
+                        "run_elapsed_secs": {
+                          "type": "integer"
+                        },
+                        "exposure_threshold_secs": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                },
+                "heartbeat-progress-mismatch": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "signal"
+                  ],
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "heartbeat-progress-mismatch"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "member": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "heartbeat_age_secs": {
+                          "type": "integer"
+                        },
+                        "progress_age_secs": {
+                          "type": "integer"
+                        },
+                        "window_secs": {
+                          "type": "number"
+                        },
+                        "last_progress_event_type": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last_progress_event_seq": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "intervention": {
+          "type": "string"
+        },
+        "guard": {
+          "type": "string"
+        },
+        "live_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attempted_issue": {
+          "type": "string"
+        },
+        "remediation": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "orchestrator_disposition": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "tokens": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "null is the estimate form (tokens_source estimate). The legacy cache_write class is accepted on committed lines; eventViolations normalises it before any new write.",
+          "additionalProperties": false,
+          "required": [
+            "input",
+            "output",
+            "cache_read"
+          ],
+          "properties": {
+            "input": {
+              "type": "integer"
+            },
+            "output": {
+              "type": "integer"
+            },
+            "cache_read": {
+              "type": "integer"
+            },
+            "cache_write_5m": {
+              "type": "integer"
+            },
+            "cache_write_1h": {
+              "type": "integer"
+            },
+            "cache_write": {
+              "type": "integer"
+            }
+          }
+        },
+        "tokens_source": {
+          "type": "string"
+        },
+        "ledger_sha256_before": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ledger_sha256_after": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "effort": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        },
+        "gate": {
+          "type": "string",
+          "enum": [
+            "structural",
+            "adversarial",
+            "holdout",
+            "ci"
+          ]
+        },
+        "rework_turns": {
+          "type": "integer"
+        },
+        "dropped_keys": {
+          "type": "array",
+          "description": "Set only by faff events append: the names of agent data keys outside this schema, sorted.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+          }
+        },
+        "forbidden_side_effect": {
+          "type": "boolean",
+          "description": "Read by sentry.js evalForbiddenSideEffect on any event: the effects-to-sentry bridge an orchestrator writes on an escape."
+        }
+      }
+    }
+  }
+}

@@ -283,7 +283,8 @@ test("require-graph: the commissaire facade imports neither SuperDomestique sche
   // FAFF-1216 — ./governor-install is the `governor install|uninstall` dispatch target (lazy, node built-ins only).
   // FAFF-1217 — ./governor-admin is the `governor pin|status` dispatch target (lazy; own git/gh/id calls, no merge-gate/config/budget).
   // FAFF-1179 — ./commissaire-governor-client is the runner-side governor client (budget/shared-infra/producer-auth only, denylist-clean).
-  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./governor-install", "./governor-admin", "./commissaire-governor-client", "./commissaire-verify", "./commissaire-trust"]);
+  // FAFF-1260 — ./evidence holds the v0.3 payload check every schema:3 writer runs (lazy, denylist-clean).
+  const allowed = new Set(["./producer-auth", "./events", "./effects", "./shared-infra", "./bundle-seal-core", "./sentry", "./budget", "./decision-policy", "./governor", "./governor-install", "./governor-admin", "./commissaire-governor-client", "./commissaire-verify", "./commissaire-trust", "./evidence"]);
   for (const r of localRequires) assert.ok(allowed.has(r), `unexpected local require ${r}`);
 });
 

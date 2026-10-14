@@ -1,0 +1,5 @@
+{
+  "kind": "deploy",
+  "target": "example-target",
+  "reversible": true
+}

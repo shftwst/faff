@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -56,6 +56,14 @@ const PAIRS = [
   ["v0.3/schema/declared-effect.schema.json", "v0.3/schema/examples/declared-effect.schema-1.example.json"],
   ["v0.3/schema/declared-effect.schema.json", "v0.3/schema/examples/declared-effect.schema-3.example.json"],
 ];
+
+// FAFF-1260: every per-type payload schema pairs with the same-named example in examples/<dir>/, so
+// a payload schema shipped without its examples fails here by name.
+for (const dir of ["events", "effects", "commissaire"]) {
+  for (const file of readdirSync(join(EVIDENCE, "v0.3", "schema", dir)).filter((f) => f.endsWith(".schema.json")).sort()) {
+    PAIRS.push([`v0.3/schema/${dir}/${file}`, `v0.3/schema/examples/${dir}/${file.replace(/\.schema\.json$/, ".example.json")}`]);
+  }
+}
 
 // The invalid example of every v0.3 schema must fail (exit 1) through the same CLI.
 const INVALID_PAIRS = PAIRS.filter(([schemaRel]) => schemaRel.startsWith("v0.3/")).map(([schemaRel, exampleRel]) => [schemaRel, exampleRel.replace(".example.json", ".invalid.example.json")]);

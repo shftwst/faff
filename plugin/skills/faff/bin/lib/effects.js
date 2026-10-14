@@ -708,6 +708,10 @@ function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, t
 
   const runId = path.basename(runDirAbsPath);
   let recordViolation = null;
+  // FAFF-1260: the v0.3 payload check, resolved before the lock and run on each minted record.
+  const evidence = require("./evidence"); // lazy — evidence.js requires this module at load
+  const schemaCheck = evidence.logRecordChecker("declared-effects.jsonl");
+  let schemaUnavailable = null;
   const written = appendRecordsUnderLock(
     runDirAbsPath,
     { ledgerFile: "declared-effects.jsonl", lock: { code: "EFFECTS_LOCKED", label: "effects lock" } },
@@ -719,11 +723,22 @@ function appendEffectEntries(runDirAbsPath, kindOfEntry, issue, step, effects, t
         kind_of_entry: kindOfEntry, issue, step, effect: normEffect(effects[index]), prev: prevHash,
       };
       const recordViolations = declaredEffectViolations(record);
-      if (recordViolations.length === 0) return record;
-      recordViolation = { index, violations: recordViolations, scope: "record" };
-      return null; // null aborts the whole batch; nothing is written
+      if (recordViolations.length) {
+        recordViolation = { index, violations: recordViolations, scope: "record" };
+        return null; // null aborts the whole batch; nothing is written
+      }
+      // Checked with the descriptor as the caller gave it, so a key normEffect would drop is refused, not lost.
+      const asGiven = { ...record, effect: { ...effects[index], reversible: record.effect.reversible } };
+      const schema = schemaCheck ? schemaCheck(asGiven) : { ok: true };
+      if (schema.unavailable) schemaUnavailable = schema.unavailable;
+      else if (!schema.ok) {
+        recordViolation = { index, violations: schema.violations, scope: "schema" };
+        return null;
+      }
+      return record;
     },
   );
+  if (schemaUnavailable) evidence.noteSchemaUnavailable(runDirAbsPath, "effects", schemaUnavailable);
   if (written === null) return { violations: [recordViolation] };
   return { written };
 }
@@ -813,7 +828,7 @@ function cmdEffects(args) {
     if (result.violations) {
       // Validate ALL before writing ANY (all-or-nothing; a bad descriptor writes nothing) —
       // reproduce the original per-descriptor stderr lines verbatim from the violation indices.
-      for (const v of result.violations) for (const x of v.violations) process.stderr.write(`- ${v.scope === "record" ? "record" : "descriptor"}[${v.index}]: ${x}\n`);
+      for (const v of result.violations) for (const x of v.violations) process.stderr.write(`- ${v.scope || "descriptor"}[${v.index}]: ${x}\n`);
       return 1;
     }
     console.log(JSON.stringify(result.written.length === 1 ? result.written[0] : result.written));

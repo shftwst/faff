@@ -197,7 +197,7 @@ test("appendEventRecord: redacts a known env-handle secret out of data string le
       const env0 = process.env.FAFF107_TEST_KEY;
       process.env.FAFF107_TEST_KEY = SECRET;
       try {
-        appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { msg: `key is ${SECRET}` } }, "2026-01-01T00:00:00Z");
+        appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { note: `key is ${SECRET}` } }, "2026-01-01T00:00:00Z");
       } finally {
         if (env0 === undefined) delete process.env.FAFF107_TEST_KEY; else process.env.FAFF107_TEST_KEY = env0;
       }
@@ -206,7 +206,7 @@ test("appendEventRecord: redacts a known env-handle secret out of data string le
     assert.equal(raw.includes(SECRET), false, "raw secret must not appear anywhere in the physical line");
     assert.ok(raw.includes(REDACTED_PLACEHOLDER));
     const rec = JSON.parse(raw.trim().split("\n")[0]);
-    assert.equal(rec.data.msg, `key is ${REDACTED_PLACEHOLDER}`);
+    assert.equal(rec.data.note, `key is ${REDACTED_PLACEHOLDER}`);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -217,7 +217,7 @@ test("appendEventRecord: a known secret colliding with phase/type/issue leaves t
     withCwd(root, () => {
       appendEventRecord(runDir, "RUN-R", {
         phase: "run", type: "run-start", issue: "run-start",
-        data: { msg: "the phrase run-start appears in free text too" },
+        data: { note: "the phrase run-start appears in free text too" },
       }, "2026-01-01T00:00:00Z");
     });
     const rec = JSON.parse(readFileSync(join(runDir, "events.jsonl"), "utf8").trim().split("\n")[0]);
@@ -225,7 +225,7 @@ test("appendEventRecord: a known secret colliding with phase/type/issue leaves t
     assert.equal(rec.type, "run-start");
     assert.equal(rec.issue, "run-start");
     // Only the nested data string leaf is eligible for redaction.
-    assert.equal(rec.data.msg, `the phrase ${REDACTED_PLACEHOLDER} appears in free text too`);
+    assert.equal(rec.data.note, `the phrase ${REDACTED_PLACEHOLDER} appears in free text too`);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -234,7 +234,7 @@ test("appendEventRecord: andon.url (direct secret field, not env-indirected) is 
   const { root, runDir } = mkFixtureRoot(`andon:\n  url: ${ANDON_URL}\n`);
   try {
     withCwd(root, () => {
-      appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { detail: `posting to ${ANDON_URL}` } }, "2026-01-01T00:00:00Z");
+      appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { note: `posting to ${ANDON_URL}` } }, "2026-01-01T00:00:00Z");
     });
     const raw = readFileSync(join(runDir, "events.jsonl"), "utf8");
     assert.equal(raw.includes(ANDON_URL), false);
@@ -246,10 +246,10 @@ test("appendEventRecord: no .faffrc.yaml at all -> no targets, write proceeds ex
   const { root, runDir } = mkFixtureRoot(null);
   try {
     withCwd(root, () => {
-      appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { msg: "plain text, nothing secret" } }, "2026-01-01T00:00:00Z");
+      appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { note: "plain text, nothing secret" } }, "2026-01-01T00:00:00Z");
     });
     const rec = JSON.parse(readFileSync(join(runDir, "events.jsonl"), "utf8").trim().split("\n")[0]);
-    assert.deepEqual(rec.data, { msg: "plain text, nothing secret" });
+    assert.deepEqual(rec.data, { note: "plain text, nothing secret" });
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -257,10 +257,10 @@ test("appendEventRecord: an absent configured handle contributes no target — n
   const { root, runDir } = mkFixtureRoot("backends:\n  primary:\n    api_key_env: NEVER_SET_IN_THIS_TEST\n");
   try {
     withCwd(root, () => {
-      appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { msg: "" } }, "2026-01-01T00:00:00Z");
+      appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { note: "" } }, "2026-01-01T00:00:00Z");
     });
     const rec = JSON.parse(readFileSync(join(runDir, "events.jsonl"), "utf8").trim().split("\n")[0]);
-    assert.equal(rec.data.msg, ""); // no empty-string over-match / destructive replacement
+    assert.equal(rec.data.note, ""); // no empty-string over-match / destructive replacement
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -269,7 +269,7 @@ test("appendEventRecord: a malformed base config fails LOUD (never silently caug
   try {
     assert.throws(() => {
       withCwd(root, () => {
-        appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { msg: "x" } }, "2026-01-01T00:00:00Z");
+        appendEventRecord(runDir, "RUN-R", { phase: "run", type: "run-start", data: { note: "x" } }, "2026-01-01T00:00:00Z");
       });
     }, /base-parse-error/);
   } finally { rmSync(root, { recursive: true, force: true }); }

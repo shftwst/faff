@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/commissaire/effect-decision-verdict",
+  "title": "declared-effects.jsonl schema-3 record, kind_of_entry effect-decision-verdict",
+  "description": "Commissaire's signed verdict on a request (commissaire.ts cmdRequestDecision, governor.ts authorize). level_policy and the pure fields are present when a level was supplied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "author",
+    "producer_id",
+    "contract_revision",
+    "kind_of_entry",
+    "step",
+    "prev",
+    "commissaire_sig",
+    "payload"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string",
+      "enum": [
+        "commissaire"
+      ]
+    },
+    "producer_id": {
+      "type": "string"
+    },
+    "contract_revision": {
+      "type": "string"
+    },
+    "kind_of_entry": {
+      "type": "string",
+      "enum": [
+        "effect-decision-verdict"
+      ]
+    },
+    "step": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "commissaire_sig": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_seq",
+        "verdict",
+        "reason"
+      ],
+      "properties": {
+        "request_seq": {
+          "type": "integer"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "grant",
+            "deny"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "effect": {
+          "description": "Named open node: the caller's raw effect descriptor, chained as given. evaluateDecisionRequest judges it and denies a malformed one invalid-effect-descriptor."
+        },
+        "level": {
+          "type": "string"
+        },
+        "attended": {
+          "type": "boolean"
+        },
+        "holdout": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "level_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pass",
+            "reason"
+          ],
+          "properties": {
+            "pass": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "pure_verdict": {
+          "type": "string",
+          "enum": [
+            "grant",
+            "deny"
+          ]
+        },
+        "pure_reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

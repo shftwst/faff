@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/events/tidy-done",
+  "title": "events.jsonl schema-2 record, type tidy-done",
+  "description": "Tidy pass returns, written by the agent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "phase",
+    "type",
+    "prev"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        2
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "run",
+        "tidy",
+        "prep",
+        "build",
+        "plot"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "tidy-done"
+      ]
+    },
+    "issue": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "type": "string"
+        },
+        "park_labels_cleared": {
+          "type": "integer"
+        },
+        "prep_candidates": {
+          "type": "integer"
+        },
+        "tokens": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "null is the estimate form (tokens_source estimate). The legacy cache_write class is accepted on committed lines; eventViolations normalises it before any new write.",
+          "additionalProperties": false,
+          "required": [
+            "input",
+            "output",
+            "cache_read"
+          ],
+          "properties": {
+            "input": {
+              "type": "integer"
+            },
+            "output": {
+              "type": "integer"
+            },
+            "cache_read": {
+              "type": "integer"
+            },
+            "cache_write_5m": {
+              "type": "integer"
+            },
+            "cache_write_1h": {
+              "type": "integer"
+            },
+            "cache_write": {
+              "type": "integer"
+            }
+          }
+        },
+        "tokens_source": {
+          "type": "string"
+        },
+        "ledger_sha256_before": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ledger_sha256_after": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "effort": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        },
+        "gate": {
+          "type": "string",
+          "enum": [
+            "structural",
+            "adversarial",
+            "holdout",
+            "ci"
+          ]
+        },
+        "rework_turns": {
+          "type": "integer"
+        },
+        "dropped_keys": {
+          "type": "array",
+          "description": "Set only by faff events append: the names of agent data keys outside this schema, sorted.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+          }
+        },
+        "forbidden_side_effect": {
+          "type": "boolean",
+          "description": "Read by sentry.js evalForbiddenSideEffect on any event: the effects-to-sentry bridge an orchestrator writes on an escape."
+        }
+      }
+    }
+  }
+}

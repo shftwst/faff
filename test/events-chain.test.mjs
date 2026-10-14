@@ -96,7 +96,7 @@ test("previous line larger than the tail window: prev still hashes the exact ful
     appendRecordUnderLock(runDir, mkMinter("RUN-H"));
     // A giant record whose line alone exceeds the tail window.
     const pad = "x".repeat(TAIL_WINDOW_BYTES + 2048);
-    appendRecordUnderLock(runDir, (seq, _prev, prevHash) => ({ schema: 2, run_id: "RUN-H", seq, ts: "t", prev: prevHash, phase: "run", type: "budget-checkpoint", data: { pad } }));
+    appendRecordUnderLock(runDir, (seq, _prev, prevHash) => ({ schema: 2, run_id: "RUN-H", seq, ts: "t", prev: prevHash, phase: "run", type: "budget-checkpoint", data: { note: pad } }));
     assert.ok(statSync(log).size > TAIL_WINDOW_BYTES, "fixture: the last line exceeds the window");
     const giantLineBytes = physicalLines(log)[1];
     // The under-lock state read extends backwards to the preceding newline.

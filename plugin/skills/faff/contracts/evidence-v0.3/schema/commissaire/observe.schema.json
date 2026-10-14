@@ -1,0 +1,469 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/commissaire/observe",
+  "title": "declared-effects.jsonl schema-3 record, kind_of_entry observe",
+  "description": "A producer's observed effect (commissaire.ts cmdProducerLedger).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "author",
+    "producer_id",
+    "contract_revision",
+    "kind_of_entry",
+    "step",
+    "prev",
+    "producer_hmac",
+    "effect"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string",
+      "enum": [
+        "producer"
+      ]
+    },
+    "producer_id": {
+      "type": "string"
+    },
+    "contract_revision": {
+      "type": "string"
+    },
+    "kind_of_entry": {
+      "type": "string",
+      "enum": [
+        "observe"
+      ]
+    },
+    "step": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "producer_hmac": {
+      "type": "string"
+    },
+    "effect": {
+      "type": "object",
+      "description": "The effect descriptor, discriminated on kind; one closed schema per EFFECT_KINDS member (effects/<kind>.schema.json).",
+      "required": [
+        "kind"
+      ],
+      "discriminator": {
+        "field": "kind",
+        "mapping": {
+          "branch-delete": {
+            "title": "effect descriptor, kind branch-delete",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "branch-delete"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "db-migration": {
+            "title": "effect descriptor, kind db-migration",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "db-migration"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "deploy": {
+            "title": "effect descriptor, kind deploy",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "deploy"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "email": {
+            "title": "effect descriptor, kind email",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "email"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "file-write": {
+            "title": "effect descriptor, kind file-write",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "file-write"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "force-push": {
+            "title": "effect descriptor, kind force-push",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "force-push"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "label-write": {
+            "title": "effect descriptor, kind label-write",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "label-write"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "merge": {
+            "title": "effect descriptor, kind merge",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "merge"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "other": {
+            "title": "effect descriptor, kind other",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "other"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "pr-create": {
+            "title": "effect descriptor, kind pr-create",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pr-create"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "prod-script": {
+            "title": "effect descriptor, kind prod-script",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "prod-script"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "push": {
+            "title": "effect descriptor, kind push",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "push"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "registry-publish": {
+            "title": "effect descriptor, kind registry-publish",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "registry-publish"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "secret-rotation": {
+            "title": "effect descriptor, kind secret-rotation",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "secret-rotation"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "tracker-write": {
+            "title": "effect descriptor, kind tracker-write",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "tracker-write"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          },
+          "webhook": {
+            "title": "effect descriptor, kind webhook",
+            "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "webhook"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

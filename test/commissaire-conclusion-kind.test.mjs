@@ -10,12 +10,13 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, copyFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { basename, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./helpers/run-cli.mjs";
-import { verifyDecision, mintGovernorKeypair } from "../plugin/skills/faff/bin/lib/producer-auth.js";
+import { buildEnvelope, signRecord, verifyDecision, mintGovernorKeypair } from "../plugin/skills/faff/bin/lib/producer-auth.js";
+import { appendRecordsUnderLock } from "../plugin/skills/faff/bin/lib/events.js";
 import {
-  KIND_AUTHOR, appendProducerRecords, governorFileOf, governorDirOf, producerFileOf, producerDirOf, pkFileOf,
+  KIND_AUTHOR, LEDGER_CFG, governorFileOf, governorDirOf, producerFileOf, producerDirOf, pkFileOf,
 } from "../plugin/skills/faff/bin/lib/commissaire.js";
 import { CONCLUSION_KIND, LEGACY_CONCLUSION_KIND, conclusionKindOf } from "../plugin/skills/faff/bin/lib/effects.js";
 
@@ -151,7 +152,12 @@ test("7a. a producer-authored conclusion record of either kind does not count as
     const { root, runDir, ledger } = governedCleanRun("FAFF-1");
     try {
       const producerKey = Buffer.from(JSON.parse(readFileSync(producerFileOf(producerDirOf(runDir), "P1"), "utf8")).key_hex, "hex");
-      appendProducerRecords(runDir, producerKey, "P1", "r1", [{ kind_of_entry: kind, unit_id: "FAFF-1", step: "conclude", payload: {} }], "2026-10-08T00:00:00.000Z");
+      // A hand-chained forgery: no faff writer mints a producer conclusion (the v0.3 schema refuses one).
+      appendRecordsUnderLock(runDir, LEDGER_CFG, 1, (_i, seq, _prev, prevHash) => {
+        const rec = buildEnvelope(basename(runDir), seq, prevHash, "producer", "P1", "r1", { kind_of_entry: kind, unit_id: "FAFF-1", step: "conclude", payload: {} }, "2026-10-08T00:00:00.000Z");
+        rec.producer_hmac = signRecord(rec, producerKey);
+        return rec;
+      });
       const planted = records(ledger).at(-1);
       assert.equal(planted.author, "producer");
       assert.equal(conclusionKindOf(planted), kind);

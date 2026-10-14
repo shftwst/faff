@@ -160,26 +160,70 @@ function parseAdmissionRecord(raw) {
         rec[k] = raw[k];
     return rec;
 }
-// --- Ledger append: mint schema:3 records, signing each inside the lock -------------------
+// Resolves the profile and warms the schema cache, so call it before taking the lock.
+function recordSchemaCheck() {
+    const check = require("./evidence").logRecordChecker("declared-effects.jsonl"); // lazy — keeps the load graph unchanged
+    return (rec) => {
+        if (!check)
+            return { violations: [], unavailable: null };
+        const r = check(rec);
+        if (r.unavailable)
+            return { violations: [], unavailable: str(r.unavailable) ?? "declared-effects.jsonl" };
+        return { violations: [...r.violations, ...conclusionRangeViolations(rec)], unavailable: null };
+    };
+}
+// The subset validator has no maxItems, so the writer holds the conclusion range to two seqs.
+function conclusionRangeViolations(rec) {
+    const range = conclusionKindOf(rec) !== null && isRecord(rec.payload) ? rec.payload.evidence_seq_range : undefined;
+    return Array.isArray(range) && range.length > 2 ? ["payload.evidence_seq_range: expected exactly 2 items"] : [];
+}
+function refuseOffSchema(verdict) {
+    if (verdict.violations.length === 0)
+        return verdict.unavailable;
+    const e = new Error(`record refused by the v0.3 declared-effect schema: ${verdict.violations.join("; ")}`);
+    throw Object.assign(e, { code: "RECORD_SCHEMA", violations: verdict.violations });
+}
+function noteUnavailable(runDir, where) {
+    if (where !== null)
+        require("./evidence").noteSchemaUnavailable(runDir, "commissaire", where);
+}
+// A governor-returned record is appended verbatim, so it is checked before the append: the
+// violations go to stderr and the caller refuses it as an unverified record.
+function governorRecordConforms(runDir, rec) {
+    const verdict = recordSchemaCheck()(rec);
+    noteUnavailable(runDir, verdict.unavailable);
+    for (const x of verdict.violations)
+        process.stderr.write(`faff commissaire: governor record refused by the v0.3 declared-effect schema: ${x}\n`);
+    return verdict.violations.length === 0;
+}
 // Append N producer-authored records (HMAC'd under K_producer) as one atomic chained batch.
 function appendProducerRecords(runDir, key, producerId, contractRevision, bodies, ts, opts) {
     bodies.forEach(assertEnvelopeBody);
     const runId = path.basename(runDir);
-    return appendRecordsUnderLock(runDir, LEDGER_CFG, bodies.length, (index, seq, _prev, prevHash) => {
+    const check = recordSchemaCheck();
+    let unavailable = null;
+    const written = appendRecordsUnderLock(runDir, LEDGER_CFG, bodies.length, (index, seq, _prev, prevHash) => {
         const rec = buildEnvelope(runId, seq, prevHash, "producer", producerId, contractRevision, bodies[index] ?? {}, ts);
         rec.producer_hmac = signRecord(rec, key);
+        unavailable = refuseOffSchema(check(rec)) ?? unavailable;
         return rec;
     }, opts);
+    noteUnavailable(runDir, unavailable);
+    return written;
 }
 // Append one Commissaire-authored record (Ed25519-signed under SK) as a chained record.
 function appendCommissaireRecord(runDir, sk, producerId, contractRevision, body, ts) {
     assertEnvelopeBody(body);
     const runId = path.basename(runDir);
+    const check = recordSchemaCheck();
+    let unavailable = null;
     const written = appendRecordsUnderLock(runDir, LEDGER_CFG, 1, (_i, seq, _prev, prevHash) => {
         const rec = buildEnvelope(runId, seq, prevHash, "commissaire", producerId, contractRevision, body, ts);
         rec.commissaire_sig = signDecision(rec, sk);
+        unavailable = refuseOffSchema(check(rec));
         return rec;
     });
+    noteUnavailable(runDir, unavailable);
     return written === null ? null : written[0];
 }
 // --- Governor-client mode (FAFF-1179): ask the governor instead of signing in-process -----
@@ -670,6 +714,11 @@ function clientAdmit(runDir, producerId, contractRevision, scope, endpoint, forc
         process.stderr.write("faff commissaire admit: the ledger is not empty — a governor admission must be the first record (nothing written)\n");
         return 2;
     }
+    const admissionRecord = isRecord(reply.admission_record) ? reply.admission_record : {};
+    if (!governorRecordConforms(runDir, admissionRecord)) {
+        process.stderr.write("faff commissaire admit: governor admission record failed the v0.3 schema — refusing, nothing written\n");
+        return 2;
+    }
     const admittedScope = Array.isArray(reply.admitted_scope) ? reply.admitted_scope : scope;
     const admittedAt = ts || new Date().toISOString();
     ensureOwnerOnlyDir(producerDir);
@@ -679,7 +728,7 @@ function clientAdmit(runDir, producerId, contractRevision, scope, endpoint, forc
         pk: reply.pk, pk_fingerprint: reply.pk_fingerprint, admitted_scope: admittedScope, status: "admitted", admitted_at: admittedAt,
     });
     writeOwnerOnlyJson(pkFileOf(producerDir), { pk: reply.pk, pk_fingerprint: reply.pk_fingerprint });
-    const appended = appendVerbatimGovernorRecord(runDir, isRecord(reply.admission_record) ? reply.admission_record : {});
+    const appended = appendVerbatimGovernorRecord(runDir, admissionRecord);
     if (appended === null) {
         process.stderr.write("faff commissaire admit: could not append the governor admission record at seq 0 (ledger not empty?)\n");
         return 2;
@@ -985,7 +1034,7 @@ function cmdRequestDecision(flags) {
         };
         const result = governorClient.appendGovernorRecordWithRetry({
             ask: () => governorClient.classifyAskResult(governorClient.governorRequest(endpoint, buildAuthorizeRequest(), timeouts)),
-            verify: (rec) => verifyDecision(rec, governorPk),
+            verify: (rec) => verifyDecision(rec, governorPk) && governorRecordConforms(runDir, rec),
             appendVerbatim: (rec) => appendVerbatimGovernorRecord(runDir, rec),
         });
         if ("unreachable" in result)
@@ -1144,7 +1193,7 @@ function cmdTerminalVerdict(flags) {
             };
             const result = governorClient.appendGovernorRecordWithRetry({
                 ask: () => governorClient.classifyAskResult(governorClient.governorRequest(endpoint, buildConcludeRequest(), timeouts)),
-                verify: (rec) => verifyDecision(rec, concludedKey),
+                verify: (rec) => verifyDecision(rec, concludedKey) && governorRecordConforms(runDir, rec),
                 appendVerbatim: (rec) => appendVerbatimGovernorRecord(runDir, rec),
             });
             if ("unreachable" in result)
@@ -1462,7 +1511,17 @@ function cmdCommissaire(args) {
         process.stderr.write(`faff commissaire ${key}: unknown argument: ${rest.slice(2).join(" ")}\n`);
         return 2;
     }
-    return handler(flags);
+    try {
+        return handler(flags);
+    }
+    catch (e) {
+        if (!(isRecord(e) && e.code === "RECORD_SCHEMA" && Array.isArray(e.violations)))
+            throw e;
+        process.stderr.write(`faff commissaire ${key}: record refused by the v0.3 declared-effect schema, nothing written\n`);
+        for (const x of e.violations)
+            process.stderr.write(`- ${String(x)}\n`);
+        return 2;
+    }
 }
 // The CLI surface grammar (cli-surface.js DISPATCH_SURFACES entry).
 const COMMISSAIRE_SPEC = { flags: {

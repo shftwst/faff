@@ -385,7 +385,8 @@ test("declaredEffectViolations accepts schema:3 records minted by appendCommissa
     admit(runDir);
     const body = { kind_of_entry: "declare", unit_id: "FAFF-1", step: "merge", effect: MERGE };
     assert.ok(appendProducerRecords(runDir, producerKey(runDir), "P1", "r1", [body], "t"));
-    assert.ok(appendCommissaireRecord(runDir, governor(runDir).sk, "P1", "r1", { ...body, payload: { note: "n" } }, "t"));
+    const conclusion = { kind_of_entry: "conformed_to_contract", unit_id: "FAFF-1", step: "conclude", payload: { producer_id: "P1", contract_revision: "r1", evidence_seq_range: [0, 1], escapes_checked: true } };
+    assert.ok(appendCommissaireRecord(runDir, governor(runDir).sk, "P1", "r1", conclusion, "t"));
     const minted = records(ledger).filter((r) => r.author === "producer" || r.author === "commissaire").slice(-2);
     assert.deepEqual(minted.map((r) => r.author), ["producer", "commissaire"]);
     for (const rec of minted) assert.deepEqual(declaredEffectViolations(rec), []);

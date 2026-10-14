@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/commissaire/accepted_under_contract",
+  "title": "declared-effects.jsonl schema-3 record, kind_of_entry accepted_under_contract",
+  "description": "The frozen pre-FAFF-1221 name of conformed_to_contract. Signed records carrying it can never be renamed; conclusionKindOf reads both.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "seq",
+    "ts",
+    "author",
+    "producer_id",
+    "contract_revision",
+    "kind_of_entry",
+    "step",
+    "prev",
+    "commissaire_sig",
+    "payload"
+  ],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string",
+      "enum": [
+        "commissaire"
+      ]
+    },
+    "producer_id": {
+      "type": "string"
+    },
+    "contract_revision": {
+      "type": "string"
+    },
+    "kind_of_entry": {
+      "type": "string",
+      "enum": [
+        "accepted_under_contract"
+      ]
+    },
+    "step": {
+      "type": "string"
+    },
+    "prev": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "commissaire_sig": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_id",
+        "contract_revision",
+        "evidence_seq_range",
+        "escapes_checked"
+      ],
+      "properties": {
+        "producer_id": {
+          "type": "string"
+        },
+        "contract_revision": {
+          "type": "string"
+        },
+        "evidence_seq_range": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "escapes_checked": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

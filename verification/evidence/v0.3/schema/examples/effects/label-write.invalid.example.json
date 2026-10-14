@@ -1,0 +1,6 @@
+{
+  "kind": "label-write",
+  "target": "FAFF-1:faff-claimed",
+  "reversible": true,
+  "reason": "a key no descriptor carries"
+}

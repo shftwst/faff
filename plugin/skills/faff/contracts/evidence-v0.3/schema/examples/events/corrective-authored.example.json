@@ -1,0 +1,29 @@
+{
+  "schema": 2,
+  "run_id": "run-20260101-000000-example",
+  "seq": 7,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "phase": "run",
+  "type": "corrective-authored",
+  "issue": "FAFF-1",
+  "data": {
+    "schema": 1,
+    "run_id": "run-20260101-000000-example",
+    "issue": "FAFF-1",
+    "op": "forbid-surface",
+    "payload": {
+      "surfaces": [
+        "docs/"
+      ]
+    },
+    "cites": {
+      "signal": "scope-drift",
+      "event_seq": 5,
+      "evidence": ""
+    },
+    "authored_at": "2026-01-01T00:00:00.000Z",
+    "authored_by": "orchestrator",
+    "artifact": "0000-FAFF-1.json"
+  }
+}

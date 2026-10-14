@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/effects/pr-create",
+  "title": "effect descriptor, kind pr-create",
+  "description": "The effect descriptor for one effect kind (effects.js normEffect). reversible is optional: normEffect writes it on declare and observe lines; request and verdict effects carry only kind and target.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "target"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "pr-create"
+      ]
+    },
+    "target": {
+      "type": "string"
+    },
+    "reversible": {
+      "type": "boolean"
+    }
+  }
+}

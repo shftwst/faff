@@ -76,6 +76,12 @@ cross-link rather than merge.
 
 ## Changelog
 
+- **v0.3 — 2026-10-14 (FAFF-1260, draft, slice 5).** Closes the log payloads: one schema per
+  event type (27, including `evidence-terminal-only`), per effect kind (16) and per schema-3 record
+  kind (8), under `v0.3/schema/events/`, `effects/` and `commissaire/`, composed into
+  `run-event.schema.json` and `declared-effect.schema.json` by `scripts/evidence-v0.3-compose.mjs`.
+  Every writer of either log now checks each record inside its append lock. Additive under the
+  draft rule: every committed line the line validators accept still passes.
 - **v0.3 — 2026-10-14 (FAFF-1256, draft).** Adds `v0.3/`: closed schemas for every file the
   per-PR mint can place in an anchor, `anchor-manifest.json`, four prose pages and the
   read-only `faff evidence validate` command. The subset validator gains `type` unions

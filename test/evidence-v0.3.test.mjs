@@ -19,8 +19,9 @@ const BUNDLE = join(REPO, "plugin", "skills", "faff", "contracts", "evidence-v0.
 const BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
 const lib = (name) => require(`../plugin/skills/faff/bin/lib/${name}.js`);
 const { DELIVERY_PROFILE } = lib("governance-profile");
-const { eventViolations } = lib("events");
-const { declaredEffectViolations } = lib("effects");
+const { DECISION_CAPTURE_COVERAGE_VALUES, DISPATCH_KINDS, EFFORT_LEVELS, QUALITY_GATE_CATCHES, RUNNER_IDENTITY_CREDENTIAL_SOURCES, eventViolations } = lib("events");
+const { CONCLUSION_KIND, EFFECT_KINDS, LEGACY_CONCLUSION_KIND, declaredEffectViolations } = lib("effects");
+const { DECISION_VERDICTS, KIND_AUTHOR } = lib("commissaire");
 const { redactKnownSecrets, resolveKnownSecretValues } = lib("redact");
 const { runResumeEvent } = lib("resume");
 const { runClaimAbandonedEvent } = lib("resumecheck");
@@ -28,11 +29,13 @@ const { runClaimAbandonedEvent } = lib("resumecheck");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 const schemaPath = (name) => join(SRC, "schema", `${name}.schema.json`);
 const schema = (name) => readJson(schemaPath(name));
-const schemaFiles = () => readdirSync(join(SRC, "schema")).filter((f) => f.endsWith(".schema.json")).sort();
 const walk = (dir) => readdirSync(dir).sort().flatMap((n) => {
   const p = join(dir, n);
   return statSync(p).isDirectory() ? walk(p) : [p];
 });
+// Every schema file, top level and the per-type subdirectories, as a path relative to schema/.
+const schemaFiles = () => walk(join(SRC, "schema")).map((p) => relative(join(SRC, "schema"), p).split("\\").join("/"))
+  .filter((f) => f.endsWith(".schema.json") && !f.startsWith("examples/"));
 
 const anchors = [];
 for (const run of readdirSync(join(REPO, ".faff", "anchors"))) {
@@ -87,8 +90,6 @@ test("v0.3: the bundled copy and verification/evidence/v0.3 have the same files 
 // --- schema lint --------------------------------------------------------------
 
 const KNOWN_TYPES = new Set(["object", "array", "string", "boolean", "number", "integer", "null"]);
-const OPEN_PAYLOADS = new Set(["data", "effect", "payload"]);
-const JSONL_SCHEMAS = new Set(["run-event.schema.json", "declared-effect.schema.json"]);
 
 function walkSchema(node, visit, trail = []) {
   if (node === null || typeof node !== "object") return;
@@ -109,39 +110,76 @@ test("v0.3: every type value in every schema is one of the seven known names", (
   }
 });
 
-const OPEN_ENTRIES = new Map([["run-ledger.schema.json", "properties.outcome_details.additionalProperties"]]);
+// FAFF-1260: the open nodes a different contract owns and checks. A node is named by the record
+// type or kind its schema describes plus its path from the record root; it appears in that type's
+// own file and again in the composed log schema.
+const OPEN_NODES = new Set([
+  "decision-capture: data.normalised_inputs",
+  "decision-capture: data.verdict",
+  "decision-capture: data.selected_action",
+  "decision-capture-action: data.selected_action",
+  "effect-decision-request: payload.effect",
+  "effect-decision-verdict: payload.effect",
+]);
+// Open by design elsewhere: free-form outcome_details entries (FAFF-1274) and the frozen schema-1
+// event payload (no writer emits schema 1).
+const OPEN_ENTRIES = new Set(["run-ledger: outcome_details.<entry>", "run-event: data"]);
+const OWNING_DISCRIMINATORS = new Set(["type", "kind_of_entry"]);
 
+// The record a schema file describes before any discriminator mapping is entered.
+function fileOwner(file) {
+  const m = file.match(/^(events|commissaire|effects)\/(.+)\.schema\.json$/);
+  return m ? m[2] : file.replace(/\.schema\.json$/, "");
+}
+
+// Walks a schema and returns its open nodes as "<owner>: <path>". An object node is open when it
+// neither closes its keys nor is a discriminator base; a property schema with no type is open too.
 function openObjectNodes(file, root) {
   const open = [];
-  walkSchema(root, (node, trail) => {
-    if (!node.type || ![].concat(node.type).includes("object")) return;
-    if (trail[trail.length - 1] === "properties") return;
-    const name = trail[trail.length - 1];
-    if (JSONL_SCHEMAS.has(file) && OPEN_PAYLOADS.has(name) && trail[trail.length - 2] === "properties") return;
-    if (OPEN_ENTRIES.get(file) === trail.join(".")) return;
+  const visit = (node, owner, at) => {
+    if (node === null || typeof node !== "object") return;
+    const name = `${owner}: ${at.join(".")}`;
     if (node.discriminator) {
-      for (const mapped of Object.values(node.discriminator.mapping)) {
-        if (mapped.additionalProperties !== false) open.push(`${trail.join(".")} (mapped sub-schema)`);
-      }
+      const owns = OWNING_DISCRIMINATORS.has(node.discriminator.field);
+      for (const [key, mapped] of Object.entries(node.discriminator.mapping)) visit(mapped, owns ? key : owner, at);
       return;
     }
-    const ap = node.additionalProperties;
-    if (!(ap === false || (ap && typeof ap === "object"))) open.push(trail.join("."));
-  });
+    const types = [].concat(node.type || []);
+    if (node.type === undefined && at.length > 0) open.push(name);
+    if (types.includes("object")) {
+      const ap = node.additionalProperties;
+      if (ap && typeof ap === "object") visit(ap, owner, [...at, "<entry>"]);
+      else if (ap !== false) open.push(name);
+    }
+    for (const [k, sub] of Object.entries(node.properties || {})) visit(sub, owner, [...at, k]);
+    if (node.items) visit(node.items, owner, [...at, "[]"]);
+  };
+  visit(root, fileOwner(file), []);
   return open;
 }
 
-test("v0.3: every object node is closed, apart from the open JSONL payloads, discriminator bases and outcome_details entries", () => {
-  for (const file of schemaFiles()) assert.deepEqual(openObjectNodes(file, readJson(join(SRC, "schema", file))), [], file);
+test("v0.3: every object node is closed apart from the named open nodes and the outcome_details entries", () => {
+  const found = new Set();
+  for (const file of schemaFiles()) {
+    for (const node of openObjectNodes(file, readJson(join(SRC, "schema", file)))) {
+      assert.ok(OPEN_NODES.has(node) || OPEN_ENTRIES.has(node), `${file}: ${node} is open`);
+      found.add(node);
+    }
+  }
+  assert.deepEqual([...found].filter((n) => OPEN_NODES.has(n)).sort(), [...OPEN_NODES].sort());
 });
 
-test("v0.3: the closure lint exempts only the run-ledger outcome_details entries", () => {
+test("v0.3: the closure lint catches an open payload, an untyped property and a non-closing mapping", () => {
+  const event = schema("events/park");
+  event.properties.data.properties.extra = { type: "object" };
+  event.properties.data.properties.untyped = {};
+  assert.deepEqual(openObjectNodes("events/park.schema.json", event).sort(), ["park: data.extra", "park: data.untyped"]);
+  const composed = schema("run-event");
+  delete composed.discriminator.mapping["2"].discriminator.mapping["run-end"].properties.data.additionalProperties;
+  assert.deepEqual(openObjectNodes("run-event.schema.json", composed).filter((n) => !OPEN_NODES.has(n) && !OPEN_ENTRIES.has(n)), ["run-end: data"]);
   const ledger = schema("run-ledger");
   ledger.properties.outcomes.additionalProperties = { type: "object" };
-  ledger.properties.extra = { type: "object" };
-  assert.deepEqual(openObjectNodes("run-ledger.schema.json", ledger).sort(), ["properties.extra", "properties.outcomes.additionalProperties"]);
-  const elsewhere = { type: "object", additionalProperties: false, properties: { outcome_details: schema("run-ledger").properties.outcome_details } };
-  assert.deepEqual(openObjectNodes("build-progress.schema.json", elsewhere), ["properties.outcome_details.additionalProperties"]);
+  assert.deepEqual(openObjectNodes("run-ledger.schema.json", ledger).filter((n) => !OPEN_ENTRIES.has(n)), ["run-ledger: outcomes.<entry>"]);
 });
 
 test("v0.3: every evidence-document schema requires schema_version with enum [1]", () => {
@@ -292,11 +330,31 @@ test("v0.3: events built by the in-code builders that write extra top-level keys
   }
 });
 
-test("v0.3: schema enums mirror DELIVERY_PROFILE", () => {
-  const event = schema("run-event").discriminator.mapping["2"].properties;
-  assert.deepEqual(event.type.enum, DELIVERY_PROFILE.event_types);
-  assert.deepEqual(event.phase.enum, DELIVERY_PROFILE.event_phases);
+test("v0.3: schema enums mirror their code constants", () => {
+  const byType = schema("run-event").discriminator.mapping["2"].discriminator.mapping;
+  assert.deepEqual(Object.keys(byType), DELIVERY_PROFILE.event_types);
+  for (const [type, s] of Object.entries(byType)) {
+    assert.deepEqual(s.properties.type.enum, [type]);
+    assert.deepEqual(s.properties.phase.enum, DELIVERY_PROFILE.event_phases, type);
+    for (const tag of ["effort", "gate"]) {
+      const node = s.properties.data.properties[tag];
+      if (node) assert.deepEqual(node.enum, [...{ effort: EFFORT_LEVELS, gate: QUALITY_GATE_CATCHES }[tag]], `${type} data.${tag}`);
+    }
+  }
   assert.deepEqual(schema("run-ledger").properties.outcomes.additionalProperties.enum, DELIVERY_PROFILE.ledger_outcomes);
+  assert.deepEqual(byType["issue-outcome"].properties.data.properties.outcome.enum, DELIVERY_PROFILE.ledger_outcomes);
+  assert.deepEqual(byType["agent-dispatch"].properties.data.properties.kind.enum, [...DISPATCH_KINDS]);
+  assert.deepEqual(byType["decision-capture"].properties.data.properties.coverage.enum, [...DECISION_CAPTURE_COVERAGE_VALUES]);
+  assert.deepEqual(byType["runner-identity"].properties.data.properties.credential_source.enum, [...RUNNER_IDENTITY_CREDENTIAL_SOURCES]);
+  const effects = schema("declared-effect").discriminator.mapping["2"].properties.effect.discriminator.mapping;
+  assert.deepEqual(Object.keys(effects), [...EFFECT_KINDS]);
+  const kinds = schema("declared-effect").discriminator.mapping["3"].discriminator.mapping;
+  assert.deepEqual(Object.keys(kinds), [...Object.keys(KIND_AUTHOR), LEGACY_CONCLUSION_KIND]);
+  for (const [kind, s] of Object.entries(kinds)) assert.deepEqual(s.properties.author.enum, [KIND_AUTHOR[kind === LEGACY_CONCLUSION_KIND ? CONCLUSION_KIND : kind]], kind);
+  for (const kind of ["effect-decision-verdict"]) {
+    assert.deepEqual(kinds[kind].properties.payload.properties.verdict.enum, [...DECISION_VERDICTS]);
+    assert.deepEqual(kinds[kind].properties.payload.properties.pure_verdict.enum, [...DECISION_VERDICTS]);
+  }
 });
 
 // --- docs and examples --------------------------------------------------------
@@ -326,9 +384,11 @@ test("v0.3: every bundled example passes redactKnownSecrets unchanged and carrie
 });
 
 test("v0.3: every example validates (valid) or fails (invalid) against its schema", () => {
-  for (const file of readdirSync(join(SRC, "schema", "examples")).sort()) {
+  const examples = join(SRC, "schema", "examples");
+  for (const path of walk(examples)) {
+    const file = relative(examples, path).split("\\").join("/");
     const name = file.replace(/\.invalid\.example\.json$/, "").replace(/\.example\.json$/, "").replace(/\.schema-\d+$/, "");
-    const errs = validateAgainstSchema(readJson(join(SRC, "schema", "examples", file)), schema(name));
+    const errs = validateAgainstSchema(readJson(path), schema(name));
     if (file.includes(".invalid.")) assert.ok(errs.length > 0, file);
     else assert.deepEqual(errs, [], file);
   }

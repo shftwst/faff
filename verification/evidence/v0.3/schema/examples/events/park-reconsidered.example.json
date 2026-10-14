@@ -1,0 +1,19 @@
+{
+  "schema": 2,
+  "run_id": "run-20260101-000000-example",
+  "seq": 7,
+  "ts": "2026-01-01T00:00:00.000Z",
+  "prev": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "phase": "run",
+  "type": "park-reconsidered",
+  "data": {
+    "issue": "FAFF-1",
+    "cause_class": "awaiting-input",
+    "via": "resume-reconsider",
+    "ledger_cleared": true,
+    "ledger_note": null,
+    "cited_input_ref": null,
+    "prev_fingerprint": null,
+    "new_fingerprint": null
+  }
+}

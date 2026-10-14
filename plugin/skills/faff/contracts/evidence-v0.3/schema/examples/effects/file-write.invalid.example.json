@@ -1,0 +1,6 @@
+{
+  "kind": "file-write",
+  "target": "docs/decisions.md",
+  "reversible": true,
+  "reason": "a key no descriptor carries"
+}

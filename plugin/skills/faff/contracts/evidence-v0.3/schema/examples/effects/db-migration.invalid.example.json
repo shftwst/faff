@@ -1,0 +1,6 @@
+{
+  "kind": "db-migration",
+  "target": "example-target",
+  "reversible": true,
+  "reason": "a key no descriptor carries"
+}

@@ -407,6 +407,7 @@ runs:
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
+        kill -KILL $$
         set -euo pipefail
         REPORTS="$RUNNER_TEMP/faff-evidence"
         VERDICT_WRITTEN=false

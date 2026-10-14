@@ -81,7 +81,11 @@ const KIND_SCHEMA = {
 };
 const envelope = (version) => `${version}/schema/facade-envelope.schema.json`;
 const isConclusion = (rec) => conclusionKindOf(rec) !== null;
-const kindSchemaName = (version, rec) => (isConclusion(rec) ? CONCLUSION_SCHEMA[version] : KIND_SCHEMA[rec.kind_of_entry]);
+function kindSchemaName(version, rec) {
+  const name = isConclusion(rec) ? CONCLUSION_SCHEMA[version] : KIND_SCHEMA[rec.kind_of_entry];
+  if (name === undefined) throw new Error(`no ${version} kind schema for kind_of_entry ${JSON.stringify(rec.kind_of_entry)}`);
+  return name;
+}
 const kindSchema = (version, rec) => `${version}/schema/${kindSchemaName(version, rec)}.schema.json`;
 const conclusionSchema = (version) => `${version}/schema/${CONCLUSION_SCHEMA[version]}.schema.json`;
 
@@ -166,6 +170,15 @@ test("commissaire-facade-spec: schemaVersionFor returns all six outcomes", () =>
   assert.equal(schemaVersionFor({ schema: 3, unit_id: 5 }), "unresolvable");
   assert.equal(schemaVersionFor({ schema: 3, unit_id: "" }), "unresolvable");
   assert.equal(schemaVersionFor({ schema: 3, issue: undefined, unit_id: "U" }), "v0.3");
+});
+
+test("commissaire-facade-spec: an issue-keyed record carrying the current conclusion kind routes to v0.1 and fails it", () => {
+  const { unit_id, ...rest } = readJson("v0.3/schema/examples/conformed-to-contract.example.json");
+  const rec = { ...rest, issue: unit_id };
+  assert.equal(schemaVersionFor(rec), "v0.1");
+  assert.ok(!routeAndValidate(rec).valid);
+  assert.ok(!validateRecord(rec, envelope("v0.1")), "the v0.1 envelope does not know conformed_to_contract");
+  assert.ok(!validateRecord(rec, conclusionSchema("v0.1")), "the v0.1 conclusion schema does not know conformed_to_contract");
 });
 
 test("commissaire-facade-spec: the frozen fixture's records route to v0.1, pass it, and fail the v0.2 and v0.3 envelopes", () => {

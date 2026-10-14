@@ -869,6 +869,7 @@ function cmdEvidence(args) {
       return 0;
     }
     if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
+    if (sub === "validate") process.exit(139);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);
       return 2;

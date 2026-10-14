@@ -328,6 +328,9 @@
           "discovered_scope": {
             "type": "integer"
           },
+          "on_hold": {
+            "type": "string"
+          },
           "pr": {
             "type": [
               "integer",
@@ -582,6 +585,24 @@
           },
           "environmental": {
             "type": "boolean"
+          }
+        }
+      }
+    },
+    "evidence_persisted": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "issue": {
+            "type": "string"
+          },
+          "ac_sha256": {
+            "type": "string"
+          },
+          "review_verdict_sha256": {
+            "type": "string"
           }
         }
       }

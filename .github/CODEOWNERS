@@ -1,0 +1,8 @@
+# Code-owner review covers what the governance-check Action's base-commit evidence leg cannot:
+# GitHub runs the workflow and the composite Action from the PR head, so a PR that edits .github/
+# can rewrite the checks that judge it. verification/ holds the evidence contract those checks
+# enforce. Owners are the repository's human admins; the runner identity is never a code owner.
+# The rule binds only while the "Main" ruleset requires code-owner review
+# (docs/guide/governance-check.md section 2; confirm with `faff branch-protection-check`).
+/.github/        @alechill @shftwstdev
+/verification/   @alechill @shftwstdev

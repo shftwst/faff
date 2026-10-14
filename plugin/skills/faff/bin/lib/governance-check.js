@@ -259,8 +259,9 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
 // (falling back to the dir basename only when that's unreadable) and spliced onto the result
 // below, independently of the file-lookup path. Returns the same run-result shape as
 // `evaluateRunDir` so the renderers/reasons are unchanged; completeness/budget/liveness stay n/a.
-// `pass = integrity.pass && merge_floor.pass`.
-function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
+// `pass = integrity.pass && merge_floor.pass`, plus `evidence_schema.pass` under
+// `requireEvidenceSchema` (FAFF-1278).
+function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3", { requireEvidenceSchema = false } = {}) {
   const integrity = evaluateIntegrityLeg(dir, legacyPolicy, { requireWitness: true });
   let label = path.basename(dir);
   let issue = path.basename(dir);
@@ -303,6 +304,7 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
     ? { pass: true, issues: [floorResult], detail: `n/a — non-shipped run-level issue (outcome: ${JSON.stringify(outcome)})` }
     : { pass: floorResult.pass, issues: [floorResult] };
   const naDetail = (name) => `n/a — anchor snapshot (${name} runs on live run dirs only)`;
+  const evidence_schema = evidenceSchemaLeg(dir, requireEvidenceSchema);
   return {
     run_id: label,
     run_dir: dir,
@@ -315,23 +317,25 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
       coherence: { clean: true },
       liveness: { pass: true, detail: naDetail("liveness"), status: null, heartbeat_age_secs: null },
       integrity,
-      evidence_schema: evidenceSchemaLeg(dir),
+      evidence_schema,
     },
-    pass: integrity.pass && merge_floor.pass,
+    pass: integrity.pass && merge_floor.pass && (evidence_schema.report_only || evidence_schema.pass),
   };
 }
 
-// FAFF-1263: the report-only evidence-schema leg. It validates the anchor's evidence documents against the
-// bundled v0.3 schemas and reports; it never reaches `pass`, `reasons` or the annotations (FAFF-1261 folds it
-// in). Every path placed in files[] or detail is sanitised first: anchor file names are PR-authored.
-function evidenceSchemaLeg(dir) {
+// The evidence-schema leg validates the anchor's evidence documents against the bundled v0.3 schemas.
+// Report-only by default (FAFF-1263): it never reaches `pass`, `reasons` or the annotations. Under
+// `require` (FAFF-1278) it gates, and only `pass` passes, so legacy, fail and error all fail. Every
+// path placed in files[] or detail is sanitised first: anchor file names are PR-authored.
+function evidenceSchemaLeg(dir, require = false) {
   const check = checkAnchorDir(dir, {});
-  if (check.status === "error") return { report_only: true, status: "error", files: [], detail: `validator error: ${check.reason}` };
+  const gating = require ? { report_only: false, pass: check.status === "pass" } : { report_only: true };
+  if (check.status === "error") return { ...gating, status: "error", files: [], detail: `validator error: ${check.reason}` };
   const files = check.files.map((f) => ({ path: f.path, status: f.status }));
   const detail = check.status === "pass" ? "all files conform to v0.3"
     : check.status === "legacy" ? "legacy anchor (no evidence document carries schema_version)"
     : `${files.length} file(s) non-conforming: ${files.slice(0, 3).map((f) => f.path).join(", ")}`;
-  return { report_only: true, status: check.status, files, detail: sanitiseDisplay(detail) };
+  return { ...gating, status: check.status, files, detail: sanitiseDisplay(detail) };
 }
 
 // ---------------------------------------------------------------------------
@@ -554,6 +558,8 @@ function buildReasons(runResult) {
   }
   if (!legs.liveness.pass) reasons.push(`${run_id}: liveness — ${legs.liveness.detail}`);
   if (legs.integrity && !legs.integrity.pass) reasons.push(`${run_id}: integrity — ${legs.integrity.detail}`);
+  const schema = legs.evidence_schema;
+  if (schema && !schema.report_only && !schema.pass) reasons.push(`${run_id}: evidence_schema — ${schema.status}: ${schema.detail}`);
   return reasons;
 }
 
@@ -569,7 +575,8 @@ function renderGovernanceCheckText(verdict) {
     console.log(`  coherence:    ${r.legs.coherence.clean ? "clean" : "findings"} (report-only)`);
     console.log(`  liveness:     ${r.legs.liveness.pass ? "pass" : "FAIL"} — ${r.legs.liveness.detail}`);
     if (r.legs.integrity) console.log(`  integrity:    ${r.legs.integrity.pass ? "pass" : "FAIL"} — ${r.legs.integrity.detail}`);
-    if (r.legs.evidence_schema) console.log(`  evidence_schema: ${r.legs.evidence_schema.status} (report-only) — ${r.legs.evidence_schema.detail}`);
+    const schema = r.legs.evidence_schema;
+    if (schema) console.log(`  evidence_schema: ${schema.report_only ? `${schema.status} (report-only)` : schema.pass ? "pass" : `FAIL (${schema.status})`} — ${schema.detail}`);
   }
   console.log(`\nverdict: ${verdict.pass ? "PASS" : "FAIL"}`);
   for (const reason of verdict.reasons) console.log(`  ✗ ${reason}`);
@@ -591,7 +598,12 @@ function renderGovernanceCheckSummaryMd(verdict) {
     lines.push(`| coherence _(report-only)_ | ${r.legs.coherence.clean ? "clean" : "findings"} | ${r.legs.coherence.clean ? "—" : "see \`faff audit ${r.run_id}\`"} |`);
     lines.push(`| liveness | ${r.legs.liveness.pass ? "pass" : "**FAIL**"} | ${r.legs.liveness.detail} |`);
     if (r.legs.integrity) lines.push(`| integrity | ${r.legs.integrity.pass ? "pass" : "**FAIL**"} | ${r.legs.integrity.detail} |`);
-    if (r.legs.evidence_schema) lines.push(`| evidence_schema _(report-only)_ | ${r.legs.evidence_schema.status} | ${r.legs.evidence_schema.detail.replaceAll("|", "\\|")} |`);
+    const schema = r.legs.evidence_schema;
+    if (schema) {
+      const leg = schema.report_only ? "evidence_schema _(report-only)_" : "evidence_schema";
+      const result = schema.report_only ? schema.status : schema.pass ? "pass" : `**FAIL** (${schema.status})`;
+      lines.push(`| ${leg} | ${result} | ${schema.detail.replaceAll("|", "\\|")} |`);
+    }
     lines.push("");
   }
   if (verdict.reasons.length) {
@@ -670,13 +682,15 @@ const GOVERNANCE_CHECK_SPEC = { flags: {
   // filesystem walk of the anchors-path (the git-only run-level discovery source); --run
   // optionally scopes that walk to one run id.
   "--from-tree": { arity: 0 }, "--run": { arity: 1 },
+  // FAFF-1278: the anchor evidence-schema leg gates instead of reporting.
+  "--require-evidence-schema": { arity: 0 },
 } };
 
 function cmdGovernanceCheck(args) {
   if (args.includes("--selftest")) return governanceCheckSelftest();
 
   const { values, errors } = parseArgs(args, GOVERNANCE_CHECK_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff governance-check --run-dir DIR... [--anchor-dir DIR...] [--anchors-root DIR] [--legacy-policy pass|warn|fail] [--issue ID] [--level L1|L2|L3|L4] [--summary-md FILE] [--json] | --derive-anchor-dirs ANCHORS_PATH [--from-tree [--run RUN_ID]]");
+  if (errors.length) return usageError(errors, "usage: faff governance-check --run-dir DIR... [--anchor-dir DIR...] [--anchors-root DIR] [--legacy-policy pass|warn|fail] [--issue ID] [--level L1|L2|L3|L4] [--require-evidence-schema] [--summary-md FILE] [--json] | --derive-anchor-dirs ANCHORS_PATH [--from-tree [--run RUN_ID]]");
   const json = !!values["--json"];
 
   // FAFF-568 fix pass: `--derive-anchor-dirs <ANCHORS_PATH>` — the Action's anchor
@@ -762,7 +776,7 @@ function cmdGovernanceCheck(args) {
   // FAFF-568: anchors are integrity-verified always; FAFF-623: also merge-floor-verified
   // (never completeness/budget/liveness-swept — those stay run-scoped, see evaluateAnchorDir).
   for (const d of anchorDirs) {
-    results.push(evaluateAnchorDir(d, legacyPolicy, levelFlag));
+    results.push(evaluateAnchorDir(d, legacyPolicy, levelFlag, { requireEvidenceSchema: !!values["--require-evidence-schema"] }));
   }
 
   const pass = results.every((r) => r.pass);
@@ -1493,6 +1507,7 @@ function governanceCheckSelftest() {
 
 module.exports = {
   anchorDirContainmentViolation,
+  buildReasons,
   cmdGovernanceCheck,
   deriveAnchorDirs,
   deriveAnchorDirsFromTree,

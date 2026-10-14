@@ -318,12 +318,14 @@ const pointerOf = (segs) => segs.map((s) => String(s).replace(/~/g, "~0").replac
 const typesOf = (node) => (Array.isArray(node.type) ? node.type : node.type ? [node.type] : []);
 
 // A new optional property's sub-schema must be closed: typed at every node reached through
-// properties, items and a schema-valued additionalProperties, and every object node closed.
+// properties, items and a schema-valued additionalProperties, every object node closed and every
+// array node carrying an items schema.
 function closedSubschema(node) {
   if (!isObject(node)) return false;
   if (Object.keys(node).some((k) => !SUBSET_KEYWORDS.has(k) && !ANNOTATION_KEYWORDS.has(k))) return false;
   if ("discriminator" in node || typesOf(node).length === 0) return false;
   const types = typesOf(node);
+  if (types.includes("array") && !("items" in node)) return false;
   if (types.includes("object")) {
     const extra = node.additionalProperties;
     if (extra !== false && !(isObject(extra) && closedSubschema(extra))) return false;
@@ -849,7 +851,11 @@ function evidenceSelftest() {
   return 0;
 }
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?} on stdin)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin)\n       faff evidence --selftest\n";
+// What this CLI's `evidence validate` can do. CI reads it from a base commit's CLI, because an unknown
+// flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
+const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas"] };
+
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?} on stdin)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -858,6 +864,10 @@ function cmdEvidence(args) {
   try {
     if (values["--selftest"] && parsed.positionals.length === 0) return evidenceSelftest();
     const [sub, anchorDir, ...rest] = parsed.positionals;
+    if (sub === "capabilities" && !anchorDir) {
+      process.stdout.write(JSON.stringify(CAPABILITIES) + "\n");
+      return 0;
+    }
     if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);
@@ -880,7 +890,7 @@ function cmdEvidence(args) {
 }
 
 module.exports = {
-  EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, announceSchemaUnavailable, anchoredAcChecklist,
+  CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, announceSchemaUnavailable, anchoredAcChecklist,
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evidenceSelftest, exitCodeFor,
   guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,

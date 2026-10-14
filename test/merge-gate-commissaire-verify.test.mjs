@@ -83,12 +83,12 @@ test("faff regions check passes", () => {
   assert.equal(r.code, 0, r.stdout + r.stderr);
 });
 
-test("hasPullRequestRule is pure; extractRequiredChecks is unchanged", () => {
+test("hasPullRequestRule is pure; extractRequiredChecks reads no protection from a bare pull_request rule", () => {
   assert.equal(MG.hasPullRequestRule([{ type: "deletion" }, { type: "pull_request" }]), true);
   assert.equal(MG.hasPullRequestRule([{ type: "deletion" }]), false);
   assert.equal(MG.hasPullRequestRule(null), false);
   assert.equal(MG.hasPullRequestRule([]), false);
-  assert.deepEqual(MG.extractRequiredChecks([{ type: "pull_request" }]), { protected: false, required_checks: [] });
+  assert.deepEqual(MG.extractRequiredChecks([{ type: "pull_request" }]), { protected: false, required_checks: [], code_owner_review: false });
 });
 
 test("merge-gate --selftest covers hasPullRequestRule", () => {

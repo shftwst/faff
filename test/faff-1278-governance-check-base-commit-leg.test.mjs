@@ -600,6 +600,11 @@ test("anchor dir names carrying ::, a control character or | are neutralised in 
   }
   assert.ok(r.base.summary.includes("FAFF-1: :warning: :x\\|y"), r.base.summary);
   assert.ok(r.base.stdout.includes("anchor-path-unvalidated .faff/anchors/run-x/FAFF-2 z/"), r.base.stdout);
+
+  const percent = scenario((dir) => placeAnchor(dir, `${ANCHORS}/run-x/FAFF-3%0Anext`, breakReview));
+  const p = runLeg(percent.dir, { base: percent.base, head: percent.head, mode: "require" });
+  assert.ok(annotations(p.base.stdout, "error").some((l) => l.includes("FAFF-3%250Anext")), p.base.stdout);
+  assert.ok(p.base.summary.includes("FAFF-3%0Anext"), "the summary keeps the name readable");
   const rows = r.base.summary.split("\n").filter((l) => l.startsWith("| .faff"));
   for (const row of rows) assert.equal(row.split(/(?<!\\)\|/).length, 7, row);
 });

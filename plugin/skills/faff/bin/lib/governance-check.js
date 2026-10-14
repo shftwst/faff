@@ -327,9 +327,9 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3", { requireEv
 // Report-only by default (FAFF-1263): it never reaches `pass`, `reasons` or the annotations. Under
 // `require` (FAFF-1278) it gates, and only `pass` passes, so legacy, fail and error all fail. Every
 // path placed in files[] or detail is sanitised first: anchor file names are PR-authored.
-function evidenceSchemaLeg(dir, require = false) {
+function evidenceSchemaLeg(dir, requireSchema = false) {
   const check = checkAnchorDir(dir, {});
-  const gating = require ? { report_only: false, pass: check.status === "pass" } : { report_only: true };
+  const gating = requireSchema ? { report_only: false, pass: check.status === "pass" } : { report_only: true };
   if (check.status === "error") return { ...gating, status: "error", files: [], detail: `validator error: ${check.reason}` };
   const files = check.files.map((f) => ({ path: f.path, status: f.status }));
   const detail = check.status === "pass" ? "all files conform to v0.3"

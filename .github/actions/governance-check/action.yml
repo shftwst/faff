@@ -426,6 +426,8 @@ runs:
         run_trusted() { (cd "$RUNNER_TEMP/faff-trusted-cwd" && env -i PATH="$PATH" HOME="$RUNNER_TEMP/faff-home" node "$TRUSTED" "$@"); }
         CLEAN='const clean = (v) => String(v).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replaceAll("::", ": :").replaceAll("|", "\\|");'
         clean() { node -e "$CLEAN"' process.stdout.write(clean(process.argv[1]));' "$1"; }
+        # Workflow-command data is percent-decoded by the runner, so `%` is escaped before it is printed.
+        annotate() { printf '::%s::faff governance-check: %s\n' "$1" "${2//%/%25}"; }
         # One line per report: status, candidate status, failing files. Unreadable reports read as error.
         REPORT_LINE="$CLEAN"'
           let r; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); } catch { r = null; }
@@ -533,17 +535,17 @@ runs:
             EVIDENCE_RESULT=fail
             ROWS+=("| $name | **fail** | $status | $failing | $candidate |")
             if [ "$MODE" = "require" ]; then level=error; else level=warning; fi
-            echo "::$level::faff governance-check: evidence-schema (base commit) $name: $status"
+            annotate "$level" "evidence-schema (base commit) $name: $status"
           fi
         done
 
         HOLDOUT_NOTE=""
         if [ "$MODE" = "require" ] && [ "$HOLDOUT_SEEN" = true ] && [ "$HOLDOUT_BINDING" != "true" ]; then
           HOLDOUT_NOTE="holdout binding not checked: base CLI predates FAFF-1261"
-          echo "::warning::faff governance-check: $HOLDOUT_NOTE"
+          annotate warning "$HOLDOUT_NOTE"
         fi
         for finding in "${INTEGRITY[@]}"; do
-          echo "::error::faff governance-check: $finding"
+          annotate error "$finding"
         done
 
         {

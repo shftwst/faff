@@ -1,0 +1,190 @@
+{
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Existing faff events anchor tests and the events --selftest anchor cases pass with no edits",
+      "verified": "Full suite in CI 4-shard form: 4 of 4 shards pass; node plugin/skills/faff/bin/faff events --selftest: ok",
+      "passed": true
+    },
+    {
+      "ac": "faff governance-check --selftest passes and existing governance-check tests keep their exit code and pass",
+      "verified": "governance-check --selftest PASS; shards 1-4 pass",
+      "passed": true
+    },
+    {
+      "ac": "evidence-readiness --json matches the ReadinessReport shape and ready follows the constraint, one test per failed clause",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs: scenario, ready follows the constraint, window without holdout.json",
+      "passed": true
+    },
+    {
+      "ac": "A legacy window anchor is one warning; a fail anchor with several bad files is one warning",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::a fail anchor with several bad files counts as one warning, a legacy one as one",
+      "passed": true
+    },
+    {
+      "ac": "Readiness exits 2 for an unresolvable --since, outside a git work tree, and when the bundled manifest is unavailable",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::usage and environment errors exit 2; exit 2 when the bundled manifest is unavailable",
+      "passed": true
+    },
+    {
+      "ac": "writers lists the six tickets, exact (W) match, two-ticket subjects, newest wins, unmet naming a missing or late writer, no skip flag",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::writer matching; a writer with no matching first-parent commit",
+      "passed": true
+    },
+    {
+      "ac": "Traversal or symlink-escape anchors are dropped and block; a README is ignored; an added-then-deleted anchor is neither",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::a README under the anchors root is ignored, a symlink-escape anchor is dropped",
+      "passed": true
+    },
+    {
+      "ac": "Readiness exits 2 for a modified or untracked file under the anchors root and for a root symlinked outside the repo",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::dirty or untracked anchors root and an escaping symlinked root exit 2",
+      "passed": true
+    },
+    {
+      "ac": "With two commits naming (FAFF-1266) the one nearer HEAD wins even when its author date is older",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::the newer first-parent commit is reported even when its author date is older",
+      "passed": true
+    },
+    {
+      "ac": "A failing file named with :: or | is neutralised in governance-check text, json and summary markdown",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::file names with :: or | are neutralised in text, json and summary markdown",
+      "passed": true
+    },
+    {
+      "ac": "Readiness exits 2 for a --since starting with - and for an unresolvable or outside-the-repo --anchors-root; an absolute --anchors-root gives the default report",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::usage and environment errors exit 2; the report is the same from a subdirectory and with an absolute --anchors-root",
+      "passed": true
+    },
+    {
+      "ac": "With holdout.json absent from every window anchor ready is false naming it; one interactive-graft anchor carrying it satisfies the clause",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::a window without holdout.json is not ready",
+      "passed": true
+    },
+    {
+      "ac": "A schema-unavailable error result makes the mint print the error line and the leg report error",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::a schema-unavailable error result prints the error line with its reason, and the leg reports error",
+      "passed": true
+    },
+    {
+      "ac": "A qualifying run with no build-progress.json gives routine_files observed false and an unmet line",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::ready follows the constraint: empty window, no qualifying run, unobserved routine and writer-proof files",
+      "passed": true
+    },
+    {
+      "ac": "legs.evidence_schema appears on anchor results with report_only true; absent on --run-dir results; renderers guard on its presence",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::run-dir results carry no evidence_schema leg and render without it",
+      "passed": true
+    },
+    {
+      "ac": "A legacy-shaped mint exits 0, keeps stdout, copies byte-equal files and warns legacy",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::a legacy-shaped mint exits 0, keeps stdout, copies byte-equal files and warns on stderr",
+      "passed": true
+    },
+    {
+      "ac": "A conforming mint prints no warn-only line and evidence validate reports pass",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::a conforming mint prints no warn-only line and evidence validate passes",
+      "passed": true
+    },
+    {
+      "ac": "A non-conforming mint names at most five files then (+N more files); lines carry a status and a count; the summary names faff evidence validate",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::more than five non-conforming files are cut to five plus a count; a non-conforming mint names the file, status and count",
+      "passed": true
+    },
+    {
+      "ac": "With the validator stubbed to throw and with the bundled manifest removed the mint exits 0, writes the full anchor and prints the error line",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::a throwing validator ...; with the bundled manifest removed ...",
+      "passed": true
+    },
+    {
+      "ac": "events.js has no top-level require of evidence; evidence.js requires neither governance-check nor evidence-readiness; REGION_MAP is factory; evidence-readiness --selftest exits 0",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::module wiring; regions check PASS",
+      "passed": true
+    },
+    {
+      "ac": "faff-graft SKILL.md Step 9b states an evidence-schema warn-only line is not a refusal; validate-adapters passes",
+      "verified": "validate-adapters RESULT: PASS; sentence added to the Step 9b anchor-refusal paragraph",
+      "passed": true
+    },
+    {
+      "ac": "An invalid evidence file gives leg status fail while pass, exit code and reasons equal those with valid evidence",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::a failing evidence document sets the leg to fail without changing pass, exit code or reasons",
+      "passed": true
+    },
+    {
+      "ac": "Text output has an evidence_schema line marked (report-only), summary markdown has the matching row, a fail detail reads <n> file(s) non-conforming: <first 3 paths>",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::the legacy status reaches the leg and the text and markdown renderers show it as report-only",
+      "passed": true
+    },
+    {
+      "ac": "An added path with a newline or | is dropped and blocks readiness",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::a newline or | in an added path is dropped and blocks",
+      "passed": true
+    },
+    {
+      "ac": "Readiness from a subdirectory equals the report from the root",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::the report is the same from a subdirectory and with an absolute --anchors-root",
+      "passed": true
+    },
+    {
+      "ac": "Readiness counts only anchors first added in <since>..HEAD",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::an anchor added before the cutover is not counted",
+      "passed": true
+    },
+    {
+      "ac": "A run qualifies only when its name contains -beepboop- and all its window anchors are bound and pass",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::binding ...; a straddling run is not qualifying",
+      "passed": true
+    },
+    {
+      "ac": "Routine and occasional files observed only in qualifying-run anchors; writer-proof files in any bound window anchor",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::ready follows the constraint; binding",
+      "passed": true
+    },
+    {
+      "ac": "An anchor added under a subject not naming its issue (or only FAFF-90) is unbound, its run does not qualify and its holdout.json is not observed; a (FAFF-9) (#1) subject binds",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::binding: an anchor added under a subject not naming its issue is unbound",
+      "passed": true
+    },
+    {
+      "ac": "Changed deriveAnchorDirs drop-reason strings leave README ignored and a symlink-escape anchor dropped",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::the drop decision never reads deriveAnchorDirs's reason text",
+      "passed": true
+    },
+    {
+      "ac": "Git is invoked through execFileSync with argument arrays",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::git is only invoked through execFileSync with argument arrays",
+      "passed": true
+    },
+    {
+      "ac": "docs/guide/cli.md has the evidence-readiness row and the governance-check row mentions the report-only evidence_schema leg; lint-cli-doc, lint-cli-coverage and regions check pass",
+      "verified": "lint-cli-doc and lint-cli-coverage tests pass; regions check PASS. Deviation: the row and the enforcement hand-off name no ticket ids because lint-refs bans them in docs/guide; the ids go in the PR description",
+      "passed": true
+    },
+    {
+      "ac": "A straddling run is not qualifying and its legacy anchor is listed in warning_anchors",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::a straddling run is not qualifying and its legacy anchor is listed",
+      "passed": true
+    },
+    {
+      "ac": "An anchor added then deleted inside the window is not counted",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::a README under the anchors root is ignored, ... an added-then-deleted anchor is neither",
+      "passed": true
+    },
+    {
+      "ac": "No stderr line or readiness output contains a planted sentinel, including via events.jsonl schema and the leg detail and files; a throwing validator with the sentinel in its message is omitted everywhere",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::no sentinel planted in an evidence field reaches the leg or the mint line; a throwing validator ...; test/faff-1263-evidence-readiness.test.mjs::no sentinel planted ...",
+      "passed": true
+    },
+    {
+      "ac": "Hand-off to the refusal slice: the readiness row states it requires exit 0 at the commit it branches from and at its own head, with --json pasted, and names the beep-boop and holdout graft runs it starts first",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs::the cli doc carries the readiness row and the enforcement hand-off",
+      "passed": true
+    },
+    {
+      "ac": "Integration smoke: legacy mint warns, leg says legacy with pass unchanged; the scenario readiness run exits 0 when the window is conforming",
+      "verified": "test/faff-1263-evidence-warn-only-mint.test.mjs::integration smoke; test/faff-1263-evidence-readiness.test.mjs::scenario",
+      "passed": true
+    }
+  ]
+}

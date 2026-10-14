@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/run-event",
+  "title": "<anchor-dir>/events.jsonl (one record per line)",
+  "description": "Envelope only: one closed shape per record version, chosen by `discriminator` on `schema`. Payload (`data`) stays open until the per-type schemas land. The run-resume top-level fields (epoch, prior_state, skipped_shipped, rebuilt_coarse) are admitted on schema 2; restricting them to type run-resume is a per-type rule for the later slice.",
+  "type": "object",
+  "required": [
+    "schema"
+  ],
+  "discriminator": {
+    "field": "schema",
+    "mapping": {
+      "1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "run_id",
+          "seq",
+          "ts",
+          "phase",
+          "type"
+        ],
+        "properties": {
+          "schema": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "run",
+              "tidy",
+              "prep",
+              "build",
+              "plot"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "run-start",
+              "run-end",
+              "tidy-done",
+              "issue-admitted",
+              "prep-start",
+              "prep-done",
+              "build-start",
+              "issue-outcome",
+              "discovered-scope-filed",
+              "budget-checkpoint",
+              "park",
+              "sentry-checkpoint",
+              "corrective-authored",
+              "corrective-consumed",
+              "containment-check",
+              "self-intake-check",
+              "run-resume",
+              "run-claim-abandoned",
+              "park-reconsidered",
+              "ledger-write",
+              "agent-dispatch",
+              "sentry-trip",
+              "bundle-store-unavailable",
+              "decision-capture",
+              "decision-capture-action",
+              "runner-identity"
+            ]
+          },
+          "issue": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "description": "per-type payload; closed per type by a later slice"
+          }
+        }
+      },
+      "2": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "run_id",
+          "seq",
+          "ts",
+          "phase",
+          "type",
+          "prev"
+        ],
+        "properties": {
+          "schema": {
+            "type": "integer",
+            "enum": [
+              2
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "run",
+              "tidy",
+              "prep",
+              "build",
+              "plot"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "run-start",
+              "run-end",
+              "tidy-done",
+              "issue-admitted",
+              "prep-start",
+              "prep-done",
+              "build-start",
+              "issue-outcome",
+              "discovered-scope-filed",
+              "budget-checkpoint",
+              "park",
+              "sentry-checkpoint",
+              "corrective-authored",
+              "corrective-consumed",
+              "containment-check",
+              "self-intake-check",
+              "run-resume",
+              "run-claim-abandoned",
+              "park-reconsidered",
+              "ledger-write",
+              "agent-dispatch",
+              "sentry-trip",
+              "bundle-store-unavailable",
+              "decision-capture",
+              "decision-capture-action",
+              "runner-identity"
+            ]
+          },
+          "issue": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "description": "per-type payload; closed per type by a later slice"
+          },
+          "prev": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "epoch": {
+            "type": "integer"
+          },
+          "prior_state": {
+            "type": "string"
+          },
+          "skipped_shipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rebuilt_coarse": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

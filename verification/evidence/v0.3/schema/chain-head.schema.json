@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/chain-head",
+  "title": "<anchor-dir>/chain-head.json and effects-chain-head.json",
+  "description": "Restates v0.2 chain-head with typed nullable fields. CLI-computed by computeChainHead (events.js); never caller-supplied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "issue",
+    "head_seq",
+    "head_sha256",
+    "line_count",
+    "schema_floor"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "the SOURCE run dir's basename, not the anchor dir's"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "head_seq": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "last parseable record's seq; null if none"
+    },
+    "head_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the head physical line; null if the source was empty"
+    },
+    "line_count": {
+      "type": "integer",
+      "description": "physical lines; a torn tail counts"
+    },
+    "schema_floor": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "min schema across parseable records; null if none carry one"
+    }
+  }
+}

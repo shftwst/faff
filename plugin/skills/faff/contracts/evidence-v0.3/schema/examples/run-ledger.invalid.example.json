@@ -1,0 +1,32 @@
+{
+  "run_id": "run-20260101-000000-example",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1"
+  ],
+  "outcomes": {
+    "FAFF-1": "shipped"
+  },
+  "outcome_details": {
+    "FAFF-1": {
+      "pr": 1,
+      "merged": true,
+      "note": "example"
+    }
+  },
+  "base_sha": "abc1234",
+  "base_sha_required": true,
+  "owner": {
+    "status": "done",
+    "pid": 1,
+    "session_id": "run-20260101-000000-example",
+    "started_at": "2026-01-01T00:00:00.000Z",
+    "last_heartbeat": "2026-01-01T00:00:00.000Z",
+    "harness": "example",
+    "model": "example"
+  },
+  "budget": {
+    "measure_session_id": null,
+    "tokens_at_start": 0
+  }
+}

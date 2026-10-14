@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1",
+  "fix_cycles": 1,
+  "last_head_sha": "abc1234",
+  "history": [
+    {
+      "cycle": 1,
+      "kind": "conflict",
+      "failing_checks": [],
+      "tried": [
+        "rebased onto main"
+      ],
+      "at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "updated_at": "2026-01-01T00:00:00.000Z"
+}

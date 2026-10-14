@@ -1,0 +1,31 @@
+{
+  "issue": "FAFF-1",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": true,
+  "attestation": {
+    "spawner": "example-spawner",
+    "withheld": {
+      "repo": true,
+      "worktree_cwd": true,
+      "diff": true
+    },
+    "preflight": "pass"
+  },
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:0",
+      "text": "Given an empty input the command exits 0",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "ran the command with empty input",
+      "expected": "exit 0",
+      "observed": "exit 0",
+      "evidence_ref": "report section 1",
+      "reason": null
+    }
+  ]
+}

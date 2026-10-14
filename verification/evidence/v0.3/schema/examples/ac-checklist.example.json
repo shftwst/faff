@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "The command exits 0 on a valid input",
+      "verified": "test/example.test.mjs::exits-0 passing",
+      "passed": true
+    },
+    {
+      "ac": "The layout reads well on a phone",
+      "verified": "Needs human verification: visual inspection",
+      "passed": false
+    }
+  ]
+}

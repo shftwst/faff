@@ -1,0 +1,20 @@
+{
+  "round": 1,
+  "signal": "fail",
+  "findings": [
+    {
+      "finding_id": "src/example.js::missing null check",
+      "title": "Missing null check",
+      "location": "src/example.js:10",
+      "action": "Guard the null case",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": null,
+      "disposition": null,
+      "refutation": null,
+      "disposition_rationale": null
+    }
+  ]
+}

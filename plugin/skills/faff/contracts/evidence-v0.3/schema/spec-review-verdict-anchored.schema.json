@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/spec-review-verdict-anchored",
+  "title": "<anchor-dir>/spec-review-verdict.json",
+  "description": "The spec-review evidence collated across every round.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verdict",
+    "final_verdict",
+    "rounds_total",
+    "objections"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "verdict": {
+      "type": "string",
+      "description": "the last objection-bearing round's verdict, or approve when no round objected"
+    },
+    "final_verdict": {
+      "type": "string",
+      "description": "the highest-numbered round's verdict"
+    },
+    "rounds_total": {
+      "type": "integer"
+    },
+    "objections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lens",
+          "severity",
+          "claim",
+          "evidence",
+          "predicted_consequence",
+          "spec_anchor",
+          "disposition",
+          "refutation",
+          "disposition_rationale",
+          "first_round",
+          "last_round",
+          "occurrences"
+        ],
+        "properties": {
+          "lens": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "claim": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predicted_consequence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spec_anchor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "heading slug as recorded; never re-derived"
+          },
+          "disposition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "refutation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disposition_rationale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_round": {
+            "type": "integer"
+          },
+          "last_round": {
+            "type": "integer"
+          },
+          "occurrences": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round",
+                "severity",
+                "claim",
+                "spec_anchor"
+              ],
+              "properties": {
+                "round": {
+                  "type": "integer"
+                },
+                "severity": {
+                  "type": "string"
+                },
+                "claim": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "spec_anchor": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "minItems": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/build-progress",
+  "title": "<anchor-dir>/build-progress.json",
+  "description": "Written at graft Step 8b once the build is complete and pushed. Matches buildProgressApplyComplete (effects.js).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue",
+    "build",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "diff_hash",
+        "branch",
+        "pushed_at"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "complete"
+          ]
+        },
+        "diff_hash": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "pushed_at": {
+          "type": "string"
+        }
+      }
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  }
+}

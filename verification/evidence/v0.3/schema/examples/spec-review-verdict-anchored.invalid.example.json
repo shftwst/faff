@@ -1,0 +1,28 @@
+{
+  "verdict": "revise",
+  "final_verdict": "approve",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "qa",
+      "severity": "major",
+      "claim": "The scenario omits the failure path",
+      "evidence": "Section 3 lists only the happy path",
+      "predicted_consequence": "A build agent would not test the error case",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The scenario omits the failure path",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    }
+  ]
+}

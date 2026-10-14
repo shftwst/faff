@@ -1,0 +1,907 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/run-ledger",
+  "title": "<anchor-dir>/run-ledger.json",
+  "description": "Closed at every level; only schema_version and run_id are required because CLI code and agents following SKILL prose write the ledger and resume logic branches on key presence. Issue-keyed maps use additionalProperties as a schema. Keys come from the CLI writers, the SKILL prose and committed ledgers (see evidence-documents.md).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the shared serialiser"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "schema": {
+      "type": "integer"
+    },
+    "level": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "phase_select": {
+      "type": "string"
+    },
+    "stop_reason": {
+      "type": "string"
+    },
+    "base_sha": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "base_sha_required": {
+      "type": "boolean"
+    },
+    "attempts": {
+      "type": "integer"
+    },
+    "discovered_scope_filed": {
+      "type": "integer"
+    },
+    "no_progress_waves": {
+      "type": "integer"
+    },
+    "admitted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requested": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requested_issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prep_queue": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prep_parked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "review_adversarial_skipped": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "review_outage_pending": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "spec_review_outage_pending": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "spec_review_turn_budget_pending": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "build_review_dialogue_pending": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "landing_resumable": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "integrity_tampered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "post_merge_verification_unverified": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "shipped",
+          "pr-open",
+          "parked",
+          "errored",
+          "routed-out",
+          "unreached-budget",
+          "claimed-by-peer",
+          "superseded",
+          "parked-window"
+        ]
+      }
+    },
+    "outcome_details": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "root_cause": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string"
+          },
+          "prep_disposition": {
+            "type": "string"
+          },
+          "resolve_attempt": {
+            "type": "string"
+          },
+          "park_comment": {
+            "type": "string"
+          },
+          "merge_sha": {
+            "type": "string"
+          },
+          "head_sha": {
+            "type": "string"
+          },
+          "review": {
+            "type": "string"
+          },
+          "ci": {
+            "type": "string"
+          },
+          "ac": {
+            "type": "string"
+          },
+          "post_merge": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "gate": {
+            "type": "string"
+          },
+          "review_verdict": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "park_class": {
+            "type": "string"
+          },
+          "route_class": {
+            "type": "string"
+          },
+          "merge_commit": {
+            "type": "string"
+          },
+          "integrity": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "head": {
+            "type": "string"
+          },
+          "reclaimed_from": {
+            "type": "string"
+          },
+          "reclaim_reason": {
+            "type": "string"
+          },
+          "build_tier": {
+            "type": "string"
+          },
+          "spec_review": {
+            "type": "string"
+          },
+          "disposition": {
+            "type": "string"
+          },
+          "pr_head_sha": {
+            "type": "string"
+          },
+          "post_merge_note": {
+            "type": "string"
+          },
+          "tracker_mutation": {
+            "type": "string"
+          },
+          "blocker": {
+            "type": "string"
+          },
+          "next_step_human": {
+            "type": "string"
+          },
+          "route_reason": {
+            "type": "string"
+          },
+          "adr": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string"
+          },
+          "built_by": {
+            "type": "string"
+          },
+          "branch_head": {
+            "type": "string"
+          },
+          "spec_comment": {
+            "type": "string"
+          },
+          "merged_head": {
+            "type": "string"
+          },
+          "spec_confidence": {
+            "type": "string"
+          },
+          "reconciled": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "park": {
+            "type": "string"
+          },
+          "review_backend": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "string"
+          },
+          "resolved_at": {
+            "type": "string"
+          },
+          "prior_park_class": {
+            "type": "string"
+          },
+          "reconcile": {
+            "type": "string"
+          },
+          "acs": {
+            "type": "string"
+          },
+          "merge_block": {
+            "type": "string"
+          },
+          "delivery_gate": {
+            "type": "string"
+          },
+          "rework_turns": {
+            "type": "integer"
+          },
+          "discovered_scope": {
+            "type": "integer"
+          },
+          "pr": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "ac_present": {
+            "type": "boolean"
+          },
+          "review_present": {
+            "type": "boolean"
+          },
+          "resumable": {
+            "type": "boolean"
+          },
+          "ac_verified": {
+            "type": "boolean"
+          },
+          "merged": {
+            "type": "boolean"
+          },
+          "parked": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "routing_verdicts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "verdicts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sut_env_stood": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "claimed_by_peer": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "pid": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "session_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "last_heartbeat": {
+          "type": "string"
+        },
+        "harness": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "epoch": {
+          "type": "integer"
+        }
+      }
+    },
+    "owner_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "last_heartbeat": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "abort": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "abort_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "signal": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "resume": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "epoch": {
+            "type": "integer"
+          },
+          "resumed_at": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "prior_state": {
+            "type": "string"
+          },
+          "plan_summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "skipped_shipped": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "redispatched": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rebuilt_coarse": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "parked_divergent": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "park_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "issue_id": {
+            "type": "string"
+          },
+          "root_cause_class": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "post_merge_verification_failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "issue": {
+            "type": "string"
+          },
+          "pr": {
+            "type": "integer"
+          },
+          "merge_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "command": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "environmental": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ceilings": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "until": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "max_attempts": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "tokens": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "cost": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "until_invalid": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "price_per_mtok_removed": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "at_ceiling": {
+              "type": "string"
+            },
+            "price_per_mtok": {
+              "type": "number"
+            },
+            "pricing": {
+              "type": "string"
+            },
+            "window": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "hours": {
+                  "type": "number"
+                },
+                "tokens": {
+                  "type": "number"
+                }
+              }
+            },
+            "allow_unmetered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        },
+        "measure_root": {
+          "type": "string"
+        },
+        "measure_session_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tokens_at_start": {
+          "type": "integer"
+        },
+        "tokens_at_start_by_model_class": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "input": {
+                "type": "integer"
+              },
+              "output": {
+                "type": "integer"
+              },
+              "cache_write": {
+                "type": "integer"
+              },
+              "cache_read": {
+                "type": "integer"
+              },
+              "cache_write_5m": {
+                "type": "integer"
+              },
+              "cache_write_1h": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "tokens_at_start_by_class": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "tokens_at_last_event": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "type": "integer"
+            },
+            "output": {
+              "type": "integer"
+            },
+            "cache_write": {
+              "type": "integer"
+            },
+            "cache_read": {
+              "type": "integer"
+            },
+            "cache_write_5m": {
+              "type": "integer"
+            },
+            "cache_write_1h": {
+              "type": "integer"
+            }
+          }
+        },
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "anchor_epoch": {
+              "type": "integer"
+            },
+            "reset_epoch": {
+              "type": "integer"
+            },
+            "tokens_at_anchor": {
+              "type": "integer"
+            }
+          }
+        },
+        "metering": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source_at_mint": {
+              "type": "string"
+            },
+            "degraded": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "armed": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "enforced": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "rechecked": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "guardrail_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "stamped_at": {
+          "type": "string"
+        },
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "banner": {
+      "type": "string"
+    },
+    "budget_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "until": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_attempts": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tokens": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cost": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "dial_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appetite": {
+          "type": "string"
+        },
+        "convergence": {
+          "type": "string"
+        },
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "gates": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "prd_creative_licence": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "broad",
+        "tight",
+        null
+      ]
+    },
+    "prd_root_container": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "corrective_authority": {
+      "type": "string"
+    },
+    "container": {
+      "type": "string"
+    },
+    "floor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "no_execute": {
+          "type": "boolean"
+        },
+        "worktree_isolation": {
+          "type": "boolean"
+        },
+        "autonomous_contract": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

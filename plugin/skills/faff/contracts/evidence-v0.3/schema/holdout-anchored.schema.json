@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/holdout-anchored",
+  "title": "<anchor-dir>/holdout.json",
+  "description": "The code-blind holdout verdict with per-criterion detail. Cross-field rules (verdict vs exercised/expected/observed/reason) and the 2000-character limit are writer-only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue",
+    "aggregate",
+    "code_blind",
+    "spawner_attested",
+    "attestation",
+    "violations",
+    "criteria"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "issue": {
+      "type": "string",
+      "description": "the issue the verdict was produced for"
+    },
+    "aggregate": {
+      "type": "string",
+      "enum": [
+        "meets-spec",
+        "gaps",
+        "fails",
+        "needs-human"
+      ]
+    },
+    "code_blind": {
+      "type": "boolean"
+    },
+    "spawner_attested": {
+      "type": "boolean"
+    },
+    "attestation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "spawner",
+        "withheld",
+        "preflight"
+      ],
+      "properties": {
+        "spawner": {
+          "type": "string"
+        },
+        "withheld": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repo",
+            "worktree_cwd",
+            "diff"
+          ],
+          "properties": {
+            "repo": {
+              "type": "boolean"
+            },
+            "worktree_cwd": {
+              "type": "boolean"
+            },
+            "diff": {
+              "type": "boolean"
+            }
+          }
+        },
+        "preflight": {
+          "type": "string"
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "text",
+          "holdout",
+          "class",
+          "verdict",
+          "evidence_present",
+          "exercised",
+          "expected",
+          "observed",
+          "evidence_ref",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "<source>:<index> from `faff dod classify`"
+          },
+          "text": {
+            "type": "string"
+          },
+          "holdout": {
+            "type": "boolean"
+          },
+          "class": {
+            "type": "string",
+            "enum": [
+              "scenario",
+              "assertion",
+              "prose"
+            ]
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "met",
+              "unmet",
+              "needs-human"
+            ]
+          },
+          "evidence_present": {
+            "type": "boolean"
+          },
+          "exercised": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expected": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "observed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

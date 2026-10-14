@@ -12,6 +12,8 @@ records/superpowers/
 docs/superpowers
 
 evidence/
+# The published evidence spec is source, not run output.
+!/verification/evidence/
 
 docs/rfc/ideas
 docs/whitepapers/ideas

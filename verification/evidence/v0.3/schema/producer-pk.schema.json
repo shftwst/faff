@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/producer-pk",
+  "title": "<anchor-dir>/commissaire/producer/pk.json",
+  "description": "Restates verification/commissaire-facade/v0.2 producer-pk so the bundled copy is self-contained. A test keeps the two structurally equal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pk",
+    "pk_fingerprint"
+  ],
+  "properties": {
+    "pk": {
+      "type": "string",
+      "description": "Ed25519 public key, PEM"
+    },
+    "pk_fingerprint": {
+      "type": "string",
+      "description": "SHA-256 fingerprint of the public key"
+    }
+  }
+}

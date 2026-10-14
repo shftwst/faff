@@ -1,0 +1,9 @@
+{
+  "run_id": "run-20260101-000000-example",
+  "issue": "FAFF-1",
+  "head_seq": 12,
+  "head_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "line_count": 13,
+  "schema_floor": 2,
+  "extra": 1
+}

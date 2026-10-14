@@ -237,6 +237,8 @@ test("dirty or untracked anchors root and an escaping symlinked root exit 2", ()
     rmSync(path.join(repo.dir, `.faff/anchors/${BEEP}/FAFF-1/untracked.txt`));
     symlinkSync(outside, path.join(repo.dir, "linked-root"));
     assert.equal(repo.readiness(["--since", since, "--anchors-root", "linked-root"]).code, 2);
+    symlinkSync(path.join(outside, "missing"), path.join(repo.dir, "dangling-root"));
+    assert.equal(repo.readiness(["--since", since, "--anchors-root", "dangling-root"]).code, 2);
   } finally { repo.cleanup(); rmSync(outside, { recursive: true, force: true }); }
 });
 

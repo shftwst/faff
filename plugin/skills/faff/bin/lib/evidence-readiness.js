@@ -131,9 +131,11 @@ function resolveRepo(cwd) {
 
 function resolveAnchorsRoot(repoRoot, cwd, flag) {
   const asked = path.resolve(cwd, flag === undefined ? path.join(repoRoot, DEFAULT_ANCHORS_ROOT) : flag);
-  const real = realpathOrNull(asked) || asked;
-  if (real === repoRoot || !(real + path.sep).startsWith(repoRoot + path.sep)) throw new ReadinessFault("--anchors-root is not inside the repository");
-  return { abs: real, rel: toPosix(path.relative(repoRoot, real)) };
+  const real = realpathOrNull(asked);
+  if (real === null && fs.lstatSync(asked, { throwIfNoEntry: false }) !== undefined) throw new ReadinessFault("--anchors-root does not resolve (dangling symlink)");
+  const resolved = real || asked;
+  if (resolved === repoRoot || !(resolved + path.sep).startsWith(repoRoot + path.sep)) throw new ReadinessFault("--anchors-root is not inside the repository");
+  return { abs: resolved, rel: toPosix(path.relative(repoRoot, resolved)) };
 }
 
 function resolveWriters(repoRoot, sinceSha) {

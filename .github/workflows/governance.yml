@@ -43,6 +43,13 @@ jobs:
           node-version: 20
 
       - name: faff governance-check
+        id: gc
         uses: ./.github/actions/governance-check
         with:
           on-missing: pass
+          evidence-schema: report
+
+      - name: Spike readout
+        if: ${{ always() }}
+        run: |
+          echo "SPIKE action verdict=${{ steps.gc.outputs.verdict }} evidence-result=${{ steps.gc.outputs.evidence-result }} outcome=${{ steps.gc.outcome }}"

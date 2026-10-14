@@ -167,7 +167,7 @@ function isExecutableFileInside(file, realRoot) {
   let real;
   try { real = fs.realpathSync(file); } catch { return false; }
   const rel = path.relative(realRoot, real);
-  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return false;
+  if (rel === "" || rel.split(path.sep)[0] === ".." || path.isAbsolute(rel)) return false;
   try {
     if (!fs.statSync(real).isFile()) return false;
     fs.accessSync(real, fs.constants.X_OK);

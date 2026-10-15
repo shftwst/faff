@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle-recover.js::partial cleanup re-reported as noop-already-present in removewritten",
+      "title": "partial cleanup re-reported as noop-already-present in removeWritten",
+      "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+      "action": "Remove the restored ledger first so a partial cleanup still reads as absent on the next recovery.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "removeWritten now deletes files in write order, ledger first (commit 90e88a8b); if only a later removal fails, the next recovery sees no ledger and re-restores.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "partial cleanup re-reported as noop-already-present in removeWritten",
+          "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle-recover.js::non-atomic restored ledger write in reconstructprojection",
+      "title": "non-atomic restored ledger write in reconstructProjection",
+      "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+      "action": "Publish the snapshot bytes with atomicWriteSingleValueFile.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The ledger is now written via atomicWriteSingleValueFile (tmp then rename), same bytes, so unlocked readers never see a torn file (commit 90e88a8b).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "non-atomic restored ledger write in reconstructProjection",
+          "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle-recover.js::post-refusal rmdir can remove another writer's empty run dir in bundlerecover",
+      "title": "post-refusal rmdir can remove another writer's empty run dir in bundleRecover",
+      "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+      "action": "Only remove a run dir this recovery created.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "restoreUnderLedgerLock now returns createdRunDir and bundleRecover only rmdirs when it is true; covered by a new test that a pre-existing empty run dir survives a failed restore.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "post-refusal rmdir can remove another writer's empty run dir in bundleRecover",
+          "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle-recover.js::unlocked dry-run read races a real restore in bundlerecover",
+      "title": "unlocked dry-run read races a real restore in bundleRecover",
+      "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+      "action": "No change: keep --dry-run an unlocked, read-only point-in-time preview, as the spec requires.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec keeps --dry-run unlocked and read-only on purpose; its verdict is a point-in-time preview and the code comment already says it reads without the lock.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unlocked dry-run read races a real restore in bundleRecover",
+          "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle-recover.js::enoent retry catch broader than its trigger in restoreunderledgerlock",
+      "title": "ENOENT retry catch broader than its trigger in restoreUnderLedgerLock",
+      "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+      "action": "No change: only the lock acquire can raise ENOENT to the retry.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Inside attempt(), mkdir errors are returned as failed, every reconstructProjection throw (copyFileSync included) is caught and returned as failed, and the ledger read swallows ENOENT; only the lock acquire can surface ENOENT to the retry.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ENOENT retry catch broader than its trigger in restoreUnderLedgerLock",
+          "location": "plugin/skills/faff/bin/lib/bundle-recover.js",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

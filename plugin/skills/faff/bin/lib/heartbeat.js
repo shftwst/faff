@@ -292,6 +292,16 @@ function ownerEpochFenceStale(diskOwner, expected) {
   return false;
 }
 
+// FAFF-1281: the one definition of the ledger lock, shared by the serialiser and the bundle-recover
+// restore. Not re-entrant: never call mutateLedgerUnderLock from inside `fn`.
+function ledgerLockPath(runDir) {
+  return path.join(runDir, "run-ledger.json.lock");
+}
+
+function withLedgerLock(runDir, fn) {
+  return withFileLock(ledgerLockPath(runDir), fn, { code: "LEDGER_LOCKED", label: "ledger lock" });
+}
+
 // FAFF-575 — the locked ledger mutation core: the ONE critical section every production
 // run-ledger.json mutation goes through (writer inventory above). Serialises the whole
 // read-merge-write under the shared advisory file lock (<runDir>/run-ledger.json.lock,
@@ -346,8 +356,7 @@ function mutateLedgerUnderLock(runDir, mutate, expectedOwner, opts) {
   const mode = opts && opts.schema === "warn" ? "warn" : "enforce";
   const evidence = require("./evidence");
   evidence.preloadEvidenceSchemas(); // file I/O happens here, never inside the lock
-  const lockPath = path.join(runDir, "run-ledger.json.lock");
-  return withFileLock(lockPath, () => {
+  return withLedgerLock(runDir, () => {
     let fresh = null;
     let beforeSha256 = null;
     try {
@@ -411,7 +420,7 @@ function mutateLedgerUnderLock(runDir, mutate, expectedOwner, opts) {
     }
     const afterSha256 = atomicWriteLedger(runDir, doc, { alreadyRedacted: true });
     return { written: true, yielded: false, before_sha256: beforeSha256, after_sha256: afterSha256 };
-  }, { code: "LEDGER_LOCKED", label: "ledger lock" });
+  });
 }
 
 // Resolution order (spec §3): explicit arg → $FAFF_RUN_DIR → latest run under .faff/runs.
@@ -721,6 +730,6 @@ function heartbeatSelftest() {
 
 module.exports = {
   atomicWriteLedger, atomicWriteSingleValueFile, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
-  isLedgerSchemaError, isValidIssueId, memberHeartbeatFileName, mutateLedgerUnderLock, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
-  readMemberHeartbeatFile, resolveHeartbeatRunDir, writeHeartbeatFile, writeMemberHeartbeatFile,
+  isLedgerSchemaError, isValidIssueId, ledgerLockPath, memberHeartbeatFileName, mutateLedgerUnderLock, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
+  readMemberHeartbeatFile, resolveHeartbeatRunDir, withLedgerLock, writeHeartbeatFile, writeMemberHeartbeatFile,
 };

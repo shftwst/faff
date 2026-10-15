@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::cleanup gap between run dir creation and the guarded ledger write in initinteractive and initselfdrain",
+      "title": "cleanup gap between run dir creation and the guarded ledger write in initInteractive and initSelfDrain",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+      "action": "Build the ledger before creating the run dir so nothing that can throw sits outside the guarded region",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Commit 914af9f9 builds the ledger (including resolveMintBaseSha) before mkdir in both mints.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "cleanup gap between run dir creation and the guarded ledger write in initInteractive and initSelfDrain",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/run-ledger-mint-refusal.test.mjs::discardunmintedrundir error branch tested only for enotempty",
+      "title": "discardUnmintedRunDir error branch tested only for ENOTEMPTY",
+      "location": "test/run-ledger-mint-refusal.test.mjs",
+      "action": "Add a test forcing a non-ENOTEMPTY rmdir error",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added an EPERM test (stubbed fs.rmdirSync) asserting no throw, dir kept, exact stderr line.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "discardUnmintedRunDir error branch tested only for ENOTEMPTY",
+          "location": "test/run-ledger-mint-refusal.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/state.js::enotempty fallback leaves a ledger-less dir that rundirsnewestfirst still lists",
+      "title": "ENOTEMPTY fallback leaves a ledger-less dir that runDirsNewestFirst still lists",
+      "location": "plugin/skills/faff/bin/lib/state.js",
+      "action": "No change; leave the non-empty dir and name it on stderr, as the spec edge case requires",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Only reachable when withFileLock's best-effort unlink fails or another writer puts content in the dir; the spec accepts this edge case (non-recursive rmdir, one stderr line naming the dir). Ledger-reading callers of runDirsNewestFirst skip it; resolveParked finds no park.md in it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ENOTEMPTY fallback leaves a ledger-less dir that runDirsNewestFirst still lists",
+          "location": "plugin/skills/faff/bin/lib/state.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::createdrundir comment understates the recursive mkdirsync return contract",
+      "title": "createdRunDir comment understates the recursive mkdirSync return contract",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+      "action": "State the exact equivalence in the comment",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Comment now states mkdirSync returns a path iff it created the leaf and undefined iff the leaf already existed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "createdRunDir comment understates the recursive mkdirSync return contract",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::concurrent same-id init-interactive race gives a lock-contention diagnostic",
+      "title": "concurrent same-id init-interactive race gives a lock-contention diagnostic",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+      "action": "No change; the spec accepts the race and keeps the recursive mkdir",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec accepts this race explicitly (nothing deleted, nothing reports success) and keeps init-interactive's recursive mkdir unchanged; a diagnostic change is out of scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "concurrent same-id init-interactive race gives a lock-contention diagnostic",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

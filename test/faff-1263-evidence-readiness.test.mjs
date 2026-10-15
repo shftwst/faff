@@ -215,6 +215,7 @@ test("an earlier commit naming a pinned ticket does not stand in for its later m
     repo.commit("docs(adr): propose (FAFF-1266) (#1)");
     const since = repo.git("rev-parse", "HEAD");
     const merge = repo.commit("feat: writer (FAFF-1266) (#2)");
+    repo.commit("fix: follow-up (FAFF-1266) (#3)");
     const resolved = writerIn(resolveWriters(repo.dir, since, pinOnly("FAFF-1266", merge)), "FAFF-1266");
     assert.deepEqual(resolved, { issue: "FAFF-1266", commit: merge, before_since: false });
   } finally { repo.cleanup(); }

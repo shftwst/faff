@@ -1392,3 +1392,53 @@ test("cmdAssemble: a ledger persisted mid-call names each phase's progress befor
     assert.deepEqual(snaps[1], { phase1_attempts: 1, phase2_attempts: 1, last_exit: null, reconstruction: "recon-f-01.json" });
   });
 });
+
+// --- FAFF-1276: carried ids and the rebuttal rule --------------------------------------------
+
+const crit = (location, title, carried_id) => ({ severity: "critical", location, title, ...(carried_id ? { carried_id } : {}) });
+const rebut = (finding_ref, rebuttal_text) => ({ finding_ref, kind: "rebuttal", rebuttal_text });
+
+test("collectAdjudicationSet: a round-1 rebuttal reaches a round-3 critical that carried its id under an unchanged title", () => {
+  const rounds = [
+    { findings: [crit("a.js:3", "Leaks fd")], author_replies: [rebut("a.js::leaks fd", "closed in finally")] },
+    { findings: [crit("a.js:4", "leaks fd", "P1")], author_replies: [] },
+    { findings: [crit("a.js:5", "Leaks FD.", "P1")], author_replies: [] },
+  ];
+  const set = bje.collectAdjudicationSet(rounds);
+  assert.deepEqual(set.map((e) => [e.finding_id, e.rebuttal_text, e.requires_confirm]), [["a.js::leaks fd", "closed in finally", false]]);
+});
+
+test("collectAdjudicationSet: a round-1 rebuttal does not reach a round-3 critical that carried its id under a different title (null-defence)", () => {
+  const rounds = [
+    { findings: [crit("a.js:3", "leaks fd")], author_replies: [rebut("a.js::leaks fd", "closed in finally")] },
+    { findings: [crit("a.js:4", "fd never closed", "P1")], author_replies: [] },
+    { findings: [crit("a.js:5", "fd never closed", "P1")], author_replies: [] },
+  ];
+  const set = bje.collectAdjudicationSet(rounds);
+  assert.equal(set.length, 1);
+  assert.equal(set[0].finding_id, "a.js::leaks fd");
+  assert.equal(set[0].rebuttal_text, undefined);
+  assert.equal(bje.latestRebuttalFor("a.js::leaks fd", rounds), undefined);
+});
+
+test("collectAdjudicationSet: a rebuttal for an uncarried finding is unchanged", () => {
+  const rounds = [
+    { findings: [crit("a.js:3", "leaks fd")], author_replies: [rebut("a.js::leaks fd", "closed in finally")] },
+    { findings: [crit("a.js:9", "leaks fd")], author_replies: [] },
+  ];
+  assert.equal(bje.collectAdjudicationSet(rounds)[0].rebuttal_text, "closed in finally");
+});
+
+test("computeCriticalFreeLatestFloor: a round-2 critical carrying a round-1 critical matches a repeated title", async () => {
+  const ledger = { entries: { "f-01": { finding_id: "a.js::leaks fd" } } };
+  const rulings = { "f-01": { outcome: "OVERTURN" } };
+  const floorFor = (round2) => withTmp((tmp) => {
+    writeFileSync(join(tmp, "round-1.json"), JSON.stringify({ findings: [crit("a.js:3", "leaks fd")], author_replies: [] }));
+    writeFileSync(join(tmp, "round-2.json"), JSON.stringify({ findings: [round2], author_replies: [] }));
+    return bje.computeCriticalFreeLatestFloor(tmp, ledger, rulings);
+  });
+  const carried = await floorFor(crit("a.js:8", "fd never closed", "P1"));
+  const repeated = await floorFor(crit("a.js:8", "leaks fd"));
+  assert.equal(carried, true);
+  assert.equal(carried, repeated);
+});

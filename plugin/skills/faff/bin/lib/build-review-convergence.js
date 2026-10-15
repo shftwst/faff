@@ -33,6 +33,7 @@ const { parseArgs, usageError } = require("./argv");
 const { roundFilesInDir } = require("./spec-review-convergence");
 const { readRoundRecord } = require("./spec-review-churn");
 const { standingCriticalIds } = require("./build-review-churn");
+const { resolveRoundChain } = require("./finding-id");
 
 // standingCriticalCount(findings) -> the standing-critical count for a round (the number of
 // distinct standing-critical finding_id's — dedupes a same-identity double-report).
@@ -40,16 +41,34 @@ function standingCriticalCount(findings, round) {
   return standingCriticalIds(findings, round).length;
 }
 
-// computeConvergence(rounds) -> BuildReviewConvergenceResult
-//   rounds — the parsed DialogueRoundRecords ({signal, findings, author_replies}), ALREADY
-//            ordered by round number (the CLI wrapper owns the directory read + numeric sort).
-// Pure: no I/O. `converging` is true iff, across the full window, the standing-critical count
-// strictly decreases at every consecutive step AND no new standing-critical finding_id appears
-// at any step.
-function computeConvergence(rounds) {
-  const list = Array.isArray(rounds) ? rounds : [];
-  const totals = list.map((r, i) => standingCriticalCount(r && r.findings, i + 1));
-  const idSets = list.map((r, i) => standingCriticalIds(r && r.findings, i + 1));
+function criticalIdSet(findings, entries) {
+  const set = new Set();
+  findings.forEach((f, i) => {
+    if (f && typeof f === "object" && f.severity === "critical") set.add(entries[i].id);
+  });
+  return Array.from(set).sort();
+}
+
+// computeConvergence(rounds, windowStart, roundNumbers) -> BuildReviewConvergenceResult
+//   rounds       — the parsed DialogueRoundRecords ({signal, findings, author_replies}), ALREADY
+//                  ordered by round number (the CLI wrapper owns the directory read + sort).
+//   windowStart  — optional: only rounds numbered `windowStart` or later are compared; earlier
+//                  rounds only resolve carried ids (FAFF-1276). The step into the window is not
+//                  compared.
+//   roundNumbers — optional: each round's number (the CLI passes file numbers); defaults to the
+//                  1-based list position.
+// Pure: no I/O. Ids come from `resolveRoundChain` over every given round. `converging` is true
+// iff, across the window, the standing-critical count strictly decreases at every consecutive
+// step AND no new standing-critical finding_id appears at any step.
+function computeConvergence(rounds, windowStart = 1, roundNumbers = null) {
+  const all = Array.isArray(rounds) ? rounds : [];
+  const numbers = all.map((_, i) => (Array.isArray(roundNumbers) && roundNumbers[i] != null ? roundNumbers[i] : i + 1));
+  const findingsAt = all.map((r) => (r && Array.isArray(r.findings) ? r.findings : []));
+  const resolved = resolveRoundChain(all.map((_, i) => ({ round: numbers[i], findings: findingsAt[i] })));
+  const inWindow = all.map((_, i) => i).filter((i) => numbers[i] >= windowStart);
+  const list = inWindow.map((i) => all[i]);
+  const idSets = inWindow.map((i) => criticalIdSet(findingsAt[i], resolved[i]));
+  const totals = idSets.map((ids) => ids.length);
 
   if (list.length < 2) {
     return {
@@ -251,10 +270,6 @@ function cmdBuildReviewConvergence(args) {
     return 0;
   }
 
-  if (windowStart != null) {
-    files = files.filter((f) => f.n >= windowStart);
-  }
-
   const rounds = [];
   for (const f of files) {
     const read = readRoundRecord(f.path);
@@ -269,7 +284,7 @@ function cmdBuildReviewConvergence(args) {
     rounds.push(read.record);
   }
 
-  const result = computeConvergence(rounds);
+  const result = computeConvergence(rounds, windowStart != null ? windowStart : 1, files.map((f) => f.n));
   console.log(JSON.stringify(result));
   return 0;
 }

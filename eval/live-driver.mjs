@@ -36,6 +36,7 @@ import {
   ROUTING_MODE_INSTRUCTION,
   VERDICT_BUILD_INSTRUCTION,
   FINDING_IDENTITY_INSTRUCTION,
+  FINDING_IDENTITY_CARRY_INSTRUCTION,
   SHAPING_MODE_INSTRUCTION,
   DECOMPOSITION_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
@@ -47,8 +48,10 @@ import { CLOSED_SET_KINDS } from "./grader.mjs";
 // The shipped identity helper (CommonJS, governance region): the eval measures this exact code over
 // model-chosen titles and locations.
 const requireCjs = createRequire(import.meta.url);
-const findingIdModule = () =>
-  requireCjs(join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "lib", "finding-id.js"));
+const faffLib = (name) => requireCjs(join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "lib", name));
+const findingIdModule = () => faffLib("finding-id.js");
+// The production prior-findings shape and its framed prompt block (FAFF-1276).
+const reviewPriorModule = () => faffLib("review-prior.js");
 
 // Build the faff-tidy judgement prompt from faff's real criteria (classification + synthesis gloss,
 // FAFF-140) + the issues read from the fixture + the shared envelope instruction. pluginDir null → no
@@ -579,21 +582,26 @@ export function decompositionLiveDriver({ model, fixture, pluginDir = DEFAULT_PL
 /**
  * FAFF-1266 — the finding-identity prompt builder: the review rubric with the contract's finding fields
  * (loadReviewFindingProse), the rendered change material, then the output-only instruction. A pure
- * function of (fixture, diff, pluginDir, caseId): it reads nothing from the harness, so no pass can
- * observe another. `diff` overrides `fixture.diff` (the second pass may review `diff_b`).
+ * function of (fixture, diff, prior, pluginDir, caseId). `diff` overrides `fixture.diff` (the second
+ * pass may review `diff_b`). FAFF-1276: a non-empty `prior` (pass A's findings as `priorFindingsList`
+ * shapes them) is rendered with the production block between the rubric and the change material, and
+ * the prompt ends with the carry instruction.
  */
-export function buildFindingIdentityPrompt(fixture, { diff, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+export function buildFindingIdentityPrompt(fixture, { diff, prior = null, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
   const rubric = pluginDir
     ? `Apply faff's review rubric and contract below — these are the review producer's + gateway's rules, verbatim:\n\n${loadReviewFindingProse(pluginDir)}\n\n---\n\n`
     : "";
+  const carrying = Array.isArray(prior);
+  const priorBlock = carrying && prior.length ? `${reviewPriorModule().renderPriorFindingsBlock(prior)}\n---\n\n` : "";
+  const instruction = carrying ? FINDING_IDENTITY_CARRY_INSTRUCTION : FINDING_IDENTITY_INSTRUCTION;
   const { change_summary, spec, test_results } = fixture;
   return (
-    `${rubric}Run faff-graft's Step-9 review passes over the whole change below and report your findings.\n\n` +
+    `${rubric}${priorBlock}Run faff-graft's Step-9 review passes over the whole change below and report your findings.\n\n` +
     `Change summary:\n${change_summary ?? "(none)"}\n\n` +
     `Spec (the change is reviewed against this):\n${spec ?? "(none)"}\n\n` +
     `Diff (unified):\n${diff ?? fixture.diff ?? "(none)"}\n\n` +
     `Test results:\n${test_results ?? "(none)"}\n\n` +
-    `${FINDING_IDENTITY_INSTRUCTION.replace("<ID>", caseId)}`
+    `${instruction.replace("<ID>", caseId)}`
   );
 }
 
@@ -603,7 +611,7 @@ export function buildFindingIdentityPrompt(fixture, { diff, pluginDir = DEFAULT_
  * `finding-identity-signal`. `findings` is never given an id by the model; a missing or non-array
  * `findings` reads as none.
  */
-export function findingIdentityLiveDriver({ model, fixture, diff, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+export function findingIdentityLiveDriver({ model, fixture, diff, prior = null, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
   if (typeof model !== "function") {
     throw new Error("findingIdentityLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
   }
@@ -615,7 +623,7 @@ export function findingIdentityLiveDriver({ model, fixture, diff, pluginDir = DE
     skill: "faff-graft",
     pluginDir,
     caseId,
-    buildPrompt: (ctx, opts) => buildFindingIdentityPrompt(fixture, { ...opts, diff: diff ?? fixture.diff }),
+    buildPrompt: (ctx, opts) => buildFindingIdentityPrompt(fixture, { ...opts, diff: diff ?? fixture.diff, prior }),
     readEnvelope: (env) => [
       { name: "finding-identity-findings", items: Array.isArray(env.findings) ? env.findings.filter((f) => f && typeof f === "object") : [] },
       { name: "finding-identity-signal", items: env.signal == null ? [] : [String(env.signal)] },
@@ -625,25 +633,40 @@ export function findingIdentityLiveDriver({ model, fixture, diff, pluginDir = DE
 
 const SEVERITY_RANK = { critical: 4, major: 3, minor: 2, observation: 1 };
 
-// The pass's defect finding: among findings whose normalised path equals defect_file, the highest
-// severity (a missing severity ranks last), ties to the first emitted. Returns { finding, id } | null.
-function defectFindingOf(findings, defectFile) {
-  const { assignFindingIds, normaliseFindingPath } = findingIdModule();
-  const ids = assignFindingIds(findings, 1);
+function locationLine(location) {
+  const m = typeof location === "string" ? /:(\d+)/.exec(location.trim().split(/\s/)[0]) : null;
+  return m ? Number(m[1]) : null;
+}
+
+// inSecondDefect(finding, defectFile, lines) -> is this finding located inside the fixture's
+// second_defect_b line range in the defect file?
+function inSecondDefect(finding, defectFile, lines) {
+  if (!Array.isArray(lines)) return false;
+  const line = locationLine(finding.location);
+  return findingIdModule().normaliseFindingPath(finding.location) === defectFile && line !== null && line >= lines[0] && line <= lines[1];
+}
+
+// The pass's defect finding: among findings whose normalised path equals defect_file (and, in pass B,
+// not inside the second defect), the highest severity (a missing severity ranks last), ties to the
+// first emitted. `entries` are the pass's resolveRoundChain entries. Returns { finding, index, entry } | null.
+function defectFindingOf(findings, entries, defectFile, excludeLines = null) {
+  const { normaliseFindingPath } = findingIdModule();
   let best = null;
   findings.forEach((f, i) => {
     if (normaliseFindingPath(f.location) !== defectFile) return;
+    if (inSecondDefect(f, defectFile, excludeLines)) return;
     const rank = SEVERITY_RANK[f.severity] ?? 0;
-    if (best === null || rank > best.rank) best = { finding: f, id: ids[i], rank };
+    if (best === null || rank > best.rank) best = { finding: f, index: i, entry: entries[i], rank };
   });
   return best;
 }
 
 /**
- * FAFF-1266 — drive one finding-identity rep: two independent review passes (each its own runSkill and
- * model invocation, nothing from pass A passed into pass B), compare the defect finding's id across them.
+ * FAFF-1266 / FAFF-1276 — drive one finding-identity rep: pass A reviews the change as round 1; pass B
+ * (its own runSkill and model invocation) reviews `diff_b` with pass A's findings as the production
+ * prior-findings block, and may carry a handle. Ids come from resolveRoundChain over both passes.
  * Returns the rep-loop's `{ env, tokens, detail }`; `env["finding-identity"]` is "stable" | "drifted" |
- * "undetected". A pass whose output does not parse throws (the runner records an errored rep).
+ * "merged" | "undetected". A pass whose output does not parse throws (the runner records an errored rep).
  */
 export async function driveFindingIdentityCase(evalCase, { runSkill, tracker, repo, model, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
   if (!evalCase || evalCase.kind !== "finding-identity" || !evalCase.fixture) {
@@ -653,17 +676,35 @@ export async function driveFindingIdentityCase(evalCase, { runSkill, tracker, re
     throw new Error("driveFindingIdentityCase requires the FAFF-93 runSkill (injected, not imported)");
   }
   const { fixture } = evalCase;
-  const runPass = async (diff) => {
-    const driver = findingIdentityLiveDriver({ model, fixture, diff, pluginDir, caseId: evalCase.id });
+  const { findingId, resolveRoundChain } = findingIdModule();
+  const runPass = async (diff, prior) => {
+    const driver = findingIdentityLiveDriver({ model, fixture, diff, prior, pluginDir, caseId: evalCase.id });
     const record = await runSkill({ skill: "faff-graft", tracker, repo, driver });
-    return defectFindingOf(record.buckets["finding-identity-findings"] ?? [], fixture.defect_file);
+    return record.buckets["finding-identity-findings"] ?? [];
   };
-  const a = await runPass(fixture.diff);
-  const b = await runPass(fixture.diff_b ?? fixture.diff);
-  const outcome = !a || !b ? "undetected" : a.id === b.id ? "stable" : "drifted";
+  const findingsA = await runPass(fixture.diff, null);
+  const findingsB = await runPass(fixture.diff_b ?? fixture.diff, reviewPriorModule().priorFindingsList(findingsA));
+  const [entriesA, entriesB] = resolveRoundChain([{ round: 1, findings: findingsA }, { round: 2, findings: findingsB }]);
+  const secondLines = fixture.second_defect_b ? fixture.second_defect_b.lines : null;
+  const a = defectFindingOf(findingsA, entriesA, fixture.defect_file);
+  const b = defectFindingOf(findingsB, entriesB, fixture.defect_file, secondLines);
+  const handleA = a ? `P${a.index + 1}` : null;
+  const merged = handleA !== null && findingsB.some((f) =>
+    inSecondDefect(f, fixture.defect_file, secondLines) && typeof f.carried_id === "string" && f.carried_id.trim() === handleA);
+  const outcome = merged ? "merged" : !a || !b ? "undetected" : a.entry.id === b.entry.id ? "stable" : "drifted";
   return {
     env: { "finding-identity": outcome },
     tokens: 0,
-    detail: { outcome, id_a: a ? a.id : null, id_b: b ? b.id : null, title_a: a ? a.finding.title ?? null : null, title_b: b ? b.finding.title ?? null : null },
+    detail: {
+      outcome,
+      merged,
+      id_a: a ? a.entry.id : null,
+      id_b: b ? b.entry.id : null,
+      title_a: a ? a.finding.title ?? null : null,
+      title_b: b ? b.finding.title ?? null : null,
+      carried_b: !!b && b.entry.carry === "accepted",
+      title_stable: !!a && !!b && findingId(b.finding, 2, b.index) === a.entry.id,
+      refused_carries: entriesB.filter((e) => e.carry === "refused").length,
+    },
   };
 }

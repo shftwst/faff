@@ -1,9 +1,11 @@
-// FAFF-1266 — the `finding-identity` title-stability eval: registry and grader wiring, fixture shape,
-// the two-independent-passes driver, the runner (result file, bar, --model/--effort), and the reviewer
-// contract additions. Every model is an injected mock: nothing here spawns `claude`.
+// FAFF-1266 / FAFF-1276 — the `finding-identity` eval: registry and grader wiring, fixture shape, the
+// carried-mode driver (pass B sees pass A's findings by handle), the runner (result file, bar,
+// --model/--effort), and the reviewer contract additions. Every model is an injected mock: nothing here
+// spawns `claude`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,6 +24,9 @@ import {
   resolveLiveFrontier,
 } from "../eval/run-live-evals.mjs";
 
+const requireCjs = createRequire(import.meta.url);
+const { priorFindingsList, renderPriorFindingsBlock } = requireCjs("../plugin/skills/faff/bin/lib/review-prior.js");
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
 
@@ -38,8 +43,11 @@ const envelope = (caseId, findings, signal = "fail") =>
 
 const caseIdOf = (prompt) => /"case_id": "(finding-identity-\d+)"/.exec(prompt)[1];
 
-// A mock reviewer: one defect finding per pass at the case's defect file. `drift` ids get a different
-// title on the second pass; every other case words the title differently but normalises identically.
+const ACTION_A = "ACTION-A-SENTINEL round the page count up";
+
+// A mock reviewer: one defect finding per pass at the case's defect file. On the second pass every case
+// rewords the title and carries the prior handle P1, except `drift` ids, which reword without a carry.
+// Pass-B locations sit at line 9999, outside any second_defect_b range.
 function mockReviewer(allCases, { drift = new Set(), log = null } = {}) {
   const byId = new Map(allCases.map((c) => [c.id, c]));
   const calls = new Map();
@@ -49,9 +57,9 @@ function mockReviewer(allCases, { drift = new Set(), log = null } = {}) {
     calls.set(id, n);
     const defectFile = byId.get(id).fixture.defect_file;
     let out;
-    if (n === 1) out = envelope(id, [{ title: "Off-by-one in pageCount", location: `${defectFile}:12`, action: "use ceil", severity: "major" }]);
-    else if (drift.has(id)) out = envelope(id, [{ title: "Partial last page dropped", location: `./${defectFile}:15`, action: "use ceil", severity: "major" }]);
-    else out = envelope(id, [{ title: "off-by-one in  pageCount.", location: `./${defectFile}:15`, action: "use ceil", severity: "major" }]);
+    if (n === 1) out = envelope(id, [{ title: "Off-by-one in pageCount", location: `${defectFile}:12`, action: ACTION_A, severity: "major" }]);
+    else if (drift.has(id)) out = envelope(id, [{ title: "Partial last page dropped", location: `./${defectFile}:9999`, action: "fix", severity: "major" }]);
+    else out = envelope(id, [{ title: "Partial last page dropped", location: `./${defectFile}:9999`, carried_id: "P1", action: "fix", severity: "major" }]);
     if (log) log.push({ id, n, prompt, out });
     return out;
   };
@@ -85,9 +93,9 @@ test("the faffter-noon-review frontmatter declares the finding-identity judgemen
 
 // --- fixtures -------------------------------------------------------------------------------------
 
-test("at least 10 finding-identity fixtures: reps 1, a defect_file the diff touches, two or more files, 3+ with diff_b", () => {
+test("at least 16 finding-identity fixtures: reps 1, a defect_file the diff touches, two or more files, 3+ with diff_b", () => {
   const all = cases();
-  assert.ok(all.length >= 10, `have ${all.length}`);
+  assert.ok(all.length >= 16, `have ${all.length}`);
   for (const c of all) {
     validateCase(c);
     assert.equal(c.reps, 1, c.id);
@@ -101,6 +109,32 @@ test("at least 10 finding-identity fixtures: reps 1, a defect_file the diff touc
     }
   }
   assert.ok(all.filter((c) => c.fixture.diff_b).length >= 3);
+});
+
+// The new-file line numbers of defect_file's added and context lines in a unified diff.
+function newSideLines(diff, file) {
+  const lines = new Set();
+  let inFile = false;
+  let n = 0;
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("diff --git ")) { inFile = line.startsWith(`diff --git a/${file} b/`); continue; }
+    if (!inFile || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("index ")) continue;
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)/.exec(line);
+    if (hunk) { n = Number(hunk[1]); continue; }
+    if (line.startsWith("+") || line.startsWith(" ")) lines.add(n++);
+  }
+  return lines;
+}
+
+test("at least three fixtures carry second_defect_b, and every line in its range is on diff_b's new side of defect_file", () => {
+  const withSecond = cases().filter((c) => c.fixture.second_defect_b);
+  assert.ok(withSecond.length >= 3, `have ${withSecond.length}`);
+  for (const c of withSecond) {
+    const [start, end] = c.fixture.second_defect_b.lines;
+    assert.ok(Number.isInteger(start) && Number.isInteger(end) && start <= end, c.id);
+    const visible = newSideLines(c.fixture.diff_b, c.fixture.defect_file);
+    for (let l = start; l <= end; l++) assert.ok(visible.has(l), `${c.id}: line ${l} is not an added or context line of ${c.fixture.defect_file}`);
+  }
 });
 
 test("finding-identity fixtures are not picked up by the black-box loadCases() sweep", async () => {
@@ -123,9 +157,9 @@ test("the prompt carries the review rubric with the finding-field guidance, the 
   assert.ok(buildFindingIdentityPrompt(c.fixture, { caseId: c.id, diff: "OTHER DIFF" }).includes("OTHER DIFF"));
 });
 
-// --- the driver: two independent passes -----------------------------------------------------------
+// --- the driver: pass B sees pass A's findings ---------------------------------------------------
 
-test("every fixture: exactly two model calls, and pass B's prompt contains none of pass A's output", async (t) => {
+test("every fixture: exactly two model calls; pass A has no prior block, pass B has A's block and none of A's action text", async (t) => {
   const all = cases();
   for (const c of all) {
     const { tracker, repo } = substrate();
@@ -134,10 +168,15 @@ test("every fixture: exactly two model calls, and pass B's prompt contains none 
     const model = mockReviewer(all, { log });
     const out = await driveFindingIdentityCase(c, { runSkill, tracker, repo, model });
     assert.equal(log.length, 2, `${c.id} made ${log.length} calls`);
-    assert.equal(log[1].prompt.includes(log[0].out), false, `${c.id}: pass B saw pass A output`);
-    assert.equal(log[1].prompt.includes("Off-by-one in pageCount"), false, `${c.id}: pass B saw pass A title`);
+    assert.equal(log[0].prompt.includes("## Prior findings (previous review round)"), false, `${c.id}: pass A saw a prior block`);
+    const passA = JSON.parse(/```faff-eval:judgement\n([\s\S]*?)\n```/.exec(log[0].out)[1]).findings;
+    assert.ok(log[1].prompt.includes(renderPriorFindingsBlock(priorFindingsList(passA))), `${c.id}: pass B lacks A's prior block`);
+    assert.equal(log[1].prompt.includes(ACTION_A), false, `${c.id}: pass B saw pass A's action`);
+    assert.match(log[1].prompt, /Do not emit finding_id/);
     assert.equal(out.env["finding-identity"], "stable", c.id);
     assert.equal(out.detail.id_a, out.detail.id_b);
+    assert.equal(out.detail.carried_b, true);
+    assert.equal(out.detail.title_stable, false);
   }
 });
 
@@ -186,7 +225,9 @@ test("outcomes: no defect finding in a pass is undetected; a changed title is dr
   const f = (title, severity = "major", location = `${c.fixture.defect_file}:5`) => ({ title, location, action: "fix", severity });
   assert.equal((await run([envelope(c.id, [], "pass"), envelope(c.id, [f("A")])])).env["finding-identity"], "undetected");
   assert.equal((await run([envelope(c.id, [f("Other file", "major", "elsewhere.js:1")]), envelope(c.id, [f("A")])])).env["finding-identity"], "undetected");
-  assert.equal((await run([envelope(c.id, [f("A")]), envelope(c.id, [f("B")])])).env["finding-identity"], "drifted");
+  const drifted = await run([envelope(c.id, [f("A")]), envelope(c.id, [f("B")])]);
+  assert.equal(drifted.env["finding-identity"], "drifted");
+  assert.deepEqual([drifted.detail.carried_b, drifted.detail.merged, drifted.detail.title_stable], [false, false, false]);
   const picked = await run([envelope(c.id, [f("Minor nit", "minor"), f("Real defect", "critical")]), envelope(c.id, [f("Real defect", "critical"), f("Minor nit", "minor")])]);
   assert.equal(picked.env["finding-identity"], "stable");
   assert.match(picked.detail.id_a, /real defect$/);
@@ -211,8 +252,10 @@ test("scenario: a stable case with reworded title and location grades stable, ac
   const detail = s.cases[0].rep_results[0].detail;
   assert.equal(detail.outcome, "stable");
   assert.equal(detail.id_a, detail.id_b);
+  assert.equal(detail.carried_b, true);
   const result = buildFindingIdentityResult(s, { commit: "abc", runAt: "2026-10-14T00:00:00.000Z", model: "m", effort: null });
-  assert.deepEqual(result.cases, [{ id: c.id, outcome: "stable", id_a: detail.id_a, id_b: detail.id_b }]);
+  assert.equal(result.mode, "carried");
+  assert.deepEqual(result.cases, [{ id: c.id, outcome: "stable", id_a: detail.id_a, id_b: detail.id_b, carried_b: true, title_stable: false, refused_carries: 0 }]);
 });
 
 test("scenario: the full set with two drifting fixtures writes a below-bar result", async (t) => {
@@ -228,7 +271,8 @@ test("scenario: the full set with two drifting fixtures writes a below-bar resul
   assert.equal(result.rate, Math.round(((all.length - 2) / all.length) * 100) / 100);
   assert.equal(result.pass, result.rate >= 0.9);
   assert.equal(result.pass, false);
-  assert.deepEqual(Object.keys(result), ["kind", "commit", "run_at", "model", "effort", "fixtures", "stable", "drifted", "undetected", "errored", "rate", "bar", "pass", "cases"]);
+  assert.deepEqual(Object.keys(result), ["kind", "mode", "commit", "run_at", "model", "effort", "fixtures", "stable", "drifted", "merged", "undetected", "errored", "carried", "title_stable", "refused_carries", "rate", "bar", "pass", "cases"]);
+  assert.deepEqual([result.mode, result.carried, result.title_stable, result.merged], ["carried", all.length - 2, 0, 0]);
   assert.equal(result.bar, 0.9);
   assert.equal(result.effort, "high");
 });
@@ -299,4 +343,93 @@ test("both review SKILLs document title, location and action and point at the sh
   }
   assert.match(noon, /no line numbers, severity words or category/);
   assert.match(dark, /finding-id\.js/);
+});
+
+// --- FAFF-1276: carried-mode grading ---------------------------------------------------------------
+
+const secondCase = () => cases().find((c) => c.fixture.second_defect_b);
+
+async function runPair(t, c, passA, passB) {
+  const { tracker, repo } = substrate();
+  t.after(() => repo.teardown());
+  const responses = [envelope(c.id, passA), envelope(c.id, passB)];
+  let n = 0;
+  return driveFindingIdentityCase(c, { runSkill, tracker, repo, model: () => responses[n++] });
+}
+
+test("scenario: pass B names the defect differently but carries pass A's handle — stable, carried, and the result is carried mode", async (t) => {
+  const c = cases()[0];
+  const file = c.fixture.defect_file;
+  const out = await runPair(t, c,
+    [{ title: "Other nit", location: "elsewhere.js:2", severity: "minor" }, { title: "pagecount truncates partial last page with math.floor", location: `${file}:12`, severity: "major" }],
+    [{ title: "pagecount rounds down a partial last page", location: `${file}:15`, carried_id: "P2", severity: "major" }]);
+  assert.equal(out.env["finding-identity"], "stable");
+  assert.deepEqual([out.detail.carried_b, out.detail.title_stable, out.detail.merged, out.detail.refused_carries], [true, false, false, 0]);
+  const summary = { cases: [{ case_id: c.id, kind: "finding-identity", rep_results: [{ detail: out.detail }] }] };
+  assert.equal(buildFindingIdentityResult(summary, { commit: "c", runAt: "t", model: "m", effort: null }).mode, "carried");
+});
+
+test("merged: a second-defect finding carrying A's handle grades merged, accepted or refused claimed-twice, and when it is pass B's only finding", async (t) => {
+  const c = secondCase();
+  const file = c.fixture.defect_file;
+  const inSecond = `${file}:${c.fixture.second_defect_b.lines[0]}`;
+  const a = [{ title: "First defect", location: `${file}:3`, severity: "major" }];
+  const accepted = await runPair(t, c, a, [{ title: "Second defect", location: inSecond, carried_id: "P1", severity: "major" }]);
+  assert.equal(accepted.env["finding-identity"], "merged");
+  assert.equal(accepted.detail.merged, true);
+  const claimedTwice = await runPair(t, c, a, [
+    { title: "First defect reworded", location: `${file}:3`, carried_id: "P1", severity: "major" },
+    { title: "Second defect", location: inSecond, carried_id: "P1", severity: "major" },
+  ]);
+  assert.equal(claimedTwice.env["finding-identity"], "merged");
+  assert.equal(claimedTwice.detail.refused_carries, 1);
+  const onlySecond = await runPair(t, c, a, [{ title: "Second defect", location: inSecond, carried_id: " P1 ", severity: "critical" }]);
+  assert.equal(onlySecond.env["finding-identity"], "merged");
+  assert.equal(onlySecond.detail.id_b, null);
+});
+
+test("stable without merging: a second-defect finding whose title alone matches A's, with no carry, is excluded from B's defect", async (t) => {
+  const c = secondCase();
+  const file = c.fixture.defect_file;
+  const inSecond = `${file}:${c.fixture.second_defect_b.lines[1]}`;
+  const out = await runPair(t, c,
+    [{ title: "First defect", location: `${file}:3`, severity: "major" }],
+    [{ title: "First defect, reworded", location: `${file}:4`, carried_id: "P1", severity: "major" }, { title: "First defect", location: inSecond, severity: "critical" }]);
+  assert.equal(out.env["finding-identity"], "stable");
+  assert.equal(out.detail.merged, false);
+});
+
+test("undetected: pass B with no defect finding, and the result counts merged and refused carries", async (t) => {
+  const c = secondCase();
+  const file = c.fixture.defect_file;
+  const out = await runPair(t, c, [{ title: "First defect", location: `${file}:3`, severity: "major" }], [{ title: "x", location: "other.js:1", carried_id: "P1", severity: "minor" }]);
+  assert.equal(out.env["finding-identity"], "undetected");
+  assert.deepEqual([out.detail.carried_b, out.detail.title_stable, out.detail.refused_carries], [false, false, 1]);
+  const mk = (detail, i) => ({ case_id: `c${i}`, kind: "finding-identity", rep_results: [{ detail }] });
+  const r = buildFindingIdentityResult({ cases: [mk(out.detail, 0), mk({ outcome: "merged", merged: true, refused_carries: 2 }, 1)] }, { commit: "c", runAt: "t", model: "m", effort: null });
+  assert.deepEqual([r.undetected, r.merged, r.refused_carries, r.stable], [1, 1, 3, 0]);
+});
+
+test("loadReviewFindingProse carries the carried_id rule", () => {
+  const prose = loadReviewFindingProse();
+  assert.match(prose, /"carried_id"/);
+  assert.match(prose, /`carried_id` is the handle of the prior finding when this finding is the same defect/);
+  assert.match(prose, /never re-raise a finding because it is listed/);
+});
+
+test("faff contract review-verdict ignores carried_id: same output with and without it", () => {
+  const bare = { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "major", title: "t", location: "a.js:1" }] };
+  const carried = { signal: "fail", findings: [{ ...bare.findings[0], carried_id: "P1" }], extra_top_level: true };
+  const a = runCli(["contract", "review-verdict"], { input: JSON.stringify(bare) });
+  const b = runCli(["contract", "review-verdict"], { input: JSON.stringify(carried) });
+  assert.equal(a.code, 0);
+  assert.equal(b.code, 0);
+  assert.equal(b.stdout, a.stdout);
+});
+
+test("the adversarial SKILL carries the carries: line rule and carried_id in escalated_criticals", () => {
+  const dark = readFileSync(join(ROOT, "plugin", "skills", "faffter-dark-adversarial-review", "SKILL.md"), "utf8");
+  assert.match(dark, /`carries: P<k>`/);
+  assert.match(dark, /"escalated_criticals": \[ \{ "severity": "critical", "location": "\.\.\.", "title": "\.\.\.", "carried_id"/);
+  assert.match(dark, /copied verbatim from its section's first `carries:` line/);
 });

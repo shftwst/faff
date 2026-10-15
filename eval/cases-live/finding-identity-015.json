@@ -1,0 +1,27 @@
+{
+  "id": "finding-identity-015",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: readConfig swallows every read and parse error and returns {}, where the spec requires an error naming the file. diff_b adds a second, distinct defect in the same file: withDefaults mutates the shared DEFAULTS object through Object.assign. second_defect_b marks withDefaults.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `readConfig` (and, in the second revision, `withDefaults`) to the config loader.",
+    "spec": "## WHAT\nLoad JSON configuration in `src/config/load.js`.\n\n## DONE\n- [ ] `readConfig(file)` returns the parsed JSON object\n- [ ] a missing or malformed file throws an error whose message names the file\n- [ ] `withDefaults(overrides)` returns a new object of DEFAULTS overlaid with overrides and never changes DEFAULTS",
+    "diff": "diff --git a/src/config/load.js b/src/config/load.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/config/load.js\n+++ b/src/config/load.js\n@@ -3,4 +3,12 @@\n \n const DEFAULTS = { port: 8080, host: 'localhost' };\n \n-module.exports = { DEFAULTS };\n+function readConfig(file) {\n+  try {\n+    return JSON.parse(fs.readFileSync(file, 'utf8'));\n+  } catch {\n+    return {};\n+  }\n+}\n+\n+module.exports = { DEFAULTS, readConfig };\ndiff --git a/test/load.test.js b/test/load.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/load.test.js\n+++ b/test/load.test.js\n@@ -1,3 +1,8 @@\n 'use strict';\n const assert = require('node:assert');\n const { test } = require('node:test');\n+const { readConfig } = require('../src/config/load');\n+\n+test('readConfig parses a JSON file', () => {\n+  assert.deepEqual(readConfig('test/fixtures/ok.json'), { port: 9000 });\n+});\n",
+    "test_results": "node --test: 14 pass, 0 fail. Lint clean.",
+    "defect_file": "src/config/load.js",
+    "diff_b": "diff --git a/src/config/load.js b/src/config/load.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/config/load.js\n+++ b/src/config/load.js\n@@ -3,4 +3,16 @@\n \n const DEFAULTS = { port: 8080, host: 'localhost' };\n \n-module.exports = { DEFAULTS };\n+function readConfig(file) {\n+  try {\n+    return JSON.parse(fs.readFileSync(file, 'utf8'));\n+  } catch {\n+    return {};\n+  }\n+}\n+\n+function withDefaults(overrides) {\n+  return Object.assign(DEFAULTS, overrides);\n+}\n+\n+module.exports = { DEFAULTS, readConfig, withDefaults };\ndiff --git a/test/load.test.js b/test/load.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/load.test.js\n+++ b/test/load.test.js\n@@ -1,3 +1,8 @@\n 'use strict';\n const assert = require('node:assert');\n const { test } = require('node:test');\n+const { readConfig } = require('../src/config/load');\n+\n+test('readConfig parses a JSON file', () => {\n+  assert.deepEqual(readConfig('test/fixtures/ok.json'), { port: 9000 });\n+});\n",
+    "second_defect_b": {
+      "lines": [
+        14,
+        15
+      ]
+    }
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

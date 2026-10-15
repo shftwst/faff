@@ -514,6 +514,18 @@ export const FINDING_IDENTITY_INSTRUCTION =
   "change. Do not emit an id. Output NOTHING except that single block: no reasoning, no preamble, no " +
   "prose, nothing before or after it.";
 
+// FAFF-1276 — pass B's instruction: the same envelope, with the carried_id field the reviewer uses to
+// name the prior finding it re-raises by handle, and the location asked for as path:line.
+export const FINDING_IDENTITY_CARRY_INSTRUCTION =
+  "Run the review passes above over this whole change and report every finding you raise. Then OUTPUT " +
+  "ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing " +
+  'JSON of the shape { "case_id": "<ID>", "signal": "pass|fail|needs-human", "findings": [ { "title": ' +
+  '"<defect and symbol, per the title guidance>", "location": "<path:line>", "carried_id": "<the P<k> ' +
+  'handle of a prior finding, only for the same defect>", "action": "<the concrete fix>", "severity": ' +
+  '"critical|major|minor|observation" } ] } — one entry per finding, none for a clean change. Do not ' +
+  "emit finding_id. Output NOTHING except that single block: no reasoning, no preamble, no prose, " +
+  "nothing before or after it.";
+
 // FAFF-150 — the envelope instruction for the modedetect surface. The model classifies the
 // ModeScenario as EXACTLY ONE of greenfield / single-item / ambiguous, emitting a single `mode`
 // field (the confidence/routing analogue — one verdict → a one-element set). Same OUTPUT-ONLY

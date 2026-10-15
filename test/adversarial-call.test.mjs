@@ -4860,3 +4860,11 @@ test("FAFF-1228 pickUsage: reasoning_tokens survives a provider with more *_toke
   assert.equal(out.reasoning_tokens, 77);
   assert.equal(Object.keys(out).length, USAGE_MAX_KEYS);
 });
+
+test("FAFF-1276 validateFindingsShape: a section with a `carries:` body line is accepted, and the line survives splitFindings", () => {
+  const content = "### critical: fd never closed in readFirstLine\ncarries: P2\nThe fd opened at a.js:30 is never closed on the error path.\n";
+  assert.deepEqual(validateFindingsShape(content), { ok: true });
+  const { sections } = splitFindings(content);
+  assert.equal(sections.length, 1);
+  assert.match(sections[0].raw, /^carries: P2$/m);
+});

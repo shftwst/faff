@@ -429,6 +429,9 @@ const REGION_MAP = {
   "build-review-churn": "factory",
   "build-review-convergence": "factory",
   "build-judge-evidence": "factory",
+  // FAFF-1276: review-prior lists the previous review round's findings by handle for the
+  // reviewer — reads the same round directories as the build-review resolvers → factory.
+  "review-prior": "factory",
   // FAFF-945: spec-judge-accept-bar is the deterministic accept-bar roll-up faff-prep's judge
   // step shells — a pure coercion over the evidence bundle + the judge verdict, same family as
   // the other small spec-review resolvers → factory.
@@ -604,6 +607,7 @@ const REGION_SELFTEST_ARGV = {
   // loop + admit roll-up are exercised through the real CLI entrypoint by
   // test/build-judge-evidence.test.mjs, declared in lint-cli-coverage's TEST_FILE_COVERAGE).
   "build-judge-evidence": null,
+  "review-prior": ["review-prior", "--selftest"],
   "tier": ["tier", "--selftest"],
   "dispatch": ["dispatch", "--selftest"],
 };

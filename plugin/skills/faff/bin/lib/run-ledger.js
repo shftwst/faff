@@ -339,11 +339,8 @@ function initInteractive(values) {
   const nowIso = new Date().toISOString();
   const runId = values["--id"] || `run-${utcStamp(nowIso)}-graft-${issue}`;
   const runDir = path.join(root, ".faff", "runs", runId);
-  // The run dir's basename IS the run_id — load-bearing for the genesis `prev` = SHA-256(run_id).
-  // A recursive mkdir returns undefined when the leaf already existed, so only a dir this call
-  // created is ever discarded on a refusal.
-  const createdRunDir = fs.mkdirSync(runDir, { recursive: true }) !== undefined;
-
+  // Built before the dir exists, so nothing can throw between creating the dir and the
+  // guarded ledger write below.
   const ledger = buildInteractiveLedger({
     runId,
     issue,
@@ -352,6 +349,11 @@ function initInteractive(values) {
     pid: process.pid,
     baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
   });
+  // The run dir's basename IS the run_id — load-bearing for the genesis `prev` = SHA-256(run_id).
+  // A recursive mkdir returns a path iff it created the leaf (possibly with ancestors) and
+  // undefined iff the leaf already existed, so only a dir this call created is ever discarded.
+  const createdRunDir = fs.mkdirSync(runDir, { recursive: true }) !== undefined;
+
   // Route through the SAME locked core every ledger write uses (uniformity; a just-minted
   // dir cannot contend). The trivial mutate ignores the fresh read (initial creation).
   let mintWriteRes;
@@ -465,6 +467,16 @@ function initSelfDrain(values) {
   const runsParent = path.join(root, ".faff", "runs");
   const runDir = path.join(runsParent, runId);
 
+  // Built before the dir exists, so nothing can throw between creating the dir and the
+  // guarded ledger write below.
+  const ledger = buildSelfDrainLedger({
+    runId,
+    nowIso,
+    sessionId: process.env.FAFF_SESSION_ID || null,
+    pid: process.pid,
+    baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
+  });
+
   // Ensure the PARENT exists (idempotent, recursive — a fresh repo has no `.faff/runs/` yet),
   // then exclusive-create the LEAF (non-recursive — throws EEXIST iff the leaf is taken). The
   // run dir's basename IS the run_id (load-bearing for the genesis `prev` = SHA-256(run_id)).
@@ -483,13 +495,6 @@ function initSelfDrain(values) {
     throw e;
   }
 
-  const ledger = buildSelfDrainLedger({
-    runId,
-    nowIso,
-    sessionId: process.env.FAFF_SESSION_ID || null,
-    pid: process.pid,
-    baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
-  });
   // Unlike a non-throwing `written:false` (a null-mutate abort — never returned by the mutate
   // above — or an owner-epoch-fence yield, never armed here), lock-ACQUISITION exhaustion
   // THROWS a tagged LEDGER_LOCKED error (fs-lock.js) rather than returning. Catch it too — a

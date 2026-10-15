@@ -120,6 +120,19 @@ test("discardUnmintedRunDir never throws and leaves a non-empty dir and its cont
   assert.equal(err, `faff run-ledger init-interactive: could not remove ${dir} (ENOTEMPTY); it holds no ledger\n`);
 });
 
+test("discardUnmintedRunDir reports any other rmdir error without throwing", () => {
+  const fs = require("node:fs");
+  const dir = mkdtempSync(path.join(scratch, "eperm-"));
+  const real = fs.rmdirSync;
+  fs.rmdirSync = () => { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); };
+  let err;
+  try {
+    assert.doesNotThrow(() => { err = captureStderr(() => discardUnmintedRunDir(dir, "init-self-drain")); });
+  } finally { fs.rmdirSync = real; }
+  assert.ok(existsSync(dir));
+  assert.equal(err, `faff run-ledger init-self-drain: could not remove ${dir} (EPERM); it holds no ledger\n`);
+});
+
 // run-ledger.js destructures mutateLedgerUnderLock at require time, so the stub goes onto the
 // heartbeat.js exports first, in a fresh process.
 function runStubbed(stub, args) {

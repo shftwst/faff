@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { createRequire } from "node:module";
 
 import { runCli } from "./helpers/run-cli.mjs";
 import { example, repoRoot } from "./helpers/evidence-anchor-fixtures.mjs";
@@ -188,6 +189,35 @@ test("the newer first-parent commit is reported even when its author date is old
     const nearer = repo.git("rev-parse", "HEAD");
     const report = parse(repo.readiness(["--since", "HEAD", "--json"]));
     assert.equal(report.writers[0].commit, nearer);
+  } finally { repo.cleanup(); }
+});
+
+const { resolveWriters } = createRequire(import.meta.url)(path.join(repoRoot, "plugin/skills/faff/bin/lib/evidence-readiness.js"));
+const pinOnly = (issue, sha) => ({ ...Object.fromEntries(WRITERS.map((w) => [w, null])), [issue]: sha });
+const writerIn = (writers, issue) => writers.find((x) => x.issue === issue);
+
+test("a verified pin is not displaced by a later commit naming its ticket; without the pin the newest match still wins", () => {
+  const repo = makeRepo();
+  try {
+    const w = repo.writers();
+    const since = repo.git("rev-parse", "HEAD");
+    const followUp = repo.commit("fix: follow-up (FAFF-1266) (#9)");
+    const pinned = writerIn(resolveWriters(repo.dir, since, pinOnly("FAFF-1266", w["FAFF-1266"])), "FAFF-1266");
+    assert.deepEqual(pinned, { issue: "FAFF-1266", commit: w["FAFF-1266"], before_since: true });
+    const unpinned = writerIn(resolveWriters(repo.dir, since, pinOnly("FAFF-1266", null)), "FAFF-1266");
+    assert.deepEqual(unpinned, { issue: "FAFF-1266", commit: followUp, before_since: false });
+  } finally { repo.cleanup(); }
+});
+
+test("an earlier commit naming a pinned ticket does not stand in for its later merge", () => {
+  const repo = makeRepo();
+  try {
+    repo.commit("docs(adr): propose (FAFF-1266) (#1)");
+    const since = repo.git("rev-parse", "HEAD");
+    const merge = repo.commit("feat: writer (FAFF-1266) (#2)");
+    repo.commit("fix: follow-up (FAFF-1266) (#3)");
+    const resolved = writerIn(resolveWriters(repo.dir, since, pinOnly("FAFF-1266", merge)), "FAFF-1266");
+    assert.deepEqual(resolved, { issue: "FAFF-1266", commit: merge, before_since: false });
   } finally { repo.cleanup(); }
 });
 

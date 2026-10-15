@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1276",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c8172076f032ba37d7411a29eb2a1a761a04cdb28099ae0574bfaec9d1b55660",
+    "branch": "FAFF-1276-reviewer-carries-finding-ids",
+    "pushed_at": "2026-10-15T19:18:05.022Z"
+  },
+  "updated_at": "2026-10-15T19:18:05.022Z"
+}

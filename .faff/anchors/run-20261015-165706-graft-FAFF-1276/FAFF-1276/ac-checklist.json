@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A finding with no carried_id resolves to the same id as readerFindingIds in every existing fixture (property test over FINDING_ID_CASES and the churn, convergence and judge-evidence fixtures)",
+      "verified": "test/finding-id.test.mjs 'with no carried_id every id equals readerFindingIds' - passing (judge-evidence lists are inline; their existing tests also pass unchanged)",
+      "passed": true
+    },
+    {
+      "ac": "build-review-churn, build-review-convergence, build-judge-evidence and build-judge-casefile tests pass with no fixture edits",
+      "verified": "Existing tests untouched (diff is append-only); node --test on all four files - passing",
+      "passed": true
+    },
+    {
+      "ac": "test/finding-id.test.mjs covers each refusal, an accepted carry, a #2-suffixed target, a non-handle carried_id, suffixing against a carried id, and a three-round chain",
+      "verified": "node --test test/finding-id.test.mjs - 22 passing",
+      "passed": true
+    },
+    {
+      "ac": "faff contract review-verdict output is identical with and without carried_id per finding",
+      "verified": "test/eval-finding-identity.test.mjs 'faff contract review-verdict ignores carried_id' - passing",
+      "passed": true
+    },
+    {
+      "ac": "renderPriorFindingsBlock output equals the pinned heading, data sentence and one fenced json block, byte for byte",
+      "verified": "test/review-prior.test.mjs 'renderPriorFindingsBlock' - passing",
+      "passed": true
+    },
+    {
+      "ac": "faff review-prior: round 0 for a missing dir, highest round, P1..Pn handles, secret redaction, directive scrub, backtick/control-char strip, 200-char cap, empty --block, exit 2 naming a malformed file",
+      "verified": "node --test test/review-prior.test.mjs - 6 passing",
+      "passed": true
+    },
+    {
+      "ac": "faffter-noon-review carries the carried_id field and rule; faff validate-adapters passes",
+      "verified": "faff validate-adapters - PASS, no new warnings against origin/main",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] faffter-dark-adversarial-review carries carried_id, the carries: line rule in its Review lens, and carried_id in escalated_criticals[]",
+      "verified": "test/eval-finding-identity.test.mjs 'the adversarial SKILL carries the carries: line rule' - passing",
+      "passed": true
+    },
+    {
+      "ac": "loadReviewFindingProse output contains the carried_id rule",
+      "verified": "test/eval-finding-identity.test.mjs 'loadReviewFindingProse carries the carried_id rule' - passing",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] validateFindingsShape accepts a section with a carries: body line",
+      "verified": "test/adversarial-call.test.mjs 'FAFF-1276 validateFindingsShape' - passing",
+      "passed": true
+    },
+    {
+      "ac": "review-round.schema.json has the required nullable carried_id in both copies, byte-identical; example pair updated; test/evidence-v0.3.test.mjs passes",
+      "verified": "cmp of both copies and examples - identical; node --test test/evidence-v0.3.test.mjs test/evidence-spec.test.mjs - passing",
+      "passed": true
+    },
+    {
+      "ac": "faff regions check passes with review-prior.js in factory requiring finding-id.js",
+      "verified": "faff regions check - PASS with review-prior.js in factory. It requires adversarial-judge-scrub.js and the round readers but not finding-id.js: it prints handles in record order and no ids, so it has no use for it",
+      "passed": true
+    },
+    {
+      "ac": "The first three scenarios pass as tests",
+      "verified": "test/finding-id.test.mjs scenarios 1-2 and test/build-review-churn.test.mjs scenario 3 - passing",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] Churn: carried id listed in carried_critical_ids; round 3 resolves round 2's carry through round 1; malformed round-1.json exits 2 naming it; cross-directory gives chain_rounds 2 with the stderr line",
+      "verified": "test/build-review-churn.test.mjs FAFF-1276 cases - passing",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] Judge evidence: a round-1 rebuttal reaches a carried round-3 critical with an unchanged title, not one with a different title; an uncarried rebuttal is unchanged",
+      "verified": "test/build-judge-evidence.test.mjs FAFF-1276 cases - passing",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] computeCriticalFreeLatestFloor over a carried round-2 critical equals the repeated-title result",
+      "verified": "test/build-judge-evidence.test.mjs 'computeCriticalFreeLatestFloor: a round-2 critical carrying' - passing",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] Convergence: a malformed round-1.json with --window-start 2 exits 2 naming it",
+      "verified": "test/build-review-convergence.test.mjs - passing",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] Convergence with --window-start 2 over a carried three-round dir: two totals, the carried critical is not new at 2->3, step 1->2 not compared",
+      "verified": "test/build-review-convergence.test.mjs - passing",
+      "passed": true
+    },
+    {
+      "ac": "faff-graft/SKILL.md Step 9 forwards faff review-prior --block from the second pass on with the directory rule; file stays within its line baseline",
+      "verified": "Edited in place; 959 lines (baseline 960); validate-adapters PASS",
+      "passed": true
+    },
+    {
+      "ac": "[dialogue] faff-graft/SKILL.md dialogue item 1 keeps carried_id and logs carried_critical_ids",
+      "verified": "Item 1 edited in place",
+      "passed": true
+    },
+    {
+      "ac": "Mocked test: every fixture through driveFindingIdentityCase, exactly two model calls, pass A has no prior block, pass B has renderPriorFindingsBlock of A's findings and none of A's action text",
+      "verified": "test/eval-finding-identity.test.mjs 'every fixture: exactly two model calls' - passing over 16 fixtures",
+      "passed": true
+    },
+    {
+      "ac": "At least 16 finding-identity fixtures; at least three carry second_defect_b and every range line is an added or context line of defect_file in diff_b",
+      "verified": "16 fixtures (014-016 new, each with second_defect_b); test/eval-finding-identity.test.mjs fixture tests - passing",
+      "passed": true
+    },
+    {
+      "ac": "Mocked cases grade stable (carried), drifted, merged (accepted, refused claimed-twice, only-second-defect), stable with merged false, undetected; the result has mode carried, merged, carried, title_stable and refused_carries",
+      "verified": "test/eval-finding-identity.test.mjs FAFF-1276 grading tests - passing",
+      "passed": true
+    },
+    {
+      "ac": "test/eval-finding-identity.test.mjs and test/seam-registry.test.mjs pass",
+      "verified": "node --test - passing (26 and registry tests)",
+      "passed": true
+    },
+    {
+      "ac": "The kind, fixtures and registry row stay registered (finding-identity, surface faffter-noon-review)",
+      "verified": "test/eval-finding-identity.test.mjs registry test - passing",
+      "passed": true
+    },
+    {
+      "ac": "When the PR opens, the 'Awaiting operator run' comment is on FAFF-1276 and the '## Interface change from FAFF-1276' comment is on FAFF-1268",
+      "verified": "Both comments posted immediately before the PR was opened (see PR body)",
+      "passed": true
+    }
+  ]
+}

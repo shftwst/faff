@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1299",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f4481f78bbf2c5991779d7a254efff507df4d263903407403018f2f7a764d61f",
+    "branch": "FAFF-1299-ignore-rules-inside-faff",
+    "pushed_at": "2026-10-15T19:52:38.219Z"
+  },
+  "updated_at": "2026-10-15T19:52:38.219Z"
+}

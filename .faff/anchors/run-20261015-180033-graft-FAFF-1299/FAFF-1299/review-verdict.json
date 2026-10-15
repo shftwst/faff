@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::hazard list omits the .faff/anchors/* and .faff/anchors/** family",
+      "title": "Hazard list omits the .faff/anchors/* and .faff/anchors/** family",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:71",
+      "action": "Fold the anchors-targeted spellings into FAFF-1301's git-asking predicate, or narrow the residual-limitation claim.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Confirmed real empirically: a root `.faff/anchors/**` leaves `.faff/.gitignore` readable yet `git check-ignore -v` attributes the anchor file to `.gitignore:1:.faff/anchors/**`, and the writer reports warnings: []. Out of this slice's spec'd scope (the DONE list fixes an eight-entry floor and explicitly admits a wider list). Recorded as discovered scope and flagged as evidence for FAFF-1301, whose predicate asks git instead of enumerating spellings and so catches this class by construction. see <run-dir>/FAFF-1299/discovered-scope.json",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Hazard list omits the .faff/anchors/* and .faff/anchors/** family",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:71",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::appended /* can land after a pre-existing negation and kill the carve-out",
+      "title": "Appended /* can land after a pre-existing negation and kill the carve-out",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:154",
+      "action": "Detect a negation at a lower index than where /* would land and warn, reusing the new warning machinery; reordering is unavailable because append-only is a hard constraint.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Confirmed real empirically and worse than described: seeding `.faff/.gitignore` with only `!/anchors/` yields an output whose `/*` sits at line 4 after the negation at line 1, and git attributes the ignored anchor file to `.faff/.gitignore:4:/*`. The writer thus produces a file defeating the carve-out the ticket protects. Not fixed here: the trigger needs a hand-written partial file that no faff-managed repo contains (the writer always emits the complete ordered set), the spec's DONE list is complete without it, and the only append-only-compatible remedy is a new warning, which is a behaviour addition rather than a correction of what was specified. Recorded as discovered scope at the top of the list. see <run-dir>/FAFF-1299/discovered-scope.json",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Appended /* can land after a pre-existing negation and kill the carve-out",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:154",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::hazard scan ignores .git/info/exclude, which faff's own --local mode writes .faff/ into",
+      "title": "Hazard scan ignores .git/info/exclude, which faff's own --local mode writes .faff/ into",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:161",
+      "action": "Scan .git/info/exclude when present, or document the local-to-standard transition as a known gap.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Confirmed real empirically: after a `--local` run writes `.faff/` to `.git/info/exclude`, a standard run reports warnings: [] while git attributes the ignored anchor file to `.git/info/exclude:14:.faff/`. Reachable and tool-created, not a residual unlisted spelling. Out of this slice's spec'd scope (hazard detection is specified over the root .gitignore). Recorded as discovered scope; FAFF-1301's git-asking predicate is immune to it. see <run-dir>/FAFF-1299/discovered-scope.json",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Hazard scan ignores .git/info/exclude, which faff's own --local mode writes .faff/ into",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:161",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::partial-failure state between the two writes is unrecovered and unstated",
+      "title": "Partial-failure state between the two writes is unrecovered and unstated",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:161",
+      "action": "Add the half-applied row to the spec's edge-case table if completeness is claimed.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Accepted, and the reviewer concedes acceptability in the finding itself: a throw on the second write exits 2, which signals the half-applied state, and the operation is idempotent so a re-run converges. No data is lost and no silent success is reported. The only residue is a spec documentation gap, which does not affect shipped behaviour.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Partial-failure state between the two writes is unrecovered and unstated",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:161",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::hazard warning text claimed inaccurate for the partial-hazard family",
+      "title": "Hazard warning text claimed inaccurate for the partial-hazard family",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:155",
+      "action": "None required; the premise is incorrect.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "gitignore-ensure.js:155-158 reads \"Git will not read .faff/.gitignore, or will keep ignoring files under the directories it re-includes\". The text is a disjunction whose second clause states precisely the partial-hazard behaviour.",
+      "disposition_rationale": "The finding's premise is that the warning asserts non-reading unconditionally. It does not: the sentence is an explicit either-or covering both the full and partial families, which is why one remedy serves both. A finding that contradicts the source it cites loses to the source.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Hazard warning text claimed inaccurate for the partial-hazard family",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:155",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::warning offers one remedy for two distinct monorepo intents",
+      "title": "Warning offers one remedy for two distinct monorepo intents",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:158",
+      "action": "Acknowledge in the text that a **/-prefixed match may be intentional elsewhere in the tree.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Fair usability point and accepted as such. The warning is advisory, exits 0 and automates nothing, so no repo is broken by it; a monorepo operator reading the line keeps full control. Wording improvement recorded as discovered scope rather than changed here, since altering advisory output is a deliberate copy change. see <run-dir>/FAFF-1299/discovered-scope.json",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Warning offers one remedy for two distinct monorepo intents",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:158",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "verdict": "revise",
+  "final_verdict": "approve",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec changes `resolveWriters` to take the *oldest* first-parent commit whose subject contains the literal `(<ticket>)`. A commit subject is untrusted, attacker-influenceable text (any PR title), and under this rule it is the *sole* input that decides which commit readiness treats as \"the writer's code was on main before the window opened\". A commit naming a writer ticket before the real merge — the spec's own first failure mode, citing FAFF-1109's ADR PR #1018 preceding its build — makes `before_since: true` for a commit that contains no writer code. The command's `ready` flag (the artifact FAFF-1261 will use to switch on refusal) then passes a precondition it exists to enforce: writer code proven pre-window. The spec's stated mitigations are (a) \"the anchors are the evidence\" — but a qualifying beep-boop run with passing v0.3 anchors does not prove writer *code* provenance, which is exactly what this check adds; and (b) FAFF-1270 preflight 3a, an *operator eyeballs the shas* step in a different ticket that the spec itself notes \"deliberately does not wait for\" FAFF-1290 — so the command's standalone semantics ship fail-open with no in-tool control. This is a spec-caused trust decision on an input whose writer provenance the command cannot verify.",
+      "evidence": "`## 3. WHAT` \"the resolved commit is the oldest matching first-parent commit\"; `## 4. HOW` failure mode \"An earlier commit names a writer before its real merge … This is accepted risk\"; `## 6. DESIGN DECISION RATIONALE` \"its one weakness is covered by the preflight sha check FAFF-1270 already requires\"; header of `evidence-readiness.js`: \"the measurable exit criterion for … FAFF-1261 may switch on refusal\".",
+      "predicted_consequence": "`faff evidence-readiness --since <rev>` returns `ready: true` (exit 0) for a window that opened before a writer's code actually merged, because a spec/ADR/docs PR titled `(<writer-ticket>)` preceded it — FAFF-1261's enforcement cutover is then certified on a false writer precondition.",
+      "spec_anchor": "4-how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Verified: a pre-merge commit naming the ticket exists as a pattern on main (FAFF-1109's ADR proposal #1018 preceded its build), so oldest-match could pass readiness falsely. Replaced oldest-match with a WRITER_MERGES pin table verified against HEAD's first-parent log and the (<ticket>) subject, falling back to today's fail-closed newest-match rule; pins change only by reviewed code, never a flag or env var. Round 2 returned approve.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec changes `resolveWriters` to take the *oldest* first-parent commit whose subject contains the literal `(<ticket>)`. A commit subject is untrusted, attacker-influenceable text (any PR title), and under this rule it is the *sole* input that decides which commit readiness treats as \"the writer's code was on main before the window opened\". A commit naming a writer ticket before the real merge — the spec's own first failure mode, citing FAFF-1109's ADR PR #1018 preceding its build — makes `before_since: true` for a commit that contains no writer code. The command's `ready` flag (the artifact FAFF-1261 will use to switch on refusal) then passes a precondition it exists to enforce: writer code proven pre-window. The spec's stated mitigations are (a) \"the anchors are the evidence\" — but a qualifying beep-boop run with passing v0.3 anchors does not prove writer *code* provenance, which is exactly what this check adds; and (b) FAFF-1270 preflight 3a, an *operator eyeballs the shas* step in a different ticket that the spec itself notes \"deliberately does not wait for\" FAFF-1290 — so the command's standalone semantics ship fail-open with no in-tool control. This is a spec-caused trust decision on an input whose writer provenance the command cannot verify.",
+          "spec_anchor": "4-how"
+        }
+      ]
+    }
+  ]
+}

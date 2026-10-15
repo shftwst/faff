@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "On a checkout of main with this change, faff evidence-readiness --since HEAD --json reports FAFF-1266's commit as 10a8ece4ad9a675c81fdead6fab8ccfaa447ca4b and every pinned writer at its pin",
+      "verified": "Ran `faff evidence-readiness --since HEAD --json` on origin/main 551bf2eb plus this change: FAFF-1266 10a8ece4, FAFF-1267 35e2de21, FAFF-1258 d506fed1, FAFF-1259 e1b6f4c7, FAFF-1260 b76edaa3, FAFF-1277 a3f9d7d0, all before_since true; FAFF-1268 null (unmerged)",
+      "passed": true
+    },
+    {
+      "ac": "No flag, environment variable or config key changes WRITER_MERGES or the resolution rule",
+      "verified": "WRITER_MERGES is a frozen module constant read only as resolveWriters's default argument; the CLI flag spec is unchanged and `--merges x` exits 2 (usage); the module reads no process.env",
+      "passed": true
+    },
+    {
+      "ac": "WRITER_MERGES exists with exactly the WRITER_TICKETS keys, each value null or 40 lowercase hex, and the six shas listed (plus FAFF-1268's if merged at build time)",
+      "verified": "selftest case `WRITER_MERGES has exactly the writer tickets, each null or a full sha`; each pin checked with `git log --first-parent --format='%H %s' origin/main | grep '^<sha> '` and its PR number; FAFF-1268 not merged on origin/main 551bf2eb so it stays null",
+      "passed": true
+    },
+    {
+      "ac": "resolveWriterCommits(lines, tickets, merges) is exported and follows the pseudocode: verified pin, else first matching line, else null",
+      "verified": "exported from evidence-readiness.js; selftest cases for verified pin, absent pin fallback, non-naming pin fallback and unmatched null",
+      "passed": true
+    },
+    {
+      "ac": "The subject match stays the literal (<ticket>): (FAFF-12660) and an unparenthesised FAFF-1266 do not match FAFF-1266",
+      "verified": "selftest case `the subject match is the literal parenthesised ticket`; existing test `writer matching: exact parenthesised ticket...` passes",
+      "passed": true
+    },
+    {
+      "ac": "The writers[] record shape, order, unmet messages and flags are unchanged",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs existing writer, order, unmet-message and --skip-writers usage tests pass unchanged (38/38 with the warn-only mint file)",
+      "passed": true
+    },
+    {
+      "ac": "resolveWriters takes an optional merges argument defaulting to WRITER_MERGES; the CLI path never passes one; its before_since check is unchanged",
+      "verified": "collect() still calls resolveWriters(repoRoot, sinceSha); merge-base --is-ancestor check unchanged in the diff",
+      "passed": true
+    },
+    {
+      "ac": "--selftest covers verified pin wins, absent pin falls back, non-naming pin falls back, unpinned no-match is null, and WRITER_MERGES key and value shape",
+      "verified": "`faff evidence-readiness --selftest` -> evidence-readiness selftest: OK, with the five new cases",
+      "passed": true
+    },
+    {
+      "ac": "A temp-repo test (in-process resolveWriters with an injected merges) for each of the first two scenarios",
+      "verified": "test/faff-1263-evidence-readiness.test.mjs: `a verified pin is not displaced by a later commit naming its ticket...` and `an earlier commit naming a pinned ticket does not stand in for its later merge` pass",
+      "passed": true
+    },
+    {
+      "ac": "The existing CLI temp-repo tests pass unchanged",
+      "verified": "`node --test test/faff-1263-evidence-readiness.test.mjs test/faff-1263-evidence-warn-only-mint.test.mjs` -> 38 pass, 0 fail",
+      "passed": true
+    },
+    {
+      "ac": "docs/guide/cli.md's evidence-readiness row says a writer resolves to its pinned merge commit when that commit is on HEAD and names the ticket, else to the newest (<ID>) first-parent commit",
+      "verified": "row updated; `faff lint-cli-doc` and `faff lint-refs` gate rungs pass; the cli-doc readiness-row test passes",
+      "passed": true
+    }
+  ]
+}

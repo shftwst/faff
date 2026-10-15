@@ -274,6 +274,20 @@ test("no non-selftest code writes run-ledger.json except the serialiser and the 
   assert.deepEqual(recover.map((l) => l.fn), ["reconstructProjection"]);
 });
 
+test("bundle-recover restores under the shared ledger lock and upgrades only after releasing it", () => {
+  const recover = codeLines(path.join(LIB, "bundle-recover.js"));
+  const inFn = (name, re) => recover.some((l) => l.fn === name && re.test(l.code));
+  assert.equal(recover.some((l) => /run-ledger\.json\.lock/.test(l.code)), false, "no hand-built lock path");
+  assert.ok(inFn("bundleRecover", /\brestoreUnderLedgerLock\(/), "bundleRecover restores through the locked section");
+  assert.ok(inFn("restoreUnderLedgerLock", /\bwithLedgerLock\(/), "the restore section takes withLedgerLock");
+  assert.ok(inFn("restoreUnderLedgerLock", /\breconstructProjection\(/), "the restore writes run inside the section");
+  for (const re of [/\bupgradeRestored\(/, /\bmutateLedgerUnderLock\(/]) {
+    assert.equal(inFn("restoreUnderLedgerLock", re) || inFn("reconstructProjection", re), false, `${re} never runs under the lock`);
+  }
+  const heartbeat = codeLines(path.join(LIB, "heartbeat.js"));
+  assert.ok(heartbeat.some((l) => l.fn === "mutateLedgerUnderLock" && /\bwithLedgerLock\(/.test(l.code)), "the serialiser takes the same lock");
+});
+
 test("sentry abort is the only caller passing warn mode", () => {
   const warnCallers = libFiles()
     .filter((f) => codeLines(f).some((l) => /schema:\s*"warn"/.test(l.code)))

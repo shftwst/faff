@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1281",
+  "build": {
+    "status": "complete",
+    "diff_hash": "037026fc739d8ff7284e891b241458117bf61e530b3d985ce29bf5f15c6ec234",
+    "branch": "FAFF-1281-take-the-run-ledger-lock-around-bundle-recovers-ledger-restore",
+    "pushed_at": "2026-10-15T17:50:01.114Z"
+  },
+  "updated_at": "2026-10-15T17:50:01.114Z"
+}

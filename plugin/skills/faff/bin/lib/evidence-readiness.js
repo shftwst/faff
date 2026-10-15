@@ -23,6 +23,18 @@ const DEFAULT_ANCHORS_ROOT = ".faff/anchors";
 
 // The writer slices of FAFF-1255. FAFF-1257 is an umbrella since its split and is not listed.
 const WRITER_TICKETS = ["FAFF-1266", "FAFF-1267", "FAFF-1268", "FAFF-1258", "FAFF-1259", "FAFF-1260", "FAFF-1277"];
+// Each writer's merge commit, so a later or earlier commit naming the ticket cannot stand in for it.
+// A pin counts only when it is on HEAD's first-parent chain and its subject names the ticket; null
+// or unverified pins fall back to the newest matching commit. Pins change only by a code change.
+const WRITER_MERGES = Object.freeze({
+  "FAFF-1266": "10a8ece4ad9a675c81fdead6fab8ccfaa447ca4b", // #1057
+  "FAFF-1267": "35e2de21a3d127467244dd8624d67352de3b6a51", // #1053
+  "FAFF-1268": null,
+  "FAFF-1258": "d506fed13729961d0425e9da281089c9753ed93e", // #1055
+  "FAFF-1259": "e1b6f4c727905c0e5d2ff1a435077ebc74c710cb", // #1054
+  "FAFF-1260": "b76edaa3082cccdb9fb99ca5b125b7c6e3777809", // #1062
+  "FAFF-1277": "a3f9d7d00c2b387a29e7f969de8f7169b2971787", // #1061
+});
 const ROUTINE_FILES = ["events.jsonl", "run-ledger.json", "build-progress.json", "ac-checklist.json", "review-verdict.json", "declared-effects.jsonl", "chain-head.json", "effects-chain-head.json"];
 const WRITER_PROOF_FILES = ["spec-review-verdict.json", "holdout.json"];
 // Occasional files are whatever the bundled manifest names beyond the routine and writer-proof sets.
@@ -138,11 +150,24 @@ function resolveAnchorsRoot(repoRoot, cwd, flag) {
   return { abs: resolved, rel: toPosix(path.relative(repoRoot, resolved)) };
 }
 
-function resolveWriters(repoRoot, sinceSha) {
+// lines: `git log --first-parent --format=%H%x09%s` output, newest first.
+function resolveWriterCommits(lines, tickets, merges) {
+  const parsed = lines.map((l) => ({ sha: l.slice(0, l.indexOf("\t")), subject: l.slice(l.indexOf("\t") + 1) }));
+  const resolved = {};
+  for (const ticket of tickets) {
+    const names = (line) => line.subject.includes(`(${ticket})`);
+    const pin = merges[ticket] ?? null;
+    const pinned = pin !== null && parsed.some((line) => line.sha === pin && names(line));
+    resolved[ticket] = pinned ? pin : (parsed.find(names)?.sha ?? null);
+  }
+  return resolved;
+}
+
+function resolveWriters(repoRoot, sinceSha, merges = WRITER_MERGES) {
   const lines = git(repoRoot, ["log", "--first-parent", "--format=%H%x09%s", "HEAD"]).split("\n").filter(Boolean);
+  const resolved = resolveWriterCommits(lines, WRITER_TICKETS, merges);
   return WRITER_TICKETS.map((issue) => {
-    const hit = lines.find((l) => l.slice(l.indexOf("\t") + 1).includes(`(${issue})`));
-    const commit = hit ? hit.slice(0, hit.indexOf("\t")) : null;
+    const commit = resolved[issue];
     let before = false;
     if (commit !== null) {
       try { git(repoRoot, ["merge-base", "--is-ancestor", commit, sinceSha]); before = true; } catch { before = false; }
@@ -296,6 +321,18 @@ function evidenceReadinessSelftest() {
   check("an ignored path does not block", ready({ ignored: [{ path: "README.md", reason: "shallow" }] }));
   check("an occasional file never blocks", ready({}) && Object.values(evaluate({ ...base, anchors: [anchor(run, "FAFF-1")] }).occasional_files).every((v) => v.observed === false));
   check("whole-token binding rejects a longer number", wholeToken("feat (FAFF-90)", "FAFF-9") === false && wholeToken("feat (FAFF-9) (#1)", "FAFF-9") === true);
+  const P = "a".repeat(40), NEWER = "b".repeat(40), OTHER = "c".repeat(40);
+  const pinOnly = (pin) => ({ "FAFF-1266": pin });
+  const lines = [`${NEWER}\tfix: follow-up (FAFF-1266) (#9)`, `${OTHER}\tdocs: unrelated`, `${P}\tfeat: writer (FAFF-1266) (#1)`];
+  check("a verified pin wins over a newer matching line", resolveWriterCommits(lines, ["FAFF-1266"], pinOnly(P))["FAFF-1266"] === P);
+  check("a pin absent from the log falls back to the newest match", resolveWriterCommits(lines, ["FAFF-1266"], pinOnly("d".repeat(40)))["FAFF-1266"] === NEWER);
+  check("a pin whose subject does not name the ticket falls back", resolveWriterCommits(lines, ["FAFF-1266"], pinOnly(OTHER))["FAFF-1266"] === NEWER);
+  check("an unpinned ticket with no match is null", resolveWriterCommits(lines, ["FAFF-1267"], { "FAFF-1267": null })["FAFF-1267"] === null);
+  check("the subject match is the literal parenthesised ticket", resolveWriterCommits([`${P}\tfeat (FAFF-12660)`, `${OTHER}\tfeat for FAFF-1266`], ["FAFF-1266"], {})["FAFF-1266"] === null);
+  check("WRITER_MERGES has exactly the writer tickets, each null or a full sha",
+    Object.isFrozen(WRITER_MERGES)
+      && JSON.stringify(Object.keys(WRITER_MERGES).sort()) === JSON.stringify([...WRITER_TICKETS].sort())
+      && Object.values(WRITER_MERGES).every((v) => v === null || /^[0-9a-f]{40}$/.test(v)));
   check("unsafe path characters are recognised", UNSAFE_PATH.test("a|b") && UNSAFE_PATH.test("a\nb") && !UNSAFE_PATH.test("a/b"));
 
   if (failures.length) {
@@ -306,4 +343,4 @@ function evidenceReadinessSelftest() {
   return 0;
 }
 
-module.exports = { EVIDENCE_READINESS_SPEC, ROUTINE_FILES, WRITER_PROOF_FILES, WRITER_TICKETS, cmdEvidenceReadiness, evaluate, evidenceReadinessSelftest };
+module.exports = { EVIDENCE_READINESS_SPEC, ROUTINE_FILES, WRITER_PROOF_FILES, WRITER_MERGES, WRITER_TICKETS, cmdEvidenceReadiness, evaluate, evidenceReadinessSelftest, resolveWriterCommits, resolveWriters };

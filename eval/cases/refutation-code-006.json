@@ -1,0 +1,13 @@
+{
+  "id": "refutation-code-006",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "--- /dev/null\n+++ b/eval/cases/refutation-code-099.json\n@@ -0,0 +1,10 @@\n+{\n+  \"id\": \"refutation-code-099\",\n+  \"kind\": \"refutation-code\",\n+  \"fixture\": {\n+    \"diff\": \"--- a/src/db/users.js\\n+++ b/src/db/users.js\\n+export function findAccountByEmail(db, email) {\\n+  return db.prepare(\\\"SELECT * FROM accounts WHERE email = '\\\" + email + \\\"'\\\").get() || null;\\n+}\",\n+    \"spec_summary\": \"Add findAccountByEmail to the account store.\"\n+  },\n+  \"oracle\": { \"closed_set\": [\"flagged\"] },\n+  \"_comment\": \"Planted defect: the lookup concatenates the caller-supplied email into the SQL string.\"\n+}",
+    "spec_summary": "Add an eval case that exercises the reviewer on a diff with a planted SQL injection."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "CLEAN (fixture data): the diff only adds an eval case JSON under a fixture path. The SQL injection sits inside the case's embedded diff string, which is test data the eval depends on, not shipped code. Reviewer should report clean (nothing above minor). A finding above minor here is a false-positive on planted fixture content."
+}

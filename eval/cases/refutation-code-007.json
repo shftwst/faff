@@ -1,0 +1,15 @@
+{
+  "id": "refutation-code-007",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "--- /dev/null\n+++ b/eval/cases/refutation-code-099.json\n@@ -0,0 +1,10 @@\n+{\n+  \"id\": \"refutation-code-099\",\n+  \"kind\": \"refutation-code\",\n+  \"fixture\": {\n+    \"diff\": \"--- a/src/db/users.js\\n+++ b/src/db/users.js\\n+export function findAccountByEmail(db, email) {\\n+  return db.prepare(\\\"SELECT * FROM accounts WHERE email = '\\\" + email + \\\"'\\\").get() || null;\\n+}\",\n+    \"spec_summary\": \"Add findAccountByEmail to the account store.\"\n+  },\n+  \"oracle\": { \"closed_set\": [\"flagged\"] },\n+  \"_comment\": \"Planted defect: the lookup concatenates the caller-supplied email into the SQL string.\"\n+}\n--- a/src/db/accounts.js\n+++ b/src/db/accounts.js\n@@ -10,3 +10,6 @@ export function listAccounts(db) {\n   return db.prepare('SELECT * FROM accounts').all();\n }\n+export function findAccountByEmail(db, email) {\n+  return db.prepare(\"SELECT * FROM accounts WHERE email = '\" + email + \"'\").get() || null;\n+}",
+    "spec_summary": "Add findAccountByEmail to the account store, with an eval case covering the reviewer on SQL injection."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": [
+      "flagged"
+    ]
+  },
+  "_comment": "LEGIT CATCH (security) in real code: src/db/accounts.js adds findAccountByEmail with the caller's email concatenated into the SQL string, the same pattern the fixture plants. The fixture's copy is test data and must not be flagged, but the real-code copy is a genuine injection a security pass must flag. Expected category ~ security."
+}

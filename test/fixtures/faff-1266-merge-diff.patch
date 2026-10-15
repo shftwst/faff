@@ -1,0 +1,282 @@
+diff --git a/eval/cases-live/finding-identity-011.json b/eval/cases-live/finding-identity-011.json
+new file mode 100644
+index 00000000..d230e14c
+--- /dev/null
++++ b/eval/cases-live/finding-identity-011.json
+@@ -0,0 +1,21 @@
++{
++  "id": "finding-identity-011",
++  "kind": "finding-identity",
++  "reps": 1,
++  "note": "Planted defect: the lookup builds its SQL by concatenating the user-supplied name into the query string; the spec requires parameterised queries. The injection is in src/db/users.js only.",
++  "question": "Review this change against its spec and report your findings.",
++  "fixture": {
++    "version": 1,
++    "change_summary": "Add `findUserByName` to the user store.",
++    "spec": "## WHAT\n`findUserByName(db, name)` returns the matching user row or null.\n\n## DONE\n- [ ] returns the row for an existing name\n- [ ] returns null when there is no match\n- [ ] all queries use bound parameters, never string concatenation of caller input",
++    "diff": "diff --git a/src/db/users.js b/src/db/users.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/db/users.js\n+++ b/src/db/users.js\n@@ -20,1 +20,5 @@ module.exports = {\n+  findUserByName(db, name) {\n+    const row = db.prepare(\"SELECT * FROM users WHERE name = '\" + name + \"'\").get();\n+    return row || null;\n+  },\n   listUsers(db) {\ndiff --git a/test/users.test.js b/test/users.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/users.test.js\n+++ b/test/users.test.js\n@@ -30,3 +30,7 @@\n test('listUsers returns all rows', () => {\n   assert.equal(listUsers(db).length, 2);\n });\n+\n+test('findUserByName returns a row', () => {\n+  assert.equal(findUserByName(db, 'ada').name, 'ada');\n+});\n",
++    "test_results": "node --test: 7 pass, 0 fail.",
++    "defect_file": "src/db/users.js",
++    "diff_b": "diff --git a/src/db/users.js b/src/db/users.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/db/users.js\n+++ b/src/db/users.js\n@@ -1,2 +1,3 @@\n 'use strict';\n+// User persistence helpers over the sqlite handle.\n \n@@ -20,1 +21,5 @@ module.exports = {\n+  findUserByName(db, name) {\n+    const row = db.prepare(\"SELECT * FROM users WHERE name = '\" + name + \"'\").get();\n+    return row || null;\n+  },\n   listUsers(db) {\ndiff --git a/test/users.test.js b/test/users.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/users.test.js\n+++ b/test/users.test.js\n@@ -30,3 +30,7 @@\n test('listUsers returns all rows', () => {\n   assert.equal(listUsers(db).length, 2);\n });\n+\n+test('findUserByName returns a row', () => {\n+  assert.equal(findUserByName(db, 'ada').name, 'ada');\n+});\n"
++  },
++  "oracle": {
++    "closed_set": [
++      "stable"
++    ]
++  }
++}
+diff --git a/eval/grader.mjs b/eval/grader.mjs
+index 28dbfe42..82330959 100644
+--- a/eval/grader.mjs
++++ b/eval/grader.mjs
+@@ -287,8 +287,8 @@ import { holdoutRecordViolations } from "../plugin/skills/faff/bin/lib/holdout-r
+ //                     (plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/)
+ //                     stay in the skill dir, exercised by test/grader-build-adjudication-discrimination
+ //                     .test.mjs, not copied into eval/cases/. Surface = faffter-dark-adversarial-review.
+-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination", "build-adjudication"];
+-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni", "park-reconsider-classification"]);
++export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "finding-identity", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni", "park-reconsider-classification", "spec-judge-discrimination", "build-adjudication"];
++export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "finding-identity", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni", "park-reconsider-classification"]);
+ 
+ // FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
+ // gradeSplittable / gradeChainGap) but deliberately NOT in CLOSED_SET_KINDS above, because they grade
+@@ -411,6 +411,9 @@ const FIXTURE_SHAPE = {
+   // being challenged. validateCase asserts all three are present; the binary survived/overturned
+   // verdict rides env.challenge_outcome (shares adr-drift's closed-set arm — see predictedSet below).
+   "prdr-yagni": ["authored_prdr", "prd_goals", "phase1_proposal"],
++  // FAFF-1266 — finding-identity: the BuildFixture fields the review prompt renders plus the one
++  // planted `defect_file` the eval selects each pass's defect finding by.
++  "finding-identity": ["spec", "diff", "defect_file"],
+   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
+   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
+   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
+@@ -731,6 +734,12 @@ function predictedSet(c, env) {
+     // out-of-enum value is passed through verbatim so setEqual fails it cleanly with a distinct signature.
+     case "park-reconsider-classification":
+       return env.reconsider == null ? [] : [String(env.reconsider)];
++    // FAFF-1266 — finding-identity: the title-stability outcome of one rep (two independent review
++    // passes) is one closed token ("stable" is the only passing value) riding its own env field. A
++    // missing outcome → empty set → clean FAIL; any other token ("drifted", "undetected") is passed
++    // through verbatim so setEqual fails it with a distinct signature.
++    case "finding-identity":
++      return env["finding-identity"] == null ? [] : [String(env["finding-identity"])];
+     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
+     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum
+     // value (e.g. "feature") is passed through verbatim so setEqual fails it cleanly with a distinct
+diff --git a/plugin/skills/faff/bin/lib/finding-id.js b/plugin/skills/faff/bin/lib/finding-id.js
+new file mode 100644
+index 00000000..a40d84aa
+--- /dev/null
++++ b/plugin/skills/faff/bin/lib/finding-id.js
+@@ -0,0 +1,107 @@
++// ===========================================================================
++// === region:governance — finding-id — FAFF-1266: one code home for a code-review finding's identity ===
++// A finding's cross-round identity is `<file>::<normalised title>`. The reviewers emit `title`
++// and `location` per finding; this module turns them into the id the build-review dialogue
++// readers (`build-review-churn.js`, `build-judge-evidence.js`, `build-judge-casefile.js`) and the
++// later code-review collator compare on. Pure, requires nothing. The model never emits the id.
++// ===========================================================================
++
++"use strict";
++
++// eslint-disable-next-line no-control-regex
++const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
++
++function normaliseFindingPath(location) {
++  if (typeof location !== "string" || !location.trim()) return "";
++  let p = location.trim().split(/\s/)[0];
++  p = p.replace(/\\/g, "/");
++  if (p.startsWith("./")) p = p.slice(2);
++  if (p.startsWith("a/") || p.startsWith("b/")) p = p.slice(2);
++  const cut = p.search(/:\d/);
++  return cut === -1 ? p : p.slice(0, cut);
++}
++
++function normaliseFindingTitle(title) {
++  if (typeof title !== "string") return "";
++  const t = title
++    .replace(CONTROL_CHARS, " ")
++    .replace(/`/g, "")
++    .toLowerCase()
++    .replace(/\s+/g, " ")
++    .trim();
++  return t.replace(/[.:;]+$/, "").trimEnd();
++}
++
++function roundScopedId(round, index) {
++  return `round-${round}#${index}`;
++}
++
++function findingId(finding, round, index) {
++  const f = finding && typeof finding === "object" ? finding : {};
++  const file = normaliseFindingPath(f.location);
++  const title = normaliseFindingTitle(f.title);
++  if (title && file) return `${file}::${title}`;
++  if (title) return `nolocation::${title}`;
++  return roundScopedId(round, index);
++}
++
++function suffixDuplicates(ids, suffixable = () => true) {
++  const seen = new Map();
++  return ids.map((id, i) => {
++    if (!suffixable(i)) return id;
++    const n = (seen.get(id) || 0) + 1;
++    seen.set(id, n);
++    return n === 1 ? id : `${id}#${n}`;
++  });
++}
++
++function assignFindingIds(findings, round) {
++  const list = Array.isArray(findings) ? findings : [];
++  return suffixDuplicates(list.map((f, i) => findingId(f, round, i)));
++}
++
++function storedFindingId(f) {
++  return f && typeof f.finding_id === "string" && f.finding_id ? f.finding_id : null;
++}
++
++// A stored id with no title is a reviewer or agent's own identity for the finding, so a repeat of
++// it is one finding reported twice and stays one identity; only title-derived ids are suffixed.
++function readerFindingIds(findings, round) {
++  const list = Array.isArray(findings) ? findings : [];
++  const titled = list.map((f) => !!(f && typeof f === "object" && normaliseFindingTitle(f.title)));
++  const base = list.map((f, i) => {
++    if (titled[i]) return findingId(f, round, i);
++    return storedFindingId(f) || roundScopedId(round, i);
++  });
++  const ids = suffixDuplicates(base, (i) => titled[i]);
++  return list.map((f, i) => ({ id: ids[i], stored: storedFindingId(f) }));
++}
++
++// [name, findings, round, wantIds]
++const FINDING_ID_CASES = [
++  ["diff prefix, line suffix and case fold", [{ location: "b/src/x.js:3", title: "Leaks fd" }, { location: "src/x.js:40", title: "leaks  FD" }, { title: "" }], 2, ["src/x.js::leaks fd", "src/x.js::leaks fd#2", "round-2#2"]],
++  ["dot-slash path, backticks and trailing punctuation", [{ location: "./a.js:14", title: "Missing `null` check." }], 1, ["a.js::missing null check"]],
++  ["title without location", [{ title: "Race in cache" }], 1, ["nolocation::race in cache"]],
++];
++
++function findingIdSelftest() {
++  let fail = 0;
++  for (const [name, findings, round, want] of FINDING_ID_CASES) {
++    const got = assignFindingIds(findings, round);
++    const pass = JSON.stringify(got) === JSON.stringify(want);
++    console.log(`${pass ? "ok  " : "FAIL"} ${name}`);
++    if (!pass) fail++;
++  }
++  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (finding-id, ${fail} failed)`);
++  return fail ? 1 : 0;
++}
++
++module.exports = {
++  FINDING_ID_CASES,
++  assignFindingIds,
++  findingId,
++  findingIdSelftest,
++  normaliseFindingPath,
++  normaliseFindingTitle,
++  readerFindingIds,
++};
+diff --git a/test/finding-id.test.mjs b/test/finding-id.test.mjs
+new file mode 100644
+index 00000000..faca6220
+--- /dev/null
++++ b/test/finding-id.test.mjs
+@@ -0,0 +1,98 @@
++// FAFF-1266 — finding identity: the path and title normalisers, findingId, assignFindingIds and the
++// dialogue readers' readerFindingIds accessor (plugin/skills/faff/bin/lib/finding-id.js).
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { createRequire } from "node:module";
++
++const require = createRequire(import.meta.url);
++const fid = require("../plugin/skills/faff/bin/lib/finding-id.js");
++
++test("normaliseFindingPath: strips ./, a/ and b/ prefixes, backslashes and line suffixes", () => {
++  const n = fid.normaliseFindingPath;
++  assert.equal(n("./src/x.js"), "src/x.js");
++  assert.equal(n("a/src/x.js"), "src/x.js");
++  assert.equal(n("b/src/x.js"), "src/x.js");
++  assert.equal(n("./b/src/x.js"), "src/x.js");
++  assert.equal(n("src\\lib\\x.js"), "src/lib/x.js");
++  assert.equal(n("src/x.js:12"), "src/x.js");
++  assert.equal(n("src/x.js:12-20"), "src/x.js");
++  assert.equal(n("src/x.js:12:5"), "src/x.js");
++});
++
++test("normaliseFindingPath: keeps the text before the first whitespace; blank or non-string is empty", () => {
++  const n = fid.normaliseFindingPath;
++  assert.equal(n("  src/x.js:3 (the loop)"), "src/x.js");
++  assert.equal(n("src/x.js\tline 3"), "src/x.js");
++  assert.equal(n(""), "");
++  assert.equal(n("   "), "");
++  assert.equal(n(undefined), "");
++  assert.equal(n(42), "");
++});
++
++test("normaliseFindingPath: a colon not followed by a digit is kept", () => {
++  assert.equal(fid.normaliseFindingPath("C:/repo/x.js"), "C:/repo/x.js");
++});
++
++test("normaliseFindingTitle: control characters, backticks, case, whitespace and trailing punctuation", () => {
++  const n = fid.normaliseFindingTitle;
++  assert.equal(n("Leaks\u0000fd\u0085now"), "leaks fd now");
++  assert.equal(n("Missing `null` check"), "missing null check");
++  assert.equal(n("  LEAKS   \t FD  "), "leaks fd");
++  assert.equal(n("Leaks fd."), "leaks fd");
++  assert.equal(n("Leaks fd:"), "leaks fd");
++  assert.equal(n("Leaks fd ;"), "leaks fd");
++  assert.equal(n(undefined), "");
++  assert.equal(n(7), "");
++});
++
++test("findingId: file::title, nolocation::title, and the round-scoped fallback", () => {
++  assert.equal(fid.findingId({ location: "./a.js:3", title: "Leaks fd." }, 1, 0), "a.js::leaks fd");
++  assert.equal(fid.findingId({ title: "Leaks fd" }, 1, 0), "nolocation::leaks fd");
++  assert.equal(fid.findingId({ location: "a.js:3" }, 4, 2), "round-4#2");
++  assert.equal(fid.findingId({ title: "  " }, 4, 2), "round-4#2");
++  assert.equal(fid.findingId(null, 1, 0), "round-1#0");
++});
++
++test("assignFindingIds: scenario — same-round duplicates get #2, an untitled finding gets round-<n>#<index>", () => {
++  const ids = fid.assignFindingIds([
++    { location: "b/src/x.js:3", title: "Leaks fd" },
++    { location: "src/x.js:40", title: "leaks  FD" },
++    { title: "" },
++  ], 2);
++  assert.deepEqual(ids, ["src/x.js::leaks fd", "src/x.js::leaks fd#2", "round-2#2"]);
++});
++
++test("assignFindingIds: #2 and #3 in input order; non-array is empty", () => {
++  const f = { location: "a.js", title: "T" };
++  assert.deepEqual(fid.assignFindingIds([f, f, f], 1), ["a.js::t", "a.js::t#2", "a.js::t#3"]);
++  assert.deepEqual(fid.assignFindingIds(undefined, 1), []);
++});
++
++test("readerFindingIds: computed id wins over a stored id when a title exists", () => {
++  const [x] = fid.readerFindingIds([{ location: "a.js:1", title: "T", finding_id: "wrong" }], 1);
++  assert.deepEqual(x, { id: "a.js::t", stored: "wrong" });
++});
++
++test("readerFindingIds: no title falls back to the stored id, then to round-<n>#<i>", () => {
++  const out = fid.readerFindingIds([{ finding_id: "a.js::x" }, {}, { finding_id: "" }], 3);
++  assert.deepEqual(out, [
++    { id: "a.js::x", stored: "a.js::x" },
++    { id: "round-3#1", stored: null },
++    { id: "round-3#2", stored: null },
++  ]);
++});
++
++test("readerFindingIds: same-round computed ids are suffixed; a repeated stored id is one finding", () => {
++  const t = { location: "a.js", title: "T" };
++  assert.deepEqual(fid.readerFindingIds([t, t], 1).map((x) => x.id), ["a.js::t", "a.js::t#2"]);
++  assert.deepEqual(fid.readerFindingIds([{ finding_id: "k" }, { finding_id: "k" }], 1).map((x) => x.id), ["k", "k"]);
++});
++
++test("readerFindingIds: tolerates non-array input and non-object entries", () => {
++  assert.deepEqual(fid.readerFindingIds(undefined, 1), []);
++  assert.deepEqual(fid.readerFindingIds([null, "x"], 2).map((x) => x.id), ["round-2#0", "round-2#1"]);
++});
++
++test("--selftest style fixture list passes", () => {
++  assert.equal(fid.findingIdSelftest(), 0);
++});

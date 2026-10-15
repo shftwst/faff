@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, PRD_READINESS_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse, fanRefutationSpec, REFUTATION_SPEC_LENSES } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, PRD_READINESS_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse, fanRefutationSpec, REFUTATION_SPEC_LENSES, loadFixtureDataProse, loadRefutationCodeProse, SAMPLE_FIXTURE_PATHS } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir, resolveEffort, EFFORT_LEVELS } from "../eval/run-evals.mjs";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -557,6 +557,33 @@ test("FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + em
   assert.ok(p.includes("THE DIFF") && p.includes("THE SPEC SUMMARY"), "renders diff + spec summary");
   assert.ok(p.includes('"findings"'), "asks for the findings envelope field");
   assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+test("refutation-code criteria append the shared fixture-data section and a sample prefix list", () => {
+  const prose = loadRefutationCodeProse(DEFAULT_PLUGIN_DIR);
+  const section = loadFixtureDataProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("## Review lens"));
+  assert.ok(section.startsWith("### Fixture data in review"));
+  assert.equal(section.split("\n").filter((l) => l.startsWith("- ")).length, 5, "the section holds its five rule points and nothing after them");
+  assert.ok(prose.includes(section), "the lens is followed by the shared section verbatim");
+  assert.ok(prose.endsWith(`Fixture paths: ${SAMPLE_FIXTURE_PATHS.join(", ")}`));
+  assert.ok(prose.indexOf("## Review lens") < prose.indexOf(section) && prose.indexOf(section) < prose.indexOf("Fixture paths:"));
+});
+
+test("refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged", () => {
+  const clean = JSON.parse(readFileSync(new URL("cases/refutation-code-006.json", new URL("../eval/", import.meta.url)), "utf8"));
+  const caught = JSON.parse(readFileSync(new URL("cases/refutation-code-007.json", new URL("../eval/", import.meta.url)), "utf8"));
+  for (const c of [clean, caught]) {
+    assert.equal(c.kind, "refutation-code");
+    assert.equal(typeof c.fixture.diff, "string");
+    assert.equal(typeof c.fixture.spec_summary, "string");
+  }
+  assert.deepEqual(clean.oracle.closed_set, []);
+  assert.deepEqual(caught.oracle.closed_set, ["flagged"]);
+  const files = (diff) => [...diff.matchAll(/^\+\+\+ b\/(\S+)$/gm)].map((m) => m[1]);
+  assert.deepEqual(files(clean.fixture.diff), ["eval/cases/refutation-code-099.json"]);
+  assert.ok(files(caught.fixture.diff).includes("eval/cases/refutation-code-099.json") && files(caught.fixture.diff).includes("src/db/accounts.js"));
+  assert.match(caught._comment, /src\/db\/accounts\.js/, "the comment names the real-code defect as the reason for the catch");
 });
 
 // ================= FAFF-669 — the last four unarmed kinds, and the check that stops a fifth =========

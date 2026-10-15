@@ -65,6 +65,8 @@ Severities: `critical`, `major`, `minor`, `observation` — but these are the ad
 
 **Refuted findings arrive pre-downgraded.** Before this output reaches the implementor, `review-call.mjs` runs a deterministic refutation pass over machine-checkable syntax/parse claims (v1 scope): a `critical`/`major`/`minor` finding claiming a context file "won't parse" is downgraded to `severity: observation` with an `[auto-refuted]` title prefix and a `node --check` evidence line, **iff** every file the claim ties to positively passes the check. A refuted finding is never dropped — the downgrade + evidence line is the audit trail of what the reviewer got wrong.
 
+**Fixture-data findings arrive capped.** When fixture paths are passed (below), `review-call.mjs` rewrites a Phase-2 `critical` to `### minor: [fixture-data] <title>` with a `> fixture-data:` evidence line, **iff** the finding is tied only to fixture files and its identifiers sit on added fixture lines and on no added real-code line. Any doubt leaves the `critical` untouched. A capped finding is never dropped, and its best-known `disposition` at emit time is `open`, not `refuted`: the cap lowers severity, it does not claim the reviewer was wrong.
+
 ## How findings are handled
 
 The adversarial findings are raised back to the **implementor** (the build agent). The implementor must:
@@ -227,12 +229,19 @@ if [ -n "$consumer" ]; then max_tokens=$("$faff" config get "adversarial.$consum
 trim=$("$faff" config get "adversarial.$consumer.trim")
 [ -z "$trim" ] && trim=true
 no_trim_flag=""; [ "$trim" = "false" ] && no_trim_flag="--no-trim"
+# Fixture paths come from the review BASE ref ($remote_base, the remote-tracking base the --diff file is
+# taken against, e.g. origin/main), never the PR worktree, so a diff cannot widen its own list. A failed resolve means an empty list: every critical stays.
+if fixture_paths=$("$faff" review-fixture-paths --ref "$remote_base"); then
+  fixture_args=$(printf '%s\n' "$fixture_paths" | sed '/^$/d; s/^/--fixture-path /')
+else
+  fixture_paths=""; fixture_args=""
+fi
 
 case "$backends_exit" in
   0)
     node "$REVIEW_SPAWN" --deadline "$deadline" -- \
     node "$REVIEW_CALL" --backends-json "$backends_json" --timeout "$timeout" --deadline "$deadline" \
-      --max-tokens "$max_tokens" $no_trim_flag \
+      --max-tokens "$max_tokens" $no_trim_flag $fixture_args \
       ${run_dir:+--run-dir "$run_dir"} \
       --system <review-lens-file> \
       --context <each file the diff touches> \
@@ -251,7 +260,8 @@ esac
 
 **Pass `--run-dir "$run_dir"` whenever faff-graft forwarded a `$run_dir`** (the same value the review-progress checkpoint writes already use — every autonomous L3/L4 dispatch; interactive runs have none and omit it). This is a value **passthrough**, not a decision: the helper reads `<run-dir>/run-ledger.json` itself and derives mandatory-ness from `level: "L4"` (see **MANDATORY chain-outage** below). Append it identically at L3 and L4 — no prose conditional.
 
-- **`--system`** = the review lens above (the five categories), written to a file.
+- **`--system`** = the review lens above (the five categories), then the **Fixture data in review** section copied from `faff/references/review.md` (a remote model cannot follow a reference), then one line `Fixture paths: <resolved prefixes>` (`none` when empty), written to a file.
+- **`--fixture-path`** = one flag per resolved prefix (`$fixture_args` above). When `faff review-fixture-paths` exits non-zero, continue with an empty list and put one `fixture paths unavailable` line directly under the `## Adversarial findings` header, so the missing cap is visible. A broken resolver never blocks the review.
 - **`--context`** = **every file the diff touches** — so the reviewer can verify existence/structure claims instead of hallucinating "this heading doesn't exist" from a diff-only view. (A model given only the diff produced confident false criticals; a *more* capable model was *more* wrong for exactly this reason. The touched files are what answer those claims; nothing else belongs here, and faff's own skill prose reaches a reviewer only when the diff actually touches it.)
 - **`--diff`** = `git diff main...HEAD` written to a file.
 - **Wire shape.** `review-call.mjs` places the shared context+diff block in the cacheable **prefix** position (the builders' `system` slot: `messages[0]` for OpenAI-compatible, top-level `system` for Anthropic) and the `--system` review lens in the trailing `user` turn. The flag names are unchanged; only the wire ordering flips so a prefix-caching backend can reuse the shared prefill. Code review is a single call with no sibling to share a prefix with, so the caching win lands on spec-review's four-lens fan-out, which shares this transport, not here.
@@ -350,7 +360,7 @@ After the output above, append **one** fenced code block — tagged `faff-contra
 
 On **any autonomous run** (L3 overnight or L4 lights-out), a Phase-2 `critical` finding must **stop the merge**, not merely be logged — no human is awake to weigh a soft `critical`, and the implementor the finding indicts must not be the one to clear it. When the forwarded `autonomous` signal is true, escalate the Phase-2 severity into the hard verdict at the moment you author the `faff-contract:review-verdict` block:
 
-- **Escalation threshold — a single named set.** `ESCALATE_SEVERITIES = { critical }` (v1). Only `critical` escalates; `major` / `minor` / `observation` never do, because a lower-capability adversarial model's `major` findings are too noisy to auto-park a run on. To widen the threshold later, add the severity to this one set (e.g. `{ critical, major }`) — nothing else changes.
+- **Escalation threshold — a single named set.** `ESCALATE_SEVERITIES = { critical }` (v1). Only `critical` escalates; `major` / `minor` / `observation` never do, because a lower-capability adversarial model's `major` findings are too noisy to auto-park a run on. To widen the threshold later, add the severity to this one set (e.g. `{ critical, major }`) and to `FIXTURE_CAP_SEVERITIES` in `review-call.mjs`, which must stay equal to it — otherwise a fixture-data finding of the widened severity escalates uncapped.
 - **When it fires — all three must hold:** Phase 1 returned `pass` (so Phase 2 ran), the forwarded `autonomous` signal is true, and at least one Phase-2 finding has a severity in `ESCALATE_SEVERITIES`. The trigger is the **raw** Phase-2 severity, **not** the implementor's disposition of it — a build agent must not be able to disprove its own way past the gate (marking its own homework is the failure this escalation exists to remove). A false-positive `critical` therefore parks the run for a human to clear: a recoverable park is the intended trade against an unrecoverable false auto-merge.
 - **What it emits.** Set the block's `signal` to `needs-human`, and fold each escalating `critical` into `findings[]` as `{ "location_present": true, "action_present": true }` — one entry per escalating finding. A gate-worthy `critical` names a location and an action by the actionability bar (see **Rules**), so these are truthful for a well-formed finding and act as the escalation's conformance markers; the substantive per-finding detail lives in the prose `## Adversarial findings`, exactly as on every other path. This satisfies the contract's rule that a `needs-human` signal carries at least one finding naming a location and an action. **Additionally** — at this same escalation moment — emit the `escalated_criticals[]` block below.
 - **Fail-safe direction.** When the `autonomous` signal is false, absent, or unresolved, do **not** escalate — author the block exactly as the advisory path does. This fails safe *off* on an unresolvable signal, matching the interactive default.

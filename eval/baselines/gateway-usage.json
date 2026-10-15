@@ -688,6 +688,16 @@
    "tokens": 524
   },
   {
+   "title": "Fixture data in review",
+   "consumers": [
+    "faffter-noon-review",
+    "faffter-dark-adversarial-review"
+   ],
+   "keep": false,
+   "source": "verified",
+   "tokens": 230
+  },
+  {
    "title": "The `methodology` slot",
    "consumers": [
     "faff-beep-boop",

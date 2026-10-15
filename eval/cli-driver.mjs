@@ -1090,9 +1090,24 @@ export function loadSpecVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 // full real refute-<lens>.md brief (see fanRefutationSpec). No loadRefutationSpecProse / prose anchors.
 const REFUTATION_CODE_PROSE_START = "\n## Review lens\n";
 const REFUTATION_CODE_PROSE_END = "## LLM provider integration";
+// The live --system file is the lens, the shared "Fixture data in review" section, then a prefix line
+// (adversarial SKILL.md, Backend call). The eval appends the same two with a fixed sample list so its
+// criteria match what goes on the wire.
+const FIXTURE_DATA_HEADING = "\n### Fixture data in review\n";
+export const SAMPLE_FIXTURE_PATHS = Object.freeze(["eval/cases/", "test/fixtures/"]);
+export function loadFixtureDataProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faff", "references", "review.md");
+  const md = readFileSync(p, "utf8");
+  const start = md.indexOf(FIXTURE_DATA_HEADING);
+  if (start === -1) throw new Error(`loadFixtureDataProse: heading not found in ${p}: "${FIXTURE_DATA_HEADING.trim()}"`);
+  const rest = md.slice(start + FIXTURE_DATA_HEADING.length);
+  const next = rest.indexOf("\n### ");
+  return md.slice(start, start + FIXTURE_DATA_HEADING.length + (next === -1 ? rest.length : next)).trim();
+}
 export function loadRefutationCodeProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faffter-dark-adversarial-review", "SKILL.md");
-  return extractSection(p, REFUTATION_CODE_PROSE_START, REFUTATION_CODE_PROSE_END, "loadRefutationCodeProse");
+  const lens = extractSection(p, REFUTATION_CODE_PROSE_START, REFUTATION_CODE_PROSE_END, "loadRefutationCodeProse");
+  return `${lens}\n\n${loadFixtureDataProse(pluginDir)}\n\nFixture paths: ${SAMPLE_FIXTURE_PATHS.join(", ")}`;
 }
 
 // FAFF-669 — the last four kinds' criteria loaders. Every anchor here is newline-delimited and was

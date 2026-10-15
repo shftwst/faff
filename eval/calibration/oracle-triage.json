@@ -22,10 +22,10 @@
       "resolved-elsewhere",
       "prdr-yagni"
     ],
-    "case_count": 50,
+    "case_count": 52,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 40,
+      "sound": 42,
       "oracle-defect": 10,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
@@ -382,6 +382,22 @@
       "class": "sound",
       "rationale": "The diff touches SQL, a datastore, and a subprocess (surface that looks injection-risky) but uses execFileSync(argv) with values bound as parameters via stdin and no string interpolation or secret logging. The reviewer should report clean; oracle [] is correct — it tests that the security pass does not false-flag correct parameterized DB code. Clean near-miss in the false-positive direction.",
       "triage_ticket": "FAFF-319"
+    },
+    {
+      "case_id": "refutation-code-006",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "The diff only adds an eval case JSON under a fixture path; the SQL injection sits inside the case's embedded diff string, which is test data the eval depends on. The reviewer should report clean; oracle [] is correct and tests that planted fixture content is not flagged above minor.",
+      "triage_ticket": "FAFF-1279"
+    },
+    {
+      "case_id": "refutation-code-007",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "The diff adds the same fixture as -006 and also a real-code file with the same string-concatenated SQL pattern. The real-code copy is a genuine injection, so oracle [flagged] is correct and tests that the fixture rule does not hide a defect in shipped code beside fixtures.",
+      "triage_ticket": "FAFF-1279"
     },
     {
       "case_id": "explanatory-order-001",

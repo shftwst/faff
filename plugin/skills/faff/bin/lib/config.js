@@ -1538,6 +1538,7 @@ const READ_ONLY_NAMESPACES = new Set([
   "capture",     // decision-capture.js: dig(data, "capture.decision_kernel")
   "provenance",  // harness.js: dig(cfgData, "provenance.harness" | "provenance.model")
   "commissaire", // commissaire-governor-client.js (FAFF-1179): dig(cfg, "commissaire.governor" | ".connect_timeout_ms" | ".reply_timeout_ms")
+  "review",      // review-fixture-paths.js: dig(cfg, "review.fixture_paths")
 ]);
 
 // The known-key lint's notion of "not a typo" — every namespace `config set` may write, PLUS

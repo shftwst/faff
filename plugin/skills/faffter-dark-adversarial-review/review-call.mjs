@@ -1041,6 +1041,178 @@ export function refuteFindings(content, contextPaths, { checkFn = realCheck } = 
   return { content: outLines.join("\n"), refutations: refutations.reverse() };
 }
 
+// --- Fixture-data severity cap ---
+
+// The severities the cap rewrites to `minor`. Equal to the autonomous-escalation set in SKILL.md
+// (ESCALATE_SEVERITIES): widening that set means widening this one, or a fixture finding escalates.
+export const FIXTURE_CAP_SEVERITIES = Object.freeze(new Set(["critical"]));
+
+// Local mirror of bin/lib/review-fixture-paths.js isFixturePath — this file has no faff CommonJS
+// imports. test/review-fixture-paths.test.mjs pins the two to the same table.
+export function isFixturePath(path, prefixes) {
+  const p = String(path).replace(/^(a\/|b\/|\.\/)/, "");
+  return (prefixes || []).some((prefix) => p.startsWith(prefix) || p.includes(`/${prefix}`));
+}
+
+function normaliseFixturePrefix(entry) {
+  const trimmed = String(entry).trim().replace(/^(\.\/|\/)+/, "");
+  if (trimmed === "") return null;
+  return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+}
+
+const IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_]{3,}/g;
+
+function identifierTokens(text) {
+  return new Set(String(text).replace(/\\[nrt"\\]/g, " ").match(IDENTIFIER_RE) || []);
+}
+
+function diffHeaderPath(raw) {
+  const p = raw.trim().split("\t")[0];
+  return p === "/dev/null" ? null : (p.replace(/^[ab]\//, "") || null);
+}
+
+function gitHeaderPaths(rest) {
+  const half = (rest.length - 5) / 2;
+  if (Number.isInteger(half) && rest.slice(0, 2) === "a/" && rest.slice(2 + half, 5 + half) === " b/" && rest.slice(2, 2 + half) === rest.slice(5 + half)) {
+    return [rest.slice(2, 2 + half)];
+  }
+  const m = rest.match(/^a\/(\S+) b\/(\S+)$/);
+  return m ? [m[1], m[2]] : [];
+}
+
+// PURE: every file path a unified diff names (diff --git, --- and +++ headers; a deleted or renamed
+// file still counts) and the identifier tokens on each file's added lines. Hunk bodies are walked by
+// their declared line counts, as parseDiffTouched does, so a body line that reads "+++ x" is data.
+export function parseDiffFiles(diff) {
+  const paths = new Set();
+  const addedTokens = new Map();
+  const lines = String(diff == null ? "" : diff).split("\n").map((l) => l.replace(/\r$/, ""));
+  let current = null;
+  let oldRemain = 0;
+  let newRemain = 0;
+  const notePath = (p) => { if (p) paths.add(p); };
+  for (const line of lines) {
+    if (oldRemain > 0 || newRemain > 0) {
+      const marker = line.charAt(0);
+      if (marker === "+") {
+        if (current) {
+          if (!addedTokens.has(current)) addedTokens.set(current, new Set());
+          for (const t of identifierTokens(line.slice(1))) addedTokens.get(current).add(t);
+        }
+        if (newRemain > 0) newRemain -= 1;
+      } else if (marker === "-") {
+        if (oldRemain > 0) oldRemain -= 1;
+      } else if (marker !== "\\") {
+        if (oldRemain > 0) oldRemain -= 1;
+        if (newRemain > 0) newRemain -= 1;
+      }
+      continue;
+    }
+    if (line.startsWith("diff --git ")) {
+      gitHeaderPaths(line.slice("diff --git ".length)).forEach(notePath);
+    } else if (line.startsWith("--- ")) {
+      notePath(diffHeaderPath(line.slice(4)));
+    } else if (line.startsWith("+++ ")) {
+      current = diffHeaderPath(line.slice(4));
+      notePath(current);
+    } else {
+      const m = line.match(/^@@\s+-\d+(?:,(\d+))?\s+\+\d+(?:,(\d+))?\s+@@/);
+      if (m) {
+        oldRemain = m[1] === undefined ? 1 : Number(m[1]);
+        newRemain = m[2] === undefined ? 1 : Number(m[2]);
+      }
+    }
+  }
+  return { paths, addedTokens };
+}
+
+// Like pathMentionedIn, but checks every occurrence and tolerates a sentence-ending "." after the path
+// ("...see eval/cases/a.json."), which pathMentionedIn would read as part of a longer filename.
+function pathNamedIn(text, path) {
+  for (let idx = text.indexOf(path); idx !== -1; idx = text.indexOf(path, idx + 1)) {
+    const before = idx > 0 ? text[idx - 1] : "";
+    const after = text[idx + path.length] ?? "";
+    const afterNext = text[idx + path.length + 1] ?? "";
+    const endsCleanly = !PATH_TOKEN_CHAR_RE.test(after) || (after === "." && !PATH_TOKEN_CHAR_RE.test(afterNext));
+    if (!PATH_TOKEN_CHAR_RE.test(before) && endsCleanly) return true;
+  }
+  return false;
+}
+
+function samePath(a, b) {
+  return a === b || a.endsWith(`/${b}`) || b.endsWith(`/${a}`);
+}
+
+function codeSpanTokens(raw, title) {
+  const tokens = identifierTokens(title);
+  for (const m of raw.matchAll(/`([^`\n]+)`/g)) {
+    for (const t of identifierTokens(m[1])) tokens.add(t);
+  }
+  return tokens;
+}
+
+// PURE: cap a Phase-2 finding of a FIXTURE_CAP_SEVERITIES severity to `minor` when it can be tied to
+// fixture files and to nothing else. Precision over recall: any doubt leaves the finding as it was.
+// Never drops a finding. Edits splice the original lines last-to-first (as refuteFindings does) so
+// untouched sections keep their exact bytes.
+//
+// Attribution: a finding that names PR paths is capped only if every named path is a fixture path; one
+// that names none is capped only when the whole PR is fixture files. Either way the defect's
+// identifiers (backtick code spans and title) must also be on an added line of a candidate fixture
+// file and on no added line of a non-fixture file, so a defect in unchanged loader code that merely
+// names a fixture keeps its severity.
+export function capFixtureFindings(content, diff, contextPaths, prefixes) {
+  if (!prefixes || prefixes.length === 0) return { content, caps: [] };
+  const text = String(content == null ? "" : content);
+  const { sections } = splitFindings(text);
+  const { paths: diffPaths, addedTokens } = parseDiffFiles(diff);
+  const prPaths = [...new Set([...diffPaths, ...(contextPaths || [])])];
+  const allFixturePr = prPaths.length > 0 && prPaths.every((p) => isFixturePath(p, prefixes));
+  const realTokens = new Set();
+  for (const [file, tokens] of addedTokens) {
+    if (!isFixturePath(file, prefixes)) for (const t of tokens) realTokens.add(t);
+  }
+  const candidateTokens = (candidates) => {
+    const out = new Set();
+    for (const [file, tokens] of addedTokens) {
+      if (candidates.some((c) => samePath(c, file))) for (const t of tokens) out.add(t);
+    }
+    return out;
+  };
+
+  const caps = [];
+  const outLines = text.split("\n");
+  for (let idx = sections.length - 1; idx >= 0; idx--) {
+    const s = sections[idx];
+    if (!FIXTURE_CAP_SEVERITIES.has(s.severity)) continue;
+    const named = prPaths.filter((p) => pathNamedIn(s.raw, p));
+    let candidates;
+    if (named.length > 0) {
+      if (!named.every((p) => isFixturePath(p, prefixes))) continue;
+      candidates = named;
+    } else if (allFixturePr) {
+      candidates = prPaths;
+    } else {
+      continue;
+    }
+    const onFixtureLines = candidateTokens(candidates);
+    const hasOrigin = [...codeSpanTokens(s.raw, s.title)].some((t) => onFixtureLines.has(t) && !realTokens.has(t));
+    if (!hasOrigin) continue;
+
+    caps.push({ title: s.title, from: s.severity, files: candidates });
+    const evidence = `> fixture-data: located only in fixture path(s) ${candidates.join(", ")}; capped from ${s.severity} (test data, not shipped code)`;
+    let insertAt = s.start + 1;
+    for (let li = s.end - 1; li > s.start; li--) {
+      if (outLines[li].trim() !== "") { insertAt = li + 1; break; }
+    }
+    outLines[s.start] = `### minor: [fixture-data] ${s.title}`;
+    outLines.splice(insertAt, 0, evidence);
+  }
+
+  if (caps.length === 0) return { content, caps: [] };
+  return { content: outLines.join("\n"), caps: caps.reverse() };
+}
+
 // --- OpenAI-compatible (/v1) pure functions ---
 
 // FAFF-873: PURE — clamp faff's five-tier effort vocabulary (low|medium|high|xhigh|max)
@@ -1721,7 +1893,7 @@ export async function runReview(opts = {}) {
 export function parseArgs(argv) {
   // hostSource defaults to "config" so existing callers (which never pass --host-source) keep the
   // exit-5 pass+skip behaviour unchanged. "default" signals the host is only the localhost fallback.
-  const a = { context: [], hostSource: "config" };
+  const a = { context: [], fixturePaths: [], hostSource: "config" };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--host") a.host = argv[++i];
@@ -1729,6 +1901,7 @@ export function parseArgs(argv) {
     else if (k === "--system") a.system = argv[++i];
     else if (k === "--diff") a.diff = argv[++i];
     else if (k === "--context") a.context.push(argv[++i]);
+    else if (k === "--fixture-path") { const prefix = normaliseFixturePrefix(argv[++i] ?? ""); if (prefix) a.fixturePaths.push(prefix); }   // repeatable; enables the fixture-data severity cap (findings mode only)
     else if (k === "--max-tokens") a.numPredict = Number(argv[++i]);
     else if (k === "--timeout") a.timeoutMs = Number(argv[++i]) * 1000;
     else if (k === "--deadline") a.totalDeadlineMs = Number(argv[++i]) * 1000;   // FAFF-329: TOTAL wall-clock ceiling across ALL attempts + fallback backends (distinct from --timeout, which bounds ONE stream attempt)
@@ -2344,7 +2517,7 @@ function resolveFirstByteMs(perBackendSeconds, flagMs) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--context-window N] [--expect contract] [--diff-kind unified|prose] [--no-trim] [--raw-dir DIR --lens NAME --round N]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--fixture-path PREFIX]... [--max-tokens N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--reasoning-effort E] [--reasoning-extra JSON] [--max-payload-bytes N] [--context-window N] [--expect contract] [--diff-kind unified|prose] [--no-trim] [--raw-dir DIR --lens NAME --round N]\n");
     return EXIT.USAGE;
   }
   // FAFF-1051: the declared diff kind. An unrecognised value is a usage fault (EXIT.USAGE, 2) — the
@@ -2588,8 +2761,12 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     for (const r of refutations) {
       process.stderr.write(`refuted: "${r.title}" — node --check clean on ${r.files.join(", ")}; ${r.from} → observation\n`);
     }
-    const hadHeader = hasHeader(refuted);
-    let finalContent = ensureHeader(refuted, res.winner, res.winnerIndex);
+    const { content: capped, caps } = capFixtureFindings(refuted, diff, a.context, a.fixturePaths);
+    for (const c of caps) {
+      process.stderr.write(`capped: "${c.title}" (fixture data in ${c.files.join(", ")}); ${c.from} → minor\n`);
+    }
+    const hadHeader = hasHeader(capped);
+    let finalContent = ensureHeader(capped, res.winner, res.winnerIndex);
     if (!hadHeader) process.stderr.write("normalized: findings header missing — prepended canonical provenance\n");
     // FAFF-1039: the human notice, immediately after the harness-authored attribution header, so the
     // operator reading the findings is told the strongest configured reviewer did not produce them.

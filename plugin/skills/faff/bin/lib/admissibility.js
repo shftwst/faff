@@ -8,7 +8,7 @@ const { parseArgs, requireFlags, usageError } = require("./argv");
 const { findRoot, mainWorktreeRoot } = require("./shared-infra");
 const { buildHoldoutRecord, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord } = require("./holdout-record");
 const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
-const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 }, "--issue": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 }, "--persist": { arity: 0 }, "--prdr-dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
@@ -35,6 +35,7 @@ const HOLDOUT_SURFACE = {
   },
 };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
+const { ISSUE_ID_RE, parseLocalAcId, qualifyAcId } = require("./ac-id");
 
 function prdHasComparator(s) {
   if (/[<>≤≥]/.test(s)) return true;                 // < > <= >= ≤ ≥ all contain one of these
@@ -227,7 +228,8 @@ function sectionBody(specText, headingRe, opts) {
 // bullet, via classifyAcceptanceCriteria) and the `### N. DONE` checklist (each `- [ ]` item). Pure — no I/O.
 // FAFF-275: additive `holdout` per-criterion flag + top-level `holdout_counts` — `counts` is untouched and
 // still sums to `criteria.length`, so every existing consumer keeps working unread.
-function dodClassify(specText) {
+function dodClassify(specText, opts) {
+  const issue = opts && opts.issue;
   const criteria = [];
   const markerTiers = [];                                       // FAFF-961: parallel to criteria — the explicit-marker tier (or null) per criterion
   const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE, { extraStop: scenariosBoundaryStop });
@@ -235,7 +237,8 @@ function dodClassify(specText) {
     for (const u of classifyAcceptanceCriteria(scenBody)) { criteria.push({ text: u.text, class: u.kind, source: "scenarios", holdout: u.holdout }); markerTiers.push(u.tier || null); }
   }
   const doneAdvisories = [];
-  for (const t of parseDoneChecklist(specText)) {
+  const doneItems = assignLocalAcIds(parseDoneChecklist(specText));
+  for (const { text: t } of doneItems) {
     // FAFF-275: DONE mirrors the body 1:1 and is NEVER withheld (the closed-loop rule — a withheld
     // DONE item would silently break graft's AC checklist + the merge-gate floor). A `holdout:`-prefixed
     // DONE item is left LITERAL (no strip, holdout stays false) and draws an advisory, never a strip/removal.
@@ -271,11 +274,28 @@ function dodClassify(specText) {
   // FAFF-1259: additive `id` per criterion, "<source>:<n>" with n the 1-based position among that
   // source's criteria in classify order. Minted here, not by the evaluator, so the value is mechanical.
   const seenPerSource = {};
+  let doneIndex = 0;
   for (const c of criteria) {
     seenPerSource[c.source] = (seenPerSource[c.source] || 0) + 1;
     c.id = `${c.source}:${seenPerSource[c.source]}`;
+    if (c.source !== "done") continue;
+    c.local_ac_id = doneItems[doneIndex++].local || c.id;
+    if (issue) c.ac_id = qualifyAcId(issue, c.local_ac_id);
   }
   return { criteria, counts, holdout_counts, oracle_less_count, verification_tier_counts };
+}
+
+// FAFF-1287: reads each DONE item's authored `[ac-N]` id. A near miss, a duplicate, or an id on only
+// some items falls back to the positional id with an advisory on stderr; nothing here blocks.
+function assignLocalAcIds(items) {
+  const parsed = items.map((t) => parseLocalAcId(t));
+  parsed.forEach((p) => { if (p.nearMiss) process.stderr.write("dod classify: DONE item id not recognised (use lowercase [ac-N])\n"); });
+  const uses = new Map();
+  for (const p of parsed) if (p.local) uses.set(p.local, (uses.get(p.local) || 0) + 1);
+  for (const [id, n] of uses) if (n > 1) process.stderr.write(`dod classify: duplicate AC id ${id}\n`);
+  const resolved = parsed.map((p) => (p.local && uses.get(p.local) === 1 ? p : { local: null, text: p.text }));
+  if (resolved.some((p) => p.local) && resolved.some((p) => !p.local)) process.stderr.write("dod classify: mixed authored and positional AC ids\n");
+  return resolved;
 }
 
 // FAFF-275: within a Scenarios-section BODY (already isolated by sectionBodyRange), find the
@@ -767,9 +787,9 @@ function cmdDod(args) {
   const action = args.find((a) => !a.startsWith("--"));
   if (action === "split") return cmdDodSplit(args);
   const parsed = parseArgs(args, DOD_CLASSIFY_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "faff dod: usage:\n  faff dod classify --spec <path|-> [--json]\n  faff dod split --spec <path|-> --view builder|full");
+  if (parsed.errors.length) return usageError(parsed.errors, "faff dod: usage:\n  faff dod classify --spec <path|-> [--issue <id>] [--json]\n  faff dod split --spec <path|-> --view builder|full");
   if (action !== "classify") {
-    process.stderr.write("faff dod: usage:\n  faff dod classify --spec <path|-> [--json]\n  faff dod split --spec <path|-> --view builder|full\n");
+    process.stderr.write("faff dod: usage:\n  faff dod classify --spec <path|-> [--issue <id>] [--json]\n  faff dod split --spec <path|-> --view builder|full\n");
     return 2;
   }
   const json = !!parsed.values["--json"];
@@ -782,7 +802,12 @@ function cmdDod(args) {
     process.stderr.write(`faff dod classify: cannot read spec: ${e.message}\n`);
     return 2;
   }
-  const r = dodClassify(specText);
+  const issue = parsed.values["--issue"];
+  if (issue !== undefined && !ISSUE_ID_RE.test(issue)) {
+    process.stderr.write("faff dod classify: --issue must be a tracker id such as FAFF-1287\n");
+    return 2;
+  }
+  const r = dodClassify(specText, { issue });
   process.stdout.write(JSON.stringify(r, null, json ? 0 : 2) + "\n");
   return 0;   // a successful parse is exit 0 (an empty criteria set is valid data the evaluator handles)
 }

@@ -44,7 +44,7 @@ test("ac-checklist: stamps schema_version, keeps criteria in order and drops unk
   const w = f.ac({ ac_complete: true, criteria: CRITERIA.map((c) => ({ ...c, extra: 1 })), all_verified: true, note: "x" });
   assert.equal(w.code, 0, w.stderr);
   assert.equal(w.stdout.trim(), f.out("ac-checklist.json"));
-  assert.equal(readFileSync(f.out("ac-checklist.json"), "utf8"), JSON.stringify({ schema_version: 1, all_verified: true, criteria: CRITERIA }, null, 2) + "\n");
+  assert.equal(readFileSync(f.out("ac-checklist.json"), "utf8"), JSON.stringify({ schema_version: 1, all_verified: true, criteria: CRITERIA.map((c) => ({ ...c, ac_id: null, verifications: null })) }, null, 2) + "\n");
   assert.deepEqual(validateAgainstSchema(f.read("ac-checklist.json"), schema("ac-checklist")), []);
   assert.equal(readAcComplete(f.runDir, ISSUE), true);
 });

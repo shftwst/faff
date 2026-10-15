@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1280",
+  "build": {
+    "status": "complete",
+    "diff_hash": "42a9d358c913288f34f3b8ad684863c93ed9892fb241629db4f57be0a90b3459",
+    "branch": "FAFF-1280-leave-no-run-directory-behind-when-mint-refused",
+    "pushed_at": "2026-10-15T17:48:07.174Z"
+  },
+  "updated_at": "2026-10-15T17:48:07.174Z"
+}

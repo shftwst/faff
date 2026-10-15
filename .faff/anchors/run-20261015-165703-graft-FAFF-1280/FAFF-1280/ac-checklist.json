@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "After a refused init-interactive or init-self-drain (forced by a missing anchor-manifest.json), no new entry exists under .faff/runs/",
+      "verified": "test/run-ledger-mint-refusal.test.mjs: 'a refused init-self-drain leaves no run dir...' and 'a refused init-interactive on a fresh id leaves no run dir...' pass; integration smoke: both verbs exit 1, readdir(.faff/runs) is []",
+      "passed": true
+    },
+    {
+      "ac": "A retry of init-self-drain --id X after a refusal, with the schema restored, exits 0",
+      "verified": "test/run-ledger-mint-refusal.test.mjs: 'a refused init-self-drain leaves no run dir, and a retry with the schema restored mints' passes; smoke step 6 exit 0 with RUN-B/run-ledger.json",
+      "passed": true
+    },
+    {
+      "ac": "discardUnmintedRunDir(runDir, command) is exported from run-ledger.js, removes an empty directory, returns silently on ENOENT, and on a non-empty directory leaves it and its contents unchanged and writes one stderr line naming the directory and the error code",
+      "verified": "test/run-ledger-mint-refusal.test.mjs: four discardUnmintedRunDir tests pass (empty removed silently; ENOENT silent; non-empty kept with exact stderr line naming dir and ENOTEMPTY; EPERM reported the same way)",
+      "passed": true
+    },
+    {
+      "ac": "discardUnmintedRunDir never throws (unit test with a non-empty directory)",
+      "verified": "test/run-ledger-mint-refusal.test.mjs: 'discardUnmintedRunDir never throws and leaves a non-empty dir and its contents alone' and the EPERM test pass (assert.doesNotThrow)",
+      "passed": true
+    },
+    {
+      "ac": "Both mints call discardUnmintedRunDir on every exit between creating the directory and a landed ledger write, including written:false and, for init-interactive, before a rethrown error",
+      "verified": "test/run-ledger-mint-refusal.test.mjs: four in-process stub tests (written:false and LEDGER_LOCKED for each verb) pass with exit codes 3/3/3/rethrow unchanged and the run dir gone",
+      "passed": true
+    },
+    {
+      "ac": "init-interactive --id <existing dir> refused: the directory and its contents are unchanged",
+      "verified": "test/run-ledger-mint-refusal.test.mjs: existing dir with keep.txt unchanged, and existing empty dir not removed; both pass",
+      "passed": true
+    },
+    {
+      "ac": "Exit codes and the existing refusal lines are unchanged; stdout is empty on refusal",
+      "verified": "test/run-ledger-mint-refusal.test.mjs asserts exit 1/3, the existing 'no ledger minted' lines as the final stderr line, and empty stdout; passing",
+      "passed": true
+    },
+    {
+      "ac": "A successful mint is unchanged: existing init-interactive, init-self-drain tests and faff run-ledger --selftest pass unedited",
+      "verified": "node --test test/run-ledger-init-interactive.test.mjs test/run-ledger-init-self-drain.test.mjs test/run-ledger-serialiser.test.mjs: 64 pass, 0 fail; faff run-ledger --selftest: RESULT: PASS (0 failed); files unedited",
+      "passed": true
+    },
+    {
+      "ac": "Both Scenarios pass as tests in the new test/run-ledger-mint-refusal.test.mjs",
+      "verified": "Scenario 1 = 'a refused init-self-drain leaves no run dir, and a retry with the schema restored mints'; Scenario 2 = 'a refused init-interactive on an existing --id dir leaves the dir and its contents unchanged'; both pass",
+      "passed": true
+    },
+    {
+      "ac": "Integration smoke test",
+      "verified": "Plugin copy without anchor-manifest.json: init-interactive exit 1, init-self-drain exit 1, .faff/runs empty; real plugin init-self-drain --id RUN-B exit 0 with run-ledger.json and events.jsonl",
+      "passed": true
+    }
+  ]
+}

@@ -115,6 +115,7 @@ const { cmdSentryPoller } = require("./lib/sentry-poller");
 const { cmdSentrycheck } = require("./lib/sentrycheck");
 const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = require("./lib/spec-judge-evidence");
 const { cmdBuildReviewChurn } = require("./lib/build-review-churn");
+const { cmdReviewPrior } = require("./lib/review-prior");
 const { cmdBuildReviewConvergence } = require("./lib/build-review-convergence");
 const { cmdBuildJudgeEvidence } = require("./lib/build-judge-evidence");
 const { cmdSpecReview } = require("./lib/spec-review");
@@ -274,6 +275,7 @@ const COMMANDS = {
   "spec-judge-evidence": cmdSpecJudgeEvidence,
   "spec-judge-accept-bar": cmdSpecJudgeAcceptBar,
   "build-review-churn": cmdBuildReviewChurn,
+  "review-prior": cmdReviewPrior,
   "build-review-convergence": cmdBuildReviewConvergence,
   "build-judge-evidence": cmdBuildJudgeEvidence,
   "spec-review": cmdSpecReview,

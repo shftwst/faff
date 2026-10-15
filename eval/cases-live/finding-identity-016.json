@@ -1,0 +1,27 @@
+{
+  "id": "finding-identity-016",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: refill never caps tokens at capacity, so an idle bucket grows without bound and allows a burst far above capacity. diff_b adds a second, distinct defect in the same file: take checks tokens < 0 instead of tokens < 1, so it hands out a token from an empty bucket and drives the count negative. second_defect_b marks take.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `refill` (and, in the second revision, `take`) to the token-bucket rate limiter.",
+    "spec": "## WHAT\nA token-bucket limiter in `src/net/limiter.js`.\n\n## DONE\n- [ ] `refill(now)` adds `perSecond` tokens per elapsed second and never lets `tokens` exceed `capacity`\n- [ ] `take(now)` returns true and spends one token only when at least one whole token is available, else returns false\n- [ ] the constructor is unchanged",
+    "diff": "diff --git a/src/net/limiter.js b/src/net/limiter.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/net/limiter.js\n+++ b/src/net/limiter.js\n@@ -7,6 +7,11 @@\n     this.tokens = capacity;\n     this.last = Date.now();\n   }\n+\n+  refill(now = Date.now()) {\n+    this.tokens += ((now - this.last) / 1000) * this.perSecond;\n+    this.last = now;\n+  }\n }\n \n module.exports = { TokenBucket };\ndiff --git a/test/limiter.test.js b/test/limiter.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/limiter.test.js\n+++ b/test/limiter.test.js\n@@ -1,3 +1,11 @@\n 'use strict';\n const assert = require('node:assert');\n const { test } = require('node:test');\n+const { TokenBucket } = require('../src/net/limiter');\n+\n+test('refill adds tokens over time', () => {\n+  const b = new TokenBucket(10, 1);\n+  b.tokens = 0;\n+  b.refill(b.last + 2000);\n+  assert.equal(b.tokens, 2);\n+});\n",
+    "test_results": "node --test: 6 pass, 0 fail. Lint clean.",
+    "defect_file": "src/net/limiter.js",
+    "diff_b": "diff --git a/src/net/limiter.js b/src/net/limiter.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/net/limiter.js\n+++ b/src/net/limiter.js\n@@ -7,6 +7,18 @@\n     this.tokens = capacity;\n     this.last = Date.now();\n   }\n+\n+  refill(now = Date.now()) {\n+    this.tokens += ((now - this.last) / 1000) * this.perSecond;\n+    this.last = now;\n+  }\n+\n+  take(now = Date.now()) {\n+    this.refill(now);\n+    if (this.tokens < 0) return false;\n+    this.tokens -= 1;\n+    return true;\n+  }\n }\n \n module.exports = { TokenBucket };\ndiff --git a/test/limiter.test.js b/test/limiter.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/limiter.test.js\n+++ b/test/limiter.test.js\n@@ -1,3 +1,11 @@\n 'use strict';\n const assert = require('node:assert');\n const { test } = require('node:test');\n+const { TokenBucket } = require('../src/net/limiter');\n+\n+test('refill adds tokens over time', () => {\n+  const b = new TokenBucket(10, 1);\n+  b.tokens = 0;\n+  b.refill(b.last + 2000);\n+  assert.equal(b.tokens, 2);\n+});\n",
+    "second_defect_b": {
+      "lines": [
+        16,
+        19
+      ]
+    }
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

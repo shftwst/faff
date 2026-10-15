@@ -24,50 +24,72 @@
 
 const { parseArgs, usageError } = require("./argv");
 const { readRoundRecord, roundNumberFromPath } = require("./spec-review-churn");
-const { readerFindingIds } = require("./finding-id");
+const { readerFindingIds, resolveRoundChain } = require("./finding-id");
+const { roundFilesInDir } = require("./spec-review-convergence");
+const path = require("node:path");
 
 // standingCriticalIds(findings, round) -> sorted, deduped array of finding ids for every finding
-// at severity=="critical". The id of each finding is its `readerFindingIds` id (computed from
-// `title` + `location`, else the stored `finding_id`, else the round-scoped `round-<n>#<i>`), so
-// an untitled, id-less critical still counts as standing. `round` scopes that last fallback.
-// Defensive against a missing/malformed `findings` field — it contributes nothing rather than
-// throwing.
+// at severity=="critical", resolved for a single round with no prior (round-1 identity): the
+// `readerFindingIds` id (computed from `title` + `location`, else the stored `finding_id`, else
+// the round-scoped `round-<n>#<i>`), so an untitled, id-less critical still counts as standing.
+// Defensive against a missing/malformed `findings` field — it contributes nothing.
 function standingCriticalIds(findings, round = "unknown") {
   const arr = Array.isArray(findings) ? findings : [];
-  const ids = readerFindingIds(arr, round);
-  const set = new Set();
-  arr.forEach((f, i) => {
-    if (f && typeof f === "object" && f.severity === "critical") set.add(ids[i].id);
-  });
-  return Array.from(set).sort();
+  return standingCriticals(arr, readerFindingIds(arr, round)).ids;
 }
 
-// computeChurn(prev, curr, prevRoundNumber) -> BuildReviewChurnResult
+function standingCriticals(findings, entries) {
+  const ids = new Set();
+  const carried = new Set();
+  findings.forEach((f, i) => {
+    if (!(f && typeof f === "object" && f.severity === "critical")) return;
+    ids.add(entries[i].id);
+    if (entries[i].carry === "accepted") carried.add(entries[i].id);
+  });
+  return { ids: Array.from(ids).sort(), carried: Array.from(carried).sort() };
+}
+
+function findingsOf(record) {
+  return record && Array.isArray(record.findings) ? record.findings : [];
+}
+
+// computeChurn(prev, curr, prevRoundNumber, currRoundNumber, earlier) -> BuildReviewChurnResult
 //   prev             — the parsed prior DialogueRoundRecord ({signal, findings, author_replies}),
 //                       or `null` when no prior round exists on disk (round 1 — nothing to compare).
 //   curr             — the parsed current DialogueRoundRecord. Required.
-//   prevRoundNumber  — the prior round's 1-indexed number (from its filename), or `null`.
-//                       Scopes the round-token of a prior finding's fallback id; otherwise cosmetic.
+//   prevRoundNumber  — the prior round's number (from its filename), or `null`; scopes the round
+//                       token of a prior finding's fallback id.
 //   currRoundNumber  — optional: the current round's number. When a number is absent the round
 //                       token is the literal `prev` or `curr`, keeping the two rounds' fallback
 //                       ids distinct.
-// Pure: no I/O. `churn` is true iff `curr`'s standing-critical finding_id set contains an id
-// that was NOT standing-critical in `prev` — i.e. the standing-critical set grew a new identity,
-// never merely held steady or shrank.
-function computeChurn(prev, curr, prevRoundNumber, currRoundNumber) {
-  const currIds = standingCriticalIds(curr && curr.findings, currRoundNumber != null ? currRoundNumber : "curr");
+//   earlier          — optional `[{ round, record }]`, ascending: the rounds before `prev`, so a
+//                       carried id resolves through the whole chain (FAFF-1276).
+// Pure: no I/O. Ids come from `resolveRoundChain` over `[...earlier, prev, curr]`. `churn` is true
+// iff `curr`'s standing-critical id set contains an id that was NOT standing-critical in `prev`.
+function computeChurn(prev, curr, prevRoundNumber, currRoundNumber, earlier = []) {
+  const currToken = currRoundNumber != null ? currRoundNumber : "curr";
+  const currFindings = findingsOf(curr);
   if (prev === null || prev === undefined) {
-    return { churn: false, prev_critical_ids: [], curr_critical_ids: currIds, new_critical_ids: [], reason: "no prior round on disk" };
+    const currSet = standingCriticals(currFindings, resolveRoundChain([{ round: currToken, findings: currFindings }])[0]);
+    return { churn: false, prev_critical_ids: [], curr_critical_ids: currSet.ids, new_critical_ids: [], carried_critical_ids: currSet.carried, reason: "no prior round on disk" };
   }
-  const prevIds = standingCriticalIds(prev.findings, prevRoundNumber != null ? prevRoundNumber : "prev");
+  const prevFindings = findingsOf(prev);
+  const chain = [
+    ...(Array.isArray(earlier) ? earlier : []).map((e) => ({ round: e.round, findings: findingsOf(e.record) })),
+    { round: prevRoundNumber != null ? prevRoundNumber : "prev", findings: prevFindings },
+    { round: currToken, findings: currFindings },
+  ];
+  const resolved = resolveRoundChain(chain);
+  const prevIds = standingCriticals(prevFindings, resolved[resolved.length - 2]).ids;
+  const currSet = standingCriticals(currFindings, resolved[resolved.length - 1]);
   const prevAsSet = new Set(prevIds);
-  const newIds = currIds.filter((id) => !prevAsSet.has(id));
+  const newIds = currSet.ids.filter((id) => !prevAsSet.has(id));
   const churn = newIds.length > 0;
   const roundLabel = prevRoundNumber != null ? String(prevRoundNumber) : "the previous round";
   const reason = churn
     ? `new standing-critical finding_id(s) since round ${roundLabel}: ${newIds.join(", ")}`
     : `standing-critical finding_id set held steady or shrank since round ${roundLabel}`;
-  return { churn, prev_critical_ids: prevIds, curr_critical_ids: currIds, new_critical_ids: newIds, reason };
+  return { churn, prev_critical_ids: prevIds, curr_critical_ids: currSet.ids, new_critical_ids: newIds, carried_critical_ids: currSet.carried, reason };
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +242,25 @@ function cmdBuildReviewChurn(args) {
   const prevRecord = prevRead.missing ? null : prevRead.record;
   const prevRoundNumber = prevRead.missing ? null : roundNumberFromPath(prevPath);
 
-  const result = computeChurn(prevRecord, currRead.record, prevRoundNumber, roundNumberFromPath(currPath));
+  const sameDir = path.resolve(path.dirname(prevPath)) === path.resolve(path.dirname(currPath));
+  const earlier = [];
+  if (prevRecord !== null && sameDir && prevRoundNumber != null) {
+    for (const { n, path: p } of roundFilesInDir(path.dirname(prevPath))) {
+      if (n >= prevRoundNumber) continue;
+      const read = readRoundRecord(p);
+      if (read.malformed || read.missing) {
+        process.stderr.write(`faff build-review-churn: earlier round ${p} is unreadable or not valid JSON (${read.malformed || (read.error && read.error.message)})\n`);
+        return 2;
+      }
+      earlier.push({ round: n, record: read.record });
+    }
+  }
+
+  const result = computeChurn(prevRecord, currRead.record, prevRoundNumber, roundNumberFromPath(currPath), earlier);
+  if (prevRecord !== null && !sameDir) {
+    process.stderr.write("faff build-review-churn: --prev and --curr are in different directories; ids were resolved over two rounds only\n");
+    result.chain_rounds = 2;
+  }
   console.log(JSON.stringify(result));
   return 0;
 }

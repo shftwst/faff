@@ -191,3 +191,88 @@ test("faff build-review-churn smoke: the same critical at a shifted location wit
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// --- FAFF-1276: carried ids resolve through the round chain --------------------------------
+
+function withRounds(records, fn) {
+  const tmp = mkdtempSync(join(tmpdir(), "faff-build-review-churn-carry-"));
+  try {
+    records.forEach((rec, i) => writeFileSync(join(tmp, `round-${i + 1}.json`), typeof rec === "string" ? rec : JSON.stringify(rec)));
+    return fn(tmp);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+const crit = (location, title, carried_id) => ({ severity: "critical", location, title, ...(carried_id ? { carried_id } : {}) });
+
+test("faff build-review-churn: scenario — a reworded critical that carries P1 does not churn and is listed as carried", () => {
+  withRounds([
+    { signal: "needs-human", findings: [crit("a.js:3", "leaks fd")] },
+    { signal: "needs-human", findings: [crit("a.js:40", "file descriptor not closed", "P1")] },
+  ], (dir) => {
+    const r = runCli(["build-review-churn", "--prev", join(dir, "round-1.json"), "--curr", join(dir, "round-2.json")]);
+    assert.equal(r.code, 0, r.stderr);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.churn, false);
+    assert.deepEqual(parsed.curr_critical_ids, ["a.js::leaks fd"]);
+    assert.deepEqual(parsed.carried_critical_ids, ["a.js::leaks fd"]);
+    assert.equal(parsed.chain_rounds, undefined);
+  });
+});
+
+test("faff build-review-churn: --prev round-2 --curr round-3 resolves round 2's carry through round 1", () => {
+  withRounds([
+    { signal: "needs-human", findings: [crit("a.js:3", "leaks fd")] },
+    { signal: "needs-human", findings: [crit("a.js:4", "fd never closed", "P1")] },
+    { signal: "needs-human", findings: [crit("a.js:5", "descriptor left open", "P1")] },
+  ], (dir) => {
+    const r = runCli(["build-review-churn", "--prev", join(dir, "round-2.json"), "--curr", join(dir, "round-3.json")]);
+    assert.equal(r.code, 0, r.stderr);
+    const parsed = JSON.parse(r.stdout);
+    assert.deepEqual([parsed.churn, parsed.prev_critical_ids, parsed.curr_critical_ids], [false, ["a.js::leaks fd"], ["a.js::leaks fd"]]);
+  });
+});
+
+test("faff build-review-churn: a malformed earlier round in the directory exits 2 naming it", () => {
+  withRounds(["not json", { findings: [crit("a.js:4", "x")] }, { findings: [crit("a.js:4", "x")] }], (dir) => {
+    const r = runCli(["build-review-churn", "--prev", join(dir, "round-2.json"), "--curr", join(dir, "round-3.json")]);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /round-1\.json/);
+  });
+});
+
+test("faff build-review-churn: --prev and --curr in different directories resolve two rounds, say so, and report chain_rounds", () => {
+  withRounds([{ findings: [crit("a.js:3", "leaks fd")] }], (dirA) => withRounds([{ findings: [] }, { findings: [crit("a.js:9", "fd never closed", "P1")] }], (dirB) => {
+    const r = runCli(["build-review-churn", "--prev", join(dirA, "round-1.json"), "--curr", join(dirB, "round-2.json")]);
+    assert.equal(r.code, 0, r.stderr);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.chain_rounds, 2);
+    assert.equal(parsed.churn, false);
+    assert.match(r.stderr, /different directories/);
+  }));
+});
+
+test("computeChurn: earlier rounds resolve a carry; with none, a wrong carry is refused and churns", () => {
+  const earlier = [{ round: 1, record: { findings: [crit("a.js:1", "leaks fd")] } }];
+  const prev = { findings: [crit("a.js:2", "fd never closed", "P1")] };
+  const curr = { findings: [crit("a.js:3", "fd still open", "P1")] };
+  assert.equal(computeChurn(prev, curr, 2, 3, earlier).churn, false);
+  const wrongFile = { findings: [crit("b.js:3", "fd still open", "P1")] };
+  const res = computeChurn(prev, wrongFile, 2, 3, earlier);
+  assert.deepEqual([res.churn, res.carried_critical_ids], [true, []]);
+});
+
+test("smoke (FAFF-1276): review-prior lists the round-2 finding and churn holds steady across the carry", () => {
+  withRounds([
+    { signal: "needs-human", findings: [crit("./a.js:3", "Leaks fd")] },
+    { signal: "needs-human", findings: [crit("a.js:30", "fd never closed", "P1")] },
+  ], (dir) => {
+    const prior = runCli(["review-prior", "--dir", dir]);
+    assert.equal(prior.code, 0, prior.stderr);
+    assert.deepEqual(JSON.parse(prior.stdout), { round: 2, findings: [{ handle: "P1", title: "fd never closed", location: "a.js:30", severity: "critical" }] });
+    const r = runCli(["build-review-churn", "--prev", join(dir, "round-1.json"), "--curr", join(dir, "round-2.json")]);
+    const parsed = JSON.parse(r.stdout);
+    assert.deepEqual([parsed.churn, parsed.curr_critical_ids], [false, ["a.js::leaks fd"]]);
+  });
+});

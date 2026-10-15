@@ -74,7 +74,9 @@ still validate.
 Every merged finding and objection keeps an `occurrences` list with one entry per round it was
 raised in, so nothing a reviewer raised in any round is overwritten by a later round.
 `review-round` is the shape of one round record, published so the collator's input is pinned;
-round records are never anchored.
+round records are never anchored. Each finding keeps the reviewer's `carried_id`, the `P<k>` handle
+of the previous round's finding it re-raises (`null` when none); `resolveRoundChain` honours it only
+for a finding in the same file, so a carried id is never trusted on the reviewer's word alone.
 
 Until code-review rounds are recorded (FAFF-1268), `review-verdict.json` is written with
 `round_history: "terminal-only"` and `rounds_total: 1`, and the writer appends one

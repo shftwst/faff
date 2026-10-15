@@ -37,6 +37,7 @@
         "additionalProperties": false,
         "required": [
           "finding_id",
+          "carried_id",
           "title",
           "location",
           "action",
@@ -52,6 +53,13 @@
         "properties": {
           "finding_id": {
             "type": "string"
+          },
+          "carried_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "the P<k> handle of the previous round's finding this one re-raises, as the reviewer gave it; honoured only as resolveRoundChain accepts it"
           },
           "title": {
             "type": [

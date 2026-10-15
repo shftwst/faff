@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 1,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The HOW and the DONE section specify two different, incompatible cleanup semantics for a failed reconstruction, and the broader one can destroy pre-existing state the recovery never wrote.",
+      "evidence": "HOW step 3c says \"ON throw: remove every entry of realRunDir except the lock file, and the anchor dir\". DONE says \"A reconstruction failure removes only the restored entries and the anchor dir, leaves no non-empty run dir behind\". These agree only when the run dir was empty before the restore. The spec's own edge case (\"a recovery's run dir exists with no ledger — a previous failed attempt left an empty dir\") contemplates a pre-existing run dir; if it holds any non-ledger state (a heartbeat file, build-progress, FAFF-1280's refused-mint residue), \"every entry except the lock file\" deletes files the recovery did not restore, while \"only the restored entries\" preserves them — and \"leaves no non-empty run dir behind\" is then unsatisfiable at all. Today's `rmSync(realRunDir, { recursive: true })` is strictly worse, so this is not a regression, but the spec is the place the safer contract must be pinned, and right now it pins both.",
+      "predicted_consequence": "The builder picks one reading; a recovery failure over a pre-existing ledger-less run dir either silently deletes foreign run state or leaves a non-empty dir that fails the spec's own DONE check, and the discrepancy surfaces only as a test argument.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 3c now removes only the paths the recovery wrote (ledger, events.jsonl, the copied landing-progress.json and its issue dir if empty, the anchor dir); step 4 removes the run dir only if empty, never recursively; DONE now requires a pre-existing file in the run dir to survive.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The HOW and the DONE section specify two different, incompatible cleanup semantics for a failed reconstruction, and the broader one can destroy pre-existing state the recovery never wrote.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The integration smoke test pre-holds the lock and deletes it \"after ~1 s\", then asserts both dispositions are `noop-already-present`/`reconstructed` with both exit 0. A recovery that cannot acquire within the 2 s budget reports `refused`, exit 1 — so on a slow/loaded CI runner where a spawned process reaches its acquire loop late (or the lock deletion lands late relative to process start), the assertion can fail. The spec's claim that \"the assertions hold however the two processes interleave\" is true for interleaving *after both processes are in acquire*, but not for budget-expiry, which is a timing outcome, not an interleaving.",
+      "evidence": "§8 \"Integration smoke test\" (\"after ~1 s, delete the lock file … the assertions hold however the two processes interleave, so the test is not timing-flaky\") vs. §4 step 3 (\"ON LEDGER_LOCKED: … refused\") and §5 scenario 2 (budget expiry → refused, exit 1).",
+      "predicted_consequence": "an occasional red CI run on a loaded runner, diagnosed as flaky and possibly leading to a retry-until-green culture around exactly the concurrency test this spec adds.",
+      "spec_anchor": "integration-smoke-test",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The smoke test now releases the pre-held lock after 250 ms and states the bounds: each waiter's 2 s budget starts after the lock exists, leaving more than 1.7 s of margin, far below the 5 s stale takeover. The budget-exhaustion case is a separate test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The integration smoke test pre-holds the lock and deletes it \"after ~1 s\", then asserts both dispositions are `noop-already-present`/`reconstructed` with both exit 0. A recovery that cannot acquire within the 2 s budget reports `refused`, exit 1 — so on a slow/loaded CI runner where a spawned process reaches its acquire loop late (or the lock deletion lands late relative to process start), the assertion can fail. The spec's claim that \"the assertions hold however the two processes interleave\" is true for interleaving *after both processes are in acquire*, but not for budget-expiry, which is a timing outcome, not an interleaving.",
+          "spec_anchor": "integration-smoke-test"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "Step 3's recovery from a concurrent `rmdir` (\"repeat steps 2–3 once; a second ENOENT is 'failed'\") is ambiguous about what \"once\" bounds: the acquire attempt, the whole lock section, or the mkdir+acquire pair. It also does not say whether the retry's acquire gets a fresh 2 s budget or shares the first attempt's. A builder can implement three different behaviours from this text; only some satisfy the DONE item \"leaves no non-empty run dir behind\".",
+      "evidence": "§4 PROCEDURE step 3 (\"ON acquire error ENOENT … repeat steps 2–3 once; a second ENOENT is 'failed'\").",
+      "predicted_consequence": "not separately stated — the race window is narrow and every reading is safe; this is a build-time ambiguity, not a defect that ships.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The ENOENT recovery is now exactly one retry of the pair mkdir then lock, through a fresh withLedgerLock call with a fresh 2 s budget; a second ENOENT is a refused disposition. A DONE item pins it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Step 3's recovery from a concurrent `rmdir` (\"repeat steps 2–3 once; a second ENOENT is 'failed'\") is ambiguous about what \"once\" bounds: the acquire attempt, the whole lock section, or the mkdir+acquire pair. It also does not say whether the retry's acquire gets a fresh 2 s budget or shares the first attempt's. A builder can implement three different behaviours from this text; only some satisfy the DONE item \"leaves no non-empty run dir behind\".",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The new PROCEDURE moves directory creation out of `reconstructProjection` to a bare \"step 2: mkdir -p realRunDir\" that sits outside both the `TRY` around step 3 and the validation at step 1. If that mkdir throws (unwritable `.faff`, disk full), the exception escapes `bundleRecover` uncaught and `cmdBundleRecover`'s generic catch turns it into exit 2 — not the `refused`/exit-1 disposition every other failure path in the procedure produces.",
+      "evidence": "`### 4. HOW` — step 1 (validate, \"on throw → refused, nothing created\"), step 2 (mkdir, no ON-throw clause), step 3 (`TRY section := withLedgerLock(...)`). The DONE item \"A reconstruction failure removes only the restored entries and the anchor dir, leaves no non-empty run dir behind\" (`### 8. DONE`, From HOW) cannot be satisfied by this path because no cleanup runs at all, and the \"refused rather than half-write\" posture in `### 1. WHY` is silently not honoured for this failure class. Today's code catches this (mkdir happens inside `reconstructProjection`, whose throw is caught → refused), so the spec as written is also a regression on an existing error path no scenario pins.",
+      "predicted_consequence": "a build following the spec literally leaves a permissions-failed recovery exiting 2 with a raw error instead of a conformant `refused` RecoveryDisposition; the contract check in `cmdBundleRecover` (`computeRecoveryDispositionVerdict`) never sees it, and a tester cannot tell from the spec whether exit 2 or refused/exit 1 is the intended result for this input.",
+      "spec_anchor": "`4-how`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 2's mkdir is now wrapped: a throw becomes decision failed and a refused disposition (reconstruction failed), exit 1, matching today's caught behaviour. A DONE item pins it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The new PROCEDURE moves directory creation out of `reconstructProjection` to a bare \"step 2: mkdir -p realRunDir\" that sits outside both the `TRY` around step 3 and the validation at step 1. If that mkdir throws (unwritable `.faff`, disk full), the exception escapes `bundleRecover` uncaught and `cmdBundleRecover`'s generic catch turns it into exit 2 — not the `refused`/exit-1 disposition every other failure path in the procedure produces.",
+          "spec_anchor": "`4-how`"
+        }
+      ]
+    }
+  ]
+}

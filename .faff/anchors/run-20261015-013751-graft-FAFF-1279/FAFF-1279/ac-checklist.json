@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "Replaying the recorded FAFF-1266 critical (title \"SQL injection in findUserByName, caller input concatenated into the query string\", body naming `eval/cases-live/finding-identity-011.json`) through the cap, with the real `git show 10a8ece4` diff minus its `.faff/anchors/` files (the review verdict records written after the review ran, which quote the finding title) and this repo's configured list passed as explicit prefixes, leaves no `critical` section. This is a `node --test` case.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::FAFF-1266 replay: the recorded critical on finding-identity-011.json leaves no critical section - passing",
+      "passed": true
+    },
+    {
+      "ac": "A live `review-call.mjs` run over the 10a8ece4 diff with this repo's fixture paths emits no `### critical:` section that names `finding-identity-011.json`. This is a human-supervised check, and its output is recorded in the PR body.",
+      "verified": "Verified: live review-call.mjs over 10a8ece4 (anchors excluded) with this repo fixture paths, openrouter code_review chain: 0 critical sections, none naming finding-identity-011.json - passing",
+      "passed": true
+    },
+    {
+      "ac": "`faff review-fixture-paths` prints the defaults when `review.fixture_paths` is unset, the configured list when it is set, nothing when it is `[]`, and ignores non-string entries. With `--ref <base>`, it returns the base ref's list even when the working-tree `.faffrc.yaml` sets a different one. `--selftest` covers all five cases, with the malformed case asserting exit 2 and the parse error on stderr. A ref with no `.faffrc.yaml` resolves to the defaults.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::review-fixture-paths CLI: unset key, empty list, missing file, malformed file and bad ref; plus --selftest - passing",
+      "passed": true
+    },
+    {
+      "ac": "`isFixturePath` matches `test/fixtures/x.json` and `eval/cases/a.json` (with `eval/cases/` listed). It does not match `eval/bridge-fixture.mjs`, `eval/grader.mjs` or `eval/cases-live/a.json` (with only `eval/cases/` listed).",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::isFixturePath: matches segment-anchored directory prefixes only - passing",
+      "passed": true
+    },
+    {
+      "ac": "A parity test runs the `review-call.mjs` matcher copy and the `bin/lib` matcher over the same table and gets identical results.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::matcher parity: the review-call.mjs mirror agrees with the bin/lib module - passing",
+      "passed": true
+    },
+    {
+      "ac": "`review.fixture_paths` is documented in `.faffrc.example.yaml`, and `review-fixture-paths` is documented in `docs/guide/cli.md`.",
+      "verified": "Verified: grep: .faffrc.example.yaml review.fixture_paths block; docs/guide/cli.md review-fixture-paths row - passing",
+      "passed": true
+    },
+    {
+      "ac": "This repo's `.faffrc.yaml` sets the list given in section 3.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::this repo's .faffrc.yaml sets the configured fixture paths - passing",
+      "passed": true
+    },
+    {
+      "ac": "`faff/references/review.md` has a \"Fixture data in review\" section with the five rule points and no ticket or ADR references.",
+      "verified": "Verified: references/review.md \"Fixture data in review\" section, five points, no ticket refs - passing",
+      "passed": true
+    },
+    {
+      "ac": "faffter-noon-review pass 2 and Rules point to that section and do not copy it.",
+      "verified": "Verified: faffter-noon-review SKILL.md:75 and :162 point to the section - passing",
+      "passed": true
+    },
+    {
+      "ac": "The adversarial SKILL.md builds `--system` as the lens plus the shared section plus the resolved list, passes `--fixture-path` per prefix, and documents \"Fixture-data findings arrive capped\" with disposition `open`.",
+      "verified": "Verified: adversarial SKILL.md:68, :235, :263-264 (--system assembly, --fixture-path, capped paragraph) - passing",
+      "passed": true
+    },
+    {
+      "ac": "`faff validate-adapters` passes, with no duplicated-block, line-cap or anchor failures.",
+      "verified": "Verified: faff validate-adapters exit 0 - passing",
+      "passed": true
+    },
+    {
+      "ac": "Cap unit tests cover: a critical naming only fixture paths, with its identifier on an added fixture line, is capped to `minor` with the `[fixture-data]` prefix and the evidence line; a critical naming a fixture and a real file stays critical; a critical naming no PR path in a mixed PR stays critical; a critical naming no PR path in a fixture-only PR is capped; `major` is never touched; an already refuted section is skipped; untouched sections keep their exact bytes.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::cap: * (7 cap tests) - passing",
+      "passed": true
+    },
+    {
+      "ac": "With no `--fixture-path` flags, or with `--expect contract`, the output is byte-identical to the output before this change.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::main(): with no --fixture-path, or with --expect contract, the output is unchanged - passing",
+      "passed": true
+    },
+    {
+      "ac": "Each cap writes one `capped:` line to stderr.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::main(): --fixture-path caps the finding and writes one capped: line to stderr - passing",
+      "passed": true
+    },
+    {
+      "ac": "Origin-check unit tests: a critical naming only a fixture whose identifiers appear on no added fixture line (the unchanged-loader shape) stays critical; a critical whose identifier appears on an added fixture line and an added real-code line stays critical; the FAFF-1266 shape (`findUserByName` only in the fixture's added lines) is capped.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::cap origin check: * (2 tests) + FAFF-1266 replay - passing",
+      "passed": true
+    },
+    {
+      "ac": "The adversarial SKILL.md escalation section names the `review-call.mjs` cap-set constant, and a test asserts the cap set equals `{ critical }`.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::the cap set equals the autonomous-escalation set and the SKILL.md names it - passing",
+      "passed": true
+    },
+    {
+      "ac": "A file that appears in the diff only as a deletion counts towards `pr_paths`. Test: a diff deleting `src/a.js` and adding `test/fixtures/b.json`, with a critical naming no path, stays critical.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::cap: a file deleted from real code still blocks the fixture-only fallback - passing",
+      "passed": true
+    },
+    {
+      "ac": "`faff review-fixture-paths` failing leads the slot to an empty list plus a `fixture paths unavailable` line at the top of the findings, not a blocked review.",
+      "verified": "Verified: adversarial SKILL.md:264 empty-list fallback with fixture paths unavailable line - passing",
+      "passed": true
+    },
+    {
+      "ac": "A PR whose diff sets `review.fixture_paths: [src/]` in `.faffrc.yaml` does not cap a critical in `src/`, because the list comes from the base ref. This is a `node --test` case over the resolver with a temporary git repo.",
+      "verified": "Verified: test/review-fixture-paths.test.mjs::review-fixture-paths CLI: --ref reads the base ref, not the PR's working tree - passing",
+      "passed": true
+    },
+    {
+      "ac": "`eval/cases/refutation-code-006.json`: a diff that only adds an eval case JSON whose embedded diff has a planted SQL injection, with oracle `closed_set: []`.",
+      "verified": "Verified: eval/cases/refutation-code-006.json present; validated by test/eval-grader.test.mjs - passing",
+      "passed": true
+    },
+    {
+      "ac": "`eval/cases/refutation-code-007.json`: a diff that adds a fixture and also a real-code file with the same injection pattern, with oracle `closed_set: [\"flagged\"]` and a `_comment` naming the real-code defect as the reason for the catch.",
+      "verified": "Verified: eval/cases/refutation-code-007.json present; validated by test/eval-grader.test.mjs - passing",
+      "passed": true
+    },
+    {
+      "ac": "`loadRefutationCodeProse` appends the shared section and the sample prefix list. `test/eval-cli-driver.test.mjs` is updated to match.",
+      "verified": "Verified: test/eval-cli-driver.test.mjs (loadFixtureDataProse) passing - passing",
+      "passed": true
+    },
+    {
+      "ac": "Both cases pass under `node eval/run-evals.mjs` for kind `refutation-code`. Recording or accepting a baseline is a separate human step.",
+      "verified": "Needs human verification: live refutation-code evals call real models; not run in this build",
+      "passed": false
+    }
+  ]
+}

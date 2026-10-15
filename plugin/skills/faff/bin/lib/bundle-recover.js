@@ -36,7 +36,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const { findRoot, readLedger, isSafeAnchorRelPath } = require("./shared-infra");
-const { isValidIssueId, withLedgerLock } = require("./heartbeat");
+const { atomicWriteSingleValueFile, isValidIssueId, withLedgerLock } = require("./heartbeat");
 const { verifyBundleIdentity, resolveBundleStore, resolveBundleStoreName } = require("./bundle");
 const { classifyReEnterable, reconstructResumePlan } = require("./resume");
 const { gatherResumeEvidence } = require("./lights-out");
@@ -389,7 +389,8 @@ function reconstructProjection(targetRoot, identity, memberBytes, written = { fi
   const target = (file) => { written.files.push(file); return file; };
 
   mkdir(runDir);
-  fs.writeFileSync(target(path.join(runDir, "run-ledger.json")), memberBytes.ledger_snapshot);
+  // atomic publish of the same bytes: ledger readers do not take the lock, so they must never see a torn file
+  atomicWriteSingleValueFile(target(path.join(runDir, "run-ledger.json")), memberBytes.ledger_snapshot);
   for (const [rel, b64] of Object.entries(files)) {
     const dest = path.join(anchorDir, rel);
     mkdir(path.dirname(dest));
@@ -413,10 +414,11 @@ function reconstructProjection(targetRoot, identity, memberBytes, written = { fi
   return { runDir, anchorDir };
 }
 
-// Best-effort undo of a failed reconstructProjection: delete the files it wrote, then each directory it
-// created, deepest first, only while empty. Never recursive, so pre-existing files and the held lock survive.
+// Best-effort undo of a failed reconstructProjection: delete the files it wrote, ledger first so a partial
+// cleanup still reads as `absent` next time, then each directory it created, deepest first, only while
+// empty. Never recursive, so pre-existing files and the held lock survive.
 function removeWritten(written) {
-  for (const file of [...written.files].reverse()) {
+  for (const file of written.files) {
     try { fs.rmSync(file, { force: true }); } catch { /* best-effort cleanup */ }
   }
   for (const { first, last } of [...written.dirs].reverse()) {
@@ -431,10 +433,11 @@ function removeWritten(written) {
 // FAFF-1281 — the restore section: the existence read, the write-once decision and, on `absent`, every
 // restore write happen under the run-ledger lock, so two recoveries of one run cannot both restore.
 // The legacy upgrade runs after release (the lock is not re-entrant). Returns
-// { decision: absent|match|conflict|locked|failed, existingStamped?, error? }.
+// { decision: absent|match|conflict|locked|failed, createdRunDir, existingStamped?, error? }.
 function restoreUnderLedgerLock(root, runDir, identity, memberBytes) {
+  let createdRunDir = false;
   const attempt = () => {
-    try { fs.mkdirSync(runDir, { recursive: true }); }
+    try { createdRunDir = Boolean(fs.mkdirSync(runDir, { recursive: true })) || createdRunDir; }
     catch (error) { return { decision: "failed", error }; }
     return withLedgerLock(runDir, () => {
       let existing = null;
@@ -456,10 +459,13 @@ function restoreUnderLedgerLock(root, runDir, identity, memberBytes) {
   };
   // An ENOENT on acquire means a concurrent failed recovery removed the empty run dir between our
   // mkdir and our lock: retry mkdir-then-lock once, with a fresh lock budget.
-  try { return attempt(); }
-  catch (e) { if (!e || e.code !== "ENOENT") return lockFailure(e); }
-  try { return attempt(); }
-  catch (e) { return lockFailure(e); }
+  const section = (() => {
+    try { return attempt(); }
+    catch (e) { if (!e || e.code !== "ENOENT") return lockFailure(e); }
+    try { return attempt(); }
+    catch (e) { return lockFailure(e); }
+  })();
+  return { ...section, createdRunDir };
 }
 
 // ---------------------------------------------------------------------------
@@ -648,8 +654,8 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
   catch (e) { return refuse(`reconstruction failed: ${e.message}`); }
 
   const section = restoreUnderLedgerLock(resolvedRoot, realRunDir, identity, memberBytes);
-  if (section.decision === "locked" || section.decision === "failed") {
-    // Refuse rather than leave a half-written directory; only an empty run dir is removed.
+  if (section.createdRunDir && (section.decision === "locked" || section.decision === "failed")) {
+    // Refuse rather than leave a half-written directory; only a run dir this call created, and only when empty.
     try { fs.rmdirSync(realRunDir); } catch { /* not empty, or already gone */ }
   }
   if (section.decision === "conflict") return refuse(conflictReason);

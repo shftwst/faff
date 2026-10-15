@@ -112,6 +112,17 @@ test("a failed restore into an empty run dir leaves no run dir behind", () => {
   } finally { fx.cleanup(); }
 });
 
+test("a failed restore never removes an empty run dir it did not create", () => {
+  const fx = bundleFixture();
+  try {
+    blockAnchors(fx);
+    mkdirSync(runDirOf(fx), { recursive: true });
+    const r = recover(fx);
+    assert.equal(r.code, 1, r.err);
+    assert.equal(existsSync(runDirOf(fx)), true, "another writer may be about to take its lock in it");
+  } finally { fx.cleanup(); }
+});
+
 test("a run dir that cannot be created refuses with exit 1, not an uncaught exit 2", () => {
   const fx = bundleFixture();
   try {

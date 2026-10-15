@@ -95,6 +95,10 @@ function cmdReviewFixturePaths(args, root = findRoot()) {
   const ref = values["--ref"];
   const read = ref === undefined ? readWorkingTreeConfig(root) : readConfigAtRef(root, ref);
   if (read.error) { process.stderr.write(read.error + "\n"); return 2; }
+  const configured = dig(read.cfg || {}, "review.fixture_paths");
+  if (configured !== null && configured !== undefined && !Array.isArray(configured)) {
+    process.stderr.write("faff review-fixture-paths: review.fixture_paths is not a list; no fixture paths apply\n");
+  }
   const resolved = resolveFixturePaths(read.cfg);
   if (resolved.length) console.log(resolved.join("\n"));
   return 0;

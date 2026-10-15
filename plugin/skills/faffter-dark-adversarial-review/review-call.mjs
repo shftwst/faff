@@ -18,8 +18,8 @@
 
 import http from "node:http";
 import https from "node:https";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join as pathJoin, dirname as pathDirname } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { join as pathJoin, dirname as pathDirname, resolve as pathResolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
@@ -1086,6 +1086,7 @@ function gitHeaderPaths(rest) {
 export function parseDiffFiles(diff) {
   const paths = new Set();
   const addedTokens = new Map();
+  const addedKeys = new Map();
   const lines = String(diff == null ? "" : diff).split("\n").map((l) => l.replace(/\r$/, ""));
   let current = null;
   let oldRemain = 0;
@@ -1098,6 +1099,8 @@ export function parseDiffFiles(diff) {
         if (current) {
           if (!addedTokens.has(current)) addedTokens.set(current, new Set());
           for (const t of identifierTokens(line.slice(1))) addedTokens.get(current).add(t);
+          if (!addedKeys.has(current)) addedKeys.set(current, new Set());
+          for (const m of line.matchAll(/"([A-Za-z_][A-Za-z0-9_]*)"\s*:/g)) addedKeys.get(current).add(m[1]);
         }
         if (newRemain > 0) newRemain -= 1;
       } else if (marker === "-") {
@@ -1123,7 +1126,7 @@ export function parseDiffFiles(diff) {
       }
     }
   }
-  return { paths, addedTokens };
+  return { paths, addedTokens, addedKeys };
 }
 
 // Like pathMentionedIn, but checks every occurrence and tolerates a sentence-ending "." after the path
@@ -1143,12 +1146,40 @@ function samePath(a, b) {
   return a === b || a.endsWith(`/${b}`) || b.endsWith(`/${a}`);
 }
 
-function codeSpanTokens(raw, title) {
-  const tokens = identifierTokens(title);
+// Generic words and fixture keys that say nothing about where a defect lives.
+const GENERIC_TOKENS = new Set(["diff", "code", "spec", "fixture", "case", "comment", "json", "test", "input", "output", "string", "value", "name", "file", "path", "kind", "oracle", "note", "expected", "actual", "data"]);
+
+// An identifier specific enough to attribute a defect: camelCase, snake_case or digit-bearing, never a
+// plain word (plain words recur in any fixture's prose).
+function isSpecificToken(t) {
+  return !GENERIC_TOKENS.has(t.toLowerCase()) && /[a-z][A-Z]|_|[0-9]/.test(t.replace(/^_+/, ""));
+}
+
+function originTokens(raw, title) {
+  const tokens = new Set([...identifierTokens(title)].filter((t) => /[a-z][A-Z]/.test(t)));
   for (const m of raw.matchAll(/`([^`\n]+)`/g)) {
     for (const t of identifierTokens(m[1])) tokens.add(t);
   }
-  return tokens;
+  return new Set([...tokens].filter(isSpecificToken));
+}
+
+const PATH_LIKE_RE = /[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+|[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(?:mjs|cjs|js|ts|json|md|ya?ml|sh|py)\b/g;
+
+// A path-like token in the finding that is not a fixture path and is real code: part of the PR, or on
+// disk under repoRoot. Paths that exist nowhere (quoted inside a fixture's embedded diff) do not count;
+// an unreadable filesystem counts as real, so the finding keeps its severity.
+function namesRealCode(raw, prPaths, prefixes, repoRoot) {
+  for (const m of raw.matchAll(PATH_LIKE_RE)) {
+    const p = m[0].replace(/^\.\//, "");
+    if (isFixturePath(p, prefixes)) continue;
+    if (prPaths.some((q) => samePath(q, p))) return true;
+    try {
+      if (existsSync(pathResolve(repoRoot, p))) return true;
+    } catch {
+      return true;
+    }
+  }
+  return false;
 }
 
 // PURE: cap a Phase-2 finding of a FIXTURE_CAP_SEVERITIES severity to `minor` when it can be tied to
@@ -1156,16 +1187,17 @@ function codeSpanTokens(raw, title) {
 // Never drops a finding. Edits splice the original lines last-to-first (as refuteFindings does) so
 // untouched sections keep their exact bytes.
 //
-// Attribution: a finding that names PR paths is capped only if every named path is a fixture path; one
-// that names none is capped only when the whole PR is fixture files. Either way the defect's
-// identifiers (backtick code spans and title) must also be on an added line of a candidate fixture
-// file and on no added line of a non-fixture file, so a defect in unchanged loader code that merely
-// names a fixture keeps its severity.
-export function capFixtureFindings(content, diff, contextPaths, prefixes) {
+// Attribution: a finding that names any real-code path (in the PR or on disk) is never capped; one that
+// names PR paths is capped only if every named path is a fixture path; one that names none is capped
+// only when the whole PR is fixture files. Either way a specific identifier of the defect (backtick
+// code spans, or a camelCase title word) must be on an added non-key line of a candidate fixture file
+// and on no added line of a non-fixture file, so a defect in unchanged loader code that merely names a
+// fixture keeps its severity.
+export function capFixtureFindings(content, diff, contextPaths, prefixes, repoRoot = process.cwd()) {
   if (!prefixes || prefixes.length === 0) return { content, caps: [] };
   const text = String(content == null ? "" : content);
   const { sections } = splitFindings(text);
-  const { paths: diffPaths, addedTokens } = parseDiffFiles(diff);
+  const { paths: diffPaths, addedTokens, addedKeys } = parseDiffFiles(diff);
   const prPaths = [...new Set([...diffPaths, ...(contextPaths || [])])];
   const allFixturePr = prPaths.length > 0 && prPaths.every((p) => isFixturePath(p, prefixes));
   const realTokens = new Set();
@@ -1175,7 +1207,9 @@ export function capFixtureFindings(content, diff, contextPaths, prefixes) {
   const candidateTokens = (candidates) => {
     const out = new Set();
     for (const [file, tokens] of addedTokens) {
-      if (candidates.some((c) => samePath(c, file))) for (const t of tokens) out.add(t);
+      if (!candidates.some((c) => samePath(c, file))) continue;
+      const keys = addedKeys.get(file);
+      for (const t of tokens) if (!keys || !keys.has(t)) out.add(t);
     }
     return out;
   };
@@ -1185,6 +1219,7 @@ export function capFixtureFindings(content, diff, contextPaths, prefixes) {
   for (let idx = sections.length - 1; idx >= 0; idx--) {
     const s = sections[idx];
     if (!FIXTURE_CAP_SEVERITIES.has(s.severity)) continue;
+    if (namesRealCode(s.raw, prPaths, prefixes, repoRoot)) continue;
     const named = prPaths.filter((p) => pathNamedIn(s.raw, p));
     let candidates;
     if (named.length > 0) {
@@ -1196,7 +1231,7 @@ export function capFixtureFindings(content, diff, contextPaths, prefixes) {
       continue;
     }
     const onFixtureLines = candidateTokens(candidates);
-    const hasOrigin = [...codeSpanTokens(s.raw, s.title)].some((t) => onFixtureLines.has(t) && !realTokens.has(t));
+    const hasOrigin = [...originTokens(s.raw, s.title)].some((t) => onFixtureLines.has(t) && !realTokens.has(t));
     if (!hasOrigin) continue;
 
     caps.push({ title: s.title, from: s.severity, files: candidates });

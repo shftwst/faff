@@ -313,6 +313,53 @@ test("FAFF-1266 replay: the recorded critical on finding-identity-011.json leave
   assert.match(out, /### minor: Unrelated style note\nNothing to see in eval\/grader\.mjs\.$/);
 });
 
+const PROSE_FIXTURE = "eval/cases/shell-001.json";
+const proseFixtureDiff = fileDiff(PROSE_FIXTURE, [
+  "{\"_comment\": \"Shell injection: the command string reaches exec unescaped\",",
+  " \"diff\": \"diff --git a/src/db/users.js b/src/db/users.js\\n+exec(command)\",",
+  " \"spec_summary\": \"command injection via exec\"}",
+]);
+
+test("cap: a mixed PR critical naming an unchanged real file stays critical despite a prose fixture", () => {
+  const diff = proseFixtureDiff + fileDiff("README.md", ["Docs."], { status: "changed" });
+  const content = finding("critical", "Shell injection: loader passes fixture command string to exec", `\`${PROSE_FIXTURE}\` is run by eval/cli-driver.mjs.`);
+  assert.equal(capFixtureFindings(content, diff, [], ["eval/cases/"], root).content, content);
+});
+
+test("cap: a fixture-only PR critical against unchanged eval/grader.mjs stays critical on a generic code span", () => {
+  const content = finding("critical", "Grader trusts input", `\`diff\` is parsed unsafely by eval/grader.mjs for ${PROSE_FIXTURE}.`);
+  assert.equal(capFixtureFindings(content, proseFixtureDiff, [], ["eval/cases/"], root).content, content);
+});
+
+test("cap: plain title words against a prose fixture do not attribute the defect", () => {
+  const content = finding("critical", "Shell injection through command exec", `Names ${PROSE_FIXTURE}.`);
+  assert.equal(capFixtureFindings(content, proseFixtureDiff, [], ["eval/cases/"], root).content, content);
+});
+
+test("cap: a fixture's JSON key is not an identifier of the defect", () => {
+  const content = finding("critical", "Bad `spec_summary`", `Names ${PROSE_FIXTURE}.`);
+  assert.equal(capFixtureFindings(content, proseFixtureDiff, [], ["eval/cases/"], root).content, content);
+});
+
+test("cap: a path quoted from a fixture's embedded diff that exists nowhere does not block the cap", () => {
+  const content = finding("critical", "Bad `findUserByName`", `Names ${FIXTURE}, whose embedded diff touches src/db/users.js.`);
+  assert.equal(capFixtureFindings(content, fixtureDiff, [], ["test/fixtures/"], mkdtempSync(join(tmpdir(), "faff-empty-root-"))).caps.length, 1);
+});
+
+test("review-fixture-paths CLI: a non-list review.fixture_paths warns on stderr and resolves to no paths", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-fixture-paths-cli-"));
+  try {
+    git(dir, "init", "-q", "-b", "main");
+    writeFileSync(join(dir, ".faffrc.yaml"), "review:\n  fixture_paths: eval/cases/\n");
+    const r = runCli(dir);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, "");
+    assert.match(r.stderr, /review\.fixture_paths is not a list/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 function writeInputs(dir, diffText) {
   mkdirSync(dir, { recursive: true });
   const sys = join(dir, "sys.txt");

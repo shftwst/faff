@@ -229,9 +229,10 @@ if [ -n "$consumer" ]; then max_tokens=$("$faff" config get "adversarial.$consum
 trim=$("$faff" config get "adversarial.$consumer.trim")
 [ -z "$trim" ] && trim=true
 no_trim_flag=""; [ "$trim" = "false" ] && no_trim_flag="--no-trim"
-# Fixture paths come from the review BASE ref ($remote_base, the remote-tracking base the --diff file is
-# taken against, e.g. origin/main), never the PR worktree, so a diff cannot widen its own list. A failed resolve means an empty list: every critical stays.
-if fixture_paths=$("$faff" review-fixture-paths --ref "$remote_base"); then
+# Fixture paths come from the review BASE ref, never the PR worktree, so a diff cannot widen its own list.
+# $remote_base is the base the --diff file was captured against: graft forwards its $base, from
+# remote-diff-base.sh (fetched origin/<default>); standalone, use that same ref. A failed resolve means an empty list: every critical stays.
+if fixture_paths=$("$faff" review-fixture-paths --ref "${remote_base:-origin/HEAD}"); then
   fixture_args=$(printf '%s\n' "$fixture_paths" | sed '/^$/d; s/^/--fixture-path /')
 else
   fixture_paths=""; fixture_args=""

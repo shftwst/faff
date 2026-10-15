@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1279",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ca53481f501d6a70ceb64f0505dc83ba96653e7ce85bb68370801cbdebc0aac3",
+    "branch": "FAFF-1279-code-review-fixture-data",
+    "pushed_at": "2026-10-15T03:10:13.971Z"
+  },
+  "updated_at": "2026-10-15T03:10:13.971Z"
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs::origin check capped criticals naming unchanged real code in capfixturefindings",
+      "title": "origin check capped criticals naming unchanged real code in capFixtureFindings",
+      "location": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+      "action": "Keep the critical when the finding names a real-code path in the PR or on disk (namesRealCode).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 0c27bb80: namesRealCode blocks the cap and origin tokens come from code spans and camelCase title words only; covered by the mixed-PR and unchanged eval/grader.mjs tests.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "origin check capped criticals naming unchanged real code in capFixtureFindings",
+          "location": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faffter-dark-adversarial-review/SKILL.md::unbound remote_base in the fixture-path resolve step",
+      "title": "unbound remote_base in the fixture-path resolve step",
+      "location": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "action": "Define remote_base from graft's forwarded base and default it to origin/HEAD.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 0c27bb80: graft Step 9 forwards $base as $remote_base and the Backend call uses ${remote_base:-origin/HEAD}.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unbound remote_base in the fixture-path resolve step",
+          "location": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/review-fixture-paths.js::silent resolution of a non-list review.fixture_paths in cmdreviewfixturepaths",
+      "title": "silent resolution of a non-list review.fixture_paths in cmdReviewFixturePaths",
+      "location": "plugin/skills/faff/bin/lib/review-fixture-paths.js",
+      "action": "Warn on stderr when review.fixture_paths is present but not a list.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 0c27bb80: the CLI writes a not-a-list warning on stderr; covered by the non-list CLI test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "silent resolution of a non-list review.fixture_paths in cmdReviewFixturePaths",
+          "location": "plugin/skills/faff/bin/lib/review-fixture-paths.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs::namesrealcode treats a partial mention of a fixture pr path as real code",
+      "title": "namesRealCode treats a partial mention of a fixture PR path as real code",
+      "location": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+      "action": "Skip tokens that match a fixture prefix with or without a trailing slash, and count a PR-path suffix match as real code only when a matched PR path is non-fixture.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in ab802bc4 and verified in pass 3: `x-001.json`, `cases/x-001.json` and `eval/cases` all cap in a fixture-only PR; covered by the partial-path test (36/36).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "namesRealCode treats a partial mention of a fixture PR path as real code",
+          "location": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs::cwd-relative existence check in namesrealcode",
+      "title": "cwd-relative existence check in namesRealCode",
+      "location": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+      "action": "Optionally pass the repo root to capFixtureFindings from main() instead of relying on process.cwd().",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Run from outside the repo, an unchanged real path named only in prose no longer blocks the cap; behaviour then falls back to the spec's own procedure (step 4d plus the origin check), so no spec AC is violated. Non-blocking follow-up.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "cwd-relative existence check in namesRealCode",
+          "location": "plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

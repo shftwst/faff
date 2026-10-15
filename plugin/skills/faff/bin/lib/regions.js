@@ -380,6 +380,9 @@ const REGION_MAP = {
   // FAFF-341: review-iteration-cap requires config.js's VALID_APPETITES (factory identifier,
   // same family as eligible) → factory.
   "review-iteration-cap": "factory",
+  // review-fixture-paths reads config via loadConfig/dig (config.js, factory identifiers) — same
+  // family as review-iteration-cap/adversarial-backends → factory.
+  "review-fixture-paths": "factory",
   // FAFF-523: backends reads config via loadConfig (factory identifier, config.js) for its
   // resolve/realizable subcommands — same family as adversarial-backends/engine → factory.
   "backends": "factory",
@@ -579,6 +582,7 @@ const REGION_SELFTEST_ARGV = {
   "landing-comment": ["landing-comment", "--selftest"],
   "adversarial-backends": ["adversarial-backends", "--selftest"],
   "review-iteration-cap": ["review-iteration-cap", "--selftest"],
+  "review-fixture-paths": ["review-fixture-paths", "--selftest"],
   "backends": ["backends", "--selftest"],
   "spec-review-churn": ["spec-review-churn", "--selftest"],
   "spec-review": ["spec-review", "--selftest"],

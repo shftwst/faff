@@ -100,6 +100,7 @@ const { cmdMachineId } = require("./lib/machine-id");
 const { cmdManifest } = require("./lib/manifest");
 const { cmdRegions } = require("./lib/regions");
 const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
+const { cmdReviewFixturePaths } = require("./lib/review-fixture-paths");
 const { cmdReviewTarget } = require("./lib/review-target");
 const { cmdRunDone } = require("./lib/run-done");
 const { cmdRunLedger } = require("./lib/run-ledger");
@@ -269,6 +270,7 @@ const COMMANDS = {
   "cli-surface": (args) => cmdCliSurface(args, COMMANDS),
   "adversarial-backends": cmdAdversarialBackends,
   "review-iteration-cap": cmdReviewIterationCap,
+  "review-fixture-paths": cmdReviewFixturePaths,
   "spec-judge-evidence": cmdSpecJudgeEvidence,
   "spec-judge-accept-bar": cmdSpecJudgeAcceptBar,
   "build-review-churn": cmdBuildReviewChurn,

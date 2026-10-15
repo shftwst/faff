@@ -291,6 +291,19 @@ gates:
   exclude: []                  # per-repo opt-out: commands whose text contains any entry are never run
                                #   (case-sensitive substring; e.g. ["regions selftest"] until FAFF-561 clears)
 
+# Code review treats files under these directory prefixes as test data, not shipped code: a planted
+# defect inside fixture content is never a finding above `minor`, and the adversarial reviewer's
+# `critical` located only in these paths is capped to `minor` (never dropped). Prefixes match at a
+# path segment ("fixtures/" matches "test/fixtures/x.json", not "bridge-fixture.mjs"); no globs. Unset
+# means the generic defaults (fixtures/, __fixtures__/, testdata/); a list replaces them entirely and
+# [] turns the feature off. Never list a directory that holds runnable code (e.g. "eval/"). The
+# review reads this key from the review base ref's committed file, so a PR's own edit applies only to
+# later reviews. Inspect with `faff review-fixture-paths`.
+# review:
+#   fixture_paths:
+#     - eval/cases/
+#     - test/fixtures/
+
 # Repo-convention discovery (FAFF-1041) — faff learns a repo's stylistic conventions (branch
 # naming, commit-subject grammar, PR-title grammar) the same way it learns infra (`faff profile
 # mine`) and CI gates (`faff gates discover`): a deterministic, read-only pass over standards

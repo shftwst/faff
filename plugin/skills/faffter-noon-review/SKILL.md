@@ -72,6 +72,8 @@ Scan the diff for common defects:
 - Obvious null/undefined access without guards (where the spec doesn't say "assume non-null")
 - Resource opens without corresponding closes on error paths
 
+Planted defects in fixture content are test data, not bugs: apply gateway → **Fixture data in review** (`faff/references/review.md`) before raising one.
+
 Any finding here → `fail` (fixable, iterate)
 
 ### 3. Scope check
@@ -157,6 +159,7 @@ The defect bar (what counts as a bug / spec-fidelity / correctness finding) does
 - Never pass a diff that introduces a regression in existing tests.
 - Never pass a diff that adds dead code (code with no execution path from the feature).
 - The review is the diff vs the spec — not the diff vs "what I think good code looks like." If the spec says do X and the code does X correctly, it passes even if you'd have done it differently.
+- Fixture files are test data: gateway → **Fixture data in review** (`faff/references/review.md`) governs what may be raised against them.
 - Findings must be specific and actionable: file, line, what's wrong, what to do. "This might be a problem" is not a finding.
 - When in doubt between the fixable-issues verdict and the approving verdict, choose fixable-issues — iteration is cheap, shipping a bug is not.
 - When in doubt between the fixable-issues verdict and the human-judgement verdict, choose fixable-issues — only escalate when the code literally cannot proceed without a human decision.

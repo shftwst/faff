@@ -34,6 +34,16 @@ gates:
     exclude:
         - regions selftest
 
+review:
+    fixture_paths:
+        - eval/cases/
+        - eval/cases-live/
+        - eval/cases-pilot/
+        - eval/cases-seeded/
+        - eval/baselines/
+        - test/fixtures/
+        - testdata/
+
 budget:
     max_attempts: 40 # runaway backstop ONLY (won't bind the scoped bulk slice); NOT the terminator
     tokens: 3000000000 # 3B runaway backstop only; never binds a normal run (dryness + convergence.max_waves are the real exit)

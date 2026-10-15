@@ -265,6 +265,18 @@ function cmdRunLedger(args) {
   return 2;
 }
 
+// FAFF-1280: a refused mint removes the run dir it created, so nothing is left under .faff/runs/.
+// Non-recursive on purpose: a non-empty dir holds content that is not this mint's to delete.
+// Never throws, so the caller's exit code is unchanged.
+function discardUnmintedRunDir(runDir, command) {
+  try {
+    fs.rmdirSync(runDir);
+  } catch (e) {
+    if (e && e.code === "ENOENT") return;
+    process.stderr.write(`faff run-ledger ${command}: could not remove ${runDir} (${(e && e.code) || "unknown error"}); it holds no ledger\n`);
+  }
+}
+
 function initInteractive(values) {
   const issue = values["--issue"];
   if (!issue) {
@@ -327,9 +339,8 @@ function initInteractive(values) {
   const nowIso = new Date().toISOString();
   const runId = values["--id"] || `run-${utcStamp(nowIso)}-graft-${issue}`;
   const runDir = path.join(root, ".faff", "runs", runId);
-  // The run dir's basename IS the run_id — load-bearing for the genesis `prev` = SHA-256(run_id).
-  fs.mkdirSync(runDir, { recursive: true });
-
+  // Built before the dir exists, so nothing can throw between creating the dir and the
+  // guarded ledger write below.
   const ledger = buildInteractiveLedger({
     runId,
     issue,
@@ -338,20 +349,31 @@ function initInteractive(values) {
     pid: process.pid,
     baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
   });
+  // The run dir's basename IS the run_id — load-bearing for the genesis `prev` = SHA-256(run_id).
+  // A recursive mkdir returns a path iff it created the leaf (possibly with ancestors) and
+  // undefined iff the leaf already existed, so only a dir this call created is ever discarded.
+  const createdRunDir = fs.mkdirSync(runDir, { recursive: true }) !== undefined;
+
   // Route through the SAME locked core every ledger write uses (uniformity; a just-minted
   // dir cannot contend). The trivial mutate ignores the fresh read (initial creation).
   let mintWriteRes;
-  try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
-  catch (e) {
-    if (!isLedgerSchemaError(e)) throw e;
-    process.stderr.write(`faff run-ledger init-interactive: ${e.message} — no ledger minted\n`);
-    return 1;
-  }
-  // Fail-closed on a non-write (lock-budget exhaustion yields without throwing) — never report a
-  // successful mint over an absent ledger, which would build a level-less anchor merge-gate refuses.
-  if (!mintWriteRes.written) {
-    process.stderr.write(`faff run-ledger init-interactive: could not write ${path.join(runDir, "run-ledger.json")} (lock contention/abort) — no ledger minted\n`);
-    return 3;
+  let landed = false;
+  try {
+    try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
+    catch (e) {
+      if (!isLedgerSchemaError(e)) throw e;
+      process.stderr.write(`faff run-ledger init-interactive: ${e.message} — no ledger minted\n`);
+      return 1;
+    }
+    // Fail-closed on a non-write (lock-budget exhaustion yields without throwing) — never report a
+    // successful mint over an absent ledger, which would build a level-less anchor merge-gate refuses.
+    if (!mintWriteRes.written) {
+      process.stderr.write(`faff run-ledger init-interactive: could not write ${path.join(runDir, "run-ledger.json")} (lock contention/abort) — no ledger minted\n`);
+      return 3;
+    }
+    landed = true;
+  } finally {
+    if (createdRunDir && !landed) discardUnmintedRunDir(runDir, "init-interactive");
   }
 
   // Emit the genesis run-start onto the events chain via the shared FAFF-966 helper (never a
@@ -445,6 +467,16 @@ function initSelfDrain(values) {
   const runsParent = path.join(root, ".faff", "runs");
   const runDir = path.join(runsParent, runId);
 
+  // Built before the dir exists, so nothing can throw between creating the dir and the
+  // guarded ledger write below.
+  const ledger = buildSelfDrainLedger({
+    runId,
+    nowIso,
+    sessionId: process.env.FAFF_SESSION_ID || null,
+    pid: process.pid,
+    baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
+  });
+
   // Ensure the PARENT exists (idempotent, recursive — a fresh repo has no `.faff/runs/` yet),
   // then exclusive-create the LEAF (non-recursive — throws EEXIST iff the leaf is taken). The
   // run dir's basename IS the run_id (load-bearing for the genesis `prev` = SHA-256(run_id)).
@@ -463,13 +495,6 @@ function initSelfDrain(values) {
     throw e;
   }
 
-  const ledger = buildSelfDrainLedger({
-    runId,
-    nowIso,
-    sessionId: process.env.FAFF_SESSION_ID || null,
-    pid: process.pid,
-    baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
-  });
   // Unlike a non-throwing `written:false` (a null-mutate abort — never returned by the mutate
   // above — or an owner-epoch-fence yield, never armed here), lock-ACQUISITION exhaustion
   // THROWS a tagged LEDGER_LOCKED error (fs-lock.js) rather than returning. Catch it too — a
@@ -477,18 +502,25 @@ function initSelfDrain(values) {
   // on (never a mint over an absent ledger, and never an unhandled stack trace where the DoD
   // asks for a clean exit 3).
   let mintWriteRes;
-  try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
-  catch (e) {
-    if (isLedgerSchemaError(e)) {
-      process.stderr.write(`faff run-ledger init-self-drain: ${e.message} — no ledger minted\n`);
-      return 1;
+  let landed = false;
+  try {
+    try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
+    catch (e) {
+      if (isLedgerSchemaError(e)) {
+        process.stderr.write(`faff run-ledger init-self-drain: ${e.message} — no ledger minted\n`);
+        return 1;
+      }
+      process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")}${e && e.code === "LEDGER_LOCKED" ? " (lock contention/abort)" : `: ${e && e.message}`} — no ledger minted\n`);
+      return 3;
     }
-    process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")}${e && e.code === "LEDGER_LOCKED" ? " (lock contention/abort)" : `: ${e && e.message}`} — no ledger minted\n`);
-    return 3;
-  }
-  if (!mintWriteRes.written) {
-    process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")} (lock contention/abort) — no ledger minted\n`);
-    return 3;
+    if (!mintWriteRes.written) {
+      process.stderr.write(`faff run-ledger init-self-drain: could not write ${path.join(runDir, "run-ledger.json")} (lock contention/abort) — no ledger minted\n`);
+      return 3;
+    }
+    landed = true;
+  } finally {
+    // The exclusive mkdir above guarantees this call created the dir.
+    if (!landed) discardUnmintedRunDir(runDir, "init-self-drain");
   }
 
   // The ledger write above and this genesis emit are TWO locked operations, not one critical
@@ -780,5 +812,6 @@ module.exports = {
   guardCandidateDir,
   resolveMintBaseSha,
   cmdRunLedger,
+  discardUnmintedRunDir,
   runLedgerSelftest,
 };

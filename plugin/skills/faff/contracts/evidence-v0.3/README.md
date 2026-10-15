@@ -6,7 +6,8 @@ the writers produce today, plus the version stamp (`schema_version`) that later 
 FAFF-1255 start writing.
 
 **Status: draft.** Slices 2 to 5 of FAFF-1255 add per-type payload schemas and narrow the
-run-state keys in place. v0.3 freezes when FAFF-1261 (enforcement) lands. Nothing refuses
+run-state keys in place. FAFF-1287 extended `ac-checklist` in place with the optional `ac_id`
+and `verifications` keys. v0.3 freezes when FAFF-1261 (enforcement) lands. Nothing refuses
 on v0.3 until then.
 
 Nothing in this version changes a gate. `faff evidence validate <anchor-dir>` reads an

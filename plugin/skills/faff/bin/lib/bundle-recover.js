@@ -36,7 +36,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const { findRoot, readLedger, isSafeAnchorRelPath } = require("./shared-infra");
-const { isValidIssueId } = require("./heartbeat");
+const { atomicWriteSingleValueFile, isValidIssueId, withLedgerLock } = require("./heartbeat");
 const { verifyBundleIdentity, resolveBundleStore, resolveBundleStoreName } = require("./bundle");
 const { classifyReEnterable, reconstructResumePlan } = require("./resume");
 const { gatherResumeEvidence } = require("./lights-out");
@@ -145,7 +145,8 @@ function upgradeRestored(runDir, issueDir) {
   if (ledger && typeof ledger === "object" && !("schema_version" in ledger)) {
     try {
       const { mutateLedgerUnderLock } = require("./heartbeat");
-      mutateLedgerUnderLock(runDir, (fresh) => fresh);
+      // a concurrent recovery may have stamped it since the read above: then there is nothing to write
+      mutateLedgerUnderLock(runDir, (fresh) => (fresh && "schema_version" in fresh ? null : fresh));
     } catch (e) { warn("legacy ledger snapshot not upgraded", e); }
   } else if (ledger && typeof ledger === "object") {
     const r = evidence.validateEvidenceDocument("run-ledger.json", ledger);
@@ -345,17 +346,9 @@ function firstNestedEventsKey(files) {
   return keys.length ? keys[0] : null;
 }
 
-function reconstructProjection(targetRoot, identity, memberBytes) {
-  const runId = identity.run_id;
-  const boundaryKey = identity.boundary_key;
-  const runDir = path.join(targetRoot, ".faff", "runs", runId);
-  // FAFF-876 — run-close resolves the run-anchor ROOT directly (no boundaryKey subdir),
-  // mirroring bundle.js's readAnchorDir; every other boundary_kind keeps today's
-  // <runId>/<boundaryKey>/ resolution, unchanged.
-  const anchorDir = identity.boundary_kind === "run-close"
-    ? path.join(targetRoot, ".faff", "anchors", runId)
-    : path.join(targetRoot, ".faff", "anchors", runId, boundaryKey);
-
+// PURE — validate the anchors member before any disk write: valid JSON, an events.jsonl key, and
+// only contained rel-paths. Throws on any failure, so a refusal never leaves a partial write.
+function validateProjection(identity, memberBytes) {
   let anchors;
   try { anchors = JSON.parse(memberBytes.anchors.toString("utf8")); }
   catch (e) { throw new Error(`anchors member is not valid JSON after a CLEAN verdict: ${e.message}`); }
@@ -368,22 +361,42 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
     // events.jsonl — reaching here is an internal fault, not a normal branch.
     throw new Error("a CLEAN bundle's anchor carries no events.jsonl — internal fault");
   }
-  // Validate EVERY rel-path before writing ANY file — a bad key partway through the map must
-  // never leave a half-written anchor dir alongside an already-escaped write.
   for (const rel of Object.keys(files)) {
     if (!isSafeAnchorRelPath(rel)) {
       throw new Error(`anchors member carries an unsafe path "${rel}" (absolute or '..'-escaping) — refusing to write outside the anchor directory`);
     }
   }
+  return { files, eventsKey };
+}
 
-  fs.mkdirSync(runDir, { recursive: true });
-  fs.writeFileSync(path.join(runDir, "run-ledger.json"), memberBytes.ledger_snapshot);
+// `written` (optional) collects every file this call writes and every directory it creates, so a
+// failed restore can remove exactly those and nothing that was already there (removeWritten).
+function reconstructProjection(targetRoot, identity, memberBytes, written = { files: [], dirs: [] }) {
+  const { files, eventsKey } = validateProjection(identity, memberBytes);
+  const runId = identity.run_id;
+  const boundaryKey = identity.boundary_key;
+  const runDir = path.join(targetRoot, ".faff", "runs", runId);
+  // FAFF-876 — run-close resolves the run-anchor ROOT directly (no boundaryKey subdir),
+  // mirroring bundle.js's readAnchorDir; every other boundary_kind keeps today's
+  // <runId>/<boundaryKey>/ resolution, unchanged.
+  const anchorDir = identity.boundary_kind === "run-close"
+    ? path.join(targetRoot, ".faff", "anchors", runId)
+    : path.join(targetRoot, ".faff", "anchors", runId, boundaryKey);
+  const mkdir = (dir) => {
+    const first = fs.mkdirSync(dir, { recursive: true });
+    if (first) written.dirs.push({ first, last: dir });
+  };
+  const target = (file) => { written.files.push(file); return file; };
+
+  mkdir(runDir);
+  // atomic publish of the same bytes: ledger readers do not take the lock, so they must never see a torn file
+  atomicWriteSingleValueFile(target(path.join(runDir, "run-ledger.json")), memberBytes.ledger_snapshot);
   for (const [rel, b64] of Object.entries(files)) {
     const dest = path.join(anchorDir, rel);
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, Buffer.from(b64, "base64"));
+    mkdir(path.dirname(dest));
+    fs.writeFileSync(target(dest), Buffer.from(b64, "base64"));
   }
-  fs.copyFileSync(path.join(anchorDir, eventsKey), path.join(runDir, "events.jsonl"));
+  fs.copyFileSync(path.join(anchorDir, eventsKey), target(path.join(runDir, "events.jsonl")));
 
   // FAFF-845 (Option A, owned here) — additive: when the restored anchor carries a
   // landing-progress.json (rides in via events.js's optionalFloorFiles, FAFF-846), copy it up
@@ -395,12 +408,64 @@ function reconstructProjection(targetRoot, identity, memberBytes) {
   const landingSrc = path.join(anchorDir, "landing-progress.json");
   if (fs.existsSync(landingSrc)) {
     const issueDir = path.join(runDir, boundaryKey);
-    fs.mkdirSync(issueDir, { recursive: true });
-    fs.copyFileSync(landingSrc, path.join(issueDir, "landing-progress.json"));
+    mkdir(issueDir);
+    fs.copyFileSync(landingSrc, target(path.join(issueDir, "landing-progress.json")));
   }
-
-  upgradeRestored(runDir, path.join(runDir, boundaryKey));
   return { runDir, anchorDir };
+}
+
+// Best-effort undo of a failed reconstructProjection: delete the files it wrote, ledger first so a partial
+// cleanup still reads as `absent` next time, then each directory it created, deepest first, only while
+// empty. Never recursive, so pre-existing files and the held lock survive.
+function removeWritten(written) {
+  for (const file of written.files) {
+    try { fs.rmSync(file, { force: true }); } catch { /* best-effort cleanup */ }
+  }
+  for (const { first, last } of [...written.dirs].reverse()) {
+    const top = path.resolve(first);
+    for (let dir = path.resolve(last); dir.startsWith(top); dir = path.dirname(dir)) {
+      try { fs.rmdirSync(dir); } catch { break; }
+      if (dir === top) break;
+    }
+  }
+}
+
+// FAFF-1281 — the restore section: the existence read, the write-once decision and, on `absent`, every
+// restore write happen under the run-ledger lock, so two recoveries of one run cannot both restore.
+// The legacy upgrade runs after release (the lock is not re-entrant). Returns
+// { decision: absent|match|conflict|locked|failed, createdRunDir, existingStamped?, error? }.
+function restoreUnderLedgerLock(root, runDir, identity, memberBytes) {
+  let createdRunDir = false;
+  const attempt = () => {
+    try { createdRunDir = Boolean(fs.mkdirSync(runDir, { recursive: true })) || createdRunDir; }
+    catch (error) { return { decision: "failed", error }; }
+    return withLedgerLock(runDir, () => {
+      let existing = null;
+      try { existing = fs.readFileSync(path.join(runDir, "run-ledger.json")); }
+      catch (e) { if (!e || e.code !== "ENOENT") throw e; }
+      const decision = idempotencyDecision(existing, memberBytes.ledger_snapshot);
+      if (decision === "absent") {
+        const written = { files: [], dirs: [] };
+        try { reconstructProjection(root, identity, memberBytes, written); }
+        catch (error) { removeWritten(written); return { decision: "failed", error }; }
+      }
+      return { decision, existingStamped: existing !== null && hasSchemaVersion(existing) };
+    });
+  };
+  const lockFailure = (e) => {
+    if (e && e.code === "LEDGER_LOCKED") return { decision: "locked" };
+    if (e && e.code === "ENOENT") return { decision: "failed", error: e };
+    throw e;
+  };
+  // An ENOENT on acquire means a concurrent failed recovery removed the empty run dir between our
+  // mkdir and our lock: retry mkdir-then-lock once, with a fresh lock budget.
+  const section = (() => {
+    try { return attempt(); }
+    catch (e) { if (!e || e.code !== "ENOENT") return lockFailure(e); }
+    try { return attempt(); }
+    catch (e) { return lockFailure(e); }
+  })();
+  return { ...section, createdRunDir };
 }
 
 // ---------------------------------------------------------------------------
@@ -540,46 +605,37 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
   const memberBytes = fetchCleanMemberBytes(resolvedStore, identity, ["ledger_snapshot", "anchors"]);
 
   const realRunDir = path.join(resolvedRoot, ".faff", "runs", identity.run_id);
-  const realLedgerPath = path.join(realRunDir, "run-ledger.json");
-  const existingLedgerBytes = fs.existsSync(realLedgerPath) ? fs.readFileSync(realLedgerPath) : null;
-  const decision = idempotencyDecision(existingLedgerBytes, memberBytes.ledger_snapshot);
+  const refuse = (reason) => refusedDisposition({
+    bundle_verdict: "CLEAN", bundle_identity: identity, run_id: identity.run_id, boundary_kind: identity.boundary_kind,
+    reason, candidates_considered: rawCandidates.length,
+  });
+  const conflictReason = `a different run-ledger.json already exists at ${realRunDir} (write-once — never overwritten)`;
+  const issueDirOf = (runDir) => path.join(runDir, identity.boundary_key);
+  const noop = () => ({
+    verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: identity,
+    run_id: identity.run_id, run_dir: realRunDir, boundary_kind: identity.boundary_kind,
+    reason: "the reconstructed run directory already exists with a byte-identical ledger — nothing to do",
+    resume_preview: previewResume(realRunDir, resolvedRoot, identity.boundary_key).plan,
+    candidates_considered: rawCandidates.length,
+  });
 
-  if (decision === "conflict") {
-    return refusedDisposition({
-      bundle_verdict: "CLEAN", bundle_identity: identity, run_id: identity.run_id, boundary_kind: identity.boundary_kind,
-      reason: `a different run-ledger.json already exists at ${realRunDir} (write-once — never overwritten)`,
-      candidates_considered: rawCandidates.length,
-    });
-  }
-
-  if (decision === "match") {
-    // a first recovery whose upgrade failed leaves the unstamped snapshot bytes in place; finish it now
-    if (!dryRun && !hasSchemaVersion(existingLedgerBytes)) upgradeRestored(realRunDir, path.join(realRunDir, identity.boundary_key));
-    const preview = previewResume(realRunDir, resolvedRoot, identity.boundary_key);
-    return {
-      verb: "bundle-recover", disposition: "noop-already-present", bundle_verdict: "CLEAN", bundle_identity: identity,
-      run_id: identity.run_id, run_dir: realRunDir, boundary_kind: identity.boundary_kind,
-      reason: "the reconstructed run directory already exists with a byte-identical ledger — nothing to do",
-      resume_preview: preview.plan, candidates_considered: rawCandidates.length,
-    };
-  }
-
-  // decision === "absent"
   if (dryRun) {
+    // Read-only against the real root, so no lock: the real ledger is read, never written.
+    const realLedgerPath = path.join(realRunDir, "run-ledger.json");
+    const existingLedgerBytes = fs.existsSync(realLedgerPath) ? fs.readFileSync(realLedgerPath) : null;
+    const decision = idempotencyDecision(existingLedgerBytes, memberBytes.ledger_snapshot);
+    if (decision === "conflict") return refuse(conflictReason);
+    if (decision === "match") return noop();
     const scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-bundle-recover-dry-"));
     try {
       let scratchRunDir;
       try {
         ({ runDir: scratchRunDir } = reconstructProjection(scratchRoot, identity, memberBytes));
+        upgradeRestored(scratchRunDir, issueDirOf(scratchRunDir));
       } catch (e) {
-        // Same "refuse rather than half-write" posture as the real path below — the scratch
-        // dir is discarded either way (the finally), so there is nothing to clean up on disk;
-        // the failure still needs to surface as a founded refusal, not an uncaught throw.
-        return refusedDisposition({
-          bundle_verdict: "CLEAN", bundle_identity: identity, run_id: identity.run_id, boundary_kind: identity.boundary_kind,
-          reason: `reconstruction failed: ${e.message}`,
-          candidates_considered: rawCandidates.length,
-        });
+        // The scratch dir is discarded either way (the finally); the failure still surfaces as a
+        // founded refusal, not an uncaught throw.
+        return refuse(`reconstruction failed: ${e.message}`);
       }
       const preview = previewResume(scratchRunDir, scratchRoot, identity.boundary_key);
       return {
@@ -593,23 +649,31 @@ function bundleRecover({ issue, runId, root, dryRun, store, storeName }) {
     }
   }
 
-  let projected;
-  try {
-    projected = reconstructProjection(resolvedRoot, identity, memberBytes);
-  } catch (e) {
-    // Refuse rather than leave a half-written directory (spec §4 edge cases).
-    try { fs.rmSync(realRunDir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
-    try { fs.rmSync(path.join(resolvedRoot, ".faff", "anchors", identity.run_id, identity.boundary_key), { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
-    return refusedDisposition({
-      bundle_verdict: "CLEAN", bundle_identity: identity, run_id: identity.run_id, boundary_kind: identity.boundary_kind,
-      reason: `reconstruction failed: ${e.message}`,
-      candidates_considered: rawCandidates.length,
-    });
+  // Validate before creating anything, so a malformed anchors member leaves the real root untouched.
+  try { validateProjection(identity, memberBytes); }
+  catch (e) { return refuse(`reconstruction failed: ${e.message}`); }
+
+  const section = restoreUnderLedgerLock(resolvedRoot, realRunDir, identity, memberBytes);
+  if (section.createdRunDir && (section.decision === "locked" || section.decision === "failed")) {
+    // Refuse rather than leave a half-written directory; only a run dir this call created, and only when empty.
+    try { fs.rmdirSync(realRunDir); } catch { /* not empty, or already gone */ }
   }
-  const preview = previewResume(projected.runDir, resolvedRoot, identity.boundary_key);
+  if (section.decision === "conflict") return refuse(conflictReason);
+  if (section.decision === "locked") {
+    return refuse(`the run-ledger lock at ${realRunDir} is held by another writer; nothing restored`);
+  }
+  if (section.decision === "failed") return refuse(`reconstruction failed: ${section.error.message}`);
+  if (section.decision === "match") {
+    // a first recovery whose upgrade failed leaves the unstamped snapshot bytes in place; finish it now
+    if (!section.existingStamped) upgradeRestored(realRunDir, issueDirOf(realRunDir));
+    return noop();
+  }
+
+  upgradeRestored(realRunDir, issueDirOf(realRunDir));
+  const preview = previewResume(realRunDir, resolvedRoot, identity.boundary_key);
   return {
     verb: "bundle-recover", disposition: "reconstructed", bundle_verdict: "CLEAN", bundle_identity: identity,
-    run_id: identity.run_id, run_dir: projected.runDir, boundary_kind: identity.boundary_kind,
+    run_id: identity.run_id, run_dir: realRunDir, boundary_kind: identity.boundary_kind,
     reason: "reconstructed from a CLEAN Phase 0 recovery bundle",
     resume_preview: preview.plan, candidates_considered: rawCandidates.length,
   };

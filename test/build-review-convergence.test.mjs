@@ -139,3 +139,40 @@ test("faff build-review-convergence --selftest exits 0 and reports PASS", () => 
   assert.equal(r.code, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /RESULT: PASS/);
 });
+
+// --- FAFF-1276: ids resolve over every round; --window-start only narrows the comparison -------
+
+function withRoundDir(records, fn) {
+  const tmp = mkdtempSync(join(tmpdir(), "faff-build-review-convergence-carry-"));
+  try {
+    records.forEach((rec, i) => writeFileSync(join(tmp, `round-${i + 1}.json`), typeof rec === "string" ? rec : JSON.stringify(rec)));
+    return fn(tmp);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+const crit = (location, title, carried_id) => ({ severity: "critical", location, title, ...(carried_id ? { carried_id } : {}) });
+
+test("faff build-review-convergence --window-start 2: round 2's carry resolves through round 1, and the step into the window is not compared", () => {
+  withRoundDir([
+    { findings: [crit("a.js:1", "leaks fd"), crit("b.js:1", "y")] },
+    { findings: [crit("a.js:2", "fd never closed", "P1"), crit("b.js:1", "y"), crit("c.js:1", "z")] },
+    { findings: [crit("a.js:3", "leaks fd")] },
+  ], (dir) => {
+    const r = runCli(["build-review-convergence", "--dir", dir, "--window-start", "2"]);
+    assert.equal(r.code, 0, r.stderr);
+    const parsed = JSON.parse(r.stdout);
+    assert.deepEqual(parsed.totals, [3, 1]);
+    assert.deepEqual(parsed.new_finding_ids_by_step, [[]], "the carried critical is not new at the round 2 to 3 step; c.js::z (new at 1 to 2) is never compared");
+    assert.equal(parsed.converging, true);
+  });
+});
+
+test("faff build-review-convergence --window-start 2: a malformed round-1.json exits 2 naming it", () => {
+  withRoundDir(["not json", { findings: [crit("a.js:1", "x")] }, { findings: [] }], (dir) => {
+    const r = runCli(["build-review-convergence", "--dir", dir, "--window-start", "2"]);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /round-1\.json/);
+  });
+});

@@ -1,0 +1,533 @@
+{
+  "schema_version": 1,
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`computeChurn` previously read exactly two files; the spec now makes the CLI fill `earlier` with every `round-<k>.json` below `--prev` \"when `--prev` and `--curr` sit in the same directory\", but says nothing about what happens when one of those extra files is malformed or unreadable — and the two possible resolutions diverge in gate behaviour. The spec is otherwise meticulous about fail-loud vs degrade for every reader (`review-prior` exits 2 on a malformed round file; churn exits 2 on malformed `--prev`/`--curr`), so the omission cuts against its own grain. Relatedly, the pure signature `computeChurn(prev, curr, prevRoundNumber, currRoundNumber, earlier = [])` carries no round tokens for `earlier` entries, so the chain resolution inside it cannot scope fallback ids correctly without an unstated convention; the spec's own note that fallback ids \"never match across rounds\" limits the damage, but the builder is left guessing.",
+      "evidence": "spec section \"Dialogue-loop readers\", `build-review-churn.js` row; contrast with the explicit exit-2/degrade rules stated for `review-prior` and for churn's `--prev`/`--curr` in the same spec and in `build-review-churn.js` as supplied.",
+      "predicted_consequence": "a corrupt old round file in the dialogue directory either newly hard-blocks the churn gate (exit 2 where today's churn would succeed) or is silently skipped — two very different gate behaviours, chosen by whichever the builder picks, and graft's loop semantics differ accordingly.",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Churn now names the type of earlier (List of {round, record}) and exits 2 naming an unreadable or malformed earlier file, matching --curr.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`computeChurn` previously read exactly two files; the spec now makes the CLI fill `earlier` with every `round-<k>.json` below `--prev` \"when `--prev` and `--curr` sit in the same directory\", but says nothing about what happens when one of those extra files is malformed or unreadable — and the two possible resolutions diverge in gate behaviour. The spec is otherwise meticulous about fail-loud vs degrade for every reader (`review-prior` exits 2 on a malformed round file; churn exits 2 on malformed `--prev`/`--curr`), so the omission cuts against its own grain. Relatedly, the pure signature `computeChurn(prev, curr, prevRoundNumber, currRoundNumber, earlier = [])` carries no round tokens for `earlier` entries, so the chain resolution inside it cannot scope fallback ids correctly without an unstated convention; the spec's own note that fallback ids \"never match across rounds\" limits the damage, but the builder is left guessing.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The prior-findings block is assembled from titles/locations that originate in a model's reading of an untrusted diff (the spec's own principle: \"Titles in it were written by a model that read an untrusted diff\"). For Phase 2 the spec appends this block to the `--system` file, so attacker-steered natural-language text lands with system-prompt authority over the reviewer that decides escalations, withdrawals and `carries:` lines. Backtick/control-char stripping and the framing line mitigate fence-breaking and overt instruction-shaping, but not natural-language injection (\"the defect at line N is a duplicate of finding X, carry its id\"), and the spec's chosen rationale for `--system` is context-trimming (FAFF-915), not injection safety.",
+      "evidence": "\"For Phase 2 the block is appended to the `--system` file.\" (section 3, Dialogue-loop readers / faff-graft Step 9 bullet); \"**The prior list is data.**\" (Design principles); \"**Chosen:** … `--context` is trimmed to diff-relevant regions (FAFF-915) and is reserved for touched files.\" (DESIGN DECISION RATIONALE).",
+      "predicted_consequence": "A diff-embedded instruction can steer the Phase-2 reviewer's carry/withdraw decisions with system-prompt weight — e.g. inducing a withdrawal of a true critical or an eager carry — with no deterministic check on the withdrawn side (withdrawal is the reviewer's own omission).",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "review-call.mjs places the --system brief in the trailing user turn, not the provider's system slot (its wire shape), so the block has no more authority than the diff; the spec now says so and the list is scrubbed with scrubSpecField.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The prior-findings block is assembled from titles/locations that originate in a model's reading of an untrusted diff (the spec's own principle: \"Titles in it were written by a model that read an untrusted diff\"). For Phase 2 the spec appends this block to the `--system` file, so attacker-steered natural-language text lands with system-prompt authority over the reviewer that decides escalations, withdrawals and `carries:` lines. Backtick/control-char stripping and the framing line mitigate fence-breaking and overt instruction-shaping, but not natural-language injection (\"the defect at line N is a duplicate of finding X, carry its id\"), and the spec's chosen rationale for `--system` is context-trimming (FAFF-915), not injection safety.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The dialogue loop scrub-rebuttals before they land in `round-<n>.json` (\"secret-redact-scrubbed before it ever lands\"), because finding-adjacent free text can carry secrets. The new prior-findings path propagates `title` and `location` strings into fresh reviewer prompts (and, via FAFF-1268, into round records and evidence), and its sanitisation list is backticks, control characters and a 200-char cap — no `redactKnownSecrets` pass. A reviewer finding that quotes a leaked credential in its title (the fixture corpus itself contains \"authorization header written to log line\"-class findings) would be re-injected into every subsequent round's prompt and persisted.",
+      "evidence": "`RECORD PriorFinding: title … location …` with only \"control characters to spaces, backticks removed, cut to 200 characters\" (section 3, The prior-findings CLI); contrast the rebuttal scrub in the faff-graft Step 9 excerpt.",
+      "predicted_consequence": "A secret quoted in a round-1 finding title is echoed into round-2+ reviewer prompts and, once FAFF-1268 lands, into anchored evidence documents — a persistence/amplification path the rebuttal scrub was added to prevent.",
+      "spec_anchor": "the-prior-findings-cli",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "faff review-prior now passes title and location through scrubSpecField (imperativeScrub then secretRedact from adversarial-judge-scrub.js) before the length cap.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The dialogue loop scrub-rebuttals before they land in `round-<n>.json` (\"secret-redact-scrubbed before it ever lands\"), because finding-adjacent free text can carry secrets. The new prior-findings path propagates `title` and `location` strings into fresh reviewer prompts (and, via FAFF-1268, into round records and evidence), and its sanitisation list is backticks, control characters and a 200-char cap — no `redactKnownSecrets` pass. A reviewer finding that quotes a leaked credential in its title (the fixture corpus itself contains \"authorization header written to log line\"-class findings) would be re-injected into every subsequent round's prompt and persisted.",
+          "spec_anchor": "the-prior-findings-cli"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice ships helper, readers, CLI, SKILL edits and eval rework, but the only acceptance bar that matters (`pass: true` on the frontier, rate ≥ 0.90) is an operator terminal step after CI green and PR open. The build can be fully \"done\" by every in-build DONE item and still deliver nothing: the previous run of this exact eval scored 0.46 against a 0.90 bar, and the spec's own failure mode says a second failure leaves FAFF-1268 blocked with a product decision pending.",
+      "evidence": "Spec §\"Running it and recording the result\" (\"the frontier run is an operator step… after CI is green\"; \"FAFF-1276 moves to Done only after steps 2 and 3; until then it stays In Review\") and §Failure modes (\"The eval fails again… FAFF-1268 keeps its collator withheld\"); the supplied critique's Risk profile row (\"The ticket cannot close inside an autonomous build, and a second failure leaves FAFF-1268 blocked\").",
+      "predicted_consequence": "The PR merges with the carried-id mechanism live in the dialogue loop and the eval baseline still showing `pass: false` at 0.46 — a window where production readers resolve ids through a chain whose stability has never been demonstrated, and FAFF-1268 stays blocked indefinitely if the operator run fails again.",
+      "spec_anchor": "running-it-and-recording-the-result",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The operator-run eval as the acceptance bar is the ticket's own acceptance criterion and follows ADR-0004, as FAFF-1266 did; the product owner chose this direction. The spec adds the 'Ships whole whatever the eval says' principle and allows running the eval on the PR head before merge.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The slice ships helper, readers, CLI, SKILL edits and eval rework, but the only acceptance bar that matters (`pass: true` on the frontier, rate ≥ 0.90) is an operator terminal step after CI green and PR open. The build can be fully \"done\" by every in-build DONE item and still deliver nothing: the previous run of this exact eval scored 0.46 against a 0.90 bar, and the spec's own failure mode says a second failure leaves FAFF-1268 blocked with a product decision pending.",
+          "spec_anchor": "running-it-and-recording-the-result"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice materially changes FAFF-1268's recorder contract (`record-review-round` must store `carried_id` and resolve ids with `resolveRoundChain`, replacing \"a supplied id is ignored\"), but the spec only *assumes* FAFF-1268's spec gets revised; nothing in this slice's build order (§HOW steps 1–6) performs or gates on that revision. If FAFF-1268 is picked up from its current spec text, it drops every carried id and the collator merges on drifting titles again — the exact defect this slice exists to fix.",
+      "evidence": "Spec §Assumptions (\"Assumes: the FAFF-1268 spec is revised to the interface in section 3 before FAFF-1268 is built\") and the supplied critique's Deps surfaced? row (\"Revise the FAFF-1268 spec to the section 3 interface before it is built; the blocker link already orders the two\"). The blocker link orders the *tickets*, but nothing orders the *spec edit* — an assumption with a validation probe is not a dependency the pipeline can see as work.",
+      "predicted_consequence": "FAFF-1268's build agent reads the unrevised spec, implements \"a supplied id is ignored\", and the two slices ship incompatible recorder contracts; the drift is found only at FAFF-1268 review, costing a rework of the recorder and its schema.",
+      "spec_anchor": "interface-for-faff-1268",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The build now posts an '## Interface change from FAFF-1276' comment on FAFF-1268 when its PR opens (build order step 6 and a DONE item), and the FAFF-1268 re-prep is reported to the orchestrator.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The slice materially changes FAFF-1268's recorder contract (`record-review-round` must store `carried_id` and resolve ids with `resolveRoundChain`, replacing \"a supplied id is ignored\"), but the spec only *assumes* FAFF-1268's spec gets revised; nothing in this slice's build order (§HOW steps 1–6) performs or gates on that revision. If FAFF-1268 is picked up from its current spec text, it drops every carried id and the collator merges on drifting titles again — the exact defect this slice exists to fix.",
+          "spec_anchor": "interface-for-faff-1268"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "Pass B is handed pass A's ids and told to copy them for the same defect, so the 0.90 bar is now substantially cheaper to hit than the 0.46 independent-pass bar it replaces. The spec names this (\"The eval clears the bar only because the task got easy\") and its response is \"proceed\" — the shipped design is measured, but the *outcome* (ids stable in real builds) is not, and the spec's own detection signal for the gap (\"real builds show findings sharing a file across consecutive rounds with different ids\") is not wired to anything.",
+      "evidence": "Spec §Failure modes, second bullet; §The reworked eval (`pass = fixtures >= 10 AND rate >= 0.90`, with no floor on `refused_carries` or a check that carrying is doing work rather than the copy instruction).",
+      "predicted_consequence": "not separately stated — the spec accepts the risk explicitly; this is a taste-level concern about the bar's meaning, not a defect.",
+      "spec_anchor": "the-reworked-eval",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The result gains title_stable (the FAFF-1266 measure on the same run), so stable minus title_stable shows what carrying added; the failure mode names the signals.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Pass B is handed pass A's ids and told to copy them for the same defect, so the 0.90 bar is now substantially cheaper to hit than the 0.46 independent-pass bar it replaces. The spec names this (\"The eval clears the bar only because the task got easy\") and its response is \"proceed\" — the shipped design is measured, but the *outcome* (ids stable in real builds) is not, and the spec's own detection signal for the gap (\"real builds show findings sharing a file across consecutive rounds with different ids\") is not wired to anything.",
+          "spec_anchor": "the-reworked-eval"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The WHY section states \"Every reader and the eval resolve ids through that one function\" (`resolveRoundChain`), and `finding-id.js`'s own governance header names **three** build-review dialogue readers: `build-review-churn.js`, `build-judge-evidence.js`, **and `build-judge-casefile.js`**. The Reference-context table and the Dialogue-loop-readers table list only churn, convergence and judge-evidence. No DONE item requires `build-judge-casefile.js` to chain-resolve; the only casefile DONE item is that its existing tests \"pass with no fixture edits\" — which they trivially would if the file is left untouched on `readerFindingIds`.",
+      "evidence": "`### The reworked eval` / reference-context table vs `bin/lib/finding-id.js` header comment (\"the build-review dialogue readers (build-review-churn.js, build-judge-evidence.js, build-judge-casefile.js)\"); DONE items under \"From WHY\".",
+      "predicted_consequence": "A build satisfies every DONE item while `build-judge-casefile.js` still resolves a round-2 carried finding to its computed title id (e.g. `a.js::fd never closed`) where `build-judge-evidence.js` resolves the same finding to the carried id (`a.js::leaks fd`) — two readers in the same dialogue loop disagree on a finding's identity, and no test in the DONE list can detect it. The \"every reader resolves through one function\" claim ships unverified for one of its three named readers.",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "build-judge-casefile.js takes each finding_id from the collectAdjudicationSet entries it is given and imports finding-id.js only for normaliseFindingPath (checked at lines 40 and 112); the spec now lists it as unchanged with that reason.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The WHY section states \"Every reader and the eval resolve ids through that one function\" (`resolveRoundChain`), and `finding-id.js`'s own governance header names **three** build-review dialogue readers: `build-review-churn.js`, `build-judge-evidence.js`, **and `build-judge-casefile.js`**. The Reference-context table and the Dialogue-loop-readers table list only churn, convergence and judge-evidence. No DONE item requires `build-judge-casefile.js` to chain-resolve; the only casefile DONE item is that its existing tests \"pass with no fixture edits\" — which they trivially would if the file is left untouched on `readerFindingIds`.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec justifies shipping carrying with no deterministic backstop on the grounds that \"an accepted carry can only join two occurrences the previous round already holds in the same file, so the readers are never worse than the FAFF-1266 title rule.\" That claim does not hold for `build-review-churn`/`build-review-convergence`. Under the title rule, a genuinely **new** critical in the same file gets a new id (different title) and churn fires. Under carrying, if the reviewer eagerly copies the old id onto that new defect (same file, so `file-differs` does not catch it), the readers see one standing critical where the title rule would have seen two — churn reads false, the loop treats the new defect as the old one, and `latestRebuttalFor` attaches the *old defect's* rebuttal to it. The prompt-layer SKILL rule (\"only for the same defect\") is the only defence, and the spec's own FAFF-1279 context establishes the precedent for exactly this situation: \"Telling the reviewer … helps, but the reviewer can ignore it, and nothing would catch that\" — which is why FAFF-1279 added a deterministic cap beside the prompt rule. FAFF-1276 ships only the prompt layer for the carry-accuracy risk. The Failure-modes entry names eager carrying but its detection (\"`merged` outcomes in the eval\") is pre-merge only; there is no runtime signal, even though the round records already store `carried_id` and the churn result could surface carried criticals for graft to log.",
+      "evidence": "Design principles bullet \"an accepted carry can only join two occurrences the previous round already holds in the same file, so the readers are never worse than the FAFF-1266 title rule\"; Failure modes \"The reviewer carries too eagerly\"; the `resolveCarriedIds` validation being id+file only; the dialogue-loop readers table (churn/convergence switch to chain-resolved ids with no carry visibility in their output contracts).",
+      "predicted_consequence": "A same-file new critical that the reviewer mis-carries is invisible to churn for the rest of the loop; it inherits the prior round's rebuttal via `latestRebuttalFor`, and the loop can reach a convergence-yield stop on a standing set that never grew. Recovery depends entirely on the author's reply and the would-be-park judge noticing the conflation — model-layer, not guaranteed — i.e. the specific false-admit path FAFF-996's churn detector was built to close can be silently reopened.",
+      "spec_anchor": "design-principles",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The 'never worse' claim was corrected; churn gains carried_critical_ids for the graft log, and from round 4 a rebuttal never crosses a carry to a different wording, so a wrong carry meets the judge with today's null-defence.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec justifies shipping carrying with no deterministic backstop on the grounds that \"an accepted carry can only join two occurrences the previous round already holds in the same file, so the readers are never worse than the FAFF-1266 title rule.\" That claim does not hold for `build-review-churn`/`build-review-convergence`. Under the title rule, a genuinely **new** critical in the same file gets a new id (different title) and churn fires. Under carrying, if the reviewer eagerly copies the old id onto that new defect (same file, so `file-differs` does not catch it), the readers see one standing critical where the title rule would have seen two — churn reads false, the loop treats the new defect as the old one, and `latestRebuttalFor` attaches the *old defect's* rebuttal to it. The prompt-layer SKILL rule (\"only for the same defect\") is the only defence, and the spec's own FAFF-1279 context establishes the precedent for exactly this situation: \"Telling the reviewer … helps, but the reviewer can ignore it, and nothing would catch that\" — which is why FAFF-1279 added a deterministic cap beside the prompt rule. FAFF-1276 ships only the prompt layer for the carry-accuracy risk. The Failure-modes entry names eager carrying but its detection (\"`merged` outcomes in the eval\") is pre-merge only; there is no runtime signal, even though the round records already store `carried_id` and the churn result could surface carried criticals for graft to log.",
+          "spec_anchor": "design-principles"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The CLI fills `earlier` with the prior rounds only \"when `path.resolve(dirname(--prev))` equals `path.resolve(dirname(--curr))`; otherwise `earlier` is empty.\" Every other breakage in this spec's read path (malformed `--curr`, malformed `earlier` file, unreadable dir) is fail-loud exit 2; this one condition alone fails *silent*: a cross-directory invocation resolves `[prev, curr]` as a two-round chain, refuses round-2's valid carry (`no-prior-round`), and reports churn on a re-raised critical that the chain would have shown was standing.",
+      "evidence": "Dialogue-loop readers table, `build-review-churn.js` row.",
+      "predicted_consequence": "A spurious `churn:true` stops the dialogue loop early and parks a run that was actually converging — an avoidable human wake-up in an autonomous run. (Fail-safe direction, which is why this is not major.)",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A cross-directory churn call now writes a stderr line and reports chain_rounds in its output; the DONE churn test covers it.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The CLI fills `earlier` with the prior rounds only \"when `path.resolve(dirname(--prev))` equals `path.resolve(dirname(--curr))`; otherwise `earlier` is empty.\" Every other breakage in this spec's read path (malformed `--curr`, malformed `earlier` file, unreadable dir) is fail-loud exit 2; this one condition alone fails *silent*: a cross-directory invocation resolves `[prev, curr]` as a two-round chain, refuses round-2's valid carry (`no-prior-round`), and reports churn on a re-raised critical that the chain would have shown was standing.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The prior block's `title` and `location` are scrubbed with `scrubSpecField` (imperativeScrub then secretRedact), but `finding_id` is passed through **secretRedact only**. The id is computed by `normaliseFindingTitle` from the *raw* prior-round title — a title a model wrote while reading an untrusted diff — so any directive sentence the imperative scrub removes from `title` survives verbatim inside the id string that the block prints and the reviewer is told to copy \"verbatim\" as `carried_id`. The spec's own scrubbing control is therefore asymmetric on exactly the field it tells the reviewer to echo.",
+      "evidence": "\"The prior list is data. Titles in it were written by a model that read an untrusted diff, so the list is secret-redacted, scrubbed of directive sentences…\" vs the CLI record: `finding_id: String # passed through secretRedact; a redacted id no longer matches the prior round, so a carry of it is refused (safe direction)` — no imperativeScrub on the id channel.",
+      "predicted_consequence": "Untrusted diff-derived text reaches the Phase-2 reviewer prompt unscrubbed through the id field of a block framed as trusted-shaped data; a crafted round-1 title plants directive text inside an id the reviewer is instructed to copy character-for-character. Contained today by `resolveRoundChain`'s id+file match (a doctored carry is refused), so this is a hardening gap, not an open path.",
+      "spec_anchor": "the-prior-findings-cli",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Superseded in round 4: the prior list no longer prints ids at all; reviewers carry a P<k> handle, so no title text travels in the carry token.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The prior block's `title` and `location` are scrubbed with `scrubSpecField` (imperativeScrub then secretRedact), but `finding_id` is passed through **secretRedact only**. The id is computed by `normaliseFindingTitle` from the *raw* prior-round title — a title a model wrote while reading an untrusted diff — so any directive sentence the imperative scrub removes from `title` survives verbatim inside the id string that the block prints and the reviewer is told to copy \"verbatim\" as `carried_id`. The spec's own scrubbing control is therefore asymmetric on exactly the field it tells the reviewer to echo.",
+          "spec_anchor": "the-prior-findings-cli"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The spec treats FAFF-1279's merge as an *assumption validated at review time*, not as a build-start gate. Everything downstream of the eval rework (the three `second_defect_b` fixtures with planted defects) is unbuildable-in-review until FAFF-1279 lands, yet nothing in the slice's build order (step 1–5) is blocked on it.",
+      "evidence": "Spec §7 Assumptions: \"FAFF-1279 has merged before this build reaches review… Without it, the planted defects in the new fixtures would park this build as they parked FAFF-1266.\" The supplied critique's own risk profile names the same failure (\"the planted defects… would park this build as they parked FAFF-1266\") but its \"what to do\" only addresses the *operator eval* risk and the FAFF-1268 blocker link — it never converts FAFF-1279 into a start precondition for FAFF-1276 itself.",
+      "predicted_consequence": "The build completes steps 1–5, opens its PR, and the Phase-2 adversarial reviewer escalates a planted SQL-injection critical in `finding-identity-014+` to `needs-human` — a park requiring `merge-gate --human-override`, exactly the FAFF-1266 failure this ticket exists to avoid repeating. One full build increment is spent to reach a park the spec predicted in writing.",
+      "spec_anchor": "assumptions",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1276 is already linked as blocked by FAFF-1279 in Linear, so the build queue does not admit it before FAFF-1279 is Done; the assumption now states the link.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec treats FAFF-1279's merge as an *assumption validated at review time*, not as a build-start gate. Everything downstream of the eval rework (the three `second_defect_b` fixtures with planted defects) is unbuildable-in-review until FAFF-1279 lands, yet nothing in the slice's build order (step 1–5) is blocked on it.",
+          "spec_anchor": "assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The methodology critique explicitly holds a fallback (\"If the build runs long, the dialogue-loop half (the three readers and the Phase-2 `carries:` line) is the piece that could move to a follow-up\"), but the spec's build order gives no trigger, threshold, or instruction for exercising it. Worse, the named fallback is mis-sliced: the three readers are useless without `resolveCarriedIds` (part 1) and the eval cannot measure carrying without the SKILL rule (part 4), so \"readers + carries line\" is not a shippable follow-up on its own — the actually separable unit is the eval rework + new fixtures (part 5), which the critique does not name.",
+      "evidence": "Spec §Methodology critique \"What to do: Keep it as one ticket. If the build runs long, the dialogue-loop half (the three readers and the Phase-2 `carries:` line) is the piece that could move to a follow-up without changing what FAFF-1268 needs.\" Spec §4 Build order parts 1–5 show the readers depend on part 1 and the eval depends on parts 1 and 4.",
+      "predicted_consequence": "If the build does run long mid-loop, the agent has no actionable cut line and either ships an incoherent partial (readers with no prompt rule feeding them carries, so the readers never see a `carried_id` in production) or misses the one cut that would have preserved value.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The build order names the cut line (step 2 and the adversarial SKILL edit) and the DONE items for it are tagged [dialogue].",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The methodology critique explicitly holds a fallback (\"If the build runs long, the dialogue-loop half (the three readers and the Phase-2 `carries:` line) is the piece that could move to a follow-up\"), but the spec's build order gives no trigger, threshold, or instruction for exercising it. Worse, the named fallback is mis-sliced: the three readers are useless without `resolveCarriedIds` (part 1) and the eval cannot measure carrying without the SKILL rule (part 4), so \"readers + carries line\" is not a shippable follow-up on its own — the actually separable unit is the eval rework + new fixtures (part 5), which the critique does not name.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice changes FAFF-1268's recorder contract (`record-review-round` must store `carried_id` and resolve via `resolveRoundChain`, replacing \"a supplied id is ignored\"), but delivers that change only as a comment posted at PR-open time plus a blocker link. Nothing in this slice edits FAFF-1268's spec, and the blocker link guards start order, not spec currency — FAFF-1268 can be *prepped* from the stale spec while FAFF-1276 is In Review.",
+      "evidence": "Spec §3 \"Interface for FAFF-1268\": \"the build agent posts a comment on FAFF-1268 headed '## Interface change from FAFF-1276'… so FAFF-1268's spec is revised before it is built.\" Spec §7 Assumptions: \"the FAFF-1268 spec is revised to the interface in section 3 before FAFF-1268 is built\" — an assumption about another ticket's process, not an artifact this slice produces.",
+      "predicted_consequence": "FAFF-1268 is built from its current spec (which the supplied FAFF-1268 excerpt confirms still says \"a supplied id is ignored\"), drops every `carried_id`, and the collator merges on drifting titles again — the exact FAFF-1266 failure, discovered only after FAFF-1268's build completes.",
+      "spec_anchor": "interface-for-faff-1268",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "This ticket cannot edit FAFF-1268's spec. The build posts the interface on FAFF-1268 at PR open, the blocker link stops FAFF-1268 starting first, and the orchestrator is told FAFF-1268 needs a re-prep.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The slice changes FAFF-1268's recorder contract (`record-review-round` must store `carried_id` and resolve via `resolveRoundChain`, replacing \"a supplied id is ignored\"), but delivers that change only as a comment posted at PR-open time plus a blocker link. Nothing in this slice edits FAFF-1268's spec, and the blocker link guards start order, not spec currency — FAFF-1268 can be *prepped* from the stale spec while FAFF-1276 is In Review.",
+          "spec_anchor": "interface-for-faff-1268"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The grading procedure in \"The reworked eval\" makes the `merged` grade impossible to emit in exactly the cases it exists to catch. Step 5 excludes any pass-B finding whose location falls inside `second_defect_b.lines` from defect-finding selection, and step 6 orders `undetected` *before* `merged`. In the canonical over-carry — pass B attaches A's id to the second defect — one of two things happens: (a) pass B raises only the second defect (it judged it to be A's finding), so after exclusion pass B has no defect finding and `undetected` wins before `merged` is ever evaluated; or (b) pass B raises both defects, but then only one can hold the accepted carry (`claimed-twice` refuses the other), the defect finding is the correctly-carried first defect, and the outcome grades `stable` with the over-carry on the second defect entirely invisible to the result. Either way `merged` stays 0 on every run.",
+      "evidence": "\"### The reworked eval\" steps 5–6 (exclusion + outcome precedence); DONE item \"Mocked cases grade `stable` (carried), `drifted` …, `merged` (second-defect finding has an accepted carry of A's id)\"; the failure mode \"The reviewer carries too eagerly\" whose stated detection signal is \"`merged` outcomes in the eval\".",
+      "predicted_consequence": "The acceptance eval reports `merged: 0` regardless of behaviour. Over-carry fixtures grade `undetected` (spurious rate drop, spuriously withholding FAFF-1268's collator) or `stable` (a false pass that hides precisely the risk the three new fixtures were added to measure). The builder cannot satisfy the DONE item without silently reordering the pinned procedure, i.e. changing the spec.",
+      "spec_anchor": "the-reworked-eval",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "merged is now evaluated first and counts any pass-B second-defect finding whose carried_id names A's defect handle, accepted or refused, so it is reachable when pass B raises only the second defect or loses a claimed-twice race.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The grading procedure in \"The reworked eval\" makes the `merged` grade impossible to emit in exactly the cases it exists to catch. Step 5 excludes any pass-B finding whose location falls inside `second_defect_b.lines` from defect-finding selection, and step 6 orders `undetected` *before* `merged`. In the canonical over-carry — pass B attaches A's id to the second defect — one of two things happens: (a) pass B raises only the second defect (it judged it to be A's finding), so after exclusion pass B has no defect finding and `undetected` wins before `merged` is ever evaluated; or (b) pass B raises both defects, but then only one can hold the accepted carry (`claimed-twice` refuses the other), the defect finding is the correctly-carried first defect, and the outcome grades `stable` with the over-carry on the second defect entirely invisible to the result. Either way `merged` stays 0 on every run.",
+          "spec_anchor": "the-reworked-eval"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The design's core principle is \"verify, never trust\", and the file check bounds a wrong carry to same-file defects; but the residual harm of a wrong carry runs entirely through the rebuttal path (`latestRebuttalFor` matches on the carried id, so a stale rebuttal written about the old defect is offered for the new one). The spec's mitigation is that \"a rebuttal written about a different defect gives the judge no defence of this one\" — an assumption about unprompted judge diligence. Yet the adjudication-set entries the judge consumes are pinned as `{finding_id, location, title, rebuttal_text, requires_confirm}` with no carry field, and only churn's `carried_critical_ids` (a graft log line) surfaces carry provenance. The one actor positioned to compare rebuttal-to-defect is the one surface the spec gives no signal to look.",
+      "evidence": "\"### Dialogue-loop readers\" table (churn gains `carried_critical_ids`; judge-evidence changes are id-resolution only); \"### Marking a prior finding fixed\" / design-principles paragraph relying on judge judgement; the pinned `collectAdjudicationSet` entry shape in the build-judge-evidence context.",
+      "predicted_consequence": "A wrong same-file carry reaches the build judge as an ordinary standing critical with an ordinary rebuttal attached; detection of the mismatch depends entirely on the judge noticing an unstated anomaly, so the bounded-risk argument in \"Ships whole whatever the eval says\" rests on an unaided LLM judgement in a system built on the premise that LLM claims need deterministic verification.",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Superseded in round 4: instead of a judge note, a rebuttal written against different wording is not attached to a carried finding, so the judge gets the null-defence.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The design's core principle is \"verify, never trust\", and the file check bounds a wrong carry to same-file defects; but the residual harm of a wrong carry runs entirely through the rebuttal path (`latestRebuttalFor` matches on the carried id, so a stale rebuttal written about the old defect is offered for the new one). The spec's mitigation is that \"a rebuttal written about a different defect gives the judge no defence of this one\" — an assumption about unprompted judge diligence. Yet the adjudication-set entries the judge consumes are pinned as `{finding_id, location, title, rebuttal_text, requires_confirm}` with no carry field, and only churn's `carried_critical_ids` (a graft log line) surfaces carry provenance. The one actor positioned to compare rebuttal-to-defect is the one surface the spec gives no signal to look.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's own worst-case analysis says a wrong same-file carry routes the *old* finding's rebuttal to the *new* critical (`latestRebuttalFor` matches on resolved id). The mitigation offered is the assertion that \"a rebuttal written about a different defect gives the judge no defence of this one\" — but the judge's inputs (`collectAdjudicationSet` → casefile) carry no carry-provenance: `build-judge-casefile.js` is listed as \"Unchanged\", and nothing in the reader table passes `carry`/`refusal` or `carried_critical_ids` into the adjudication set. A generic rebuttal (\"this is by design, see spec §N\") authored against the *old* defect in the same file can read as a defence of the new one, and the judge's `OVERTURN` is the only thing standing between that path and a false admit of a real critical.",
+      "evidence": "Spec §3 \"Dialogue-loop readers\" table (`build-judge-casefile.js | Unchanged`); §1 \"Ships whole whatever the eval says\" (\"a rebuttal written about a different defect gives the judge no defence of this one\"); §3 `carried_critical_ids` is emitted for the *graft log*, not for the judge.",
+      "predicted_consequence": "A real critical introduced in the same file as a previously-rebutted finding is admitted on the strength of a rebuttal that never addressed it — the exact false-admit the round-trip's judge confirmation exists to prevent.",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Superseded in round 4 by the rebuttal rule: a stale rebuttal cannot reach a carried finding whose wording changed.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec's own worst-case analysis says a wrong same-file carry routes the *old* finding's rebuttal to the *new* critical (`latestRebuttalFor` matches on resolved id). The mitigation offered is the assertion that \"a rebuttal written about a different defect gives the judge no defence of this one\" — but the judge's inputs (`collectAdjudicationSet` → casefile) carry no carry-provenance: `build-judge-casefile.js` is listed as \"Unchanged\", and nothing in the reader table passes `carry`/`refusal` or `carried_critical_ids` into the adjudication set. A generic rebuttal (\"this is by design, see spec §N\") authored against the *old* defect in the same file can read as a defence of the new one, and the judge's `OVERTURN` is the only thing standing between that path and a false admit of a real critical.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The eval's outcome vocabulary in `driveFindingIdentityCase` step 6 is exactly {undetected, merged, stable, drifted}, and the result fields (`merged`, `carried`, `title_stable`, `refused_carries`, per-case `carried_b`) are all defined over the *defect* finding or as aggregates. The DONE item requires mocked cases to grade \"not merged (second-defect finding whose title alone matches A's, no carry)\", but no outcome value or per-case field is specified for that assertion: the second-defect finding attempts no carry (so it is not a `refused_carries` entry), `merged` is an aggregate count with no per-case projection in `detail`, and the case's `outcome` is determined by the defect finding, not the second finding. A tester cannot state what observable value distinguishes the \"not merged\" fixture's grade from any other stable case.",
+      "evidence": "WHAT §\"The reworked eval\" step 6 outcome list and `detail` fields vs DONE item \"Mocked cases grade `stable` (carried), `drifted` …, `merged` …, not `merged` (second-defect finding whose title alone matches A's, no carry) and `undetected`\".",
+      "predicted_consequence": "the DONE item \"Mocked cases grade … not merged …\" cannot be decided as written — a build could satisfy it by any ad-hoc reading (e.g. asserting `merged === 0` on a single-case run, or inventing an unspecified per-case field), and two builds could both \"pass\" while grading differently.",
+      "spec_anchor": "the-reworked-eval",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "detail gains a per-case merged boolean and the DONE item asks for stable with detail.merged false for the title-only match case.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The eval's outcome vocabulary in `driveFindingIdentityCase` step 6 is exactly {undetected, merged, stable, drifted}, and the result fields (`merged`, `carried`, `title_stable`, `refused_carries`, per-case `carried_b`) are all defined over the *defect* finding or as aggregates. The DONE item requires mocked cases to grade \"not merged (second-defect finding whose title alone matches A's, no carry)\", but no outcome value or per-case field is specified for that assertion: the second-defect finding attempts no carry (so it is not a `refused_carries` entry), `merged` is an aggregate count with no per-case projection in `detail`, and the case's `outcome` is determined by the defect finding, not the second finding. A tester cannot state what observable value distinguishes the \"not merged\" fixture's grade from any other stable case.",
+          "spec_anchor": "the-reworked-eval"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The design copies the full `file::title` id verbatim from the prior block into `carried_id`, but the block's `finding_id` field is passed through `scrubSpecField` \"like the title\", and the reviewer is told to copy it verbatim. Any prior title that trips the imperative-scrub or secret patterns therefore prints an id that cannot match the raw prior round, so the carry is *always* refused — the reviewer is handed an id it is instructed to copy and the validator is guaranteed to reject. The mechanism under test is silently disabled for exactly the findings whose wording is unusual, and the eval then measures scrub damage as if it were identity drift.",
+      "evidence": "`faff review-prior` spec: \"finding_id: passed through scrubSpecField like the title; a scrubbed id no longer matches the prior round, so a carry of it is refused (safe direction)\"; edge case \"A prior id that the scrub changes … that finding cannot carry and keeps FAFF-1266 behaviour.\"",
+      "predicted_consequence": "A material fraction of carries refuse for scrub reasons unrelated to the mechanism; `refused_carries` climbs, the eval can fail its 0.90 bar again for a reason a one-line design change would remove, and FAFF-1268 stays blocked through a second failed frontier run. A per-round opaque token (e.g. `F3`, assigned by `review-prior`, mapped back to the prior id inside `resolveCarriedIds`) is scrub-immune, shorter in the prompt, and meets the same DONE items with the same verify-don't-trust validation (id-exists + file-match) — the spec never considers it.",
+      "spec_anchor": "the-prior-findings-cli",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "carried_id now holds a P<k> handle that resolveCarriedIds maps to the prior finding's id, so scrubbing titles never breaks a carry.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The design copies the full `file::title` id verbatim from the prior block into `carried_id`, but the block's `finding_id` field is passed through `scrubSpecField` \"like the title\", and the reviewer is told to copy it verbatim. Any prior title that trips the imperative-scrub or secret patterns therefore prints an id that cannot match the raw prior round, so the carry is *always* refused — the reviewer is handed an id it is instructed to copy and the validator is guaranteed to reject. The mechanism under test is silently disabled for exactly the findings whose wording is unusual, and the eval then measures scrub damage as if it were identity drift.",
+          "spec_anchor": "the-prior-findings-cli"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec edits `review-round.schema.json` (both byte-identical copies) to add a *required* `carried_id`, but the FAFF-1268 excerpt states \"Draft edits are allowed until FAFF-1261 freezes v0.3.\" The spec never states whether v0.3 is frozen at build time or how this edit interacts with the freeze; if it is frozen, the interface change that FAFF-1268's recorder depends on cannot land as specified.",
+      "evidence": "FAFF-1276 §3 \"Interface for FAFF-1268\" (\"gains a required per-finding `carried_id: string | null`\") vs FAFF-1268 spec excerpt: \"Draft edits are allowed until FAFF-1261 freezes v0.3.\" FAFF-1261 appears nowhere in FAFF-1276's assumptions.",
+      "predicted_consequence": "The build reaches step 3 of the build order, finds the schema frozen, and must either bump to v0.4 (a cross-cutting change this slice did not plan) or ship `carried_id` out-of-schema — unpicking the \"byte-identical both copies\" guarantee FAFF-1268's writer validates against.",
+      "spec_anchor": "interface-for-faff-1268",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added an assumption that v0.3 is still a draft (FAFF-1261 is in Todo); if FAFF-1261 is Done first, the carried_id schema edit moves to FAFF-1268's own schema change.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec edits `review-round.schema.json` (both byte-identical copies) to add a *required* `carried_id`, but the FAFF-1268 excerpt states \"Draft edits are allowed until FAFF-1261 freezes v0.3.\" The spec never states whether v0.3 is frozen at build time or how this edit interacts with the freeze; if it is frozen, the interface change that FAFF-1268's recorder depends on cannot land as specified.",
+          "spec_anchor": "interface-for-faff-1268"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The carry mechanism gives a *new* defect a route to inherit a *previous* round's critical identity. When that happens, `faff build-review-churn` sees no new standing-critical id (the id stood in the prior round too), so the loop does not stop; the author then rebuts the merged finding, and the rebuttal most plausibly on disk is one written against the *old* defect. The only deterministic defence the spec supplies is the `[faff note]` harness line telling the judge the defence may be about a different defect — but the judge is an LLM weighing prose, and `OVERTURN` admits the finding. Without carrying, this exact situation is a new id → churn → park → human. Carrying therefore converts a fail-safe park into a fail-open merge path for a real critical, reachable either by reviewer error or by prompt injection in the untrusted diff inducing the Phase-2 reviewer to emit a `carries:` line onto a nearby new defect in the same file (the file-match check permits precisely this).",
+      "evidence": "Spec §3 \"Design principles\" bullet 4 concedes the mechanism (\"a wrong carry onto a new defect in the same file: churn then misses that critical, and the old finding's rebuttal is offered for it\") and bounds it only by \"the critical still stands until … the judge rules OVERTURN\"; the `carries:` body line is free-form reviewer output (`### The reviewer contract field` / adversarial SKILL \"Review lens\"), and the diff is untrusted input the reviewer reads. The `[faff note]` mitigation (\"Carry note for the judge\") is advisory text, not a gate.",
+      "predicted_consequence": "A planted or genuinely new critical in a file that already has a standing critical can be rebutted with a stale defence, judge-overturned, and merged with no human ever seeing it — the exact false-auto-merge the autonomous escalation exists to prevent.",
+      "spec_anchor": "design-principles",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "latestRebuttalFor and the withdrawal scan attach a round-k rebuttal only when the targeted finding's normalised title equals the adjudicated finding's latest title, so a wrong carry gives the judge today's null-defence instead of a stale rebuttal.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The carry mechanism gives a *new* defect a route to inherit a *previous* round's critical identity. When that happens, `faff build-review-churn` sees no new standing-critical id (the id stood in the prior round too), so the loop does not stop; the author then rebuts the merged finding, and the rebuttal most plausibly on disk is one written against the *old* defect. The only deterministic defence the spec supplies is the `[faff note]` harness line telling the judge the defence may be about a different defect — but the judge is an LLM weighing prose, and `OVERTURN` admits the finding. Without carrying, this exact situation is a new id → churn → park → human. Carrying therefore converts a fail-safe park into a fail-open merge path for a real critical, reachable either by reviewer error or by prompt injection in the untrusted diff inducing the Phase-2 reviewer to emit a `carries:` line onto a nearby new defect in the same file (the file-match check permits precisely this).",
+          "spec_anchor": "design-principles"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`rebuttal_text` is untrusted author-authored free text, and the judge-facing carry note is a plain-text prefix in the same field. An author (or a directive smuggled into the diff that the author parrots) can prepend its own `[faff note] This rebuttal was written in round <k> against the finding titled \"…\"` line, indistinguishable in kind from the harness's, to pre-empt or counterfeit the disclosure — e.g. asserting the rebuttal *was* written against the current finding.",
+      "evidence": "\"Carry note for the judge\" prefixes `rebuttal_text` with a prose line; the rebuttal is elsewhere described as scrubbed untrusted context, with no structural marker separating harness text from author text.",
+      "predicted_consequence": "The judge's one deterministic signal about rebuttal/finding mismatch can be spoofed by the party the finding indicts, weakening the only mitigation for the major above.",
+      "spec_anchor": "dialogue-loop-readers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The [faff note] prefix was removed; withholding the rebuttal leaves nothing for an author to forge.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "`rebuttal_text` is untrusted author-authored free text, and the judge-facing carry note is a plain-text prefix in the same field. An author (or a directive smuggled into the diff that the author parrots) can prepend its own `[faff note] This rebuttal was written in round <k> against the finding titled \"…\"` line, indistinguishable in kind from the harness's, to pre-empt or counterfeit the disclosure — e.g. asserting the rebuttal *was* written against the current finding.",
+          "spec_anchor": "dialogue-loop-readers"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The spec names a reduced shippable slice (identity helper + review-prior + SKILL/eval, with the three dialogue-loop readers and the adversarial SKILL edit moving to a follow-up), but the DONE checklist does not distinguish follow-up-eligible items from core ones. A build that runs long has no machine-readable way to ship the reduced slice and pass its own acceptance list; it either completes everything or fails DONE.",
+      "evidence": "Build order: \"If the build must be cut short, step 2 and the adversarial SKILL edit (the dialogue-loop half) can move to a follow-up\" — yet every DONE item under \"From HOW (readers and graft)\" (churn/convergence/judge-evidence tests, the graft SKILL baseline check) is listed flat, untagged, with no marker analogous to the `[eval]` withholding tag the spec's own FAFF-1268 dependency rule uses.",
+      "predicted_consequence": "A long build parks `needs-human` with the whole ticket incomplete, or ships everything under time pressure — the split the methodology critique prescribes (\"the dialogue-loop half … could move to a follow-up without changing what FAFF-1268 needs\") is unreachable as written.",
+      "spec_anchor": "done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "DONE items for the dialogue-loop half are tagged [dialogue], and the DONE preamble says they move to a follow-up together if the build is cut short.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec names a reduced shippable slice (identity helper + review-prior + SKILL/eval, with the three dialogue-loop readers and the adversarial SKILL edit moving to a follow-up), but the DONE checklist does not distinguish follow-up-eligible items from core ones. A build that runs long has no machine-readable way to ship the reduced slice and pass its own acceptance list; it either completes everything or fails DONE.",
+          "spec_anchor": "done"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The carried-id path is live in graft's autonomous build-review loop the moment the PR merges, but the acceptance bar is an operator-run frontier eval performed after merge; the risk profile's mitigation (\"keep FAFF-1276 In Review until the result lands\") governs ticket status, not runtime behaviour — nothing gates the merged code on the eval passing.",
+      "evidence": "\"Running it and recording the result\" step 5 (\"FAFF-1276 moves to Done only after steps 2 and 3; until then it stays In Review\") plus the design principle \"Ships whole whatever the eval says\", which itself concedes \"the window in which the mechanism is live but unmeasured\".",
+      "predicted_consequence": "A below-bar eval result leaves a live, unmeasured carry mechanism in autonomous runs on main, with the only remedy being a further SKILL-wording change and re-run — the slice has no rollback or disable switch for the carrying path.",
+      "spec_anchor": "running-it-and-recording-the-result",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Product-owner choice and ADR-0004 place the eval after CI; the mechanism only joins findings the prior round holds in the same file, and reverting the PR is the rollback, so no separate kill switch is added.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The carried-id path is live in graft's autonomous build-review loop the moment the PR merges, but the acceptance bar is an operator-run frontier eval performed after merge; the risk profile's mitigation (\"keep FAFF-1276 In Review until the result lands\") governs ticket status, not runtime behaviour — nothing gates the merged code on the eval passing.",
+          "spec_anchor": "running-it-and-recording-the-result"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`latestRebuttalFor`'s new gate attaches a round-k rebuttal only when the targeted finding's normalised title equals the adjudicated finding's *latest* title. But rewording between round k and the latest round is the precise phenomenon this ticket exists to fix — and the eval fixtures show reworded titles are substantially different (\"truncates partial last page with math.floor\" vs \"rounds down a partial last page\"). So for every correct carry that crossed a rewording, the rebuttal is withheld; for every wrong carry, it is also withheld. The gate therefore cannot distinguish the forgery it exists to prevent from the legitimate case it exists to enable — it degenerates to today's behaviour (title-identical findings already matched under the FAFF-1266 id, carry or no carry). The judge path gains nothing from carrying, ever, while the resolver elsewhere treats the accepted carry as authoritative identity. Two components of the same design disagree about what a carry means.",
+      "evidence": "section 3, \"A rebuttal never crosses a carry to a different wording\"; the DONE item \"a round-1 rebuttal reaches a round-3 critical that carried its id with an unchanged normalised title\" confirms attachment requires the unchanged title; the rationale sentence \"a correct carry loses nothing it has today\" is true but entails the judge path also *gains* nothing.",
+      "predicted_consequence": "dialogue loops where a standing critical is reworded (carried) after its rebuttal round park more often than the carry mechanism implies — the judge weighs a genuinely rebutted finding with the null-defence, OVERTURN fails, a human clears. No regression vs today, but the ticket's premise (\"identity survives rewording\") is silently not delivered on the judge path, and the first extension that assumes carried identity is trusted there (e.g. FAFF-1268's collation trusting `disposition`) inherits the gap.",
+      "spec_anchor": "a-rebuttal-never-crosses-a-carry-to-a-different-wording",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Intended trade from round 4: the judge path gains nothing from carrying and loses nothing against today; the spec now states this and names a deterministic rebuttal-to-defect tie as the extension point.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "`latestRebuttalFor`'s new gate attaches a round-k rebuttal only when the targeted finding's normalised title equals the adjudicated finding's *latest* title. But rewording between round k and the latest round is the precise phenomenon this ticket exists to fix — and the eval fixtures show reworded titles are substantially different (\"truncates partial last page with math.floor\" vs \"rounds down a partial last page\"). So for every correct carry that crossed a rewording, the rebuttal is withheld; for every wrong carry, it is also withheld. The gate therefore cannot distinguish the forgery it exists to prevent from the legitimate case it exists to enable — it degenerates to today's behaviour (title-identical findings already matched under the FAFF-1266 id, carry or no carry). The judge path gains nothing from carrying, ever, while the resolver elsewhere treats the accepted carry as authoritative identity. Two components of the same design disagree about what a carry means.",
+          "spec_anchor": "a-rebuttal-never-crosses-a-carry-to-a-different-wording"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "step 4 of `resolveCarriedIds` suffixes only *titled* findings (\"untitled stored ids are never suffixed … unchanged readerFindingIds rule\"). If a finding's accepted carried id equals another finding's stored `finding_id` in the same round (plausible in dialogue records, where stored ids are agent-written fallback aliases), the stored-id finding keeps its id unsuffixed and the round record contains two findings with the same `finding_id`. Every downstream consumer merges on that key: churn counts one critical instead of two, and FAFF-1268's collator folds two distinct findings into one occurrence chain.",
+      "evidence": "section 3, Identity helper step 4 and the \"untitled stored ids are never suffixed\" parenthetical; the collation contract in the FAFF-1268 excerpt merges on `finding_id`.",
+      "predicted_consequence": "a round record with two distinct criticals sharing one id is under-counted by `standingCriticalIds` (a Set) and mis-merged by the collator; the missing critical is invisible to churn and to the evidence document.",
+      "spec_anchor": "identity-helper",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A carry whose target id equals an untitled stored finding_id in the same round is refused claimed-twice, so a round never holds two findings with one id; covered in edge cases and the finding-id tests.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "step 4 of `resolveCarriedIds` suffixes only *titled* findings (\"untitled stored ids are never suffixed … unchanged readerFindingIds rule\"). If a finding's accepted carried id equals another finding's stored `finding_id` in the same round (plausible in dialogue records, where stored ids are agent-written fallback aliases), the stored-id finding keeps its id unsuffixed and the round record contains two findings with the same `finding_id`. Every downstream consumer merges on that key: churn counts one critical instead of two, and FAFF-1268's collator folds two distinct findings into one occurrence chain.",
+          "spec_anchor": "identity-helper"
+        }
+      ]
+    }
+  ]
+}

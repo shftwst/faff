@@ -56,10 +56,27 @@ carry a fixed key set: a field with no value is `null`, never absent. The one ex
 `ac-checklist.criteria`, which is omitted for a zero-AC issue because `readAcComplete` rejects
 `[]` and `null`.
 
+Each `ac-checklist` criterion also carries `ac_id` and `verifications` (FAFF-1287), both optional
+in the schema and always written, `null` when unknown. Anchors written before then lack them and
+still validate.
+
+- `ac_id` is the qualified id `<lowercase ticket>#<local id>`, for example `faff-1287#ac-3`. The
+  local id is the `[ac-N]` authored on the spec's DONE line, or `done:N` when the line has none.
+  Either every criterion carries one or none does, ids are unique, and the ticket part matches
+  the issue.
+- `verifications` lists how the criterion was verified, one `{kind, locator?}` entry per method.
+  `kind` is `test` (locator `<file>::<test title>`), `command` (locator is the exact command) or
+  `human` (no locator). The writer enforces these per-kind rules, because the schema subset
+  cannot. A `command` locator names a secret by environment variable, never by value.
+- `ac` and `verified` are single lines, so the rendered PR-body block cannot gain lines the anchor
+  does not hold. `faff evidence render ac-checklist` prints that block from the written anchor.
+
 Every merged finding and objection keeps an `occurrences` list with one entry per round it was
 raised in, so nothing a reviewer raised in any round is overwritten by a later round.
 `review-round` is the shape of one round record, published so the collator's input is pinned;
-round records are never anchored.
+round records are never anchored. Each finding keeps the reviewer's `carried_id`, the `P<k>` handle
+of the previous round's finding it re-raises (`null` when none); `resolveRoundChain` honours it only
+for a finding in the same file, so a carried id is never trusted on the reviewer's word alone.
 
 Until code-review rounds are recorded (FAFF-1268), `review-verdict.json` is written with
 `round_history: "terminal-only"` and `rounds_total: 1`, and the writer appends one

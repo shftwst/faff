@@ -1,0 +1,27 @@
+{
+  "id": "finding-identity-014",
+  "kind": "finding-identity",
+  "reps": 1,
+  "note": "Planted defect: pageCount uses Math.floor, so a partial last page is dropped (45 items at 20 per page gives 2, not 3). diff_b adds a second, distinct defect in the same file: pageSlice returns one item too few per page (start + size - 1). second_defect_b marks pageSlice so a carry from the pageCount finding onto it grades merged.",
+  "question": "Review this change against its spec and report your findings.",
+  "fixture": {
+    "version": 1,
+    "change_summary": "Add `pageCount` (and, in the second revision, `pageSlice`) to the pagination helpers.",
+    "spec": "## WHAT\nAdd pagination helpers to `src/lib/paginate.js`.\n\n## DONE\n- [ ] `pageCount(total, size)` returns the number of pages needed to show every item, including a partial last page\n- [ ] `pageSlice(items, page, size)` returns exactly `size` items for every full page (0-based `page`)\n- [ ] existing exports are unchanged",
+    "diff": "diff --git a/src/lib/paginate.js b/src/lib/paginate.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/lib/paginate.js\n+++ b/src/lib/paginate.js\n@@ -2,6 +2,11 @@\n \n const DEFAULT_SIZE = 20;\n \n+function pageCount(total, size = DEFAULT_SIZE) {\n+  return Math.floor(total / size);\n+}\n+\n module.exports = {\n   DEFAULT_SIZE,\n+  pageCount,\n };\ndiff --git a/test/paginate.test.js b/test/paginate.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/paginate.test.js\n+++ b/test/paginate.test.js\n@@ -1,3 +1,8 @@\n 'use strict';\n const assert = require('node:assert');\n const { test } = require('node:test');\n+const { pageCount } = require('../src/lib/paginate');\n+\n+test('pageCount of an exact multiple', () => {\n+  assert.equal(pageCount(40, 20), 2);\n+});\n",
+    "test_results": "node --test: 9 pass, 0 fail. Lint clean.",
+    "defect_file": "src/lib/paginate.js",
+    "diff_b": "diff --git a/src/lib/paginate.js b/src/lib/paginate.js\nindex 3b18e51..a7c94d2 100644\n--- a/src/lib/paginate.js\n+++ b/src/lib/paginate.js\n@@ -2,6 +2,17 @@\n \n const DEFAULT_SIZE = 20;\n \n+function pageCount(total, size = DEFAULT_SIZE) {\n+  return Math.floor(total / size);\n+}\n+\n+function pageSlice(items, page, size = DEFAULT_SIZE) {\n+  const start = page * size;\n+  return items.slice(start, start + size - 1);\n+}\n+\n module.exports = {\n   DEFAULT_SIZE,\n+  pageCount,\n+  pageSlice,\n };\ndiff --git a/test/paginate.test.js b/test/paginate.test.js\nindex 3b18e51..a7c94d2 100644\n--- a/test/paginate.test.js\n+++ b/test/paginate.test.js\n@@ -1,3 +1,8 @@\n 'use strict';\n const assert = require('node:assert');\n const { test } = require('node:test');\n+const { pageCount } = require('../src/lib/paginate');\n+\n+test('pageCount of an exact multiple', () => {\n+  assert.equal(pageCount(40, 20), 2);\n+});\n",
+    "second_defect_b": {
+      "lines": [
+        9,
+        11
+      ]
+    }
+  },
+  "oracle": {
+    "closed_set": [
+      "stable"
+    ]
+  }
+}

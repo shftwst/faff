@@ -40,6 +40,43 @@
           },
           "passed": {
             "type": "boolean"
+          },
+          "ac_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9]{1,15}-[1-9][0-9]*#(ac-[1-9][0-9]*|done:[1-9][0-9]*)$",
+            "description": "qualified AC id: lowercase ticket, `#`, then the spec's local id or the positional fallback"
+          },
+          "verifications": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "test",
+                    "command",
+                    "human"
+                  ]
+                },
+                "locator": {
+                  "type": "string",
+                  "description": "`<file>::<test title>` for test, the exact command for command, absent for human"
+                }
+              }
+            },
+            "description": "how the criterion was verified, one entry per method"
           }
         }
       },

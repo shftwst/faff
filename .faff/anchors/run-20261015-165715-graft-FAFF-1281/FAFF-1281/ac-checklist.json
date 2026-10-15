@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Two concurrent recoveries of the same bundle into a fresh root end with exactly one reconstructed and one noop-already-present, both exit 0",
+      "verified": "test/bundle-recover-lock.test.mjs::two concurrent recoveries of a legacy snapshot (passes 5/5 runs; fails on the pre-change code)",
+      "passed": true
+    },
+    {
+      "ac": "heartbeat.js exports ledgerLockPath and withLedgerLock; mutateLedgerUnderLock acquires through withLedgerLock; faff heartbeat --selftest and the ledger tests pass unchanged",
+      "verified": "test/run-ledger-writer-inventory.test.mjs::bundle-recover restores under the shared ledger lock; faff heartbeat --selftest ok; test/ledger-concurrency and test/run-ledger-serialiser pass",
+      "passed": true
+    },
+    {
+      "ac": "bundle-recover.js contains no hand-built run-ledger.json.lock string",
+      "verified": "test/run-ledger-writer-inventory.test.mjs::bundle-recover restores under the shared ledger lock (no hand-built lock path)",
+      "passed": true
+    },
+    {
+      "ac": "The static writer-inventory test still finds reconstructProjection as the only ledger writer in bundle-recover.js, and a new static check asserts the restore calls withLedgerLock",
+      "verified": "test/run-ledger-writer-inventory.test.mjs: existing writer test passes; new static test asserts bundleRecover -> restoreUnderLedgerLock -> withLedgerLock",
+      "passed": true
+    },
+    {
+      "ac": "The existence read and idempotencyDecision run inside withLedgerLock; the restore writes run inside the same call",
+      "verified": "static check: restoreUnderLedgerLock calls withLedgerLock and reconstructProjection inside it; concurrency test passes",
+      "passed": true
+    },
+    {
+      "ac": "upgradeRestored is never called while the ledger lock is held; its ledger mutate returns null on a stamped ledger",
+      "verified": "static check: neither upgradeRestored nor mutateLedgerUnderLock appears in restoreUnderLedgerLock or reconstructProjection; concurrency test sees exactly one upgrade ledger-write event",
+      "passed": true
+    },
+    {
+      "ac": "A held lock past the budget yields refused with the lock-held reason, exit 1, and no run-ledger.json written",
+      "verified": "test/bundle-recover-lock.test.mjs::a ledger lock held past the acquire budget refuses the recovery",
+      "passed": true
+    },
+    {
+      "ac": "A reconstruction failure removes only the paths this call wrote, never deletes the lock file inside the section, and leaves the run dir removed when it is then empty; a pre-existing file survives",
+      "verified": "test/bundle-recover-lock.test.mjs::a failed restore removes only what it wrote / a failed restore into an empty run dir leaves no run dir behind",
+      "passed": true
+    },
+    {
+      "ac": "A mkdir failure on the run dir yields refused (reconstruction failed), exit 1, never an uncaught exit 2",
+      "verified": "test/bundle-recover-lock.test.mjs::a run dir that cannot be created refuses with exit 1",
+      "passed": true
+    },
+    {
+      "ac": "An ENOENT on lock acquisition retries mkdir then lock exactly once with a fresh budget; a second ENOENT yields refused",
+      "verified": "test/bundle-recover-lock.test.mjs::an ENOENT on lock acquire retries once / a second ENOENT refuses after exactly two attempts",
+      "passed": true
+    },
+    {
+      "ac": "Validation of the anchors member runs before the run dir is created; the existing escape-refusal selftest still passes",
+      "verified": "faff bundle-recover --selftest: 47/47 pass (escape refusal writes nothing); bundleRecover calls validateProjection before restoreUnderLedgerLock",
+      "passed": true
+    },
+    {
+      "ac": "--dry-run output and its writes-nothing-to-the-real-root test are unchanged",
+      "verified": "test/bundle-recover-upgrade.test.mjs::--dry-run on a legacy snapshot writes nothing under the real root; test/bundle-recover.test.mjs dry-run cases pass",
+      "passed": true
+    },
+    {
+      "ac": "With a legacy snapshot, two concurrent recoveries leave exactly one upgrade ledger-write event in events.jsonl",
+      "verified": "test/bundle-recover-lock.test.mjs::two concurrent recoveries (added ledger-write events == 1)",
+      "passed": true
+    },
+    {
+      "ac": "A run dir that exists with no run-ledger.json restores as reconstructed",
+      "verified": "test/bundle-recover-lock.test.mjs::a run dir that exists with no run-ledger.json restores as reconstructed",
+      "passed": true
+    },
+    {
+      "ac": "Every existing test in bundle-recover, bundle-recover-upgrade, phase-0-matrix and faff bundle-recover --selftest passes unchanged",
+      "verified": "node --test on the three files: all pass; faff bundle-recover --selftest PASS; CI 4-shard run green apart from one sentry-poller timing test that passes on rerun",
+      "passed": true
+    }
+  ]
+}

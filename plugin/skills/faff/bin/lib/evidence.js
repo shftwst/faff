@@ -28,6 +28,7 @@ const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = requ
 const { EvidenceRefusal, parseSpecReviewComment } = require("./evidence-collate");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { assignFindingIds } = require("./finding-id");
+const { parseAcId } = require("./ac-id");
 
 const SPEC_VERSION = "v0.3";
 const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
@@ -655,22 +656,63 @@ const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== und
 const orNull = (v) => (v === undefined ? null : v);
 
 // anchoredAcChecklist(input) -> the v1 document: schema_version stamped, unknown keys dropped,
-// `criteria` present only when the input carries it.
+// `criteria` present only when the input carries it; each criterion carries `ac_id` and
+// `verifications`, null when the input omits them.
 function anchoredAcChecklist(input) {
   const doc = { schema_version: 1, all_verified: input.all_verified };
   if ("criteria" in input) {
     doc.criteria = Array.isArray(input.criteria)
-      ? input.criteria.map((c) => (isObject(c) ? pick(c, ["ac", "verified", "passed"]) : c))
+      ? input.criteria.map((c) => (isObject(c) ? { ...pick(c, ["ac", "verified", "passed"]), ac_id: orNull(c.ac_id), verifications: orNull(c.verifications) } : c))
       : input.criteria;
   }
   return doc;
 }
 
-function acChecklistWriterViolations(doc) {
+const isOneLine = (v) => typeof v === "string" && !/[\r\n]/.test(v);
+
+// Names the rule a verification method breaks, never the locator itself: the locator may hold a secret.
+function verificationViolation(method) {
+  if (!isObject(method)) return null;
+  const { kind, locator } = method;
+  if (kind === "human") return locator === undefined ? null : "a human method carries no locator";
+  if (kind === "command") return isOneLine(locator) && locator.trim() !== "" ? null : "a command locator must be a non-empty single line";
+  if (kind !== "test") return null;
+  if (!isOneLine(locator)) return "a test locator must be a single line <file>::<test title>";
+  const split = locator.indexOf("::");
+  if (split === -1) return "a test locator must be <file>::<test title>";
+  const file = locator.slice(0, split);
+  if (file === "" || file.startsWith("/") || file.includes("\\") || file.split("/").includes("..")) return "a test locator file must be a repo-relative path with forward slashes and no .. segment";
+  return locator.slice(split + 2).trim() === "" ? "a test locator needs a non-empty test title" : null;
+}
+
+function acIdViolations(criteria, issue) {
+  const ids = criteria.map((c) => (isObject(c) && typeof c.ac_id === "string" ? c.ac_id : null));
+  const present = ids.filter((id) => id !== null);
+  if (present.length === 0) return [];
+  const out = [];
+  if (present.length !== ids.length) out.push("ac_id: every criterion carries one, or none does");
+  if (present.some((id) => { const parsed = parseAcId(id); return parsed !== null && parsed.ticket.toLowerCase() !== String(issue).toLowerCase(); })) out.push("ac_id: ticket part must match --issue");
+  if (new Set(present).size !== present.length) out.push("ac_id: duplicate");
+  return out;
+}
+
+function acChecklistWriterViolations(doc, issue) {
   if (!("criteria" in doc)) return [];
   if (!Array.isArray(doc.criteria) || doc.criteria.length === 0) return ["criteria: omit the key for a zero-AC issue, never [] or null"];
+  const out = [];
   const everyPassed = doc.criteria.every((c) => isObject(c) && c.passed === true);
-  return doc.all_verified === everyPassed ? [] : ["all_verified: must equal every criterion passed"];
+  if (doc.all_verified !== everyPassed) out.push("all_verified: must equal every criterion passed");
+  out.push(...acIdViolations(doc.criteria, issue));
+  doc.criteria.forEach((c, i) => {
+    if (!isObject(c)) return;
+    if ((typeof c.ac === "string" && !isOneLine(c.ac)) || (typeof c.verified === "string" && !isOneLine(c.verified))) out.push(`criteria[${i}]: ac and verified must be one line`);
+    if (!Array.isArray(c.verifications)) return;
+    c.verifications.forEach((m, j) => {
+      const broken = verificationViolation(m);
+      if (broken !== null) out.push(`criteria[${i}].verifications[${j}]: ${broken}`);
+    });
+  });
+  return out;
 }
 
 // writeAcChecklist(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
@@ -679,9 +721,39 @@ function writeAcChecklist(runDir, issue, text, secrets) {
   const input = parseStdinObject(text);
   if (input === null) return { refused: [NOT_AN_OBJECT] };
   const doc = anchoredAcChecklist(redactKnownSecrets(input, secrets));
-  const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy), ...acChecklistWriterViolations(doc)];
+  const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy), ...acChecklistWriterViolations(doc, issue)];
   if (violations.length > 0) return { refused: violations };
   return { written: writeEvidenceFile(issueDir, "ac-checklist.json", doc) };
+}
+
+// codeSpan(text) -> text in a Markdown code span whose fence outruns any backtick run inside it.
+function codeSpan(text) {
+  const longest = Math.max(0, ...(text.match(/`+/g) || []).map((run) => run.length));
+  const fence = "`".repeat(longest + 1);
+  const pad = text.startsWith("`") || text.endsWith("`") ? " " : "";
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
+function renderCriterion(c) {
+  const id = typeof c.ac_id === "string" ? ` ${codeSpan(c.ac_id)}` : "";
+  const lines = [`- [${c.passed ? "x" : " "}]${id} ${c.ac}`, `  Verified: ${c.verified}`];
+  for (const m of c.verifications || []) lines.push(m.kind === "human" ? "  Method: human" : `  Method: ${m.kind} ${codeSpan(m.locator)}`);
+  return lines;
+}
+
+// renderAcChecklist(runDir, issue) -> { block } | { refused: [message] }. Reads the written anchor and
+// applies the writer's own checks, so the PR-body list always matches a well-formed anchor.
+function renderAcChecklist(runDir, issue) {
+  const file = path.join(guardWriterPaths(runDir, issue), "ac-checklist.json");
+  let doc;
+  try { doc = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) {
+    return { refused: [e && e.code === "ENOENT" ? "ac-checklist.json is missing" : "ac-checklist.json is unreadable"] };
+  }
+  const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy)];
+  if (violations.length === 0) violations.push(...acChecklistWriterViolations(doc, issue));
+  if (violations.length > 0) return { refused: violations };
+  const body = doc.criteria ? doc.criteria.flatMap(renderCriterion) : ["No acceptance criteria."];
+  return { block: ["## Acceptance Criteria", ...body].join("\n") + "\n" };
 }
 
 const TERMINAL_ONLY_WRITER = "faff evidence write review-verdict --terminal-only";
@@ -791,6 +863,24 @@ function cmdEvidenceWrite(values, name) {
   }
 }
 
+function cmdEvidenceRender(values, name) {
+  const fail = (code, message) => { process.stderr.write(`faff evidence render ${name}: ${message}\n`); return code; };
+  if (name !== "ac-checklist") return fail(2, "expected: ac-checklist");
+  if (values["--run-dir"] == null || values["--issue"] == null) return fail(2, "--run-dir and --issue are required");
+  try {
+    const result = renderAcChecklist(values["--run-dir"], values["--issue"]);
+    if (result.refused) {
+      for (const message of result.refused) process.stderr.write(`faff evidence render ${name}: refused: ${message}\n`);
+      return 1;
+    }
+    process.stdout.write(result.block);
+    return 0;
+  } catch (e) {
+    if (e instanceof WriterFault || e instanceof SchemaUnavailable) return fail(2, e.message);
+    throw e;
+  }
+}
+
 // --- selftest ---------------------------------------------------------------
 
 function exampleSchemaName(file) {
@@ -837,7 +927,7 @@ function evidenceSelftest() {
     check("a mid-file unparseable line fails", statusOf(build("mid", { ...stamped, "events.jsonl": "not json\n" + oneLine("run-event") })) === "fail");
     const ac = anchoredAcChecklist({ all_verified: true, criteria: [{ ac: "a", verified: "Verified: t", passed: true, extra: 1 }], ac_complete: true });
     check("the ac-checklist writer's document passes its schema", validateAgainstSchema(ac, schemaFor("ac-checklist.json")).length === 0);
-    check("the ac-checklist writer refuses an empty criteria list", acChecklistWriterViolations(anchoredAcChecklist({ all_verified: true, criteria: [] })).length === 1);
+    check("the ac-checklist writer refuses an empty criteria list", acChecklistWriterViolations(anchoredAcChecklist({ all_verified: true, criteria: [] }), "FAFF-1").length === 1);
     const review = anchoredTerminalReview({ signal: "pass", adversarial_outcome: "chain-outage-skipped", findings: [{ title: "x", location: "a.js:1", severity: "minor" }] });
     check("the terminal-only review writer's document passes its schema", validateAgainstSchema(review, schemaFor("review-verdict.json")).length === 0);
   } finally {
@@ -855,7 +945,7 @@ function evidenceSelftest() {
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
 const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?} on stdin)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -869,6 +959,7 @@ function cmdEvidence(args) {
       return 0;
     }
     if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
+    if (sub === "render" && anchorDir && rest.length === 0) return cmdEvidenceRender(values, anchorDir);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);
       return 2;
@@ -890,9 +981,9 @@ function cmdEvidence(args) {
 }
 
 module.exports = {
-  CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, announceSchemaUnavailable, anchoredAcChecklist,
+  CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evidenceSelftest, exitCodeFor,
   guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
-  resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
+  renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
   writeSpecReviewVerdict, writeTerminalReviewVerdict,
 };

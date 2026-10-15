@@ -5,6 +5,7 @@
   "findings": [
     {
       "finding_id": "src/example.js::missing null check",
+      "carried_id": null,
       "title": "Missing null check",
       "location": "src/example.js:10",
       "action": "Guard the null case",

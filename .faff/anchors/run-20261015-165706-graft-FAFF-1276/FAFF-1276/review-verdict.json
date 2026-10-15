@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-review-churn.js::resolvecarriedids refusals not surfaced by the production readers",
+      "title": "resolveCarriedIds refusals not surfaced by the production readers",
+      "location": "plugin/skills/faff/bin/lib/build-review-churn.js",
+      "action": "Report the current round's refused carries in the churn output graft logs",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 01317eda: faff build-review-churn now prints refused_carries for the current round, graft Step 9 logs it each round, and a churn test asserts the count.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "resolveCarriedIds refusals not surfaced by the production readers",
+          "location": "plugin/skills/faff/bin/lib/build-review-churn.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/review-prior.js::review-prior may list a different round than a resumed dialogue loop continues",
+      "title": "review-prior may list a different round than a resumed dialogue loop continues",
+      "location": "plugin/skills/faff/bin/lib/review-prior.js",
+      "action": "Detect a mismatch between the stashed next_round and the round files on disk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "review-prior and resolveRoundChain both read the round files on disk in numeric order, so the round the reviewer is shown is always the round its handles resolve against, whatever next_round says.",
+      "disposition_rationale": "A lost round file shifts both readers identically; a handle cannot point at a round other than the one listed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "review-prior may list a different round than a resumed dialogue loop continues",
+          "location": "plugin/skills/faff/bin/lib/review-prior.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-review-churn.js::build-review-churn chain_rounds only present for cross-directory calls",
+      "title": "build-review-churn chain_rounds only present for cross-directory calls",
+      "location": "plugin/skills/faff/bin/lib/build-review-churn.js",
+      "action": "Always report chain_rounds",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec-conformant: the spec adds chain_rounds only on the cross-directory path, where the resolution is narrower than usual; the reviewer agrees it is spec-conformant.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "build-review-churn chain_rounds only present for cross-directory calls",
+          "location": "plugin/skills/faff/bin/lib/build-review-churn.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

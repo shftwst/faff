@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1287",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c3baea542f4b00f9b989fe3547608392a9fe84acfd48dc3d839e3843497e601b",
+    "branch": "FAFF-1287-acceptance-criteria-same-ids",
+    "pushed_at": "2026-10-15T18:12:00.587Z"
+  },
+  "updated_at": "2026-10-15T18:12:00.587Z"
+}

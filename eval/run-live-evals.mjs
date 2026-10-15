@@ -275,7 +275,10 @@ export const FINDING_IDENTITY_MIN_FIXTURES = 10;
 
 // FAFF-1266 — pure: fold a finding-identity summary into the FindingIdentityResult record the operator
 // commits as eval/baselines/finding-identity-result.json. A case whose rep errored counts as "errored";
-// "undetected" and "errored" both count as not stable. pass = fixtures >= 10 AND rate >= bar.
+// "merged", "undetected" and "errored" all count as not stable. pass = fixtures >= 10 AND rate >= bar.
+// FAFF-1276: mode "carried" — pass B saw pass A's findings; `carried` counts cases whose pass-B defect
+// id was an accepted carry and `title_stable` those whose pass-B title alone would have matched, so
+// `stable - title_stable` is what carrying added.
 export function buildFindingIdentityResult(summary, { commit, runAt, model, effort }) {
   const cases = summary.cases
     .filter((cr) => cr.kind === "finding-identity")
@@ -283,7 +286,7 @@ export function buildFindingIdentityResult(summary, { commit, runAt, model, effo
       const rep = (cr.rep_results || [])[0] || {};
       const d = rep.detail;
       if (!d) return { id: cr.case_id, outcome: "errored" };
-      return { id: cr.case_id, outcome: d.outcome, id_a: d.id_a, id_b: d.id_b };
+      return { id: cr.case_id, outcome: d.outcome, id_a: d.id_a, id_b: d.id_b, carried_b: d.carried_b === true, title_stable: d.title_stable === true, refused_carries: d.refused_carries ?? 0 };
     });
   const count = (o) => cases.filter((c) => c.outcome === o).length;
   const fixtures = cases.length;
@@ -291,6 +294,7 @@ export function buildFindingIdentityResult(summary, { commit, runAt, model, effo
   const rate = fixtures ? Math.round((stable / fixtures) * 100) / 100 : 0;
   return {
     kind: "finding-identity",
+    mode: "carried",
     commit,
     run_at: runAt,
     model,
@@ -298,8 +302,12 @@ export function buildFindingIdentityResult(summary, { commit, runAt, model, effo
     fixtures,
     stable,
     drifted: count("drifted"),
+    merged: count("merged"),
     undetected: count("undetected"),
     errored: count("errored"),
+    carried: cases.filter((c) => c.carried_b).length,
+    title_stable: cases.filter((c) => c.title_stable).length,
+    refused_carries: cases.reduce((n, c) => n + (c.refused_carries ?? 0), 0),
     rate,
     bar: FINDING_IDENTITY_BAR,
     pass: fixtures >= FINDING_IDENTITY_MIN_FIXTURES && rate >= FINDING_IDENTITY_BAR,

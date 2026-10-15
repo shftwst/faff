@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence-readiness.js::mistyped pin landing on another ticket-naming commit in resolvewritercommits",
+      "title": "mistyped pin landing on another ticket-naming commit in resolveWriterCommits",
+      "location": "plugin/skills/faff/bin/lib/evidence-readiness.js",
+      "action": "Store each pin's PR number as data and require the pinned subject to carry (#<pr>) as well as (<ticket>).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec (section 1 design principles, section 4 failure modes) deliberately leaves a wrong-but-verifying pin to review of the pin table and fixes the value shape to null or a 40-hex sha, which a {sha, pr} shape would break. Each of the six pins was checked at build time against origin/main's first-parent log and its PR number (#1057, #1053, #1055, #1054, #1062, #1061). A real-checkout test was not added because CI checkouts may be shallow, where every pin falls back by design.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "mistyped pin landing on another ticket-naming commit in resolveWriterCommits",
+          "location": "plugin/skills/faff/bin/lib/evidence-readiness.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1263-evidence-readiness.test.mjs::earlier-commit temp-repo test passes without the pin in faff-1263-evidence-readiness test",
+      "title": "earlier-commit temp-repo test passes without the pin in faff-1263-evidence-readiness test",
+      "location": "test/faff-1263-evidence-readiness.test.mjs",
+      "action": "Add a later follow-up commit naming the ticket so only the pin resolves to the merge.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a follow-up commit after the merge; the newest-match fallback now resolves to the follow-up and oldest-match to the ADR commit, so only the pin yields the asserted merge commit with before_since false. 38/38 pass.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "earlier-commit temp-repo test passes without the pin in faff-1263-evidence-readiness test",
+          "location": "test/faff-1263-evidence-readiness.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence-readiness.js::resolvewriters exported beyond the spec's export list",
+      "title": "resolveWriters exported beyond the spec's export list",
+      "location": "plugin/skills/faff/bin/lib/evidence-readiness.js:346",
+      "action": "Drop the export if unneeded.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The spec's DONE list requires an in-process temp-repo test of resolveWriters with an injected merges argument, which needs the export. Any in-process caller is itself a reviewed code change; no argv flag or environment variable reaches the parameter.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "resolveWriters exported beyond the spec's export list",
+          "location": "plugin/skills/faff/bin/lib/evidence-readiness.js:346",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence-readiness.js::no report signal when a shipped pin degrades to fallback",
+      "title": "no report signal when a shipped pin degrades to fallback",
+      "location": "plugin/skills/faff/bin/lib/evidence-readiness.js",
+      "action": "Add a pin_verified field per writer.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The spec fixes the writers[] record shape as unchanged with no new field (section 3 report shape and a DONE item). A degraded pin shows as a commit differing from WRITER_MERGES in the --json output.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no report signal when a shipped pin degrades to fallback",
+          "location": "plugin/skills/faff/bin/lib/evidence-readiness.js",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence-readiness.js::faff-1268 ships unpinned",
+      "title": "FAFF-1268 ships unpinned",
+      "location": "plugin/skills/faff/bin/lib/evidence-readiness.js",
+      "action": "Pin FAFF-1268 once it merges.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1268 has not merged on origin/main 551bf2eb; the spec's out-of-scope list defers it, and a follow-up step on FAFF-1270 pins it after it merges. Until then it keeps today's fail-closed behaviour.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "FAFF-1268 ships unpinned",
+          "location": "plugin/skills/faff/bin/lib/evidence-readiness.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

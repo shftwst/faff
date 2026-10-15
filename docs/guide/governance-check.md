@@ -112,6 +112,22 @@ equals the job name `governance-check` exactly — a mismatch leaves PRs stuck o
 A broader sweep for other docs still naming the legacy endpoint is tracked separately —
 this guide corrects only its own recipe.
 
+**Require code-owner review on the same ruleset.** GitHub runs the workflow and the
+composite Action from the PR head, so a PR that edits `.github/` can skip or rewrite the
+steps that judge it, including the base-commit evidence leg in section 5. Required review
+from code owners closes that gap: `.github/CODEOWNERS` names the repository's human admins
+for `/.github/` and `/verification/`, and the runner identity is never one of them. The
+file binds only when the ruleset requires it:
+
+1. Settings, Rules, Rulesets, "Main": under "Require a pull request before merging",
+   enable "Require review from Code Owners".
+2. Confirm with `faff branch-protection-check`. The text output ends
+   `code-owner review: required`, and `--json` carries `"code_owner_review": true`
+   (`false` when the pull-request rule does not require it, `null` when no pull-request
+   rule applies).
+
+`faff branch-protection-check` reports the setting and never changes it.
+
 ## 3. Pick your artifact-passing convention
 
 The check reads a PR's carried run dirs — `<artifacts-path>/<run-id>/` directories present
@@ -169,6 +185,57 @@ free-form ref), but only a sha gives you the guarantee:
         with:
           faff-version: "a1b2c3d4e5f6..."   # a commit sha — not a tag
 ```
+
+## 5. Judge anchors with the base commit's validator
+
+Every step before "Run governance-check" runs PR-head code, so a PR could weaken the
+validator, manifest or schemas that judge its own anchors. When a PR's diff touches the
+anchors path, two further steps judge the anchors with the PR **base** commit's faff CLI:
+
+1. **Resolve trusted faff CLI** extracts `plugin/skills/faff` from the base commit with
+   `git archive` (no token, no worktree, no hooks; the workflow's `fetch-depth: 0` already
+   has the history). The PR head's `contracts/evidence-v0.3/` is offered only as candidate
+   schemas, and the base CLI accepts a candidate schema only where the change is additive,
+   such as a new optional, typed, closed property. A base CLI that predates
+   `faff evidence capabilities` gets no candidate schemas. A consumer repo with no
+   in-checkout faff uses the pinned binary from section 4 and gets no candidate schemas.
+2. **Evidence schema (base commit)** re-discovers the anchor dirs with the trusted CLI,
+   runs `faff evidence validate --require-evidence-schema` on each, and writes one summary
+   row per anchor with its status, non-conforming file names and candidate-schema status
+   (`n/a`, `accepted`, `partial` or `rejected`). Reports are captured to temporary files and
+   deleted; only paths, statuses and counts reach the log, never violation text.
+
+Both steps run after the head verb under `!cancelled()`, so a failing head verb or a head
+binary whose discovery prints nothing cannot skip them. The trusted CLI runs from an
+empty working directory with a cleared environment, so a `.faffrc.yaml` or `FAFF_*`
+variable in the PR checkout cannot reach it.
+
+The new `evidence-schema` input decides how schema findings count:
+
+| Value | Schema findings | Integrity findings |
+|---|---|---|
+| `report` (default) | Warning annotation and summary row; the check still passes | Fail the check |
+| `require` | Fail the check; the head verb also gets `--require-evidence-schema` | Fail the check |
+
+Integrity findings fail under either value, since they mean tampering or a broken check
+rather than a writer that has not caught up:
+
+| Finding | Cause |
+|---|---|
+| `anchor-discovery-failed` | `git diff`, `git merge-base` or the trusted `--derive-anchor-dirs` exited non-zero |
+| `evidence-validator-unavailable` | The base commit has no faff CLI to run |
+| `anchor-path-unvalidated <path>` | A changed file under the anchors path sits outside every validated anchor dir (too shallow, dropped by discovery, a quoted non-ASCII name), or is a symlink. A run-level `<anchors>/<run>/summary.md` is exempt |
+| `anchor-immutable <path>` | The PR modifies or deletes a file of an anchor committed at the merge base, or adds a file to one |
+
+Anchors are immutable once merged. To correct evidence found wrong after merge, run a new
+build, which mints a new `<run>/<issue>` anchor beside the old one.
+
+The Action's `verdict` output is `fail` whenever the PR touches anchors and this leg did
+not finish with `verdict=pass`, including when the step errors or is cancelled. The
+`evidence-result` output exposes what the validator found (`pass` or `fail`) in either
+mode. The default stays `report` until committed anchors stop being `legacy`; the later
+enforcement slice switches it to `require`. This leg cannot protect `.github/` itself; the
+code-owner rule in section 2 does.
 
 ## Failure modes worth knowing about
 

@@ -420,9 +420,12 @@ const additiveCases = {
   "new optional property on a nested closed object": (h) => { h.properties.o.properties.z = { type: ["string", "null"] }; return h; },
   "new optional object property with a typed, closed map value": (h) => { h.properties.n = { type: "object", additionalProperties: { type: "string" } }; return h; },
   "new optional closed object property": (h) => { h.properties.n = { type: "object", additionalProperties: false, properties: { q: { type: "integer" } } }; return h; },
+  "new optional array property with closed typed items": (h) => { h.properties.n = { type: "array", items: { type: "string" } }; return h; },
 };
 const nonAdditiveCases = {
   "new property in required": (h) => { h.properties.n = closedString; h.required.push("n"); return h; },
+  "new optional array property with no items": (h) => { h.properties.n = { type: "array" }; return h; },
+  "new optional nullable array property with no items": (h) => { h.properties.n = { type: ["array", "null"] }; return h; },
   "new untyped property": (h) => { h.properties.n = {}; return h; },
   "new property on a map node": (h) => { h.properties.m.properties = { z: closedString }; return h; },
   "new optional object property with additionalProperties {}": (h) => { h.properties.n = { type: "object", additionalProperties: {} }; return h; },

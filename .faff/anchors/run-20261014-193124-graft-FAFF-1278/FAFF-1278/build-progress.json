@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1278",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f1f6d3082a3f9f9f3c631d9bd401a875d646e4760433bebbc8d1bec64f4f8ba2",
+    "branch": "FAFF-1278-anchor-evidence-ci-trust-base-commit-leg",
+    "pushed_at": "2026-10-14T20:36:03.544Z"
+  },
+  "updated_at": "2026-10-14T20:36:03.544Z"
+}

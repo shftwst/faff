@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": ".github/actions/governance-check/action.yml::clean() does not percent-escape annotation data",
+      "title": "clean() does not percent-escape annotation data",
+      "location": ".github/actions/governance-check/action.yml",
+      "action": "Escape % before printing workflow-command data",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "annotate() now escapes % to %25 for every ::error:: and ::warning:: line; summary rows keep the readable name; harness case added (FAFF-3%0Anext)",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "clean() does not percent-escape annotation data",
+          "location": ".github/actions/governance-check/action.yml",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-gate.js::branch-protection-check text renders null code_owner_review as not required",
+      "title": "branch-protection-check text renders null code_owner_review as not required",
+      "location": "plugin/skills/faff/bin/lib/merge-gate.js",
+      "action": "Render null distinctly",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec fixes the text output to two values (required | not required); --json carries null for the no-rule case, and the runbook step turns the rule on, after which the value is true",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "branch-protection-check text renders null code_owner_review as not required",
+          "location": "plugin/skills/faff/bin/lib/merge-gate.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::stale readholdout at --level l4 claim in the governance-check cli row",
+      "title": "stale readHoldout at --level L4 claim in the governance-check CLI row",
+      "location": "docs/guide/cli.md",
+      "action": "Drop the level qualifier",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The row now says the holdout leg is capability-driven at any level",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "stale readHoldout at --level L4 claim in the governance-check CLI row",
+          "location": "docs/guide/cli.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": ".github/actions/governance-check/action.yml::immutability rev-spec breaks on hostile anchor names",
+      "title": "immutability rev-spec breaks on hostile anchor names",
+      "location": ".github/actions/governance-check/action.yml",
+      "action": "Use a path-based lookup",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "git cat-file -e on HEAD:<dir> succeeds for a committed dir named with ~ ^ : * ? [ ] and backslash: the path after <rev>: is read literally",
+      "disposition_rationale": "Reproduced locally in a temp repo",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "immutability rev-spec breaks on hostile anchor names",
+          "location": ".github/actions/governance-check/action.yml",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1278-governance-check-base-commit-leg.test.mjs::codeowners runner-exclusion assertion skipped when no runner login is configured",
+      "title": "CODEOWNERS runner-exclusion assertion skipped when no runner login is configured",
+      "location": "test/faff-1278-governance-check-base-commit-leg.test.mjs",
+      "action": "Fail when the runner login is unresolvable or verify admin status",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "autonomous.runner_github_login is unset in this repo, so there is no runner login to exclude; failing would break every checkout. Owner admin status was read at build time from the collaborators API (alechill, shftwstdev); whether shftwstdev is a human account is raised for the product owner",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "CODEOWNERS runner-exclusion assertion skipped when no runner login is configured",
+          "location": "test/faff-1278-governance-check-base-commit-leg.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": ".github/actions/governance-check/action.yml::trusted derive drop reasons discarded",
+      "title": "trusted derive drop reasons discarded",
+      "location": ".github/actions/governance-check/action.yml",
+      "action": "Keep stderr discarded; coverage findings carry the sanitised path",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Deliberate: derive stderr carries raw PR-authored paths; the coverage check reports each dropped path sanitised and fails closed",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "trusted derive drop reasons discarded",
+          "location": ".github/actions/governance-check/action.yml",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/governance-check.js::evidenceschemaleg parameter shadows require",
+      "title": "evidenceSchemaLeg parameter shadows require",
+      "location": "plugin/skills/faff/bin/lib/governance-check.js",
+      "action": "Rename the parameter",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Renamed to requireSchema",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "evidenceSchemaLeg parameter shadows require",
+          "location": "plugin/skills/faff/bin/lib/governance-check.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::evidence capabilities ignores --json",
+      "title": "evidence capabilities ignores --json",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Keep; document --json as the supported form",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The output is JSON either way; the documented form passes --json",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "evidence capabilities ignores --json",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": ".github/actions/governance-check/action.yml::anchors-path with a ./ prefix gives false coverage failures",
+      "title": "anchors-path with a ./ prefix gives false coverage failures",
+      "location": ".github/actions/governance-check/action.yml",
+      "action": "Normalise anchors-path once in a follow-up if consumers report it",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing shape shared with head discovery; fails closed, never open",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "anchors-path with a ./ prefix gives false coverage failures",
+          "location": ".github/actions/governance-check/action.yml",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

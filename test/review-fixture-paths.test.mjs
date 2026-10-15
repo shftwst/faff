@@ -426,3 +426,20 @@ test("parseArgs: --fixture-path is repeatable and normalised", () => {
   assert.deepEqual(a.fixturePaths, ["eval/cases/", "test/fixtures/"]);
   assert.deepEqual(parseArgs([]).fixturePaths, []);
 });
+
+test("cap: a fixture named by a partial path or its file name alone is still capped in a fixture-only PR", () => {
+  const evalFixture = "eval/cases/x-001.json";
+  const diff = fileDiff(evalFixture, ["{\"code\": \"function findUserByName(name) { return db.query(name); }\"}"]);
+  for (const mention of ["`x-001.json`", "`cases/x-001.json`", "eval/cases"]) {
+    const content = finding("critical", "Bad findUserByName", `Planted in ${mention}.`);
+    const { content: out } = capFixtureFindings(content, diff, [], ["eval/cases/"], root);
+    assert.match(out, /^### minor: \[fixture-data\] Bad findUserByName$/m, mention);
+  }
+});
+
+test("cap: a file name shared by a fixture and a real PR file keeps the critical", () => {
+  const diff = fileDiff("eval/cases/users.js", ["const findUserByName = 1;"])
+    + fileDiff("src/users.js", ["const unrelated = 1;"], { status: "changed" });
+  const content = finding("critical", "Bad findUserByName", "Planted in `users.js`.");
+  assert.equal(capFixtureFindings(content, diff, [], ["eval/cases/"], root).content, content);
+});

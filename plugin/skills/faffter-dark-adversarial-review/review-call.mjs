@@ -1171,8 +1171,12 @@ const PATH_LIKE_RE = /[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+|[A-Za-z0-9_-]+(?:\.[
 function namesRealCode(raw, prPaths, prefixes, repoRoot) {
   for (const m of raw.matchAll(PATH_LIKE_RE)) {
     const p = m[0].replace(/^\.\//, "");
-    if (isFixturePath(p, prefixes)) continue;
-    if (prPaths.some((q) => samePath(q, p))) return true;
+    if (isFixturePath(p, prefixes) || isFixturePath(`${p}/`, prefixes)) continue;
+    const matched = prPaths.filter((q) => samePath(q, p));
+    if (matched.length > 0) {
+      if (matched.some((q) => !isFixturePath(q, prefixes))) return true;
+      continue;
+    }
     try {
       if (existsSync(pathResolve(repoRoot, p))) return true;
     } catch {

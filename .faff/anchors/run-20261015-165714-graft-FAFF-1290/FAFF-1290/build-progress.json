@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1290",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2f4a6be9bb068ad482c27540d43d41803600f6b7aeebcb736b9bdec0ef8c7cb3",
+    "branch": "faff-1290-evidence-readiness-pins-writer-merges",
+    "pushed_at": "2026-10-15T18:01:40.413Z"
+  },
+  "updated_at": "2026-10-15T18:01:40.413Z"
+}

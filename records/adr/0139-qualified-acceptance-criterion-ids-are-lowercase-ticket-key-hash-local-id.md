@@ -1,6 +1,6 @@
 # ADR 0139 — Qualified acceptance-criterion ids are lowercase ticket key, hash, local id
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-15
 - **Issue:** FAFF-1287

@@ -260,7 +260,8 @@ test("computeChurn: earlier rounds resolve a carry; with none, a wrong carry is 
   assert.equal(computeChurn(prev, curr, 2, 3, earlier).churn, false);
   const wrongFile = { findings: [crit("b.js:3", "fd still open", "P1")] };
   const res = computeChurn(prev, wrongFile, 2, 3, earlier);
-  assert.deepEqual([res.churn, res.carried_critical_ids], [true, []]);
+  assert.deepEqual([res.churn, res.carried_critical_ids, res.refused_carries], [true, [], 1]);
+  assert.equal(computeChurn(prev, curr, 2, 3, earlier).refused_carries, 0);
 });
 
 test("smoke (FAFF-1276): review-prior lists the round-2 finding and churn holds steady across the carry", () => {

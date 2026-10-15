@@ -49,6 +49,10 @@ function standingCriticals(findings, entries) {
   return { ids: Array.from(ids).sort(), carried: Array.from(carried).sort() };
 }
 
+function refusedCarries(entries) {
+  return entries.filter((e) => e.carry === "refused").length;
+}
+
 function findingsOf(record) {
   return record && Array.isArray(record.findings) ? record.findings : [];
 }
@@ -66,12 +70,14 @@ function findingsOf(record) {
 //                       carried id resolves through the whole chain (FAFF-1276).
 // Pure: no I/O. Ids come from `resolveRoundChain` over `[...earlier, prev, curr]`. `churn` is true
 // iff `curr`'s standing-critical id set contains an id that was NOT standing-critical in `prev`.
+// `refused_carries` counts `curr`'s refused carries, so a reviewer whose carries keep failing shows.
 function computeChurn(prev, curr, prevRoundNumber, currRoundNumber, earlier = []) {
   const currToken = currRoundNumber != null ? currRoundNumber : "curr";
   const currFindings = findingsOf(curr);
   if (prev === null || prev === undefined) {
-    const currSet = standingCriticals(currFindings, resolveRoundChain([{ round: currToken, findings: currFindings }])[0]);
-    return { churn: false, prev_critical_ids: [], curr_critical_ids: currSet.ids, new_critical_ids: [], carried_critical_ids: currSet.carried, reason: "no prior round on disk" };
+    const currEntries = resolveRoundChain([{ round: currToken, findings: currFindings }])[0];
+    const currSet = standingCriticals(currFindings, currEntries);
+    return { churn: false, prev_critical_ids: [], curr_critical_ids: currSet.ids, new_critical_ids: [], carried_critical_ids: currSet.carried, refused_carries: refusedCarries(currEntries), reason: "no prior round on disk" };
   }
   const prevFindings = findingsOf(prev);
   const chain = [
@@ -89,7 +95,7 @@ function computeChurn(prev, curr, prevRoundNumber, currRoundNumber, earlier = []
   const reason = churn
     ? `new standing-critical finding_id(s) since round ${roundLabel}: ${newIds.join(", ")}`
     : `standing-critical finding_id set held steady or shrank since round ${roundLabel}`;
-  return { churn, prev_critical_ids: prevIds, curr_critical_ids: currSet.ids, new_critical_ids: newIds, carried_critical_ids: currSet.carried, reason };
+  return { churn, prev_critical_ids: prevIds, curr_critical_ids: currSet.ids, new_critical_ids: newIds, carried_critical_ids: currSet.carried, refused_carries: refusedCarries(resolved[resolved.length - 1]), reason };
 }
 
 // ---------------------------------------------------------------------------

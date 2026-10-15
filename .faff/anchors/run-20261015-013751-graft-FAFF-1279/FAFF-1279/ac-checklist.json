@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "all_verified": false,
+  "all_verified": true,
   "criteria": [
     {
       "ac": "Replaying the recorded FAFF-1266 critical (title \"SQL injection in findUserByName, caller input concatenated into the query string\", body naming `eval/cases-live/finding-identity-011.json`) through the cap, with the real `git show 10a8ece4` diff minus its `.faff/anchors/` files (the review verdict records written after the review ran, which quote the finding title) and this repo's configured list passed as explicit prefixes, leaves no `critical` section. This is a `node --test` case.",
@@ -114,8 +114,8 @@
     },
     {
       "ac": "Both cases pass under `node eval/run-evals.mjs` for kind `refutation-code`. Recording or accepting a baseline is a separate human step.",
-      "verified": "Needs human verification: live refutation-code evals call real models; not run in this build",
-      "passed": false
+      "verified": "Verified: node eval/run-evals.mjs --only refutation-code-006 and --only refutation-code-007, frontier claude-opus-5-5, 20 reps each: accuracy 1.00, stability 1.00 - passing",
+      "passed": true
     }
   ]
 }

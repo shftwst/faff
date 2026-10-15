@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "The command exits 0 on a valid input",
+      "verified": "passing; exit 0",
+      "passed": true,
+      "ac_id": "faff-1287#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/example.test.mjs::exits 0 on a valid input"
+        },
+        {
+          "kind": "command",
+          "locator": "node bin/example --check"
+        }
+      ]
+    },
+    {
+      "ac": "The layout reads well on a phone",
+      "verified": "Needs human verification: visual inspection",
+      "passed": false,
+      "ac_id": "faff-1287#ac-2",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    }
+  ]
+}

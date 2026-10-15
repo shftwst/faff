@@ -382,25 +382,22 @@ For each AC in the spec:
 
 The **full suite + lint** backstop already ran once as Step 7.5's UNIT and LINT rungs — reuse that result here rather than running it again. A green per-AC test doesn't prove you didn't break something elsewhere; the ladder's full run is that local backstop before CI. (If Step 7.5 was advisory-only at L1–L2 and you added per-AC tests after it ran, re-run `faff gates run` so the UNIT rung covers the new tests.)
 
-The PR description must include an AC checklist:
+The PR description's `## Acceptance Criteria` block is printed by `faff evidence render ac-checklist` from the written anchor. Never hand-write it.
 
-```markdown
-## Acceptance Criteria
-- [x] AC 1 — <description>
-      Verified: `test/foo.test.ts::test_ac1` — passing
-- [x] AC 2 — <description>
-      Verified: `curl -s https://api.example.com/foo | jq .status` → `"ok"`
-- [ ] AC 3 — <description>
-      **Needs human verification:** requires visual inspection of layout
-- [ ] AC 4 — <description>
-      **Needs human verification:** requires production auth credentials
-```
+- **Source.** Take the AC list from `faff dod classify --spec <spec> --issue <ISSUE> --json`: its `done` criteria in order, each with `text` and the qualified `ac_id` (for example `faff-1287#ac-3`).
+- **Verify and note.** Tick each AC as its verification passes, with a one-line `verified` note (test result, or command + observed result). An AC that cannot be auto-verified (visual, subjective, auth-required) stays unticked with `"Needs human verification: <reason>"`.
+- **Record methods.** `verifications` lists each method used: `{ "kind": "test", "locator": "<file>::<test title>" }` (repo-relative file, the test's own title), `{ "kind": "command", "locator": "<exact command>" }`, or `{ "kind": "human" }` (no locator).
+- **Secrets.** A `command` locator names a secret by environment variable (`$TOKEN`), never by value. It is committed in the anchor and published in the PR body.
 
-Tick each box as its verification passes, with a one-line note (test file reference, or command + observed result). ACs that cannot be auto-verified (visual, subjective, auth-required) remain unchecked with an inline note explaining why.
+**Persist the AC result as a floor artifact, then render it.** Build `{ "all_verified": <bool>, "criteria": [ { "ac": <the criterion's `text`>, "verified": <the note>, "passed": <`true` only when auto-verified>, "ac_id": <its `ac_id`>, "verifications": [ … ] } ] }`, with `ac` and `verified` on one line and `all_verified` = every criterion `passed`. For a **zero-AC issue** omit the `criteria` key (never `[]`).
 
-This checklist text is included in the whole-body citation-hygiene pass Step 9b runs on the composed PR body before it reaches `gh pr create` — nothing separate to do here; see Step 9b for the mechanism.
+1. Pipe it to `faff evidence write ac-checklist --run-dir "$run_dir" --issue <ISSUE>`, the sole writer of `<run-dir>/<ISSUE>/ac-checklist.json`. It stamps `schema_version`, fixes the key order and refuses (exit 1, nothing written) a disagreeing `all_verified`, a malformed or mismatched `ac_id`, or a rule-breaking method. A non-zero exit is logged and leaves no file; never hand-write a fallback.
+2. Run `faff evidence render ac-checklist --run-dir "$run_dir" --issue <ISSUE>` and place its output in the PR body unchanged.
+3. If the writer refused, the PR body's `## Acceptance Criteria` section is one line saying the checklist was refused and why. Write no list.
 
-**Persist the AC result as a floor artifact.** Build `{ "all_verified": <bool>, "criteria": [ … ] }` from the **same per-AC source** as the `## Acceptance Criteria` block (one home for the prose — never author the JSON and the PR-body box independently): per AC in PR-body order `{ "ac": <criterion line>, "verified": <the same box note — the `Verified:` evidence, or `"Needs human verification: <reason>"` when unchecked>, "passed": <`true` only when auto-verified> }`, and `all_verified` = every criterion `passed`. For a **zero-AC issue** omit the `criteria` key (never `[]`). Pipe it to `faff evidence write ac-checklist --run-dir "$run_dir" --issue <ISSUE>`, the sole writer of `<run-dir>/<ISSUE>/ac-checklist.json`: it stamps `schema_version`, fixes the key order and refuses (exit 1, nothing written) an `all_verified` that disagrees with the criteria. A non-zero exit is logged and leaves no file; never hand-write a fallback. This is the artifact `faff merge-gate` re-reads at merge; a missing/unreadable/malformed file is fail-closed to not-verified. (Evidence class per gateway → **Run-artifact write authority**: under a dispatched autonomous lane it must ultimately be written by the trusted side; today's in-lane write is the sanctioned rung-0 posture until the mandated relocation follow-up lands, and interactive top-level graft writes it directly regardless.)
+The anchor is the artifact `faff merge-gate` re-reads at merge; a missing/unreadable/malformed file is fail-closed to not-verified. (Evidence class per gateway → **Run-artifact write authority**: under a dispatched autonomous lane it must ultimately be written by the trusted side; today's in-lane write is the sanctioned rung-0 posture until the mandated relocation follow-up lands, and interactive top-level graft writes it directly regardless.)
+
+The rendered block goes through the whole-body citation-hygiene pass Step 9b runs on the composed PR body; nothing separate to do here. Lowercase AC ids pass it unchanged.
 
 This step runs in **both** interactive and autonomous modes.
 

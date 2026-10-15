@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,14 +22,14 @@ function run(cwd, ...args) {
 }
 function seed() { return mkdtempSync(join(tmpdir(), "faff387gi-")); }
 
-test("the canonical set is [.faffrc, .faffrc.yml, .faffrc.*.yaml, !.faffrc.example.yaml, .faff/*, !.faff/anchors/] — .faffrc.yaml is NOT in it (FAFF-548/FAFF-568)", () => {
+test("the canonical root set is [.faffrc, .faffrc.yml, .faffrc.*.yaml, !.faffrc.example.yaml]; .faffrc.yaml is NOT in it (FAFF-548/FAFF-1299)", () => {
   const dir = seed();
   try {
     const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
     const set = [...res.added, ...res.already];
-    // FAFF-568: the local-artifacts dir is ignored as `.faff/*` (contents glob), NOT
-    // `.faff/`, so the `!.faff/anchors/` carve-out can re-include the committed anchors.
-    assert.deepEqual(set.sort(), [".faff/*", "!.faff/anchors/", ".faffrc", ".faffrc.*.yaml", "!.faffrc.example.yaml", ".faffrc.yml"].sort());
+    // FAFF-1299: the `.faff/` rules moved to the committed `.faff/.gitignore`.
+    assert.deepEqual(set.sort(), [".faffrc", ".faffrc.*.yaml", "!.faffrc.example.yaml", ".faffrc.yml"].sort());
+    assert.deepEqual([...res.faff_dir.added, ...res.faff_dir.already], ["/*", "!/.gitignore", "!/anchors/", "!/templates/", "!/decisions.md", "!/conventions.md"]);
     assert.ok(!set.includes(".faff/"), "a bare `.faff/` (which would block the anchors carve-out) must NOT be in the set");
     assert.ok(!set.includes(".faffrc.yaml"), "the committable base `.faffrc.yaml` must NOT be in the ignore set");
     assert.ok(!set.includes(".faffrc.local.yaml"), "the exact-local literal is replaced by the glob");
@@ -78,8 +78,8 @@ test("git semantics: real `git check-ignore` honours the glob + negation on a fr
     assert.ok(!ignored(".faffrc.yaml"), "the committable base .faffrc.yaml is tracked");
     assert.ok(!ignored(".faffrc.example.yaml"), "the tracked template is re-included by the negation");
     // FAFF-568: the anchors carve-out — everything under `.faff/` stays ignored EXCEPT
-    // the committed per-PR chain anchors (git's parent-exclusion rule means this only
-    // works because the dir is ignored as `.faff/*`, never a bare `.faff/`).
+    // the committed per-PR chain anchors. FAFF-1299: the rules now live in the
+    // committed `.faff/.gitignore` (anchored `/*` + `!/anchors/`), not the root file.
     assert.ok(ignored(".faff/runs/run1/events.jsonl"), "run artifacts under .faff stay ignored");
     assert.ok(ignored(".faff/logs/2026-07-23/x.md"), "logs under .faff stay ignored");
     assert.ok(!ignored(".faff/anchors/run1/FAFF-1/events.jsonl"), "the anchors carve-out is committable (FAFF-568)");
@@ -99,8 +99,10 @@ test("idempotent: a second run is a byte-identical no-op", () => {
   try {
     run(dir, "gitignore-ensure");
     const first = readFileSync(join(dir, ".gitignore"));
+    const firstFaff = readFileSync(join(dir, ".faff", ".gitignore"));
     run(dir, "gitignore-ensure");
     assert.deepEqual(readFileSync(join(dir, ".gitignore")), first, ".gitignore byte-identical after a re-run");
+    assert.deepEqual(readFileSync(join(dir, ".faff", ".gitignore")), firstFaff, ".faff/.gitignore byte-identical after a re-run");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -174,14 +176,108 @@ test("--local idempotent: a second run is a byte-identical no-op", () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("standard mode (no --local) still writes .gitignore with the carve-out intact (regression), even inside a git repo", () => {
+test("standard mode (no --local) writes both targets, the carve-out in .faff/.gitignore (regression), even inside a git repo", () => {
   const dir = gitSeed();
   try {
     const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
     assert.equal(res.path, join(dir, ".gitignore"));
     const set = [...res.added, ...res.already];
     assert.ok(!set.includes(".faffrc.yaml"), "standard mode never ignores the committable base");
-    assert.ok(set.includes("!.faff/anchors/"), "standard mode keeps the anchors carve-out");
-    assert.ok(set.includes(".faff/*"), "standard mode keeps the contents-only glob, not .faff/");
+    assert.ok(!set.includes("!.faff/anchors/") && !set.includes(".faff/*"), "the root set no longer carries the .faff rules");
+    assert.ok(res.faff_dir.added.includes("!/anchors/"), "the anchors carve-out lands in .faff/.gitignore");
+    assert.ok(res.faff_dir.added.includes("/*"), "the contents-only glob is anchored, not .faff/");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1299: the `.faff/` rules live in a committed `.faff/.gitignore`.
+// ---------------------------------------------------------------------------
+
+function ignoredBy(dir, f) {
+  try { return execFileSync("git", ["check-ignore", "-v", f], { cwd: dir, encoding: "utf8" }).trim(); }
+  catch (e) { if (e.status === 1) return null; throw e; }
+}
+function isIgnored(dir, f) {
+  try { execFileSync("git", ["check-ignore", "-q", f], { cwd: dir }); return true; }
+  catch (e) { if (e.status === 1) return false; throw e; }
+}
+function seedFaffFiles(dir) {
+  for (const f of [".faff/anchors/run-1/FAFF-1/events.jsonl", ".faff/runs/run-1/events.jsonl", ".faff/logs/2026-10-15/x.md"]) {
+    mkdirSync(dirname(join(dir, f)), { recursive: true });
+    writeFileSync(join(dir, f), "{}\n");
+  }
+}
+function assertFaffPolicy(dir) {
+  assert.ok(isIgnored(dir, ".faff/runs/run-1/events.jsonl"), "runs ignored");
+  assert.ok(isIgnored(dir, ".faff/logs/2026-10-15/x.md"), "logs ignored");
+  assert.ok(!isIgnored(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"), "anchors committable");
+  assert.ok(!isIgnored(dir, ".faff/.gitignore"), ".faff/.gitignore committable");
+}
+
+test("FAFF-1299 git semantics: .faff/.gitignore alone ignores runs and logs, frees anchors and itself", () => {
+  const dir = gitSeed();
+  try {
+    run(dir, "gitignore-ensure");
+    seedFaffFiles(dir);
+    assertFaffPolicy(dir);
+    assert.match(ignoredBy(dir, ".faff/runs/run-1/events.jsonl"), /^\.faff\/\.gitignore:/, "the faff file is the source");
+    assert.doesNotMatch(readFileSync(join(dir, ".gitignore"), "utf8"), /^!?\.faff(?!rc)/m, "root file carries no .faff line");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1299 migration: legacy root lines are kept and .faff/.gitignore overrides them", () => {
+  const dir = gitSeed();
+  try {
+    const legacy = ".faff/*\n!.faff/anchors/\n";
+    writeFileSync(join(dir, ".gitignore"), legacy);
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    seedFaffFiles(dir);
+    assertFaffPolicy(dir);
+    assert.ok(readFileSync(join(dir, ".gitignore"), "utf8").startsWith(legacy), "legacy lines kept byte-for-byte");
+    assert.deepEqual(res.warnings, [], ".faff/* is the correct spelling");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1299 git status lists .faff/.gitignore as an addition on a fresh repository", () => {
+  const dir = gitSeed();
+  try {
+    run(dir, "gitignore-ensure");
+    const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], { cwd: dir, encoding: "utf8" });
+    assert.match(status, /^\?\? \.faff\/\.gitignore$/m);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1299 partial hazard `.faff/**`: faff file is read, nested anchors stay ignored by the root line, one warning", () => {
+  const dir = gitSeed();
+  try {
+    writeFileSync(join(dir, ".gitignore"), ".faff/**\n");
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    seedFaffFiles(dir);
+    assert.equal(res.warnings.length, 1);
+    assert.match(ignoredBy(dir, ".faff/.gitignore"), /^\.faff\/\.gitignore:/);
+    assert.match(ignoredBy(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"), /^\.gitignore:1:\.faff\/\*\*/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1299 full hazard `**/.faff/`: exits 0, writes the faff file, warns once naming the line and `.faff/*`", () => {
+  const dir = gitSeed();
+  try {
+    writeFileSync(join(dir, ".gitignore"), "**/.faff/\n");
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.ok(existsSync(join(dir, ".faff", ".gitignore")));
+    assert.equal(res.warnings.length, 1);
+    assert.ok(res.warnings[0].includes("`**/.faff/`") && res.warnings[0].includes("`.faff/*`"));
+    const text = run(dir, "gitignore-ensure");
+    assert.match(text, /^warning: .*`\*\*\/\.faff\/`/m, "human output prints the warning after the target lines");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1299 --local creates neither .faff/.gitignore nor .faff/, and reports faff_dir null", () => {
+  const dir = gitSeed();
+  try {
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--local", "--json"));
+    assert.equal(res.faff_dir, null);
+    assert.deepEqual(res.warnings, []);
+    assert.ok(!existsSync(join(dir, ".faff")));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

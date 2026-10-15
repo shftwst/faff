@@ -1,6 +1,6 @@
 # ADR 0138 — Review config that lowers finding severity is read from the review base ref
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-15
 - **Issue:** FAFF-1279

@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "For one rendered and sanitized PR body and its `ac-checklist.json`, every `criteria[].ac_id` string appears byte for byte, in the same order, in the PR body's `## Acceptance Criteria` block. A test runs the renderer, then `sanitizePrBody` with the issue as target, then compares.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::every ac_id survives render and the PR-body sanitizer byte for byte, in order"
+        }
+      ]
+    },
+    {
+      "ac": "`ac-id.js` exists, requires no local module or package, and carries a governance region banner. `faff regions check` passes.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ac-id.test.mjs::ac-id.js requires nothing and carries a governance region banner"
+        },
+        {
+          "kind": "command",
+          "locator": "faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`qualifyAcId(\"FAFF-1287\", \"ac-3\")` returns `faff-1287#ac-3`, and `qualifyAcId(\"FAFF-1287\", \"done:2\")` returns `faff-1287#done:2`. An issue that doesn't match `[A-Z][A-Z0-9]{1,15}-[1-9][0-9]*` throws. A test asserts that the helper's issue grammar has the same source as `TARGET_RE` in `pr-body.js`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ac-id.test.mjs::qualifyAcId lowercases the ticket and keeps local and positional ids"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ac-id.test.mjs::the helper's issue grammar has the same source as TARGET_RE"
+        }
+      ]
+    },
+    {
+      "ac": "`parseAcId` returns `{ ticket: \"FAFF-1287\", local: \"ac-3\" }` for `faff-1287#ac-3`. It rejects `FAFF-1287#AC-3`, `faff-1287#ac-03` and `faff-1287#ac-3 ` (with a trailing space).",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ac-id.test.mjs::parseAcId returns the ticket and local id, and rejects near misses"
+        }
+      ]
+    },
+    {
+      "ac": "`sanitizePrBody` leaves `faff-1287#ac-3` and `faff-1287#done:3` unchanged, both inside and outside code spans. A test pins this.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ac-id.test.mjs::sanitizePrBody leaves lowercase qualified ids unchanged, in and out of code spans"
+        }
+      ]
+    },
+    {
+      "ac": "Both copies of `ac-checklist.schema.json` gain two keys under `criteria.items.properties`: `ac_id` (string or null, with the qualified-id pattern) and `verifications` (list or null, `minItems` 1; each item is closed, requires `kind` with enum `test|command|human`, and allows a string `locator`). Neither key is in `required`, the `schema_version` enum stays `[1]`, and the two copies stay byte-identical.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::both schema copies gain optional ac_id and verifications and stay byte-identical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::the schema rejects a malformed id, an empty list, an unknown kind and an extra method key"
+        }
+      ]
+    },
+    {
+      "ac": "`classifySchemaChange(old ac-checklist schema, new schema)` returns `additive: true`, and `anchor-manifest.json` is unchanged.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::adding the two keys classes as an additive schema change"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::anchor-manifest.json is unchanged and the two v0.3 trees agree on every changed file"
+        }
+      ]
+    },
+    {
+      "ac": "The existing `ac-checklist.example.json`, which has no new keys, still validates. A new example carrying `ac_id` plus one `test`, one `command` and one `human` method validates. The invalid example still fails.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::the old example, the new example and the invalid example behave against the schema"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence write ac-checklist` keeps `ac_id` and `verifications` and emits both on every criterion, as `null` when the input omits them.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::the writer keeps ac_id and verifications and emits both on every criterion, null when omitted"
+        }
+      ]
+    },
+    {
+      "ac": "The writer refuses each of these with exit 1 and writes nothing: some `ac_id` values strings and others null; a duplicate `ac_id`; an `ac_id` whose ticket differs from `--issue`; a `test` method with no `::`, an absolute path, a `..` segment or an empty title; a `command` method with an empty or multi-line locator; a `human` method with a locator; an `ac` or `verified` value containing CR or LF. No refusal message contains the locator value.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::the writer refuses each rule break with exit 1, writes nothing and never echoes a locator"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence render ac-checklist --run-dir <dir> --issue <id>` prints the Appendix A block for a valid anchor and exits 0. For a missing anchor, one that fails its schema, or one that breaks a writer rule (for example a `human` method with a locator, or a multi-line `verified`), it prints nothing and exits 1. On a usage or path-guard fault, it exits 2.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::render prints the Appendix A block for a valid anchor and exits 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::render prints nothing and exits 1 for a missing, schema-invalid or rule-breaking anchor"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::render exits 2 on a usage or path-guard fault"
+        }
+      ]
+    },
+    {
+      "ac": "For an anchor with zero ACs, the renderer prints the heading plus `No acceptance criteria.` For an older anchor without the new keys, it prints lines with no id and no method lines.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::render handles a zero-AC anchor and an older anchor without the new keys"
+        }
+      ]
+    },
+    {
+      "ac": "`faff dod classify` adds `local_ac_id` to every DONE criterion, and adds `ac_id` when `--issue` is passed. `text` has the leading `[ac-N] ` removed. Against the current selftest fixtures, `id`, `class`, `holdout`, the counts and every Scenarios criterion are unchanged.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::dod classify adds local_ac_id, and ac_id with --issue, and strips the leading id from text"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::authoring ids changes neither id, class, holdout nor the counts"
+        }
+      ]
+    },
+    {
+      "ac": "An uppercase `[AC-2]`, a leading-zero `[ac-03]`, a malformed `[ac-2x]`, a duplicated `[ac-2]`, and a mix of items with and without authored ids each print the stated stderr advisory, fall back to `done:N` for the affected items and exit 0.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::near misses, duplicates and mixed ids fall back to done:N with an advisory and exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "Step 8 of `faff-graft/SKILL.md` takes ACs from `faff dod classify --issue`, builds `ac_id` and `verifications`, writes the anchor, then renders the PR-body block with `faff evidence render ac-checklist`. The hand-written `AC 1` template is gone. When the writer refuses, the PR body gets the one-line note and no hand-written list. Step 8 states that a `command` locator names secrets by environment variable.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes for every edited `SKILL.md`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` describes the new writer keys, the `render` action and the `--issue` flag on `dod classify`. Both copies of `evidence-documents.md` describe `ac_id` and `verifications`. The v0.3 README notes that this slice extended v0.3 in place.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::the CLI guide and both evidence-documents copies describe the new keys and the render action"
+        }
+      ]
+    },
+    {
+      "ac": "`readAcComplete` and the governance-check `merge_floor` leg return the same results for anchors with and without the new keys. The existing tests cover the old shape, plus one new fixture in the new shape.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1287#ac-20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::readAcComplete returns the same result with and without the new keys"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence --selftest`, `faff admissible --selftest` and the full test suite pass on Node 20.",
+      "verified": "selftests pass; full suite 6742 of 6748 pass, 0 fail, 6 skipped, on Node 22 (the Node 20 floor was not run locally)",
+      "passed": true,
+      "ac_id": "faff-1287#ac-21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff evidence --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "faff admissible --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-concurrency=8 --test-shard=1/2"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-concurrency=8 --test-shard=2/2"
+        }
+      ]
+    }
+  ]
+}
